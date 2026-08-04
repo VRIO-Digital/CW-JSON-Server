@@ -1,0 +1,210 @@
+/* Profiled column dictionary: facet chips, then dataset → table → columns. */
+
+.pc-panel {
+  margin-top: var(--sp-4);
+}
+
+/* ---- Facet chips ---- */
+
+.pc-facets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.pc-chip {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid #dde2ea;
+  border-radius: 999px;
+  background: #fff;
+  color: #4b5a75;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.pc-chip:hover {
+  border-color: #f4562b;
+  color: #f4562b;
+}
+
+.pc-chip.is-active {
+  border-color: #f4562b;
+  background: #f4562b;
+  color: #fff;
+}
+
+.pc-chip-count {
+  margin-left: var(--sp-1);
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-summary.ant-typography {
+  margin: 0 0 var(--sp-5);
+  font-size: 12.5px;
+  color: #97a1b2;
+}
+
+/* ---- Dataset group ---- */
+
+.pc-dataset {
+  margin-bottom: var(--sp-6);
+}
+
+.pc-dataset-head {
+  margin-bottom: var(--sp-3);
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 13.5px;
+}
+
+.pc-dataset-name {
+  font-weight: 700;
+  color: #f4562b;
+}
+
+.pc-dataset-meta {
+  margin-left: var(--sp-2);
+  color: #97a1b2;
+}
+
+/* ---- Table card ---- */
+
+.pc-table-card {
+  margin-bottom: var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-inner);
+  overflow: hidden;
+}
+
+.pc-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: 0;
+  background: #fafbfc;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pc-table-head:hover {
+  background: #f5f7fa;
+}
+
+.pc-table-left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.pc-caret {
+  font-size: 11px;
+  color: #8994a8;
+  transform: rotate(-90deg);
+  transition: transform 140ms ease;
+}
+
+.pc-caret.is-open {
+  transform: rotate(0deg);
+}
+
+.pc-kind {
+  margin: 0;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.pc-table-name {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 13px;
+  color: #0f1729;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pc-table-meta {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: #aab2c0;
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-none.ant-typography {
+  margin: 0;
+  padding: var(--sp-4);
+  font-size: 12.5px;
+  color: #aab2c0;
+}
+
+/* ---- Column rows ---- */
+
+.pc-columns .ant-table-thead > tr > th {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+}
+
+.pc-name {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: #1f2a3c;
+}
+
+.pc-type {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 12px;
+  color: #4b5a75;
+}
+
+.pc-desc,
+.pc-class {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pc-conf {
+  font-size: 11px;
+  color: #aab2c0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Class is a category label, not a status — kept neutral so the reserved
+   status hues stay meaningful. */
+.pc-class-tag {
+  margin: 0;
+  font-size: 11.5px;
+  background: #f2f4f7;
+  border-color: #e4e8ee;
+  color: #4b5a75;
+}
+
+.pc-class-tag.is-identifier {
+  background: #eaf1fd;
+  border-color: #d8e5fb;
+  color: #1d4ed8;
+}
+
+.pc-class-tag.is-measure {
+  background: #eef7f1;
+  border-color: #dcecE2;
+  color: #0f7b4f;
+}
+
+.pc-dash {
+  color: #cdd4de;
+}
+
+.pc-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  color: #4b5a75;
+}

@@ -1,0 +1,201 @@
+/* Data Catalogue: source list on the left, detail panel on the right. */
+
+/* ---- Source list ---- */
+
+.cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.cat-source {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1.5px solid #e9ecf1;
+  border-radius: var(--radius-card);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.cat-source:hover {
+  border-color: #cdd4de;
+}
+
+.cat-source.is-active {
+  border-color: #f4562b;
+  box-shadow: 0 0 0 3px rgba(244, 86, 43, 0.08);
+}
+
+/* Holds the vendor mark, so no colour is forced onto the SVG. */
+.cat-source-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #eef3fb;
+}
+
+.cat-source-body {
+  min-width: 0;
+}
+
+.cat-source-id {
+  display: block;
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f1729;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-source-meta {
+  display: block;
+  margin-top: var(--sp-1);
+  font-size: 12.5px;
+  color: #8994a8;
+}
+
+.cat-list-note.ant-typography {
+  margin-top: var(--sp-1);
+  font-size: 12.5px;
+  color: #aab2c0;
+}
+
+/* ---- Detail panel ---- */
+
+.cat-detail {
+  padding: var(--sp-6);
+  background: #fff;
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-card);
+}
+
+.cat-detail-head {
+  margin-bottom: var(--sp-5);
+}
+
+.cat-detail-id.ant-typography {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #0f1729;
+}
+
+/* height:100% so the four tiles in a Row line up regardless of value length. */
+.cat-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  height: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-inner);
+}
+
+.cat-stat-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #4b5a75;
+}
+
+.cat-stat-value {
+  font-size: 27px;
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: #0f1729;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A project id is an identifier, not a magnitude — smaller, monospaced. */
+.cat-stat-value.is-mono {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  word-break: break-all;
+}
+
+.cat-stat-note {
+  font-size: 12px;
+  color: #97a1b2;
+}
+
+.cat-actions {
+  margin-bottom: var(--sp-1);
+}
+
+.cat-detail-foot.ant-typography {
+  margin: var(--sp-4) 0 0;
+  font-size: 13px;
+  color: #97a1b2;
+}
+
+/* ---- Browse / columns panel ---- */
+
+.cat-browse {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-inner);
+}
+
+.cat-browse-hint.ant-typography {
+  margin: 0 0 var(--sp-3);
+  font-size: 13px;
+  color: #6b7689;
+}
+
+.cat-tree-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  width: 100%;
+}
+
+.cat-tree-dataset {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 13px;
+  color: #0f1729;
+}
+
+.cat-tree-table {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: 12.5px;
+  color: #4b5a75;
+}
+
+.cat-tree-kind {
+  margin-right: var(--sp-2);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cat-tree-count {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: #aab2c0;
+  font-variant-numeric: tabular-nums;
+}
+
+.cat-browse-foot {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid #f0f2f5;
+}
+

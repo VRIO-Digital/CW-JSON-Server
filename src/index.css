@@ -1,0 +1,58 @@
+/*
+ * Component styling lives in the antd theme (src/theme.ts). This file covers
+ * the document shell, the shared spacing scale, and the one data mark antd has
+ * no component for.
+ */
+
+:root {
+  /*
+   * 4px spacing scale. Every margin, padding and gap in this app comes from
+   * here — keep it in step with SP in src/theme.ts, which feeds the same values
+   * to antd's gutter/gap props.
+   */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 48px;
+
+  --radius-card: 12px;
+  --radius-inner: 10px;
+
+  --mono: ui-monospace, 'SF Mono', Consolas, monospace;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+/* Span waterfall bar — an offset duration mark inside an antd Table cell. */
+
+.span-track {
+  position: relative;
+  height: 10px;
+  min-width: 120px;
+  background: #f2f4f7;
+  border-radius: 3px;
+}
+
+/* Vertical rhythm between the stacked cards that make up a page section. */
+.section-stack > * + * {
+  margin-top: var(--sp-5);
+}
+
+.span-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 3px;
+}

@@ -1,0 +1,116 @@
+/* db.json editor: key list on the left, JSON text area on the right. */
+
+.db-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.db-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1.5px solid #e9ecf1;
+  border-radius: var(--radius-inner);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.db-section:hover {
+  border-color: #cdd4de;
+}
+
+.db-section.is-active {
+  border-color: #f4562b;
+  box-shadow: 0 0 0 3px rgba(244, 86, 43, 0.08);
+}
+
+.db-section-name {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f1729;
+}
+
+.db-section-meta {
+  font-size: 11.5px;
+  color: #97a1b2;
+  font-variant-numeric: tabular-nums;
+}
+
+.db-optional {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.db-path.ant-typography {
+  display: block;
+  margin-top: var(--sp-3);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #aab2c0;
+  word-break: break-all;
+}
+
+/* ---- Editor ---- */
+
+.db-editor {
+  background: #fff;
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.db-editor-bar {
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid #e9ecf1;
+  background: #fafbfc;
+}
+
+.db-editing.ant-typography {
+  font-family: var(--mono);
+  font-size: 13.5px;
+}
+
+.db-valid.ant-typography {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 12.5px;
+  color: #0f7b4f;
+}
+
+.db-invalid.ant-typography {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 12.5px;
+  color: #b42318;
+}
+
+/* Borderless so the text area reads as the card's body, not a nested field. */
+.db-editor .db-textarea.ant-input {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--sp-4);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  tab-size: 2;
+  resize: vertical;
+}
+
+.db-editor .db-textarea.ant-input:focus {
+  box-shadow: none;
+}

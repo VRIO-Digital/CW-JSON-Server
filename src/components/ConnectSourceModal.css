@@ -1,0 +1,16 @@
+/*
+ * Connector picker cards. The "vision" variant is dimmed to read as
+ * unavailable, but stays clickable so it can explain why.
+ */
+
+.connector-card.is-vision {
+  background: #fafbfc;
+}
+
+.connector-card.is-vision .ant-typography {
+  color: #aab2c0;
+}
+
+.connector-card.is-vision:hover .ant-typography {
+  color: #8994a8;
+}

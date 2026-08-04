@@ -1,0 +1,50 @@
+.app-content {
+  padding: var(--sp-7) var(--sp-7) var(--sp-9);
+}
+
+/* antd Layout.Header defaults to a tall dark bar — this is a compact light one. */
+.mobile-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: 56px;
+  padding: 0 var(--sp-4);
+  background: #fff;
+  border-bottom: 1px solid #e9ecf1;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.mobile-menu-btn {
+  display: inline-flex;
+  padding: var(--sp-2);
+  border: 1px solid var(--border-strong, #dde2ea);
+  border-radius: var(--radius-inner);
+  background: #fff;
+  color: #4b5a75;
+  cursor: pointer;
+}
+
+.mobile-menu-btn:hover {
+  color: #f4562b;
+  border-color: #f4562b;
+}
+
+.mobile-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f1729;
+}
+
+@media (max-width: 991px) {
+  .app-content {
+    padding: var(--sp-5) var(--sp-5) var(--sp-8);
+  }
+}
+
+@media (max-width: 575px) {
+  .app-content {
+    padding: var(--sp-4) var(--sp-4) var(--sp-7);
+  }
+}

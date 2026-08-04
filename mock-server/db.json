@@ -1,0 +1,1272 @@
+{
+  "google_account": {
+    "email": "karthik.mahadeva@vriodigital.com",
+    "name": "Karthik Mahadeva",
+    "picture": null
+  },
+  "credentials": [
+    {
+      "project_id": "context-weave-dev",
+      "credential_handle": "cred-handle-e7cfacc3"
+    },
+    {
+      "project_id": "context-weave-prod",
+      "credential_handle": "cred-handle-4a91b7de"
+    },
+    {
+      "project_id": "vrio-analytics",
+      "credential_handle": "cred-handle-9d34f0ab"
+    },
+    {
+      "project_id": "vrio-datalake-sandbox",
+      "credential_handle": "cred-handle-1f58c2e7"
+    }
+  ],
+  "projects": [
+    {
+      "project_id": "context-weave-dev",
+      "display_name": "ContextWeave Dev",
+      "location": "US",
+      "datasets": [
+        {
+          "dataset_id": "e_manifest",
+          "location": "US",
+          "description": "Electronic waste manifest headers and line items",
+          "tables": [
+            {
+              "table_id": "manifest_header",
+              "type": "TABLE",
+              "rows": 1240500,
+              "columns": 42,
+              "size_gb": 3.2,
+              "partitioned": true
+            },
+            {
+              "table_id": "manifest_line",
+              "type": "TABLE",
+              "rows": 8914200,
+              "columns": 28,
+              "size_gb": 11.7,
+              "partitioned": true
+            },
+            {
+              "table_id": "manifest_status_history",
+              "type": "TABLE",
+              "rows": 3102400,
+              "columns": 14,
+              "size_gb": 2.1,
+              "partitioned": false
+            },
+            {
+              "table_id": "vw_manifest_current",
+              "type": "VIEW",
+              "rows": 0,
+              "columns": 36,
+              "size_gb": 0,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "em_export",
+          "location": "US",
+          "description": "Outbound export declarations",
+          "tables": [
+            {
+              "table_id": "export_declaration",
+              "type": "TABLE",
+              "rows": 486300,
+              "columns": 51,
+              "size_gb": 1.9,
+              "partitioned": true
+            },
+            {
+              "table_id": "export_shipment",
+              "type": "TABLE",
+              "rows": 921700,
+              "columns": 33,
+              "size_gb": 2.8,
+              "partitioned": true
+            },
+            {
+              "table_id": "export_customs_code",
+              "type": "TABLE",
+              "rows": 12400,
+              "columns": 9,
+              "size_gb": 0.04,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "em_import",
+          "location": "US",
+          "description": "Inbound import receipts and clearances",
+          "tables": [
+            {
+              "table_id": "import_receipt",
+              "type": "TABLE",
+              "rows": 512900,
+              "columns": 47,
+              "size_gb": 2.2,
+              "partitioned": true
+            },
+            {
+              "table_id": "import_clearance",
+              "type": "TABLE",
+              "rows": 498100,
+              "columns": 22,
+              "size_gb": 1.1,
+              "partitioned": true
+            },
+            {
+              "table_id": "import_duty_line",
+              "type": "TABLE",
+              "rows": 1870300,
+              "columns": 17,
+              "size_gb": 3.4,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "em_pcb_info",
+          "location": "US",
+          "description": "PCB component composition and hazard classification",
+          "tables": [
+            {
+              "table_id": "pcb_component",
+              "type": "TABLE",
+              "rows": 4102800,
+              "columns": 38,
+              "size_gb": 6.9,
+              "partitioned": false
+            },
+            {
+              "table_id": "pcb_hazard_class",
+              "type": "TABLE",
+              "rows": 8600,
+              "columns": 12,
+              "size_gb": 0.02,
+              "partitioned": false
+            },
+            {
+              "table_id": "pcb_assay_result",
+              "type": "TABLE",
+              "rows": 762400,
+              "columns": 26,
+              "size_gb": 1.7,
+              "partitioned": true
+            }
+          ]
+        },
+        {
+          "dataset_id": "em_rejection",
+          "location": "US",
+          "description": "Rejected consignments and reason codes",
+          "tables": [
+            {
+              "table_id": "rejection_event",
+              "type": "TABLE",
+              "rows": 132700,
+              "columns": 24,
+              "size_gb": 0.6,
+              "partitioned": true
+            },
+            {
+              "table_id": "rejection_reason_code",
+              "type": "TABLE",
+              "rows": 340,
+              "columns": 6,
+              "size_gb": 0.001,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "em_transporter",
+          "location": "US",
+          "description": "Registered transporters, vehicles and licences",
+          "tables": [
+            {
+              "table_id": "transporter",
+              "type": "TABLE",
+              "rows": 18900,
+              "columns": 31,
+              "size_gb": 0.08,
+              "partitioned": false
+            },
+            {
+              "table_id": "transporter_vehicle",
+              "type": "TABLE",
+              "rows": 64200,
+              "columns": 19,
+              "size_gb": 0.2,
+              "partitioned": false
+            },
+            {
+              "table_id": "transporter_licence",
+              "type": "TABLE",
+              "rows": 22100,
+              "columns": 15,
+              "size_gb": 0.09,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "em_waste_line",
+          "location": "US",
+          "description": "Waste stream line items by category",
+          "tables": [
+            {
+              "table_id": "waste_line",
+              "type": "TABLE",
+              "rows": 12408900,
+              "columns": 34,
+              "size_gb": 18.4,
+              "partitioned": true
+            },
+            {
+              "table_id": "waste_category",
+              "type": "TABLE",
+              "rows": 1240,
+              "columns": 11,
+              "size_gb": 0.005,
+              "partitioned": false
+            },
+            {
+              "table_id": "waste_treatment_method",
+              "type": "TABLE",
+              "rows": 480,
+              "columns": 8,
+              "size_gb": 0.002,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "epa_dataset",
+          "location": "US",
+          "description": "EPA reference datasets and facility registry",
+          "tables": [
+            {
+              "table_id": "epa_facility",
+              "type": "TABLE",
+              "rows": 894300,
+              "columns": 44,
+              "size_gb": 2.6,
+              "partitioned": false
+            },
+            {
+              "table_id": "epa_permit",
+              "type": "TABLE",
+              "rows": 412700,
+              "columns": 29,
+              "size_gb": 1.3,
+              "partitioned": false
+            },
+            {
+              "table_id": "epa_naics_lookup",
+              "type": "TABLE",
+              "rows": 2100,
+              "columns": 5,
+              "size_gb": 0.001,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "epa_echo",
+          "location": "US",
+          "description": "EPA ECHO enforcement and compliance history",
+          "tables": [
+            {
+              "table_id": "echo_enforcement_action",
+              "type": "TABLE",
+              "rows": 1620400,
+              "columns": 52,
+              "size_gb": 4.8,
+              "partitioned": true
+            },
+            {
+              "table_id": "echo_violation",
+              "type": "TABLE",
+              "rows": 3840200,
+              "columns": 37,
+              "size_gb": 7.2,
+              "partitioned": true
+            },
+            {
+              "table_id": "echo_inspection",
+              "type": "TABLE",
+              "rows": 2104600,
+              "columns": 31,
+              "size_gb": 4.1,
+              "partitioned": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "project_id": "context-weave-prod",
+      "display_name": "ContextWeave Production",
+      "location": "US",
+      "datasets": [
+        {
+          "dataset_id": "commerce",
+          "location": "US",
+          "description": "Orders, carts and fulfilment",
+          "tables": [
+            {
+              "table_id": "fct_orders",
+              "type": "TABLE",
+              "rows": 42400000,
+              "columns": 42,
+              "size_gb": 64.2,
+              "partitioned": true
+            },
+            {
+              "table_id": "fct_order_line",
+              "type": "TABLE",
+              "rows": 186200000,
+              "columns": 26,
+              "size_gb": 148.9,
+              "partitioned": true
+            },
+            {
+              "table_id": "dim_product",
+              "type": "TABLE",
+              "rows": 740900,
+              "columns": 24,
+              "size_gb": 1.4,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "customer",
+          "location": "US",
+          "description": "Customer master and consent state (contains PII)",
+          "tables": [
+            {
+              "table_id": "dim_customer",
+              "type": "TABLE",
+              "rows": 9840200,
+              "columns": 31,
+              "size_gb": 12.6,
+              "partitioned": false
+            },
+            {
+              "table_id": "customer_consent",
+              "type": "TABLE",
+              "rows": 9840200,
+              "columns": 14,
+              "size_gb": 3.1,
+              "partitioned": false
+            },
+            {
+              "table_id": "customer_address",
+              "type": "TABLE",
+              "rows": 14210800,
+              "columns": 19,
+              "size_gb": 6.8,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "finance",
+          "location": "US",
+          "description": "Ledger, invoices and recognised revenue",
+          "tables": [
+            {
+              "table_id": "fct_subscription_mrr",
+              "type": "TABLE",
+              "rows": 2060400,
+              "columns": 27,
+              "size_gb": 3.9,
+              "partitioned": true
+            },
+            {
+              "table_id": "gl_journal_entry",
+              "type": "TABLE",
+              "rows": 28400900,
+              "columns": 33,
+              "size_gb": 41.2,
+              "partitioned": true
+            },
+            {
+              "table_id": "invoice",
+              "type": "TABLE",
+              "rows": 6120300,
+              "columns": 38,
+              "size_gb": 9.7,
+              "partitioned": true
+            }
+          ]
+        },
+        {
+          "dataset_id": "logistics",
+          "location": "US",
+          "description": "Shipments, carriers and tracking events",
+          "tables": [
+            {
+              "table_id": "fct_shipment_tracking",
+              "type": "TABLE",
+              "rows": 74200800,
+              "columns": 38,
+              "size_gb": 88.3,
+              "partitioned": true
+            },
+            {
+              "table_id": "dim_carrier",
+              "type": "TABLE",
+              "rows": 1840,
+              "columns": 16,
+              "size_gb": 0.01,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "support",
+          "location": "US",
+          "description": "Tickets and agent interactions",
+          "tables": [
+            {
+              "table_id": "fct_support_interactions",
+              "type": "TABLE",
+              "rows": 318400,
+              "columns": 35,
+              "size_gb": 2.4,
+              "partitioned": true
+            },
+            {
+              "table_id": "dim_agent",
+              "type": "TABLE",
+              "rows": 940,
+              "columns": 12,
+              "size_gb": 0.004,
+              "partitioned": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "project_id": "vrio-analytics",
+      "display_name": "Vrio Analytics",
+      "location": "EU",
+      "datasets": [
+        {
+          "dataset_id": "web_analytics",
+          "location": "EU",
+          "description": "Clickstream sessions and page views",
+          "tables": [
+            {
+              "table_id": "session",
+              "type": "TABLE",
+              "rows": 214800000,
+              "columns": 46,
+              "size_gb": 196.4,
+              "partitioned": true
+            },
+            {
+              "table_id": "page_view",
+              "type": "TABLE",
+              "rows": 892400000,
+              "columns": 29,
+              "size_gb": 612.8,
+              "partitioned": true
+            },
+            {
+              "table_id": "event",
+              "type": "TABLE",
+              "rows": 1240900000,
+              "columns": 22,
+              "size_gb": 784.1,
+              "partitioned": true
+            }
+          ]
+        },
+        {
+          "dataset_id": "campaign_perf",
+          "location": "EU",
+          "description": "Paid media spend and performance by channel",
+          "tables": [
+            {
+              "table_id": "agg_marketing_spend_daily",
+              "type": "TABLE",
+              "rows": 22700400,
+              "columns": 19,
+              "size_gb": 14.2,
+              "partitioned": true
+            },
+            {
+              "table_id": "campaign",
+              "type": "TABLE",
+              "rows": 12400,
+              "columns": 27,
+              "size_gb": 0.06,
+              "partitioned": false
+            },
+            {
+              "table_id": "creative_variant",
+              "type": "TABLE",
+              "rows": 84600,
+              "columns": 21,
+              "size_gb": 0.3,
+              "partitioned": false
+            }
+          ]
+        },
+        {
+          "dataset_id": "attribution",
+          "location": "EU",
+          "description": "Multi-touch attribution model output",
+          "tables": [
+            {
+              "table_id": "touchpoint",
+              "type": "TABLE",
+              "rows": 486200000,
+              "columns": 24,
+              "size_gb": 302.6,
+              "partitioned": true
+            },
+            {
+              "table_id": "attributed_conversion",
+              "type": "TABLE",
+              "rows": 18400600,
+              "columns": 31,
+              "size_gb": 22.9,
+              "partitioned": true
+            }
+          ]
+        },
+        {
+          "dataset_id": "ab_tests",
+          "location": "EU",
+          "description": "Experiment assignment and readouts",
+          "tables": [
+            {
+              "table_id": "experiment",
+              "type": "TABLE",
+              "rows": 2400,
+              "columns": 23,
+              "size_gb": 0.01,
+              "partitioned": false
+            },
+            {
+              "table_id": "assignment",
+              "type": "TABLE",
+              "rows": 96200400,
+              "columns": 13,
+              "size_gb": 41.8,
+              "partitioned": true
+            },
+            {
+              "table_id": "readout",
+              "type": "TABLE",
+              "rows": 18600,
+              "columns": 34,
+              "size_gb": 0.08,
+              "partitioned": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "project_id": "vrio-datalake-sandbox",
+      "display_name": "Vrio Data Lake Sandbox",
+      "location": "asia-south1",
+      "datasets": [
+        {
+          "dataset_id": "raw_events",
+          "location": "asia-south1",
+          "description": "Landing zone — schema-on-read",
+          "tables": [
+            {
+              "table_id": "raw_kafka_clickstream",
+              "type": "TABLE",
+              "rows": 61900000,
+              "columns": 7,
+              "size_gb": 92.4,
+              "partitioned": true
+            },
+            {
+              "table_id": "raw_iot_telemetry",
+              "type": "TABLE",
+              "rows": 148200000,
+              "columns": 9,
+              "size_gb": 210.7,
+              "partitioned": true
+            }
+          ]
+        },
+        {
+          "dataset_id": "staging",
+          "location": "asia-south1",
+          "description": "Intermediate models pending promotion",
+          "tables": [
+            {
+              "table_id": "stg_clickstream_events",
+              "type": "TABLE",
+              "rows": 61900000,
+              "columns": 57,
+              "size_gb": 74.1,
+              "partitioned": true
+            },
+            {
+              "table_id": "stg_orders",
+              "type": "TABLE",
+              "rows": 4240500,
+              "columns": 39,
+              "size_gb": 6.2,
+              "partitioned": true
+            }
+          ]
+        },
+        {
+          "dataset_id": "sandbox_ml",
+          "location": "asia-south1",
+          "description": "Feature store and training snapshots",
+          "tables": [
+            {
+              "table_id": "feature_customer_v3",
+              "type": "TABLE",
+              "rows": 9840200,
+              "columns": 148,
+              "size_gb": 38.6,
+              "partitioned": false
+            },
+            {
+              "table_id": "training_snapshot_20260701",
+              "type": "TABLE",
+              "rows": 4120800,
+              "columns": 152,
+              "size_gb": 17.9,
+              "partitioned": false
+            },
+            {
+              "table_id": "model_prediction_log",
+              "type": "TABLE",
+              "rows": 284600900,
+              "columns": 18,
+              "size_gb": 96.3,
+              "partitioned": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "audit": {
+    "stats": [
+      {
+        "label": "Active policies",
+        "value": "46",
+        "note": "4 drafts pending"
+      },
+      {
+        "label": "Open violations",
+        "value": "7",
+        "note": "2 high severity",
+        "tone": "crit"
+      },
+      {
+        "label": "PII columns",
+        "value": "214",
+        "note": "100% masked at rest",
+        "tone": "good"
+      },
+      {
+        "label": "Access reviews due",
+        "value": "3",
+        "note": "within 7 days",
+        "tone": "warn"
+      }
+    ],
+    "events": [
+      {
+        "actor": "a.rivera@contextweave.io",
+        "action": "Granted role data_analyst",
+        "resource": "warehouse.analytics",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today, 14:22"
+      },
+      {
+        "actor": "svc-etl-runner",
+        "action": "Exported 1.2 M rows",
+        "resource": "dim_customer",
+        "severity": "High",
+        "tone": "crit",
+        "at": "Today, 13:47"
+      },
+      {
+        "actor": "m.chen@contextweave.io",
+        "action": "Masked column email_address",
+        "resource": "fct_support_interactions",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Today, 11:05"
+      },
+      {
+        "actor": "j.okafor@contextweave.io",
+        "action": "Disabled retention rule",
+        "resource": "policy.finance_7y",
+        "severity": "Medium",
+        "tone": "warn",
+        "at": "Yesterday, 18:31"
+      },
+      {
+        "actor": "svc-bi-sync",
+        "action": "Failed authentication (5 attempts)",
+        "resource": "Salesforce CRM",
+        "severity": "High",
+        "tone": "crit",
+        "at": "Yesterday, 16:12"
+      },
+      {
+        "actor": "l.nakamura@contextweave.io",
+        "action": "Published dataset certification",
+        "resource": "agg_marketing_spend_daily",
+        "severity": "Info",
+        "tone": "neutral",
+        "at": "Yesterday, 09:58"
+      }
+    ],
+    "policies": [
+      {
+        "name": "PII masking at rest",
+        "desc": "All columns tagged pii are encrypted and masked by default",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "Finance 7-year retention",
+        "desc": "Ledger and invoice datasets retained for 84 months",
+        "status": "Disabled",
+        "tone": "crit"
+      },
+      {
+        "name": "Row-level access — region",
+        "desc": "Analysts see only rows for their assigned region",
+        "status": "Enforced",
+        "tone": "good"
+      },
+      {
+        "name": "External sharing approval",
+        "desc": "Exports over 100 K rows require a steward sign-off",
+        "status": "Review due",
+        "tone": "warn"
+      },
+      {
+        "name": "Schema change notification",
+        "desc": "Breaking column changes notify all downstream owners",
+        "status": "Enforced",
+        "tone": "good"
+      }
+    ],
+    "event_window": "Last 24 hours · 1,482 events",
+    "policy_total": 46
+  },
+  "traces": {
+    "stats": [
+      {
+        "label": "p50 latency",
+        "value": "142 ms",
+        "note": "−8 ms vs. yesterday",
+        "tone": "good"
+      },
+      {
+        "label": "p95 latency",
+        "value": "812 ms",
+        "note": "+64 ms vs. yesterday",
+        "tone": "warn"
+      },
+      {
+        "label": "Error rate",
+        "value": "0.42%",
+        "note": "31 of 7.4 K requests"
+      },
+      {
+        "label": "Spans / min",
+        "value": "12.4 K",
+        "note": "sampled at 20%"
+      }
+    ],
+    "items": [
+      {
+        "id": "7f3c9a1e04b8",
+        "operation": "POST /v1/context/resolve",
+        "service": "context-api",
+        "duration": 184,
+        "spans": 14,
+        "status": "OK",
+        "tone": "good",
+        "at": "14:31:08"
+      },
+      {
+        "id": "c21b7de5f990",
+        "operation": "GET /v1/catalogue/search",
+        "service": "catalogue-svc",
+        "duration": 1246,
+        "spans": 22,
+        "status": "Slow",
+        "tone": "warn",
+        "at": "14:30:52"
+      },
+      {
+        "id": "9ae4021cbb37",
+        "operation": "POST /v1/sources/sync",
+        "service": "ingest-worker",
+        "duration": 3918,
+        "spans": 47,
+        "status": "Error",
+        "tone": "crit",
+        "at": "14:30:41"
+      },
+      {
+        "id": "4d80fe6a1c22",
+        "operation": "GET /v1/lineage/graph",
+        "service": "lineage-svc",
+        "duration": 267,
+        "spans": 19,
+        "status": "OK",
+        "tone": "good",
+        "at": "14:30:19"
+      },
+      {
+        "id": "b6712c48ade0",
+        "operation": "POST /v1/evals/run",
+        "service": "eval-runner",
+        "duration": 902,
+        "spans": 33,
+        "status": "OK",
+        "tone": "good",
+        "at": "14:29:55"
+      },
+      {
+        "id": "e05fa93b7714",
+        "operation": "GET /v1/audit/events",
+        "service": "audit-svc",
+        "duration": 96,
+        "spans": 8,
+        "status": "OK",
+        "tone": "good",
+        "at": "14:29:33"
+      }
+    ],
+    "sampling": "Sampled at 20%",
+    "waterfall": {
+      "trace_id": "7f3c9a1e04b8",
+      "operation": "POST /v1/context/resolve",
+      "total_ms": 184,
+      "spans": [
+        {
+          "name": "POST /v1/context/resolve",
+          "start": 0,
+          "duration": 184
+        },
+        {
+          "name": "auth.verify_token",
+          "start": 4,
+          "duration": 11
+        },
+        {
+          "name": "catalogue.lookup_dataset",
+          "start": 17,
+          "duration": 38
+        },
+        {
+          "name": "postgres.query fct_orders",
+          "start": 24,
+          "duration": 26
+        },
+        {
+          "name": "policy.evaluate_access",
+          "start": 57,
+          "duration": 22
+        },
+        {
+          "name": "vector.similarity_search",
+          "start": 81,
+          "duration": 64
+        },
+        {
+          "name": "redis.cache_write",
+          "start": 147,
+          "duration": 9
+        },
+        {
+          "name": "response.serialize",
+          "start": 158,
+          "duration": 24
+        }
+      ]
+    }
+  },
+  "evals": {
+    "stats": [
+      {
+        "label": "Suites",
+        "value": "24",
+        "note": "18 on a schedule"
+      },
+      {
+        "label": "Pass rate",
+        "value": "94.2%",
+        "note": "+1.8 pts this week",
+        "tone": "good"
+      },
+      {
+        "label": "Failing checks",
+        "value": "11",
+        "note": "across 4 suites",
+        "tone": "crit"
+      },
+      {
+        "label": "Last run",
+        "value": "8 min ago",
+        "note": "nightly-full · 12:20"
+      }
+    ],
+    "runs": [
+      {
+        "suite": "context-grounding",
+        "target": "claude-opus-5 · 500 prompts",
+        "checks": 500,
+        "pass_rate": 96.8,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "8 min ago"
+      },
+      {
+        "suite": "schema-contract",
+        "target": "fct_orders · 42 columns",
+        "checks": 126,
+        "pass_rate": 100,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "22 min ago"
+      },
+      {
+        "suite": "pii-leakage",
+        "target": "dim_customer · 200 prompts",
+        "checks": 200,
+        "pass_rate": 99.5,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "35 min ago"
+      },
+      {
+        "suite": "answer-relevance",
+        "target": "support-copilot · 320 prompts",
+        "checks": 320,
+        "pass_rate": 87.2,
+        "status": "Degraded",
+        "tone": "warn",
+        "ran_at": "1 h ago"
+      },
+      {
+        "suite": "freshness-sla",
+        "target": "agg_marketing_spend_daily",
+        "checks": 48,
+        "pass_rate": 62.5,
+        "status": "Failed",
+        "tone": "crit",
+        "ran_at": "2 h ago"
+      },
+      {
+        "suite": "referential-integrity",
+        "target": "fct_shipment_tracking",
+        "checks": 84,
+        "pass_rate": 98.8,
+        "status": "Passed",
+        "tone": "good",
+        "ran_at": "3 h ago"
+      }
+    ],
+    "checks": [
+      {
+        "name": "freshness < 6 h",
+        "dataset": "agg_marketing_spend_daily",
+        "result": "Failed",
+        "tone": "crit",
+        "detail": "Last partition is 12 h old"
+      },
+      {
+        "name": "no_nulls(customer_id)",
+        "dataset": "fct_support_interactions",
+        "result": "Failed",
+        "tone": "crit",
+        "detail": "1,204 null values (0.38%)"
+      },
+      {
+        "name": "citation_present",
+        "dataset": "support-copilot",
+        "result": "Failed",
+        "tone": "crit",
+        "detail": "41 of 320 answers had no source"
+      },
+      {
+        "name": "row_count drift < 10%",
+        "dataset": "stg_clickstream_events",
+        "result": "Warning",
+        "tone": "warn",
+        "detail": "Volume up 14% vs. 7-day mean"
+      },
+      {
+        "name": "unique(order_id)",
+        "dataset": "fct_orders",
+        "result": "Warning",
+        "tone": "warn",
+        "detail": "3 duplicates in late-arriving batch"
+      }
+    ],
+    "run_trigger": "Nightly + on-merge triggers",
+    "failure_summary": "11 failing · 2 warnings"
+  },
+  "change_signals": [
+    {
+      "signal_id": "sig-4f21a",
+      "kind": "schema_drift",
+      "severity": "warning",
+      "dataset": "em_export",
+      "table": "export_declaration",
+      "detail": "Column shipment_ref changed type from STRING to INT64 since the last profile.",
+      "action": "Re-profile the table to refresh the dictionary.",
+      "detected": "2 h ago"
+    },
+    {
+      "signal_id": "sig-9c73e",
+      "kind": "volume_drop",
+      "severity": "serious",
+      "dataset": "epa_echo",
+      "table": "echo_violation",
+      "detail": "Row count fell 38% against the 7-day mean — upstream feed may be partial.",
+      "action": "Check the source extract before trusting downstream aggregates.",
+      "detected": "5 h ago"
+    }
+  ],
+  "column_vocabulary": [
+    {
+      "name": "manifest_tracking_number",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "foreign_generator_province",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "foreign_generator_country_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "foreign_generator_city",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "foreign_generator_country_name",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "port_of_entry_state",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "port_of_entry_city",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "foreign_generator_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.92
+    },
+    {
+      "name": "foreign_generator_street",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "foreign_generator_postal_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "transporter_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.9
+    },
+    {
+      "name": "facility_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.9
+    },
+    {
+      "name": "waste_category_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.93
+    },
+    {
+      "name": "treatment_method",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.91
+    },
+    {
+      "name": "status_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.94
+    },
+    {
+      "name": "net_weight_kg",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.94
+    },
+    {
+      "name": "gross_weight_kg",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.94
+    },
+    {
+      "name": "declared_value_usd",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.93
+    },
+    {
+      "name": "quantity",
+      "type": "integer",
+      "class": "measure",
+      "confidence": 0.95
+    },
+    {
+      "name": "duty_amount",
+      "type": "numeric",
+      "class": "measure",
+      "confidence": 0.9
+    },
+    {
+      "name": "shipped_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.97
+    },
+    {
+      "name": "received_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.97
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp",
+      "class": "date",
+      "confidence": 0.98
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp",
+      "class": "date",
+      "confidence": 0.98
+    },
+    {
+      "name": "effective_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.96
+    },
+    {
+      "name": "inspection_notes",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.88
+    },
+    {
+      "name": "remarks",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.86
+    },
+    {
+      "name": "rejection_reason_text",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.87
+    },
+    {
+      "name": "contact_email",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.91,
+      "pii": true
+    },
+    {
+      "name": "contact_phone",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.9,
+      "pii": true
+    },
+    {
+      "name": "operator_full_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93,
+      "pii": true
+    },
+    {
+      "name": "generator_address_line1",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.89,
+      "pii": true
+    },
+    {
+      "name": "source_record_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.96
+    },
+    {
+      "name": "batch_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "is_hazardous",
+      "type": "boolean",
+      "class": "dimension",
+      "confidence": 0.95
+    }
+  ]
+}
