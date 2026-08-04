@@ -24,13 +24,26 @@ fighting the premise.
 
 ---
 
-## Flow 1 — Connecting a BigQuery source
+## Flow 1 — Connecting a source (BigQuery or Google Drive)
 
 **Files:** `ConnectSourceModal.tsx` → `ConnectSourceWizard.tsx` → `client.ts` →
 `server.mjs` · connector list in `data/connectors.ts`
 
 Three steps, driven by local state in the wizard (not a store — it is one
 self-contained transaction).
+
+**Two connectors are real, and they are the same flow in different units.**
+BigQuery discovers *datasets of tables*; Drive discovers *folders of documents*.
+Read the BigQuery column below and the Drive one mirrors it line for line.
+
+| | BigQuery | Google Drive |
+|---|---|---|
+| consent | `GET /sources/oauth/start?provider=bigquery` | `…?provider=drive` |
+| discovery | `POST /sources/preview` | `POST /sources/drive/preview` |
+| register | `POST /sources` | `POST /sources/drive` |
+| allowlist | datasets | folders |
+| `source_id` | `bigquery:<project_id>` | `gdrive:<drive_id>` |
+| `kind` | `bigquery` | `gdrive` |
 
 ### Step 1 · Connector
 
@@ -45,42 +58,51 @@ fields are already defined.
 
 ### Step 2 · Connection
 
-BigQuery gets a bespoke branch (`isBigQuery`); every other connector falls back
-to the generic field loop over `connector.fields`.
+BigQuery and Drive each get a bespoke branch (`isBigQuery` / `isDrive`, together
+`isGoogle`); the five stubbed connectors fall back to the generic field loop over
+`connector.fields`.
 
 ```
 Login with Google
-  → GET /sources/oauth/start        issues a one-time state
-  → GET /sources/oauth/callback     consumes it, returns account + 4 projects
-                                    each with a credential_handle
+  → GET /sources/oauth/start?provider=…    issues a one-time state, scoped
+  → GET /sources/oauth/callback?provider=… consumes it, returns account +
+                                           4 projects / 3 drives, each with
+                                           a credential_handle
 ```
 
-The state is single-use — replaying it returns 400. Selecting a project fills its
-credential handle and invalidates any previous preview.
+The state is single-use — replaying it returns 400. It also **remembers which
+provider it was issued for**: a BigQuery consent replayed against
+`provider=drive` is a 400, not a silent cross-scope read. Selecting a project or
+drive fills its credential handle and invalidates any previous preview.
 
-There is **no raw-key path**. The "Advanced" collapse takes a project id and a
+There is **no raw-key path**. The "Advanced" collapse takes an id and a
 credential handle only; credentials are held by reference, and the server has no
 endpoint that accepts a key. Do not reintroduce one.
 
-`Continue` requires both a project id and a credential handle.
+`Continue` requires both an id and a credential handle.
 
 ### Step 3 · Test & Finish
 
 ```
-1. Run preview   POST /sources/preview   discovers datasets, registers nothing
-2. Finish        POST /sources           registers for real
+1. Run preview   POST /sources/preview        discovers datasets, registers nothing
+                 POST /sources/drive/preview  discovers folders, registers nothing
+2. Finish        POST /sources                registers for real
+                 POST /sources/drive
 ```
 
-Preview validates the handle against the project (a handle for another project
-gets 403) and returns the dataset list, which becomes the allowlist checkboxes —
-all checked, because the copy says "uncheck to exclude". Finish rejects an empty
-or unknown dataset list.
+Preview validates the handle against the project/drive (a handle for another one
+gets 403) and returns the dataset or folder list, which becomes the allowlist
+checkboxes — all checked, because the copy says "uncheck to exclude". Finish
+rejects an empty or unknown list. The Drive preview also reports page counts and
+the distinct MIME types per folder: documents are *counted*, never read, until
+the profiler runs.
 
 The dialog **stays open** after Finish so the confirmation stays readable; `Close`
 dismisses it. `onRegistered` refreshes the Sources table without closing.
 
-**Where it fails:** wrong project/handle pairing → 403. Empty allowlist → 400.
-Mock server not running → the wizard shows the "start `npm run mock`" message.
+**Where it fails:** wrong project/handle or drive/handle pairing → 403. Empty
+allowlist → 400. A consent replayed against the other provider → 400. Mock server
+not running → the wizard shows the "start `npm run mock`" message.
 
 ---
 
@@ -92,6 +114,10 @@ Columns: `source name` (with the `source_id` beneath it, because that is what th
 actions act on) · `status` · `project / account` · `scope` · `connected` ·
 `profiled` · Actions.
 
+`scope` and `profiled` read in the unit of the connector: `3 dataset(s)` and
+`4 table(s) · 112 col(s)` for BigQuery, `3 folder(s)` and
+`10 doc(s) · 168 entities` for Drive.
+
 The four cards read Registered sources / Profiled tables / Profiled columns /
 Profiled documents. **The last three stay 0** until profiling runs — that is
 correct, not a bug.
@@ -100,9 +126,14 @@ Three actions, all through the store:
 
 | Action | Endpoint | Effect |
 |---|---|---|
-| Edit datasets | `PUT /sources/:id/datasets` | narrows the allowlist; catalogue follows immediately |
+| Edit datasets *(BigQuery)* | `PUT /sources/:id/datasets` | narrows the allowlist; catalogue follows immediately |
+| Edit folders *(Drive)* | `PUT /sources/:id/folders` | the same, in folders |
 | Disconnect | `POST /sources/:id/disconnect` | revokes the credential, **keeps** the registration |
 | Delete | `DELETE /sources/:id` | removes it and its catalogue rows |
+
+One button, two modals: the row's `kind` picks `EditDatasetsModal` or
+`EditFoldersModal`. Each allowlist endpoint refuses the other connector's source
+with a message naming the right one rather than half-applying an edit.
 
 Disconnect is not deletion. A disconnected source stays listed so it remains
 deletable, but stops counting as connected — so the other four pages fall back to
@@ -118,6 +149,9 @@ This is the most involved flow and the one most likely to be misunderstood.
 (`useBrowseStore`, `useJobsStore`) → `ProfilingJobsTab.tsx` → `server.mjs`
 (`runJob`, `PIPELINE`)
 
+**Drive files:** `CataloguePage.tsx` (`DocumentBrowsePanel`) →
+`useDocumentBrowseStore` → the same `ProfilingJobsTab`.
+
 ### Browse
 
 `GET /sources/:id/browse` returns only **allowlisted** datasets with their
@@ -125,35 +159,53 @@ tables. Rendered as a checkable antd `Tree`; parent/child propagation is antd's,
 and leaf keys encode `dataset::table` so a checked key converts back to an object
 (`leafKey` / `parseLeaf`).
 
+`GET /sources/:id/browse-documents` is the Drive twin: allowlisted folders with
+their documents, same tree, leaf keys encode `folder::document`.
+
+Ask the wrong one and you get a **400 naming the right endpoint**, not an empty
+tree — an empty tree reads as "nothing to profile" and sends you debugging the
+allowlist. Same for `columns` vs `documents`, and `profile` vs
+`profile-documents`.
+
 ### Start Profiling
 
 ```
-POST /sources/:id/profile   →  202 Accepted, job status "queued"
+POST /sources/:id/profile             →  202 Accepted, job status "queued"
+POST /sources/:id/profile-documents   →  202 Accepted, job status "queued"
 ```
 
 **It does not do the work.** The response is a queued job. The server then walks
-it through five stages on timers:
+it through five stages on timers — which five depends on the connector, because
+extracting text from a PDF is not sampling a column:
 
 ```
-queued
-  → 1/5 Schema fetch
-  → 2/5 Statistics sampling
-  → 3/5 Class inference
-  → 4/5 PII detection
-  → 5/5 Candidate keys
-complete
+queued                          queued
+  → 1/5 Schema fetch              → 1/5 Text extraction
+  → 2/5 Statistics sampling       → 2/5 Chunking
+  → 3/5 Class inference           → 3/5 Entity extraction
+  → 4/5 PII detection             → 4/5 Document PII detection
+  → 5/5 Candidate keys            → 5/5 Topic classification
+complete                        complete
 ```
 
-Tables are committed to the source as stages pass, so `profiled_tables` and
-`profiled_columns` climb *during* the run rather than jumping at the end.
+Both are **five stages on purpose**, so a job row reads the same either way.
+
+Objects are committed to the source as stages pass, so `profiled_tables` /
+`profiled_columns` — or `profiled_documents` / `profiled_entities` — climb
+*during* the run rather than jumping at the end.
+
+A job's work list is `objects`, never `tables`: `{parent_id, object_id, label,
+units, state}`, plus `unit: 'table' | 'document'` and `kind` on the job. One
+board shows runs from both connectors, and `unit` is what it prints. A re-run
+sends the objects back to the endpoint the job's `kind` came from.
 
 Two behaviours that look like bugs but are not:
 
-- An already-profiled table is **skipped**. The browse panel never forces — its
-  footer is `Select all · Select none · Start Profiling`. Re-profiling is done
-  per-run from the **Force** button on a row in Profiling jobs, which re-queues
-  that job's table set with `force: true`.
-- If every selected table is already profiled, the job completes instantly with
+- An already-profiled table or document is **skipped**. The browse panels never
+  force — their footer is `Select all · Select none · Start Profiling`.
+  Re-profiling is done per-run from the **Force** button on a row in Profiling
+  jobs, which re-queues that job's object set with `force: true`.
+- If everything selected is already profiled, the job completes instantly with
   `nothing to profile` instead of faking a 12-second run.
 
 ### Watching it
@@ -200,6 +252,32 @@ Editing a description (`PATCH /sources/:id/columns`) stores a note against
 To use real column names for a table, put them in `db.json` and give
 `tableDictionary` a branch that prefers them.
 
+### The document dictionary — the same idea, one level up
+
+**Files:** `ProfiledDocumentsPanel.tsx` → `useDocumentsStore` →
+`GET /sources/:id/documents` → `documentDictionary()` in `server.mjs`
+
+Facet chips (All / Needs review / PII / Manifests / Contracts / Reports / Notes),
+then folders → collapsible document cards → the entity table: `ENTITY · TYPE ·
+CLASS · PII · OCCURRENCES · COVERAGE`.
+
+Two deliberate differences from the column dictionary — do not "fix" them:
+
+- **The facets count documents, not entities.** A file is the unit a curator
+  reviews, so `all` is the profiled-document count and `pii` counts documents
+  holding at least one PII entity.
+- **The editable note is the document's `summary`, not a per-entity
+  description.** `PATCH /sources/:id/documents` stores it against
+  `folder.document` and flips `summary_status` to `described`, which decrements
+  **Needs review**. Extracted entities are read-only: they are machine output,
+  not curation.
+
+Entities are synthesised from `document_vocabulary` exactly as columns are from
+`column_vocabulary` — sliced by hashing the document id, statistics derived from
+a hash of document+entity, so repeat requests agree. `occurrences` is 1–2 for an
+identifier and recurs for prose classes; `coverage_pct` is occurrences over the
+document's chunk count (`pages × 2.5`).
+
 ---
 
 ## Flow 5 — Editing the data (`/db`)
@@ -213,7 +291,7 @@ protection, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
-2. **Server shape check** — `validateDb` verifies all eight required keys and
+2. **Server shape check** — `validateDb` verifies all 11 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
 3. **Atomic write** — temp file + rename, so a failed write cannot truncate
@@ -283,6 +361,12 @@ derives from a source.
 Entry in `data/connectors.ts` with its `fields`. `available: false` needs a
 `reason`. Making it real means a step-2 branch in the wizard and server support;
 `ConnectorIcon` needs a mark, or it falls back to BigQuery's.
+
+Google Drive is the worked example of making one real — copy its shape rather
+than inventing a third: `kind` on the record, its own preview/register/browse/
+profile/dictionary endpoints, its own `PIPELINE`-length stage list, and a 400
+from every endpoint of the *other* connector naming the right one. Reuse the job
+machinery (`queueJob`, `runJob`, `objects`) instead of adding a second board.
 
 **Verifying any of it**
 

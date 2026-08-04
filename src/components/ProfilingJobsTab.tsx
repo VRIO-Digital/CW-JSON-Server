@@ -39,21 +39,25 @@ function elapsed(seconds: number) {
 const clockTime = (iso: string | null) =>
   iso ? new Date(iso).toLocaleTimeString() : '—'
 
-/** "1: em_import_0" — count plus the table names themselves. */
-function TablesSelected({ job }: { job: ProfilingJob }) {
+/** "table(s)" or "document(s)" — the board carries runs of both. */
+const units = (job: ProfilingJob, count: number) =>
+  `${count} ${job.unit}${count === 1 ? '' : 's'}`
+
+/** "1: em_import_0" — count plus the object names themselves. */
+function ObjectsSelected({ job }: { job: ProfilingJob }) {
   return (
     <span>
-      <strong>{job.table_count}:</strong>{' '}
+      <strong>{units(job, job.object_count)}:</strong>{' '}
       <Typography.Text code className="pj-tables">
-        {job.tables.map((t) => t.table_id).join(', ')}
+        {job.objects.map((o) => o.label).join(', ')}
       </Typography.Text>
     </span>
   )
 }
 
 function JobDetail({ job }: { job: ProfilingJob }) {
-  const profiled = job.tables.filter((t) => t.state === 'profiled')
-  const skipped = job.tables.filter((t) => t.state === 'skipped')
+  const profiled = job.objects.filter((o) => o.state === 'profiled')
+  const skipped = job.objects.filter((o) => o.state === 'skipped')
 
   return (
     <div className="pj-detail">
@@ -63,9 +67,9 @@ function JobDetail({ job }: { job: ProfilingJob }) {
       </div>
 
       <div className="pj-detail-line">
-        <strong>Tables ({job.table_count}):</strong>{' '}
+        <strong>{units(job, job.object_count)}:</strong>{' '}
         <Typography.Text code>
-          {job.tables.map((t) => t.table_id).join(', ')}
+          {job.objects.map((o) => o.label).join(', ')}
         </Typography.Text>
       </div>
 
@@ -87,17 +91,17 @@ function JobDetail({ job }: { job: ProfilingJob }) {
       />
 
       <div className="pj-detail-line">
-        <strong>Tables:</strong> {job.tables_done} / {job.table_count}
+        <strong>Progress:</strong> {job.objects_done} / {job.object_count}
         {profiled.length > 0 ? (
           <>
             {' · '}
-            {profiled.map((t) => `${t.table_id}:profiled`).join(', ')}
+            {profiled.map((o) => `${o.object_id}:profiled`).join(', ')}
           </>
         ) : null}
         {skipped.length > 0 ? (
           <>
             {' · '}
-            {skipped.map((t) => `${t.table_id}:skipped`).join(', ')}
+            {skipped.map((o) => `${o.object_id}:skipped`).join(', ')}
           </>
         ) : null}
       </div>
@@ -195,9 +199,9 @@ export default function ProfilingJobsTab({
       ),
     },
     {
-      title: 'tables selected',
-      key: 'tables',
-      render: (_, job) => <TablesSelected job={job} />,
+      title: 'selected',
+      key: 'objects',
+      render: (_, job) => <ObjectsSelected job={job} />,
     },
     {
       title: 'triggered',
@@ -218,8 +222,9 @@ export default function ProfilingJobsTab({
     {
       title: 'progress / error',
       key: 'progress',
-      width: 150,
-      render: (_, job) => `${job.tables_done}/${job.table_count} tables`,
+      width: 160,
+      render: (_, job) =>
+        `${job.objects_done}/${units(job, job.object_count)}`,
     },
     {
       title: '',
@@ -248,7 +253,7 @@ export default function ProfilingJobsTab({
         job.error ? (
           <Typography.Text type="danger">{job.error}</Typography.Text>
         ) : (
-          `${job.tables_done}/${job.table_count} tables`
+          `${job.objects_done}/${units(job, job.object_count)}`
         ),
     },
     {
@@ -344,7 +349,8 @@ export default function ProfilingJobsTab({
           }}
           locale={{
             emptyText:
-              'No finished runs yet. Start one from Browse table for profiling.',
+              'No finished runs yet. Start one from Browse table for profiling, ' +
+              'or Browse documents for profiling on a Drive source.',
           }}
         />
       </Card>

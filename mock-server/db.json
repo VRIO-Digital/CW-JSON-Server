@@ -1268,5 +1268,598 @@
       "class": "dimension",
       "confidence": 0.95
     }
+  ],
+  "drive_credentials": [
+    {
+      "drive_id": "my-drive-karthik",
+      "credential_handle": "drive-handle-b21e5f77"
+    },
+    {
+      "drive_id": "shared-compliance",
+      "credential_handle": "drive-handle-77c0a4e1"
+    },
+    {
+      "drive_id": "shared-ops-manifests",
+      "credential_handle": "drive-handle-3ac9d215"
+    }
+  ],
+  "drives": [
+    {
+      "drive_id": "my-drive-karthik",
+      "display_name": "My Drive — Karthik Mahadeva",
+      "kind": "my_drive",
+      "owner": "karthik.mahadeva@vriodigital.com",
+      "folders": [
+        {
+          "folder_id": "f_manifest_scans",
+          "name": "Manifest scans",
+          "path": "/My Drive/Compliance/Manifest scans",
+          "description": "Scanned e-waste manifests awaiting reconciliation",
+          "documents": [
+            {
+              "document_id": "d_mf_2411_scan",
+              "name": "Manifest 2411 — signed copy.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "manifest",
+              "pages": 4,
+              "size_mb": 2.4,
+              "entities": 18,
+              "modified": "2026-06-18T09:12:00Z"
+            },
+            {
+              "document_id": "d_mf_2412_scan",
+              "name": "Manifest 2412 — signed copy.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "manifest",
+              "pages": 4,
+              "size_mb": 2.2,
+              "entities": 18,
+              "modified": "2026-06-21T14:40:00Z"
+            },
+            {
+              "document_id": "d_mf_2413_scan",
+              "name": "Manifest 2413 — unsigned draft.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "manifest",
+              "pages": 3,
+              "size_mb": 1.6,
+              "entities": 14,
+              "modified": "2026-06-29T11:05:00Z"
+            },
+            {
+              "document_id": "d_mf_recon_notes",
+              "name": "Reconciliation working notes",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "notes",
+              "pages": 6,
+              "size_mb": 0.4,
+              "entities": 11,
+              "modified": "2026-07-02T08:30:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_vendor_contracts",
+          "name": "Vendor contracts",
+          "path": "/My Drive/Legal/Vendor contracts",
+          "description": "Executed recycler and transporter agreements",
+          "documents": [
+            {
+              "document_id": "d_ct_ecoreclaim",
+              "name": "EcoReclaim recycling agreement 2026.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "contract",
+              "pages": 22,
+              "size_mb": 5.8,
+              "entities": 24,
+              "modified": "2026-02-11T16:20:00Z"
+            },
+            {
+              "document_id": "d_ct_transporter_msa",
+              "name": "Transporter MSA — Northline Logistics",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "contract",
+              "pages": 17,
+              "size_mb": 1.1,
+              "entities": 21,
+              "modified": "2026-03-04T10:02:00Z"
+            },
+            {
+              "document_id": "d_ct_amendment_1",
+              "name": "Amendment 1 — disposal fee schedule",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "contract",
+              "pages": 5,
+              "size_mb": 0.3,
+              "entities": 13,
+              "modified": "2026-05-27T13:47:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_meeting_notes",
+          "name": "Meeting notes",
+          "path": "/My Drive/Team/Meeting notes",
+          "description": "Weekly compliance stand-up notes",
+          "documents": [
+            {
+              "document_id": "d_nt_q2_review",
+              "name": "Q2 compliance review notes",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "notes",
+              "pages": 9,
+              "size_mb": 0.5,
+              "entities": 12,
+              "modified": "2026-07-01T09:00:00Z"
+            },
+            {
+              "document_id": "d_nt_permit_renewal",
+              "name": "Permit renewal walkthrough",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "notes",
+              "pages": 4,
+              "size_mb": 0.2,
+              "entities": 9,
+              "modified": "2026-06-12T15:30:00Z"
+            },
+            {
+              "document_id": "d_nt_vendor_scorecard",
+              "name": "Vendor scorecard discussion.txt",
+              "mime_type": "text/plain",
+              "doc_type": "notes",
+              "pages": 2,
+              "size_mb": 0.1,
+              "entities": 8,
+              "modified": "2026-05-19T12:15:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "drive_id": "shared-compliance",
+      "display_name": "Compliance (shared drive)",
+      "kind": "shared_drive",
+      "owner": "compliance@vriodigital.com",
+      "folders": [
+        {
+          "folder_id": "f_audit_reports",
+          "name": "Audit reports",
+          "path": "/Compliance/Audit reports",
+          "description": "External and internal audit findings",
+          "documents": [
+            {
+              "document_id": "d_ar_2025_external",
+              "name": "FY25 external audit report.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "report",
+              "pages": 48,
+              "size_mb": 9.4,
+              "entities": 26,
+              "modified": "2026-01-30T17:00:00Z"
+            },
+            {
+              "document_id": "d_ar_2026_h1_internal",
+              "name": "H1 FY26 internal audit report",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "report",
+              "pages": 31,
+              "size_mb": 2.7,
+              "entities": 23,
+              "modified": "2026-07-08T10:25:00Z"
+            },
+            {
+              "document_id": "d_ar_findings_tracker",
+              "name": "Audit findings tracker",
+              "mime_type": "application/vnd.google-apps.spreadsheet",
+              "doc_type": "report",
+              "pages": 12,
+              "size_mb": 1.3,
+              "entities": 19,
+              "modified": "2026-07-15T09:45:00Z"
+            },
+            {
+              "document_id": "d_ar_board_deck",
+              "name": "Audit summary — board deck",
+              "mime_type": "application/vnd.google-apps.presentation",
+              "doc_type": "report",
+              "pages": 24,
+              "size_mb": 6.1,
+              "entities": 15,
+              "modified": "2026-07-20T18:10:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_policies",
+          "name": "Policies",
+          "path": "/Compliance/Policies",
+          "description": "Data-handling and waste-disposal policies",
+          "documents": [
+            {
+              "document_id": "d_pl_data_retention",
+              "name": "Data retention policy v4",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "report",
+              "pages": 14,
+              "size_mb": 0.8,
+              "entities": 17,
+              "modified": "2026-04-02T11:30:00Z"
+            },
+            {
+              "document_id": "d_pl_hazardous_waste",
+              "name": "Hazardous waste handling policy.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "report",
+              "pages": 27,
+              "size_mb": 3.9,
+              "entities": 22,
+              "modified": "2026-03-18T08:55:00Z"
+            },
+            {
+              "document_id": "d_pl_pii_handling",
+              "name": "PII handling standard",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "report",
+              "pages": 11,
+              "size_mb": 0.6,
+              "entities": 16,
+              "modified": "2026-06-05T14:05:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_incident_reports",
+          "name": "Incident reports",
+          "path": "/Compliance/Incident reports",
+          "description": "Spill, breach and non-conformance reports",
+          "documents": [
+            {
+              "document_id": "d_ir_spill_0417",
+              "name": "Spill incident 0417.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "report",
+              "pages": 8,
+              "size_mb": 2,
+              "entities": 20,
+              "modified": "2026-04-17T19:20:00Z"
+            },
+            {
+              "document_id": "d_ir_nonconformance_12",
+              "name": "Non-conformance 12 — transporter delay",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "report",
+              "pages": 6,
+              "size_mb": 0.4,
+              "entities": 15,
+              "modified": "2026-05-09T07:40:00Z"
+            },
+            {
+              "document_id": "d_ir_corrective_actions",
+              "name": "Corrective action log",
+              "mime_type": "application/vnd.google-apps.spreadsheet",
+              "doc_type": "report",
+              "pages": 9,
+              "size_mb": 1,
+              "entities": 18,
+              "modified": "2026-07-11T16:35:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "drive_id": "shared-ops-manifests",
+      "display_name": "Operations — Manifests (shared drive)",
+      "kind": "shared_drive",
+      "owner": "ops@vriodigital.com",
+      "folders": [
+        {
+          "folder_id": "f_inbound_manifests",
+          "name": "Inbound manifests",
+          "path": "/Operations/Inbound manifests",
+          "description": "Manifests received from generators",
+          "documents": [
+            {
+              "document_id": "d_in_mf_5501",
+              "name": "Inbound manifest 5501.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "manifest",
+              "pages": 5,
+              "size_mb": 2.9,
+              "entities": 19,
+              "modified": "2026-07-03T06:50:00Z"
+            },
+            {
+              "document_id": "d_in_mf_5502",
+              "name": "Inbound manifest 5502.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "manifest",
+              "pages": 5,
+              "size_mb": 3.1,
+              "entities": 19,
+              "modified": "2026-07-07T06:55:00Z"
+            },
+            {
+              "document_id": "d_in_mf_5503",
+              "name": "Inbound manifest 5503.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "manifest",
+              "pages": 4,
+              "size_mb": 2.5,
+              "entities": 17,
+              "modified": "2026-07-14T07:10:00Z"
+            },
+            {
+              "document_id": "d_in_intake_log",
+              "name": "Intake log — July",
+              "mime_type": "application/vnd.google-apps.spreadsheet",
+              "doc_type": "manifest",
+              "pages": 7,
+              "size_mb": 0.9,
+              "entities": 14,
+              "modified": "2026-07-28T17:25:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_disposal_certificates",
+          "name": "Disposal certificates",
+          "path": "/Operations/Disposal certificates",
+          "description": "Certificates of destruction and recycling",
+          "documents": [
+            {
+              "document_id": "d_dc_cert_8801",
+              "name": "Certificate of destruction 8801.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "contract",
+              "pages": 3,
+              "size_mb": 1.2,
+              "entities": 16,
+              "modified": "2026-06-24T12:00:00Z"
+            },
+            {
+              "document_id": "d_dc_cert_8802",
+              "name": "Certificate of destruction 8802.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "contract",
+              "pages": 3,
+              "size_mb": 1.2,
+              "entities": 16,
+              "modified": "2026-07-01T12:05:00Z"
+            },
+            {
+              "document_id": "d_dc_recycling_summary",
+              "name": "Recycling summary — Q2",
+              "mime_type": "application/vnd.google-apps.document",
+              "doc_type": "report",
+              "pages": 10,
+              "size_mb": 0.7,
+              "entities": 13,
+              "modified": "2026-07-09T15:15:00Z"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "document_vocabulary": [
+    {
+      "name": "manifest_tracking_number",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.97
+    },
+    {
+      "name": "generator_epa_id",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.96
+    },
+    {
+      "name": "generator_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.94
+    },
+    {
+      "name": "generator_site_address",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.89,
+      "pii": true
+    },
+    {
+      "name": "transporter_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93
+    },
+    {
+      "name": "transporter_signature_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.9
+    },
+    {
+      "name": "disposal_facility_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.92
+    },
+    {
+      "name": "disposal_facility_address",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.91,
+      "pii": true
+    },
+    {
+      "name": "signatory_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.95,
+      "pii": true
+    },
+    {
+      "name": "signatory_email",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.95,
+      "pii": true
+    },
+    {
+      "name": "signatory_phone",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93,
+      "pii": true
+    },
+    {
+      "name": "waste_stream_code",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.92
+    },
+    {
+      "name": "hazard_class",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.9
+    },
+    {
+      "name": "container_count",
+      "type": "number",
+      "class": "measure",
+      "confidence": 0.89
+    },
+    {
+      "name": "total_weight_kg",
+      "type": "number",
+      "class": "measure",
+      "confidence": 0.9
+    },
+    {
+      "name": "pickup_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.94
+    },
+    {
+      "name": "delivery_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.93
+    },
+    {
+      "name": "counterparty_legal_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.93
+    },
+    {
+      "name": "contract_effective_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.92
+    },
+    {
+      "name": "contract_expiry_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.91
+    },
+    {
+      "name": "contract_value_usd",
+      "type": "number",
+      "class": "measure",
+      "confidence": 0.9
+    },
+    {
+      "name": "payment_terms",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.87
+    },
+    {
+      "name": "account_manager_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.9,
+      "pii": true
+    },
+    {
+      "name": "permit_number",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.94
+    },
+    {
+      "name": "permit_expiry_date",
+      "type": "date",
+      "class": "date",
+      "confidence": 0.91
+    },
+    {
+      "name": "audit_period",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.87
+    },
+    {
+      "name": "inspection_finding",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.86
+    },
+    {
+      "name": "corrective_action",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.85
+    },
+    {
+      "name": "risk_rating",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.88
+    },
+    {
+      "name": "retention_class",
+      "type": "string",
+      "class": "dimension",
+      "confidence": 0.9
+    },
+    {
+      "name": "approver_name",
+      "type": "string",
+      "class": "entity",
+      "confidence": 0.91,
+      "pii": true
+    },
+    {
+      "name": "invoice_number",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.95
+    },
+    {
+      "name": "line_item_description",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.84
+    },
+    {
+      "name": "customer_reference",
+      "type": "string",
+      "class": "identifier",
+      "confidence": 0.92
+    },
+    {
+      "name": "document_summary_text",
+      "type": "string",
+      "class": "text",
+      "confidence": 0.8
+    }
   ]
 }

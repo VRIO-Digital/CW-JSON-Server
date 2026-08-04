@@ -27,10 +27,22 @@ npx vite build --ssr smoke.tsx --outDir dist-ssr --logLevel warn && node dist-ss
 ```
 
 This is how components get asserted on without a DOM. Stub `globalThis.fetch` to
-test `src/api/client.ts` against fabricated payloads. antd `Modal`/`Drawer` render
-through a portal that `renderToString` will not traverse — extract the body into
-its own component if it needs asserting (that is why `ConnectSourceWizard` is
-separate from `ConnectSourceModal`). Delete the scratch files afterwards.
+test `src/api/client.ts` against fabricated payloads. Delete the scratch files
+afterwards.
+
+Three things `renderToString` will not show you, all of which look like your
+component is broken when it is not:
+
+- **A store-connected component renders zustand's *initial* state.** zustand v5
+  passes `getInitialState` as the server snapshot, so seeding a store with
+  `load()` before rendering changes nothing — you get the empty state. Pass the
+  data in as a prop instead: extract the body into a pure component (that is why
+  `ConnectSourceWizard` is separate from `ConnectSourceModal`, and
+  `DocumentDictionary` from `ProfiledDocumentsPanel`).
+- **antd `Modal`/`Drawer` render through a portal**, and the `Tree` body through
+  a virtual list — neither is traversed. Assert around them.
+- **Adjacent JSX expressions are separated by `<!-- -->`**, so `{v}%` never
+  matches `"30%"` in the raw HTML. Strip tags before asserting on text.
 
 ## Architecture
 
@@ -61,10 +73,13 @@ expensive, and a mock backend is not worth widening the dependency surface.
 `db.json` is read once at startup into a `db` object that every route closes
 over. Two kinds of state live here:
 
-- **From `db.json`** — projects/datasets/tables, credentials, the audit / traces /
-  evals payloads, change signals, `column_vocabulary`.
+- **From `db.json`** — projects/datasets/tables, drives/folders/documents,
+  credentials (`credentials` for BigQuery, `drive_credentials` for Drive), the
+  audit / traces / evals payloads, change signals, `column_vocabulary`,
+  `document_vocabulary`.
 - **In memory, lost on restart** — `registered` (sources added through the wizard,
-  including their profiled tables and column notes) and `profilingJobs`.
+  including their profiled tables/documents, column notes and document
+  summaries) and `profilingJobs`.
 
 Consequences worth knowing before debugging:
 
@@ -90,21 +105,47 @@ Profiled counts are deliberately 0 on registration: registration is instant,
 counts only land once the profiler has run. Do not "fix" this by populating them
 from `db.json`.
 
+### Two connectors, one shape
+
+BigQuery (structured) and Google Drive (unstructured) are both real, and Drive
+is deliberately a mirror rather than a parallel universe:
+project→dataset→table becomes drive→folder→document, `datasets` becomes
+`folders`, `profiled_tables`/`profiled_columns` become
+`profiled_documents`/`profiled_entities`, and every endpoint has a twin
+(`/sources/drive/preview`, `/sources/drive`, `/browse-documents`,
+`/profile-documents`, `/documents`, `/folders`). A source's `kind`
+(`bigquery` | `gdrive`) picks the path.
+
+**Each endpoint refuses the other connector's source with a 400 that names its
+twin.** Answering a Drive source's `/browse` with an empty dataset list would
+read as "nothing to profile" and send you debugging the allowlist instead of the
+call. When adding an endpoint for one connector, add that guard to both.
+
 ### The profiling pipeline
 
-`POST /sources/:id/profile` returns **202 with a `queued` job** and drives it
-through `PIPELINE` (5 stages) on timers, committing tables as it goes. This is
-why `ProfilingJobsTab` polls (3s, only while `active_count > 0`) and why starting
-a run switches the Catalogue to the jobs tab — a queued job is otherwise
-invisible. Already-profiled tables are skipped; an all-skipped job completes
-instantly rather than faking a run. `force` is still a server parameter, but the
-only UI that sets it is the **Force** button on a row in Profiling jobs — the
-browse panel never forces.
+`POST /sources/:id/profile` and `POST /sources/:id/profile-documents` return
+**202 with a `queued` job** and drive it through `PIPELINE` or `DOC_PIPELINE`
+(5 stages each — kept equal so a job row reads the same either way) on timers,
+committing objects as they go. This is why `ProfilingJobsTab` polls (3s, only
+while `active_count > 0`) and why starting a run switches the Catalogue to the
+jobs tab — a queued job is otherwise invisible. Already-profiled objects are
+skipped; an all-skipped job completes instantly rather than faking a run.
+`force` is still a server parameter, but the only UI that sets it is the
+**Force** button on a row in Profiling jobs — the browse panels never force.
+
+A job's work list is `objects` (`{parent_id, object_id, label, units, state}`)
+with `kind` and `unit` on the job, never `tables` — one board carries both
+connectors' runs, and a re-run posts back to the endpoint its `kind` names.
 
 ### State (`src/store/`)
 
-zustand. Four modules: `sourcesStore`, `catalogueStore` (browse / columns / jobs /
-signals), `telemetryStore` (audit / traces / evals), `dbStore`.
+zustand. Four modules: `sourcesStore`, `catalogueStore` (browse / columns /
+document browse / documents / jobs / signals), `telemetryStore` (audit / traces /
+evals), `dbStore`.
+
+The Drive stores are separate from the BigQuery ones rather than one store
+branching on connector: the payloads share no fields, so a union `data` would
+have to be narrowed by every consumer.
 
 Two conventions that the whole app depends on:
 
@@ -223,6 +264,10 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **A stale mock server answers with the old shape.** Editing `server.mjs` or a
   payload shape needs a restart, which also clears every registered source. When
   output looks impossibly wrong, check the server's age before your own code.
+- **An endpoint that "works" on the wrong connector is worse than one that
+  fails.** A Drive source asked for `/browse` returned an empty dataset list —
+  indistinguishable from "nothing to profile". Every connector-specific route
+  checks `kind` and 400s with the name of its twin.
 - **antd v6 renamed props** — read the installed `.d.ts`; do not assume v5.
 - **Selectors must return stable references.** `data?.x ?? []` allocates every
   render and defeats downstream memos; use a module-level constant.

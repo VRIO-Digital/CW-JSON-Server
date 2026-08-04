@@ -20,9 +20,11 @@ import { useBrowseStore, useSignalsStore } from '../store/catalogueStore'
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import ConnectorIcon from '../components/ConnectorIcon'
+import DocumentBrowsePanel from '../components/DocumentBrowsePanel'
 import NoSourceConnected from '../components/NoSourceConnected'
 import PageHeader from '../components/PageHeader'
 import ProfiledColumnsPanel from '../components/ProfiledColumnsPanel'
+import ProfiledDocumentsPanel from '../components/ProfiledDocumentsPanel'
 import ProfilingJobsTab from '../components/ProfilingJobsTab'
 import StatusTag from '../components/StatusTag'
 import { SP } from '../theme'
@@ -141,8 +143,8 @@ function BrowsePanel({
       return
     }
     const { job } = result
-    const queued = job.tables.filter((t) => t.state === 'pending').length
-    const skipped = job.tables.filter((t) => t.state === 'skipped').length
+    const queued = job.objects.filter((o) => o.state === 'pending').length
+    const skipped = job.objects.filter((o) => o.state === 'skipped').length
     message.success(
       queued === 0
         ? `Nothing to profile — ${skipped} table(s) already profiled. Use Force on the run in Profiling jobs to redo them.`
@@ -219,10 +221,13 @@ function CatalogueTab({
   onChanged: () => void
 }) {
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [panel, setPanel] = useState<'none' | 'browse' | 'columns'>('none')
+  const [panel, setPanel] = useState<
+    'none' | 'browse' | 'columns' | 'browse-documents' | 'documents'
+  >('none')
 
   const selected =
     sources.find((s) => s.sourceId === activeId) ?? sources[0] ?? null
+  const isDrive = selected?.kind === 'gdrive'
 
   // Keep the selection valid when the list changes underneath.
   useEffect(() => {
@@ -231,7 +236,7 @@ function CatalogueTab({
 
   if (!loading && sources.length === 0) {
     return (
-      <NoSourceConnected detail="Datasets are discovered from connected sources. Connect a BigQuery project and its tables will be browsable here." />
+      <NoSourceConnected detail="Datasets and documents are discovered from connected sources. Connect a BigQuery project or a Google Drive and its tables or files will be browsable here." />
     )
   }
 
@@ -255,7 +260,11 @@ function CatalogueTab({
               <span className="cat-source-body">
                 <span className="cat-source-id">{s.sourceId}</span>
                 <span className="cat-source-meta">
-                  {s.projectAccount} · {s.profiledTables} tables profiled · {s.status}
+                  {s.projectAccount} ·{' '}
+                  {s.kind === 'gdrive'
+                    ? `${s.profiledDocuments ?? 0} documents profiled`
+                    : `${s.profiledTables} tables profiled`}{' '}
+                  · {s.status}
                 </span>
               </span>
             </button>
@@ -281,48 +290,76 @@ function CatalogueTab({
           <Row gutter={[SP.base, SP.base]} style={{ marginBottom: SP.lg }}>
             <Col xs={24} sm={12} lg={6}>
               <StatBox
-                label="project"
+                label={isDrive ? 'drive' : 'project'}
                 value={selected.projectAccount}
-                note="GCP project"
+                note={isDrive ? 'Google Drive' : 'GCP project'}
                 mono
               />
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <StatBox
-                label="datasets allowed"
-                value={String(selected.datasets.length)}
+                label={isDrive ? 'folders allowed' : 'datasets allowed'}
+                value={String(
+                  isDrive ? selected.folders.length : selected.datasets.length,
+                )}
                 note="in the allowlist"
               />
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <StatBox
-                label="tables profiled"
-                value={String(selected.profiledTables)}
+                label={isDrive ? 'documents profiled' : 'tables profiled'}
+                value={String(
+                  isDrive ? (selected.profiledDocuments ?? 0) : selected.profiledTables,
+                )}
                 note="for this source"
               />
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <StatBox
-                label="columns profiled"
-                value={String(selected.profiledColumns)}
+                label={isDrive ? 'entities extracted' : 'columns profiled'}
+                value={String(
+                  isDrive ? (selected.profiledEntities ?? 0) : selected.profiledColumns,
+                )}
                 note="for this source"
               />
             </Col>
           </Row>
 
+          {/* Same two moves either way — browse and profile, then read the
+              dictionary — in the unit the connector actually holds. */}
           <Space wrap size={SP.sm} className="cat-actions">
             <Button
               type="primary"
-              disabled={selected.kind !== 'bigquery'}
-              onClick={() => setPanel(panel === 'browse' ? 'none' : 'browse')}
+              disabled={selected.kind !== 'bigquery' && !isDrive}
+              onClick={() =>
+                setPanel(
+                  isDrive
+                    ? panel === 'browse-documents'
+                      ? 'none'
+                      : 'browse-documents'
+                    : panel === 'browse'
+                      ? 'none'
+                      : 'browse',
+                )
+              }
             >
-              Browse table for profiling
+              {isDrive ? 'Browse documents for profiling' : 'Browse table for profiling'}
             </Button>
             <Button
-              disabled={selected.kind !== 'bigquery'}
-              onClick={() => setPanel(panel === 'columns' ? 'none' : 'columns')}
+              disabled={selected.kind !== 'bigquery' && !isDrive}
+              onClick={() =>
+                setPanel(
+                  isDrive
+                    ? panel === 'documents'
+                      ? 'none'
+                      : 'documents'
+                    : panel === 'columns'
+                      ? 'none'
+                      : 'columns',
+                )
+              }
             >
-              View profiled columns
+              {isDrive ? 'View profiled documents' : 'View profiled columns'}
             </Button>
           </Space>
 
@@ -343,10 +380,31 @@ function CatalogueTab({
             />
           ) : null}
 
+          {panel === 'browse-documents' ? (
+            <DocumentBrowsePanel
+              key={`${selected.sourceId}-docs-browse`}
+              source={selected}
+              onClose={() => setPanel('none')}
+              onProfiled={onChanged}
+            />
+          ) : null}
+
+          {panel === 'documents' ? (
+            <ProfiledDocumentsPanel
+              key={`${selected.sourceId}-docs`}
+              source={selected}
+              onClose={() => setPanel('none')}
+            />
+          ) : null}
+
           <Typography.Paragraph className="cat-detail-foot">
-            {selected.profiledTables === 0
-              ? 'No profiled tables yet for this source. Browse & profile some tables first, then watch the Profiling jobs tab.'
-              : `${selected.profiledTables} table(s) and ${selected.profiledColumns} column(s) profiled. Re-profile any time from Browse table for profiling.`}
+            {isDrive
+              ? (selected.profiledDocuments ?? 0) === 0
+                ? 'No profiled documents yet for this source. Browse & profile some documents first, then watch the Profiling jobs tab.'
+                : `${selected.profiledDocuments} document(s) and ${selected.profiledEntities} entities profiled. Re-profile any time from Browse documents for profiling.`
+              : selected.profiledTables === 0
+                ? 'No profiled tables yet for this source. Browse & profile some tables first, then watch the Profiling jobs tab.'
+                : `${selected.profiledTables} table(s) and ${selected.profiledColumns} column(s) profiled. Re-profile any time from Browse table for profiling.`}
           </Typography.Paragraph>
         </div>
         ) : null}

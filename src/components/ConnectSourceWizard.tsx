@@ -25,14 +25,20 @@ import {
 import { useState } from 'react'
 import {
   ApiError,
+  driveOauthCallback,
   oauthCallback,
   oauthStart,
+  previewDrive,
   previewSource,
+  registerDriveSource,
   registerGenericSource,
   registerSource,
+  type DriveInfo,
+  type DrivePreviewResult,
   type GcpProject,
   type GoogleAccount,
   type PreviewResult,
+  type RegisteredDriveSource,
   type RegisteredSource,
 } from '../api/client'
 import {
@@ -52,9 +58,10 @@ const VISION_NOTE =
   'registered you’ll find its project and datasets in the Sources table and in ' +
   'the confirmation below.'
 
-/** Dummy discovery result for the non-BigQuery connectors. */
-const DISCOVERY: Record<string, string> = {
-  gdrive: '3 folders · 486 documents · 12 file types',
+/** Human label for a Drive's kind, which the API keeps snake_case. */
+const DRIVE_KIND: Record<string, string> = {
+  my_drive: 'My Drive',
+  shared_drive: 'Shared drive',
 }
 
 function ConnectorCard({
@@ -113,10 +120,10 @@ export default function ConnectSourceWizard({
   onRegistered,
   onCancel,
 }: {
-  /** Non-BigQuery connectors: registers a row and closes. Receives its name. */
+  /** Stubbed connectors: registers a bare row and closes. Receives its name. */
   onConnect: (sourceName: string) => void
-  /** BigQuery: registered against the dummy API; the dialog stays open. */
-  onRegistered: (source: RegisteredSource) => void
+  /** BigQuery / Drive: registered for real; the dialog stays open. */
+  onRegistered: (source: RegisteredSource | RegisteredDriveSource) => void
   onCancel: () => void
 }) {
   const { message } = App.useApp()
@@ -140,7 +147,20 @@ export default function ConnectSourceWizard({
   const [checked, setChecked] = useState<string[]>([])
   const [registeredResult, setRegisteredResult] = useState<RegisteredSource | null>(null)
 
+  // ---- Google Drive state — the same three moves, in folders ----
+  const [drives, setDrives] = useState<DriveInfo[]>([])
+  const [driveId, setDriveId] = useState('')
+  const [driveHandle, setDriveHandle] = useState('')
+  const [folderAllowlistText, setFolderAllowlistText] = useState('')
+  const [drivePreview, setDrivePreview] = useState<DrivePreviewResult | null>(null)
+  const [checkedFolders, setCheckedFolders] = useState<string[]>([])
+  const [registeredDrive, setRegisteredDrive] =
+    useState<RegisteredDriveSource | null>(null)
+
   const isBigQuery = selected?.key === 'bigquery'
+  const isDrive = selected?.key === 'gdrive'
+  /** Both real connectors run the bespoke consent → preview → finish path. */
+  const isGoogle = isBigQuery || isDrive
 
   const fail = (err: unknown) =>
     message.error(err instanceof ApiError ? err.message : 'Unexpected error')
@@ -159,12 +179,21 @@ export default function ConnectSourceWizard({
   async function loginWithGoogle() {
     setBusy('login')
     try {
-      const start = await oauthStart()
-      const result = await oauthCallback(start.state)
-      setAccount(result.account)
-      setProjects(result.projects)
-      const first = result.projects[0]
-      if (first) selectProject(first.project_id, result.projects)
+      // The consent is scoped to the connector, so the state is issued for it.
+      const start = await oauthStart(isDrive ? 'drive' : 'bigquery')
+      if (isDrive) {
+        const result = await driveOauthCallback(start.state)
+        setAccount(result.account)
+        setDrives(result.drives)
+        const first = result.drives[0]
+        if (first) selectDrive(first.drive_id, result.drives)
+      } else {
+        const result = await oauthCallback(start.state)
+        setAccount(result.account)
+        setProjects(result.projects)
+        const first = result.projects[0]
+        if (first) selectProject(first.project_id, result.projects)
+      }
     } catch (err) {
       fail(err)
     } finally {
@@ -179,6 +208,60 @@ export default function ConnectSourceWizard({
     setPreview(null)
     setChecked([])
     setRegisteredResult(null)
+  }
+
+  function selectDrive(id: string, list = drives) {
+    setDriveId(id)
+    setDriveHandle(list.find((d) => d.drive_id === id)?.credential_handle ?? '')
+    // A different drive invalidates any previous discovery.
+    setDrivePreview(null)
+    setCheckedFolders([])
+    setRegisteredDrive(null)
+  }
+
+  async function runDrivePreview() {
+    setBusy('preview')
+    try {
+      const result = await previewDrive(driveId, driveHandle)
+      setDrivePreview(result)
+      const fromAllowlist = folderAllowlistText
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      // Blank allowlist auto-fills from everything Preview discovered.
+      setCheckedFolders(
+        fromAllowlist.length > 0
+          ? fromAllowlist
+          : result.folders.map((f) => f.folder_id),
+      )
+    } catch (err) {
+      fail(err)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function finishDrive() {
+    if (checkedFolders.length === 0) {
+      message.warning('Check at least one folder before finishing.')
+      return
+    }
+    setBusy('finish')
+    try {
+      const result = await registerDriveSource({
+        driveId,
+        credentialHandle: driveHandle,
+        folders: checkedFolders,
+        sourceName: sourceName || driveId,
+      })
+      setRegisteredDrive(result)
+      onRegistered(result)
+      message.success(`Connected — registered ${result.source_id}`)
+    } catch (err) {
+      fail(err)
+    } finally {
+      setBusy(null)
+    }
   }
 
   async function runPreview() {
@@ -236,6 +319,16 @@ export default function ConnectSourceWizard({
         if (!projectId || !credentialHandle) {
           message.warning(
             'Sign in with Google, or supply a project ID and credential handle under Advanced.',
+          )
+          return
+        }
+        setStep(2)
+        return
+      }
+      if (isDrive) {
+        if (!driveId || !driveHandle) {
+          message.warning(
+            'Sign in with Google, or supply a drive ID and credential handle under Advanced.',
           )
           return
         }
@@ -438,8 +531,116 @@ export default function ConnectSourceWizard({
         </>
       ) : null}
 
+      {/* ---------- Step 2: Google Drive connection ---------- */}
+      {step === 1 && isDrive ? (
+        <>
+          <Alert type="info" showIcon style={{ marginBottom: 12 }} title={VISION_NOTE} />
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            title="Click below to sign in with your own Google account and grant read-only Drive access — no service-account key to download or upload. Uses the GET /sources/oauth/start?provider=drive → Google consent → GET /sources/oauth/callback flow."
+          />
+
+          <Button
+            type="primary"
+            icon={<GoogleOutlined />}
+            loading={busy === 'login'}
+            onClick={loginWithGoogle}
+            style={{ marginBottom: 16 }}
+          >
+            Login with Google
+          </Button>
+
+          {account ? (
+            <Alert
+              type="success"
+              showIcon
+              style={{ marginBottom: 16 }}
+              title={
+                <span>
+                  Connected as <strong>{account.email}</strong>
+                </span>
+              }
+            />
+          ) : null}
+
+          <Form layout="vertical" requiredMark={false}>
+            <Form.Item
+              label="Source name"
+              extra="How this source appears in the Sources table and the Data Catalogue."
+            >
+              <Input
+                value={sourceName}
+                onChange={(e) => setSourceName(e.target.value)}
+                placeholder="Compliance documents"
+              />
+            </Form.Item>
+
+            {drives.length > 0 ? (
+              <Form.Item label="Drive">
+                <Select
+                  value={driveId || undefined}
+                  onChange={(value) => selectDrive(value)}
+                  placeholder="Select a drive"
+                  options={drives.map((d) => ({
+                    value: d.drive_id,
+                    label: `${d.display_name} — ${DRIVE_KIND[d.kind] ?? d.kind} · ${d.folder_count} folder(s) · ${d.document_count} document(s)`,
+                  }))}
+                />
+              </Form.Item>
+            ) : null}
+          </Form>
+
+          <Collapse
+            style={{ marginBottom: 8 }}
+            items={[
+              {
+                key: 'advanced',
+                label: 'Advanced: enter a drive and credential handle manually',
+                children: (
+                  <Form layout="vertical" requiredMark={false}>
+                    <Form.Item label="Drive ID">
+                      <Input
+                        value={driveId}
+                        onChange={(e) => setDriveId(e.target.value)}
+                        placeholder="shared-compliance"
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Credential handle"
+                      extra="Issued by the Google consent flow. There is no way to paste a raw key — ContextWeave only ever holds a reference."
+                    >
+                      <Input
+                        value={driveHandle}
+                        onChange={(e) => setDriveHandle(e.target.value)}
+                        placeholder="drive-handle-…"
+                      />
+                    </Form.Item>
+
+                    <Form.Item label="Folder allowlist (comma-separated — optional for Preview, required for Finish)">
+                      <Input
+                        value={folderAllowlistText}
+                        onChange={(e) => setFolderAllowlistText(e.target.value)}
+                        placeholder="f_audit_reports, f_policies — leave blank to auto-fill from Preview’s discovered folders"
+                      />
+                    </Form.Item>
+
+                    <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+                      Credentials are held by reference only (credential_handle).
+                      This calls POST /sources/drive/preview and POST /sources/drive.
+                    </Typography.Text>
+                  </Form>
+                ),
+              },
+            ]}
+          />
+        </>
+      ) : null}
+
       {/* ---------- Step 2: every other connector ---------- */}
-      {step === 1 && selected && !isBigQuery ? (
+      {step === 1 && selected && !isGoogle ? (
         <>
           <Alert
             type="info"
@@ -548,8 +749,86 @@ export default function ConnectSourceWizard({
         </>
       ) : null}
 
+      {/* ---------- Step 3: Drive preview + finish ---------- */}
+      {step === 2 && isDrive ? (
+        <>
+          <Alert type="info" showIcon style={{ marginBottom: 16 }} title={VISION_NOTE} />
+
+          <Card size="small" style={{ marginBottom: 16 }}>
+            <Button
+              loading={busy === 'preview'}
+              onClick={runDrivePreview}
+              style={{ marginBottom: drivePreview ? 14 : 0 }}
+            >
+              1. Run preview
+            </Button>
+
+            {drivePreview ? (
+              <>
+                <Alert
+                  type="success"
+                  showIcon
+                  style={{ marginBottom: 14 }}
+                  title={`${drivePreview.display_name} · discovered ${drivePreview.folder_count} folder(s), ${drivePreview.document_count} document(s)`}
+                />
+                <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>
+                  Folder allowlist — check which folders this source may profile
+                </Typography.Text>
+                <Checkbox.Group
+                  value={checkedFolders}
+                  onChange={(values) => setCheckedFolders(values as string[])}
+                  options={drivePreview.folders.map((f) => ({
+                    label: `${f.name} — ${f.document_count} doc(s) · ${f.page_count} page(s)`,
+                    value: f.folder_id,
+                  }))}
+                />
+              </>
+            ) : null}
+          </Card>
+
+          <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+            Discovers the folders visible to this credential handle without
+            registering anything yet. Documents are counted, not read — extraction
+            happens when the document profiler runs.
+          </Typography.Text>
+
+          <Card size="small" style={{ marginTop: 16 }}>
+            <Button
+              type="primary"
+              disabled={!drivePreview}
+              loading={busy === 'finish'}
+              onClick={finishDrive}
+              style={{ marginBottom: registeredDrive ? 14 : 0 }}
+            >
+              2. Finish
+            </Button>
+
+            {registeredDrive ? (
+              <Alert
+                type="success"
+                showIcon
+                icon={<CheckCircleOutlined />}
+                title={
+                  <span>
+                    Registered source_id <strong>{registeredDrive.source_id}</strong>
+                  </span>
+                }
+                description={
+                  <div style={{ fontSize: 13 }}>
+                    <div>Drive: {registeredDrive.drive_id}</div>
+                    <div>Folders: {registeredDrive.folders.join(', ')}</div>
+                    <div>Documents: {registeredDrive.document_count}</div>
+                    <div>Newly connected: {String(registeredDrive.newly_connected)}</div>
+                  </div>
+                }
+              />
+            ) : null}
+          </Card>
+        </>
+      ) : null}
+
       {/* ---------- Step 3: every other connector ---------- */}
-      {step === 2 && selected && !isBigQuery ? (
+      {step === 2 && selected && !isGoogle ? (
         <>
           <Descriptions
             bordered
@@ -585,7 +864,7 @@ export default function ConnectSourceWizard({
               showIcon
               icon={<CheckCircleOutlined />}
               title="Connection succeeded"
-              description={`Discovered ${DISCOVERY[selected.key] ?? 'metadata'}. Profiling starts as soon as the source is registered.`}
+              description="Registration is stubbed for this connector — it lands as a bare row with no discovery until its profiler ships."
             />
           ) : null}
         </>
@@ -611,7 +890,7 @@ export default function ConnectSourceWizard({
         ) : (
           <Space>
             <Button onClick={() => setStep(1)}>← Back</Button>
-            {isBigQuery ? (
+            {isGoogle ? (
               <Button onClick={onCancel}>Close</Button>
             ) : (
               <Button

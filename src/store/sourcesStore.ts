@@ -4,6 +4,7 @@ import {
   disconnectSource,
   listSources,
   updateSourceDatasets,
+  updateSourceFolders,
   type SourceRow,
 } from '../api/client'
 import { toMessage, type Result } from './asyncState'
@@ -17,6 +18,7 @@ interface SourcesPayload {
   profiledTables: number
   profiledColumns: number
   profiledDocuments: number
+  profiledEntities: number
 }
 
 interface SourcesState {
@@ -30,6 +32,7 @@ interface SourcesState {
   disconnect: (sourceId: string) => Promise<Result>
   remove: (sourceId: string) => Promise<Result>
   setDatasets: (sourceId: string, datasets: string[]) => Promise<Result>
+  setFolders: (sourceId: string, folders: string[]) => Promise<Result>
 }
 
 const EMPTY: SourceRow[] = []
@@ -84,6 +87,23 @@ export const useSourcesStore = create<SourcesState>()((set, get) => ({
     set({ pending: sourceId })
     try {
       await updateSourceDatasets(sourceId, datasets)
+      await get().load()
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: toMessage(error) }
+    } finally {
+      set({ pending: null })
+    }
+  },
+
+  /** The Drive allowlist: same contract, folders instead of datasets. */
+  setFolders: async (sourceId, folders) => {
+    if (folders.length === 0) {
+      return { ok: false, error: 'Keep at least one folder in the allowlist.' }
+    }
+    set({ pending: sourceId })
+    try {
+      await updateSourceFolders(sourceId, folders)
       await get().load()
       return { ok: true }
     } catch (error) {

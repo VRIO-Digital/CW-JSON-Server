@@ -1,5 +1,5 @@
 import { Modal, Typography } from 'antd'
-import type { RegisteredSource } from '../api/client'
+import type { RegisteredDriveSource, RegisteredSource } from '../api/client'
 import ConnectSourceWizard from './ConnectSourceWizard'
 
 /** Dialog chrome only — the flow itself lives in ConnectSourceWizard. */
@@ -12,7 +12,7 @@ export default function ConnectSourceModal({
   open: boolean
   onClose: () => void
   onConnect: (sourceName: string) => void
-  onRegistered: (source: RegisteredSource) => void
+  onRegistered: (source: RegisteredSource | RegisteredDriveSource) => void
 }) {
   return (
     <Modal
@@ -38,7 +38,8 @@ export default function ConnectSourceModal({
     >
       <ConnectSourceWizard
         onCancel={onClose}
-        // BigQuery keeps the dialog open so the confirmation stays readable.
+        // BigQuery and Drive keep the dialog open so the confirmation stays
+        // readable; only the stubbed connectors close on finish.
         onRegistered={onRegistered}
         onConnect={(sourceName) => {
           onConnect(sourceName)

@@ -20,17 +20,25 @@
  *   GET    /health
  *   GET    /projects
  *   GET    /projects/:projectId/datasets
- *   GET    /sources/oauth/start
- *   GET    /sources/oauth/callback?state=...
+ *   GET    /drives
+ *   GET    /drives/:driveId/folders
+ *   GET    /sources/oauth/start?provider=bigquery|drive
+ *   GET    /sources/oauth/callback?state=...&provider=bigquery|drive
  *   POST   /sources/preview                { project_id, credential_handle }
  *   POST   /sources                        { project_id, credential_handle, datasets, source_name }
+ *   POST   /sources/drive/preview          { drive_id, credential_handle }
+ *   POST   /sources/drive                  { drive_id, credential_handle, folders, source_name }
  *   GET    /sources                        registered rows only
  *   POST   /sources/:id/disconnect
  *   PUT    /sources/:id/datasets           { datasets }
+ *   PUT    /sources/:id/folders            { folders }
  *   DELETE /sources/:sourceId
  *   GET    /sources/:id/browse             allowlisted datasets + their tables
+ *   GET    /sources/:id/browse-documents   allowlisted folders + their documents
  *   POST   /sources/:id/profile            { objects: [{dataset_id, table_id}], force }
+ *   POST   /sources/:id/profile-documents  { objects: [{folder_id, document_id}], force }
  *   GET    /sources/:id/columns            profiled columns
+ *   GET    /sources/:id/documents          profiled documents + extracted entities
  *   GET    /profiling-jobs
  *   GET    /change-signals
  *   GET    /audit                          { stats, events, policies }
@@ -52,8 +60,12 @@ const PORT = Number(process.argv[2] ?? process.env.MOCK_PORT ?? 4000)
 const registered = new Map()
 /** Profiling runs, newest first. */
 const profilingJobs = []
-/** OAuth states issued by /sources/oauth/start, consumed by the callback. */
-const oauthStates = new Set()
+/**
+ * OAuth states issued by /sources/oauth/start, consumed by the callback —
+ * state → the provider it was issued for. A real consent screen ties the state
+ * to the granted scope, so a BigQuery state cannot be replayed against Drive.
+ */
+const oauthStates = new Map()
 
 let counter = 0
 const nextId = () => `${Date.now().toString(36)}${(counter++).toString(36)}`
@@ -61,6 +73,16 @@ const nextId = () => `${Date.now().toString(36)}${(counter++).toString(36)}`
 const findProject = (id) => db.projects.find((p) => p.project_id === id)
 const findCredentialByHandle = (handle) =>
   db.credentials.find((c) => c.credential_handle === handle)
+
+const findDrive = (id) => db.drives.find((d) => d.drive_id === id)
+const findDriveCredentialByHandle = (handle) =>
+  db.drive_credentials.find((c) => c.credential_handle === handle)
+const findFolder = (drive, folderId) =>
+  (drive?.folders ?? []).find((f) => f.folder_id === folderId)
+const findDocument = (drive, folderId, documentId) =>
+  (findFolder(drive, folderId)?.documents ?? []).find(
+    (d) => d.document_id === documentId,
+  )
 
 const send = (res, status, payload) => {
   const body = JSON.stringify(payload, null, 2)
@@ -95,27 +117,33 @@ const readJson = (req) =>
 /**
  * A registered source, shaped for the Sources table.
  *
- * `profiled_tables` / `profiled_columns` deliberately stay 0: registration is
- * instant, but counts only land once the Metadata Profiler has run. Nothing in
- * this mock runs it, so they remain 0 — which is the real behaviour.
+ * Every profiled_* counter deliberately starts at 0: registration is instant,
+ * but counts only land once the Metadata Profiler has run over the selected
+ * tables (BigQuery) or documents (Drive).
+ *
+ * `scope` reads in the unit of the connector — datasets for BigQuery, folders
+ * for Drive — because that is what the allowlist actually narrows.
  */
 function sourceRow(source) {
-  const isDrive = source.connector === 'gdrive'
+  const isDrive = source.kind === 'gdrive'
   return {
     source_id: source.source_id,
     source_name: source.source_name,
     connector: source.connector,
     status: source.status,
-    project_account: source.project_id ?? source.account ?? '—',
-    scope:
-      source.kind === 'bigquery'
+    project_account: source.project_id ?? source.drive_id ?? source.account ?? '—',
+    scope: isDrive
+      ? `${(source.folders ?? []).length} folder(s)`
+      : source.kind === 'bigquery'
         ? `${source.datasets.length} dataset(s)`
-        : `${source.folder_count ?? 0} folder(s)`,
+        : '—',
     connected_at: source.registered_at,
     profiled_tables: source.profiled_tables ?? 0,
     profiled_columns: source.profiled_columns ?? 0,
     profiled_documents: isDrive ? (source.profiled_documents ?? 0) : null,
+    profiled_entities: isDrive ? (source.profiled_entities ?? 0) : null,
     datasets: source.datasets ?? [],
+    folders: source.folders ?? [],
     kind: source.kind,
   }
 }
@@ -142,6 +170,13 @@ const DB_SHAPE = {
     Array.isArray(v) &&
     v.length > 0 &&
     v.every((p) => isObject(p) && p.project_id && Array.isArray(p.datasets)),
+  drive_credentials: (v) =>
+    Array.isArray(v) &&
+    v.every((c) => isObject(c) && c.drive_id && c.credential_handle),
+  drives: (v) =>
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((d) => isObject(d) && d.drive_id && Array.isArray(d.folders)),
   audit: (v) =>
     isObject(v) &&
     Array.isArray(v.stats) &&
@@ -158,17 +193,24 @@ const DB_SHAPE = {
     Array.isArray(v) &&
     v.length > 0 &&
     v.every((c) => isObject(c) && c.name && c.type && c.class),
+  document_vocabulary: (v) =>
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((c) => isObject(c) && c.name && c.type && c.class),
 }
 
 const DB_HINTS = {
   google_account: 'object with at least an "email" string',
   credentials: 'array of { project_id, credential_handle }',
   projects: 'non-empty array of { project_id, datasets: [] }',
+  drive_credentials: 'array of { drive_id, credential_handle }',
+  drives: 'non-empty array of { drive_id, folders: [] }',
   audit: 'object with stats[], events[], policies[]',
   traces: 'object with stats[], items[]',
   evals: 'object with stats[], runs[], checks[]',
   change_signals: 'array',
   column_vocabulary: 'non-empty array of { name, type, class }',
+  document_vocabulary: 'non-empty array of { name, type, class }',
 }
 
 function validateDb(candidate) {
@@ -268,10 +310,79 @@ function tableDictionary(source, datasetId, tableId, columnCount, tableRows) {
   })
 }
 
+/**
+ * What the document profiler extracts from one Drive file.
+ *
+ * The unstructured mirror of `tableDictionary`: db.json stores an entity
+ * *count* per document rather than a hand-written extraction, so the entity
+ * list is synthesised from `document_vocabulary` — the slice is chosen by
+ * hashing the document id, and occurrences/coverage derive from a hash of
+ * document+entity. Deterministic, so repeat requests agree.
+ *
+ * Note what is NOT synthesised: the summary. A description belongs to the
+ * whole document here rather than to each entity, because that is the unit a
+ * curator actually reviews for an unstructured file.
+ */
+function documentDictionary(source, folderId, doc) {
+  const vocab = db.document_vocabulary
+  const offset = hash(doc.document_id) % vocab.length
+  const notes = source.document_notes ?? {}
+  const chunks = Math.max(1, Math.round(doc.pages * 2.5))
+
+  const entities = Array.from({ length: doc.entities }, (_, i) => {
+    const v = vocab[(offset + i) % vocab.length]
+    const cycle = Math.floor((offset + i) / vocab.length)
+    const entityId = cycle > 0 ? `${v.name}_${cycle + 1}` : v.name
+    const seed = hash(`${doc.document_id}:${entityId}`)
+
+    // An identifier appears once per document; prose entities recur.
+    const occurrences =
+      v.class === 'identifier'
+        ? 1 + (seed % 2)
+        : v.class === 'text'
+          ? Math.max(1, (seed % chunks) + 1)
+          : Math.max(1, (seed % 9) + 1)
+
+    return {
+      entity_id: entityId,
+      type: v.type,
+      class: v.class,
+      confidence: v.confidence,
+      pii: Boolean(v.pii),
+      occurrences,
+      coverage_pct: Number(
+        Math.min(100, ((occurrences / chunks) * 100)).toFixed(1),
+      ),
+    }
+  })
+
+  const key = `${folderId}.${doc.document_id}`
+  const summary = notes[key] ?? null
+
+  return {
+    document_id: doc.document_id,
+    name: doc.name,
+    mime_type: doc.mime_type,
+    doc_type: doc.doc_type,
+    pages: doc.pages,
+    size_mb: doc.size_mb,
+    modified: doc.modified,
+    chunks,
+    entity_count: entities.length,
+    pii_count: entities.filter((e) => e.pii).length,
+    summary,
+    summary_status: summary ? 'described' : 'needs review',
+    entities,
+  }
+}
+
 /*
- * The Metadata Profiler pipeline. A job is queued, then walks these stages one
- * at a time, committing profiled tables as it goes — so the UI can show a run
- * in flight rather than a result appearing from nowhere.
+ * The Metadata Profiler pipelines. A job is queued, then walks the stages of
+ * its connector one at a time, committing profiled objects as it goes — so the
+ * UI can show a run in flight rather than a result appearing from nowhere.
+ *
+ * Both are five stages, so a job row reads the same either way; the stage names
+ * differ because extracting text from a PDF is not sampling a column.
  */
 const PIPELINE = [
   'Schema fetch',
@@ -280,6 +391,16 @@ const PIPELINE = [
   'PII detection',
   'Candidate keys',
 ]
+
+const DOC_PIPELINE = [
+  'Text extraction',
+  'Chunking',
+  'Entity extraction',
+  'Document PII detection',
+  'Topic classification',
+]
+
+const pipelineFor = (job) => (job.kind === 'gdrive' ? DOC_PIPELINE : PIPELINE)
 
 // Paced so a run is comfortably observable at the UI's 3s poll interval.
 const QUEUE_MS = 1200
@@ -291,78 +412,110 @@ const elapsedSeconds = (job) => {
   return Math.max(0, Math.round((end - Date.parse(job.started_at)) / 1000))
 }
 
-/** Public shape of a job — elapsed is computed live for running jobs. */
-const jobView = (job) => ({
-  job_id: job.job_id,
-  short_id: job.short_id,
-  source_id: job.source_id,
-  status: job.status,
-  stage_index: job.stage_index,
-  stage_total: PIPELINE.length,
-  stage_label: job.stage_label,
-  pipeline: `${job.stage_index}/${PIPELINE.length}: ${job.stage_label}`,
-  progress: job.progress,
-  tables: job.tables,
-  table_count: job.tables.length,
-  tables_done: job.tables.filter((t) => t.state !== 'pending').length,
-  force: job.force,
-  triggered_at: job.triggered_at,
-  started_at: job.started_at,
-  finished_at: job.finished_at,
-  elapsed_seconds: elapsedSeconds(job),
-  triggered_by: job.triggered_by,
-  error: job.error,
-})
+/**
+ * Public shape of a job — elapsed is computed live for running jobs.
+ *
+ * A job's work list is `objects`, not `tables`: a BigQuery job profiles tables
+ * and a Drive job profiles documents, and one board shows both. `unit` is what
+ * the UI labels a row with, so it never has to map a connector to a noun.
+ */
+const jobView = (job) => {
+  const stages = pipelineFor(job)
+  return {
+    job_id: job.job_id,
+    short_id: job.short_id,
+    source_id: job.source_id,
+    kind: job.kind,
+    unit: job.unit,
+    status: job.status,
+    stage_index: job.stage_index,
+    stage_total: stages.length,
+    stage_label: job.stage_label,
+    pipeline: `${job.stage_index}/${stages.length}: ${job.stage_label}`,
+    progress: job.progress,
+    objects: job.objects,
+    object_count: job.objects.length,
+    objects_done: job.objects.filter((o) => o.state !== 'pending').length,
+    force: job.force,
+    triggered_at: job.triggered_at,
+    started_at: job.started_at,
+    finished_at: job.finished_at,
+    elapsed_seconds: elapsedSeconds(job),
+    triggered_by: job.triggered_by,
+    error: job.error,
+  }
+}
 
-/** Recompute a source's profiled counters from its committed table list. */
+/** Recompute a source's profiled counters from what it has committed. */
 function recount(source) {
+  if (source.kind === 'gdrive') {
+    const docs = source.profiled_docs ?? []
+    source.profiled_documents = docs.length
+    source.profiled_entities = docs.reduce((s, p) => s + p.entities, 0)
+    return
+  }
   source.profiled_tables = source.profiled.length
   source.profiled_columns = source.profiled.reduce((s, p) => s + p.columns, 0)
 }
 
-/** Commit one pending table of this job as profiled on its source. */
-function commitNextTable(job) {
+/** Commit one pending object of this job as profiled on its source. */
+function commitNextObject(job) {
   const source = registered.get(job.source_id)
   if (!source) return
-  const next = job.tables.find((t) => t.state === 'pending')
+  const next = job.objects.find((o) => o.state === 'pending')
   if (!next) return
 
-  const already = source.profiled.some(
-    (p) => p.dataset_id === next.dataset_id && p.table_id === next.table_id,
-  )
-  if (!already) {
-    source.profiled.push({
-      dataset_id: next.dataset_id,
-      table_id: next.table_id,
-      columns: next.columns,
-      profiled_at: new Date().toISOString(),
-    })
+  if (job.kind === 'gdrive') {
+    source.profiled_docs = source.profiled_docs ?? []
+    const already = source.profiled_docs.some(
+      (p) => p.folder_id === next.parent_id && p.document_id === next.object_id,
+    )
+    if (!already) {
+      source.profiled_docs.push({
+        folder_id: next.parent_id,
+        document_id: next.object_id,
+        entities: next.units,
+        profiled_at: new Date().toISOString(),
+      })
+    }
+  } else {
+    source.profiled = source.profiled ?? []
+    const already = source.profiled.some(
+      (p) => p.dataset_id === next.parent_id && p.table_id === next.object_id,
+    )
+    if (!already) {
+      source.profiled.push({
+        dataset_id: next.parent_id,
+        table_id: next.object_id,
+        columns: next.units,
+        profiled_at: new Date().toISOString(),
+      })
+    }
   }
   next.state = 'profiled'
   recount(source)
 }
 
-/** Drive a queued job through the pipeline on timers. */
+/** Drive a queued job through its connector's pipeline on timers. */
 function runJob(job) {
+  const stages = pipelineFor(job)
   job.status = 'running'
   job.started_at = new Date().toISOString()
 
   const step = () => {
     if (job.status === 'cancelled') return
     job.stage_index += 1
-    job.stage_label = PIPELINE[job.stage_index - 1]
-    job.progress = Math.round((job.stage_index / PIPELINE.length) * 100)
+    job.stage_label = stages[job.stage_index - 1]
+    job.progress = Math.round((job.stage_index / stages.length) * 100)
 
-    // Spread table commits across the run so counters climb as it progresses.
-    const target = Math.floor(
-      (job.tables.length * job.stage_index) / PIPELINE.length,
-    )
-    while (job.tables.filter((t) => t.state === 'profiled').length < target) {
-      commitNextTable(job)
+    // Spread commits across the run so counters climb as it progresses.
+    const target = Math.floor((job.objects.length * job.stage_index) / stages.length)
+    while (job.objects.filter((o) => o.state === 'profiled').length < target) {
+      commitNextObject(job)
     }
 
-    if (job.stage_index >= PIPELINE.length) {
-      while (job.tables.some((t) => t.state === 'pending')) commitNextTable(job)
+    if (job.stage_index >= stages.length) {
+      while (job.objects.some((o) => o.state === 'pending')) commitNextObject(job)
       job.status = 'complete'
       job.progress = 100
       job.finished_at = new Date().toISOString()
@@ -372,6 +525,47 @@ function runJob(job) {
   }
 
   setTimeout(step, STAGE_MS).unref?.()
+}
+
+/**
+ * Queue a run and return its view. Shared by both connectors so a Drive job and
+ * a BigQuery job cannot drift in status handling — only `objects` differ.
+ */
+function queueJob({ sourceId, kind, unit, objects, force }) {
+  const jobId = crypto.randomUUID()
+  const job = {
+    job_id: jobId,
+    short_id: jobId.slice(0, 8),
+    source_id: sourceId,
+    kind,
+    unit,
+    status: 'queued',
+    stage_index: 0,
+    stage_label: 'queued',
+    progress: 0,
+    objects,
+    force: Boolean(force),
+    triggered_at: new Date().toISOString(),
+    started_at: null,
+    finished_at: null,
+    triggered_by: `${db.google_account.email} (Tenant Admin)`,
+    error: null,
+  }
+  profilingJobs.unshift(job)
+
+  if (objects.every((o) => o.state === 'skipped')) {
+    // Nothing to do — finish immediately rather than faking a pipeline run.
+    job.status = 'complete'
+    job.stage_index = pipelineFor(job).length
+    job.stage_label = 'nothing to profile'
+    job.progress = 100
+    job.started_at = job.triggered_at
+    job.finished_at = job.triggered_at
+  } else {
+    setTimeout(() => runJob(job), QUEUE_MS).unref?.()
+  }
+
+  return job
 }
 
 /** Datasets a source may profile, with the tables inside each. */
@@ -394,6 +588,40 @@ function browsableObjects(source) {
     datasets,
     dataset_count: datasets.length,
     object_count: datasets.reduce((sum, d) => sum + d.table_count, 0),
+  }
+}
+
+/** Folders a Drive source may profile, with the documents inside each. */
+function browsableDocuments(source) {
+  const drive = findDrive(source.drive_id)
+  const profiled = source.profiled_docs ?? []
+  const folders = (source.folders ?? []).map((folderId) => {
+    const folder = findFolder(drive, folderId)
+    const documents = (folder?.documents ?? []).map((d) => ({
+      document_id: d.document_id,
+      name: d.name,
+      mime_type: d.mime_type,
+      doc_type: d.doc_type,
+      pages: d.pages,
+      size_mb: d.size_mb,
+      entities: d.entities,
+      modified: d.modified,
+      profiled: profiled.some(
+        (p) => p.folder_id === folderId && p.document_id === d.document_id,
+      ),
+    }))
+    return {
+      folder_id: folderId,
+      name: folder?.name ?? folderId,
+      path: folder?.path ?? '',
+      document_count: documents.length,
+      documents,
+    }
+  })
+  return {
+    folders,
+    folder_count: folders.length,
+    object_count: folders.reduce((sum, f) => sum + f.document_count, 0),
   }
 }
 
@@ -485,18 +713,65 @@ const routes = [
     },
   },
 
+  {
+    method: 'GET',
+    match: (p) => p === '/drives',
+    handle: (_req, res) =>
+      send(res, 200, {
+        drives: db.drives.map((d) => ({
+          drive_id: d.drive_id,
+          display_name: d.display_name,
+          kind: d.kind,
+          folder_count: d.folders.length,
+        })),
+      }),
+  },
+
+  {
+    method: 'GET',
+    match: (p) => /^\/drives\/[^/]+\/folders$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const driveId = decodeURIComponent(pathname.split('/')[2])
+      const drive = findDrive(driveId)
+      if (!drive) return send(res, 404, { error: `unknown drive ${driveId}` })
+      send(res, 200, {
+        drive_id: drive.drive_id,
+        folders: drive.folders.map((f) => ({
+          folder_id: f.folder_id,
+          name: f.name,
+          path: f.path,
+          document_count: f.documents.length,
+        })),
+      })
+    },
+  },
+
   // Step 2: kick off the Google consent flow. A real deployment would return
   // Google's authorize URL; here the callback is immediately resolvable.
+  //
+  // The scope depends on the connector, so the state is remembered with the
+  // provider it was issued for — a BigQuery consent cannot be replayed to list
+  // someone's Drive.
   {
     method: 'GET',
     match: (p) => p === '/sources/oauth/start',
-    handle: (_req, res) => {
+    handle: (_req, res, { query }) => {
+      const provider = query.get('provider') === 'drive' ? 'drive' : 'bigquery'
+      const scopes =
+        provider === 'drive'
+          ? [
+              'https://www.googleapis.com/auth/drive.metadata.readonly',
+              'https://www.googleapis.com/auth/drive.readonly',
+            ]
+          : ['https://www.googleapis.com/auth/bigquery.readonly']
+
       const state = `state-${nextId()}`
-      oauthStates.add(state)
+      oauthStates.set(state, provider)
       send(res, 200, {
         state,
-        auth_url: `https://accounts.google.com/o/oauth2/v2/auth?state=${state}&scope=https://www.googleapis.com/auth/bigquery.readonly`,
-        scopes: ['https://www.googleapis.com/auth/bigquery.readonly'],
+        provider,
+        auth_url: `https://accounts.google.com/o/oauth2/v2/auth?state=${state}&scope=${scopes.join(' ')}`,
+        scopes,
       })
     },
   },
@@ -509,7 +784,33 @@ const routes = [
       if (!state || !oauthStates.has(state)) {
         return send(res, 400, { error: 'invalid or expired state' })
       }
+      const issuedFor = oauthStates.get(state)
+      const provider = query.get('provider') === 'drive' ? 'drive' : 'bigquery'
+      if (issuedFor !== provider) {
+        return send(res, 400, {
+          error: `this consent was granted for ${issuedFor}, not ${provider} — start the ${provider} sign-in again`,
+        })
+      }
       oauthStates.delete(state)
+
+      if (provider === 'drive') {
+        // One handle per drive the consenting account can read.
+        return send(res, 200, {
+          account: db.google_account,
+          drives: db.drives.map((d) => {
+            const cred = db.drive_credentials.find((c) => c.drive_id === d.drive_id)
+            return {
+              drive_id: d.drive_id,
+              display_name: d.display_name,
+              kind: d.kind,
+              folder_count: d.folders.length,
+              document_count: d.folders.reduce((s, f) => s + f.documents.length, 0),
+              credential_handle: cred?.credential_handle ?? null,
+            }
+          }),
+        })
+      }
+
       send(res, 200, {
         account: db.google_account,
         // One handle per project the consenting account can read.
@@ -559,6 +860,110 @@ const routes = [
           column_count: d.tables.reduce((s, t) => s + (t.columns ?? 0), 0),
         })),
         registered: false,
+      })
+    },
+  },
+
+  // Drive discovery — the same contract as /sources/preview, in folders.
+  {
+    method: 'POST',
+    match: (p) => p === '/sources/drive/preview',
+    handle: async (req, res) => {
+      const { drive_id, credential_handle } = await readJson(req)
+      if (!drive_id || !credential_handle) {
+        return send(res, 400, {
+          error: 'drive_id and credential_handle are both required',
+        })
+      }
+      const cred = findDriveCredentialByHandle(credential_handle)
+      if (!cred) return send(res, 401, { error: 'unknown credential_handle' })
+      if (cred.drive_id !== drive_id) {
+        return send(res, 403, {
+          error: `credential_handle is not authorised for ${drive_id}`,
+        })
+      }
+      const drive = findDrive(drive_id)
+      if (!drive) return send(res, 404, { error: `unknown drive ${drive_id}` })
+
+      send(res, 200, {
+        drive_id,
+        display_name: drive.display_name,
+        kind: drive.kind,
+        folder_count: drive.folders.length,
+        document_count: drive.folders.reduce((s, f) => s + f.documents.length, 0),
+        folders: drive.folders.map((f) => ({
+          folder_id: f.folder_id,
+          name: f.name,
+          path: f.path,
+          description: f.description,
+          document_count: f.documents.length,
+          // What the document profiler would have to read, not just count.
+          page_count: f.documents.reduce((s, d) => s + d.pages, 0),
+          file_types: [...new Set(f.documents.map((d) => d.mime_type))],
+        })),
+        registered: false,
+      })
+    },
+  },
+
+  {
+    method: 'POST',
+    match: (p) => p === '/sources/drive',
+    handle: async (req, res) => {
+      const { drive_id, credential_handle, folders, source_name } = await readJson(req)
+
+      if (!drive_id || !credential_handle) {
+        return send(res, 400, {
+          error: 'drive_id and credential_handle are both required',
+        })
+      }
+      if (!Array.isArray(folders) || folders.length === 0) {
+        return send(res, 400, {
+          error: 'folders must be a non-empty array for Finish',
+        })
+      }
+      const cred = findDriveCredentialByHandle(credential_handle)
+      if (!cred) return send(res, 401, { error: 'unknown credential_handle' })
+
+      const drive = findDrive(drive_id)
+      if (!drive) return send(res, 404, { error: `unknown drive ${drive_id}` })
+
+      const known = new Set(drive.folders.map((f) => f.folder_id))
+      const unknown = folders.filter((f) => !known.has(f))
+      if (unknown.length > 0) {
+        return send(res, 400, {
+          error: `folder(s) not present in ${drive_id}: ${unknown.join(', ')}`,
+        })
+      }
+
+      const sourceId = `gdrive:${drive_id}`
+      const alreadyRegistered = registered.has(sourceId)
+
+      const record = {
+        kind: 'gdrive',
+        source_id: sourceId,
+        source_name: source_name || drive.display_name || drive_id,
+        connector: 'gdrive',
+        drive_id,
+        credential_handle,
+        folders,
+        status: 'connected',
+        registered_at: new Date().toISOString(),
+        newly_connected: !alreadyRegistered,
+      }
+      registered.set(sourceId, record)
+
+      const documentCount = folders.reduce((sum, id) => {
+        const f = findFolder(drive, id)
+        return sum + (f?.documents.length ?? 0)
+      }, 0)
+
+      send(res, alreadyRegistered ? 200 : 201, {
+        ...record,
+        drive: drive_id,
+        display_name: drive.display_name,
+        folder_count: folders.length,
+        document_count: documentCount,
       })
     },
   },
@@ -638,6 +1043,7 @@ const routes = [
         profiled_tables: rows.reduce((s, r) => s + r.profiled_tables, 0),
         profiled_columns: rows.reduce((s, r) => s + r.profiled_columns, 0),
         profiled_documents: rows.reduce((s, r) => s + (r.profiled_documents ?? 0), 0),
+        profiled_entities: rows.reduce((s, r) => s + (r.profiled_entities ?? 0), 0),
       })
     },
   },
@@ -652,6 +1058,13 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      // A Drive source has no datasets, so this would answer with an empty tree
+      // that reads as "nothing to profile" rather than "wrong endpoint".
+      if (source.kind === 'gdrive') {
+        return send(res, 400, {
+          error: `${sourceId} holds documents, not tables — use GET /sources/${sourceId}/browse-documents`,
+        })
+      }
       send(res, 200, { source_id: sourceId, ...browsableObjects(source) })
     },
   },
@@ -667,6 +1080,11 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      if (source.kind === 'gdrive') {
+        return send(res, 400, {
+          error: `${sourceId} holds documents, not tables — use POST /sources/${sourceId}/profile-documents`,
+        })
+      }
 
       const { objects, force } = await readJson(req)
       if (!Array.isArray(objects) || objects.length === 0) {
@@ -677,7 +1095,7 @@ const routes = [
       const allowed = new Set(source.datasets ?? [])
       source.profiled = source.profiled ?? []
 
-      const tables = []
+      const work = []
       for (const { dataset_id, table_id } of objects) {
         if (!allowed.has(dataset_id)) {
           return send(res, 400, {
@@ -696,46 +1114,105 @@ const routes = [
         const already = source.profiled.some(
           (p) => p.dataset_id === dataset_id && p.table_id === table_id,
         )
-        tables.push({
-          dataset_id,
-          table_id,
-          columns: table.columns,
+        work.push({
+          parent_id: dataset_id,
+          object_id: table_id,
+          label: table_id,
+          units: table.columns,
           // Already-profiled tables are skipped unless the caller forces a redo.
           state: already && !force ? 'skipped' : 'pending',
         })
       }
 
-      const jobId = crypto.randomUUID()
-      const job = {
-        job_id: jobId,
-        short_id: jobId.slice(0, 8),
-        source_id: sourceId,
-        status: 'queued',
-        stage_index: 0,
-        stage_label: 'queued',
-        progress: 0,
-        tables,
-        force: Boolean(force),
-        triggered_at: new Date().toISOString(),
-        started_at: null,
-        finished_at: null,
-        triggered_by: `${db.google_account.email} (Tenant Admin)`,
-        error: null,
-      }
-      profilingJobs.unshift(job)
+      const job = queueJob({
+        sourceId,
+        kind: 'bigquery',
+        unit: 'table',
+        objects: work,
+        force,
+      })
+      send(res, 202, { job: jobView(job) })
+    },
+  },
 
-      if (tables.every((t) => t.state === 'skipped')) {
-        // Nothing to do — finish immediately rather than faking a pipeline run.
-        job.status = 'complete'
-        job.stage_index = PIPELINE.length
-        job.stage_label = 'nothing to profile'
-        job.progress = 100
-        job.started_at = job.triggered_at
-        job.finished_at = job.triggered_at
-      } else {
-        setTimeout(() => runJob(job), QUEUE_MS).unref?.()
+  // What "Browse documents for profiling" lists: allowlisted folders and files.
+  {
+    method: 'GET',
+    match: (p) => /^\/sources\/.+\/browse-documents$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/browse-documents'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      if (source.kind !== 'gdrive') {
+        return send(res, 400, {
+          error: `${sourceId} is not a Drive source — use GET /sources/${sourceId}/browse`,
+        })
+      }
+      send(res, 200, { source_id: sourceId, ...browsableDocuments(source) })
+    },
+  },
+
+  // The document profiler. Same job board, same five-stage shape, different
+  // work: extract text and entities from files rather than sample columns.
+  {
+    method: 'POST',
+    match: (p) => /^\/sources\/.+\/profile-documents$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/profile-documents'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      if (source.kind !== 'gdrive') {
+        return send(res, 400, {
+          error: `${sourceId} is not a Drive source — use POST /sources/${sourceId}/profile`,
+        })
       }
 
+      const { objects, force } = await readJson(req)
+      if (!Array.isArray(objects) || objects.length === 0) {
+        return send(res, 400, { error: 'objects must be a non-empty array' })
+      }
+
+      const drive = findDrive(source.drive_id)
+      const allowed = new Set(source.folders ?? [])
+      source.profiled_docs = source.profiled_docs ?? []
+
+      const work = []
+      for (const { folder_id, document_id } of objects) {
+        if (!allowed.has(folder_id)) {
+          return send(res, 400, {
+            error: `folder ${folder_id} is not in this source's allowlist`,
+          })
+        }
+        const document = findDocument(drive, folder_id, document_id)
+        if (!document) {
+          return send(res, 400, {
+            error: `document ${folder_id}/${document_id} does not exist`,
+          })
+        }
+
+        const already = source.profiled_docs.some(
+          (p) => p.folder_id === folder_id && p.document_id === document_id,
+        )
+        work.push({
+          parent_id: folder_id,
+          object_id: document_id,
+          label: document.name,
+          units: document.entities,
+          state: already && !force ? 'skipped' : 'pending',
+        })
+      }
+
+      const job = queueJob({
+        sourceId,
+        kind: 'gdrive',
+        unit: 'document',
+        objects: work,
+        force,
+      })
       send(res, 202, { job: jobView(job) })
     },
   },
@@ -751,6 +1228,11 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      if (source.kind === 'gdrive') {
+        return send(res, 400, {
+          error: `${sourceId} has documents, not columns — use GET /sources/${sourceId}/documents`,
+        })
+      }
 
       const project = findProject(source.project_id)
       const byDataset = new Map()
@@ -842,6 +1324,109 @@ const routes = [
     },
   },
 
+  // Backs "View profiled documents" — grouped folder → document → entities,
+  // with the facet counts the filter chips display. Unlike the column
+  // dictionary the facets count *documents*: a file is the unit a curator
+  // reviews, so "needs review" means a document with no summary.
+  {
+    method: 'GET',
+    match: (p) => /^\/sources\/.+\/documents$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/documents'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      if (source.kind !== 'gdrive') {
+        return send(res, 400, {
+          error: `${sourceId} is not a Drive source — use GET /sources/${sourceId}/columns`,
+        })
+      }
+
+      const drive = findDrive(source.drive_id)
+      const byFolder = new Map()
+      const facets = {
+        all: 0,
+        needs_review: 0,
+        pii: 0,
+        manifests: 0,
+        contracts: 0,
+        reports: 0,
+        notes: 0,
+      }
+      const FACET_FOR_TYPE = {
+        manifest: 'manifests',
+        contract: 'contracts',
+        report: 'reports',
+        notes: 'notes',
+      }
+
+      for (const entry of source.profiled_docs ?? []) {
+        const meta = findDocument(drive, entry.folder_id, entry.document_id)
+        if (!meta) continue
+        const document = documentDictionary(source, entry.folder_id, meta)
+
+        facets.all += 1
+        if (document.summary_status === 'needs review') facets.needs_review += 1
+        if (document.pii_count > 0) facets.pii += 1
+        const bucket = FACET_FOR_TYPE[document.doc_type]
+        if (bucket) facets[bucket] += 1
+
+        if (!byFolder.has(entry.folder_id)) {
+          const folder = findFolder(drive, entry.folder_id)
+          byFolder.set(entry.folder_id, {
+            folder_id: entry.folder_id,
+            name: folder?.name ?? entry.folder_id,
+            path: folder?.path ?? '',
+            documents: [],
+          })
+        }
+        byFolder.get(entry.folder_id).documents.push(document)
+      }
+
+      const folders = [...byFolder.values()].map((f) => ({
+        ...f,
+        document_count: f.documents.length,
+        entity_count: f.documents.reduce((s, d) => s + d.entity_count, 0),
+      }))
+
+      send(res, 200, {
+        source_id: sourceId,
+        profiled_documents: (source.profiled_docs ?? []).length,
+        folder_count: folders.length,
+        entity_count: folders.reduce((s, f) => s + f.entity_count, 0),
+        facets,
+        folders,
+      })
+    },
+  },
+
+  // The pencil beside a document summary writes here.
+  {
+    method: 'PATCH',
+    match: (p) => /^\/sources\/.+\/documents$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/documents'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+
+      const { folder_id, document_id, summary } = await readJson(req)
+      if (!folder_id || !document_id) {
+        return send(res, 400, {
+          error: 'folder_id and document_id are both required',
+        })
+      }
+      source.document_notes = source.document_notes ?? {}
+      const key = `${folder_id}.${document_id}`
+      if (summary) source.document_notes[key] = summary
+      else delete source.document_notes[key]
+
+      send(res, 200, { key, summary: summary ?? null })
+    },
+  },
+
   // Stops a queued or running job; it lands in Recent as "cancelled".
   {
     method: 'POST',
@@ -889,7 +1474,7 @@ const routes = [
         active_count: active.length,
         recent_count: recent.length,
         status_line: statusLine,
-        pipeline: PIPELINE,
+        pipelines: { bigquery: PIPELINE, gdrive: DOC_PIPELINE },
       })
     },
   },
@@ -948,6 +1533,39 @@ const routes = [
         })
       }
       source.datasets = datasets
+      send(res, 200, sourceRow(source))
+    },
+  },
+
+  // The Drive equivalent: which folders this source may profile.
+  {
+    method: 'PUT',
+    match: (p) => /^\/sources\/.+\/folders$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/folders'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      if (source.kind !== 'gdrive') {
+        return send(res, 400, {
+          error: `${sourceId} is not a Drive source — use PUT /sources/${sourceId}/datasets`,
+        })
+      }
+
+      const { folders } = await readJson(req)
+      if (!Array.isArray(folders) || folders.length === 0) {
+        return send(res, 400, { error: 'folders must be a non-empty array' })
+      }
+      const drive = findDrive(source.drive_id)
+      const known = new Set((drive?.folders ?? []).map((f) => f.folder_id))
+      const unknown = folders.filter((f) => !known.has(f))
+      if (unknown.length > 0) {
+        return send(res, 400, {
+          error: `folder(s) not present in ${source.drive_id}: ${unknown.join(', ')}`,
+        })
+      }
+      source.folders = folders
       send(res, 200, sourceRow(source))
     },
   },
@@ -1097,8 +1715,16 @@ server.listen(PORT, () => {
       `${db.projects.reduce((s, p) => s + p.datasets.length, 0)} datasets · ` +
       `${db.projects.reduce((s, p) => s + p.datasets.reduce((t, d) => t + d.tables.length, 0), 0)} tables`,
   )
+  console.log(
+    `  ${db.drives.length} Drives · ` +
+      `${db.drives.reduce((s, d) => s + d.folders.length, 0)} folders · ` +
+      `${db.drives.reduce((s, d) => s + d.folders.reduce((t, f) => t + f.documents.length, 0), 0)} documents`,
+  )
   console.log('  credential handles (issued by the Google consent flow):')
   for (const c of db.credentials) {
     console.log(`    ${c.project_id.padEnd(24)} ${c.credential_handle}`)
+  }
+  for (const c of db.drive_credentials) {
+    console.log(`    ${c.drive_id.padEnd(24)} ${c.credential_handle}`)
   }
 })

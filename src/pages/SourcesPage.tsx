@@ -14,6 +14,7 @@ import type { SourceRow } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import ConnectSourceModal from '../components/ConnectSourceModal'
 import EditDatasetsModal from '../components/EditDatasetsModal'
+import EditFoldersModal from '../components/EditFoldersModal'
 import NoSourceConnected from '../components/NoSourceConnected'
 import PageHeader from '../components/PageHeader'
 import StatCards from '../components/StatCards'
@@ -121,9 +122,11 @@ export default function SourcesPage() {
       title: 'profiled',
       key: 'profiled',
       render: (_, row) =>
-        row.kind === 'generic'
-          ? `${row.profiledDocuments ?? 0} doc(s)`
-          : `${row.profiledTables} table(s) · ${row.profiledColumns} col(s)`,
+        row.kind === 'gdrive'
+          ? `${row.profiledDocuments ?? 0} doc(s) · ${row.profiledEntities ?? 0} entities`
+          : row.kind === 'generic'
+            ? '—'
+            : `${row.profiledTables} table(s) · ${row.profiledColumns} col(s)`,
     },
     {
       title: 'Actions',
@@ -132,10 +135,10 @@ export default function SourcesPage() {
         <Space size={SP.sm}>
           <Button
             size="small"
-            disabled={row.kind !== 'bigquery'}
+            disabled={row.kind !== 'bigquery' && row.kind !== 'gdrive'}
             onClick={() => setEditing(row)}
           >
-            Edit datasets
+            {row.kind === 'gdrive' ? 'Edit folders' : 'Edit datasets'}
           </Button>
           <Popconfirm
             title="Disconnect this source?"
@@ -234,8 +237,19 @@ export default function SourcesPage() {
         onRegistered={() => void load()}
       />
 
+      {/* One row is being edited at a time, and its connector decides which
+          allowlist that means — datasets for BigQuery, folders for Drive. */}
       <EditDatasetsModal
-        source={editing}
+        source={editing?.kind === 'bigquery' ? editing : null}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null)
+          void load()
+        }}
+      />
+
+      <EditFoldersModal
+        source={editing?.kind === 'gdrive' ? editing : null}
         onClose={() => setEditing(null)}
         onSaved={() => {
           setEditing(null)

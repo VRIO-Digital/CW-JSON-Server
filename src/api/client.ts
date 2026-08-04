@@ -34,8 +34,12 @@ export interface GcpProject {
   credential_handle: string | null
 }
 
+/** Which Google consent the wizard is asking for. */
+export type OAuthProvider = 'bigquery' | 'drive'
+
 export interface OAuthStart {
   state: string
+  provider: OAuthProvider
   auth_url: string
   scopes: string[]
 }
@@ -43,6 +47,56 @@ export interface OAuthStart {
 export interface OAuthCallback {
   account: GoogleAccount
   projects: GcpProject[]
+}
+
+/* ---------------- Connect a Drive source ---------------- */
+
+export interface DriveInfo {
+  drive_id: string
+  display_name: string
+  kind: string
+  folder_count: number
+  document_count: number
+  credential_handle: string | null
+}
+
+export interface DriveOAuthCallback {
+  account: GoogleAccount
+  drives: DriveInfo[]
+}
+
+export interface PreviewFolder {
+  folder_id: string
+  name: string
+  path: string
+  description: string
+  document_count: number
+  page_count: number
+  file_types: string[]
+}
+
+export interface DrivePreviewResult {
+  drive_id: string
+  display_name: string
+  kind: string
+  folder_count: number
+  document_count: number
+  folders: PreviewFolder[]
+  registered: false
+}
+
+export interface RegisteredDriveSource {
+  source_id: string
+  source_name: string
+  connector: string
+  drive_id: string
+  display_name: string
+  folders: string[]
+  status: string
+  registered_at: string
+  newly_connected: boolean
+  folder_count: number
+  document_count: number
 }
 
 export interface PreviewDataset {
@@ -89,7 +143,11 @@ export interface SourceRow {
   profiledColumns: number
   /** Drive sources only; null for everything else. */
   profiledDocuments: number | null
+  /** Entities extracted from profiled documents. Drive sources only. */
+  profiledEntities: number | null
   datasets: string[]
+  /** The folder allowlist. Drive sources only; empty for everything else. */
+  folders: string[]
   kind: string
 }
 
@@ -104,7 +162,9 @@ interface RawSourceRow {
   profiled_tables: number
   profiled_columns: number
   profiled_documents: number | null
+  profiled_entities: number | null
   datasets: string[]
+  folders: string[]
   kind: string
 }
 
@@ -131,10 +191,46 @@ export interface BrowseResult {
   object_count: number
 }
 
-export interface JobTable {
-  dataset_id: string
-  table_id: string
-  columns: number
+/* ---------------- Catalogue: browse & profile documents ---------------- */
+
+export interface BrowseDocument {
+  document_id: string
+  name: string
+  mime_type: string
+  doc_type: string
+  pages: number
+  size_mb: number
+  entities: number
+  modified: string
+  profiled: boolean
+}
+
+export interface BrowseFolder {
+  folder_id: string
+  name: string
+  path: string
+  document_count: number
+  documents: BrowseDocument[]
+}
+
+export interface DocumentBrowseResult {
+  source_id: string
+  folders: BrowseFolder[]
+  folder_count: number
+  object_count: number
+}
+
+/**
+ * One item of a job's work list. A BigQuery job profiles tables and a Drive job
+ * profiles documents, so the pair is named generically: `parent_id` is the
+ * dataset or folder, `object_id` the table or document, `units` its columns or
+ * entities. `unit` on the job says which noun to print.
+ */
+export interface JobObject {
+  parent_id: string
+  object_id: string
+  label: string
+  units: number
   state: 'pending' | 'profiled' | 'skipped'
 }
 
@@ -142,16 +238,18 @@ export interface ProfilingJob {
   job_id: string
   short_id: string
   source_id: string
+  kind: 'bigquery' | 'gdrive'
+  unit: 'table' | 'document'
   status: 'queued' | 'running' | 'complete' | 'cancelled' | 'failed'
   stage_index: number
   stage_total: number
   stage_label: string
-  /** Pre-formatted "3/5: Sample rows". */
+  /** Pre-formatted "3/5: Class inference". */
   pipeline: string
   progress: number
-  tables: JobTable[]
-  table_count: number
-  tables_done: number
+  objects: JobObject[]
+  object_count: number
+  objects_done: number
   force: boolean
   triggered_at: string
   started_at: string | null
@@ -167,7 +265,6 @@ export interface ProfilingJobsPayload {
   active_count: number
   recent_count: number
   status_line: string
-  pipeline: string[]
 }
 
 export type ColumnClass =
@@ -222,6 +319,66 @@ export interface ProfiledColumnsPayload {
   dataset_count: number
   facets: ColumnFacets
   datasets: ProfiledDataset[]
+}
+
+/* ---------------- The document dictionary ---------------- */
+
+export interface ProfiledEntity {
+  entity_id: string
+  type: string
+  class: ColumnClass
+  confidence: number
+  pii: boolean
+  /** How many times the extractor found it in this document. */
+  occurrences: number
+  /** Share of the document's chunks it appears in. */
+  coverage_pct: number
+}
+
+export interface ProfiledDocument {
+  document_id: string
+  name: string
+  mime_type: string
+  doc_type: string
+  pages: number
+  size_mb: number
+  modified: string
+  chunks: number
+  entity_count: number
+  pii_count: number
+  /** Curator-written; the unit under review for an unstructured file. */
+  summary: string | null
+  summary_status: 'needs review' | 'described'
+  entities: ProfiledEntity[]
+}
+
+export interface ProfiledFolder {
+  folder_id: string
+  name: string
+  path: string
+  document_count: number
+  entity_count: number
+  documents: ProfiledDocument[]
+}
+
+/** Counts documents, not entities — a file is what a curator reviews. */
+export interface DocumentFacets {
+  all: number
+  needs_review: number
+  pii: number
+  manifests: number
+  contracts: number
+  reports: number
+  notes: number
+}
+
+export interface ProfiledDocumentsPayload {
+  source_id: string
+  profiled_documents: number
+  folder_count: number
+  entity_count: number
+  facets: DocumentFacets
+  folders: ProfiledFolder[]
 }
 
 export interface ChangeSignal {
@@ -365,7 +522,9 @@ const SOURCE_ROW = shape({
   profiled_tables: num,
   profiled_columns: num,
   profiled_documents: nullable(num),
+  profiled_entities: nullable(num),
   datasets: arrayOf(str),
+  folders: arrayOf(str),
   kind: str,
 })
 
@@ -376,6 +535,7 @@ const SOURCES_PAYLOAD = shape({
   profiled_tables: num,
   profiled_columns: num,
   profiled_documents: num,
+  profiled_entities: num,
 })
 
 const BROWSE_PAYLOAD = shape({
@@ -393,27 +553,57 @@ const BROWSE_PAYLOAD = shape({
   ),
 })
 
+const DOCUMENT_BROWSE_PAYLOAD = shape({
+  source_id: str,
+  folder_count: num,
+  object_count: num,
+  folders: arrayOf(
+    shape({
+      folder_id: str,
+      name: str,
+      path: str,
+      document_count: num,
+      documents: arrayOf(
+        shape({
+          document_id: str,
+          name: str,
+          mime_type: str,
+          doc_type: str,
+          pages: num,
+          size_mb: num,
+          entities: num,
+          modified: str,
+          profiled: bool,
+        }),
+      ),
+    }),
+  ),
+})
+
 const JOB = shape({
   job_id: str,
   short_id: str,
   source_id: str,
+  kind: oneOf(['bigquery', 'gdrive']),
+  unit: oneOf(['table', 'document']),
   status: oneOf(['queued', 'running', 'complete', 'cancelled', 'failed']),
   stage_index: num,
   stage_total: num,
   stage_label: str,
   pipeline: str,
   progress: num,
-  table_count: num,
-  tables_done: num,
+  object_count: num,
+  objects_done: num,
   force: bool,
   triggered_at: str,
   elapsed_seconds: num,
   triggered_by: str,
-  tables: arrayOf(
+  objects: arrayOf(
     shape({
-      dataset_id: str,
-      table_id: str,
-      columns: num,
+      parent_id: str,
+      object_id: str,
+      label: str,
+      units: num,
       state: oneOf(['pending', 'profiled', 'skipped']),
     }),
   ),
@@ -469,6 +659,65 @@ const COLUMNS_PAYLOAD = shape({
               distinct: num,
               description: nullable(str),
               description_status: oneOf(['needs review', 'described']),
+            }),
+          ),
+        }),
+      ),
+    }),
+  ),
+})
+
+const DOCUMENTS_PAYLOAD = shape({
+  source_id: str,
+  profiled_documents: num,
+  folder_count: num,
+  entity_count: num,
+  facets: shape({
+    all: num,
+    needs_review: num,
+    pii: num,
+    manifests: num,
+    contracts: num,
+    reports: num,
+    notes: num,
+  }),
+  folders: arrayOf(
+    shape({
+      folder_id: str,
+      name: str,
+      path: str,
+      document_count: num,
+      entity_count: num,
+      documents: arrayOf(
+        shape({
+          document_id: str,
+          name: str,
+          mime_type: str,
+          doc_type: str,
+          pages: num,
+          size_mb: num,
+          modified: str,
+          chunks: num,
+          entity_count: num,
+          pii_count: num,
+          summary: nullable(str),
+          summary_status: oneOf(['needs review', 'described']),
+          entities: arrayOf(
+            shape({
+              entity_id: str,
+              type: str,
+              class: oneOf([
+                'identifier',
+                'dimension',
+                'entity',
+                'measure',
+                'date',
+                'text',
+              ]),
+              confidence: num,
+              pii: bool,
+              occurrences: num,
+              coverage_pct: num,
             }),
           ),
         }),
@@ -561,6 +810,46 @@ const PREVIEW_PAYLOAD = shape({
   ),
 })
 
+const DRIVE_PREVIEW_PAYLOAD = shape({
+  drive_id: str,
+  display_name: str,
+  kind: str,
+  folder_count: num,
+  document_count: num,
+  folders: arrayOf(
+    shape({
+      folder_id: str,
+      name: str,
+      path: str,
+      description: str,
+      document_count: num,
+      page_count: num,
+      file_types: arrayOf(str),
+    }),
+  ),
+})
+
+const DRIVE_OAUTH_CALLBACK_PAYLOAD = shape({
+  account: shape({ email: str, name: str }),
+  drives: arrayOf(
+    shape({
+      drive_id: str,
+      display_name: str,
+      kind: str,
+      folder_count: num,
+      document_count: num,
+      credential_handle: nullable(str),
+    }),
+  ),
+})
+
+const DRIVE_FOLDERS_PAYLOAD = shape({
+  drive_id: str,
+  folders: arrayOf(
+    shape({ folder_id: str, name: str, path: str, document_count: num }),
+  ),
+})
+
 const OAUTH_CALLBACK_PAYLOAD = shape({
   account: shape({ email: str, name: str }),
   projects: arrayOf(
@@ -626,13 +915,26 @@ async function request<T>(
 
 /* ---------------- Endpoints ---------------- */
 
-export const oauthStart = () => request<OAuthStart>('/sources/oauth/start')
+/** The scope depends on the connector, so the provider goes out with the start. */
+export const oauthStart = (provider: OAuthProvider = 'bigquery') =>
+  request<OAuthStart>(`/sources/oauth/start?provider=${provider}`)
 
 export async function oauthCallback(state: string): Promise<OAuthCallback> {
   const raw = await request<unknown>(
-    `/sources/oauth/callback?state=${encodeURIComponent(state)}`,
+    `/sources/oauth/callback?state=${encodeURIComponent(state)}&provider=bigquery`,
   )
   return validate<OAuthCallback>("The Google sign-in result", raw, OAUTH_CALLBACK_PAYLOAD)
+}
+
+export async function driveOauthCallback(state: string): Promise<DriveOAuthCallback> {
+  const raw = await request<unknown>(
+    `/sources/oauth/callback?state=${encodeURIComponent(state)}&provider=drive`,
+  )
+  return validate<DriveOAuthCallback>(
+    'The Google Drive sign-in result',
+    raw,
+    DRIVE_OAUTH_CALLBACK_PAYLOAD,
+  )
 }
 
 export async function previewSource(
@@ -662,6 +964,33 @@ export const registerSource = (input: {
     },
   })
 
+export async function previewDrive(
+  driveId: string,
+  credentialHandle: string,
+): Promise<DrivePreviewResult> {
+  const raw = await request<unknown>('/sources/drive/preview', {
+    method: 'POST',
+    body: { drive_id: driveId, credential_handle: credentialHandle },
+  })
+  return validate<DrivePreviewResult>('The folder preview', raw, DRIVE_PREVIEW_PAYLOAD)
+}
+
+export const registerDriveSource = (input: {
+  driveId: string
+  credentialHandle: string
+  folders: string[]
+  sourceName: string
+}) =>
+  request<RegisteredDriveSource>('/sources/drive', {
+    method: 'POST',
+    body: {
+      drive_id: input.driveId,
+      credential_handle: input.credentialHandle,
+      folders: input.folders,
+      source_name: input.sourceName,
+    },
+  })
+
 export const registerGenericSource = (input: {
   connector: string
   sourceName: string
@@ -685,6 +1014,7 @@ export async function listSources(): Promise<{
   profiledTables: number
   profiledColumns: number
   profiledDocuments: number
+  profiledEntities: number
 }> {
   const payload = await request<unknown>('/sources')
 
@@ -710,6 +1040,7 @@ export async function listSources(): Promise<{
     profiled_tables: number
     profiled_columns: number
     profiled_documents: number
+    profiled_entities: number
   }>('The sources list', payload, SOURCES_PAYLOAD)
 
   return {
@@ -724,7 +1055,9 @@ export async function listSources(): Promise<{
       profiledTables: s.profiled_tables,
       profiledColumns: s.profiled_columns,
       profiledDocuments: s.profiled_documents,
+      profiledEntities: s.profiled_entities,
       datasets: s.datasets,
+      folders: s.folders,
       kind: s.kind,
     })),
     registeredCount: raw.registered_count,
@@ -732,6 +1065,7 @@ export async function listSources(): Promise<{
     profiledTables: raw.profiled_tables,
     profiledColumns: raw.profiled_columns,
     profiledDocuments: raw.profiled_documents,
+    profiledEntities: raw.profiled_entities,
   }
 }
 
@@ -751,10 +1085,24 @@ export const updateSourceDatasets = (sourceId: string, datasets: string[]) =>
     body: { datasets },
   })
 
+export const updateSourceFolders = (sourceId: string, folders: string[]) =>
+  request<RawSourceRow>(`/sources/${encodeURIComponent(sourceId)}/folders`, {
+    method: 'PUT',
+    body: { folders },
+  })
+
 export const listProjectDatasets = (projectId: string) =>
   request<{ project_id: string; datasets: { dataset_id: string }[] }>(
     `/projects/${encodeURIComponent(projectId)}/datasets`,
   )
+
+export async function listDriveFolders(driveId: string): Promise<{
+  drive_id: string
+  folders: { folder_id: string; name: string; path: string; document_count: number }[]
+}> {
+  const raw = await request<unknown>(`/drives/${encodeURIComponent(driveId)}/folders`)
+  return validate('The folder list', raw, DRIVE_FOLDERS_PAYLOAD)
+}
 
 export async function browseSource(sourceId: string): Promise<BrowseResult> {
   const raw = await request<unknown>(
@@ -771,6 +1119,51 @@ export const profileTables = (
   request<{ job: ProfilingJob }>(
     `/sources/${encodeURIComponent(sourceId)}/profile`,
     { method: 'POST', body: { objects, force } },
+  )
+
+export async function browseDocuments(
+  sourceId: string,
+): Promise<DocumentBrowseResult> {
+  const raw = await request<unknown>(
+    `/sources/${encodeURIComponent(sourceId)}/browse-documents`,
+  )
+  return validate<DocumentBrowseResult>(
+    'The browsable documents',
+    raw,
+    DOCUMENT_BROWSE_PAYLOAD,
+  )
+}
+
+export const profileDocuments = (
+  sourceId: string,
+  objects: { folder_id: string; document_id: string }[],
+  force: boolean,
+) =>
+  request<{ job: ProfilingJob }>(
+    `/sources/${encodeURIComponent(sourceId)}/profile-documents`,
+    { method: 'POST', body: { objects, force } },
+  )
+
+export async function getProfiledDocuments(
+  sourceId: string,
+): Promise<ProfiledDocumentsPayload> {
+  const raw = await request<unknown>(
+    `/sources/${encodeURIComponent(sourceId)}/documents`,
+  )
+  return validate<ProfiledDocumentsPayload>(
+    'The document dictionary',
+    raw,
+    DOCUMENTS_PAYLOAD,
+  )
+}
+
+export const setDocumentSummary = (
+  sourceId: string,
+  input: { folder_id: string; document_id: string; summary: string },
+) =>
+  request<{ key: string; summary: string | null }>(
+    `/sources/${encodeURIComponent(sourceId)}/documents`,
+    { method: 'PATCH', body: input },
   )
 
 export async function getProfiledColumns(

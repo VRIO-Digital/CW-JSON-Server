@@ -208,3 +208,9 @@
   font-size: 12.5px;
   color: #4b5a75;
 }
+
+/* The document dictionary's per-file summary row, between the card head and
+   its entity table. Spacing from the shared scale, like everything else. */
+.pc-doc-summary {
+  padding: var(--sp-2) var(--sp-4);
+}
