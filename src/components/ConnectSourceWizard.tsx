@@ -431,7 +431,7 @@ export default function ConnectSourceWizard({
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            title="Click below to sign in with your own Google account and grant read-only BigQuery access — no key file to download or upload. Uses the GET /sources/oauth/start → Google consent → GET /sources/oauth/callback flow."
+            title="Click below to sign in with your own Google account and grant read-only BigQuery access — no key file to download or upload."
           />
 
           <Button
