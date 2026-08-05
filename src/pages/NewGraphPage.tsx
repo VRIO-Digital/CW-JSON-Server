@@ -260,6 +260,14 @@ export default function NewGraphPage() {
   const domains = domainsData?.domains ?? []
   const graphSources = sourcesData?.sources ?? []
 
+  /*
+   * Step 7's answer comes from the derivation when one ran, and from a direct
+   * review when the user jumped here via the stepper. Both the panel and the
+   * build gate must read the *same* one — reading different sources is how the
+   * button ended up permanently disabled.
+   */
+  const activeCoverage = derivation?.coverage ?? coverage
+
   function openUseCase(u: GraphUseCase) {
     setUseCaseId(u.useCaseId)
     setName(u.name)
@@ -705,7 +713,7 @@ export default function NewGraphPage() {
                 <LlmRunPanel run={derivation} />
               ) : (
                 <CoverageStep
-                  data={derivation?.coverage ?? coverage}
+                  data={activeCoverage}
                   loading={coverageLoading || startingDerivation}
                   decisions={gapDecisions}
                   onDecisions={setGapDecisions}
@@ -755,7 +763,7 @@ export default function NewGraphPage() {
               <Button
                 type="primary"
                 loading={saving}
-                disabled={!coverageIsDecided(coverage, gapDecisions)}
+                disabled={!coverageIsDecided(activeCoverage, gapDecisions)}
                 onClick={() => void buildGraph()}
               >
                 Save &amp; build graph <ArrowRightOutlined />
