@@ -41,6 +41,10 @@
  *   GET    /sources/:id/documents          profiled documents + extracted entities
  *   GET    /profiling-jobs
  *   GET    /change-signals
+ *   GET    /graph-domains                  step 1 options, ranked by real fit
+ *   GET    /graph-use-cases                saved drafts + committed use cases
+ *   POST   /graph-use-cases                upsert a draft { use_case_id?, name, ... }
+ *   DELETE /graph-use-cases/:useCaseId
  *   GET    /audit                          { stats, events, policies }
  *   GET    /traces                         { stats, items, waterfall }
  *   GET    /evals                          { stats, runs, checks }
@@ -197,6 +201,12 @@ const DB_SHAPE = {
     Array.isArray(v) &&
     v.length > 0 &&
     v.every((c) => isObject(c) && c.name && c.type && c.class),
+  graph_domains: (v) =>
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((d) => isObject(d) && d.domain_id && d.name),
+  graph_use_cases: (v) =>
+    Array.isArray(v) && v.every((u) => isObject(u) && u.use_case_id && u.name),
 }
 
 const DB_HINTS = {
@@ -211,6 +221,8 @@ const DB_HINTS = {
   change_signals: 'array',
   column_vocabulary: 'non-empty array of { name, type, class }',
   document_vocabulary: 'non-empty array of { name, type, class }',
+  graph_domains: 'non-empty array of { domain_id, name }',
+  graph_use_cases: 'array of { use_case_id, name }',
 }
 
 function validateDb(candidate) {
@@ -567,6 +579,41 @@ function queueJob({ sourceId, kind, unit, objects, force }) {
 
   return job
 }
+
+/*
+ * The New Graph wizard. The labels live here rather than in the page so the
+ * stepper the user clicks and the `step` this server accepts are the same list.
+ */
+const WIZARD_STEPS = [
+  'Domain',
+  'Personas',
+  'KPIs',
+  'Sources',
+  'Hero questions',
+  'Answer requirements',
+  'Entities & relationships',
+]
+
+/** Strongest fit first — this is the ranking step 1 promises. */
+const FIT_ORDER = { strong: 0, partial: 1, none: 2 }
+
+const slugify = (text) =>
+  String(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+
+/** A saved use case, with the defaults a hand-edited db.json might omit. */
+const savedUseCase = (u) => ({
+  use_case_id: u.use_case_id,
+  name: u.name,
+  status: u.status === 'committed' ? 'committed' : 'draft',
+  domain_id: u.domain_id ?? null,
+  business_need: u.business_need ?? '',
+  step: u.step ?? 1,
+  step_total: WIZARD_STEPS.length,
+  updated_at: u.updated_at ?? null,
+})
 
 /** Datasets a source may profile, with the tables inside each. */
 function browsableObjects(source) {
@@ -1490,6 +1537,154 @@ const routes = [
         count: signals.length,
         connected_sources: connected,
       })
+    },
+  },
+
+  /*
+   * Step 1 of the New Graph wizard. Domains are returned ranked by what the
+   * connected data can actually support, not alphabetically — a domain with no
+   * backing data would produce a graph that answers nothing.
+   *
+   * `fit` is seeded in db.json but downgraded here: claiming a domain is
+   * "already profiled" while the tenant has profiled nothing would be a lie of
+   * exactly the kind the rest of this API refuses to tell.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/graph-domains',
+    handle: (_req, res) => {
+      const connected = connectedSources()
+      const profiled = connected.reduce(
+        (sum, s) => sum + (s.profiled?.length ?? 0) + (s.profiled_docs?.length ?? 0),
+        0,
+      )
+
+      const domains = db.graph_domains.map((d) => {
+        let fit = d.fit ?? 'none'
+        if (fit === 'strong' && profiled === 0) {
+          fit = connected.length > 0 ? 'partial' : 'none'
+        }
+        const note =
+          fit === (d.fit ?? 'none')
+            ? d.note
+            : fit === 'partial'
+              ? 'Partial fit — a source is connected but nothing is profiled yet.'
+              : (d.unmet_note ?? d.note)
+
+        return {
+          domain_id: d.domain_id,
+          name: d.name,
+          expected_sources: d.expected_sources ?? [],
+          fit,
+          note,
+          rank: d.rank ?? 99,
+        }
+      })
+
+      domains.sort((a, b) => FIT_ORDER[a.fit] - FIT_ORDER[b.fit] || a.rank - b.rank)
+
+      send(res, 200, {
+        domains,
+        domain_count: domains.length,
+        connected_sources: connected.length,
+        profiled_objects: profiled,
+      })
+    },
+  },
+
+  {
+    method: 'GET',
+    match: (p) => p === '/graph-use-cases',
+    handle: (_req, res) => {
+      const list = [...db.graph_use_cases].sort(
+        (a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at),
+      )
+      send(res, 200, {
+        use_cases: list.map(savedUseCase),
+        count: list.length,
+        draft_count: list.filter((u) => u.status !== 'committed').length,
+        committed_count: list.filter((u) => u.status === 'committed').length,
+        // The wizard reads its step labels from here so the stepper and this
+        // server's step validation cannot drift apart.
+        steps: WIZARD_STEPS,
+      })
+    },
+  },
+
+  // Upsert: no id creates, an id updates. Unlike a registered source this is
+  // written to db.json, so a draft survives a restart.
+  {
+    method: 'POST',
+    match: (p) => p === '/graph-use-cases',
+    handle: async (req, res) => {
+      const body = await readJson(req)
+      const { use_case_id, name, domain_id, business_need, step, status } = body
+
+      if (!name || !String(name).trim()) {
+        return send(res, 400, {
+          error: 'name is required — it is what the saved use cases list shows',
+        })
+      }
+      if (domain_id && !db.graph_domains.some((d) => d.domain_id === domain_id)) {
+        return send(res, 400, { error: `unknown domain ${domain_id}` })
+      }
+      if (status && status !== 'draft' && status !== 'committed') {
+        return send(res, 400, { error: 'status must be "draft" or "committed"' })
+      }
+      const stepNumber = Number(step ?? 1)
+      if (
+        !Number.isInteger(stepNumber) ||
+        stepNumber < 1 ||
+        stepNumber > WIZARD_STEPS.length
+      ) {
+        return send(res, 400, {
+          error: `step must be an integer from 1 to ${WIZARD_STEPS.length}`,
+        })
+      }
+
+      const existing = use_case_id
+        ? db.graph_use_cases.find((u) => u.use_case_id === use_case_id)
+        : null
+      if (use_case_id && !existing) {
+        return send(res, 404, { error: `no use case ${use_case_id}` })
+      }
+
+      const record = {
+        use_case_id: existing?.use_case_id ?? `uc-${slugify(name)}-${nextId()}`,
+        name: String(name).trim(),
+        status: status ?? existing?.status ?? 'draft',
+        domain_id: domain_id ?? existing?.domain_id ?? null,
+        business_need: business_need ?? existing?.business_need ?? '',
+        step: stepNumber,
+        updated_at: new Date().toISOString(),
+      }
+
+      commitDb({
+        ...db,
+        graph_use_cases: existing
+          ? db.graph_use_cases.map((u) =>
+              u.use_case_id === record.use_case_id ? record : u,
+            )
+          : [record, ...db.graph_use_cases],
+      })
+
+      send(res, existing ? 200 : 201, { saved: true, use_case: savedUseCase(record) })
+    },
+  },
+
+  {
+    method: 'DELETE',
+    match: (p) => /^\/graph-use-cases\/.+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/graph-use-cases/'.length))
+      if (!db.graph_use_cases.some((u) => u.use_case_id === id)) {
+        return send(res, 404, { error: `no use case ${id}` })
+      }
+      commitDb({
+        ...db,
+        graph_use_cases: db.graph_use_cases.filter((u) => u.use_case_id !== id),
+      })
+      send(res, 200, { deleted: id })
     },
   },
 

@@ -392,6 +392,48 @@ export interface ChangeSignal {
   detected: string
 }
 
+/* ---------------- New Graph wizard ---------------- */
+
+/** How well a domain is backed by data that is actually connected. */
+export type DomainFit = 'strong' | 'partial' | 'none'
+
+export interface GraphDomain {
+  domainId: string
+  name: string
+  expectedSources: string[]
+  fit: DomainFit
+  /** Why it ranks where it does — shown under the domain name. */
+  note: string
+  rank: number
+}
+
+export interface GraphDomainsPayload {
+  domains: GraphDomain[]
+  domainCount: number
+  connectedSources: number
+  profiledObjects: number
+}
+
+export interface GraphUseCase {
+  useCaseId: string
+  name: string
+  status: 'draft' | 'committed'
+  domainId: string | null
+  businessNeed: string
+  step: number
+  stepTotal: number
+  updatedAt: string | null
+}
+
+export interface UseCasesPayload {
+  useCases: GraphUseCase[]
+  count: number
+  draftCount: number
+  committedCount: number
+  /** Step labels come from the server, so the stepper cannot outgrow it. */
+  steps: string[]
+}
+
 /* ---------------- Audit & Governance ---------------- */
 
 export interface AuditEvent {
@@ -794,6 +836,41 @@ const SIGNALS_PAYLOAD = shape({
   ),
   count: num,
   connected_sources: num,
+})
+
+const GRAPH_DOMAINS_PAYLOAD = shape({
+  domain_count: num,
+  connected_sources: num,
+  profiled_objects: num,
+  domains: arrayOf(
+    shape({
+      domain_id: str,
+      name: str,
+      expected_sources: arrayOf(str),
+      fit: oneOf(['strong', 'partial', 'none']),
+      note: str,
+      rank: num,
+    }),
+  ),
+})
+
+const USE_CASE = shape({
+  use_case_id: str,
+  name: str,
+  status: oneOf(['draft', 'committed']),
+  domain_id: nullable(str),
+  business_need: str,
+  step: num,
+  step_total: num,
+  updated_at: nullable(str),
+})
+
+const USE_CASES_PAYLOAD = shape({
+  use_cases: arrayOf(USE_CASE),
+  count: num,
+  draft_count: num,
+  committed_count: num,
+  steps: arrayOf(str),
 })
 
 const PREVIEW_PAYLOAD = shape({
@@ -1208,6 +1285,115 @@ export async function listChangeSignals(): Promise<{
   const raw = await request<unknown>('/change-signals')
   return validate("The change signals", raw, SIGNALS_PAYLOAD)
 }
+
+/* ---------------- New Graph wizard ---------------- */
+
+interface RawGraphDomain {
+  domain_id: string
+  name: string
+  expected_sources: string[]
+  fit: DomainFit
+  note: string
+  rank: number
+}
+
+interface RawUseCase {
+  use_case_id: string
+  name: string
+  status: 'draft' | 'committed'
+  domain_id: string | null
+  business_need: string
+  step: number
+  step_total: number
+  updated_at: string | null
+}
+
+const toUseCase = (u: RawUseCase): GraphUseCase => ({
+  useCaseId: u.use_case_id,
+  name: u.name,
+  status: u.status,
+  domainId: u.domain_id,
+  businessNeed: u.business_need,
+  step: u.step,
+  stepTotal: u.step_total,
+  updatedAt: u.updated_at,
+})
+
+export async function listGraphDomains(): Promise<GraphDomainsPayload> {
+  const raw = validate<{
+    domains: RawGraphDomain[]
+    domain_count: number
+    connected_sources: number
+    profiled_objects: number
+  }>('The business domains', await request<unknown>('/graph-domains'), GRAPH_DOMAINS_PAYLOAD)
+
+  return {
+    domains: raw.domains.map((d) => ({
+      domainId: d.domain_id,
+      name: d.name,
+      expectedSources: d.expected_sources,
+      fit: d.fit,
+      note: d.note,
+      rank: d.rank,
+    })),
+    domainCount: raw.domain_count,
+    connectedSources: raw.connected_sources,
+    profiledObjects: raw.profiled_objects,
+  }
+}
+
+export async function listUseCases(): Promise<UseCasesPayload> {
+  const raw = validate<{
+    use_cases: RawUseCase[]
+    count: number
+    draft_count: number
+    committed_count: number
+    steps: string[]
+  }>('The saved use cases', await request<unknown>('/graph-use-cases'), USE_CASES_PAYLOAD)
+
+  return {
+    useCases: raw.use_cases.map(toUseCase),
+    count: raw.count,
+    draftCount: raw.draft_count,
+    committedCount: raw.committed_count,
+    steps: raw.steps,
+  }
+}
+
+/** No `useCaseId` creates a draft; passing one updates it in place. */
+export async function saveUseCase(input: {
+  useCaseId?: string | null
+  name: string
+  domainId: string | null
+  businessNeed: string
+  step: number
+  status?: 'draft' | 'committed'
+}): Promise<GraphUseCase> {
+  const payload = await request<{ use_case: RawUseCase }>('/graph-use-cases', {
+    method: 'POST',
+    body: {
+      use_case_id: input.useCaseId ?? undefined,
+      name: input.name,
+      domain_id: input.domainId,
+      business_need: input.businessNeed,
+      step: input.step,
+      status: input.status,
+    },
+  })
+  return toUseCase(
+    validate<{ use_case: RawUseCase }>(
+      'The saved use case',
+      payload,
+      shape({ use_case: USE_CASE }),
+    ).use_case,
+  )
+}
+
+export const deleteUseCase = (useCaseId: string) =>
+  request<{ deleted: string }>(
+    `/graph-use-cases/${encodeURIComponent(useCaseId)}`,
+    { method: 'DELETE' },
+  )
 
 export async function getDb(): Promise<DbPayload> {
   const raw = await request<unknown>('/db')

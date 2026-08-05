@@ -3,6 +3,7 @@ import App from './App'
 import AuditPage from './pages/AuditPage'
 import CataloguePage from './pages/CataloguePage'
 import DbEditorPage from './pages/DbEditorPage'
+import NewGraphPage from './pages/NewGraphPage'
 import NotFoundPage from './pages/NotFoundPage'
 import SourcesPage from './pages/SourcesPage'
 import TracePage from './pages/TracePage'
@@ -23,6 +24,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <Navigate to="/sources" replace /> },
       { path: 'sources', element: <SourcesPage /> },
+      { path: 'new-graph', element: <NewGraphPage /> },
       { path: 'catalogue', element: <CataloguePage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'trace', element: <TracePage /> },

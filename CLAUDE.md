@@ -51,7 +51,8 @@ mock-server/db.json ──► mock-server/server.mjs ──► /api proxy ──
 of data; `server.mjs` shapes it and holds mutable run state; `client.ts` fetches
 and validates; the stores hold state and own all error handling; components read
 the stores and render. Never call `client.ts` straight from a component unless it
-is a one-shot read with a local `try/catch` (see `EditDatasetsModal`).
+is a one-shot read with a local `try/catch` (see `EditDatasetsModal` and
+`EditFoldersModal`).
 
 ### The mock server (`mock-server/`)
 
@@ -79,7 +80,15 @@ Consequences worth knowing before debugging:
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
-  editor cannot save a document that would crash the app.
+  editor cannot save a document that would crash the app. There are 13 required
+  keys, and the newer ones are as required as the originals: removing `drives`
+  breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
+  Graph — not just a catalogue page.
+- **`graph_use_cases` is the one collection the UI writes back to disk.**
+  Registered sources live in memory and die with the process; a saved use case
+  goes through `commitDb`, so a draft survives a restart. That asymmetry is
+  deliberate — a half-finished graph brief is the user's work, a mock
+  registration is not.
 
 ### Connection gating
 
@@ -109,6 +118,24 @@ twin.** Answering a Drive source's `/browse` with an empty dataset list would
 read as "nothing to profile" and send you debugging the allowlist instead of the
 call. When adding an endpoint for one connector, add that guard to both.
 
+Three things the mirror deliberately does *not* make identical:
+
+- **Consent is scoped to the connector.**
+  `/sources/oauth/start?provider=bigquery|drive` issues a state remembered *with*
+  its provider, and the callback rejects a state replayed against the other one.
+  Drive asks for `drive.metadata.readonly`, BigQuery for `bigquery.readonly`.
+- **The document dictionary reviews files, not fields.** Its facets count
+  *documents* (`pii` means "holds at least one PII entity"), and the editable note
+  is the document's `summary` via `PATCH /sources/:id/documents` — extracted
+  entities are machine output and read-only. `documentDictionary()` synthesises
+  them from `document_vocabulary` exactly as `tableDictionary()` does from
+  `column_vocabulary`: sliced by hashing the document id, statistics from a hash
+  of document+entity, so repeat requests agree.
+- **Only the two real connectors get a wizard branch.** `isBigQuery` / `isDrive`
+  (together `isGoogle`) run consent → preview → finish and keep the dialog open on
+  Finish. The five stubbed connectors still fall through to the generic field loop
+  and `POST /sources/generic`, which registers a bare row and closes.
+
 ### The profiling pipeline
 
 `POST /sources/:id/profile` and `POST /sources/:id/profile-documents` return
@@ -125,11 +152,34 @@ A job's work list is `objects` (`{parent_id, object_id, label, units, state}`)
 with `kind` and `unit` on the job, never `tables` — one board carries both
 connectors' runs, and a re-run posts back to the endpoint its `kind` names.
 
+### The New Graph wizard (`/new-graph`)
+
+Seven steps — Domain, Personas, KPIs, Sources, Hero questions, Answer
+requirements, Entities & relationships — over `NewGraphPage.tsx` → `graphStore`
+→ `/graph-domains` and `/graph-use-cases`. **Step 1 is built; steps 2–7 are
+placeholders** that still save and re-open the draft, so the wizard is navigable
+before the rest is designed.
+
+Two rules the copy on the page promises, and the code has to keep:
+
+- **The step labels live in `server.mjs` (`WIZARD_STEPS`) and reach the page in
+  the `/graph-use-cases` payload.** The stepper renders that list and the server
+  validates `step` against the same one, so a step cannot exist in the UI that the
+  API would reject.
+- **Domains are ranked by what the connected data supports, not alphabetically.**
+  `fit` is seeded per domain in `db.json` but downgraded at request time: a domain
+  cannot claim it is "already profiled" while the tenant has profiled nothing, so
+  with no sources connected the ranking legitimately differs from a screenshot
+  taken with data. `strong` → `partial` → `none`, then the seeded `rank`.
+
+The user never types an entity name — that is the product premise, so do not add
+an entity field to any step. Step 7 confirms what the AI derived.
+
 ### State (`src/store/`)
 
-zustand. Four modules: `sourcesStore`, `catalogueStore` (browse / columns /
-document browse / documents / jobs / signals), `telemetryStore` (audit / traces /
-evals), `dbStore`.
+zustand. Five modules: `sourcesStore`, `catalogueStore` (browse / columns /
+document browse / documents / jobs / signals), `graphStore` (domains / use
+cases), `telemetryStore` (audit / traces / evals), `dbStore`.
 
 The Drive stores are separate from the BigQuery ones rather than one store
 branching on connector: the payloads share no fields, so a union `data` would
@@ -178,6 +228,12 @@ replaces `destroyOnClose`. The only hand-written marks are `ConnectorIcon`
 (vendor logos, inline SVG so nothing is fetched) and the span-waterfall bar,
 which has no antd equivalent.
 
+**Drive file labels come from `fileKind()`** in `src/data/mimeTypes.ts`, shared by
+the browse tree and the document dictionary so one MIME type cannot render as
+`DOCUMENT` in one panel and `GDOC` in the other. The document panels reuse
+`ProfiledColumnsPanel.css` / `CataloguePage.css` classes rather than growing a
+second stylesheet for the same layout.
+
 **Theme, not CSS.** Brand identity lives in `src/theme.ts` as a `ConfigProvider`
 theme — `colorPrimary: #f4562b` plus Menu/Card/Table component tokens. Change the
 brand there, not in stylesheets.
@@ -200,6 +256,14 @@ history. They are separate so tests can mount the table on a memory router.
 `src/nav.ts` drives the sidebar — **`/db` is routed but commented out of
 `NAV_ITEMS`**, so it is reachable by URL only. Adding a nav item means adding to
 both `NavKey` and `NAV_ITEMS`.
+
+**The sidebar currently advertises more than exists.** `NAV_ITEMS` has 13
+entries; `routes.tsx` serves six of them (`/sources`, `/new-graph`, `/catalogue`,
+`/audit`, `/trace`, `/validation`) plus `/db` by URL. The other seven — Knowledge
+Graphs, Ask, Reports, Graph Builds, Graph Studio, What-if Lenses, Feedback &
+Learning — are roadmap placeholders with no route, so clicking one falls through
+`path: '*'` to `NotFoundPage`. That is a deliberate shell, not a broken link: when
+one gets a page, add it to `routes.tsx` and nothing else changes.
 
 ## The audit gate
 
@@ -225,7 +289,7 @@ and prefer writing ~100 lines to pulling in a package.
 relevant `SKILLS.md` flow and `docs/REGRESSIONS.md`) → build → verify → **record**.
 The record phase is not optional — it is why the same bug does not land twice.
 
-- **`SKILLS.md`** — the six end-to-end flows, their files, and their failure modes.
+- **`SKILLS.md`** — the seven end-to-end flows, their files, and their failure modes.
   Read the section before changing a flow; update it after.
 - **`docs/REGRESSIONS.md`** — every bug that cost real time, with the guard that
   stops it recurring. Append on every fix. Prefer a guard that fails the build

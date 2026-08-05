@@ -1861,5 +1861,55 @@
       "class": "text",
       "confidence": 0.8
     }
+  ],
+  "graph_domains": [
+    {
+      "domain_id": "utilities",
+      "name": "Utilities",
+      "expected_sources": [
+        "SAP PM",
+        "Plant Historian",
+        "Outage Logs"
+      ],
+      "fit": "strong",
+      "note": "SAP PM, Plant Historian and Outage Logs are already profiled for this domain.",
+      "unmet_note": "No SAP PM, historian or outage-log source connected.",
+      "rank": 1
+    },
+    {
+      "domain_id": "industries",
+      "name": "Industries",
+      "expected_sources": [
+        "Work Order Ledger",
+        "Asset Register"
+      ],
+      "fit": "partial",
+      "note": "Partial fit — no domain source connected yet.",
+      "unmet_note": "Partial fit — no domain source connected yet.",
+      "rank": 2
+    },
+    {
+      "domain_id": "manufacturing",
+      "name": "Manufacturing",
+      "expected_sources": [
+        "MES",
+        "QMS"
+      ],
+      "fit": "none",
+      "note": "No MES/QMS source connected.",
+      "unmet_note": "No MES/QMS source connected.",
+      "rank": 3
+    }
+  ],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-test-msg2h3ex0",
+      "name": "test",
+      "status": "committed",
+      "domain_id": "industries",
+      "business_need": "jjj",
+      "step": 7,
+      "updated_at": "2026-08-05T12:32:17.776Z"
+    }
   ]
 }

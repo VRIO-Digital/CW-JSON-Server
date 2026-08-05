@@ -291,7 +291,7 @@ protection, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
-2. **Server shape check** — `validateDb` verifies all 11 required keys and
+2. **Server shape check** — `validateDb` verifies all 13 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
 3. **Atomic write** — temp file + rename, so a failed write cannot truncate
@@ -336,6 +336,59 @@ fallback data there is nothing else to show.
 Actions differ from loads: they return `Result`, and the component decides
 between `message.success` and `message.error`. No component contains a
 `try/catch`.
+
+---
+
+## Flow 7 — New Graph: describing a use case
+
+**Files:** `NewGraphPage.tsx` → `graphStore.ts` → `GET /graph-domains`,
+`GET|POST /graph-use-cases`, `DELETE /graph-use-cases/:id`
+
+Seven steps, and the premise is inverted from every other flow: **the user
+describes a business need and the AI derives the graph.** Nobody types an entity
+name — do not add a field that asks for one.
+
+```
+1 Domain → 2 Personas → 3 KPIs → 4 Sources → 5 Hero questions
+        → 6 Answer requirements → 7 Entities & relationships
+```
+
+Labels come from `WIZARD_STEPS` in `server.mjs` via the `/graph-use-cases`
+payload, so the stepper and the server's `step` validation are the same list.
+**Only step 1 is designed.** Steps 2–7 render what they will collect and still
+save; the stepper, Back/Next and the draft all work.
+
+### Saved use cases
+
+The card above the stepper lists every saved use case, newest first: name, a
+`draft` / `committed · ready to build` status tag, its domain chip, and when it
+was updated. `Open` loads it back into the form *at the step it was left on*;
+committed rows read `Open → build`. Delete asks first, and deleting the row that
+is currently open resets the form rather than leaving it editing a ghost.
+
+Unlike a registered source, a use case is written to `db.json` through
+`commitDb`, so drafts survive a restart.
+
+### Step 1 · Domain
+
+Use case name (what the drafts list shows) · business domain · the free-text
+business need.
+
+The three domain cards are **ranked by what the connected data can actually
+support**. `GET /graph-domains` downgrades a seeded `strong` fit to `partial` or
+`none` when nothing is profiled, because "already profiled for this domain" must
+not be claimed over zero profiled objects — so with no source connected the order
+and the notes legitimately differ from a screenshot taken with data. Connect and
+profile a source and the backed domain climbs to the top.
+
+`Next` refuses an unnamed use case or an unpicked domain, then **saves before
+advancing**, so a reload never loses the last answer. Step 7's primary action
+commits — status `committed`, which is what makes a row read "ready to build".
+
+**Where it fails:** an unnamed draft → 400 (`name is required`), an unknown
+domain or an out-of-range step → 400, opening a use case the server no longer has
+→ 404. All surface through the store's `Result`, so the page shows a message and
+keeps its state.
 
 ---
 

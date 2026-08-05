@@ -1,0 +1,209 @@
+/*
+ * The New Graph wizard. Spacing comes from the --sp-* scale only; colours that
+ * mean state come from the theme, and the orange here is brand selection, not
+ * status.
+ */
+
+.ng-steps {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-6);
+}
+
+.ng-step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12.5px;
+  color: #8994a8;
+  cursor: pointer;
+}
+
+.ng-step:hover {
+  color: #4b5a75;
+}
+
+.ng-step.is-active {
+  background: #fdeae4;
+  border-color: #f8c9b9;
+  color: #f4562b;
+  font-weight: 600;
+}
+
+.ng-step.is-done {
+  color: #4b5a75;
+}
+
+.ng-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #eef0f4;
+  color: #4b5a75;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ng-step.is-active .ng-step-num {
+  background: #f4562b;
+  color: #fff;
+}
+
+.ng-step-dash {
+  width: 18px;
+  height: 1px;
+  background: #e9ecf1;
+}
+
+/* ---- saved use cases ---- */
+
+.ng-saved {
+  margin-bottom: var(--sp-6);
+}
+
+.ng-saved-title {
+  font-size: 13.5px;
+}
+
+.ng-saved-hint {
+  color: #8994a8;
+  font-weight: 400;
+  font-size: 12.5px;
+}
+
+.ng-uc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ng-uc-row + .ng-uc-row {
+  margin-top: var(--sp-2);
+}
+
+.ng-uc-left {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.ng-uc-name {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.ng-uc-updated {
+  color: #8994a8;
+  font-size: 12.5px;
+}
+
+/* ---- the step form ---- */
+
+.ng-form {
+  padding: var(--sp-6);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ng-label {
+  display: block;
+  margin-bottom: var(--sp-2);
+  color: #8994a8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ng-field + .ng-field {
+  margin-top: var(--sp-5);
+}
+
+.ng-domain {
+  height: 100%;
+  padding: var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ng-domain:hover {
+  border-color: #d8dde6;
+}
+
+.ng-domain.is-active {
+  border-color: #f4562b;
+  background: #fdeae4;
+}
+
+.ng-domain-name {
+  display: block;
+  margin-bottom: var(--sp-1);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #0f1729;
+}
+
+.ng-domain-note {
+  display: block;
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.ng-hint {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 8px;
+  background: #f2f4f7;
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.ng-help {
+  display: block;
+  margin-top: var(--sp-2);
+  color: #8994a8;
+  font-size: 12px;
+}
+
+.ng-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-6);
+}
+
+.ng-todo {
+  padding: var(--sp-6);
+  border: 1px dashed #d8dde6;
+  border-radius: 10px;
+  background: #fafbfc;
+  color: #4b5a75;
+  font-size: 13px;
+  line-height: 1.6;
+}

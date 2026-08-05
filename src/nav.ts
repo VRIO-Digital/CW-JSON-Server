@@ -6,9 +6,9 @@ import {
   ExperimentOutlined,
   FileTextOutlined,
   LineChartOutlined,
+  PlusOutlined,
   SafetyCertificateOutlined,
   TableOutlined,
-  BranchesOutlined,
   BuildOutlined,
   ClusterOutlined,
   QuestionCircleOutlined,
@@ -17,6 +17,7 @@ import type { ComponentType } from 'react'
 
 export type NavKey =
   | 'graphs'
+  | 'new-graph'
   | 'ask'
   | 'reports'
   | 'sources'
@@ -42,6 +43,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Knowledge Graphs',
     path: '/graphs',
     icon: ClusterOutlined,
+  },
+  {
+    key: 'new-graph',
+    label: 'New Graph',
+    path: '/new-graph',
+    icon: PlusOutlined,
   },
   {
     key: 'ask',
