@@ -13,12 +13,7 @@ import {
   type TableColumnsType,
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
-import type {
-  ProfiledDocument,
-  ProfiledDocumentsPayload,
-  ProfiledEntity,
-  SourceRow,
-} from '../api/client'
+import type { ProfiledDocument, ProfiledEntity, SourceRow } from '../api/client'
 import { fileKind } from '../data/mimeTypes'
 import { useDocumentsStore } from '../store/catalogueStore'
 import './ProfiledColumnsPanel.css'
@@ -60,29 +55,47 @@ function matches(document: ProfiledDocument, facet: FacetKey) {
   return document.doc_type === TYPE_FOR_FACET[facet]
 }
 
-/**
- * The dictionary itself, given its data.
- *
- * Split from the panel below because a store-connected component renders from
- * zustand's *initial* state under `renderToString`, which makes the panel
- * unassertable without a DOM — this is not. Same reason `ConnectSourceWizard`
- * is separate from `ConnectSourceModal`.
- */
-export function DocumentDictionary({
-  data,
-  facet,
-  onFacet,
-  open,
-  onToggle,
-  onEdit,
+export default function ProfiledDocumentsPanel({
+  source,
+  onClose,
 }: {
-  data: ProfiledDocumentsPayload
-  facet: FacetKey
-  onFacet: (facet: FacetKey) => void
-  open: Set<string>
-  onToggle: (key: string) => void
-  onEdit: (folderId: string, document: ProfiledDocument) => void
+  source: SourceRow
+  onClose: () => void
 }) {
+  const { message } = App.useApp()
+  const data = useDocumentsStore((s) => s.data)
+  const loading = useDocumentsStore((s) => s.loading)
+  const error = useDocumentsStore((s) => s.error)
+  const loadDocuments = useDocumentsStore((s) => s.load)
+  const summarise = useDocumentsStore((s) => s.summarise)
+  const [facet, setFacet] = useState<FacetKey>('all')
+  const [open, setOpen] = useState<Set<string>>(new Set())
+  const [editing, setEditing] = useState<{
+    folder_id: string
+    document: ProfiledDocument
+  } | null>(null)
+  const [draft, setDraft] = useState('')
+
+  useEffect(() => {
+    void loadDocuments(source.sourceId)
+  }, [loadDocuments, source.sourceId])
+
+  // Open every document by default so entities are visible as they arrive.
+  useEffect(() => {
+    if (!data) return
+    setOpen(
+      new Set(
+        data.folders.flatMap((f) =>
+          f.documents.map((d) => `${f.folder_id}.${d.document_id}`),
+        ),
+      ),
+    )
+  }, [data])
+
+  useEffect(() => {
+    if (error) message.error(error)
+  }, [error, message])
+
   const columns: TableColumnsType<ProfiledEntity> = useMemo(
     () => [
       {
@@ -136,152 +149,6 @@ export function DocumentDictionary({
     [],
   )
 
-  return (
-    <>
-      <div className="pc-facets">
-        {FACETS.map((f) => (
-          <button
-            type="button"
-            key={f.key}
-            className={`pc-chip${facet === f.key ? ' is-active' : ''}`}
-            onClick={() => onFacet(f.key)}
-          >
-            {f.label} <span className="pc-chip-count">{data.facets[f.key]}</span>
-          </button>
-        ))}
-      </div>
-
-      <Typography.Paragraph className="pc-summary">
-        {`${data.profiled_documents} profiled document(s) across ${data.folder_count} folder(s), ${data.entity_count} entities extracted · click a document to see what came out of it`}
-      </Typography.Paragraph>
-
-      {data.folders.map((f) => {
-        const visible = f.documents.filter((d) => matches(d, facet))
-        return (
-          <div key={f.folder_id} className="pc-dataset">
-            <div className="pc-dataset-head">
-              <span className="pc-dataset-name">{f.name}</span>
-              <span className="pc-dataset-meta">
-                {`· ${f.document_count} document(s), ${f.entity_count} entities`}
-              </span>
-            </div>
-
-            {visible.length === 0 ? (
-              <Typography.Paragraph className="pc-none">
-                No documents in this folder match this filter.
-              </Typography.Paragraph>
-            ) : (
-              visible.map((d) => {
-                const key = `${f.folder_id}.${d.document_id}`
-                const isOpen = open.has(key)
-                return (
-                  <div key={key} className="pc-table-card">
-                    <button
-                      type="button"
-                      className="pc-table-head"
-                      onClick={() => onToggle(key)}
-                      aria-expanded={isOpen}
-                    >
-                      <span className="pc-table-left">
-                        <DownOutlined className={`pc-caret${isOpen ? ' is-open' : ''}`} />
-                        <Tag className="pc-kind">{fileKind(d.mime_type)}</Tag>
-                        <span className="pc-table-name">{d.name}</span>
-                      </span>
-                      <span className="pc-table-meta">
-                        {`${d.entity_count} entities · ${d.pages} pages · ${d.chunks} chunks` +
-                          (d.pii_count > 0 ? ` · ${d.pii_count} pii` : '')}
-                      </span>
-                    </button>
-
-                    {/* The summary sits outside the toggle: it is the note a
-                        curator writes, and a button cannot nest in a button. */}
-                    <div className="pc-desc pc-doc-summary">
-                      {d.summary ? (
-                        <Typography.Text
-                          ellipsis={{ tooltip: d.summary }}
-                          style={{ maxWidth: 460 }}
-                        >
-                          {d.summary}
-                        </Typography.Text>
-                      ) : (
-                        <Tag color="warning" variant="filled">
-                          needs review
-                        </Tag>
-                      )}
-                      <Button
-                        type="text"
-                        size="small"
-                        aria-label={`Edit summary for ${d.name}`}
-                        icon={<EditOutlined />}
-                        onClick={() => onEdit(f.folder_id, d)}
-                      />
-                    </div>
-
-                    {isOpen ? (
-                      <Table
-                        className="pc-columns"
-                        columns={columns}
-                        dataSource={d.entities}
-                        rowKey="entity_id"
-                        size="small"
-                        pagination={
-                          d.entities.length > 25 ? { pageSize: 25, size: 'small' } : false
-                        }
-                        scroll={{ x: 'max-content' }}
-                      />
-                    ) : null}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        )
-      })}
-    </>
-  )
-}
-
-export default function ProfiledDocumentsPanel({
-  source,
-  onClose,
-}: {
-  source: SourceRow
-  onClose: () => void
-}) {
-  const { message } = App.useApp()
-  const data = useDocumentsStore((s) => s.data)
-  const loading = useDocumentsStore((s) => s.loading)
-  const error = useDocumentsStore((s) => s.error)
-  const loadDocuments = useDocumentsStore((s) => s.load)
-  const summarise = useDocumentsStore((s) => s.summarise)
-  const [facet, setFacet] = useState<FacetKey>('all')
-  const [open, setOpen] = useState<Set<string>>(new Set())
-  const [editing, setEditing] = useState<{
-    folder_id: string
-    document: ProfiledDocument
-  } | null>(null)
-  const [draft, setDraft] = useState('')
-
-  useEffect(() => {
-    void loadDocuments(source.sourceId)
-  }, [loadDocuments, source.sourceId])
-
-  // Open every document by default so entities are visible as they arrive.
-  useEffect(() => {
-    if (!data) return
-    setOpen(
-      new Set(
-        data.folders.flatMap((f) =>
-          f.documents.map((d) => `${f.folder_id}.${d.document_id}`),
-        ),
-      ),
-    )
-  }, [data])
-
-  useEffect(() => {
-    if (error) message.error(error)
-  }, [error, message])
-
   async function saveSummary() {
     if (!editing) return
     const result = await summarise(source.sourceId, {
@@ -322,17 +189,110 @@ export default function ProfiledDocumentsPanel({
           description="No documents profiled yet — run Browse documents for profiling first."
         />
       ) : (
-        <DocumentDictionary
-          data={data}
-          facet={facet}
-          onFacet={setFacet}
-          open={open}
-          onToggle={toggle}
-          onEdit={(folder_id, document) => {
-            setEditing({ folder_id, document })
-            setDraft(document.summary ?? '')
-          }}
-        />
+        <>
+        <div className="pc-facets">
+          {FACETS.map((f) => (
+            <button
+              type="button"
+              key={f.key}
+              className={`pc-chip${facet === f.key ? ' is-active' : ''}`}
+              onClick={() => setFacet(f.key)}
+            >
+              {f.label} <span className="pc-chip-count">{data.facets[f.key]}</span>
+            </button>
+          ))}
+        </div>
+
+        <Typography.Paragraph className="pc-summary">
+          {`${data.profiled_documents} profiled document(s) across ${data.folder_count} folder(s), ${data.entity_count} entities extracted · click a document to see what came out of it`}
+        </Typography.Paragraph>
+
+        {data.folders.map((f) => {
+          const visible = f.documents.filter((d) => matches(d, facet))
+          return (
+            <div key={f.folder_id} className="pc-dataset">
+              <div className="pc-dataset-head">
+                <span className="pc-dataset-name">{f.name}</span>
+                <span className="pc-dataset-meta">
+                  {`· ${f.document_count} document(s), ${f.entity_count} entities`}
+                </span>
+              </div>
+
+              {visible.length === 0 ? (
+                <Typography.Paragraph className="pc-none">
+                  No documents in this folder match this filter.
+                </Typography.Paragraph>
+              ) : (
+                visible.map((d) => {
+                  const key = `${f.folder_id}.${d.document_id}`
+                  const isOpen = open.has(key)
+                  return (
+                    <div key={key} className="pc-table-card">
+                      <button
+                        type="button"
+                        className="pc-table-head"
+                        onClick={() => toggle(key)}
+                        aria-expanded={isOpen}
+                      >
+                        <span className="pc-table-left">
+                          <DownOutlined className={`pc-caret${isOpen ? ' is-open' : ''}`} />
+                          <Tag className="pc-kind">{fileKind(d.mime_type)}</Tag>
+                          <span className="pc-table-name">{d.name}</span>
+                        </span>
+                        <span className="pc-table-meta">
+                          {`${d.entity_count} entities · ${d.pages} pages · ${d.chunks} chunks` +
+                            (d.pii_count > 0 ? ` · ${d.pii_count} pii` : '')}
+                        </span>
+                      </button>
+
+                      {/* The summary sits outside the toggle: it is the note a
+                          curator writes, and a button cannot nest in a button. */}
+                      <div className="pc-desc pc-doc-summary">
+                        {d.summary ? (
+                          <Typography.Text
+                            ellipsis={{ tooltip: d.summary }}
+                            style={{ maxWidth: 460 }}
+                          >
+                            {d.summary}
+                          </Typography.Text>
+                        ) : (
+                          <Tag color="warning" variant="filled">
+                            needs review
+                          </Tag>
+                        )}
+                        <Button
+                          type="text"
+                          size="small"
+                          aria-label={`Edit summary for ${d.name}`}
+                          icon={<EditOutlined />}
+                          onClick={() => {
+                            setEditing({ folder_id: f.folder_id, document: d })
+                            setDraft(d.summary ?? '')
+                          }}
+                        />
+                      </div>
+
+                      {isOpen ? (
+                        <Table
+                          className="pc-columns"
+                          columns={columns}
+                          dataSource={d.entities}
+                          rowKey="entity_id"
+                          size="small"
+                          pagination={
+                            d.entities.length > 25 ? { pageSize: 25, size: 'small' } : false
+                          }
+                          scroll={{ x: 'max-content' }}
+                        />
+                      ) : null}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          )
+        })}
+        </>
       )}
 
       <Modal

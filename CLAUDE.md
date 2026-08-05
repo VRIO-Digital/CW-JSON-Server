@@ -27,22 +27,10 @@ npx vite build --ssr smoke.tsx --outDir dist-ssr --logLevel warn && node dist-ss
 ```
 
 This is how components get asserted on without a DOM. Stub `globalThis.fetch` to
-test `src/api/client.ts` against fabricated payloads. Delete the scratch files
-afterwards.
-
-Three things `renderToString` will not show you, all of which look like your
-component is broken when it is not:
-
-- **A store-connected component renders zustand's *initial* state.** zustand v5
-  passes `getInitialState` as the server snapshot, so seeding a store with
-  `load()` before rendering changes nothing — you get the empty state. Pass the
-  data in as a prop instead: extract the body into a pure component (that is why
-  `ConnectSourceWizard` is separate from `ConnectSourceModal`, and
-  `DocumentDictionary` from `ProfiledDocumentsPanel`).
-- **antd `Modal`/`Drawer` render through a portal**, and the `Tree` body through
-  a virtual list — neither is traversed. Assert around them.
-- **Adjacent JSX expressions are separated by `<!-- -->`**, so `{v}%` never
-  matches `"30%"` in the raw HTML. Strip tags before asserting on text.
+test `src/api/client.ts` against fabricated payloads. antd `Modal`/`Drawer` render
+through a portal that `renderToString` will not traverse — extract the body into
+its own component if it needs asserting (that is why `ConnectSourceWizard` is
+separate from `ConnectSourceModal`). Delete the scratch files afterwards.
 
 ## Architecture
 
@@ -264,10 +252,6 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **A stale mock server answers with the old shape.** Editing `server.mjs` or a
   payload shape needs a restart, which also clears every registered source. When
   output looks impossibly wrong, check the server's age before your own code.
-- **An endpoint that "works" on the wrong connector is worse than one that
-  fails.** A Drive source asked for `/browse` returned an empty dataset list —
-  indistinguishable from "nothing to profile". Every connector-specific route
-  checks `kind` and 400s with the name of its twin.
 - **antd v6 renamed props** — read the installed `.d.ts`; do not assume v5.
 - **Selectors must return stable references.** `data?.x ?? []` allocates every
   render and defeats downstream memos; use a module-level constant.

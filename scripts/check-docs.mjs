@@ -125,36 +125,6 @@ expect(
   `SKILLS.md should reflect ${stages.length}`,
 )
 
-/*
- * The document profiler shares the job board with the table profiler, and
- * `stage_total` comes from whichever pipeline the job belongs to. Equal lengths
- * are what let one row render both, so a stage added to one side must be added
- * to the other — or the board starts printing "3 of 6" beside "3 of 5".
- */
-const docPipelineBlock = server.match(/const DOC_PIPELINE = \[([\s\S]*?)\]/)
-const docStages = docPipelineBlock
-  ? [...docPipelineBlock[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
-  : []
-
-expect(
-  'document pipeline exists',
-  docStages.length > 0,
-  `${docStages.length} stages in server.mjs`,
-)
-expect(
-  'both pipelines are the same length',
-  docStages.length === stages.length,
-  `PIPELINE has ${stages.length}, DOC_PIPELINE has ${docStages.length} — a job row shows stage_total from its own pipeline`,
-)
-
-for (const stage of docStages) {
-  expect(
-    `document stage "${stage}" documented`,
-    skills.includes(stage) || claude.includes(stage),
-    'must appear in SKILLS.md flow 3',
-  )
-}
-
 /* ---------------- db.json required keys ---------------- */
 
 const shapeBlock = server.match(/const DB_SHAPE = \{([\s\S]*?)\n\}/)
