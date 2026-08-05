@@ -1903,13 +1903,749 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-test-msg2h3ex0",
+      "use_case_id": "uc-test-msg8o4ot2",
       "name": "test",
       "status": "committed",
       "domain_id": "industries",
-      "business_need": "jjj",
+      "business_need": "fdgfdgfd",
+      "personas": [
+        {
+          "name": "Compliance Manager",
+          "description": "Asks whether every manifest can be traced end to end on demand.",
+          "source": "ai"
+        },
+        {
+          "name": "fdgfdg",
+          "description": "fdgfdgfd",
+          "source": "user"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Incident closure rate",
+          "description": "Share of incidents with corrective actions closed inside target.",
+          "source": "ai"
+        },
+        {
+          "name": "rtert",
+          "description": "retert",
+          "source": "user"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:context-weave-dev",
+          "mode": "subset",
+          "objects": [
+            "epa_echo.echo_enforcement_action"
+          ]
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Which Treatment, Storage, and Disposal Facilities (TSDFs) receive the highest volumes of acute hazardous waste within specific geographic areas?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "retret",
+          "priority": "high",
+          "source": "user"
+        },
+        {
+          "text": "Which incidents share a root cause that has not been closed out?",
+          "priority": "high",
+          "source": "ai"
+        },
+        {
+          "text": "testonedata",
+          "priority": "normal",
+          "source": "user"
+        },
+        {
+          "text": "Which facilities exhibit the highest compliance risk based on historical RCRA violations, enforcement actions, and total penalty amounts?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Can we trace the complete chain of custody for specific waste shipments from the generating facility through all intermediate transporters to the final destination?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "What is the total volume of hazardous waste generated across different NAICS industry codes and EPA regions?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "citations": "required",
+      "answer_formats": [
+        {
+          "format_id": "volume-rollup",
+          "name": "Volume rollup",
+          "format": "scalar + grouped table"
+        }
+      ],
+      "gap_decisions": [
+        {
+          "element_id": "gap:testonedata",
+          "decision": "accept permanent"
+        },
+        {
+          "element_id": "gap:which-incidents-share-a-root-cause-that-has-not-",
+          "decision": "connect source"
+        },
+        {
+          "element_id": "gap:retret",
+          "decision": "connect source"
+        }
+      ],
       "step": 7,
-      "updated_at": "2026-08-05T12:32:17.776Z"
+      "updated_at": "2026-08-05T15:35:16.717Z"
+    }
+  ],
+  "graph_personas": [
+    {
+      "persona_id": "reliability-engineer",
+      "name": "Reliability Engineer",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "failure",
+        "outage",
+        "repair",
+        "downtime",
+        "asset"
+      ],
+      "focus": "Asks why a unit keeps failing and which repairs actually held."
+    },
+    {
+      "persona_id": "maintenance-planner",
+      "name": "Maintenance Planner",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "work order",
+        "schedule",
+        "maintenance",
+        "spend",
+        "backlog"
+      ],
+      "focus": "Asks which work orders to pull forward before the next outage window."
+    },
+    {
+      "persona_id": "ops-finance-controller",
+      "name": "Finance Controller (Ops)",
+      "domains": [],
+      "keywords": [
+        "cost",
+        "spend",
+        "budget",
+        "escalation",
+        "contract",
+        "quarter"
+      ],
+      "focus": "Asks what drove the variance, per unit, before quarter close."
+    },
+    {
+      "persona_id": "outage-coordinator",
+      "name": "Outage Coordinator",
+      "domains": [
+        "utilities"
+      ],
+      "keywords": [
+        "outage",
+        "window",
+        "shutdown",
+        "generation"
+      ],
+      "focus": "Asks what can be done inside the window without extending it."
+    },
+    {
+      "persona_id": "plant-manager",
+      "name": "Plant Manager",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "fleet",
+        "plant",
+        "unit",
+        "performance"
+      ],
+      "focus": "Asks which sites are drifting and what it would take to fix them."
+    },
+    {
+      "persona_id": "compliance-manager",
+      "name": "Compliance Manager",
+      "domains": [
+        "industries"
+      ],
+      "keywords": [
+        "compliance",
+        "manifest",
+        "permit",
+        "waste",
+        "audit",
+        "regulat"
+      ],
+      "focus": "Asks whether every manifest can be traced end to end on demand."
+    },
+    {
+      "persona_id": "ehs-officer",
+      "name": "EHS Officer",
+      "domains": [
+        "industries",
+        "manufacturing"
+      ],
+      "keywords": [
+        "incident",
+        "hazard",
+        "safety",
+        "spill",
+        "corrective"
+      ],
+      "focus": "Asks which incidents share a root cause nobody has closed out."
+    },
+    {
+      "persona_id": "operations-supervisor",
+      "name": "Operations Supervisor",
+      "domains": [
+        "industries",
+        "manufacturing"
+      ],
+      "keywords": [
+        "throughput",
+        "shift",
+        "delay",
+        "transporter",
+        "intake"
+      ],
+      "focus": "Asks what is late today and who has to be told."
+    },
+    {
+      "persona_id": "quality-engineer",
+      "name": "Quality Engineer",
+      "domains": [
+        "manufacturing"
+      ],
+      "keywords": [
+        "defect",
+        "quality",
+        "scrap",
+        "yield",
+        "nonconformance"
+      ],
+      "focus": "Asks which process change moved the defect rate."
+    },
+    {
+      "persona_id": "data-steward",
+      "name": "Data Steward",
+      "domains": [],
+      "keywords": [
+        "definition",
+        "lineage",
+        "trust",
+        "metric",
+        "kpi"
+      ],
+      "focus": "Asks which definition the number came from, and whether it is current."
+    },
+    {
+      "persona_id": "executive-sponsor",
+      "name": "Executive Sponsor",
+      "domains": [],
+      "keywords": [
+        "board",
+        "quarter",
+        "strategy",
+        "surprise",
+        "risk"
+      ],
+      "focus": "Asks for the one-line answer, with the caveat stated up front."
+    }
+  ],
+  "graph_kpis": [
+    {
+      "kpi_id": "maintenance-cost-per-unit",
+      "name": "Maintenance cost per unit",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "cost",
+        "spend",
+        "unit",
+        "maintenance",
+        "fleet"
+      ],
+      "definition": "Total maintenance spend over the period, divided by units in service."
+    },
+    {
+      "kpi_id": "unplanned-outage-hours",
+      "name": "Unplanned outage hours",
+      "domains": [
+        "utilities"
+      ],
+      "keywords": [
+        "outage",
+        "downtime",
+        "unplanned",
+        "generation"
+      ],
+      "definition": "Hours lost to outages that were not in the maintenance plan."
+    },
+    {
+      "kpi_id": "mtbf",
+      "name": "Mean time between failures",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "failure",
+        "reliability",
+        "asset",
+        "repair"
+      ],
+      "definition": "Average operating hours between two failures of the same asset."
+    },
+    {
+      "kpi_id": "work-order-backlog-age",
+      "name": "Work order backlog age",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "work order",
+        "backlog",
+        "schedule",
+        "maintenance"
+      ],
+      "definition": "Median age of open work orders, weighted by priority."
+    },
+    {
+      "kpi_id": "contract-escalation-rate",
+      "name": "Contract escalation rate",
+      "domains": [],
+      "keywords": [
+        "contract",
+        "escalation",
+        "price",
+        "cost",
+        "vendor"
+      ],
+      "definition": "Period-on-period change in contracted rates against the baseline."
+    },
+    {
+      "kpi_id": "budget-variance-at-close",
+      "name": "Budget variance at quarter close",
+      "domains": [],
+      "keywords": [
+        "budget",
+        "quarter",
+        "variance",
+        "spend",
+        "close",
+        "surprising"
+      ],
+      "definition": "Actual versus planned spend at close, split by the driver behind it."
+    },
+    {
+      "kpi_id": "manifest-cycle-time",
+      "name": "Manifest cycle time",
+      "domains": [
+        "industries"
+      ],
+      "keywords": [
+        "manifest",
+        "waste",
+        "transporter",
+        "pickup",
+        "disposal"
+      ],
+      "definition": "Days from generator pickup to confirmed disposal certificate."
+    },
+    {
+      "kpi_id": "compliance-exception-rate",
+      "name": "Compliance exception rate",
+      "domains": [
+        "industries"
+      ],
+      "keywords": [
+        "compliance",
+        "permit",
+        "audit",
+        "exception",
+        "regulat",
+        "threshold"
+      ],
+      "definition": "Share of shipments raising at least one compliance exception."
+    },
+    {
+      "kpi_id": "incident-closure-rate",
+      "name": "Incident closure rate",
+      "domains": [
+        "industries",
+        "manufacturing"
+      ],
+      "keywords": [
+        "incident",
+        "corrective",
+        "safety",
+        "spill",
+        "hazard"
+      ],
+      "definition": "Share of incidents with corrective actions closed inside target."
+    },
+    {
+      "kpi_id": "first-pass-yield",
+      "name": "First pass yield",
+      "domains": [
+        "manufacturing"
+      ],
+      "keywords": [
+        "yield",
+        "defect",
+        "quality",
+        "rework"
+      ],
+      "definition": "Units passing every step without rework, over units started."
+    },
+    {
+      "kpi_id": "scrap-rate",
+      "name": "Scrap rate",
+      "domains": [
+        "manufacturing"
+      ],
+      "keywords": [
+        "scrap",
+        "defect",
+        "waste",
+        "quality"
+      ],
+      "definition": "Material scrapped as a share of material consumed."
+    },
+    {
+      "kpi_id": "data-freshness-lag",
+      "name": "Data freshness lag",
+      "domains": [],
+      "keywords": [
+        "freshness",
+        "lineage",
+        "trust",
+        "metric",
+        "definition",
+        "kpi"
+      ],
+      "definition": "Age of the newest record backing an answer, at the time it is given."
+    }
+  ],
+  "graph_hero_questions": [
+    {
+      "question_id": "q-compliance-risk",
+      "text": "Which facilities exhibit the highest compliance risk based on historical RCRA violations, enforcement actions, and total penalty amounts?",
+      "domains": [
+        "industries"
+      ],
+      "keywords": [
+        "compliance",
+        "violation",
+        "risk",
+        "penalty",
+        "enforcement",
+        "audit"
+      ]
+    },
+    {
+      "question_id": "q-waste-volume-by-naics",
+      "text": "What is the total volume of hazardous waste generated across different NAICS industry codes and EPA regions?",
+      "domains": [
+        "industries"
+      ],
+      "keywords": [
+        "waste",
+        "volume",
+        "hazardous",
+        "region",
+        "generated"
+      ]
+    },
+    {
+      "question_id": "q-tsdf-acute-volumes",
+      "text": "Which Treatment, Storage, and Disposal Facilities (TSDFs) receive the highest volumes of acute hazardous waste within specific geographic areas?",
+      "domains": [
+        "industries"
+      ],
+      "keywords": [
+        "disposal",
+        "facility",
+        "hazardous",
+        "volume",
+        "waste"
+      ]
+    },
+    {
+      "question_id": "q-chain-of-custody",
+      "text": "Can we trace the complete chain of custody for specific waste shipments from the generating facility through all intermediate transporters to the final destination?",
+      "domains": [
+        "industries"
+      ],
+      "keywords": [
+        "manifest",
+        "trace",
+        "transporter",
+        "custody",
+        "shipment",
+        "disposal"
+      ]
+    },
+    {
+      "question_id": "q-lqg-threshold",
+      "text": "Which sites are nearing their LQG threshold this quarter?",
+      "domains": [
+        "industries",
+        "manufacturing"
+      ],
+      "keywords": [
+        "threshold",
+        "quarter",
+        "site",
+        "generator",
+        "compliance"
+      ]
+    },
+    {
+      "question_id": "q-cost-spike-drivers",
+      "text": "What drove the maintenance cost spike per unit last quarter — work orders, contract escalations, or outage-driven repairs?",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "cost",
+        "spend",
+        "unit",
+        "work order",
+        "escalation",
+        "outage",
+        "quarter"
+      ]
+    },
+    {
+      "question_id": "q-repeat-failures",
+      "text": "Which assets failed more than once in the last twelve months, and did the repair hold?",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "failure",
+        "repair",
+        "asset",
+        "reliability",
+        "downtime"
+      ]
+    },
+    {
+      "question_id": "q-outage-window-fit",
+      "text": "What can be completed inside the next outage window without extending it?",
+      "domains": [
+        "utilities"
+      ],
+      "keywords": [
+        "outage",
+        "window",
+        "backlog",
+        "schedule",
+        "maintenance"
+      ]
+    },
+    {
+      "question_id": "q-vendor-escalations",
+      "text": "Which vendors escalated rates above the contracted baseline, and what did that cost us?",
+      "domains": [],
+      "keywords": [
+        "contract",
+        "escalation",
+        "vendor",
+        "cost",
+        "price",
+        "budget"
+      ]
+    },
+    {
+      "question_id": "q-quarter-close-surprise",
+      "text": "Where is spend most likely to surprise us before quarter close?",
+      "domains": [],
+      "keywords": [
+        "spend",
+        "quarter",
+        "close",
+        "budget",
+        "surprising",
+        "variance"
+      ]
+    },
+    {
+      "question_id": "q-incident-root-cause",
+      "text": "Which incidents share a root cause that has not been closed out?",
+      "domains": [
+        "industries",
+        "manufacturing"
+      ],
+      "keywords": [
+        "incident",
+        "corrective",
+        "root cause",
+        "safety",
+        "spill"
+      ]
+    },
+    {
+      "question_id": "q-defect-driver",
+      "text": "Which process change moved the defect rate, and on which lines?",
+      "domains": [
+        "manufacturing"
+      ],
+      "keywords": [
+        "defect",
+        "quality",
+        "yield",
+        "scrap",
+        "process"
+      ]
+    }
+  ],
+  "graph_answer_formats": [
+    {
+      "format_id": "cost-drivers",
+      "name": "Cost drivers",
+      "format": "narrative + drivers table + trend",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "cost",
+        "spend",
+        "driver",
+        "escalation",
+        "unit",
+        "maintenance"
+      ]
+    },
+    {
+      "format_id": "compliance",
+      "name": "Compliance",
+      "format": "scalar + exception table",
+      "domains": [
+        "industries"
+      ],
+      "keywords": [
+        "compliance",
+        "violation",
+        "permit",
+        "audit",
+        "threshold",
+        "regulat"
+      ]
+    },
+    {
+      "format_id": "outage-cost",
+      "name": "Outage cost",
+      "format": "scalar + cost breakdown",
+      "domains": [
+        "utilities"
+      ],
+      "keywords": [
+        "outage",
+        "downtime",
+        "repair",
+        "generation"
+      ]
+    },
+    {
+      "format_id": "chain-of-custody",
+      "name": "Chain of custody",
+      "format": "timeline + hop table",
+      "domains": [
+        "industries"
+      ],
+      "keywords": [
+        "manifest",
+        "trace",
+        "transporter",
+        "custody",
+        "shipment"
+      ]
+    },
+    {
+      "format_id": "volume-rollup",
+      "name": "Volume rollup",
+      "format": "scalar + grouped table",
+      "domains": [
+        "industries",
+        "manufacturing"
+      ],
+      "keywords": [
+        "volume",
+        "waste",
+        "region",
+        "code",
+        "generated"
+      ]
+    },
+    {
+      "format_id": "reliability",
+      "name": "Reliability",
+      "format": "trend + ranked asset table",
+      "domains": [
+        "utilities",
+        "manufacturing"
+      ],
+      "keywords": [
+        "failure",
+        "reliability",
+        "asset",
+        "repair",
+        "downtime"
+      ]
+    },
+    {
+      "format_id": "quality",
+      "name": "Quality",
+      "format": "scalar + defect pareto",
+      "domains": [
+        "manufacturing"
+      ],
+      "keywords": [
+        "defect",
+        "quality",
+        "yield",
+        "scrap"
+      ]
+    },
+    {
+      "format_id": "budget-variance",
+      "name": "Budget variance",
+      "format": "scalar + variance waterfall",
+      "domains": [],
+      "keywords": [
+        "budget",
+        "variance",
+        "quarter",
+        "close",
+        "spend",
+        "surprising"
+      ]
     }
   ]
 }

@@ -42,6 +42,12 @@
  *   GET    /profiling-jobs
  *   GET    /change-signals
  *   GET    /graph-domains                  step 1 options, ranked by real fit
+ *   POST   /graph-personas/suggest         step 2 draft { domain_id, business_need }
+ *   POST   /graph-kpis/suggest             step 3 draft { domain_id, business_need }
+ *   GET    /graph-sources                  step 4: connected sources + profiled objects
+ *   POST   /graph-questions/suggest         step 5 draft { domain_id, business_need }
+ *   POST   /graph-answer-formats/suggest    step 6 formats { domain_id, business_need }
+ *   POST   /graph-coverage                 step 7 review { name, sources, hero_questions }
  *   GET    /graph-use-cases                saved drafts + committed use cases
  *   POST   /graph-use-cases                upsert a draft { use_case_id?, name, ... }
  *   DELETE /graph-use-cases/:useCaseId
@@ -205,6 +211,20 @@ const DB_SHAPE = {
     Array.isArray(v) &&
     v.length > 0 &&
     v.every((d) => isObject(d) && d.domain_id && d.name),
+  graph_personas: (v) =>
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((p) => isObject(p) && p.persona_id && p.name),
+  graph_kpis: (v) =>
+    Array.isArray(v) && v.length > 0 && v.every((k) => isObject(k) && k.kpi_id && k.name),
+  graph_hero_questions: (v) =>
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((q) => isObject(q) && q.question_id && q.text),
+  graph_answer_formats: (v) =>
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((f) => isObject(f) && f.format_id && f.name),
   graph_use_cases: (v) =>
     Array.isArray(v) && v.every((u) => isObject(u) && u.use_case_id && u.name),
 }
@@ -222,6 +242,10 @@ const DB_HINTS = {
   column_vocabulary: 'non-empty array of { name, type, class }',
   document_vocabulary: 'non-empty array of { name, type, class }',
   graph_domains: 'non-empty array of { domain_id, name }',
+  graph_personas: 'non-empty array of { persona_id, name }',
+  graph_kpis: 'non-empty array of { kpi_id, name }',
+  graph_hero_questions: 'non-empty array of { question_id, text }',
+  graph_answer_formats: 'non-empty array of { format_id, name }',
   graph_use_cases: 'array of { use_case_id, name }',
 }
 
@@ -256,6 +280,21 @@ const dbSections = () =>
  * restart.
  */
 function commitDb(next) {
+  /*
+   * Every writer passes the whole document, so a server that started before a
+   * key was added to db.json would write its stale copy back and silently drop
+   * that key — the file would lose data no route ever touched. Validating here
+   * rather than only in the /db editor turns that into a refused write with a
+   * message naming the missing key.
+   */
+  const problems = validateDb(next)
+  if (problems.length > 0) {
+    throw new Error(
+      `refusing to write db.json — ${problems.join('; ')}. If this server has ` +
+        'been running since before that key existed, restart it.',
+    )
+  }
+
   const text = `${JSON.stringify(next, null, 2)}\n`
   const tmp = `${DB_PATH}.tmp`
   writeFileSync(tmp, text, 'utf8')
@@ -603,6 +642,393 @@ const slugify = (text) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
+/**
+ * A drafted item as stored: a name, a description, and where it came from.
+ * Personas (step 2) and KPIs (step 3) are the same shape.
+ *
+ * Accepts a bare string too, because that is what earlier drafts (and a
+ * hand-edited db.json) hold — normalising on read means an old draft opens
+ * rather than rendering `undefined` in the row.
+ */
+function normalizeDrafted(list) {
+  const seen = new Set()
+  const out = []
+
+  for (const entry of Array.isArray(list) ? list : []) {
+    const raw = typeof entry === 'string' ? { name: entry } : (entry ?? {})
+    const name = String(raw.name ?? '').trim()
+    if (!name) continue
+    const key = name.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({
+      name,
+      description: String(raw.description ?? '').trim(),
+      // Provenance is kept so the UI can say which ones the AI drafted.
+      source: raw.source === 'ai' ? 'ai' : 'user',
+    })
+    if (out.length >= 12) break
+  }
+  return out
+}
+
+/**
+ * Answer formats as stored, self-describing on purpose: the use case declares
+ * how its answers render, so editing the pool in db.json later must not silently
+ * change what an already-saved brief promised.
+ */
+function normalizeFormats(list) {
+  const seen = new Set()
+  const out = []
+
+  for (const entry of Array.isArray(list) ? list : []) {
+    const raw = entry ?? {}
+    const formatId = String(raw.format_id ?? '').trim()
+    const name = String(raw.name ?? '').trim()
+    if (!formatId || !name || seen.has(formatId)) continue
+    seen.add(formatId)
+    out.push({ format_id: formatId, name, format: String(raw.format ?? '').trim() })
+  }
+  return out
+}
+
+/**
+ * Hero questions as stored: the question, whether it is High, and who wrote it.
+ *
+ * `priority` is deliberately two-valued. High means "this is the graph's
+ * contract" — a third tier would invite ranking instead of choosing.
+ */
+function normalizeQuestions(list) {
+  const seen = new Set()
+  const out = []
+
+  for (const entry of Array.isArray(list) ? list : []) {
+    const raw = typeof entry === 'string' ? { text: entry } : (entry ?? {})
+    const text = String(raw.text ?? raw.name ?? '').trim()
+    if (!text) continue
+    const key = text.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({
+      text,
+      priority: raw.priority === 'high' ? 'high' : 'normal',
+      source: raw.source === 'ai' ? 'ai' : 'user',
+    })
+    if (out.length >= 20) break
+  }
+  return out
+}
+
+/**
+ * What the user decided about a gap. A gap without a decision blocks the build,
+ * so these are stored beside the answers rather than derived.
+ */
+const GAP_DECISIONS = ['accept permanent', 'drop question', 'connect source', 'defer with trigger']
+
+function normalizeGapDecisions(list) {
+  const seen = new Set()
+  const out = []
+  for (const entry of Array.isArray(list) ? list : []) {
+    const elementId = String(entry?.element_id ?? '').trim()
+    const decision = String(entry?.decision ?? '').trim()
+    if (!elementId || seen.has(elementId) || !GAP_DECISIONS.includes(decision)) continue
+    seen.add(elementId)
+    out.push({ element_id: elementId, decision })
+  }
+  return out
+}
+
+/** `manifest_header` → `Manifest Header`; a file name loses its extension. */
+const entityName = (raw) =>
+  String(raw)
+    .replace(/\.[a-z0-9]+$/i, '')
+    .replace(/[_\-.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+
+/** Deterministic 0.86–0.99, so a match score never shifts under the UI. */
+const matchScore = (seed) => Number((0.86 + (hash(seed) % 14) / 100).toFixed(2))
+
+/**
+ * The profiled objects a use case's source picks actually resolve to, with the
+ * detail step 7 needs: the table it came from, its size, and its columns.
+ *
+ * Walks `registered` rather than `graphSources()` because coverage needs row
+ * counts and the column dictionary, which the step 4 payload deliberately does
+ * not carry.
+ */
+function selectedProfiledObjects(picks) {
+  const out = []
+
+  for (const pick of normalizeSourcePicks(picks)) {
+    const source = registered.get(pick.source_id)
+    if (!source || source.status !== 'connected') continue
+    const wanted = new Set(pick.objects)
+    const takeAll = pick.mode !== 'subset'
+
+    if (source.kind === 'gdrive') {
+      const drive = findDrive(source.drive_id)
+      for (const p of source.profiled_docs ?? []) {
+        const objectId = `${p.folder_id}.${p.document_id}`
+        if (!takeAll && !wanted.has(objectId)) continue
+        const meta = findDocument(drive, p.folder_id, p.document_id)
+        if (!meta) continue
+        out.push({
+          objectId,
+          sourceName: source.source_name,
+          label: meta.name,
+          // "2,841 documents" in the reference reads as the corpus behind an
+          // extracted entity, so a document reports its pages the same way.
+          size: `${meta.pages} pages`,
+          evidenceKind: 'extraction match',
+          columns: documentDictionary(source, p.folder_id, meta).entities.map((e) => ({
+            id: e.entity_id,
+            class: e.class,
+          })),
+        })
+      }
+      continue
+    }
+
+    const project = findProject(source.project_id)
+    for (const p of source.profiled ?? []) {
+      const objectId = `${p.dataset_id}.${p.table_id}`
+      if (!takeAll && !wanted.has(objectId)) continue
+      const meta = project?.datasets
+        .find((d) => d.dataset_id === p.dataset_id)
+        ?.tables.find((t) => t.table_id === p.table_id)
+      const rows = meta?.rows ?? 0
+      out.push({
+        objectId,
+        sourceName: source.source_name,
+        label: p.table_id,
+        size: `${rows.toLocaleString('en-US')} rows`,
+        evidenceKind: 'match',
+        columns: tableDictionary(source, p.dataset_id, p.table_id, p.columns, rows).map(
+          (c) => ({ id: c.column_id, class: c.class }),
+        ),
+      })
+    }
+  }
+  return out
+}
+
+const STOPWORDS = new Set([
+  'which', 'what', 'where', 'when', 'whose', 'there', 'their', 'these', 'those',
+  'about', 'across', 'based', 'before', 'being', 'between', 'could', 'every',
+  'from', 'have', 'highest', 'lowest', 'most', 'other', 'should', 'still',
+  'that', 'the', 'them', 'they', 'this', 'total', 'with', 'within', 'would',
+  'can', 'complete', 'specific', 'different', 'historical', 'receive', 'exhibit',
+  'nearing', 'through', 'quarter', 'trace',
+])
+
+/**
+ * Step 7's coverage review.
+ *
+ * Every element is derived from something that has actually been profiled: an
+ * entity is a profiled table or document, and its evidence names that object.
+ * A hero question whose vocabulary appears nowhere in the profiled columns
+ * becomes a **gap** — which is the honest answer, and the one that needs a
+ * decision before anything is built.
+ */
+function graphCoverage({ name, picks, heroQuestions }) {
+  const objects = selectedProfiledObjects(picks)
+  const questions = normalizeQuestions(heroQuestions)
+  const elements = []
+
+  for (const o of objects) {
+    const match = matchScore(`${o.sourceName}:${o.objectId}`)
+    elements.push({
+      element_id: `entity:${o.objectId}`,
+      name: entityName(o.label),
+      kind: 'entity',
+      status: 'backed',
+      confidence: match,
+      // The line the reference shows under the name: where it came from.
+      evidence: `${o.sourceName} · ${o.label} (${o.size}) · ${o.evidenceKind} ${match.toFixed(2)}`,
+      reason: null,
+    })
+  }
+
+  /*
+   * Relationships are only claimed where two profiled objects share an
+   * identifier column — that shared key *is* the evidence. Anything looser
+   * would be a guess dressed as a derivation.
+   */
+  const keysFor = (o) =>
+    new Set(o.columns.filter((c) => c.class === 'identifier').map((c) => c.id))
+
+  for (let i = 0; i < objects.length && elements.length < 40; i++) {
+    for (let j = i + 1; j < objects.length; j++) {
+      const shared = [...keysFor(objects[i])].filter((k) => keysFor(objects[j]).has(k))
+      if (shared.length === 0) continue
+      const key = shared[0]
+      const match = matchScore(`${objects[i].objectId}~${objects[j].objectId}`)
+      elements.push({
+        element_id: `rel:${objects[i].objectId}~${objects[j].objectId}`,
+        name: `${entityName(objects[i].label)} → links-to → ${entityName(objects[j].label)}`,
+        kind: 'relationship',
+        status: 'backed',
+        confidence: match,
+        evidence: `shared key ${key} · ${objects[i].sourceName} · match ${match.toFixed(2)}`,
+        reason: null,
+      })
+      break
+    }
+  }
+
+  // What the profiled data can actually speak about.
+  const vocabulary = new Set()
+  for (const o of objects) {
+    for (const word of entityName(o.label).toLowerCase().split(' ')) vocabulary.add(word)
+    for (const c of o.columns) {
+      for (const word of c.id.toLowerCase().split('_')) vocabulary.add(word)
+    }
+  }
+
+  for (const q of questions) {
+    const salient = [
+      ...new Set(
+        q.text
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, ' ')
+          .split(/\s+/)
+          .filter((w) => w.length >= 5 && !STOPWORDS.has(w)),
+      ),
+    ]
+    if (salient.length === 0) continue
+    const matched = salient.filter((w) =>
+      [...vocabulary].some((v) => v.startsWith(w.slice(0, 5))),
+    )
+    if (matched.length > 0) continue
+
+    const missing = salient.slice(0, 3).join(', ')
+    elements.push({
+      element_id: `gap:${slugify(q.text).slice(0, 48)}`,
+      name: q.text,
+      kind: q.priority === 'high' ? 'entity' : 'relationship',
+      status: 'gap',
+      confidence: Number((0.2 + (hash(q.text) % 30) / 100).toFixed(2)),
+      evidence: null,
+      reason: `No candidates in any connected source — nothing profiled covers ${missing}.`,
+    })
+  }
+
+  const entities = elements.filter((e) => e.kind === 'entity' && e.status === 'backed')
+  const relationships = elements.filter(
+    (e) => e.kind === 'relationship' && e.status === 'backed',
+  )
+  const gaps = elements.filter((e) => e.status === 'gap')
+
+  return {
+    title: `${name || 'Untitled use case'} — coverage review`,
+    entity_count: entities.length,
+    relationship_count: relationships.length,
+    hero_question_count: questions.length,
+    gap_count: gaps.length,
+    object_count: objects.length,
+    elements,
+  }
+}
+
+/**
+ * A step 4 pick: which source, and how much of it.
+ *
+ * `mode: 'all'` keeps meaning "everything profiled here", so a table profiled
+ * after the draft was saved is included without the user reopening the wizard.
+ * `mode: 'subset'` pins an explicit list.
+ */
+function normalizeSourcePicks(list) {
+  const seen = new Set()
+  const out = []
+
+  for (const entry of Array.isArray(list) ? list : []) {
+    const sourceId = String(entry?.source_id ?? '').trim()
+    if (!sourceId || seen.has(sourceId)) continue
+    seen.add(sourceId)
+    const mode = entry?.mode === 'subset' ? 'subset' : 'all'
+    out.push({
+      source_id: sourceId,
+      mode,
+      objects:
+        mode === 'subset'
+          ? [
+              ...new Set(
+                (Array.isArray(entry.objects) ? entry.objects : [])
+                  .map((o) => String(o).trim())
+                  .filter(Boolean),
+              ),
+            ]
+          : [],
+    })
+  }
+  return out
+}
+
+/**
+ * What step 4 offers: every connected source with the objects the profiler has
+ * actually landed, in the unit the connector holds.
+ *
+ * This is the Data Catalogue's profiled state, not the registration — a source
+ * can be connected with nothing profiled, and it is listed with `profiled: 0` so
+ * the reason it cannot feed a graph is visible rather than inferred from an
+ * absence.
+ */
+function graphSources() {
+  const sources = connectedSources().map((source) => {
+    const isDrive = source.kind === 'gdrive'
+    const drive = isDrive ? findDrive(source.drive_id) : null
+
+    const objects = isDrive
+      ? (source.profiled_docs ?? []).map((p) => {
+          const meta = findDocument(drive, p.folder_id, p.document_id)
+          const folder = findFolder(drive, p.folder_id)
+          return {
+            object_id: `${p.folder_id}.${p.document_id}`,
+            parent_id: p.folder_id,
+            label: `${folder?.name ?? p.folder_id} / ${meta?.name ?? p.document_id}`,
+            units: p.entities,
+            unit_label: 'entities',
+          }
+        })
+      : (source.profiled ?? []).map((p) => ({
+          object_id: `${p.dataset_id}.${p.table_id}`,
+          parent_id: p.dataset_id,
+          label: `${p.dataset_id}.${p.table_id}`,
+          units: p.columns,
+          unit_label: 'columns',
+        }))
+
+    return {
+      source_id: source.source_id,
+      source_name: source.source_name,
+      connector: source.connector,
+      kind: source.kind,
+      status: source.status,
+      type_label: isDrive ? 'Google Drive' : 'BigQuery',
+      account: source.project_id ?? source.drive_id ?? '—',
+      // "Datasets: a, b" for BigQuery; "Folders: …" for Drive.
+      scope_label: isDrive ? 'Folders' : 'Datasets',
+      scope: isDrive
+        ? (source.folders ?? []).map(
+            (id) => findFolder(drive, id)?.name ?? id,
+          )
+        : (source.datasets ?? []),
+      objects,
+      object_count: objects.length,
+      unit_label: isDrive ? 'documents' : 'tables',
+    }
+  })
+
+  return {
+    sources,
+    source_count: sources.length,
+    // Sources that could actually contribute — connected is not enough.
+    profiled_source_count: sources.filter((s) => s.object_count > 0).length,
+  }
+}
+
 /** A saved use case, with the defaults a hand-edited db.json might omit. */
 const savedUseCase = (u) => ({
   use_case_id: u.use_case_id,
@@ -610,10 +1036,72 @@ const savedUseCase = (u) => ({
   status: u.status === 'committed' ? 'committed' : 'draft',
   domain_id: u.domain_id ?? null,
   business_need: u.business_need ?? '',
+  personas: normalizeDrafted(u.personas),
+  kpis: normalizeDrafted(u.kpis),
+  sources: normalizeSourcePicks(u.sources),
+  hero_questions: normalizeQuestions(u.hero_questions),
+  citations: u.citations === 'optional' ? 'optional' : 'required',
+  answer_formats: normalizeFormats(u.answer_formats),
+  gap_decisions: normalizeGapDecisions(u.gap_decisions),
   step: u.step ?? 1,
   step_total: WIZARD_STEPS.length,
   updated_at: u.updated_at ?? null,
 })
+
+/**
+ * The suggester behind "Suggest personas (LLM)" and "Suggest KPIs (LLM)".
+ *
+ * There is no model here, so the draft is derived the way a reader would expect
+ * one to be: entries whose keywords appear in the business need rank first, then
+ * those that belong to the chosen domain, then a stable hash so the same brief
+ * always produces the same list. A suggestion nobody can explain is worse than
+ * no suggestion.
+ *
+ * One implementation for both pools — they differ only in which field carries
+ * the description (`focus` for a persona, `definition` for a KPI).
+ */
+function suggestFrom(pool, idKey, domainId, businessNeed, limit = 4) {
+  const need = String(businessNeed ?? '').toLowerCase()
+
+  const scored = pool.map((p) => {
+    const hits = (p.keywords ?? []).filter((k) => need.includes(k)).length
+    const domains = p.domains ?? []
+    // An empty `domains` means the persona fits any domain.
+    const domainFit = domains.length === 0 ? 1 : domains.includes(domainId) ? 2 : 0
+    return {
+      entry: p,
+      hits,
+      domainFit,
+      // Tie-break that depends on the brief, so two use cases do not always get
+      // the same four names in the same order.
+      jitter: hash(`${need}:${p[idKey]}`) % 100,
+    }
+  })
+
+  return scored
+    // A persona from another domain with nothing in common is noise, not a draft.
+    .filter((s) => s.domainFit > 0 || s.hits > 0)
+    .sort(
+      (a, b) =>
+        b.hits - a.hits || b.domainFit - a.domainFit || b.jitter - a.jitter,
+    )
+    .slice(0, limit)
+    .map((s) => ({
+      id: s.entry[idKey],
+      // A hero question *is* its text, so that stands in for the name.
+      name: s.entry.name ?? s.entry.text ?? '',
+      // A persona carries `focus`, a KPI carries `definition`.
+      detail: s.entry.focus ?? s.entry.definition ?? s.entry.format ?? '',
+      // What the UI shows as the reason it was drafted.
+      why:
+        s.hits > 0
+          ? `matches your brief on ${(s.entry.keywords ?? [])
+              .filter((k) => need.includes(k))
+              .slice(0, 3)
+              .join(', ')}`
+          : 'typical for this domain',
+    }))
+}
 
 /** Datasets a source may profile, with the tables inside each. */
 function browsableObjects(source) {
@@ -1592,6 +2080,81 @@ const routes = [
     },
   },
 
+  // Steps 2 and 3. POSTs because the draft depends on the brief, not just the
+  // domain. Same payload shape either way, so the UI reads one contract.
+  ...[
+    { path: '/graph-personas/suggest', pool: 'graph_personas', idKey: 'persona_id' },
+    { path: '/graph-kpis/suggest', pool: 'graph_kpis', idKey: 'kpi_id' },
+    {
+      path: '/graph-questions/suggest',
+      pool: 'graph_hero_questions',
+      idKey: 'question_id',
+    },
+    {
+      path: '/graph-answer-formats/suggest',
+      pool: 'graph_answer_formats',
+      idKey: 'format_id',
+    },
+  ].map(({ path, pool, idKey }) => ({
+    method: 'POST',
+    match: (p) => p === path,
+    handle: async (req, res) => {
+      const { domain_id, business_need } = await readJson(req)
+      if (domain_id && !db.graph_domains.some((d) => d.domain_id === domain_id)) {
+        return send(res, 400, { error: `unknown domain ${domain_id}` })
+      }
+      const suggestions = suggestFrom(
+        db[pool],
+        idKey,
+        domain_id ?? null,
+        business_need ?? '',
+        // A hero question is the graph's contract, so more of them are useful;
+        // answer formats are picked from, not accumulated, so fewer is clearer.
+        pool === 'graph_hero_questions' ? 5 : pool === 'graph_answer_formats' ? 3 : 4,
+      )
+      send(res, 200, {
+        suggestions,
+        count: suggestions.length,
+        // Says plainly where these came from — there is no model behind them.
+        derived_from: business_need ? 'business need + domain' : 'domain only',
+      })
+    },
+  })),
+
+  /*
+   * Step 7. Derived from the draft rather than from a saved row, so the review
+   * reflects what is on screen — including edits not yet saved.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/graph-coverage',
+    handle: async (req, res) => {
+      const { name, sources, hero_questions } = await readJson(req)
+      if (sources !== undefined && !Array.isArray(sources)) {
+        return send(res, 400, { error: 'sources must be an array' })
+      }
+      if (hero_questions !== undefined && !Array.isArray(hero_questions)) {
+        return send(res, 400, { error: 'hero_questions must be an array' })
+      }
+      send(
+        res,
+        200,
+        graphCoverage({
+          name: name ?? '',
+          picks: sources ?? [],
+          heroQuestions: hero_questions ?? [],
+        }),
+      )
+    },
+  },
+
+  // Step 4. What the Data Catalogue has actually profiled, per connected source.
+  {
+    method: 'GET',
+    match: (p) => p === '/graph-sources',
+    handle: (_req, res) => send(res, 200, graphSources()),
+  },
+
   {
     method: 'GET',
     match: (p) => p === '/graph-use-cases',
@@ -1618,7 +2181,21 @@ const routes = [
     match: (p) => p === '/graph-use-cases',
     handle: async (req, res) => {
       const body = await readJson(req)
-      const { use_case_id, name, domain_id, business_need, step, status } = body
+      const {
+        use_case_id,
+        name,
+        domain_id,
+        business_need,
+        personas,
+        kpis,
+        sources,
+        hero_questions,
+        citations,
+        answer_formats,
+        gap_decisions,
+        step,
+        status,
+      } = body
 
       if (!name || !String(name).trim()) {
         return send(res, 400, {
@@ -1641,6 +2218,128 @@ const routes = [
           error: `step must be an integer from 1 to ${WIZARD_STEPS.length}`,
         })
       }
+      // Personas and KPIs are free text (the user can add their own), so they
+      // are only trimmed and de-duplicated — never matched against the pool.
+      for (const [label, list] of [
+        ['personas', personas],
+        ['kpis', kpis],
+      ]) {
+        if (list === undefined) continue
+        if (!Array.isArray(list)) {
+          return send(res, 400, {
+            error: `${label} must be an array of { name, description }`,
+          })
+        }
+        if (
+          list.some(
+            (p) => !String(typeof p === 'string' ? p : (p?.name ?? '')).trim(),
+          )
+        ) {
+          return send(res, 400, {
+            error: `every ${label === 'kpis' ? 'KPI' : 'persona'} needs a name`,
+          })
+        }
+      }
+      const personaTags =
+        personas === undefined ? null : normalizeDrafted(personas)
+      const kpiTags = kpis === undefined ? null : normalizeDrafted(kpis)
+
+      if (hero_questions !== undefined) {
+        if (!Array.isArray(hero_questions)) {
+          return send(res, 400, {
+            error: 'hero_questions must be an array of { text, priority }',
+          })
+        }
+        if (
+          hero_questions.some(
+            (q) =>
+              !String(typeof q === 'string' ? q : (q?.text ?? q?.name ?? '')).trim(),
+          )
+        ) {
+          return send(res, 400, { error: 'every hero question needs text' })
+        }
+      }
+      const questions =
+        hero_questions === undefined ? null : normalizeQuestions(hero_questions)
+
+      if (citations !== undefined && citations !== 'required' && citations !== 'optional') {
+        return send(res, 400, { error: 'citations must be "required" or "optional"' })
+      }
+      if (answer_formats !== undefined && !Array.isArray(answer_formats)) {
+        return send(res, 400, {
+          error: 'answer_formats must be an array of { format_id, name, format }',
+        })
+      }
+      if (
+        answer_formats !== undefined &&
+        answer_formats.some((f) => !String(f?.format_id ?? '').trim() || !String(f?.name ?? '').trim())
+      ) {
+        return send(res, 400, { error: 'every answer format needs a format_id and a name' })
+      }
+      const formats =
+        answer_formats === undefined ? null : normalizeFormats(answer_formats)
+
+      if (gap_decisions !== undefined) {
+        if (!Array.isArray(gap_decisions)) {
+          return send(res, 400, {
+            error: 'gap_decisions must be an array of { element_id, decision }',
+          })
+        }
+        const bad = gap_decisions.find(
+          (d) => !GAP_DECISIONS.includes(String(d?.decision ?? '').trim()),
+        )
+        if (bad) {
+          return send(res, 400, {
+            error: `decision must be one of: ${GAP_DECISIONS.join(', ')}`,
+          })
+        }
+      }
+      const decisions =
+        gap_decisions === undefined ? null : normalizeGapDecisions(gap_decisions)
+
+      /*
+       * Source picks are checked against what is actually profiled, because this
+       * is the one step whose answers must still be true at build time: a
+       * dataset the user no longer has, or a subset that selects nothing, would
+       * derive an empty graph.
+       */
+      let sourcePicks = null
+      if (sources !== undefined) {
+        if (!Array.isArray(sources)) {
+          return send(res, 400, {
+            error: 'sources must be an array of { source_id, mode, objects }',
+          })
+        }
+        sourcePicks = normalizeSourcePicks(sources)
+        const available = graphSources().sources
+        for (const pick of sourcePicks) {
+          const source = available.find((s) => s.source_id === pick.source_id)
+          if (!source) {
+            return send(res, 400, {
+              error: `${pick.source_id} is not a connected source`,
+            })
+          }
+          if (source.object_count === 0) {
+            return send(res, 400, {
+              error: `${pick.source_id} has nothing profiled yet — profile it in the Data Catalogue first`,
+            })
+          }
+          if (pick.mode === 'subset') {
+            if (pick.objects.length === 0) {
+              return send(res, 400, {
+                error: `pick at least one ${source.unit_label.replace(/s$/, '')} for ${pick.source_id} — an empty selection can't derive`,
+              })
+            }
+            const known = new Set(source.objects.map((o) => o.object_id))
+            const unknown = pick.objects.filter((o) => !known.has(o))
+            if (unknown.length > 0) {
+              return send(res, 400, {
+                error: `not profiled on ${pick.source_id}: ${unknown.join(', ')}`,
+              })
+            }
+          }
+        }
+      }
 
       const existing = use_case_id
         ? db.graph_use_cases.find((u) => u.use_case_id === use_case_id)
@@ -1655,6 +2354,13 @@ const routes = [
         status: status ?? existing?.status ?? 'draft',
         domain_id: domain_id ?? existing?.domain_id ?? null,
         business_need: business_need ?? existing?.business_need ?? '',
+        personas: personaTags ?? existing?.personas ?? [],
+        kpis: kpiTags ?? existing?.kpis ?? [],
+        sources: sourcePicks ?? existing?.sources ?? [],
+        hero_questions: questions ?? existing?.hero_questions ?? [],
+        citations: citations ?? existing?.citations ?? 'required',
+        answer_formats: formats ?? existing?.answer_formats ?? [],
+        gap_decisions: decisions ?? existing?.gap_decisions ?? [],
         step: stepNumber,
         updated_at: new Date().toISOString(),
       }

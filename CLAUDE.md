@@ -80,10 +80,15 @@ Consequences worth knowing before debugging:
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
-  editor cannot save a document that would crash the app. There are 13 required
+  editor cannot save a document that would crash the app. There are 17 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
   Graph — not just a catalogue page.
+- **`commitDb` validates before it writes, not only in the `/db` editor.** Every
+  writer hands it the whole document, so a server that started before a key was
+  added to `db.json` would write its stale copy back and silently drop that key.
+  It now refuses and says to restart. This is the stale-server pitfall with
+  teeth: it has already eaten a key once.
 - **`graph_use_cases` is the one collection the UI writes back to disk.**
   Registered sources live in memory and die with the process; a saved use case
   goes through `commitDb`, so a draft survives a restart. That asymmetry is
@@ -156,9 +161,37 @@ connectors' runs, and a re-run posts back to the endpoint its `kind` names.
 
 Seven steps — Domain, Personas, KPIs, Sources, Hero questions, Answer
 requirements, Entities & relationships — over `NewGraphPage.tsx` → `graphStore`
-→ `/graph-domains` and `/graph-use-cases`. **Step 1 is built; steps 2–7 are
-placeholders** that still save and re-open the draft, so the wizard is navigable
-before the rest is designed.
+→ `/graph-domains`, `/graph-personas/suggest`, `/graph-kpis/suggest`,
+`/graph-sources`, `/graph-questions/suggest`, `/graph-answer-formats/suggest`, `/graph-coverage` and `/graph-use-cases`.
+**All seven steps are built.**
+
+**Step 7 derives only from what is profiled.** `graphCoverage` walks the source
+picks back to real profiled objects, so an entity names the table it came from
+(`manifest_header (1,240,500 rows)`) and a relationship is claimed only where two
+objects share an identifier column in the dictionary. A hero question no profiled
+column covers becomes a **gap**, and **the build stays blocked until every gap has
+a decision** — that gate is the point of the step, so do not let "Save & build"
+proceed past an undecided one.
+
+**Step 6 declares, it does not decide.** Citations and answer formats are chosen
+by the use case so the engine never picks a render format at runtime — the note
+on the page says so, and `answer_formats` is stored self-describing
+(`{ format_id, name, format }`) so editing the pool cannot rewrite what a saved
+brief promised. Its formats load on arrival rather than behind a Suggest button,
+because the step picks *between* them rather than accumulating them.
+
+**Step 5 is not one of them.** A hero question is a sentence plus a High flag,
+not a name plus a description, so `HeroQuestionsStep` is its own component —
+forcing it into `DraftedStep` would have meant a second text field nobody wants
+and a priority concept the other steps do not have. It still shares the
+suggester: `suggestFrom` reads `text` where the other pools carry `name`.
+
+**Steps 2 and 3 are one component, not two.** Personas and KPIs are the same
+interaction — let the AI draft a list, add what fits, type your own, see which is
+which — so `DraftedStep` renders both and they differ only in copy. Server-side,
+`suggestFrom` serves both pools and `normalizeDrafted` stores both lists; the
+payload shape is `{ id, name, detail, why }` either way. A later step wanting the
+same pattern should reuse it rather than add a third copy.
 
 Two rules the copy on the page promises, and the code has to keep:
 
@@ -172,8 +205,34 @@ Two rules the copy on the page promises, and the code has to keep:
   with no sources connected the ranking legitimately differs from a screenshot
   taken with data. `strong` → `partial` → `none`, then the seeded `rank`.
 
+- **A suggestion always says why it was suggested.** There is no model behind
+  "Suggest personas (LLM)": `suggestedPersonas()` ranks the `graph_personas` pool
+  by keywords found in the business need, then domain fit, then a hash of the
+  brief — so the same brief always drafts the same four, and each carries a `why`
+  the UI prints. A suggestion nobody can explain is worse than no suggestion.
+  An added persona is `{ name, description, source }` — `source` records whether
+  the AI drafted it or a user typed it, which is what the **AI-DRAFTED** /
+  **USER-DRAFTED** tag reads from. Both are provenance, so they use brand and
+  neutral tints rather than a `STATUS` colour: neither is a state. `normalizePersonas` trims, de-duplicates and accepts the bare
+  string an older draft holds, but a persona with no name is a 400, not a silent
+  drop.
+
+- **Step 4 lists profiled state, not registrations.** `/graph-sources` walks the
+  connected sources' committed `profiled` / `profiled_docs` and reports each
+  object in the connector's unit (`columns` / `entities`). A source with nothing
+  profiled is returned with `object_count: 0` and refused if picked — listed but
+  disabled, because "not profiled yet" and "not connected" are different problems
+  and only the user can fix either. `mode: 'all'` is stored rather than expanded,
+  so a table profiled later is included without editing the draft.
+- **Step 4 is the one step that cannot be skipped empty.** Nothing connected
+  shows `NoSourceConnected`; connected-but-unprofiled shows an error linking to
+  the Data Catalogue; and `Next` refuses with the fix for whichever case applies,
+  because every later step derives from this selection.
+
 The user never types an entity name — that is the product premise, so do not add
-an entity field to any step. Step 7 confirms what the AI derived.
+an entity field to any step. Step 7 confirms what the AI derived. Personas are
+lightweight tags that shape questions and tone; they are **not** access control,
+and nothing in this flow should start treating them as permissions.
 
 ### State (`src/store/`)
 

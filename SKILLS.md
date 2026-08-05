@@ -291,7 +291,7 @@ protection, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
-2. **Server shape check** — `validateDb` verifies all 13 required keys and
+2. **Server shape check** — `validateDb` verifies all 17 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
 3. **Atomic write** — temp file + rename, so a failed write cannot truncate
@@ -355,8 +355,7 @@ name — do not add a field that asks for one.
 
 Labels come from `WIZARD_STEPS` in `server.mjs` via the `/graph-use-cases`
 payload, so the stepper and the server's `step` validation are the same list.
-**Only step 1 is designed.** Steps 2–7 render what they will collect and still
-save; the stepper, Back/Next and the draft all work.
+**All seven steps are built.**
 
 ### Saved use cases
 
@@ -384,6 +383,196 @@ profile a source and the backed domain climbs to the top.
 `Next` refuses an unnamed use case or an unpicked domain, then **saves before
 advancing**, so a reload never loses the last answer. Step 7's primary action
 commits — status `committed`, which is what makes a row read "ready to build".
+
+### Steps 2 and 3 · Personas, then KPIs
+
+**Both steps are the same component** (`DraftedStep`) over the same server
+machinery — they differ only in copy and which pool they draw from:
+
+| | Step 2 | Step 3 |
+|---|---|---|
+| suggester | `POST /graph-personas/suggest` | `POST /graph-kpis/suggest` |
+| pool | `graph_personas` (`focus`) | `graph_kpis` (`definition`) |
+| list label | Who will ask questions of this graph? | KPIs these answers report against |
+| saved as | `personas` | `kpis` |
+
+Both answer `{ suggestions: [{ id, name, detail, why }], count, derived_from }`,
+and both lists are stored as `{ name, description, source }`. Adding a step 4–7
+list of the same kind means reusing `DraftedStep` and `suggestFrom`, not writing
+a third variant.
+
+`Suggest personas (LLM)` → `POST /graph-personas/suggest { domain_id,
+business_need }` → up to four drafts from the `graph_personas` pool. Each row
+carries an **AI-DRAFTED** tag, its `why`, a **+ Add** button and an ✕ to wave it
+away (local only — a suggestion was never saved).
+
+**+ Add** moves it into *Who will ask questions of this graph?*, keeping the
+focus line as its description and `source: 'ai'`.
+
+Below the suggestions, **Add persona** — the same primary button as the
+suggester, because typing your own is not a lesser path — opens a two-field form
+(**name**, **description**) with `✓ Add` disabled until the name is filled, and ✕
+to cancel. It sits *above* the list it adds to.
+
+*Who will ask questions of this graph?* renders in the same tabular form as the
+suggestions: name over description, then the provenance tag — **AI-DRAFTED**
+(brand tint) or **USER-DRAFTED** (neutral) — and ✕ to remove. Provenance stays
+visible after adding; without it a drafted persona and a typed one are
+indistinguishable the moment they land in the list.
+
+A persona is `{ name, description, source }`. The server trims, de-duplicates by
+name (case-insensitive), caps at 12, and **rejects a persona with no name** rather
+than dropping it silently. A bare string is still accepted and normalised, because
+that is what earlier drafts hold — an old draft opens instead of rendering
+`undefined` in the chip.
+
+Three things to keep true:
+
+- **Suggestions are not the draft.** They live in `usePersonaSuggestStore` and
+  are never saved until adopted, and opening another use case clears them —
+  suggestions belong to the brief that produced them.
+- **Every suggestion explains itself.** The ranking is keywords found in the
+  business need, then domain fit, then a hash of the brief; the `why` states
+  which it was ("matches your brief on cost, spend, escalation" vs "typical for
+  this domain"), and it is deterministic for the same brief.
+- **Personas are tags, not permissions.** The panel says so, and the server never
+  validates a persona against the suggestion pool — the user may add their own.
+
+With no brief the suggester falls back to domain only and says so
+(`derived_from`). Omitting `personas` from a save leaves them untouched; sending
+`[]` clears them.
+
+### Step 4 · Sources
+
+**Files:** `SourcesStep.tsx` → `useGraphSourcesStore` → `GET /graph-sources`
+
+This is the one step whose answers are not free text: it lists **what the Data
+Catalogue has actually profiled**, per connected source, in that connector's unit
+— `epa_dataset2.manifest_header · 42 columns` for BigQuery, `Audit reports /
+FY25 audit.pdf · 26 entities` for Drive.
+
+Select a source, then keep `All profiled tables (N)` or `Choose tables…` and pick
+from the box. A pick is `{ source_id, mode, objects }`; **`mode: 'all'` keeps
+meaning "everything profiled here"**, so a table profiled after the draft was
+saved is included without reopening the wizard, while `subset` pins an explicit
+list.
+
+**Two dead ends, two different exits.** Telling someone to connect a source when
+they already have three is useless advice, so the step distinguishes them:
+
+| State | What step 4 shows |
+|---|---|
+| nothing connected | `NoSourceConnected` — "Connect a source" → `/sources` |
+| connected, nothing profiled | an **error** alert — "No profiled data yet — you cannot select a source", with "Open the Data Catalogue to profile a source" → `/catalogue`, above the cards, each tagged `nothing profiled` and disabled |
+| something profiled | the selection UI; the alert disappears |
+
+**`Next` refuses to leave step 4 empty**, and names the fix for each case: no
+sources connected → go to Sources; connected but unprofiled → go to the Data
+Catalogue; profiled but nothing selected → select a source; a `subset` with no
+objects → pick one or switch back to all. Every later step derives from this
+selection, so advancing empty would build a graph over no data.
+
+Three refusals, all server-side too, because these answers must still be true at
+build time:
+
+- picking a source that is connected but has **nothing profiled** → 400 pointing
+  at the Data Catalogue. It is still *listed*, tagged `nothing profiled` and
+  disabled — "not profiled yet" is a different problem from "not connected", and
+  hiding it would make the two indistinguishable.
+- a `subset` selecting nothing → 400 (*"an empty selection can't derive"*)
+- an object that is not profiled on that source, or a source that is not
+  connected → 400 naming it
+
+Disconnecting a source removes it from what this step offers, so a stale pick
+cannot survive quietly.
+
+### Step 5 · Hero questions
+
+**Files:** `HeroQuestionsStep.tsx` → `useQuestionSuggestStore` →
+`POST /graph-questions/suggest`
+
+The questions the graph exists to answer — and the **High** ones are its
+*contract*: what it must be able to answer to count as built.
+
+Not a `DraftedStep`, deliberately. A hero question is one long sentence rather
+than a name plus a description, so it gets a card with the controls beneath it,
+and its second field is a **High** checkbox rather than more text. Five are
+drafted rather than four, because a contract wants a little more to choose from.
+
+- **Suggested questions** — each card carries `AI-DRAFTED`, a **High** checkbox,
+  `+ Add` and ✕. High is decided *as you accept it*, not afterwards, so the
+  checkbox sits on the suggestion too.
+- **Your questions** — one row each: a `HIGH` badge on the left when marked,
+  the text, then `AI-DRAFTED`/`USER`, a still-editable **High** checkbox, and ✕.
+  Nobody gets a contract right first time, so priority stays changeable.
+- **+ Add question** opens a High checkbox, a pill input and `✓ Add` (disabled
+  until there is text) with a round ✕ to cancel.
+
+Stored as `hero_questions: [{ text, priority, source }]`. `priority` is
+two-valued on purpose — a third tier would invite ranking instead of choosing.
+The server de-duplicates by text (case-insensitively), caps at 20, accepts a bare
+string from an older draft, and **rejects a question with no text**.
+
+### Step 6 · Answer requirements
+
+**Files:** `AnswerRequirementsStep.tsx` → `useAnswerFormatStore` →
+`POST /graph-answer-formats/suggest`
+
+Two declarations, and the step exists so they are *declarations*:
+
+- **Citations** — a pair of pills, `Required — every claim cites its source` or
+  `Optional`. Required is the default: a graph that cannot show its source is not
+  auditable, so opting out is the deliberate act.
+- **Answer format by question type** — checkbox cards, each a question type over
+  its render recipe (`Cost drivers` / *narrative + drivers table + trend*). The
+  three shown are drafted from the domain and the brief by the same
+  `suggestFrom` ranking, limited to three because this step picks between
+  formats rather than accumulating them.
+
+The note under the cards is the point of the whole step: *the use case declares
+how answers render; the engine never chooses the format at runtime.*
+
+Unlike steps 2, 3 and 5 there is no Suggest button — the formats **load on
+arrival**, since a choice you cannot see is not a choice.
+
+Saved as `citations` plus `answer_formats: [{ format_id, name, format }]`, stored
+**self-describing on purpose**: editing the pool in `db.json` later must not
+silently change what an already-saved brief promised. A bad `citations` value, a
+format with no `format_id` or `name`, or a non-array is a 400.
+
+The primary action here reads **Generate use-case brief →**, not Next: this is
+the last step the user answers, and step 7 is what the AI derives from it.
+
+### Step 7 · Entities & relationships (coverage review)
+
+**Files:** `CoverageStep.tsx` → `useCoverageStore` → `POST /graph-coverage` ·
+build gate in `data/coverage.ts`
+
+The only step the user does not fill in — it reports what the AI derived from
+everything above, **checked against the catalogue**.
+
+**Every backed element names the profiled object it came from.** An entity *is* a
+profiled table or document, so its evidence line reads
+`context-weave-dev · manifest_header (1,240,500 rows) · match 0.89`. Nothing here
+is invented: the entity name is the table name in title case, the row count comes
+from `db.json`, and a **relationship is only claimed where two profiled objects
+share an identifier column** in the column dictionary — that shared key is the
+evidence (`shared key batch_id · match 0.94`). Anything looser would be a guess
+dressed as a derivation.
+
+A hero question whose vocabulary appears in no profiled column becomes a **gap**:
+*"No candidates in any connected source — nothing profiled covers purchase,
+orders, lived."* Each gap offers four decisions — `accept permanent`,
+`drop question`, `connect source`, `defer with trigger` — stored as
+`gap_decisions: [{ element_id, decision }]`.
+
+**Save & build graph is disabled until every gap has a decision**
+(`coverageIsDecided`); `Save Only` always works. An undecided gap is a question
+the graph cannot answer, and shipping it silently is the failure this step exists
+to prevent.
+
+The review is **re-derived on every arrival**, never cached — narrowing a source
+pick on step 4 immediately narrows what step 7 reports.
 
 **Where it fails:** an unnamed draft → 400 (`name is required`), an unknown
 domain or an out-of-range step → 400, opening a use case the server no longer has

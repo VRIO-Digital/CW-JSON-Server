@@ -36,8 +36,14 @@
   font-weight: 600;
 }
 
+/* A finished step reads as done — green is state here, which is what it means. */
 .ng-step.is-done {
-  color: #4b5a75;
+  color: #0f1729;
+}
+
+.ng-step.is-done .ng-step-num {
+  background: #0f7b4f;
+  color: #fff;
 }
 
 .ng-step-num {
@@ -193,9 +199,544 @@
 .ng-foot {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--sp-2);
   margin-top: var(--sp-6);
+}
+
+/* ---- step 2: personas ---- */
+
+/*
+ * The AI panel is blue, not the brand orange: it is an offer to draft
+ * something, not a status and not the primary path. Orange stays on the action.
+ */
+.ng-ai {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 8px;
+  background: #eef4fe;
+  color: #0f1729;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ng-ai-mark {
+  color: #1d4ed8;
+}
+
+.ng-ai-sub {
+  margin-top: var(--sp-1);
+  color: #4b5a75;
+}
+
+.ng-suggest-box {
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ng-empty {
+  color: #8994a8;
+  font-size: 13px;
+}
+
+.ng-suggest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+}
+
+.ng-suggest-row + .ng-suggest-row {
+  border-top: 1px solid #f0f2f5;
+}
+
+.ng-suggest-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ng-suggest-name {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.ng-suggest-focus {
+  color: #4b5a75;
+  font-size: 12.5px;
+}
+
+.ng-suggest-why {
+  color: #8994a8;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.ng-suggest-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+/*
+ * Provenance, not status — so it uses the brand tint rather than a STATUS
+ * colour. It says who wrote the line, which the user is free to overrule.
+ */
+.ng-ai-tag {
+  padding: 2px var(--sp-2);
+  border-radius: 4px;
+  background: #fdeae4;
+  color: #f4562b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* The same mark for something the user wrote. Blue against the AI's brand tint:
+   both are provenance, and neither may borrow a STATUS colour. */
+.ng-ai-tag.is-user {
+  background: #eaf1fd;
+  color: #1d4ed8;
+}
+
+.ng-x {
+  padding: 0 var(--sp-1);
+  border: 0;
+  background: transparent;
+  color: #8994a8;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ng-x:hover {
+  color: #4b5a75;
+}
+
+/* ---- the add-a-persona form ---- */
+
+.ng-add-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.ng-add-row .ng-pill:first-of-type {
+  width: 240px;
+  flex: none;
+}
+
+.ng-add-row .ng-pill {
+  flex: 1 1 260px;
+  min-width: 200px;
+}
+
+.ng-pill {
+  border-radius: 999px;
+}
+
+
+/* ---- step 7: coverage review ---- */
+
+.ng-cov-summary {
+  margin: var(--sp-2) 0 var(--sp-5);
+  color: #4b5a75;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ng-cov {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+/* A gap is the only thing on this page that blocks the build, so it is the only
+   thing that gets a border demanding attention. */
+.ng-cov.is-gap {
+  border-color: #e2b155;
+  background: #fffdf8;
+}
+
+.ng-cov-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.ng-cov-mark {
+  color: #b45309;
+}
+
+.ng-cov-name {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.ng-cov-kind {
+  padding: 1px var(--sp-2);
+  border-radius: 4px;
+  background: #f2f4f7;
+  color: #4b5a75;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+.ng-cov-right {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-left: auto;
+}
+
+.ng-conf {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 1px var(--sp-2);
+  border-radius: 999px;
+  background: #eef7f1;
+  color: #0f7b4f;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.ng-conf.is-low {
+  background: #fdeceb;
+  color: #b42318;
+}
+
+.ng-cov-status {
+  color: #0f7b4f;
+  font-size: 12px;
+}
+
+.ng-cov-status.is-gap {
+  color: #b45309;
+}
+
+.ng-cov-evidence {
+  margin-top: var(--sp-1);
+  color: #4b5a75;
+  font-size: 12.5px;
+}
+
+.ng-cov-reason {
+  margin-top: var(--sp-1);
+  color: #b45309;
+  font-size: 12.5px;
+}
+
+.ng-cov-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-3);
+}
+
+.ng-cov-btn {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: 6px;
+  background: #fff;
+  color: #4b5a75;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.ng-cov-btn:hover {
+  border-color: #d8dde6;
+  color: #0f1729;
+}
+
+.ng-cov-btn.is-on {
+  border-color: #f4562b;
+  background: #fdeae4;
+  color: #f4562b;
+  font-weight: 600;
+}
+
+/* ---- step 6: answer requirements ---- */
+
+.ng-toggles {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/* A pair of pills, not a checkbox: these are alternatives, and exactly one
+   always holds. */
+.ng-toggle {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: 999px;
+  background: #fff;
+  color: #4b5a75;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.ng-toggle.is-on {
+  border-color: #f8c9b9;
+  background: #fdeae4;
+  color: #f4562b;
+  font-weight: 600;
+}
+
+.ng-format {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  height: 100%;
+  padding: var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.ng-format.is-on {
+  border-color: #f8c9b9;
+  background: #fffaf8;
+}
+
+.ng-format-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.ng-format-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #0f1729;
+}
+
+.ng-format-recipe {
+  color: #8994a8;
+  font-size: 12.5px;
+}
+
+/* ---- step 5: hero questions ---- */
+
+/*
+ * A question is a sentence, so it gets a card of its own with the controls
+ * beneath it — squeezing a two-line question and four controls onto one row
+ * makes both unreadable.
+ */
+.ng-question {
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ng-question + .ng-question {
+  margin-top: var(--sp-2);
+}
+
+.ng-question-text {
+  font-weight: 600;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.ng-question-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+/* An added question fits one row — it is already agreed, not being weighed. */
+.ng-question.is-added {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.ng-question-added-text {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.ng-question-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-shrink: 0;
+}
+
+/* Reads as emphasis, not status: High is a choice the user made. */
+.ng-high-badge {
+  padding: 2px var(--sp-2);
+  border-radius: 4px;
+  background: #fdeae4;
+  color: #f4562b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.ng-question-add {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.ng-question-add .ng-pill {
+  flex: 1 1 320px;
+  min-width: 220px;
+}
+
+/* ---- step 4: sources ---- */
+
+.ng-source {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ng-source.is-selected {
+  border-color: #f8c9b9;
+  background: #fffaf8;
+}
+
+.ng-source.is-empty {
+  background: #fafbfc;
+}
+
+.ng-source-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/* The select control is a square check rather than a checkbox: it toggles the
+   whole source, which is a coarser act than picking one table inside it. */
+.ng-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #d8dde6;
+  border-radius: 5px;
+  background: #fff;
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.ng-check.is-on {
+  border-color: #f4562b;
+  background: #f4562b;
+}
+
+.ng-check:disabled {
+  background: #f2f4f7;
+  cursor: not-allowed;
+}
+
+.ng-source-type {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 1px var(--sp-2);
+  border: 1px solid #e9ecf1;
+  border-radius: 5px;
+  color: #1d4ed8;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.ng-source-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.ng-source-status {
+  margin-left: auto;
+}
+
+.ng-source-scope {
+  margin: var(--sp-1) 0 var(--sp-3) var(--sp-6);
+  color: #8994a8;
+  font-size: 12.5px;
+}
+
+.ng-source-modes {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: var(--sp-6);
+}
+
+.ng-mode {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #4b5a75;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ng-mode.is-on {
+  border-color: #f4562b;
+  color: #f4562b;
+}
+
+.ng-mode:disabled {
+  color: #b6bfcd;
+  cursor: not-allowed;
+}
+
+.ng-source-tables {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0 var(--sp-6);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+}
+
+.ng-source-table {
+  font-size: 13px;
+}
+
+.ng-source-units {
+  color: #8994a8;
+  font-size: 12px;
+}
+
+/* Orange because it blocks the step, not because it is decorative. */
+.ng-source-warn {
+  margin-top: var(--sp-2);
+  color: #b45309;
+  font-size: 12.5px;
 }
 
 .ng-todo {

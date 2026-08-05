@@ -414,15 +414,157 @@ export interface GraphDomainsPayload {
   profiledObjects: number
 }
 
+/**
+ * A name plus a description, and where it came from. Personas (step 2) and KPIs
+ * (step 3) are the same shape, so they share one contract end to end.
+ *
+ * A persona is lightweight — it shapes questions and tone, never access control.
+ */
+export interface DraftedItem {
+  name: string
+  description: string
+  source: 'ai' | 'user'
+}
+
+export type Persona = DraftedItem
+export type Kpi = DraftedItem
+
+/**
+ * A hero question — the graph's contract. `priority` is two-valued on purpose:
+ * High means "this one matters"; a third tier would invite ranking over choosing.
+ */
+/**
+ * How answers of one question type render. Self-describing so an already-saved
+ * brief keeps promising what it promised, even if the pool is edited later.
+ */
+export interface AnswerFormat {
+  formatId: string
+  /** The question type — "Cost drivers", "Compliance". */
+  name: string
+  /** The render recipe — "narrative + drivers table + trend". */
+  format: string
+}
+
+export type Citations = 'required' | 'optional'
+
+/** A decision the user owes on a gap before the graph can be built. */
+export type GapDecision =
+  | 'accept permanent'
+  | 'drop question'
+  | 'connect source'
+  | 'defer with trigger'
+
+export interface GapChoice {
+  elementId: string
+  decision: GapDecision
+}
+
+/**
+ * One derived element of the step 7 review. A `backed` element names the
+ * profiled object it came from in `evidence`; a `gap` explains what is missing
+ * and needs a decision.
+ */
+export interface CoverageElement {
+  elementId: string
+  name: string
+  kind: 'entity' | 'relationship'
+  status: 'backed' | 'gap'
+  confidence: number
+  evidence: string | null
+  reason: string | null
+}
+
+export interface CoveragePayload {
+  title: string
+  entityCount: number
+  relationshipCount: number
+  heroQuestionCount: number
+  gapCount: number
+  objectCount: number
+  elements: CoverageElement[]
+}
+
+export interface HeroQuestion {
+  text: string
+  priority: "high" | "normal"
+  source: "ai" | "user"
+}
+
 export interface GraphUseCase {
   useCaseId: string
   name: string
   status: 'draft' | 'committed'
   domainId: string | null
   businessNeed: string
+  personas: Persona[]
+  kpis: Kpi[]
+  sources: SourcePick[]
+  heroQuestions: HeroQuestion[]
+  citations: Citations
+  answerFormats: AnswerFormat[]
+  gapDecisions: GapChoice[]
   step: number
   stepTotal: number
   updatedAt: string | null
+}
+
+/** One profiled object a graph could draw from — a table, or a document. */
+export interface GraphSourceObject {
+  objectId: string
+  parentId: string
+  label: string
+  units: number
+  /** "columns" or "entities". */
+  unitLabel: string
+}
+
+export interface GraphSource {
+  sourceId: string
+  sourceName: string
+  connector: string
+  kind: string
+  status: string
+  typeLabel: string
+  account: string
+  /** "Datasets" or "Folders". */
+  scopeLabel: string
+  scope: string[]
+  objects: GraphSourceObject[]
+  objectCount: number
+  /** "tables" or "documents". */
+  unitLabel: string
+}
+
+export interface GraphSourcesPayload {
+  sources: GraphSource[]
+  sourceCount: number
+  /** Connected *and* carrying something profiled — connected alone can't feed a graph. */
+  profiledSourceCount: number
+}
+
+/**
+ * A step 4 pick. `mode: 'all'` keeps meaning "everything profiled here", so a
+ * table profiled later is included without reopening the wizard.
+ */
+export interface SourcePick {
+  sourceId: string
+  mode: 'all' | 'subset'
+  objects: string[]
+}
+
+export interface Suggestion {
+  id: string
+  name: string
+  /** A persona's focus, a KPI's definition — what the row shows beneath it. */
+  detail: string
+  /** Why it was drafted — shown so a suggestion is never unexplained. */
+  why: string
+}
+
+export interface Suggestions {
+  suggestions: Suggestion[]
+  count: number
+  derivedFrom: string
 }
 
 export interface UseCasesPayload {
@@ -854,15 +996,107 @@ const GRAPH_DOMAINS_PAYLOAD = shape({
   ),
 })
 
+const DRAFTED_ITEM = shape({
+  name: str,
+  description: str,
+  source: oneOf(['ai', 'user']),
+})
+
+const GRAPH_SOURCES_PAYLOAD = shape({
+  source_count: num,
+  profiled_source_count: num,
+  sources: arrayOf(
+    shape({
+      source_id: str,
+      source_name: str,
+      connector: str,
+      kind: str,
+      status: str,
+      type_label: str,
+      account: str,
+      scope_label: str,
+      scope: arrayOf(str),
+      object_count: num,
+      unit_label: str,
+      objects: arrayOf(
+        shape({
+          object_id: str,
+          parent_id: str,
+          label: str,
+          units: num,
+          unit_label: str,
+        }),
+      ),
+    }),
+  ),
+})
+
+const HERO_QUESTION = shape({
+  text: str,
+  priority: oneOf(["high", "normal"]),
+  source: oneOf(["ai", "user"]),
+})
+
+const ANSWER_FORMAT = shape({ format_id: str, name: str, format: str })
+
+const GAP_CHOICE = shape({
+  element_id: str,
+  decision: oneOf([
+    'accept permanent',
+    'drop question',
+    'connect source',
+    'defer with trigger',
+  ]),
+})
+
+const COVERAGE_PAYLOAD = shape({
+  title: str,
+  entity_count: num,
+  relationship_count: num,
+  hero_question_count: num,
+  gap_count: num,
+  object_count: num,
+  elements: arrayOf(
+    shape({
+      element_id: str,
+      name: str,
+      kind: oneOf(['entity', 'relationship']),
+      status: oneOf(['backed', 'gap']),
+      confidence: num,
+      evidence: nullable(str),
+      reason: nullable(str),
+    }),
+  ),
+})
+
+const SOURCE_PICK = shape({
+  source_id: str,
+  mode: oneOf(['all', 'subset']),
+  objects: arrayOf(str),
+})
+
 const USE_CASE = shape({
   use_case_id: str,
   name: str,
   status: oneOf(['draft', 'committed']),
   domain_id: nullable(str),
   business_need: str,
+  personas: arrayOf(DRAFTED_ITEM),
+  kpis: arrayOf(DRAFTED_ITEM),
+  sources: arrayOf(SOURCE_PICK),
+  hero_questions: arrayOf(HERO_QUESTION),
+  citations: oneOf(['required', 'optional']),
+  answer_formats: arrayOf(ANSWER_FORMAT),
+  gap_decisions: arrayOf(GAP_CHOICE),
   step: num,
   step_total: num,
   updated_at: nullable(str),
+})
+
+const SUGGESTIONS_PAYLOAD = shape({
+  count: num,
+  derived_from: str,
+  suggestions: arrayOf(shape({ id: str, name: str, detail: str, why: str })),
 })
 
 const USE_CASES_PAYLOAD = shape({
@@ -1303,6 +1537,13 @@ interface RawUseCase {
   status: 'draft' | 'committed'
   domain_id: string | null
   business_need: string
+  personas: Persona[]
+  kpis: Kpi[]
+  sources: { source_id: string; mode: 'all' | 'subset'; objects: string[] }[]
+  hero_questions: HeroQuestion[]
+  citations: Citations
+  answer_formats: { format_id: string; name: string; format: string }[]
+  gap_decisions: { element_id: string; decision: GapDecision }[]
   step: number
   step_total: number
   updated_at: string | null
@@ -1314,6 +1555,24 @@ const toUseCase = (u: RawUseCase): GraphUseCase => ({
   status: u.status,
   domainId: u.domain_id,
   businessNeed: u.business_need,
+  personas: u.personas,
+  kpis: u.kpis,
+  sources: u.sources.map((s) => ({
+    sourceId: s.source_id,
+    mode: s.mode,
+    objects: s.objects,
+  })),
+  heroQuestions: u.hero_questions,
+  citations: u.citations,
+  answerFormats: u.answer_formats.map((f) => ({
+    formatId: f.format_id,
+    name: f.name,
+    format: f.format,
+  })),
+  gapDecisions: u.gap_decisions.map((d) => ({
+    elementId: d.element_id,
+    decision: d.decision,
+  })),
   step: u.step,
   stepTotal: u.step_total,
   updatedAt: u.updated_at,
@@ -1360,12 +1619,189 @@ export async function listUseCases(): Promise<UseCasesPayload> {
   }
 }
 
+/** Steps 2 and 3 answer the same shape, so one fetcher serves both. */
+async function fetchSuggestions(
+  path: string,
+  what: string,
+  input: { domainId: string | null; businessNeed: string },
+): Promise<Suggestions> {
+  const raw = validate<{
+    suggestions: Suggestion[]
+    count: number
+    derived_from: string
+  }>(
+    what,
+    await request<unknown>(path, {
+      method: 'POST',
+      body: { domain_id: input.domainId, business_need: input.businessNeed },
+    }),
+    SUGGESTIONS_PAYLOAD,
+  )
+
+  return {
+    suggestions: raw.suggestions,
+    count: raw.count,
+    derivedFrom: raw.derived_from,
+  }
+}
+
+export const suggestPersonas = (input: {
+  domainId: string | null
+  businessNeed: string
+}) =>
+  fetchSuggestions('/graph-personas/suggest', 'The persona suggestions', input)
+
+export async function listGraphSources(): Promise<GraphSourcesPayload> {
+  const raw = validate<{
+    sources: {
+      source_id: string
+      source_name: string
+      connector: string
+      kind: string
+      status: string
+      type_label: string
+      account: string
+      scope_label: string
+      scope: string[]
+      object_count: number
+      unit_label: string
+      objects: {
+        object_id: string
+        parent_id: string
+        label: string
+        units: number
+        unit_label: string
+      }[]
+    }[]
+    source_count: number
+    profiled_source_count: number
+  }>(
+    'The available sources',
+    await request<unknown>('/graph-sources'),
+    GRAPH_SOURCES_PAYLOAD,
+  )
+
+  return {
+    sources: raw.sources.map((s) => ({
+      sourceId: s.source_id,
+      sourceName: s.source_name,
+      connector: s.connector,
+      kind: s.kind,
+      status: s.status,
+      typeLabel: s.type_label,
+      account: s.account,
+      scopeLabel: s.scope_label,
+      scope: s.scope,
+      objectCount: s.object_count,
+      unitLabel: s.unit_label,
+      objects: s.objects.map((o) => ({
+        objectId: o.object_id,
+        parentId: o.parent_id,
+        label: o.label,
+        units: o.units,
+        unitLabel: o.unit_label,
+      })),
+    })),
+    sourceCount: raw.source_count,
+    profiledSourceCount: raw.profiled_source_count,
+  }
+}
+
+export const suggestKpis = (input: {
+  domainId: string | null
+  businessNeed: string
+}) => fetchSuggestions('/graph-kpis/suggest', 'The KPI suggestions', input)
+
+export async function reviewCoverage(input: {
+  name: string
+  sources: SourcePick[]
+  heroQuestions: HeroQuestion[]
+}): Promise<CoveragePayload> {
+  const raw = validate<{
+    title: string
+    entity_count: number
+    relationship_count: number
+    hero_question_count: number
+    gap_count: number
+    object_count: number
+    elements: {
+      element_id: string
+      name: string
+      kind: 'entity' | 'relationship'
+      status: 'backed' | 'gap'
+      confidence: number
+      evidence: string | null
+      reason: string | null
+    }[]
+  }>(
+    'The coverage review',
+    await request<unknown>('/graph-coverage', {
+      method: 'POST',
+      body: {
+        name: input.name,
+        sources: input.sources.map((s) => ({
+          source_id: s.sourceId,
+          mode: s.mode,
+          objects: s.objects,
+        })),
+        hero_questions: input.heroQuestions,
+      },
+    }),
+    COVERAGE_PAYLOAD,
+  )
+
+  return {
+    title: raw.title,
+    entityCount: raw.entity_count,
+    relationshipCount: raw.relationship_count,
+    heroQuestionCount: raw.hero_question_count,
+    gapCount: raw.gap_count,
+    objectCount: raw.object_count,
+    elements: raw.elements.map((e) => ({
+      elementId: e.element_id,
+      name: e.name,
+      kind: e.kind,
+      status: e.status,
+      confidence: e.confidence,
+      evidence: e.evidence,
+      reason: e.reason,
+    })),
+  }
+}
+
+export const suggestAnswerFormats = (input: {
+  domainId: string | null
+  businessNeed: string
+}) =>
+  fetchSuggestions(
+    '/graph-answer-formats/suggest',
+    'The answer formats',
+    input,
+  )
+
+export const suggestQuestions = (input: {
+  domainId: string | null
+  businessNeed: string
+}) =>
+  fetchSuggestions(
+    '/graph-questions/suggest',
+    'The hero question suggestions',
+    input,
+  )
+
 /** No `useCaseId` creates a draft; passing one updates it in place. */
 export async function saveUseCase(input: {
   useCaseId?: string | null
   name: string
   domainId: string | null
   businessNeed: string
+  personas: Persona[]
+  kpis: Kpi[]
+  sources: SourcePick[]
+  heroQuestions: HeroQuestion[]
+  citations: Citations
+  answerFormats: AnswerFormat[]
+  gapDecisions: GapChoice[]
   step: number
   status?: 'draft' | 'committed'
 }): Promise<GraphUseCase> {
@@ -1376,6 +1812,24 @@ export async function saveUseCase(input: {
       name: input.name,
       domain_id: input.domainId,
       business_need: input.businessNeed,
+      personas: input.personas,
+      kpis: input.kpis,
+      sources: input.sources.map((s) => ({
+        source_id: s.sourceId,
+        mode: s.mode,
+        objects: s.objects,
+      })),
+      hero_questions: input.heroQuestions,
+      citations: input.citations,
+      answer_formats: input.answerFormats.map((f) => ({
+        format_id: f.formatId,
+        name: f.name,
+        format: f.format,
+      })),
+      gap_decisions: input.gapDecisions.map((d) => ({
+        element_id: d.elementId,
+        decision: d.decision,
+      })),
       step: input.step,
       status: input.status,
     },
