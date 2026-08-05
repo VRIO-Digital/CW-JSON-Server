@@ -197,7 +197,7 @@ export default function SourcesPage() {
             type="info"
             showIcon
             style={{ marginBottom: SP.lg }}
-            title="Connection status is real, from GET /sources — it shows the instant a source is registered, independent of profiling. Table/column counts come from GET /catalogue and stay 0 until the Metadata Profiler has run on that source."
+            title="Connection status updates as soon as a source is registered. Table and column counts remain at 0 until metadata profiling has been completed for that source."
           />
 
           {!loading && sources.length === 0 ? (
