@@ -1903,105 +1903,44 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-test-msg8o4ot2",
-      "name": "test",
-      "status": "committed",
-      "domain_id": "industries",
-      "business_need": "fdgfdgfd",
+      "use_case_id": "uc-fdgfdg-msg9mgvz2",
+      "name": "fdgfdg",
+      "status": "draft",
+      "domain_id": "utilities",
+      "business_need": "g",
       "personas": [
         {
-          "name": "Compliance Manager",
-          "description": "Asks whether every manifest can be traced end to end on demand.",
+          "name": "Reliability Engineer",
+          "description": "Asks why a unit keeps failing and which repairs actually held.",
           "source": "ai"
-        },
-        {
-          "name": "fdgfdg",
-          "description": "fdgfdgfd",
-          "source": "user"
         }
       ],
       "kpis": [
         {
-          "name": "Incident closure rate",
-          "description": "Share of incidents with corrective actions closed inside target.",
+          "name": "Unplanned outage hours",
+          "description": "Hours lost to outages that were not in the maintenance plan.",
           "source": "ai"
-        },
-        {
-          "name": "rtert",
-          "description": "retert",
-          "source": "user"
         }
       ],
       "sources": [
         {
           "source_id": "bigquery:context-weave-dev",
-          "mode": "subset",
-          "objects": [
-            "epa_echo.echo_enforcement_action"
-          ]
+          "mode": "all",
+          "objects": []
         }
       ],
       "hero_questions": [
         {
-          "text": "Which Treatment, Storage, and Disposal Facilities (TSDFs) receive the highest volumes of acute hazardous waste within specific geographic areas?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "retret",
-          "priority": "high",
-          "source": "user"
-        },
-        {
-          "text": "Which incidents share a root cause that has not been closed out?",
-          "priority": "high",
-          "source": "ai"
-        },
-        {
-          "text": "testonedata",
-          "priority": "normal",
-          "source": "user"
-        },
-        {
-          "text": "Which facilities exhibit the highest compliance risk based on historical RCRA violations, enforcement actions, and total penalty amounts?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Can we trace the complete chain of custody for specific waste shipments from the generating facility through all intermediate transporters to the final destination?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What is the total volume of hazardous waste generated across different NAICS industry codes and EPA regions?",
+          "text": "What can be completed inside the next outage window without extending it?",
           "priority": "normal",
           "source": "ai"
         }
       ],
       "citations": "required",
-      "answer_formats": [
-        {
-          "format_id": "volume-rollup",
-          "name": "Volume rollup",
-          "format": "scalar + grouped table"
-        }
-      ],
-      "gap_decisions": [
-        {
-          "element_id": "gap:testonedata",
-          "decision": "accept permanent"
-        },
-        {
-          "element_id": "gap:which-incidents-share-a-root-cause-that-has-not-",
-          "decision": "connect source"
-        },
-        {
-          "element_id": "gap:retret",
-          "decision": "connect source"
-        }
-      ],
+      "answer_formats": [],
+      "gap_decisions": [],
       "step": 7,
-      "updated_at": "2026-08-05T15:35:16.717Z"
+      "updated_at": "2026-08-05T15:53:11.218Z"
     }
   ],
   "graph_personas": [

@@ -2,6 +2,7 @@ import { CheckOutlined, CloseOutlined, ThunderboltOutlined } from '@ant-design/i
 import { Button, Checkbox, Input } from 'antd'
 import { useState } from 'react'
 import type { HeroQuestion, Suggestion } from '../api/client'
+import { LlmRunInline } from './LlmRun'
 import { SP } from '../theme'
 import '../pages/NewGraphPage.css'
 
@@ -19,6 +20,9 @@ export default function HeroQuestionsStep({
   suggestions,
   asked,
   suggesting,
+  runStages,
+  runCost,
+  runCap,
   onSuggest,
   onDismiss,
 }: {
@@ -27,6 +31,9 @@ export default function HeroQuestionsStep({
   suggestions: Suggestion[]
   asked: boolean
   suggesting: boolean
+  runStages: string[]
+  runCost?: number
+  runCap?: number
   onSuggest: () => void
   onDismiss: (id: string) => void
 }) {
@@ -86,6 +93,15 @@ export default function HeroQuestionsStep({
       >
         Suggest questions (LLM)
       </Button>
+
+      {suggesting ? (
+        <LlmRunInline
+          label="Drafting hero questions with the LLM…"
+          stages={runStages}
+          cost={runCost}
+          cap={runCap}
+        />
+      ) : null}
 
       <div className="ng-field">
         <span className="ng-label">Suggested questions</span>

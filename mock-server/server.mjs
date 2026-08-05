@@ -48,6 +48,8 @@
  *   POST   /graph-questions/suggest         step 5 draft { domain_id, business_need }
  *   POST   /graph-answer-formats/suggest    step 6 formats { domain_id, business_need }
  *   POST   /graph-coverage                 step 7 review { name, sources, hero_questions }
+ *   POST   /graph-derivations              step 6 -> 7 run; 202 + poll
+ *   GET    /graph-derivations/:derivationId
  *   GET    /graph-use-cases                saved drafts + committed use cases
  *   POST   /graph-use-cases                upsert a draft { use_case_id?, name, ... }
  *   DELETE /graph-use-cases/:useCaseId
@@ -930,6 +932,88 @@ function graphCoverage({ name, picks, heroQuestions }) {
     object_count: objects.length,
     elements,
   }
+}
+
+/*
+ * The derivation run between step 6 and step 7.
+ *
+ * The answer is computed up front — `graphCoverage` is deterministic — but it is
+ * revealed over five stages on timers, the same way the Metadata Profiler is.
+ * That is not decoration: the run is genuinely async (you can leave the page and
+ * come back to it by id), and a wizard that jumps straight to a finished answer
+ * teaches the user that deriving a graph is free and instant, which it is not.
+ */
+const DERIVATION_STAGES = [
+  'Reading the business need',
+  'Matching hero questions to profiled columns',
+  'Deriving the entities you need',
+  'Proposing relationships',
+  'Checking coverage against the catalogue',
+]
+
+/** Runs in flight, keyed by id. In memory, like every other run in this mock. */
+const derivations = new Map()
+
+const DERIVATION_STAGE_MS = 1300
+const COST_CAP_USD = 1
+
+/** What a "Suggest … (LLM)" button shows while it waits. */
+const DRAFT_STAGES = ['Reading your brief', 'Drafting candidates', 'Ranking against your data']
+
+// Long enough for the drafting state to be seen, short enough not to annoy.
+const SUGGEST_MS = 1100
+
+/** Public shape of a derivation; the coverage only lands when it completes. */
+const derivationView = (run) => ({
+  derivation_id: run.derivation_id,
+  status: run.status,
+  stage_index: run.stage_index,
+  stage_total: DERIVATION_STAGES.length,
+  stage_label: run.stage_label,
+  progress: run.progress,
+  // The names stream in as they are derived — what the user watches.
+  revealed: run.revealed,
+  entity_total: run.entityTotal,
+  cost_usd: Number(run.cost.toFixed(2)),
+  cost_cap_usd: COST_CAP_USD,
+  started_at: run.started_at,
+  finished_at: run.finished_at,
+  coverage: run.status === 'complete' ? run.coverage : null,
+})
+
+function runDerivation(run) {
+  const names = run.coverage.elements
+    .filter((e) => e.status === 'backed')
+    .map((e) => e.name)
+
+  const step = () => {
+    if (run.status !== 'running') return
+    run.stage_index += 1
+    run.stage_label = DERIVATION_STAGES[run.stage_index - 1]
+    run.progress = Math.round((run.stage_index / DERIVATION_STAGES.length) * 100)
+
+    // Reveal proportionally, so the list fills as the bar does.
+    const target = Math.ceil((names.length * run.stage_index) / DERIVATION_STAGES.length)
+    run.revealed = names.slice(0, target)
+
+    // Cost accrues per stage and is capped — a run that would exceed the cap
+    // stops charging rather than quietly running past it.
+    run.cost = Math.min(
+      COST_CAP_USD,
+      run.cost + 0.06 + (hash(`${run.derivation_id}:${run.stage_index}`) % 8) / 100,
+    )
+
+    if (run.stage_index >= DERIVATION_STAGES.length) {
+      run.status = 'complete'
+      run.progress = 100
+      run.revealed = names
+      run.finished_at = new Date().toISOString()
+      return
+    }
+    setTimeout(step, DERIVATION_STAGE_MS).unref?.()
+  }
+
+  setTimeout(step, DERIVATION_STAGE_MS).unref?.()
 }
 
 /**
@@ -2112,14 +2196,82 @@ const routes = [
         // answer formats are picked from, not accumulated, so fewer is clearer.
         pool === 'graph_hero_questions' ? 5 : pool === 'graph_answer_formats' ? 3 : 4,
       )
-      send(res, 200, {
-        suggestions,
-        count: suggestions.length,
-        // Says plainly where these came from — there is no model behind them.
-        derived_from: business_need ? 'business need + domain' : 'domain only',
-      })
+      /*
+       * Held briefly on purpose. There is no model here, so the answer is ready
+       * instantly — but a drafting step that returns in 2ms gives the UI nowhere
+       * to show that something was asked of an LLM, and teaches that the call is
+       * free. Paced like the profiler, for the same reason.
+       */
+      setTimeout(() => {
+        send(res, 200, {
+          suggestions,
+          count: suggestions.length,
+          // Says plainly where these came from — there is no model behind them.
+          derived_from: business_need ? 'business need + domain' : 'domain only',
+          run: {
+            stages: DRAFT_STAGES,
+            // Deterministic, so the same brief always reports the same cost.
+            cost_usd: Number(
+              (0.01 + (hash(`${path}:${business_need ?? ''}`) % 6) / 100).toFixed(2),
+            ),
+            cost_cap_usd: COST_CAP_USD,
+          },
+        })
+      }, SUGGEST_MS).unref?.()
     },
   })),
+
+  // Step 6 → 7. Starts the derivation and returns immediately; the answer
+  // arrives by polling, so leaving the page does not lose the run.
+  {
+    method: 'POST',
+    match: (p) => p === '/graph-derivations',
+    handle: async (req, res) => {
+      const { name, sources, hero_questions } = await readJson(req)
+      if (sources !== undefined && !Array.isArray(sources)) {
+        return send(res, 400, { error: 'sources must be an array' })
+      }
+      if (hero_questions !== undefined && !Array.isArray(hero_questions)) {
+        return send(res, 400, { error: 'hero_questions must be an array' })
+      }
+
+      const coverage = graphCoverage({
+        name: name ?? '',
+        picks: sources ?? [],
+        heroQuestions: hero_questions ?? [],
+      })
+
+      const id = crypto.randomUUID()
+      const run = {
+        derivation_id: id,
+        status: 'running',
+        stage_index: 0,
+        stage_label: 'queued',
+        progress: 0,
+        revealed: [],
+        entityTotal: coverage.entity_count + coverage.relationship_count,
+        cost: 0,
+        started_at: new Date().toISOString(),
+        finished_at: null,
+        coverage,
+      }
+      derivations.set(id, run)
+      runDerivation(run)
+
+      send(res, 202, derivationView(run))
+    },
+  },
+
+  {
+    method: 'GET',
+    match: (p) => /^\/graph-derivations\/.+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/graph-derivations/'.length))
+      const run = derivations.get(id)
+      if (!run) return send(res, 404, { error: `no derivation ${id}` })
+      send(res, 200, derivationView(run))
+    },
+  },
 
   /*
    * Step 7. Derived from the draft rather than from a saved row, so the review

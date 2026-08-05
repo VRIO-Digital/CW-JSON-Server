@@ -561,10 +561,38 @@ export interface Suggestion {
   why: string
 }
 
+/** What a model call cost and what it was doing — shown while it runs. */
+export interface LlmRun {
+  stages: string[]
+  costUsd: number
+  costCapUsd: number
+}
+
 export interface Suggestions {
   suggestions: Suggestion[]
   count: number
   derivedFrom: string
+  run: LlmRun
+}
+
+/**
+ * The derivation between step 6 and step 7. Async on purpose: it returns an id
+ * immediately and the answer arrives by polling, so leaving the page does not
+ * lose the run.
+ */
+export interface DerivationRun {
+  derivationId: string
+  status: 'running' | 'complete'
+  stageIndex: number
+  stageTotal: number
+  stageLabel: string
+  progress: number
+  /** Entity names revealed so far — what the user watches stream in. */
+  revealed: string[]
+  entityTotal: number
+  costUsd: number
+  costCapUsd: number
+  coverage: CoveragePayload | null
 }
 
 export interface UseCasesPayload {
@@ -1093,10 +1121,30 @@ const USE_CASE = shape({
   updated_at: nullable(str),
 })
 
+const LLM_RUN = shape({
+  stages: arrayOf(str),
+  cost_usd: num,
+  cost_cap_usd: num,
+})
+
 const SUGGESTIONS_PAYLOAD = shape({
   count: num,
   derived_from: str,
+  run: LLM_RUN,
   suggestions: arrayOf(shape({ id: str, name: str, detail: str, why: str })),
+})
+
+const DERIVATION_PAYLOAD = shape({
+  derivation_id: str,
+  status: oneOf(['running', 'complete']),
+  stage_index: num,
+  stage_total: num,
+  stage_label: str,
+  progress: num,
+  revealed: arrayOf(str),
+  entity_total: num,
+  cost_usd: num,
+  cost_cap_usd: num,
 })
 
 const USE_CASES_PAYLOAD = shape({
@@ -1629,6 +1677,7 @@ async function fetchSuggestions(
     suggestions: Suggestion[]
     count: number
     derived_from: string
+    run: { stages: string[]; cost_usd: number; cost_cap_usd: number }
   }>(
     what,
     await request<unknown>(path, {
@@ -1642,6 +1691,11 @@ async function fetchSuggestions(
     suggestions: raw.suggestions,
     count: raw.count,
     derivedFrom: raw.derived_from,
+    run: {
+      stages: raw.run.stages,
+      costUsd: raw.run.cost_usd,
+      costCapUsd: raw.run.cost_cap_usd,
+    },
   }
 }
 
@@ -1712,30 +1766,109 @@ export const suggestKpis = (input: {
   businessNeed: string
 }) => fetchSuggestions('/graph-kpis/suggest', 'The KPI suggestions', input)
 
+interface RawCoverage {
+  title: string
+  entity_count: number
+  relationship_count: number
+  hero_question_count: number
+  gap_count: number
+  object_count: number
+  elements: {
+    element_id: string
+    name: string
+    kind: 'entity' | 'relationship'
+    status: 'backed' | 'gap'
+    confidence: number
+    evidence: string | null
+    reason: string | null
+  }[]
+}
+
+/** Shared by the direct review and the answer a derivation run finishes with. */
+const toCoverage = (raw: RawCoverage): CoveragePayload => ({
+  title: raw.title,
+  entityCount: raw.entity_count,
+  relationshipCount: raw.relationship_count,
+  heroQuestionCount: raw.hero_question_count,
+  gapCount: raw.gap_count,
+  objectCount: raw.object_count,
+  elements: raw.elements.map((e) => ({
+    elementId: e.element_id,
+    name: e.name,
+    kind: e.kind,
+    status: e.status,
+    confidence: e.confidence,
+    evidence: e.evidence,
+    reason: e.reason,
+  })),
+})
+
 export async function reviewCoverage(input: {
   name: string
   sources: SourcePick[]
   heroQuestions: HeroQuestion[]
 }): Promise<CoveragePayload> {
-  const raw = validate<{
-    title: string
-    entity_count: number
-    relationship_count: number
-    hero_question_count: number
-    gap_count: number
-    object_count: number
-    elements: {
-      element_id: string
-      name: string
-      kind: 'entity' | 'relationship'
-      status: 'backed' | 'gap'
-      confidence: number
-      evidence: string | null
-      reason: string | null
-    }[]
-  }>(
-    'The coverage review',
-    await request<unknown>('/graph-coverage', {
+  return toCoverage(
+    validate<RawCoverage>(
+      'The coverage review',
+      await request<unknown>('/graph-coverage', {
+        method: 'POST',
+        body: {
+          name: input.name,
+          sources: input.sources.map((s) => ({
+            source_id: s.sourceId,
+            mode: s.mode,
+            objects: s.objects,
+          })),
+          hero_questions: input.heroQuestions,
+        },
+      }),
+      COVERAGE_PAYLOAD,
+    ),
+  )
+}
+
+interface RawDerivation {
+  derivation_id: string
+  status: 'running' | 'complete'
+  stage_index: number
+  stage_total: number
+  stage_label: string
+  progress: number
+  revealed: string[]
+  entity_total: number
+  cost_usd: number
+  cost_cap_usd: number
+  coverage: unknown
+}
+
+const toDerivation = (raw: RawDerivation): DerivationRun => ({
+  derivationId: raw.derivation_id,
+  status: raw.status,
+  stageIndex: raw.stage_index,
+  stageTotal: raw.stage_total,
+  stageLabel: raw.stage_label,
+  progress: raw.progress,
+  revealed: raw.revealed,
+  entityTotal: raw.entity_total,
+  costUsd: raw.cost_usd,
+  costCapUsd: raw.cost_cap_usd,
+  // Only a finished run carries an answer, and it is validated as one.
+  coverage: raw.coverage
+    ? toCoverage(
+        validate<RawCoverage>('The derived coverage', raw.coverage, COVERAGE_PAYLOAD),
+      )
+    : null,
+})
+
+export async function startDerivation(input: {
+  name: string
+  sources: SourcePick[]
+  heroQuestions: HeroQuestion[]
+}): Promise<DerivationRun> {
+  const raw = validate<RawDerivation>(
+    'The derivation run',
+    await request<unknown>('/graph-derivations', {
       method: 'POST',
       body: {
         name: input.name,
@@ -1747,26 +1880,18 @@ export async function reviewCoverage(input: {
         hero_questions: input.heroQuestions,
       },
     }),
-    COVERAGE_PAYLOAD,
+    DERIVATION_PAYLOAD,
   )
+  return toDerivation(raw)
+}
 
-  return {
-    title: raw.title,
-    entityCount: raw.entity_count,
-    relationshipCount: raw.relationship_count,
-    heroQuestionCount: raw.hero_question_count,
-    gapCount: raw.gap_count,
-    objectCount: raw.object_count,
-    elements: raw.elements.map((e) => ({
-      elementId: e.element_id,
-      name: e.name,
-      kind: e.kind,
-      status: e.status,
-      confidence: e.confidence,
-      evidence: e.evidence,
-      reason: e.reason,
-    })),
-  }
+export async function getDerivation(derivationId: string): Promise<DerivationRun> {
+  const raw = validate<RawDerivation>(
+    'The derivation run',
+    await request<unknown>(`/graph-derivations/${encodeURIComponent(derivationId)}`),
+    DERIVATION_PAYLOAD,
+  )
+  return toDerivation(raw)
 }
 
 export const suggestAnswerFormats = (input: {

@@ -543,6 +543,45 @@ format with no `format_id` or `name`, or a non-array is a 400.
 The primary action here reads **Generate use-case brief →**, not Next: this is
 the last step the user answers, and step 7 is what the AI derives from it.
 
+### Between 6 and 7 · the derivation run
+
+**Files:** `LlmRun.tsx` → `useDerivationStore` → `POST /graph-derivations`,
+`GET /graph-derivations/:id`
+
+`Generate use-case brief` hands the answers to a derivation and advances
+immediately. Step 7 then shows the run rather than a blank wait:
+
+```
+                        ◜  spinner
+        Deriving the entities you need…
+  Capital Project, Authorization, Purchase Order, Cost Line…
+  ███████████░░░░░░░░░░░░░░░░░░░░░░░░░
+  async — safe to leave; you’ll be notified · run cost so far $0.34 of $1.00 cap
+```
+
+The answer is computed up front — `graphCoverage` is deterministic — but revealed
+over five stages on timers, exactly as the Metadata Profiler is, and for the same
+reason: **the run is genuinely async** (it has an id, and polling resumes it), and
+a wizard that jumps straight to a finished answer teaches that deriving a graph is
+instant and free. Entity names stream in proportionally to the bar; cost accrues
+per stage and stops at the cap.
+
+The page polls every 700ms **only while the run is in flight**. Arriving at step 7
+without a run — by clicking the stepper — reviews directly through
+`/graph-coverage` instead, so the step is never blank just because the run started
+elsewhere. Starting a new derivation clears any gap decisions: they were answers
+about a previous derivation.
+
+### The LLM drafting state
+
+Every `Suggest … (LLM)` button shows an inline strip while it waits — what it is
+doing (`Reading your brief · Drafting candidates · Ranking against your data`) and
+what the last call cost. The suggest endpoints are **held for `SUGGEST_MS`
+deliberately**: there is no model here, so they would otherwise return in about
+2ms, leaving the UI nowhere to show that something was asked of an LLM and
+teaching that the call is free. Cost is deterministic per brief, and the strip
+shows no figure at all until a run has reported one.
+
 ### Step 7 · Entities & relationships (coverage review)
 
 **Files:** `CoverageStep.tsx` → `useCoverageStore` → `POST /graph-coverage` ·

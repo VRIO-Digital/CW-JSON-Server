@@ -32,6 +32,7 @@ import type {
 import AnswerRequirementsStep from '../components/AnswerRequirementsStep'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import CoverageStep from '../components/CoverageStep'
+import { LlmRunPanel } from '../components/LlmRun'
 import DraftedStep from '../components/DraftedStep'
 import HeroQuestionsStep from '../components/HeroQuestionsStep'
 import SourcesStep from '../components/SourcesStep'
@@ -41,6 +42,7 @@ import {
   selectUseCases,
   useAnswerFormatStore,
   useCoverageStore,
+  useDerivationStore,
   useGraphDomainsStore,
   useGraphSourcesStore,
   useKpiSuggestStore,
@@ -65,6 +67,9 @@ const STEP_INTENT: Record<string, string> = {
   'Answer requirements': 'how precise, how fresh, and how explainable an answer must be',
   'Entities & relationships': 'the entities the AI derived — yours to confirm, not to type',
 }
+
+/** Shown on the first run, before the server has reported its own stages. */
+const DEFAULT_RUN_STAGES = ['Reading your brief', 'Drafting candidates']
 
 const formatUpdated = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString() : 'not saved yet'
@@ -164,11 +169,18 @@ export default function NewGraphPage() {
   const personasAsked = usePersonaSuggestStore((s) => s.asked)
   const suggestPersonaList = usePersonaSuggestStore((s) => s.suggest)
   const dismissPersona = usePersonaSuggestStore((s) => s.dismiss)
+  const personaRun = usePersonaSuggestStore((s) => s.run)
   const resetPersonaSuggestions = usePersonaSuggestStore((s) => s.reset)
 
   const sourcesData = useGraphSourcesStore((s) => s.data)
   const sourcesLoading = useGraphSourcesStore((s) => s.loading)
   const loadGraphSources = useGraphSourcesStore((s) => s.load)
+
+  const derivation = useDerivationStore((s) => s.run)
+  const startingDerivation = useDerivationStore((s) => s.starting)
+  const startDerivationRun = useDerivationStore((s) => s.start)
+  const pollDerivation = useDerivationStore((s) => s.poll)
+  const resetDerivation = useDerivationStore((s) => s.reset)
 
   const coverage = useCoverageStore((s) => s.data)
   const coverageLoading = useCoverageStore((s) => s.loading)
@@ -185,6 +197,7 @@ export default function NewGraphPage() {
   const questionsAsked = useQuestionSuggestStore((s) => s.asked)
   const suggestQuestionList = useQuestionSuggestStore((s) => s.suggest)
   const dismissQuestion = useQuestionSuggestStore((s) => s.dismiss)
+  const questionRun = useQuestionSuggestStore((s) => s.run)
   const resetQuestionSuggestions = useQuestionSuggestStore((s) => s.reset)
 
   const kpiSuggestions = useKpiSuggestStore((s) => s.suggestions)
@@ -192,6 +205,7 @@ export default function NewGraphPage() {
   const kpisAsked = useKpiSuggestStore((s) => s.asked)
   const suggestKpiList = useKpiSuggestStore((s) => s.suggest)
   const dismissKpi = useKpiSuggestStore((s) => s.dismiss)
+  const kpiRun = useKpiSuggestStore((s) => s.run)
   const resetKpiSuggestions = useKpiSuggestStore((s) => s.reset)
 
   // The draft being edited. `useCaseId` is null until it has been saved once.
@@ -225,13 +239,21 @@ export default function NewGraphPage() {
   }, [step, domainId, businessNeed, loadAnswerFormats])
 
   /*
-   * Step 7 re-derives on arrival rather than caching: changing a source pick on
-   * step 4 has to change what the review says it found.
+   * Step 7 shows whatever the derivation produced. Arriving without one — by
+   * clicking the stepper rather than generating a brief — reviews directly, so
+   * the step is never empty just because the run was not started here.
    */
   useEffect(() => {
-    if (step !== 7) return
+    if (step !== 7 || derivation) return
     void reviewCoverageNow({ name, sources: sourcePicks, heroQuestions })
-  }, [step, name, sourcePicks, heroQuestions, reviewCoverageNow])
+  }, [step, derivation, name, sourcePicks, heroQuestions, reviewCoverageNow])
+
+  // Poll only while a run is in flight; the poll that sees it land stops.
+  useEffect(() => {
+    if (derivation?.status !== 'running') return
+    const id = window.setInterval(() => void pollDerivation(), 700)
+    return () => window.clearInterval(id)
+  }, [derivation?.status, pollDerivation])
 
   const steps = useMemo(() => data?.steps ?? [], [data])
   const stepLabel = steps[step - 1] ?? ''
@@ -258,6 +280,7 @@ export default function NewGraphPage() {
     resetQuestionSuggestions()
     resetAnswerFormats()
     resetCoverage()
+    resetDerivation()
     message.success(`Opened ${u.name} at step ${u.step} of ${u.stepTotal}.`)
   }
 
@@ -303,6 +326,7 @@ export default function NewGraphPage() {
     resetQuestionSuggestions()
     resetAnswerFormats()
     resetCoverage()
+    resetDerivation()
   }
 
   async function saveDraft(nextStep = step) {
@@ -404,7 +428,26 @@ export default function NewGraphPage() {
     }
     const nextStep = Math.min(step + 1, steps.length || 7)
     // Advancing is a save point, so a reload never loses the last answer.
-    if (await saveDraft(nextStep)) setStep(nextStep)
+    if (!(await saveDraft(nextStep))) return
+
+    /*
+     * Leaving step 6 is where the answers are handed to the derivation. It runs
+     * async, so the step advances immediately and step 7 shows it working.
+     */
+    if (step === 6) {
+      const started = await startDerivationRun({
+        name,
+        sources: sourcePicks,
+        heroQuestions,
+      })
+      if (!started.ok) {
+        message.error(started.error)
+        return
+      }
+      // A fresh derivation supersedes any decisions made against the old one.
+      setGapDecisions([])
+    }
+    setStep(nextStep)
   }
 
   if (error) return <ApiErrorAlert error={error} onRetry={() => void load()} />
@@ -573,6 +616,9 @@ export default function NewGraphPage() {
                 suggestions={personaSuggestions}
                 asked={personasAsked}
                 suggesting={suggestingPersonas}
+                runStages={personaRun?.stages ?? DEFAULT_RUN_STAGES}
+                runCost={personaRun?.costUsd}
+                runCap={personaRun?.costCapUsd}
                 onSuggest={() => void runSuggest('personas')}
                 onDismiss={dismissPersona}
               />
@@ -603,6 +649,9 @@ export default function NewGraphPage() {
                 suggestions={kpiSuggestions}
                 asked={kpisAsked}
                 suggesting={suggestingKpis}
+                runStages={kpiRun?.stages ?? DEFAULT_RUN_STAGES}
+                runCost={kpiRun?.costUsd}
+                runCap={kpiRun?.costCapUsd}
                 onSuggest={() => void runSuggest('kpis')}
                 onDismiss={dismissKpi}
               />
@@ -628,6 +677,9 @@ export default function NewGraphPage() {
                 suggestions={questionSuggestions}
                 asked={questionsAsked}
                 suggesting={suggestingQuestions}
+                runStages={questionRun?.stages ?? DEFAULT_RUN_STAGES}
+                runCost={questionRun?.costUsd}
+                runCap={questionRun?.costCapUsd}
                 onSuggest={() => void runSuggest('questions')}
                 onDismiss={dismissQuestion}
               />
@@ -649,12 +701,16 @@ export default function NewGraphPage() {
         ) : step === 7 ? (
           <Row gutter={[SP.lg, SP.lg]}>
             <Col xs={24} xl={18}>
-              <CoverageStep
-                data={coverage}
-                loading={coverageLoading}
-                decisions={gapDecisions}
-                onDecisions={setGapDecisions}
-              />
+              {derivation && derivation.status === 'running' ? (
+                <LlmRunPanel run={derivation} />
+              ) : (
+                <CoverageStep
+                  data={derivation?.coverage ?? coverage}
+                  loading={coverageLoading || startingDerivation}
+                  decisions={gapDecisions}
+                  onDecisions={setGapDecisions}
+                />
+              )}
             </Col>
           </Row>
         ) : (

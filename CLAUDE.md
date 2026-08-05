@@ -165,6 +165,14 @@ requirements, Entities & relationships — over `NewGraphPage.tsx` → `graphSto
 `/graph-sources`, `/graph-questions/suggest`, `/graph-answer-formats/suggest`, `/graph-coverage` and `/graph-use-cases`.
 **All seven steps are built.**
 
+**A model call is never silent or instant.** The derivation between steps 6 and 7
+is a real async run (`POST /graph-derivations` → 202, poll by id) that reveals its
+entity names and its cost as it goes, and every `Suggest … (LLM)` response is held
+for `SUGGEST_MS` so the drafting state can be seen. Both are paced for the same
+reason `PIPELINE` is: an operation that returns instantly and shows nothing
+teaches that it is free, and this one is not. Never show a cost figure the server
+did not report.
+
 **Step 7 derives only from what is profiled.** `graphCoverage` walks the source
 picks back to real profiled objects, so an entity names the table it came from
 (`manifest_header (1,240,500 rows)`) and a relationship is claimed only where two

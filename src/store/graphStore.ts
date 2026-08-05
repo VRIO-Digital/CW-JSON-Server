@@ -4,8 +4,10 @@ import {
   listGraphDomains,
   listGraphSources,
   listUseCases,
+  getDerivation,
   reviewCoverage,
   saveUseCase,
+  startDerivation,
   suggestAnswerFormats,
   suggestKpis,
   suggestPersonas,
@@ -13,7 +15,9 @@ import {
   type AnswerFormat,
   type Citations,
   type CoveragePayload,
+  type DerivationRun,
   type GapChoice,
+  type LlmRun,
   type DraftedItem,
   type GraphDomainsPayload,
   type GraphSourcesPayload,
@@ -39,6 +43,8 @@ interface SuggestState {
   /** Distinguishes "not asked yet" from "asked, nothing came back". */
   asked: boolean
   suggesting: boolean
+  /** What the last call was doing and what it cost — null until one has run. */
+  run: LlmRun | null
 
   suggest: (input: {
     domainId: string | null
@@ -58,18 +64,19 @@ function createSuggestStore(
   fetcher: (input: {
     domainId: string | null
     businessNeed: string
-  }) => Promise<{ suggestions: Suggestion[] }>,
+  }) => Promise<{ suggestions: Suggestion[]; run: LlmRun }>,
 ) {
   return create<SuggestState>()((set) => ({
     suggestions: [],
     asked: false,
     suggesting: false,
+    run: null,
 
     suggest: async (input) => {
       set({ suggesting: true })
       try {
         const result = await fetcher(input)
-        set({ suggestions: result.suggestions, asked: true })
+        set({ suggestions: result.suggestions, asked: true, run: result.run })
         return { ok: true }
       } catch (error) {
         return { ok: false, error: toMessage(error) }
@@ -83,13 +90,65 @@ function createSuggestStore(
         suggestions: state.suggestions.filter((s) => s.id !== id),
       })),
 
-    reset: () => set({ suggestions: [], asked: false, suggesting: false }),
+    reset: () => set({ suggestions: [], asked: false, suggesting: false, run: null }),
   }))
 }
 
 export const usePersonaSuggestStore = createSuggestStore(suggestPersonas)
 export const useKpiSuggestStore = createSuggestStore(suggestKpis)
 export const useQuestionSuggestStore = createSuggestStore(suggestQuestions)
+
+interface DerivationState {
+  run: DerivationRun | null
+  starting: boolean
+  error: string | null
+
+  start: (input: {
+    name: string
+    sources: SourcePick[]
+    heroQuestions: HeroQuestion[]
+  }) => Promise<Result>
+  /** One poll. The page owns the interval, and stops it when the run lands. */
+  poll: () => Promise<void>
+  reset: () => void
+}
+
+/**
+ * The derivation between step 6 and step 7. Holds the run rather than the
+ * answer, so the page can show what is happening while it happens.
+ */
+export const useDerivationStore = create<DerivationState>()((set, get) => ({
+  run: null,
+  starting: false,
+  error: null,
+
+  start: async (input) => {
+    set({ starting: true, error: null })
+    try {
+      set({ run: await startDerivation(input) })
+      return { ok: true }
+    } catch (error) {
+      const message = toMessage(error)
+      set({ error: message })
+      return { ok: false, error: message }
+    } finally {
+      set({ starting: false })
+    }
+  },
+
+  poll: async () => {
+    const current = get().run
+    if (!current || current.status === 'complete') return
+    try {
+      set({ run: await getDerivation(current.derivationId) })
+    } catch (error) {
+      // A failed poll leaves the last known state rather than blanking the run.
+      set({ error: toMessage(error) })
+    }
+  },
+
+  reset: () => set({ run: null, starting: false, error: null }),
+}))
 
 interface CoverageState {
   data: CoveragePayload | null

@@ -2,6 +2,7 @@ import { CheckOutlined, PlusOutlined, ThunderboltOutlined } from '@ant-design/ic
 import { Button, Input } from 'antd'
 import { useState, type ReactNode } from 'react'
 import type { DraftedItem, Suggestion } from '../api/client'
+import { LlmRunInline } from './LlmRun'
 import { SP } from '../theme'
 import '../pages/NewGraphPage.css'
 
@@ -28,6 +29,9 @@ export default function DraftedStep({
   suggestions,
   asked,
   suggesting,
+  runStages,
+  runCost,
+  runCap,
   onSuggest,
   onDismiss,
 }: {
@@ -46,6 +50,10 @@ export default function DraftedStep({
   suggestions: Suggestion[]
   asked: boolean
   suggesting: boolean
+  /** What the last model call was doing and what it cost, when there was one. */
+  runStages: string[]
+  runCost?: number
+  runCap?: number
   onSuggest: () => void
   onDismiss: (id: string) => void
 }) {
@@ -88,6 +96,15 @@ export default function DraftedStep({
       >
         {suggestLabel}
       </Button>
+
+      {suggesting ? (
+        <LlmRunInline
+          label={`${suggestLabel.replace(/^Suggest/, 'Drafting').replace(/ \(LLM\)$/, '')} with the LLM…`}
+          stages={runStages}
+          cost={runCost}
+          cap={runCap}
+        />
+      ) : null}
 
       <div className="ng-field">
         <span className="ng-label">{suggestedLabel}</span>
