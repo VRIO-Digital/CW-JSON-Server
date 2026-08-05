@@ -1,19 +1,33 @@
 import {
+  ApartmentOutlined,
   CheckCircleOutlined,
   DatabaseOutlined,
+  DeploymentUnitOutlined,
+  ExperimentOutlined,
+  FileTextOutlined,
   LineChartOutlined,
   SafetyCertificateOutlined,
   TableOutlined,
+  BranchesOutlined,
+  BuildOutlined,
+  ClusterOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons'
 import type { ComponentType } from 'react'
 
 export type NavKey =
+  | 'graphs'
+  | 'ask'
+  | 'reports'
   | 'sources'
   | 'catalogue'
-  | 'audit'
+  | 'graph-builds'
+  | 'graph-studio'
+  | 'what-if'
   | 'trace'
   | 'validation'
-// | 'db'
+  | 'feedback'
+  | 'audit'
 
 export interface NavItem {
   key: NavKey
@@ -23,7 +37,30 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { key: 'sources', label: 'Sources', path: '/sources', icon: DatabaseOutlined },
+  {
+    key: 'graphs',
+    label: 'Knowledge Graphs',
+    path: '/graphs',
+    icon: ClusterOutlined,
+  },
+  {
+    key: 'ask',
+    label: 'Ask',
+    path: '/ask',
+    icon: QuestionCircleOutlined,
+  },
+  {
+    key: 'reports',
+    label: 'Reports',
+    path: '/reports',
+    icon: FileTextOutlined,
+  },
+  {
+    key: 'sources',
+    label: 'Sources',
+    path: '/sources',
+    icon: DatabaseOutlined,
+  },
   {
     key: 'catalogue',
     label: 'Data Catalogue',
@@ -31,10 +68,22 @@ export const NAV_ITEMS: NavItem[] = [
     icon: TableOutlined,
   },
   {
-    key: 'audit',
-    label: 'Audit & Governance',
-    path: '/audit',
-    icon: SafetyCertificateOutlined,
+    key: 'graph-builds',
+    label: 'Graph Builds',
+    path: '/graph-builds',
+    icon: BuildOutlined,
+  },
+  {
+    key: 'graph-studio',
+    label: 'Graph Studio',
+    path: '/graph-studio',
+    icon: DeploymentUnitOutlined,
+  },
+  {
+    key: 'what-if',
+    label: 'What-if Lenses',
+    path: '/what-if',
+    icon: ExperimentOutlined,
   },
   {
     key: 'trace',
@@ -48,6 +97,19 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/validation',
     icon: CheckCircleOutlined,
   },
-  // Dev tool: edits the mock server's db.json, which backs every page above.
+  {
+    key: 'feedback',
+    label: 'Feedback & Learning',
+    path: '/feedback',
+    icon: ApartmentOutlined,
+  },
+  {
+    key: 'audit',
+    label: 'Audit & Governance',
+    path: '/audit',
+    icon: SafetyCertificateOutlined,
+  },
+
+  // Dev tool
   // { key: 'db', label: 'Mock Data', path: '/db', icon: CodeOutlined },
 ]

@@ -3,10 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { NAV_ITEMS } from '../nav'
 import './Sidebar.css'
 
-/**
- * Brand block + antd Menu. Rendered inside Layout.Sider on desktop and inside
- * a Drawer on small screens, so it owns no positioning of its own.
- */
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -14,31 +10,33 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const selected = NAV_ITEMS.find((item) => pathname.startsWith(item.path))
 
   return (
-    <>
+    <div className="sidebar">
       <div className="sidebar-brand">
-        <Typography.Title level={4} className="wordmark">
+        <Typography.Title level={3} className="wordmark">
           Context<span>Weave</span>
         </Typography.Title>
+
         <Typography.Text className="tagline">
-          From Data to Decisions — With Context.
+          FROM DATA TO DECISIONS
         </Typography.Text>
       </div>
 
       <Menu
         mode="inline"
+        theme="dark"
         selectedKeys={selected ? [selected.key] : []}
-        style={{ borderInlineEnd: 'none', paddingBlock: 14 }}
-        items={NAV_ITEMS.map(({ key, label, icon: NavIcon }) => ({
+        className="sidebar-menu"
+        items={NAV_ITEMS.map(({ key, label, icon: Icon }) => ({
           key,
+          icon: <Icon />,
           label,
-          icon: <NavIcon />,
         }))}
         onClick={({ key }) => {
-          const item = NAV_ITEMS.find((n) => n.key === key)
+          const item = NAV_ITEMS.find((i) => i.key === key)
           if (item) navigate(item.path)
           onNavigate?.()
         }}
       />
-    </>
+    </div>
   )
 }
