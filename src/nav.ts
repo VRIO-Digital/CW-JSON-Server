@@ -74,12 +74,12 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/catalogue',
     icon: TableOutlined,
   },
-  {
-    key: 'graph-builds',
-    label: 'Graph Builds',
-    path: '/graph-builds',
-    icon: BuildOutlined,
-  },
+  // {
+  //   key: 'graph-builds',
+  //   label: 'Graph Builds',
+  //   path: '/graph-builds',
+  //   icon: BuildOutlined,
+  // },
   {
     key: 'graph-studio',
     label: 'Graph Studio',
