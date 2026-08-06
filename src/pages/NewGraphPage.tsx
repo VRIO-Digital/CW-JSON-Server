@@ -2,6 +2,7 @@ import {
   ArrowRightOutlined,
   DeleteOutlined,
   FolderOpenOutlined,
+  LockOutlined,
   PlusOutlined,
   SaveOutlined,
 } from '@ant-design/icons'
@@ -50,7 +51,11 @@ import {
   useQuestionSuggestStore,
   useUseCasesStore,
 } from '../store/graphStore'
-import { coverageIsDecided } from '../data/coverage'
+import {
+  firstIncompleteStep,
+  stepIssue,
+  type WizardDraft,
+} from '../data/wizardSteps'
 import { SP } from '../theme'
 import './NewGraphPage.css'
 
@@ -221,6 +226,9 @@ export default function NewGraphPage() {
   const [selectedFormats, setSelectedFormats] = useState<AnswerFormat[]>([])
   const [gapDecisions, setGapDecisions] = useState<GapChoice[]>([])
   const [step, setStep] = useState(1)
+  // How far this draft has been taken. Steps past it are locked, so the stepper
+  // cannot skip a step's validation. Restored from the draft on open.
+  const [maxStep, setMaxStep] = useState(1)
   const [savedAt, setSavedAt] = useState<string | null>(null)
 
   useEffect(() => {
@@ -256,6 +264,7 @@ export default function NewGraphPage() {
   }, [derivation?.status, pollDerivation])
 
   const steps = useMemo(() => data?.steps ?? [], [data])
+  const stepTotal = steps.length || 7
   const stepLabel = steps[step - 1] ?? ''
   const domains = domainsData?.domains ?? []
   const graphSources = sourcesData?.sources ?? []
@@ -267,6 +276,20 @@ export default function NewGraphPage() {
    * button ended up permanently disabled.
    */
   const activeCoverage = derivation?.coverage ?? coverage
+
+  /** What `stepIssue` judges every step on. */
+  const draft: WizardDraft = {
+    name,
+    domainId,
+    personas,
+    kpis,
+    graphSources,
+    sourcePicks,
+    heroQuestions,
+    answerFormats: selectedFormats,
+    coverage: activeCoverage,
+    gapDecisions,
+  }
 
   function openUseCase(u: GraphUseCase) {
     setUseCaseId(u.useCaseId)
@@ -281,6 +304,8 @@ export default function NewGraphPage() {
     setSelectedFormats(u.answerFormats)
     setGapDecisions(u.gapDecisions)
     setStep(u.step)
+    // A saved draft already cleared every step before the one it stopped on.
+    setMaxStep(u.step)
     setSavedAt(u.updatedAt)
     // Suggestions belong to the brief that produced them.
     resetPersonaSuggestions()
@@ -328,6 +353,7 @@ export default function NewGraphPage() {
     setSelectedFormats([])
     setGapDecisions([])
     setStep(1)
+    setMaxStep(1)
     setSavedAt(null)
     resetPersonaSuggestions()
     resetKpiSuggestions()
@@ -389,52 +415,14 @@ export default function NewGraphPage() {
   }
 
   async function next() {
-    if (step === 1) {
-      if (!name.trim()) {
-        message.warning('Name the use case — it is what your drafts list shows.')
-        return
-      }
-      if (!domainId) {
-        message.warning('Pick a business domain before continuing.')
-        return
-      }
+    // One rule for every step, shared with the stepper's lock and the build
+    // button, so a step cannot be finishable by one and not the other.
+    const issue = stepIssue(step, draft)
+    if (issue) {
+      message.warning(issue)
+      return
     }
-    /*
-     * Step 4 is the one step that cannot be answered with nothing: every later
-     * step derives from the data selected here, so advancing empty would build a
-     * graph over no data at all. The three cases need three different fixes.
-     */
-    if (step === 4) {
-      if (graphSources.length === 0) {
-        message.warning(
-          'Connect a data source on Sources first — there is nothing to select here yet.',
-        )
-        return
-      }
-      if (!graphSources.some((s) => s.objectCount > 0)) {
-        message.warning(
-          'Nothing is profiled yet — profile a source in the Data Catalogue before continuing.',
-        )
-        return
-      }
-      if (sourcePicks.length === 0) {
-        message.warning(
-          'Select at least one source — the graph can only derive from data you point it at.',
-        )
-        return
-      }
-      const emptyPick = sourcePicks.find(
-        (p) => p.mode === 'subset' && p.objects.length === 0,
-      )
-      if (emptyPick) {
-        const source = graphSources.find((s) => s.sourceId === emptyPick.sourceId)
-        message.warning(
-          `Pick at least one ${source?.unitLabel.replace(/s$/, '') ?? 'table'} for ${emptyPick.sourceId}, or switch it back to all profiled ${source?.unitLabel ?? 'tables'}.`,
-        )
-        return
-      }
-    }
-    const nextStep = Math.min(step + 1, steps.length || 7)
+    const nextStep = Math.min(step + 1, stepTotal)
     // Advancing is a save point, so a reload never loses the last answer.
     if (!(await saveDraft(nextStep))) return
 
@@ -456,6 +444,34 @@ export default function NewGraphPage() {
       setGapDecisions([])
     }
     setStep(nextStep)
+    setMaxStep((furthest) => Math.max(furthest, nextStep))
+  }
+
+  /*
+   * Clicking the stepper. Going back is always free — the answers are kept, so a
+   * step already cleared can be reopened and edited. Going forward has to be
+   * earned: the step must have been unlocked, and every step between here and
+   * there must still be complete, because an answer can be deleted after it was
+   * given. Jumping forward does not save; `Next` is the save point.
+   */
+  function goToStep(target: number) {
+    if (target <= step) {
+      setStep(target)
+      return
+    }
+    if (target > maxStep) {
+      message.warning(
+        `Complete step ${maxStep} first — steps unlock as you finish them.`,
+      )
+      return
+    }
+    const blocked = firstIncompleteStep(target - 1, draft, step)
+    if (blocked !== null) {
+      setStep(blocked)
+      message.warning(`Step ${blocked} is unfinished — ${stepIssue(blocked, draft)}`)
+      return
+    }
+    setStep(target)
   }
 
   if (error) return <ApiErrorAlert error={error} onRetry={() => void load()} />
@@ -483,9 +499,9 @@ export default function NewGraphPage() {
       />
 
       <Typography.Paragraph type="secondary" style={{ fontSize: 13, marginTop: -SP.md }}>
-        Step {step} of {steps.length || 7}
-        {stepLabel ? ` · ${stepLabel}` : ''} — your answers stay editable; save the
-        draft any time.
+        Step {step} of {stepTotal}
+        {stepLabel ? ` · ${stepLabel}` : ''} — steps unlock as you complete them;
+        your answers stay editable, and you can save the draft any time.
       </Typography.Paragraph>
 
       {loading && !data ? (
@@ -501,20 +517,31 @@ export default function NewGraphPage() {
       )}
 
       <div className="ng-steps">
-        {steps.map((label, i) => (
-          <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: SP.sm }}>
-            {i > 0 ? <span className="ng-step-dash" /> : null}
-            <button
-              type="button"
-              className={`ng-step${i + 1 === step ? ' is-active' : i + 1 < step ? ' is-done' : ''}`}
-              onClick={() => setStep(i + 1)}
-              aria-current={i + 1 === step ? 'step' : undefined}
-            >
-              <span className="ng-step-num">{i + 1}</span>
-              {label}
-            </button>
-          </span>
-        ))}
+        {steps.map((label, i) => {
+          const n = i + 1
+          // A locked step stays clickable so the click can say what is missing;
+          // a dead button reads as broken.
+          const locked = n > maxStep
+          const state = n === step ? ' is-active' : locked ? ' is-locked' : ' is-done'
+          return (
+            <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: SP.sm }}>
+              {i > 0 ? <span className="ng-step-dash" /> : null}
+              <button
+                type="button"
+                className={`ng-step${state}`}
+                onClick={() => goToStep(n)}
+                aria-current={n === step ? 'step' : undefined}
+                aria-disabled={locked || undefined}
+                title={locked ? `Complete step ${maxStep} to unlock this step` : undefined}
+              >
+                <span className="ng-step-num">
+                  {locked ? <LockOutlined /> : n}
+                </span>
+                {label}
+              </button>
+            </span>
+          )
+        })}
       </div>
 
       <div className="ng-form">
@@ -746,7 +773,7 @@ export default function NewGraphPage() {
           ) : (
             <span />
           )}
-          {step < (steps.length || 7) ? (
+          {step < stepTotal ? (
             <Button type="primary" loading={saving} onClick={() => void next()}>
               {/* The last answered step produces the brief the AI derives step 7
                   from, so it says what it does rather than "Next". */}
@@ -759,11 +786,12 @@ export default function NewGraphPage() {
                 Save Only
               </Button>
               {/* Building is blocked until every gap has been decided — an
-                  undecided gap is a question the graph cannot answer. */}
+                  undecided gap is a question the graph cannot answer. Step 7's
+                  rule, read from the same place as every other step's. */}
               <Button
                 type="primary"
                 loading={saving}
-                disabled={!coverageIsDecided(activeCoverage, gapDecisions)}
+                disabled={stepIssue(7, draft) !== null}
                 onClick={() => void buildGraph()}
               >
                 Save &amp; build graph <ArrowRightOutlined />

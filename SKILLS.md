@@ -65,10 +65,38 @@ BigQuery and Drive each get a bespoke branch (`isBigQuery` / `isDrive`, together
 ```
 Login with Google
   → GET /sources/oauth/start?provider=…    issues a one-time state, scoped
-  → GET /sources/oauth/callback?provider=… consumes it, returns account +
-                                           4 projects / 3 drives, each with
-                                           a credential_handle
+  → GET /sources/oauth/callback?provider=… consumes it, returns the account
+                                           + a session (no list)
+  → GET /sources/oauth/projects?session=…  4 projects, each with a handle
+    GET /sources/oauth/drives?session=…    3 drives, each with a handle
 ```
+
+**Consent and discovery are two calls, not one.** The callback says *who* signed
+in; what that account can *see* is spent from the `session` afterwards — what a
+real handshake does (a code becomes a token, the token lists resources), and what
+gives the wizard a third stage with a real request behind it. The session is
+**not** single-use, unlike the state: it stands in for an access token, so a
+retried discovery works instead of forcing the sign-in again.
+
+`/oauth/projects` and `/oauth/drives` are twins, and **each refuses the other's
+session by name** — answering a Drive session with an empty project list would
+read as "this account has no projects".
+
+**Signing in is never instant or silent.** All three calls are held server-side
+(`CONSENT_START_MS` 900ms + `CONSENT_MS` 1400ms + `DISCOVERY_MS` 800ms ≈ a 3.1s
+sign-in, tuned together to sit in the 2–4s band with no stage short enough to
+flash past) for the same reason `SUGGEST_MS` holds a draft: a handshake that
+finishes before the first frame paints looks like nothing happened, and it is the
+one moment a user should see which scope is being granted. `GoogleConsentPanel`
+shows a row per call, labels from `data/consentStages.ts`, and **a row advances
+only when its request returns**, never on a timer of its own — so the panel
+cannot claim progress the handshake has not made. Add a stage only when there is
+a request behind it. The button reads "Signing in…" and is disabled meanwhile;
+the success alert then reports the count read (`4 project(s)`, `3 drive(s)`).
+
+**Only the success path is paced.** A replayed state, an unknown session and a
+cross-provider session all answer in single-digit milliseconds — making an error
+wait teaches nothing and reads as a hang.
 
 The state is single-use — replaying it returns 400. It also **remembers which
 provider it was issued for**: a BigQuery consent replayed against
@@ -357,6 +385,40 @@ Labels come from `WIZARD_STEPS` in `server.mjs` via the `/graph-use-cases`
 payload, so the stepper and the server's `step` validation are the same list.
 **All seven steps are built.**
 
+### Step gating
+
+**A step unlocks only once the one before it is complete.** `stepIssue(step,
+draft)` in `src/data/wizardSteps.ts` is the single definition of "complete" —
+`Next`, the stepper's lock and step 7's build button all read it, so none of them
+can disagree about whether a step is done. It returns the message shown to the
+user, so each rule names the fix rather than the rule:
+
+| Step | Complete when |
+|---|---|
+| 1 Domain | named *and* a domain picked |
+| 2 Personas | at least one persona |
+| 3 KPIs | at least one KPI |
+| 4 Sources | the four checks below |
+| 5 Hero questions | at least one question |
+| 6 Answer requirements | at least one question type selected |
+| 7 Entities & relationships | every gap decided — the build gate |
+
+`maxStep` on the page is how far the draft has been taken, restored from the
+saved `step` when a use case is opened. A step past it renders `is-locked` with a
+lock in place of its number, and **stays clickable on purpose** — the click
+answers with what is missing, where a disabled button would just read as broken.
+
+Going **back is always free** and keeps the answers, so a cleared step can be
+reopened and edited. Going forward re-checks every step in between
+(`firstIncompleteStep`), because an answer can be deleted after it was given —
+emptying step 3 relocks step 5. Jumping does not save; `Next` is the save point.
+
+Server-side, only step 1's rule is enforced (`step > 1` or `status:
+'committed'` without a domain → 400, checked on the merged value so an upsert
+carrying the domain on the existing record still passes). The later steps stay
+client-side deliberately: **Save draft** must be able to persist partial work
+from any step, and a server rule would refuse it.
+
 ### Saved use cases
 
 The card above the stepper lists every saved use case, newest first: name, a
@@ -381,8 +443,10 @@ and the notes legitimately differ from a screenshot taken with data. Connect and
 profile a source and the backed domain climbs to the top.
 
 `Next` refuses an unnamed use case or an unpicked domain, then **saves before
-advancing**, so a reload never loses the last answer. Step 7's primary action
-commits — status `committed`, which is what makes a row read "ready to build".
+advancing**, so a reload never loses the last answer. The domain is also
+enforced server-side, because every later step derives from it. Step 7's primary
+action commits — status `committed`, which is what makes a row read "ready to
+build".
 
 ### Steps 2 and 3 · Personas, then KPIs
 
@@ -466,7 +530,8 @@ they already have three is useless advice, so the step distinguishes them:
 | connected, nothing profiled | an **error** alert — "No profiled data yet — you cannot select a source", with "Open the Data Catalogue to profile a source" → `/catalogue`, above the cards, each tagged `nothing profiled` and disabled |
 | something profiled | the selection UI; the alert disappears |
 
-**`Next` refuses to leave step 4 empty**, and names the fix for each case: no
+**`Next` refuses to leave step 4 empty** (its rule lives with every other step's,
+in `wizardSteps.ts`), and names the fix for each case: no
 sources connected → go to Sources; connected but unprofiled → go to the Data
 Catalogue; profiled but nothing selected → select a source; a `subset` with no
 objects → pick one or switch back to all. Every later step derives from this

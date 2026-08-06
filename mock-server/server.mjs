@@ -24,6 +24,8 @@
  *   GET    /drives/:driveId/folders
  *   GET    /sources/oauth/start?provider=bigquery|drive
  *   GET    /sources/oauth/callback?state=...&provider=bigquery|drive
+ *   GET    /sources/oauth/projects?session=...  projects the account can read
+ *   GET    /sources/oauth/drives?session=...    drives the account can read
  *   POST   /sources/preview                { project_id, credential_handle }
  *   POST   /sources                        { project_id, credential_handle, datasets, source_name }
  *   POST   /sources/drive/preview          { drive_id, credential_handle }
@@ -78,6 +80,29 @@ const profilingJobs = []
  * to the granted scope, so a BigQuery state cannot be replayed against Drive.
  */
 const oauthStates = new Map()
+
+/*
+ * How long the two consent calls are held. There is no Google here, so both are
+ * ready instantly — but the wizard shows a stage per call, and a handshake that
+ * finishes before the first frame paints looks like nothing happened. Same
+ * reasoning as SUGGEST_MS and the profiler's stage timers.
+ *
+ * The two together are the whole sign-in, and it is deliberately in the 2–4s
+ * band: long enough that each stage is read rather than glimpsed, short enough
+ * that nobody wonders whether it has hung. Change them as a pair — it is the
+ * total that is tuned, not either number on its own.
+ */
+const CONSENT_START_MS = 900
+const CONSENT_MS = 1400
+const DISCOVERY_MS = 800
+
+/*
+ * Sessions issued by the callback, consumed by the discovery endpoints —
+ * session → the provider it was granted for. Unlike a state this is *not*
+ * single-use: it stands in for an access token, and a token survives being read
+ * twice, so a retried discovery works instead of forcing the sign-in again.
+ */
+const oauthSessions = new Map()
 
 let counter = 0
 const nextId = () => `${Date.now().toString(36)}${(counter++).toString(36)}`
@@ -1386,12 +1411,17 @@ const routes = [
 
       const state = `state-${nextId()}`
       oauthStates.set(state, provider)
-      send(res, 200, {
-        state,
-        provider,
-        auth_url: `https://accounts.google.com/o/oauth2/v2/auth?state=${state}&scope=${scopes.join(' ')}`,
-        scopes,
-      })
+      // Paced like the suggesters: a consent handshake that completes in 2ms
+      // gives the wizard nowhere to show that anything was asked of Google, and
+      // teaches that signing in is instant. See CONSENT_MS.
+      setTimeout(() => {
+        send(res, 200, {
+          state,
+          provider,
+          auth_url: `https://accounts.google.com/o/oauth2/v2/auth?state=${state}&scope=${scopes.join(' ')}`,
+          scopes,
+        })
+      }, CONSENT_START_MS).unref?.()
     },
   },
 
@@ -1412,38 +1442,106 @@ const routes = [
       }
       oauthStates.delete(state)
 
-      if (provider === 'drive') {
-        // One handle per drive the consenting account can read.
-        return send(res, 200, {
-          account: db.google_account,
-          drives: db.drives.map((d) => {
-            const cred = db.drive_credentials.find((c) => c.drive_id === d.drive_id)
-            return {
-              drive_id: d.drive_id,
-              display_name: d.display_name,
-              kind: d.kind,
-              folder_count: d.folders.length,
-              document_count: d.folders.reduce((s, f) => s + f.documents.length, 0),
-              credential_handle: cred?.credential_handle ?? null,
-            }
-          }),
+      /*
+       * The consent ends here, and *only* the consent: it returns who signed in
+       * plus a session, and what that account can see is a separate call. Two
+       * reasons. It is what a real handshake does — a code is exchanged for a
+       * token, then the token is spent listing resources — and it gives the
+       * wizard a third stage backed by a real request, instead of a row that
+       * ticks the instant the one before it does.
+       */
+      const session = `session-${nextId()}`
+      oauthSessions.set(session, provider)
+
+      /*
+       * Held for the same reason the suggesters are: this stands in for a real
+       * consent screen, and the wizard shows a stage per call. Only the success
+       * path is paced — a rejected or replayed state answers immediately,
+       * because making an error wait teaches nothing and reads as a hang.
+       */
+      setTimeout(
+        () => send(res, 200, { account: db.google_account, session, provider }),
+        CONSENT_MS,
+      ).unref?.()
+    },
+  },
+
+  /*
+   * What the consenting account can see. One endpoint per connector rather than
+   * a branch, so each can refuse the other's session by name — answering a Drive
+   * session with an empty project list would read as "this account has no
+   * projects" and send you debugging the credentials instead of the call.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/sources/oauth/projects',
+    handle: (_req, res, { query }) => {
+      const session = query.get('session')
+      if (!session || !oauthSessions.has(session)) {
+        return send(res, 400, {
+          error: 'invalid or expired session — start the Google sign-in again',
+        })
+      }
+      if (oauthSessions.get(session) !== 'bigquery') {
+        return send(res, 400, {
+          error:
+            'this session was granted for Drive — read its drives with /sources/oauth/drives',
         })
       }
 
-      send(res, 200, {
-        account: db.google_account,
-        // One handle per project the consenting account can read.
-        projects: db.projects.map((p) => {
-          const cred = db.credentials.find((c) => c.project_id === p.project_id)
-          return {
-            project_id: p.project_id,
-            display_name: p.display_name,
-            location: p.location,
-            dataset_count: p.datasets.length,
-            credential_handle: cred?.credential_handle ?? null,
-          }
-        }),
+      // One handle per project the consenting account can read.
+      const projects = db.projects.map((p) => {
+        const cred = db.credentials.find((c) => c.project_id === p.project_id)
+        return {
+          project_id: p.project_id,
+          display_name: p.display_name,
+          location: p.location,
+          dataset_count: p.datasets.length,
+          credential_handle: cred?.credential_handle ?? null,
+        }
       })
+
+      setTimeout(
+        () => send(res, 200, { projects, project_count: projects.length }),
+        DISCOVERY_MS,
+      ).unref?.()
+    },
+  },
+
+  {
+    method: 'GET',
+    match: (p) => p === '/sources/oauth/drives',
+    handle: (_req, res, { query }) => {
+      const session = query.get('session')
+      if (!session || !oauthSessions.has(session)) {
+        return send(res, 400, {
+          error: 'invalid or expired session — start the Google sign-in again',
+        })
+      }
+      if (oauthSessions.get(session) !== 'drive') {
+        return send(res, 400, {
+          error:
+            'this session was granted for BigQuery — read its projects with /sources/oauth/projects',
+        })
+      }
+
+      // One handle per drive the consenting account can read.
+      const drives = db.drives.map((d) => {
+        const cred = db.drive_credentials.find((c) => c.drive_id === d.drive_id)
+        return {
+          drive_id: d.drive_id,
+          display_name: d.display_name,
+          kind: d.kind,
+          folder_count: d.folders.length,
+          document_count: d.folders.reduce((s, f) => s + f.documents.length, 0),
+          credential_handle: cred?.credential_handle ?? null,
+        }
+      })
+
+      setTimeout(
+        () => send(res, 200, { drives, drive_count: drives.length }),
+        DISCOVERY_MS,
+      ).unref?.()
     },
   },
 
@@ -2500,11 +2598,28 @@ const routes = [
         return send(res, 404, { error: `no use case ${use_case_id}` })
       }
 
+      /*
+       * Steps unlock in order, and step 1's domain is what every later step
+       * derives from — the suggesters all take it — so a draft cannot sit past
+       * step 1, or commit, without one. The page gates this too; the rule is
+       * here as well so it survives a direct call. Checked on the merged value,
+       * because an upsert may be carrying the domain on the existing record
+       * rather than in the body. Only step 1's answers are enforced here: a
+       * later step's rule would make "Save draft" unable to keep partial work.
+       */
+      const resolvedDomain = domain_id ?? existing?.domain_id ?? null
+      if (!resolvedDomain && (stepNumber > 1 || status === 'committed')) {
+        return send(res, 400, {
+          error:
+            'pick a business domain on step 1 — a use case cannot advance past it or commit without one',
+        })
+      }
+
       const record = {
         use_case_id: existing?.use_case_id ?? `uc-${slugify(name)}-${nextId()}`,
         name: String(name).trim(),
         status: status ?? existing?.status ?? 'draft',
-        domain_id: domain_id ?? existing?.domain_id ?? null,
+        domain_id: resolvedDomain,
         business_need: business_need ?? existing?.business_need ?? '',
         personas: personaTags ?? existing?.personas ?? [],
         kpis: kpiTags ?? existing?.kpis ?? [],
@@ -2760,6 +2875,26 @@ process.on('SIGINT', () => {
   console.log('\nmock-server: shutting down')
   server.close(() => process.exit(0))
 })
+
+/*
+ * Refuse to start on a document the routes cannot serve. `commitDb` already
+ * rejects a *write* that would drop a required key, but a server booted from an
+ * already-broken file passes that check and then fails deep inside a route
+ * (`Cannot read properties of undefined (reading 'map')`) with nothing naming
+ * the cause. That is reachable: a process running since before a key existed
+ * wrote its stale copy back and dropped four of them. Failing here names the
+ * missing keys at the one moment the fix is obvious.
+ */
+const startupProblems = validateDb(db)
+if (startupProblems.length > 0) {
+  console.error('\nmock-server: refusing to start — mock-server/db.json cannot be served.')
+  for (const problem of startupProblems) console.error(`  · ${problem}`)
+  console.error(
+    '\n  Restore the file, then start again:' +
+      '\n      git show HEAD:mock-server/db.json > mock-server/db.json\n',
+  )
+  process.exit(1)
+}
 
 server.listen(PORT, () => {
   console.log(`mock API listening on http://localhost:${PORT}`)

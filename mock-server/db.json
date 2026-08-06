@@ -1903,31 +1903,20 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-test-msg9xr1o4",
-      "name": "test",
+      "use_case_id": "uc-uj-msh4cfrgb",
+      "name": "uj",
       "status": "draft",
       "domain_id": "industries",
-      "business_need": "gg",
+      "business_need": "uu",
       "personas": [],
       "kpis": [],
       "sources": [],
       "hero_questions": [],
       "citations": "required",
-      "answer_formats": [
-        {
-          "format_id": "volume-rollup",
-          "name": "Volume rollup",
-          "format": "scalar + grouped table"
-        },
-        {
-          "format_id": "compliance",
-          "name": "Compliance",
-          "format": "scalar + exception table"
-        }
-      ],
+      "answer_formats": [],
       "gap_decisions": [],
-      "step": 7,
-      "updated_at": "2026-08-05T16:01:23.485Z"
+      "step": 2,
+      "updated_at": "2026-08-06T06:12:52.359Z"
     }
   ],
   "graph_personas": [

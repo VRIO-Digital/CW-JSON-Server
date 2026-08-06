@@ -214,3 +214,47 @@ against a stale server on port 4000.
 **Guard** — *documented*: when a suite fails, check the assertion and the
 environment before changing the code. Report which it was — a fixed test that
 was never broken hides a real defect.
+
+---
+
+## A stale server's old shape read as a schema bug
+
+**Symptom** — saving in the New Graph wizard failed with `use_case.personas
+should be an array, got undefined; use_case.kpis …; (+3 more)` — seven fields
+undefined at once. The message points at the schema, so the hunt starts in
+`client.ts` and `savedUseCase`, both of which were correct.
+
+**Root cause** — the mock server process had been started before the commit that
+added the step 2–7 fields, and `db.json` is read once at startup: the file on
+disk was current, the process answering was not. `GET /graph-use-cases` returned
+only the eight original keys.
+
+**Fix** — restart `npm run mock`. No code was wrong.
+
+**The worse half.** Every save also wrote that stale document back, so
+`db.json` silently lost `graph_personas`, `graph_kpis`, `graph_hero_questions`
+and `graph_answer_formats` — four keys no route the user touched had anything to
+do with. `commitDb`'s `validateDb` is exactly the guard against this, and it
+works going forward; it could not fire here because the running process predated
+the keys and so did its copy of the required list. `npm run check-docs` caught
+the loss, and the keys were restored from `git show HEAD:mock-server/db.json`.
+**A stale server is a data-loss bug, not just a display bug** — kill it before
+saving anything else.
+
+Restarting onto the damaged file then failed a second way: the new process
+booted fine and only broke inside a route (`Cannot read properties of undefined
+(reading 'map')` from `/graph-personas/suggest`), because nothing validated the
+document at startup.
+
+**Second guard** — *mechanical* (`server.mjs`, before `server.listen`):
+`validateDb(db)` runs at startup and the server **refuses to boot** on a
+document the routes cannot serve, listing the missing keys and the restore
+command. A write was already guarded; a boot was not.
+
+**Guard** — *diagnostic* (`assertCurrentUseCaseShape` in `client.ts`): when a use
+case carries **none** of the seven newer fields, the client throws
+"…predates steps 2–7 … restart it: npm run mock" instead of listing the fields.
+It fires on both `listUseCases` and `saveUseCase`. The check must live in the
+client — a server running old code cannot warn that it is running old code. It
+only triggers when *every* newer field is absent, so a genuine one-field bug
+still gets the field name rather than being blamed on the server's age.

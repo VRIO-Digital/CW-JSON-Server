@@ -44,9 +44,15 @@ export interface OAuthStart {
   scopes: string[]
 }
 
+/**
+ * The consent, and only the consent. What the account can *see* is a second
+ * call spent with `session` — the same shape a real handshake has, and what
+ * gives the wizard a discovery stage backed by a real request.
+ */
 export interface OAuthCallback {
   account: GoogleAccount
-  projects: GcpProject[]
+  session: string
+  provider: OAuthProvider
 }
 
 /* ---------------- Connect a Drive source ---------------- */
@@ -60,10 +66,8 @@ export interface DriveInfo {
   credential_handle: string | null
 }
 
-export interface DriveOAuthCallback {
-  account: GoogleAccount
-  drives: DriveInfo[]
-}
+/** Drive's twin of `OAuthCallback` — its drives come from `/oauth/drives`. */
+export type DriveOAuthCallback = OAuthCallback
 
 export interface PreviewFolder {
   folder_id: string
@@ -1188,8 +1192,8 @@ const DRIVE_PREVIEW_PAYLOAD = shape({
   ),
 })
 
-const DRIVE_OAUTH_CALLBACK_PAYLOAD = shape({
-  account: shape({ email: str, name: str }),
+/** The drives a session can read — the twin of OAUTH_PROJECTS_PAYLOAD. */
+const OAUTH_DRIVES_PAYLOAD = shape({
   drives: arrayOf(
     shape({
       drive_id: str,
@@ -1200,6 +1204,7 @@ const DRIVE_OAUTH_CALLBACK_PAYLOAD = shape({
       credential_handle: nullable(str),
     }),
   ),
+  drive_count: num,
 })
 
 const DRIVE_FOLDERS_PAYLOAD = shape({
@@ -1211,6 +1216,11 @@ const DRIVE_FOLDERS_PAYLOAD = shape({
 
 const OAUTH_CALLBACK_PAYLOAD = shape({
   account: shape({ email: str, name: str }),
+  session: str,
+  provider: oneOf(['bigquery', 'drive']),
+})
+
+const OAUTH_PROJECTS_PAYLOAD = shape({
   projects: arrayOf(
     shape({
       project_id: str,
@@ -1220,6 +1230,7 @@ const OAUTH_CALLBACK_PAYLOAD = shape({
       credential_handle: nullable(str),
     }),
   ),
+  project_count: num,
 })
 
 const DB_PAYLOAD = shape({
@@ -1243,8 +1254,9 @@ export class ApiError extends Error {
   }
 }
 
+// No backticks: this is shown in a toast, where they render as characters.
 const UNREACHABLE =
-  'Cannot reach the JSON server. Start it with `npm run mock` (port 4000).'
+  'Cannot reach the mock server. Start it with npm run mock (port 4000), then try again.'
 
 async function request<T>(
   path: string,
@@ -1282,7 +1294,7 @@ export async function oauthCallback(state: string): Promise<OAuthCallback> {
   const raw = await request<unknown>(
     `/sources/oauth/callback?state=${encodeURIComponent(state)}&provider=bigquery`,
   )
-  return validate<OAuthCallback>("The Google sign-in result", raw, OAUTH_CALLBACK_PAYLOAD)
+  return validate<OAuthCallback>('The Google sign-in result', raw, OAUTH_CALLBACK_PAYLOAD)
 }
 
 export async function driveOauthCallback(state: string): Promise<DriveOAuthCallback> {
@@ -1292,8 +1304,32 @@ export async function driveOauthCallback(state: string): Promise<DriveOAuthCallb
   return validate<DriveOAuthCallback>(
     'The Google Drive sign-in result',
     raw,
-    DRIVE_OAUTH_CALLBACK_PAYLOAD,
+    OAUTH_CALLBACK_PAYLOAD,
   )
+}
+
+/** Spends the session on what the account can see. Twin: `listOauthDrives`. */
+export async function listOauthProjects(session: string): Promise<GcpProject[]> {
+  const raw = await request<unknown>(
+    `/sources/oauth/projects?session=${encodeURIComponent(session)}`,
+  )
+  return validate<{ projects: GcpProject[] }>(
+    'The projects this account can read',
+    raw,
+    OAUTH_PROJECTS_PAYLOAD,
+  ).projects
+}
+
+/** Twin of `listOauthProjects`. */
+export async function listOauthDrives(session: string): Promise<DriveInfo[]> {
+  const raw = await request<unknown>(
+    `/sources/oauth/drives?session=${encodeURIComponent(session)}`,
+  )
+  return validate<{ drives: DriveInfo[] }>(
+    'The drives this account can read',
+    raw,
+    OAUTH_DRIVES_PAYLOAD,
+  ).drives
 }
 
 export async function previewSource(
@@ -1597,6 +1633,41 @@ interface RawUseCase {
   updated_at: string | null
 }
 
+/** The fields steps 2–7 added. A server older than them answers with none. */
+const USE_CASE_STEP_FIELDS = [
+  'personas',
+  'kpis',
+  'sources',
+  'hero_questions',
+  'citations',
+  'answer_formats',
+  'gap_decisions',
+] as const
+
+/*
+ * A use case carrying none of the step 2–7 fields is not a malformed payload —
+ * it is a mock server that started before those fields existed and is still
+ * answering with the old shape. Seven "should be an array, got undefined" lines
+ * describe the symptom and send you reading the schema; this names the cause and
+ * the one-line fix. The check has to live here because a stale server cannot
+ * warn about itself.
+ */
+function assertCurrentUseCaseShape(raw: unknown) {
+  if (raw === null || typeof raw !== 'object') return
+  const u = raw as Record<string, unknown>
+  // Only judge something that really is a use case, and only when *every* newer
+  // field is absent — one missing field is a genuine bug worth the field names.
+  if (typeof u.use_case_id !== 'string') return
+  if (!USE_CASE_STEP_FIELDS.every((field) => u[field] === undefined)) return
+
+  throw new Error(
+    'The mock server is running an older version of this app, so a saved use ' +
+      'case came back without its personas, KPIs, sources, questions or answer ' +
+      'settings. Restart it with npm run mock and try again — nothing you ' +
+      'entered has been lost.',
+  )
+}
+
 const toUseCase = (u: RawUseCase): GraphUseCase => ({
   useCaseId: u.use_case_id,
   name: u.name,
@@ -1650,13 +1721,18 @@ export async function listGraphDomains(): Promise<GraphDomainsPayload> {
 }
 
 export async function listUseCases(): Promise<UseCasesPayload> {
+  const payload = await request<unknown>('/graph-use-cases')
+  // Before the field-by-field check, so a stale server is named as such.
+  const first = (payload as { use_cases?: unknown[] } | null)?.use_cases?.[0]
+  assertCurrentUseCaseShape(first)
+
   const raw = validate<{
     use_cases: RawUseCase[]
     count: number
     draft_count: number
     committed_count: number
     steps: string[]
-  }>('The saved use cases', await request<unknown>('/graph-use-cases'), USE_CASES_PAYLOAD)
+  }>('The saved use cases', payload, USE_CASES_PAYLOAD)
 
   return {
     useCases: raw.use_cases.map(toUseCase),
@@ -1959,6 +2035,7 @@ export async function saveUseCase(input: {
       status: input.status,
     },
   })
+  assertCurrentUseCaseShape((payload as { use_case?: unknown } | null)?.use_case)
   return toUseCase(
     validate<{ use_case: RawUseCase }>(
       'The saved use case',

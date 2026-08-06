@@ -12,8 +12,10 @@ import { ValidationError } from '../api/validate'
 export function toMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message
   if (error instanceof ValidationError) return error.message
-  if (error instanceof Error) return error.message
-  return 'Something went wrong.'
+  // A thrown Error with an empty message would show an empty toast, which reads
+  // as the app doing nothing at all.
+  if (error instanceof Error && error.message.trim()) return error.message
+  return 'Something went wrong. Try again — if it keeps happening, restart the mock server (npm run mock).'
 }
 
 /** Actions report back rather than throwing, so callers need no try/catch. */

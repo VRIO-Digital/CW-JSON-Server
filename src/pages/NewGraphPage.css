@@ -46,6 +46,23 @@
   color: #fff;
 }
 
+/* Not unlocked yet. Muted and dashed — this is progress, not a status colour. */
+.ng-step.is-locked {
+  background: #fafbfc;
+  border-style: dashed;
+  color: #a7b0c0;
+  cursor: not-allowed;
+}
+
+.ng-step.is-locked:hover {
+  color: #a7b0c0;
+}
+
+.ng-step.is-locked .ng-step-num {
+  background: transparent;
+  color: #a7b0c0;
+}
+
 .ng-step-num {
   display: inline-flex;
   align-items: center;

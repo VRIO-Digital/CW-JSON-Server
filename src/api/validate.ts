@@ -7,13 +7,23 @@
  * render. These validators fail at the boundary instead, naming the exact path.
  */
 
-/** Raised when a response does not match its expected shape. */
+/**
+ * Raised when a response does not match its expected shape.
+ *
+ * The message is read by whoever is *using* the app, so it leads with what
+ * failed and what to do about it — "use_case.personas should be an array, got
+ * undefined" tells a user nothing they can act on. The field paths still follow,
+ * because they are what makes the cause findable, and `issues` keeps the full
+ * list when only the first few are shown.
+ */
 export class ValidationError extends Error {
   issues: string[]
 
   constructor(what: string, issues: string[]) {
     super(
-      `${what} came back in an unexpected shape: ${issues.slice(0, 4).join('; ')}` +
+      `${what} could not be read — the data did not look the way this app ` +
+        'expects. Restarting the mock server (npm run mock) usually fixes it. ' +
+        `Details: ${issues.slice(0, 4).join('; ')}` +
         (issues.length > 4 ? ` (+${issues.length - 4} more)` : ''),
     )
     this.name = 'ValidationError'

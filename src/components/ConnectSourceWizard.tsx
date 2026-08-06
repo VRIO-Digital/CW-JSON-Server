@@ -24,8 +24,9 @@ import {
 } from 'antd'
 import { useState } from 'react'
 import {
-  ApiError,
   driveOauthCallback,
+  listOauthDrives,
+  listOauthProjects,
   oauthCallback,
   oauthStart,
   previewDrive,
@@ -47,6 +48,8 @@ import {
   type Connector,
   type ConnectorField,
 } from '../data/connectors'
+import GoogleConsentPanel from './GoogleConsentPanel'
+import { toMessage } from '../store/asyncState'
 import { BRAND, BRAND_SOFT } from '../theme'
 import './ConnectSourceModal.css'
 
@@ -141,6 +144,8 @@ export default function ConnectSourceWizard({
   const [credentialHandle, setCredentialHandle] = useState('')
   const [allowlistText, setAllowlistText] = useState('')
   const [busy, setBusy] = useState<'login' | 'preview' | 'finish' | null>(null)
+  /** Which consent stage is in flight while `busy === 'login'`. */
+  const [loginStage, setLoginStage] = useState(0)
 
   // ---- BigQuery test & finish state ----
   const [preview, setPreview] = useState<PreviewResult | null>(null)
@@ -162,8 +167,9 @@ export default function ConnectSourceWizard({
   /** Both real connectors run the bespoke consent → preview → finish path. */
   const isGoogle = isBigQuery || isDrive
 
-  const fail = (err: unknown) =>
-    message.error(err instanceof ApiError ? err.message : 'Unexpected error')
+  // `toMessage` already tells a validation failure, a network failure and the
+  // server's own wording apart; "Unexpected error" told the user none of them.
+  const fail = (err: unknown) => message.error(toMessage(err))
 
   function pick(connector: Connector) {
     if (connector.available) {
@@ -178,26 +184,37 @@ export default function ConnectSourceWizard({
 
   async function loginWithGoogle() {
     setBusy('login')
+    // Stage 0 is the call already in flight, not a countdown — each one moves
+    // only when its request comes back, so the panel cannot claim progress the
+    // handshake has not made.
+    setLoginStage(0)
     try {
       // The consent is scoped to the connector, so the state is issued for it.
       const start = await oauthStart(isDrive ? 'drive' : 'bigquery')
+      setLoginStage(1)
       if (isDrive) {
-        const result = await driveOauthCallback(start.state)
-        setAccount(result.account)
-        setDrives(result.drives)
-        const first = result.drives[0]
-        if (first) selectDrive(first.drive_id, result.drives)
+        // The consent says who signed in; the session says what they can see.
+        const granted = await driveOauthCallback(start.state)
+        setAccount(granted.account)
+        setLoginStage(2)
+        const readable = await listOauthDrives(granted.session)
+        setDrives(readable)
+        const first = readable[0]
+        if (first) selectDrive(first.drive_id, readable)
       } else {
-        const result = await oauthCallback(start.state)
-        setAccount(result.account)
-        setProjects(result.projects)
-        const first = result.projects[0]
-        if (first) selectProject(first.project_id, result.projects)
+        const granted = await oauthCallback(start.state)
+        setAccount(granted.account)
+        setLoginStage(2)
+        const readable = await listOauthProjects(granted.session)
+        setProjects(readable)
+        const first = readable[0]
+        if (first) selectProject(first.project_id, readable)
       }
     } catch (err) {
       fail(err)
     } finally {
       setBusy(null)
+      setLoginStage(0)
     }
   }
 
@@ -438,11 +455,16 @@ export default function ConnectSourceWizard({
             type="primary"
             icon={<GoogleOutlined />}
             loading={busy === 'login'}
+            disabled={busy === 'login'}
             onClick={loginWithGoogle}
             style={{ marginBottom: 16 }}
           >
-            Login with Google
+            {busy === 'login' ? 'Signing in…' : 'Login with Google'}
           </Button>
+
+          {busy === 'login' ? (
+            <GoogleConsentPanel provider="bigquery" stage={loginStage} />
+          ) : null}
 
           {account ? (
             <Alert
@@ -451,7 +473,8 @@ export default function ConnectSourceWizard({
               style={{ marginBottom: 16 }}
               title={
                 <span>
-                  Connected as <strong>{account.email}</strong>
+                  Connected as <strong>{account.email}</strong> — read-only
+                  access to {projects.length} project(s)
                 </span>
               }
             />
@@ -546,11 +569,16 @@ export default function ConnectSourceWizard({
             type="primary"
             icon={<GoogleOutlined />}
             loading={busy === 'login'}
+            disabled={busy === 'login'}
             onClick={loginWithGoogle}
             style={{ marginBottom: 16 }}
           >
-            Login with Google
+            {busy === 'login' ? 'Signing in…' : 'Login with Google'}
           </Button>
+
+          {busy === 'login' ? (
+            <GoogleConsentPanel provider="drive" stage={loginStage} />
+          ) : null}
 
           {account ? (
             <Alert
@@ -559,7 +587,8 @@ export default function ConnectSourceWizard({
               style={{ marginBottom: 16 }}
               title={
                 <span>
-                  Connected as <strong>{account.email}</strong>
+                  Connected as <strong>{account.email}</strong> — read-only
+                  access to {drives.length} drive(s)
                 </span>
               }
             />

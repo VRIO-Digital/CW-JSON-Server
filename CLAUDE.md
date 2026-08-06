@@ -76,6 +76,10 @@ Consequences worth knowing before debugging:
   source. A server started before a shape change keeps answering with the old
   fields — `listSources` has a targeted check for exactly this that tells you to
   restart, because the symptom is otherwise blank ids and `Invalid Date`.
+- **`validateDb` runs at startup too, and the server refuses to boot when it
+  fails** — naming the missing keys and the restore command. A document a stale
+  process wrote back can be missing keys no route touched, and without this the
+  first symptom is `undefined is not a function` deep inside a route.
 - `PUT /db` writes via temp-file + rename, then mutates the in-memory `db` in
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
@@ -129,6 +133,14 @@ Three things the mirror deliberately does *not* make identical:
   `/sources/oauth/start?provider=bigquery|drive` issues a state remembered *with*
   its provider, and the callback rejects a state replayed against the other one.
   Drive asks for `drive.metadata.readonly`, BigQuery for `bigquery.readonly`.
+  The callback returns the account and a **session**; what that account can see
+  is a second call (`/sources/oauth/projects` / `/sources/oauth/drives` — twins,
+  each refusing the other's session). All three are **paced**
+  (`CONSENT_START_MS`, `CONSENT_MS`, `DISCOVERY_MS` ≈ 3.1s) and
+  `GoogleConsentPanel` shows a stage per call, naming the scope — signing in is
+  not instant or silent, for the same reason a model call is not. Errors are
+  never paced. **A stage advances when its request returns, not on a timer** —
+  so add a stage only when there is a call behind it.
 - **The document dictionary reviews files, not fields.** Its facets count
   *documents* (`pii` means "holds at least one PII entity"), and the editable note
   is the document's `summary` via `PATCH /sources/:id/documents` — extracted
@@ -164,6 +176,16 @@ requirements, Entities & relationships — over `NewGraphPage.tsx` → `graphSto
 → `/graph-domains`, `/graph-personas/suggest`, `/graph-kpis/suggest`,
 `/graph-sources`, `/graph-questions/suggest`, `/graph-answer-formats/suggest`, `/graph-coverage` and `/graph-use-cases`.
 **All seven steps are built.**
+
+**Steps unlock in order, and one function decides it.** `stepIssue(step, draft)`
+in `src/data/wizardSteps.ts` is the only definition of "this step is complete" —
+`Next`, the stepper's lock and step 7's build button all read it, so they cannot
+disagree. A step past `maxStep` renders locked but stays clickable, and says what
+is missing. Back is always free; jumping forward re-checks the steps in between,
+because an answer can be deleted after it was given. Add a new step's rule there,
+not in the page. Server-side only step 1's domain is enforced (`step > 1` or a
+commit without one → 400) — a later step's rule would stop **Save draft** from
+keeping partial work.
 
 **A model call is never silent or instant.** The derivation between steps 6 and 7
 is a real async run (`POST /graph-derivations` → 202, poll by id) that reveals its
@@ -282,6 +304,14 @@ payload is reachable. Without the check it surfaces as
 with it, the message names the path (`sources[0].profiled_tables should be a
 number, got string`). **Add a schema whenever you add an endpoint.**
 
+**Every message here is read by a user, not a maintainer.** A `ValidationError`
+leads with what failed and what to do (restart the mock server), *then* the field
+paths — a toast that opens with `use_case.personas should be an array` describes
+a symptom nobody outside this repo can act on. Keep the paths: they are what
+makes the cause findable. The same rule covers `toMessage`, which never returns
+an empty string, and the server's own 400s, which are shown verbatim — so write
+those as a sentence to a user too.
+
 The client also maps the API's `snake_case` to `camelCase` for the fields the UI
 touches (`last_sync` → `lastSync`, `pass_rate` → `passRate`, `ran_at` → `ranAt`).
 The API stays snake_case; the mapping belongs in `client.ts`, not in components.
@@ -382,7 +412,10 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   `Get-NetTCPConnection -LocalPort 4000` and kill the pid before restarting.
 - **A stale mock server answers with the old shape.** Editing `server.mjs` or a
   payload shape needs a restart, which also clears every registered source. When
-  output looks impossibly wrong, check the server's age before your own code.
+  output looks impossibly wrong, check the server's age before your own code —
+  several fields `undefined` at once means the process, not the schema.
+  `assertCurrentUseCaseShape` in `client.ts` says so for use cases; the same
+  check is worth adding wherever a payload grows fields.
 - **antd v6 renamed props** — read the installed `.d.ts`; do not assume v5.
 - **Selectors must return stable references.** `data?.x ?? []` allocates every
   render and defeats downstream memos; use a module-level constant.
