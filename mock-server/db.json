@@ -1903,139 +1903,31 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-ggg-msg9v9jq3",
-      "name": "ggg",
-      "status": "committed",
-      "domain_id": "utilities",
-      "business_need": "hhh",
-      "personas": [
-        {
-          "name": "Outage Coordinator",
-          "description": "Asks what can be done inside the window without extending it.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Work order backlog age",
-          "description": "Median age of open work orders, weighted by priority.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "bigquery:context-weave-dev",
-          "mode": "subset",
-          "objects": [
-            "e_manifest.manifest_header",
-            "e_manifest.manifest_line",
-            "e_manifest.manifest_status_history",
-            "e_manifest.vw_manifest_current",
-            "em_export.export_declaration",
-            "em_export.export_shipment",
-            "em_export.export_customs_code",
-            "em_import.import_receipt",
-            "em_import.import_clearance",
-            "em_import.import_duty_line",
-            "em_pcb_info.pcb_component",
-            "em_pcb_info.pcb_hazard_class",
-            "em_pcb_info.pcb_assay_result",
-            "em_rejection.rejection_event",
-            "em_rejection.rejection_reason_code",
-            "em_transporter.transporter",
-            "em_transporter.transporter_vehicle",
-            "em_transporter.transporter_licence",
-            "em_waste_line.waste_line",
-            "em_waste_line.waste_category",
-            "em_waste_line.waste_treatment_method",
-            "epa_dataset.epa_facility",
-            "epa_dataset.epa_permit",
-            "epa_dataset.epa_naics_lookup",
-            "epa_echo.echo_enforcement_action",
-            "epa_echo.echo_violation",
-            "epa_echo.echo_inspection"
-          ]
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "What can be completed inside the next outage window without extending it?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "citations": "required",
-      "answer_formats": [
-        {
-          "format_id": "cost-drivers",
-          "name": "Cost drivers",
-          "format": "narrative + drivers table + trend"
-        }
-      ],
-      "gap_decisions": [
-        {
-          "element_id": "gap:what-can-be-completed-inside-the-next-outage-win",
-          "decision": "accept permanent"
-        }
-      ],
-      "step": 7,
-      "updated_at": "2026-08-05T15:59:56.762Z"
-    },
-    {
-      "use_case_id": "uc-fdgfdg-msg9mgvz2",
-      "name": "fdgfdg",
+      "use_case_id": "uc-test-msg9xr1o4",
+      "name": "test",
       "status": "draft",
-      "domain_id": "utilities",
-      "business_need": "g",
-      "personas": [
-        {
-          "name": "Reliability Engineer",
-          "description": "Asks why a unit keeps failing and which repairs actually held.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Unplanned outage hours",
-          "description": "Hours lost to outages that were not in the maintenance plan.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "bigquery:context-weave-dev",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "What can be completed inside the next outage window without extending it?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
+      "domain_id": "industries",
+      "business_need": "gg",
+      "personas": [],
+      "kpis": [],
+      "sources": [],
+      "hero_questions": [],
       "citations": "required",
       "answer_formats": [
         {
-          "format_id": "cost-drivers",
-          "name": "Cost drivers",
-          "format": "narrative + drivers table + trend"
+          "format_id": "volume-rollup",
+          "name": "Volume rollup",
+          "format": "scalar + grouped table"
         },
         {
-          "format_id": "reliability",
-          "name": "Reliability",
-          "format": "trend + ranked asset table"
+          "format_id": "compliance",
+          "name": "Compliance",
+          "format": "scalar + exception table"
         }
       ],
-      "gap_decisions": [
-        {
-          "element_id": "gap:what-can-be-completed-inside-the-next-outage-win",
-          "decision": "accept permanent"
-        }
-      ],
+      "gap_decisions": [],
       "step": 7,
-      "updated_at": "2026-08-05T15:55:48.227Z"
+      "updated_at": "2026-08-05T16:01:23.485Z"
     }
   ],
   "graph_personas": [
