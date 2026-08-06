@@ -37,6 +37,32 @@ docker run -p 8080:80 -e MOCK_ORIGIN=http://host.docker.internal:4000 contextwea
 at a different API is a restart, not a rebuild. Only `MOCK_*` variables are
 substituted into the nginx config, so nginx's own `$uri` and `$host` survive.
 
+`MOCK_ORIGIN` and `VITE_API_BASE` are not two names for the same thing, and
+mixing them up produces a front end that calls the wrong host with no error to
+read:
+
+- **`MOCK_ORIGIN`** is where a *proxy* forwards to — nginx here, the Vite dev
+  server locally. Runtime, so a restart picks it up.
+- **`VITE_API_BASE`** is what the *browser* asks for. Inlined at build time, so
+  it takes a rebuild.
+
+This image wants `VITE_API_BASE=/api`, because nginx is doing the stripping. But
+`npm run build` loads `.env.production`, which sets an absolute origin — for the
+other case, where the built SPA is served with no proxy in front of it and has
+to reach the API across origins itself. **Build the web image without overriding
+that and the bundle bypasses nginx entirely**, calling the absolute host from
+the browser while `MOCK_ORIGIN` sits there doing nothing.
+
+A variable already in the environment wins over the `.env` file, so the
+Dockerfile's build step is where to say so:
+
+```dockerfile
+RUN VITE_API_BASE=/api npm run build
+```
+
+Verified, not assumed: that build produces a bundle with no absolute origin in
+it, while a plain `npm run build` produces one that has it.
+
 ## Things worth knowing before debugging
 
 - **`/api` is stripped by the trailing slash on `proxy_pass`**, mirroring the

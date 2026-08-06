@@ -16,8 +16,33 @@ npm run preflight   # lint + build + audit + check-docs — run before calling w
 
 **Two processes are required.** `npm run dev` alone renders empty pages: there is no
 static fallback data anywhere in `src/`. Run `npm run mock` in a second terminal.
-On a different port, `npm run mock -- 4001` also needs the proxy target in
-`vite.config.ts` changed.
+On a different port, `npm run mock -- 4001` also needs the proxy target —
+`MOCK_ORIGIN=http://localhost:4001 npm run dev`, no file edit.
+
+### Where the API lives, per environment
+
+One variable decides it, `VITE_API_BASE`, and it is set in the `.env` files
+rather than in code — `check-docs` fails on a hardcoded origin in `client.ts`.
+
+| | `VITE_API_BASE` | How the call gets there |
+|---|---|---|
+| `npm run dev` (`.env.development`) | `/api` | the Vite proxy strips `/api` → `MOCK_ORIGIN`, default `localhost:4000` |
+| `npm run build` (`.env.production`) | `http://44.203.214.206:4000` | called directly, cross-origin |
+| behind nginx (`deploy/`) | `/api` | `proxy_pass` strips it → `MOCK_ORIGIN` |
+
+**Local is the default at every layer**, so a fresh clone needs no environment
+set up. Unset `VITE_API_BASE` falls back to `/api`, which is why the deployed
+origin lives in `.env.production` only and why deleting that file breaks the
+production build without breaking development.
+
+Two things the direct cross-origin call depends on, both already true: the mock
+server sends `access-control-allow-origin: *` on every response including the
+`OPTIONS` preflight, and the deployed server answers on **4000, not 80**. It is
+also plain HTTP — an `https://` page cannot call it at all, so serving the SPA
+over TLS means putting a proxy in front and setting `VITE_API_BASE=/api`.
+
+`VITE_*` variables are inlined into the bundle at build time. Changing one is a
+rebuild, not a restart, and none of them can ever hold a secret.
 
 `docker compose up --build` runs both in containers instead — nginx serves the
 built SPA on `:8080` and takes over the two jobs the dev server did for free,

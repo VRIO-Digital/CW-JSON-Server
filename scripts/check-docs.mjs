@@ -205,6 +205,42 @@ expect(
       'add one in client.ts; a write answers with a shape too',
 )
 
+/* ---------------- where the API lives ---------------- */
+
+/*
+ * The API origin is per-environment, so it lives in .env.development /
+ * .env.production and nowhere else. Two ways that quietly stops being true, and
+ * both are cheap to catch:
+ *
+ *   · someone hardcodes the deployed host in client.ts to unblock themselves,
+ *     and every developer's `npm run dev` starts writing to the shared box;
+ *   · the .env files are deleted or renamed, and `VITE_API_BASE` silently
+ *     resolves to undefined — which falls back to /api, so development still
+ *     works and only the production build is broken, in a browser, later.
+ */
+for (const file of ['.env.development', '.env.production']) {
+  expect(
+    `${file} exists`,
+    existsSync(join(root, file)),
+    'VITE_API_BASE is read from it at build time',
+  )
+}
+
+expect(
+  'client.ts reads the API base from the environment',
+  /import\.meta\.env\.VITE_API_BASE/.test(client),
+  'BASE must come from VITE_API_BASE, defaulting to /api',
+)
+
+const hardcodedOrigins = [...client.matchAll(/'https?:\/\/[^']+'/g)].map((m) => m[0])
+expect(
+  'no hardcoded API origin in client.ts',
+  hardcodedOrigins.length === 0,
+  hardcodedOrigins.length === 0
+    ? 'the origin is environment-owned'
+    : `${hardcodedOrigins.join(', ')} — move it to .env.production`,
+)
+
 /* ---------------- spacing scale ---------------- */
 
 const tokens = [...indexCss.matchAll(/--sp-(\d):/g)].map((m) => Number(m[1]))

@@ -3,6 +3,16 @@
  * the /api prefix stripped, so the paths below mirror the real endpoint names.
  *
  * This is the app's only data source — start it with `npm run mock`.
+ *
+ * Where that server lives is the one thing that differs between environments,
+ * and it is decided by `VITE_API_BASE` in the .env files, never here:
+ *
+ *   development  /api                      → the Vite proxy → localhost:4000
+ *   production   http://<host>:4000        → the deployed mock server, directly
+ *
+ * Relative `/api` is the default when the variable is unset, so a build served
+ * behind a proxy that already strips /api (deploy/nginx.conf.template) keeps
+ * working untouched. Do not hardcode an origin below — check-docs fails on one.
  */
 
 import type { Stat, Tone } from '../types'
@@ -17,7 +27,9 @@ import {
   validate,
 } from './validate'
 
-const BASE = '/api'
+// The trailing slash is stripped because every path below starts with one, and
+// `${BASE}${path}` would otherwise ask for //sources.
+const BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/$/, '')
 
 /* ---------------- Connect-a-source flow ---------------- */
 
