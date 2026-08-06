@@ -103,6 +103,30 @@
   font-size: 12.5px;
 }
 
+/* Nothing saved yet — a sentence and the one action, not a blank white box. */
+.ng-uc-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px dashed #dde2ea;
+  border-radius: 10px;
+  background: #fafbfc;
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.ng-uc-empty span {
+  flex: 1 1 320px;
+}
+
+.ng-uc-empty strong {
+  color: #0f1729;
+}
+
 .ng-uc-row {
   display: flex;
   align-items: center;

@@ -258,3 +258,78 @@ It fires on both `listUseCases` and `saveUseCase`. The check must live in the
 client — a server running old code cannot warn that it is running old code. It
 only triggers when *every* newer field is absent, so a genuine one-field bug
 still gets the field name rather than being blamed on the server's age.
+
+---
+
+## A stale server dropped a *nested* key nobody was guarding
+
+**Symptom** — the `graph_studio.canvas` seed vanished from `db.json` minutes
+after it was written. `validateDb` passed, the server started fine, and only the
+missing tab gave it away.
+
+**Root cause** — the same stale-process write-back as before, one level deeper.
+`commitDb` writes the whole in-memory document, and a process started before
+`canvas` existed carries a `graph_studio` without it. `DB_SHAPE.graph_studio`
+only checked `review_items`, `generated` and `pivot`, so the write validated and
+the key was lost silently.
+
+**Fix** — re-seeded from the edit, and killed the process before it could do it
+again.
+
+**Guard** — *mechanical* (`DB_SHAPE.graph_studio` in `server.mjs`): the check now
+requires `canvas.nodes` and `canvas.edges` too, so that write is refused with a
+message naming the key. **A top-level-only shape check cannot see nested loss** —
+when a seeded section grows a sub-object the app depends on, add it to the shape
+check at the same time, or the next stale server deletes it for free.
+
+---
+
+## "published v16" named a version nobody had seen
+
+**Symptom** — the Graph Studio list showed `published v16` on a graph whose
+publish had produced **v15**. The number on screen matched nothing in the
+Versions table.
+
+**Root cause** — one field doing two jobs. `version` was `15 + publishedCount`,
+so it meant "the working draft", while `state` flipped to `published` after the
+first publish. Rendered as one tag, `{state} {version}` read as a claim about
+v16 — which is the *next* draft, not anything live.
+
+**Fix** — the summary now returns `version` (the working draft) **and**
+`last_published_version` (what is live, or null). The card and the header show
+`draft v16` beside `live v15`.
+
+**Guard** — *mechanical* (`client.ts` schema + a rendered assertion): the API
+carries both fields, and the smoke test asserts the pair after a publish —
+`version` is v16, `last_published_version` is v15, and the string
+`published v16` never appears. **Rule** — a draft version and a live version are
+two facts; one tag rendering both is how they get confused.
+
+---
+
+## Fourteen endpoints had no schema, all of them writes
+
+**Symptom** — none yet, which is the point: `CLAUDE.md` promised "add a schema
+whenever you add an endpoint", and an audit found fourteen exported fetchers
+returning payloads straight to the UI with no boundary check —
+`oauthStart`, both registrations, the generic one, `disconnectSource`,
+`deleteSource`, both allowlist updates, `listProjectDatasets`, both `profile*`
+calls, both `PATCH` note savers, `cancelProfilingJob`, `deleteUseCase` and both
+`/db` writes.
+
+**Root cause** — the rule was read as being about *reads*. Every one of the gaps
+was a write, whose result is rendered or stored just the same: a registered
+source goes into a table, a queued job goes onto the jobs board and is polled, a
+saved section re-renders the editor.
+
+**Fix** — schemas for all of them, reusing `SOURCE_ROW` and `JOB` where the shape
+already existed.
+
+**Guard** — *mechanical* (`scripts/check-docs.mjs`): an exported fetcher that
+calls `request()` must also reach `validate()`, directly or via a helper that
+does. Verified by stripping one fetcher's schema and watching `check-docs` name
+it. **A doc line could not hold this** — it had already failed to, fourteen times.
+
+**Also learned** — `nullable()` permits an absent key, not just `null`, so a
+nullable field's schema checks its type rather than its presence. Where the key
+must exist, do not make it nullable.

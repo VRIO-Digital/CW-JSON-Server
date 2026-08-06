@@ -1,0 +1,339 @@
+/*
+ * Graph Studio — the list of built graphs, and one graph's review. Spacing from
+ * the --sp-* scale only; the pivot is the one place using the crit tone,
+ * because it is the one thing that blocks the build outright.
+ */
+
+/* ---- the list of built graphs ---- */
+
+.gs-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gs-card + .gs-card {
+  margin-top: var(--sp-3);
+}
+
+.gs-card:hover {
+  border-color: #f4562b;
+}
+
+.gs-card-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.gs-card-title {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+  color: #0f1729;
+  overflow-wrap: anywhere;
+}
+
+.gs-card-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/*
+ * antd Tag ships its own right margin, which fights the flex gap and leaves
+ * uneven runs. Zero it and let one rule own the spacing — and pin the height so
+ * a row of tags reads as a row rather than as a ransom note.
+ */
+.gs-card-tags .ant-tag,
+.gs-card-right .ant-tag {
+  height: 20px;
+  margin-inline-end: 0;
+  padding-inline: var(--sp-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 11.5px;
+  line-height: 1;
+}
+
+.gs-card-note {
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.gs-card-meta {
+  color: #8994a8;
+  font-size: 12px;
+}
+
+.gs-card-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  color: #8994a8;
+  white-space: nowrap;
+}
+
+/* ---- one graph's review ---- */
+
+.gs-batch {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-5);
+}
+
+.gs-batch-bar {
+  width: 140px;
+  margin: 0;
+}
+
+.gs-batch-text {
+  color: #8994a8;
+  font-size: 12.5px;
+}
+
+.gs-memory {
+  margin-left: auto;
+}
+
+.gs-tab-count {
+  margin-inline-start: var(--sp-1);
+}
+
+/* ---- the pivot ---- */
+
+.gs-pivot {
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid #f3c6c1;
+  border-radius: 10px;
+  background: #fdf4f3;
+}
+
+.gs-pivot-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: #b42318;
+  font-size: 13.5px;
+}
+
+.gs-pivot-detail {
+  margin-top: var(--sp-2);
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.gs-pivot-options {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-top: var(--sp-3);
+}
+
+.gs-pivot-option {
+  flex: 1 1 260px;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gs-pivot-option:hover {
+  border-color: #f4562b;
+}
+
+.gs-pivot-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gs-pivot-label {
+  display: block;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #0f1729;
+}
+
+.gs-pivot-consequence {
+  display: block;
+  margin-top: var(--sp-1);
+  color: #4b5a75;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* ---- the publish gate ---- */
+
+.gs-gate {
+  margin-top: var(--sp-5);
+}
+
+/* ---- quality report ---- */
+
+.gs-check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12.5px;
+}
+
+.gs-check + .gs-check {
+  margin-top: var(--sp-2);
+}
+
+.gs-check-label {
+  font-weight: 600;
+  color: #0f1729;
+}
+
+.gs-check-detail {
+  margin-left: auto;
+  color: #8994a8;
+}
+
+/* ---- inspector ---- */
+
+.gs-inspector {
+  height: 100%;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gs-inspector-title {
+  color: #8994a8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gs-inspector-empty {
+  margin-top: var(--sp-7);
+  color: #8994a8;
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.gs-inspector-name {
+  margin-top: var(--sp-4);
+  font-weight: 600;
+  font-size: 14px;
+  color: #0f1729;
+}
+
+.gs-inspector-sub {
+  color: #8994a8;
+  font-size: 12px;
+}
+
+.gs-inspector-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-2) var(--sp-3);
+  margin: var(--sp-4) 0 0;
+  font-size: 12.5px;
+}
+
+.gs-inspector-facts dt {
+  color: #8994a8;
+}
+
+.gs-inspector-facts dd {
+  margin: 0;
+  color: #0f1729;
+}
+
+.gs-inspector-note {
+  margin: var(--sp-4) 0 var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: 8px;
+  background: #fdf6e7;
+  color: #4b5a75;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---- query & sanity-check ---- */
+
+.gs-query {
+  padding: var(--sp-5);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gs-query-hint {
+  margin-top: var(--sp-3);
+  color: #8994a8;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.gs-answer {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid #f2f4f7;
+}
+
+.gs-answer-reason {
+  margin-top: var(--sp-2);
+  color: #4b5a75;
+  font-size: 12.5px;
+}
+
+.gs-answer-path {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 8px;
+  background: #f7f8fa;
+  color: #0f1729;
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow-x: auto;
+}
+
+/* ---- quality report ---- */
+
+.gs-quality-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+
+.gs-todo {
+  padding: var(--sp-6);
+  border: 1px dashed #d8dde6;
+  border-radius: 10px;
+  background: #fafbfc;
+  color: #4b5a75;
+  font-size: 13px;
+  line-height: 1.6;
+}

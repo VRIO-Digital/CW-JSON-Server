@@ -146,6 +146,62 @@ for (const key of requiredKeys) {
   expect(`db.json has "${key}"`, dbKeys.includes(key), 'DB_SHAPE requires it')
 }
 
+/* ---------------- every response is validated ---------------- */
+
+/*
+ * CLAUDE.md promises a schema for every endpoint, and the promise was quietly
+ * broken for fourteen fetchers — mostly writes, whose results are rendered just
+ * like a read's. A doc line cannot enforce this, so the shape of the code does:
+ * an exported fetcher that calls `request<...>` must also call `validate(`.
+ *
+ * Deliberately crude — it reads each exported function/const body up to the next
+ * export. A false positive means writing the schema, which is the point.
+ */
+const client = read('src/api/client.ts')
+
+/** Every top-level declaration, exported or not, with its body. */
+const declarations = client
+  .split(/\n(?:export )?(?:async function|function|const) /)
+  .slice(1)
+  .map((chunk) => ({
+    name: chunk.match(/^(\w+)/)?.[1] ?? '(anonymous)',
+    exported: false,
+    body: chunk,
+  }))
+
+// Helpers that validate on a fetcher's behalf — `withStudio` is one. A fetcher
+// delegating to one of these is checked, just not in its own body.
+const validators = new Set(
+  declarations.filter((d) => /\bvalidate[<(]/.test(d.body)).map((d) => d.name),
+)
+
+// `request` is the transport itself — it has no shape of its own to check.
+const fetchers = declarations.filter(
+  (d) => d.name !== 'request' && /\brequest[<(]/.test(d.body),
+)
+
+expect(
+  'client fetchers are found',
+  fetchers.length > 20,
+  `${fetchers.length} fetchers call request()`,
+)
+
+const unvalidated = fetchers.filter((f) => {
+  if (/\bvalidate[<(]/.test(f.body)) return false
+  // Delegating to a helper that validates counts, as long as it is not itself.
+  return ![...validators].some(
+    (helper) => helper !== f.name && new RegExp(`\\b${helper}\\s*\\(`).test(f.body),
+  )
+})
+expect(
+  'every fetcher validates its response',
+  unvalidated.length === 0,
+  unvalidated.length === 0
+    ? `${fetchers.length} fetchers, all checked at the boundary`
+    : `no schema in: ${unvalidated.map((f) => f.name).join(', ')} — ` +
+      'add one in client.ts; a write answers with a shape too',
+)
+
 /* ---------------- spacing scale ---------------- */
 
 const tokens = [...indexCss.matchAll(/--sp-(\d):/g)].map((m) => Number(m[1]))

@@ -52,6 +52,16 @@
  *   POST   /graph-coverage                 step 7 review { name, sources, hero_questions }
  *   POST   /graph-derivations              step 6 -> 7 run; 202 + poll
  *   GET    /graph-derivations/:derivationId
+ *   GET    /graph-studio                   the graphs that have been built
+ *   GET    /graph-studio/:useCaseId        that graph's queue, pivot, gate
+ *   POST   /graph-studio/:id/decisions     { item_id, choice, justification? }
+ *   POST   /graph-studio/:id/pivot         { option_id }
+ *   GET    /graph-studio/:id/canvas        the ontology as nodes + edges
+ *   POST   /graph-studio/:id/query         { question } asked of the draft
+ *   POST   /graph-studio/:id/versions/:v/approve   sign-off on a published one
+ *   POST   /graph-studio/:id/versions/:v/activate  make it the one that serves
+ *   POST   /graph-studio/:id/quality-check checks the publish preconditions
+ *   POST   /graph-studio/:id/publish       refused while the gate is blocked
  *   GET    /graph-use-cases                saved drafts + committed use cases
  *   POST   /graph-use-cases                upsert a draft { use_case_id?, name, ... }
  *   DELETE /graph-use-cases/:useCaseId
@@ -254,6 +264,20 @@ const DB_SHAPE = {
     v.every((f) => isObject(f) && f.format_id && f.name),
   graph_use_cases: (v) =>
     Array.isArray(v) && v.every((u) => isObject(u) && u.use_case_id && u.name),
+  /*
+   * The nested keys are checked too, not just the top level. A server running
+   * since before `canvas` existed would otherwise write its stale copy back and
+   * drop it silently — a top-level-only check cannot see that, and it has
+   * already happened once.
+   */
+  graph_studio: (v) =>
+    isObject(v) &&
+    Array.isArray(v.review_items) &&
+    isObject(v.generated) &&
+    isObject(v.pivot) &&
+    isObject(v.canvas) &&
+    Array.isArray(v.canvas.nodes) &&
+    Array.isArray(v.canvas.edges),
 }
 
 const DB_HINTS = {
@@ -274,6 +298,8 @@ const DB_HINTS = {
   graph_hero_questions: 'non-empty array of { question_id, text }',
   graph_answer_formats: 'non-empty array of { format_id, name }',
   graph_use_cases: 'array of { use_case_id, name }',
+  graph_studio:
+    'object with review_items[], generated{}, pivot{}, canvas{ nodes[], edges[] }',
 }
 
 function validateDb(candidate) {
@@ -988,6 +1014,9 @@ const DRAFT_STAGES = ['Reading your brief', 'Drafting candidates', 'Ranking agai
 // Long enough for the drafting state to be seen, short enough not to annoy.
 const SUGGEST_MS = 1100
 
+/** A quality check reads as work only if it takes long enough to be work. */
+const QUALITY_CHECK_MS = 1200
+
 /** Public shape of a derivation; the coverage only lands when it completes. */
 const derivationView = (run) => ({
   derivation_id: run.derivation_id,
@@ -1135,6 +1164,442 @@ function graphSources() {
     source_count: sources.length,
     // Sources that could actually contribute — connected is not enough.
     profiled_source_count: sources.filter((s) => s.object_count > 0).length,
+  }
+}
+
+/* ---------------- Graph Studio ---------------- */
+
+/*
+ * A review pass, per built graph.
+ *
+ * Keyed by use case id, and in memory like a registered source: reviewing is a
+ * working session, not something a mock writes back over its seed. `decisions`
+ * is keyed `useCaseId:itemId` so two graphs cannot answer each other's rows.
+ */
+const studioDecisions = new Map()
+const studioPivotChoice = new Map()
+const studioPublished = new Map()
+/** Sign-off on a published version, keyed `useCaseId:version`. */
+const studioApprovals = new Map()
+/*
+ * Which published version is *serving*, keyed by use case. Publishing sets it,
+ * and activating an older one moves it — so "latest" and "live" are not the
+ * same thing, and a rollback is expressible.
+ */
+const studioLive = new Map()
+
+const FLOORS = ['schema-changing', 'causal', 'new entity type']
+
+/**
+ * The version currently serving.
+ *
+ * Defaults to the newest published, because that is what publishing just did —
+ * but once someone activates an older one, that choice stands until they change
+ * it again. Returns null before anything is published.
+ */
+function liveVersion(useCaseId) {
+  const published = studioPublished.get(useCaseId) ?? []
+  if (published.length === 0) return null
+  const chosen = studioLive.get(useCaseId)
+  return chosen && published.some((v) => v.version === chosen)
+    ? chosen
+    : published[0].version
+}
+
+/** A graph is in the studio once it has been built — committed on step 7. */
+const builtGraphs = () =>
+  db.graph_use_cases.filter((u) => u.status === 'committed')
+
+/*
+ * The queue for one graph.
+ *
+ * db.json carries the four evidence-rich rows and each bucket's total; the rest
+ * are synthesised here the way `tableDictionary` synthesises columns — sliced by
+ * a hash that includes the **use case id**, so every built graph gets its own
+ * queue and repeat requests agree. Confidence is generated inside each bucket's
+ * band, because the cards promise "0.85–0.95" and "≥0.95" and a card must not
+ * lie about its own filter.
+ */
+function studioItems(useCaseId, bucket, total, authored = []) {
+  const { subjects, predicates } = db.graph_studio.generated
+  const items = [...authored]
+
+  for (let i = authored.length; i < total; i += 1) {
+    const seed = hash(`${useCaseId}:${bucket}:${i}`)
+    const subjectIndex = seed % subjects.length
+    // A relationship to itself reads as a bug in the deriver, so the object is
+    // nudged along rather than skipped — skipping would return fewer rows than
+    // the count on the card promises.
+    let objectIndex = (seed >> 7) % subjects.length
+    if (objectIndex === subjectIndex) objectIndex = (objectIndex + 1) % subjects.length
+
+    const spread = (seed >> 11) % 100
+    const confidence =
+      bucket === 'auto_approved'
+        ? 0.95 + spread / 2000
+        : bucket === 'confirmed'
+          ? 0.85 + spread / 1000
+          : 0.7 + spread / 700
+
+    const floor = bucket === 'must_review' ? FLOORS[seed % FLOORS.length] : null
+    items.push({
+      item_id: `rv-${bucket}-${i}`,
+      kind: 'relationship',
+      title: `${subjects[subjectIndex]} → ${predicates[(seed >> 3) % predicates.length]} → ${subjects[objectIndex]}`,
+      detail:
+        `L/S/T match — lexical ${(0.7 + ((seed >> 2) % 30) / 100).toFixed(2)} · ` +
+        `structural ${(0.6 + ((seed >> 5) % 35) / 100).toFixed(2)} · ` +
+        `evidence: the join holds on ${(80 + ((seed >> 9) % 20)).toFixed(1)}% of sampled rows.`,
+      confidence: Number(confidence.toFixed(2)),
+      floor,
+      action_set: 'standard',
+      justification: floor === 'schema-changing',
+    })
+  }
+  return items
+}
+
+const withDecision = (useCaseId) => (item) => ({
+  ...item,
+  floor: item.floor ?? null,
+  decision: studioDecisions.get(`${useCaseId}:${item.item_id}`) ?? null,
+})
+
+/** How far along one graph's review is — the row in the studio's list. */
+function studioSummary(useCase) {
+  const gen = db.graph_studio.generated
+  const outstanding = studioItems(
+    useCase.use_case_id,
+    'must_review',
+    gen.must_review_total,
+    db.graph_studio.review_items,
+  ).filter((i) => !studioDecisions.get(`${useCase.use_case_id}:${i.item_id}`)).length
+  const pivotOpen = !studioPivotChoice.has(useCase.use_case_id)
+  const published = studioPublished.get(useCase.use_case_id) ?? []
+
+  return {
+    use_case_id: useCase.use_case_id,
+    name: useCase.name,
+    domain_id: useCase.domain_id ?? null,
+    business_need: useCase.business_need ?? '',
+    /*
+     * `version` is the *working draft* — what the Publish button would make
+     * live. What is serving is a separate fact: after publishing v15 the draft
+     * becomes v16, and reporting that as "published v16" would name a version
+     * nobody has ever seen. It is also not simply the newest — an older
+     * approved version can be activated.
+     */
+    version: `v${15 + published.length}`,
+    live_version: liveVersion(useCase.use_case_id)
+      ? `v${liveVersion(useCase.use_case_id)}`
+      : null,
+    // "draft" until something has been published from this graph.
+    state: published.length > 0 ? 'published' : 'draft',
+    queue_count: outstanding + (pivotOpen ? 1 : 0),
+    must_review_outstanding: outstanding,
+    must_review_count: gen.must_review_total,
+    published_count: published.length,
+    built_at: useCase.updated_at ?? null,
+  }
+}
+
+/** Everything one graph's studio page reads. */
+function graphStudio(useCase) {
+  const studio = db.graph_studio
+  const gen = studio.generated
+  const id = useCase.use_case_id
+  const decorate = withDecision(id)
+
+  const mustReview = studioItems(
+    id,
+    'must_review',
+    gen.must_review_total,
+    studio.review_items,
+  ).map(decorate)
+  const confirmed = studioItems(id, 'confirmed', gen.sample_size).map(decorate)
+  const autoApproved = studioItems(id, 'auto_approved', gen.sample_size).map(decorate)
+
+  const outstanding = mustReview.filter((i) => !i.decision).length
+  const pivotOpen = !studioPivotChoice.has(id)
+  const published = studioPublished.get(id) ?? []
+
+  /*
+   * The pivot is a *separate* precondition from the queue. Clearing every row
+   * still leaves publish blocked while it is open, because settling it changes
+   * what the rows already decided mean.
+   */
+  const reasons = []
+  if (outstanding > 0) {
+    reasons.push(`${outstanding} must-review relationship(s) unresolved`)
+  }
+  if (pivotOpen) {
+    reasons.push(
+      `1 pivot decision open (${studio.pivot.pivot_id} / ${studio.pivot.alternative_id})`,
+    )
+  }
+
+  const decided = mustReview.length - outstanding
+
+  return {
+    ...studioSummary(useCase),
+    graph_name: useCase.name,
+    status: 'draft',
+    decision_memory: 'synced',
+
+    must_review: mustReview,
+    must_review_count: mustReview.length,
+    must_review_outstanding: outstanding,
+
+    // A sample, and named one: these buckets are spot-checked, not listed.
+    confirmed_sample: confirmed,
+    confirmed_count: gen.confirmed_total,
+    auto_approved_sample: autoApproved,
+    auto_approved_count: gen.auto_approved_total,
+
+    pivot: { ...studio.pivot, open: pivotOpen, chosen: studioPivotChoice.get(id) ?? null },
+    pivot_count: pivotOpen ? 1 : 0,
+
+    batch_resolved: decided + (pivotOpen ? 0 : 1),
+    batch_total: gen.must_review_total + 1 + gen.spot_check_quota,
+
+    publish: {
+      blocked: reasons.length > 0,
+      reasons,
+      explanation:
+        'The pivot is a separate precondition from the queue — resolving every row still leaves publish blocked while an entity-resolution pivot is open, because a pivot changes what the other decisions mean.',
+    },
+
+    /*
+     * Publishing and approving are two acts. A published version is live; an
+     * approved one has been signed off by a human who was not the publisher's
+     * automation — so the approval is carried beside it, never folded in.
+     */
+    versions: published.map((v) => ({
+      ...v,
+      approval: studioApprovals.get(`${id}:${v.version}`) ?? null,
+      // Exactly one row is live, and the table says which — "newest" is a
+      // guess once rollback exists.
+      is_live: v.version === liveVersion(id),
+    })),
+  }
+}
+
+/**
+ * Resolves the `:useCaseId` in a studio path.
+ *
+ * A draft is refused rather than 404'd: "not built yet" is a different problem
+ * from "no such graph", and only one of them is fixed by finishing the wizard.
+ */
+function findBuiltGraph(useCaseId) {
+  const useCase = db.graph_use_cases.find((u) => u.use_case_id === useCaseId)
+  if (!useCase) return { error: `no graph ${useCaseId}`, status: 404 }
+  if (useCase.status !== 'committed') {
+    return {
+      error: `${useCase.name} has not been built yet — finish it in New Graph and use "Save & build graph"`,
+      status: 400,
+    }
+  }
+  return { useCase }
+}
+
+/* ---------------- The canvas ---------------- */
+
+/**
+ * The ontology as the canvas draws it.
+ *
+ * A node or edge carrying a `review_item_id` is **proposed until that item is
+ * decided** — which is what makes the canvas and the review queue the same
+ * truth rather than two pictures. Approving the Contractor row turns its node
+ * from proposed to confirmed; correcting it marks the node studio-authored,
+ * because a corrected element is no longer purely what the deriver produced.
+ */
+function studioCanvas(useCaseId, answerPath = []) {
+  const decisionFor = (id) =>
+    id ? (studioDecisions.get(`${useCaseId}:${id}`) ?? null) : null
+
+  const state = (reviewItemId) => {
+    if (!reviewItemId) return { proposed: false, origin: 'derived' }
+    const decision = decisionFor(reviewItemId)
+    if (!decision) return { proposed: true, origin: 'derived' }
+    return {
+      proposed: false,
+      // A corrected element is the studio's, not the deriver's.
+      origin: decision.choice === 'correct' ? 'studio-authored' : 'derived',
+      rejected: decision.choice === 'reject',
+    }
+  }
+
+  const nodes = db.graph_studio.canvas.nodes.map((n) => {
+    const s = state(n.review_item_id)
+    return {
+      node_id: n.node_id,
+      label: n.label,
+      // A proposed node says so, and says how sure the deriver was.
+      sublabel: s.proposed ? `proposed · ${n.confidence.toFixed(2)}` : n.sublabel,
+      group: n.group,
+      confidence: n.confidence,
+      proposed: s.proposed,
+      origin: s.origin,
+      rejected: Boolean(s.rejected),
+      needs_review: s.proposed,
+      review_item_id: n.review_item_id ?? null,
+      on_answer_path: answerPath.includes(n.node_id),
+      x: n.x,
+      y: n.y,
+    }
+  })
+
+  const edges = db.graph_studio.canvas.edges.map((e) => {
+    const s = state(e.review_item_id)
+    return {
+      from: e.from,
+      to: e.to,
+      label: s.proposed ? `${e.label} · proposed` : e.label,
+      proposed: s.proposed,
+      review_item_id: e.review_item_id ?? null,
+      on_answer_path:
+        answerPath.includes(e.from) && answerPath.includes(e.to),
+    }
+  })
+
+  return {
+    nodes,
+    edges,
+    node_count: nodes.length,
+    edge_count: edges.length,
+    // The filter chips are counts, so an empty filter is an empty *result*,
+    // not a broken chip.
+    facets: {
+      all: nodes.length,
+      low_confidence: nodes.filter((n) => n.confidence < 0.85).length,
+      needs_review: nodes.filter((n) => n.needs_review).length,
+      studio_authored: nodes.filter((n) => n.origin === 'studio-authored').length,
+    },
+  }
+}
+
+/**
+ * Answering a question against the *draft* graph.
+ *
+ * There is no engine here, so the answer is derived the way a reader would
+ * expect one to be: the entities named in the question are matched to nodes,
+ * and the path between them is walked over the edges that actually exist. A
+ * question whose entities are not both in the graph is **not answerable**, and
+ * says which one is missing — that is the sanity check, and a mock that always
+ * answers would be worth nothing.
+ */
+function studioQuery(useCaseId, question) {
+  const canvas = studioCanvas(useCaseId)
+  const asked = String(question).toLowerCase()
+
+  /*
+   * Matched on the whole label, or on a word that belongs to only one node.
+   *
+   * A bare shared word is not a match: "work order" would otherwise also hit
+   * Change Order on "order", and the query would answer about a pair the user
+   * never asked about — a wrong answer delivered confidently, which is worse
+   * here than no answer.
+   */
+  const wordsOf = (label) =>
+    label.toLowerCase().split(/[^a-z0-9#]+/).filter((w) => w.length > 2)
+
+  const seenIn = new Map()
+  for (const n of canvas.nodes) {
+    for (const w of new Set(wordsOf(n.label))) {
+      seenIn.set(w, (seenIn.get(w) ?? 0) + 1)
+    }
+  }
+
+  const matched = canvas.nodes.filter((n) => {
+    if (asked.includes(n.label.toLowerCase())) return true
+    return wordsOf(n.label).some((w) => seenIn.get(w) === 1 && asked.includes(w))
+  })
+
+  if (matched.length < 2) {
+    return {
+      question,
+      answerable: false,
+      reason:
+        matched.length === 0
+          ? 'No entity in this graph is named in the question.'
+          : `Only ${matched[0].label} is named — a question needs two things to relate.`,
+      matched: matched.map((n) => n.label),
+      path: [],
+      edges_used: [],
+      hops: 0,
+      caveats: [],
+    }
+  }
+
+  // Breadth-first between the first two matches, over the edges that exist.
+  const [start, goal] = matched
+  const neighbours = new Map()
+  for (const e of canvas.edges) {
+    if (!neighbours.has(e.from)) neighbours.set(e.from, [])
+    if (!neighbours.has(e.to)) neighbours.set(e.to, [])
+    neighbours.get(e.from).push({ to: e.to, edge: e })
+    neighbours.get(e.to).push({ to: e.from, edge: e })
+  }
+
+  const queue = [[start.node_id]]
+  const seen = new Set([start.node_id])
+  let path = null
+  while (queue.length > 0 && !path) {
+    const here = queue.shift()
+    const last = here[here.length - 1]
+    if (last === goal.node_id) {
+      path = here
+      break
+    }
+    for (const step of neighbours.get(last) ?? []) {
+      if (seen.has(step.to)) continue
+      seen.add(step.to)
+      queue.push([...here, step.to])
+    }
+  }
+
+  if (!path) {
+    return {
+      question,
+      answerable: false,
+      reason: `${start.label} and ${goal.label} are both in the graph, but nothing connects them yet.`,
+      matched: matched.map((n) => n.label),
+      path: [],
+      edges_used: [],
+      hops: 0,
+      caveats: [],
+    }
+  }
+
+  const edgesUsed = []
+  for (let i = 0; i < path.length - 1; i += 1) {
+    const edge = canvas.edges.find(
+      (e) =>
+        (e.from === path[i] && e.to === path[i + 1]) ||
+        (e.to === path[i] && e.from === path[i + 1]),
+    )
+    if (edge) edgesUsed.push(edge)
+  }
+
+  const label = (id) => canvas.nodes.find((n) => n.node_id === id)?.label ?? id
+  /*
+   * An answer that leans on an undecided edge is answerable *and* provisional.
+   * Saying so is the point — publishing would change the answer.
+   */
+  const caveats = edgesUsed
+    .filter((e) => e.proposed)
+    .map((e) => `${label(e.from)} → ${e.label} → ${label(e.to)} is still under review`)
+
+  return {
+    question,
+    answerable: true,
+    reason: `Answered over ${edgesUsed.length} relationship(s) that exist in the draft.`,
+    matched: matched.map((n) => n.label),
+    path,
+    path_labels: path.map(label),
+    edges_used: edgesUsed.map((e) => ({ from: e.from, to: e.to, label: e.label })),
+    hops: edgesUsed.length,
+    caveats,
   }
 }
 
@@ -2403,6 +2868,312 @@ const routes = [
     method: 'GET',
     match: (p) => p === '/graph-sources',
     handle: (_req, res) => send(res, 200, graphSources()),
+  },
+
+  /* ---------------- Graph Studio ---------------- */
+
+  /*
+   * The studio's front door: the graphs that have actually been built. A draft
+   * is not listed — there is nothing to review until the wizard commits one.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/graph-studio',
+    handle: (_req, res) => {
+      const graphs = builtGraphs()
+        .map(studioSummary)
+        .sort((a, b) => Date.parse(b.built_at ?? 0) - Date.parse(a.built_at ?? 0))
+      send(res, 200, {
+        graphs,
+        count: graphs.length,
+        draft_count: db.graph_use_cases.length - graphs.length,
+      })
+    },
+  },
+
+  // One built graph's review queue, pivot and publish gate.
+  {
+    method: 'GET',
+    match: (p) => /^\/graph-studio\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/graph-studio/'.length))
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      send(res, 200, graphStudio(found.useCase))
+    },
+  },
+
+  // One decision on one row of one graph.
+  {
+    method: 'POST',
+    match: (p) => /^\/graph-studio\/[^/]+\/decisions$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/graph-studio/'.length, -'/decisions'.length),
+      )
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+
+      const { item_id, choice, justification } = await readJson(req)
+      const gen = db.graph_studio.generated
+      const all = [
+        ...studioItems(id, 'must_review', gen.must_review_total, db.graph_studio.review_items),
+        ...studioItems(id, 'confirmed', gen.sample_size),
+        ...studioItems(id, 'auto_approved', gen.sample_size),
+      ]
+      const item = all.find((i) => i.item_id === item_id)
+      if (!item) return send(res, 404, { error: `no review item ${item_id}` })
+
+      /*
+       * The choices are the item's own — a causal claim is approved *as causal*
+       * or downgraded, never plainly "approved", because the two mean different
+       * things about the graph and only one keeps the causal edge.
+       */
+      const allowed =
+        item.action_set === 'causal'
+          ? ['approve-causal', 'downgrade-correlational', 'reject']
+          : ['approve', 'correct', 'reject']
+      if (!allowed.includes(choice)) {
+        return send(res, 400, { error: `choice must be one of: ${allowed.join(', ')}` })
+      }
+
+      // A schema-changing floor is exactly where the reason has to outlive the
+      // click, so the row cannot be cleared without one.
+      if (item.justification && !String(justification ?? '').trim()) {
+        return send(res, 400, {
+          error:
+            'this decision changes the schema — record a justification before resolving it',
+        })
+      }
+
+      studioDecisions.set(`${id}:${item_id}`, {
+        choice,
+        justification: String(justification ?? '').trim() || null,
+        decided_at: new Date().toISOString(),
+      })
+      send(res, 200, { item_id, studio: graphStudio(found.useCase) })
+    },
+  },
+
+  // The ontology as a graph. Proposed elements are whatever the queue has not
+  // decided yet, so this and the review queue can never tell different stories.
+  {
+    method: 'GET',
+    match: (p) => /^\/graph-studio\/[^/]+\/canvas$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/graph-studio/'.length, -'/canvas'.length),
+      )
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      send(res, 200, studioCanvas(id))
+    },
+  },
+
+  // Ask the draft graph a question before anyone commits to it.
+  {
+    method: 'POST',
+    match: (p) => /^\/graph-studio\/[^/]+\/query$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/graph-studio/'.length, -'/query'.length),
+      )
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+
+      const { question } = await readJson(req)
+      if (!question || !String(question).trim()) {
+        return send(res, 400, { error: 'ask a question first' })
+      }
+      const answer = studioQuery(id, String(question).trim())
+      // Paced like the suggesters: an answer that returns instantly reads as a
+      // lookup, and this is meant to read as the graph being asked.
+      setTimeout(
+        () => send(res, 200, { ...answer, canvas: studioCanvas(id, answer.path) }),
+        SUGGEST_MS,
+      ).unref?.()
+    },
+  },
+
+  /*
+   * Sign-off on a published version. Separate from publishing on purpose: an
+   * approval records that a human read the report, and a version can be live
+   * and unapproved — that gap is the thing worth seeing.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/graph-studio\/[^/]+\/versions\/\d+\/approve$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const [, , rawId, , rawVersion] = pathname.split('/')
+      const id = decodeURIComponent(rawId)
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+
+      const version = Number(rawVersion)
+      const published = studioPublished.get(id) ?? []
+      if (!published.some((v) => v.version === version)) {
+        return send(res, 404, {
+          error: `v${version} has not been published for this graph`,
+        })
+      }
+      const key = `${id}:${version}`
+      if (studioApprovals.has(key)) {
+        return send(res, 400, {
+          error: `v${version} is already approved by ${studioApprovals.get(key).approved_by}`,
+        })
+      }
+
+      const { note } = await readJson(req).catch(() => ({}))
+      studioApprovals.set(key, {
+        approved_by: db.google_account.email,
+        approved_at: new Date().toISOString(),
+        note: String(note ?? '').trim() || null,
+      })
+      send(res, 200, { version, studio: graphStudio(found.useCase) })
+    },
+  },
+
+  /*
+   * Make a published version the one that serves — including an older one, which
+   * is what a rollback is.
+   *
+   * **Approval is the gate.** Publishing puts a version on the shelf; approving
+   * says a human read the report; activating points traffic at it. Allowing an
+   * unapproved version to serve would make the approval decorative, so this
+   * refuses with the fix rather than quietly obeying.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/graph-studio\/[^/]+\/versions\/\d+\/activate$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const [, , rawId, , rawVersion] = pathname.split('/')
+      const id = decodeURIComponent(rawId)
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+
+      const version = Number(rawVersion)
+      const published = studioPublished.get(id) ?? []
+      if (!published.some((v) => v.version === version)) {
+        return send(res, 404, {
+          error: `v${version} has not been published for this graph`,
+        })
+      }
+      if (!studioApprovals.has(`${id}:${version}`)) {
+        return send(res, 400, {
+          error: `v${version} has not been approved — approve it before making it live`,
+        })
+      }
+      if (liveVersion(id) === version) {
+        return send(res, 400, { error: `v${version} is already live` })
+      }
+
+      studioLive.set(id, version)
+      send(res, 200, { live: version, studio: graphStudio(found.useCase) })
+    },
+  },
+
+  // Settling the pivot. Its own endpoint because it is its own precondition.
+  {
+    method: 'POST',
+    match: (p) => /^\/graph-studio\/[^/]+\/pivot$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/graph-studio/'.length, -'/pivot'.length),
+      )
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+
+      const { option_id } = await readJson(req)
+      const options = db.graph_studio.pivot.options.map((o) => o.option_id)
+      if (!options.includes(option_id)) {
+        return send(res, 400, { error: `option_id must be one of: ${options.join(', ')}` })
+      }
+      studioPivotChoice.set(id, option_id)
+      send(res, 200, { chosen: option_id, studio: graphStudio(found.useCase) })
+    },
+  },
+
+  {
+    method: 'POST',
+    match: (p) => /^\/graph-studio\/[^/]+\/quality-check$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/graph-studio/'.length, -'/quality-check'.length),
+      )
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+
+      const studio = graphStudio(found.useCase)
+      // Real checks over real state — a report that always passes is decoration.
+      const checks = [
+        {
+          check_id: 'floor-decisions',
+          label: 'Every floor item has a decision',
+          passed: studio.must_review_outstanding === 0,
+          detail: `${studio.must_review_outstanding} of ${studio.must_review_count} still open`,
+        },
+        {
+          check_id: 'pivot-settled',
+          label: 'No entity-resolution pivot is open',
+          passed: !studio.pivot.open,
+          detail: studio.pivot.open
+            ? `${studio.pivot.pivot_id} is unresolved`
+            : `settled as ${studio.pivot.chosen}`,
+        },
+        {
+          check_id: 'schema-justified',
+          label: 'Schema-changing approvals carry a justification',
+          passed: studio.must_review
+            .filter((i) => i.justification && i.decision)
+            .every((i) => Boolean(i.decision.justification)),
+          detail: 'recorded with the decision, not after it',
+        },
+      ]
+      const failed = checks.filter((c) => !c.passed).length
+      setTimeout(
+        () =>
+          send(res, 200, {
+            checks,
+            passed: checks.length - failed,
+            failed,
+            ran_at: new Date().toISOString(),
+          }),
+        QUALITY_CHECK_MS,
+      ).unref?.()
+    },
+  },
+
+  {
+    method: 'POST',
+    match: (p) => /^\/graph-studio\/[^/]+\/publish$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/graph-studio/'.length, -'/publish'.length),
+      )
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+
+      const studio = graphStudio(found.useCase)
+      // The gate the page shows and the gate the server enforces are the same
+      // list, so a publish cannot slip through a UI that forgot to disable.
+      if (studio.publish.blocked) {
+        return send(res, 400, {
+          error: `publish is blocked — ${studio.publish.reasons.join(' · ')}`,
+          reasons: studio.publish.reasons,
+        })
+      }
+      const published = {
+        version: Number(studio.version.slice(1)),
+        published_at: new Date().toISOString(),
+        published_by: db.google_account.email,
+        note: `${studio.must_review_count} floor decisions · pivot ${studio.pivot.chosen}.`,
+      }
+      studioPublished.set(id, [published, ...(studioPublished.get(id) ?? [])])
+      // Publishing serves what it just published — an explicit rollback is the
+      // only thing that moves it elsewhere.
+      studioLive.set(id, published.version)
+      send(res, 200, { published, studio: graphStudio(found.useCase) })
+    },
   },
 
   {

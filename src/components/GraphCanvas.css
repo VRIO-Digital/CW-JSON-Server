@@ -1,0 +1,168 @@
+/*
+ * The ontology canvas. Node colour comes from the legend group, which is a
+ * *category*, not a status — the one state the canvas shows is "proposed", and
+ * it carries a dashed outline and the word "proposed" as well as its colour.
+ */
+
+.gc {
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gc-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.gc-search {
+  width: 220px;
+}
+
+.gc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 999px;
+  background: #fff;
+  color: #4b5a75;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.gc-chip:hover {
+  border-color: #d8dde6;
+}
+
+.gc-chip.is-active {
+  border-color: #f8c9b9;
+  background: #fdeae4;
+  color: #f4562b;
+  font-weight: 600;
+}
+
+.gc-chip-count {
+  color: #8994a8;
+  font-size: 11px;
+}
+
+.gc-chip.is-active .gc-chip-count {
+  color: #f4562b;
+}
+
+/* ---- the drawing ---- */
+
+.gc-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  user-select: none;
+}
+
+.gc-edge line {
+  stroke: #d8dde6;
+  stroke-width: 1;
+}
+
+.gc-edge text {
+  fill: #8994a8;
+  font-size: 10px;
+}
+
+/* Under review — dashed, so the state is not carried by colour alone. */
+.gc-edge.is-proposed line {
+  stroke: #a16207;
+  stroke-dasharray: 5 4;
+}
+
+.gc-edge.is-proposed text {
+  fill: #a16207;
+}
+
+.gc-edge.is-path line {
+  stroke: #f4562b;
+  stroke-width: 2;
+}
+
+.gc-edge.is-dim {
+  opacity: 0.18;
+}
+
+.gc-node {
+  cursor: grab;
+}
+
+.gc-node:active {
+  cursor: grabbing;
+}
+
+.gc-node ellipse {
+  fill: #fff;
+  stroke-width: 1.5;
+}
+
+.gc-node.is-proposed ellipse {
+  fill: #fdf6e7;
+  stroke-dasharray: 5 4;
+}
+
+/* The glow the legend promises: this node is on the answer path. */
+.gc-node.is-path ellipse {
+  filter: drop-shadow(0 0 6px rgba(244, 86, 43, 0.55));
+  stroke-width: 2.5;
+}
+
+.gc-node.is-selected ellipse {
+  stroke-width: 3;
+}
+
+.gc-node.is-dim {
+  opacity: 0.2;
+}
+
+.gc-node-label {
+  fill: #0f1729;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gc-node-sub {
+  fill: #8994a8;
+  font-size: 9.5px;
+}
+
+/* ---- legend ---- */
+
+.gc-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-5) var(--sp-4);
+  border-top: 1px solid #f2f4f7;
+  color: #4b5a75;
+  font-size: 11.5px;
+}
+
+.gc-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.gc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.gc-legend-hint {
+  margin-left: auto;
+  color: #8994a8;
+}

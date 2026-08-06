@@ -512,6 +512,193 @@ export interface GraphUseCase {
   updatedAt: string | null
 }
 
+/* ---------------- Graph Studio ---------------- */
+
+/** What a review row may be answered with. A causal claim has its own set. */
+export type ReviewChoice =
+  | 'approve'
+  | 'correct'
+  | 'reject'
+  | 'approve-causal'
+  | 'downgrade-correlational'
+
+export interface ReviewDecision {
+  choice: ReviewChoice
+  justification: string | null
+  decidedAt: string
+}
+
+/**
+ * One row of a graph's review queue. `floor` is why a human must see it at all
+ * — a schema change, a causal claim, a new entity type.
+ */
+export interface ReviewItem {
+  itemId: string
+  kind: 'relationship' | 'entity'
+  title: string
+  detail: string
+  confidence: number
+  floor: string | null
+  /** 'standard' or 'causal' — which three buttons the row offers. */
+  actionSet: string
+  /** True when the row cannot be resolved without a recorded reason. */
+  justification: boolean
+  decision: ReviewDecision | null
+}
+
+/** A built graph, as the studio's list shows it. */
+export interface StudioGraph {
+  useCaseId: string
+  name: string
+  domainId: string | null
+  businessNeed: string
+  /** The *working draft* — what Publish would make live. */
+  version: string
+  /** What was last made live, or null. Never the same as `version`. */
+  liveVersion: string | null
+  state: 'draft' | 'published'
+  /** Rows still needing a human, plus the pivot if it is open. */
+  queueCount: number
+  mustReviewOutstanding: number
+  mustReviewCount: number
+  publishedCount: number
+  builtAt: string | null
+}
+
+export interface StudioGraphsPayload {
+  graphs: StudioGraph[]
+  count: number
+  /** Use cases still in the wizard — not listed, nothing to review yet. */
+  draftCount: number
+}
+
+export interface PivotOption {
+  optionId: string
+  label: string
+  consequence: string
+}
+
+export interface StudioPivot {
+  pivotId: string
+  alternativeId: string
+  title: string
+  detail: string
+  options: PivotOption[]
+  open: boolean
+  chosen: string | null
+}
+
+/** Sign-off, recorded beside a live version — never folded into it. */
+export interface VersionApproval {
+  approvedBy: string
+  approvedAt: string
+  note: string | null
+}
+
+export interface PublishedVersion {
+  version: number
+  publishedAt: string
+  publishedBy: string
+  note: string
+  /** Null while a version is published but nobody has signed it off. */
+  approval: VersionApproval | null
+  /** Exactly one row is serving. Not necessarily the newest — see rollback. */
+  isLive: boolean
+}
+
+/* ---------------- Canvas ---------------- */
+
+/** Which legend colour a node takes. */
+export type CanvasGroup = 'assets' | 'work' | 'contracts'
+
+export interface CanvasNode {
+  nodeId: string
+  label: string
+  sublabel: string
+  group: CanvasGroup
+  confidence: number
+  /** True while the review item behind it is undecided. */
+  proposed: boolean
+  origin: 'derived' | 'studio-authored'
+  rejected: boolean
+  needsReview: boolean
+  reviewItemId: string | null
+  onAnswerPath: boolean
+  x: number
+  y: number
+}
+
+export interface CanvasEdge {
+  from: string
+  to: string
+  label: string
+  proposed: boolean
+  reviewItemId: string | null
+  onAnswerPath: boolean
+}
+
+export interface CanvasFacets {
+  all: number
+  lowConfidence: number
+  needsReview: number
+  studioAuthored: number
+}
+
+export interface CanvasPayload {
+  nodes: CanvasNode[]
+  edges: CanvasEdge[]
+  nodeCount: number
+  edgeCount: number
+  facets: CanvasFacets
+}
+
+/** What the draft graph could — or could not — answer. */
+export interface QueryAnswer {
+  question: string
+  answerable: boolean
+  reason: string
+  matched: string[]
+  path: string[]
+  pathLabels: string[]
+  edgesUsed: { from: string; to: string; label: string }[]
+  hops: number
+  /** An answer leaning on an undecided edge is answerable *and* provisional. */
+  caveats: string[]
+  canvas: CanvasPayload
+}
+
+export interface GraphStudioPayload extends StudioGraph {
+  graphName: string
+  status: string
+  decisionMemory: string
+  mustReview: ReviewItem[]
+  /** Named a sample because it is one — these buckets are spot-checked. */
+  confirmedSample: ReviewItem[]
+  confirmedCount: number
+  autoApprovedSample: ReviewItem[]
+  autoApprovedCount: number
+  pivot: StudioPivot
+  pivotCount: number
+  batchResolved: number
+  batchTotal: number
+  publish: { blocked: boolean; reasons: string[]; explanation: string }
+  versions: PublishedVersion[]
+}
+
+export interface QualityCheck {
+  checkId: string
+  label: string
+  passed: boolean
+  detail: string
+}
+
+export interface QualityReport {
+  checks: QualityCheck[]
+  passed: number
+  failed: number
+  ranAt: string
+}
+
 /** One profiled object a graph could draw from — a table, or a document. */
 export interface GraphSourceObject {
   objectId: string
@@ -1233,12 +1420,220 @@ const OAUTH_PROJECTS_PAYLOAD = shape({
   project_count: num,
 })
 
+/* ---------------- Graph Studio ---------------- */
+
+const STUDIO_GRAPH = shape({
+  use_case_id: str,
+  name: str,
+  domain_id: nullable(str),
+  business_need: str,
+  version: str,
+  state: oneOf(['draft', 'published']),
+  live_version: nullable(str),
+  queue_count: num,
+  must_review_outstanding: num,
+  must_review_count: num,
+  published_count: num,
+  built_at: nullable(str),
+})
+
+const STUDIO_GRAPHS_PAYLOAD = shape({
+  graphs: arrayOf(STUDIO_GRAPH),
+  count: num,
+  draft_count: num,
+})
+
+const REVIEW_ITEM = shape({
+  item_id: str,
+  kind: oneOf(['relationship', 'entity']),
+  title: str,
+  detail: str,
+  confidence: num,
+  floor: nullable(str),
+  action_set: str,
+  justification: bool,
+  decision: nullable(
+    shape({ choice: str, justification: nullable(str), decided_at: str }),
+  ),
+})
+
+const GRAPH_STUDIO_PAYLOAD = shape({
+  use_case_id: str,
+  name: str,
+  domain_id: nullable(str),
+  business_need: str,
+  version: str,
+  state: oneOf(['draft', 'published']),
+  live_version: nullable(str),
+  queue_count: num,
+  must_review_outstanding: num,
+  must_review_count: num,
+  published_count: num,
+  built_at: nullable(str),
+  graph_name: str,
+  status: str,
+  decision_memory: str,
+  must_review: arrayOf(REVIEW_ITEM),
+  confirmed_sample: arrayOf(REVIEW_ITEM),
+  confirmed_count: num,
+  auto_approved_sample: arrayOf(REVIEW_ITEM),
+  auto_approved_count: num,
+  pivot: shape({
+    pivot_id: str,
+    alternative_id: str,
+    title: str,
+    detail: str,
+    options: arrayOf(shape({ option_id: str, label: str, consequence: str })),
+    open: bool,
+    chosen: nullable(str),
+  }),
+  pivot_count: num,
+  batch_resolved: num,
+  batch_total: num,
+  publish: shape({ blocked: bool, reasons: arrayOf(str), explanation: str }),
+  versions: arrayOf(
+    shape({
+      version: num,
+      published_at: str,
+      published_by: str,
+      note: str,
+      approval: nullable(
+        shape({ approved_by: str, approved_at: str, note: nullable(str) }),
+      ),
+      is_live: bool,
+    }),
+  ),
+})
+
+const CANVAS_NODE = shape({
+  node_id: str,
+  label: str,
+  sublabel: str,
+  group: oneOf(['assets', 'work', 'contracts']),
+  confidence: num,
+  proposed: bool,
+  origin: oneOf(['derived', 'studio-authored']),
+  rejected: bool,
+  needs_review: bool,
+  review_item_id: nullable(str),
+  on_answer_path: bool,
+  x: num,
+  y: num,
+})
+
+const CANVAS_EDGE = shape({
+  from: str,
+  to: str,
+  label: str,
+  proposed: bool,
+  review_item_id: nullable(str),
+  on_answer_path: bool,
+})
+
+const CANVAS_PAYLOAD = shape({
+  nodes: arrayOf(CANVAS_NODE),
+  edges: arrayOf(CANVAS_EDGE),
+  node_count: num,
+  edge_count: num,
+  facets: shape({
+    all: num,
+    low_confidence: num,
+    needs_review: num,
+    studio_authored: num,
+  }),
+})
+
+const QUERY_PAYLOAD = shape({
+  question: str,
+  answerable: bool,
+  reason: str,
+  matched: arrayOf(str),
+  path: arrayOf(str),
+  edges_used: arrayOf(shape({ from: str, to: str, label: str })),
+  hops: num,
+  caveats: arrayOf(str),
+  canvas: CANVAS_PAYLOAD,
+})
+
+const QUALITY_REPORT_PAYLOAD = shape({
+  checks: arrayOf(shape({ check_id: str, label: str, passed: bool, detail: str })),
+  passed: num,
+  failed: num,
+  ran_at: str,
+})
+
+/* ---------------- Writes answer with a shape too ---------------- */
+
+/*
+ * A POST/PUT/PATCH response is as reachable as a GET's — `/db` can be edited
+ * live, and a stale server answers writes with the old shape as readily as
+ * reads. These were the endpoints whose results were rendered or stored without
+ * a boundary check; a missing field surfaced as `undefined` in a table instead
+ * of a message naming the field.
+ */
+const OAUTH_START_PAYLOAD = shape({
+  state: str,
+  provider: oneOf(['bigquery', 'drive']),
+  auth_url: str,
+  scopes: arrayOf(str),
+})
+
+const REGISTERED_SOURCE_PAYLOAD = shape({
+  source_id: str,
+  source_name: str,
+  connector: str,
+  project_id: str,
+  credential_handle: str,
+  datasets: arrayOf(str),
+  status: str,
+  registered_at: str,
+  newly_connected: bool,
+})
+
+const REGISTERED_DRIVE_PAYLOAD = shape({
+  source_id: str,
+  source_name: str,
+  connector: str,
+  drive_id: str,
+  display_name: str,
+  folders: arrayOf(str),
+  status: str,
+  registered_at: str,
+  newly_connected: bool,
+  folder_count: num,
+  document_count: num,
+})
+
+const PROJECT_DATASETS_PAYLOAD = shape({
+  project_id: str,
+  datasets: arrayOf(shape({ dataset_id: str })),
+})
+
+const JOB_STARTED_PAYLOAD = shape({ job: JOB })
+
+const DELETED_PAYLOAD = shape({ deleted: str })
+
+const DOCUMENT_SUMMARY_PAYLOAD = shape({ key: str, summary: nullable(str) })
+
+const COLUMN_DESCRIPTION_PAYLOAD = shape({ key: str, description: nullable(str) })
+
+const DB_SECTION = shape({ key: str, kind: str, count: num, required: bool })
+
 const DB_PAYLOAD = shape({
   path: str,
   bytes: num,
   required: arrayOf(str),
   db: shape({}),
-  sections: arrayOf(shape({ key: str, kind: str, count: num, required: bool })),
+  sections: arrayOf(DB_SECTION),
+})
+
+/* A save answers with the section list the editor re-renders from. */
+const DB_SAVED_PAYLOAD = shape({ saved: bool, sections: arrayOf(DB_SECTION) })
+
+const DB_SECTION_SAVED_PAYLOAD = shape({
+  saved: bool,
+  section: str,
+  sections: arrayOf(DB_SECTION),
 })
 
 /* ---------------- Transport ---------------- */
@@ -1287,8 +1682,15 @@ async function request<T>(
 /* ---------------- Endpoints ---------------- */
 
 /** The scope depends on the connector, so the provider goes out with the start. */
-export const oauthStart = (provider: OAuthProvider = 'bigquery') =>
-  request<OAuthStart>(`/sources/oauth/start?provider=${provider}`)
+export async function oauthStart(
+  provider: OAuthProvider = 'bigquery',
+): Promise<OAuthStart> {
+  return validate<OAuthStart>(
+    'The Google sign-in',
+    await request<unknown>(`/sources/oauth/start?provider=${provider}`),
+    OAUTH_START_PAYLOAD,
+  )
+}
 
 export async function oauthCallback(state: string): Promise<OAuthCallback> {
   const raw = await request<unknown>(
@@ -1343,21 +1745,26 @@ export async function previewSource(
   return validate<PreviewResult>("The dataset preview", raw, PREVIEW_PAYLOAD)
 }
 
-export const registerSource = (input: {
+export async function registerSource(input: {
   projectId: string
   credentialHandle: string
   datasets: string[]
   sourceName: string
-}) =>
-  request<RegisteredSource>('/sources', {
-    method: 'POST',
-    body: {
-      project_id: input.projectId,
-      credential_handle: input.credentialHandle,
-      datasets: input.datasets,
-      source_name: input.sourceName,
-    },
-  })
+}): Promise<RegisteredSource> {
+  return validate<RegisteredSource>(
+    'The registered source',
+    await request<unknown>('/sources', {
+      method: 'POST',
+      body: {
+        project_id: input.projectId,
+        credential_handle: input.credentialHandle,
+        datasets: input.datasets,
+        source_name: input.sourceName,
+      },
+    }),
+    REGISTERED_SOURCE_PAYLOAD,
+  )
+}
 
 export async function previewDrive(
   driveId: string,
@@ -1370,37 +1777,47 @@ export async function previewDrive(
   return validate<DrivePreviewResult>('The folder preview', raw, DRIVE_PREVIEW_PAYLOAD)
 }
 
-export const registerDriveSource = (input: {
+export async function registerDriveSource(input: {
   driveId: string
   credentialHandle: string
   folders: string[]
   sourceName: string
-}) =>
-  request<RegisteredDriveSource>('/sources/drive', {
-    method: 'POST',
-    body: {
-      drive_id: input.driveId,
-      credential_handle: input.credentialHandle,
-      folders: input.folders,
-      source_name: input.sourceName,
-    },
-  })
+}): Promise<RegisteredDriveSource> {
+  return validate<RegisteredDriveSource>(
+    'The registered Drive source',
+    await request<unknown>('/sources/drive', {
+      method: 'POST',
+      body: {
+        drive_id: input.driveId,
+        credential_handle: input.credentialHandle,
+        folders: input.folders,
+        source_name: input.sourceName,
+      },
+    }),
+    REGISTERED_DRIVE_PAYLOAD,
+  )
+}
 
-export const registerGenericSource = (input: {
+export async function registerGenericSource(input: {
   connector: string
   sourceName: string
   typeLabel: string
   credentialRef?: string
-}) =>
-  request<RegisteredSource>('/sources/generic', {
-    method: 'POST',
-    body: {
-      connector: input.connector,
-      source_name: input.sourceName,
-      type_label: input.typeLabel,
-      credential_ref: input.credentialRef ?? null,
-    },
-  })
+}): Promise<RegisteredSource> {
+  return validate<RegisteredSource>(
+    'The registered source',
+    await request<unknown>('/sources/generic', {
+      method: 'POST',
+      body: {
+        connector: input.connector,
+        source_name: input.sourceName,
+        type_label: input.typeLabel,
+        credential_ref: input.credentialRef ?? null,
+      },
+    }),
+    REGISTERED_SOURCE_PAYLOAD,
+  )
+}
 
 export async function listSources(): Promise<{
   sources: SourceRow[]
@@ -1464,32 +1881,64 @@ export async function listSources(): Promise<{
   }
 }
 
-export const disconnectSource = (sourceId: string) =>
-  request<RawSourceRow>(`/sources/${encodeURIComponent(sourceId)}/disconnect`, {
-    method: 'POST',
-  })
-
-export const deleteSource = (sourceId: string) =>
-  request<{ deleted: string }>(`/sources/${encodeURIComponent(sourceId)}`, {
-    method: 'DELETE',
-  })
-
-export const updateSourceDatasets = (sourceId: string, datasets: string[]) =>
-  request<RawSourceRow>(`/sources/${encodeURIComponent(sourceId)}/datasets`, {
-    method: 'PUT',
-    body: { datasets },
-  })
-
-export const updateSourceFolders = (sourceId: string, folders: string[]) =>
-  request<RawSourceRow>(`/sources/${encodeURIComponent(sourceId)}/folders`, {
-    method: 'PUT',
-    body: { folders },
-  })
-
-export const listProjectDatasets = (projectId: string) =>
-  request<{ project_id: string; datasets: { dataset_id: string }[] }>(
-    `/projects/${encodeURIComponent(projectId)}/datasets`,
+/** All three answer with the changed row, so all three check its shape. */
+export async function disconnectSource(sourceId: string): Promise<RawSourceRow> {
+  return validate<RawSourceRow>(
+    'The disconnected source',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/disconnect`, {
+      method: 'POST',
+    }),
+    SOURCE_ROW,
   )
+}
+
+export async function deleteSource(sourceId: string): Promise<{ deleted: string }> {
+  return validate<{ deleted: string }>(
+    'The deleted source',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}`, {
+      method: 'DELETE',
+    }),
+    DELETED_PAYLOAD,
+  )
+}
+
+export async function updateSourceDatasets(
+  sourceId: string,
+  datasets: string[],
+): Promise<RawSourceRow> {
+  return validate<RawSourceRow>(
+    'The updated allowlist',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/datasets`, {
+      method: 'PUT',
+      body: { datasets },
+    }),
+    SOURCE_ROW,
+  )
+}
+
+export async function updateSourceFolders(
+  sourceId: string,
+  folders: string[],
+): Promise<RawSourceRow> {
+  return validate<RawSourceRow>(
+    'The updated folder allowlist',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/folders`, {
+      method: 'PUT',
+      body: { folders },
+    }),
+    SOURCE_ROW,
+  )
+}
+
+export async function listProjectDatasets(
+  projectId: string,
+): Promise<{ project_id: string; datasets: { dataset_id: string }[] }> {
+  return validate<{ project_id: string; datasets: { dataset_id: string }[] }>(
+    'The dataset list',
+    await request<unknown>(`/projects/${encodeURIComponent(projectId)}/datasets`),
+    PROJECT_DATASETS_PAYLOAD,
+  )
+}
 
 export async function listDriveFolders(driveId: string): Promise<{
   drive_id: string
@@ -1506,15 +1955,24 @@ export async function browseSource(sourceId: string): Promise<BrowseResult> {
   return validate<BrowseResult>("The browsable objects", raw, BROWSE_PAYLOAD)
 }
 
-export const profileTables = (
+/*
+ * A queued job goes straight into the jobs board and is then polled, so a
+ * malformed one would render as a row of `undefined` that never resolves.
+ */
+export async function profileTables(
   sourceId: string,
   objects: { dataset_id: string; table_id: string }[],
   force: boolean,
-) =>
-  request<{ job: ProfilingJob }>(
-    `/sources/${encodeURIComponent(sourceId)}/profile`,
-    { method: 'POST', body: { objects, force } },
+): Promise<{ job: ProfilingJob }> {
+  return validate<{ job: ProfilingJob }>(
+    'The queued profiling job',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/profile`, {
+      method: 'POST',
+      body: { objects, force },
+    }),
+    JOB_STARTED_PAYLOAD,
   )
+}
 
 export async function browseDocuments(
   sourceId: string,
@@ -1529,15 +1987,21 @@ export async function browseDocuments(
   )
 }
 
-export const profileDocuments = (
+/** Drive's twin of `profileTables`, checked against the same job shape. */
+export async function profileDocuments(
   sourceId: string,
   objects: { folder_id: string; document_id: string }[],
   force: boolean,
-) =>
-  request<{ job: ProfilingJob }>(
-    `/sources/${encodeURIComponent(sourceId)}/profile-documents`,
-    { method: 'POST', body: { objects, force } },
+): Promise<{ job: ProfilingJob }> {
+  return validate<{ job: ProfilingJob }>(
+    'The queued profiling job',
+    await request<unknown>(
+      `/sources/${encodeURIComponent(sourceId)}/profile-documents`,
+      { method: 'POST', body: { objects, force } },
+    ),
+    JOB_STARTED_PAYLOAD,
   )
+}
 
 export async function getProfiledDocuments(
   sourceId: string,
@@ -1552,14 +2016,19 @@ export async function getProfiledDocuments(
   )
 }
 
-export const setDocumentSummary = (
+export async function setDocumentSummary(
   sourceId: string,
   input: { folder_id: string; document_id: string; summary: string },
-) =>
-  request<{ key: string; summary: string | null }>(
-    `/sources/${encodeURIComponent(sourceId)}/documents`,
-    { method: 'PATCH', body: input },
+): Promise<{ key: string; summary: string | null }> {
+  return validate<{ key: string; summary: string | null }>(
+    'The saved summary',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/documents`, {
+      method: 'PATCH',
+      body: input,
+    }),
+    DOCUMENT_SUMMARY_PAYLOAD,
   )
+}
 
 export async function getProfiledColumns(
   sourceId: string,
@@ -1570,7 +2039,7 @@ export async function getProfiledColumns(
   return validate<ProfiledColumnsPayload>("The column dictionary", raw, COLUMNS_PAYLOAD)
 }
 
-export const setColumnDescription = (
+export async function setColumnDescription(
   sourceId: string,
   input: {
     dataset_id: string
@@ -1578,17 +2047,26 @@ export const setColumnDescription = (
     column_id: string
     description: string
   },
-) =>
-  request<{ key: string; description: string | null }>(
-    `/sources/${encodeURIComponent(sourceId)}/columns`,
-    { method: 'PATCH', body: input },
+): Promise<{ key: string; description: string | null }> {
+  return validate<{ key: string; description: string | null }>(
+    'The saved description',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/columns`, {
+      method: 'PATCH',
+      body: input,
+    }),
+    COLUMN_DESCRIPTION_PAYLOAD,
   )
+}
 
-export const cancelProfilingJob = (jobId: string) =>
-  request<ProfilingJob>(
-    `/profiling-jobs/${encodeURIComponent(jobId)}/cancel`,
-    { method: 'POST' },
+export async function cancelProfilingJob(jobId: string): Promise<ProfilingJob> {
+  return validate<ProfilingJob>(
+    'The cancelled job',
+    await request<unknown>(`/profiling-jobs/${encodeURIComponent(jobId)}/cancel`, {
+      method: 'POST',
+    }),
+    JOB,
   )
+}
 
 export async function listProfilingJobs(): Promise<ProfilingJobsPayload> {
   const raw = await request<unknown>('/profiling-jobs')
@@ -2045,28 +2523,438 @@ export async function saveUseCase(input: {
   )
 }
 
-export const deleteUseCase = (useCaseId: string) =>
-  request<{ deleted: string }>(
-    `/graph-use-cases/${encodeURIComponent(useCaseId)}`,
-    { method: 'DELETE' },
+/* ---------------- Graph Studio ---------------- */
+
+interface RawStudioGraph {
+  use_case_id: string
+  name: string
+  domain_id: string | null
+  business_need: string
+  version: string
+  live_version: string | null
+  state: 'draft' | 'published'
+  queue_count: number
+  must_review_outstanding: number
+  must_review_count: number
+  published_count: number
+  built_at: string | null
+}
+
+interface RawReviewItem {
+  item_id: string
+  kind: 'relationship' | 'entity'
+  title: string
+  detail: string
+  confidence: number
+  floor: string | null
+  action_set: string
+  justification: boolean
+  decision: { choice: string; justification: string | null; decided_at: string } | null
+}
+
+interface RawStudio extends RawStudioGraph {
+  graph_name: string
+  status: string
+  decision_memory: string
+  must_review: RawReviewItem[]
+  confirmed_sample: RawReviewItem[]
+  confirmed_count: number
+  auto_approved_sample: RawReviewItem[]
+  auto_approved_count: number
+  pivot: {
+    pivot_id: string
+    alternative_id: string
+    title: string
+    detail: string
+    options: { option_id: string; label: string; consequence: string }[]
+    open: boolean
+    chosen: string | null
+  }
+  pivot_count: number
+  batch_resolved: number
+  batch_total: number
+  publish: { blocked: boolean; reasons: string[]; explanation: string }
+  versions: {
+    version: number
+    published_at: string
+    published_by: string
+    note: string
+    approval: { approved_by: string; approved_at: string; note: string | null } | null
+    is_live: boolean
+  }[]
+}
+
+const toStudioGraph = (g: RawStudioGraph): StudioGraph => ({
+  useCaseId: g.use_case_id,
+  name: g.name,
+  domainId: g.domain_id,
+  businessNeed: g.business_need,
+  version: g.version,
+  liveVersion: g.live_version,
+  state: g.state,
+  queueCount: g.queue_count,
+  mustReviewOutstanding: g.must_review_outstanding,
+  mustReviewCount: g.must_review_count,
+  publishedCount: g.published_count,
+  builtAt: g.built_at,
+})
+
+const toReviewItem = (i: RawReviewItem): ReviewItem => ({
+  itemId: i.item_id,
+  kind: i.kind,
+  title: i.title,
+  detail: i.detail,
+  confidence: i.confidence,
+  floor: i.floor,
+  actionSet: i.action_set,
+  justification: i.justification,
+  decision: i.decision
+    ? {
+        choice: i.decision.choice as ReviewChoice,
+        justification: i.decision.justification,
+        decidedAt: i.decision.decided_at,
+      }
+    : null,
+})
+
+const toStudio = (raw: RawStudio): GraphStudioPayload => ({
+  ...toStudioGraph(raw),
+  graphName: raw.graph_name,
+  status: raw.status,
+  decisionMemory: raw.decision_memory,
+  mustReview: raw.must_review.map(toReviewItem),
+  confirmedSample: raw.confirmed_sample.map(toReviewItem),
+  confirmedCount: raw.confirmed_count,
+  autoApprovedSample: raw.auto_approved_sample.map(toReviewItem),
+  autoApprovedCount: raw.auto_approved_count,
+  pivot: {
+    pivotId: raw.pivot.pivot_id,
+    alternativeId: raw.pivot.alternative_id,
+    title: raw.pivot.title,
+    detail: raw.pivot.detail,
+    options: raw.pivot.options.map((o) => ({
+      optionId: o.option_id,
+      label: o.label,
+      consequence: o.consequence,
+    })),
+    open: raw.pivot.open,
+    chosen: raw.pivot.chosen,
+  },
+  pivotCount: raw.pivot_count,
+  batchResolved: raw.batch_resolved,
+  batchTotal: raw.batch_total,
+  publish: raw.publish,
+  versions: raw.versions.map((v) => ({
+    version: v.version,
+    publishedAt: v.published_at,
+    publishedBy: v.published_by,
+    note: v.note,
+    approval: v.approval
+      ? {
+          approvedBy: v.approval.approved_by,
+          approvedAt: v.approval.approved_at,
+          note: v.approval.note,
+        }
+      : null,
+    isLive: v.is_live,
+  })),
+})
+
+interface RawCanvasNode {
+  node_id: string
+  label: string
+  sublabel: string
+  group: CanvasGroup
+  confidence: number
+  proposed: boolean
+  origin: 'derived' | 'studio-authored'
+  rejected: boolean
+  needs_review: boolean
+  review_item_id: string | null
+  on_answer_path: boolean
+  x: number
+  y: number
+}
+
+interface RawCanvas {
+  nodes: RawCanvasNode[]
+  edges: {
+    from: string
+    to: string
+    label: string
+    proposed: boolean
+    review_item_id: string | null
+    on_answer_path: boolean
+  }[]
+  node_count: number
+  edge_count: number
+  facets: {
+    all: number
+    low_confidence: number
+    needs_review: number
+    studio_authored: number
+  }
+}
+
+const toCanvas = (raw: RawCanvas): CanvasPayload => ({
+  nodes: raw.nodes.map((n) => ({
+    nodeId: n.node_id,
+    label: n.label,
+    sublabel: n.sublabel,
+    group: n.group,
+    confidence: n.confidence,
+    proposed: n.proposed,
+    origin: n.origin,
+    rejected: n.rejected,
+    needsReview: n.needs_review,
+    reviewItemId: n.review_item_id,
+    onAnswerPath: n.on_answer_path,
+    x: n.x,
+    y: n.y,
+  })),
+  edges: raw.edges.map((e) => ({
+    from: e.from,
+    to: e.to,
+    label: e.label,
+    proposed: e.proposed,
+    reviewItemId: e.review_item_id,
+    onAnswerPath: e.on_answer_path,
+  })),
+  nodeCount: raw.node_count,
+  edgeCount: raw.edge_count,
+  facets: {
+    all: raw.facets.all,
+    lowConfidence: raw.facets.low_confidence,
+    needsReview: raw.facets.needs_review,
+    studioAuthored: raw.facets.studio_authored,
+  },
+})
+
+/** The studio's front door: only graphs that have actually been built. */
+export async function listStudioGraphs(): Promise<StudioGraphsPayload> {
+  const raw = validate<{
+    graphs: RawStudioGraph[]
+    count: number
+    draft_count: number
+  }>('The built graphs', await request<unknown>('/graph-studio'), STUDIO_GRAPHS_PAYLOAD)
+
+  return {
+    graphs: raw.graphs.map(toStudioGraph),
+    count: raw.count,
+    draftCount: raw.draft_count,
+  }
+}
+
+const studioPath = (useCaseId: string) =>
+  `/graph-studio/${encodeURIComponent(useCaseId)}`
+
+export async function getGraphStudio(useCaseId: string): Promise<GraphStudioPayload> {
+  return toStudio(
+    validate<RawStudio>(
+      'The review queue',
+      await request<unknown>(studioPath(useCaseId)),
+      GRAPH_STUDIO_PAYLOAD,
+    ),
   )
+}
+
+/** Every action answers with the whole studio, so the page never guesses. */
+const withStudio = (what: string, payload: unknown) =>
+  toStudio(
+    validate<{ studio: RawStudio }>(
+      what,
+      payload,
+      shape({ studio: GRAPH_STUDIO_PAYLOAD }),
+    ).studio,
+  )
+
+export async function decideReviewItem(input: {
+  useCaseId: string
+  itemId: string
+  choice: ReviewChoice
+  justification?: string
+}): Promise<GraphStudioPayload> {
+  return withStudio(
+    'The recorded decision',
+    await request<unknown>(`${studioPath(input.useCaseId)}/decisions`, {
+      method: 'POST',
+      body: {
+        item_id: input.itemId,
+        choice: input.choice,
+        justification: input.justification,
+      },
+    }),
+  )
+}
+
+export async function resolvePivot(
+  useCaseId: string,
+  optionId: string,
+): Promise<GraphStudioPayload> {
+  return withStudio(
+    'The pivot decision',
+    await request<unknown>(`${studioPath(useCaseId)}/pivot`, {
+      method: 'POST',
+      body: { option_id: optionId },
+    }),
+  )
+}
+
+export async function publishGraph(useCaseId: string): Promise<GraphStudioPayload> {
+  return withStudio(
+    'The published graph',
+    await request<unknown>(`${studioPath(useCaseId)}/publish`, { method: 'POST' }),
+  )
+}
+
+export async function getStudioCanvas(useCaseId: string): Promise<CanvasPayload> {
+  return toCanvas(
+    validate<RawCanvas>(
+      'The canvas',
+      await request<unknown>(`${studioPath(useCaseId)}/canvas`),
+      CANVAS_PAYLOAD,
+    ),
+  )
+}
+
+/** Asks the *draft* graph, and comes back with the path it used. */
+export async function askStudio(
+  useCaseId: string,
+  question: string,
+): Promise<QueryAnswer> {
+  const raw = validate<{
+    question: string
+    answerable: boolean
+    reason: string
+    matched: string[]
+    path: string[]
+    edges_used: { from: string; to: string; label: string }[]
+    hops: number
+    caveats: string[]
+    canvas: RawCanvas
+  }>(
+    'The answer',
+    await request<unknown>(`${studioPath(useCaseId)}/query`, {
+      method: 'POST',
+      body: { question },
+    }),
+    QUERY_PAYLOAD,
+  )
+
+  const canvas = toCanvas(raw.canvas)
+  const label = (id: string) =>
+    canvas.nodes.find((n) => n.nodeId === id)?.label ?? id
+
+  return {
+    question: raw.question,
+    answerable: raw.answerable,
+    reason: raw.reason,
+    matched: raw.matched,
+    path: raw.path,
+    // Resolved here rather than trusted from the server: the labels the answer
+    // shows must be the ones the canvas draws.
+    pathLabels: raw.path.map(label),
+    edgesUsed: raw.edges_used,
+    hops: raw.hops,
+    caveats: raw.caveats,
+    canvas,
+  }
+}
+
+export async function approveVersion(
+  useCaseId: string,
+  version: number,
+  note?: string,
+): Promise<GraphStudioPayload> {
+  return withStudio(
+    'The approved version',
+    await request<unknown>(`${studioPath(useCaseId)}/versions/${version}/approve`, {
+      method: 'POST',
+      body: { note },
+    }),
+  )
+}
+
+/**
+ * Point the graph at a published version — including an older one, which is
+ * what a rollback is. Approval is the server's gate, not this call's.
+ */
+export async function activateVersion(
+  useCaseId: string,
+  version: number,
+): Promise<GraphStudioPayload> {
+  return withStudio(
+    'The activated version',
+    await request<unknown>(`${studioPath(useCaseId)}/versions/${version}/activate`, {
+      method: 'POST',
+    }),
+  )
+}
+
+export async function runQualityCheck(useCaseId: string): Promise<QualityReport> {
+  const raw = validate<{
+    checks: { check_id: string; label: string; passed: boolean; detail: string }[]
+    passed: number
+    failed: number
+    ran_at: string
+  }>(
+    'The quality report',
+    await request<unknown>(`${studioPath(useCaseId)}/quality-check`, {
+      method: 'POST',
+    }),
+    QUALITY_REPORT_PAYLOAD,
+  )
+  return {
+    checks: raw.checks.map((c) => ({
+      checkId: c.check_id,
+      label: c.label,
+      passed: c.passed,
+      detail: c.detail,
+    })),
+    passed: raw.passed,
+    failed: raw.failed,
+    ranAt: raw.ran_at,
+  }
+}
+
+export async function deleteUseCase(useCaseId: string): Promise<{ deleted: string }> {
+  return validate<{ deleted: string }>(
+    'The deleted use case',
+    await request<unknown>(`/graph-use-cases/${encodeURIComponent(useCaseId)}`, {
+      method: 'DELETE',
+    }),
+    DELETED_PAYLOAD,
+  )
+}
 
 export async function getDb(): Promise<DbPayload> {
   const raw = await request<unknown>('/db')
   return validate<DbPayload>("The db.json document", raw, DB_PAYLOAD)
 }
 
-export const putDb = (db: unknown) =>
-  request<{ saved: true; sections: DbSection[] }>('/db', {
-    method: 'PUT',
-    body: { db },
-  })
-
-export const putDbSection = (section: string, value: unknown) =>
-  request<{ saved: true; section: string; sections: DbSection[] }>(
-    `/db/${encodeURIComponent(section)}`,
-    { method: 'PUT', body: { value } },
+export async function putDb(
+  db: unknown,
+): Promise<{ saved: boolean; sections: DbSection[] }> {
+  return validate<{ saved: boolean; sections: DbSection[] }>(
+    'The saved db.json',
+    await request<unknown>('/db', { method: 'PUT', body: { db } }),
+    DB_SAVED_PAYLOAD,
   )
+}
+
+export async function putDbSection(
+  section: string,
+  value: unknown,
+): Promise<{ saved: boolean; section: string; sections: DbSection[] }> {
+  return validate<{ saved: boolean; section: string; sections: DbSection[] }>(
+    'The saved section',
+    await request<unknown>(`/db/${encodeURIComponent(section)}`, {
+      method: 'PUT',
+      body: { value },
+    }),
+    DB_SECTION_SAVED_PAYLOAD,
+  )
+}
 
 export async function getAudit(): Promise<AuditPayload> {
   const raw = await request<unknown>('/audit')

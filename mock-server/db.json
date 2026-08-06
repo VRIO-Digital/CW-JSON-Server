@@ -1901,24 +1901,217 @@
       "rank": 3
     }
   ],
-  "graph_use_cases": [
-    {
-      "use_case_id": "uc-uj-msh4cfrgb",
-      "name": "uj",
-      "status": "draft",
-      "domain_id": "industries",
-      "business_need": "uu",
-      "personas": [],
-      "kpis": [],
-      "sources": [],
-      "hero_questions": [],
-      "citations": "required",
-      "answer_formats": [],
-      "gap_decisions": [],
-      "step": 2,
-      "updated_at": "2026-08-06T06:12:52.359Z"
+  "graph_studio": {
+    "review_items": [
+      {
+        "item_id": "rv-wo-incurs-cost",
+        "kind": "relationship",
+        "title": "Work Order → incurs → Cost Line",
+        "detail": "L/S/T match — lexical 0.88 · structural 0.79 · type 0.76 · evidence: AUFK.AUFNR joins WORKORDER_COSTS on 96.2% of sampled rows. Prior: you approved the same pattern in Service Interruptions (decision memory).",
+        "confidence": 0.81,
+        "floor": "schema-changing",
+        "action_set": "standard",
+        "justification": true
+      },
+      {
+        "item_id": "rv-interruption-cavitation",
+        "kind": "relationship",
+        "title": "Interruption → caused-by → Pump cavitation",
+        "detail": "Causal claims always see a human. Evidence: incident narrative #88 names cavitation; work orders WO-2201/2214 follow within 72h. Correlational alternative available.",
+        "confidence": 0.77,
+        "floor": "causal",
+        "action_set": "causal",
+        "justification": false
+      },
+      {
+        "item_id": "rv-entity-contractor",
+        "kind": "entity",
+        "title": "Contractor",
+        "detail": "Proposed from new Hexagon EAM column contractor_id plus contract signatories. Adding an entity type changes the schema → floor review.",
+        "confidence": 0.83,
+        "floor": "new entity type",
+        "action_set": "standard",
+        "justification": false
+      },
+      {
+        "item_id": "rv-change-order-revises",
+        "kind": "relationship",
+        "title": "Change Order → revises → Authorization",
+        "detail": "Extraction-derived. Links a contract clause to a financial authorization — crossing from unstructured to ledger always sees a human.",
+        "confidence": 0.79,
+        "floor": "schema-changing",
+        "action_set": "standard",
+        "justification": true
+      }
+    ],
+    "pivot": {
+      "pivot_id": "P-204",
+      "alternative_id": "P-204A",
+      "title": "Entity resolution: Contractor vs Vendor",
+      "detail": "Hexagon EAM contractor_id and the ledger's vendor_no overlap on 71% of rows. Resolving them as one entity changes what every other decision in this queue means, so the queue cannot be read until it is settled.",
+      "options": [
+        {
+          "option_id": "P-204",
+          "label": "One entity — Contractor absorbs Vendor",
+          "consequence": "Cost lines and work orders share one counterparty; 3 approved relationships are re-scoped."
+        },
+        {
+          "option_id": "P-204A",
+          "label": "Two entities — keep Vendor separate",
+          "consequence": "Ledger stays independent of EAM; the Contractor → performs → Work Order edge is dropped."
+        }
+      ]
+    },
+    "canvas": {
+      "nodes": [
+        {
+          "node_id": "riverbend-wwtp",
+          "label": "Riverbend WWTP",
+          "sublabel": "treatment plant",
+          "group": "assets",
+          "confidence": 0.97,
+          "x": 150,
+          "y": 206
+        },
+        {
+          "node_id": "pump-p204",
+          "label": "Pump P-204",
+          "sublabel": "raw water",
+          "group": "assets",
+          "confidence": 0.96,
+          "x": 360,
+          "y": 146
+        },
+        {
+          "node_id": "msa-2024-117",
+          "label": "MSA-2024-117",
+          "sublabel": "contract",
+          "group": "contracts",
+          "confidence": 0.94,
+          "x": 630,
+          "y": 186
+        },
+        {
+          "node_id": "contractor",
+          "label": "Contractor",
+          "sublabel": "proposed entity type",
+          "group": "contracts",
+          "confidence": 0.83,
+          "review_item_id": "rv-entity-contractor",
+          "x": 520,
+          "y": 227
+        },
+        {
+          "node_id": "change-order",
+          "label": "Change Order",
+          "sublabel": "extracted",
+          "group": "contracts",
+          "confidence": 0.88,
+          "x": 730,
+          "y": 306
+        },
+        {
+          "node_id": "work-order",
+          "label": "Work Order",
+          "sublabel": "48,112 records",
+          "group": "work",
+          "confidence": 0.98,
+          "x": 331,
+          "y": 325
+        },
+        {
+          "node_id": "cost-line",
+          "label": "Cost Line",
+          "sublabel": "312,455 rows",
+          "group": "work",
+          "confidence": 0.95,
+          "x": 550,
+          "y": 355
+        },
+        {
+          "node_id": "interruption-88",
+          "label": "Interruption #88",
+          "sublabel": "14 Apr",
+          "group": "work",
+          "confidence": 0.91,
+          "x": 180,
+          "y": 386
+        }
+      ],
+      "edges": [
+        {
+          "from": "riverbend-wwtp",
+          "to": "pump-p204",
+          "label": "has_asset"
+        },
+        {
+          "from": "pump-p204",
+          "to": "msa-2024-117",
+          "label": "covered_by"
+        },
+        {
+          "from": "pump-p204",
+          "to": "work-order",
+          "label": "subject_of"
+        },
+        {
+          "from": "interruption-88",
+          "to": "pump-p204",
+          "label": "caused_by",
+          "review_item_id": "rv-interruption-cavitation"
+        },
+        {
+          "from": "work-order",
+          "to": "contractor",
+          "label": "performed_by",
+          "review_item_id": "rv-entity-contractor"
+        },
+        {
+          "from": "msa-2024-117",
+          "to": "change-order",
+          "label": "amended_by"
+        },
+        {
+          "from": "work-order",
+          "to": "cost-line",
+          "label": "incurs"
+        }
+      ]
+    },
+    "generated": {
+      "must_review_total": 22,
+      "confirmed_total": 112,
+      "auto_approved_total": 466,
+      "spot_check_quota": 11,
+      "sample_size": 6,
+      "subjects": [
+        "Work Order",
+        "Cost Line",
+        "Asset",
+        "Contractor",
+        "Interruption",
+        "Meter",
+        "Outage",
+        "Contract",
+        "Authorization",
+        "Site",
+        "Feeder",
+        "Inspection"
+      ],
+      "predicates": [
+        "incurs",
+        "serves",
+        "measures",
+        "escalates",
+        "supersedes",
+        "assigned-to",
+        "located-at",
+        "raised-against",
+        "settles"
+      ]
     }
-  ],
+  },
+  "graph_use_cases": [],
   "graph_personas": [
     {
       "persona_id": "reliability-engineer",

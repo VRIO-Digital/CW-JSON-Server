@@ -21,6 +21,7 @@ import {
   Typography,
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type {
   AnswerFormat,
   Citations,
@@ -85,12 +86,15 @@ function SavedUseCases({
   pending,
   onOpen,
   onDelete,
+  onStartNew,
 }: {
   useCases: GraphUseCase[]
   count: number
   pending: string | null
   onOpen: (useCase: GraphUseCase) => void
   onDelete: (useCase: GraphUseCase) => void
+  /** Clears the form and puts the cursor in the name field. */
+  onStartNew: () => void
 }) {
   return (
     <Collapse
@@ -110,6 +114,20 @@ function SavedUseCases({
           ),
           children: (
             <div>
+              {/* An empty panel was a blank white box that looked like a
+                  failed render. Say why it is empty, and offer the one thing
+                  that fills it. */}
+              {useCases.length === 0 ? (
+                <div className="ng-uc-empty">
+                  <span>
+                    <strong>No use cases saved yet.</strong> Name one below and pick
+                    a domain — it appears here the moment you save, and you can
+                    reopen it at the step you left.
+                  </span>
+                 
+                </div>
+              ) : null}
+
               {useCases.map((u) => (
                 <div key={u.useCaseId} className="ng-uc-row">
                   <span className="ng-uc-left">
@@ -154,6 +172,7 @@ function SavedUseCases({
 
 export default function NewGraphPage() {
   const { message } = App.useApp()
+  const navigate = useNavigate()
 
   const domainsData = useGraphDomainsStore((s) => s.data)
   const domainsError = useGraphDomainsStore((s) => s.error)
@@ -363,6 +382,17 @@ export default function NewGraphPage() {
     resetDerivation()
   }
 
+  /*
+   * `startNew` plus the cursor. Offered where the saved list is empty, and there
+   * the form is already blank — so without the focus the button would look like
+   * it did nothing. The name field is step 1's first input, which is exactly
+   * where the next keystroke should land.
+   */
+  function startFresh() {
+    startNew()
+    requestAnimationFrame(() => document.getElementById('ng-name')?.focus())
+  }
+
   async function saveDraft(nextStep = step) {
     const result = await save({
       useCaseId,
@@ -411,7 +441,13 @@ export default function NewGraphPage() {
     }
     setUseCaseId(result.useCase.useCaseId)
     setSavedAt(result.useCase.updatedAt)
-    message.success('Committed — ready to build.')
+    message.success('Built — opening Graph Studio to review it.')
+    /*
+     * The build does not end here. What the deriver was unsure about is exactly
+     * what a human has to settle, so committing hands straight to that graph's
+     * studio rather than leaving the user on a finished-looking form.
+     */
+    navigate(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`)
   }
 
   async function next() {
@@ -513,6 +549,7 @@ export default function NewGraphPage() {
           pending={pending}
           onOpen={openUseCase}
           onDelete={(u) => void removeUseCase(u)}
+          onStartNew={startFresh}
         />
       )}
 
@@ -762,42 +799,47 @@ export default function NewGraphPage() {
         )}
 
         <div className="ng-foot">
-          {step > 1 ? (
-            <Button onClick={() => setStep(step - 1)}>← Back</Button>
-          ) : useCaseId ? (
-            // Only offered once a draft is loaded — otherwise the form already
-            // is the new one, as the card above says.
+          {/* Left is for leaving the wizard, not for moving in it — so only
+              "Start a new one" sits here. Back travels with Next on the right,
+              where the hand already is. */}
+          {step === 1 && useCaseId ? (
             <Button icon={<PlusOutlined />} onClick={startNew}>
               Start a new one
             </Button>
           ) : (
             <span />
           )}
-          {step < stepTotal ? (
-            <Button type="primary" loading={saving} onClick={() => void next()}>
-              {/* The last answered step produces the brief the AI derives step 7
-                  from, so it says what it does rather than "Next". */}
-              {step === 6 ? 'Generate use-case brief' : 'Next'}{' '}
-              <ArrowRightOutlined />
-            </Button>
-          ) : (
-            <Space size={SP.sm}>
-              <Button loading={saving} onClick={() => void saveDraft()}>
-                Save Only
+
+          <Space size={SP.sm}>
+            {step > 1 ? (
+              <Button onClick={() => setStep(step - 1)}>← Back</Button>
+            ) : null}
+            {step < stepTotal ? (
+              <Button type="primary" loading={saving} onClick={() => void next()}>
+                {/* The last answered step produces the brief the AI derives step 7
+                    from, so it says what it does rather than "Next". */}
+                {step === 6 ? 'Generate use-case brief' : 'Next'}{' '}
+                <ArrowRightOutlined />
               </Button>
-              {/* Building is blocked until every gap has been decided — an
-                  undecided gap is a question the graph cannot answer. Step 7's
-                  rule, read from the same place as every other step's. */}
-              <Button
-                type="primary"
-                loading={saving}
-                disabled={stepIssue(7, draft) !== null}
-                onClick={() => void buildGraph()}
-              >
-                Save &amp; build graph <ArrowRightOutlined />
-              </Button>
-            </Space>
-          )}
+            ) : (
+              <>
+                <Button loading={saving} onClick={() => void saveDraft()}>
+                  Save Only
+                </Button>
+                {/* Building is blocked until every gap has been decided — an
+                    undecided gap is a question the graph cannot answer. Step 7's
+                    rule, read from the same place as every other step's. */}
+                <Button
+                  type="primary"
+                  loading={saving}
+                  disabled={stepIssue(7, draft) !== null}
+                  onClick={() => void buildGraph()}
+                >
+                  Save &amp; build graph <ArrowRightOutlined />
+                </Button>
+              </>
+            )}
+          </Space>
         </div>
       </div>
 

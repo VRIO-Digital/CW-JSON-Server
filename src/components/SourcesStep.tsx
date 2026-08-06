@@ -65,7 +65,12 @@ export default function SourcesStep({
    */
   if (sources.length === 0) {
     return (
-      <NoSourceConnected detail="A graph can only draw on data that has been profiled. Connect a BigQuery project or a Google Drive, then profile it in the Data Catalogue — its tables and documents become selectable here." />
+      // `bare` — the wizard step is already a bordered card, and a dashed frame
+      // inside it reads as a rendering fault rather than as an empty slot.
+      <NoSourceConnected
+        bare
+        detail="A graph can only draw on data that has been profiled. Connect a BigQuery project or a Google Drive, then profile it in the Data Catalogue — its tables and documents become selectable here."
+      />
     )
   }
 

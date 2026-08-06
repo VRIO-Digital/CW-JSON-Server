@@ -1,0 +1,87 @@
+/*
+ * A review row. Spacing from the --sp-* scale only. The kind chip stays neutral
+ * — it is a category, not a state — while the confidence/floor tag carries the
+ * warn tone, because a floor is exactly a state: this one blocks the publish.
+ */
+
+.rq-item {
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.rq-item + .rq-item {
+  margin-top: var(--sp-3);
+}
+
+.rq-item.is-decided {
+  background: #fafbfc;
+}
+
+.rq-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.rq-kind {
+  padding: 1px var(--sp-2);
+  border: 1px solid #e9ecf1;
+  border-radius: 4px;
+  background: #f7f8fa;
+  color: #8994a8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+.rq-title {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #0f1729;
+}
+
+.rq-score {
+  margin-left: auto;
+  padding: 1px var(--sp-2);
+  border-radius: 4px;
+  background: #fdf3e7;
+  color: #b45309;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.rq-detail {
+  margin-top: var(--sp-2);
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.rq-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.rq-justify {
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+
+.rq-decided {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.rq-decided-why {
+  color: #4b5a75;
+  font-size: 12.5px;
+  font-style: italic;
+}

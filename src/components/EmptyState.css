@@ -13,6 +13,12 @@
   border-radius: var(--radius-card);
 }
 
+/* Nested inside a card that already has a border — see the `bare` prop. */
+.empty-state.is-bare {
+  border: 0;
+  background: transparent;
+}
+
 .empty-state-inner {
   max-width: 520px;
   padding: var(--sp-8) var(--sp-6) var(--sp-7);

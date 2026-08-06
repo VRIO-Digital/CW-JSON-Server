@@ -319,7 +319,7 @@ protection, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
-2. **Server shape check** — `validateDb` verifies all 17 required keys and
+2. **Server shape check** — `validateDb` verifies all 18 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
 3. **Atomic write** — temp file + rename, so a failed write cannot truncate
@@ -682,6 +682,155 @@ pick on step 4 immediately narrows what step 7 reports.
 domain or an out-of-range step → 400, opening a use case the server no longer has
 → 404. All surface through the store's `Result`, so the page shows a message and
 keeps its state.
+
+---
+
+## Flow 8 — Graph Studio: a built graph becomes a published one
+
+**Files:** `GraphStudioListPage.tsx` · `GraphStudioPage.tsx` →
+`ReviewQueueItem.tsx` → `graphStudioStore.ts` → `GET /graph-studio`,
+`GET|POST /graph-studio/:useCaseId…`
+
+```
+New Graph step 7 · Save & build graph
+        → /graph-studio/:useCaseId          the new graph's review, opened
+/graph-studio                                every graph you have built
+        → click one → Review queue (23) · Canvas · Query & sanity-check
+                      · Quality report · Versions
+```
+
+Every tab is built. The header carries only what is live and **Publish vN…** —
+each tab owns its own actions, so the quality check runs from the Quality report
+tab where its result lands, not from a header that would then show nothing.
+
+### The list
+
+Only graphs that have been **built** — a use case committed on step 7. Each row
+carries its name, domain, `draft v15` / `published`, when it was built, and the
+one number that decides whether it can ship: how many items still need a human.
+
+A use case still in the wizard is not listed, and opening its id is **refused
+with a 400 naming the fix** rather than a 404 — "not built yet" is a different
+problem from "no such graph". The draft count is still shown, because that is
+the answer to "where did my graph go?".
+
+### One graph's review
+
+Four buckets, split by confidence and by whether a *floor* was hit:
+
+| Card | Meaning |
+|---|---|
+| **Must review** | below 0.85 and on a floor — these block publish |
+| **Pivot** | an entity-resolution question that blocks the build outright |
+| **Confirmed FYI** | 0.85–0.95, spot-checked |
+| **Auto-approved** | ≥0.95, listed for the record |
+
+**Every figure is the length of something returned.** `db.json` holds the four
+authored rows, the pivot and the totals; `studioItems` synthesises the rest from
+a hash that includes the use case id — so each built graph has its own queue, and
+repeats agree. Confidence is generated inside each bucket's band, so a card
+cannot lie about its own filter. Confirmed and auto-approved return a named
+`*_sample`; 466 is a count, not a list.
+
+`action_set` decides a row's buttons. A causal claim gets **Approve as causal /
+Downgrade to correlational / Reject** — never a plain "Approve", because only one
+of those keeps the causal edge. The server's `allowed` list refuses anything
+else, so add a set in both places or not at all. A `schema-changing` row cannot
+be resolved without a justification, refused server-side.
+
+Every action answers with the whole studio, so the cards, the gate and the row
+move together and no second fetch can leave them disagreeing.
+
+### The publish gate
+
+**The pivot is a separate precondition from the queue.** Resolving all 22 rows
+still leaves publish blocked while it is open, because settling it changes what
+the already-decided rows mean — which is why the pivot sits *above* the rows
+rather than in them.
+
+`publish.blocked` and its `reasons` are computed once, on the server. The
+button's `disabled`, its tooltip, the banner and the `POST …/publish` refusal all
+read that one list, so a UI that forgot to disable still cannot publish.
+Publishing makes the **draft's own** version live — `draft v15` publishes as
+`v15`, and the next draft becomes v16.
+
+**Where it fails:** a plain approve on a causal row → 400 naming the three legal
+choices; a schema-changing row with no justification → 400; an unknown item →
+404; an unknown pivot option → 400 naming the two; publish while blocked → 400
+listing the same reasons the banner shows; opening an unbuilt draft → 400 telling
+you to finish the wizard.
+
+Decisions and the pivot live **in memory**, keyed `useCaseId:itemId` so two
+graphs cannot answer each other's rows — a review pass is a working session, not
+something a mock writes back over its seed.
+
+### Canvas
+
+**Files:** `GraphCanvas.tsx` + `data/canvasLegend.ts` → `GET /graph-studio/:id/canvas`
+
+The ontology as nodes and edges, drawn in **hand-written inline SVG** — no graph
+library, for the same reason the mock server has no dependencies. Node positions
+are seeded in `db.json` so a reload draws the same picture; dragging moves a node
+in local state only, because rearranging is a reading aid, not an edit.
+
+**The canvas and the review queue are the same truth.** A node or edge carrying a
+`review_item_id` is *proposed* exactly while that row is undecided — approve the
+Contractor row and its node un-dashes here, correct it and the node becomes
+`studio-authored` (which is what the fourth filter chip counts). The inspector
+says so and links back to the queue.
+
+Colour is the legend group — a *category*. The one state shown is "proposed",
+and it carries a dashed outline and the word as well as a colour. Filter chips
+show counts, so an empty result reads as "none match" and not as a broken chip.
+
+### Query & sanity-check
+
+**Files:** `GraphStudioPage.tsx` → `POST /graph-studio/:id/query`
+
+A question asked of the **draft**, before anyone commits to it. There is no
+engine: the entities named are matched to nodes and the path between them is
+walked over the edges that actually exist, so the path *is* the evidence — and it
+comes back as a canvas with those nodes marked, which is what the glow on the
+Canvas tab is.
+
+Three honest failures, and they are the point:
+
+- a question naming **no** entity in the graph → not answerable
+- naming **one** → "a question needs two things to relate"
+- naming two that **nothing connects** → says so rather than inventing a hop
+
+An answer crossing an undecided edge is answerable **and provisional**, and says
+which decision it is resting on — publishing would change it.
+
+Matching requires the whole label or a word unique to one node. A bare shared
+word is not enough: "work order" would otherwise also match Change Order on
+"order" and confidently answer about a pair nobody asked for.
+
+### Versions
+
+The table lists **only published versions** — the draft is not one of them.
+
+**Three acts, deliberately separate:**
+
+| Act | Endpoint | What it means |
+|---|---|---|
+| publish | `POST …/publish` | put this draft on the shelf; it also starts serving |
+| approve | `POST …/versions/:v/approve` | a human read the report and signed it off |
+| activate | `POST …/versions/:v/activate` | point the graph at it — this is rollback |
+
+**Approval gates activation.** An unapproved version cannot be made live, so the
+sign-off is never decorative; the row shows "approve first" rather than a
+disabled button with no reason. Any *approved* version can be activated,
+including an older one — which is why **live is not "the newest"**. It is
+tracked explicitly, each row carries `is_live`, and exactly one does.
+
+Publishing sets serving to what it just published; nothing else moves it, so a
+rollback survives until someone changes it again. A rollback does **not** touch
+the draft version — v18 stays the draft while v15 serves.
+
+**Where it fails:** activating or approving an unpublished version → 404;
+activating an unapproved one → 400 naming the fix; activating the live one → 400;
+approving twice → 400 naming who already did it.
 
 ---
 

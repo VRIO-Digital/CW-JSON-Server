@@ -3,6 +3,8 @@ import App from './App'
 import AuditPage from './pages/AuditPage'
 import CataloguePage from './pages/CataloguePage'
 import DbEditorPage from './pages/DbEditorPage'
+import GraphStudioListPage from './pages/GraphStudioListPage'
+import GraphStudioPage from './pages/GraphStudioPage'
 import NewGraphPage from './pages/NewGraphPage'
 import NotFoundPage from './pages/NotFoundPage'
 import SourcesPage from './pages/SourcesPage'
@@ -25,6 +27,9 @@ export const routes: RouteObject[] = [
       { index: true, element: <Navigate to="/sources" replace /> },
       { path: 'sources', element: <SourcesPage /> },
       { path: 'new-graph', element: <NewGraphPage /> },
+      // The studio lists built graphs; a graph's own review lives under its id.
+      { path: 'graph-studio', element: <GraphStudioListPage /> },
+      { path: 'graph-studio/:useCaseId', element: <GraphStudioPage /> },
       { path: 'catalogue', element: <CataloguePage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'trace', element: <TracePage /> },

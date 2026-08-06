@@ -264,6 +264,83 @@ an entity field to any step. Step 7 confirms what the AI derived. Personas are
 lightweight tags that shape questions and tone; they are **not** access control,
 and nothing in this flow should start treating them as permissions.
 
+### Graph Studio (`/graph-studio`)
+
+Where a *built* graph becomes a published one. **The studio lists graphs, it is
+not one graph** — `/graph-studio` shows every use case that has been committed on
+step 7, and `/graph-studio/:useCaseId` opens that one's review. New Graph's
+"Save & build graph" navigates straight to the new graph's studio, because a
+committed brief is not a finished graph: what the deriver was unsure about is
+exactly what a human has to settle.
+
+**A draft is not listed, and opening one is refused with a 400 that says how to
+fix it** — "not built yet" is a different problem from "no such graph", and only
+one of them is solved by finishing the wizard. The draft *count* is still shown,
+because it answers "where is my graph?".
+
+**Nothing on a card is a decorative number.** `graph_studio` in `db.json` holds
+the four evidence-rich rows, the pivot and each bucket's total; the rest are
+synthesised by `studioItems` the way `tableDictionary` synthesises columns — by a
+hash that includes the **use case id**, so every built graph gets its own queue
+and repeats agree. The card shows the length of what was returned, and confidence
+is generated inside each bucket's band because the cards promise `0.85–0.95` and
+`≥0.95`. Buckets below the floor come back as a named `*_sample`, never a list
+pretending to be all 466.
+
+**A row's buttons are its own.** `action_set` picks them: a causal claim is
+`approve-causal` or `downgrade-correlational`, never plain "approve". The server
+refuses any other choice, so the page cannot offer one the API would reject. A
+`schema-changing` row cannot be resolved without a justification — enforced
+server-side, not merely shown.
+
+**The pivot is a separate precondition from the queue.** Clearing every row still
+leaves publish blocked while it is open, because settling it changes what the
+decided rows mean. `publish.blocked` and its `reasons` are computed once on the
+server; the button's `disabled`, its tooltip, the banner and the publish refusal
+all read that one list. Publishing makes the draft's *own* version live
+(`draft v15` → `Publish v15…`); it does not mint a new number.
+
+Decisions and the pivot live in memory, keyed `useCaseId:itemId`, so two graphs
+cannot answer each other's rows.
+
+**The five tabs are one truth, not five pictures.**
+
+- **Canvas** draws the ontology as hand-written inline SVG — no graph library,
+  for the same reason the mock server has no dependencies. Positions come from
+  the server so a reload draws the same picture; dragging is local, because
+  rearranging is for reading. **An element is "proposed" exactly while its
+  review item is undecided**, so approving a row in the queue un-dashes its node
+  here, and *correcting* one marks it `studio-authored`. The filter chips carry
+  counts, so an empty result reads as "none match" rather than a broken chip.
+- **Query & sanity-check** asks the *draft*. The answer is a real walk over the
+  edges that exist, and its path is what lights up on the canvas — the answer
+  carries the marked canvas back with it, so there is no second request and no
+  second truth. A question naming one entity, or two that nothing connects, is
+  **not answerable and says why**; an answer resting on an undecided edge is
+  answerable *and* flagged provisional. Matching needs the whole label or a word
+  unique to one node, or "work order" would silently answer about Change Order.
+- **Quality report** re-runs the same three preconditions the publish gate uses.
+- **Versions** lists **only published versions**, and separates three acts that
+  are easy to conflate: *publishing* puts a version on the shelf, *approving*
+  records that a human read the report, and *activating* points the graph at it.
+  Approval is the gate on the third — `POST …/versions/:v/activate` refuses an
+  unapproved version, so a sign-off is never decorative. Approving twice is
+  refused naming who did it; activating what is already live is refused too.
+
+**Live is not "the newest".** Any approved version can be activated, which is
+what a rollback is, so `liveVersion` is tracked explicitly and each row carries
+`isLive` — exactly one does. Publishing sets it to what it just published;
+nothing else moves it.
+
+**The draft version and the live version are two facts, and only one is worth
+showing.** `version` is the working draft — what Publish would make live — and
+`liveVersion` is what is serving. Publishing v15 moves the draft to v16, so one
+tag rendering both reads "published v16", a version nobody has seen. The pages
+show **`live v15` only**; the draft number appears on the Publish button
+(`Publish v16…`), which is the one place it means anything. Do not add a
+`draft vN` tag back — an internal counter beside a real version reads as history
+nobody asked for.
+
 ### State (`src/store/`)
 
 zustand. Five modules: `sourcesStore`, `catalogueStore` (browse / columns /
@@ -304,6 +381,18 @@ payload is reachable. Without the check it surfaces as
 with it, the message names the path (`sources[0].profiled_tables should be a
 number, got string`). **Add a schema whenever you add an endpoint.**
 
+**A write answers with a shape too.** The rule covers `POST`/`PUT`/`PATCH`/
+`DELETE`, not just reads — a registration, a queued job or a saved section is
+rendered exactly like a fetched list, and a stale server answers writes with the
+old shape as readily as reads. `check-docs` enforces this mechanically: an
+exported fetcher in `client.ts` that calls `request()` must also reach
+`validate()`, directly or through a helper that does (`withStudio`). Adding an
+endpoint without a schema now fails `npm run preflight`.
+
+`nullable()` accepts an absent key as well as `null`, so a nullable field's
+schema checks its *type*, not its presence. Use a non-nullable field when the key
+must be there.
+
 **Every message here is read by a user, not a maintainer.** A `ValidationError`
 leads with what failed and what to do (restart the mock server), *then* the field
 paths — a toast that opens with `use_case.personas should be an array` describes
@@ -341,6 +430,13 @@ mirrored as `SP` in `theme.ts` for antd's numeric props (`gutter`, `gap`,
 
 **Layout uses antd's 24-column `Row`/`Col`**, not CSS grid.
 
+**Empty pages use `EmptyState`, never antd's `Empty`.** A grey box saying
+"No data" states the problem and stops. Every empty page here is a page *before a
+step has been taken*, so the shell carries a brand medallion, what will appear
+once the step is taken, the one action that takes it, and the numbered path from
+here to a filled screen. `NoSourceConnected` is the source-specific wrapper;
+Graph Studio's is the second. Give a new one copy, not a new look.
+
 **Status colours are reserved.** `STATUS.good` / `warn` / `crit` mean state only —
 never decoration. Every status tag ships an icon *and* a text label
 (`StatusTag`), so state is never colour-alone. Class/category chips stay neutral
@@ -355,12 +451,14 @@ history. They are separate so tests can mount the table on a memory router.
 both `NavKey` and `NAV_ITEMS`.
 
 **The sidebar currently advertises more than exists.** `NAV_ITEMS` has 13
-entries; `routes.tsx` serves six of them (`/sources`, `/new-graph`, `/catalogue`,
-`/audit`, `/trace`, `/validation`) plus `/db` by URL. The other seven — Knowledge
-Graphs, Ask, Reports, Graph Builds, Graph Studio, What-if Lenses, Feedback &
-Learning — are roadmap placeholders with no route, so clicking one falls through
-`path: '*'` to `NotFoundPage`. That is a deliberate shell, not a broken link: when
-one gets a page, add it to `routes.tsx` and nothing else changes.
+entries; `routes.tsx` serves seven of them (`/sources`, `/new-graph`,
+`/graph-studio`, `/catalogue`, `/audit`, `/trace`, `/validation`) plus `/db` by
+URL. Graph Studio is two routes — `/graph-studio` lists the built graphs and
+`/graph-studio/:useCaseId` opens one. The other six — Knowledge Graphs, Ask,
+Reports, Graph Builds, What-if Lenses, Feedback & Learning — are roadmap
+placeholders with no route, so clicking one falls through `path: '*'` to
+`NotFoundPage`. That is a deliberate shell, not a broken link: when one gets a
+page, add it to `routes.tsx` and nothing else changes.
 
 ## The audit gate
 
