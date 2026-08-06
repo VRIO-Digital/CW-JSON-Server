@@ -1,5 +1,6 @@
 import { Navigate, type RouteObject } from 'react-router-dom'
 import App from './App'
+import AskPage from './pages/AskPage'
 import AuditPage from './pages/AuditPage'
 import CataloguePage from './pages/CataloguePage'
 import DbEditorPage from './pages/DbEditorPage'
@@ -30,6 +31,8 @@ export const routes: RouteObject[] = [
       // The studio lists built graphs; a graph's own review lives under its id.
       { path: 'graph-studio', element: <GraphStudioListPage /> },
       { path: 'graph-studio/:useCaseId', element: <GraphStudioPage /> },
+      // Ask queries a *published* graph, so it lists none until one is live.
+      { path: 'ask', element: <AskPage /> },
       { path: 'catalogue', element: <CataloguePage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'trace', element: <TracePage /> },

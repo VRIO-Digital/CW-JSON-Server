@@ -1,0 +1,53 @@
+# Rendered to /etc/nginx/conf.d/default.conf at container start, with
+# ${MOCK_ORIGIN} substituted. Only MOCK_* is substituted (NGINX_ENVSUBST_FILTER
+# in Dockerfile.web), so nginx's own $uri and $host survive.
+
+server {
+    listen       80;
+    server_name  _;
+    root         /usr/share/nginx/html;
+
+    gzip              on;
+    gzip_min_length   1024;
+    gzip_types        text/css application/javascript application/json image/svg+xml;
+
+    # The API.
+    #
+    # The trailing slash on proxy_pass is what strips /api, mirroring the
+    # rewrite in vite.config.ts exactly — so `BASE = '/api'` in client.ts
+    # resolves to the same real endpoint names in a container as it does under
+    # `npm run dev`. Remove that slash and every call arrives as /api/sources
+    # and 404s.
+    location /api/ {
+        proxy_pass         ${MOCK_ORIGIN}/;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+
+        # Consent, LLM suggestions, derivations and profiling checks are all
+        # deliberately held for a few seconds. Well inside the default, but
+        # stated so nobody reads a paced response as a hung proxy.
+        proxy_read_timeout 120s;
+    }
+
+    # Vite fingerprints these, so they can be cached hard.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # index.html must NOT be cached, or a redeploy stays invisible behind a
+    # stale shell pointing at asset hashes that no longer exist.
+    location = /index.html {
+        add_header Cache-Control "no-store";
+    }
+
+    # /ask, /catalogue, /graph-studio/:useCaseId and the rest are client routes
+    # with no file behind them — routes.tsx owns them. Anything unmatched
+    # therefore serves the SPA shell rather than nginx's 404.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

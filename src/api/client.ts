@@ -572,6 +572,71 @@ export interface StudioGraphsPayload {
   draftCount: number
 }
 
+/* ---------------- Ask ---------------- */
+
+/**
+ * A graph Ask can query — one that is live.
+ *
+ * `version` is the *published* one, the only version that serves. A built graph
+ * nobody published is not here at all; Ask has nothing to run against.
+ */
+export interface AskGraph {
+  useCaseId: string
+  name: string
+  domainId: string | null
+  version: string
+  publishedAt: string | null
+  publishedBy: string | null
+  /** What step 6 promised, so the answer never decides it at runtime. */
+  citations: 'required' | 'optional'
+  /** Standing limits — step 7's gap decisions, read back. */
+  caveats: string[]
+  /** The hero questions this graph was built for; the chips under the box. */
+  suggestedQuestions: string[]
+  entityCount: number
+  relationshipCount: number
+}
+
+export interface AskGraphsPayload {
+  graphs: AskGraph[]
+  count: number
+  /** Built but never published — the fix is Publish, not New Graph. */
+  builtCount: number
+  draftCount: number
+}
+
+/** One line of the supervisor's working, shown so an answer can be audited. */
+export interface AskStep {
+  step: string
+  detail: string
+}
+
+export interface AskCitation {
+  label: string
+  detail: string
+  confidence: number
+}
+
+export interface AskAnswer {
+  question: string
+  useCaseId: string
+  graphName: string
+  version: string
+  /** False is a real outcome: the graph abstained, and `reason` says why. */
+  answered: boolean
+  reason: string
+  answer: string | null
+  /** Null whenever it abstained — there is no number to report. */
+  confidence: number | null
+  entities: string[]
+  path: string[]
+  hops: number
+  reasoning: AskStep[]
+  citations: AskCitation[]
+  caveats: string[]
+  askedAt: string
+}
+
 export interface PivotOption {
   optionId: string
   label: string
@@ -1560,6 +1625,52 @@ const QUALITY_REPORT_PAYLOAD = shape({
   passed: num,
   failed: num,
   ran_at: str,
+})
+
+/* ---------------- Ask ---------------- */
+
+const ASK_GRAPH = shape({
+  use_case_id: str,
+  name: str,
+  domain_id: nullable(str),
+  version: str,
+  published_at: nullable(str),
+  published_by: nullable(str),
+  citations: oneOf(['required', 'optional']),
+  caveats: arrayOf(str),
+  suggested_questions: arrayOf(str),
+  entity_count: num,
+  relationship_count: num,
+})
+
+const ASK_GRAPHS_PAYLOAD = shape({
+  graphs: arrayOf(ASK_GRAPH),
+  count: num,
+  built_count: num,
+  draft_count: num,
+})
+
+/*
+ * `answer` and `confidence` are nullable because an abstention has neither, and
+ * that is a correct outcome rather than a missing field. `reason` is not
+ * nullable: an answer that cannot say why it is an answer is not one.
+ */
+const ASK_ANSWER_PAYLOAD = shape({
+  question: str,
+  use_case_id: str,
+  graph_name: str,
+  version: str,
+  answered: bool,
+  reason: str,
+  answer: nullable(str),
+  confidence: nullable(num),
+  entities: arrayOf(str),
+  path: arrayOf(str),
+  hops: num,
+  reasoning: arrayOf(shape({ step: str, detail: str })),
+  citations: arrayOf(shape({ label: str, detail: str, confidence: num })),
+  caveats: arrayOf(str),
+  asked_at: str,
 })
 
 /* ---------------- Writes answer with a shape too ---------------- */
@@ -2954,6 +3065,101 @@ export async function putDbSection(
     }),
     DB_SECTION_SAVED_PAYLOAD,
   )
+}
+
+/* ---------------- Ask ---------------- */
+
+interface RawAskGraph {
+  use_case_id: string
+  name: string
+  domain_id: string | null
+  version: string
+  published_at: string | null
+  published_by: string | null
+  citations: 'required' | 'optional'
+  caveats: string[]
+  suggested_questions: string[]
+  entity_count: number
+  relationship_count: number
+}
+
+const toAskGraph = (raw: RawAskGraph): AskGraph => ({
+  useCaseId: raw.use_case_id,
+  name: raw.name,
+  domainId: raw.domain_id,
+  version: raw.version,
+  publishedAt: raw.published_at,
+  publishedBy: raw.published_by,
+  citations: raw.citations,
+  caveats: raw.caveats,
+  suggestedQuestions: raw.suggested_questions,
+  entityCount: raw.entity_count,
+  relationshipCount: raw.relationship_count,
+})
+
+/** The graphs that are live. An empty list is the page's whole story. */
+export async function listAskGraphs(): Promise<AskGraphsPayload> {
+  const raw = validate<{
+    graphs: RawAskGraph[]
+    count: number
+    built_count: number
+    draft_count: number
+  }>('The live graphs', await request<unknown>('/ask'), ASK_GRAPHS_PAYLOAD)
+
+  return {
+    graphs: raw.graphs.map(toAskGraph),
+    count: raw.count,
+    builtCount: raw.built_count,
+    draftCount: raw.draft_count,
+  }
+}
+
+export async function askQuestion(
+  useCaseId: string,
+  question: string,
+): Promise<AskAnswer> {
+  const raw = validate<{
+    question: string
+    use_case_id: string
+    graph_name: string
+    version: string
+    answered: boolean
+    reason: string
+    answer: string | null
+    confidence: number | null
+    entities: string[]
+    path: string[]
+    hops: number
+    reasoning: AskStep[]
+    citations: AskCitation[]
+    caveats: string[]
+    asked_at: string
+  }>(
+    'The answer',
+    await request<unknown>('/ask', {
+      method: 'POST',
+      body: { use_case_id: useCaseId, question },
+    }),
+    ASK_ANSWER_PAYLOAD,
+  )
+
+  return {
+    question: raw.question,
+    useCaseId: raw.use_case_id,
+    graphName: raw.graph_name,
+    version: raw.version,
+    answered: raw.answered,
+    reason: raw.reason,
+    answer: raw.answer,
+    confidence: raw.confidence,
+    entities: raw.entities,
+    path: raw.path,
+    hops: raw.hops,
+    reasoning: raw.reasoning,
+    citations: raw.citations,
+    caveats: raw.caveats,
+    askedAt: raw.asked_at,
+  }
 }
 
 export async function getAudit(): Promise<AuditPayload> {

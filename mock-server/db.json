@@ -2111,7 +2111,85 @@
       ]
     }
   },
-  "graph_use_cases": [],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-usecase-001-mshh3pph7",
+      "name": "usecase-001",
+      "status": "committed",
+      "domain_id": "utilities",
+      "business_need": "usecase-001",
+      "personas": [
+        {
+          "name": "Plant Manager",
+          "description": "Asks which sites are drifting and what it would take to fix them.",
+          "source": "ai"
+        },
+        {
+          "name": "custom",
+          "description": "custom",
+          "source": "user"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Unplanned outage hours",
+          "description": "Hours lost to outages that were not in the maintenance plan.",
+          "source": "ai"
+        },
+        {
+          "name": "kpi",
+          "description": "kpi",
+          "source": "user"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:context-weave-dev",
+          "mode": "subset",
+          "objects": [
+            "e_manifest.manifest_header"
+          ]
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Which assets failed more than once in the last twelve months, and did the repair hold?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "What can be completed inside the next outage window without extending it?",
+          "priority": "high",
+          "source": "ai"
+        },
+        {
+          "text": "hero q",
+          "priority": "normal",
+          "source": "user"
+        }
+      ],
+      "citations": "required",
+      "answer_formats": [
+        {
+          "format_id": "cost-drivers",
+          "name": "Cost drivers",
+          "format": "narrative + drivers table + trend"
+        }
+      ],
+      "gap_decisions": [
+        {
+          "element_id": "gap:which-assets-failed-more-than-once-in-the-last-t",
+          "decision": "accept permanent"
+        },
+        {
+          "element_id": "gap:what-can-be-completed-inside-the-next-outage-win",
+          "decision": "accept permanent"
+        }
+      ],
+      "step": 7,
+      "updated_at": "2026-08-06T12:11:26.298Z"
+    }
+  ],
   "graph_personas": [
     {
       "persona_id": "reliability-engineer",

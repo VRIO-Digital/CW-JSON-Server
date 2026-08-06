@@ -19,6 +19,11 @@ static fallback data anywhere in `src/`. Run `npm run mock` in a second terminal
 On a different port, `npm run mock -- 4001` also needs the proxy target in
 `vite.config.ts` changed.
 
+`docker compose up --build` runs both in containers instead — nginx serves the
+built SPA on `:8080` and takes over the two jobs the dev server did for free,
+proxying `/api` (prefix stripped, exactly as `vite.config.ts` rewrites it) and
+serving `index.html` for client routes. See `deploy/README.md`.
+
 There is no test runner. Verification is done by building an SSR bundle of a
 throwaway script and running it under node:
 
@@ -164,6 +169,9 @@ jobs tab — a queued job is otherwise invisible. Already-profiled objects are
 skipped; an all-skipped job completes instantly rather than faking a run.
 `force` is still a server parameter, but the only UI that sets it is the
 **Force** button on a row in Profiling jobs — the browse panels never force.
+
+A forced commit **updates the existing record in place** instead of pushing a
+second one, so `profiled_tables` cannot double while `profiled_at` still moves.
 
 A job's work list is `objects` (`{parent_id, object_id, label, units, state}`)
 with `kind` and `unit` on the job, never `tables` — one board carries both
@@ -341,11 +349,42 @@ show **`live v15` only**; the draft number appears on the Publish button
 `draft vN` tag back — an internal counter beside a real version reads as history
 nobody asked for.
 
+### Ask (`/ask`)
+
+Where a *published* graph gets used. **Ask queries the live version, and only
+the live version** — `GET /ask` lists the graphs `liveVersion()` returns
+something for, so a draft is absent and a built-but-unpublished graph is
+absent too. Both are still counted (`built_count`, `draft_count`), because
+"finish the wizard" and "press Publish" are different fixes and the empty page
+has to name the right one. `POST /ask` refuses an unpublished graph with the
+sentence that says so.
+
+The walk is the studio's (`studioQuery`), deliberately: the sanity check that
+passed before publishing cannot then disagree with the answer after it. What
+Ask adds is the part a reader can audit — the entities the question was
+grounded in, the relationships that carried it, and a confidence that is the
+**weakest node on the route**, not a flourish.
+
+**An abstention is an answer.** When nothing matches, or two matched entities
+have nothing between them, `answered` is false, `reason` says which, and
+`answer`/`confidence` are `null` — no number is invented to fill the field, and
+the page tags it `warn`, never `crit`. A query engine that always produces a
+paragraph is a search box with better manners.
+
+**Nothing on the page is written copy pretending to be data.** The version, who
+published it and when come from the publish record; the standing caveats are
+step 7's gap decisions read back through `GAP_CAVEAT`; the citation policy is
+step 6's; and the suggestion chips are the use case's own hero questions — a
+chip is a promise the brief already made. `ANSWER_MS` paces the answer for the
+same reason `SUGGEST_MS` paces a suggestion. Refusals are never paced.
+
 ### State (`src/store/`)
 
-zustand. Five modules: `sourcesStore`, `catalogueStore` (browse / columns /
+zustand. Seven modules (plus `asyncState.ts`, the shared machinery): `sourcesStore`, `catalogueStore` (browse / columns /
 document browse / documents / jobs / signals), `graphStore` (domains / use
-cases), `telemetryStore` (audit / traces / evals), `dbStore`.
+cases), `graphStudioStore` (the studio's list + one graph's review),
+`askStore` (live graphs + the last answer), `telemetryStore` (audit / traces /
+evals), `dbStore`.
 
 The Drive stores are separate from the BigQuery ones rather than one store
 branching on connector: the payloads share no fields, so a union `data` would
@@ -451,11 +490,11 @@ history. They are separate so tests can mount the table on a memory router.
 both `NavKey` and `NAV_ITEMS`.
 
 **The sidebar currently advertises more than exists.** `NAV_ITEMS` has 13
-entries; `routes.tsx` serves seven of them (`/sources`, `/new-graph`,
-`/graph-studio`, `/catalogue`, `/audit`, `/trace`, `/validation`) plus `/db` by
-URL. Graph Studio is two routes — `/graph-studio` lists the built graphs and
-`/graph-studio/:useCaseId` opens one. The other six — Knowledge Graphs, Ask,
-Reports, Graph Builds, What-if Lenses, Feedback & Learning — are roadmap
+entries; `routes.tsx` serves eight of them (`/sources`, `/new-graph`,
+`/graph-studio`, `/ask`, `/catalogue`, `/audit`, `/trace`, `/validation`) plus
+`/db` by URL. Graph Studio is two routes — `/graph-studio` lists the built
+graphs and `/graph-studio/:useCaseId` opens one. The other five — Knowledge
+Graphs, Reports, Graph Builds, What-if Lenses, Feedback & Learning — are roadmap
 placeholders with no route, so clicking one falls through `path: '*'` to
 `NotFoundPage`. That is a deliberate shell, not a broken link: when one gets a
 page, add it to `routes.tsx` and nothing else changes.
@@ -513,7 +552,13 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   output looks impossibly wrong, check the server's age before your own code —
   several fields `undefined` at once means the process, not the schema.
   `assertCurrentUseCaseShape` in `client.ts` says so for use cases; the same
-  check is worth adding wherever a payload grows fields.
+  check is worth adding wherever a payload grows fields. A **404 on an endpoint
+  that plainly exists** is the same fault, and the dispatcher's own 404 now says
+  so — that one covers every endpoint added from here on.
+- **A new `check-docs` assertion must match `\r?\n`, never a bare `\n`.** These
+  files check out with CRLF on Windows; a split on `\n  {\n` found zero
+  connectors and reported "0 of 0 available" — a green-looking sweep over an
+  empty list.
 - **antd v6 renamed props** — read the installed `.d.ts`; do not assume v5.
 - **Selectors must return stable references.** `data?.x ?? []` allocates every
   render and defeats downstream memos; use a module-level constant.

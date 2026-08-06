@@ -333,3 +333,48 @@ it. **A doc line could not hold this** — it had already failed to, fourteen ti
 **Also learned** — `nullable()` permits an absent key, not just `null`, so a
 nullable field's schema checks its type rather than its presence. Where the key
 must exist, do not make it nullable.
+
+---
+
+## check-docs reported "0 of 0 connectors available" on Windows
+
+**Symptom** — `npm run preflight` failed on `at least one connector is usable:
+0 of 0 available`, with `connectors.ts` untouched and both real connectors
+plainly `available: true`. Every per-connector claim silently passed too, because
+the loop it fed had nothing to iterate.
+
+**Root cause** — `scripts/check-docs.mjs` split the file on `/\n {2}\{\n/`. Git
+checks these files out with CRLF on Windows, so the text is `\r\n  {\r\n` and the
+trailing `{\n` never matched. The parse returned zero connector blocks, and a
+check with nothing to check reported the code as broken.
+
+**Fix** — `/\r?\n {2}\{\r?\n/`. Twelve claims came back (38 → 50 verified).
+
+**Guard** — *mechanical*: the fix is the guard, and the check now proves itself —
+a zero-length parse can no longer masquerade as a passing sweep. **Rule for any
+new assertion in `check-docs.mjs`: match `\r?\n`, never a bare `\n`.** A doc-gate
+that fails for a reason unrelated to the docs trains everyone to ignore it, which
+is worse than not having it.
+
+---
+
+## A deleted button left a prop that broke the build
+
+**Symptom** — `npm run build` failed on two `TS6133` errors that had nothing to do
+with the change in hand: `onStartNew` unused in `NewGraphPage.tsx`, `BuildOutlined`
+unused in `nav.ts`. `npm run lint` reported both as *warnings*, so a lint-only
+check looked clean.
+
+**Root cause** — the "Start a use case" button was removed from the empty saved-use-cases
+panel but its prop, its handler and the call site stayed; `BuildOutlined` was left
+behind when two nav entries were commented out. `noUnusedLocals` is on, so both
+are errors to `tsc` and warnings to oxlint.
+
+**Fix** — restored the button the panel's own comment promises ("offer the one
+thing that fills it"), and dropped the unused icon import, naming it in the
+commented-out entries so it comes back with them.
+
+**Guard** — *mechanical*, and it already existed: `tsc` fails on both. The lesson
+is about which gate to trust — **oxlint warnings do not fail the build and `tsc`
+does, so never conclude a refactor on `npm run lint` alone.** `npm run preflight`
+runs both; that is the only signal that counts.

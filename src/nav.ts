@@ -9,7 +9,6 @@ import {
   PlusOutlined,
   SafetyCertificateOutlined,
   TableOutlined,
-  BuildOutlined,
   ClusterOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons'
@@ -75,12 +74,8 @@ export const NAV_ITEMS: NavItem[] = [
     path: '/catalogue',
     icon: TableOutlined,
   },
-  // {
-  //   key: 'graph-builds',
-  //   label: 'Graph Builds',
-  //   path: '/graph-builds',
-  //   icon: BuildOutlined,
-  // },
+  // Commented out, not deleted — both want BuildOutlined back when they land.
+  // { key: 'graph-builds', label: 'Graph Builds', path: '/graph-builds', icon: BuildOutlined },
   {
     key: 'graph-studio',
     label: 'Graph Studio',
@@ -118,6 +113,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: SafetyCertificateOutlined,
   },
 
-  // Dev tool
+  // Dev tool — routed, reachable by URL only.
   // { key: 'db', label: 'Mock Data', path: '/db', icon: BuildOutlined },
 ]

@@ -1,0 +1,216 @@
+/*
+ * Ask — the thread above, the composer pinned below. Spacing from the --sp-*
+ * scale only; the only colour is the brand tint on the composer's focus ring,
+ * because status colours are reserved for state.
+ */
+
+.ask-shell {
+  display: flex;
+  flex-direction: column;
+  /*
+   * The composer sits at the bottom of the viewport even when one answer does
+   * not fill it — a query box that floats mid-page reads as a search field.
+   */
+  min-height: calc(100svh - 220px);
+  gap: var(--sp-4);
+}
+
+.ask-thread {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- before the first question ---- */
+
+.ask-grounding {
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-card);
+  background: #fff;
+  padding: var(--sp-7) var(--sp-6);
+  text-align: center;
+}
+
+.ask-grounding-note {
+  margin: var(--sp-3) auto 0;
+  max-width: 620px;
+  color: #8994a8;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* ---- one question and its answer ---- */
+
+.ask-turn {
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-card);
+  background: #fff;
+  overflow: hidden;
+}
+
+.ask-asked {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid #e9ecf1;
+  background: #fafbfc;
+  color: #0f1729;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.ask-reply {
+  padding: var(--sp-5);
+}
+
+.ask-answer {
+  margin: var(--sp-3) 0 0;
+  color: #0f1729;
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.ask-path {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--radius-inner);
+  background: #fafbfc;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: #4b5a75;
+  overflow-x: auto;
+}
+
+.ask-section-title {
+  margin-top: var(--sp-5);
+  color: #8994a8;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ask-section-title em {
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* The supervisor's working, numbered so it reads as a sequence. */
+.ask-steps {
+  margin: var(--sp-3) 0 0;
+  padding-left: var(--sp-5);
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.ask-steps li + li {
+  margin-top: var(--sp-2);
+}
+
+.ask-steps strong {
+  color: #0f1729;
+  margin-right: var(--sp-2);
+}
+
+.ask-citations {
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ask-citations li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-inner);
+  font-size: 12.5px;
+}
+
+.ask-citations li + li {
+  margin-top: var(--sp-2);
+}
+
+.ask-cite-label {
+  color: #0f1729;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ask-cite-detail {
+  color: #8994a8;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.ask-cite-conf {
+  color: #4b5a75;
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.ask-note {
+  margin-top: var(--sp-3);
+  color: #8994a8;
+  font-size: 12.5px;
+}
+
+.ask-working {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+  padding: var(--sp-4);
+  border: 1px dashed #e9ecf1;
+  border-radius: var(--radius-inner);
+  color: #4b5a75;
+  font-size: 12.5px;
+}
+
+/* ---- the composer ---- */
+
+.ask-composer {
+  position: sticky;
+  bottom: 0;
+  padding-bottom: var(--sp-4);
+  /* The page scrolls under it, so it needs its own ground. */
+  background: linear-gradient(to bottom, rgb(247 248 250 / 0), #f7f8fa var(--sp-4));
+}
+
+.ask-box {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-card);
+  background: #fff;
+}
+
+.ask-box:focus-within {
+  border-color: #f4562b;
+}
+
+.ask-box .ant-input {
+  font-size: 14px;
+}
+
+.ask-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+/*
+ * A hero question is a sentence, and a chip that wraps to three lines stops
+ * being a chip — so a long one is truncated and its title carries the rest.
+ */
+.ask-chips .ant-btn {
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

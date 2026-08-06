@@ -62,6 +62,8 @@
  *   POST   /graph-studio/:id/versions/:v/activate  make it the one that serves
  *   POST   /graph-studio/:id/quality-check checks the publish preconditions
  *   POST   /graph-studio/:id/publish       refused while the gate is blocked
+ *   GET    /ask                            the graphs that are live, so askable
+ *   POST   /ask                            { use_case_id, question } asked of the live one
  *   GET    /graph-use-cases                saved drafts + committed use cases
  *   POST   /graph-use-cases                upsert a draft { use_case_id?, name, ... }
  *   DELETE /graph-use-cases/:useCaseId
@@ -569,30 +571,44 @@ function commitNextObject(job) {
   const next = job.objects.find((o) => o.state === 'pending')
   if (!next) return
 
+  /*
+   * A forced re-run reaches an object that is already committed. It must not
+   * push a second record — that would double `profiled_tables` — but it must
+   * leave a mark, or a re-profile is indistinguishable from never having run.
+   * So: update in place, insert otherwise.
+   */
+  const at = new Date().toISOString()
+
   if (job.kind === 'gdrive') {
     source.profiled_docs = source.profiled_docs ?? []
-    const already = source.profiled_docs.some(
+    const existing = source.profiled_docs.find(
       (p) => p.folder_id === next.parent_id && p.document_id === next.object_id,
     )
-    if (!already) {
+    if (existing) {
+      existing.entities = next.units
+      existing.profiled_at = at
+    } else {
       source.profiled_docs.push({
         folder_id: next.parent_id,
         document_id: next.object_id,
         entities: next.units,
-        profiled_at: new Date().toISOString(),
+        profiled_at: at,
       })
     }
   } else {
     source.profiled = source.profiled ?? []
-    const already = source.profiled.some(
+    const existing = source.profiled.find(
       (p) => p.dataset_id === next.parent_id && p.table_id === next.object_id,
     )
-    if (!already) {
+    if (existing) {
+      existing.columns = next.units
+      existing.profiled_at = at
+    } else {
       source.profiled.push({
         dataset_id: next.parent_id,
         table_id: next.object_id,
         columns: next.units,
-        profiled_at: new Date().toISOString(),
+        profiled_at: at,
       })
     }
   }
@@ -1600,6 +1616,209 @@ function studioQuery(useCaseId, question) {
     edges_used: edgesUsed.map((e) => ({ from: e.from, to: e.to, label: e.label })),
     hops: edgesUsed.length,
     caveats,
+  }
+}
+
+/* ---------------- Ask ---------------- */
+
+/*
+ * Ask queries a graph that is **live**, and that is the whole difference between
+ * this and the studio's sanity check. The studio asks the *draft* to find out
+ * whether it is finished; Ask asks the published version because that is what
+ * the business is running on. A graph nobody has published is therefore not
+ * askable — and "no graph is live" is a different sentence from "no graph
+ * exists", because only one of them is fixed by pressing Publish.
+ *
+ * One walk serves both (`studioQuery`), so a sanity check that passed before
+ * publishing cannot disagree with the answer after it.
+ */
+
+/**
+ * How long an answer is held.
+ *
+ * Longer than SUGGEST_MS on purpose: this is a supervisor agent grounding a
+ * question, routing it and composing a reply, and a query engine that answers
+ * before the button finishes its click teaches that asking is free. Errors are
+ * never paced — a refusal is not work.
+ */
+const ANSWER_MS = 1500
+
+/** What a decision on a gap means for anyone asking the graph afterwards. */
+const GAP_CAVEAT = {
+  'accept permanent': 'unavailable — no connected source covers it',
+  'drop question': 'out of scope for this graph',
+  'connect source': 'unavailable until the promised source is connected',
+  'defer with trigger': 'deferred — unavailable until its trigger fires',
+}
+
+/**
+ * What a live graph has already admitted it cannot answer.
+ *
+ * Not invented here: these are step 7's gap decisions read back, matched to the
+ * hero question they were taken against. A gap accepted permanently is a
+ * standing caveat for every question asked of this graph, so the page prints it
+ * before the first question rather than letting it surface as an abstention
+ * nobody expected.
+ */
+function askCaveats(useCase) {
+  const questions = normalizeQuestions(useCase.hero_questions)
+
+  return normalizeGapDecisions(useCase.gap_decisions)
+    .filter((g) => g.element_id.startsWith('gap:') && GAP_CAVEAT[g.decision])
+    .map((g) => {
+      // The id graphCoverage minted, recomputed rather than stored twice.
+      const slug = g.element_id.slice('gap:'.length)
+      const q = questions.find((h) => slugify(h.text).slice(0, 48) === slug)
+      return `${q ? q.text : slug} — ${GAP_CAVEAT[g.decision]}`
+    })
+}
+
+/**
+ * One row in Ask's graph picker, or null for a graph that is not live.
+ *
+ * Everything here is a fact the brief or the publish already recorded — the
+ * version that serves, who put it there, what the use case promised about
+ * citations, and the hero questions it was built to answer. The suggestion
+ * chips are those questions: a chip is a promise the brief already made, not a
+ * prompt someone thought sounded good.
+ */
+function askableGraph(useCase) {
+  const version = liveVersion(useCase.use_case_id)
+  if (version === null) return null
+
+  const published = (studioPublished.get(useCase.use_case_id) ?? []).find(
+    (v) => v.version === version,
+  )
+  const canvas = studioCanvas(useCase.use_case_id)
+
+  return {
+    use_case_id: useCase.use_case_id,
+    name: useCase.name,
+    domain_id: useCase.domain_id ?? null,
+    // The live version, never the draft counter — Ask cannot query a draft.
+    version: `v${version}`,
+    published_at: published?.published_at ?? null,
+    published_by: published?.published_by ?? null,
+    // Step 6 decided this, so the engine never picks at runtime.
+    citations: useCase.citations === 'optional' ? 'optional' : 'required',
+    caveats: askCaveats(useCase),
+    suggested_questions: normalizeQuestions(useCase.hero_questions).map((q) => q.text),
+    entity_count: canvas.node_count,
+    relationship_count: canvas.edge_count,
+  }
+}
+
+/**
+ * Answering one question against the live graph.
+ *
+ * There is no model here, so nothing is asserted that the graph does not carry:
+ * the entities are the ones the question named, the route is walked over edges
+ * that exist, and **confidence is the weakest node on that route** rather than a
+ * flourish. When the walk fails, the answer is an abstention that says why —
+ * which is the honest outcome, and the one the page promises.
+ */
+function askAnswer(useCase, question) {
+  const id = useCase.use_case_id
+  const graph = askableGraph(useCase)
+  const walk = studioQuery(id, question)
+  const canvas = studioCanvas(id)
+  const picks = normalizeSourcePicks(useCase.sources)
+
+  const routed = picks.length
+    ? `${picks.length} source pick(s) behind this graph: ${picks.map((p) => p.source_id).join(', ')}.`
+    : 'No source picks are recorded on this brief.'
+
+  const grounding = {
+    step: 'Grounded the question in the graph',
+    detail:
+      walk.matched.length > 0
+        ? `Matched ${walk.matched.length} entity(ies) in ${useCase.name} ${graph.version}: ${walk.matched.join(', ')}.`
+        : `Nothing in ${useCase.name} ${graph.version} is named in the question.`,
+  }
+
+  const base = {
+    question,
+    use_case_id: id,
+    graph_name: useCase.name,
+    version: graph.version,
+    entities: walk.matched,
+    hops: walk.hops,
+    caveats: [...graph.caveats, ...walk.caveats],
+    asked_at: new Date().toISOString(),
+  }
+
+  if (!walk.answerable) {
+    /*
+     * Abstaining *is* the answer. A query engine that always produces a
+     * paragraph is a search box with better manners, so the reason ships in the
+     * same field an answer would have used and confidence stays null — there is
+     * no number to report, and inventing one is the failure this guards.
+     */
+    return {
+      ...base,
+      answered: false,
+      reason: walk.reason,
+      answer: null,
+      confidence: null,
+      path: [],
+      reasoning: [grounding, { step: 'Abstained', detail: walk.reason }],
+      citations: [],
+    }
+  }
+
+  const labels = walk.path_labels
+  const nodeOf = (nodeId) => canvas.nodes.find((n) => n.node_id === nodeId)
+  const confidenceOf = (nodeId) => nodeOf(nodeId)?.confidence ?? 1
+  // The weakest link, because a chain is no surer than that.
+  const confidence = Number(Math.min(...walk.path.map(confidenceOf)).toFixed(2))
+
+  const labelFor = (nodeId) => nodeOf(nodeId)?.label ?? nodeId
+  const citations = walk.edges_used.map((e) => ({
+    label: `${labelFor(e.from)} → ${e.label} → ${labelFor(e.to)}`,
+    detail: `relationship in ${graph.version}, settled in review before publish`,
+    confidence: Number(Math.min(confidenceOf(e.from), confidenceOf(e.to)).toFixed(2)),
+  }))
+
+  /*
+   * A profiled object is cited only where it actually backs an entity on the
+   * route. Most sessions have nothing registered, and a citation naming a table
+   * this answer never touched is worse than a shorter list.
+   */
+  for (const o of selectedProfiledObjects(useCase.sources)) {
+    if (!labels.includes(entityName(o.label))) continue
+    citations.push({
+      label: `${o.label} (${o.size})`,
+      detail: `${o.sourceName} · ${o.evidenceKind}`,
+      confidence: matchScore(`${o.sourceName}:${o.objectId}`),
+    })
+  }
+
+  return {
+    ...base,
+    answered: true,
+    // Not the walk's own wording: it says "in the draft", and Ask never asks a
+    // draft. Same walk, different thing being asked.
+    reason: `Answered over ${walk.hops} relationship(s) that exist in ${graph.version}.`,
+    answer:
+      `${labels[0]} connects to ${labels[labels.length - 1]} over ${walk.hops} ` +
+      `relationship(s) in ${useCase.name} ${graph.version}: ${labels.join(' → ')}.`,
+    confidence,
+    path: labels,
+    reasoning: [
+      grounding,
+      {
+        step: 'Planned the route',
+        detail: `Walked ${walk.hops} relationship(s) that exist in ${graph.version}: ${labels.join(' → ')}.`,
+      },
+      { step: 'Routed to source systems', detail: routed },
+      {
+        step: 'Composed the answer',
+        detail:
+          `Confidence ${confidence.toFixed(2)} — the weakest entity on the route. ` +
+          `${citations.length} citation(s); citations are ${graph.citations} for this use case.`,
+      },
+    ],
+    citations,
   }
 }
 
@@ -3176,6 +3395,57 @@ const routes = [
     },
   },
 
+  /*
+   * The graphs Ask can query: the ones that are live.
+   *
+   * Built-but-unpublished and still-in-the-wizard are counted separately
+   * because they are different problems with different fixes, and the empty
+   * page has to name the right one.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/ask',
+    handle: (_req, res) => {
+      const built = builtGraphs()
+      const graphs = built
+        .map(askableGraph)
+        .filter(Boolean)
+        .sort((a, b) => Date.parse(b.published_at ?? 0) - Date.parse(a.published_at ?? 0))
+
+      send(res, 200, {
+        graphs,
+        count: graphs.length,
+        built_count: built.length,
+        draft_count: db.graph_use_cases.length - built.length,
+      })
+    },
+  },
+
+  // Ask the live graph. Every refusal names the fix, and none of them is paced.
+  {
+    method: 'POST',
+    match: (p) => p === '/ask',
+    handle: async (req, res) => {
+      const { use_case_id, question } = await readJson(req)
+      const id = String(use_case_id ?? '').trim()
+      if (!id) return send(res, 400, { error: 'choose a graph to ask first' })
+
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      if (liveVersion(id) === null) {
+        return send(res, 400, {
+          error: `${found.useCase.name} has never been published — publish it in Graph Studio, then ask it`,
+        })
+      }
+      if (!String(question ?? '').trim()) {
+        return send(res, 400, { error: 'ask a question first' })
+      }
+
+      const answer = askAnswer(found.useCase, String(question).trim())
+      setTimeout(() => send(res, 200, answer), ANSWER_MS).unref?.()
+    },
+  },
+
   {
     method: 'GET',
     match: (p) => p === '/graph-use-cases',
@@ -3613,7 +3883,17 @@ const server = createServer(async (req, res) => {
 
   const route = routes.find((r) => r.method === req.method && r.match(pathname))
   if (!route) {
-    return send(res, 404, { error: `no route for ${req.method} ${pathname}` })
+    /*
+     * A 404 on an endpoint the code plainly implements is the stale-server
+     * signature: this process loaded its routes at startup, before the endpoint
+     * existed. Saying so here covers every future endpoint at once, rather than
+     * each one growing its own check after someone loses an hour to it.
+     */
+    return send(res, 404, {
+      error:
+        `no route for ${req.method} ${pathname} — if this endpoint is new, ` +
+        'this server started before it existed. Restart it: stop `npm run mock` and start it again.',
+    })
   }
 
   try {

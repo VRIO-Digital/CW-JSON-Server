@@ -60,7 +60,10 @@ const jobsTab = read('src/components/ProfilingJobsTab.tsx')
  * word, and a stale hardcoded fallback would make the check pass forever. Adding
  * a connector fails this until SKILLS.md mentions it, which is the point.
  */
-const connectorBlocks = connectors.split(/\n {2}\{\n/).slice(1)
+// `\r?\n` on both sides: git checks these files out with CRLF on Windows, and a
+// split that assumed LF found zero connectors and reported "0 of 0 available"
+// — a stale-doc failure that was really a stale regex.
+const connectorBlocks = connectors.split(/\r?\n {2}\{\r?\n/).slice(1)
 const connectorList = connectorBlocks
   .map((block) => ({
     name: (block.match(/name: '([^']+)'/) ?? [])[1],

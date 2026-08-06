@@ -233,6 +233,8 @@ Two behaviours that look like bugs but are not:
   force — their footer is `Select all · Select none · Start Profiling`.
   Re-profiling is done per-run from the **Force** button on a row in Profiling
   jobs, which re-queues that job's object set with `force: true`.
+- A forced commit updates the object's record **in place** — `profiled_tables`
+  and `profiled_columns` do not double on a re-run, but `profiled_at` moves.
 - If everything selected is already profiled, the job completes instantly with
   `nothing to profile` instead of faking a 12-second run.
 
@@ -248,7 +250,8 @@ progress without a click. The bar is blue while running, green on complete, ambe
 on cancelled. `Cancel` → `POST /profiling-jobs/:id/cancel`; cancelling twice
 returns 409.
 
-Re-profile / Force on a finished row re-queue the same table set.
+Re-profile / Force on a finished row re-queue the same table set — `Force` sends
+`force: true`; the plain one does not, so it skips whatever is already profiled.
 
 ---
 
@@ -831,6 +834,66 @@ the draft version — v18 stays the draft while v15 serves.
 **Where it fails:** activating or approving an unpublished version → 404;
 activating an unapproved one → 400 naming the fix; activating the live one → 400;
 approving twice → 400 naming who already did it.
+
+---
+
+## Flow 9 — Ask: querying a published graph
+
+`AskPage.tsx` → `askStore` → `GET /ask` · `POST /ask`
+
+Where the graph gets used. Everything before this flow produces a graph; this is
+the flow that spends it.
+
+### What can be asked
+
+Only a graph that is **live** — published, and the version currently serving.
+`GET /ask` walks the built graphs, keeps the ones `liveVersion()` answers for,
+and returns each with the facts the page prints:
+
+| Field | Where it comes from |
+|---|---|
+| `version` | the live published version, never the draft counter |
+| `published_at` / `published_by` | the publish record in Graph Studio |
+| `caveats` | step 7's gap decisions, read back through `GAP_CAVEAT` |
+| `citations` | step 6's promise — `required` or `optional` |
+| `suggested_questions` | the use case's hero questions, verbatim |
+| `entity_count` / `relationship_count` | the canvas |
+
+Nothing here is page copy dressed as data. A suggestion chip is a hero question
+the brief already committed to; a chip for something the graph was never built
+for would be a trap.
+
+### The empty page
+
+Three different sentences, because they have three different fixes:
+
+- **built but unpublished** (`built_count > 0`) → "publish it in Graph Studio",
+  and the button goes there.
+- **only drafts** (`draft_count > 0`) → finish the wizard first.
+- **nothing at all** → describe a business need.
+
+Getting this wrong sends someone to New Graph to fix a graph that only needed
+publishing, which is why the two counts ship separately rather than as one
+"nothing to ask".
+
+### Asking
+
+`POST /ask { use_case_id, question }` runs `studioQuery` — **the same walk the
+studio's sanity check uses**, so a check that passed before publishing cannot
+disagree with the answer after it. The reply carries four steps of working
+(grounded → planned the route → routed to source systems → composed), one
+citation per relationship walked, and a confidence that is the **weakest node on
+the route**. Held for `ANSWER_MS`; errors are never paced.
+
+**An abstention is a real answer.** No entity named, only one named, or two with
+nothing between them → `answered: false`, `reason` says which, and `answer` and
+`confidence` are `null`. The page tags it `warn`, not `crit`: declining to guess
+is the behaviour, not a fault.
+
+**Where it fails:** no `use_case_id` → 400 "choose a graph"; unknown id → 404;
+a draft → 400 from `findBuiltGraph`; built but never published → 400 naming
+Graph Studio; an empty question → 400. Every one of them is shown verbatim, so
+each is written as a sentence to a user.
 
 ---
 

@@ -6,86 +6,18 @@
 
 /* ---- the list of built graphs ---- */
 
-.gs-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  width: 100%;
-  padding: var(--sp-4) var(--sp-5);
-  border: 1px solid #e9ecf1;
-  border-radius: 10px;
-  background: #fff;
-  text-align: left;
+/*
+ * A row is a link: the whole thing opens the graph, so it takes the pointer the
+ * card it replaced had. The business need is the one free-text cell, and it is
+ * capped so one long brief cannot make its row twice the height of the rest.
+ */
+.gs-row {
   cursor: pointer;
 }
 
-.gs-card + .gs-card {
-  margin-top: var(--sp-3);
-}
-
-.gs-card:hover {
-  border-color: #f4562b;
-}
-
-.gs-card-main {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  min-width: 0;
-}
-
-.gs-card-title {
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 1.3;
-  color: #0f1729;
-  overflow-wrap: anywhere;
-}
-
-.gs-card-tags {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-}
-
-/*
- * antd Tag ships its own right margin, which fights the flex gap and leaves
- * uneven runs. Zero it and let one rule own the spacing — and pin the height so
- * a row of tags reads as a row rather than as a ransom note.
- */
-.gs-card-tags .ant-tag,
-.gs-card-right .ant-tag {
-  height: 20px;
-  margin-inline-end: 0;
-  padding-inline: var(--sp-2);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  font-size: 11.5px;
-  line-height: 1;
-}
-
-.gs-card-note {
-  color: #4b5a75;
-  font-size: 12.5px;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
-.gs-card-meta {
-  color: #8994a8;
-  font-size: 12px;
-}
-
-.gs-card-right {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  color: #8994a8;
-  white-space: nowrap;
+.gs-row td .ant-typography-secondary {
+  display: inline-block;
+  max-width: 460px;
 }
 
 /* ---- one graph's review ---- */

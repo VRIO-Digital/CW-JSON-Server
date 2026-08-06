@@ -1,11 +1,8 @@
-import {
-  ArrowRightOutlined,
-  DeploymentUnitOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
-import { Button, Spin, Tag, Typography } from 'antd'
+import { DeploymentUnitOutlined, PlusOutlined } from '@ant-design/icons'
+import { Button, Spin, Table, Tag, Typography, type TableColumnsType } from 'antd'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import type { StudioGraph } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
@@ -43,6 +40,67 @@ export default function GraphStudioListPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const open = (useCaseId: string) =>
+    navigate(`/graph-studio/${encodeURIComponent(useCaseId)}`)
+
+  /*
+   * One row per built graph. The card layout spent a lot of height on four
+   * stacked lines saying one thing each; as columns the same facts line up
+   * down the page, so two graphs can be compared instead of only read.
+   */
+  const columns: TableColumnsType<StudioGraph> = [
+    {
+      title: 'graph',
+      key: 'graph',
+      render: (_, row) => (
+        <>
+          <Typography.Text strong>{row.name}</Typography.Text>
+          <br />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {row.businessNeed || 'No business need recorded.'}
+          </Typography.Text>
+        </>
+      ),
+    },
+    {
+      title: 'domain',
+      dataIndex: 'domainId',
+      render: (domainId: string | null) => (domainId ? <Tag>{domainId}</Tag> : '—'),
+    },
+    {
+      /* What is live — never the draft counter, which only means something on
+         the Publish button inside the studio. */
+      title: 'version',
+      key: 'version',
+      render: (_, row) =>
+        row.liveVersion ? (
+          <Tag color="success">{`live ${row.liveVersion}`}</Tag>
+        ) : (
+          <Tag>never published</Tag>
+        ),
+    },
+    {
+      /* The one number that decides whether this graph can ship. */
+      title: 'review',
+      dataIndex: 'queueCount',
+      render: (queueCount: number) => (
+        <StatusTag tone={queueCount > 0 ? 'warn' : 'good'}>
+          {queueCount > 0 ? `${queueCount} to review` : 'review complete'}
+        </StatusTag>
+      ),
+    },
+    { title: 'built', dataIndex: 'builtAt', render: formatBuilt },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, row) => (
+        <Button size="small" onClick={() => open(row.useCaseId)}>
+          Open
+        </Button>
+      ),
+    },
+  ]
 
   if (error) return <ApiErrorAlert error={error} onRetry={() => void load()} />
 
@@ -85,46 +143,19 @@ export default function GraphStudioListPage() {
         />
       ) : (
         <>
-          {graphs.map((g) => (
-            <button
-              key={g.useCaseId}
-              type="button"
-              className="gs-card"
-              onClick={() => navigate(`/graph-studio/${encodeURIComponent(g.useCaseId)}`)}
-            >
-              <span className="gs-card-main">
-                <span className="gs-card-title">{g.name}</span>
-
-                {/* What is live, then the domain. The draft version is not
-                    shown: it is an internal counter until something is
-                    published, and the studio names it on the Publish button
-                    when it matters. */}
-                <span className="gs-card-tags">
-                  {g.liveVersion ? (
-                    <Tag color="success">{`live ${g.liveVersion}`}</Tag>
-                  ) : (
-                    <Tag>never published</Tag>
-                  )}
-                  {g.domainId ? <Tag>{g.domainId}</Tag> : null}
-                </span>
-
-                <span className="gs-card-note">
-                  {g.businessNeed || 'No business need recorded.'}
-                </span>
-                <span className="gs-card-meta">built {formatBuilt(g.builtAt)}</span>
-              </span>
-
-              <span className="gs-card-right">
-                {/* The one number that decides whether this graph can ship. */}
-                <StatusTag tone={g.queueCount > 0 ? 'warn' : 'good'}>
-                  {g.queueCount > 0
-                    ? `${g.queueCount} to review`
-                    : 'review complete'}
-                </StatusTag>
-                <ArrowRightOutlined aria-hidden="true" />
-              </span>
-            </button>
-          ))}
+          {/* The whole row opens the graph, not just the button — the card it
+              replaced was one big target and that is still the expectation. */}
+          <Table<StudioGraph>
+            columns={columns}
+            dataSource={graphs}
+            rowKey="useCaseId"
+            loading={loading}
+            pagination={false}
+            size="middle"
+            scroll={{ x: 'max-content' }}
+            rowClassName="gs-row"
+            onRow={(row) => ({ onClick: () => open(row.useCaseId) })}
+          />
 
           <Typography.Paragraph
             type="secondary"

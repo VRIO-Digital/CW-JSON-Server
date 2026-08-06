@@ -124,7 +124,9 @@ function SavedUseCases({
                     a domain — it appears here the moment you save, and you can
                     reopen it at the step you left.
                   </span>
-                 
+                  <Button type="primary" size="small" onClick={onStartNew}>
+                    Start a use case
+                  </Button>
                 </div>
               ) : null}
 
