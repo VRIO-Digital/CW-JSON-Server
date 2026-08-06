@@ -29,6 +29,7 @@ export type NavKey =
   | 'validation'
   | 'feedback'
   | 'audit'
+  | 'db'
 
 export interface NavItem {
   key: NavKey
@@ -118,5 +119,5 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // Dev tool
-  // { key: 'db', label: 'Mock Data', path: '/db', icon: CodeOutlined },
+  // { key: 'db', label: 'Mock Data', path: '/db', icon: BuildOutlined },
 ]
