@@ -4,6 +4,33 @@
     "name": "Karthik Mahadeva",
     "picture": null
   },
+  "auth_roles": [
+    {
+      "role_id": "platform_admin",
+      "label": "Platform Admin",
+      "access_note": "No business figures. Structure, lineage, cost and access only."
+    },
+    {
+      "role_id": "domain_architect",
+      "label": "Domain Architect",
+      "access_note": "No cost or business figures. Structure and lineage for owned domains only."
+    },
+    {
+      "role_id": "data_analyst",
+      "label": "Data Analyst",
+      "access_note": "No cost figures. Profiled structure, lineage and entities only."
+    },
+    {
+      "role_id": "business_user_executive",
+      "label": "Business User (Executive)",
+      "access_note": "Business figures and KPI answers only. No underlying structure exposed."
+    },
+    {
+      "role_id": "business_user_project",
+      "label": "Business User (Project)",
+      "access_note": "Business figures for the assigned project only. No underlying structure exposed."
+    }
+  ],
   "credentials": [
     {
       "project_id": "context-weave-dev",

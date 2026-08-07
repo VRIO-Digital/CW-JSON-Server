@@ -1,0 +1,61 @@
+/*
+ * The one page outside the app shell, so it gets its own small stylesheet
+ * rather than borrowing Sidebar.css — the brand block here is centered on a
+ * full-viewport background instead of pinned to a 258px rail.
+ */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f8fa;
+  padding: var(--sp-6);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--sp-8) var(--sp-7);
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e9ecf1;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 32px rgba(16, 24, 40, 0.06);
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: var(--sp-7);
+}
+
+.login-wordmark.ant-typography {
+  margin: 0 !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  letter-spacing: -1px;
+  color: #111827 !important;
+}
+
+.login-wordmark span {
+  color: #f2691d;
+}
+
+.login-tagline.ant-typography {
+  margin-top: var(--sp-2);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #98a2b3;
+}
+
+.login-note {
+  display: block;
+  margin-top: var(--sp-5);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}

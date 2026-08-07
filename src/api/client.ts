@@ -31,6 +31,37 @@ import {
 // `${BASE}${path}` would otherwise ask for //sources.
 const BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/$/, '')
 
+/* ---------------- Identity ---------------- */
+
+/** One persona the login form's role dropdown offers. */
+export interface AuthRole {
+  roleId: string
+  label: string
+  /** What this role can and cannot see — shown again on the signed-in card. */
+  accessNote: string
+}
+
+export interface AuthRolesPayload {
+  roles: AuthRole[]
+  count: number
+}
+
+/**
+ * Who is signed in. This is a persona demo, not a user directory — there is no
+ * account store behind it, so the identity is exactly what the login form
+ * collected plus what the chosen role implies. Nothing here should be read as
+ * real authentication.
+ */
+export interface SessionIdentity {
+  email: string
+  roleId: string
+  roleLabel: string
+  accessNote: string
+  /** Derived from the email — there is no name field to draw one from. */
+  initials: string
+  signedInAt: string
+}
+
 /* ---------------- Connect-a-source flow ---------------- */
 
 export interface GoogleAccount {
@@ -989,6 +1020,24 @@ export interface DbPayload {
 
 /* ---------------- Response schemas ---------------- */
 
+/* ---------------- Identity ---------------- */
+
+const AUTH_ROLE = shape({ role_id: str, label: str, access_note: str })
+
+const AUTH_ROLES_PAYLOAD = shape({
+  roles: arrayOf(AUTH_ROLE),
+  count: num,
+})
+
+const SESSION_IDENTITY_PAYLOAD = shape({
+  email: str,
+  role_id: str,
+  role_label: str,
+  access_note: str,
+  initials: str,
+  signed_in_at: str,
+})
+
 const STAT = shape({ label: str, value: str, note: nullable(str), tone: nullable(str) })
 
 const SOURCE_ROW = shape({
@@ -1803,6 +1852,55 @@ async function request<T>(
 }
 
 /* ---------------- Endpoints ---------------- */
+
+/* ---------------- Identity ---------------- */
+
+export async function listAuthRoles(): Promise<AuthRolesPayload> {
+  const raw = validate<{
+    roles: { role_id: string; label: string; access_note: string }[]
+    count: number
+  }>('The role list', await request<unknown>('/auth/roles'), AUTH_ROLES_PAYLOAD)
+
+  return {
+    roles: raw.roles.map((r) => ({
+      roleId: r.role_id,
+      label: r.label,
+      accessNote: r.access_note,
+    })),
+    count: raw.count,
+  }
+}
+
+export async function login(input: {
+  email: string
+  password: string
+  roleId: string
+}): Promise<SessionIdentity> {
+  const raw = validate<{
+    email: string
+    role_id: string
+    role_label: string
+    access_note: string
+    initials: string
+    signed_in_at: string
+  }>(
+    'The signed-in session',
+    await request<unknown>('/auth/login', {
+      method: 'POST',
+      body: { email: input.email, password: input.password, role_id: input.roleId },
+    }),
+    SESSION_IDENTITY_PAYLOAD,
+  )
+
+  return {
+    email: raw.email,
+    roleId: raw.role_id,
+    roleLabel: raw.role_label,
+    accessNote: raw.access_note,
+    initials: raw.initials,
+    signedInAt: raw.signed_in_at,
+  }
+}
 
 /** The scope depends on the connector, so the provider goes out with the start. */
 export async function oauthStart(

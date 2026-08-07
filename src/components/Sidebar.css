@@ -42,6 +42,8 @@
 
 .sidebar-menu {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   background: transparent !important;
   border-inline-end: none !important;
   padding: 18px 12px;
@@ -105,3 +107,69 @@
 .sidebar-menu .ant-menu-item-selected .anticon {
   color: #f2691d;
 }
+
+/* ---------- Signed-in footer ---------- */
+
+/*
+ * Not flex:1 like the menu above it — it takes only its own height, so the
+ * menu's flex:1 is what pushes it to the bottom of the rail.
+ */
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  border-top: 1px solid #eef2f7;
+}
+
+.sidebar-footer-label.ant-typography {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #98a2b3;
+}
+
+.sidebar-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+/* No name is collected at login, only an email — the initials are derived
+   from it, not a fabricated avatar image. */
+.sidebar-avatar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(242, 105, 29, 0.12);
+  color: #f2691d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sidebar-identity-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-identity-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.sidebar-identity-role {
+  font-size: 12px;
+  color: #98a2b3;
+}
+

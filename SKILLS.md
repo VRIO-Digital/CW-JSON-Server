@@ -24,6 +24,60 @@ fighting the premise.
 
 ---
 
+## Signing in
+
+**Files:** `LoginPage.tsx` → `authStore.ts` → `client.ts` → `server.mjs`
+(`GET /auth/roles`, `POST /auth/login`) · route gate in `RequireAuth.tsx`
+
+Every page below is gated behind this one. `routes.tsx` wraps the whole `/`
+tree in a `RequireAuth` layout route; visiting any of them signed out redirects
+to `/login` with the attempted location carried in `state.from`, and signing in
+sends the user back there instead of always landing on Sources.
+
+### The form
+
+Email, password, role — a `Select` populated from `GET /auth/roles`, fetched
+once on mount the same way `EditDatasetsModal` populates its dataset list (a
+one-shot local read, not a store). All three are required; email is checked
+against antd's `type: 'email'` rule, password needs 6+ characters, both re-
+checked server-side because a client rule is not a boundary.
+
+**This is a persona demo, not real authentication, and it says so on the
+page.** `POST /auth/login` has no account store to check a password against —
+it validates *shape*, not identity: a well-formed email, a plausible password
+length, a role that exists in `auth_roles`. Any password succeeds for any
+email, same as the BigQuery/Drive consent screens never check a real Google
+account. Do not build anything that assumes this login verifies a person.
+
+### The five roles
+
+`platform_admin`, `domain_architect`, `data_analyst`,
+`business_user_executive`, `business_user_project` — each a
+`{ role_id, label, access_note }` row in `db.json`'s `auth_roles`, the same
+pool pattern as `graph_domains`. The dropdown shows `label`. `access_note`
+travels with the session but **nothing renders it** — the sidebar's "My data
+access" card was removed. Adding a sixth role is a `db.json` edit.
+
+### What lands in the sidebar
+
+Success returns `{ email, role_id, role_label, access_note, initials,
+signed_in_at }`, and `authStore` persists it to `localStorage` — a refresh
+does not force a re-login, because unlike a registered source there is no
+server-side session for a restart to lose. `initials` comes from the email
+(`adaeze.okonjo@…` → `AO`): there is no name field on the form, so the sidebar
+avatar is derived from what was actually collected rather than invented.
+
+The footer renders three things and no more — the avatar, the email over the
+role label, and **Sign out**.
+
+**Where it fails:** an invalid email or a short password is a 400 naming which;
+an unknown `role_id` is a 400 naming it; the mock server not running shows the
+usual "start `npm run mock`" message. **Sign out** (bottom of the sidebar)
+clears the identity and returns to `/login` — a pure client action, since there
+is no server-side session to revoke.
+
+---
+
 ## Flow 1 — Connecting a source (BigQuery or Google Drive)
 
 **Files:** `ConnectSourceModal.tsx` → `ConnectSourceWizard.tsx` → `client.ts` →
@@ -322,7 +376,7 @@ protection, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
-2. **Server shape check** — `validateDb` verifies all 18 required keys and
+2. **Server shape check** — `validateDb` verifies all 19 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
 3. **Atomic write** — temp file + rename, so a failed write cannot truncate

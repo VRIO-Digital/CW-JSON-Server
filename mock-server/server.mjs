@@ -18,6 +18,8 @@
  *   PUT    /db                             replace it all   { db }  or the object itself
  *   PUT    /db/:section                    replace one key  { value }
  *   GET    /health
+ *   GET    /auth/roles                     the personas the login dropdown offers
+ *   POST   /auth/login                     { email, password, role_id }
  *   GET    /projects
  *   GET    /projects/:projectId/datasets
  *   GET    /drives
@@ -212,6 +214,10 @@ const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v)
  */
 const DB_SHAPE = {
   google_account: (v) => isObject(v) && typeof v.email === 'string',
+  auth_roles: (v) =>
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((r) => isObject(r) && r.role_id && r.label),
   credentials: (v) =>
     Array.isArray(v) &&
     v.every((c) => isObject(c) && c.project_id && c.credential_handle),
@@ -284,6 +290,7 @@ const DB_SHAPE = {
 
 const DB_HINTS = {
   google_account: 'object with at least an "email" string',
+  auth_roles: 'non-empty array of { role_id, label }',
   credentials: 'array of { project_id, credential_handle }',
   projects: 'non-empty array of { project_id, datasets: [] }',
   drive_credentials: 'array of { drive_id, credential_handle }',
@@ -710,6 +717,27 @@ const slugify = (text) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * `adaeze.okonjo@x.com` → `AO`; `ab@x.com` → `AB`.
+ *
+ * There is no name field to draw an avatar from — only the email the login form
+ * collects — so the initials are derived from it: split the local part on
+ * `.`/`_`/`-` (the separators a real "first.last" address uses) and take the
+ * first letter of the first and last segment, falling back to the first two
+ * letters of the whole local part when there is only one segment.
+ */
+function emailInitials(email) {
+  const local = String(email).split('@')[0] ?? ''
+  const segments = local.split(/[._-]+/).filter(Boolean)
+  const initials =
+    segments.length >= 2
+      ? segments[0][0] + segments[segments.length - 1][0]
+      : local.slice(0, 2)
+  return initials.toUpperCase() || '?'
+}
 
 /**
  * A drafted item as stored: a name, a description, and where it came from.
@@ -2011,6 +2039,59 @@ const routes = [
         projects: db.projects.length,
         registered_sources: registered.size,
       }),
+  },
+
+  /*
+   * Identity. This is a persona demo, not a user directory: there is no account
+   * store to check a password against, so login authenticates by *shape* —
+   * a well-formed email, a password of a plausible length, a role that exists —
+   * exactly as the BigQuery/Drive consent screens prove a request is well-formed
+   * rather than that a real Google account sits behind it. Nothing here should
+   * be mistaken for real authentication.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/auth/roles',
+    handle: (_req, res) =>
+      send(res, 200, {
+        roles: db.auth_roles.map((r) => ({
+          role_id: r.role_id,
+          label: r.label,
+          access_note: r.access_note ?? '',
+        })),
+        count: db.auth_roles.length,
+      }),
+  },
+
+  {
+    method: 'POST',
+    match: (p) => p === '/auth/login',
+    handle: async (req, res) => {
+      const { email, password, role_id } = await readJson(req)
+
+      if (!email || !EMAIL_RE.test(String(email))) {
+        return send(res, 400, { error: 'Enter a valid email address.' })
+      }
+      if (!password || String(password).length < 6) {
+        return send(res, 400, { error: 'Password must be at least 6 characters.' })
+      }
+      if (!role_id) {
+        return send(res, 400, { error: 'Pick a role before signing in.' })
+      }
+      const role = db.auth_roles.find((r) => r.role_id === role_id)
+      if (!role) {
+        return send(res, 400, { error: `unknown role ${role_id}` })
+      }
+
+      send(res, 200, {
+        email,
+        role_id: role.role_id,
+        role_label: role.label,
+        access_note: role.access_note ?? '',
+        initials: emailInitials(email),
+        signed_in_at: new Date().toISOString(),
+      })
+    },
   },
 
   {

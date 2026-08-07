@@ -114,7 +114,7 @@ Consequences worth knowing before debugging:
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
-  editor cannot save a document that would crash the app. There are 17 required
+  editor cannot save a document that would crash the app. There are 19 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
   Graph — not just a catalogue page.
@@ -403,9 +403,45 @@ step 6's; and the suggestion chips are the use case's own hero questions — a
 chip is a promise the brief already made. `ANSWER_MS` paces the answer for the
 same reason `SUGGEST_MS` paces a suggestion. Refusals are never paced.
 
+### Identity (`/login`)
+
+Gates the whole app, so it is the one flow that sits outside `RequireAuth`
+rather than behind it — see Routing below for how the route table wraps that.
+
+**This is a persona demo, not a user directory.** `POST /auth/login` has no
+account store to check a password against, so it authenticates by *shape*: a
+well-formed email, a password of a plausible length, a role that exists in
+`auth_roles`. Any password signs in as the role picked — exactly as the
+BigQuery/Drive consent screens prove a request is well-formed rather than that a
+real Google account sits behind it. `LoginPage` says this on the page itself;
+do not build a feature on top of this login that assumes it verifies anything.
+
+**The five roles come from `db.json`, not a hardcoded union**, the same pattern
+as `graph_domains`/`graph_personas`: `GET /auth/roles` serves `{ role_id, label,
+access_note }` for the login dropdown, and `POST /auth/login` echoes the picked
+role's `label` back in the session so the sidebar never has to re-fetch the pool
+to render it. Adding a sixth role is a `db.json` edit, not a code change.
+
+`access_note` describes what a role may see. It is carried through the API and
+the session but **nothing renders it** — the sidebar's "My data access" card was
+removed. Keep it or drop it deliberately; do not re-add a card on the assumption
+that a signed-in user has been told what their role can reach.
+
+**The identity is client-held, not server state.** `useAuthStore` persists
+`{ email, roleId, roleLabel, accessNote, initials, signedInAt }` to
+`localStorage` (key `contextweave.identity`) so a refresh does not force a
+re-login — unlike a registered source, there is no server-side session for a
+restart to lose. `initials` comes from the email (`adaeze.okonjo@…` → `AO`, via
+`emailInitials()`): there is no name field to draw an avatar from, so the avatar
+in the sidebar footer is derived from what was actually collected, not invented.
+Sign-out is a pure client action (`logout()` + navigate to `/login`); there is no
+server-side session to revoke.
+
 ### State (`src/store/`)
 
-zustand. Seven modules (plus `asyncState.ts`, the shared machinery): `sourcesStore`, `catalogueStore` (browse / columns /
+zustand. Eight modules (plus `asyncState.ts`, the shared machinery): `authStore`
+(who is signed in — the one module persisted to `localStorage`, everything else
+is server-derived), `sourcesStore`, `catalogueStore` (browse / columns /
 document browse / documents / jobs / signals), `graphStore` (domains / use
 cases), `graphStudioStore` (the studio's list + one graph's review),
 `askStore` (live graphs + the last answer), `telemetryStore` (audit / traces /
@@ -514,12 +550,21 @@ history. They are separate so tests can mount the table on a memory router.
 `NAV_ITEMS`**, so it is reachable by URL only. Adding a nav item means adding to
 both `NavKey` and `NAV_ITEMS`.
 
+**`/login` sits outside `RequireAuth`, and everything else sits inside it.**
+The route table wraps the whole `/` tree — `App` and every page under it — in a
+`RequireAuth` layout route; an unauthenticated visit to any of them redirects to
+`/login` with the attempted location in `state.from`, and `LoginPage` reads that
+back to return the user to where they were headed rather than always landing on
+Sources. `/login` has no `NAV_ITEMS` entry — there is nothing to navigate to
+before signing in, and once signed in there is no reason to navigate back.
+
 **The sidebar currently advertises more than exists.** `NAV_ITEMS` has 13
 entries; `routes.tsx` serves eight of them (`/sources`, `/new-graph`,
 `/graph-studio`, `/ask`, `/catalogue`, `/audit`, `/trace`, `/validation`) plus
-`/db` by URL. Graph Studio is two routes — `/graph-studio` lists the built
-graphs and `/graph-studio/:useCaseId` opens one. The other five — Knowledge
-Graphs, Reports, Graph Builds, What-if Lenses, Feedback & Learning — are roadmap
+`/db` by URL, all gated behind `RequireAuth`, plus `/login` ungated. Graph Studio
+is two routes — `/graph-studio` lists the built graphs and
+`/graph-studio/:useCaseId` opens one. The other five — Knowledge Graphs,
+Reports, Graph Builds, What-if Lenses, Feedback & Learning — are roadmap
 placeholders with no route, so clicking one falls through `path: '*'` to
 `NotFoundPage`. That is a deliberate shell, not a broken link: when one gets a
 page, add it to `routes.tsx` and nothing else changes.

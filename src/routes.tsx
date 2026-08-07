@@ -1,11 +1,13 @@
 import { Navigate, type RouteObject } from 'react-router-dom'
 import App from './App'
+import RequireAuth from './components/RequireAuth'
 import AskPage from './pages/AskPage'
 import AuditPage from './pages/AuditPage'
 import CataloguePage from './pages/CataloguePage'
 import DbEditorPage from './pages/DbEditorPage'
 import GraphStudioListPage from './pages/GraphStudioListPage'
 import GraphStudioPage from './pages/GraphStudioPage'
+import LoginPage from './pages/LoginPage'
 import NewGraphPage from './pages/NewGraphPage'
 import NotFoundPage from './pages/NotFoundPage'
 import SourcesPage from './pages/SourcesPage'
@@ -20,25 +22,35 @@ import ValidationPage from './pages/ValidationPage'
  * mounted on a memory router in tests.
  */
 export const routes: RouteObject[] = [
+  // Outside RequireAuth on purpose: this is the one page reachable while
+  // signed out, and the only one with no sidebar to render.
+  { path: '/login', element: <LoginPage /> },
+
   {
-    path: '/',
-    element: <App />,
+    element: <RequireAuth />,
 
     children: [
-      { index: true, element: <Navigate to="/sources" replace /> },
-      { path: 'sources', element: <SourcesPage /> },
-      { path: 'new-graph', element: <NewGraphPage /> },
-      // The studio lists built graphs; a graph's own review lives under its id.
-      { path: 'graph-studio', element: <GraphStudioListPage /> },
-      { path: 'graph-studio/:useCaseId', element: <GraphStudioPage /> },
-      // Ask queries a *published* graph, so it lists none until one is live.
-      { path: 'ask', element: <AskPage /> },
-      { path: 'catalogue', element: <CataloguePage /> },
-      { path: 'audit', element: <AuditPage /> },
-      { path: 'trace', element: <TracePage /> },
-      { path: 'validation', element: <ValidationPage /> },
-      { path: 'db', element: <DbEditorPage /> },
-      { path: '*', element: <NotFoundPage /> },
+      {
+        path: '/',
+        element: <App />,
+
+        children: [
+          { index: true, element: <Navigate to="/sources" replace /> },
+          { path: 'sources', element: <SourcesPage /> },
+          { path: 'new-graph', element: <NewGraphPage /> },
+          // The studio lists built graphs; a graph's own review lives under its id.
+          { path: 'graph-studio', element: <GraphStudioListPage /> },
+          { path: 'graph-studio/:useCaseId', element: <GraphStudioPage /> },
+          // Ask queries a *published* graph, so it lists none until one is live.
+          { path: 'ask', element: <AskPage /> },
+          { path: 'catalogue', element: <CataloguePage /> },
+          { path: 'audit', element: <AuditPage /> },
+          { path: 'trace', element: <TracePage /> },
+          { path: 'validation', element: <ValidationPage /> },
+          { path: 'db', element: <DbEditorPage /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ]
