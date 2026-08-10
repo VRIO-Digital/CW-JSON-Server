@@ -856,6 +856,11 @@ export interface Suggestion {
   name: string
   /** A persona's focus, a KPI's definition — what the row shows beneath it. */
   detail: string
+  /**
+   * Hero questions only, and only where a use case stated one. It pre-ticks the
+   * High box; the user still decides, because accepting is theirs.
+   */
+  priority?: 'high' | 'normal'
   /** Why it was drafted — shown so a suggestion is never unexplained. */
   why: string
 }
@@ -1448,7 +1453,17 @@ const SUGGESTIONS_PAYLOAD = shape({
   count: num,
   derived_from: str,
   run: LLM_RUN,
-  suggestions: arrayOf(shape({ id: str, name: str, detail: str, why: str })),
+  suggestions: arrayOf(
+    shape({
+      id: str,
+      name: str,
+      detail: str,
+      why: str,
+      // Absent on personas, KPIs and formats, and on any question no use case
+      // stated a priority for — nullable checks the type, not the presence.
+      priority: nullable(oneOf(['high', 'normal'])),
+    }),
+  ),
 })
 
 const DERIVATION_PAYLOAD = shape({

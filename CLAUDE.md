@@ -27,7 +27,7 @@ rather than in code — `check-docs` fails on a hardcoded origin in `client.ts`.
 | | `VITE_API_BASE` | How the call gets there |
 |---|---|---|
 | `npm run dev` (`.env.development`) | `/api` | the Vite proxy strips `/api` → `MOCK_ORIGIN`, default `localhost:4000` |
-| `npm run build` (`.env.production`) | `http://44.203.214.206:4000` | called directly, cross-origin |
+| `npm run build` (`.env.production`) | `http://18.205.228.143:4000` | called directly, cross-origin |
 | behind nginx (`deploy/`) | `/api` | `proxy_pass` strips it → `MOCK_ORIGIN` |
 
 **Local is the default at every layer**, so a fresh clone needs no environment
@@ -114,10 +114,17 @@ Consequences worth knowing before debugging:
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
-  editor cannot save a document that would crash the app. There are 19 required
+  editor cannot save a document that would crash the app. There are 20 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
   Graph — not just a catalogue page.
+- **`validateDb` also checks *across* keys, not only within one.**
+  `graph_use_case_templates` holds nothing but ids into `graph_personas`,
+  `graph_kpis` and `graph_hero_questions`, and an id that does not resolve
+  would not throw — it would drop out of the bundle, and the step would draft
+  five personas where the use case names six. A short list reads as an answer,
+  so the server refuses to boot and names the id. `check-docs` asserts the same
+  thing, so it fails the build before it can fail a boot.
 - **`commitDb` validates before it writes, not only in the `/db` editor.** Every
   writer hands it the whole document, so a server that started before a key was
   added to `db.json` would write its stale copy back and silently drop that key.
@@ -249,6 +256,14 @@ forcing it into `DraftedStep` would have meant a second text field nobody wants
 and a priority concept the other steps do not have. It still shares the
 suggester: `suggestFrom` reads `text` where the other pools carry `name`.
 
+A pool question may carry its own `priority`, and where it does the suggestion
+arrives with **High already ticked** — a use case that stated the priority
+should not make the user re-derive it. It pre-fills rather than decides:
+`highMarks[s.id] ?? s.priority === 'high'` lets an explicit tick or untick win,
+because accepting a question is still the user's act. `priority` is the only
+optional field on a `Suggestion`, so its schema is
+`nullable(oneOf(['high','normal']))` — personas, KPIs and formats never send it.
+
 **Steps 2 and 3 are one component, not two.** Personas and KPIs are the same
 interaction — let the AI draft a list, add what fits, type your own, see which is
 which — so `DraftedStep` renders both and they differ only in copy. Server-side,
@@ -273,6 +288,24 @@ Two rules the copy on the page promises, and the code has to keep:
   by keywords found in the business need, then domain fit, then a hash of the
   brief — so the same brief always drafts the same four, and each carries a `why`
   the UI prints. A suggestion nobody can explain is worse than no suggestion.
+
+- **A brief that *names* a known use case gets that use case's own list, not a
+  ranking.** `graph_use_case_templates` holds the three HWNET use cases as id
+  bundles, and `matchTemplate` claims one when the brief contains at least
+  `TEMPLATE_MIN_PHRASES` (2) of its `match_phrases` — which are drawn from its
+  own description, so pasting that description in hits all of them. A match
+  returns the members **whole and in the template's own order**, past the 4/5
+  keyword limit, because a template is a stated answer rather than a ranking and
+  truncating it would drop members the use case explicitly claims. The `why`
+  becomes "named in the … use case" and `derived_from` names it too, so the
+  bundle is as explainable as the ranking it replaced.
+
+  **A tie matches nothing.** Two templates scoring equally means the brief named
+  neither, so it falls back to keyword ranking rather than picking one — which
+  is why `check-docs` asserts every phrase is unique to its own template. Only
+  personas, KPIs and hero questions are templated; step 6's answer formats have
+  no `memberKey` and stay ranked, because a use case states what it must answer,
+  never how to render it.
   An added persona is `{ name, description, source }` — `source` records whether
   the AI drafted it or a user typed it, which is what the **AI-DRAFTED** /
   **USER-DRAFTED** tag reads from. Both are provenance, so they use brand and
@@ -617,6 +650,15 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **Background-started servers on Windows outlive their shell and wedge** — the
   port stays bound while the process stops answering. Check
   `Get-NetTCPConnection -LocalPort 4000` and kill the pid before restarting.
+- **Before blaming the mock server, check which API the app is calling.** The
+  origin belongs in `.env.development` (`/api`) and `.env.production` only — in a
+  plain `.env` it applies to *every* mode and silently points `npm run dev` at
+  the deployed box, where local `db.json` edits and `server.mjs` changes have no
+  effect and nothing errors. `check-docs` now fails on it. Symptom to recognise:
+  `curl localhost:4000` is right and the browser is wrong.
+- **A failing `check-docs` claim is a live fault, not background noise.** The
+  `.env` bug above sat in a red claim for a whole session while it was dismissed
+  as unrelated. Read the red claims before diagnosing anything else.
 - **A stale mock server answers with the old shape.** Editing `server.mjs` or a
   payload shape needs a restart, which also clears every registered source. When
   output looks impossibly wrong, check the server's age before your own code —

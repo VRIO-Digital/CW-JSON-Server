@@ -556,6 +556,13 @@ Three things to keep true:
   business need, then domain fit, then a hash of the brief; the `why` states
   which it was ("matches your brief on cost, spend, escalation" vs "typical for
   this domain"), and it is deterministic for the same brief.
+- **A brief that names a known use case is answered from it, not ranked.** If
+  the business need contains two or more of a `graph_use_case_templates` entry's
+  `match_phrases` — pasting that use case's description hits all of them — the
+  step drafts exactly that use case's personas, KPIs and hero questions, whole
+  and in its own order, past the four-suggestion limit. The `why` reads "named
+  in the … use case" and `derived_from` names it. Two templates tying matches
+  neither, and the keyword ranking answers instead.
 - **Personas are tags, not permissions.** The panel says so, and the server never
   validates a persona against the suggestion pool — the user may add their own.
 
@@ -623,7 +630,10 @@ drafted rather than four, because a contract wants a little more to choose from.
 
 - **Suggested questions** — each card carries `AI-DRAFTED`, a **High** checkbox,
   `+ Add` and ✕. High is decided *as you accept it*, not afterwards, so the
-  checkbox sits on the suggestion too.
+  checkbox sits on the suggestion too. It arrives **already ticked** when the
+  drafted question carries its own `priority` — a use case that already said
+  a question is High should not make you say it again — and ticking or unticking
+  still wins over that default.
 - **Your questions** — one row each: a `HIGH` badge on the left when marked,
   the text, then `AI-DRAFTED`/`USER`, a still-editable **High** checkbox, and ✕.
   Nobody gets a contract right first time, so priority stays changeable.

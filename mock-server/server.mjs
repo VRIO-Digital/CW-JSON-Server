@@ -270,6 +270,24 @@ const DB_SHAPE = {
     Array.isArray(v) &&
     v.length > 0 &&
     v.every((f) => isObject(f) && f.format_id && f.name),
+  /*
+   * A stated answer for a brief the tenant already knows, as opposed to the
+   * pools above, which are ranked against a brief nobody has seen before. The
+   * member lists are *ids into those pools*, never copies: a persona edited in
+   * `graph_personas` must not leave a template quietly describing the old one.
+   */
+  graph_use_case_templates: (v) =>
+    Array.isArray(v) &&
+    v.every(
+      (t) =>
+        isObject(t) &&
+        t.template_id &&
+        t.name &&
+        Array.isArray(t.match_phrases) &&
+        Array.isArray(t.personas) &&
+        Array.isArray(t.kpis) &&
+        Array.isArray(t.hero_questions),
+    ),
   graph_use_cases: (v) =>
     Array.isArray(v) && v.every((u) => isObject(u) && u.use_case_id && u.name),
   /*
@@ -306,6 +324,9 @@ const DB_HINTS = {
   graph_kpis: 'non-empty array of { kpi_id, name }',
   graph_hero_questions: 'non-empty array of { question_id, text }',
   graph_answer_formats: 'non-empty array of { format_id, name }',
+  graph_use_case_templates:
+    'array of { template_id, name, match_phrases[], personas[], kpis[], hero_questions[] } — ' +
+    'the three member lists hold ids from graph_personas / graph_kpis / graph_hero_questions',
   graph_use_cases: 'array of { use_case_id, name }',
   graph_studio:
     'object with review_items[], generated{}, pivot{}, canvas{ nodes[], edges[] }',
@@ -319,6 +340,33 @@ function validateDb(candidate) {
     else if (!check(candidate[key]))
       problems.push(`"${key}" is the wrong shape — expected ${DB_HINTS[key]}`)
   }
+
+  /*
+   * The per-key checks above cannot see across keys, and a use-case template is
+   * nothing but references into three other keys. An id that does not resolve
+   * would not throw — it would drop out of the bundle, and the step would draft
+   * four personas where the use case names five. A short list looks like an
+   * answer, so this has to fail at boot rather than at request time.
+   */
+  if (problems.length === 0) {
+    for (const template of candidate.graph_use_case_templates) {
+      for (const [memberKey, poolKey, idKey] of [
+        ['personas', 'graph_personas', 'persona_id'],
+        ['kpis', 'graph_kpis', 'kpi_id'],
+        ['hero_questions', 'graph_hero_questions', 'question_id'],
+      ]) {
+        for (const id of template[memberKey]) {
+          if (!candidate[poolKey].some((entry) => entry[idKey] === id)) {
+            problems.push(
+              `graph_use_case_templates "${template.template_id}" names ${memberKey.slice(0, -1)} ` +
+                `"${id}", which is not in ${poolKey} — add it there or remove it from the template`,
+            )
+          }
+        }
+      }
+    }
+  }
+
   return problems
 }
 
@@ -1907,21 +1955,86 @@ function suggestFrom(pool, idKey, domainId, businessNeed, limit = 4) {
         b.hits - a.hits || b.domainFit - a.domainFit || b.jitter - a.jitter,
     )
     .slice(0, limit)
-    .map((s) => ({
-      id: s.entry[idKey],
-      // A hero question *is* its text, so that stands in for the name.
-      name: s.entry.name ?? s.entry.text ?? '',
-      // A persona carries `focus`, a KPI carries `definition`.
-      detail: s.entry.focus ?? s.entry.definition ?? s.entry.format ?? '',
-      // What the UI shows as the reason it was drafted.
-      why:
-        s.hits > 0
-          ? `matches your brief on ${(s.entry.keywords ?? [])
-              .filter((k) => need.includes(k))
-              .slice(0, 3)
-              .join(', ')}`
-          : 'typical for this domain',
+    .map((s) =>
+      asSuggestion(s.entry, idKey, {
+        // What the UI shows as the reason it was drafted.
+        why:
+          s.hits > 0
+            ? `matches your brief on ${(s.entry.keywords ?? [])
+                .filter((k) => need.includes(k))
+                .slice(0, 3)
+                .join(', ')}`
+            : 'typical for this domain',
+      }),
+    )
+}
+
+/**
+ * One pool entry as the row the wizard renders. Shared by the keyword ranking
+ * and the template bundle so a drafted suggestion cannot read differently
+ * depending on which path produced it.
+ */
+function asSuggestion(entry, idKey, { why }) {
+  return {
+    id: entry[idKey],
+    // A hero question *is* its text, so that stands in for the name.
+    name: entry.name ?? entry.text ?? '',
+    // A persona carries `focus`, a KPI carries `definition`.
+    detail: entry.focus ?? entry.definition ?? entry.format ?? '',
+    /*
+     * Only hero questions carry one, and it pre-ticks the High box rather than
+     * deciding it: the question's own priority is what the use case stated, and
+     * the user is still the one who accepts it.
+     */
+    ...(entry.priority ? { priority: entry.priority } : {}),
+    why,
+  }
+}
+
+/*
+ * A brief can *name* a use case rather than describe a new one — pasting in a
+ * template's description is the ordinary way this happens. Where it does, the
+ * honest draft is that use case's own list, whole and in its own order, because
+ * a template is a stated answer rather than a ranking: truncating it to the
+ * keyword limit would drop members the use case explicitly claims.
+ *
+ * `match_phrases` are drawn from each template's description, so that paste
+ * hits all of them. A tie is deliberately *not* a match — two templates scoring
+ * equally means the brief named neither, and keyword ranking is the better
+ * answer than a coin flip.
+ */
+const TEMPLATE_MIN_PHRASES = 2
+
+function matchTemplate(businessNeed) {
+  const need = String(businessNeed ?? '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+  if (!need) return null
+
+  const scored = db.graph_use_case_templates
+    .map((template) => ({
+      template,
+      hits: template.match_phrases.filter((phrase) => need.includes(phrase)).length,
     }))
+    .sort((a, b) => b.hits - a.hits)
+
+  const [best, runnerUp] = scored
+  if (!best || best.hits < TEMPLATE_MIN_PHRASES) return null
+  if (runnerUp && runnerUp.hits === best.hits) return null
+  return best.template
+}
+
+/** A template's own member list, resolved against the pool it holds ids for. */
+function bundleFrom(template, pool, idKey, memberKey) {
+  return template[memberKey]
+    .map((id) => pool.find((entry) => entry[idKey] === id))
+    // validateDb refuses to boot on an unresolvable id, so this cannot drop a
+    // member silently — it is here so a hand-edited /db save degrades rather
+    // than throwing mid-request.
+    .filter(Boolean)
+    .map((entry) =>
+      asSuggestion(entry, idKey, { why: `named in the ${template.name} use case` }),
+    )
 }
 
 /** Datasets a source may profile, with the tables inside each. */
@@ -3030,19 +3143,27 @@ const routes = [
   // Steps 2 and 3. POSTs because the draft depends on the brief, not just the
   // domain. Same payload shape either way, so the UI reads one contract.
   ...[
-    { path: '/graph-personas/suggest', pool: 'graph_personas', idKey: 'persona_id' },
-    { path: '/graph-kpis/suggest', pool: 'graph_kpis', idKey: 'kpi_id' },
+    {
+      path: '/graph-personas/suggest',
+      pool: 'graph_personas',
+      idKey: 'persona_id',
+      memberKey: 'personas',
+    },
+    { path: '/graph-kpis/suggest', pool: 'graph_kpis', idKey: 'kpi_id', memberKey: 'kpis' },
     {
       path: '/graph-questions/suggest',
       pool: 'graph_hero_questions',
       idKey: 'question_id',
+      memberKey: 'hero_questions',
     },
+    // No `memberKey`: a use case states its personas, KPIs and questions, but
+    // never its render formats — step 6 picks those, so they stay ranked.
     {
       path: '/graph-answer-formats/suggest',
       pool: 'graph_answer_formats',
       idKey: 'format_id',
     },
-  ].map(({ path, pool, idKey }) => ({
+  ].map(({ path, pool, idKey, memberKey }) => ({
     method: 'POST',
     match: (p) => p === path,
     handle: async (req, res) => {
@@ -3050,15 +3171,20 @@ const routes = [
       if (domain_id && !db.graph_domains.some((d) => d.domain_id === domain_id)) {
         return send(res, 400, { error: `unknown domain ${domain_id}` })
       }
-      const suggestions = suggestFrom(
-        db[pool],
-        idKey,
-        domain_id ?? null,
-        business_need ?? '',
-        // A hero question is the graph's contract, so more of them are useful;
-        // answer formats are picked from, not accumulated, so fewer is clearer.
-        pool === 'graph_hero_questions' ? 5 : pool === 'graph_answer_formats' ? 3 : 4,
-      )
+      // A brief that names a known use case gets that use case's own list; a
+      // brief describing something new gets the keyword ranking.
+      const template = memberKey ? matchTemplate(business_need) : null
+      const suggestions = template
+        ? bundleFrom(template, db[pool], idKey, memberKey)
+        : suggestFrom(
+            db[pool],
+            idKey,
+            domain_id ?? null,
+            business_need ?? '',
+            // A hero question is the graph's contract, so more of them are useful;
+            // answer formats are picked from, not accumulated, so fewer is clearer.
+            pool === 'graph_hero_questions' ? 5 : pool === 'graph_answer_formats' ? 3 : 4,
+          )
       /*
        * Held briefly on purpose. There is no model here, so the answer is ready
        * instantly — but a drafting step that returns in 2ms gives the UI nowhere
@@ -3070,7 +3196,11 @@ const routes = [
           suggestions,
           count: suggestions.length,
           // Says plainly where these came from — there is no model behind them.
-          derived_from: business_need ? 'business need + domain' : 'domain only',
+          derived_from: template
+            ? `the ${template.name} use case`
+            : business_need
+              ? 'business need + domain'
+              : 'domain only',
           run: {
             stages: DRAFT_STAGES,
             // Deterministic, so the same brief always reports the same cost.

@@ -144,9 +144,60 @@ expect(
   `code guards ${requiredKeys.length}: ${requiredKeys.join(', ')}`,
 )
 
-const dbKeys = Object.keys(JSON.parse(read('mock-server/db.json')))
+const db = JSON.parse(read('mock-server/db.json'))
+const dbKeys = Object.keys(db)
 for (const key of requiredKeys) {
   expect(`db.json has "${key}"`, dbKeys.includes(key), 'DB_SHAPE requires it')
+}
+
+/* ---------------- use-case templates resolve ---------------- */
+
+/*
+ * A template is nothing but ids into three other pools, so a typo does not
+ * throw — the member drops out and the step drafts five personas where the use
+ * case names six. A short list reads as an answer, which is why this is checked
+ * here as well as in `validateDb`: the server catches it at boot, and this
+ * catches it before the server is ever started.
+ */
+for (const [memberKey, poolKey, idKey] of [
+  ['personas', 'graph_personas', 'persona_id'],
+  ['kpis', 'graph_kpis', 'kpi_id'],
+  ['hero_questions', 'graph_hero_questions', 'question_id'],
+]) {
+  for (const template of db.graph_use_case_templates ?? []) {
+    const missing = template[memberKey].filter(
+      (id) => !db[poolKey].some((entry) => entry[idKey] === id),
+    )
+    expect(
+      `template "${template.template_id}" ${memberKey} all resolve`,
+      missing.length === 0,
+      `not in ${poolKey}: ${missing.join(', ')}`,
+    )
+  }
+}
+
+/*
+ * A phrase that appears in two templates' descriptions makes both score it, and
+ * a tie deliberately matches neither — so a well-meaning edit here silently
+ * turns a template off rather than breaking anything visible.
+ */
+const normalise = (s) => s.toLowerCase().replace(/\s+/g, ' ')
+for (const template of db.graph_use_case_templates ?? []) {
+  const own = normalise(template.description)
+  const strays = template.match_phrases.filter(
+    (phrase) =>
+      !own.includes(phrase) ||
+      (db.graph_use_case_templates ?? []).some(
+        (other) =>
+          other.template_id !== template.template_id &&
+          normalise(other.description).includes(phrase),
+      ),
+  )
+  expect(
+    `template "${template.template_id}" phrases are its own and unique`,
+    strays.length === 0,
+    `absent from its description or shared with another template: ${strays.join(', ')}`,
+  )
 }
 
 /* ---------------- every response is validated ---------------- */
@@ -216,7 +267,13 @@ expect(
  *     and every developer's `npm run dev` starts writing to the shared box;
  *   · the .env files are deleted or renamed, and `VITE_API_BASE` silently
  *     resolves to undefined — which falls back to /api, so development still
- *     works and only the production build is broken, in a browser, later.
+ *     works and only the production build is broken, in a browser, later;
+ *   · the two are collapsed into one plain `.env`, which Vite loads in *every*
+ *     mode. That is the worst of the three, because it fails in the opposite
+ *     direction: `npm run dev` starts calling the deployed box, the local mock
+ *     server is bypassed, and every db.json edit and server.mjs change appears
+ *     to do nothing. Nothing errors — the page just serves production's answers.
+ *     This one has actually happened; see docs/REGRESSIONS.md.
  */
 for (const file of ['.env.development', '.env.production']) {
   expect(
@@ -225,6 +282,13 @@ for (const file of ['.env.development', '.env.production']) {
     'VITE_API_BASE is read from it at build time',
   )
 }
+
+const plainEnv = existsSync(join(root, '.env')) ? read('.env') : ''
+expect(
+  'no VITE_API_BASE in a plain .env',
+  !/^\s*VITE_API_BASE\s*=/m.test(plainEnv),
+  'a plain .env applies to every mode — put the origin in .env.production',
+)
 
 expect(
   'client.ts reads the API base from the environment',

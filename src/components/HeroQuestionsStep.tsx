@@ -115,13 +115,20 @@ export default function HeroQuestionsStep({
           ) : (
             suggestions.map((s) => {
               const added = has(s.name)
+              /*
+               * A use case that named this question already said whether it is
+               * High, so the box arrives ticked rather than making the user
+               * re-derive it. An explicit tick or untick still wins — `??`
+               * falls through on absence, not on `false`.
+               */
+              const high = highMarks[s.id] ?? s.priority === 'high'
               return (
                 <div key={s.id} className="ng-question">
                   <div className="ng-question-text">{s.name}</div>
                   <div className="ng-question-foot">
                     <span className="ng-ai-tag">AI-DRAFTED</span>
                     <Checkbox
-                      checked={Boolean(highMarks[s.id])}
+                      checked={high}
                       disabled={added}
                       onChange={(e) =>
                         setHighMarks({ ...highMarks, [s.id]: e.target.checked })
@@ -136,7 +143,7 @@ export default function HeroQuestionsStep({
                       onClick={() =>
                         add({
                           text: s.name,
-                          priority: highMarks[s.id] ? 'high' : 'normal',
+                          priority: high ? 'high' : 'normal',
                           source: 'ai',
                         })
                       }

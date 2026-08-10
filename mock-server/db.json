@@ -1901,7 +1901,7 @@
       "fit": "strong",
       "note": "SAP PM, Plant Historian and Outage Logs are already profiled for this domain.",
       "unmet_note": "No SAP PM, historian or outage-log source connected.",
-      "rank": 1
+      "rank": 2
     },
     {
       "domain_id": "industries",
@@ -1913,7 +1913,7 @@
       "fit": "partial",
       "note": "Partial fit — no domain source connected yet.",
       "unmet_note": "Partial fit — no domain source connected yet.",
-      "rank": 2
+      "rank": 3
     },
     {
       "domain_id": "manufacturing",
@@ -1925,7 +1925,21 @@
       "fit": "none",
       "note": "No MES/QMS source connected.",
       "unmet_note": "No MES/QMS source connected.",
-      "rank": 3
+      "rank": 4
+    },
+    {
+      "domain_id": "hazardous-waste",
+      "name": "Hazardous Waste (HWNET)",
+      "expected_sources": [
+        "e-Manifest Ledger",
+        "Waste Profiles & LDR Certifications",
+        "TSDF Registry",
+        "Transporter Registry"
+      ],
+      "fit": "strong",
+      "note": "Manifests, waste profiles and the TSDF/transporter registries are already profiled for this domain.",
+      "unmet_note": "No manifest, waste-profile or TSDF source connected.",
+      "rank": 1
     }
   ],
   "graph_studio": {
@@ -2138,7 +2152,57 @@
       ]
     }
   },
-  "graph_use_cases": [],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-ggg-msn6l5uk1",
+      "name": "ggg",
+      "status": "draft",
+      "domain_id": "industries",
+      "business_need": "Centralize hazardous-waste compliance from generation through transportation, treatment, storage, and final disposal, enabling teams to reconcile manifests, monitor exceptions, validate waste profiles and LDR certifications, track generator-status thresholds, and maintain audit-ready evidence",
+      "personas": [
+        {
+          "name": "Regulatory Affairs / Permitting",
+          "description": "Tracks permit conditions, biennial reports, TCEQ/EPA filings and their deadlines.",
+          "source": "ai"
+        },
+        {
+          "name": "cbcb",
+          "description": "vcbcvbvcb",
+          "source": "user"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Manifest reconciliation rate",
+          "description": "% of manifests where quantity received matches quantity shipped within tolerance.",
+          "source": "ai"
+        }
+      ],
+      "sources": [],
+      "hero_questions": [],
+      "citations": "required",
+      "answer_formats": [],
+      "gap_decisions": [],
+      "step": 4,
+      "updated_at": "2026-08-10T12:02:16.322Z"
+    },
+    {
+      "use_case_id": "uc-waste-management-msn6jtcb0",
+      "name": "Waste Management",
+      "status": "draft",
+      "domain_id": "industries",
+      "business_need": "Centralize hazardous-waste compliance from generation through transportation, treatment, storage, and final disposal, enabling teams to reconcile manifests, monitor exceptions, validate waste profiles and LDR certifications, track generator-status thresholds, and maintain audit-ready evidence",
+      "personas": [],
+      "kpis": [],
+      "sources": [],
+      "hero_questions": [],
+      "citations": "required",
+      "answer_formats": [],
+      "gap_decisions": [],
+      "step": 2,
+      "updated_at": "2026-08-10T12:01:26.567Z"
+    }
+  ],
   "graph_personas": [
     {
       "persona_id": "reliability-engineer",
@@ -2303,6 +2367,111 @@
         "risk"
       ],
       "focus": "Asks for the one-line answer, with the caveat stated up front."
+    },
+    {
+      "persona_id": "ehs-compliance-manager",
+      "name": "EHS / Environmental Compliance Manager",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "cradle-to-grave",
+        "rcra",
+        "hazardous waste",
+        "compliance",
+        "ehs"
+      ],
+      "focus": "Owns cradle-to-grave RCRA compliance across sites; the primary day-to-day user."
+    },
+    {
+      "persona_id": "waste-coordinator",
+      "name": "Waste Coordinator / Generator",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "manifest",
+        "waste profile",
+        "generator",
+        "accumulation",
+        "shipment"
+      ],
+      "focus": "Manages manifests, waste profiles and generator-status thresholds at site level."
+    },
+    {
+      "persona_id": "site-operations-manager",
+      "name": "Plant / Site Operations Manager",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "plant",
+        "site-level",
+        "generation volume",
+        "permit limit",
+        "headroom"
+      ],
+      "focus": "Needs site-level generation volumes and permit-limit headroom."
+    },
+    {
+      "persona_id": "regulatory-affairs",
+      "name": "Regulatory Affairs / Permitting",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "permit",
+        "biennial",
+        "tceq",
+        "regulatory",
+        "filing",
+        "deadline"
+      ],
+      "focus": "Tracks permit conditions, biennial reports, TCEQ/EPA filings and their deadlines."
+    },
+    {
+      "persona_id": "internal-auditor",
+      "name": "Internal Auditor",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "audit",
+        "evidence",
+        "reconcil",
+        "chain of custody"
+      ],
+      "focus": "Verifies manifest reconciliation and the evidence trail behind an audit."
+    },
+    {
+      "persona_id": "environmental-counsel",
+      "name": "Corporate Environmental Counsel",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "cercla",
+        "superfund",
+        "liability",
+        "indemn",
+        "successor"
+      ],
+      "focus": "Assesses CERCLA and successor liability from downstream TSDFs, and reviews contract indemnities."
+    },
+    {
+      "persona_id": "risk-insurance-manager",
+      "name": "Risk & Insurance Manager",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "risk",
+        "insurance",
+        "exposure",
+        "reserve",
+        "coverage"
+      ],
+      "focus": "Quantifies environmental liability for reserves and coverage decisions."
     }
   ],
   "graph_kpis": [
@@ -2481,6 +2650,141 @@
         "kpi"
       ],
       "definition": "Age of the newest record backing an answer, at the time it is given."
+    },
+    {
+      "kpi_id": "manifest-reconciliation-rate",
+      "name": "Manifest reconciliation rate",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "manifest",
+        "reconcil",
+        "discrepancy",
+        "quantity",
+        "tolerance"
+      ],
+      "definition": "% of manifests where quantity received matches quantity shipped within tolerance."
+    },
+    {
+      "kpi_id": "open-manifest-aging",
+      "name": "Open-manifest aging",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "manifest",
+        "exception report",
+        "45-day",
+        "closure",
+        "aging"
+      ],
+      "definition": "% of manifests unreturned past the 45-day exception window, and average days to closure."
+    },
+    {
+      "kpi_id": "generator-status-headroom",
+      "name": "Generator-status headroom",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "lqg",
+        "generator status",
+        "threshold",
+        "accumulation",
+        "headroom"
+      ],
+      "definition": "Each site's current hazardous-waste accumulation as a percentage of its regulatory LQG threshold."
+    },
+    {
+      "kpi_id": "waste-profile-currency",
+      "name": "Waste-profile currency",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "waste profile",
+        "ldr",
+        "land disposal",
+        "certification",
+        "expired"
+      ],
+      "definition": "% of active waste streams with a valid, non-expired profile and LDR certification."
+    },
+    {
+      "kpi_id": "hazardous-waste-generation-volume",
+      "name": "Hazardous-waste generation volume",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "hazardous waste",
+        "generation",
+        "volume",
+        "tons",
+        "waste code"
+      ],
+      "definition": "Total tons generated by EPA waste code, by site, over the reporting period."
+    },
+    {
+      "kpi_id": "regulatory-filing-readiness",
+      "name": "Regulatory-filing readiness",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "biennial",
+        "filing",
+        "tceq",
+        "deadline",
+        "regulatory"
+      ],
+      "definition": "% of required filings, including biennial and annual TCEQ filings, with complete underlying data ahead of the deadline."
+    },
+    {
+      "kpi_id": "downstream-facility-compliance-rate",
+      "name": "Downstream facility compliance rate",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "tsdf",
+        "downstream",
+        "enforcement",
+        "npl",
+        "disposal facility"
+      ],
+      "definition": "% of waste volume sent to TSDFs with no open enforcement action or NPL listing."
+    },
+    {
+      "kpi_id": "cercla-liability-exposure",
+      "name": "CERCLA liability exposure",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "cercla",
+        "superfund",
+        "liability",
+        "exposure",
+        "npl"
+      ],
+      "definition": "Estimated potential liability tied to waste sent to NPL- or enforcement-flagged facilities."
+    },
+    {
+      "kpi_id": "transporter-compliance-score",
+      "name": "Transporter compliance score",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "transporter",
+        "phmsa",
+        "dot",
+        "epa id",
+        "hauler"
+      ],
+      "definition": "% of shipments moved by transporters with valid EPA IDs and no active PHMSA violations."
     }
   ],
   "graph_hero_questions": [
@@ -2657,6 +2961,174 @@
         "scrap",
         "process"
       ]
+    },
+    {
+      "question_id": "q-hw-tsdf-npl-enforcement",
+      "text": "Which hazardous-waste shipments in the last 12 months went to TSDFs now on the CERCLA/Superfund NPL or with open EPA enforcement actions?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "tsdf",
+        "cercla",
+        "superfund",
+        "npl",
+        "enforcement",
+        "shipment"
+      ],
+      "priority": "high"
+    },
+    {
+      "question_id": "q-hw-manifest-discrepancy",
+      "text": "Which manifests in the last quarter show a discrepancy between quantity shipped and quantity received?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "manifest",
+        "discrepancy",
+        "quantity",
+        "reconcil",
+        "shipped"
+      ],
+      "priority": "high"
+    },
+    {
+      "question_id": "q-hw-lqg-permit-coverage",
+      "text": "Are any sites exceeding their generator-status (LQG) threshold, and does the current permit cover that volume?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "lqg",
+        "generator status",
+        "threshold",
+        "permit",
+        "volume"
+      ],
+      "priority": "high"
+    },
+    {
+      "question_id": "q-hw-open-manifest-45-day",
+      "text": "Which open manifests have not been returned within the 45-day exception-report window?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "manifest",
+        "exception report",
+        "45-day",
+        "overdue",
+        "open"
+      ],
+      "priority": "high"
+    },
+    {
+      "question_id": "q-hw-tsdf-permit-loss-rerouting",
+      "text": "What is our liability exposure if TSDF X loses its permit — which waste streams and what volume would need rerouting?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "tsdf",
+        "permit",
+        "liability",
+        "exposure",
+        "reroute",
+        "waste stream"
+      ],
+      "priority": "high"
+    },
+    {
+      "question_id": "q-hw-waste-profile-ldr",
+      "text": "Which waste streams lack a current waste profile or valid Land Disposal Restriction (LDR) certification?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "waste profile",
+        "ldr",
+        "land disposal",
+        "certification",
+        "waste stream"
+      ],
+      "priority": "high"
+    },
+    {
+      "question_id": "q-hw-transporter-violations",
+      "text": "Which transporters we use have had DOT/PHMSA violations or an expired/invalid EPA ID number?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "transporter",
+        "phmsa",
+        "dot",
+        "epa id",
+        "violation"
+      ],
+      "priority": "high"
+    },
+    {
+      "question_id": "q-hw-tsdf-contract-indemnity",
+      "text": "What do our TSDF disposal contracts say about indemnification and liability caps?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "tsdf",
+        "contract",
+        "indemn",
+        "liability",
+        "disposal"
+      ],
+      "priority": "normal"
+    },
+    {
+      "question_id": "q-hw-biennial-report-readiness",
+      "text": "Which sites are approaching a biennial-report deadline with incomplete data?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "biennial",
+        "deadline",
+        "filing",
+        "incomplete",
+        "regulatory"
+      ],
+      "priority": "normal"
+    },
+    {
+      "question_id": "q-hw-generation-trend-by-waste-code",
+      "text": "What is the trend in hazardous-waste generation by EPA waste code across sites over 24 months?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "trend",
+        "generation",
+        "waste code",
+        "hazardous waste",
+        "volume"
+      ],
+      "priority": "normal"
+    },
+    {
+      "question_id": "q-hw-ship-channel-incident",
+      "text": "For any Ship Channel discharge/spill incident, which waste streams, transporters, and TSDFs are implicated?",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "spill",
+        "discharge",
+        "incident",
+        "ship channel",
+        "transporter",
+        "tsdf"
+      ],
+      "priority": "normal"
     }
   ],
   "graph_answer_formats": [
@@ -2682,7 +3154,8 @@
       "name": "Compliance",
       "format": "scalar + exception table",
       "domains": [
-        "industries"
+        "industries",
+        "hazardous-waste"
       ],
       "keywords": [
         "compliance",
@@ -2712,7 +3185,8 @@
       "name": "Chain of custody",
       "format": "timeline + hop table",
       "domains": [
-        "industries"
+        "industries",
+        "hazardous-waste"
       ],
       "keywords": [
         "manifest",
@@ -2728,7 +3202,8 @@
       "format": "scalar + grouped table",
       "domains": [
         "industries",
-        "manufacturing"
+        "manufacturing",
+        "hazardous-waste"
       ],
       "keywords": [
         "volume",
@@ -2780,6 +3255,144 @@
         "close",
         "spend",
         "surprising"
+      ]
+    },
+    {
+      "format_id": "liability-exposure",
+      "name": "Liability exposure",
+      "format": "narrative + exposure table + implicated facility list",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "cercla",
+        "liability",
+        "exposure",
+        "indemn",
+        "superfund",
+        "risk"
+      ]
+    },
+    {
+      "format_id": "exception-report",
+      "name": "Exception report",
+      "format": "exception table + aging buckets",
+      "domains": [
+        "hazardous-waste"
+      ],
+      "keywords": [
+        "exception",
+        "manifest",
+        "overdue",
+        "45-day",
+        "discrepancy",
+        "aging"
+      ]
+    }
+  ],
+  "graph_use_case_templates": [
+    {
+      "template_id": "hwnet-cradle-to-grave",
+      "use_case_id": "UC1",
+      "name": "Cradle-to-Grave Waste Compliance & Audit Readiness",
+      "description": "Centralize hazardous-waste compliance from generation through transportation, treatment, storage, and final disposal, enabling teams to reconcile manifests, monitor exceptions, validate waste profiles and LDR certifications, track generator-status thresholds, and maintain audit-ready evidence.",
+      "match_phrases": [
+        "reconcile manifests",
+        "ldr certification",
+        "audit-ready",
+        "treatment, storage",
+        "final disposal",
+        "monitor exceptions",
+        "generator-status threshold"
+      ],
+      "personas": [
+        "ehs-compliance-manager",
+        "waste-coordinator",
+        "site-operations-manager",
+        "regulatory-affairs",
+        "internal-auditor"
+      ],
+      "kpis": [
+        "manifest-reconciliation-rate",
+        "open-manifest-aging",
+        "generator-status-headroom",
+        "waste-profile-currency",
+        "hazardous-waste-generation-volume",
+        "regulatory-filing-readiness"
+      ],
+      "hero_questions": [
+        "q-hw-manifest-discrepancy",
+        "q-hw-lqg-permit-coverage",
+        "q-hw-open-manifest-45-day",
+        "q-hw-waste-profile-ldr",
+        "q-hw-biennial-report-readiness",
+        "q-hw-generation-trend-by-waste-code"
+      ]
+    },
+    {
+      "template_id": "hwnet-downstream-liability",
+      "use_case_id": "UC2",
+      "name": "Downstream TSDF & CERCLA Liability Risk",
+      "description": "Assess downstream environmental and contractual risk by connecting waste shipments, waste streams, volumes, TSDF compliance status, and disposal contracts to identify potential CERCLA exposure and rerouting requirements.",
+      "match_phrases": [
+        "downstream environmental",
+        "contractual risk",
+        "tsdf compliance status",
+        "disposal contract",
+        "cercla exposure",
+        "rerouting requirement"
+      ],
+      "personas": [
+        "ehs-compliance-manager",
+        "environmental-counsel",
+        "risk-insurance-manager",
+        "regulatory-affairs"
+      ],
+      "kpis": [
+        "downstream-facility-compliance-rate",
+        "cercla-liability-exposure",
+        "hazardous-waste-generation-volume"
+      ],
+      "hero_questions": [
+        "q-hw-tsdf-npl-enforcement",
+        "q-hw-tsdf-permit-loss-rerouting",
+        "q-hw-tsdf-contract-indemnity",
+        "q-hw-ship-channel-incident"
+      ]
+    },
+    {
+      "template_id": "hwnet-site-transporter-risk",
+      "use_case_id": "UC3",
+      "name": "Site, Transporter & Regulatory Risk Management",
+      "description": "Provide an enterprise view of site, transporter, generation, and regulatory risks so operations and compliance teams can identify threshold exceedances, transporter issues, generation trends, and upcoming filing obligations before they become violations or operational disruptions.",
+      "match_phrases": [
+        "enterprise view",
+        "threshold exceedance",
+        "transporter issue",
+        "generation trend",
+        "filing obligation",
+        "operational disruption"
+      ],
+      "personas": [
+        "ehs-compliance-manager",
+        "waste-coordinator",
+        "site-operations-manager",
+        "regulatory-affairs",
+        "risk-insurance-manager"
+      ],
+      "kpis": [
+        "generator-status-headroom",
+        "transporter-compliance-score",
+        "hazardous-waste-generation-volume",
+        "regulatory-filing-readiness",
+        "manifest-reconciliation-rate"
+      ],
+      "hero_questions": [
+        "q-hw-lqg-permit-coverage",
+        "q-hw-transporter-violations",
+        "q-hw-biennial-report-readiness",
+        "q-hw-generation-trend-by-waste-code",
+        "q-hw-ship-channel-incident"
       ]
     }
   ]

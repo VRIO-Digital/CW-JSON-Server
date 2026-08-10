@@ -378,3 +378,34 @@ commented-out entries so it comes back with them.
 is about which gate to trust — **oxlint warnings do not fail the build and `tsc`
 does, so never conclude a refactor on `npm run lint` alone.** `npm run preflight`
 runs both; that is the only signal that counts.
+
+---
+
+## A plain `.env` pointed `npm run dev` at the production box
+
+**Symptom** — New Graph kept drafting the *old* personas, KPIs and hero questions
+however many times Suggest was clicked. `curl localhost:4000` returned the new
+ones correctly; the browser, on the same machine, did not. Two rounds were lost
+to "the mock server must be stale" — it was current, and restarting it changed
+nothing because it was never being called.
+
+**Root cause** — `VITE_API_BASE=http://18.205.228.143:4000` lived in a plain
+`.env`, and Vite loads `.env` in **every** mode. So `npm run dev` skipped its own
+`/api` proxy and called the deployed EC2 box, which runs older code against an
+older `db.json`. `.env.development` and `.env.production` — the two files
+`CLAUDE.md` describes — had never existed.
+
+**Fix** — split it: `.env.development` = `/api` (the proxy), `.env.production` =
+the deployed origin, plain `.env` deleted. Mode files take precedence over
+`.env`, so development now reaches the local mock server again.
+
+**Guard** — *mechanical*. `check-docs` already asserted both mode files exist and
+had been **failing on exactly that for the whole session**, dismissed as
+"pre-existing and unrelated". So the guard is doubled with one that names this
+failure directly: `no VITE_API_BASE in a plain .env`. The wider lesson is about
+reading the gate rather than the code — **a red `check-docs` claim is a
+description of a live fault, not background noise. Do not diagnose past a
+failing assertion; the environment claims are the ones most likely to explain a
+symptom that makes no sense.** A local API that answers correctly while the app
+disagrees means the app is not talking to it: check `VITE_API_BASE` in the
+Network tab's request URL before suspecting the server.

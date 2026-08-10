@@ -9,7 +9,7 @@ import react from '@vitejs/plugin-react'
  * with no environment set up at all. Point it elsewhere for one run without
  * editing this file — the app still calls /api, so nothing else changes:
  *
- *     MOCK_ORIGIN=http://44.203.214.206:4000 npm run dev
+ *     MOCK_ORIGIN=http://18.205.228.143:4000 npm run dev
  *
  * This proxy does not exist in a build. A production bundle reaches the API by
  * whatever VITE_API_BASE in .env.production names, which is why that file
