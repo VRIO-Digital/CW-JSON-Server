@@ -15,7 +15,7 @@ import react from '@vitejs/plugin-react'
  * whatever VITE_API_BASE in .env.production names, which is why that file
  * carries the deployed origin and this one does not.
  */
-const MOCK_ORIGIN = process.env.MOCK_ORIGIN || 'http://localhost:4000'
+const MOCK_ORIGIN = process.env.MOCK_ORIGIN 
 
 // https://vite.dev/config/
 export default defineConfig({
