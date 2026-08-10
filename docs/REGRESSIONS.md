@@ -409,3 +409,53 @@ failing assertion; the environment claims are the ones most likely to explain a
 symptom that makes no sense.** A local API that answers correctly while the app
 disagrees means the app is not talking to it: check `VITE_API_BASE` in the
 Network tab's request URL before suspecting the server.
+
+---
+
+## The connect wizard told everyone they were somebody else
+
+**Symptom** — every user who connected a BigQuery or Drive source saw
+`Connected as karthik.mahadeva@vriodigital.com`, whoever they had signed in as.
+Nothing errored; the wizard simply reported the wrong human at the one moment it
+claims an account is being linked.
+
+**Root cause** — `GET /sources/oauth/callback` answered every caller with
+`db.google_account`, a seeded record in `db.json`. The console's identity is
+client-held (`useAuthStore` → `localStorage`), so the server had no session to
+read the real user from and nobody had ever passed it one.
+
+**Fix** — the callback takes `as=<email>`; `ConnectSourceWizard` reads
+`identity?.email` from the auth store and both `oauthCallback` and
+`driveOauthCallback` send it through one `callbackPath()` helper. **The alert
+renders `signedInAs ?? account.email`, store first** — the server-side half alone
+was not enough: the seeded email came back the moment the page was pointed at an
+API that had not been updated (see the plain-`.env` entry below — dev was calling
+the deployed box, so a fixed local server changed nothing on screen). Who is
+connecting is a client fact here: the login authenticates by shape and the consent
+proves well-formedness, not identity, so the store is the authority and the `as=`
+round-trip only keeps the API's answer honest for anyone reading it. The name that
+comes back is derived from the email (`displayNameFromEmail`, the twin of
+`emailInitials`) rather than invented. `db.google_account` stays the fallback for
+a caller that names nobody — a curl, the route list — and a malformed `as` is
+refused with a sentence instead of quietly falling back to the seed, because
+connecting as the wrong person is the whole bug.
+
+**Guard** — *mechanical*: four `check-docs` claims, one per leg of the path
+(the server reads `as` and no longer sends `account: db.google_account` from that
+route; the client sends `&as=${encodeURIComponent(signedInAs)}` via `callbackPath`
+for both connectors; the wizard takes the email from `useAuthStore` and passes it
+in both branches; both alerts render `connectedAs`, and neither renders
+`account.email` directly). Any one of the four going missing restores the seeded
+email in silence, which is why a doc line could not hold this.
+
+**Also learned** — a server-side fix is not visible until the app is calling that
+server. The first round of this landed correctly in `server.mjs` and the screen did
+not change, because `.env` pointed `npm run dev` at the deployed box. **When a fix
+provably works against `curl` and the UI still shows the old value, check
+`VITE_API_BASE` before changing the fix.**
+
+**Rule** — **client-held identity has to be *sent*.** A server route that reports
+who did something cannot look the user up; if it names a person and was not told
+who, it is naming a seed. `triggered_by` in the audit payload and
+`approved_by` / `published_by` in Graph Studio still read `db.google_account` —
+they are seeded provenance, not the signed-in user, and should not be read as it.

@@ -50,6 +50,7 @@ import {
 } from '../data/connectors'
 import GoogleConsentPanel from './GoogleConsentPanel'
 import { toMessage } from '../store/asyncState'
+import { useAuthStore } from '../store/authStore'
 import { BRAND, BRAND_SOFT } from '../theme'
 import './ConnectSourceModal.css'
 
@@ -130,6 +131,12 @@ export default function ConnectSourceWizard({
   onCancel: () => void
 }) {
   const { message } = App.useApp()
+  /*
+   * The consent connects *this* user's account, so the signed-in email goes out
+   * with the callback. A primitive selector, so signing out is the only thing
+   * that re-renders the wizard.
+   */
+  const signedInAs = useAuthStore((s) => s.identity?.email)
   const [step, setStep] = useState(0)
   const [selected, setSelected] = useState<Connector | null>(null)
   const [blocked, setBlocked] = useState<Connector | null>(null)
@@ -161,6 +168,17 @@ export default function ConnectSourceWizard({
   const [checkedFolders, setCheckedFolders] = useState<string[]>([])
   const [registeredDrive, setRegisteredDrive] =
     useState<RegisteredDriveSource | null>(null)
+
+  /*
+   * Who the consent connected. The signed-in email wins over the one the
+   * callback echoed back, and deliberately: this login authenticates by *shape*
+   * and the consent screen proves a request is well-formed rather than that a
+   * real Google account sits behind it (CLAUDE.md § Identity), so the only fact
+   * about *who* is connecting lives in the browser. Reading it locally also means
+   * an older or deployed mock server — one that still answers with
+   * `db.google_account` — cannot make this alert name a stranger.
+   */
+  const connectedAs = account ? (signedInAs ?? account.email) : null
 
   const isBigQuery = selected?.key === 'bigquery'
   const isDrive = selected?.key === 'gdrive'
@@ -194,7 +212,7 @@ export default function ConnectSourceWizard({
       setLoginStage(1)
       if (isDrive) {
         // The consent says who signed in; the session says what they can see.
-        const granted = await driveOauthCallback(start.state)
+        const granted = await driveOauthCallback(start.state, signedInAs)
         setAccount(granted.account)
         setLoginStage(2)
         const readable = await listOauthDrives(granted.session)
@@ -202,7 +220,7 @@ export default function ConnectSourceWizard({
         const first = readable[0]
         if (first) selectDrive(first.drive_id, readable)
       } else {
-        const granted = await oauthCallback(start.state)
+        const granted = await oauthCallback(start.state, signedInAs)
         setAccount(granted.account)
         setLoginStage(2)
         const readable = await listOauthProjects(granted.session)
@@ -466,14 +484,14 @@ export default function ConnectSourceWizard({
             <GoogleConsentPanel provider="bigquery" stage={loginStage} />
           ) : null}
 
-          {account ? (
+          {connectedAs ? (
             <Alert
               type="success"
               showIcon
               style={{ marginBottom: 16 }}
               title={
                 <span>
-                  Connected as <strong>{account.email}</strong> — read-only
+                  Connected as <strong>{connectedAs}</strong> — read-only
                   access to {projects.length} project(s)
                 </span>
               }
@@ -580,14 +598,14 @@ export default function ConnectSourceWizard({
             <GoogleConsentPanel provider="drive" stage={loginStage} />
           ) : null}
 
-          {account ? (
+          {connectedAs ? (
             <Alert
               type="success"
               showIcon
               style={{ marginBottom: 16 }}
               title={
                 <span>
-                  Connected as <strong>{account.email}</strong> — read-only
+                  Connected as <strong>{connectedAs}</strong> — read-only
                   access to {drives.length} drive(s)
                 </span>
               }

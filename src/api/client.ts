@@ -1928,17 +1928,31 @@ export async function oauthStart(
   )
 }
 
-export async function oauthCallback(state: string): Promise<OAuthCallback> {
-  const raw = await request<unknown>(
-    `/sources/oauth/callback?state=${encodeURIComponent(state)}&provider=bigquery`,
-  )
+/**
+ * Who is connecting has to be *sent*, because the server does not know it: the
+ * console's identity is client-held (`useAuthStore`), so the consent callback
+ * echoes back the email it is given as the connecting account. Omit it and the
+ * server answers with the seeded `google_account` — which is how the wizard once
+ * told every user they had connected as one person from `db.json`.
+ */
+function callbackPath(state: string, provider: OAuthProvider, signedInAs?: string) {
+  const as = signedInAs ? `&as=${encodeURIComponent(signedInAs)}` : ''
+  return `/sources/oauth/callback?state=${encodeURIComponent(state)}&provider=${provider}${as}`
+}
+
+export async function oauthCallback(
+  state: string,
+  signedInAs?: string,
+): Promise<OAuthCallback> {
+  const raw = await request<unknown>(callbackPath(state, 'bigquery', signedInAs))
   return validate<OAuthCallback>('The Google sign-in result', raw, OAUTH_CALLBACK_PAYLOAD)
 }
 
-export async function driveOauthCallback(state: string): Promise<DriveOAuthCallback> {
-  const raw = await request<unknown>(
-    `/sources/oauth/callback?state=${encodeURIComponent(state)}&provider=drive`,
-  )
+export async function driveOauthCallback(
+  state: string,
+  signedInAs?: string,
+): Promise<DriveOAuthCallback> {
+  const raw = await request<unknown>(callbackPath(state, 'drive', signedInAs))
   return validate<DriveOAuthCallback>(
     'The Google Drive sign-in result',
     raw,

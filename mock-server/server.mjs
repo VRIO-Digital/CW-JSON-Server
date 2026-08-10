@@ -25,7 +25,7 @@
  *   GET    /drives
  *   GET    /drives/:driveId/folders
  *   GET    /sources/oauth/start?provider=bigquery|drive
- *   GET    /sources/oauth/callback?state=...&provider=bigquery|drive
+ *   GET    /sources/oauth/callback?state=...&provider=bigquery|drive&as=email
  *   GET    /sources/oauth/projects?session=...  projects the account can read
  *   GET    /sources/oauth/drives?session=...    drives the account can read
  *   POST   /sources/preview                { project_id, credential_handle }
@@ -785,6 +785,24 @@ function emailInitials(email) {
       ? segments[0][0] + segments[segments.length - 1][0]
       : local.slice(0, 2)
   return initials.toUpperCase() || '?'
+}
+
+/**
+ * `adaeze.okonjo@x.com` → `Adaeze Okonjo`; `ops@x.com` → `Ops`.
+ *
+ * Same reasoning as `emailInitials`: the login form collects an email and
+ * nothing else, so a display name is *derived* from what was collected rather
+ * than invented. Used by the consent callback, which has to answer with a name
+ * and must not answer with somebody else's.
+ */
+function displayNameFromEmail(email) {
+  const local = String(email).split('@')[0] ?? ''
+  const name = local
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((s) => s[0].toUpperCase() + s.slice(1))
+    .join(' ')
+  return name || String(email)
 }
 
 /**
@@ -2321,6 +2339,30 @@ const routes = [
       oauthStates.delete(state)
 
       /*
+       * Who signed in comes from the caller, because that is the only place it
+       * exists. The console's identity is client-held (`useAuthStore`, see
+       * CLAUDE.md § Identity) — there is no server-side session to look it up
+       * from — so the wizard sends the signed-in email as `as` and this echoes
+       * it back as the connecting account. Without it the consent answered with
+       * `db.google_account` for everyone, so the wizard told every user they had
+       * connected as one seeded person.
+       *
+       * `db.google_account` stays the fallback for a caller that names nobody
+       * (a curl, the API docs), and a malformed `as` is refused rather than
+       * quietly falling back to that seed — silently connecting as someone else
+       * is the bug this parameter exists to fix.
+       */
+      const as = query.get('as')
+      if (as !== null && !EMAIL_RE.test(as)) {
+        return send(res, 400, {
+          error: `"${as}" is not a valid email address — sign in again and retry the connection.`,
+        })
+      }
+      const account = as
+        ? { email: as, name: displayNameFromEmail(as), picture: null }
+        : db.google_account
+
+      /*
        * The consent ends here, and *only* the consent: it returns who signed in
        * plus a session, and what that account can see is a separate call. Two
        * reasons. It is what a real handshake does — a code is exchanged for a
@@ -2338,7 +2380,7 @@ const routes = [
        * because making an error wait teaches nothing and reads as a hang.
        */
       setTimeout(
-        () => send(res, 200, { account: db.google_account, session, provider }),
+        () => send(res, 200, { account, session, provider }),
         CONSENT_MS,
       ).unref?.()
     },

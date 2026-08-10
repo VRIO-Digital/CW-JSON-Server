@@ -119,11 +119,30 @@ BigQuery and Drive each get a bespoke branch (`isBigQuery` / `isDrive`, together
 ```
 Login with Google
   → GET /sources/oauth/start?provider=…    issues a one-time state, scoped
-  → GET /sources/oauth/callback?provider=… consumes it, returns the account
+  → GET /sources/oauth/callback?provider=…&as=<signed-in email>
+                                           consumes it, returns the account
                                            + a session (no list)
   → GET /sources/oauth/projects?session=…  4 projects, each with a handle
     GET /sources/oauth/drives?session=…    3 drives, each with a handle
 ```
+
+**The account it connects is the signed-in one.** `ConnectSourceWizard` reads
+`useAuthStore(s => s.identity?.email)` and sends it as `as=`, because the identity
+lives in the browser and the server has no session to look it up from. The success
+alert then renders `connectedAs = signedInAs ?? account.email` — the store first,
+the payload only as a fallback — so it reads `Connected as <the email you logged in
+with>` even when the API answering is an older build (or the deployed box) that
+still echoes `db.google_account`. The name the server derives comes from that email
+(`displayNameFromEmail`), never invented. With no `as`, the server falls back to
+`db.google_account` in `db.json` — which is what every user used to see. A
+malformed `as` is a 400, not a silent fall back to the seed, and `check-docs`
+asserts all four legs: the server reads `as`, the client sends it for both
+connectors, the wizard sources it from the store, and both alerts render
+`connectedAs`.
+
+**Symptom to recognise:** the sidebar footer says `karthik@gmail.com` and the
+wizard says `karthik.mahadeva@vriodigital.com`. Those two disagree only if the
+alert is reading the payload — check `connectedAs`, not the server.
 
 **Consent and discovery are two calls, not one.** The callback says *who* signed
 in; what that account can *see* is spent from the `session` afterwards — what a

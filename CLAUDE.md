@@ -170,7 +170,11 @@ Three things the mirror deliberately does *not* make identical:
   `/sources/oauth/start?provider=bigquery|drive` issues a state remembered *with*
   its provider, and the callback rejects a state replayed against the other one.
   Drive asks for `drive.metadata.readonly`, BigQuery for `bigquery.readonly`.
-  The callback returns the account and a **session**; what that account can see
+  The callback returns the account and a **session**; the account it names is
+  **whoever is signed in**, passed as `as=<email>` because the identity is
+  client-held and the server has nothing to look it up from (`db.google_account`
+  is the fallback for a caller that names nobody, and a malformed `as` is a 400
+  rather than a quiet fall back to that seed). What that account can see
   is a second call (`/sources/oauth/projects` / `/sources/oauth/drives` — twins,
   each refusing the other's session). All three are **paced**
   (`CONSENT_START_MS`, `CONSENT_MS`, `DISCOVERY_MS` ≈ 3.1s) and
@@ -470,6 +474,26 @@ in the sidebar footer is derived from what was actually collected, not invented.
 Sign-out is a pure client action (`logout()` + navigate to `/login`); there is no
 server-side session to revoke.
 
+**Client-held means it has to be sent — and it is the one fact the client keeps.**
+Anything that reports *who* did something has to be told: the connect wizard
+passes `identity.email` into `oauthCallback` / `driveOauthCallback` as `as=`, and
+the consent echoes it back so the API agrees. But the **"Connected as …" alert
+renders `signedInAs ?? account.email`**, preferring the store over the payload,
+because this login authenticates by shape and the consent proves a request is
+well-formed rather than that a real Google account is behind it — so who is
+connecting is the browser's fact, not the server's. That is also why an older or
+deployed mock server, still answering with `db.google_account`, cannot make the
+page name a stranger. It is the one deliberate exception to "render what the
+server reported", and it is deliberate because the server is echoing the client
+here, not informing it. The
+display name that comes back is derived from the email
+(`displayNameFromEmail()`, the twin of `emailInitials()`) — the login form
+collects no name, so one is never invented. `check-docs` asserts all three halves
+of that path. The audit trail's `triggered_by` and Graph Studio's
+`approved_by` / `published_by` still read `db.google_account` and are **not**
+wired to the session; wire them the same way or leave them, but do not read them
+as the current user.
+
 ### State (`src/store/`)
 
 zustand. Eight modules (plus `asyncState.ts`, the shared machinery): `authStore`
@@ -671,6 +695,10 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   files check out with CRLF on Windows; a split on `\n  {\n` found zero
   connectors and reported "0 of 0 available" — a green-looking sweep over an
   empty list.
+- **A route that names a person must be told who.** The identity is client-held,
+  so a server route cannot look the signed-in user up: the consent callback
+  reported `db.google_account` to everyone until the wizard started sending
+  `as=<email>`. Anything new that records "who did this" has the same problem.
 - **antd v6 renamed props** — read the installed `.d.ts`; do not assume v5.
 - **Selectors must return stable references.** `data?.x ?? []` allocates every
   render and defeats downstream memos; use a module-level constant.

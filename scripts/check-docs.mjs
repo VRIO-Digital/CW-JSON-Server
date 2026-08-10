@@ -305,6 +305,52 @@ expect(
     : `${hardcodedOrigins.join(', ')} — move it to .env.production`,
 )
 
+/* ---------------- the consent connects the signed-in user ---------------- */
+
+/*
+ * `/sources/oauth/callback` used to answer every caller with `db.google_account`,
+ * so the wizard's "Connected as …" named one seeded person no matter who was
+ * signed in. The identity is client-held, so the fix has four legs and all four
+ * have to hold: the server must read `as`, the client must send it, the wizard
+ * must take it from the auth store, and the alert must *render* the signed-in
+ * email rather than whatever the payload echoed — that last one is what makes the
+ * page right against an older or deployed server too. Asserted here rather than
+ * noted, because any one going missing restores the seeded email silently — nothing
+ * errors, it just shows the wrong human.
+ */
+const wizard = read('src/components/ConnectSourceWizard.tsx')
+const callbackRoute = (server.split("p === '/sources/oauth/callback'")[1] ?? '').slice(
+  0,
+  3000,
+)
+expect(
+  'consent callback reads the connecting account from the request',
+  /query\.get\('as'\)/.test(callbackRoute) &&
+    !/account: db\.google_account/.test(callbackRoute),
+  '`as` names who signed in; db.google_account is the no-caller fallback only',
+)
+expect(
+  'client.ts sends the signed-in email with the consent callback',
+  /&as=\$\{encodeURIComponent\(signedInAs\)\}/.test(client) &&
+    (client.match(/callbackPath\(state, '(bigquery|drive)', signedInAs\)/g) ?? [])
+      .length === 2,
+  'both oauthCallback and driveOauthCallback go through callbackPath',
+)
+expect(
+  'the connect wizard takes that email from the auth store',
+  /useAuthStore\(\(s\) => s\.identity\?\.email\)/.test(wizard) &&
+    (wizard.match(/OauthCallback\(start\.state, signedInAs\)|oauthCallback\(start\.state, signedInAs\)/g) ?? [])
+      .length === 2,
+  'BigQuery and Drive both pass signedInAs to their callback',
+)
+expect(
+  'the "Connected as" alert renders the signed-in email',
+  /signedInAs \?\? account\.email/.test(wizard) &&
+    (wizard.match(/Connected as <strong>\{connectedAs\}<\/strong>/g) ?? []).length === 2 &&
+    !/Connected as <strong>\{account\.email\}/.test(wizard),
+  'connectedAs prefers the auth store, so a stale server cannot name a stranger',
+)
+
 /* ---------------- spacing scale ---------------- */
 
 const tokens = [...indexCss.matchAll(/--sp-(\d):/g)].map((m) => Number(m[1]))
