@@ -1401,125 +1401,15 @@
   },
   "graph_use_cases": [
     {
-      "use_case_id": "uc-versions-test-msom8w9r0",
-      "name": "Versions test",
-      "status": "committed",
-      "domain_id": "hazardous-waste",
-      "business_need": "",
-      "personas": [],
-      "kpis": [],
-      "sources": [],
-      "hero_questions": [
-        {
-          "text": "Which generators are under enforcement?",
-          "priority": "high",
-          "source": "ai"
-        }
-      ],
-      "citations": "required",
-      "answer_formats": [],
-      "gap_decisions": [],
-      "step": 7,
-      "updated_at": "2026-08-11T12:07:50.374Z"
-    },
-    {
-      "use_case_id": "uc-versions-test-msom1iwb0",
-      "name": "Versions test",
-      "status": "committed",
-      "domain_id": "hazardous-waste",
-      "business_need": "",
-      "personas": [],
-      "kpis": [],
-      "sources": [],
-      "hero_questions": [
-        {
-          "text": "Which generators are under enforcement?",
-          "priority": "high",
-          "source": "ai"
-        }
-      ],
-      "citations": "required",
-      "answer_formats": [],
-      "gap_decisions": [],
-      "step": 7,
-      "updated_at": "2026-08-11T12:02:06.450Z"
-    },
-    {
-      "use_case_id": "uc-versions-test-msolzxze0",
-      "name": "Versions test",
-      "status": "committed",
-      "domain_id": "hazardous-waste",
-      "business_need": "",
-      "personas": [],
-      "kpis": [],
-      "sources": [],
-      "hero_questions": [
-        {
-          "text": "Which generators are under enforcement?",
-          "priority": "high",
-          "source": "ai"
-        }
-      ],
-      "citations": "required",
-      "answer_formats": [],
-      "gap_decisions": [],
-      "step": 7,
-      "updated_at": "2026-08-11T12:00:52.690Z"
-    },
-    {
-      "use_case_id": "uc-versions-test-msolyxkk0",
-      "name": "Versions test",
-      "status": "committed",
-      "domain_id": "hazardous-waste",
-      "business_need": "",
-      "personas": [],
-      "kpis": [],
-      "sources": [],
-      "hero_questions": [
-        {
-          "text": "Which generators are under enforcement?",
-          "priority": "high",
-          "source": "ai"
-        }
-      ],
-      "citations": "required",
-      "answer_formats": [],
-      "gap_decisions": [],
-      "step": 7,
-      "updated_at": "2026-08-11T12:00:05.499Z"
-    },
-    {
-      "use_case_id": "uc-versions-test-msolxta20",
-      "name": "Versions test",
-      "status": "committed",
-      "domain_id": "hazardous-waste",
-      "business_need": "",
-      "personas": [],
-      "kpis": [],
-      "sources": [],
-      "hero_questions": [
-        {
-          "text": "Which generators are under enforcement?",
-          "priority": "high",
-          "source": "ai"
-        }
-      ],
-      "citations": "required",
-      "answer_formats": [],
-      "gap_decisions": [],
-      "step": 7,
-      "updated_at": "2026-08-11T11:59:13.294Z"
-    },
-    {
-      "use_case_id": "uc-waste-management-msoli37b2",
+      "use_case_id": "uc-waste-management-msomssq22",
       "name": "Waste Management",
       "status": "committed",
       "domain_id": "hazardous-waste",
-      "business_need": "fgfgdfgg",
+      "business_need": "test",
       "personas": [
         {
-          "name": "Chief Sustainability Officer",
-          "description": "Prove the facility’s compliance posture to regulators and customers; quantify liability carried in from generators.",
+          "name": "Chief Information Officer",
+          "description": "Unify fragmented compliance data without ripping out existing systems; trust the answers (evidence + confidence).",
           "source": "ai"
         }
       ],
@@ -1535,17 +1425,13 @@
           "source_id": "bigquery:vrio-contextweave-demo",
           "mode": "subset",
           "objects": [
-            "epa_hazwaste.e_manifest",
-            "epa_hazwaste.e_manifest_all",
-            "epa_hazwaste.RCRA_compliance",
-            "epa_hazwaste.RCRA_Compliance_Summary",
-            "epa_hazwaste.FRS_Facility_profile"
+            "epa_hazwaste.e_manifest"
           ]
         }
       ],
       "hero_questions": [
         {
-          "text": "Summarize our own facility’s compliance standing: evaluations, violations, penalties.",
+          "text": "How has our inbound hazardous-waste volume trended by quarter, and is any generator ramping up shipments to us?",
           "priority": "normal",
           "source": "ai"
         }
@@ -1560,7 +1446,7 @@
       ],
       "gap_decisions": [],
       "step": 7,
-      "updated_at": "2026-08-11T11:47:39.937Z"
+      "updated_at": "2026-08-11T12:23:56.521Z"
     }
   ],
   "graph_personas": [

@@ -477,10 +477,21 @@ cannot answer each other's rows.
 **Building lives here, not in the wizard, because a graph is built more than
 once.** `POST /graph-studio/:id/builds` answers **202 with a queued run** — the
 same contract as a profiling job — and the **Build** tab polls it. Eleven stages
-(`BUILD_STAGES`, `pin_inputs` → `a05_graph_construction`, ~7.7s) tick over, every
-run is kept in that graph's history, and an earlier one stays loadable. Settling
-review rows changes what a build produces, so **Rebuild** is the normal case, not
-an escape hatch.
+(`BUILD_STAGES`, `pin_inputs` → `a05_graph_construction`) tick over, every run is
+kept in that graph's history, and an earlier one stays loadable. Settling review
+rows changes what a build produces, so **Rebuild** is the normal case, not an
+escape hatch.
+
+**Each stage names its own substeps, and the substeps are what advance.**
+`BUILD_STEPS` is `BUILD_STAGES` flattened (31 at `BUILD_STEP_MS`, 250ms, ≈7.8s —
+the same total the stages alone took), and a run keeps **one cursor** into that
+list. Every state on screen is derived from it: a substep is complete before the
+cursor, running at it, pending after, and a stage is `running` exactly while the
+cursor sits inside it. A stage index kept alongside a step index is two counters
+that can disagree, and the symptom is a stage reading complete while one of its
+substeps still spins. Adding a stage means adding its substeps too — a stage with
+none is a row claiming work nobody can see, which is what this replaced, and
+`check-docs` fails on it.
 
 New Graph's "Save & build graph" commits the brief, starts the build **at the
 click**, then navigates to this tab — so the pipeline on screen is that button's

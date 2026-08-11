@@ -26,6 +26,25 @@ const fmt = (iso: string) =>
     minute: '2-digit',
   })
 
+/**
+ * The state mark, shared by a stage and its substeps so the two levels cannot
+ * disagree about what "running" looks like. Decorative: the text beside it carries
+ * the state, which is why this is `aria-hidden`.
+ */
+function Mark({ state }: { state: 'pending' | 'running' | 'complete' }) {
+  return (
+    <span className="bt-mark" aria-hidden="true">
+      {state === 'complete' ? (
+        <CheckCircleFilled />
+      ) : state === 'running' ? (
+        <Spin indicator={<LoadingOutlined spin />} size="small" />
+      ) : (
+        <span className="bt-dot" />
+      )}
+    </span>
+  )
+}
+
 /** "11/08/2026, 14:55 · complete · d2aee040…" — time, state, which run. */
 const runLabel = (b: GraphBuild) =>
   `${fmt(b.startedAt)} · ${b.status} · ${b.buildId.slice(0, 8)}…`
@@ -98,8 +117,9 @@ export default function BuildTab({
             <span className={`bt-status${running ? '' : ' is-done'}`}>
               {running ? (
                 <>
-                  <Spin indicator={<LoadingOutlined spin />} size="small" />{' '}
-                  {shown.stageIndex + 1} of {shown.stageTotal}
+                  <Spin indicator={<LoadingOutlined spin />} size="small" /> stage{' '}
+                  {shown.stageIndex + 1} of {shown.stageTotal} · step{' '}
+                  {shown.stepIndex + 1} of {shown.stepTotal}
                 </>
               ) : (
                 <>
@@ -112,21 +132,30 @@ export default function BuildTab({
           <ol className="bt-stages">
             {shown.stages.map((stage) => (
               <li key={stage.key} className={`bt-stage is-${stage.state}`}>
-                <span className="bt-mark" aria-hidden="true">
-                  {stage.state === 'complete' ? (
-                    <CheckCircleFilled />
-                  ) : stage.state === 'running' ? (
-                    <Spin indicator={<LoadingOutlined spin />} size="small" />
-                  ) : (
-                    <span className="bt-dot" />
-                  )}
-                </span>
-                {/* The platform's own names, verbatim: a row on screen should be
-                    greppable in a log, which prettifying would break. */}
-                <code className="bt-key">{stage.key}</code>
-                <span className="bt-state">
-                  {stage.state === 'pending' ? '' : stage.state}
-                </span>
+                <div className="bt-line">
+                  <Mark state={stage.state} />
+                  {/* The platform's own names, verbatim: a row on screen should be
+                      greppable in a log, which prettifying would break. */}
+                  <code className="bt-key">{stage.key}</code>
+                  <span className="bt-state">
+                    {stage.state === 'pending' ? '' : stage.state}
+                  </span>
+                </div>
+
+                {/* The inner work. Always rendered, never only for the running
+                    stage: a stage that hides what it did reads as a single opaque
+                    step, which is what this replaced. */}
+                <ol className="bt-steps">
+                  {stage.steps.map((step) => (
+                    <li key={step.key} className={`bt-step is-${step.state}`}>
+                      <Mark state={step.state} />
+                      <code className="bt-key">{step.key}</code>
+                      <span className="bt-state">
+                        {step.state === 'pending' ? '' : step.state}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
               </li>
             ))}
           </ol>

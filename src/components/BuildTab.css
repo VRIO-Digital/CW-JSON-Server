@@ -97,10 +97,61 @@
 }
 
 .bt-stage {
+  padding: var(--sp-2) 0;
+}
+
+/* The stage's own row. Separate from .bt-stage because the stage is now a group:
+   its substeps sit inside it, and a flex row cannot hold both. */
+.bt-line {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-5);
+  padding: 0 var(--sp-5);
+}
+
+/* The substeps, railed off the stage's mark so the nesting reads at a glance. */
+.bt-steps {
+  margin: var(--sp-1) 0 0 calc(var(--sp-5) + var(--sp-2));
+  padding: 0 var(--sp-5) 0 var(--sp-4);
+  border-left: 1px solid #eef0f4;
+  list-style: none;
+}
+
+.bt-step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-1) 0;
+}
+
+.bt-step .bt-mark {
+  width: 12px;
+  height: 12px;
+  font-size: 11px;
+}
+
+.bt-step .bt-dot {
+  width: 5px;
+  height: 5px;
+}
+
+.bt-step .bt-key,
+.bt-step .bt-state {
+  font-size: 11.5px;
+}
+
+.bt-step.is-complete .bt-mark {
+  color: #0f7b4f;
+}
+
+.bt-step.is-complete .bt-key,
+.bt-step.is-running .bt-key {
+  color: #4b5a75;
+}
+
+.bt-step.is-running .bt-key {
+  font-weight: 600;
+  color: #0f1729;
 }
 
 .bt-mark {
@@ -112,7 +163,7 @@
   height: 16px;
 }
 
-.bt-stage.is-complete .bt-mark {
+.bt-stage.is-complete > .bt-line .bt-mark {
   color: #0f7b4f;
 }
 
@@ -134,13 +185,14 @@
   white-space: nowrap;
 }
 
-/* A stage that has run, or is running, is the one worth reading. */
-.bt-stage.is-complete .bt-key,
-.bt-stage.is-running .bt-key {
+/* A stage that has run, or is running, is the one worth reading. Scoped to the
+   stage's own row so it cannot restyle the substeps nested under it. */
+.bt-stage.is-complete > .bt-line .bt-key,
+.bt-stage.is-running > .bt-line .bt-key {
   color: #0f1729;
 }
 
-.bt-stage.is-running .bt-key {
+.bt-stage.is-running > .bt-line .bt-key {
   font-weight: 600;
 }
 

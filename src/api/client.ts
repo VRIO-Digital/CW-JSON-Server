@@ -1013,11 +1013,22 @@ export interface DerivationRun {
   coverage: CoveragePayload | null
 }
 
+/** One substep inside a stage — the inner work, named the same way. */
+export interface BuildStep {
+  key: string
+  state: 'pending' | 'running' | 'complete'
+}
+
 /** One stage of the build pipeline, and where it has got to. */
 export interface BuildStage {
   /** The platform's own name, so a row matches a log line. */
   key: string
   state: 'pending' | 'running' | 'complete'
+  /**
+   * What the stage is actually doing. Never empty: a stage with no substeps would
+   * be a row that claims work nobody can see, which is what this replaced.
+   */
+  steps: BuildStep[]
 }
 
 /**
@@ -1030,6 +1041,9 @@ export interface GraphBuild {
   status: 'running' | 'complete'
   stageIndex: number
   stageTotal: number
+  /** Progress in substeps — what actually advances, and what the header counts. */
+  stepIndex: number
+  stepTotal: number
   stages: BuildStage[]
   packageId: string
   graphVersion: string
@@ -1660,7 +1674,15 @@ const GRAPH_BUILD = shape({
   status: oneOf(['running', 'complete']),
   stage_index: num,
   stage_total: num,
-  stages: arrayOf(shape({ key: str, state: oneOf(['pending', 'running', 'complete']) })),
+  step_index: num,
+  step_total: num,
+  stages: arrayOf(
+    shape({
+      key: str,
+      state: oneOf(['pending', 'running', 'complete']),
+      steps: arrayOf(shape({ key: str, state: oneOf(['pending', 'running', 'complete']) })),
+    }),
+  ),
   package_id: str,
   graph_version: str,
   config_version: str,
@@ -3304,6 +3326,8 @@ type RawGraphBuild = {
   status: 'running' | 'complete'
   stage_index: number
   stage_total: number
+  step_index: number
+  step_total: number
   stages: BuildStage[]
   package_id: string
   graph_version: string
@@ -3318,6 +3342,8 @@ const toGraphBuild = (raw: RawGraphBuild): GraphBuild => ({
   status: raw.status,
   stageIndex: raw.stage_index,
   stageTotal: raw.stage_total,
+  stepIndex: raw.step_index,
+  stepTotal: raw.step_total,
   stages: raw.stages,
   packageId: raw.package_id,
   graphVersion: raw.graph_version,

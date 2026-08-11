@@ -395,10 +395,14 @@ expect(
  * unexplained row — and printing the platform's own names is the whole reason they
  * can be looked up.
  */
-const buildStagesBlock = server.match(/const BUILD_STAGES = \[([\s\S]*?)\n\]/)
-const buildStages = buildStagesBlock
-  ? [...buildStagesBlock[1].matchAll(/'(\w+)'/g)].map((m) => m[1])
+const buildStagesBlock = server.match(/const BUILD_STAGES = \[([\s\S]*?)\r?\n\]/)
+const buildStageEntries = buildStagesBlock
+  ? [...buildStagesBlock[1].matchAll(/\{ key: '(\w+)', steps: \[([^\]]*)\] \}/g)].map((m) => ({
+      key: m[1],
+      steps: [...m[2].matchAll(/'(\w+)'/g)].map((s) => s[1]),
+    }))
   : []
+const buildStages = buildStageEntries.map((s) => s.key)
 expect(
   'the build pipeline has stages',
   buildStages.length > 0,
@@ -411,6 +415,47 @@ for (const stage of buildStages) {
     'name it in SKILLS.md flow 8',
   )
 }
+/*
+ * Every stage owns inner work, and no substep name is reused.
+ *
+ * A stage with no substeps renders as a row claiming work nobody can see — the
+ * thing the substeps were added to fix. A duplicated name is worse than cosmetic:
+ * the substep rows are keyed by it, so two rows in one stage would collide in
+ * React and one of them would silently stop updating.
+ */
+const buildSteps = buildStageEntries.flatMap((s) => s.steps)
+expect(
+  'every build stage names its own substeps',
+  buildStageEntries.length > 0 && buildStageEntries.every((s) => s.steps.length > 0),
+  `${buildSteps.length} substeps across ${buildStageEntries.length} stages`,
+)
+expect(
+  'no two build substeps share a name',
+  new Set(buildSteps).size === buildSteps.length,
+  'the rows are keyed by it',
+)
+expect(
+  'the substeps are what advances, driven by one cursor',
+  /const BUILD_STEPS = BUILD_STAGES\.flatMap/.test(server) &&
+    /run\.cursor \+= 1/.test(server) &&
+    !/run\.stage_index \+= 1[\s\S]{0,200}BUILD_STAGES\.length/.test(server),
+  'a stage index kept alongside a step index is two counters that can disagree',
+)
+expect(
+  'a run of substeps still sits in the ~8s band',
+  (() => {
+    const ms = Number((server.match(/const BUILD_STEP_MS = (\d+)/) ?? [])[1])
+    const total = (ms * buildSteps.length) / 1000
+    return ms > 0 && total >= 5 && total <= 12
+  })(),
+  `${buildSteps.length} × ${(server.match(/const BUILD_STEP_MS = (\d+)/) ?? [])[1]}ms`,
+)
+expect(
+  'and the panel renders the substeps under their stage',
+  /className="bt-steps"/.test(read('src/components/BuildTab.tsx')) &&
+    /stage\.steps\.map/.test(read('src/components/BuildTab.tsx')),
+  'BuildTab nests them rather than flattening the pipeline',
+)
 expect(
   'a build is a run the page polls, not an instant commit',
   /match: \(p\) => \/\^\\\/graph-studio\\\/\[\^\/\]\+\\\/builds\$\/\.test\(p\)/.test(server) &&

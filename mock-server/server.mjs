@@ -1400,22 +1400,35 @@ const DERIVATION_STAGES = [
  * runs are kept per graph and the last one stays readable.
  */
 const BUILD_STAGES = [
-  'pin_inputs',
-  'a01_schema_parsing',
-  'join_matrix',
-  'entity_nomination',
-  'a03_relationship_inference',
-  'a02_document_entity_extraction',
-  'a02b_document_relationship_mining',
-  'a03b_cross_pipeline_reconciliation',
-  'a04_entity_resolution',
-  'a015_comprehension',
-  'a05_graph_construction',
+  { key: 'pin_inputs', steps: ['resolve_use_case', 'seal_coverage_evidence', 'pin_source_versions'] },
+  { key: 'a01_schema_parsing', steps: ['read_column_profiles', 'infer_column_semantics', 'validate_grain'] },
+  { key: 'join_matrix', steps: ['enumerate_shared_keys', 'score_join_candidates', 'prune_weak_joins'] },
+  { key: 'entity_nomination', steps: ['nominate_from_tables', 'dedupe_nominations', 'bind_to_hero_questions'] },
+  { key: 'a03_relationship_inference', steps: ['pair_entities', 'test_shared_identifiers', 'rank_by_evidence'] },
+  { key: 'a02_document_entity_extraction', steps: ['chunk_documents', 'extract_entities', 'score_extraction_confidence'] },
+  { key: 'a02b_document_relationship_mining', steps: ['mine_cooccurrence', 'link_document_entities'] },
+  { key: 'a03b_cross_pipeline_reconciliation', steps: ['align_structured_and_document', 'resolve_conflicts', 'merge_evidence'] },
+  { key: 'a04_entity_resolution', steps: ['blocking_pass', 'pairwise_match', 'assign_canonical_ids'] },
+  { key: 'a015_comprehension', steps: ['summarise_entities', 'draft_relationship_labels'] },
+  { key: 'a05_graph_construction', steps: ['materialise_nodes', 'materialise_edges', 'seal_package'] },
 ]
 
-/* 11 stages × 700ms ≈ 7.7s — long enough to watch, short enough that nobody
-   wonders whether it hung. Same reasoning as PIPELINE and DERIVATION_STAGE_MS. */
-const BUILD_STAGE_MS = 700
+/**
+ * The pipeline flattened to its substeps, which is what actually advances.
+ *
+ * **One cursor, not two.** A stage index and a step index kept in step by hand is
+ * two counters that can disagree; a single cursor over this list makes every state
+ * on screen derivable — a substep is complete before the cursor, running at it,
+ * pending after, and a stage is whatever its substeps say it is.
+ */
+const BUILD_STEPS = BUILD_STAGES.flatMap((stage, stageIndex) =>
+  stage.steps.map((step) => ({ stage: stage.key, step, stageIndex })),
+)
+
+/* 31 substeps × 250ms ≈ 7.8s — the same total the 11 stages took before, now with
+   the inner work visible. Long enough to read, short enough that nobody wonders
+   whether it hung; same reasoning as PIPELINE and DERIVATION_STAGE_MS. */
+const BUILD_STEP_MS = 250
 
 /**
  * Every build ever run, newest first, keyed by use case. In memory like every
@@ -1521,17 +1534,43 @@ function recordVersion(run, gatePassed) {
  * rebuild produces a new graph version, which is the point of rebuilding. They are
  * *reported*, never derived on the client.
  */
+/**
+ * Which stage the cursor is in. `BUILD_STAGES.length` once the run is past the
+ * end — a finished run must not point at a real stage, or its last row would read
+ * as still running.
+ */
+const stageIndexAt = (cursor) =>
+  BUILD_STEPS[cursor]?.stageIndex ?? BUILD_STAGES.length
+
 const buildView = (run) => ({
   build_id: run.build_id,
   use_case_id: run.use_case_id,
   status: run.status,
-  stage_index: run.stage_index,
+  /*
+   * Every state below is derived from `run.cursor`, the one number the run keeps.
+   * A stage is `running` while the cursor sits inside it — not merely because some
+   * of its substeps are done — so the header and the rows cannot disagree.
+   */
+  stage_index: stageIndexAt(run.cursor),
   stage_total: BUILD_STAGES.length,
-  stages: BUILD_STAGES.map((key, i) => ({
-    key,
-    state:
-      i < run.stage_index ? 'complete' : i === run.stage_index ? 'running' : 'pending',
-  })),
+  step_index: run.cursor,
+  step_total: BUILD_STEPS.length,
+  stages: BUILD_STAGES.map((stage, i) => {
+    const flat = BUILD_STEPS.map((s, index) => ({ ...s, index })).filter(
+      (s) => s.stageIndex === i,
+    )
+    const done = flat.every((s) => s.index < run.cursor)
+    const started = flat.some((s) => s.index < run.cursor)
+    return {
+      key: stage.key,
+      state: done ? 'complete' : started || i === stageIndexAt(run.cursor) ? 'running' : 'pending',
+      steps: flat.map((s) => ({
+        key: s.step,
+        state:
+          s.index < run.cursor ? 'complete' : s.index === run.cursor ? 'running' : 'pending',
+      })),
+    }
+  }),
   package_id: run.package_id,
   graph_version: run.graph_version,
   /* The config version this build is of — the label its version row carries. */
@@ -1543,19 +1582,19 @@ const buildView = (run) => ({
 function runGraphBuild(run, useCase) {
   const step = () => {
     if (run.status !== 'running') return
-    run.stage_index += 1
-    if (run.stage_index >= BUILD_STAGES.length) {
-      /* One past the last index leaves every row `complete`: the running row is
-         `stage_index`, so a finished run must not point at a real stage. */
+    run.cursor += 1
+    if (run.cursor >= BUILD_STEPS.length) {
+      /* One past the last substep leaves every row `complete`: the running row is
+         the cursor, so a finished run must not point at a real substep. */
       run.status = 'complete'
       run.finished_at = new Date().toISOString()
       // The version exists because the build finished — not because it started.
       recordVersion(run, studioSummary(useCase).queue_count === 0)
       return
     }
-    setTimeout(step, BUILD_STAGE_MS).unref?.()
+    setTimeout(step, BUILD_STEP_MS).unref?.()
   }
-  setTimeout(step, BUILD_STAGE_MS).unref?.()
+  setTimeout(step, BUILD_STEP_MS).unref?.()
 }
 
 /** Starts a build for a graph and records it in that graph's history. */
@@ -1566,7 +1605,9 @@ function startBuildFor(useCase) {
     build_id: buildId,
     use_case_id: id,
     status: 'running',
-    stage_index: 0,
+    /* The only progress the run keeps: an index into BUILD_STEPS. Every stage and
+       substep state on screen is derived from it, so they cannot disagree. */
+    cursor: 0,
     /* Per run, not per graph: two builds of the same brief are two packages, and
        reporting one id for both would say a rebuild changed nothing. */
     package_id: `a${(hash(`package:${buildId}`) % 0xfffffff).toString(16).padStart(7, '0')}`,

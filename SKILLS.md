@@ -934,14 +934,27 @@ Eleven stages, in dependency order — `pin_inputs`, `a01_schema_parsing`,
 `join_matrix`, `entity_nomination`, `a03_relationship_inference`,
 `a02_document_entity_extraction`, `a02b_document_relationship_mining`,
 `a03b_cross_pipeline_reconciliation`, `a04_entity_resolution`,
-`a015_comprehension`, `a05_graph_construction` — at `BUILD_STAGE_MS` (700ms) each,
-so a run is about 7.7 seconds. The server drives them and the page polls every
-350ms; a row turns green when the server says it did, never on a timer of its own.
+`a015_comprehension`, `a05_graph_construction`.
 
-**Every stage is listed from the first response**, `pending` until it runs: a list
-that grew a row at a time would hide how much is left, which is the only thing the
-panel is for. The names are printed **verbatim** so a row on screen is greppable in
-a log — do not prettify them.
+**Each stage names its own substeps, and they are what advances.** A stage carries
+2–3 (`pin_inputs` → `resolve_use_case`, `seal_coverage_evidence`,
+`pin_source_versions`) — 31 in total at `BUILD_STEP_MS` (250ms) each, so a run is
+still about 7.8 seconds, now with the inner work readable rather than a single row
+sitting on `running` for two seconds with nothing to show.
+
+**One cursor drives both levels.** `BUILD_STEPS` is the pipeline flattened, and a
+run keeps nothing but an index into it: a substep is complete before the cursor,
+running at it, pending after, and a stage is `running` exactly while the cursor
+sits inside it. A stage index kept alongside a step index is two counters that can
+disagree, and the screen would show a stage complete while one of its substeps
+still spun. The server drives the cursor and the page polls every 350ms; a row
+turns green when the server says it did, never on a timer of its own.
+
+**Every stage and every substep is listed from the first response**, `pending`
+until it runs: a list that grew a row at a time would hide how much is left, which
+is the only thing the panel is for. Substeps stay visible on a stage that has not
+started for the same reason. The names are printed **verbatim** so a row on screen
+is greppable in a log — do not prettify them.
 
 **Why here and not in the wizard.** A graph is built more than once: settling review
 rows changes what a build produces, so **Rebuild** is the normal case. Every run is
@@ -958,9 +971,10 @@ Graph"; a build the server has forgotten → 404 saying builds live in memory an
 restart clears them. If the wizard's build fails to start, the brief is still
 committed and the message says both.
 
-Every tab is built. The header carries only what is live and **Publish vN…** —
-each tab owns its own actions, so the quality check runs from the Quality report
-tab where its result lands, not from a header that would then show nothing.
+Every tab is built. The header carries only what is live — each tab owns its own
+actions, so the quality check runs from the Quality report tab where its result
+lands, and publishing runs from a version's own row in Versions, where the version
+being published is the one you are looking at.
 
 ### The list
 
