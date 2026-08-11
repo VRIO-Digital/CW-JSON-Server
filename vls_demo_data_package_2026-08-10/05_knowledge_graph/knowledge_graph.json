@@ -1,5 +1,5 @@
 {
-  "_note": "Knowledge graph spec for the VLS demo. Nodes come from rows, column values, and entities extracted from unstructured documents; edges connect them. Companion narrative: Knowledge_Graph_Overview.docx. Numbers cite 04_structured_data / the entity roster.",
+  "_note": "Knowledge graph spec for the   demo. Nodes come from rows, column values, and entities extracted from unstructured documents; edges connect them. Companion narrative: Knowledge_Graph_Overview.docx. Numbers cite 04_structured_data / the entity roster.",
   "dataset": "vrio-contextweave-demo.epa_hazwaste",
   "node_types": [
     {
@@ -49,20 +49,20 @@
     {
       "type": "SHIPS_TO",
       "from": "Facility (generator)",
-      "to": "Facility (VLS TSDF)",
+      "to": "Facility (  TSDF)",
       "cardinality": "many\u21921",
       "origin": "e_manifest rollup",
       "properties": "manifests, total_tons, first_ship, last_ship, rejections, residues",
-      "description": "Aggregated inbound flow from a generator to VLS Texas Molecular."
+      "description": "Aggregated inbound flow from a generator to   Texas Molecular."
     },
     {
       "type": "TRANSPORTS_TO",
       "from": "Facility (transporter)",
-      "to": "Facility (VLS TSDF)",
+      "to": "Facility (  TSDF)",
       "cardinality": "many\u21921",
       "origin": "e_manifest_all TRANSPORTER_NAMES",
       "properties": "loads_carried",
-      "description": "Aggregated custody flow: a transporter carrying loads into VLS."
+      "description": "Aggregated custody flow: a transporter carrying loads into  ."
     },
     {
       "type": "GENERATED",
@@ -76,11 +76,11 @@
     {
       "type": "RECEIVED_BY",
       "from": "Manifest",
-      "to": "Facility (VLS TSDF)",
+      "to": "Facility (  TSDF)",
       "cardinality": "many\u21921",
       "origin": "e_manifest DES FACILITY ID",
       "properties": "received_date",
-      "description": "A manifest was received at VLS Texas Molecular."
+      "description": "A manifest was received at   Texas Molecular."
     },
     {
       "type": "TRANSPORTED",
@@ -141,7 +141,7 @@
     {
       "id": "FAC:TXD000719518",
       "type": "Facility",
-      "label": "VLS Texas Molecular",
+      "label": "  Texas Molecular",
       "properties": {
         "role": "receiver_tsdf",
         "state": "TX",
@@ -1616,7 +1616,7 @@
     {
       "id": "E0054",
       "type": "RESOLVES_TO",
-      "from": "NAME:VLS Texas Molecular LP",
+      "from": "NAME:  Texas Molecular LP",
       "to": "FAC:TXD000719518",
       "properties": "method=alias+EPA_ID; confidence=0.98"
     },
@@ -1892,7 +1892,7 @@
       "raw_value": "Texas Molecular LP",
       "source_field": "e_manifest DES FACILITY NAME (ship <2023-01-05)",
       "resolved_node": "FAC:TXD000719518",
-      "resolved_name": "VLS Texas Molecular",
+      "resolved_name": "  Texas Molecular",
       "method": "alias table + EPA ID match",
       "confidence": "High (0.98)"
     },
@@ -1900,15 +1900,15 @@
       "raw_value": "Texas Molecular",
       "source_field": "legacy references",
       "resolved_node": "FAC:TXD000719518",
-      "resolved_name": "VLS Texas Molecular",
+      "resolved_name": "  Texas Molecular",
       "method": "alias table + EPA ID match",
       "confidence": "High (0.98)"
     },
     {
-      "raw_value": "VLS Texas Molecular",
+      "raw_value": "  Texas Molecular",
       "source_field": "e_manifest DES FACILITY NAME (ship >=2023-01-05)",
       "resolved_node": "FAC:TXD000719518",
-      "resolved_name": "VLS Texas Molecular",
+      "resolved_name": "  Texas Molecular",
       "method": "primary name",
       "confidence": "High (1.00)"
     },

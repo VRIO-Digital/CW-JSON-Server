@@ -829,13 +829,29 @@ export interface GraphVersion {
 
 /* ---------------- Canvas ---------------- */
 
-/** Which legend colour a node takes. */
-export type CanvasGroup = 'assets' | 'work' | 'contracts'
+/**
+ * Which legend colour a node takes — its **origin class**, not its type.
+ *
+ * A row becomes an entity node, a distinct column value becomes a dimension node,
+ * an uploaded document becomes a document node, and a raw name resolves through an
+ * alias. Four categories, because a categorical palette stops being reliably
+ * distinguishable past four when any two marks can end up adjacent; the ontology
+ * type rides on `type` and the sublabel instead.
+ */
+export type CanvasGroup = 'row' | 'dimension' | 'document' | 'alias'
 
 export interface CanvasNode {
   nodeId: string
   label: string
   sublabel: string
+  /** The ontology's own type — Facility, Document, Manifest, WasteCode, … */
+  type: string
+  /** The catalogue object it was built from, e.g. `epa_hazwaste.e_manifest`. */
+  source: string
+  /** Relationships carried. The node's radius is this, not a decorative size. */
+  degree: number
+  /** Radius in canvas units, from the server so a reload draws one picture. */
+  r: number
   group: CanvasGroup
   confidence: number
   /** True while the review item behind it is undecided. */
@@ -853,6 +869,8 @@ export interface CanvasEdge {
   from: string
   to: string
   label: string
+  /** The relationship's evidence, verbatim: `manifests=46; tons=1061.8; …`. */
+  detail: string
   proposed: boolean
   reviewItemId: string | null
   onAnswerPath: boolean
@@ -863,6 +881,8 @@ export interface CanvasFacets {
   lowConfidence: number
   needsReview: number
   studioAuthored: number
+  /** One per origin class, so the legend can carry counts and filter by them. */
+  groups: { key: CanvasGroup; count: number }[]
 }
 
 export interface CanvasPayload {
@@ -1044,6 +1064,8 @@ export interface GraphBuild {
   /** Progress in substeps — what actually advances, and what the header counts. */
   stepIndex: number
   stepTotal: number
+  /** How long one substep takes, per the server. The page's ETA derives from it. */
+  stepMs: number
   stages: BuildStage[]
   packageId: string
   graphVersion: string
@@ -1676,6 +1698,7 @@ const GRAPH_BUILD = shape({
   stage_total: num,
   step_index: num,
   step_total: num,
+  step_ms: num,
   stages: arrayOf(
     shape({
       key: str,
@@ -1868,7 +1891,11 @@ const CANVAS_NODE = shape({
   node_id: str,
   label: str,
   sublabel: str,
-  group: oneOf(['assets', 'work', 'contracts']),
+  type: str,
+  source: str,
+  degree: num,
+  r: num,
+  group: oneOf(['row', 'dimension', 'document', 'alias']),
   confidence: num,
   proposed: bool,
   origin: oneOf(['derived', 'studio-authored']),
@@ -1884,6 +1911,7 @@ const CANVAS_EDGE = shape({
   from: str,
   to: str,
   label: str,
+  detail: str,
   proposed: bool,
   review_item_id: nullable(str),
   on_answer_path: bool,
@@ -1899,6 +1927,9 @@ const CANVAS_PAYLOAD = shape({
     low_confidence: num,
     needs_review: num,
     studio_authored: num,
+    groups: arrayOf(
+      shape({ key: oneOf(['row', 'dimension', 'document', 'alias']), count: num }),
+    ),
   }),
 })
 
@@ -3184,6 +3215,10 @@ interface RawCanvasNode {
   node_id: string
   label: string
   sublabel: string
+  type: string
+  source: string
+  degree: number
+  r: number
   group: CanvasGroup
   confidence: number
   proposed: boolean
@@ -3202,6 +3237,7 @@ interface RawCanvas {
     from: string
     to: string
     label: string
+    detail: string
     proposed: boolean
     review_item_id: string | null
     on_answer_path: boolean
@@ -3213,6 +3249,7 @@ interface RawCanvas {
     low_confidence: number
     needs_review: number
     studio_authored: number
+    groups: { key: CanvasGroup; count: number }[]
   }
 }
 
@@ -3221,6 +3258,10 @@ const toCanvas = (raw: RawCanvas): CanvasPayload => ({
     nodeId: n.node_id,
     label: n.label,
     sublabel: n.sublabel,
+    type: n.type,
+    source: n.source,
+    degree: n.degree,
+    r: n.r,
     group: n.group,
     confidence: n.confidence,
     proposed: n.proposed,
@@ -3236,6 +3277,7 @@ const toCanvas = (raw: RawCanvas): CanvasPayload => ({
     from: e.from,
     to: e.to,
     label: e.label,
+    detail: e.detail,
     proposed: e.proposed,
     reviewItemId: e.review_item_id,
     onAnswerPath: e.on_answer_path,
@@ -3247,6 +3289,7 @@ const toCanvas = (raw: RawCanvas): CanvasPayload => ({
     lowConfidence: raw.facets.low_confidence,
     needsReview: raw.facets.needs_review,
     studioAuthored: raw.facets.studio_authored,
+    groups: raw.facets.groups,
   },
 })
 
@@ -3328,6 +3371,7 @@ type RawGraphBuild = {
   stage_total: number
   step_index: number
   step_total: number
+  step_ms: number
   stages: BuildStage[]
   package_id: string
   graph_version: string
@@ -3344,6 +3388,7 @@ const toGraphBuild = (raw: RawGraphBuild): GraphBuild => ({
   stageTotal: raw.stage_total,
   stepIndex: raw.step_index,
   stepTotal: raw.step_total,
+  stepMs: raw.step_ms,
   stages: raw.stages,
   packageId: raw.package_id,
   graphVersion: raw.graph_version,

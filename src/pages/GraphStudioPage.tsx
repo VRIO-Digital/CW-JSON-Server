@@ -61,9 +61,17 @@ function Inspector({
       <div className="gs-inspector-sub">{node.sublabel}</div>
 
       <dl className="gs-inspector-facts">
+        <dt>Type</dt>
+        <dd>{node.type}</dd>
+        {/* Which table or file this node was built from. A node whose provenance
+            is not on it is a claim the reader has to take on trust. */}
+        <dt>Source</dt>
+        <dd className="gs-inspector-source">{node.source}</dd>
+        <dt>Relationships</dt>
+        <dd>{node.degree}</dd>
         <dt>Confidence</dt>
         <dd>{node.confidence.toFixed(2)}</dd>
-        <dt>Group</dt>
+        <dt>Built from</dt>
         <dd>{node.group}</dd>
         <dt>Origin</dt>
         <dd>{node.origin}</dd>

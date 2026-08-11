@@ -858,3 +858,78 @@ diverge. Verified by renaming a server field and watching it fail.
   The message this bug produced ("restarting the mock server usually fixes it") is
   also a reminder that a *diagnostic* aimed at the common cause will confidently
   misdirect when the cause is something else.
+
+---
+
+## Twenty relationships drawn as nothing at all
+
+**Symptom** — none, which is the problem. The canvas drew the demo package's
+knowledge graph and 17 facilities appeared to carry no enforcement, three alias
+names were absent, and every count on screen agreed with every other count. No
+error, no empty state, no warning.
+
+**Root cause** — `knowledge_graph.json` has 92 edges and 89 nodes, and 20 of those
+edges point at ids the node roster does not contain: `NAME:Texas Molecular`,
+`NAME:Texas Molecular LP`, `NAME:VLS Texas Molecular LP` (declared only by
+`RESOLVES_TO`'s `from`, "raw name / alias") and `ENF:(various)`, the placeholder
+`RCRA_compliance` uses when it reports a count and a penalty without a type.
+`GraphCanvas` skips an edge whose endpoint it cannot find — correctly, since it has
+nowhere to draw it — so the graph silently lost 22% of its relationships.
+
+The tempting fixes are both worse. Dropping the edges says those facilities have no
+enforcement, which is the opposite of what the source says. Retargeting them at one
+of the five real enforcement types invents a fact the source declined to state.
+
+**Fix** — the ingest materialises the four endpoints as the things they are: three
+`Alias` nodes carrying their resolution method and confidence from the Entity
+Resolution sheet, and one `EnforcementType` labelled *"Enforcement (type not
+itemised)"* with a review row attached, so the placeholder is visible as an open
+question rather than passed off as a dimension value.
+
+**Guard** — *mechanical*, two of them: `validateDb` walks `graph_studio.canvas.edges`
+and refuses to boot — or to write — a document with an endpoint that is not a node,
+naming the id and the side; and `check-docs` compares the canvas against the package
+file, so the node and edge counts cannot drift from the source they were ingested
+from. Both were broken on purpose to confirm they bite.
+
+**Rule** — **a renderer that skips what it cannot draw needs a validator that
+refuses what cannot be drawn.** "Skip the malformed one" is right in the component
+and wrong as the whole answer: silence is the only failure mode nobody debugs,
+because it looks like an answer.
+
+---
+
+## A label rule that hid the one question the graph exists for
+
+**Symptom** — *"What does the chemours consent decree say about the facility we
+accept waste from?"* — the payoff question the package's own overview names — came
+back *"No entity in this graph is named in the question."* The facility, the consent
+decree and the edge between them were all present.
+
+**Root cause** — `studioQuery` matched a question word to a node only if that word
+appeared in **exactly one** label. It was written for the old seed, where every
+entity had a distinct name, and it is precisely wrong for entity resolution: the
+Chemours facility, `chemours-cd.pdf` and `chemours-cp.pdf` share "chemours" *because
+they are about the same company*. The rule threw out its own bridge.
+
+Relaxing it to plain rarity then produced the opposite failure — the same question
+answered over `Chemours → VLS → Sprint Waste Services`, because "waste" and
+"facility" were rare enough to count. A confident answer about a pair nobody asked
+about is worse than an abstention. A third pass matched *The* Chemours Company
+Fayetteville Works on the word "the", which is rare across these labels.
+
+**Fix** — three conditions instead of one: a word must be at least four characters,
+must not belong to the ontology's own vocabulary (the stoplist is built from the
+canvas's `type` values and edge labels, split on camelCase and underscores, so
+`Facility` stops "facility" and `WasteCode` stops "waste" and "code"), and must name
+no more than 5% of the nodes.
+
+**Guard** — *mechanical*: `check-docs` asserts the stoplist and the rarity test are
+both in the matcher, so a revert to bare uniqueness fails the build. Behaviour was
+confirmed against a live server across seven questions — the bridge answers, a
+type-word question and a common-word question both abstain, and two real nodes with
+nothing between them still say exactly that.
+
+**Rule** — **a matcher's threshold is a claim about the data, so re-derive it when
+the data changes.** Uniqueness was a reasonable rule for eight invented entities and
+a wrong one for a graph whose whole purpose is that two records name the same thing.

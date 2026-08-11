@@ -387,6 +387,176 @@ expect(
   'address+geo fold into location, flag into flags',
 )
 
+/* ---------------- the canvas ---------------- */
+
+/*
+ * The canvas draws the demo package's knowledge graph, and the package is the source
+ * of truth. Every claim here compares db.json against
+ * 05_knowledge_graph/knowledge_graph.json, so a hand-edit to either side shows up as
+ * a disagreement rather than as a picture that quietly no longer matches the data.
+ */
+const kgPath = ' _demo_data_package_2026-08-10/05_knowledge_graph/knowledge_graph.json'
+const kg = existsSync(kgPath) ? JSON.parse(read(kgPath)) : null
+const canvas = db.graph_studio.canvas
+
+expect(
+  'the canvas holds every relationship the knowledge graph states',
+  kg === null || canvas.edges.length === kg.edges.length,
+  kg === null
+    ? 'the package is not in this checkout — nothing to compare against'
+    : `${canvas.edges.length} edges vs ${kg.edges.length} in the package`,
+)
+expect(
+  'and every node it lists, plus the four endpoints its roster omits',
+  kg === null || canvas.nodes.length === kg.nodes.length + 4,
+  kg === null ? 'package absent' : `${canvas.nodes.length} vs ${kg.nodes.length} + 4`,
+)
+/*
+ * The failure this replaces: 20 edges pointed at ids the roster did not contain, so
+ * they were skipped while drawing and 17 facilities appeared to have no enforcement
+ * at all. Silence is the wrong answer for a missing relationship, so it fails at boot.
+ */
+const canvasNodeIds = new Set(canvas.nodes.map((n) => n.node_id))
+expect(
+  'no canvas edge points at a node that is not there',
+  canvas.edges.every((e) => canvasNodeIds.has(e.from) && canvasNodeIds.has(e.to)),
+  'an unresolved endpoint is drawn as nothing at all',
+)
+expect(
+  'and the server refuses a document with one, rather than drawing nothing',
+  /graph_studio\.canvas has an edge whose \$\{side\} is/.test(server),
+  'validateDb checks the endpoints across keys',
+)
+expect(
+  'every node carries its type, its provenance and its own size',
+  canvas.nodes.every(
+    (n) => n.type && n.source && typeof n.degree === 'number' && typeof n.r === 'number',
+  ),
+  'source is the catalogue object; r is the degree, not a styling choice',
+)
+expect(
+  'the structured nodes name the profiled tables the catalogue lists',
+  ['FRS_Facility_profile', 'e_manifest', 'e_manifest_all', 'RCRA_compliance'].every((t) =>
+    canvas.nodes.some((n) => n.source.includes(t)),
+  ),
+  [...new Set(canvas.nodes.map((n) => n.source))].length + ' distinct sources',
+)
+expect(
+  'and the document nodes name the Drive folder and the file',
+  canvas.nodes
+    .filter((n) => n.group === 'document')
+    .every((n) => /^Compliance Docs · 08_unstructured\/.+\.pdf$/.test(n.source)),
+  'a node whose provenance is not on it is a claim taken on trust',
+)
+/*
+ * Rendered text has no doubled or edge spaces.
+ *
+ * A repo-wide find/replace of "VLS" ran over the demo package as well as the app and
+ * left labels reading "  Texas Molecular" — a gap where the word had been. Nothing
+ * errors, and a label drawn inside a circle shows every space it has. Node *ids* are
+ * exempt: they are opaque keys carrying the same damage on both ends of an edge, so
+ * cleaning them would unmatch the edges.
+ */
+const renderedText = canvas.nodes.flatMap((n) => [n.label, n.sublabel, n.source])
+expect(
+  'no canvas label, sublabel or source has a doubled or edge space',
+  renderedText.every((t) => t === t.trim() && !/ {2}/.test(t)),
+  renderedText.filter((t) => t !== t.trim() || / {2}/.test(t)).slice(0, 3).join(' | ') ||
+    `${renderedText.length} strings clean`,
+)
+
+/*
+ * Colour is the origin class, and the four hues are validated pairwise. The ink on
+ * each fill is *measured*, not chosen: white clears 4.5:1 on the blue and the
+ * magenta but reaches only 2.8:1 on the green, so those take dark ink. A label
+ * nobody can read is not a label, so the contrast is recomputed here.
+ */
+const legend = read('src/data/canvasLegend.ts')
+const legendGroups = [
+  ...legend.matchAll(/\{ key: '(\w+)', label: '[^']*', color: '(#[0-9a-f]{6})', ink: '(#[0-9a-f]{6})' \}/g),
+].map((m) => ({ key: m[1], color: m[2], ink: m[3] }))
+const relLum = (hex) => {
+  const chan = [1, 3, 5]
+    .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2]
+}
+const contrast = (a, b) => {
+  const [hi, lo] = [relLum(a), relLum(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+expect(
+  'the canvas has four origin classes, and the server agrees',
+  legendGroups.length === 4 &&
+    /const CANVAS_GROUPS = \['row', 'dimension', 'document', 'alias'\]/.test(server) &&
+    legendGroups.every((g) => ['row', 'dimension', 'document', 'alias'].includes(g.key)),
+  legendGroups.map((g) => g.key).join(', ') || 'parsed none — check the literal shape',
+)
+for (const g of legendGroups) {
+  expect(
+    `the label on the ${g.key} hue is readable (${g.ink} on ${g.color})`,
+    contrast(g.color, g.ink) >= 4.5,
+    `${contrast(g.color, g.ink).toFixed(2)}:1`,
+  )
+}
+expect(
+  'every origin class is used, so no legend row is a dead colour',
+  legendGroups.every((g) => canvas.nodes.some((n) => n.group === g.key)),
+  legendGroups
+    .map((g) => `${g.key} ${canvas.nodes.filter((n) => n.group === g.key).length}`)
+    .join(' · '),
+)
+/*
+ * A proposed element exists because a review row is open — that is what makes the
+ * canvas and the queue one truth rather than two pictures. An id on an element with
+ * no row behind it would draw a dashed node nobody can ever settle.
+ */
+const reviewIds = new Set(db.graph_studio.review_items.map((i) => i.item_id))
+expect(
+  'every review_item_id on the canvas has a row in the queue',
+  [...canvas.nodes, ...canvas.edges]
+    .filter((x) => x.review_item_id)
+    .every((x) => reviewIds.has(x.review_item_id)),
+  `${[...canvas.nodes, ...canvas.edges].filter((x) => x.review_item_id).length} provisional elements`,
+)
+expect(
+  'the queue is about this graph — its pools are the graph’s own types',
+  kg === null ||
+    kg.node_types.every((t) => db.graph_studio.generated.subjects.includes(t.type)),
+  'synthesised rows must not name entities the canvas has never heard of',
+)
+expect(
+  'and the pivot is the package’s own resolution question',
+  /Texas Molecular LP/.test(db.graph_studio.pivot.title) &&
+    db.graph_studio.pivot.options.length === 2,
+  db.graph_studio.pivot.title,
+)
+/*
+ * The query matcher. Both of its guards were paid for: a *kind* word ("facility",
+ * "waste") once matched instances and answered about a pair nobody asked for, and a
+ * uniqueness rule once refused to match "chemours" because the facility and its
+ * consent decree share the name — the bridge the graph exists for.
+ */
+expect(
+  'the query matcher stops type words and common words, not rare ones',
+  /const kindWords = new Set\(\)/.test(server) &&
+    /!kindWords\.has\(w\) && seenIn\.get\(w\) <= rareMax/.test(server),
+  'rarity, plus the ontology’s own vocabulary as a stoplist',
+)
+expect(
+  'the canvas has an ingest to re-run, and the docs name it',
+  existsSync(join(root, 'scripts/ingest-knowledge-graph.mjs')) &&
+    /"ingest:graph": "node scripts\/ingest-knowledge-graph\.mjs"/.test(read('package.json')) &&
+    claude.includes('npm run ingest:graph'),
+  'hand-editing 93 laid-out nodes is not a maintenance path',
+)
+expect(
+  'the canvas sizes and positions come from the server, not the component',
+  /r: n\.r,/.test(server) &&
+    /viewBox=\{`0 0 \$\{box\.w\} \$\{box\.h\}`\}/.test(read('src/components/GraphCanvas.tsx')),
+  'a hardcoded viewBox is a second opinion about the layout',
+)
+
 /* ---------------- the build pipeline ---------------- */
 
 /*
@@ -441,14 +611,45 @@ expect(
     !/run\.stage_index \+= 1[\s\S]{0,200}BUILD_STAGES\.length/.test(server),
   'a stage index kept alongside a step index is two counters that can disagree',
 )
+/*
+ * The pace is documented, and the page derives from it rather than restating it.
+ *
+ * A build now takes minutes, not seconds, so the duration on screen is load-bearing:
+ * a five-minute spinner with no estimate reads as wedged. That figure has to come
+ * from the server's own number — the earlier band check asserted a total instead,
+ * and a deliberate change to the pace would have failed it as if it were a bug.
+ */
+const buildStepMs = Number(
+  ((server.match(/const BUILD_STEP_MS = ([\d_]+)/) ?? [])[1] ?? '0').replace(/_/g, ''),
+)
+const buildRunSecs = (buildStepMs * buildSteps.length) / 1000
+/* "2m 35s" — the same shape `dur()` prints, so the docs quote the page. */
+const buildRunLabel =
+  buildRunSecs < 60
+    ? `${buildRunSecs}s`
+    : `${Math.floor(buildRunSecs / 60)}m${buildRunSecs % 60 ? ` ${buildRunSecs % 60}s` : ''}`
+/* `\b` on the pace, because plain `includes('5s')` is satisfied by the "35s" in the
+   total beside it — a claim that passes for the wrong reason is not a claim. */
+const pacePattern = new RegExp(`\\b${buildStepMs / 1000}s\\b`)
 expect(
-  'a run of substeps still sits in the ~8s band',
-  (() => {
-    const ms = Number((server.match(/const BUILD_STEP_MS = (\d+)/) ?? [])[1])
-    const total = (ms * buildSteps.length) / 1000
-    return ms > 0 && total >= 5 && total <= 12
-  })(),
-  `${buildSteps.length} × ${(server.match(/const BUILD_STEP_MS = (\d+)/) ?? [])[1]}ms`,
+  'the substep pace and the run length are documented as the server has them',
+  buildStepMs > 0 &&
+    [claude, skills].every((doc) => pacePattern.test(doc) && doc.includes(buildRunLabel)),
+  `BUILD_STEP_MS ${buildStepMs} · ${buildSteps.length} substeps ≈ ${buildRunLabel}`,
+)
+/* Comments stripped first: the `dur()` doc comment shows "5m 10s" as an example of
+   its own output, and a claim that read that as a hardcoded pace would cry wolf —
+   which is how a real red claim gets ignored. */
+const buildTabCode = read('src/components/BuildTab.tsx')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\/\/.*/g, '')
+expect(
+  'and the page reports the pace rather than hardcoding it',
+  /step_ms: BUILD_STEP_MS/.test(server) &&
+    /step_ms: num/.test(client) &&
+    /shown\.stepTotal \* shown\.stepMs/.test(buildTabCode) &&
+    !/\d+\s?s\b/.test(buildTabCode),
+  'a duration on screen is derived from what the server sent',
 )
 expect(
   'and the panel renders the substeps under their stage',

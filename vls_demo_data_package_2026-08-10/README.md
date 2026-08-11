@@ -1,6 +1,6 @@
-# VLS Demo Data Package — Deer Park (VLS Texas Molecular)
+#   Demo Data Package — Deer Park (  Texas Molecular)
 
-Built 2026-08-10. This folder is the **use-case content package** for the VLS Environmental
+Built 2026-08-10. This folder is the **use-case content package** for the   Environmental
 Solutions demo. NS authors it in **business formats — Excel, Word, and (for the graph) JSON** — and
 ships it to the development team, who convert it into the JSON that drives the shared React frontend
 behind the HTML prototype. This package is **content only** — not design, not development, and it does
@@ -8,8 +8,8 @@ not touch the component specs or the dev repo.
 
 ## What the demo is
 
-A **fully simulated** run of Context Weave for **VLS-as-operator**: cradle-to-grave compliance and
-liability intelligence for VLS's own Deer Park facility (VLS Texas Molecular, formerly Texas
+A **fully simulated** run of Context Weave for ** -as-operator**: cradle-to-grave compliance and
+liability intelligence for  's own Deer Park facility (  Texas Molecular, formerly Texas
 Molecular). Scope is Deer Park only.
 
 The Source Connector *simulates* a BigQuery connection. The Metadata Profiler shows **columns and
@@ -38,18 +38,18 @@ Walk the folders top to bottom; they follow the exact order the UI surfaces them
 | `01_source_connector/` | Source Connector → BigQuery (simulated) | `Demo_Source_and_Data_Overview.docx` — connection profile, table catalog, simulated OAuth handshake, document list |
 | `02_profiling/` | Metadata Profiler ("View Profile Columns") | `Metadata_Profiling.xlsx` — Overview sheet + one sheet per view; all 206 columns with description, semantic class, confidence, PII, null %, distinct |
 | `03_use_case_wizard/` | Use Case Wizard | `Use_Case_Wizard.docx` — business domain, use case, **13 hero questions**, KPIs, personas |
-| `04_structured_data/` | Data behind the graph, traces & reports | `VLS_Structured_Data.xlsx` — Entity Roster sheet (canonical numbers) + all 5 tables, schema-faithful |
+| `04_structured_data/` | Data behind the graph, traces & reports | ` _Structured_Data.xlsx` — Entity Roster sheet (canonical numbers) + all 5 tables, schema-faithful |
 | `05_knowledge_graph/` | Knowledge Graph view | `knowledge_graph.json` — nodes/edges from columns, rows, and extracted document entities + Texas Molecular entity resolution; `Knowledge_Graph_Overview.docx` narrative |
-| `06_queries/` | Ask / Query | `query_set.json` — **40 queries with rich, frontier-model-style responses** (text + metric + chart + table blocks), evidence, confidence chips, graph refs, and 5 decline cases; `VLS_Query_Set_Index.xlsx` — a flat human-readable index of the same 40 |
-| `07_reports/` | Reports | **5 report HTML files** (`Report_1..5_*.html`) styled to match the prototype, each with filters, Chart.js charts, KPI cards and tables; `VLS_Reports.xlsx` — the same report data in tabular form + a Report Queries sheet; `Reports_Overview.docx` narrative |
+| `06_queries/` | Ask / Query | `query_set.json` — **40 queries with rich, frontier-model-style responses** (text + metric + chart + table blocks), evidence, confidence chips, graph refs, and 5 decline cases; ` _Query_Set_Index.xlsx` — a flat human-readable index of the same 40 |
+| `07_reports/` | Reports | **5 report HTML files** (`Report_1..5_*.html`) styled to match the prototype, each with filters, Chart.js charts, KPI cards and tables; ` _Reports.xlsx` — the same report data in tabular form + a Report Queries sheet; `Reports_Overview.docx` narrative |
 | `08_unstructured/` | "Uploaded" documents | Public enforcement PDFs + `Entity_Extraction_Map.xlsx` linking each document to its graph node |
 
 **Format note.** Profiling and structured data ship as Excel; narratives ship as Word. Two screens
 ship richer formats the dev team ingests directly: the **knowledge graph as JSON** (a node/edge
 structure a spreadsheet flattens badly), and the **query set as JSON** (each answer is a mix of prose
-and chart/table blocks that a spreadsheet cell cannot hold — the flat `VLS_Query_Set_Index.xlsx` is a
+and chart/table blocks that a spreadsheet cell cannot hold — the flat ` _Query_Set_Index.xlsx` is a
 human-readable companion, not the source of truth). The **reports also ship as standalone HTML** so the
-team can see exactly how a rendered report should look; `VLS_Reports.xlsx` carries the same figures for
+team can see exactly how a rendered report should look; ` _Reports.xlsx` carries the same figures for
 ingestion. Each Excel/Word/JSON/HTML file carries the content the dev team turns into their own JSON.
 
 **Query set schema (`06_queries/query_set.json`).** Each query has an ordered `response.blocks`
@@ -65,7 +65,7 @@ inline, so each opens standalone in a browser. Colours and typography are lifted
 (`latest_html_prototype/context_weave_prototype_v2.html`) so the team sees the intended look, not a
 placeholder.
 
-**Canonical numbers.** The **Entity Roster** sheet in `04_structured_data/VLS_Structured_Data.xlsx`
+**Canonical numbers.** The **Entity Roster** sheet in `04_structured_data/ _Structured_Data.xlsx`
 holds the per-facility figures (volumes, evaluations, violations, penalties) that every query, report,
 and graph rollup cites. Change a number there and it changes everywhere. Reports and query responses
 are **canned** (frozen demo outputs), consistent with the roster but not recomputed at render time.

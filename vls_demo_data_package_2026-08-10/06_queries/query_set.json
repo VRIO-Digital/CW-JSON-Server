@@ -1,5 +1,5 @@
 {
-  "_note": "Rich query set for the VLS demo (Ask / Query screen). Each query's response is an ordered list of blocks (text | metric | chart | table). Charts carry demo data derived from the canonical roster/agg \u2014 the dev team renders them with its own chart library. Confidence bands: High >=0.85, Medium 0.60-0.85, Low <0.60 (CLAUDE.md \u00a77).",
+  "_note": "Rich query set for the   demo (Ask / Query screen). Each query's response is an ordered list of blocks (text | metric | chart | table). Charts carry demo data derived from the canonical roster/agg \u2014 the dev team renders them with its own chart library. Confidence bands: High >=0.85, Medium 0.60-0.85, Low <0.60 (CLAUDE.md \u00a77).",
   "dataset": "vrio-contextweave-demo.epa_hazwaste",
   "block_schema": {
     "text": {
@@ -57,7 +57,7 @@
         "blocks": [
           {
             "type": "text",
-            "markdown": "Of the **36 distinct generators** that shipped to VLS Texas Molecular between Jan 2023 and Jun 2026, **15** have a recorded RCRA enforcement history. These generators account for **13,445.7 tons (49.2%)** of everything you accepted in the window, so the enforcement risk is not confined to a low-volume tail \u2014 it sits in your largest inbound relationships."
+            "markdown": "Of the **36 distinct generators** that shipped to   Texas Molecular between Jan 2023 and Jun 2026, **15** have a recorded RCRA enforcement history. These generators account for **13,445.7 tons (49.2%)** of everything you accepted in the window, so the enforcement risk is not confined to a low-volume tail \u2014 it sits in your largest inbound relationships."
           },
           {
             "type": "metric",
@@ -201,11 +201,11 @@
       "type": "hero",
       "question": "Trace manifest 346581037ELC cradle-to-grave.",
       "response": {
-        "summary": "Manifest 346581037ELC \u2014 Arkema Inc. Crosby to VLS Texas Molecular, 5 days in transit, 24.614 tons, status Received.",
+        "summary": "Manifest 346581037ELC \u2014 Arkema Inc. Crosby to   Texas Molecular, 5 days in transit, 24.614 tons, status Received.",
         "blocks": [
           {
             "type": "text",
-            "markdown": "**Origin.** Arkema Inc. Crosby (`TXD791240867`), Crosby, TX.\n\n**Destination.** VLS Texas Molecular (Deer Park), EPA ID `TXD000719518` \u2014 the receiving TSDF on every inbound manifest in this dataset."
+            "markdown": "**Origin.** Arkema Inc. Crosby (`TXD791240867`), Crosby, TX.\n\n**Destination.**   Texas Molecular (Deer Park), EPA ID `TXD000719518` \u2014 the receiving TSDF on every inbound manifest in this dataset."
           },
           {
             "type": "metric",
@@ -251,7 +251,7 @@
               ],
               [
                 "3",
-                "VLS Texas Molecular",
+                "  Texas Molecular",
                 "Receiving TSDF"
               ]
             ]
@@ -394,7 +394,7 @@
           },
           {
             "type": "text",
-            "markdown": "**Why this is the graph payoff.** The `DOC:chemours-cd` node links by `DESCRIBED_BY` to `FAC:` The Chemours Company, which links by `SHIPS_TO` to VLS Texas Molecular with tonnage and manifest count as edge properties. An unstructured PDF and the live manifest stream meet on one node \u2014 that join is what lets the question be answered at all."
+            "markdown": "**Why this is the graph payoff.** The `DOC:chemours-cd` node links by `DESCRIBED_BY` to `FAC:` The Chemours Company, which links by `SHIPS_TO` to   Texas Molecular with tonnage and manifest count as edge properties. An unstructured PDF and the live manifest stream meet on one node \u2014 that join is what lets the question be answered at all."
           }
         ]
       },
@@ -425,11 +425,11 @@
       "type": "hero",
       "question": "Summarize our own facility's compliance standing.",
       "response": {
-        "summary": "VLS Texas Molecular: 3 evaluations, 1 violation, $0 in penalties \u2014 the clean-record anchor.",
+        "summary": "  Texas Molecular: 3 evaluations, 1 violation, $0 in penalties \u2014 the clean-record anchor.",
         "blocks": [
           {
             "type": "text",
-            "markdown": "**VLS Texas Molecular** (Deer Park, EPA ID `TXD000719518`) is a RCRA-permitted Class I injection TSDF operating in good standing. The compliance-360 row shows a clean record: evaluations on file, a single historical violation, and **no penalties**."
+            "markdown": "**  Texas Molecular** (Deer Park, EPA ID `TXD000719518`) is a RCRA-permitted Class I injection TSDF operating in good standing. The compliance-360 row shows a clean record: evaluations on file, a single historical violation, and **no penalties**."
           },
           {
             "type": "metric",
@@ -459,7 +459,7 @@
       "evidence": [
         {
           "source": "RCRA_Compliance_Summary",
-          "detail": "row for VLS Texas Molecular"
+          "detail": "row for   Texas Molecular"
         }
       ],
       "confidence": {
@@ -1299,13 +1299,13 @@
       "id": "Q13",
       "persona": "Chief Information Officer",
       "type": "hero",
-      "question": "Is 'Texas Molecular' the same facility as 'VLS Texas Molecular' \u2014 how does the system know?",
+      "question": "Is 'Texas Molecular' the same facility as '  Texas Molecular' \u2014 how does the system know?",
       "response": {
         "summary": "Yes \u2014 same EPA ID (TXD000719518). The graph resolves the legacy and post-acquisition names to one facility node.",
         "blocks": [
           {
             "type": "text",
-            "markdown": "**Yes.** `Texas Molecular LP` (pre-2023) and `VLS Texas Molecular` (post-acquisition, 2023-01-05) are the same physical site under one EPA ID, **`TXD000719518`**. Manifests shipped before the acquisition carry the legacy name in `DES FACILITY NAME`; the graph resolves every variant to a single facility node."
+            "markdown": "**Yes.** `Texas Molecular LP` (pre-2023) and `  Texas Molecular` (post-acquisition, 2023-01-05) are the same physical site under one EPA ID, **`TXD000719518`**. Manifests shipped before the acquisition carry the legacy name in `DES FACILITY NAME`; the graph resolves every variant to a single facility node."
           },
           {
             "type": "table",
@@ -1327,12 +1327,12 @@
                 "FAC:TXD000719518"
               ],
               [
-                "VLS Texas Molecular",
+                "  Texas Molecular",
                 "post-2023",
                 "FAC:TXD000719518"
               ],
               [
-                "VLS Texas Molecular LP",
+                "  Texas Molecular LP",
                 "post-2023 variant",
                 "FAC:TXD000719518"
               ]
@@ -1347,7 +1347,7 @@
       "evidence": [
         {
           "source": "entity_roster",
-          "detail": "aliases + acquired date for VLS Texas Molecular"
+          "detail": "aliases + acquired date for   Texas Molecular"
         },
         {
           "source": "e_manifest",
@@ -2201,7 +2201,7 @@
               ],
               [
                 "4",
-                "VLS Texas Molecular",
+                "  Texas Molecular",
                 "Receiving TSDF"
               ]
             ]

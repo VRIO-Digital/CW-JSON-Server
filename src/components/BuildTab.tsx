@@ -45,6 +45,19 @@ function Mark({ state }: { state: 'pending' | 'running' | 'complete' }) {
   )
 }
 
+/**
+ * A duration a person reads, from milliseconds: "5m 10s", "40s", "0.3s".
+ *
+ * Sub-second keeps a decimal rather than rounding to zero — the pace is the
+ * server's to choose, and "each step takes about 0s" would be this function
+ * misreporting it rather than the server pacing badly.
+ */
+const dur = (ms: number) => {
+  if (ms < 1000) return `${Math.round(ms / 100) / 5}s`
+  const s = Math.round(ms / 1000)
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${s % 60 ? ` ${s % 60}s` : ''}`
+}
+
 /** "11/08/2026, 14:55 · complete · d2aee040…" — time, state, which run. */
 const runLabel = (b: GraphBuild) =>
   `${fmt(b.startedAt)} · ${b.status} · ${b.buildId.slice(0, 8)}…`
@@ -105,6 +118,11 @@ export default function BuildTab({
         A build replays this graph's committed brief — its sealed coverage evidence
         drives the entity binding and the relationship replay. Rebuilding after
         settling review rows is normal, and every run is kept.{' '}
+        {shown
+          ? `Each step takes about ${dur(shown.stepMs)}, so a full build runs ${dur(
+              shown.stepTotal * shown.stepMs,
+            )}. `
+          : ''}
         {liveVersion
           ? `${liveVersion} is live; building does not change that — publishing does.`
           : 'Nothing is live yet: clear the review queue, settle the pivot, then publish.'}
@@ -119,7 +137,10 @@ export default function BuildTab({
                 <>
                   <Spin indicator={<LoadingOutlined spin />} size="small" /> stage{' '}
                   {shown.stageIndex + 1} of {shown.stageTotal} · step{' '}
-                  {shown.stepIndex + 1} of {shown.stepTotal}
+                  {shown.stepIndex + 1} of {shown.stepTotal} ·{' '}
+                  {/* Remaining work at the pace the server reported — a long run
+                      with no estimate reads as a wedged one. */}
+                  {dur((shown.stepTotal - shown.stepIndex) * shown.stepMs)} left
                 </>
               ) : (
                 <>

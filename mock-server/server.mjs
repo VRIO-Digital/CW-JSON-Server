@@ -524,6 +524,30 @@ function validateDb(candidate) {
    * four personas where the use case names five. A short list looks like an
    * answer, so this has to fail at boot rather than at request time.
    */
+  /*
+   * A canvas edge whose endpoint is not a node does not throw — it is skipped while
+   * drawing, so the relationship simply is not there. The knowledge graph shipped
+   * with 20 such edges (three alias names and an unitemised enforcement type that
+   * the node roster omitted), and the symptom was a facility drawn with no
+   * enforcement at all. Silence is the wrong answer for a missing relationship.
+   */
+  if (problems.length === 0) {
+    const nodeIds = new Set(candidate.graph_studio.canvas.nodes.map((n) => n.node_id))
+    for (const e of candidate.graph_studio.canvas.edges) {
+      for (const [end, side] of [
+        [e.from, 'from'],
+        [e.to, 'to'],
+      ]) {
+        if (!nodeIds.has(end)) {
+          problems.push(
+            `graph_studio.canvas has an edge whose ${side} is "${end}", which is not ` +
+              'a node — add the node or remove the edge, or it will be drawn as nothing',
+          )
+        }
+      }
+    }
+  }
+
   if (problems.length === 0) {
     for (const template of candidate.graph_use_case_templates) {
       for (const [memberKey, poolKey, idKey] of [
@@ -1425,10 +1449,19 @@ const BUILD_STEPS = BUILD_STAGES.flatMap((stage, stageIndex) =>
   stage.steps.map((step) => ({ stage: stage.key, step, stageIndex })),
 )
 
-/* 31 substeps × 250ms ≈ 7.8s — the same total the 11 stages took before, now with
-   the inner work visible. Long enough to read, short enough that nobody wonders
-   whether it hung; same reasoning as PIPELINE and DERIVATION_STAGE_MS. */
-const BUILD_STEP_MS = 250
+/*
+ * 5s per substep — 31 of them, so a whole build is ≈2m 35s.
+ *
+ * Deliberately far slower than PIPELINE or DERIVATION_STAGE_MS. Those pace an
+ * operation so it cannot read as free; this one is paced so each substep can be
+ * *narrated* — a build is watched over someone's shoulder, and a row that finishes
+ * in a quarter of a second is gone before it can be pointed at. The cost is that a
+ * run outlives a demo segment, which is why the Build tab states the expected
+ * duration: without it, minutes of spinner read as wedged. Change this number and
+ * the sentence on the page follows from it rather than repeating it — `step_ms` is
+ * in the payload for exactly that reason.
+ */
+const BUILD_STEP_MS = 5_000
 
 /**
  * Every build ever run, newest first, keyed by use case. In memory like every
@@ -1555,6 +1588,9 @@ const buildView = (run) => ({
   stage_total: BUILD_STAGES.length,
   step_index: run.cursor,
   step_total: BUILD_STEPS.length,
+  /* The pace, reported rather than assumed: the page states how long a build takes
+     and how much is left, and neither figure may be a number the client invented. */
+  step_ms: BUILD_STEP_MS,
   stages: BUILD_STAGES.map((stage, i) => {
     const flat = BUILD_STEPS.map((s, index) => ({ ...s, index })).filter(
       (s) => s.stageIndex === i,
@@ -2000,6 +2036,19 @@ function findBuiltGraph(useCaseId) {
 /* ---------------- The canvas ---------------- */
 
 /**
+ * The origin classes, in legend order.
+ *
+ * A node's colour says **where it came from**, not what type it is: rows become
+ * entity nodes, distinct column values become dimension nodes, uploaded documents
+ * become document nodes, and a raw name resolves through an alias node. That is the
+ * knowledge graph's own account of how it was built, and it is four categories
+ * rather than the seven the type list would need — a seven-hue categorical palette
+ * cannot keep every pair distinguishable, and any two nodes can end up adjacent
+ * here. The type is carried in the sublabel and the inspector instead.
+ */
+const CANVAS_GROUPS = ['row', 'dimension', 'document', 'alias']
+
+/**
  * The ontology as the canvas draws it.
  *
  * A node or edge carrying a `review_item_id` is **proposed until that item is
@@ -2031,6 +2080,18 @@ function studioCanvas(useCaseId, answerPath = []) {
       label: n.label,
       // A proposed node says so, and says how sure the deriver was.
       sublabel: s.proposed ? `proposed · ${n.confidence.toFixed(2)}` : n.sublabel,
+      /* What the node *is*, and where it came from. `group` is the origin class the
+         colour encodes — a row, a column value, a document, a resolved alias — and
+         `source` is the catalogue object itself, so a node on the canvas can be
+         traced back to the table or file it was built from without a second lookup.
+         `type` is the ontology's own type, carried separately because "which source"
+         and "which kind of thing" are different questions. */
+      type: n.type,
+      source: n.source,
+      /* Size is data: the number of relationships the node carries. A radius chosen
+         for looks would claim an importance the graph does not have. */
+      degree: n.degree,
+      r: n.r,
       group: n.group,
       confidence: n.confidence,
       proposed: s.proposed,
@@ -2050,6 +2111,10 @@ function studioCanvas(useCaseId, answerPath = []) {
       from: e.from,
       to: e.to,
       label: s.proposed ? `${e.label} · proposed` : e.label,
+      /* The edge's own properties, verbatim from the graph spec — "manifests=46;
+         tons=1061.8; 2023-03-04..2026-06-23". A relationship with no evidence on it
+         is an assertion, and this is the evidence. */
+      detail: e.detail ?? '',
       proposed: s.proposed,
       review_item_id: e.review_item_id ?? null,
       on_answer_path:
@@ -2069,6 +2134,13 @@ function studioCanvas(useCaseId, answerPath = []) {
       low_confidence: nodes.filter((n) => n.confidence < 0.85).length,
       needs_review: nodes.filter((n) => n.needs_review).length,
       studio_authored: nodes.filter((n) => n.origin === 'studio-authored').length,
+      /* Per origin class, so the legend can double as the filter: one control for
+         "what does this colour mean" and "show me only those" cannot disagree with
+         itself the way a legend beside a separate filter list can. */
+      groups: CANVAS_GROUPS.map((key) => ({
+        key,
+        count: nodes.filter((n) => n.group === key).length,
+      })),
     },
   }
 }
@@ -2088,15 +2160,42 @@ function studioQuery(useCaseId, question) {
   const asked = String(question).toLowerCase()
 
   /*
-   * Matched on the whole label, or on a word that belongs to only one node.
+   * Matched on the whole label, or on a word distinctive enough to name a node.
    *
-   * A bare shared word is not a match: "work order" would otherwise also hit
-   * Change Order on "order", and the query would answer about a pair the user
-   * never asked about — a wrong answer delivered confidently, which is worse
-   * here than no answer.
+   * Two things a bare shared word does wrong, and both produce a confident answer to
+   * a question nobody asked — worse here than no answer:
+   *
+   *  - It is a *kind*, not a name. "which facility do we accept waste from" holds
+   *    "facility" and "waste", and those words name the types Facility and
+   *    WasteCode, so no instance may claim them. The stoplist is read off the
+   *    graph's own `type` and edge-label vocabulary rather than hand-written, so
+   *    a new node type stops its own word without anyone remembering to.
+   *  - It is common. "texas" is in five labels here, so it names none of them.
+   *
+   * What is left is rarity, not uniqueness: the old rule was "appears in exactly one
+   * label", and it broke the moment a facility and the consent decree about it
+   * shared a name — the bridge from unstructured to structured that this graph
+   * exists for. A word naming at most 5% of the nodes is taken as naming them
+   * deliberately, which is what lets "chemours" pull in the facility and both of its
+   * documents.
    */
+  /* Four characters and up. "the" is rare across these labels — it appears in one —
+     so a three-letter cut let "which facility ships the most waste" match The
+     Chemours Company Fayetteville Works on the article. The shortest thing anyone
+     names here is a waste code (D001), which is four. */
   const wordsOf = (label) =>
-    label.toLowerCase().split(/[^a-z0-9#]+/).filter((w) => w.length > 2)
+    label.toLowerCase().split(/[^a-z0-9#]+/).filter((w) => w.length > 3)
+
+  const kindWords = new Set()
+  for (const text of [
+    ...canvas.nodes.map((n) => n.type),
+    ...canvas.edges.map((e) => e.label),
+  ]) {
+    // Facility · WasteCode · SHIPS_TO → facility, waste, code, ships
+    for (const w of String(text).split(/(?=[A-Z])|[^A-Za-z0-9]+/)) {
+      if (w.length > 2) kindWords.add(w.toLowerCase())
+    }
+  }
 
   const seenIn = new Map()
   for (const n of canvas.nodes) {
@@ -2104,10 +2203,13 @@ function studioQuery(useCaseId, question) {
       seenIn.set(w, (seenIn.get(w) ?? 0) + 1)
     }
   }
+  const rareMax = Math.max(1, Math.round(canvas.nodes.length * 0.05))
 
   const matched = canvas.nodes.filter((n) => {
     if (asked.includes(n.label.toLowerCase())) return true
-    return wordsOf(n.label).some((w) => seenIn.get(w) === 1 && asked.includes(w))
+    return wordsOf(n.label).some(
+      (w) => !kindWords.has(w) && seenIn.get(w) <= rareMax && asked.includes(w),
+    )
   })
 
   if (matched.length < 2) {

@@ -412,7 +412,7 @@ CLASS · PII · NULL% · DISTINCT`. Each card head repeats the view's `label` an
 describes is named.
 
 **For `epa_hazwaste`, the columns are real.** `column_profiles` in `db.json` holds
-all **206** — ingested from `vls_demo_data_package_2026-08-10/02_profiling/`
+all **206** — ingested from ` _demo_data_package_2026-08-10/02_profiling/`
 `Metadata_Profiling.xlsx`, one sheet per view — with the profiler's own
 `label`, `type`, `description`, semantic `class`, `derivation`, `confidence`,
 `pii`, `null_pct` and `distinct`. `tableDictionary()` serves that verbatim for any
@@ -938,9 +938,14 @@ Eleven stages, in dependency order — `pin_inputs`, `a01_schema_parsing`,
 
 **Each stage names its own substeps, and they are what advances.** A stage carries
 2–3 (`pin_inputs` → `resolve_use_case`, `seal_coverage_evidence`,
-`pin_source_versions`) — 31 in total at `BUILD_STEP_MS` (250ms) each, so a run is
-still about 7.8 seconds, now with the inner work readable rather than a single row
-sitting on `running` for two seconds with nothing to show.
+`pin_source_versions`) — 31 in total at `BUILD_STEP_MS` (**5s**) each, so a run
+takes about **2m 35s**. That is slow on purpose: a substep is paced to be narrated
+while it runs, not merely to prove the work was not free.
+
+**Because it takes minutes, the panel states the pace and the time left.** Both come
+from `step_ms` in the payload, never from a number typed into the component — a
+multi-minute spinner with no estimate reads as a wedged process, and an estimate the
+client invented would be wrong the moment the server's pace changed.
 
 **One cursor drives both levels.** `BUILD_STEPS` is the pipeline flattened, and a
 run keeps nothing but an index into it: a substep is complete before the cursor,
@@ -1043,18 +1048,55 @@ something a mock writes back over its seed.
 
 The ontology as nodes and edges, drawn in **hand-written inline SVG** — no graph
 library, for the same reason the mock server has no dependencies. Node positions
-are seeded in `db.json` so a reload draws the same picture; dragging moves a node
-in local state only, because rearranging is a reading aid, not an edit.
+*and radii* are seeded in `db.json` so a reload draws the same picture; dragging
+moves a node in local state only, because rearranging is a reading aid, not an edit.
+The viewBox is measured from the nodes rather than fixed in the component — a
+hardcoded box is a second opinion about the layout, and the drag maths reads from it.
+
+**It draws the demo package's knowledge graph**, ingested from
+`05_knowledge_graph/knowledge_graph.json`: 93 nodes, 92 edges, one hub (VLS Texas
+Molecular, 53 relationships), 49 facilities, 7 enforcement documents, 6 sampled
+manifests, 28 dimension values and 3 aliases.
+
+**Three things on the drawing are data.**
+
+| | means | why not decoration |
+|---|---|---|
+| colour | the node's **origin class** — row · column value · document · alias | the graph's own account of how it was built, and the answer to "which source is this?" |
+| size (`r`) | the node's **degree**, by square root | the hub is biggest because 53 edges land on it, not because it is the subject |
+| `source` | the **catalogue object** it came from | `epa_hazwaste.FRS_Facility_profile`, `Compliance Docs · 08_unstructured/chemours-cd.pdf` |
+
+**Four hues, not seven types.** A categorical palette stops being reliably
+distinguishable past four, and on a canvas any two nodes can end up adjacent, so the
+type is carried by the sublabel and the inspector instead. Each hue ships an `ink`
+measured against it — white clears 4.5:1 on the blue and the magenta, not on the
+green — and `check-docs` recomputes every pair. The blue is one step darker than it
+first was for exactly that reason.
+
+**Labels appear when they can be read.** 20 nodes are big enough to hold their name
+inside, wrapped to three lines; the other 73 are labelled underneath on hover, or
+once a filter or search cuts the view to 28 nodes. Edge labels follow the same rule.
+Drawing all 73 at once is a grey smear: those labels are wider than their circles and
+63 of them would cross a neighbour. The legend states this, and **the legend is also
+the origin filter** — one control cannot disagree with itself about what a colour
+means and what it shows.
 
 **The canvas and the review queue are the same truth.** A node or edge carrying a
 `review_item_id` is *proposed* exactly while that row is undecided — approve the
-Contractor row and its node un-dashes here, correct it and the node becomes
-`studio-authored` (which is what the fourth filter chip counts). The inspector
-says so and links back to the queue.
+unitemised-enforcement row and its node plus all 17 of its edges un-dash together,
+correct the Stericycle row and its node becomes `studio-authored` (which is what the
+fourth filter chip counts). The inspector says so and links back to the queue.
 
-Colour is the legend group — a *category*. The one state shown is "proposed",
-and it carries a dashed outline and the word as well as a colour. Filter chips
-show counts, so an empty result reads as "none match" and not as a broken chip.
+The one state shown is "proposed", and it carries a dashed outline and the word as
+well as a colour. Filter chips show counts, so an empty result reads as "none match"
+and not as a broken chip.
+
+**An edge whose endpoint is not a node fails the boot.** The package shipped 20 such
+edges — three alias names and an unitemised enforcement type its node roster omitted
+— and the symptom was silence: those relationships were skipped while drawing, so 17
+facilities looked like they had no enforcement. `validateDb` now checks canvas
+endpoints across keys, and the ingest materialises the four missing nodes instead of
+dropping their edges.
 
 ### Query & sanity-check
 
@@ -1075,9 +1117,22 @@ Three honest failures, and they are the point:
 An answer crossing an undecided edge is answerable **and provisional**, and says
 which decision it is resting on — publishing would change it.
 
-Matching requires the whole label or a word unique to one node. A bare shared
-word is not enough: "work order" would otherwise also match Change Order on
-"order" and confidently answer about a pair nobody asked for.
+Matching requires the whole label or a word that is **rare and not a type name**.
+Two ways a bare shared word answers a question nobody asked:
+
+- it is a *kind* — "which facility do we accept waste from" holds "facility" and
+  "waste", which name the types `Facility` and `WasteCode`, so no instance may claim
+  them. The stoplist is read off the graph's own `type` and edge-label vocabulary, so
+  a new node type stops its own word without anyone remembering to.
+- it is common — "texas" is in five labels here, so it names none of them.
+
+The rule was once "unique to one node", and it broke the moment a facility and the
+consent decree about it shared a name: "what does the chemours consent decree say
+about the facility we accept waste from" matched nothing, and that question is the
+whole point of the graph. Rarity replaced uniqueness — a word naming at most 5% of
+the nodes is taken as naming them deliberately — and the word floor is four
+characters, because "the" is rare across these labels and matched *The* Chemours
+Company Fayetteville Works on the article.
 
 ### Versions
 

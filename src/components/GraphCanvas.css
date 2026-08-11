@@ -1,7 +1,8 @@
 /*
- * The ontology canvas. Node colour comes from the legend group, which is a
- * *category*, not a status — the one state the canvas shows is "proposed", and
- * it carries a dashed outline and the word "proposed" as well as its colour.
+ * The ontology canvas. Node colour comes from the legend group, which is the node's
+ * *origin class* — a category, not a status. The one state the canvas shows is
+ * "proposed", and it carries a dashed outline and the word "proposed" as well as its
+ * colour. Node size is the node's degree, which is why nothing here sets a radius.
  */
 
 .gc {
@@ -19,7 +20,7 @@
 }
 
 .gc-search {
-  width: 220px;
+  width: 260px;
 }
 
 .gc-chip {
@@ -61,28 +62,41 @@
   display: block;
   width: 100%;
   height: auto;
-  background: #fff;
+  /* A shade off white, so a white node ring reads as a ring. */
+  background: #fbfcfd;
   user-select: none;
 }
 
 .gc-edge line {
-  stroke: #d8dde6;
+  stroke: #cfd6e0;
   stroke-width: 1;
 }
 
 .gc-edge text {
   fill: #8994a8;
-  font-size: 10px;
+  font-size: 8.5px;
+  letter-spacing: 0.02em;
 }
 
 /* Under review — dashed, so the state is not carried by colour alone. */
 .gc-edge.is-proposed line {
-  stroke: #a16207;
+  stroke: #c99a2e;
   stroke-dasharray: 5 4;
 }
 
 .gc-edge.is-proposed text {
   fill: #a16207;
+}
+
+/* The relationships of the node under the cursor, brought forward to be read. */
+.gc-edge.is-focus line {
+  stroke: #4b5a75;
+  stroke-width: 1.6;
+}
+
+.gc-edge.is-focus text {
+  fill: #4b5a75;
+  font-weight: 600;
 }
 
 .gc-edge.is-path line {
@@ -91,7 +105,7 @@
 }
 
 .gc-edge.is-dim {
-  opacity: 0.18;
+  opacity: 0.12;
 }
 
 .gc-node {
@@ -102,47 +116,56 @@
   cursor: grabbing;
 }
 
-.gc-node ellipse {
+.gc-halo {
   fill: #fff;
-  stroke-width: 1.5;
 }
 
-.gc-node.is-proposed ellipse {
-  fill: #fdf6e7;
+.gc-disc {
+  stroke: rgba(15, 23, 41, 0.06);
+  stroke-width: 1;
+}
+
+/* Proposed: dashed rim in the node's own colour, plus "proposed" in its sublabel. */
+.gc-node.is-proposed .gc-disc {
+  stroke: #7a4c05;
+  stroke-width: 1.5;
   stroke-dasharray: 5 4;
 }
 
 /* The glow the legend promises: this node is on the answer path. */
-.gc-node.is-path ellipse {
-  filter: drop-shadow(0 0 6px rgba(244, 86, 43, 0.55));
+.gc-node.is-path .gc-disc {
+  filter: drop-shadow(0 0 7px rgba(244, 86, 43, 0.65));
+  stroke: #f4562b;
   stroke-width: 2.5;
 }
 
-.gc-node.is-selected ellipse {
-  stroke-width: 3;
+.gc-node.is-selected .gc-disc {
+  stroke: #0f1729;
+  stroke-width: 2.5;
 }
 
 .gc-node.is-dim {
-  opacity: 0.2;
+  opacity: 0.14;
 }
 
 .gc-node-label {
-  fill: #0f1729;
-  font-size: 12px;
   font-weight: 600;
+  pointer-events: none;
 }
 
-.gc-node-sub {
-  fill: #8994a8;
+/* Small nodes are labelled underneath, in ink — never white on a pale fill. */
+.gc-node-outside {
+  fill: #4b5a75;
   font-size: 9.5px;
+  pointer-events: none;
 }
 
-/* ---- legend ---- */
+/* ---- legend, which is also the origin filter ---- */
 
 .gc-legend {
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
   flex-wrap: wrap;
   padding: var(--sp-3) var(--sp-5) var(--sp-4);
   border-top: 1px solid #f2f4f7;
@@ -154,15 +177,40 @@
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.gc-legend-item:hover {
+  border-color: #e4e8ee;
+}
+
+.gc-legend-item.is-on {
+  border-color: #d8dde6;
+  background: #f4f6f9;
+  color: #0f1729;
+  font-weight: 600;
+}
+
+.gc-legend-count {
+  color: #8994a8;
+  font-variant-numeric: tabular-nums;
 }
 
 .gc-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
 
 .gc-legend-hint {
   margin-left: auto;
+  max-width: 42ch;
   color: #8994a8;
+  line-height: 1.5;
 }

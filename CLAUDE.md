@@ -11,6 +11,7 @@ npm run build       # tsc -b && vite build
 npm run lint        # oxlint
 npm run audit       # audit gate (fails on any advisory, minus the allowlist)
 npm run check-docs  # asserts this file's factual claims against the code
+npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db.json)
 npm run preflight   # lint + build + audit + check-docs — run before calling work done
 ```
 
@@ -483,8 +484,8 @@ rows changes what a build produces, so **Rebuild** is the normal case, not an
 escape hatch.
 
 **Each stage names its own substeps, and the substeps are what advance.**
-`BUILD_STEPS` is `BUILD_STAGES` flattened (31 at `BUILD_STEP_MS`, 250ms, ≈7.8s —
-the same total the stages alone took), and a run keeps **one cursor** into that
+`BUILD_STEPS` is `BUILD_STAGES` flattened — 31 substeps at `BUILD_STEP_MS`, **5s**
+each, so a whole build runs ≈**2m 35s** — and a run keeps **one cursor** into that
 list. Every state on screen is derived from it: a substep is complete before the
 cursor, running at it, pending after, and a stage is `running` exactly while the
 cursor sits inside it. A stage index kept alongside a step index is two counters
@@ -492,6 +493,13 @@ that can disagree, and the symptom is a stage reading complete while one of its
 substeps still spins. Adding a stage means adding its substeps too — a stage with
 none is a row claiming work nobody can see, which is what this replaced, and
 `check-docs` fails on it.
+
+**A build takes minutes, so the panel says how many.** 5s a substep is slow on
+purpose — slow enough to narrate a row while it runs — which makes an unexplained
+spinner read as a wedged process. `buildView` reports `step_ms`, and the note and
+the "…left" figure derive from it: change the pace on the server and the page
+follows. Never restate the number in the component; `check-docs` fails on any
+hardcoded duration there, and on this paragraph disagreeing with the constant.
 
 New Graph's "Save & build graph" commits the brief, starts the build **at the
 click**, then navigates to this tab — so the pipeline on screen is that button's
@@ -515,13 +523,59 @@ rebuild changed nothing.
   review item is undecided**, so approving a row in the queue un-dashes its node
   here, and *correcting* one marks it `studio-authored`. The filter chips carry
   counts, so an empty result reads as "none match" rather than a broken chip.
+
+  **What it draws is the demo package's own knowledge graph** —
+  `05_knowledge_graph/knowledge_graph.json`, 93 nodes and 92 edges, ingested into
+  `graph_studio.canvas` by `npm run ingest:graph`. That script is the layout: it
+  runs a deterministic force pass plus a separation pass and writes `x`, `y` and `r`,
+  so **re-run it rather than hand-editing 93 nodes** — the same rule as the column
+  profiles. It also reseeds the review queue, the pivot and the synthesis pools,
+  because a queue naming entities the canvas has never heard of is two truths again.
+  Three things on the drawing are data, not styling, and none may be chosen for
+  looks:
+
+  - **Colour is the node's origin class**, which is the graph's own account of how
+    it was built: a row becomes an entity, a distinct column value becomes a
+    dimension, an uploaded document becomes a document node, a raw name resolves
+    through an alias. Four classes, not seven ontology types, because a categorical
+    palette stops being reliably distinguishable past four and *any* two nodes can
+    end up adjacent here — the type rides on the sublabel and the inspector. The
+    hues are validated pairwise, and each carries an `ink` measured against its
+    fill: white clears 4.5:1 on the blue and the magenta, not on the green.
+    `check-docs` recomputes every pair.
+  - **Size is degree.** `r` comes from the server, scaled by the square root of the
+    relationships a node carries, so the receiving TSDF is the biggest circle
+    because 53 edges land on it — not because it is the subject.
+  - **`source` is the catalogue object** the node was built from
+    (`epa_hazwaste.FRS_Facility_profile`, `Compliance Docs ·
+    08_unstructured/chemours-cd.pdf`), on the node's tooltip and in the inspector.
+    A node whose provenance is not on it is a claim the reader has to take on trust.
+
+  **Labels appear when they can be read.** A node big enough carries its name
+  inside, wrapped; the other 73 are labelled underneath *on hover, or once a filter
+  cuts the view to 28 nodes* — 73 labels wider than their circles, on a layout whose
+  circles sit 26px apart, is a grey smear rather than a picture. Edge labels follow
+  the same rule. The legend says so, and it doubles as the origin filter so one
+  control cannot disagree with itself about what a colour means.
+
+  **An edge whose endpoint is not a node is refused at boot.** The package shipped
+  20 of them — three alias names and an unitemised enforcement type its roster
+  omitted — and a skipped edge is silent: 17 facilities simply appeared to have no
+  enforcement. `validateDb` checks the endpoints across keys, and the ingest
+  materialises the four missing nodes rather than dropping their edges.
 - **Query & sanity-check** asks the *draft*. The answer is a real walk over the
   edges that exist, and its path is what lights up on the canvas — the answer
   carries the marked canvas back with it, so there is no second request and no
   second truth. A question naming one entity, or two that nothing connects, is
   **not answerable and says why**; an answer resting on an undecided edge is
   answerable *and* flagged provisional. Matching needs the whole label or a word
-  unique to one node, or "work order" would silently answer about Change Order.
+  that is **rare and not a type name**: a word naming more than 5% of the nodes
+  ("texas") names none of them, and a word from the ontology's own vocabulary
+  ("facility", "waste" — read off the node types and edge labels, not a hand-written
+  list) cannot name an instance. The rule used to be "unique to one node", which
+  refused to match "chemours" the moment a facility and the consent decree about it
+  shared a name — the bridge from unstructured to structured that this graph exists
+  for.
 - **Quality report** re-runs the same three preconditions the publish gate uses.
 - **Versions** lists **every version, which is to say every build** — newest
   first, one row each, from `studioVersions`. A row carries what identifies it
@@ -918,6 +972,15 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   buttons are `inline-flex`. Put it on the inner label span with `min-width: 0`.
   Text clipped at *both* ends is the tell: that is a centred flex item, not a
   truncation.
+- **A renderer that skips what it cannot draw needs a validator that refuses it.**
+  20 canvas edges pointed at ids the node roster omitted, so they were skipped while
+  drawing and 17 facilities appeared to have no enforcement — no error anywhere.
+  `validateDb` now refuses a canvas edge with an unresolved endpoint.
+- **A matcher's threshold is a claim about the data.** The query matched a word only
+  if it named exactly one node, which is the wrong rule for a graph built on entity
+  resolution: it refused "chemours" because the facility and its consent decree share
+  the name. Relaxing it to plain rarity then answered about "waste" and "facility"
+  instead — a type name can never name an instance.
 - **A `_2` in the column or entity dictionary is only ever a second copy.**
   Suffixing by vocabulary lap printed a `_2` whose `_1` existed nowhere, because
   the slice starts at a hashed offset; it now counts uses within that table or
