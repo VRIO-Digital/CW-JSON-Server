@@ -387,6 +387,107 @@ expect(
   'address+geo fold into location, flag into flags',
 )
 
+/* ---------------- the build pipeline ---------------- */
+
+/*
+ * `BUILD_STAGES` is what the Build tab renders verbatim and what SKILLS.md lists.
+ * A stage added to the server without being documented shows up on screen as an
+ * unexplained row — and printing the platform's own names is the whole reason they
+ * can be looked up.
+ */
+const buildStagesBlock = server.match(/const BUILD_STAGES = \[([\s\S]*?)\n\]/)
+const buildStages = buildStagesBlock
+  ? [...buildStagesBlock[1].matchAll(/'(\w+)'/g)].map((m) => m[1])
+  : []
+expect(
+  'the build pipeline has stages',
+  buildStages.length > 0,
+  `${buildStages.length}: ${buildStages.join(' → ')}`,
+)
+for (const stage of buildStages) {
+  expect(
+    `build stage \`${stage}\` documented`,
+    skills.includes(stage),
+    'name it in SKILLS.md flow 8',
+  )
+}
+expect(
+  'a build is a run the page polls, not an instant commit',
+  /match: \(p\) => \/\^\\\/graph-studio\\\/\[\^\/\]\+\\\/builds\$\/\.test\(p\)/.test(server) &&
+    /send\(res, 202, buildView\(startBuildFor/.test(server),
+  '202 + a queued run, like a profiling job',
+)
+expect(
+  'the build lives in the studio, where rebuilding does',
+  /BuildTab/.test(read('src/pages/GraphStudioPage.tsx')) &&
+    /useGraphBuildStore/.test(read('src/store/graphStudioStore.ts')),
+  'the tab and its store are the studio’s',
+)
+expect(
+  'and the wizard starts it at the click rather than committing and leaving',
+  /startBuild\(result\.useCase\.useCaseId\)/.test(read('src/pages/NewGraphPage.tsx')) &&
+    /state: \{ tab: 'build' \}/.test(read('src/pages/NewGraphPage.tsx')),
+  'Save & build starts the run, then hands over to the Build tab',
+)
+/*
+ * A version *is* a build: every finished run records one, and building must never
+ * publish. `studioLive` is the publish pointer, so a build touching it would mean
+ * a rebuild silently went live.
+ */
+const startBuildBody = (server.match(/function startBuildFor[\s\S]*?\n\}/) ?? [''])[0]
+const runBuildBody = (server.match(/function runGraphBuild[\s\S]*?\n\}/) ?? [''])[0]
+expect(
+  'a finished build records a version',
+  /recordVersion\(run,/.test(runBuildBody),
+  'runGraphBuild records one on completion, not on start',
+)
+expect(
+  'building never publishes',
+  !/studioLive\.set/.test(startBuildBody) && !/studioLive\.set/.test(runBuildBody),
+  'publishing stays behind its own gate',
+)
+expect(
+  'publishing names a content hash, and unpublishing exists',
+  /versions\\\/\[0-9a-f\]\+\\\/publish/.test(server) &&
+    /versions\\\/\[0-9a-f\]\+\\\/unpublish/.test(server),
+  'a version is identified by what it contains, not by a counter',
+)
+expect(
+  'the version rows are never rewritten',
+  !/studioVersions\.get\([^)]*\)\[[^\]]*\]\s*=/.test(server) &&
+    /published: v\.sha256 === studioLive\.get\(id\)/.test(server),
+  'publishing flips a pointer, it does not mutate a row',
+)
+expect(
+  'Ask serves the published version and nothing else',
+  /const published = publishedVersion\(useCase\.use_case_id\)/.test(server) &&
+    /if \(!published\) return null/.test(server),
+  'unpublishing takes the graph out of Ask',
+)
+/*
+ * A finished build has to *appear* on Versions.
+ *
+ * The rows come from the studio payload, which is otherwise fetched once on
+ * arrival — so without a refresh keyed to the completed run, the build a user just
+ * watched finish is absent from the list until they reload. Nothing errors; the
+ * list is simply one run behind, which is the kind of staleness nobody reports.
+ */
+expect(
+  'a completed build refreshes the version list',
+  /refreshedForBuild/.test(read('src/pages/GraphStudioPage.tsx')) &&
+    /shownBuild\?\.status !== 'complete'/.test(read('src/pages/GraphStudioPage.tsx')),
+  'the row appears without a reload, once per run',
+)
+
+/* The header must not carry a publish button: it could not say which build it
+   meant, which is the whole reason publishing moved onto the rows. */
+expect(
+  'publishing happens on a version row, not in the header',
+  /onPublish\(sha256: string\)/.test(read('src/pages/GraphStudioPage.tsx')) &&
+    !/Publish \{data\.version\}/.test(read('src/pages/GraphStudioPage.tsx')),
+  'the header shows the loaded job instead',
+)
+
 /* ---------------- Ask's recorded answers are renderable ---------------- */
 
 /*

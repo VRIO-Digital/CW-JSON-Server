@@ -14,22 +14,26 @@ import {
   Row,
   Space,
   Spin,
-  Table,
   Tabs,
   Tag,
-  Tooltip,
   Typography,
 } from 'antd'
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import type { CanvasNode, PublishedVersion, ReviewChoice } from '../api/client'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import type { CanvasNode, ReviewChoice } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
+import BuildTab from '../components/BuildTab'
 import GraphCanvas from '../components/GraphCanvas'
 import PageHeader from '../components/PageHeader'
 import ReviewQueueItem from '../components/ReviewQueueItem'
 import StatCards from '../components/StatCards'
 import StatusTag from '../components/StatusTag'
-import { selectMustReview, useGraphStudioStore } from '../store/graphStudioStore'
+import VersionsTab from '../components/VersionsTab'
+import {
+  selectMustReview,
+  useGraphBuildStore,
+  useGraphStudioStore,
+} from '../store/graphStudioStore'
 import { SP } from '../theme'
 import type { Stat } from '../types'
 import './GraphStudioPage.css'
@@ -91,6 +95,9 @@ function Inspector({
 export default function GraphStudioPage() {
   const { message } = App.useApp()
   const navigate = useNavigate()
+  /* Named, because `location` is also a global and reading that one would silently
+     return undefined instead of the router's state. */
+  const routerLocation = useLocation()
   const { useCaseId } = useParams<{ useCaseId: string }>()
 
   const data = useGraphStudioStore((s) => s.data)
@@ -98,7 +105,6 @@ export default function GraphStudioPage() {
   const error = useGraphStudioStore((s) => s.error)
   const pending = useGraphStudioStore((s) => s.pending)
   const checking = useGraphStudioStore((s) => s.checking)
-  const publishing = useGraphStudioStore((s) => s.publishing)
   const report = useGraphStudioStore((s) => s.report)
   const canvas = useGraphStudioStore((s) => s.canvas)
   const canvasLoading = useGraphStudioStore((s) => s.canvasLoading)
@@ -106,18 +112,33 @@ export default function GraphStudioPage() {
   const asking = useGraphStudioStore((s) => s.asking)
   const loadCanvas = useGraphStudioStore((s) => s.loadCanvas)
   const ask = useGraphStudioStore((s) => s.ask)
-  const approve = useGraphStudioStore((s) => s.approve)
-  const activate = useGraphStudioStore((s) => s.activate)
   const open = useGraphStudioStore((s) => s.open)
   const decide = useGraphStudioStore((s) => s.decide)
   const choosePivot = useGraphStudioStore((s) => s.choosePivot)
   const check = useGraphStudioStore((s) => s.check)
   const publish = useGraphStudioStore((s) => s.publish)
+  const unpublish = useGraphStudioStore((s) => s.unpublish)
   const mustReview = useGraphStudioStore(selectMustReview)
 
-  const [tab, setTab] = useState('queue')
+  /*
+   * Land on Build when arriving from the wizard's "Save & build graph" — the run
+   * it just started is the thing to watch. Every other arrival lands on the queue,
+   * which is what the studio is for.
+   */
+  const [tab, setTab] = useState(
+    () => (routerLocation.state as { tab?: string } | null)?.tab ?? 'queue',
+  )
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [question, setQuestion] = useState('')
+
+  const builds = useGraphBuildStore((s) => s.history)
+  const shownBuild = useGraphBuildStore((s) => s.shown)
+  const buildsLoading = useGraphBuildStore((s) => s.loading)
+  const buildStarting = useGraphBuildStore((s) => s.starting)
+  const loadBuilds = useGraphBuildStore((s) => s.load)
+  const triggerBuild = useGraphBuildStore((s) => s.start)
+  const showBuild = useGraphBuildStore((s) => s.show)
+  const pollBuild = useGraphBuildStore((s) => s.poll)
 
   useEffect(() => {
     if (useCaseId) void open(useCaseId)
@@ -128,6 +149,37 @@ export default function GraphStudioPage() {
   useEffect(() => {
     if ((tab === 'canvas' || tab === 'query') && useCaseId) void loadCanvas()
   }, [tab, useCaseId, loadCanvas])
+
+  /* The history is loaded on arrival rather than on first opening the tab: a build
+     started by the wizard is already running, and it should be found in flight. */
+  useEffect(() => {
+    if (useCaseId) void loadBuilds(useCaseId)
+  }, [useCaseId, loadBuilds])
+
+  // Polls only while a run is in flight, at half its stage interval so no stage
+  // is missed; the poll that sees it land stops.
+  useEffect(() => {
+    if (shownBuild?.status !== 'running') return
+    const id = window.setInterval(() => void pollBuild(), 350)
+    return () => window.clearInterval(id)
+  }, [shownBuild?.status, pollBuild])
+
+  /*
+   * A finished build has produced a version, and the version rows live in the
+   * studio payload — which is otherwise fetched once, on arrival. Without this
+   * the build you just watched would not appear on Versions until the page was
+   * reloaded: the run says "complete" and the list still shows the ones before it.
+   *
+   * Keyed on the build id so it refreshes once per run, not on every render while
+   * a completed run is on screen.
+   */
+  const refreshedForBuild = useRef<string | null>(null)
+  useEffect(() => {
+    if (!useCaseId || shownBuild?.status !== 'complete') return
+    if (refreshedForBuild.current === shownBuild.buildId) return
+    refreshedForBuild.current = shownBuild.buildId
+    void open(useCaseId)
+  }, [useCaseId, shownBuild?.status, shownBuild?.buildId, open])
 
   const back = (
     <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/graph-studio')}>
@@ -193,13 +245,27 @@ export default function GraphStudioPage() {
     if (!result.ok) message.error(result.error)
   }
 
-  async function onPublish() {
-    const result = await publish()
+  /*
+   * Publishing names a version, so it happens on that version's row. There is no
+   * header publish button any more: "publish" without saying *which build* is the
+   * ambiguity this list exists to remove.
+   */
+  async function onPublish(sha256: string) {
+    const result = await publish(sha256)
     if (!result.ok) {
       message.error(result.error)
       return
     }
-    message.success(`Published ${result.version}.`)
+    message.success('Published — Ask now queries this version.')
+  }
+
+  async function onUnpublish(sha256: string) {
+    const result = await unpublish(sha256)
+    if (!result.ok) {
+      message.error(result.error)
+      return
+    }
+    message.success('Unpublished — Ask no longer serves this graph.')
   }
 
   const reviewQueue = (
@@ -290,23 +356,6 @@ export default function GraphStudioPage() {
     if (!result.ok) message.error(result.error)
   }
 
-  async function onApprove(version: number) {
-    const result = await approve(version)
-    if (!result.ok) {
-      message.error(result.error)
-      return
-    }
-    message.success(`v${version} approved — it can now be made live.`)
-  }
-
-  async function onActivate(version: number) {
-    const result = await activate(version)
-    if (!result.ok) {
-      message.error(result.error)
-      return
-    }
-    message.success(`v${version} is now serving.`)
-  }
 
   const canvasTab =
     canvasLoading && !canvas ? (
@@ -434,85 +483,6 @@ export default function GraphStudioPage() {
     </>
   )
 
-  const versionColumns = [
-    {
-      title: 'Version',
-      dataIndex: 'version',
-      render: (n: number, v: PublishedVersion) => (
-        <Space size={SP.sm}>
-          <span style={{ fontWeight: v.isLive ? 600 : 400 }}>{`v${n}`}</span>
-          {/* Exactly one row serves, and it says so — "newest" stops being a
-              safe guess the moment an older version can be activated. */}
-          {v.isLive ? <StatusTag tone="good">live</StatusTag> : null}
-        </Space>
-      ),
-    },
-    {
-      title: 'Published',
-      dataIndex: 'publishedAt',
-      render: (iso: string) => new Date(iso).toLocaleString(),
-    },
-    { title: 'By', dataIndex: 'publishedBy' },
-    { title: 'Note', dataIndex: 'note' },
-    {
-      title: 'Approval',
-      key: 'approval',
-      // Live and unapproved is a real state, and the gap is the thing worth
-      // seeing — so it is a column, not a hidden flag.
-      render: (_: unknown, v: PublishedVersion) =>
-        v.approval ? (
-          <Tooltip
-            title={`${v.approval.approvedBy} · ${new Date(
-              v.approval.approvedAt,
-            ).toLocaleString()}`}
-          >
-            <span>
-              <StatusTag tone="good">approved</StatusTag>
-            </span>
-          </Tooltip>
-        ) : (
-          <Space size={SP.sm}>
-            <StatusTag tone="warn">awaiting sign-off</StatusTag>
-            <Button
-              size="small"
-              loading={pending === `approve-v${v.version}`}
-              onClick={() => void onApprove(v.version)}
-            >
-              Approve
-            </Button>
-          </Space>
-        ),
-    },
-    {
-      title: 'Serving',
-      key: 'serving',
-      /*
-       * Approval is the gate on going live, so an unapproved version offers no
-       * button at all and says why — a disabled control with no reason reads as
-       * broken. Rolling back to an older approved version is the same action.
-       */
-      render: (_: unknown, v: PublishedVersion) =>
-        v.isLive ? (
-          <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-            serving now
-          </Typography.Text>
-        ) : v.approval ? (
-          <Button
-            size="small"
-            loading={pending === `live-v${v.version}`}
-            onClick={() => void onActivate(v.version)}
-          >
-            Make live
-          </Button>
-        ) : (
-          <Tooltip title="Approve this version before it can serve">
-            <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-              approve first
-            </Typography.Text>
-          </Tooltip>
-        ),
-    },
-  ]
 
   return (
     <>
@@ -529,23 +499,22 @@ export default function GraphStudioPage() {
               <Tag color="success">{`live ${data.liveVersion}`}</Tag>
             ) : null}
             {/*
-              * No quality-check button here — it lives on the Quality report
-              * tab, where its result appears; running it from a header that
-              * then shows nothing was the duplicate worth losing.
+              * Nothing else in this header.
               *
-              * Publish is disabled while the gate is blocked, and the tooltip
-              * says why. The server refuses it too, so the two cannot disagree.
+              * No quality-check button — it lives on the Quality report tab, where
+              * its result appears. And **no publish button**: publishing names a
+              * specific build, so it belongs on that build's row in Versions.
+              * A header "Publish v2…" could not say which of six builds it meant.
+              *
+              * What is here instead is the build the page is showing, so the run
+              * and the graph are never separated.
               */}
-            <Tooltip title={gate.blocked ? gate.reasons.join(' · ') : undefined}>
-              <Button
-                type="primary"
-                loading={publishing}
-                disabled={gate.blocked}
-                onClick={() => void onPublish()}
-              >
-                Publish {data.version}…
-              </Button>
-            </Tooltip>
+            {shownBuild ? (
+              <span className="gs-job">
+                job <code>{shownBuild.buildId.slice(0, 8)}…</code> ·{' '}
+                {shownBuild.status}
+              </span>
+            ) : null}
           </>
         }
       />
@@ -560,6 +529,30 @@ export default function GraphStudioPage() {
         activeKey={tab}
         onChange={setTab}
         items={[
+          {
+            key: 'build',
+            label: 'Build',
+            children: (
+              <BuildTab
+                graphName={`${data.graphName}${data.domainId ? ` · ${data.domainId}` : ''}`}
+                liveVersion={data.liveVersion}
+                builds={builds}
+                shown={shownBuild}
+                starting={buildStarting}
+                loading={buildsLoading}
+                onTrigger={() => {
+                  if (!useCaseId) return
+                  void triggerBuild(useCaseId).then((r) => {
+                    if (!r.ok) message.error(r.error)
+                  })
+                }}
+                onShow={showBuild}
+                onReload={() => {
+                  if (useCaseId) void loadBuilds(useCaseId)
+                }}
+              />
+            ),
+          },
           {
             key: 'queue',
             label: (
@@ -576,15 +569,20 @@ export default function GraphStudioPage() {
             key: 'versions',
             label: 'Versions',
             children: (
-              <Table<PublishedVersion>
-                size="small"
-                rowKey="version"
-                dataSource={data.versions}
-                columns={versionColumns}
-                pagination={false}
-                locale={{
-                  emptyText:
-                    'Nothing published yet — clear the queue, settle the pivot, then publish.',
+              <VersionsTab
+                versions={data.versions}
+                graphName={data.graphName}
+                loadedJob={shownBuild?.buildId ?? null}
+                pending={pending}
+                gateBlocked={gate.blocked}
+                gateReasons={gate.reasons}
+                onPublish={(sha) => void onPublish(sha)}
+                onUnpublish={(sha) => void onUnpublish(sha)}
+                onLoadJob={(buildId) => {
+                  // Show that run on the Build tab and go there — "load this
+                  // version's job" is a navigation, so it navigates.
+                  showBuild(buildId)
+                  setTab('build')
                 }}
               />
             ),

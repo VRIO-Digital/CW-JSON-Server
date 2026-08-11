@@ -35,6 +35,7 @@ import AnswerRequirementsStep from '../components/AnswerRequirementsStep'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import CoverageStep from '../components/CoverageStep'
 import { LlmRunPanel } from '../components/LlmRun'
+import { useGraphBuildStore } from '../store/graphStudioStore'
 import DraftedStep from '../components/DraftedStep'
 import HeroQuestionsStep from '../components/HeroQuestionsStep'
 import SourcesStep from '../components/SourcesStep'
@@ -203,6 +204,8 @@ export default function NewGraphPage() {
   const loadGraphSources = useGraphSourcesStore((s) => s.load)
 
   const derivation = useDerivationStore((s) => s.run)
+  /* Starting the build is the wizard's last act; the studio owns everything after. */
+  const startBuild = useGraphBuildStore((s) => s.start)
   const startingDerivation = useDerivationStore((s) => s.starting)
   const startDerivationRun = useDerivationStore((s) => s.start)
   const pollDerivation = useDerivationStore((s) => s.poll)
@@ -443,13 +446,26 @@ export default function NewGraphPage() {
     }
     setUseCaseId(result.useCase.useCaseId)
     setSavedAt(result.useCase.updatedAt)
-    message.success('Built — opening Graph Studio to review it.')
+
     /*
-     * The build does not end here. What the deriver was unsure about is exactly
-     * what a human has to settle, so committing hands straight to that graph's
-     * studio rather than leaving the user on a finished-looking form.
+     * Committing pins the inputs; the build is the run that follows.
+     *
+     * It is started here, at the click, so the pipeline the studio shows is
+     * genuinely this button's run rather than something the next page kicked off on
+     * arrival. The studio then owns it — a graph is built more than once, so the
+     * pipeline lives where rebuilding does.
      */
-    navigate(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`)
+    const started = await startBuild(result.useCase.useCaseId)
+    if (!started.ok) {
+      // The brief *is* committed; saying otherwise would be worse than the failure.
+      message.warning(`Saved and committed, but the build did not start: ${started.error}`)
+      navigate(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`)
+      return
+    }
+    message.success('Built — watch the pipeline in Graph Studio.')
+    navigate(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`, {
+      state: { tab: 'build' },
+    })
   }
 
   async function next() {

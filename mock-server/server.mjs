@@ -56,14 +56,16 @@
  *   GET    /graph-derivations/:derivationId
  *   GET    /graph-studio                   the graphs that have been built
  *   GET    /graph-studio/:useCaseId        that graph's queue, pivot, gate
+ *   POST   /graph-studio/:id/builds        build (or rebuild); 202 + poll
+ *   GET    /graph-studio/:id/builds        this graph's build history
+ *   GET    /graph-studio/:id/builds/:buildId
  *   POST   /graph-studio/:id/decisions     { item_id, choice, justification? }
  *   POST   /graph-studio/:id/pivot         { option_id }
  *   GET    /graph-studio/:id/canvas        the ontology as nodes + edges
  *   POST   /graph-studio/:id/query         { question } asked of the draft
- *   POST   /graph-studio/:id/versions/:v/approve   sign-off on a published one
- *   POST   /graph-studio/:id/versions/:v/activate  make it the one that serves
+ *   POST   /graph-studio/:id/versions/:sha/publish    gate Ask access to one build
+ *   POST   /graph-studio/:id/versions/:sha/unpublish  take it out of Ask
  *   POST   /graph-studio/:id/quality-check checks the publish preconditions
- *   POST   /graph-studio/:id/publish       refused while the gate is blocked
  *   GET    /ask                            the graphs that are live, so askable
  *   POST   /ask                            { use_case_id, question } asked of the live one
  *   GET    /graph-use-cases                saved drafts + committed use cases
@@ -1384,6 +1386,43 @@ const DERIVATION_STAGES = [
   'Checking coverage against the catalogue',
 ]
 
+/**
+ * The graph build pipeline — what turns a committed brief into a graph.
+ *
+ * Named as the platform names them, so a row on screen matches a row in a log,
+ * and ordered by what depends on what: inputs are pinned first, the structured
+ * side is parsed and joined before entities can be nominated, the document side is
+ * mined separately, the two are reconciled, then resolved, comprehended, and
+ * finally constructed.
+ *
+ * This lives in Graph Studio rather than in the wizard because a graph is built
+ * more than once. Rebuilding after settling review rows is the normal case, so the
+ * runs are kept per graph and the last one stays readable.
+ */
+const BUILD_STAGES = [
+  'pin_inputs',
+  'a01_schema_parsing',
+  'join_matrix',
+  'entity_nomination',
+  'a03_relationship_inference',
+  'a02_document_entity_extraction',
+  'a02b_document_relationship_mining',
+  'a03b_cross_pipeline_reconciliation',
+  'a04_entity_resolution',
+  'a015_comprehension',
+  'a05_graph_construction',
+]
+
+/* 11 stages × 700ms ≈ 7.7s — long enough to watch, short enough that nobody
+   wonders whether it hung. Same reasoning as PIPELINE and DERIVATION_STAGE_MS. */
+const BUILD_STAGE_MS = 700
+
+/**
+ * Every build ever run, newest first, keyed by use case. In memory like every
+ * other run here, so a restart clears the history and the 404 says so.
+ */
+const graphBuildsByUseCase = new Map()
+
 /** Runs in flight, keyed by id. In memory, like every other run in this mock. */
 const derivations = new Map()
 
@@ -1416,6 +1455,134 @@ const derivationView = (run) => ({
   finished_at: run.finished_at,
   coverage: run.status === 'complete' ? run.coverage : null,
 })
+
+/**
+ * A version is a build.
+ *
+ * Every completed build records one immutable, content-addressed row: the graph it
+ * produced, its sha256, what it contains, the config version it was built from, and
+ * the job it came from. Rebuilding the same config produces *another* version of
+ * that config — which is why several rows share `v2` and differ by content hash.
+ *
+ * Nothing here is ever mutated. Publishing flips a pointer to one of these rows; it
+ * does not rewrite the row, and unpublishing puts the pointer back. That is what
+ * "immutable — content-addressed; publishing gates Ask access, it does not mutate
+ * this graph" means on screen, and it has to stay true.
+ */
+const studioVersions = new Map()
+
+/**
+ * The config version a build is built from — `v1` plus the number of times the
+ * brief has been committed. It moves when the *brief* changes, not when a build or
+ * a publish happens, so every rebuild of one brief carries one version label.
+ */
+const studioConfigVersion = new Map()
+
+const configVersion = (useCaseId) => `v${studioConfigVersion.get(useCaseId) ?? 1}`
+
+/** Called when a brief is committed: a new config is a new version to build. */
+function bumpConfigVersion(useCaseId) {
+  studioConfigVersion.set(useCaseId, (studioConfigVersion.get(useCaseId) ?? 1) + 1)
+}
+
+/** Records the version a finished build produced. */
+function recordVersion(run, gatePassed) {
+  const rows = studioVersions.get(run.use_case_id) ?? []
+  const gen = db.graph_studio.generated
+  rows.unshift({
+    /* The content hash *is* the identity — two builds of one config differ here
+       and nowhere else, which is the point of content addressing. */
+    sha256: `${(hash(`sha:${run.build_id}`) % 0xfffffffffff).toString(16)}${(hash(`sha2:${run.build_id}`) % 0xfffffff).toString(16)}`,
+    graph_id: run.graph_version,
+    config_version: run.config_version,
+    entities: gen.entity_total ?? studioCanvas(run.use_case_id).node_count,
+    relationships: studioCanvas(run.use_case_id).edge_count,
+    from_job: run.build_id,
+    created_at: run.finished_at,
+    /*
+     * Whether the publish gate was clear when this build finished. `unknown` is
+     * not a failure — it means nobody had settled the queue and the pivot yet, so
+     * nothing has checked this content. Publishing re-checks; this only reports
+     * what was true at build time.
+     */
+    gate: gatePassed ? 'passed' : 'unknown',
+  })
+  studioVersions.set(run.use_case_id, rows)
+}
+
+/**
+ * Public shape of a build.
+ *
+ * Every stage is listed from the first response with its own state, so the panel
+ * shows the whole pipeline and fills it in — a list that grew a row at a time would
+ * hide how much is left, which is the only thing the panel is for.
+ *
+ * `package_id` and `graph_version` are the run's own, minted when it starts: a
+ * rebuild produces a new graph version, which is the point of rebuilding. They are
+ * *reported*, never derived on the client.
+ */
+const buildView = (run) => ({
+  build_id: run.build_id,
+  use_case_id: run.use_case_id,
+  status: run.status,
+  stage_index: run.stage_index,
+  stage_total: BUILD_STAGES.length,
+  stages: BUILD_STAGES.map((key, i) => ({
+    key,
+    state:
+      i < run.stage_index ? 'complete' : i === run.stage_index ? 'running' : 'pending',
+  })),
+  package_id: run.package_id,
+  graph_version: run.graph_version,
+  /* The config version this build is of — the label its version row carries. */
+  config_version: run.config_version,
+  started_at: run.started_at,
+  finished_at: run.finished_at,
+})
+
+function runGraphBuild(run, useCase) {
+  const step = () => {
+    if (run.status !== 'running') return
+    run.stage_index += 1
+    if (run.stage_index >= BUILD_STAGES.length) {
+      /* One past the last index leaves every row `complete`: the running row is
+         `stage_index`, so a finished run must not point at a real stage. */
+      run.status = 'complete'
+      run.finished_at = new Date().toISOString()
+      // The version exists because the build finished — not because it started.
+      recordVersion(run, studioSummary(useCase).queue_count === 0)
+      return
+    }
+    setTimeout(step, BUILD_STAGE_MS).unref?.()
+  }
+  setTimeout(step, BUILD_STAGE_MS).unref?.()
+}
+
+/** Starts a build for a graph and records it in that graph's history. */
+function startBuildFor(useCase) {
+  const id = useCase.use_case_id
+  const buildId = crypto.randomUUID()
+  const run = {
+    build_id: buildId,
+    use_case_id: id,
+    status: 'running',
+    stage_index: 0,
+    /* Per run, not per graph: two builds of the same brief are two packages, and
+       reporting one id for both would say a rebuild changed nothing. */
+    package_id: `a${(hash(`package:${buildId}`) % 0xfffffff).toString(16).padStart(7, '0')}`,
+    graph_version: `${(hash(`version:${buildId}`) % 0xfffffff).toString(16).padStart(7, '0')}f`,
+    /* The config this build is of. Stable across rebuilds and across publishing —
+       what moves it is a change to the brief. */
+    config_version: configVersion(id),
+    started_at: new Date().toISOString(),
+    finished_at: null,
+  }
+  const history = graphBuildsByUseCase.get(id) ?? []
+  history.unshift(run)
+  graphBuildsByUseCase.set(id, history)
+  runGraphBuild(run, useCase)
+  return run
+}
 
 function runDerivation(run) {
   const names = run.coverage.elements
@@ -1560,32 +1727,39 @@ function graphSources() {
  */
 const studioDecisions = new Map()
 const studioPivotChoice = new Map()
-const studioPublished = new Map()
-/** Sign-off on a published version, keyed `useCaseId:version`. */
-const studioApprovals = new Map()
 /*
- * Which published version is *serving*, keyed by use case. Publishing sets it,
- * and activating an older one moves it — so "latest" and "live" are not the
- * same thing, and a rollback is expressible.
+ * Which version is published, keyed by use case — the **content hash** of one
+ * build, not a number. One pointer: publishing sets it, unpublishing clears it, and
+ * publishing a different row moves it. The version rows themselves are never
+ * touched, which is what makes them immutable.
  */
 const studioLive = new Map()
 
 const FLOORS = ['schema-changing', 'causal', 'new entity type']
 
 /**
- * The version currently serving.
+ * The published version — the one Ask may query, or null.
  *
- * Defaults to the newest published, because that is what publishing just did —
- * but once someone activates an older one, that choice stands until they change
- * it again. Returns null before anything is published.
+ * **One pointer, not a chain.** Publishing points here and unpublishing clears it;
+ * there is no separate approve or activate step. That is a deliberate narrowing of
+ * an earlier three-act model (publish → approve → activate), and the cost is
+ * explicit: there is no recorded human sign-off and no rollback to an older
+ * version other than publishing it again. What survives is the part that matters
+ * for correctness — a gate that refuses to publish unreviewed content, and Ask
+ * refusing anything unpublished.
+ */
+function publishedVersion(useCaseId) {
+  const sha = studioLive.get(useCaseId)
+  if (!sha) return null
+  return (studioVersions.get(useCaseId) ?? []).find((v) => v.sha256 === sha) ?? null
+}
+
+/**
+ * The label of what is serving, for the pages that print it. Null before anything
+ * is published — no version number is invented to fill the tag.
  */
 function liveVersion(useCaseId) {
-  const published = studioPublished.get(useCaseId) ?? []
-  if (published.length === 0) return null
-  const chosen = studioLive.get(useCaseId)
-  return chosen && published.some((v) => v.version === chosen)
-    ? chosen
-    : published[0].version
+  return publishedVersion(useCaseId)?.config_version ?? null
 }
 
 /** A graph is in the studio once it has been built — committed on step 7. */
@@ -1657,7 +1831,7 @@ function studioSummary(useCase) {
     db.graph_studio.review_items,
   ).filter((i) => !studioDecisions.get(`${useCase.use_case_id}:${i.item_id}`)).length
   const pivotOpen = !studioPivotChoice.has(useCase.use_case_id)
-  const published = studioPublished.get(useCase.use_case_id) ?? []
+  const versions = studioVersions.get(useCase.use_case_id) ?? []
 
   return {
     use_case_id: useCase.use_case_id,
@@ -1665,22 +1839,23 @@ function studioSummary(useCase) {
     domain_id: useCase.domain_id ?? null,
     business_need: useCase.business_need ?? '',
     /*
-     * `version` is the *working draft* — what the Publish button would make
-     * live. What is serving is a separate fact: after publishing v15 the draft
-     * becomes v16, and reporting that as "published v16" would name a version
-     * nobody has ever seen. It is also not simply the newest — an older
-     * approved version can be activated.
+     * `version` is the **config** version — what a build of this brief would be a
+     * version *of*. It moves when the brief is committed again, not when a build
+     * runs and not when something is published, which is why several builds share
+     * one label and differ by content hash.
      */
-    version: `v${15 + published.length}`,
-    live_version: liveVersion(useCase.use_case_id)
-      ? `v${liveVersion(useCase.use_case_id)}`
-      : null,
-    // "draft" until something has been published from this graph.
-    state: published.length > 0 ? 'published' : 'draft',
+    version: configVersion(useCase.use_case_id),
+    // What is serving, or null. Never a number invented to fill the tag.
+    live_version: liveVersion(useCase.use_case_id),
+    // "draft" until one of this graph's versions is published.
+    state: publishedVersion(useCase.use_case_id) ? 'published' : 'draft',
     queue_count: outstanding + (pivotOpen ? 1 : 0),
     must_review_outstanding: outstanding,
     must_review_count: gen.must_review_total,
-    published_count: published.length,
+    /* Builds that produced a version — the length of the Versions list, not a
+       count of publishes. A graph has many versions and at most one published. */
+    version_count: versions.length,
+    published_count: publishedVersion(useCase.use_case_id) ? 1 : 0,
     built_at: useCase.updated_at ?? null,
   }
 }
@@ -1703,7 +1878,6 @@ function graphStudio(useCase) {
 
   const outstanding = mustReview.filter((i) => !i.decision).length
   const pivotOpen = !studioPivotChoice.has(id)
-  const published = studioPublished.get(id) ?? []
 
   /*
    * The pivot is a *separate* precondition from the queue. Clearing every row
@@ -1752,16 +1926,14 @@ function graphStudio(useCase) {
     },
 
     /*
-     * Publishing and approving are two acts. A published version is live; an
-     * approved one has been signed off by a human who was not the publisher's
-     * automation — so the approval is carried beside it, never folded in.
+     * One row per build that finished — every version this graph has ever had,
+     * newest first. The rows are immutable: `published` is a pointer, so
+     * publishing a different one flips exactly one boolean here and rewrites
+     * nothing.
      */
-    versions: published.map((v) => ({
+    versions: (studioVersions.get(id) ?? []).map((v) => ({
       ...v,
-      approval: studioApprovals.get(`${id}:${v.version}`) ?? null,
-      // Exactly one row is live, and the table says which — "newest" is a
-      // guess once rollback exists.
-      is_live: v.version === liveVersion(id),
+      published: v.sha256 === studioLive.get(id),
     })),
   }
 }
@@ -2059,22 +2231,25 @@ function askCaveats(useCase) {
  * prompt someone thought sounded good.
  */
 function askableGraph(useCase) {
-  const version = liveVersion(useCase.use_case_id)
-  if (version === null) return null
+  /* The published version *is* the precondition: Ask has nothing to query until a
+     specific build has been published, and unpublishing takes it away again. */
+  const published = publishedVersion(useCase.use_case_id)
+  if (!published) return null
 
-  const published = (studioPublished.get(useCase.use_case_id) ?? []).find(
-    (v) => v.version === version,
-  )
   const canvas = studioCanvas(useCase.use_case_id)
 
   return {
     use_case_id: useCase.use_case_id,
     name: useCase.name,
     domain_id: useCase.domain_id ?? null,
-    // The live version, never the draft counter — Ask cannot query a draft.
-    version: `v${version}`,
-    published_at: published?.published_at ?? null,
-    published_by: published?.published_by ?? null,
+    // The published version, never a draft — Ask cannot query one.
+    version: published.config_version,
+    /* When that build finished, and the content it is. Ask prints both, because
+       "which graph answered this" is a question a reader is entitled to ask. */
+    published_at: published.created_at,
+    published_by: db.google_account.email,
+    graph_id: published.graph_id,
+    sha256: published.sha256,
     // Step 6 decided this, so the engine never picks at runtime.
     citations: useCase.citations === 'optional' ? 'optional' : 'required',
     caveats: askCaveats(useCase),
@@ -3918,79 +4093,132 @@ const routes = [
   },
 
   /*
-   * Sign-off on a published version. Separate from publishing on purpose: an
-   * approval records that a human read the report, and a version can be live
-   * and unapproved — that gap is the thing worth seeing.
+   * Publishing a version, and unpublishing it.
+   *
+   * **One pointer, and it names a content hash.** Publishing does not mutate the
+   * version it points at — the rows are content-addressed and immutable — it
+   * decides which one Ask may query. Unpublishing clears the pointer, which takes
+   * the graph out of Ask without deleting anything.
+   *
+   * The gate is unchanged: an unreviewed graph cannot be published, whichever
+   * version is chosen. A row may still *offer* Publish while its `gate` reads
+   * `unknown` — the refusal explains what is outstanding, which is more use than a
+   * disabled button with no reason.
    */
   {
     method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/versions\/\d+\/approve$/.test(p),
-    handle: async (req, res, { pathname }) => {
-      const [, , rawId, , rawVersion] = pathname.split('/')
+    match: (p) => /^\/graph-studio\/[^/]+\/versions\/[0-9a-f]+\/publish$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const [, , rawId, , sha] = pathname.split('/')
       const id = decodeURIComponent(rawId)
       const found = findBuiltGraph(id)
       if (found.error) return send(res, found.status, { error: found.error })
 
-      const version = Number(rawVersion)
-      const published = studioPublished.get(id) ?? []
-      if (!published.some((v) => v.version === version)) {
+      const row = (studioVersions.get(id) ?? []).find((v) => v.sha256 === sha)
+      if (!row) {
         return send(res, 404, {
-          error: `v${version} has not been published for this graph`,
-        })
-      }
-      const key = `${id}:${version}`
-      if (studioApprovals.has(key)) {
-        return send(res, 400, {
-          error: `v${version} is already approved by ${studioApprovals.get(key).approved_by}`,
+          error:
+            `no version ${sha} for ${id} — versions live in memory, so restarting ` +
+            'the mock server clears them. Build the graph again.',
         })
       }
 
-      const { note } = await readJson(req).catch(() => ({}))
-      studioApprovals.set(key, {
-        approved_by: db.google_account.email,
-        approved_at: new Date().toISOString(),
-        note: String(note ?? '').trim() || null,
-      })
-      send(res, 200, { version, studio: graphStudio(found.useCase) })
+      const gate = graphStudio(found.useCase).publish
+      if (gate.blocked) {
+        return send(res, 400, {
+          error: `publish is blocked — ${gate.reasons.join(' · ')}`,
+          reasons: gate.reasons,
+        })
+      }
+
+      studioLive.set(id, sha)
+      send(res, 200, { published: sha, studio: graphStudio(found.useCase) })
+    },
+  },
+
+  {
+    method: 'POST',
+    match: (p) => /^\/graph-studio\/[^/]+\/versions\/[0-9a-f]+\/unpublish$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const [, , rawId, , sha] = pathname.split('/')
+      const id = decodeURIComponent(rawId)
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+
+      if (studioLive.get(id) !== sha) {
+        return send(res, 400, {
+          error: `version ${sha} is not the published one — nothing to unpublish`,
+        })
+      }
+      /* Ask loses this graph the moment the pointer clears, which is the point:
+         unpublishing is how a graph is taken out of service. */
+      studioLive.delete(id)
+      send(res, 200, { published: null, studio: graphStudio(found.useCase) })
     },
   },
 
   /*
-   * Make a published version the one that serves — including an older one, which
-   * is what a rollback is.
+   * Building the graph, and rebuilding it.
    *
-   * **Approval is the gate.** Publishing puts a version on the shelf; approving
-   * says a human read the report; activating points traffic at it. Allowing an
-   * unapproved version to serve would make the approval decorative, so this
-   * refuses with the fix rather than quietly obeying.
+   * 202 with a queued run — the same contract as a profiling job, deliberately,
+   * rather than a third pattern for "a run the page watches". A build is repeatable
+   * on purpose: settling review rows changes what a build produces, so the normal
+   * case is running it again, and every run is kept so the last one stays readable.
+   *
+   * A draft is refused by `findBuiltGraph`, which is exactly the precondition —
+   * the first stage is `pin_inputs`, and there is nothing to pin until the brief
+   * is committed. Its message already says how to fix it.
    */
   {
     method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/versions\/\d+\/activate$/.test(p),
+    match: (p) => /^\/graph-studio\/[^/]+\/builds$/.test(p),
     handle: (_req, res, { pathname }) => {
-      const [, , rawId, , rawVersion] = pathname.split('/')
-      const id = decodeURIComponent(rawId)
+      const id = decodeURIComponent(
+        pathname.slice('/graph-studio/'.length, -'/builds'.length),
+      )
       const found = findBuiltGraph(id)
       if (found.error) return send(res, found.status, { error: found.error })
+      send(res, 202, buildView(startBuildFor(found.useCase)))
+    },
+  },
 
-      const version = Number(rawVersion)
-      const published = studioPublished.get(id) ?? []
-      if (!published.some((v) => v.version === version)) {
+  // This graph's build history, newest first — what the run picker lists.
+  {
+    method: 'GET',
+    match: (p) => /^\/graph-studio\/[^/]+\/builds$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/graph-studio/'.length, -'/builds'.length),
+      )
+      const found = findBuiltGraph(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const history = graphBuildsByUseCase.get(id) ?? []
+      send(res, 200, {
+        use_case_id: id,
+        builds: history.map(buildView),
+        count: history.length,
+      })
+    },
+  },
+
+  // One run, polled while it is in flight.
+  {
+    method: 'GET',
+    match: (p) => /^\/graph-studio\/[^/]+\/builds\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const rest = pathname.slice('/graph-studio/'.length)
+      const cut = rest.indexOf('/builds/')
+      const id = decodeURIComponent(rest.slice(0, cut))
+      const buildId = decodeURIComponent(rest.slice(cut + '/builds/'.length))
+      const run = (graphBuildsByUseCase.get(id) ?? []).find(
+        (b) => b.build_id === buildId,
+      )
+      if (!run) {
         return send(res, 404, {
-          error: `v${version} has not been published for this graph`,
+          error: `no build ${buildId} for ${id} — builds live in memory, so restarting the mock server clears them. Trigger a build again.`,
         })
       }
-      if (!studioApprovals.has(`${id}:${version}`)) {
-        return send(res, 400, {
-          error: `v${version} has not been approved — approve it before making it live`,
-        })
-      }
-      if (liveVersion(id) === version) {
-        return send(res, 400, { error: `v${version} is already live` })
-      }
-
-      studioLive.set(id, version)
-      send(res, 200, { live: version, studio: graphStudio(found.useCase) })
+      send(res, 200, buildView(run))
     },
   },
 
@@ -4065,38 +4293,6 @@ const routes = [
     },
   },
 
-  {
-    method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/publish$/.test(p),
-    handle: (_req, res, { pathname }) => {
-      const id = decodeURIComponent(
-        pathname.slice('/graph-studio/'.length, -'/publish'.length),
-      )
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-
-      const studio = graphStudio(found.useCase)
-      // The gate the page shows and the gate the server enforces are the same
-      // list, so a publish cannot slip through a UI that forgot to disable.
-      if (studio.publish.blocked) {
-        return send(res, 400, {
-          error: `publish is blocked — ${studio.publish.reasons.join(' · ')}`,
-          reasons: studio.publish.reasons,
-        })
-      }
-      const published = {
-        version: Number(studio.version.slice(1)),
-        published_at: new Date().toISOString(),
-        published_by: db.google_account.email,
-        note: `${studio.must_review_count} floor decisions · pivot ${studio.pivot.chosen}.`,
-      }
-      studioPublished.set(id, [published, ...(studioPublished.get(id) ?? [])])
-      // Publishing serves what it just published — an explicit rollback is the
-      // only thing that moves it elsewhere.
-      studioLive.set(id, published.version)
-      send(res, 200, { published, studio: graphStudio(found.useCase) })
-    },
-  },
 
   /*
    * The graphs Ask can query: the ones that are live.
@@ -4430,6 +4626,16 @@ const routes = [
             )
           : [record, ...db.graph_use_cases],
       })
+
+      /*
+       * A newly committed brief is a new config, so the version label moves. It is
+       * bumped here and nowhere else — not on a build and not on a publish — which
+       * is why every build of one brief carries one label and they differ only by
+       * content hash. Saving a *draft* changes nothing: a draft cannot be built.
+       */
+      if (status === 'committed' && existing?.status !== 'committed') {
+        bumpConfigVersion(record.use_case_id)
+      }
 
       send(res, existing ? 200 : 201, { saved: true, use_case: savedUseCase(record) })
     },

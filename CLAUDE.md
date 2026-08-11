@@ -474,7 +474,28 @@ all read that one list. Publishing makes the draft's *own* version live
 Decisions and the pivot live in memory, keyed `useCaseId:itemId`, so two graphs
 cannot answer each other's rows.
 
-**The five tabs are one truth, not five pictures.**
+**Building lives here, not in the wizard, because a graph is built more than
+once.** `POST /graph-studio/:id/builds` answers **202 with a queued run** — the
+same contract as a profiling job — and the **Build** tab polls it. Eleven stages
+(`BUILD_STAGES`, `pin_inputs` → `a05_graph_construction`, ~7.7s) tick over, every
+run is kept in that graph's history, and an earlier one stays loadable. Settling
+review rows changes what a build produces, so **Rebuild** is the normal case, not
+an escape hatch.
+
+New Graph's "Save & build graph" commits the brief, starts the build **at the
+click**, then navigates to this tab — so the pipeline on screen is that button's
+run, not something this page kicked off on arrival. Do not move the build back into
+the wizard, and do not let the commit stand in for it: committing is instantaneous,
+which is exactly why it is stage one (`pin_inputs`) rather than the whole thing.
+
+**A build does not publish.** It reports the draft version it produced
+(`draft_version`, the same number the Publish button would make live) and says to
+publish it from Versions; the gate is unchanged and still refuses while the queue
+or the pivot is open. `package_id` and `graph_version` are minted **per run**, so a
+rebuild is visibly a different package — reporting one id for both would say a
+rebuild changed nothing.
+
+**The six tabs are one truth, not six pictures.**
 
 - **Canvas** draws the ontology as hand-written inline SVG — no graph library,
   for the same reason the mock server has no dependencies. Positions come from
@@ -491,33 +512,45 @@ cannot answer each other's rows.
   answerable *and* flagged provisional. Matching needs the whole label or a word
   unique to one node, or "work order" would silently answer about Change Order.
 - **Quality report** re-runs the same three preconditions the publish gate uses.
-- **Versions** lists **only published versions**, and separates three acts that
-  are easy to conflate: *publishing* puts a version on the shelf, *approving*
-  records that a human read the report, and *activating* points the graph at it.
-  Approval is the gate on the third — `POST …/versions/:v/activate` refuses an
-  unapproved version, so a sign-off is never decorative. Approving twice is
-  refused naming who did it; activating what is already live is refused too.
+- **Versions** lists **every version, which is to say every build** — newest
+  first, one row each, from `studioVersions`. A row carries what identifies it
+  (`sha256`), what it is (`entities`, `relationships`, `graph_id`), where it came
+  from (`from_job`), the config it is a version of (`config_version`), and whether
+  the gate had passed when it finished.
 
-**Live is not "the newest".** Any approved version can be activated, which is
-what a rollback is, so `liveVersion` is tracked explicitly and each row carries
-`isLive` — exactly one does. Publishing sets it to what it just published;
-nothing else moves it.
+**A version is content-addressed and immutable.** `sha256` is its identity: two
+builds of one brief differ there and nowhere else, which is why several rows read
+`v2`. **Publishing flips a pointer, it never rewrites a row** — `studioLive` holds
+one content hash per graph, `published` on each row is computed from it, and
+unpublishing clears it. The copy on every row says exactly this, so it has to stay
+true: *immutable — content-addressed; publishing gates Ask access, it does not
+mutate this graph.*
 
-**The draft version and the live version are two facts, and only one is worth
-showing.** `version` is the working draft — what Publish would make live — and
-`liveVersion` is what is serving. Publishing v15 moves the draft to v16, so one
-tag rendering both reads "published v16", a version nobody has seen. The pages
-show **`live v15` only**; the draft number appears on the Publish button
-(`Publish v16…`), which is the one place it means anything. Do not add a
-`draft vN` tag back — an internal counter beside a real version reads as history
-nobody asked for.
+**Publish and unpublish, and nothing between them.** An earlier model separated
+three acts (publish → approve → activate); that was collapsed on request. What was
+lost is explicit: there is **no recorded human sign-off**, and a rollback is
+publishing an older row rather than activating an approved one. What survives is
+the part that protects correctness — the gate still refuses an unreviewed graph
+whichever row is chosen, and Ask still refuses anything unpublished. **Publishing
+an older row is the rollback**, and it works because any row may be published.
+
+**The config version moves when the brief does.** `configVersion` is bumped by
+committing a brief — not by a build and not by a publish — so every build of one
+brief shares a label and they are told apart by content. A version counter that
+moved on publish would relabel history.
+
+**Publishing names a build, so it happens on that build's row.** There is no
+header publish button: "Publish v2…" could not say which of six builds it meant.
+The header shows the loaded job instead. Do not add a header publish button back.
 
 ### Ask (`/ask`)
 
-Where a *published* graph gets used. **Ask queries the live version, and only
-the live version** — `GET /ask` lists the graphs `liveVersion()` returns
-something for, so a draft is absent and a built-but-unpublished graph is
-absent too. Both are still counted (`built_count`, `draft_count`), because
+Where a *published* graph gets used. **Ask queries the published version, and only
+that one** — `GET /ask` lists the graphs `publishedVersion()` returns a row for, so
+a draft is absent, a built-but-unpublished graph is absent, and **unpublishing
+takes a graph out of Ask immediately**. It reports the content it answered from
+(`graph_id`, `sha256`), because "which build answered this" is a question a reader
+is entitled to ask. Both are still counted (`built_count`, `draft_count`), because
 "finish the wizard" and "press Publish" are different fixes and the empty page
 has to name the right one. `POST /ask` refuses an unpublished graph with the
 sentence that says so.

@@ -1,16 +1,19 @@
 import { create } from 'zustand'
 import {
-  activateVersion,
-  approveVersion,
   askStudio,
   decideReviewItem,
+  getGraphBuild,
   getGraphStudio,
   getStudioCanvas,
+  listGraphBuilds,
   listStudioGraphs,
-  publishGraph,
+  publishVersion,
   resolvePivot,
   runQualityCheck,
+  startGraphBuild,
+  unpublishVersion,
   type CanvasPayload,
+  type GraphBuild,
   type GraphStudioPayload,
   type QualityReport,
   type QueryAnswer,
@@ -49,11 +52,11 @@ interface StudioState {
   }) => Promise<Result>
   choosePivot: (optionId: string) => Promise<Result>
   check: () => Promise<Result>
-  publish: () => Promise<{ ok: true; version: string } | { ok: false; error: string }>
+  /** Both name a version by its content hash — the identity of one build. */
+  publish: (sha256: string) => Promise<Result>
+  unpublish: (sha256: string) => Promise<Result>
   loadCanvas: () => Promise<void>
   ask: (question: string) => Promise<Result>
-  approve: (version: number, note?: string) => Promise<Result>
-  activate: (version: number) => Promise<Result>
 }
 
 const EMPTY_ITEMS: ReviewItem[] = []
@@ -143,18 +146,35 @@ export const useGraphStudioStore = create<StudioState>()((set, get) => ({
     }
   },
 
-  publish: async () => {
+  /*
+   * Publish or unpublish one version, named by its content hash. Keyed into
+   * `pending` per row, so two rows' buttons spin independently.
+   */
+  publish: async (sha256) => {
     const useCaseId = get().useCaseId
     if (!useCaseId) return { ok: false, error: 'No graph is open.' }
-    set({ publishing: true })
+    set({ pending: `publish-${sha256}` })
     try {
-      const studio = await publishGraph(useCaseId)
-      set({ data: studio })
-      return { ok: true, version: studio.version }
+      set({ data: await publishVersion(useCaseId, sha256) })
+      return { ok: true }
     } catch (error) {
       return { ok: false, error: toMessage(error) }
     } finally {
-      set({ publishing: false })
+      set({ pending: null })
+    }
+  },
+
+  unpublish: async (sha256) => {
+    const useCaseId = get().useCaseId
+    if (!useCaseId) return { ok: false, error: 'No graph is open.' }
+    set({ pending: `unpublish-${sha256}` })
+    try {
+      set({ data: await unpublishVersion(useCaseId, sha256) })
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: toMessage(error) }
+    } finally {
+      set({ pending: null })
     }
   },
 
@@ -188,32 +208,88 @@ export const useGraphStudioStore = create<StudioState>()((set, get) => ({
     }
   },
 
-  approve: async (version, note) => {
-    const useCaseId = get().useCaseId
-    if (!useCaseId) return { ok: false, error: 'No graph is open.' }
-    set({ pending: `approve-v${version}` })
+}))
+
+interface BuildState {
+  /** This graph's runs, newest first. */
+  history: GraphBuild[]
+  /** The one on screen — the newest on arrival, or whichever was loaded. */
+  shown: GraphBuild | null
+  loading: boolean
+  starting: boolean
+  error: string | null
+
+  load: (useCaseId: string) => Promise<void>
+  start: (useCaseId: string) => Promise<Result>
+  /** Show a past run instead of the newest. */
+  show: (buildId: string) => void
+  /** One poll. The page owns the interval and stops it when the run lands. */
+  poll: () => Promise<void>
+}
+
+const EMPTY_BUILDS: GraphBuild[] = []
+
+/**
+ * The Build tab's state.
+ *
+ * Its own store rather than more fields on the studio's: a build polls every few
+ * hundred milliseconds, and putting it in the payload every tab reads would
+ * re-render the review queue for each stage.
+ */
+export const useGraphBuildStore = create<BuildState>()((set, get) => ({
+  history: EMPTY_BUILDS,
+  shown: null,
+  loading: false,
+  starting: false,
+  error: null,
+
+  load: async (useCaseId) => {
+    set({ loading: true })
     try {
-      set({ data: await approveVersion(useCaseId, version, note) })
-      return { ok: true }
+      const history = await listGraphBuilds(useCaseId)
+      /* Land on the newest run — a graph that was just built has one in flight,
+         and that is the thing the user came to watch. */
+      set({ history, shown: history[0] ?? null, error: null, loading: false })
     } catch (error) {
-      return { ok: false, error: toMessage(error) }
-    } finally {
-      set({ pending: null })
+      // A failed reload keeps whatever was on screen.
+      set({ error: toMessage(error), loading: false })
     }
   },
 
-  activate: async (version) => {
-    const useCaseId = get().useCaseId
-    if (!useCaseId) return { ok: false, error: 'No graph is open.' }
-    // Keyed apart from approve so the two buttons on one row spin separately.
-    set({ pending: `live-v${version}` })
+  start: async (useCaseId) => {
+    set({ starting: true, error: null })
     try {
-      set({ data: await activateVersion(useCaseId, version) })
+      const run = await startGraphBuild(useCaseId)
+      set({ shown: run, history: [run, ...get().history] })
       return { ok: true }
     } catch (error) {
-      return { ok: false, error: toMessage(error) }
+      const msg = toMessage(error)
+      set({ error: msg })
+      return { ok: false, error: msg }
     } finally {
-      set({ pending: null })
+      set({ starting: false })
+    }
+  },
+
+  show: (buildId) => {
+    const run = get().history.find((b) => b.buildId === buildId)
+    if (run) set({ shown: run })
+  },
+
+  poll: async () => {
+    const current = get().shown
+    if (!current || current.status === 'complete') return
+    try {
+      const run = await getGraphBuild(current.useCaseId, current.buildId)
+      set({
+        shown: run,
+        // Keep the history row in step, so the picker's label stops saying
+        // "running" once the run it names has finished.
+        history: get().history.map((b) => (b.buildId === run.buildId ? run : b)),
+      })
+    } catch (error) {
+      // A failed poll leaves the last known stage rather than blanking the panel.
+      set({ error: toMessage(error) })
     }
   },
 }))

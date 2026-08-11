@@ -800,22 +800,31 @@ export interface StudioPivot {
   chosen: string | null
 }
 
-/** Sign-off, recorded beside a live version — never folded into it. */
-export interface VersionApproval {
-  approvedBy: string
-  approvedAt: string
-  note: string | null
-}
-
-export interface PublishedVersion {
-  version: number
-  publishedAt: string
-  publishedBy: string
-  note: string
-  /** Null while a version is published but nobody has signed it off. */
-  approval: VersionApproval | null
-  /** Exactly one row is serving. Not necessarily the newest — see rollback. */
-  isLive: boolean
+/**
+ * One version of a graph — that is, one build of it.
+ *
+ * Immutable and content-addressed: `sha256` is the identity, and two builds of one
+ * config differ there and nowhere else. Publishing flips `published` on exactly one
+ * row; it never rewrites a row.
+ */
+export interface GraphVersion {
+  /** The content hash. The identity, and what publish/unpublish name. */
+  sha256: string
+  graphId: string
+  /** The config this is a version of — shared by every build of one brief. */
+  configVersion: string
+  entities: number
+  relationships: number
+  /** The build that produced it, so a version can be traced to its run. */
+  fromJob: string
+  createdAt: string
+  /**
+   * Whether the publish gate was clear when this build finished. `unknown` is not
+   * a failure — nobody had settled the queue and pivot yet, so nothing checked it.
+   */
+  gate: 'passed' | 'unknown'
+  /** At most one row is true. Ask queries that one and no other. */
+  published: boolean
 }
 
 /* ---------------- Canvas ---------------- */
@@ -894,7 +903,8 @@ export interface GraphStudioPayload extends StudioGraph {
   batchResolved: number
   batchTotal: number
   publish: { blocked: boolean; reasons: string[]; explanation: string }
-  versions: PublishedVersion[]
+  /** Every build that produced a version, newest first. */
+  versions: GraphVersion[]
 }
 
 export interface QualityCheck {
@@ -1001,6 +1011,32 @@ export interface DerivationRun {
   costUsd: number
   costCapUsd: number
   coverage: CoveragePayload | null
+}
+
+/** One stage of the build pipeline, and where it has got to. */
+export interface BuildStage {
+  /** The platform's own name, so a row matches a log line. */
+  key: string
+  state: 'pending' | 'running' | 'complete'
+}
+
+/**
+ * One build of a graph. Every stage is present from the first response, so the
+ * panel shows the whole pipeline and fills it in rather than growing a row.
+ */
+export interface GraphBuild {
+  buildId: string
+  useCaseId: string
+  status: 'running' | 'complete'
+  stageIndex: number
+  stageTotal: number
+  stages: BuildStage[]
+  packageId: string
+  graphVersion: string
+  /** What Publish would make live — the studio's working draft number. */
+  draftVersion: string
+  startedAt: string
+  finishedAt: string | null
 }
 
 export interface UseCasesPayload {
@@ -1618,6 +1654,26 @@ const DERIVATION_PAYLOAD = shape({
   cost_cap_usd: num,
 })
 
+const GRAPH_BUILD = shape({
+  build_id: str,
+  use_case_id: str,
+  status: oneOf(['running', 'complete']),
+  stage_index: num,
+  stage_total: num,
+  stages: arrayOf(shape({ key: str, state: oneOf(['pending', 'running', 'complete']) })),
+  package_id: str,
+  graph_version: str,
+  draft_version: str,
+  started_at: str,
+  finished_at: nullable(str),
+})
+
+const GRAPH_BUILDS_PAYLOAD = shape({
+  use_case_id: str,
+  builds: arrayOf(GRAPH_BUILD),
+  count: num,
+})
+
 const USE_CASES_PAYLOAD = shape({
   use_cases: arrayOf(USE_CASE),
   count: num,
@@ -1773,14 +1829,15 @@ const GRAPH_STUDIO_PAYLOAD = shape({
   publish: shape({ blocked: bool, reasons: arrayOf(str), explanation: str }),
   versions: arrayOf(
     shape({
-      version: num,
-      published_at: str,
-      published_by: str,
-      note: str,
-      approval: nullable(
-        shape({ approved_by: str, approved_at: str, note: nullable(str) }),
-      ),
-      is_live: bool,
+      sha256: str,
+      graph_id: str,
+      config_version: str,
+      entities: num,
+      relationships: num,
+      from_job: str,
+      created_at: str,
+      gate: oneOf(['passed', 'unknown']),
+      published: bool,
     }),
   ),
 })
@@ -3016,12 +3073,15 @@ interface RawStudio extends RawStudioGraph {
   batch_total: number
   publish: { blocked: boolean; reasons: string[]; explanation: string }
   versions: {
-    version: number
-    published_at: string
-    published_by: string
-    note: string
-    approval: { approved_by: string; approved_at: string; note: string | null } | null
-    is_live: boolean
+    sha256: string
+    graph_id: string
+    config_version: string
+    entities: number
+    relationships: number
+    from_job: string
+    created_at: string
+    gate: 'passed' | 'unknown'
+    published: boolean
   }[]
 }
 
@@ -3086,18 +3146,15 @@ const toStudio = (raw: RawStudio): GraphStudioPayload => ({
   batchTotal: raw.batch_total,
   publish: raw.publish,
   versions: raw.versions.map((v) => ({
-    version: v.version,
-    publishedAt: v.published_at,
-    publishedBy: v.published_by,
-    note: v.note,
-    approval: v.approval
-      ? {
-          approvedBy: v.approval.approved_by,
-          approvedAt: v.approval.approved_at,
-          note: v.approval.note,
-        }
-      : null,
-    isLive: v.is_live,
+    sha256: v.sha256,
+    graphId: v.graph_id,
+    configVersion: v.config_version,
+    entities: v.entities,
+    relationships: v.relationships,
+    fromJob: v.from_job,
+    createdAt: v.created_at,
+    gate: v.gate,
+    published: v.published,
   })),
 })
 
@@ -3241,10 +3298,70 @@ export async function resolvePivot(
   )
 }
 
-export async function publishGraph(useCaseId: string): Promise<GraphStudioPayload> {
-  return withStudio(
-    'The published graph',
-    await request<unknown>(`${studioPath(useCaseId)}/publish`, { method: 'POST' }),
+type RawGraphBuild = {
+  build_id: string
+  use_case_id: string
+  status: 'running' | 'complete'
+  stage_index: number
+  stage_total: number
+  stages: BuildStage[]
+  package_id: string
+  graph_version: string
+  draft_version: string
+  started_at: string
+  finished_at: string | null
+}
+
+const toGraphBuild = (raw: RawGraphBuild): GraphBuild => ({
+  buildId: raw.build_id,
+  useCaseId: raw.use_case_id,
+  status: raw.status,
+  stageIndex: raw.stage_index,
+  stageTotal: raw.stage_total,
+  stages: raw.stages,
+  packageId: raw.package_id,
+  graphVersion: raw.graph_version,
+  draftVersion: raw.draft_version,
+  startedAt: raw.started_at,
+  finishedAt: raw.finished_at,
+})
+
+const studioBuildsPath = (useCaseId: string) =>
+  `/graph-studio/${encodeURIComponent(useCaseId)}/builds`
+
+/** Builds, or rebuilds. Answers 202 with a queued run, not a finished graph. */
+export async function startGraphBuild(useCaseId: string): Promise<GraphBuild> {
+  return toGraphBuild(
+    validate<RawGraphBuild>(
+      'The graph build',
+      await request<unknown>(studioBuildsPath(useCaseId), { method: 'POST' }),
+      GRAPH_BUILD,
+    ),
+  )
+}
+
+/** This graph's runs, newest first. */
+export async function listGraphBuilds(useCaseId: string): Promise<GraphBuild[]> {
+  const raw = validate<{ builds: RawGraphBuild[] }>(
+    'The build history',
+    await request<unknown>(studioBuildsPath(useCaseId)),
+    GRAPH_BUILDS_PAYLOAD,
+  )
+  return raw.builds.map(toGraphBuild)
+}
+
+export async function getGraphBuild(
+  useCaseId: string,
+  buildId: string,
+): Promise<GraphBuild> {
+  return toGraphBuild(
+    validate<RawGraphBuild>(
+      'The graph build',
+      await request<unknown>(
+        `${studioBuildsPath(useCaseId)}/${encodeURIComponent(buildId)}`,
+      ),
+      GRAPH_BUILD,
+    ),
   )
 }
 
@@ -3302,31 +3419,33 @@ export async function askStudio(
   }
 }
 
-export async function approveVersion(
+/**
+ * Publish one version — gate Ask's access to that exact content.
+ *
+ * Named by content hash, not by a number: what is published is a specific build.
+ * Publishing an older row is what a rollback is, and the server's gate still
+ * refuses an unreviewed graph whichever row is chosen.
+ */
+export async function publishVersion(
   useCaseId: string,
-  version: number,
-  note?: string,
+  sha256: string,
 ): Promise<GraphStudioPayload> {
   return withStudio(
-    'The approved version',
-    await request<unknown>(`${studioPath(useCaseId)}/versions/${version}/approve`, {
+    'The published version',
+    await request<unknown>(`${studioPath(useCaseId)}/versions/${sha256}/publish`, {
       method: 'POST',
-      body: { note },
     }),
   )
 }
 
-/**
- * Point the graph at a published version — including an older one, which is
- * what a rollback is. Approval is the server's gate, not this call's.
- */
-export async function activateVersion(
+/** Take the published version out of Ask. The version itself is untouched. */
+export async function unpublishVersion(
   useCaseId: string,
-  version: number,
+  sha256: string,
 ): Promise<GraphStudioPayload> {
   return withStudio(
-    'The activated version',
-    await request<unknown>(`${studioPath(useCaseId)}/versions/${version}/activate`, {
+    'The unpublished version',
+    await request<unknown>(`${studioPath(useCaseId)}/versions/${sha256}/unpublish`, {
       method: 'POST',
     }),
   )

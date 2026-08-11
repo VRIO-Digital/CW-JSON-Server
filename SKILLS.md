@@ -917,11 +917,46 @@ keeps its state.
 
 ```
 New Graph step 7 · Save & build graph
-        → /graph-studio/:useCaseId          the new graph's review, opened
+        → POST /graph-use-cases              commits the brief (pin_inputs)
+        → POST /graph-studio/:id/builds       202 + a queued run
+        → /graph-studio/:useCaseId            lands on Build, watching that run
 /graph-studio                                every graph you have built
-        → click one → Review queue (23) · Canvas · Query & sanity-check
+        → click one → Build · Review queue (23) · Canvas · Query & sanity-check
                       · Quality report · Versions
 ```
+
+### The Build tab
+
+**Files:** `GraphStudioPage.tsx` → `useGraphBuildStore` → `BuildTab.tsx` →
+`POST|GET /graph-studio/:id/builds`, `GET …/builds/:buildId`
+
+Eleven stages, in dependency order — `pin_inputs`, `a01_schema_parsing`,
+`join_matrix`, `entity_nomination`, `a03_relationship_inference`,
+`a02_document_entity_extraction`, `a02b_document_relationship_mining`,
+`a03b_cross_pipeline_reconciliation`, `a04_entity_resolution`,
+`a015_comprehension`, `a05_graph_construction` — at `BUILD_STAGE_MS` (700ms) each,
+so a run is about 7.7 seconds. The server drives them and the page polls every
+350ms; a row turns green when the server says it did, never on a timer of its own.
+
+**Every stage is listed from the first response**, `pending` until it runs: a list
+that grew a row at a time would hide how much is left, which is the only thing the
+panel is for. The names are printed **verbatim** so a row on screen is greppable in
+a log — do not prettify them.
+
+**Why here and not in the wizard.** A graph is built more than once: settling review
+rows changes what a build produces, so **Rebuild** is the normal case. Every run is
+kept in that graph's history and an earlier one stays loadable from the picker.
+The wizard's job ends at starting the first one.
+
+**Building is not publishing.** The footer names the draft version the run produced
+and says to publish it from Versions; the publish gate is untouched and still
+refuses while the queue or the pivot is open. `package_id` and `graph_version` are
+minted per run, so a rebuild is visibly a different package.
+
+**Where it fails:** a draft → 400 from `findBuiltGraph` naming "finish it in New
+Graph"; a build the server has forgotten → 404 saying builds live in memory and a
+restart clears them. If the wizard's build fails to start, the brief is still
+committed and the message says both.
 
 Every tab is built. The header carries only what is live and **Publish vN…** —
 each tab owns its own actions, so the quality check runs from the Quality report
@@ -1032,29 +1067,48 @@ word is not enough: "work order" would otherwise also match Change Order on
 
 ### Versions
 
-The table lists **only published versions** — the draft is not one of them.
+**Files:** `GraphStudioPage.tsx` → `VersionsTab.tsx` →
+`POST …/versions/:sha/publish`, `POST …/versions/:sha/unpublish`
 
-**Three acts, deliberately separate:**
+**A version is a build.** Every run that finishes records one row, newest first:
+
+```
+facility manifest · v2   loaded  gate passed  published   11/08/2026, 14:57
+8 entities · 4 relationships · graph 9ff33f44… · sha256 67da70212ac5… · from job d2aee040…
+[ Load this version's job ]  [ Unpublish ]   immutable — content-addressed; …
+```
+
+**Content-addressed and immutable.** `sha256` is the identity — two builds of one
+brief differ there and nowhere else, which is why several rows read `v2`.
+Publishing flips a pointer (`studioLive`, one content hash per graph); it never
+rewrites a row, and unpublishing clears the pointer. The sentence on every row says
+so, so it must stay true.
+
+**Two acts, not three:**
 
 | Act | Endpoint | What it means |
 |---|---|---|
-| publish | `POST …/publish` | put this draft on the shelf; it also starts serving |
-| approve | `POST …/versions/:v/approve` | a human read the report and signed it off |
-| activate | `POST …/versions/:v/activate` | point the graph at it — this is rollback |
+| publish | `POST …/versions/:sha/publish` | Ask may query **this** build |
+| unpublish | `POST …/versions/:sha/unpublish` | take it out of Ask; the row survives |
 
-**Approval gates activation.** An unapproved version cannot be made live, so the
-sign-off is never decorative; the row shows "approve first" rather than a
-disabled button with no reason. Any *approved* version can be activated,
-including an older one — which is why **live is not "the newest"**. It is
-tracked explicitly, each row carries `is_live`, and exactly one does.
+**Publishing an older row is the rollback**, and it works because any row may be
+published. This replaced an earlier publish → approve → activate chain, and the
+cost is stated plainly: there is **no recorded human sign-off** any more, and no
+separate activate step. The gate is unchanged — an unreviewed graph is refused
+whichever row is chosen.
 
-Publishing sets serving to what it just published; nothing else moves it, so a
-rollback survives until someone changes it again. A rollback does **not** touch
-the draft version — v18 stays the draft while v15 serves.
+**Publish is offered even when the gate is blocked**, because the refusal names
+what is outstanding; that is more use than a disabled button with no reason. The
+tooltip says it before the click.
 
-**Where it fails:** activating or approving an unpublished version → 404;
-activating an unapproved one → 400 naming the fix; activating the live one → 400;
-approving twice → 400 naming who already did it.
+The badges are facts about a row, so only two are `STATUS` coloured: `gate passed`
+and `published`. `gate unknown` is neutral — it means nobody had reviewed the graph
+when that build finished, which is not a failure. `loaded` marks the row the Build
+tab is showing and takes a brand tint, because being loaded is navigational.
+
+**Where it fails:** publishing while the gate is blocked → 400 naming every reason;
+publishing or unpublishing an unknown hash → 404 saying versions live in memory;
+unpublishing a row that is not the published one → 400.
 
 ---
 

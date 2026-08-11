@@ -787,3 +787,38 @@ label in a span, so the test asserts the wrapper exists rather than trusting it.
 `white-space` and `line-clamp` need a block container with inline content; antd v6
 makes buttons, and much else, flex. The tell for this failure is text clipped at
 *both* ends: that is a centred flex item, not a truncation.
+
+---
+
+## "Save & build graph" that built instantly and left
+
+**Symptom** — pressing step 7's build button committed the brief and navigated to
+Graph Studio on the same tick. Nothing said a build had run, so the one moment a
+user wants confirming that the work happened showed them nothing — and a graph
+appeared to be built by pressing a button.
+
+**Root cause** — committing *was* the build. `POST /graph-use-cases` with
+`status: committed` is one synchronous write, and the handler followed it with
+`navigate(...)`. Nothing in the product modelled a build as work.
+
+**Fix** — `POST /graph-studio/:id/builds` → 202 with a queued run, polled by id:
+the same contract as a profiling job and the step 6→7 derivation, reusing the
+established pattern rather than inventing a third. Eleven named stages advance on
+server timers and Graph Studio's new **Build** tab fills the list in. The wizard
+starts the run at the click and then hands over.
+
+**It belongs in the studio, not the wizard** — that was the second attempt. A graph
+is built more than once: settling review rows changes what a build produces, so
+rebuilding is the normal case and the runs need a home where they can accumulate.
+The first version put the panel in step 7, where a rebuild had nowhere to live.
+
+**Guard** — *mechanical*: `check-docs` requires every `BUILD_STAGES` entry to be
+named in `SKILLS.md`, that the endpoint answers 202 with a queued run, that the tab
+and store are the studio's, that the wizard starts the run and navigates to the
+Build tab, and that `startBuildFor` never touches `studioPublished` — building must
+not publish.
+
+**Rule** — **work that takes time must look like it takes time, and a thing done
+more than once needs a home that can hold more than one of it.** The corollary
+matters as much: the commit *is* instant, which is why it is stage one
+(`pin_inputs`) rather than something the panel pretends to spend time on.
