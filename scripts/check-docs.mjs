@@ -436,6 +436,26 @@ expect(
  */
 const startBuildBody = (server.match(/function startBuildFor[\s\S]*?\n\}/) ?? [''])[0]
 const runBuildBody = (server.match(/function runGraphBuild[\s\S]*?\n\}/) ?? [''])[0]
+/*
+ * The build payload's field names, server against client schema.
+ *
+ * TypeScript cannot see across this boundary: `RawGraphBuild` is a *claim* about
+ * what the server sends, so renaming a field in `buildView` compiles cleanly and
+ * fails at runtime instead — `draft_version should be a string, got undefined`,
+ * which reads like a stale server and is not one. This compares the two lists.
+ */
+const buildViewBody = (server.match(/const buildView = \(run\) => \(\{[\s\S]*?\n\}\)/) ?? [''])[0]
+const serverBuildFields = [...buildViewBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1])
+const buildSchemaBody = (client.match(/const GRAPH_BUILD = shape\(\{[\s\S]*?\n\}\)/) ?? [''])[0]
+const clientBuildFields = [...buildSchemaBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1])
+expect(
+  'the build payload and its schema name the same fields',
+  serverBuildFields.length > 0 &&
+    JSON.stringify([...serverBuildFields].sort()) ===
+      JSON.stringify([...clientBuildFields].sort()),
+  `server ${serverBuildFields.join(',')} · schema ${clientBuildFields.join(',')}`,
+)
+
 expect(
   'a finished build records a version',
   /recordVersion\(run,/.test(runBuildBody),
@@ -806,10 +826,21 @@ expect(
  *     to do nothing. Nothing errors — the page just serves production's answers.
  *     This one has actually happened; see docs/REGRESSIONS.md.
  */
+/*
+ * A remote origin has to be available to the production build — from
+ * `.env.production`, or from a plain `.env` if the two have been consolidated.
+ * Without one, `VITE_API_BASE` is undefined, falls back to `/api`, and the
+ * deployed SPA has no API: broken in a browser, later, silently.
+ */
+const prodEnv = existsSync(join(root, '.env.production'))
+  ? read('.env.production')
+  : ''
+const plainEnvRaw = existsSync(join(root, '.env')) ? read('.env') : ''
+const remoteRe = /^\s*VITE_API_BASE\s*=\s*https?:\/\/(?!localhost|127\.0\.0\.1|\[::1\])/m
 expect(
-  '.env.production exists',
-  existsSync(join(root, '.env.production')),
-  'the deployed origin is read from it at build time',
+  'a remote origin is available to the production build',
+  remoteRe.test(prodEnv) || remoteRe.test(plainEnvRaw),
+  '.env.production, or a plain .env carrying it',
 )
 
 /*
@@ -824,8 +855,25 @@ expect(
  * the hazard instead of a convention — a red claim nobody can act on gets
  * dismissed, and this one already sat red for a whole session.
  */
-const plainEnv = existsSync(join(root, '.env')) ? read('.env') : ''
-const plainBase = plainEnv.match(/^\s*VITE_API_BASE\s*=\s*(.+)$/m)?.[1]?.trim() ?? ''
+const plainEnv = plainEnvRaw
+/*
+ * The **last** assignment, because that is the one dotenv keeps — and a file with
+ * two of them is worse than either, since the effective value is invisible.
+ * An earlier version of this check read the *first* match and passed a `.env`
+ * whose second line pointed at the deployed box: the guard agreed with the wrong
+ * half of the file.
+ */
+const plainBases = [...plainEnv.matchAll(/^\s*VITE_API_BASE\s*=\s*(.+)$/gm)].map((m) =>
+  m[1].trim(),
+)
+expect(
+  '.env assigns VITE_API_BASE at most once',
+  plainBases.length <= 1,
+  plainBases.length > 1
+    ? `${plainBases.length} assignments (${plainBases.join(' then ')}) — the last one wins, so the first is a decoy`
+    : 'one or none',
+)
+const plainBase = plainBases.at(-1) ?? ''
 const isLocal = (value) =>
   value === '' ||
   value.startsWith('/') ||

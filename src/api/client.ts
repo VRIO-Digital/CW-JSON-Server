@@ -1034,7 +1034,7 @@ export interface GraphBuild {
   packageId: string
   graphVersion: string
   /** What Publish would make live — the studio's working draft number. */
-  draftVersion: string
+  configVersion: string
   startedAt: string
   finishedAt: string | null
 }
@@ -1663,7 +1663,7 @@ const GRAPH_BUILD = shape({
   stages: arrayOf(shape({ key: str, state: oneOf(['pending', 'running', 'complete']) })),
   package_id: str,
   graph_version: str,
-  draft_version: str,
+  config_version: str,
   started_at: str,
   finished_at: nullable(str),
 })
@@ -3307,7 +3307,7 @@ type RawGraphBuild = {
   stages: BuildStage[]
   package_id: string
   graph_version: string
-  draft_version: string
+  config_version: string
   started_at: string
   finished_at: string | null
 }
@@ -3321,7 +3321,7 @@ const toGraphBuild = (raw: RawGraphBuild): GraphBuild => ({
   stages: raw.stages,
   packageId: raw.package_id,
   graphVersion: raw.graph_version,
-  draftVersion: raw.draft_version,
+  configVersion: raw.config_version,
   startedAt: raw.started_at,
   finishedAt: raw.finished_at,
 })

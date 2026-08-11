@@ -822,3 +822,39 @@ not publish.
 more than once needs a home that can hold more than one of it.** The corollary
 matters as much: the commit *is* instant, which is why it is stage one
 (`pin_inputs`) rather than something the panel pretends to spend time on.
+
+---
+
+## A server field renamed, the client schema left behind
+
+**Symptom** — opening Graph Studio: *"The graph build could not be read — the data
+did not look the way this app expects. Restarting the mock server (npm run mock)
+usually fixes it. Details: draft_version should be a string, got undefined."* The
+message points at a stale server, and the server was fine.
+
+**Root cause** — `buildView` was changed to emit `config_version` when a version
+became a build; `GRAPH_BUILD` in `client.ts` still required `draft_version`.
+**TypeScript cannot see this.** `RawGraphBuild` is a *claim* about what the server
+sends, not a check of it, so the rename compiled cleanly on both sides and failed
+only at the runtime boundary.
+
+The test hole is the more useful half: the client-side build test replayed
+`payloads.json` **captured before the rename**. A fixture older than the code
+proves the code agreed with the fixture, not with the server.
+
+**Fix** — renamed the schema, the raw type, the mapper and `BuildTab`'s two usages.
+
+**Guard** — *mechanical*: `check-docs` extracts the field names out of `buildView`
+and out of `GRAPH_BUILD` and requires the two lists to match, naming both when they
+diverge. Verified by renaming a server field and watching it fail.
+
+**Rules** — two of them:
+
+- **A field name is a contract across two languages, and the compiler only checks
+  one side.** When renaming anything a payload carries, grep the snake_case name,
+  not just the camelCase one.
+- **Re-capture fixtures after changing the thing they came from.** A recorded
+  payload is a snapshot of an agreement; replaying an old one tests the snapshot.
+  The message this bug produced ("restarting the mock server usually fixes it") is
+  also a reminder that a *diagnostic* aimed at the common cause will confidently
+  misdirect when the cause is something else.

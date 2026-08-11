@@ -883,6 +883,12 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **A fallback for a required field makes it optional.** `source_name ||
   project_id` let a blank name register a source called `vrio-contextweave-demo`.
   If the form asks, the code must not answer for the user.
+- **A payload field name is a contract the compiler cannot check.** A raw type is a
+  *claim* about what the server sends, so renaming a server field compiles cleanly
+  and fails at the validator — `draft_version should be a string, got undefined`,
+  which reads as a stale server and is not one. Grep the snake_case name too, and
+  **re-capture any test fixture that came from the thing you changed**: replaying an
+  old payload tests the fixture, not the code.
 - **A `check-docs` claim must assert the fact, not the spelling.** One keyed to a
   local variable name (`start.state`) failed on a rename while the fact it guarded
   was still true — and a check that cries wolf is how a real red claim gets

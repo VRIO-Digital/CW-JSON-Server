@@ -142,8 +142,8 @@ export default function BuildTab({
             <span aria-hidden="true"> · </span>
             <span>
               {shown.status === 'complete'
-                ? `built as ${shown.draftVersion} — publish it from Versions`
-                : `will build ${shown.draftVersion}`}
+                ? `built as ${shown.configVersion} — publish it from Versions`
+                : `will build ${shown.configVersion}`}
             </span>
           </footer>
         </section>
