@@ -110,6 +110,38 @@ const CONSENT_START_MS = 900
 const CONSENT_MS = 1400
 const DISCOVERY_MS = 800
 
+/**
+ * How short a source name may be.
+ *
+ * A name is **required** on every register endpoint, and the project or drive id
+ * is no longer accepted as a silent fallback. It used to be: registering with the
+ * field blank produced a row called `vrio-contextweave-demo`, which reads as a
+ * name until two sources from one project need telling apart. The floor exists so
+ * "a", "x" and "db" cannot pass either — the Sources table and the Catalogue both
+ * key off this string, and neither can be made readable later.
+ *
+ * `check-docs` asserts the client's copy of this number matches.
+ */
+const SOURCE_NAME_MIN = 6
+
+/**
+ * The one validator all three register endpoints use, so BigQuery, Drive and the
+ * stubbed connectors cannot disagree about what a name is. Returns the sentence
+ * to send, or null when the name is fine — the message is shown verbatim, so it
+ * says what to do rather than which predicate failed.
+ */
+function sourceNameProblem(value) {
+  const name = typeof value === 'string' ? value.trim() : ''
+  if (name === '') {
+    return 'source_name is required — give this source a name of at least ' +
+      `${SOURCE_NAME_MIN} characters, so it can be told apart in the Sources table.`
+  }
+  if (name.length < SOURCE_NAME_MIN) {
+    return `"${name}" is too short — a source name needs at least ${SOURCE_NAME_MIN} characters.`
+  }
+  return null
+}
+
 /*
  * Sessions issued by the callback, consumed by the discovery endpoints —
  * session → the provider it was granted for. Unlike a state this is *not*
@@ -146,6 +178,39 @@ const send = (res, status, payload) => {
   })
   res.end(body)
 }
+
+/*
+ * Server-sent events, for the one response that arrives in pieces.
+ *
+ * An answer is streamed because it is *composed* — the summary lands, then each
+ * block as it is produced. Everything else in this server answers in one shot and
+ * should stay that way: streaming a list would be theatre.
+ *
+ * No dependency: SSE is `event:` and `data:` lines separated by a blank line, and
+ * `res.write` is all it takes.
+ */
+const sseOpen = (res) => {
+  res.writeHead(200, {
+    'content-type': 'text/event-stream; charset=utf-8',
+    'cache-control': 'no-store',
+    connection: 'keep-alive',
+    // Proxies buffer event streams by default, which turns a stream back into
+    // one late blob. nginx honours this; the Vite dev proxy passes it through.
+    'x-accel-buffering': 'no',
+    'access-control-allow-origin': '*',
+    'access-control-allow-headers': 'content-type',
+    'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+  })
+}
+
+const sseSend = (res, event, data) =>
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+
+/** Sleeps between emissions, so a composed answer reads as composed. */
+const pause = (ms) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms).unref?.()
+  })
 
 const readJson = (req) =>
   new Promise((resolve, reject) => {
@@ -221,17 +286,55 @@ const DB_SHAPE = {
   credentials: (v) =>
     Array.isArray(v) &&
     v.every((c) => isObject(c) && c.project_id && c.credential_handle),
+  /*
+   * The nested objects are checked, not only the collection. A table's `label`
+   * and `grain` and a document's `doc_type_label` and `linked_entity` are read
+   * straight through to the browse tree and the dictionary, so dropping one
+   * renders a blank cell rather than raising anything — the same silent-drop
+   * failure `graph_studio.canvas` is checked for.
+   */
   projects: (v) =>
     Array.isArray(v) &&
     v.length > 0 &&
-    v.every((p) => isObject(p) && p.project_id && Array.isArray(p.datasets)),
+    v.every(
+      (p) =>
+        isObject(p) &&
+        p.project_id &&
+        Array.isArray(p.datasets) &&
+        p.datasets.every(
+          (d) =>
+            isObject(d) &&
+            d.dataset_id &&
+            Array.isArray(d.tables) &&
+            d.tables.every((t) => isObject(t) && t.table_id && t.label && t.grain),
+        ),
+    ),
   drive_credentials: (v) =>
     Array.isArray(v) &&
     v.every((c) => isObject(c) && c.drive_id && c.credential_handle),
   drives: (v) =>
     Array.isArray(v) &&
     v.length > 0 &&
-    v.every((d) => isObject(d) && d.drive_id && Array.isArray(d.folders)),
+    v.every(
+      (d) =>
+        isObject(d) &&
+        d.drive_id &&
+        Array.isArray(d.folders) &&
+        d.folders.every(
+          (f) =>
+            isObject(f) &&
+            f.folder_id &&
+            Array.isArray(f.documents) &&
+            f.documents.every(
+              (doc) =>
+                isObject(doc) &&
+                doc.document_id &&
+                doc.doc_type &&
+                doc.doc_type_label &&
+                doc.linked_entity,
+            ),
+        ),
+    ),
   audit: (v) =>
     isObject(v) &&
     Array.isArray(v.stats) &&
@@ -252,6 +355,66 @@ const DB_SHAPE = {
     Array.isArray(v) &&
     v.length > 0 &&
     v.every((c) => isObject(c) && c.name && c.type && c.class),
+  /*
+   * The real profiled columns, `dataset.table` → columns[]. Required, and checked
+   * inside: `tableDictionary` falls back to synthesis when a table has no entry,
+   * so losing this key would not throw — the catalogue would quietly serve 206
+   * invented columns in place of the profiler's, which is the worst kind of
+   * wrong. A malformed entry is refused for the same reason.
+   */
+  column_profiles: (v) =>
+    isObject(v) &&
+    Object.keys(v).length > 0 &&
+    Object.values(v).every(
+      (columns) =>
+        Array.isArray(columns) &&
+        columns.length > 0 &&
+        columns.every(
+          (c) =>
+            isObject(c) &&
+            typeof c.column_id === 'string' &&
+            typeof c.class === 'string' &&
+            typeof c.description === 'string' &&
+            typeof c.confidence === 'number',
+        ),
+    ),
+  /*
+   * document_id → its resolution into the graph. Required for the same reason
+   * `column_profiles` is: dropping it does not throw, it turns every document's
+   * "resolved to FAC:…, 28 linked manifests" into a shrug, and a graph payoff
+   * that silently disappears is worse than one that errors.
+   */
+  document_extractions: (v) =>
+    isObject(v) &&
+    Object.keys(v).length > 0 &&
+    Object.values(v).every(
+      (e) =>
+        isObject(e) &&
+        typeof e.extracted_entity === 'string' &&
+        typeof e.resolved_node === 'string' &&
+        typeof e.linked_manifests === 'number' &&
+        typeof e.confidence === 'number',
+    ),
+  /*
+   * The tenant's written answers. Required for the reason `column_profiles` is:
+   * losing it does not throw — `matchAskAnswer` finds nothing and every question
+   * falls through to the graph walk, so Ask quietly stops answering anything it
+   * has a real answer for and abstains instead. An empty list is a working app
+   * that has lost its content.
+   */
+  ask_answers: (v) =>
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every(
+      (a) =>
+        isObject(a) &&
+        typeof a.answer_id === 'string' &&
+        typeof a.question === 'string' &&
+        typeof a.summary === 'string' &&
+        Array.isArray(a.blocks) &&
+        a.blocks.every((b) => isObject(b) && typeof b.type === 'string') &&
+        typeof a.confidence === 'number',
+    ),
   graph_domains: (v) =>
     Array.isArray(v) &&
     v.length > 0 &&
@@ -310,15 +473,26 @@ const DB_HINTS = {
   google_account: 'object with at least an "email" string',
   auth_roles: 'non-empty array of { role_id, label }',
   credentials: 'array of { project_id, credential_handle }',
-  projects: 'non-empty array of { project_id, datasets: [] }',
+  projects:
+    'non-empty array of { project_id, datasets: [{ dataset_id, tables: [{ table_id, label, grain }] }] }',
   drive_credentials: 'array of { drive_id, credential_handle }',
-  drives: 'non-empty array of { drive_id, folders: [] }',
+  drives:
+    'non-empty array of { drive_id, folders: [{ folder_id, documents: [{ document_id, doc_type, doc_type_label, linked_entity }] }] }',
   audit: 'object with stats[], events[], policies[]',
   traces: 'object with stats[], items[]',
   evals: 'object with stats[], runs[], checks[]',
   change_signals: 'array',
   column_vocabulary: 'non-empty array of { name, type, class }',
   document_vocabulary: 'non-empty array of { name, type, class }',
+  column_profiles:
+    'object keyed "<dataset>.<table>", each a non-empty array of ' +
+    '{ column_id, label, type, class, description, derivation, confidence, pii, null_pct, distinct }',
+  ask_answers:
+    'non-empty array of { answer_id, question, summary, blocks[], evidence[], confidence } — ' +
+    'the recorded answers Ask serves',
+  document_extractions:
+    'object keyed by document_id, each ' +
+    '{ extraction_id, extracted_entity, entity_type, resolved_node, resolved_facility, state, linked_manifests, confidence }',
   graph_domains: 'non-empty array of { domain_id, name }',
   graph_personas: 'non-empty array of { persona_id, name }',
   graph_kpis: 'non-empty array of { kpi_id, name }',
@@ -425,22 +599,89 @@ function hash(str) {
 }
 
 /**
+ * Above this, the profiler's own description is taken as good; below it, the
+ * column is flagged for review. The band is the product's (High ≥ 0.85), so the
+ * chip a user sees and the facet that counts it cannot disagree.
+ */
+const HIGH_CONFIDENCE = 0.85
+
+/**
  * The column dictionary the profiler produces for one table.
  *
- * db.json stores a column *count* per table rather than 58 hand-written
- * schemas, so the dictionary is synthesised from `column_vocabulary`: the slice
- * is chosen by hashing the table name, and every statistic is derived from a
- * hash of table+column. Deterministic, so repeat requests agree.
+ * **Two sources, and real data wins.** `column_profiles` in db.json holds the
+ * actual profiled columns for the five `epa_hazwaste` views — 206 of them,
+ * ingested from `02_profiling/Metadata_Profiling.xlsx`, with the profiler's own
+ * description, semantic class, confidence, PII flag, null % and distinct count.
+ * Any table with an entry there is served from it verbatim.
+ *
+ * Anything else falls back to synthesis from `column_vocabulary` (see
+ * `synthesiseColumns`), because a table nobody has profiled for real still has to
+ * render. The fallback is a fallback: do not "simplify" by removing the real
+ * branch, and do not extend the vocabulary to cover a view the workbook already
+ * describes.
+ *
+ * A curator's note (`column_notes`) overrides the description on either path —
+ * that is the one field a human owns.
  */
 function tableDictionary(source, datasetId, tableId, columnCount, tableRows) {
+  const profiled = db.column_profiles?.[`${datasetId}.${tableId}`]
+  if (Array.isArray(profiled) && profiled.length > 0) {
+    const notes = source.column_notes ?? {}
+    return profiled.map((c) => {
+      const note = notes[`${datasetId}.${tableId}.${c.column_id}`] ?? null
+      return {
+        column_id: c.column_id,
+        label: c.label,
+        type: c.type,
+        class: c.class,
+        confidence: c.confidence,
+        derivation: c.derivation,
+        pii: Boolean(c.pii),
+        null_pct: c.null_pct,
+        distinct: c.distinct,
+        description: note ?? c.description,
+        /*
+         * Every real column arrives with a description, so "has one" would make
+         * the Needs-review facet read 0 forever. What it means here is what a
+         * reviewer would actually want: the profiler was less than confident and
+         * no human has confirmed it. A curator note settles it either way.
+         */
+        description_status:
+          note || c.confidence >= HIGH_CONFIDENCE ? 'described' : 'needs review',
+      }
+    })
+  }
+  return synthesiseColumns(source, datasetId, tableId, columnCount, tableRows)
+}
+
+/**
+ * The hash-derived dictionary, for tables `column_profiles` does not cover.
+ *
+ * db.json stores a column *count* per table rather than a hand-written schema, so
+ * the columns are synthesised from `column_vocabulary`: the slice is chosen by
+ * hashing the table name, and every statistic derives from a hash of
+ * table+column. Deterministic, so repeat requests agree.
+ */
+function synthesiseColumns(source, datasetId, tableId, columnCount, tableRows) {
   const vocab = db.column_vocabulary
   const offset = hash(tableId) % vocab.length
   const notes = source.column_notes ?? {}
 
+  /*
+   * A name is suffixed only when this table has already used it — not on the
+   * vocabulary's second lap. The offset means the lap boundary falls mid-list,
+   * so a table with no more columns than the vocabulary has entries used to
+   * show `manifest_tracking_number_2` while the unsuffixed name appeared
+   * nowhere. Suffixing on collision keeps ids unique without inventing a
+   * "_2" that has no "_1".
+   */
+  const used = new Map()
+
   return Array.from({ length: columnCount }, (_, i) => {
     const v = vocab[(offset + i) % vocab.length]
-    const cycle = Math.floor((offset + i) / vocab.length)
-    const columnId = cycle > 0 ? `${v.name}_${cycle + 1}` : v.name
+    const seen = (used.get(v.name) ?? 0) + 1
+    used.set(v.name, seen)
+    const columnId = seen > 1 ? `${v.name}_${seen}` : v.name
     const seed = hash(`${tableId}:${columnId}`)
 
     const nullPct =
@@ -459,9 +700,13 @@ function tableDictionary(source, datasetId, tableId, columnCount, tableRows) {
 
     return {
       column_id: columnId,
+      // Derived, not stored: a synthesised column has no name of its own beyond
+      // its id, and the panel renders whichever it is given.
+      label: columnId.replace(/_/g, ' ').toUpperCase(),
       type: v.type,
       class: v.class,
       confidence: v.confidence,
+      derivation: 'llm',
       pii: Boolean(v.pii),
       null_pct: nullPct,
       distinct: Math.min(distinct, Math.max(tableRows, 1)),
@@ -474,13 +719,25 @@ function tableDictionary(source, datasetId, tableId, columnCount, tableRows) {
 /**
  * What the document profiler extracts from one Drive file.
  *
- * The unstructured mirror of `tableDictionary`: db.json stores an entity
- * *count* per document rather than a hand-written extraction, so the entity
- * list is synthesised from `document_vocabulary` — the slice is chosen by
- * hashing the document id, and occurrences/coverage derive from a hash of
- * document+entity. Deterministic, so repeat requests agree.
+ * **Two halves, and only one of them is synthesised.**
  *
- * Note what is NOT synthesised: the summary. A description belongs to the
+ * The *resolution* is real: `document_extractions` in db.json, ingested from
+ * `08_unstructured/Entity_Extraction_Map.xlsx`, records the entity the extractor
+ * pulled out of each file, the graph facility node it resolved to, and how many
+ * inbound manifests that node already carries. That is the join between the
+ * unstructured side and the structured one — the whole point of profiling a
+ * consent decree — so it is read, never derived. A document with no entry gets
+ * `resolution: null`, which the panel says out loud rather than leaving blank.
+ *
+ * The *entity list* is synthesised, as the column dictionary's fallback is:
+ * db.json stores an entity **count** per document, the slice comes from
+ * `document_vocabulary` by hashing the document id, and occurrences/coverage come
+ * from a hash of document+entity. Deterministic, so repeat requests agree. The
+ * workbook describes one entity per file, not the dozens a 96-page decree holds,
+ * so the list cannot be read from it — and the resolved one is reported
+ * separately rather than being dropped into the list as though a hash had found it.
+ *
+ * Note what is NOT synthesised either: the summary. A description belongs to the
  * whole document here rather than to each entity, because that is the unit a
  * curator actually reviews for an unstructured file.
  */
@@ -490,10 +747,15 @@ function documentDictionary(source, folderId, doc) {
   const notes = source.document_notes ?? {}
   const chunks = Math.max(1, Math.round(doc.pages * 2.5))
 
+  // Suffixed on collision within this document, for the reason tableDictionary
+  // explains: a "_2" whose "_1" is nowhere reads as missing data.
+  const used = new Map()
+
   const entities = Array.from({ length: doc.entities }, (_, i) => {
     const v = vocab[(offset + i) % vocab.length]
-    const cycle = Math.floor((offset + i) / vocab.length)
-    const entityId = cycle > 0 ? `${v.name}_${cycle + 1}` : v.name
+    const seen = (used.get(v.name) ?? 0) + 1
+    used.set(v.name, seen)
+    const entityId = seen > 1 ? `${v.name}_${seen}` : v.name
     const seed = hash(`${doc.document_id}:${entityId}`)
 
     // An identifier appears once per document; prose entities recur.
@@ -525,6 +787,16 @@ function documentDictionary(source, folderId, doc) {
     name: doc.name,
     mime_type: doc.mime_type,
     doc_type: doc.doc_type,
+    doc_type_label: doc.doc_type_label,
+    /*
+     * The graph entity this file is about, from `Entity_Extraction_Map`. It is
+     * read from db.json rather than synthesised: which company a consent decree
+     * names is the one fact about these documents that a hash must never
+     * invent, because it is what joins them to the structured side.
+     */
+    linked_entity: doc.linked_entity,
+    /** Where that entity landed in the graph. Null when nothing resolved. */
+    resolution: db.document_extractions?.[doc.document_id] ?? null,
     pages: doc.pages,
     size_mb: doc.size_mb,
     modified: doc.modified,
@@ -1735,7 +2007,17 @@ function studioQuery(useCaseId, question) {
  * before the button finishes its click teaches that asking is free. Errors are
  * never paced — a refusal is not work.
  */
-const ANSWER_MS = 1500
+/*
+ * The answer's own pacing. `ANSWER_MS` is gone as a single hold: an answer that
+ * arrives in pieces is spaced *between* the pieces instead, so a five-block answer
+ * takes longer than a one-line abstention — which is the honest shape, and what
+ * makes it read as composed rather than fetched.
+ *
+ * Tuned so a typical answer (2 stages, 4 blocks) lands in about 3 seconds: long
+ * enough to watch, short enough that nobody wonders whether it hung.
+ */
+const ASK_STAGE_MS = 420
+const ASK_BLOCK_MS = 380
 
 /** What a decision on a gap means for anyone asking the graph afterwards. */
 const GAP_CAVEAT = {
@@ -1811,6 +2093,66 @@ function askableGraph(useCase) {
  * flourish. When the walk fails, the answer is an abstention that says why —
  * which is the honest outcome, and the one the page promises.
  */
+/** Words that carry no signal when matching one question against another. */
+const ASK_STOPWORDS = new Set(
+  ('a an and are as at by did do does for from has have how in into is it its me my of on or our ' +
+    'show shows tell that the their them then there these this to us was we what when where which ' +
+    'who why will with you your every each are'
+  ).split(' '),
+)
+
+const askTokens = (s) =>
+  String(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !ASK_STOPWORDS.has(w))
+
+/**
+ * The recorded answer for a question, or null.
+ *
+ * `ask_answers` holds 40 answers the tenant wrote — 13 tied to hero questions, 22
+ * standard, 5 declines. A typed question is matched against them: the same
+ * question wins outright, otherwise the one sharing the most of the asked words,
+ * and **only if it shares enough of them and beats the runner-up**. A near-miss
+ * must not be served as an answer to something else: the graph walk below abstains
+ * honestly, and that is the better outcome than confidently answering a question
+ * nobody asked.
+ */
+function matchAskAnswer(question) {
+  const answers = db.ask_answers ?? []
+  if (answers.length === 0) return null
+
+  const asked = askTokens(question)
+  if (asked.length === 0) return null
+
+  const normalise = (s) => askTokens(s).join(' ')
+  const exact = answers.find((a) => normalise(a.question) === asked.join(' '))
+  if (exact) return { answer: exact, how: 'the same question' }
+
+  const scored = answers
+    .map((a) => {
+      const own = new Set(askTokens(a.question))
+      const shared = asked.filter((w) => own.has(w))
+      // Over the asked words, not the recorded ones: a long recorded question
+      // should not be penalised for saying more than was asked.
+      return { answer: a, score: shared.length / asked.length, shared }
+    })
+    .sort((x, y) => y.score - x.score)
+
+  const [best, runnerUp] = scored
+  if (best.score < ASK_MATCH_MIN) return null
+  // A tie means the question named neither — same reasoning as matchTemplate.
+  if (runnerUp && runnerUp.score === best.score) return null
+  return {
+    answer: best.answer,
+    how: `it matches a recorded question on ${best.shared.slice(0, 4).join(', ')}`,
+  }
+}
+
+/** How much of the asked question a recorded one must cover to be served. */
+const ASK_MATCH_MIN = 0.6
+
 function askAnswer(useCase, question) {
   const id = useCase.use_case_id
   const graph = askableGraph(useCase)
@@ -1841,6 +2183,69 @@ function askAnswer(useCase, question) {
     asked_at: new Date().toISOString(),
   }
 
+  /*
+   * A recorded answer wins, and says so.
+   *
+   * These are the tenant's own 40 answers, written against this dataset, with
+   * blocks, evidence and a stated confidence. The graph walk cannot produce a
+   * chart or a table, so where a question is recognised the recorded answer is
+   * the better one — but the *provenance* is reported rather than blurred: a
+   * reasoning step names the answer id and how it matched, so nobody reads a
+   * written answer as something the walk derived.
+   */
+  const recorded = matchAskAnswer(question)
+  if (recorded) {
+    const { answer: a, how } = recorded
+    const reasoning = [
+      grounding,
+      {
+        step: 'Answered from the recorded query set',
+        detail: `${a.answer_id} (${a.kind}${a.hero_ref ? `, ${a.hero_ref}` : ''}) — ${how}.`,
+      },
+    ]
+    /* Evidence rows carry no per-row score: the query set states one confidence
+       for the whole answer, and a number per row would be invented. */
+    const citations = (a.evidence ?? [])
+      .filter((e) => e.source && e.source !== '—')
+      .map((e) => ({ label: e.source, detail: e.detail, confidence: null }))
+
+    if (a.kind === 'decline') {
+      /*
+       * A decline is an abstention, so it obeys the same rule as the walk's:
+       * `answered: false` and **no confidence**. The query set scores its own
+       * declines 0.99 — that is certainty that it *cannot* answer, which is not
+       * the confidence field, and reporting it there would read as a 0.99 answer.
+       */
+      return {
+        ...base,
+        answered: false,
+        reason: a.summary,
+        answer: null,
+        confidence: null,
+        path: [],
+        reasoning: [...reasoning, { step: 'Declined', detail: a.summary }],
+        citations,
+        summary: a.summary,
+        blocks: a.blocks,
+        answer_id: a.answer_id,
+      }
+    }
+
+    return {
+      ...base,
+      answered: true,
+      reason: `Answered from ${a.answer_id} — ${a.persona}'s question, recorded against ${graph.version}.`,
+      answer: a.summary,
+      confidence: a.confidence,
+      path: walk.answerable ? walk.path_labels : [],
+      reasoning,
+      citations,
+      summary: a.summary,
+      blocks: a.blocks,
+      answer_id: a.answer_id,
+    }
+  }
+
   if (!walk.answerable) {
     /*
      * Abstaining *is* the answer. A query engine that always produces a
@@ -1857,6 +2262,11 @@ function askAnswer(useCase, question) {
       path: [],
       reasoning: [grounding, { step: 'Abstained', detail: walk.reason }],
       citations: [],
+      // One shape either way: a walk produces prose, not blocks, and the client
+      // renders whichever it is given rather than branching on presence.
+      summary: null,
+      blocks: [],
+      answer_id: null,
     }
   }
 
@@ -1913,6 +2323,9 @@ function askAnswer(useCase, question) {
       },
     ],
     citations,
+    summary: null,
+    blocks: [],
+    answer_id: null,
   }
 }
 
@@ -1997,8 +2410,15 @@ function asSuggestion(entry, idKey, { why }) {
     id: entry[idKey],
     // A hero question *is* its text, so that stands in for the name.
     name: entry.name ?? entry.text ?? '',
-    // A persona carries `focus`, a KPI carries `definition`.
-    detail: entry.focus ?? entry.definition ?? entry.format ?? '',
+    /*
+     * A persona carries `focus`, a KPI carries `definition`, and a hero question
+     * carries the `rationale` the brief gave for asking it — the slot was empty
+     * for questions before, which is why they arrived with a name and nothing
+     * else. `detail` is what the thing is *for*; `why` below stays what it has
+     * always been, the reason this suggester drafted it. They answer different
+     * questions and neither may stand in for the other.
+     */
+    detail: entry.focus ?? entry.definition ?? entry.rationale ?? entry.format ?? '',
     /*
      * Only hero questions carry one, and it pre-ticks the High box rather than
      * deciding it: the question's own priority is what the use case stated, and
@@ -2062,7 +2482,9 @@ function browsableObjects(source) {
     const dataset = project?.datasets.find((d) => d.dataset_id === datasetId)
     const tables = (dataset?.tables ?? []).map((t) => ({
       table_id: t.table_id,
+      label: t.label,
       type: t.type,
+      grain: t.grain,
       columns: t.columns,
       rows: t.rows,
       profiled: (source.profiled ?? []).some(
@@ -2089,6 +2511,8 @@ function browsableDocuments(source) {
       name: d.name,
       mime_type: d.mime_type,
       doc_type: d.doc_type,
+      doc_type_label: d.doc_type_label,
+      linked_entity: d.linked_entity,
       pages: d.pages,
       size_mb: d.size_mb,
       entities: d.entities,
@@ -2554,6 +2978,8 @@ const routes = [
           error: 'drive_id and credential_handle are both required',
         })
       }
+      const nameProblem = sourceNameProblem(source_name)
+      if (nameProblem) return send(res, 400, { error: nameProblem })
       if (!Array.isArray(folders) || folders.length === 0) {
         return send(res, 400, {
           error: 'folders must be a non-empty array for Finish',
@@ -2579,7 +3005,9 @@ const routes = [
       const record = {
         kind: 'gdrive',
         source_id: sourceId,
-        source_name: source_name || drive.display_name || drive_id,
+        // Required and validated above; the drive's own display name is no
+        // longer a silent fallback, for the reason SOURCE_NAME_MIN gives.
+        source_name: String(source_name).trim(),
         connector: 'gdrive',
         drive_id,
         credential_handle,
@@ -2617,6 +3045,8 @@ const routes = [
           error: 'project_id and credential_handle are both required',
         })
       }
+      const nameProblem = sourceNameProblem(source_name)
+      if (nameProblem) return send(res, 400, { error: nameProblem })
       if (!Array.isArray(datasets) || datasets.length === 0) {
         return send(res, 400, {
           error: 'datasets must be a non-empty array for Finish',
@@ -2642,7 +3072,9 @@ const routes = [
       const record = {
         kind: 'bigquery',
         source_id: sourceId,
-        source_name: source_name || project.display_name || project_id,
+        // Required and validated above — no id fallback, because a row named
+        // after its project id reads as a name and is not one.
+        source_name: String(source_name).trim(),
         connector: 'bigquery',
         project_id,
         credential_handle,
@@ -2873,6 +3305,14 @@ const routes = [
 
       const project = findProject(source.project_id)
       const byDataset = new Map()
+      /*
+       * The class facets are the classes this data actually has. The real
+       * profile uses eight (`identifier date dimension entity address geo flag
+       * measure`) and none of them is `text`, so a Text chip would have sat at 0
+       * for all 206 columns — which reads as "no text columns here" rather than
+       * as a chip nothing can fill. `location` folds `address` and `geo`
+       * together: both answer "where", and 69 of the 206 are one or the other.
+       */
       const facets = {
         all: 0,
         needs_review: 0,
@@ -2880,7 +3320,8 @@ const routes = [
         ids: 0,
         measures: 0,
         dates: 0,
-        text: 0,
+        location: 0,
+        flags: 0,
       }
 
       for (const entry of source.profiled ?? []) {
@@ -2904,7 +3345,8 @@ const routes = [
           if (c.class === 'identifier') facets.ids += 1
           if (c.class === 'measure') facets.measures += 1
           if (c.class === 'date') facets.dates += 1
-          if (c.class === 'text') facets.text += 1
+          if (c.class === 'address' || c.class === 'geo') facets.location += 1
+          if (c.class === 'flag') facets.flags += 1
         }
 
         if (!byDataset.has(entry.dataset_id)) {
@@ -2912,7 +3354,9 @@ const routes = [
         }
         byDataset.get(entry.dataset_id).tables.push({
           table_id: entry.table_id,
+          label: meta?.label ?? entry.table_id,
           type: meta?.type ?? 'TABLE',
+          grain: meta?.grain ?? '',
           rows,
           column_count: columns.length,
           columns,
@@ -2982,20 +3426,26 @@ const routes = [
 
       const drive = findDrive(source.drive_id)
       const byFolder = new Map()
+      /*
+       * The type facets are the document kinds this corpus actually holds —
+       * federal RCRA enforcement papers. A consent-decree *modification* files
+       * under `consent_decree` because that is what it is; what makes it a
+       * modification is `doc_type_label`, which is what the reader sees.
+       */
       const facets = {
         all: 0,
         needs_review: 0,
         pii: 0,
-        manifests: 0,
-        contracts: 0,
-        reports: 0,
-        notes: 0,
+        consent_decrees: 0,
+        complaints: 0,
+        settlements: 0,
+        cafos: 0,
       }
       const FACET_FOR_TYPE = {
-        manifest: 'manifests',
-        contract: 'contracts',
-        report: 'reports',
-        notes: 'notes',
+        consent_decree: 'consent_decrees',
+        complaint: 'complaints',
+        settlement: 'settlements',
+        cafo: 'cafos',
       }
 
       for (const entry of source.profiled_docs ?? []) {
@@ -3694,8 +4144,54 @@ const routes = [
         return send(res, 400, { error: 'ask a question first' })
       }
 
+      /*
+       * The answer is streamed, because it is composed rather than fetched.
+       *
+       * Everything above this line is validated first and refused with a plain
+       * 400 — an error must not arrive as an event inside a 200, and refusals are
+       * never paced. Only once the answer is known to exist does the stream open.
+       *
+       * The order is the order it becomes true: the grounding step, then the
+       * summary, then each block as it is produced, then the whole envelope in
+       * `done` so the client has one object to validate. Nothing is emitted that
+       * the server has not already computed — the pacing spaces out real output
+       * rather than animating over a finished blob, which is the same distinction
+       * `GoogleConsentPanel` draws between a stage and a timer.
+       */
       const answer = askAnswer(found.useCase, String(question).trim())
-      setTimeout(() => send(res, 200, answer), ANSWER_MS).unref?.()
+
+      sseOpen(res)
+      // A client that goes away mid-answer stops the loop rather than writing to
+      // a dead socket for the rest of the blocks.
+      let open = true
+      res.on('close', () => {
+        open = false
+      })
+
+      for (const step of answer.reasoning) {
+        if (!open) return
+        sseSend(res, 'stage', { step: step.step, detail: step.detail })
+        await pause(ASK_STAGE_MS)
+      }
+
+      if (!open) return
+      sseSend(res, 'summary', {
+        answered: answer.answered,
+        summary: answer.summary,
+        reason: answer.reason,
+        answer: answer.answer,
+      })
+
+      for (const [index, block] of (answer.blocks ?? []).entries()) {
+        await pause(ASK_BLOCK_MS)
+        if (!open) return
+        sseSend(res, 'block', { index, block })
+      }
+
+      await pause(ASK_BLOCK_MS)
+      if (!open) return
+      sseSend(res, 'done', answer)
+      res.end()
     },
   },
 
@@ -4039,9 +4535,13 @@ const routes = [
     match: (p) => p === '/sources/generic',
     handle: async (req, res) => {
       const { connector, source_name, type_label, credential_ref } = await readJson(req)
-      if (!connector || !source_name) {
-        return send(res, 400, { error: 'connector and source_name are both required' })
+      if (!connector) {
+        return send(res, 400, { error: 'connector is required' })
       }
+      /* Same floor as the two real connectors: the stubbed ones land in the same
+         Sources table, so a one-character name is no more readable here. */
+      const nameProblem = sourceNameProblem(source_name)
+      if (nameProblem) return send(res, 400, { error: nameProblem })
       const slug = String(source_name)
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
@@ -4052,7 +4552,7 @@ const routes = [
       const record = {
         kind: 'generic',
         source_id: sourceId,
-        source_name,
+        source_name: String(source_name).trim(),
         connector,
         type_label: type_label || connector,
         credential_handle: credential_ref ?? null,

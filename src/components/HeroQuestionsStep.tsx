@@ -125,6 +125,17 @@ export default function HeroQuestionsStep({
               return (
                 <div key={s.id} className="ng-question">
                   <div className="ng-question-text">{s.name}</div>
+                  {/*
+                    The same two lines `DraftedStep` gives a persona: what the
+                    question is *for*, then why it was drafted. This step showed
+                    neither, so a drafted question arrived unexplained while
+                    personas and KPIs beside it did not — and the brief states a
+                    reason for every one of its questions.
+                  */}
+                  {s.detail ? (
+                    <div className="ng-question-detail">{s.detail}</div>
+                  ) : null}
+                  <div className="ng-question-why">{s.why}</div>
                   <div className="ng-question-foot">
                     <span className="ng-ai-tag">AI-DRAFTED</span>
                     <Checkbox

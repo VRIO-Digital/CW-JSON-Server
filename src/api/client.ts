@@ -25,6 +25,10 @@ import {
   shape,
   str,
   validate,
+  variant,
+  // `Check` is already taken in this file by the eval-checks payload type, so the
+  // validator's own is aliased rather than renaming a public type.
+  type Check as FieldCheck,
 } from './validate'
 
 // The trailing slash is stripped because every path below starts with one, and
@@ -219,7 +223,11 @@ interface RawSourceRow {
 
 export interface BrowseTable {
   table_id: string
+  /** What the semantic layer calls this view, e.g. `e-Manifest (shipments)`. */
+  label: string
   type: string
+  /** What one row is. A Gold view is only readable if its grain is stated. */
+  grain: string
   columns: number
   rows: number
   profiled: boolean
@@ -245,6 +253,10 @@ export interface BrowseDocument {
   name: string
   mime_type: string
   doc_type: string
+  /** What the document calls itself — `Consent Decree (modification)`. */
+  doc_type_label: string
+  /** The graph entity the file is about, from the extraction map. */
+  linked_entity: string
   pages: number
   size_mb: number
   entities: number
@@ -314,30 +326,49 @@ export interface ProfilingJobsPayload {
   status_line: string
 }
 
+/*
+ * The semantic classes the profiler assigns. Eight of these come from the real
+ * `Metadata_Profiling` workbook; `text` is only produced by the synthesised
+ * fallback, and is kept so that path still validates.
+ */
 export type ColumnClass =
   | 'identifier'
   | 'dimension'
   | 'entity'
   | 'measure'
   | 'date'
+  | 'address'
+  | 'geo'
+  | 'flag'
   | 'text'
 
 export interface ProfiledColumn {
   column_id: string
+  /** The profiler's own name for it (`TOTAL QUANTITY ACUTE KG`). */
+  label: string
   type: string
   class: ColumnClass
   /** LLM classification confidence, shown beside the class chip. */
   confidence: number
+  /** How the classification was reached — `llm` for every profiled column today. */
+  derivation: string
   pii: boolean
   null_pct: number
   distinct: number
   description: string | null
+  /**
+   * `needs review` means the profiler was below the High band (0.85) and no
+   * curator has confirmed it — not that a description is missing. Every real
+   * column has one.
+   */
   description_status: 'needs review' | 'described'
 }
 
 export interface ProfiledTable {
   table_id: string
+  label: string
   type: string
+  grain: string
   rows: number
   column_count: number
   columns: ProfiledColumn[]
@@ -357,7 +388,9 @@ export interface ColumnFacets {
   ids: number
   measures: number
   dates: number
-  text: number
+  /** `address` and `geo` together — both answer "where". */
+  location: number
+  flags: number
 }
 
 export interface ProfiledColumnsPayload {
@@ -382,11 +415,35 @@ export interface ProfiledEntity {
   coverage_pct: number
 }
 
+/**
+ * Where a document's extracted entity landed in the graph.
+ *
+ * Read from the extraction map, never derived — this is the join between the
+ * unstructured side and the manifest stream, so `linked_manifests` is a real
+ * count from that workbook and not a plausible number.
+ */
+export interface DocumentResolution {
+  extraction_id: string
+  extracted_entity: string
+  /** `Generator (facility)`, `Transporter`, … */
+  entity_type: string
+  /** The graph node id, e.g. `FAC:LAD727050419`. */
+  resolved_node: string
+  resolved_facility: string
+  state: string
+  linked_manifests: number
+  confidence: number
+}
+
 export interface ProfiledDocument {
   document_id: string
   name: string
   mime_type: string
   doc_type: string
+  doc_type_label: string
+  linked_entity: string
+  /** Null when nothing resolved — the panel says so rather than showing nothing. */
+  resolution: DocumentResolution | null
   pages: number
   size_mb: number
   modified: string
@@ -413,10 +470,10 @@ export interface DocumentFacets {
   all: number
   needs_review: number
   pii: number
-  manifests: number
-  contracts: number
-  reports: number
-  notes: number
+  consent_decrees: number
+  complaints: number
+  settlements: number
+  cafos: number
 }
 
 export interface ProfiledDocumentsPayload {
@@ -657,7 +714,48 @@ export interface AskStep {
 export interface AskCitation {
   label: string
   detail: string
-  confidence: number
+  /**
+   * Null for a recorded answer's evidence rows. The query set states one
+   * confidence for the whole answer, so a number per source view would be
+   * invented — and the page shows the figure only where there is one.
+   */
+  confidence: number | null
+}
+
+/* ---------------- Ask: the blocks a recorded answer is made of ---------------- */
+
+/**
+ * One piece of an answer.
+ *
+ * A recorded answer is an ordered list of these, exactly as the tenant wrote it:
+ * prose, a row of figures, a chart, a table. The discriminant is `type`, and an
+ * unknown one is refused at the boundary rather than rendered as a blank — a
+ * missing block in the middle of an answer reads as a gap in the reasoning.
+ */
+export type AnswerBlock =
+  | { type: 'text'; markdown: string }
+  | { type: 'metric'; items: AnswerMetric[] }
+  | {
+      type: 'chart'
+      chart: 'bar' | 'line' | 'pie' | 'donut'
+      title: string
+      x_label?: string | null
+      y_label?: string | null
+      note?: string | null
+      data: { label: string; value: number }[]
+    }
+  | { type: 'table'; title: string; columns: string[]; rows: AnswerCell[][] }
+
+/** A table cell or a metric value: the tenant writes counts as numbers. */
+export type AnswerCell = string | number
+
+export interface AnswerMetric {
+  label: string
+  /** A figure or a short string — the tenant's own value, rendered as given. */
+  value: number | string
+  unit?: string | null
+  /** `risk` and `good` are the only two, and they carry an icon, never colour alone. */
+  flag?: 'good' | 'risk' | null
 }
 
 export interface AskAnswer {
@@ -678,6 +776,12 @@ export interface AskAnswer {
   citations: AskCitation[]
   caveats: string[]
   askedAt: string
+  /** The one-line headline of a recorded answer; null when the graph walk answered. */
+  summary: string | null
+  /** Empty when the walk answered — it produces prose, not blocks. */
+  blocks: AnswerBlock[]
+  /** Which recorded answer this was, or null. Provenance, not decoration. */
+  answerId: string | null
 }
 
 export interface PivotOption {
@@ -1081,7 +1185,15 @@ const BROWSE_PAYLOAD = shape({
       dataset_id: str,
       table_count: num,
       tables: arrayOf(
-        shape({ table_id: str, type: str, columns: num, rows: num, profiled: bool }),
+        shape({
+          table_id: str,
+          label: str,
+          type: str,
+          grain: str,
+          columns: num,
+          rows: num,
+          profiled: bool,
+        }),
       ),
     }),
   ),
@@ -1103,6 +1215,8 @@ const DOCUMENT_BROWSE_PAYLOAD = shape({
           name: str,
           mime_type: str,
           doc_type: str,
+          doc_type_label: str,
+          linked_entity: str,
           pages: num,
           size_mb: num,
           entities: num,
@@ -1162,7 +1276,8 @@ const COLUMNS_PAYLOAD = shape({
     ids: num,
     measures: num,
     dates: num,
-    text: num,
+    location: num,
+    flags: num,
   }),
   datasets: arrayOf(
     shape({
@@ -1172,12 +1287,15 @@ const COLUMNS_PAYLOAD = shape({
       tables: arrayOf(
         shape({
           table_id: str,
+          label: str,
           type: str,
+          grain: str,
           rows: num,
           column_count: num,
           columns: arrayOf(
             shape({
               column_id: str,
+              label: str,
               type: str,
               class: oneOf([
                 'identifier',
@@ -1185,9 +1303,13 @@ const COLUMNS_PAYLOAD = shape({
                 'entity',
                 'measure',
                 'date',
+                'address',
+                'geo',
+                'flag',
                 'text',
               ]),
               confidence: num,
+              derivation: str,
               pii: bool,
               null_pct: num,
               distinct: num,
@@ -1210,10 +1332,10 @@ const DOCUMENTS_PAYLOAD = shape({
     all: num,
     needs_review: num,
     pii: num,
-    manifests: num,
-    contracts: num,
-    reports: num,
-    notes: num,
+    consent_decrees: num,
+    complaints: num,
+    settlements: num,
+    cafos: num,
   }),
   folders: arrayOf(
     shape({
@@ -1228,6 +1350,23 @@ const DOCUMENTS_PAYLOAD = shape({
           name: str,
           mime_type: str,
           doc_type: str,
+          doc_type_label: str,
+          linked_entity: str,
+          /* nullable() accepts an absent key as well as null, so this checks the
+             shape when it is there and tolerates a document that resolved to
+             nothing. */
+          resolution: nullable(
+            shape({
+              extraction_id: str,
+              extracted_entity: str,
+              entity_type: str,
+              resolved_node: str,
+              resolved_facility: str,
+              state: str,
+              linked_manifests: num,
+              confidence: num,
+            }),
+          ),
           pages: num,
           size_mb: num,
           modified: str,
@@ -1731,6 +1870,55 @@ const ASK_GRAPHS_PAYLOAD = shape({
  * that is a correct outcome rather than a missing field. `reason` is not
  * nullable: an answer that cannot say why it is an answer is not one.
  */
+/**
+ * One block of a recorded answer, by its `type`.
+ *
+ * `value` on a metric is `number | string` because the tenant writes both ("15",
+ * "TXD000719518"), and coercing either way would rewrite their figure.
+ */
+/** A figure the tenant wrote either way — a number, or text like an EPA id. */
+const cell: FieldCheck = (v, path, issues) => {
+  if (typeof v !== 'number' && typeof v !== 'string') {
+    issues.push(`${path} should be a number or a string, got ${typeof v}`)
+  }
+}
+
+const ANSWER_BLOCK = variant('type', {
+  text: shape({ type: str, markdown: str }),
+  metric: shape({
+    type: str,
+    items: arrayOf(
+      shape({
+        label: str,
+        value: cell,
+        unit: nullable(str),
+        flag: nullable(oneOf(['good', 'risk'])),
+      }),
+    ),
+  }),
+  chart: shape({
+    type: str,
+    chart: oneOf(['bar', 'line', 'pie', 'donut']),
+    title: str,
+    x_label: nullable(str),
+    y_label: nullable(str),
+    note: nullable(str),
+    data: arrayOf(shape({ label: str, value: num })),
+  }),
+  table: shape({
+    type: str,
+    title: str,
+    columns: arrayOf(str),
+    /*
+     * A cell is a string OR a number — the corpus writes counts as numbers and
+     * everything else as text. Declared as `str` first, which would have refused
+     * every table in the set: the boundary check caught it before a browser did,
+     * which is the whole point of having one.
+     */
+    rows: arrayOf(arrayOf(cell)),
+  }),
+})
+
 const ASK_ANSWER_PAYLOAD = shape({
   question: str,
   use_case_id: str,
@@ -1744,9 +1932,12 @@ const ASK_ANSWER_PAYLOAD = shape({
   path: arrayOf(str),
   hops: num,
   reasoning: arrayOf(shape({ step: str, detail: str })),
-  citations: arrayOf(shape({ label: str, detail: str, confidence: num })),
+  citations: arrayOf(shape({ label: str, detail: str, confidence: nullable(num) })),
   caveats: arrayOf(str),
   asked_at: str,
+  summary: nullable(str),
+  blocks: arrayOf(ANSWER_BLOCK),
+  answer_id: nullable(str),
 })
 
 /* ---------------- Writes answer with a shape too ---------------- */
@@ -3253,52 +3444,170 @@ export async function listAskGraphs(): Promise<AskGraphsPayload> {
   }
 }
 
-export async function askQuestion(
+type RawAskAnswer = {
+  question: string
+  use_case_id: string
+  graph_name: string
+  version: string
+  answered: boolean
+  reason: string
+  answer: string | null
+  confidence: number | null
+  entities: string[]
+  path: string[]
+  hops: number
+  reasoning: AskStep[]
+  citations: AskCitation[]
+  caveats: string[]
+  asked_at: string
+  summary: string | null
+  blocks: AnswerBlock[]
+  answer_id: string | null
+}
+
+const toAskAnswer = (raw: RawAskAnswer): AskAnswer => ({
+  question: raw.question,
+  useCaseId: raw.use_case_id,
+  graphName: raw.graph_name,
+  version: raw.version,
+  answered: raw.answered,
+  reason: raw.reason,
+  answer: raw.answer,
+  confidence: raw.confidence,
+  entities: raw.entities,
+  path: raw.path,
+  hops: raw.hops,
+  reasoning: raw.reasoning,
+  citations: raw.citations,
+  caveats: raw.caveats,
+  askedAt: raw.asked_at,
+  summary: raw.summary,
+  blocks: raw.blocks,
+  answerId: raw.answer_id,
+})
+
+/** What arrives while an answer is being composed. */
+export type AskEvent =
+  | { kind: 'stage'; step: string; detail: string }
+  | {
+      kind: 'summary'
+      answered: boolean
+      summary: string | null
+      reason: string
+      answer: string | null
+    }
+  | { kind: 'block'; index: number; block: AnswerBlock }
+  | { kind: 'done'; answer: AskAnswer }
+
+const ASK_STAGE_EVENT = shape({ step: str, detail: str })
+const ASK_SUMMARY_EVENT = shape({
+  answered: bool,
+  summary: nullable(str),
+  reason: str,
+  answer: nullable(str),
+})
+const ASK_BLOCK_EVENT = shape({ index: num, block: ANSWER_BLOCK })
+
+/**
+ * Asks, and reports the answer as it is composed.
+ *
+ * `/ask` answers with an event stream, so this cannot go through the shared
+ * transport helper — that reads one JSON body. **Every event is still
+ * validated**, by its own schema, and the final `done` carries the whole envelope
+ * so the answer the store keeps has been checked as one object rather than
+ * assembled from fragments the page happened to receive.
+ *
+ * (The words above avoid naming that helper with parentheses on purpose:
+ * `check-docs` finds fetchers by scanning declaration bodies for it, and a
+ * mention in a comment made the schema *above* this one look like an unvalidated
+ * fetcher. The check is deliberately crude — it is cheaper to word around it than
+ * to teach it to parse.)
+ *
+ * A refusal still arrives as a JSON 400 before the stream opens, so the existing
+ * `ApiError` path is unchanged: only the success case streams.
+ */
+export async function askQuestionStreaming(
   useCaseId: string,
   question: string,
+  onEvent: (event: AskEvent) => void,
 ): Promise<AskAnswer> {
-  const raw = validate<{
-    question: string
-    use_case_id: string
-    graph_name: string
-    version: string
-    answered: boolean
-    reason: string
-    answer: string | null
-    confidence: number | null
-    entities: string[]
-    path: string[]
-    hops: number
-    reasoning: AskStep[]
-    citations: AskCitation[]
-    caveats: string[]
-    asked_at: string
-  }>(
-    'The answer',
-    await request<unknown>('/ask', {
-      method: 'POST',
-      body: { use_case_id: useCaseId, question },
-    }),
-    ASK_ANSWER_PAYLOAD,
-  )
+  const response = await fetch(`${BASE}/ask`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
+    body: JSON.stringify({ use_case_id: useCaseId, question }),
+  })
 
-  return {
-    question: raw.question,
-    useCaseId: raw.use_case_id,
-    graphName: raw.graph_name,
-    version: raw.version,
-    answered: raw.answered,
-    reason: raw.reason,
-    answer: raw.answer,
-    confidence: raw.confidence,
-    entities: raw.entities,
-    path: raw.path,
-    hops: raw.hops,
-    reasoning: raw.reasoning,
-    citations: raw.citations,
-    caveats: raw.caveats,
-    askedAt: raw.asked_at,
+  if (!response.ok) {
+    // Same shape of failure as request(): the server's own sentence, verbatim.
+    const body = (await response.json().catch(() => null)) as { error?: string } | null
+    throw new ApiError(
+      body?.error ?? `The answer could not be read (HTTP ${response.status}).`,
+      response.status,
+    )
   }
+  if (!response.body) {
+    throw new ApiError('The answer stream was empty — restart the mock server.', 500)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let final: AskAnswer | null = null
+
+  const handle = (event: string, data: unknown) => {
+    if (event === 'stage') {
+      const e = validate<{ step: string; detail: string }>(
+        'An answer step',
+        data,
+        ASK_STAGE_EVENT,
+      )
+      onEvent({ kind: 'stage', ...e })
+    } else if (event === 'summary') {
+      const e = validate<{
+        answered: boolean
+        summary: string | null
+        reason: string
+        answer: string | null
+      }>('The answer summary', data, ASK_SUMMARY_EVENT)
+      onEvent({ kind: 'summary', ...e })
+    } else if (event === 'block') {
+      const e = validate<{ index: number; block: AnswerBlock }>(
+        'An answer block',
+        data,
+        ASK_BLOCK_EVENT,
+      )
+      onEvent({ kind: 'block', ...e })
+    } else if (event === 'done') {
+      final = toAskAnswer(validate<RawAskAnswer>('The answer', data, ASK_ANSWER_PAYLOAD))
+      onEvent({ kind: 'done', answer: final })
+    }
+    // An unknown event name is ignored on purpose: a newer server adding one
+    // must not break an older page, and nothing is rendered from it.
+  }
+
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (value) buffer += decoder.decode(value, { stream: true })
+    // SSE frames are separated by a blank line; a partial frame stays buffered.
+    let cut = buffer.indexOf('\n\n')
+    while (cut >= 0) {
+      const frame = buffer.slice(0, cut)
+      buffer = buffer.slice(cut + 2)
+      const name = frame.match(/^event: (.+)$/m)?.[1]
+      const payload = frame.match(/^data: ([\s\S]+)$/m)?.[1]
+      if (name && payload) handle(name, JSON.parse(payload) as unknown)
+      cut = buffer.indexOf('\n\n')
+    }
+    if (done) break
+  }
+
+  if (!final) {
+    throw new ApiError(
+      'The answer stream ended before the answer did — restart the mock server (npm run mock) and ask again.',
+      500,
+    )
+  }
+  return final
 }
 
 export async function getAudit(): Promise<AuditPayload> {

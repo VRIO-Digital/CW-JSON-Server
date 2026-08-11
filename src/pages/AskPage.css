@@ -206,10 +206,23 @@
 
 /*
  * A hero question is a sentence, and a chip that wraps to three lines stops
- * being a chip — so a long one is truncated and its title carries the rest.
+ * being a chip — so a long one is truncated and its `title` carries the rest.
+ *
+ * The ellipsis has to sit on the **inner span**, not on the button. An antd v6
+ * button is `display: inline-flex`, and `text-overflow` does nothing on a flex
+ * container: the label is a flex *item*, so it overflowed and the button's
+ * `overflow: hidden` simply cut it — mid-word, at both ends, because the item was
+ * centred in a box too small for it. The visible symptom was a chip showing the
+ * middle of a sentence with no "…" anywhere.
  */
 .ask-chips .ant-btn {
   max-width: 340px;
+  overflow: hidden;
+}
+
+.ask-chips .ant-btn > span {
+  /* A flex item will not shrink below its content without this. */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

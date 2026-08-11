@@ -664,6 +664,23 @@
   line-height: 1.55;
 }
 
+/* Deliberately the same two voices `DraftedStep` uses for a persona: what it is
+   for, then why it was drafted. Kept in step with .ng-suggest-focus/-why. */
+.ng-question-detail {
+  margin-top: var(--sp-1);
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.ng-question-why {
+  margin-top: var(--sp-1);
+  color: #8994a8;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
 .ng-question-foot {
   display: flex;
   align-items: center;

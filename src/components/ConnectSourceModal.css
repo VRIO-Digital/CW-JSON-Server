@@ -14,3 +14,25 @@
 .connector-card.is-vision:hover .ant-typography {
   color: #8994a8;
 }
+
+.connector-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+/*
+ * A vision connector's mark is desaturated rather than hidden. Dropping it would
+ * leave holes in the grid that read as still loading; keeping it at full colour
+ * would make an unavailable card the brightest thing on the row.
+ */
+.connector-card.is-vision .connector-card-icon {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.connector-card.is-vision:hover .connector-card-icon {
+  filter: grayscale(0.4);
+  opacity: 0.8;
+}

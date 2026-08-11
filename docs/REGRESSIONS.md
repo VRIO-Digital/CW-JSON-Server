@@ -459,3 +459,331 @@ who did something cannot look the user up; if it names a person and was not told
 who, it is naming a seed. `triggered_by` in the audit payload and
 `approved_by` / `published_by` in Graph Studio still read `db.google_account` —
 they are seeded provenance, not the signed-in user, and should not be read as it.
+
+---
+
+## A `_2` column whose `_1` appears nowhere
+
+**Symptom** — the Gold view `e_manifest` (50 columns, over a 50-entry
+`column_vocabulary`) rendered `manifest_tracking_number_2`,
+`generator_epa_id_2`, `frs_registry_id_2` — while the unsuffixed names appeared
+in no table at all. It reads as a dictionary that lost half its rows, or as a
+duplicate-column bug in the profiler.
+
+**Root cause** — `tableDictionary` (and `documentDictionary`) suffixed by *lap*:
+`cycle = floor((offset + i) / vocab.length)`. The slice deliberately starts at a
+hashed offset, so the lap boundary falls in the middle of the list; every entry
+before the offset was reached on lap 1 and got `_2`, and lap 0 never covered it.
+
+**Fix** — suffix on collision *within that table or document* instead of by lap:
+count uses of each name and append `_${seen}` only from the second. Ids stay
+unique and deterministic; a table no wider than the vocabulary now has no suffix
+at all, and `e_manifest_all` (92 over 50) has exactly 42.
+
+**Guard** — *documented*, and deliberately so: uniqueness is what the code must
+guarantee and it still does either way, so nothing can fail a build over
+cosmetics. The rule is in `SKILLS.md` § Flow 4 — **a `_2` is only ever a second
+copy** — and the reason is in the comment above the counter.
+
+---
+
+## `renderToString` renders a zustand store's *initial* state
+
+**Symptom** — an SSR smoke test loaded a store (`await
+useDocumentsStore.getState().load(id)`, verified: 7 documents, no error), rendered
+`ProfiledDocumentsPanel`, and got antd's "No data" empty state. Worse than a plain
+failure: the negative assertion in the same test — "no old facet label survives" —
+**passed**, because nothing at all had rendered.
+
+**Root cause** — zustand v5's `useStore` passes `api.getInitialState` as
+`useSyncExternalStore`'s third argument, the *server* snapshot. `renderToString`
+uses that branch, so every zustand-driven component renders the state the store
+was created with, no matter what has been loaded into it since.
+
+**Fix** — in the scratch smoke only, make the server snapshot the live one before
+rendering:
+`React.useSyncExternalStore = (sub, get) => real(sub, get, get)`. zustand reads
+the property off the `React` default export at call time, so assigning it works
+inside a bundle.
+
+**Guard** — *documented* (this entry and the note in `CLAUDE.md` § verification):
+the shim belongs in throwaway test code, not in `src/`. The transferable rule is
+the assertion habit — **when asserting that something is absent from rendered
+HTML, assert in the same test that the data-bearing render happened at all.**
+Two "passes" in this repo have now been passes over nothing (see also the
+`\r?\n` split that swept an empty connector list).
+
+**Also** — the effect-driven parts of a panel do not render under SSR either: the
+column and entity tables expand from a `useEffect`, so their rows are absent.
+Assert those against the payload, not the HTML.
+
+---
+
+## A consent screen that described fewer scopes than it requested
+
+**Symptom** — the new Google sign-in window listed one permission for Drive
+("See information about your Google Drive files") and the user pressed Allow on
+it. `/sources/oauth/start?provider=drive` returns **two** scopes:
+`drive.metadata.readonly` *and* `drive.readonly` — the second grants reading file
+contents, which is what profiling needs. The screen collected agreement for less
+than the handshake asked for. CLAUDE.md named one scope too, so the doc agreed
+with the bug.
+
+**Root cause** — the dialog kept its own per-provider list of grants. Any list
+maintained beside the thing it describes drifts from it; this one was wrong the
+day it was written.
+
+**Fix** — the dialog renders `start.scopes`, the array the endpoint returned.
+`CONSENT_GRANT_COPY` supplies wording keyed by scope URL and nothing else; a scope
+with no entry renders as its bare URL, which is unexplained but not hidden.
+
+**Guard** — *mechanical*: `check-docs` collects every
+`https://www.googleapis.com/auth/…` string in `server.mjs` and fails if any lacks
+copy. Adding a scope to the server without describing it fails the build; adding
+one without listing it is now impossible, because the list is the response.
+
+**Rule** — **a screen that collects consent must render what was requested, not
+what it expects to be requested.** The same reasoning as "never show a cost figure
+the server did not report", pointed the other way: never show a smaller promise
+than the one being made.
+
+---
+
+## A doc-drift guard that broke on a renamed local
+
+**Symptom** — `check-docs` failed with "the connect wizard takes that email from
+the auth store: BigQuery and Drive both pass signedInAs to their callback" after
+the sign-in became a click-through. Both connectors still passed `signedInAs`; the
+fact was true and the check was red.
+
+**Root cause** — the assertion matched `oauthCallback(start.state, signedInAs)`
+literally. Splitting the handshake into open-then-allow moved the state into a
+`oauthState` state variable, so the pattern missed. A second attempt matched
+`\bo(?:authCallback|OauthCallback)` and still missed, because in
+`driveOauthCallback` the capital O has no word boundary before it.
+
+**Fix** — match the argument, not the local: `(?:drive)?[oO]authCallback\([\w.]+,
+signedInAs\)`.
+
+**Guard** — *documented*, plus the habit: **assert the fact, not the spelling.**
+A claim keyed to a local variable name fails on a rename and teaches the next
+session that the check cries wolf — which is how the `.env` claim came to be
+ignored for a whole session. When adding a `check-docs` pattern, ask what would
+have to become *false* for it to fail, and match that.
+
+---
+
+## An optional-in-practice source name
+
+**Symptom** — the wizard's "Source name" field could be left blank and the source
+registered anyway, as `vrio-contextweave-demo` (BigQuery) or `Compliance Docs`
+(Drive). A one-character name passed too. The Sources table, the Catalogue tab and
+every profiling job row key off that string, so two sources from one project were
+indistinguishable and nothing downstream could fix it.
+
+**Root cause** — three fallbacks, each reasonable alone:
+`source_name || project.display_name || project_id` on the server, `sourceName ||
+projectId` in `finishBigQuery`, `values.sourceName || selected.name` in
+`finishGeneric`. The generic connector's field was already `required: true`, so the
+form *asked* — and the code answered for the user when they declined.
+
+**Fix** — `SOURCE_NAME_MIN = 6` and a shared `sourceNameProblem` on both sides.
+All three register endpoints refuse; every fallback removed, so a missing name is
+now a 400 rather than an invented label. The wizard checks the same rule before the
+round trip and shows the error only once the field has been touched.
+
+**Guard** — *mechanical*: `check-docs` asserts the server's and the client's
+minimum are the same number, that each of the three endpoints calls
+`sourceNameProblem`, and that **no fallback pattern comes back** (`source_name ||
+project.` / `sourceName: sourceName ||`). The last one is the important one: the
+validator could stay in place while a fallback quietly reintroduced the bug.
+
+**Rule** — **a fallback for a required field makes it optional.** If the form asks
+for something, the code must not answer on the user's behalf; `||` on a
+user-supplied value is where "required" goes to die.
+
+---
+
+## A doc-count guard that one true claim covered for
+
+**Symptom** — `SKILLS.md` said `validateDb` verifies "all 19 required keys" while
+`CLAUDE.md` said 20 and the code guarded 20. `check-docs` was green.
+
+**Root cause** — the assertion was a single `||` across both files:
+`skills.includes('20 required keys') || skills.includes('all eight required keys')
+|| claude.includes('20 required')`. CLAUDE.md's correct claim satisfied it, so
+SKILLS.md's stale one was never looked at. The check asked "does *someone* say the
+right number", not "does everyone who says it say it right".
+
+**Fix** — each file is asserted where it makes the claim: every `N required keys`
+in either document must equal the guarded count, and a separate claim requires at
+least one of them to state it. (The count is 21 now — `column_profiles`.)
+
+**Guard** — *mechanical*, and the lesson is about the shape: **an `||` across
+sources makes a guard as weak as its most-correct source.** Assert each source
+that makes a claim, and keep the "someone must say it" requirement separate from
+"whoever says it must be right".
+
+---
+
+## Reading xlsx: attribute order is not a contract
+
+**Symptom** — a zero-dependency xlsx reader returned an empty workbook for
+`Metadata_Profiling.xlsx`. No error: `Object.keys(wb).length === 0`, which read
+as "the file has no sheets".
+
+**Root cause** — the relationship parser matched
+`<Relationship[^>]*Id="…"[^>]*Target="…"` — one regex spanning two attributes, in
+that order. This workbook writes `Type`, then `Target`, then `Id`. XML makes no
+ordering guarantee, so every sheet failed to resolve and the loop produced nothing.
+
+**Fix** — read each attribute with its own pattern, and throw
+`no sheets resolved` rather than returning `{}`.
+
+**Guard** — *diagnostic* (the reader is a scratch tool, not shipped code): it now
+fails loudly instead of returning an empty result. The transferable rule is the
+same one the `check-docs` rename taught — **never match two independent things
+with one ordered pattern**, whether that is XML attributes or a function call and
+its argument. Also: **a parser that can return empty must say so**, because
+"parsed fine, found nothing" is indistinguishable from "the input was empty".
+
+---
+
+## Five connectors drawn as BigQuery
+
+**Symptom** — latent until step 1 of the wizard got icons: `ConnectorIcon` ended
+`return <BigQueryIcon size={size} />`, so GCS, S3, PostgreSQL, Snowflake and
+MongoDB would each have rendered the BigQuery mark. Not a missing icon — a card
+wearing the wrong vendor's logo.
+
+**Root cause** — a fallback chosen for convenience when only two connectors were
+ever rendered. `ConnectorIcon` was called in two places, both of which only ever
+saw `bigquery` or `gdrive`, so the wrong branch was unreachable and stayed wrong.
+
+**Fix** — a `MARKS` map with all seven keys, and a `GenericSourceIcon` fallback:
+a neutral grey cylinder whose `aria-label` names the key it did not recognise.
+
+**Guard** — *mechanical*: `check-docs` reads the keys out of `CONNECTORS` and the
+keys out of `MARKS` and fails if any key lacks a mark, plus a second claim that the
+fallback is the neutral one rather than a vendor mark. Adding a connector now fails
+the build until it has its own drawing.
+
+**Rule** — **a default that misidentifies is not a default.** A fallback may be
+plainer than the real thing (grey cylinder, bare scope URL, the email instead of a
+name) but it must not assert something false. And a wrong branch that nothing
+currently reaches is still wrong: it is waiting for the feature that reaches it.
+
+---
+
+## A guard's own regex, twice, on the same mistake
+
+**Symptom** — the new "every connector key has a mark" claim failed with
+`marks ` — an empty list — while all seven marks were present.
+
+**Root cause** — `const MARKS[^=]*= \{` . The declaration's type annotation is
+`Record<string, (props: { size?: number }) => JSX.Element>`, which contains both an
+`=` (in `=>`) and a `{`, so `[^=]*` stopped inside the annotation and the body
+never matched. This is the third time in this repo a doc-guard pattern has failed
+on the *shape* of the code rather than its meaning — after `\n` vs `\r?\n` and
+`oauthCallback(start.state, …)`.
+
+**Fix** — locate `const MARKS`, then `= {` after it, then slice to `\n}`. Two
+steps, no single pattern spanning independent things.
+
+**Guard** — *documented*, plus the negative test habit: **every new `check-docs`
+claim gets deliberately broken once before it is trusted.** All three of these
+failures looked like a stale doc and were a stale regex; the empty-list output is
+the tell — a guard reporting "0 of N" is describing itself, not the code.
+
+---
+
+## `why` overwritten by `detail`, and a step that showed neither
+
+**Symptom** — after ingesting the use-case brief, every drafted hero question's
+`why` read "The core liability question — connects inbound manifests to generator
+compliance records." A keyword-ranked question no longer said it had been
+keyword-matched, which is the one thing CLAUDE.md requires a suggestion to say:
+*"A suggestion nobody can explain is worse than no suggestion."*
+
+**Root cause** — the brief states a *why* per question, and the obvious slot
+looked like `Suggestion.why`. It is not: `why` is why **this suggester** drafted
+the row, `detail` is what the row **is**. Overwriting the first with the second
+lost the provenance and left `detail` empty — the field a persona uses for `focus`
+and a KPI for `definition`, and which hero questions had never filled.
+
+Compounding it: `HeroQuestionsStep` rendered *neither* field. So the brief's
+reason would not have appeared anywhere, and the missing `why` was invisible.
+
+**Fix** — `detail: focus ?? definition ?? rationale ?? format`, `why` untouched,
+and the step now renders both lines in the same two voices `DraftedStep` uses.
+
+**Guard** — *diagnostic*, in the comment on `asSuggestion`: the two fields are
+named for the questions they answer, and the comment says neither may stand in for
+the other. A mechanical check would have to assert copy, which is the "assert the
+fact, not the spelling" trap.
+
+**Rule** — **before reusing a field, read what it is for.** An empty field is not
+a free field: `detail` was empty for hero questions because nobody had given them
+one, not because it was available. And when adding data to a payload, check the
+component actually renders the field — this one shipped two fields into a step
+that displayed neither.
+
+---
+
+## An SVG chart that scaled its own text to 28px
+
+**Symptom** — the bar chart in an Ask answer rendered enormous: rows about 65px
+tall, category labels and value labels at roughly 28px, one chart filling the
+screen. Nothing was wrong with the drawing — every proportion was correct.
+
+**Root cause** — `.ab-svg { width: 100%; height: auto }` over a `viewBox="0 0 560
+…"`. An SVG with a viewBox scales its *entire coordinate system* to the rendered
+box, so in a ~1400px answer column the whole drawing was multiplied by 2.5 —
+including the 11px `font-size` on every label. The CSS was written as if the SVG
+were an image that would be laid out at its natural size and only shrink.
+
+**Fix** — each chart caps itself at its own viewBox width inline
+(`style={{ maxWidth: width }}`), so it can shrink but never grow. Row height and
+the label/value columns were tightened too (26 → 20px rows, 560 → 520 wide).
+The HTML-drawn forms — the stacked bar and the meter — got the same ceiling in CSS.
+
+**Guard** — *documented*, plus an assertion in the scratch smoke that reads the
+`viewBox` width out of the rendered markup and requires `max-width` to equal it.
+A `check-docs` claim would have to assert a CSS number against a TSX constant,
+which is the "assert the fact, not the spelling" trap; the cap living inline
+*beside* the constant is what actually keeps them equal.
+
+**Rule** — **`width: 100%` on a viewBox SVG is a zoom control, not a layout
+rule.** If the drawing carries text at a chosen px size, that size only means
+anything at 1:1 — so cap the upscale. This is also why the cap belongs in the
+component: the component knows its viewBox width, and a magic number in a
+stylesheet drifts from it silently.
+
+---
+
+## `text-overflow: ellipsis` on a flex container does nothing
+
+**Symptom** — Ask's suggestion chips showed the *middle* of a hero question with
+no "…" at either end: "Park are under active RCRA enforcement, and how mu". The
+stylesheet already said `text-overflow: ellipsis`.
+
+**Root cause** — the rule was on the antd `Button`, and an antd v6 button is
+`display: inline-flex`. `text-overflow` applies to a block container's own inline
+content; on a flex container it has nothing to act on, because the label is a flex
+*item*. The item kept its full width, the button's `overflow: hidden` cut it, and
+because a flex item is centred in a box too small for it, it was cut at **both**
+ends — which is why the chip read as a fragment rather than a truncation.
+
+**Fix** — the ellipsis moved to the inner span antd wraps the label in, with
+`min-width: 0` so a flex item may shrink below its content at all. The button keeps
+`max-width` and `overflow: hidden`.
+
+**Guard** — *documented*, plus a scratch assertion that renders a real
+`<Button>` and requires the stylesheet's selector to match the markup antd
+actually produced. That is the fragile part: the rule depends on antd wrapping the
+label in a span, so the test asserts the wrapper exists rather than trusting it.
+
+**Rule** — **check which box a text property is acting on.** `text-overflow`,
+`white-space` and `line-clamp` need a block container with inline content; antd v6
+makes buttons, and much else, flex. The tell for this failure is text clipped at
+*both* ends: that is a centred flex item, not a truncation.

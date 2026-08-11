@@ -22,27 +22,31 @@ type FacetKey =
   | 'all'
   | 'needs_review'
   | 'pii'
-  | 'manifests'
-  | 'contracts'
-  | 'reports'
-  | 'notes'
+  | 'consent_decrees'
+  | 'complaints'
+  | 'settlements'
+  | 'cafos'
 
 const FACETS: { key: FacetKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'needs_review', label: 'Needs review' },
   { key: 'pii', label: 'PII' },
-  { key: 'manifests', label: 'Manifests' },
-  { key: 'contracts', label: 'Contracts' },
-  { key: 'reports', label: 'Reports' },
-  { key: 'notes', label: 'Notes' },
+  { key: 'consent_decrees', label: 'Consent decrees' },
+  { key: 'complaints', label: 'Complaints' },
+  { key: 'settlements', label: 'Settlements' },
+  { key: 'cafos', label: 'CAFOs' },
 ]
 
-/** Facets filter documents here, not entities — a file is the reviewed unit. */
+/**
+ * Facets filter documents here, not entities — a file is the reviewed unit.
+ * They match `doc_type`, the slug, not `doc_type_label`: a consent-decree
+ * modification belongs under Consent decrees, and only the label says it is one.
+ */
 const TYPE_FOR_FACET: Partial<Record<FacetKey, string>> = {
-  manifests: 'manifest',
-  contracts: 'contract',
-  reports: 'report',
-  notes: 'notes',
+  consent_decrees: 'consent_decree',
+  complaints: 'complaint',
+  settlements: 'settlement',
+  cafos: 'cafo',
 }
 
 /** snake_case → "SIGNATORY EMAIL", matching the column dictionary. */
@@ -238,12 +242,48 @@ export default function ProfiledDocumentsPanel({
                           <DownOutlined className={`pc-caret${isOpen ? ' is-open' : ''}`} />
                           <Tag className="pc-kind">{fileKind(d.mime_type)}</Tag>
                           <span className="pc-table-name">{d.name}</span>
+                          {/* Neutral, not a status colour: what a document is
+                              and who it is about are categories, not state. */}
+                          <Tag className="pc-class-tag">{d.doc_type_label}</Tag>
+                          <span className="pc-linked">{d.linked_entity}</span>
                         </span>
                         <span className="pc-table-meta">
                           {`${d.entity_count} entities · ${d.pages} pages · ${d.chunks} chunks` +
                             (d.pii_count > 0 ? ` · ${d.pii_count} pii` : '')}
                         </span>
                       </button>
+
+                      {/*
+                        Where this file landed in the graph — the point of
+                        profiling it. Real, from the extraction map, so the node
+                        id and the manifest count are stated rather than implied;
+                        a document that resolved to nothing says so instead of
+                        rendering an empty row.
+                      */}
+                      <div className="pc-resolution">
+                        {d.resolution ? (
+                          <>
+                            <span className="pc-res-arrow" aria-hidden="true">
+                              ↳
+                            </span>
+                            <Tag className="pc-class-tag is-identifier">
+                              {d.resolution.resolved_node}
+                            </Tag>
+                            <span className="pc-res-entity">
+                              {d.resolution.resolved_facility}
+                            </span>
+                            <span className="pc-res-meta">
+                              {`${d.resolution.entity_type} · ${d.resolution.state} · ` +
+                                `${d.resolution.linked_manifests.toLocaleString()} linked manifest(s) · ` +
+                                `extraction ${d.resolution.confidence.toFixed(2)}`}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="pc-res-meta">
+                            No graph entity resolved from this document yet.
+                          </span>
+                        )}
+                      </div>
 
                       {/* The summary sits outside the toggle: it is the note a
                           curator writes, and a button cannot nest in a button. */}

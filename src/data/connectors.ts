@@ -7,6 +7,8 @@
  * cannot be used yet. Flip `available` to true to enable one.
  */
 
+import { SOURCE_NAME_MIN } from './sourceName'
+
 export type FieldKind = 'text' | 'secret' | 'select'
 
 export interface ConnectorField {
@@ -18,6 +20,8 @@ export interface ConnectorField {
   options?: string[]
   multiple?: boolean
   required?: boolean
+  /** Shortest acceptable value. Only the source name has one — see sourceName.ts. */
+  minLength?: number
 }
 
 export interface Connector {
@@ -32,14 +36,21 @@ export interface Connector {
   reason?: string
 }
 
-/** Every connector takes a display name; credentials are always by reference. */
+/**
+ * Every connector takes a display name; credentials are always by reference.
+ *
+ * The same floor the two Google branches apply, from the same constant — a
+ * stubbed connector's row sits in the same Sources table, so "db" is no more
+ * readable here than there.
+ */
 const nameField: ConnectorField = {
   name: 'sourceName',
   label: 'Source name',
   kind: 'text',
   placeholder: 'Orders warehouse',
-  help: 'How this source appears in the catalogue and lineage graph.',
+  help: `How this source appears in the catalogue and lineage graph. At least ${SOURCE_NAME_MIN} characters.`,
   required: true,
+  minLength: SOURCE_NAME_MIN,
 }
 
 const secretField = (placeholder: string): ConnectorField => ({

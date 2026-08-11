@@ -6,6 +6,7 @@ import {
 import { Alert, Button, Input, Select, Spin, Typography, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import AnswerBlocks from '../components/AnswerBlocks'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
@@ -43,6 +44,9 @@ const shortDate = (iso: string | null) =>
 export default function AskPage() {
   const navigate = useNavigate()
   const [question, setQuestion] = useState('')
+  /* The question stays on screen while its answer streams in beneath it — the
+     input is cleared on send, so the text has to be held somewhere. */
+  const [asked, setAsked] = useState('')
 
   const data = useAskStore((s) => s.data)
   const loading = useAskStore((s) => s.loading)
@@ -55,18 +59,26 @@ export default function AskPage() {
   const ask = useAskStore((s) => s.ask)
   const graphs = useAskStore(selectAskGraphs)
   const graph = useAskStore(selectCurrentGraph)
+  // Selected one at a time: a block arriving must not re-render the picker.
+  const streamedSteps = useAskStore((s) => s.streamedSteps)
+  const streamedBlocks = useAskStore((s) => s.streamedBlocks)
+  const streamedSummary = useAskStore((s) => s.streamedSummary)
 
   useEffect(() => {
     void load()
   }, [load])
 
   async function onAsk(text: string) {
-    const result = await ask(text)
-    if (!result.ok) {
-      message.error(result.error)
+    if (!text.trim()) {
+      message.warning('Ask a question first.')
       return
     }
+    // Cleared here, so the box is empty while the answer streams — and the text
+    // moves to `asked`, above the answer, rather than disappearing.
+    setAsked(text.trim())
     setQuestion('')
+    const result = await ask(text)
+    if (!result.ok) message.error(result.error)
   }
 
   if (error) return <ApiErrorAlert error={error} onRetry={() => void load()} />
@@ -148,10 +160,15 @@ export default function AskPage() {
                   </StatusTag>
 
                   <p className="ask-answer">
-                    {answer.answered ? answer.answer : answer.reason}
+                    {answer.answered ? (answer.summary ?? answer.answer) : answer.reason}
                   </p>
 
-                  {answer.answered ? (
+                  {/* The body of a recorded answer: prose, figures, chart, table,
+                      in the order it was written. Empty when the graph walk
+                      answered — a walk produces a sentence, not blocks. */}
+                  <AnswerBlocks blocks={answer.blocks} />
+
+                  {answer.answered && answer.path.length > 0 ? (
                     <div className="ask-path">{answer.path.join('  →  ')}</div>
                   ) : null}
 
@@ -179,9 +196,12 @@ export default function AskPage() {
                         <li key={c.label}>
                           <span className="ask-cite-label">{c.label}</span>
                           <span className="ask-cite-detail">{c.detail}</span>
-                          <span className="ask-cite-conf">
-                            {c.confidence.toFixed(2)}
-                          </span>
+                          {/* Only where there is a number. A recorded answer's
+                              evidence rows have none, and a placeholder would be
+                              an invented score. */}
+                          {c.confidence !== null ? (
+                            <span className="ask-cite-conf">{c.confidence.toFixed(2)}</span>
+                          ) : null}
                         </li>
                       ))}
                     </ul>
@@ -225,14 +245,47 @@ export default function AskPage() {
               </div>
             )}
 
-            {/* One line, one call. It advances when the answer returns. */}
+            {/*
+              The answer as it composes.
+              Every line here has already arrived from the server — the steps it
+              took, then the summary, then each block. Nothing is animated ahead
+              of the response: this is the same distinction the consent panel
+              draws between a stage and a timer, applied to one streaming call.
+            */}
             {asking ? (
-              <div className="ask-working">
-                <Spin size="small" />
-                <span>
-                  Grounding the question in {graph.name} {graph.version}, routing
-                  to source systems, composing the answer…
-                </span>
+              <div className="ask-turn is-streaming">
+                <div className="ask-asked">
+                  <QuestionCircleOutlined aria-hidden="true" />
+                  <span>{asked}</span>
+                </div>
+
+                <div className="ask-reply" aria-live="polite" aria-busy="true">
+                  {streamedSteps.length > 0 ? (
+                    <ol className="ask-steps is-live">
+                      {streamedSteps.map((s) => (
+                        <li key={s.step}>
+                          <strong>{s.step}</strong>
+                          <span>{s.detail}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : null}
+
+                  {streamedSummary ? (
+                    <p className="ask-answer">{streamedSummary.text}</p>
+                  ) : null}
+
+                  <AnswerBlocks blocks={streamedBlocks} streaming />
+
+                  <div className="ask-working">
+                    <Spin size="small" />
+                    <span>
+                      {streamedSummary
+                        ? 'Composing the rest of the answer…'
+                        : `Grounding the question in ${graph.name} ${graph.version}…`}
+                    </span>
+                  </div>
+                </div>
               </div>
             ) : null}
           </div>

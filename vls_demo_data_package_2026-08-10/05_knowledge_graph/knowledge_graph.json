@@ -1,0 +1,1972 @@
+{
+  "_note": "Knowledge graph spec for the VLS demo. Nodes come from rows, column values, and entities extracted from unstructured documents; edges connect them. Companion narrative: Knowledge_Graph_Overview.docx. Numbers cite 04_structured_data / the entity roster.",
+  "dataset": "vrio-contextweave-demo.epa_hazwaste",
+  "node_types": [
+    {
+      "type": "Facility",
+      "origin": "row (FRS / RCRA summary)",
+      "count": 49,
+      "id_pattern": "FAC:<EPA_ID>",
+      "description": "A physical EPA-regulated site: the receiving TSDF, inbound generators, transporters, and comparator TSDFs. One node per resolved EPA handler ID."
+    },
+    {
+      "type": "Document",
+      "origin": "unstructured (uploaded PDF)",
+      "count": 7,
+      "id_pattern": "DOC:<slug>",
+      "description": "A public enforcement document (consent decree, CAFO, complaint, settlement). Entities extracted from the text resolve onto Facility nodes."
+    },
+    {
+      "type": "Manifest",
+      "origin": "row (e_manifest)",
+      "count": 1200,
+      "id_pattern": "MAN:<MTN>",
+      "description": "One cradle-to-grave hazardous-waste shipment. Sample instances included for the trace path; the full set is 1,200 rows."
+    },
+    {
+      "type": "WasteCode",
+      "origin": "column value (WASTE CODE)",
+      "count": 13,
+      "id_pattern": "WC:<code>",
+      "description": "An EPA hazardous-waste code (D/F/U/P series) carried on manifests. Dimension node derived from column values."
+    },
+    {
+      "type": "EnforcementType",
+      "origin": "column value (ENF_TYPE_DESC)",
+      "count": 5,
+      "id_pattern": "ENF:<slug>",
+      "description": "A class of RCRA enforcement action. Dimension node derived from column values."
+    },
+    {
+      "type": "ViolationType",
+      "origin": "column value (VIOL_TYPE)",
+      "count": 9,
+      "id_pattern": "VIOL:<slug>",
+      "description": "A class of RCRA violation. Dimension node derived from column values."
+    }
+  ],
+  "edge_types": [
+    {
+      "type": "SHIPS_TO",
+      "from": "Facility (generator)",
+      "to": "Facility (VLS TSDF)",
+      "cardinality": "many\u21921",
+      "origin": "e_manifest rollup",
+      "properties": "manifests, total_tons, first_ship, last_ship, rejections, residues",
+      "description": "Aggregated inbound flow from a generator to VLS Texas Molecular."
+    },
+    {
+      "type": "TRANSPORTS_TO",
+      "from": "Facility (transporter)",
+      "to": "Facility (VLS TSDF)",
+      "cardinality": "many\u21921",
+      "origin": "e_manifest_all TRANSPORTER_NAMES",
+      "properties": "loads_carried",
+      "description": "Aggregated custody flow: a transporter carrying loads into VLS."
+    },
+    {
+      "type": "GENERATED",
+      "from": "Facility (generator)",
+      "to": "Manifest",
+      "cardinality": "1\u2192many",
+      "origin": "e_manifest GENERATOR ID",
+      "properties": "shipped_date",
+      "description": "A generator originated a specific manifest (sample instances)."
+    },
+    {
+      "type": "RECEIVED_BY",
+      "from": "Manifest",
+      "to": "Facility (VLS TSDF)",
+      "cardinality": "many\u21921",
+      "origin": "e_manifest DES FACILITY ID",
+      "properties": "received_date",
+      "description": "A manifest was received at VLS Texas Molecular."
+    },
+    {
+      "type": "TRANSPORTED",
+      "from": "Facility (transporter)",
+      "to": "Manifest",
+      "cardinality": "many\u2192many",
+      "origin": "e_manifest_all",
+      "properties": "days_in_possession, order",
+      "description": "A transporter carried a specific manifest in the custody chain."
+    },
+    {
+      "type": "CARRIES",
+      "from": "Manifest",
+      "to": "WasteCode",
+      "cardinality": "many\u2192many",
+      "origin": "e_manifest WASTE CODE",
+      "properties": "quantity_tons",
+      "description": "A manifest carries one or more waste codes."
+    },
+    {
+      "type": "HAS_VIOLATION",
+      "from": "Facility",
+      "to": "ViolationType",
+      "cardinality": "many\u2192many",
+      "origin": "RCRA_compliance",
+      "properties": "count, last_determined, open",
+      "description": "A facility has recorded violations of a given type."
+    },
+    {
+      "type": "HAS_ENFORCEMENT",
+      "from": "Facility",
+      "to": "EnforcementType",
+      "cardinality": "many\u2192many",
+      "origin": "RCRA_compliance",
+      "properties": "count, total_penalty",
+      "description": "A facility received enforcement actions of a given type."
+    },
+    {
+      "type": "DESCRIBED_BY",
+      "from": "Facility",
+      "to": "Document",
+      "cardinality": "many\u2192many",
+      "origin": "unstructured extraction",
+      "properties": "extracted_entity, confidence",
+      "description": "THE BRIDGE: a public enforcement document names a facility that also appears in the live manifest stream."
+    },
+    {
+      "type": "RESOLVES_TO",
+      "from": "raw name / alias",
+      "to": "Facility",
+      "cardinality": "many\u21921",
+      "origin": "entity resolution",
+      "properties": "method, confidence",
+      "description": "Legacy names ('Texas Molecular LP') and manifest name variants resolve to one Facility node."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "FAC:TXD000719518",
+      "type": "Facility",
+      "label": "VLS Texas Molecular",
+      "properties": {
+        "role": "receiver_tsdf",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 3,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "FAC:TXD515102755",
+      "type": "Facility",
+      "label": "ExxonMobil Baytown Complex",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 12,
+        "violations": 3,
+        "enforcements": 2,
+        "penalty_usd": 318000,
+        "inbound_tons": 1061.8,
+        "inbound_manifests": 46
+      }
+    },
+    {
+      "id": "FAC:TXD620016210",
+      "type": "Facility",
+      "label": "Pemex Deer Park",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 7,
+        "violations": 4,
+        "enforcements": 2,
+        "penalty_usd": 25000,
+        "inbound_tons": 1085.4,
+        "inbound_manifests": 46
+      }
+    },
+    {
+      "id": "FAC:TXD042027594",
+      "type": "Facility",
+      "label": "Chevron Phillips Chemical Cedar Bayou Plant",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 3,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 402.9,
+        "inbound_manifests": 20
+      }
+    },
+    {
+      "id": "FAC:TXD340285410",
+      "type": "Facility",
+      "label": "LyondellBasell Channelview Complex",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "high",
+        "evaluations": 21,
+        "violations": 5,
+        "enforcements": 1,
+        "penalty_usd": 7500,
+        "inbound_tons": 1502.7,
+        "inbound_manifests": 61
+      }
+    },
+    {
+      "id": "FAC:TXD865034110",
+      "type": "Facility",
+      "label": "LyondellBasell Houston Refinery",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 13,
+        "violations": 1,
+        "enforcements": 1,
+        "penalty_usd": 0,
+        "inbound_tons": 847.5,
+        "inbound_manifests": 36
+      }
+    },
+    {
+      "id": "FAC:TXD088532553",
+      "type": "Facility",
+      "label": "INEOS Olefins & Polymers USA La Porte",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 5,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 662.5,
+        "inbound_manifests": 27
+      }
+    },
+    {
+      "id": "FAC:TXD050870526",
+      "type": "Facility",
+      "label": "Covestro LLC Baytown",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 5,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 678.3,
+        "inbound_manifests": 27
+      }
+    },
+    {
+      "id": "FAC:TXD954732021",
+      "type": "Facility",
+      "label": "Occidental Chemical Deer Park",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 11,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 905.9,
+        "inbound_manifests": 40
+      }
+    },
+    {
+      "id": "FAC:TXD441233670",
+      "type": "Facility",
+      "label": "Occidental Chemical La Porte",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 4,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 423.5,
+        "inbound_manifests": 25
+      }
+    },
+    {
+      "id": "FAC:TXD792824398",
+      "type": "Facility",
+      "label": "Lubrizol Deer Park",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 5,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 686.3,
+        "inbound_manifests": 29
+      }
+    },
+    {
+      "id": "FAC:TXD229183555",
+      "type": "Facility",
+      "label": "Kuraray America Pasadena",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 4,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 579.6,
+        "inbound_manifests": 29
+      }
+    },
+    {
+      "id": "FAC:TXD352786078",
+      "type": "Facility",
+      "label": "Celanese Clear Lake Plant",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 12,
+        "violations": 4,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 1110.4,
+        "inbound_manifests": 51
+      }
+    },
+    {
+      "id": "FAC:TXD242744151",
+      "type": "Facility",
+      "label": "BASF Corporation Pasadena",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 4,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 662.6,
+        "inbound_manifests": 29
+      }
+    },
+    {
+      "id": "FAC:TXD391444741",
+      "type": "Facility",
+      "label": "Air Liquide Bayport",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 2,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 667.5,
+        "inbound_manifests": 31
+      }
+    },
+    {
+      "id": "FAC:TXD750745563",
+      "type": "Facility",
+      "label": "Intercontinental Terminals Company Deer Park",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "high",
+        "evaluations": 20,
+        "violations": 6,
+        "enforcements": 1,
+        "penalty_usd": 78000,
+        "inbound_tons": 1061.4,
+        "inbound_manifests": 52
+      }
+    },
+    {
+      "id": "FAC:TXD424874836",
+      "type": "Facility",
+      "label": "Vopak Terminal Deer Park",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 6,
+        "violations": 3,
+        "enforcements": 1,
+        "penalty_usd": 34000,
+        "inbound_tons": 909.5,
+        "inbound_manifests": 40
+      }
+    },
+    {
+      "id": "FAC:TXD658451543",
+      "type": "Facility",
+      "label": "Kaneka North America La Porte",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 2,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 673.3,
+        "inbound_manifests": 30
+      }
+    },
+    {
+      "id": "FAC:TXD493080867",
+      "type": "Facility",
+      "label": "Goodyear Chemical Bayport",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 7,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 774.3,
+        "inbound_manifests": 36
+      }
+    },
+    {
+      "id": "FAC:TXD791240867",
+      "type": "Facility",
+      "label": "Arkema Inc. Crosby",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "high",
+        "evaluations": 14,
+        "violations": 4,
+        "enforcements": 4,
+        "penalty_usd": 397500,
+        "inbound_tons": 1355.0,
+        "inbound_manifests": 60
+      }
+    },
+    {
+      "id": "FAC:TXD232817176",
+      "type": "Facility",
+      "label": "TPC Group Houston Plant",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 11,
+        "violations": 3,
+        "enforcements": 1,
+        "penalty_usd": 34000,
+        "inbound_tons": 1175.3,
+        "inbound_manifests": 46
+      }
+    },
+    {
+      "id": "FAC:TXD191666610",
+      "type": "Facility",
+      "label": "Ascend Performance Materials Pasadena",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 12,
+        "violations": 3,
+        "enforcements": 2,
+        "penalty_usd": 252000,
+        "inbound_tons": 741.7,
+        "inbound_manifests": 35
+      }
+    },
+    {
+      "id": "FAC:TXD142556694",
+      "type": "Facility",
+      "label": "Evonik Corporation Houston",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 3,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 567.7,
+        "inbound_manifests": 24
+      }
+    },
+    {
+      "id": "FAC:TXD385712593",
+      "type": "Facility",
+      "label": "Dow Chemical La Porte Operations",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 11,
+        "violations": 1,
+        "enforcements": 1,
+        "penalty_usd": 78000,
+        "inbound_tons": 841.8,
+        "inbound_manifests": 33
+      }
+    },
+    {
+      "id": "FAC:TXD424641114",
+      "type": "Facility",
+      "label": "Huntsman Corporation Bayport",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 5,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 438.4,
+        "inbound_manifests": 21
+      }
+    },
+    {
+      "id": "FAC:TXD065381027",
+      "type": "Facility",
+      "label": "Braskem America La Porte",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 2,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 731.1,
+        "inbound_manifests": 33
+      }
+    },
+    {
+      "id": "FAC:TXD298831110",
+      "type": "Facility",
+      "label": "Phillips 66 Pasadena Terminal",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 2,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 631.4,
+        "inbound_manifests": 23
+      }
+    },
+    {
+      "id": "FAC:TXD720437972",
+      "type": "Facility",
+      "label": "Valero Houston Refinery",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 14,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 1084.7,
+        "inbound_manifests": 47
+      }
+    },
+    {
+      "id": "FAC:TXD976089325",
+      "type": "Facility",
+      "label": "Marathon Galveston Bay Refinery",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 10,
+        "violations": 3,
+        "enforcements": 2,
+        "penalty_usd": 32500,
+        "inbound_tons": 988.0,
+        "inbound_manifests": 40
+      }
+    },
+    {
+      "id": "FAC:TXD925855773",
+      "type": "Facility",
+      "label": "Enterprise Products Mont Belvieu",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 3,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 617.0,
+        "inbound_manifests": 29
+      }
+    },
+    {
+      "id": "FAC:TXD967033255",
+      "type": "Facility",
+      "label": "Kinder Morgan Pasadena Terminal",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 5,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 361.9,
+        "inbound_manifests": 20
+      }
+    },
+    {
+      "id": "FAC:TXD150442958",
+      "type": "Facility",
+      "label": "Shell Chemical LP Deer Park",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 3,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 503.4,
+        "inbound_manifests": 25
+      }
+    },
+    {
+      "id": "FAC:TXD816757788",
+      "type": "Facility",
+      "label": "Kraton Polymers Houston",
+      "properties": {
+        "role": "generator",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 5,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "inbound_tons": 702.2,
+        "inbound_manifests": 26
+      }
+    },
+    {
+      "id": "FAC:LAD727050419",
+      "type": "Facility",
+      "label": "Denka Performance Elastomer LLC",
+      "properties": {
+        "role": "generator",
+        "state": "LA",
+        "risk": "high",
+        "evaluations": 22,
+        "violations": 9,
+        "enforcements": 3,
+        "penalty_usd": 70500,
+        "inbound_tons": 579.1,
+        "inbound_manifests": 28,
+        "consent_decree": "Y"
+      }
+    },
+    {
+      "id": "FAC:NCD844706749",
+      "type": "Facility",
+      "label": "The Chemours Company Fayetteville Works",
+      "properties": {
+        "role": "generator",
+        "state": "NC",
+        "risk": "high",
+        "evaluations": 15,
+        "violations": 4,
+        "enforcements": 1,
+        "penalty_usd": 12000,
+        "inbound_tons": 473.4,
+        "inbound_manifests": 19,
+        "consent_decree": "Y"
+      }
+    },
+    {
+      "id": "FAC:LAD663309076",
+      "type": "Facility",
+      "label": "PCS Nitrogen Fertilizer LP",
+      "properties": {
+        "role": "generator",
+        "state": "LA",
+        "risk": "high",
+        "evaluations": 17,
+        "violations": 6,
+        "enforcements": 3,
+        "penalty_usd": 164000,
+        "inbound_tons": 472.7,
+        "inbound_manifests": 21,
+        "consent_decree": "Y"
+      }
+    },
+    {
+      "id": "FAC:IDD698205633",
+      "type": "Facility",
+      "label": "J.R. Simplot Company Don Plant",
+      "properties": {
+        "role": "generator",
+        "state": "ID",
+        "risk": "high",
+        "evaluations": 16,
+        "violations": 9,
+        "enforcements": 4,
+        "penalty_usd": 293500,
+        "inbound_tons": 350.4,
+        "inbound_manifests": 15,
+        "consent_decree": "Y"
+      }
+    },
+    {
+      "id": "FAC:TXD952065253",
+      "type": "Facility",
+      "label": "Clean Harbors Deer Park LLC",
+      "properties": {
+        "role": "comparator_tsdf",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 10,
+        "violations": 4,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "FAC:TXD225985513",
+      "type": "Facility",
+      "label": "US Ecology Texas Robstown",
+      "properties": {
+        "role": "comparator_tsdf",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 6,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "FAC:TXD769756771",
+      "type": "Facility",
+      "label": "Veolia Port Arthur",
+      "properties": {
+        "role": "comparator_tsdf",
+        "state": "TX",
+        "risk": "med",
+        "evaluations": 7,
+        "violations": 3,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "FAC:TXD565579440",
+      "type": "Facility",
+      "label": "WM Disposal Services of Texas",
+      "properties": {
+        "role": "comparator_tsdf",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 5,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "FAC:TXR000012345",
+      "type": "Facility",
+      "label": "Clean Harbors Environmental Services",
+      "properties": {
+        "role": "transporter",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 3,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "FAC:TXR000023456",
+      "type": "Facility",
+      "label": "US Ecology Texas Inc.",
+      "properties": {
+        "role": "transporter",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 3,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "FAC:TXR000034567",
+      "type": "Facility",
+      "label": "Veolia ES Technical Solutions LLC",
+      "properties": {
+        "role": "transporter",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 2,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "FAC:TXR000045678",
+      "type": "Facility",
+      "label": "Heritage-Crystal Clean LLC",
+      "properties": {
+        "role": "transporter",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 4,
+        "violations": 1,
+        "enforcements": 1,
+        "penalty_usd": 25000
+      }
+    },
+    {
+      "id": "FAC:TXR000056789",
+      "type": "Facility",
+      "label": "Sprint Waste Services LP",
+      "properties": {
+        "role": "transporter",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 4,
+        "violations": 1,
+        "enforcements": 1,
+        "penalty_usd": 34000
+      }
+    },
+    {
+      "id": "FAC:ILR000067890",
+      "type": "Facility",
+      "label": "Stericycle Environmental Solutions",
+      "properties": {
+        "role": "transporter",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 2,
+        "violations": 2,
+        "enforcements": 0,
+        "penalty_usd": 0,
+        "consent_decree": "Y"
+      }
+    },
+    {
+      "id": "FAC:TXR000078901",
+      "type": "Facility",
+      "label": "Gulf Coast Environmental Systems",
+      "properties": {
+        "role": "transporter",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 1,
+        "violations": 1,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "FAC:TXR000089012",
+      "type": "Facility",
+      "label": "Cyn Environmental Services",
+      "properties": {
+        "role": "transporter",
+        "state": "TX",
+        "risk": "low",
+        "evaluations": 1,
+        "violations": 0,
+        "enforcements": 0,
+        "penalty_usd": 0
+      }
+    },
+    {
+      "id": "DOC:denka_cafo",
+      "type": "Document",
+      "label": "Consent Agreement/Final Order",
+      "properties": {
+        "role": "rcra-06-2025-0910-denka-performance-elastomer-llc-cafo.pdf",
+        "consent_decree": "src"
+      }
+    },
+    {
+      "id": "DOC:chemours_cd",
+      "type": "Document",
+      "label": "Consent Decree",
+      "properties": {
+        "role": "chemours-cd.pdf",
+        "consent_decree": "src"
+      }
+    },
+    {
+      "id": "DOC:chemours_cp",
+      "type": "Document",
+      "label": "Complaint",
+      "properties": {
+        "role": "chemours-cp.pdf",
+        "consent_decree": "src"
+      }
+    },
+    {
+      "id": "DOC:pcs_cd",
+      "type": "Document",
+      "label": "Consent Decree",
+      "properties": {
+        "role": "pcsnitrogenfertilizerlp-cd.pdf",
+        "consent_decree": "src"
+      }
+    },
+    {
+      "id": "DOC:simplot_cd",
+      "type": "Document",
+      "label": "Consent Decree (modification)",
+      "properties": {
+        "role": "simplot-don-cd-app9-modification-june-2025-cbi-redacted.pdf",
+        "consent_decree": "src"
+      }
+    },
+    {
+      "id": "DOC:stericycle_cp",
+      "type": "Document",
+      "label": "Complaint",
+      "properties": {
+        "role": "u.s._v._stericycle_complaint.pdf",
+        "consent_decree": "src"
+      }
+    },
+    {
+      "id": "DOC:stericycle_set",
+      "type": "Document",
+      "label": "Settlement",
+      "properties": {
+        "role": "united-states-v-stericycle-stipulation-and-order-of-settlement-jan-17-2025.pdf",
+        "consent_decree": "src"
+      }
+    },
+    {
+      "id": "WC:D001",
+      "type": "WasteCode",
+      "label": "D001",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:D002",
+      "type": "WasteCode",
+      "label": "D002",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:D008",
+      "type": "WasteCode",
+      "label": "D008",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:D009",
+      "type": "WasteCode",
+      "label": "D009",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:D018",
+      "type": "WasteCode",
+      "label": "D018",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:D035",
+      "type": "WasteCode",
+      "label": "D035",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:D040",
+      "type": "WasteCode",
+      "label": "D040",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:F001",
+      "type": "WasteCode",
+      "label": "F001",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:F002",
+      "type": "WasteCode",
+      "label": "F002",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:F003",
+      "type": "WasteCode",
+      "label": "F003",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:F005",
+      "type": "WasteCode",
+      "label": "F005",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:P098",
+      "type": "WasteCode",
+      "label": "P098",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "WC:U080",
+      "type": "WasteCode",
+      "label": "U080",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "ENF:Consent Agreement/Final ",
+      "type": "EnforcementType",
+      "label": "Consent Agreement/Final Order (CAFO)",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "ENF:Final Administrative Pen",
+      "type": "EnforcementType",
+      "label": "Final Administrative Penalty Order",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "ENF:Initial Administrative P",
+      "type": "EnforcementType",
+      "label": "Initial Administrative Penalty Order",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "ENF:Notice of Violation",
+      "type": "EnforcementType",
+      "label": "Notice of Violation",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "ENF:Written Informal",
+      "type": "EnforcementType",
+      "label": "Written Informal",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "VIOL:Air Emissions (Subpart C",
+      "type": "ViolationType",
+      "label": "Air Emissions (Subpart CC)",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "VIOL:Generators - General",
+      "type": "ViolationType",
+      "label": "Generators - General",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "VIOL:Land Disposal Restrictio",
+      "type": "ViolationType",
+      "label": "Land Disposal Restrictions",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "VIOL:Manifest",
+      "type": "ViolationType",
+      "label": "Manifest",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "VIOL:Preparedness and Prevent",
+      "type": "ViolationType",
+      "label": "Preparedness and Prevention",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "VIOL:TSD - Containers",
+      "type": "ViolationType",
+      "label": "TSD - Containers",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "VIOL:TSD - General Facility S",
+      "type": "ViolationType",
+      "label": "TSD - General Facility Standards",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "VIOL:TSD - Tanks",
+      "type": "ViolationType",
+      "label": "TSD - Tanks",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "VIOL:Used Oil",
+      "type": "ViolationType",
+      "label": "Used Oil",
+      "properties": {
+        "role": "dimension"
+      }
+    },
+    {
+      "id": "MAN:346581037ELC",
+      "type": "Manifest",
+      "label": "346581037ELC",
+      "properties": {
+        "role": "Received",
+        "state": "TX",
+        "inbound_tons": "24.614"
+      }
+    },
+    {
+      "id": "MAN:776094156HMV",
+      "type": "Manifest",
+      "label": "776094156HMV",
+      "properties": {
+        "role": "Received",
+        "state": "TX",
+        "inbound_tons": "6.894"
+      }
+    },
+    {
+      "id": "MAN:186018554FLE",
+      "type": "Manifest",
+      "label": "186018554FLE",
+      "properties": {
+        "role": "Received",
+        "state": "TX",
+        "inbound_tons": "13.265"
+      }
+    },
+    {
+      "id": "MAN:676993646HMV",
+      "type": "Manifest",
+      "label": "676993646HMV",
+      "properties": {
+        "role": "Received",
+        "state": "TX",
+        "inbound_tons": "32.924"
+      }
+    },
+    {
+      "id": "MAN:871815359JJK",
+      "type": "Manifest",
+      "label": "871815359JJK",
+      "properties": {
+        "role": "Received",
+        "state": "TX",
+        "inbound_tons": "17.006"
+      }
+    },
+    {
+      "id": "MAN:150105586FLE",
+      "type": "Manifest",
+      "label": "150105586FLE",
+      "properties": {
+        "role": "Received",
+        "state": "TX",
+        "inbound_tons": "35.248"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "E0001",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD515102755",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=46; tons=1061.8; 2023-03-04..2026-06-23"
+    },
+    {
+      "id": "E0002",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD620016210",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=46; tons=1085.4; 2023-01-14..2026-06-16"
+    },
+    {
+      "id": "E0003",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD042027594",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=20; tons=402.9; 2023-02-19..2026-06-13"
+    },
+    {
+      "id": "E0004",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD340285410",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=61; tons=1502.7; 2023-01-01..2026-06-29"
+    },
+    {
+      "id": "E0005",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD865034110",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=36; tons=847.5; 2023-03-10..2026-05-09"
+    },
+    {
+      "id": "E0006",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD088532553",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=27; tons=662.5; 2023-01-04..2026-06-12"
+    },
+    {
+      "id": "E0007",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD050870526",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=27; tons=678.3; 2023-01-01..2026-06-30"
+    },
+    {
+      "id": "E0008",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD954732021",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=40; tons=905.9; 2023-02-22..2026-06-17"
+    },
+    {
+      "id": "E0009",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD441233670",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=25; tons=423.5; 2023-01-30..2026-05-25"
+    },
+    {
+      "id": "E0010",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD792824398",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=29; tons=686.3; 2023-04-20..2026-06-30"
+    },
+    {
+      "id": "E0011",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD229183555",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=29; tons=579.6; 2023-04-14..2026-06-13"
+    },
+    {
+      "id": "E0012",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD352786078",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=51; tons=1110.4; 2023-03-07..2026-06-27"
+    },
+    {
+      "id": "E0013",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD242744151",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=29; tons=662.6; 2023-01-20..2026-06-26"
+    },
+    {
+      "id": "E0014",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD391444741",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=31; tons=667.5; 2023-01-21..2026-04-13"
+    },
+    {
+      "id": "E0015",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD750745563",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=52; tons=1061.4; 2023-02-16..2026-06-25"
+    },
+    {
+      "id": "E0016",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD424874836",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=40; tons=909.5; 2023-01-11..2026-03-20"
+    },
+    {
+      "id": "E0017",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD658451543",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=30; tons=673.3; 2023-02-27..2026-05-25"
+    },
+    {
+      "id": "E0018",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD493080867",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=36; tons=774.3; 2023-01-13..2026-06-13"
+    },
+    {
+      "id": "E0019",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD791240867",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=60; tons=1355.0; 2023-01-30..2026-06-26"
+    },
+    {
+      "id": "E0020",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD232817176",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=46; tons=1175.3; 2023-03-11..2026-06-26"
+    },
+    {
+      "id": "E0021",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD191666610",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=35; tons=741.7; 2023-01-14..2026-06-26"
+    },
+    {
+      "id": "E0022",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD142556694",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=24; tons=567.7; 2023-01-30..2026-04-07"
+    },
+    {
+      "id": "E0023",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD385712593",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=33; tons=841.8; 2023-06-17..2026-05-18"
+    },
+    {
+      "id": "E0024",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD424641114",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=21; tons=438.4; 2023-03-19..2026-04-18"
+    },
+    {
+      "id": "E0025",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD065381027",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=33; tons=731.1; 2023-02-13..2026-03-09"
+    },
+    {
+      "id": "E0026",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD298831110",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=23; tons=631.4; 2023-01-12..2026-04-07"
+    },
+    {
+      "id": "E0027",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD720437972",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=47; tons=1084.7; 2023-01-18..2026-06-28"
+    },
+    {
+      "id": "E0028",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD976089325",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=40; tons=988.0; 2023-03-12..2026-06-27"
+    },
+    {
+      "id": "E0029",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD925855773",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=29; tons=617.0; 2023-03-20..2026-06-22"
+    },
+    {
+      "id": "E0030",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD967033255",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=20; tons=361.9; 2023-02-12..2026-05-27"
+    },
+    {
+      "id": "E0031",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD150442958",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=25; tons=503.4; 2023-01-14..2026-05-27"
+    },
+    {
+      "id": "E0032",
+      "type": "SHIPS_TO",
+      "from": "FAC:TXD816757788",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=26; tons=702.2; 2023-01-06..2026-02-20"
+    },
+    {
+      "id": "E0033",
+      "type": "SHIPS_TO",
+      "from": "FAC:LAD727050419",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=28; tons=579.1; 2023-03-09..2026-06-24"
+    },
+    {
+      "id": "E0034",
+      "type": "SHIPS_TO",
+      "from": "FAC:NCD844706749",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=19; tons=473.4; 2023-09-25..2026-05-14"
+    },
+    {
+      "id": "E0035",
+      "type": "SHIPS_TO",
+      "from": "FAC:LAD663309076",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=21; tons=472.7; 2023-03-10..2026-06-24"
+    },
+    {
+      "id": "E0036",
+      "type": "SHIPS_TO",
+      "from": "FAC:IDD698205633",
+      "to": "FAC:TXD000719518",
+      "properties": "manifests=15; tons=350.4; 2023-01-31..2026-03-21"
+    },
+    {
+      "id": "E0037",
+      "type": "TRANSPORTS_TO",
+      "from": "FAC:TXR000012345",
+      "to": "FAC:TXD000719518",
+      "properties": "loads_carried=196"
+    },
+    {
+      "id": "E0038",
+      "type": "TRANSPORTS_TO",
+      "from": "FAC:TXR000023456",
+      "to": "FAC:TXD000719518",
+      "properties": "loads_carried=220"
+    },
+    {
+      "id": "E0039",
+      "type": "TRANSPORTS_TO",
+      "from": "FAC:TXR000034567",
+      "to": "FAC:TXD000719518",
+      "properties": "loads_carried=205"
+    },
+    {
+      "id": "E0040",
+      "type": "TRANSPORTS_TO",
+      "from": "FAC:TXR000045678",
+      "to": "FAC:TXD000719518",
+      "properties": "loads_carried=168"
+    },
+    {
+      "id": "E0041",
+      "type": "TRANSPORTS_TO",
+      "from": "FAC:TXR000056789",
+      "to": "FAC:TXD000719518",
+      "properties": "loads_carried=197"
+    },
+    {
+      "id": "E0042",
+      "type": "TRANSPORTS_TO",
+      "from": "FAC:ILR000067890",
+      "to": "FAC:TXD000719518",
+      "properties": "loads_carried=197"
+    },
+    {
+      "id": "E0043",
+      "type": "TRANSPORTS_TO",
+      "from": "FAC:TXR000078901",
+      "to": "FAC:TXD000719518",
+      "properties": "loads_carried=198"
+    },
+    {
+      "id": "E0044",
+      "type": "TRANSPORTS_TO",
+      "from": "FAC:TXR000089012",
+      "to": "FAC:TXD000719518",
+      "properties": "loads_carried=188"
+    },
+    {
+      "id": "E0045",
+      "type": "DESCRIBED_BY",
+      "from": "FAC:LAD727050419",
+      "to": "DOC:denka_cafo",
+      "properties": "extracted_entity=Denka Performance Elastomer LLC; confidence=0.9"
+    },
+    {
+      "id": "E0046",
+      "type": "DESCRIBED_BY",
+      "from": "FAC:NCD844706749",
+      "to": "DOC:chemours_cd",
+      "properties": "extracted_entity=The Chemours Company Fayetteville Works; confidence=0.9"
+    },
+    {
+      "id": "E0047",
+      "type": "DESCRIBED_BY",
+      "from": "FAC:NCD844706749",
+      "to": "DOC:chemours_cp",
+      "properties": "extracted_entity=The Chemours Company Fayetteville Works; confidence=0.9"
+    },
+    {
+      "id": "E0048",
+      "type": "DESCRIBED_BY",
+      "from": "FAC:LAD663309076",
+      "to": "DOC:pcs_cd",
+      "properties": "extracted_entity=PCS Nitrogen Fertilizer LP; confidence=0.9"
+    },
+    {
+      "id": "E0049",
+      "type": "DESCRIBED_BY",
+      "from": "FAC:IDD698205633",
+      "to": "DOC:simplot_cd",
+      "properties": "extracted_entity=J.R. Simplot Company Don Plant; confidence=0.9"
+    },
+    {
+      "id": "E0050",
+      "type": "DESCRIBED_BY",
+      "from": "FAC:ILR000067890",
+      "to": "DOC:stericycle_cp",
+      "properties": "extracted_entity=Stericycle Environmental Solutions; confidence=0.9"
+    },
+    {
+      "id": "E0051",
+      "type": "DESCRIBED_BY",
+      "from": "FAC:ILR000067890",
+      "to": "DOC:stericycle_set",
+      "properties": "extracted_entity=Stericycle Environmental Solutions; confidence=0.9"
+    },
+    {
+      "id": "E0052",
+      "type": "RESOLVES_TO",
+      "from": "NAME:Texas Molecular",
+      "to": "FAC:TXD000719518",
+      "properties": "method=alias+EPA_ID; confidence=0.98"
+    },
+    {
+      "id": "E0053",
+      "type": "RESOLVES_TO",
+      "from": "NAME:Texas Molecular LP",
+      "to": "FAC:TXD000719518",
+      "properties": "method=alias+EPA_ID; confidence=0.98"
+    },
+    {
+      "id": "E0054",
+      "type": "RESOLVES_TO",
+      "from": "NAME:VLS Texas Molecular LP",
+      "to": "FAC:TXD000719518",
+      "properties": "method=alias+EPA_ID; confidence=0.98"
+    },
+    {
+      "id": "E0055",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD515102755",
+      "to": "ENF:(various)",
+      "properties": "count=2; total_penalty=318000"
+    },
+    {
+      "id": "E0056",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD620016210",
+      "to": "ENF:(various)",
+      "properties": "count=2; total_penalty=25000"
+    },
+    {
+      "id": "E0057",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD340285410",
+      "to": "ENF:(various)",
+      "properties": "count=1; total_penalty=7500"
+    },
+    {
+      "id": "E0058",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD865034110",
+      "to": "ENF:(various)",
+      "properties": "count=1; total_penalty=0"
+    },
+    {
+      "id": "E0059",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD750745563",
+      "to": "ENF:(various)",
+      "properties": "count=1; total_penalty=78000"
+    },
+    {
+      "id": "E0060",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD424874836",
+      "to": "ENF:(various)",
+      "properties": "count=1; total_penalty=34000"
+    },
+    {
+      "id": "E0061",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD791240867",
+      "to": "ENF:(various)",
+      "properties": "count=4; total_penalty=397500"
+    },
+    {
+      "id": "E0062",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD232817176",
+      "to": "ENF:(various)",
+      "properties": "count=1; total_penalty=34000"
+    },
+    {
+      "id": "E0063",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD191666610",
+      "to": "ENF:(various)",
+      "properties": "count=2; total_penalty=252000"
+    },
+    {
+      "id": "E0064",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD385712593",
+      "to": "ENF:(various)",
+      "properties": "count=1; total_penalty=78000"
+    },
+    {
+      "id": "E0065",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXD976089325",
+      "to": "ENF:(various)",
+      "properties": "count=2; total_penalty=32500"
+    },
+    {
+      "id": "E0066",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:LAD727050419",
+      "to": "ENF:(various)",
+      "properties": "count=3; total_penalty=70500"
+    },
+    {
+      "id": "E0067",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:NCD844706749",
+      "to": "ENF:(various)",
+      "properties": "count=1; total_penalty=12000"
+    },
+    {
+      "id": "E0068",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:LAD663309076",
+      "to": "ENF:(various)",
+      "properties": "count=3; total_penalty=164000"
+    },
+    {
+      "id": "E0069",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:IDD698205633",
+      "to": "ENF:(various)",
+      "properties": "count=4; total_penalty=293500"
+    },
+    {
+      "id": "E0070",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXR000045678",
+      "to": "ENF:(various)",
+      "properties": "count=1; total_penalty=25000"
+    },
+    {
+      "id": "E0071",
+      "type": "HAS_ENFORCEMENT",
+      "from": "FAC:TXR000056789",
+      "to": "ENF:(various)",
+      "properties": "count=1; total_penalty=34000"
+    },
+    {
+      "id": "E0072",
+      "type": "GENERATED",
+      "from": "FAC:TXD424874836",
+      "to": "MAN:186018554FLE",
+      "properties": "shipped=2023-11-13"
+    },
+    {
+      "id": "E0073",
+      "type": "RECEIVED_BY",
+      "from": "MAN:186018554FLE",
+      "to": "FAC:TXD000719518",
+      "properties": "received=2023-11-17"
+    },
+    {
+      "id": "E0074",
+      "type": "TRANSPORTED",
+      "from": "FAC:TXR000023456",
+      "to": "MAN:186018554FLE",
+      "properties": "days=4"
+    },
+    {
+      "id": "E0075",
+      "type": "TRANSPORTED",
+      "from": "FAC:TXR000034567",
+      "to": "MAN:186018554FLE",
+      "properties": "days=4"
+    },
+    {
+      "id": "E0076",
+      "type": "GENERATED",
+      "from": "FAC:TXD750745563",
+      "to": "MAN:676993646HMV",
+      "properties": "shipped=2025-09-18"
+    },
+    {
+      "id": "E0077",
+      "type": "RECEIVED_BY",
+      "from": "MAN:676993646HMV",
+      "to": "FAC:TXD000719518",
+      "properties": "received=2025-09-22"
+    },
+    {
+      "id": "E0078",
+      "type": "TRANSPORTED",
+      "from": "FAC:TXR000078901",
+      "to": "MAN:676993646HMV",
+      "properties": "days=4"
+    },
+    {
+      "id": "E0079",
+      "type": "TRANSPORTED",
+      "from": "FAC:TXR000056789",
+      "to": "MAN:676993646HMV",
+      "properties": "days=4"
+    },
+    {
+      "id": "E0080",
+      "type": "GENERATED",
+      "from": "FAC:TXD441233670",
+      "to": "MAN:871815359JJK",
+      "properties": "shipped=2023-10-26"
+    },
+    {
+      "id": "E0081",
+      "type": "RECEIVED_BY",
+      "from": "MAN:871815359JJK",
+      "to": "FAC:TXD000719518",
+      "properties": "received=2023-10-27"
+    },
+    {
+      "id": "E0082",
+      "type": "TRANSPORTED",
+      "from": "FAC:TXR000078901",
+      "to": "MAN:871815359JJK",
+      "properties": "days=1"
+    },
+    {
+      "id": "E0083",
+      "type": "TRANSPORTED",
+      "from": "FAC:TXR000034567",
+      "to": "MAN:871815359JJK",
+      "properties": "days=1"
+    },
+    {
+      "id": "E0084",
+      "type": "GENERATED",
+      "from": "FAC:TXD791240867",
+      "to": "MAN:346581037ELC",
+      "properties": "shipped=2024-01-26"
+    },
+    {
+      "id": "E0085",
+      "type": "RECEIVED_BY",
+      "from": "MAN:346581037ELC",
+      "to": "FAC:TXD000719518",
+      "properties": "received=2024-01-31"
+    },
+    {
+      "id": "E0086",
+      "type": "TRANSPORTED",
+      "from": "FAC:TXR000056789",
+      "to": "MAN:346581037ELC",
+      "properties": "days=5"
+    },
+    {
+      "id": "E0087",
+      "type": "GENERATED",
+      "from": "FAC:TXD050870526",
+      "to": "MAN:150105586FLE",
+      "properties": "shipped=2023-10-22"
+    },
+    {
+      "id": "E0088",
+      "type": "RECEIVED_BY",
+      "from": "MAN:150105586FLE",
+      "to": "FAC:TXD000719518",
+      "properties": "received=2023-10-25"
+    },
+    {
+      "id": "E0089",
+      "type": "TRANSPORTED",
+      "from": "FAC:TXR000023456",
+      "to": "MAN:150105586FLE",
+      "properties": "days=3"
+    },
+    {
+      "id": "E0090",
+      "type": "GENERATED",
+      "from": "FAC:TXD791240867",
+      "to": "MAN:776094156HMV",
+      "properties": "shipped=2026-01-04"
+    },
+    {
+      "id": "E0091",
+      "type": "RECEIVED_BY",
+      "from": "MAN:776094156HMV",
+      "to": "FAC:TXD000719518",
+      "properties": "received=2026-01-09"
+    },
+    {
+      "id": "E0092",
+      "type": "TRANSPORTED",
+      "from": "FAC:TXR000089012",
+      "to": "MAN:776094156HMV",
+      "properties": "days=5"
+    }
+  ],
+  "entity_resolution": [
+    {
+      "raw_value": "Texas Molecular LP",
+      "source_field": "e_manifest DES FACILITY NAME (ship <2023-01-05)",
+      "resolved_node": "FAC:TXD000719518",
+      "resolved_name": "VLS Texas Molecular",
+      "method": "alias table + EPA ID match",
+      "confidence": "High (0.98)"
+    },
+    {
+      "raw_value": "Texas Molecular",
+      "source_field": "legacy references",
+      "resolved_node": "FAC:TXD000719518",
+      "resolved_name": "VLS Texas Molecular",
+      "method": "alias table + EPA ID match",
+      "confidence": "High (0.98)"
+    },
+    {
+      "raw_value": "VLS Texas Molecular",
+      "source_field": "e_manifest DES FACILITY NAME (ship >=2023-01-05)",
+      "resolved_node": "FAC:TXD000719518",
+      "resolved_name": "VLS Texas Molecular",
+      "method": "primary name",
+      "confidence": "High (1.00)"
+    },
+    {
+      "raw_value": "Denka Performance Elastomer LLC",
+      "source_field": "unstructured: rcra-06-2025-0910-denka-performance-elastomer-llc-cafo.pdf",
+      "resolved_node": "FAC:LAD727050419",
+      "resolved_name": "Denka Performance Elastomer LLC",
+      "method": "NER extraction \u2192 name+EPA match",
+      "confidence": "High (0.90)"
+    },
+    {
+      "raw_value": "The Chemours Company Fayetteville Works",
+      "source_field": "unstructured: chemours-cd.pdf",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_name": "The Chemours Company Fayetteville Works",
+      "method": "NER extraction \u2192 name+EPA match",
+      "confidence": "High (0.90)"
+    },
+    {
+      "raw_value": "The Chemours Company Fayetteville Works",
+      "source_field": "unstructured: chemours-cp.pdf",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_name": "The Chemours Company Fayetteville Works",
+      "method": "NER extraction \u2192 name+EPA match",
+      "confidence": "High (0.90)"
+    },
+    {
+      "raw_value": "PCS Nitrogen Fertilizer LP",
+      "source_field": "unstructured: pcsnitrogenfertilizerlp-cd.pdf",
+      "resolved_node": "FAC:LAD663309076",
+      "resolved_name": "PCS Nitrogen Fertilizer LP",
+      "method": "NER extraction \u2192 name+EPA match",
+      "confidence": "High (0.90)"
+    },
+    {
+      "raw_value": "J.R. Simplot Company Don Plant",
+      "source_field": "unstructured: simplot-don-cd-app9-modification-june-2025-cbi-redacted.pdf",
+      "resolved_node": "FAC:IDD698205633",
+      "resolved_name": "J.R. Simplot Company Don Plant",
+      "method": "NER extraction \u2192 name+EPA match",
+      "confidence": "High (0.90)"
+    },
+    {
+      "raw_value": "Stericycle Environmental Solutions",
+      "source_field": "unstructured: u.s._v._stericycle_complaint.pdf",
+      "resolved_node": "FAC:ILR000067890",
+      "resolved_name": "Stericycle Environmental Solutions",
+      "method": "NER extraction \u2192 name+EPA match",
+      "confidence": "High (0.90)"
+    },
+    {
+      "raw_value": "Stericycle Environmental Solutions",
+      "source_field": "unstructured: united-states-v-stericycle-stipulation-and-order-of-settlement-jan-17-2025.pdf",
+      "resolved_node": "FAC:ILR000067890",
+      "resolved_name": "Stericycle Environmental Solutions",
+      "method": "NER extraction \u2192 name+EPA match",
+      "confidence": "High (0.90)"
+    }
+  ]
+}

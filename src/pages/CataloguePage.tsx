@@ -113,14 +113,20 @@ function BrowsePanel({
     ),
     children: d.tables.map((t) => ({
       key: leafKey(d.dataset_id, t.table_id),
+      /* The id is what the run acts on, so it leads; the label and the grain
+         are what tell a reader whether this is the view they meant. */
       title: (
         <span className="cat-tree-row">
-          <span>
-            <Tag className="cat-tree-kind">{t.type}</Tag>
-            <span className="cat-tree-table">{t.table_id}</span>
+          <span className="cat-tree-lead">
+            <span>
+              <Tag className="cat-tree-kind">{t.type}</Tag>
+              <span className="cat-tree-table">{t.table_id}</span>
+              <span className="cat-tree-label">{t.label}</span>
+            </span>
+            <span className="cat-tree-grain">{t.grain}</span>
           </span>
           <span className="cat-tree-count">
-            {t.columns} col(s)
+            {t.columns} col(s) · {t.rows.toLocaleString()} rows
             {t.profiled ? ' · profiled' : ''}
           </span>
         </span>
@@ -258,7 +264,13 @@ function CatalogueTab({
                 <ConnectorIcon connector={s.connector} size={20} />
               </span>
               <span className="cat-source-body">
-                <span className="cat-source-id">{s.sourceId}</span>
+                {/* The id leads because it is what every action acts on; the name
+                    the user typed is what they recognise, so it rides beside it as
+                    a tag. Neutral — a name is not a state. */}
+                <span className="cat-source-head">
+                  <span className="cat-source-id">{s.sourceId}</span>
+                  <span className="cat-source-name">{s.sourceName}</span>
+                </span>
                 <span className="cat-source-meta">
                   {s.projectAccount} ·{' '}
                   {s.kind === 'gdrive'
@@ -282,6 +294,7 @@ function CatalogueTab({
             <Typography.Text className="cat-detail-id">
               {selected.sourceId}
             </Typography.Text>
+            <span className="cat-source-name">{selected.sourceName}</span>
             <StatusTag tone={selected.status === 'connected' ? 'good' : 'neutral'}>
               {selected.status}
             </StatusTag>

@@ -1,0 +1,2552 @@
+{
+  "_note": "Rich query set for the VLS demo (Ask / Query screen). Each query's response is an ordered list of blocks (text | metric | chart | table). Charts carry demo data derived from the canonical roster/agg \u2014 the dev team renders them with its own chart library. Confidence bands: High >=0.85, Medium 0.60-0.85, Low <0.60 (CLAUDE.md \u00a77).",
+  "dataset": "vrio-contextweave-demo.epa_hazwaste",
+  "block_schema": {
+    "text": {
+      "markdown": "string"
+    },
+    "metric": {
+      "items": [
+        {
+          "label": "string",
+          "value": "number|string",
+          "unit": "string?",
+          "flag": "good|risk?"
+        }
+      ]
+    },
+    "chart": {
+      "chart": "bar|line|pie|donut",
+      "title": "string",
+      "x_label": "string?",
+      "y_label": "string?",
+      "data": [
+        {
+          "label": "string",
+          "value": "number"
+        }
+      ],
+      "note": "string?"
+    },
+    "table": {
+      "title": "string",
+      "columns": [
+        "string"
+      ],
+      "rows": [
+        [
+          "cell"
+        ]
+      ]
+    }
+  },
+  "counts": {
+    "total": 40,
+    "hero": 13,
+    "standard": 22,
+    "decline": 5
+  },
+  "queries": [
+    {
+      "id": "Q01",
+      "persona": "Compliance Manager",
+      "type": "hero",
+      "question": "Which generators shipping to Deer Park are under active RCRA enforcement, and how much waste did we accept from them?",
+      "response": {
+        "summary": "15 of 36 generators shipping to Deer Park carry RCRA enforcement history \u2014 together roughly 49.2% of your inbound tonnage.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Of the **36 distinct generators** that shipped to VLS Texas Molecular between Jan 2023 and Jun 2026, **15** have a recorded RCRA enforcement history. These generators account for **13,445.7 tons (49.2%)** of everything you accepted in the window, so the enforcement risk is not confined to a low-volume tail \u2014 it sits in your largest inbound relationships."
+          },
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Generators w/ enforcement",
+                "value": 15,
+                "unit": "of 36",
+                "flag": "risk"
+              },
+              {
+                "label": "Tonnage from those generators",
+                "value": 13445.7,
+                "unit": "tons"
+              },
+              {
+                "label": "Share of inbound tonnage",
+                "value": 49.2,
+                "unit": "%",
+                "flag": "risk"
+              }
+            ]
+          },
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "RCRA penalty exposure by generator (top 8)",
+            "x_label": "Generator",
+            "y_label": "Cumulative RCRA penalty (USD)",
+            "data": [
+              {
+                "label": "Arkema Inc. Crosby",
+                "value": 397500
+              },
+              {
+                "label": "ExxonMobil Baytown",
+                "value": 318000
+              },
+              {
+                "label": "J.R. Simplot Don Plant",
+                "value": 293500
+              },
+              {
+                "label": "Ascend Performance Materials Pasadena",
+                "value": 252000
+              },
+              {
+                "label": "PCS Nitrogen Fertilizer LP",
+                "value": 164000
+              },
+              {
+                "label": "Intercontinental Terminals Deer Park",
+                "value": 78000
+              },
+              {
+                "label": "Dow Chemical La Porte Operations",
+                "value": 78000
+              },
+              {
+                "label": "Denka Performance Elastomer LLC",
+                "value": 70500
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "title": "Generators under enforcement \u2014 penalty and inbound volume",
+            "columns": [
+              "Generator",
+              "Enforcement actions",
+              "Cumulative penalty (USD)"
+            ],
+            "rows": [
+              [
+                "Arkema Inc. Crosby",
+                4,
+                "$397,500"
+              ],
+              [
+                "ExxonMobil Baytown Complex",
+                2,
+                "$318,000"
+              ],
+              [
+                "J.R. Simplot Company Don Plant",
+                4,
+                "$293,500"
+              ],
+              [
+                "Ascend Performance Materials Pasadena",
+                2,
+                "$252,000"
+              ],
+              [
+                "PCS Nitrogen Fertilizer LP",
+                3,
+                "$164,000"
+              ],
+              [
+                "Intercontinental Terminals Company Deer Park",
+                1,
+                "$78,000"
+              ],
+              [
+                "Dow Chemical La Porte Operations",
+                1,
+                "$78,000"
+              ],
+              [
+                "Denka Performance Elastomer LLC",
+                3,
+                "$70,500"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "The three largest by penalty \u2014 **Arkema Crosby ($397,500)**, **ExxonMobil Baytown ($318,000)** and **J.R. Simplot Don Plant ($293,500)** \u2014 are all active inbound relationships. Recommend a compliance review flag on each before the next load is accepted."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_Compliance_Summary",
+          "detail": "TOTAL_ENFORCEMENTS, TOTAL_PENALTY_AMOUNT per facility"
+        },
+        {
+          "source": "e_manifest_all",
+          "detail": "inbound tonnage rollup joined on GENERATOR ID"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.88
+      },
+      "hero_ref": "hq1"
+    },
+    {
+      "id": "Q02",
+      "persona": "Operations Director",
+      "type": "hero",
+      "question": "Trace manifest 346581037ELC cradle-to-grave.",
+      "response": {
+        "summary": "Manifest 346581037ELC \u2014 Arkema Inc. Crosby to VLS Texas Molecular, 5 days in transit, 24.614 tons, status Received.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "**Origin.** Arkema Inc. Crosby (`TXD791240867`), Crosby, TX.\n\n**Destination.** VLS Texas Molecular (Deer Park), EPA ID `TXD000719518` \u2014 the receiving TSDF on every inbound manifest in this dataset."
+          },
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Shipped",
+                "value": "2024-01-26"
+              },
+              {
+                "label": "Received",
+                "value": "2024-01-31"
+              },
+              {
+                "label": "Days in possession",
+                "value": 5,
+                "unit": "days"
+              },
+              {
+                "label": "Total quantity",
+                "value": "24.614",
+                "unit": "tons"
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "title": "Chain of custody (in order)",
+            "columns": [
+              "Step",
+              "Party",
+              "Role"
+            ],
+            "rows": [
+              [
+                "1",
+                "Arkema Inc. Crosby",
+                "Generator"
+              ],
+              [
+                "2",
+                "Sprint Waste Services LP",
+                "Transporter"
+              ],
+              [
+                "3",
+                "VLS Texas Molecular",
+                "Receiving TSDF"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "Status is **Received**, residue **N**, rejection **N**. The full e-Manifest chain of custody \u2014 every party, in order, with signature dates \u2014 is reconstructed from the single manifest row."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest_all",
+          "detail": "row for MTN 346581037ELC"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.96
+      },
+      "hero_ref": "hq2",
+      "graph_refs": [
+        "MAN:346581037ELC",
+        "FAC:TXD000719518"
+      ]
+    },
+    {
+      "id": "Q03",
+      "persona": "Compliance Manager",
+      "type": "hero",
+      "question": "Show every generator with an open (unreturned-to-compliance) RCRA violation that shipped to us in the last 12 months.",
+      "response": {
+        "summary": "Six generators have at least one violation with no return-to-compliance date and shipped to Deer Park since Jul 2025.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "These generators have a recorded violation where `ACTUAL_RTC_DATE` is null \u2014 the violation is noted but not yet closed \u2014 **and** they appear in the inbound manifest stream in the trailing 12 months. Each should be screened before the next load is accepted."
+          },
+          {
+            "type": "table",
+            "title": "Open-violation generators shipping in the last 12 months",
+            "columns": [
+              "Generator",
+              "Open violations",
+              "Last shipped",
+              "Inbound tons (12mo)"
+            ],
+            "rows": [
+              [
+                "LyondellBasell Channelview Complex",
+                2,
+                "2026-05",
+                "est."
+              ],
+              [
+                "Intercontinental Terminals Company Deer Park",
+                2,
+                "2026-06",
+                "est."
+              ],
+              [
+                "Arkema Inc. Crosby",
+                1,
+                "2026-06",
+                "est."
+              ],
+              [
+                "Celanese Clear Lake Plant",
+                1,
+                "2026-04",
+                "est."
+              ],
+              [
+                "TPC Group Houston Plant",
+                1,
+                "2026-05",
+                "est."
+              ],
+              [
+                "Ascend Performance Materials Pasadena",
+                1,
+                "2026-03",
+                "est."
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "This is the register a compliance manager screens against. The `est.` markers show where the demo dataset carries the flag but not a precise trailing-12-month tonnage cut; the production join computes it from `SHIPPED DATE`."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_compliance",
+          "detail": "FOUND_VIOLATION='Yes' AND ACTUAL_RTC_DATE IS NULL"
+        },
+        {
+          "source": "e_manifest",
+          "detail": "SHIPPED DATE >= 2025-07 joined on generator"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.79
+      },
+      "hero_ref": "hq3"
+    },
+    {
+      "id": "Q04",
+      "persona": "Chief Information Officer",
+      "type": "hero",
+      "question": "What does the Chemours consent decree say, and are we accepting waste from that facility?",
+      "response": {
+        "summary": "Yes \u2014 you accept inbound waste from Chemours Fayetteville Works, and its consent decree is linked to that facility in the graph.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "The **Chemours consent decree** (`chemours-cd.pdf`) covers PFAS discharge controls and remediation at the Fayetteville Works site in North Carolina. The document was ingested, its named entities extracted, and **The Chemours Company Fayetteville Works** resolved onto an existing facility node in the graph."
+          },
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Inbound manifests from Chemours",
+                "value": 19,
+                "unit": "manifests"
+              },
+              {
+                "label": "Inbound tonnage accepted",
+                "value": 473.4,
+                "unit": "tons"
+              },
+              {
+                "label": "Facility state",
+                "value": "NC (out-of-state)",
+                "flag": "risk"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "**Why this is the graph payoff.** The `DOC:chemours-cd` node links by `DESCRIBED_BY` to `FAC:` The Chemours Company, which links by `SHIPS_TO` to VLS Texas Molecular with tonnage and manifest count as edge properties. An unstructured PDF and the live manifest stream meet on one node \u2014 that join is what lets the question be answered at all."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "08_unstructured/chemours-cd.pdf",
+          "detail": "extracted entity -> graph facility node"
+        },
+        {
+          "source": "e_manifest_all",
+          "detail": "inbound rows for Chemours Fayetteville Works"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.83
+      },
+      "hero_ref": "hq4",
+      "graph_refs": [
+        "DOC:chemours_cd",
+        "FAC:NCD844706749",
+        "FAC:TXD000719518"
+      ]
+    },
+    {
+      "id": "Q05",
+      "persona": "Chief Sustainability Officer",
+      "type": "hero",
+      "question": "Summarize our own facility's compliance standing.",
+      "response": {
+        "summary": "VLS Texas Molecular: 3 evaluations, 1 violation, $0 in penalties \u2014 the clean-record anchor.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "**VLS Texas Molecular** (Deer Park, EPA ID `TXD000719518`) is a RCRA-permitted Class I injection TSDF operating in good standing. The compliance-360 row shows a clean record: evaluations on file, a single historical violation, and **no penalties**."
+          },
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "RCRA evaluations",
+                "value": 3
+              },
+              {
+                "label": "Violations",
+                "value": 1
+              },
+              {
+                "label": "Penalties",
+                "value": 0,
+                "unit": "USD",
+                "flag": "good"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "This is the record the CSO takes to regulators and customers. The liability the demo surfaces is **carried in from generators**, not generated by the facility itself \u2014 a distinction the rest of the query set makes concrete."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_Compliance_Summary",
+          "detail": "row for VLS Texas Molecular"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.94
+      },
+      "hero_ref": "hq5",
+      "graph_refs": [
+        "FAC:TXD000719518"
+      ]
+    },
+    {
+      "id": "Q06",
+      "persona": "Chief Sustainability Officer",
+      "type": "hero",
+      "question": "Which of our inbound generators are named in a federal consent decree or CAFO, and what is our tonnage exposure to them?",
+      "response": {
+        "summary": "Four out-of-state generators are named in federal enforcement documents; together they represent 1,875.6 tons (6.9%) of your inbound stream.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Four generators shipping to Deer Park are named in a federal consent decree or CAFO in the uploaded document set. All four are out-of-state, and each links from its enforcement document straight to its inbound manifests in the graph."
+          },
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "Inbound tonnage from consent-decree / CAFO generators",
+            "x_label": "Generator",
+            "y_label": "Inbound tons",
+            "data": [
+              {
+                "label": "Denka",
+                "value": 579.1
+              },
+              {
+                "label": "The Chemours",
+                "value": 473.4
+              },
+              {
+                "label": "PCS Nitrogen Fertilizer LP",
+                "value": 472.7
+              },
+              {
+                "label": "J.R. Simplot",
+                "value": 350.4
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "title": "Consent-decree / CAFO generators \u2014 exposure",
+            "columns": [
+              "Generator",
+              "State",
+              "Document",
+              "Inbound tons",
+              "Manifests",
+              "RCRA penalty (USD)"
+            ],
+            "rows": [
+              [
+                "Denka Performance Elastomer LLC",
+                "LA",
+                "denka-cafo.pdf",
+                579.1,
+                28,
+                "$70,500"
+              ],
+              [
+                "The Chemours Company Fayetteville Works",
+                "NC",
+                "chemours-cd.pdf",
+                473.4,
+                19,
+                "$12,000"
+              ],
+              [
+                "PCS Nitrogen Fertilizer LP",
+                "LA",
+                "pcsnitrogen-cd.pdf",
+                472.7,
+                21,
+                "$164,000"
+              ],
+              [
+                "J.R. Simplot Company Don Plant",
+                "ID",
+                "simplot-cd.pdf",
+                350.4,
+                15,
+                "$293,500"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "Total exposure to document-named generators is **1,875.6 tons across 83 manifests**. Simplot carries the largest penalty history ($293,500) despite the smallest tonnage \u2014 penalty and volume are not correlated, which is exactly why both columns matter."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "08_unstructured/Entity_Extraction_Map",
+          "detail": "document -> facility node bridges"
+        },
+        {
+          "source": "e_manifest_all",
+          "detail": "inbound rollup for the four named generators"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.86
+      },
+      "hero_ref": "hq6",
+      "graph_refs": [
+        "DOC:denka_cafo",
+        "DOC:chemours_cd",
+        "DOC:pcs_cd",
+        "DOC:simplot_cd"
+      ]
+    },
+    {
+      "id": "Q07",
+      "persona": "Compliance Manager",
+      "type": "hero",
+      "question": "Rank every generator shipping to Deer Park by total RCRA penalty exposure.",
+      "response": {
+        "summary": "Arkema Crosby leads at $397,500; the top 8 generators carry the bulk of ~$2.05M in cumulative penalties.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "The prioritized liability leaderboard. Generators are ranked by cumulative historical RCRA penalty, drawn from the compliance-360 summary and joined to the inbound stream so each row is one you actually accept waste from."
+          },
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "Cumulative RCRA penalty by generator",
+            "x_label": "Generator",
+            "y_label": "Cumulative penalty (USD)",
+            "data": [
+              {
+                "label": "Arkema Inc. Crosby",
+                "value": 397500
+              },
+              {
+                "label": "ExxonMobil Baytown",
+                "value": 318000
+              },
+              {
+                "label": "J.R. Simplot Don Plant",
+                "value": 293500
+              },
+              {
+                "label": "Ascend Performance Materials Pasadena",
+                "value": 252000
+              },
+              {
+                "label": "PCS Nitrogen Fertilizer LP",
+                "value": 164000
+              },
+              {
+                "label": "Intercontinental Terminals Deer Park",
+                "value": 78000
+              },
+              {
+                "label": "Dow Chemical La Porte Operations",
+                "value": 78000
+              },
+              {
+                "label": "Denka Performance Elastomer LLC",
+                "value": 70500
+              },
+              {
+                "label": "Vopak Terminal Deer Park",
+                "value": 34000
+              },
+              {
+                "label": "TPC Group Houston Plant",
+                "value": 34000
+              },
+              {
+                "label": "Marathon Galveston Bay Refinery",
+                "value": 32500
+              },
+              {
+                "label": "Pemex Deer Park",
+                "value": 25000
+              },
+              {
+                "label": "The Chemours Fayetteville Works",
+                "value": 12000
+              },
+              {
+                "label": "LyondellBasell Channelview",
+                "value": 7500
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "title": "Penalty leaderboard",
+            "columns": [
+              "Rank",
+              "Generator",
+              "Actions",
+              "Cumulative penalty (USD)"
+            ],
+            "rows": [
+              [
+                1,
+                "Arkema Inc. Crosby",
+                4,
+                "$397,500"
+              ],
+              [
+                2,
+                "ExxonMobil Baytown Complex",
+                2,
+                "$318,000"
+              ],
+              [
+                3,
+                "J.R. Simplot Company Don Plant",
+                4,
+                "$293,500"
+              ],
+              [
+                4,
+                "Ascend Performance Materials Pasadena",
+                2,
+                "$252,000"
+              ],
+              [
+                5,
+                "PCS Nitrogen Fertilizer LP",
+                3,
+                "$164,000"
+              ],
+              [
+                6,
+                "Intercontinental Terminals Company Deer Park",
+                1,
+                "$78,000"
+              ],
+              [
+                7,
+                "Dow Chemical La Porte Operations",
+                1,
+                "$78,000"
+              ],
+              [
+                8,
+                "Denka Performance Elastomer LLC",
+                3,
+                "$70,500"
+              ],
+              [
+                9,
+                "Vopak Terminal Deer Park",
+                1,
+                "$34,000"
+              ],
+              [
+                10,
+                "TPC Group Houston Plant",
+                1,
+                "$34,000"
+              ],
+              [
+                11,
+                "Marathon Galveston Bay Refinery",
+                2,
+                "$32,500"
+              ],
+              [
+                12,
+                "Pemex Deer Park",
+                2,
+                "$25,000"
+              ],
+              [
+                13,
+                "The Chemours Company Fayetteville Works",
+                1,
+                "$12,000"
+              ],
+              [
+                14,
+                "LyondellBasell Channelview Complex",
+                1,
+                "$7,500"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "The distribution is heavily skewed: the top three generators account for over half of total penalty exposure. Screening effort should concentrate there rather than spreading evenly across all 15."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_Compliance_Summary",
+          "detail": "TOTAL_PENALTY_AMOUNT ranked, filtered to inbound generators"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.84
+      },
+      "hero_ref": "hq7"
+    },
+    {
+      "id": "Q08",
+      "persona": "Operations Director",
+      "type": "hero",
+      "question": "How has our inbound hazardous-waste volume trended by quarter, and is any generator ramping up shipments to us?",
+      "response": {
+        "summary": "Inbound volume is broadly steady at ~2,000-2,400 tons/quarter with a mild Q2 peak each year; no single generator shows a runaway ramp.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Inbound tonnage has held in a stable band across the full window, with a modest seasonal lift in Q2. There is no step-change or runaway growth from any one generator \u2014 the largest relationships (LyondellBasell, Arkema, TPC) are steady rather than accelerating."
+          },
+          {
+            "type": "chart",
+            "chart": "line",
+            "title": "Inbound tonnage by quarter",
+            "x_label": "Quarter",
+            "y_label": "Tons received",
+            "data": [
+              {
+                "label": "2023 Q1",
+                "value": 1701.5
+              },
+              {
+                "label": "2023 Q2",
+                "value": 2224.5
+              },
+              {
+                "label": "2023 Q3",
+                "value": 1784.8
+              },
+              {
+                "label": "2023 Q4",
+                "value": 2054.1
+              },
+              {
+                "label": "2024 Q1",
+                "value": 2336.9
+              },
+              {
+                "label": "2024 Q2",
+                "value": 1671.3
+              },
+              {
+                "label": "2024 Q3",
+                "value": 1848.3
+              },
+              {
+                "label": "2024 Q4",
+                "value": 1712.7
+              },
+              {
+                "label": "2025 Q1",
+                "value": 1648.2
+              },
+              {
+                "label": "2025 Q2",
+                "value": 2010.6
+              },
+              {
+                "label": "2025 Q3",
+                "value": 1933.5
+              },
+              {
+                "label": "2025 Q4",
+                "value": 1961.6
+              },
+              {
+                "label": "2026 Q1",
+                "value": 2031.9
+              },
+              {
+                "label": "2026 Q2",
+                "value": 2390.7
+              }
+            ],
+            "note": "Jan 2023 \u2013 Jun 2026"
+          },
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "Inbound manifests by quarter",
+            "x_label": "Quarter",
+            "y_label": "Manifests",
+            "data": [
+              {
+                "label": "2023 Q1",
+                "value": 69
+              },
+              {
+                "label": "2023 Q2",
+                "value": 99
+              },
+              {
+                "label": "2023 Q3",
+                "value": 87
+              },
+              {
+                "label": "2023 Q4",
+                "value": 91
+              },
+              {
+                "label": "2024 Q1",
+                "value": 97
+              },
+              {
+                "label": "2024 Q2",
+                "value": 76
+              },
+              {
+                "label": "2024 Q3",
+                "value": 81
+              },
+              {
+                "label": "2024 Q4",
+                "value": 78
+              },
+              {
+                "label": "2025 Q1",
+                "value": 77
+              },
+              {
+                "label": "2025 Q2",
+                "value": 84
+              },
+              {
+                "label": "2025 Q3",
+                "value": 76
+              },
+              {
+                "label": "2025 Q4",
+                "value": 85
+              },
+              {
+                "label": "2026 Q1",
+                "value": 95
+              },
+              {
+                "label": "2026 Q2",
+                "value": 105
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "For an operations director this is the reassuring view: capacity planning can assume steady inbound. The ramp-detection logic still runs per generator \u2014 it simply finds nothing alarming in this window."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest",
+          "detail": "SHIPPED DATE bucketed by calendar quarter; TOTAL QUANTITY TONS summed"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.82
+      },
+      "hero_ref": "hq8"
+    },
+    {
+      "id": "Q09",
+      "persona": "Operations Director",
+      "type": "hero",
+      "question": "Which transporters carry the most loads into Deer Park, and does any hauler in our custody chain have its own enforcement history?",
+      "response": {
+        "summary": "US Ecology, Veolia and Gulf Coast lead by load count; Stericycle \u2014 also a frequent hauler \u2014 carries its own federal enforcement.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Load counts are spread fairly evenly across the top haulers rather than concentrated in one. The risk signal is on the **custody-chain** side: **Stericycle Environmental Solutions**, a high-frequency transporter in your inbound chains, is itself named in a federal complaint and settlement."
+          },
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "Inbound loads by transporter (top 8)",
+            "x_label": "Transporter",
+            "y_label": "Loads carried",
+            "data": [
+              {
+                "label": "US Ecology Texas Inc.",
+                "value": 220
+              },
+              {
+                "label": "Veolia ES LLC",
+                "value": 205
+              },
+              {
+                "label": "Gulf Coast Environmental Systems",
+                "value": 198
+              },
+              {
+                "label": "Sprint Waste Services LP",
+                "value": 197
+              },
+              {
+                "label": "Stericycle Environmental Solutions",
+                "value": 197
+              },
+              {
+                "label": "Clean Harbors",
+                "value": 196
+              },
+              {
+                "label": "Cyn",
+                "value": 188
+              },
+              {
+                "label": "Heritage-Crystal Clean LLC",
+                "value": 168
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "**Stericycle** links in the graph to `u.s._v._stericycle_complaint` and the January 2025 settlement \u2014 enforcement risk in your custody chain, not just among your generators. A hauler under its own order is a liability the receiving TSDF inherits at the point of custody transfer."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest_all",
+          "detail": "TRANSPORTER_NAMES frequency across inbound rows"
+        },
+        {
+          "source": "08_unstructured",
+          "detail": "Stericycle complaint + settlement -> transporter node"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.81
+      },
+      "hero_ref": "hq9",
+      "graph_refs": [
+        "DOC:stericycle_cp",
+        "DOC:stericycle_set",
+        "FAC:ILR000067890"
+      ]
+    },
+    {
+      "id": "Q10",
+      "persona": "Compliance Manager",
+      "type": "hero",
+      "question": "What waste codes dominate our inbound stream, and which generators send the most Land-Disposal-Restricted (LDR) waste?",
+      "response": {
+        "summary": "Spent-solvent (F-codes) and characteristic (D-codes) dominate; LDR-restricted codes concentrate among the high-volume petrochemical generators.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "The inbound profile is dominated by **spent solvents (F001-F005)** and **characteristic wastes (D001 ignitable, D002 corrosive, D008 lead)** \u2014 consistent with a Gulf Coast petrochemical corridor. Many of these codes carry **Land Disposal Restrictions**, so LDR compliance is a recurring theme in the stream."
+          },
+          {
+            "type": "chart",
+            "chart": "pie",
+            "title": "Inbound waste-code mix (top 10 by generator coverage)",
+            "data": [
+              {
+                "label": "F002",
+                "value": 17
+              },
+              {
+                "label": "P098",
+                "value": 14
+              },
+              {
+                "label": "D008",
+                "value": 11
+              },
+              {
+                "label": "F005",
+                "value": 10
+              },
+              {
+                "label": "D035",
+                "value": 10
+              },
+              {
+                "label": "F001",
+                "value": 10
+              },
+              {
+                "label": "D002",
+                "value": 10
+              },
+              {
+                "label": "F003",
+                "value": 9
+              },
+              {
+                "label": "D040",
+                "value": 9
+              },
+              {
+                "label": "D001",
+                "value": 9
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "title": "Waste-code leaders",
+            "columns": [
+              "Waste code",
+              "Generators sending it",
+              "Class"
+            ],
+            "rows": [
+              [
+                "F002",
+                17,
+                "Spent solvent (F)"
+              ],
+              [
+                "P098",
+                14,
+                "Acute (P)"
+              ],
+              [
+                "D008",
+                11,
+                "Characteristic (D)"
+              ],
+              [
+                "F005",
+                10,
+                "Spent solvent (F)"
+              ],
+              [
+                "D035",
+                10,
+                "Characteristic (D)"
+              ],
+              [
+                "F001",
+                10,
+                "Spent solvent (F)"
+              ],
+              [
+                "D002",
+                10,
+                "Characteristic (D)"
+              ],
+              [
+                "F003",
+                9,
+                "Spent solvent (F)"
+              ],
+              [
+                "D040",
+                9,
+                "Characteristic (D)"
+              ],
+              [
+                "D001",
+                9,
+                "Characteristic (D)"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "LDR-restricted volume tracks the largest generators \u2014 LyondellBasell, Arkema and Celanese \u2014 which is where LDR-treatment-standard documentation should be verified most closely before acceptance."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "entity_roster",
+          "detail": "waste_codes per generator, aggregated"
+        },
+        {
+          "source": "RCRA_compliance",
+          "detail": "VIOL_TYPE='Land Disposal Restrictions'"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.76
+      },
+      "hero_ref": "hq10"
+    },
+    {
+      "id": "Q11",
+      "persona": "Chief Sustainability Officer",
+      "type": "hero",
+      "question": "What share of our inbound tonnage in the last 12 months came from generators carrying an open violation?",
+      "response": {
+        "summary": "About 79.3% of inbound tonnage came from generators carrying at least one unresolved violation.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "This is the single-number exposure headline. Of your total inbound tonnage, the share originating from generators that carry **at least one open (unreturned-to-compliance) violation** is the board-level risk figure."
+          },
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Tonnage from open-violation generators",
+                "value": 21643.9,
+                "unit": "tons",
+                "flag": "risk"
+              },
+              {
+                "label": "Share of total inbound",
+                "value": 79.3,
+                "unit": "%",
+                "flag": "risk"
+              },
+              {
+                "label": "Generators involved",
+                "value": 26,
+                "unit": "of 36"
+              }
+            ]
+          },
+          {
+            "type": "chart",
+            "chart": "donut",
+            "title": "Inbound tonnage by generator compliance status",
+            "data": [
+              {
+                "label": "From open-violation generators",
+                "value": 21643.9
+              },
+              {
+                "label": "From clean-record generators",
+                "value": 5666.7
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "The figure is high because the corridor's largest generators \u2014 the ones you take the most waste from \u2014 are also the ones with the longest compliance histories. Volume and risk are correlated here, which is the uncomfortable finding the CSO needs to carry into the boardroom."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_compliance",
+          "detail": "generators with violations>0"
+        },
+        {
+          "source": "e_manifest_all",
+          "detail": "tonnage rollup for those generators / total"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.75
+      },
+      "hero_ref": "hq11"
+    },
+    {
+      "id": "Q12",
+      "persona": "Operations Director",
+      "type": "hero",
+      "question": "Show me every rejected load and residue manifest, and which generators they came from.",
+      "response": {
+        "summary": "26 rejected loads and 46 residue manifests over the full window, spread across high-volume generators.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Inbound acceptance-control view. Rejections and residue manifests are the data-quality signals an operations director watches \u2014 they flag loads that failed acceptance criteria or returned residue for re-manifesting."
+          },
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Rejected loads",
+                "value": 26,
+                "unit": "manifests",
+                "flag": "risk"
+              },
+              {
+                "label": "Residue manifests",
+                "value": 46,
+                "unit": "manifests"
+              },
+              {
+                "label": "Rejection rate",
+                "value": 2.2,
+                "unit": "%"
+              }
+            ]
+          },
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "Rejections vs residue manifests",
+            "x_label": "Type",
+            "y_label": "Manifests",
+            "data": [
+              {
+                "label": "Rejected loads",
+                "value": 26
+              },
+              {
+                "label": "Residue manifests",
+                "value": 46
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "Rejections (2.2% of loads) are spread across the high-volume generators rather than concentrated in one \u2014 no single generator is a systematic acceptance problem. Residue manifests (46) are routine re-manifesting of treatment residue, not a red flag in themselves."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest",
+          "detail": "REJECTION='Y' and MANIFEST RESIDUE='Y' counts by generator"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.9
+      },
+      "hero_ref": "hq12"
+    },
+    {
+      "id": "Q13",
+      "persona": "Chief Information Officer",
+      "type": "hero",
+      "question": "Is 'Texas Molecular' the same facility as 'VLS Texas Molecular' \u2014 how does the system know?",
+      "response": {
+        "summary": "Yes \u2014 same EPA ID (TXD000719518). The graph resolves the legacy and post-acquisition names to one facility node.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "**Yes.** `Texas Molecular LP` (pre-2023) and `VLS Texas Molecular` (post-acquisition, 2023-01-05) are the same physical site under one EPA ID, **`TXD000719518`**. Manifests shipped before the acquisition carry the legacy name in `DES FACILITY NAME`; the graph resolves every variant to a single facility node."
+          },
+          {
+            "type": "table",
+            "title": "Name variants resolving to one node",
+            "columns": [
+              "Name as it appears",
+              "Period",
+              "Resolves to"
+            ],
+            "rows": [
+              [
+                "Texas Molecular LP",
+                "pre-2023",
+                "FAC:TXD000719518"
+              ],
+              [
+                "Texas Molecular",
+                "legacy / informal",
+                "FAC:TXD000719518"
+              ],
+              [
+                "VLS Texas Molecular",
+                "post-2023",
+                "FAC:TXD000719518"
+              ],
+              [
+                "VLS Texas Molecular LP",
+                "post-2023 variant",
+                "FAC:TXD000719518"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "**How it knows.** Resolution is anchored on the EPA ID (an exact match across all variants), reinforced by the alias table and a `RESOLVES_TO` edge from each legacy label to the canonical node. This is the trust moment for the CIO: the system doesn't guess from string similarity alone \u2014 it grounds the merge on a regulatory identifier."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "entity_roster",
+          "detail": "aliases + acquired date for VLS Texas Molecular"
+        },
+        {
+          "source": "e_manifest",
+          "detail": "DES FACILITY NAME variance on a single DES FACILITY ID"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.92
+      },
+      "hero_ref": "hq13",
+      "graph_refs": [
+        "FAC:TXD000719518"
+      ]
+    },
+    {
+      "id": "Q14",
+      "persona": "Operations Director",
+      "type": "standard",
+      "question": "How many inbound manifests and total tons did Deer Park process from Jan 2023 to Jun 2026?",
+      "response": {
+        "summary": "1,200 manifests totaling 27,310.8 tons.",
+        "blocks": [
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Inbound manifests",
+                "value": 1200,
+                "unit": "manifests"
+              },
+              {
+                "label": "Total tonnage",
+                "value": 27310.8,
+                "unit": "tons"
+              },
+              {
+                "label": "Period",
+                "value": "Jan 2023 \u2013 Jun 2026"
+              }
+            ]
+          },
+          {
+            "type": "chart",
+            "chart": "line",
+            "title": "Tonnage received by quarter",
+            "x_label": "Quarter",
+            "y_label": "Tons",
+            "data": [
+              {
+                "label": "2023 Q1",
+                "value": 1701.5
+              },
+              {
+                "label": "2023 Q2",
+                "value": 2224.5
+              },
+              {
+                "label": "2023 Q3",
+                "value": 1784.8
+              },
+              {
+                "label": "2023 Q4",
+                "value": 2054.1
+              },
+              {
+                "label": "2024 Q1",
+                "value": 2336.9
+              },
+              {
+                "label": "2024 Q2",
+                "value": 1671.3
+              },
+              {
+                "label": "2024 Q3",
+                "value": 1848.3
+              },
+              {
+                "label": "2024 Q4",
+                "value": 1712.7
+              },
+              {
+                "label": "2025 Q1",
+                "value": 1648.2
+              },
+              {
+                "label": "2025 Q2",
+                "value": 2010.6
+              },
+              {
+                "label": "2025 Q3",
+                "value": 1933.5
+              },
+              {
+                "label": "2025 Q4",
+                "value": 1961.6
+              },
+              {
+                "label": "2026 Q1",
+                "value": 2031.9
+              },
+              {
+                "label": "2026 Q2",
+                "value": 2390.7
+              }
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest",
+          "detail": "row count and TOTAL QUANTITY TONS sum"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.97
+      }
+    },
+    {
+      "id": "Q15",
+      "persona": "Chief Information Officer",
+      "type": "standard",
+      "question": "What submission types make up our inbound manifests?",
+      "response": {
+        "summary": "About 69% FullElectronic, 21% Hybrid, the rest Data+Image or Image.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "The inbound stream is predominantly fully electronic, which is what makes cradle-to-grave tracing reliable \u2014 paper and image submissions are the ones that degrade traceability."
+          },
+          {
+            "type": "chart",
+            "chart": "pie",
+            "title": "Manifest submission types",
+            "data": [
+              {
+                "label": "FullElectronic",
+                "value": 832
+              },
+              {
+                "label": "Hybrid",
+                "value": 253
+              },
+              {
+                "label": "DataImage5Copy",
+                "value": 84
+              },
+              {
+                "label": "Image",
+                "value": 31
+              }
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest",
+          "detail": "SUBMISSION TYPE distribution"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.9
+      }
+    },
+    {
+      "id": "Q16",
+      "persona": "Operations Director",
+      "type": "standard",
+      "question": "What is the status breakdown of our inbound manifests?",
+      "response": {
+        "summary": "The large majority are Received; a small tail is Signed, Corrected or awaiting signature.",
+        "blocks": [
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "Manifest status distribution",
+            "x_label": "Status",
+            "y_label": "Manifests",
+            "data": [
+              {
+                "label": "Received",
+                "value": 1066
+              },
+              {
+                "label": "Signed",
+                "value": 77
+              },
+              {
+                "label": "Corrected",
+                "value": 45
+              },
+              {
+                "label": "ReadyForSignature",
+                "value": 12
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "A high Received share is the healthy state \u2014 it means loads completed the chain of custody. The Corrected count is where post-receipt manifest edits happened, worth spot-checking for data-quality."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest",
+          "detail": "STATUS distribution"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.9
+      }
+    },
+    {
+      "id": "Q17",
+      "persona": "Operations Director",
+      "type": "standard",
+      "question": "How long is waste typically in transit before we receive it?",
+      "response": {
+        "summary": "Most loads reach Deer Park within a week; the mode is 5-7 days.",
+        "blocks": [
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "Days in possession (transit time) distribution",
+            "x_label": "Days in possession",
+            "y_label": "Manifests",
+            "data": [
+              {
+                "label": "1-2",
+                "value": 245
+              },
+              {
+                "label": "3-4",
+                "value": 270
+              },
+              {
+                "label": "5-7",
+                "value": 425
+              },
+              {
+                "label": "8+",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "Longer transit times cluster in the multi-transporter chains \u2014 each custody handoff adds roughly a day. The 8+ bucket is worth watching for any hauler consistently at the slow end."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest_all",
+          "detail": "TOTAL_DAYS_IN_POSSESSION bucketed"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.85
+      }
+    },
+    {
+      "id": "Q18",
+      "persona": "Operations Director",
+      "type": "standard",
+      "question": "What is our average transporter days-in-possession, and which chains are slowest?",
+      "response": {
+        "summary": "About 5 days on average; three-transporter chains run 1-2 days longer.",
+        "blocks": [
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Average days in possession",
+                "value": 5,
+                "unit": "days"
+              },
+              {
+                "label": "Multi-transporter chains",
+                "value": "+1-2 days",
+                "flag": "risk"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "Days in possession rises with the number of custody handoffs. Single-transporter loads are fastest; the slowest chains are the three-transporter routes, typically the out-of-state shipments."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest_all",
+          "detail": "TOTAL_DAYS_IN_POSSESSION by TRANSPORTER_COUNT"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.86
+      }
+    },
+    {
+      "id": "Q19",
+      "persona": "Compliance Manager",
+      "type": "standard",
+      "question": "Which generators shipping to us are Large Quantity Generators (LQG)?",
+      "response": {
+        "summary": "Most corridor petrochemical generators are LQGs.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "The bulk of your inbound tonnage comes from Large Quantity Generators (`FED_WASTE_GENERATOR=1`) \u2014 ExxonMobil Baytown, Pemex Deer Park, LyondellBasell Channelview, Arkema Crosby and the other major refineries and chemical plants. LQG status raises the regulatory bar on both the generator and the receiving TSDF."
+          },
+          {
+            "type": "table",
+            "title": "Sample LQG generators",
+            "columns": [
+              "Generator",
+              "Fed waste generator",
+              "Inbound tons"
+            ],
+            "rows": [
+              [
+                "LyondellBasell Channelview Complex",
+                "LQG (1)",
+                1502.7
+              ],
+              [
+                "Arkema Inc. Crosby",
+                "LQG (1)",
+                1355.0
+              ],
+              [
+                "TPC Group Houston Plant",
+                "LQG (1)",
+                1175.3
+              ],
+              [
+                "Celanese Clear Lake Plant",
+                "LQG (1)",
+                1110.4
+              ],
+              [
+                "Pemex Deer Park",
+                "LQG (1)",
+                1085.4
+              ],
+              [
+                "Valero Houston Refinery",
+                "LQG (1)",
+                1084.7
+              ]
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "FRS_Facility_profile",
+          "detail": "FED_WASTE_GENERATOR='1'"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.88
+      }
+    },
+    {
+      "id": "Q20",
+      "persona": "Operations Director",
+      "type": "standard",
+      "question": "Which generators sent us the most waste by tonnage?",
+      "response": {
+        "summary": "LyondellBasell Channelview Complex leads at 1,502.7 tons.",
+        "blocks": [
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "Top generators by inbound tonnage",
+            "x_label": "Generator",
+            "y_label": "Inbound tons",
+            "data": [
+              {
+                "label": "LyondellBasell Channelview",
+                "value": 1502.7
+              },
+              {
+                "label": "Arkema Inc. Crosby",
+                "value": 1355.0
+              },
+              {
+                "label": "TPC Group Houston Plant",
+                "value": 1175.3
+              },
+              {
+                "label": "Celanese Clear Lake Plant",
+                "value": 1110.4
+              },
+              {
+                "label": "Pemex Deer Park",
+                "value": 1085.4
+              },
+              {
+                "label": "Valero Houston Refinery",
+                "value": 1084.7
+              },
+              {
+                "label": "ExxonMobil Baytown",
+                "value": 1061.8
+              },
+              {
+                "label": "Intercontinental Terminals Deer Park",
+                "value": 1061.4
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "title": "Top generators",
+            "columns": [
+              "Generator",
+              "Inbound tons",
+              "Manifests"
+            ],
+            "rows": [
+              [
+                "LyondellBasell Channelview Complex",
+                1502.7,
+                61
+              ],
+              [
+                "Arkema Inc. Crosby",
+                1355.0,
+                60
+              ],
+              [
+                "TPC Group Houston Plant",
+                1175.3,
+                46
+              ],
+              [
+                "Celanese Clear Lake Plant",
+                1110.4,
+                51
+              ],
+              [
+                "Pemex Deer Park",
+                1085.4,
+                46
+              ],
+              [
+                "Valero Houston Refinery",
+                1084.7,
+                47
+              ],
+              [
+                "ExxonMobil Baytown Complex",
+                1061.8,
+                46
+              ],
+              [
+                "Intercontinental Terminals Company Deer Park",
+                1061.4,
+                52
+              ]
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest_all",
+          "detail": "inbound rollup by generator"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.95
+      }
+    },
+    {
+      "id": "Q21",
+      "persona": "Chief Sustainability Officer",
+      "type": "standard",
+      "question": "What is the total RCRA penalty exposure across all generators shipping to us?",
+      "response": {
+        "summary": "Roughly $2.05M in cumulative historical penalties, concentrated in the top three generators.",
+        "blocks": [
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Cumulative penalty exposure",
+                "value": 1796500,
+                "unit": "USD",
+                "flag": "risk"
+              },
+              {
+                "label": "Generators contributing",
+                "value": 14
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "The figure is cumulative historical penalty across all inbound generators. It is concentrated: Arkema Crosby, ExxonMobil Baytown and J.R. Simplot alone make up over half."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_Compliance_Summary",
+          "detail": "TOTAL_PENALTY_AMOUNT summed over inbound generators"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.82
+      }
+    },
+    {
+      "id": "Q22",
+      "persona": "Operations Director",
+      "type": "standard",
+      "question": "What is our largest single inbound shipment?",
+      "response": {
+        "summary": "The largest single manifest is roughly 42 tons.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "The single largest inbound manifest by quantity is around 42 tons of hazardous waste. Single-manifest quantities cluster well below that \u2014 the mean load is far smaller \u2014 so the largest shipments are outliers worth noting for handling capacity, not the norm."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest",
+          "detail": "TOTAL QUANTITY TONS (max)"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.9
+      }
+    },
+    {
+      "id": "Q23",
+      "persona": "Compliance Manager",
+      "type": "standard",
+      "question": "How quickly do generators return to compliance after a violation?",
+      "response": {
+        "summary": "Return-to-compliance intervals range from ~30 to ~240 days.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Measured from `VIOL_DETERMINED_DATE` to `ACTUAL_RTC_DATE`, closure intervals span roughly 30 to 240 days. Lower-risk generators close fastest; the open (unreturned) violations are the ones with no `ACTUAL_RTC_DATE` at all \u2014 those are the live exposure, covered in the open-violation query."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_compliance",
+          "detail": "ACTUAL_RTC_DATE minus VIOL_DETERMINED_DATE"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.75
+      }
+    },
+    {
+      "id": "Q24",
+      "persona": "Compliance Manager",
+      "type": "standard",
+      "question": "What enforcement types appear most often in the compliance data?",
+      "response": {
+        "summary": "Informal actions and Notices of Violation dominate; formal penalty orders and CAFOs are rarer but larger.",
+        "blocks": [
+          {
+            "type": "chart",
+            "chart": "bar",
+            "title": "Enforcement type frequency",
+            "x_label": "Enforcement type",
+            "y_label": "Actions",
+            "data": [
+              {
+                "label": "Written Informal",
+                "value": 22
+              },
+              {
+                "label": "Notice of Violation",
+                "value": 14
+              },
+              {
+                "label": "Admin Penalty Order",
+                "value": 9
+              },
+              {
+                "label": "CAFO",
+                "value": 4
+              },
+              {
+                "label": "Consent Decree",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "The pattern is typical: most enforcement is informal (letters, notices), while the small number of formal actions \u2014 Administrative Penalty Orders, CAFOs, Consent Decrees \u2014 carry the large dollar penalties. The consent decrees and CAFOs are the ones that bridge to the uploaded document set."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_compliance",
+          "detail": "ENF_TYPE_DESC distribution"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.8
+      }
+    },
+    {
+      "id": "Q25",
+      "persona": "Operations Director",
+      "type": "standard",
+      "question": "Which comparator TSDFs could receive this waste besides us?",
+      "response": {
+        "summary": "Clean Harbors Deer Park, US Ecology Texas, Veolia Port Arthur and WM Disposal Services of Texas.",
+        "blocks": [
+          {
+            "type": "table",
+            "title": "Comparator TSDFs in the dataset",
+            "columns": [
+              "Facility",
+              "Role"
+            ],
+            "rows": [
+              [
+                "Clean Harbors Deer Park",
+                "Comparator TSDF"
+              ],
+              [
+                "US Ecology Texas",
+                "Comparator TSDF"
+              ],
+              [
+                "Veolia Port Arthur",
+                "Comparator TSDF"
+              ],
+              [
+                "WM Disposal Services of Texas",
+                "Comparator TSDF"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "Comparators are included so the facility scorecard reads against peers \u2014 the clean $0-penalty record is only legible next to what other TSDFs carry."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "entity_roster",
+          "detail": "role='comparator_tsdf'"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.8
+      }
+    },
+    {
+      "id": "Q26",
+      "persona": "Compliance Manager",
+      "type": "standard",
+      "question": "How many residue manifests did we process?",
+      "response": {
+        "summary": "46 residue manifests.",
+        "blocks": [
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Residue manifests",
+                "value": 46,
+                "unit": "manifests"
+              },
+              {
+                "label": "Share of inbound",
+                "value": 3.8,
+                "unit": "%"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "Residue manifests (`MANIFEST RESIDUE='Y'`) are routine re-manifesting of treatment residue for onward management \u2014 expected for an operating TSDF, not a red flag on their own."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest",
+          "detail": "MANIFEST RESIDUE='Y' count"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.93
+      }
+    },
+    {
+      "id": "Q27",
+      "persona": "Chief Information Officer",
+      "type": "standard",
+      "question": "What waste codes does Arkema Crosby typically ship?",
+      "response": {
+        "summary": "A mix of ignitable (D001), corrosive (D002) and spent-solvent (F001-F005) codes.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Arkema Crosby's manifests carry a characteristic-plus-solvent profile: **D001** (ignitable), **D002** (corrosive) and the **F001-F005** spent-solvent family. That mix is LDR-relevant, so their loads are among those where treatment-standard documentation matters most."
+          },
+          {
+            "type": "table",
+            "title": "Arkema Crosby \u2014 representative waste codes",
+            "columns": [
+              "Code",
+              "Class"
+            ],
+            "rows": [
+              [
+                "D001",
+                "Ignitable"
+              ],
+              [
+                "D002",
+                "Corrosive"
+              ],
+              [
+                "F001",
+                "Spent halogenated solvent"
+              ],
+              [
+                "F003",
+                "Spent non-halogenated solvent"
+              ],
+              [
+                "F005",
+                "Spent non-halogenated solvent"
+              ]
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "entity_roster",
+          "detail": "waste_codes for Arkema Inc. Crosby"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.72
+      }
+    },
+    {
+      "id": "Q28",
+      "persona": "Chief Information Officer",
+      "type": "standard",
+      "question": "How current is the compliance data \u2014 when was the last evaluation recorded?",
+      "response": {
+        "summary": "The most recent evaluation across the corridor is in mid-2026.",
+        "blocks": [
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Most recent evaluation",
+                "value": "mid-2026"
+              },
+              {
+                "label": "Data window",
+                "value": "2023-01-01 \u2013 2026-06-30"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "Per-facility recency lives in `RCRA_Compliance_Summary.LAST_EVALUATION_DATE`. In production this refreshes on the RCRAInfo sync cadence; in the demo it is frozen consistent with the manifest window."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_Compliance_Summary",
+          "detail": "LAST_EVALUATION_DATE (max)"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.85
+      }
+    },
+    {
+      "id": "Q29",
+      "persona": "Chief Information Officer",
+      "type": "standard",
+      "question": "Can you show the full custody chain for a multi-transporter shipment?",
+      "response": {
+        "summary": "Yes \u2014 multi-hauler manifests list transporters in custody order.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Manifests with `TRANSPORTER_COUNT > 1` carry the haulers in custody order in `TRANSPORTER_NAMES` / `TRANSPORTER_IDS` (pipe-delimited). The graph turns each into a `TRANSPORTED` edge, so the chain is walkable node by node, not just readable as a string."
+          },
+          {
+            "type": "table",
+            "title": "Example multi-transporter chain",
+            "columns": [
+              "Step",
+              "Party",
+              "Role"
+            ],
+            "rows": [
+              [
+                "1",
+                "Generator",
+                "Origin"
+              ],
+              [
+                "2",
+                "Transporter A",
+                "First hauler"
+              ],
+              [
+                "3",
+                "Transporter B",
+                "Second hauler"
+              ],
+              [
+                "4",
+                "VLS Texas Molecular",
+                "Receiving TSDF"
+              ]
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest_all",
+          "detail": "TRANSPORTER_COUNT>1, ordered TRANSPORTER_NAMES"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.86
+      }
+    },
+    {
+      "id": "Q30",
+      "persona": "Compliance Manager",
+      "type": "standard",
+      "question": "Which generators have violations noted but no enforcement action yet?",
+      "response": {
+        "summary": "Several mid-risk generators show a violation with no formal enforcement recorded.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "These are generators where `FOUND_VIOLATION='Yes'` but `ENF_TYPE_DESC` is null \u2014 a violation was noted but not escalated to formal enforcement. They sit a tier below the penalty leaderboard but still warrant screening, because an un-escalated violation can still be open."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_compliance",
+          "detail": "FOUND_VIOLATION='Yes' AND ENF_TYPE_DESC IS NULL"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.78
+      }
+    },
+    {
+      "id": "Q31",
+      "persona": "Compliance Manager",
+      "type": "standard",
+      "question": "Which generator has the most violations overall?",
+      "response": {
+        "summary": "LyondellBasell Channelview and ITC Deer Park carry the most recorded violations.",
+        "blocks": [
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Most violations",
+                "value": "LyondellBasell Channelview",
+                "flag": "risk"
+              },
+              {
+                "label": "Recorded violations",
+                "value": 5
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "Violation count and penalty rank are related but not identical \u2014 a generator can accumulate many minor violations without a large cumulative penalty, or a few serious ones with a large penalty. ITC Deer Park is high on both counts."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_Compliance_Summary",
+          "detail": "TOTAL_VIOLATIONS (max)"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.85
+      }
+    },
+    {
+      "id": "Q32",
+      "persona": "Chief Information Officer",
+      "type": "standard",
+      "question": "How do I know these answers are trustworthy?",
+      "response": {
+        "summary": "Every answer cites its source view and rows, and carries a confidence score.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Each response names the **source view and the rows** it was computed from, and carries a **confidence chip**. High-confidence answers (\u22650.85) come from direct table lookups; medium and low scores flag estimation or joins across partial data. Nothing is asserted without a traceable path back to a source column \u2014 which is what separates this from a chatbot guessing over your data."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "platform",
+          "detail": "evidence + confidence model, per \u00a77 confidence bands"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.9
+      }
+    },
+    {
+      "id": "Q33",
+      "persona": "Operations Director",
+      "type": "standard",
+      "question": "What is the date range of the manifest data?",
+      "response": {
+        "summary": "2023-01-01 to 2026-06-30.",
+        "blocks": [
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Earliest shipped",
+                "value": "2023-01-01"
+              },
+              {
+                "label": "Latest shipped",
+                "value": "2026-06-30"
+              }
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "e_manifest",
+          "detail": "SHIPPED DATE min/max"
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.97
+      }
+    },
+    {
+      "id": "Q34",
+      "persona": "Chief Information Officer",
+      "type": "standard",
+      "question": "What share of columns in the manifest data contain PII?",
+      "response": {
+        "summary": "Address-line fields are flagged PII; city/state/ZIP are treated as geo, not PII.",
+        "blocks": [
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "PII-flagged columns (e_manifest)",
+                "value": "~25",
+                "unit": "%"
+              },
+              {
+                "label": "Treated as geo, not PII",
+                "value": "City / State / ZIP"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "markdown": "In `e_manifest`, the address-line fields (street number, street lines) are flagged PII; roughly a quarter of columns carry an address or contact element. City, state and ZIP are treated as geographic, not personal. The full per-column PII flags are in the profiling workbook."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "02_profiling",
+          "detail": "e_manifest PII flags per column"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.83
+      }
+    },
+    {
+      "id": "Q35",
+      "persona": "Chief Sustainability Officer",
+      "type": "standard",
+      "question": "Give me a one-line risk headline for this week's inbound.",
+      "response": {
+        "summary": "15 of 36 active generators carry enforcement history; screen open-violation shippers before acceptance.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "**15 of 36 active generators** carry enforcement history, and generators with open violations account for ~79.3% of inbound tonnage. Recommend a compliance review flag on any open-violation generator with a load in the queue before acceptance."
+          },
+          {
+            "type": "metric",
+            "items": [
+              {
+                "label": "Generators w/ enforcement",
+                "value": 15,
+                "unit": "of 36",
+                "flag": "risk"
+              },
+              {
+                "label": "Open-violation tonnage share",
+                "value": 79.3,
+                "unit": "%",
+                "flag": "risk"
+              }
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "RCRA_Compliance_Summary + e_manifest",
+          "detail": "composite risk rollup"
+        }
+      ],
+      "confidence": {
+        "level": "Medium",
+        "score": 0.72
+      }
+    },
+    {
+      "id": "Q36",
+      "persona": "Chief Information Officer",
+      "type": "decline",
+      "question": "Show me each generator's internal profit margins.",
+      "response": {
+        "summary": "Outside the connected data.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "That information is not in the connected data. This dataset covers EPA e-Manifest, RCRAInfo compliance, and FRS facility records \u2014 there is no financial or commercial data to draw on."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "\u2014",
+          "detail": "No source column; declined."
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.99
+      }
+    },
+    {
+      "id": "Q37",
+      "persona": "Compliance Manager",
+      "type": "decline",
+      "question": "Predict which generator will have a violation next quarter.",
+      "response": {
+        "summary": "Outside the connected data.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "I can't reliably predict future violations from this data. I can show historical violation frequency and current open violations as a risk indicator, but a forward prediction would be speculation dressed up as an answer."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "\u2014",
+          "detail": "Out of scope; offered historical proxy."
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.95
+      }
+    },
+    {
+      "id": "Q38",
+      "persona": "Chief Sustainability Officer",
+      "type": "decline",
+      "question": "What's the home address of Arkema's plant manager?",
+      "response": {
+        "summary": "Outside the connected data.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "That isn't available and wouldn't be appropriate to surface. The data holds facility addresses and company contacts, not individuals' personal information."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "\u2014",
+          "detail": "PII boundary; declined."
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.99
+      }
+    },
+    {
+      "id": "Q39",
+      "persona": "Operations Director",
+      "type": "decline",
+      "question": "How much did we charge each generator for disposal?",
+      "response": {
+        "summary": "Outside the connected data.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "Pricing and billing are not in the connected data. This is a compliance and operations dataset, not a commercial one."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "\u2014",
+          "detail": "No source column; declined."
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.98
+      }
+    },
+    {
+      "id": "Q40",
+      "persona": "Chief Information Officer",
+      "type": "decline",
+      "question": "Which generator is most likely lying on their manifests?",
+      "response": {
+        "summary": "Outside the connected data.",
+        "blocks": [
+          {
+            "type": "text",
+            "markdown": "I can't make that judgment. I can surface data-quality signals \u2014 rejections, residue manifests, quantity anomalies \u2014 but characterizing intent isn't something the data supports."
+          }
+        ]
+      },
+      "evidence": [
+        {
+          "source": "\u2014",
+          "detail": "Out of scope; offered anomaly proxy."
+        }
+      ],
+      "confidence": {
+        "level": "High",
+        "score": 0.95
+      }
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cradle-to-Grave Manifest Trace — Context Weave</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg0:#ffffff;--bg1:#f7f8fa;--card:#ffffff;--card2:#f5f6f8;--inset:#f3f4f6;--line:#e5e7eb;--line2:#d3d7dc;
+--text:#191c1f;--mut:#5b626b;--dim:#8a9099;--orange:#ea580c;--orange-hi:#c2410c;--orange-soft:rgba(234,88,12,.09);--orange-line:rgba(234,88,12,.28);
+--green:#059669;--green-soft:rgba(5,150,105,.11);--amber:#b45309;--amber-soft:rgba(217,119,6,.13);--amber-line:rgba(217,119,6,.32);
+--red:#dc2626;--red-soft:rgba(220,38,38,.09);--cyan:#0891b2;--purple:#7c3aed;--purple-soft:rgba(124,58,237,.10);--teal:#0d9488;--blue:#2563eb;
+--shadow:0 1px 2px rgba(16,24,40,.06),0 6px 20px rgba(16,24,40,.05);--r-s:7px;--r-m:11px;--r-l:16px;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg0);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased;padding:28px 32px 60px}
+h1,h2,h3,.disp{font-family:'Space Grotesk','Inter',sans-serif;letter-spacing:-.01em}
+.mono{font-family:'JetBrains Mono',monospace}
+.wrap{max-width:1180px;margin:0 auto}
+.crumb{color:var(--dim);font-size:12px;margin-bottom:14px}
+.crumb b{color:var(--orange);font-weight:600}
+.rhead{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px}
+.rhead h1{font-size:25px;font-weight:600;margin-bottom:7px}
+.rhead .sub{color:var(--mut);font-size:13.5px;max-width:720px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--orange-hi);padding:5px 11px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+.fbar{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:22px}
+.fbar .lbl{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-right:3px}
+.fchip{background:var(--card);border:1px solid var(--line);color:var(--mut);padding:6px 13px;border-radius:999px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.fchip:hover{border-color:var(--line2);color:var(--text)}
+.fchip.on{color:var(--orange-hi);border-color:var(--orange-line);background:var(--orange-soft)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:16px 18px;box-shadow:var(--shadow)}
+.kpi .k{color:var(--mut);font-size:11.5px;font-weight:500;margin-bottom:9px;text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-family:'Space Grotesk',sans-serif;font-size:27px;font-weight:600;line-height:1}
+.kpi .u{color:var(--dim);font-size:12px;margin-top:6px}
+.kpi.risk{border-color:var(--red-soft)}.kpi.risk .v{color:var(--red)}
+.kpi.good .v{color:var(--green)}
+.kpi.warn .v{color:var(--amber)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:18px 20px;margin-bottom:24px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;font-weight:600;margin-bottom:4px}
+.card .cs{color:var(--dim);font-size:12px;margin-bottom:16px}
+.chartbox{position:relative;height:300px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{text-align:left;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:9px 12px;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--card)}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--text)}
+tbody tr:hover{background:var(--card2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600}
+.tag.high{background:var(--red-soft);color:var(--red)}
+.tag.med{background:var(--amber-soft);color:var(--amber)}
+.tag.low{background:var(--green-soft);color:var(--green)}
+.tag.cd{background:var(--purple-soft);color:var(--purple);border:1px solid rgba(124,58,237,.28)}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:11.5px}
+.chain .node{background:var(--inset);border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap}
+.chain .arw{color:var(--orange);font-weight:700}
+.flagpill{font-size:10.5px;padding:1px 7px;border-radius:5px;font-weight:600}
+.flagpill.rej{background:var(--red-soft);color:var(--red)}
+.flagpill.res{background:var(--amber-soft);color:var(--amber)}
+.foot{color:var(--dim);font-size:11.5px;border-top:1px solid var(--line);padding-top:16px;margin-top:8px;line-height:1.7}
+.foot b{color:var(--mut)}
+.note{background:var(--orange-soft);border:1px solid var(--orange-line);border-radius:var(--r-s);padding:12px 15px;font-size:12.5px;color:var(--text);margin-bottom:22px}
+.docref{color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:11.5px}
+</style></head><body><div class="wrap"><div class="crumb">Context Weave &nbsp;·&nbsp; Reports &nbsp;·&nbsp; <b>Cradle-to-Grave Manifest Trace</b></div><div class="rhead"><div><h1>Cradle-to-Grave Manifest Trace</h1><div class="sub">A sample of fully traced inbound manifests: who generated it, who hauled it, how long it was in transit, and its receipt at VLS. Chosen to cover the edge cases — multi-hauler chains, rejections, residue, out-of-state.</div></div><div class="badge"><span class="dot"></span>VLS Texas Molecular · Deer Park</div></div><div class="kpis"><div class="kpi"><div class="k">Sample manifests traced</div><div class="v">5</div><div class="u">chosen to cover edge cases</div></div><div class="kpi"><div class="k">Avg days in possession</div><div class="v">4.0</div><div class="u">across the sample</div></div><div class="kpi risk"><div class="k">Rejected loads (all data)</div><div class="v">26</div><div class="u">of 1,200 manifests</div></div><div class="kpi warn"><div class="k">Residue manifests (all data)</div><div class="v">46</div><div class="u">re-manifested residue</div></div></div><div class="fbar"><span class="lbl">Show</span><div data-fgroup="flag" style="display:contents"><span class="fchip on" data-val="all">All</span><span class="fchip" data-val="rej">Rejected</span><span class="fchip" data-val="res">Residue</span><span class="fchip" data-val="oos">Out-of-state</span></div></div><div class="card"><h2>Cradle-to-grave manifest traces</h2><div class="cs">Origin → custody chain (in order) → receipt at VLS Texas Molecular. Sample covers a multi-transporter chain, a rejected load, a residue manifest, and an out-of-state shipment.</div></div><div class="card trace" data-flag="" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px"><div><span class="mono" style="color:var(--orange-hi);font-weight:600">346581037ELC</span> &nbsp; <span style="color:var(--mut)">Arkema Inc. Crosby · TX</span></div><div></div></div><div class="chain"><span class="node"><b>Arkema Inc. Crosby</b></span><span class="arw">→</span><span class="node">Sprint Waste Services LP</span><span class="arw">→</span><span class="node" style="border-color:var(--orange-line);color:var(--orange-hi)">VLS Texas Molecular</span></div><div style="display:flex;gap:26px;margin-top:12px;color:var(--mut);font-size:12px;flex-wrap:wrap"><span>Shipped <b style="color:var(--text)">2024-01-26</b></span><span>Received <b style="color:var(--text)">2024-01-31</b></span><span>Days in possession <b style="color:var(--text)">5</b></span><span>Quantity <b style="color:var(--text)">24.614 tons</b></span><span>Status <b style="color:var(--text)">Received</b></span></div></div><div class="card trace" data-flag="" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px"><div><span class="mono" style="color:var(--orange-hi);font-weight:600">510680225HMV</span> &nbsp; <span style="color:var(--mut)">Phillips 66 Pasadena Terminal · TX</span></div><div></div></div><div class="chain"><span class="node"><b>Phillips 66 Pasadena Terminal</b></span><span class="arw">→</span><span class="node">Veolia ES Technical Solutions LLC</span><span class="arw">→</span><span class="node">US Ecology Texas Inc.</span><span class="arw">→</span><span class="node">Cyn Environmental Services</span><span class="arw">→</span><span class="node" style="border-color:var(--orange-line);color:var(--orange-hi)">VLS Texas Molecular</span></div><div style="display:flex;gap:26px;margin-top:12px;color:var(--mut);font-size:12px;flex-wrap:wrap"><span>Shipped <b style="color:var(--text)">2025-10-01</b></span><span>Received <b style="color:var(--text)">2025-10-06</b></span><span>Days in possession <b style="color:var(--text)">5</b></span><span>Quantity <b style="color:var(--text)">41.636 tons</b></span><span>Status <b style="color:var(--text)">Received</b></span></div></div><div class="card trace" data-flag="rej" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px"><div><span class="mono" style="color:var(--orange-hi);font-weight:600">150105586FLE</span> &nbsp; <span style="color:var(--mut)">Covestro LLC Baytown · TX</span></div><div><span class="flagpill rej">REJECTED</span></div></div><div class="chain"><span class="node"><b>Covestro LLC Baytown</b></span><span class="arw">→</span><span class="node">US Ecology Texas Inc.</span><span class="arw">→</span><span class="node" style="border-color:var(--orange-line);color:var(--orange-hi)">VLS Texas Molecular</span></div><div style="display:flex;gap:26px;margin-top:12px;color:var(--mut);font-size:12px;flex-wrap:wrap"><span>Shipped <b style="color:var(--text)">2023-10-22</b></span><span>Received <b style="color:var(--text)">2023-10-25</b></span><span>Days in possession <b style="color:var(--text)">3</b></span><span>Quantity <b style="color:var(--text)">35.248 tons</b></span><span>Status <b style="color:var(--text)">Received</b></span></div></div><div class="card trace" data-flag="res" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px"><div><span class="mono" style="color:var(--orange-hi);font-weight:600">915040780HMV</span> &nbsp; <span style="color:var(--mut)">Dow Chemical La Porte Operations · TX</span></div><div><span class="flagpill res">RESIDUE</span></div></div><div class="chain"><span class="node"><b>Dow Chemical La Porte Operations</b></span><span class="arw">→</span><span class="node">US Ecology Texas Inc.</span><span class="arw">→</span><span class="node" style="border-color:var(--orange-line);color:var(--orange-hi)">VLS Texas Molecular</span></div><div style="display:flex;gap:26px;margin-top:12px;color:var(--mut);font-size:12px;flex-wrap:wrap"><span>Shipped <b style="color:var(--text)">2024-02-26</b></span><span>Received <b style="color:var(--text)">2024-03-02</b></span><span>Days in possession <b style="color:var(--text)">5</b></span><span>Quantity <b style="color:var(--text)">5.796 tons</b></span><span>Status <b style="color:var(--text)">Received</b></span></div></div><div class="card trace" data-flag="oos" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px"><div><span class="mono" style="color:var(--orange-hi);font-weight:600">583052521HMV</span> &nbsp; <span style="color:var(--mut)">Denka Performance Elastomer LLC · LA</span></div><div></div></div><div class="chain"><span class="node"><b>Denka Performance Elastomer LLC</b></span><span class="arw">→</span><span class="node">Sprint Waste Services LP</span><span class="arw">→</span><span class="node" style="border-color:var(--orange-line);color:var(--orange-hi)">VLS Texas Molecular</span></div><div style="display:flex;gap:26px;margin-top:12px;color:var(--mut);font-size:12px;flex-wrap:wrap"><span>Shipped <b style="color:var(--text)">2024-02-15</b></span><span>Received <b style="color:var(--text)">2024-02-17</b></span><span>Days in possession <b style="color:var(--text)">2</b></span><span>Quantity <b style="color:var(--text)">19.164 tons</b></span><span>Status <b style="color:var(--text)">Received</b></span></div></div><div class="foot"><b>Source.</b> e_manifest / e_manifest_all rows by MANIFEST TRACKING NUMBER. <b>Confidence.</b> High (0.96) — single-row lookup. <b>Note.</b> Every party appears in custody order; the chain is walkable node-by-node in the graph.</div><script>
+Chart.defaults.color='#5b626b';Chart.defaults.font.family="'Inter',sans-serif";Chart.defaults.font.size=11.5;
+Chart.defaults.borderColor='#e5e7eb';Chart.defaults.plugins.legend.labels.color='#374151';
+const OR='#ea580c',ORH='#f97316',GR='#059669',AM='#d97706',RD='#dc2626',CY='#0891b2',PU='#7c3aed',BL='#2563eb',TE='#0d9488';
+const gridc={color:'#eef0f3'},gridN={grid:{display:false}};
+
+function applyFilters(){
+ const f=activeVals('flag');
+ document.querySelectorAll('.trace').forEach(c=>{
+  const fl=c.dataset.flag||'';
+  const ok=f.includes('all')||f.some(v=>fl.split(' ').includes(v));
+  c.style.display=ok?'':'none';
+ });
+}
+function initCharts(){}window.initCharts=initCharts;</script></div>
+<script>
+function bindFilters(){
+ document.querySelectorAll('[data-fgroup]').forEach(g=>{
+  g.querySelectorAll('.fchip').forEach(c=>c.addEventListener('click',()=>{
+   const multi=g.dataset.multi==='1';
+   if(!multi){g.querySelectorAll('.fchip').forEach(x=>x.classList.remove('on'));c.classList.add('on');}
+   else{c.classList.toggle('on');}
+   if(typeof applyFilters==='function')applyFilters();
+  }));
+ });
+}
+function activeVals(group){return [...document.querySelectorAll('[data-fgroup="'+group+'"] .fchip.on')].map(c=>c.dataset.val);}
+document.addEventListener('DOMContentLoaded',()=>{bindFilters();if(window.initCharts)initCharts();});
+</script></body></html>

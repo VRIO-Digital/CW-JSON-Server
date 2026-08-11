@@ -1,6 +1,7 @@
 import { CheckCircleFilled, LoadingOutlined } from '@ant-design/icons'
 import { Spin } from 'antd'
 import {
+  CONSENT_GRANT_COPY,
   CONSENT_SCOPES,
   CONSENT_STAGES,
   type ConsentProvider,
@@ -23,12 +24,20 @@ export default function GoogleConsentPanel({
   provider,
   /** Index of the stage in flight. Everything before it has finished. */
   stage,
+  /**
+   * The scopes `/sources/oauth/start` reported. Empty until that first call
+   * returns, which is why `CONSENT_SCOPES` is the fallback rather than the
+   * source: a panel that lists a scope before the request naming it has come
+   * back is guessing, and Drive asks for two, so the guess would be wrong.
+   */
+  scopes = [],
 }: {
   provider: ConsentProvider
   stage: number
+  scopes?: string[]
 }) {
   const stages = CONSENT_STAGES[provider]
-  const scope = CONSENT_SCOPES[provider]
+  const asked = scopes.length > 0 ? scopes : [CONSENT_SCOPES[provider]]
 
   return (
     <div className="cs-consent" role="status" aria-live="polite">
@@ -54,10 +63,24 @@ export default function GoogleConsentPanel({
         })}
       </ol>
 
-      {/* The scope is the promise being made, so it is stated, not implied. */}
+      {/*
+        The scopes are the promise being made, so every one is stated. Listed from
+        what the endpoint reported rather than from a per-provider constant: Drive
+        asks for two — metadata to list files, readonly so profiling can read one —
+        and naming a single scope understated the grant. See docs/REGRESSIONS.md.
+      */}
+      <ul className="cs-consent-scopes">
+        {asked.map((scope) => (
+          <li key={scope}>
+            <code>{scope.replace('https://www.googleapis.com/auth/', '')}</code>
+            {CONSENT_GRANT_COPY[scope] ? ` — ${CONSENT_GRANT_COPY[scope].title}` : null}
+          </li>
+        ))}
+      </ul>
+
       <div className="cs-consent-foot">
-        Read-only · asks for <code>{scope}</code> · no key file is downloaded or
-        stored
+        Read-only{asked.length > 1 ? ` · ${asked.length} scopes` : ''} · no key file
+        is downloaded or stored
       </div>
     </div>
   )

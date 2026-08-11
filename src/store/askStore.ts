@@ -1,10 +1,12 @@
 import { create } from 'zustand'
 import {
-  askQuestion,
+  askQuestionStreaming,
   listAskGraphs,
+  type AnswerBlock,
   type AskAnswer,
   type AskGraph,
   type AskGraphsPayload,
+  type AskStep,
 } from '../api/client'
 import { toMessage, type Result } from './asyncState'
 
@@ -24,12 +26,27 @@ interface AskState {
   asking: boolean
   answer: AskAnswer | null
 
+  /*
+   * What has arrived so far, while `asking`. The answer is composed and streamed,
+   * so the page renders this and switches to `answer` when `done` lands — which
+   * is also the only object that has been validated as a whole.
+   *
+   * Cleared at the start of each ask rather than at the end: a half-streamed
+   * answer must not linger under the next question.
+   */
+  streamedSteps: AskStep[]
+  streamedSummary: { answered: boolean; text: string } | null
+  streamedBlocks: AnswerBlock[]
+
   load: () => Promise<void>
   select: (useCaseId: string) => void
   ask: (question: string) => Promise<Result>
 }
 
 const EMPTY_GRAPHS: AskGraph[] = []
+/* Module-level, so an idle store hands out the same references every render. */
+const EMPTY_STEPS: AskStep[] = []
+const EMPTY_BLOCKS: AnswerBlock[] = []
 
 export const useAskStore = create<AskState>()((set, get) => ({
   data: null,
@@ -38,6 +55,9 @@ export const useAskStore = create<AskState>()((set, get) => ({
   useCaseId: null,
   asking: false,
   answer: null,
+  streamedSteps: EMPTY_STEPS,
+  streamedBlocks: EMPTY_BLOCKS,
+  streamedSummary: null,
 
   load: async () => {
     set({ loading: true })
@@ -77,13 +97,49 @@ export const useAskStore = create<AskState>()((set, get) => ({
     if (!useCaseId) return { ok: false, error: 'No graph is live to ask.' }
     if (!question.trim()) return { ok: false, error: 'Ask a question first.' }
 
-    set({ asking: true })
+    /*
+     * The previous answer is cleared here, at the start — not left up while the
+     * next one streams in beneath it, which would put two answers on screen and
+     * make the older one look like part of the new one.
+     */
+    set({
+      asking: true,
+      answer: null,
+      streamedSteps: EMPTY_STEPS,
+      streamedBlocks: EMPTY_BLOCKS,
+      streamedSummary: null,
+    })
     try {
-      set({ answer: await askQuestion(useCaseId, question.trim()) })
+      const answer = await askQuestionStreaming(useCaseId, question.trim(), (event) => {
+        // A stale stream cannot write into the store: switching graphs mid-answer
+        // changes `useCaseId`, and this one's events stop landing.
+        if (get().useCaseId !== useCaseId) return
+        if (event.kind === 'stage') {
+          set({ streamedSteps: [...get().streamedSteps, event] })
+        } else if (event.kind === 'summary') {
+          set({
+            streamedSummary: {
+              answered: event.answered,
+              // An abstention's text is its reason; an answer's is its summary.
+              text: event.answered ? (event.summary ?? event.answer ?? '') : event.reason,
+            },
+          })
+        } else if (event.kind === 'block') {
+          set({ streamedBlocks: [...get().streamedBlocks, event.block] })
+        }
+        // `done` is not applied here — the whole envelope is set below, once,
+        // from the validated object the fetcher returns.
+      })
+      if (get().useCaseId !== useCaseId) return { ok: true }
+      set({ answer })
       return { ok: true }
     } catch (error) {
-      // The previous answer stays put: a failed ask should not erase the one
-      // the user is still reading.
+      /*
+       * The partial stream is dropped rather than left as a stump. Unlike a
+       * failed *reload*, where keeping the old data on screen is right, half an
+       * answer is not an answer — and the message says what went wrong.
+       */
+      set({ streamedSteps: EMPTY_STEPS, streamedBlocks: EMPTY_BLOCKS, streamedSummary: null })
       return { ok: false, error: toMessage(error) }
     } finally {
       set({ asking: false })

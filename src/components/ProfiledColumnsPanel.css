@@ -130,6 +130,44 @@
   white-space: nowrap;
 }
 
+/* Where a document resolved in the graph. Neutral throughout: a resolution is a
+   fact about the file, not a state it is in. */
+.pc-resolution {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border-top: 1px solid #f0f2f5;
+  font-size: 11.5px;
+  color: #6b7688;
+}
+
+.pc-res-arrow {
+  color: #aab2c0;
+}
+
+.pc-res-entity {
+  font-size: 12px;
+  color: #0f1729;
+}
+
+.pc-res-meta {
+  color: #8994a8;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The graph entity a document maps to, and a view's grain: both are the fact
+   that makes a row readable, neither is a status. */
+.pc-linked,
+.pc-grain {
+  font-size: 11.5px;
+  color: #6b7688;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pc-table-meta {
   flex: 0 0 auto;
   font-size: 11.5px;

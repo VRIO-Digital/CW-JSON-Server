@@ -18,6 +18,7 @@ import {
   Input,
   Row,
   Select,
+  Skeleton,
   Space,
   Steps,
   Typography,
@@ -48,10 +49,12 @@ import {
   type Connector,
   type ConnectorField,
 } from '../data/connectors'
+import { SOURCE_NAME_MIN, sourceNameProblem } from '../data/sourceName'
+import ConnectorIcon from './ConnectorIcon'
 import GoogleConsentPanel from './GoogleConsentPanel'
 import { toMessage } from '../store/asyncState'
 import { useAuthStore } from '../store/authStore'
-import { BRAND, BRAND_SOFT } from '../theme'
+import { BRAND, BRAND_SOFT, SP } from '../theme'
 import './ConnectSourceModal.css'
 
 type TestState = 'idle' | 'running' | 'passed'
@@ -89,15 +92,25 @@ function ConnectorCard({
         background: selected ? BRAND_SOFT : undefined,
       }}
     >
-      <Typography.Text
-        strong
-        style={{ display: 'block', color: selected ? BRAND : undefined }}
-      >
-        {connector.name}
-      </Typography.Text>
-      <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-        {connector.blurb}
-      </Typography.Text>
+      {/* The vendor mark, so a connector is recognised before it is read. The
+          unavailable ones keep theirs — the card is dimmed as a whole, and a
+          logo missing from half the grid would read as a loading state. */}
+      <Flex align="center" gap={SP.sm}>
+        <span className="connector-card-icon">
+          <ConnectorIcon connector={connector.key} size={22} />
+        </span>
+        <span style={{ minWidth: 0 }}>
+          <Typography.Text
+            strong
+            style={{ display: 'block', color: selected ? BRAND : undefined }}
+          >
+            {connector.name}
+          </Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+            {connector.blurb}
+          </Typography.Text>
+        </span>
+      </Flex>
     </Card>
   )
 }
@@ -145,6 +158,9 @@ export default function ConnectSourceWizard({
 
   // ---- BigQuery connection state ----
   const [sourceName, setSourceName] = useState('')
+  /* Whether to show the name's error yet. A required field that is red before it
+     has been touched reads as a failure the user caused. */
+  const [nameTouched, setNameTouched] = useState(false)
   const [account, setAccount] = useState<GoogleAccount | null>(null)
   const [projects, setProjects] = useState<GcpProject[]>([])
   const [projectId, setProjectId] = useState('')
@@ -153,6 +169,12 @@ export default function ConnectSourceWizard({
   const [busy, setBusy] = useState<'login' | 'preview' | 'finish' | null>(null)
   /** Which consent stage is in flight while `busy === 'login'`. */
   const [loginStage, setLoginStage] = useState(0)
+  /*
+   * What the handshake actually asked for, as the server reported it. Held rather
+   * than looked up from a constant: Drive asks for *two* scopes, and a panel
+   * naming one would understate the grant being made. See docs/REGRESSIONS.md.
+   */
+  const [oauthScopes, setOauthScopes] = useState<string[]>([])
 
   // ---- BigQuery test & finish state ----
   const [preview, setPreview] = useState<PreviewResult | null>(null)
@@ -180,6 +202,10 @@ export default function ConnectSourceWizard({
    */
   const connectedAs = account ? (signedInAs ?? account.email) : null
 
+  /* One rule, shared with the server (`sourceNameProblem` in server.mjs) so the
+     wizard refuses what the API would refuse, before the round trip. */
+  const nameProblem = sourceNameProblem(sourceName)
+
   const isBigQuery = selected?.key === 'bigquery'
   const isDrive = selected?.key === 'gdrive'
   /** Both real connectors run the bespoke consent → preview → finish path. */
@@ -200,15 +226,23 @@ export default function ConnectSourceWizard({
     }
   }
 
+  /**
+   * The whole handshake, in one go: consent, then discovery.
+   *
+   * Three calls, and the panel below the button shows a row per call. Stage 0 is
+   * the call already in flight, not a countdown — each row moves only when its
+   * request comes back, so the panel cannot claim progress the handshake has not
+   * made. The scopes the first call reports are kept and rendered, because Drive
+   * asks for two and a footer naming one understates the grant.
+   */
   async function loginWithGoogle() {
     setBusy('login')
-    // Stage 0 is the call already in flight, not a countdown — each one moves
-    // only when its request comes back, so the panel cannot claim progress the
-    // handshake has not made.
     setLoginStage(0)
+    setOauthScopes([])
     try {
       // The consent is scoped to the connector, so the state is issued for it.
       const start = await oauthStart(isDrive ? 'drive' : 'bigquery')
+      setOauthScopes(start.scopes)
       setLoginStage(1)
       if (isDrive) {
         // The consent says who signed in; the session says what they can see.
@@ -287,7 +321,8 @@ export default function ConnectSourceWizard({
         driveId,
         credentialHandle: driveHandle,
         folders: checkedFolders,
-        sourceName: sourceName || driveId,
+        // See finishBigQuery: required, so no drive-id fallback.
+        sourceName: sourceName.trim(),
       })
       setRegisteredDrive(result)
       onRegistered(result)
@@ -332,7 +367,9 @@ export default function ConnectSourceWizard({
         projectId,
         credentialHandle,
         datasets: checked,
-        sourceName: sourceName || projectId,
+        // No `|| projectId` fallback: the name is required and step 2 refuses to
+        // advance without one, so falling back would only mask a regression.
+        sourceName: sourceName.trim(),
       })
       setRegisteredResult(result)
       onRegistered(result)
@@ -350,6 +387,18 @@ export default function ConnectSourceWizard({
       return
     }
     if (step === 1) {
+      /*
+       * The name is checked before the connection details on both branches: it is
+       * the field the user typed, so it is the one they can fix without leaving
+       * the step, and the register call would refuse it anyway.
+       */
+      if (isGoogle && nameProblem) {
+        setNameTouched(true)
+        message.warning(
+          `Give this source a name of at least ${SOURCE_NAME_MIN} characters — it is how it appears in the Sources table and the Data Catalogue.`,
+        )
+        return
+      }
       if (isBigQuery) {
         if (!projectId || !credentialHandle) {
           message.warning(
@@ -387,7 +436,10 @@ export default function ConnectSourceWizard({
   async function finishGeneric() {
     if (!selected) return
     const values = form.getFieldsValue()
-    const name = values.sourceName || selected.name
+    /* `next()` ran validateFields to get here, so the name is present and long
+       enough; falling back to the connector's own name would mask a regression
+       and register every Snowflake source as "Snowflake". */
+    const name = String(values.sourceName ?? '').trim()
     setBusy('finish')
     try {
       await registerGenericSource({
@@ -481,7 +533,11 @@ export default function ConnectSourceWizard({
           </Button>
 
           {busy === 'login' ? (
-            <GoogleConsentPanel provider="bigquery" stage={loginStage} />
+            <GoogleConsentPanel
+              provider="bigquery"
+              stage={loginStage}
+              scopes={oauthScopes}
+            />
           ) : null}
 
           {connectedAs ? (
@@ -499,14 +555,25 @@ export default function ConnectSourceWizard({
           ) : null}
 
           <Form layout="vertical" requiredMark={false}>
+            {/* Required, and the only field here that is. The error appears once
+                something has been typed rather than on arrival — a form that opens
+                already complaining is scolding, not helping. */}
             <Form.Item
               label="Source name"
-              extra="How this source appears in the Sources table and the Data Catalogue."
+              required
+              validateStatus={nameTouched && nameProblem ? 'error' : undefined}
+              help={nameTouched ? nameProblem : null}
+              extra={`How this source appears in the Sources table and the Data Catalogue. At least ${SOURCE_NAME_MIN} characters.`}
             >
               <Input
                 value={sourceName}
-                onChange={(e) => setSourceName(e.target.value)}
+                onChange={(e) => {
+                  setSourceName(e.target.value)
+                  setNameTouched(true)
+                }}
+                onBlur={() => setNameTouched(true)}
                 placeholder="E-waste warehouse"
+                status={nameTouched && nameProblem ? 'error' : undefined}
               />
             </Form.Item>
 
@@ -595,7 +662,11 @@ export default function ConnectSourceWizard({
           </Button>
 
           {busy === 'login' ? (
-            <GoogleConsentPanel provider="drive" stage={loginStage} />
+            <GoogleConsentPanel
+              provider="drive"
+              stage={loginStage}
+              scopes={oauthScopes}
+            />
           ) : null}
 
           {connectedAs ? (
@@ -703,11 +774,22 @@ export default function ConnectSourceWizard({
                     name={field.name}
                     label={field.label}
                     extra={field.help}
-                    rules={
-                      field.required
+                    rules={[
+                      ...(field.required
                         ? [{ required: true, message: `${field.label} is required` }]
-                        : undefined
-                    }
+                        : []),
+                      /* `whitespace` too, or "      " passes a length check while
+                         registering a row with a blank label. */
+                      ...(field.minLength
+                        ? [
+                            {
+                              min: field.minLength,
+                              whitespace: true,
+                              message: `${field.label} needs at least ${field.minLength} characters`,
+                            },
+                          ]
+                        : []),
+                    ]}
                   >
                     <FieldInput field={field} />
                   </Form.Item>
@@ -731,6 +813,14 @@ export default function ConnectSourceWizard({
             >
               1. Run preview
             </Button>
+
+            {/* Discovery is a real round trip, so the allowlist arrives as a
+                skeleton of itself rather than appearing from nowhere. */}
+            {busy === 'preview' && !preview ? (
+              <div style={{ marginTop: SP.base }}>
+                <Skeleton active title={{ width: '46%' }} paragraph={{ rows: 3 }} />
+              </div>
+            ) : null}
 
             {preview ? (
               <>
@@ -809,6 +899,12 @@ export default function ConnectSourceWizard({
             >
               1. Run preview
             </Button>
+
+            {busy === 'preview' && !drivePreview ? (
+              <div style={{ marginTop: SP.base }}>
+                <Skeleton active title={{ width: '46%' }} paragraph={{ rows: 3 }} />
+              </div>
+            ) : null}
 
             {drivePreview ? (
               <>

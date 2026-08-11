@@ -8,7 +8,7 @@ import {
   Progress,
   Space,
   Table,
-  Tag,
+  // Tag,
   Typography,
   type TableColumnsType,
 } from 'antd'
@@ -106,14 +106,14 @@ function JobDetail({ job }: { job: ProfilingJob }) {
         ) : null}
       </div>
 
-      <div className="pj-detail-line pj-detail-muted">
+      {/* <div className="pj-detail-line pj-detail-muted">
         <strong>Triggered by:</strong> {job.triggered_by}
         {job.force ? (
           <Tag className="pj-forced" color="warning" variant="filled">
             forced
           </Tag>
         ) : null}
-      </div>
+      </div> */}
 
       {job.error ? (
         <div className="pj-detail-line pj-detail-error">
@@ -262,7 +262,7 @@ export default function ProfilingJobsTab({
       width: 170,
       render: (_, job) => (
         <Space size={SP.sm}>
-          <Button size="small" onClick={() => void rerun(job, false)}>
+          <Button size="small" onClick={() => void rerun(job,true)}>
             Re-profile
           </Button>
           <Button size="small" onClick={() => void rerun(job, true)}>

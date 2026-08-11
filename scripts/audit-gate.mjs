@@ -22,18 +22,11 @@ import { spawnSync } from 'node:child_process'
  * @type {{id: string, package: string, reason: string}[]}
  */
 const ALLOWLIST = [
-  {
-    id: 'GHSA-qwww-vcr4-c8h2',
-    package: 'react-router',
-    reason:
-      'RSC Mode CSRF bypass. Reachable only through React Server Components / ' +
-      'server actions. This app is a client-only SPA (createBrowserRouter with ' +
-      'element routes, no loaders, actions, or SSR), so the vulnerable code path ' +
-      'is never mounted. No advisory-free react-router release exists as of ' +
-      '2026-08-03: every version <= 7.17.0 carries a larger set of XSS/RCE/DoS ' +
-      'findings, so 7.18.x is the least-exposed choice. Remove this entry once ' +
-      'upstream publishes a patched release.',
-  },
+  // Empty on purpose. The react-router RSC-mode CSRF waiver
+  // (GHSA-qwww-vcr4-c8h2) was removed on 2026-08-11 once the gate reported it
+  // matched no advisory — upstream had patched, and a waiver that no longer
+  // waives anything is a standing licence for the next unrelated finding at the
+  // same severity. Add an entry only with a reason and a removal condition.
 ]
 
 const LEVELS = ['info', 'low', 'moderate', 'high', 'critical']

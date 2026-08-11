@@ -22,7 +22,15 @@ import type {
 import { useColumnsStore } from '../store/catalogueStore'
 import './ProfiledColumnsPanel.css'
 
-type FacetKey = 'all' | 'needs_review' | 'pii' | 'ids' | 'measures' | 'dates' | 'text'
+type FacetKey =
+  | 'all'
+  | 'needs_review'
+  | 'pii'
+  | 'ids'
+  | 'measures'
+  | 'dates'
+  | 'location'
+  | 'flags'
 
 const FACETS: { key: FacetKey; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -31,24 +39,31 @@ const FACETS: { key: FacetKey; label: string }[] = [
   { key: 'ids', label: 'IDs' },
   { key: 'measures', label: 'Measures' },
   { key: 'dates', label: 'Dates' },
-  { key: 'text', label: 'Text' },
+  { key: 'location', label: 'Location' },
+  { key: 'flags', label: 'Flags' },
 ]
 
-const CLASS_FOR_FACET: Partial<Record<FacetKey, ColumnClass>> = {
-  ids: 'identifier',
-  measures: 'measure',
-  dates: 'date',
-  text: 'text',
+/**
+ * One facet can cover more than one class: `address` and `geo` both answer
+ * "where", and splitting them would give two chips nobody picks between. The
+ * server folds them the same way — `check-docs` asserts the two agree.
+ */
+const CLASSES_FOR_FACET: Partial<Record<FacetKey, ColumnClass[]>> = {
+  ids: ['identifier'],
+  measures: ['measure'],
+  dates: ['date'],
+  location: ['address', 'geo'],
+  flags: ['flag'],
 }
 
-/** snake_case → "FOREIGN GENERATOR PROVINCE", as the reference renders it. */
+/** snake_case → "FOREIGN GENERATOR PROVINCE", for a column with no stated label. */
 const displayName = (id: string) => id.replace(/_/g, ' ').toUpperCase()
 
 function matches(column: ProfiledColumn, facet: FacetKey) {
   if (facet === 'all') return true
   if (facet === 'needs_review') return column.description_status === 'needs review'
   if (facet === 'pii') return column.pii
-  return column.class === CLASS_FOR_FACET[facet]
+  return (CLASSES_FOR_FACET[facet] ?? []).includes(column.class)
 }
 
 export default function ProfiledColumnsPanel({
@@ -97,8 +112,12 @@ export default function ProfiledColumnsPanel({
     () => [
       {
         title: 'column',
-        dataIndex: 'column_id',
-        render: (id: string) => <span className="pc-name">{displayName(id)}</span>,
+        key: 'column',
+        /* The profiler's own label when it has one, so a name it reports is never
+           re-derived from the id and quietly changed. */
+        render: (_, column) => (
+          <span className="pc-name">{column.label || displayName(column.column_id)}</span>
+        ),
       },
       {
         title: 'type',
@@ -116,11 +135,15 @@ export default function ProfiledColumnsPanel({
               <Typography.Text ellipsis={{ tooltip: col.description }} style={{ maxWidth: 170 }}>
                 {col.description}
               </Typography.Text>
-            ) : (
+            ) : null}
+            {/* The flag follows the *status*, not the absence of text: a real
+                column always has a description, and what makes it reviewable is
+                that the profiler was below the High band. */}
+            {col.description_status === 'needs review' ? (
               <Tag color="warning" variant="filled">
                 needs review
               </Tag>
-            )}
+            ) : null}
             <Button
               type="text"
               size="small"
@@ -151,7 +174,11 @@ export default function ProfiledColumnsPanel({
         render: (_, col) => (
           <span className="pc-class">
             <Tag className={`pc-class-tag is-${col.class}`}>{col.class}</Tag>
-            <span className="pc-conf">llm {col.confidence.toFixed(2)}</span>
+            {/* The derivation is reported, not assumed: today every profiled
+                column says `llm`, and a rule-derived one would say so here. */}
+            <span className="pc-conf">
+              {col.derivation} {col.confidence.toFixed(2)}
+            </span>
           </span>
         ),
       },
@@ -273,6 +300,11 @@ export default function ProfiledColumnsPanel({
                         <span className="pc-table-name">
                           {d.dataset_id}.{t.table_id}
                         </span>
+                        {/* A column list only means something once the row it
+                            describes is named — hence the grain, beside it. */}
+                        <span className="pc-grain">
+                          {t.label} · {t.grain}
+                        </span>
                       </span>
                       <span className="pc-table-meta">
                         {t.column_count} cols · ~{t.rows.toLocaleString()} rows
@@ -311,7 +343,9 @@ export default function ProfiledColumnsPanel({
         onCancel={() => setEditing(null)}
         onOk={() => void saveDescription()}
         okText="Save"
-        title={editing ? displayName(editing.column.column_id) : ''}
+        title={
+          editing ? editing.column.label || displayName(editing.column.column_id) : ''
+        }
       >
         <Typography.Paragraph type="secondary" style={{ fontSize: 13 }}>
           {editing?.dataset_id}.{editing?.table_id} ·{' '}

@@ -52,6 +52,8 @@ const indexCss = read('src/index.css')
 const theme = read('src/theme.ts')
 const nav = read('src/nav.ts')
 const jobsTab = read('src/components/ProfilingJobsTab.tsx')
+const client = read('src/api/client.ts')
+const wizard = read('src/components/ConnectSourceWizard.tsx')
 
 /* ---------------- connectors ---------------- */
 
@@ -105,6 +107,40 @@ expect(
   `${connectorList.filter((c) => c.available).length} of ${connectorList.length} available`,
 )
 
+/*
+ * Every connector needs its own mark.
+ *
+ * `ConnectorIcon` used to fall back to `BigQueryIcon`, so the five connectors
+ * without one were each drawn as BigQuery — a card claiming to be a product it is
+ * not, and invisible while nothing rendered those five. The fallback is neutral
+ * now, but a missing mark would still be a grey cylinder where a logo belongs, so
+ * adding a connector fails this until it has one.
+ */
+const iconSource = read('src/components/ConnectorIcon.tsx')
+/* Found in two steps, not one pattern: the declaration's type annotation is
+   `Record<string, (props: { size?: number }) => JSX.Element>`, which carries both
+   an `=` and a `{`, so `[^=]*= \{` stopped inside it and reported zero marks —
+   the same false-empty a bare `\n` split once caused for connectors. */
+const marksStart = iconSource.indexOf('const MARKS')
+const marksBody =
+  marksStart < 0
+    ? ''
+    : iconSource.slice(iconSource.indexOf('= {', marksStart) + 3).split('\n}')[0]
+const markedKeys = [...marksBody.matchAll(/^\s*(\w+):/gm)].map((m) => m[1])
+const connectorKeys = [...connectors.matchAll(/^ {4}key: '(\w+)',/gm)].map((m) => m[1])
+expect(
+  'every connector key has a mark',
+  connectorKeys.length > 0 &&
+    connectorKeys.every((k) => markedKeys.includes(k)),
+  `keys ${connectorKeys.join(',')} · marks ${markedKeys.join(',')}`,
+)
+expect(
+  'an unknown connector falls back to the neutral mark, not a vendor one',
+  /GenericSourceIcon size=\{size\} label=\{connector\}/.test(iconSource) &&
+    !/return <BigQueryIcon size=\{size\} \/>\s*\n\}/.test(iconSource),
+  'a wrong vendor logo is a claim, not a default',
+)
+
 /* ---------------- profiling pipeline ---------------- */
 
 const pipelineBlock = server.match(/const PIPELINE = \[([\s\S]*?)\]/)
@@ -136,11 +172,31 @@ const requiredKeys = shapeBlock
   : []
 
 expect('db required-key count', requiredKeys.length > 0, `${requiredKeys.length} keys guarded`)
+
+/*
+ * Every document that states the number must state the right one.
+ *
+ * This used to be one `||` across both files, so a true claim in CLAUDE.md
+ * covered for a stale "19 required keys" in SKILLS.md — the check passed while a
+ * doc was wrong, which is the exact failure it exists to catch. Now each file is
+ * asserted where it makes the claim, and a file that does not make it is not
+ * required to.
+ */
+for (const [file, text] of [
+  ['CLAUDE.md', claude],
+  ['SKILLS.md', skills],
+]) {
+  const stated = [...text.matchAll(/(\d+) required keys?/g)].map((m) => Number(m[1]))
+  if (stated.length === 0) continue
+  expect(
+    `${file} states the right required-key count`,
+    stated.every((n) => n === requiredKeys.length),
+    `code guards ${requiredKeys.length}, ${file} says ${stated.join(', ')}`,
+  )
+}
 expect(
-  'db required-key count documented',
-  skills.includes(`${requiredKeys.length} required keys`) ||
-    skills.includes(`all eight required keys`) ||
-    claude.includes(`${requiredKeys.length} required`),
+  'the required-key count is documented somewhere',
+  /\d+ required keys?/.test(claude) || /\d+ required keys?/.test(skills),
   `code guards ${requiredKeys.length}: ${requiredKeys.join(', ')}`,
 )
 
@@ -148,6 +204,381 @@ const db = JSON.parse(read('mock-server/db.json'))
 const dbKeys = Object.keys(db)
 for (const key of requiredKeys) {
   expect(`db.json has "${key}"`, dbKeys.includes(key), 'DB_SHAPE requires it')
+}
+
+/* ---------------- a required name is a shown name ---------------- */
+
+/*
+ * The rule below makes a source name mandatory. That is only worth anything if
+ * the name is then visible where a source is identified — the Catalogue card and
+ * its detail header, which otherwise show `bigquery:<project>` and nothing a user
+ * chose. Matched on the field being read, not on a class name, so a restyle does
+ * not fail this and a deletion does.
+ */
+const cataloguePage = read('src/pages/CataloguePage.tsx')
+expect(
+  'the Catalogue names each source, not just its id',
+  (cataloguePage.match(/\{s\.sourceName\}|\{selected\.sourceName\}/g) ?? []).length >= 2,
+  'the card and the detail header both render sourceName',
+)
+
+/* ---------------- the source-name rule is one rule ---------------- */
+
+/*
+ * The floor is written twice — once in `server.mjs`, which refuses the write, and
+ * once in `src/data/sourceName.ts`, which refuses before the round trip. Drift
+ * between them is invisible in the worst direction: a client that allows 4 turns
+ * a typed name into a 400 the user cannot act on, and a client stricter than the
+ * server just blocks work for no stated reason.
+ */
+const serverMin = Number(server.match(/const SOURCE_NAME_MIN = (\d+)/)?.[1] ?? NaN)
+const sourceNameData = read('src/data/sourceName.ts')
+const clientMin = Number(sourceNameData.match(/SOURCE_NAME_MIN = (\d+)/)?.[1] ?? NaN)
+expect(
+  'the source-name floor agrees on both sides',
+  Number.isFinite(serverMin) && serverMin === clientMin,
+  `server ${serverMin} · client ${clientMin}`,
+)
+
+/*
+ * And it must actually be enforced where a source gets registered. All three
+ * endpoints, because the stubbed connectors land in the same Sources table — and
+ * no id fallback, which is what made the field optional in practice even while
+ * the form asked for it.
+ */
+for (const route of ['/sources', '/sources/drive', '/sources/generic']) {
+  const block = (server.split(`p === '${route}'`)[1] ?? '').slice(0, 2600)
+  expect(
+    `POST ${route} refuses a bad source_name`,
+    /sourceNameProblem\(source_name\)/.test(block),
+    'every register endpoint runs the shared validator',
+  )
+}
+expect(
+  'no register endpoint falls back to an id for the name',
+  !/source_name \|\| (project|drive)\./.test(server) &&
+    !/sourceName: sourceName \|\|/.test(wizard),
+  'a row named after its project id reads as a name and is not one',
+)
+
+/* ---------------- the consent screen lists every scope ---------------- */
+
+/*
+ * The sign-in dialog renders the scopes `/sources/oauth/start` returned, and
+ * looks their wording up by URL. An unmapped scope still renders — as its bare
+ * URL, which is honest but unexplained — so the failure is silent by design.
+ * This catches it: every scope the server can issue must have copy.
+ *
+ * Drive is why this exists. It asks for two scopes, and the first version of the
+ * dialog described one.
+ */
+const serverScopes = [
+  ...new Set(
+    [...server.matchAll(/'(https:\/\/www\.googleapis\.com\/auth\/[\w.]+)'/g)].map(
+      (m) => m[1],
+    ),
+  ),
+]
+const consentData = read('src/data/consentStages.ts')
+expect(
+  'the server issues scopes the dialog can describe',
+  serverScopes.length > 0,
+  `${serverScopes.length} scope(s) found in server.mjs`,
+)
+for (const scope of serverScopes) {
+  expect(
+    `scope ${scope.replace('https://www.googleapis.com/auth/', '')} has consent copy`,
+    consentData.includes(`'${scope}'`),
+    'add it to CONSENT_GRANT_COPY or the consent screen shows a bare URL',
+  )
+}
+
+/*
+ * And the panel must list what the response reported, not a per-provider
+ * constant. `CONSENT_SCOPES` stays as the fallback for the moment before that
+ * first call returns; what must not come back is a footer that renders only it.
+ */
+expect(
+  'the consent panel lists the reported scopes',
+  /scopes\?: string\[\]/.test(read('src/components/GoogleConsentPanel.tsx')) &&
+    /scopes=\{oauthScopes\}/.test(wizard),
+  'the wizard holds start.scopes and the panel renders them',
+)
+
+/* ---------------- the real column profile is the one served ---------------- */
+
+/*
+ * `column_profiles` holds the 206 columns ingested from
+ * `02_profiling/Metadata_Profiling.xlsx`. Losing the branch that reads it does
+ * not throw — `tableDictionary` falls back to synthesis, and the catalogue serves
+ * invented columns that look exactly as plausible. So both halves are asserted:
+ * the data is there, and the code prefers it.
+ */
+expect(
+  'tableDictionary prefers the real profile',
+  /db\.column_profiles\?\.\[`\$\{datasetId\}\.\$\{tableId\}`\]/.test(server) &&
+    /function synthesiseColumns/.test(server),
+  'real columns first, synthesis only as the fallback',
+)
+
+const profiles = db.column_profiles ?? {}
+const profileKeys = Object.keys(profiles)
+expect(
+  'column_profiles covers every view of every dataset in db.json',
+  db.projects.every((p) =>
+    p.datasets.every((d) =>
+      d.tables.every((t) => profileKeys.includes(`${d.dataset_id}.${t.table_id}`)),
+    ),
+  ),
+  `profiled: ${profileKeys.join(', ')}`,
+)
+
+for (const project of db.projects ?? []) {
+  for (const dataset of project.datasets ?? []) {
+    for (const table of dataset.tables ?? []) {
+      const columns = profiles[`${dataset.dataset_id}.${table.table_id}`] ?? []
+      expect(
+        `${table.table_id} profiles exactly the ${table.columns} columns it claims`,
+        columns.length === table.columns,
+        `catalogue says ${table.columns}, column_profiles has ${columns.length}`,
+      )
+      expect(
+        `${table.table_id} column ids are unique`,
+        new Set(columns.map((c) => c.column_id)).size === columns.length,
+        'a duplicate id would collide in the dictionary and in column_notes',
+      )
+    }
+  }
+}
+
+/*
+ * Class facets fold classes together (`location` is `address` + `geo`), so the
+ * server's arithmetic and the panel's filter have to agree on which classes go in
+ * which chip — otherwise a chip counts 69 and lists 41.
+ */
+const columnsPanel = read('src/components/ProfiledColumnsPanel.tsx')
+const profiledClasses = [
+  ...new Set(Object.values(profiles).flatMap((cs) => cs.map((c) => c.class))),
+].sort()
+expect(
+  'every class in the data is in the client union',
+  profiledClasses.every((c) => new RegExp(`\\| '${c}'|'${c}',`).test(client)),
+  `classes in use: ${profiledClasses.join(', ')}`,
+)
+const facetBlockCols = server.match(/const facets = \{([\s\S]*?)\n {6}\}/)
+const serverColumnFacets = facetBlockCols
+  ? [...facetBlockCols[1].matchAll(/^\s*(\w+): 0,/gm)].map((m) => m[1])
+  : []
+const panelFacetKeys = [
+  ...(columnsPanel.match(/const FACETS[\s\S]*?\n\]/)?.[0] ?? '').matchAll(
+    /key: '(\w+)'/g,
+  ),
+].map((m) => m[1])
+expect(
+  'the column facets match end to end',
+  serverColumnFacets.length > 0 &&
+    JSON.stringify([...serverColumnFacets].sort()) ===
+      JSON.stringify([...panelFacetKeys].sort()),
+  `server ${serverColumnFacets.join(',')} · panel ${panelFacetKeys.join(',')}`,
+)
+expect(
+  'every profiled class lands in a facet or is deliberately unfaceted',
+  /address' \|\| c\.class === 'geo'/.test(server) && /'flag'/.test(server),
+  'address+geo fold into location, flag into flags',
+)
+
+/* ---------------- Ask's recorded answers are renderable ---------------- */
+
+/*
+ * `ask_answers` is the tenant's 40 written answers. Every block kind in them needs
+ * a branch in `AnswerBlocks` and a case in the client's `variant`, or a block
+ * silently disappears mid-answer — the reader sees a shorter answer, not an error.
+ */
+const answers = db.ask_answers ?? []
+const blockKinds = [...new Set(answers.flatMap((a) => a.blocks.map((b) => b.type)))].sort()
+const answerBlocks = read('src/components/AnswerBlocks.tsx')
+expect(
+  'every recorded block kind has a renderer',
+  blockKinds.length > 0 &&
+    blockKinds.every((k) => new RegExp(`block\\.type === '${k}'`).test(answerBlocks)),
+  `kinds in the data: ${blockKinds.join(', ')}`,
+)
+expect(
+  'and a case in the block validator',
+  blockKinds.every((k) => new RegExp(`^\\s*${k}: shape\\(`, 'm').test(client)),
+  'ANSWER_BLOCK is a tagged union over exactly these',
+)
+const chartKinds = [
+  ...new Set(
+    answers.flatMap((a) => a.blocks.filter((b) => b.type === 'chart').map((b) => b.chart)),
+  ),
+].sort()
+expect(
+  'every chart kind is one the client accepts',
+  chartKinds.every((k) => new RegExp(`'${k}'`).test(client)),
+  `chart kinds: ${chartKinds.join(', ')}`,
+)
+
+/*
+ * The confidence band and the score must agree. The query set states both, and a
+ * "High" chip over a 0.62 would misreport the answer's own certainty.
+ */
+for (const a of answers) {
+  const band = a.confidence >= 0.85 ? 'High' : a.confidence >= 0.6 ? 'Medium' : 'Low'
+  expect(
+    `${a.answer_id} states a band that matches its score`,
+    a.confidence_level === band,
+    `${a.confidence_level} for ${a.confidence}`,
+  )
+}
+
+/* No two recorded answers may answer the same question, or the matcher's
+   tie-breaker decides which one a user gets. */
+const askQuestions = answers.map((a) => a.question.trim().toLowerCase())
+expect(
+  'no question is recorded twice',
+  new Set(askQuestions).size === askQuestions.length,
+  `${answers.length} answers`,
+)
+
+/* The stream is the contract: refusals before it opens, events after. */
+expect(
+  'the answer is streamed as events, not one blob',
+  /sseOpen\(res\)/.test(server) &&
+    /sseSend\(res, 'block'/.test(server) &&
+    /sseSend\(res, 'done'/.test(server),
+  'stage → summary → block… → done',
+)
+expect(
+  'and the client validates each event',
+  /ASK_STAGE_EVENT/.test(client) &&
+    /ASK_BLOCK_EVENT/.test(client) &&
+    /ASK_ANSWER_PAYLOAD\)/.test(client),
+  'per-event schemas plus the whole envelope on done',
+)
+
+/* ---------------- every document resolves into the graph ---------------- */
+
+/*
+ * `document_extractions` is the join from an uploaded PDF to a facility node in
+ * the graph, ingested from `08_unstructured/Entity_Extraction_Map.xlsx`. A
+ * document missing an entry renders "no graph entity resolved" — correct for a
+ * file nothing matched, and indistinguishable from an ingestion that quietly
+ * skipped a row. So every seeded document must have one.
+ */
+const extractions = db.document_extractions ?? {}
+for (const drive of db.drives ?? []) {
+  for (const folder of drive.folders ?? []) {
+    for (const doc of folder.documents ?? []) {
+      const resolution = extractions[doc.document_id]
+      expect(
+        `document "${doc.document_id}" resolves to a graph node`,
+        Boolean(resolution?.resolved_node),
+        resolution ? `→ ${resolution.resolved_node}` : 'no entry in document_extractions',
+      )
+      /* The two must name the same entity: `linked_entity` is what the browse
+         tree shows and the resolution is what the graph joins on, and the map
+         refined two of these names — a stale one here would read as agreement
+         while pointing at a different company. */
+      expect(
+        `"${doc.document_id}" names the same entity in both places`,
+        !resolution || resolution.extracted_entity === doc.linked_entity,
+        `tree "${doc.linked_entity}" vs resolution "${resolution?.extracted_entity}"`,
+      )
+    }
+  }
+}
+expect(
+  'no extraction points at a document that no longer exists',
+  Object.keys(extractions).every((id) =>
+    (db.drives ?? []).some((dr) =>
+      (dr.folders ?? []).some((f) => (f.documents ?? []).some((d) => d.document_id === id)),
+    ),
+  ),
+  `${Object.keys(extractions).length} extractions`,
+)
+expect(
+  'the resolution is served, not synthesised',
+  /resolution: db\.document_extractions\?\.\[doc\.document_id\] \?\? null/.test(server),
+  'documentDictionary reads it from db.json',
+)
+
+/* ---------------- document type facets agree end to end ---------------- */
+
+/*
+ * The document dictionary's type chips exist in three places — the server's
+ * bucket map, the panel's reverse map, and the client schema that validates the
+ * counts. A slug present on one side only does not throw: the chip renders
+ * `undefined` or the bucket silently never fills, and a facet reading 0 looks
+ * like "no consent decrees in this corpus". So they are asserted against each
+ * other, and against the `doc_type`s db.json actually holds.
+ */
+const facetBlock = server.match(/const FACET_FOR_TYPE = \{([\s\S]*?)\n {6}\}/)
+const serverFacetPairs = facetBlock
+  ? [...facetBlock[1].matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[1], m[2]])
+  : []
+const docsPanel = read('src/components/ProfiledDocumentsPanel.tsx')
+const panelBlock = docsPanel.match(/const TYPE_FOR_FACET[^=]*= \{([\s\S]*?)\n\}/)
+const panelPairs = panelBlock
+  ? [...panelBlock[1].matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[2], m[1]])
+  : []
+
+expect(
+  'document type facets are mapped',
+  serverFacetPairs.length > 0 && panelPairs.length === serverFacetPairs.length,
+  `${serverFacetPairs.length} server buckets, ${panelPairs.length} panel facets`,
+)
+expect(
+  'server and panel agree on every doc_type facet',
+  JSON.stringify([...serverFacetPairs].sort()) === JSON.stringify([...panelPairs].sort()),
+  `server ${JSON.stringify(serverFacetPairs)} vs panel ${JSON.stringify(panelPairs)}`,
+)
+
+const seededDocTypes = [
+  ...new Set(
+    (db.drives ?? []).flatMap((d) =>
+      (d.folders ?? []).flatMap((f) => (f.documents ?? []).map((doc) => doc.doc_type)),
+    ),
+  ),
+]
+const bucketedTypes = serverFacetPairs.map(([type]) => type)
+expect(
+  'every seeded doc_type has a facet',
+  seededDocTypes.every((t) => bucketedTypes.includes(t)),
+  `seeded: ${seededDocTypes.join(', ')} · bucketed: ${bucketedTypes.join(', ')}`,
+)
+expect(
+  'the facet labels are documented',
+  serverFacetPairs.every(([, bucket]) => client.includes(`${bucket}: num`)),
+  'each bucket is validated in the DOCUMENTS_PAYLOAD schema',
+)
+
+/*
+ * Both fields are read straight through to the browse tree and the dictionary,
+ * so a document or view missing one renders a blank rather than raising. The
+ * server refuses such a document at boot; this refuses it before boot.
+ */
+for (const drive of db.drives ?? []) {
+  for (const folder of drive.folders ?? []) {
+    for (const doc of folder.documents ?? []) {
+      expect(
+        `document "${doc.document_id}" names its type and entity`,
+        Boolean(doc.doc_type_label && doc.linked_entity),
+        `doc_type_label=${doc.doc_type_label} linked_entity=${doc.linked_entity}`,
+      )
+    }
+  }
+}
+for (const project of db.projects ?? []) {
+  for (const dataset of project.datasets ?? []) {
+    for (const table of dataset.tables ?? []) {
+      expect(
+        `view "${table.table_id}" states its label and grain`,
+        Boolean(table.label && table.grain),
+        `label=${table.label} grain=${table.grain}`,
+      )
+    }
+  }
 }
 
 /* ---------------- use-case templates resolve ---------------- */
@@ -211,7 +642,6 @@ for (const template of db.graph_use_case_templates ?? []) {
  * Deliberately crude — it reads each exported function/const body up to the next
  * export. A false positive means writing the schema, which is the point.
  */
-const client = read('src/api/client.ts')
 
 /** Every top-level declaration, exported or not, with its body. */
 const declarations = client
@@ -275,19 +705,41 @@ expect(
  *     to do nothing. Nothing errors — the page just serves production's answers.
  *     This one has actually happened; see docs/REGRESSIONS.md.
  */
-for (const file of ['.env.development', '.env.production']) {
-  expect(
-    `${file} exists`,
-    existsSync(join(root, file)),
-    'VITE_API_BASE is read from it at build time',
-  )
-}
-
-const plainEnv = existsSync(join(root, '.env')) ? read('.env') : ''
 expect(
-  'no VITE_API_BASE in a plain .env',
-  !/^\s*VITE_API_BASE\s*=/m.test(plainEnv),
-  'a plain .env applies to every mode — put the origin in .env.production',
+  '.env.production exists',
+  existsSync(join(root, '.env.production')),
+  'the deployed origin is read from it at build time',
+)
+
+/*
+ * Development's origin may live in `.env.development` or in a plain `.env` —
+ * what must never happen is a plain `.env` naming a *remote* origin, because
+ * Vite loads it in every mode and `npm run dev` silently starts answering from
+ * the deployed box. That is the failure that actually happened, and it is the
+ * value, not the filename, that causes it: a plain `.env` pointing at localhost
+ * cannot bypass the local mock server.
+ *
+ * Asserted this way rather than by banning the key outright so the check tracks
+ * the hazard instead of a convention — a red claim nobody can act on gets
+ * dismissed, and this one already sat red for a whole session.
+ */
+const plainEnv = existsSync(join(root, '.env')) ? read('.env') : ''
+const plainBase = plainEnv.match(/^\s*VITE_API_BASE\s*=\s*(.+)$/m)?.[1]?.trim() ?? ''
+const isLocal = (value) =>
+  value === '' ||
+  value.startsWith('/') ||
+  /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\/?$/.test(value)
+expect(
+  'a plain .env names no remote origin',
+  isLocal(plainBase),
+  plainBase
+    ? `.env sets VITE_API_BASE=${plainBase} for every mode, development included`
+    : 'no VITE_API_BASE in .env',
+)
+expect(
+  'development has an API base',
+  existsSync(join(root, '.env.development')) || plainBase !== '',
+  'either .env.development or a local origin in .env — otherwise it falls back to /api',
 )
 
 expect(
@@ -318,7 +770,6 @@ expect(
  * noted, because any one going missing restores the seeded email silently — nothing
  * errors, it just shows the wrong human.
  */
-const wizard = read('src/components/ConnectSourceWizard.tsx')
 const callbackRoute = (server.split("p === '/sources/oauth/callback'")[1] ?? '').slice(
   0,
   3000,
@@ -339,8 +790,11 @@ expect(
 expect(
   'the connect wizard takes that email from the auth store',
   /useAuthStore\(\(s\) => s\.identity\?\.email\)/.test(wizard) &&
-    (wizard.match(/OauthCallback\(start\.state, signedInAs\)|oauthCallback\(start\.state, signedInAs\)/g) ?? [])
-      .length === 2,
+    /* Matched on the argument, not on the local holding the state: the wizard
+       renamed `start.state` to `oauthState` when the consent became a
+       click-through, and this failed for a variable name while the fact it
+       guards — both connectors send the signed-in email — was still true. */
+    (wizard.match(/(?:drive)?[oO]authCallback\([\w.]+, signedInAs\)/g) ?? []).length === 2,
   'BigQuery and Drive both pass signedInAs to their callback',
 )
 expect(
@@ -430,6 +884,31 @@ for (const id of waivers) {
     `waiver ${id} documented`,
     claude.includes(id),
     'CLAUDE.md must explain why it is waived',
+  )
+}
+
+/*
+ * And the inverse, which the loop above cannot see: an emptied ALLOWLIST makes
+ * every claim above vanish rather than fail, so CLAUDE.md kept describing a
+ * waiver that no longer existed and the count silently dropped by one. A GHSA id
+ * named in CLAUDE.md must either still be waived or be described as removed.
+ */
+for (const match of [...claude.matchAll(/GHSA-[\w-]+/gi)]) {
+  const id = match[0]
+  const stillWaived = waivers.some((w) => w.toLowerCase() === id.toLowerCase())
+  /* Sentence-scoped matching breaks on the dots in a version number, so this
+     reads a window around the mention instead. */
+  const around = claude.slice(
+    Math.max(0, (match.index ?? 0) - 300),
+    (match.index ?? 0) + id.length + 300,
+  )
+  const describedAsGone = /\b(removed|no longer|pinned|overrides)\b/i.test(around)
+  expect(
+    `${id} in CLAUDE.md matches the gate`,
+    stillWaived || describedAsGone,
+    stillWaived
+      ? 'still in ALLOWLIST'
+      : 'not in ALLOWLIST — say it was removed or pinned, or restore the entry',
   )
 }
 

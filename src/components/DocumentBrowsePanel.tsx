@@ -83,11 +83,19 @@ export default function DocumentBrowsePanel({
     ),
     children: f.documents.map((d) => ({
       key: leafKey(f.folder_id, d.document_id),
+      /* The filename is what the run acts on; what the document *is* and which
+         entity it maps to is what makes the list readable — the structured
+         twin shows the view's label and grain for the same reason. */
       title: (
         <span className="cat-tree-row">
-          <span>
-            <Tag className="cat-tree-kind">{fileKind(d.mime_type)}</Tag>
-            <span className="cat-tree-table">{d.name}</span>
+          <span className="cat-tree-lead">
+            <span>
+              <Tag className="cat-tree-kind">{fileKind(d.mime_type)}</Tag>
+              <span className="cat-tree-table">{d.name}</span>
+            </span>
+            <span className="cat-tree-grain">
+              {d.doc_type_label} · {d.linked_entity}
+            </span>
           </span>
           <span className="cat-tree-count">
             {d.pages} page(s)

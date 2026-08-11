@@ -84,6 +84,34 @@ export const shape =
     }
   }
 
+/**
+ * A tagged union: one of several shapes, chosen by a discriminant field.
+ *
+ * Needed for an answer's blocks, where `type` decides which other fields exist.
+ * An unrecognised tag is refused *naming the tags that are allowed* rather than
+ * falling through to a permissive check — a block the UI cannot render is a hole
+ * in the middle of an answer, and it should fail at the boundary where the
+ * message can say so.
+ */
+export const variant =
+  (tag: string, shapes: Record<string, Check>): Check =>
+  (v, path, issues) => {
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      issues.push(`${path} should be an object, got ${typeName(v)}`)
+      return
+    }
+    const kind = (v as Record<string, unknown>)[tag]
+    const check = typeof kind === 'string' ? shapes[kind] : undefined
+    if (!check) {
+      issues.push(
+        `${path}.${tag} should be one of ${Object.keys(shapes).join(' | ')}, ` +
+          `got ${JSON.stringify(kind)}`,
+      )
+      return
+    }
+    check(v, path, issues)
+  }
+
 export const oneOf =
   (allowed: readonly string[]): Check =>
   (v, path, issues) => {

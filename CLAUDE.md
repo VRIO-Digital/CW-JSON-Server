@@ -62,6 +62,16 @@ through a portal that `renderToString` will not traverse — extract the body in
 its own component if it needs asserting (that is why `ConnectSourceWizard` is
 separate from `ConnectSourceModal`). Delete the scratch files afterwards.
 
+**Three things `renderToString` will not show you, and all three fail quietly.**
+A zustand-driven component renders the store's **initial** state — zustand v5
+passes `getInitialState` as the server snapshot — so loading the store first is
+not enough; shim `React.useSyncExternalStore` in the scratch file (see
+`docs/REGRESSIONS.md`). Anything expanded by a `useEffect` (the dictionary's
+column and entity tables) is absent, so assert those against the payload. And
+antd's virtualised `Tree` may render no leaves without layout. Each of these
+turns an "absent" assertion into a pass over nothing: **whenever you assert that
+text is missing, assert in the same run that the render had its data.**
+
 ## Architecture
 
 A single-tenant data-governance console. Five feature pages plus a dev-only
@@ -89,13 +99,53 @@ is a one-shot read with a local `try/catch` (see `EditDatasetsModal` and
 Zero dependencies on purpose — the audit gate makes every added package
 expensive, and a mock backend is not worth widening the dependency surface.
 
+**What it is seeded with is one source per connector, and no more.**
+`projects` holds a single BigQuery project — `vrio-contextweave-demo`, display
+name *EPA Hazwaste*, one dataset `epa_hazwaste` (US) carrying the five Gold
+business views the demo document specifies (`e_manifest` 50 · `e_manifest_all`
+92 · `RCRA_compliance` 30 · `RCRA_Compliance_Summary` 9 ·
+`FRS_Facility_profile` 25 = **206 columns**). `drives` holds a single shared
+drive, *Compliance Docs*, one folder `08_unstructured`, seven EPA
+enforcement PDFs. `google_account` is `nishant.srivastav@vriodigital.com` —
+the fallback the consent callback names when a caller sends no `as=`.
+
+**The `epa_hazwaste` columns are real, and `column_profiles` holds them.** All
+**206**, ingested from the demo package's `02_profiling/Metadata_Profiling.xlsx`
+(one sheet per view) and keyed `<dataset>.<table>`: label, type, description,
+semantic class, derivation, confidence, PII, null % and distinct count.
+`tableDictionary` serves that verbatim and only falls back to `synthesiseColumns`
+for a table with no entry — the fallback is a fallback, and `check-docs` asserts
+both that the branch exists and that every view's profiled count equals the count
+the catalogue advertises. The workbook is the source of truth; re-ingest rather
+than hand-editing 206 entries. Its `null_pct` values carry float noise
+(`88.09999999999999`), rounded on the way in so the UI never prints an artefact of
+binary floating point as a statistic.
+
+**The documents' *resolutions* are real too, in `document_extractions`.** Keyed by
+`document_id`, ingested from `08_unstructured/Entity_Extraction_Map.xlsx`: the
+extracted entity, the graph facility node it resolved to, its state, and the count
+of inbound manifests that node already carries. `documentDictionary` reports it as
+the document's `resolution` (null when nothing matched) and **does not fold it into
+the synthesised entity list** — a read fact and a hashed one must not sit in one
+column looking alike. Two documents about one facility share a node; that is
+entity resolution, not duplication. The entity *list* stays synthesised because the
+map describes one entity per file, not the dozens a 96-page decree holds.
+
+**A view states its `label` and its `grain`; a document states its
+`doc_type_label` and its `linked_entity`.** These are not decoration: `e_manifest`
+is unreadable without "one hazardous-waste shipment (manifest)", and
+`linked_entity` is the join from a consent decree to the company on the
+structured side, so it is read from `db.json` and never synthesised. `validateDb`
+checks all four *inside* the nested arrays, and `check-docs` checks them before
+boot.
+
 `db.json` is read once at startup into a `db` object that every route closes
 over. Two kinds of state live here:
 
 - **From `db.json`** — projects/datasets/tables, drives/folders/documents,
   credentials (`credentials` for BigQuery, `drive_credentials` for Drive), the
-  audit / traces / evals payloads, change signals, `column_vocabulary`,
-  `document_vocabulary`.
+  audit / traces / evals payloads, change signals, `column_profiles`,
+  `document_extractions`, `column_vocabulary`, `document_vocabulary`.
 - **In memory, lost on restart** — `registered` (sources added through the wizard,
   including their profiled tables/documents, column notes and document
   summaries) and `profilingJobs`.
@@ -114,10 +164,14 @@ Consequences worth knowing before debugging:
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
-  editor cannot save a document that would crash the app. There are 20 required
+  editor cannot save a document that would crash the app. There are 23 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
-  Graph — not just a catalogue page.
+  Graph — not just a catalogue page. `column_profiles` and
+  `document_extractions` are required for a subtler reason: losing either does not
+  throw. The first silently swaps the profiler's 206 real columns for synthesised
+  ones; the second turns every document's "resolved to `FAC:…`, 28 linked
+  manifests" into "nothing resolved yet". Both read as an answer.
 - **`validateDb` also checks *across* keys, not only within one.**
   `graph_use_case_templates` holds nothing but ids into `graph_personas`,
   `graph_kpis` and `graph_hero_questions`, and an id that does not resolve
@@ -148,6 +202,17 @@ Profiled counts are deliberately 0 on registration: registration is instant,
 counts only land once the profiler has run. Do not "fix" this by populating them
 from `db.json`.
 
+**A source must be named, and the name must be at least `SOURCE_NAME_MIN` (6)
+characters.** All three register endpoints (`/sources`, `/sources/drive`,
+`/sources/generic`) run the same `sourceNameProblem` and refuse with a sentence
+naming the length; `src/data/sourceName.ts` is the client half, and `check-docs`
+fails if the two numbers drift or an endpoint stops checking. **There is no id
+fallback** — `source_name || project.display_name || project_id` made the field
+optional in practice and produced rows named `vrio-contextweave-demo`, which reads
+as a name and is not one. Do not reintroduce one to "be lenient": the label is
+what the Sources table, the Catalogue tab and every job row key off, and nothing
+downstream can make `db` readable.
+
 ### Two connectors, one shape
 
 BigQuery (structured) and Google Drive (unstructured) are both real, and Drive
@@ -169,7 +234,11 @@ Three things the mirror deliberately does *not* make identical:
 - **Consent is scoped to the connector.**
   `/sources/oauth/start?provider=bigquery|drive` issues a state remembered *with*
   its provider, and the callback rejects a state replayed against the other one.
-  Drive asks for `drive.metadata.readonly`, BigQuery for `bigquery.readonly`.
+  Drive asks for **two** scopes (`drive.metadata.readonly` to list files,
+  `drive.readonly` so profiling can read one), BigQuery for one
+  (`bigquery.readonly`) — and the consent screen renders the list the endpoint
+  returned rather than a copy held in the client, so it cannot describe fewer
+  permissions than are being asked for.
   The callback returns the account and a **session**; the account it names is
   **whoever is signed in**, passed as `as=<email>` because the identity is
   client-held and the server has nothing to look it up from (`db.google_account`
@@ -177,18 +246,31 @@ Three things the mirror deliberately does *not* make identical:
   rather than a quiet fall back to that seed). What that account can see
   is a second call (`/sources/oauth/projects` / `/sources/oauth/drives` — twins,
   each refusing the other's session). All three are **paced**
-  (`CONSENT_START_MS`, `CONSENT_MS`, `DISCOVERY_MS` ≈ 3.1s) and
-  `GoogleConsentPanel` shows a stage per call, naming the scope — signing in is
-  not instant or silent, for the same reason a model call is not. Errors are
-  never paced. **A stage advances when its request returns, not on a timer** —
-  so add a stage only when there is a call behind it.
+  (`CONSENT_START_MS`, `CONSENT_MS`, `DISCOVERY_MS` ≈ 3.1s) — signing in is not
+  instant or silent, for the same reason a model call is not. Errors are never
+  paced. **A stage advances when its request returns, not on a timer** — so add a
+  stage only when there is a call behind it.
+  **There is no sign-in popup.** One button runs all three calls with
+  `GoogleConsentPanel` inline beneath it, a row per call, listing the scopes the
+  response reported. A Google-styled click-through window was built and removed on
+  request — do not re-add one unasked.
 - **The document dictionary reviews files, not fields.** Its facets count
   *documents* (`pii` means "holds at least one PII entity"), and the editable note
   is the document's `summary` via `PATCH /sources/:id/documents` — extracted
   entities are machine output and read-only. `documentDictionary()` synthesises
-  them from `document_vocabulary` exactly as `tableDictionary()` does from
+  them from `document_vocabulary` exactly as `synthesiseColumns()` does from
   `column_vocabulary`: sliced by hashing the document id, statistics from a hash
-  of document+entity, so repeat requests agree.
+  of document+entity, so repeat requests agree. Both suffix a repeated name
+  (`_2`) only when *that* table or document has already used it, never on the
+  vocabulary's second lap — the slice starts at a hashed offset, so lap-based
+  suffixing printed a `_2` whose `_1` appeared nowhere.
+  **Its four type facets are the corpus's kinds, not a taxonomy.** Consent
+  decrees / Complaints / Settlements / CAFOs, matched on `doc_type`; a
+  consent-decree *modification* files under `consent_decree` and says so only in
+  `doc_type_label`. The map exists twice — `FACET_FOR_TYPE` server-side,
+  `TYPE_FOR_FACET` in `ProfiledDocumentsPanel` — and `check-docs` asserts the two
+  agree and that every seeded `doc_type` has a bucket, because a facet stuck at 0
+  reads as "none in this corpus" rather than as a broken map.
 - **Only the two real connectors get a wizard branch.** `isBigQuery` / `isDrive`
   (together `isGoogle`) run consent → preview → finish and keep the dialog open on
   Finish. The five stubbed connectors still fall through to the generic field loop
@@ -294,8 +376,11 @@ Two rules the copy on the page promises, and the code has to keep:
   the UI prints. A suggestion nobody can explain is worse than no suggestion.
 
 - **A brief that *names* a known use case gets that use case's own list, not a
-  ranking.** `graph_use_case_templates` holds the three HWNET use cases as id
-  bundles, and `matchTemplate` claims one when the brief contains at least
+  ranking.** `graph_use_case_templates` holds the tenant's use cases as id
+  bundles — one today, *Cradle-to-Grave Compliance & Liability Intelligence*,
+  ingested from `03_use_case_wizard/Use_Case_Wizard.docx` along with the 4
+  personas, 7 KPIs and 13 hero questions it names.
+  `matchTemplate` claims one when the brief contains at least
   `TEMPLATE_MIN_PHRASES` (2) of its `match_phrases` — which are drawn from its
   own description, so pasting that description in hits all of them. A match
   returns the members **whole and in the template's own order**, past the 4/5
@@ -306,10 +391,26 @@ Two rules the copy on the page promises, and the code has to keep:
 
   **A tie matches nothing.** Two templates scoring equally means the brief named
   neither, so it falls back to keyword ranking rather than picking one — which
-  is why `check-docs` asserts every phrase is unique to its own template. Only
-  personas, KPIs and hero questions are templated; step 6's answer formats have
-  no `memberKey` and stay ranked, because a use case states what it must answer,
-  never how to render it.
+  is why `check-docs` asserts every phrase is unique to its own template **and
+  present verbatim in it**; two of the current template's phrases were
+  paraphrases of its description on the first attempt, and the check caught both.
+  Only personas, KPIs and hero questions are templated; step 6's answer formats
+  have no `memberKey` and stay ranked, because a use case states what it must
+  answer, never how to render it.
+
+  **`detail` is what a suggestion is *for*; `why` is why it was drafted.** They
+  are two fields because they answer two questions, and neither may stand in for
+  the other — a hero question whose `why` was replaced by its purpose stopped
+  saying it had been keyword-matched. A persona's `detail` is its `focus`, a
+  KPI's is its `definition`, and a hero question's is the `rationale` the brief
+  stated for asking it ("the core liability question — connects inbound manifests
+  to generator compliance records"). That slot was empty before, which is why
+  drafted questions arrived with a name and nothing else while personas beside
+  them explained themselves.
+
+  **No suggestion states a priority its brief never stated.** The current use
+  case marks no question High, so none arrives ticked; the user decides in step 5.
+  `priority` is still honoured where a pool entry carries one.
   An added persona is `{ name, description, source }` — `source` records whether
   the AI drafted it or a user typed it, which is what the **AI-DRAFTED** /
   **USER-DRAFTED** tag reads from. Both are provenance, so they use brand and
@@ -350,7 +451,7 @@ because it answers "where is my graph?".
 
 **Nothing on a card is a decorative number.** `graph_studio` in `db.json` holds
 the four evidence-rich rows, the pivot and each bucket's total; the rest are
-synthesised by `studioItems` the way `tableDictionary` synthesises columns — by a
+synthesised by `studioItems` the way `synthesiseColumns` synthesises columns — by a
 hash that includes the **use case id**, so every built graph gets its own queue
 and repeats agree. The card shows the length of what was returned, and confidence
 is generated inside each bucket's band because the cards promise `0.85–0.95` and
@@ -437,8 +538,35 @@ paragraph is a search box with better manners.
 published it and when come from the publish record; the standing caveats are
 step 7's gap decisions read back through `GAP_CAVEAT`; the citation policy is
 step 6's; and the suggestion chips are the use case's own hero questions — a
-chip is a promise the brief already made. `ANSWER_MS` paces the answer for the
-same reason `SUGGEST_MS` paces a suggestion. Refusals are never paced.
+chip is a promise the brief already made.
+
+**The answer is streamed, and the recorded one wins.** `ask_answers` holds the
+tenant's 40 written answers (from `06_queries/query_set.json`) as ordered
+**blocks** — text, metric, chart, table — with evidence and a stated confidence.
+`matchAskAnswer` serves one for the same question, or one sharing ≥ `ASK_MATCH_MIN`
+(0.6) of the asked words and beating the runner-up; a tie matches nothing, and
+anything unrecognised falls through to the graph walk, which abstains. Every
+recorded answer names **which** it was, so a written answer is never read as
+something the walk derived.
+
+`POST /ask` answers with `text/event-stream` — `stage`s, then `summary`, then one
+`block` at a time, then `done` with the whole envelope. `askQuestionStreaming`
+validates **every event** and `done` as one object; that object is what the store
+keeps, so nothing on screen was assembled from unchecked fragments. Pacing is
+per-piece (`ASK_STAGE_MS`, `ASK_BLOCK_MS`) rather than one hold, so a five-block
+answer legitimately takes longer than a one-line abstention. Refusals stay plain
+400s **before the stream opens**: an error must never arrive as an event inside a
+200, and refusals are never paced.
+
+**Charts are hand-drawn SVG, and the form comes from the data's job.** No chart
+library, for the reason the canvas has none. A 2-slice donut renders as a meter, a
+≤ 4-slice pie as a 100% stacked bar, a wider pie as bars — past ~7 classes the
+answer is bars or a table, never more colours. One hue for magnitude; the four
+categorical hues are validated and directly labelled. Every chart carries a
+collapsed values table so nothing is colour-only, and status tints appear only on
+a metric's `flag`, because a share is not a state. **Each chart caps `max-width` at
+its own viewBox width** — an SVG scales its text with everything else, so without
+the cap a wide column rendered 11px labels at 28px.
 
 ### Identity (`/login`)
 
@@ -571,6 +699,13 @@ replaces `destroyOnClose`. The only hand-written marks are `ConnectorIcon`
 (vendor logos, inline SVG so nothing is fetched) and the span-waterfall bar,
 which has no antd equivalent.
 
+**`ConnectorIcon` has one mark per connector key, and an unknown key gets a
+neutral cylinder — never another vendor's logo.** It fell back to `BigQueryIcon`,
+which drew five of the seven connectors as BigQuery; `check-docs` now fails if a
+key in `CONNECTORS` has no entry in `MARKS`. A wrong logo is a claim about what
+something *is*, not a styling default — the same rule as a status colour on a
+category chip, one level up.
+
 **Drive file labels come from `fileKind()`** in `src/data/mimeTypes.ts`, shared by
 the browse tree and the document dictionary so one MIME type cannot render as
 `DOCUMENT` in one panel and `GDOC` in the other. The document panels reuse
@@ -635,11 +770,20 @@ offline installs.
 
 It carries a per-advisory `ALLOWLIST`, deliberately not a raised threshold:
 waiving one known-inapplicable finding must not admit the next unrelated one at
-the same severity. One entry today — `GHSA-qwww-vcr4-c8h2` on `react-router`,
-an RSC-mode CSRF bypass unreachable in a client-only SPA with element routes and
-no loaders/actions/SSR. **No advisory-free `react-router` release exists**; every
-version ≤ 7.17.0 carries a larger set. Remove the entry when upstream patches —
-the gate nags when an entry stops matching.
+the same severity. **It is empty today.** The one entry it held —
+`GHSA-qwww-vcr4-c8h2`, an RSC-mode CSRF bypass in `react-router` unreachable in a
+client-only SPA — was removed on 2026-08-11 when the gate reported it matched no
+advisory: upstream had patched, and a waiver that waives nothing is a standing
+licence for the next finding on that package. The gate nags when an entry goes
+stale, and `check-docs` fails if CLAUDE.md names a GHSA id the gate no longer
+waives, so the two cannot drift apart in either direction.
+
+**Prefer an `overrides` pin to a waiver when a patched release exists.**
+`nanoid` is pinned that way (`^3.3.17`, for GHSA-2v37-7h3g-55p8) — it reaches us
+only as vite → postcss → nanoid, and the advisory needs a custom generator called
+with size 0, which postcss never does. A pin costs nothing and expires by itself;
+a waiver sits in `audit-gate.mjs` admitting the next high finding on the same
+package. The reason lives in the `//overrides` key beside it in `package.json`.
 
 Adding a dependency here is a real decision. Check `npm audit` before and after,
 and prefer writing ~100 lines to pulling in a package.
@@ -695,6 +839,39 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   files check out with CRLF on Windows; a split on `\n  {\n` found zero
   connectors and reported "0 of 0 available" — a green-looking sweep over an
   empty list.
+- **An "is absent" assertion passes over an empty render.** `renderToString` gives
+  a zustand component its *initial* state (zustand v5's `getInitialState` is the
+  server snapshot), skips anything a `useEffect` expands, and may draw a
+  virtualised `Tree` with no leaves. Assert in the same run that the render had
+  its data.
+- **A consent screen renders the scopes the server returned.** Drive asks for two;
+  a client-side list described one. Never maintain a copy of what was requested
+  beside the request.
+- **A fallback for a required field makes it optional.** `source_name ||
+  project_id` let a blank name register a source called `vrio-contextweave-demo`.
+  If the form asks, the code must not answer for the user.
+- **A `check-docs` claim must assert the fact, not the spelling.** One keyed to a
+  local variable name (`start.state`) failed on a rename while the fact it guarded
+  was still true — and a check that cries wolf is how a real red claim gets
+  ignored. **Break every new claim once** before trusting it: three of them have
+  now failed on the shape of the code (`\n` vs `\r?\n`, a renamed local, a `=>`
+  inside a type annotation), and each reported an empty list — a guard saying
+  "0 of N" is describing itself.
+- **A default that misidentifies is not a default.** `ConnectorIcon` fell back to
+  BigQuery's logo, drawing five connectors as a product they are not. A fallback
+  may be plainer than the real thing; it must not assert something false.
+- **`width: 100%` on a viewBox SVG is a zoom control, not a layout rule.** It
+  scales the drawing's text too — an answer chart rendered its 11px labels at 28px
+  until each chart capped `max-width` at its own viewBox width. Cap the upscale in
+  the component, where the number already lives.
+- **`text-overflow: ellipsis` does nothing on a flex container**, and antd v6
+  buttons are `inline-flex`. Put it on the inner label span with `min-width: 0`.
+  Text clipped at *both* ends is the tell: that is a centred flex item, not a
+  truncation.
+- **A `_2` in the column or entity dictionary is only ever a second copy.**
+  Suffixing by vocabulary lap printed a `_2` whose `_1` existed nowhere, because
+  the slice starts at a hashed offset; it now counts uses within that table or
+  document.
 - **A route that names a person must be told who.** The identity is client-held,
   so a server route cannot look the signed-in user up: the consent callback
   reported `db.google_account` to everyone until the wizard started sending

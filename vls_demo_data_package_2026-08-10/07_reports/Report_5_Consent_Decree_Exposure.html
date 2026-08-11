@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consent-Decree Exposure — Context Weave</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg0:#ffffff;--bg1:#f7f8fa;--card:#ffffff;--card2:#f5f6f8;--inset:#f3f4f6;--line:#e5e7eb;--line2:#d3d7dc;
+--text:#191c1f;--mut:#5b626b;--dim:#8a9099;--orange:#ea580c;--orange-hi:#c2410c;--orange-soft:rgba(234,88,12,.09);--orange-line:rgba(234,88,12,.28);
+--green:#059669;--green-soft:rgba(5,150,105,.11);--amber:#b45309;--amber-soft:rgba(217,119,6,.13);--amber-line:rgba(217,119,6,.32);
+--red:#dc2626;--red-soft:rgba(220,38,38,.09);--cyan:#0891b2;--purple:#7c3aed;--purple-soft:rgba(124,58,237,.10);--teal:#0d9488;--blue:#2563eb;
+--shadow:0 1px 2px rgba(16,24,40,.06),0 6px 20px rgba(16,24,40,.05);--r-s:7px;--r-m:11px;--r-l:16px;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg0);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased;padding:28px 32px 60px}
+h1,h2,h3,.disp{font-family:'Space Grotesk','Inter',sans-serif;letter-spacing:-.01em}
+.mono{font-family:'JetBrains Mono',monospace}
+.wrap{max-width:1180px;margin:0 auto}
+.crumb{color:var(--dim);font-size:12px;margin-bottom:14px}
+.crumb b{color:var(--orange);font-weight:600}
+.rhead{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px}
+.rhead h1{font-size:25px;font-weight:600;margin-bottom:7px}
+.rhead .sub{color:var(--mut);font-size:13.5px;max-width:720px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--orange-hi);padding:5px 11px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+.fbar{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:22px}
+.fbar .lbl{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-right:3px}
+.fchip{background:var(--card);border:1px solid var(--line);color:var(--mut);padding:6px 13px;border-radius:999px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.fchip:hover{border-color:var(--line2);color:var(--text)}
+.fchip.on{color:var(--orange-hi);border-color:var(--orange-line);background:var(--orange-soft)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:16px 18px;box-shadow:var(--shadow)}
+.kpi .k{color:var(--mut);font-size:11.5px;font-weight:500;margin-bottom:9px;text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-family:'Space Grotesk',sans-serif;font-size:27px;font-weight:600;line-height:1}
+.kpi .u{color:var(--dim);font-size:12px;margin-top:6px}
+.kpi.risk{border-color:var(--red-soft)}.kpi.risk .v{color:var(--red)}
+.kpi.good .v{color:var(--green)}
+.kpi.warn .v{color:var(--amber)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:18px 20px;margin-bottom:24px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;font-weight:600;margin-bottom:4px}
+.card .cs{color:var(--dim);font-size:12px;margin-bottom:16px}
+.chartbox{position:relative;height:300px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{text-align:left;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:9px 12px;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--card)}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--text)}
+tbody tr:hover{background:var(--card2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600}
+.tag.high{background:var(--red-soft);color:var(--red)}
+.tag.med{background:var(--amber-soft);color:var(--amber)}
+.tag.low{background:var(--green-soft);color:var(--green)}
+.tag.cd{background:var(--purple-soft);color:var(--purple);border:1px solid rgba(124,58,237,.28)}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:11.5px}
+.chain .node{background:var(--inset);border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap}
+.chain .arw{color:var(--orange);font-weight:700}
+.flagpill{font-size:10.5px;padding:1px 7px;border-radius:5px;font-weight:600}
+.flagpill.rej{background:var(--red-soft);color:var(--red)}
+.flagpill.res{background:var(--amber-soft);color:var(--amber)}
+.foot{color:var(--dim);font-size:11.5px;border-top:1px solid var(--line);padding-top:16px;margin-top:8px;line-height:1.7}
+.foot b{color:var(--mut)}
+.note{background:var(--orange-soft);border:1px solid var(--orange-line);border-radius:var(--r-s);padding:12px 15px;font-size:12.5px;color:var(--text);margin-bottom:22px}
+.docref{color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:11.5px}
+</style></head><body><div class="wrap"><div class="crumb">Context Weave &nbsp;·&nbsp; Reports &nbsp;·&nbsp; <b>Consent-Decree &amp; Out-of-State Exposure</b></div><div class="rhead"><div><h1>Consent-Decree &amp; Out-of-State Exposure</h1><div class="sub">The boardroom bridge: which inbound generators are named in a federal consent decree or CAFO, and what is VLS's tonnage exposure to them. This is the report that ties unstructured enforcement documents to live manifest volume.</div></div><div class="badge"><span class="dot"></span>VLS Texas Molecular · Deer Park</div></div><div class="note">The <b>graph payoff report</b>: it exists only because uploaded enforcement documents resolve onto the same facility nodes as the live manifest stream. Structured and unstructured data meet on one node.</div><div class="kpis"><div class="kpi risk"><div class="k">Document-named generators</div><div class="v">4</div><div class="u">in a consent decree / CAFO</div></div><div class="kpi"><div class="k">Tonnage exposure</div><div class="v">1,876</div><div class="u">tons (6.9% of inbound)</div></div><div class="kpi warn"><div class="k">Open-violation tonnage</div><div class="v">79.3%</div><div class="u">of total inbound</div></div><div class="kpi risk"><div class="k">Their combined penalty</div><div class="v">$540k</div><div class="u">RCRA history</div></div></div><div class="grid2"><div class="card" style="margin:0"><h2>Tonnage exposure by document-named generator</h2><div class="cs">Penalty and volume are not correlated — both columns matter.</div><div class="chartbox"><canvas id="c5a"></canvas></div></div><div class="card" style="margin:0"><h2>Inbound tonnage by generator compliance status</h2><div class="cs">Share originating from generators carrying an open violation.</div><div class="chartbox"><canvas id="c5b"></canvas></div></div></div><div class="card"><h2>Consent-decree & out-of-state exposure</h2><div class="cs">Each generator links from its enforcement document straight to its inbound manifests.</div><table><thead><tr><th>Generator</th><th>State</th><th>Enforcement document</th><th class="num">Inbound tons</th><th class="num">Manifests</th><th class="num">RCRA penalty</th></tr></thead><tbody><tr><td><b>Denka Performance Elastomer LLC</b></td><td>LA</td><td><span class="docref">denka-cafo.pdf</span></td><td class="num">579.1</td><td class="num">28</td><td class="num">$70,500</td></tr><tr><td><b>The Chemours Company Fayetteville Works</b></td><td>NC</td><td><span class="docref">chemours-cd.pdf</span></td><td class="num">473.4</td><td class="num">19</td><td class="num">$12,000</td></tr><tr><td><b>PCS Nitrogen Fertilizer LP</b></td><td>LA</td><td><span class="docref">pcsnitrogen-cd.pdf</span></td><td class="num">472.7</td><td class="num">21</td><td class="num">$164,000</td></tr><tr><td><b>J.R. Simplot Company Don Plant</b></td><td>ID</td><td><span class="docref">simplot-cd.pdf</span></td><td class="num">350.4</td><td class="num">15</td><td class="num">$293,500</td></tr></tbody></table></div><div class="foot"><b>Source.</b> 08_unstructured/Entity_Extraction_Map (document → facility node) joined to e_manifest_all inbound rollups. <b>Confidence.</b> Medium-High (0.86). <b>Why it matters.</b> Every load carries the generator's liability with it — this report quantifies the liability tied to facilities already under federal enforcement.</div><script>
+Chart.defaults.color='#5b626b';Chart.defaults.font.family="'Inter',sans-serif";Chart.defaults.font.size=11.5;
+Chart.defaults.borderColor='#e5e7eb';Chart.defaults.plugins.legend.labels.color='#374151';
+const OR='#ea580c',ORH='#f97316',GR='#059669',AM='#d97706',RD='#dc2626',CY='#0891b2',PU='#7c3aed',BL='#2563eb',TE='#0d9488';
+const gridc={color:'#eef0f3'},gridN={grid:{display:false}};
+
+function initCharts(){
+ new Chart(document.getElementById('c5a'),{type:'bar',
+  data:{labels:["Denka", "The Chemours", "PCS Nitrogen Fertilizer LP", "J.R. Simplot"],datasets:[{label:'Inbound tons',data:[579.1, 473.4, 472.7, 350.4],backgroundColor:['#7c3aed','#0891b2','#d97706','#dc2626'],borderRadius:5}]},
+  options:{plugins:{legend:{display:false}},scales:{x:gridN,y:{grid:gridc,beginAtZero:true}}}});
+ new Chart(document.getElementById('c5b'),{type:'doughnut',
+  data:{labels:['From open-violation generators','From clean-record generators'],
+   datasets:[{data:[21643.9,5666.7],backgroundColor:['#dc2626','#e5e7eb'],borderColor:'#ffffff',borderWidth:2}]},
+  options:{cutout:'62%',plugins:{legend:{position:'bottom'}}}});
+}window.initCharts=initCharts;</script></div>
+<script>
+function bindFilters(){
+ document.querySelectorAll('[data-fgroup]').forEach(g=>{
+  g.querySelectorAll('.fchip').forEach(c=>c.addEventListener('click',()=>{
+   const multi=g.dataset.multi==='1';
+   if(!multi){g.querySelectorAll('.fchip').forEach(x=>x.classList.remove('on'));c.classList.add('on');}
+   else{c.classList.toggle('on');}
+   if(typeof applyFilters==='function')applyFilters();
+  }));
+ });
+}
+function activeVals(group){return [...document.querySelectorAll('[data-fgroup="'+group+'"] .fchip.on')].map(c=>c.dataset.val);}
+document.addEventListener('DOMContentLoaded',()=>{bindFilters();if(window.initCharts)initCharts();});
+</script></body></html>

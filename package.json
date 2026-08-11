@@ -23,6 +23,10 @@
     "react-router-dom": "^7.18.2",
     "zustand": "^5.0.14"
   },
+  "//overrides": "nanoid reaches us only as vite -> postcss -> nanoid, a build-time dependency, and GHSA-2v37-7h3g-55p8 needs a custom generator called with size 0 — which postcss never does. Pinned rather than allowlisted because a patched release exists: an override costs nothing and a waiver would sit in audit-gate admitting the next high finding on the same package.",
+  "overrides": {
+    "nanoid": "^3.3.17"
+  },
   "devDependencies": {
     "@types/node": "^24.13.3",
     "@types/react": "^18.3.27",

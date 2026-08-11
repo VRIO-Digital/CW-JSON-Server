@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facility Compliance Scorecard — Context Weave</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg0:#ffffff;--bg1:#f7f8fa;--card:#ffffff;--card2:#f5f6f8;--inset:#f3f4f6;--line:#e5e7eb;--line2:#d3d7dc;
+--text:#191c1f;--mut:#5b626b;--dim:#8a9099;--orange:#ea580c;--orange-hi:#c2410c;--orange-soft:rgba(234,88,12,.09);--orange-line:rgba(234,88,12,.28);
+--green:#059669;--green-soft:rgba(5,150,105,.11);--amber:#b45309;--amber-soft:rgba(217,119,6,.13);--amber-line:rgba(217,119,6,.32);
+--red:#dc2626;--red-soft:rgba(220,38,38,.09);--cyan:#0891b2;--purple:#7c3aed;--purple-soft:rgba(124,58,237,.10);--teal:#0d9488;--blue:#2563eb;
+--shadow:0 1px 2px rgba(16,24,40,.06),0 6px 20px rgba(16,24,40,.05);--r-s:7px;--r-m:11px;--r-l:16px;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg0);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased;padding:28px 32px 60px}
+h1,h2,h3,.disp{font-family:'Space Grotesk','Inter',sans-serif;letter-spacing:-.01em}
+.mono{font-family:'JetBrains Mono',monospace}
+.wrap{max-width:1180px;margin:0 auto}
+.crumb{color:var(--dim);font-size:12px;margin-bottom:14px}
+.crumb b{color:var(--orange);font-weight:600}
+.rhead{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:22px}
+.rhead h1{font-size:25px;font-weight:600;margin-bottom:7px}
+.rhead .sub{color:var(--mut);font-size:13.5px;max-width:720px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--orange-hi);padding:5px 11px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+.fbar{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-bottom:22px}
+.fbar .lbl{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-right:3px}
+.fchip{background:var(--card);border:1px solid var(--line);color:var(--mut);padding:6px 13px;border-radius:999px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+.fchip:hover{border-color:var(--line2);color:var(--text)}
+.fchip.on{color:var(--orange-hi);border-color:var(--orange-line);background:var(--orange-soft)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:16px 18px;box-shadow:var(--shadow)}
+.kpi .k{color:var(--mut);font-size:11.5px;font-weight:500;margin-bottom:9px;text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-family:'Space Grotesk',sans-serif;font-size:27px;font-weight:600;line-height:1}
+.kpi .u{color:var(--dim);font-size:12px;margin-top:6px}
+.kpi.risk{border-color:var(--red-soft)}.kpi.risk .v{color:var(--red)}
+.kpi.good .v{color:var(--green)}
+.kpi.warn .v{color:var(--amber)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:18px 20px;margin-bottom:24px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;font-weight:600;margin-bottom:4px}
+.card .cs{color:var(--dim);font-size:12px;margin-bottom:16px}
+.chartbox{position:relative;height:300px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{text-align:left;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:9px 12px;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--card)}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--text)}
+tbody tr:hover{background:var(--card2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600}
+.tag.high{background:var(--red-soft);color:var(--red)}
+.tag.med{background:var(--amber-soft);color:var(--amber)}
+.tag.low{background:var(--green-soft);color:var(--green)}
+.tag.cd{background:var(--purple-soft);color:var(--purple);border:1px solid rgba(124,58,237,.28)}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:11.5px}
+.chain .node{background:var(--inset);border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap}
+.chain .arw{color:var(--orange);font-weight:700}
+.flagpill{font-size:10.5px;padding:1px 7px;border-radius:5px;font-weight:600}
+.flagpill.rej{background:var(--red-soft);color:var(--red)}
+.flagpill.res{background:var(--amber-soft);color:var(--amber)}
+.foot{color:var(--dim);font-size:11.5px;border-top:1px solid var(--line);padding-top:16px;margin-top:8px;line-height:1.7}
+.foot b{color:var(--mut)}
+.note{background:var(--orange-soft);border:1px solid var(--orange-line);border-radius:var(--r-s);padding:12px 15px;font-size:12.5px;color:var(--text);margin-bottom:22px}
+.docref{color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:11.5px}
+</style></head><body><div class="wrap"><div class="crumb">Context Weave &nbsp;·&nbsp; Reports &nbsp;·&nbsp; <b>Facility Compliance Scorecard</b></div><div class="rhead"><div><h1>VLS Facility Compliance Scorecard</h1><div class="sub">VLS-as-operator self-view, benchmarked against comparator Gulf Coast TSDFs. The clean $0-penalty record is only legible next to what peers carry.</div></div><div class="badge"><span class="dot"></span>VLS Texas Molecular · Deer Park</div></div><div class="note">A report in Context Weave is a <b>re-executable question</b>, not a stored table. Figures are the demo's canned outputs, consistent with the entity roster.</div><div class="kpis"><div class="kpi good"><div class="k">Own penalties</div><div class="v">$0</div><div class="u">clean-record anchor</div></div><div class="kpi"><div class="k">RCRA evaluations</div><div class="v">3</div><div class="u">on record</div></div><div class="kpi warn"><div class="k">Violations</div><div class="v">1</div><div class="u">historical, closed</div></div><div class="kpi"><div class="k">Permit</div><div class="v" style="font-size:19px">Class I</div><div class="u">deep-well injection TSDF</div></div></div><div class="fbar"><span class="lbl">Filter</span><div data-fgroup="role" style="display:contents"><span class="fchip on" data-val="all">All facilities</span><span class="fchip" data-val="VLS (operator)">VLS only</span><span class="fchip" data-val="Comparator TSDF">Comparators</span></div></div><div class="card"><h2>Evaluations &amp; violations vs comparator TSDFs</h2><div class="cs">VLS Texas Molecular carries the lightest violation load of the five Gulf Coast TSDFs shown — alongside a clean $0-penalty, $0-enforcement record.</div><div class="chartbox"><canvas id="c1"></canvas></div></div><div class="card"><h2>Compliance scorecard</h2><div class="cs">Evaluations, violations, enforcement and penalties per facility.</div><table><thead><tr><th>Facility</th><th>Role</th><th>State</th><th class="num">Evals</th><th class="num">Violations</th><th class="num">Enforcements</th><th class="num">Penalty</th><th>Last evaluation</th></tr></thead><tbody><tr data-role="VLS (operator)" style="background:var(--orange-soft)"><td><b>VLS Texas Molecular</b></td><td>VLS (operator)</td><td>TX</td><td class="num">3</td><td class="num">1</td><td class="num">0</td><td class="num">$0</td><td>2025-06-30</td></tr><tr data-role="Comparator TSDF"><td><b>Clean Harbors Deer Park LLC</b></td><td>Comparator TSDF</td><td>TX</td><td class="num">10</td><td class="num">4</td><td class="num">0</td><td class="num">$0</td><td>2025-05-14</td></tr><tr data-role="Comparator TSDF"><td><b>US Ecology Texas Robstown</b></td><td>Comparator TSDF</td><td>TX</td><td class="num">6</td><td class="num">0</td><td class="num">0</td><td class="num">$0</td><td>2025-07-21</td></tr><tr data-role="Comparator TSDF"><td><b>Veolia Port Arthur</b></td><td>Comparator TSDF</td><td>TX</td><td class="num">7</td><td class="num">3</td><td class="num">0</td><td class="num">$0</td><td>2025-07-22</td></tr><tr data-role="Comparator TSDF"><td><b>WM Disposal Services of Texas</b></td><td>Comparator TSDF</td><td>TX</td><td class="num">5</td><td class="num">1</td><td class="num">0</td><td class="num">$0</td><td>2026-06-13</td></tr></tbody></table></div><div class="foot"><b>Source.</b> RCRA_Compliance_Summary (one compliance-360 row per facility). <b>Confidence.</b> High (0.94) — direct table lookup. <b>Scope.</b> Deer Park facility; comparators for context only.</div><script>
+Chart.defaults.color='#5b626b';Chart.defaults.font.family="'Inter',sans-serif";Chart.defaults.font.size=11.5;
+Chart.defaults.borderColor='#e5e7eb';Chart.defaults.plugins.legend.labels.color='#374151';
+const OR='#ea580c',ORH='#f97316',GR='#059669',AM='#d97706',RD='#dc2626',CY='#0891b2',PU='#7c3aed',BL='#2563eb',TE='#0d9488';
+const gridc={color:'#eef0f3'},gridN={grid:{display:false}};
+
+function applyFilters(){
+ const rl=activeVals('role');
+ document.querySelectorAll('tbody tr[data-role]').forEach(tr=>{
+  tr.style.display=(rl.includes('all')||rl.includes(tr.dataset.role))?'':'none';
+ });
+}
+function initCharts(){
+ new Chart(document.getElementById('c1'),{type:'bar',
+  data:{labels:["VLS Texas Molecular", "Clean Harbors", "US Ecology", "Veolia", "WM Disposal"],datasets:[
+    {label:'RCRA evaluations',data:[3, 10, 6, 7, 5],backgroundColor:BL,borderRadius:4},
+    {label:'Violations',data:[1, 4, 0, 3, 1],backgroundColor:RD,borderRadius:4}]},
+  options:{plugins:{legend:{position:'top',labels:{boxWidth:12,usePointStyle:true,pointStyle:'circle'}}},
+   scales:{x:gridN,y:{grid:gridc,beginAtZero:true,ticks:{precision:0}}}}});
+}window.initCharts=initCharts;</script></div>
+<script>
+function bindFilters(){
+ document.querySelectorAll('[data-fgroup]').forEach(g=>{
+  g.querySelectorAll('.fchip').forEach(c=>c.addEventListener('click',()=>{
+   const multi=g.dataset.multi==='1';
+   if(!multi){g.querySelectorAll('.fchip').forEach(x=>x.classList.remove('on'));c.classList.add('on');}
+   else{c.classList.toggle('on');}
+   if(typeof applyFilters==='function')applyFilters();
+  }));
+ });
+}
+function activeVals(group){return [...document.querySelectorAll('[data-fgroup="'+group+'"] .fchip.on')].map(c=>c.dataset.val);}
+document.addEventListener('DOMContentLoaded',()=>{bindFilters();if(window.initCharts)initCharts();});
+</script></body></html>

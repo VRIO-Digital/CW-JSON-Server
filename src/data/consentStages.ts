@@ -26,4 +26,32 @@ export const CONSENT_SCOPES = {
   drive: 'drive.metadata.readonly',
 } as const
 
+/**
+ * Plain-English copy for a scope, keyed by the scope URL itself.
+ *
+ * **The consent screen lists the scopes `/sources/oauth/start` returned, not a
+ * list kept here** — a screen that says "one permission" while the handshake asks
+ * for two is the exact misrepresentation a consent screen exists to prevent.
+ * (Drive asks for two.) This map only supplies wording; an unmapped scope still
+ * renders, as its bare URL, because showing it unexplained beats not showing it.
+ *
+ * `check-docs` asserts every scope the server can issue has an entry here.
+ */
+export const CONSENT_GRANT_COPY: Record<string, { title: string; detail: string }> = {
+  'https://www.googleapis.com/auth/bigquery.readonly': {
+    title: 'View your data in Google BigQuery',
+    detail:
+      'Datasets, tables and their schemas. Read-only — nothing is written, updated or deleted.',
+  },
+  'https://www.googleapis.com/auth/drive.metadata.readonly': {
+    title: 'See information about your Google Drive files',
+    detail: 'Names, folders, file types and sizes. Not the contents.',
+  },
+  'https://www.googleapis.com/auth/drive.readonly': {
+    title: 'See and download all your Google Drive files',
+    detail:
+      'Needed to extract text and entities when you profile a document. Read-only — no file is modified.',
+  },
+}
+
 export type ConsentProvider = keyof typeof CONSENT_STAGES
