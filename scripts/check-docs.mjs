@@ -12,7 +12,7 @@
  *
  *   node scripts/check-docs.mjs
  */
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -1542,30 +1542,44 @@ const tokens = [...indexCss.matchAll(/--sp-(\d):/g)].map((m) => Number(m[1]))
 expect('spacing scale present', tokens.length >= 9, `--sp-1..--sp-${Math.max(...tokens, 0)}`)
 expect('SP mirror in theme.ts', /export const SP = \{/.test(theme), 'JSX side of the scale')
 
-const cssFiles = [
-  'src/index.css',
-  'src/App.css',
-  'src/pages/CataloguePage.css',
-  'src/pages/DbEditorPage.css',
-  'src/components/Sidebar.css',
-  'src/components/NoSourceConnected.css',
-  'src/components/ProfiledColumnsPanel.css',
-  'src/components/ProfilingJobsTab.css',
-  'src/components/ConnectSourceModal.css',
-]
+/*
+ * Every stylesheet, found on disk rather than listed here.
+ *
+ * The list this replaced named nine files and had stopped covering six — including three
+ * added in the last month — so the rule it enforced was quietly true of two thirds of the
+ * app. A guard whose scope is maintained by hand beside the thing it describes drifts from
+ * it, which is the same failure as a client-side copy of a server's scope list.
+ *
+ * **Sub-scale insets are exempt.** The scale starts at `--sp-1: 4px`, so a 1px or 2px pill
+ * inset cannot be expressed with it and is a border-ish detail rather than layout spacing.
+ * Anything 4px or over must come from the scale.
+ */
+const cssFiles = (function walkCss(dir) {
+  return readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory()
+      ? walkCss(`${dir}/${entry.name}`)
+      : entry.name.endsWith('.css')
+        ? [`${dir}/${entry.name}`]
+        : [],
+  )
+})('src')
 const rawPx = []
 for (const file of cssFiles) {
-  if (!existsSync(join(root, file))) continue
   const hits =
     read(file).match(
       /^\s*(margin|padding|gap|row-gap|column-gap)[^:]*:\s*[^;]*\b\d+px/gm,
     ) ?? []
-  for (const hit of hits) rawPx.push(`${file}: ${hit.trim()}`)
+  for (const hit of hits) {
+    const overScale = [...hit.matchAll(/(\d+(?:\.\d+)?)px/g)].some((m) => Number(m[1]) >= 4)
+    if (overScale) rawPx.push(`${file}: ${hit.trim()}`)
+  }
 }
 expect(
-  'no raw px spacing',
-  rawPx.length === 0,
-  rawPx.length === 0 ? 'all spacing uses --sp-*' : rawPx.join(' | '),
+  'no raw px spacing, in any stylesheet',
+  cssFiles.length > 10 && rawPx.length === 0,
+  rawPx.length === 0
+    ? `${cssFiles.length} stylesheets, all layout spacing from --sp-*`
+    : rawPx.join(' | '),
 )
 
 /* ---------------- poll interval ---------------- */
@@ -1746,11 +1760,950 @@ expect(
   'the What-if gate replaces the lens rather than rendering beside it',
   gateAt !== -1 &&
     lensAt > gateAt &&
-    whatIfSrc.slice(gateAt, lensAt).includes('NoSourceConnected') &&
+    /* Whichever empty state the gate renders — it was the source one, it is now the
+       publish one — the fact guarded here is that the gate *replaces* the lens. */
+    /No(Source Connected|PublishedGraph|SourceConnected)/.test(whatIfSrc.slice(gateAt, lensAt)) &&
     gatedCopy.every(
       (k) => !whatIfSrc.slice(gateAt, lensAt).includes(k) && whatIfSrc.slice(lensAt).includes(k),
     ),
-  `${gatedCopy.join(', ')} render only where a source is connected`,
+  `${gatedCopy.join(', ')} render only inside the lens`,
+)
+
+/* ---------------- the report section ---------------- */
+
+/*
+ * The reports are the one section whose *copy* is extracted from the package's rendered
+ * HTML, so the claims here fall into two families: the extraction resolved (a report has
+ * its heading, tiles and footer), and the authored figures still match the roster they
+ * were transcribed from.
+ *
+ * The path is asserted to exist first. A claim keyed to a package path that is not in the
+ * checkout answers "not here" and passes — that has already swallowed eight canvas claims
+ * for a session.
+ */
+const reportsDir = 'vls_demo_data_package_2026-08-10/07_reports'
+const reportsPkgPath = `${reportsDir}/report_authoring_data.json`
+const reportsPkgHere = existsSync(join(root, reportsPkgPath))
+const reportsIngest = read('scripts/ingest-reports.mjs')
+expect(
+  'the reports package is where its ingest reads it from',
+  reportsPkgHere && reportsIngest.includes(reportsDir),
+  reportsPkgHere ? reportsPkgPath : `${reportsPkgPath} is not in this checkout`,
+)
+
+const reports = db.reports
+const reportsPkg = reportsPkgHere ? JSON.parse(read(reportsPkgPath)) : null
+
+expect(
+  'every report the package defines reached db.reports',
+  reportsPkg !== null && reports.reports.length === reportsPkg.starters.length,
+  `${reports.reports.length} reports · ${reports.reports.map((r) => r.report_id).join(', ')}`,
+)
+
+/* The extraction resolved. A report with no tiles or no footer would render as a heading
+   over a table, losing both the figures it is quoted for and the source it is cited by. */
+expect(
+  'every report carries the copy its page prints',
+  reports.reports.every(
+    (r) => r.heading && r.subtitle && r.badge && r.tiles.length > 0 && r.footer.length > 0,
+  ),
+  reports.reports.map((r) => `${r.report_tag} ${r.tiles.length} tiles`).join(' · '),
+)
+
+/*
+ * A `kpis` block must not reach db.reports: its four keys and the report's four authored
+ * tiles are the same summary, and rendering both would print it twice — two truths about
+ * one figure, which is the failure this repo keeps guarding.
+ */
+expect(
+  'no report renders its summary twice',
+  reports.reports.every((r) => r.blocks.every((b) => b.type !== 'kpis')),
+  'the tiles are report-level; the kpis block is dropped at ingest',
+)
+
+/*
+ * The authored tiles against the roster, recomputed here from `db.reports.data` — the
+ * same identities the ingest checks against the package, so a hand-edit to db.json is
+ * caught as well as a package change. A tile is the most quotable figure on a report and
+ * the least likely to be re-derived by hand.
+ */
+const repGen = reports.data.generators
+const repQ = reports.data.quarters
+const repSum = (rows, key) => rows.reduce((t, r) => t + r[key], 0)
+const repInt = (v) => Math.round(v).toLocaleString('en-US')
+const repCd = repGen.filter((g) => g.cd === true)
+const tileOf = (reportId, label) =>
+  reports.reports
+    .find((r) => r.report_id === reportId)
+    ?.tiles.find((t) => t.label.toLowerCase().includes(label.toLowerCase()))?.value ?? null
+
+const TILE_IDENTITIES = [
+  ['risk', 'Distinct generators', repInt(repGen.length)],
+  /* The register's headline figure, and the one a roster edit moves first: the other
+     counts survive a changed penalty, so without this the whole set passed over a
+     generator whose exposure had been edited. */
+  ['risk', 'Total penalty exposure', `$${(repSum(repGen, 'penalty') / 1e6).toFixed(2)}M`],
+  ['risk', 'With enforcement history', repInt(repGen.filter((g) => g.enf > 0).length)],
+  ['risk', 'Consent-decree generators', repInt(repCd.length)],
+  ['cd', 'Tonnage exposure', repInt(repSum(repCd, 'tons'))],
+  ['cd', 'Their combined penalty', `$${Math.round(repSum(repCd, 'penalty') / 1000)}k`],
+  ['quarterly', 'Total inbound manifests', repInt(repSum(repQ, 'manifests'))],
+  ['quarterly', 'Total tonnage', repInt(repSum(repQ, 'tons'))],
+  ['quarterly', 'Rejections / residue', `${repInt(repSum(repQ, 'rej'))} / ${repInt(repSum(repQ, 'res'))}`],
+]
+const staleTiles = TILE_IDENTITIES.filter(([id, label, want]) => tileOf(id, label) !== want)
+expect(
+  'every checked tile still agrees with the roster it was transcribed from',
+  staleTiles.length === 0,
+  staleTiles.length === 0
+    ? `${TILE_IDENTITIES.length} identities: ${TILE_IDENTITIES.map(([, l, v]) => `${l} ${v}`).join(' · ')}`
+    : staleTiles
+        .map(([id, label, want]) => `${id}/${label} reads ${tileOf(id, label)}, roster computes ${want}`)
+        .join('; '),
+)
+
+/*
+ * A scoped report has to select what its own tiles count. Without this the
+ * consent-decree report could widen to all 36 generators while its tiles still said 4 —
+ * and a wider report reads as a bigger exposure.
+ */
+const SCOPE_FILTERS = {
+  all: (rows) => rows,
+  cd: (rows) => rows.filter((r) => r.cd === true),
+  enf: (rows) => rows.filter((r) => r.enf > 0),
+  oos: (rows) => rows.filter((r) => r.state !== 'TX'),
+}
+const scoped = reports.reports.filter((r) => r.scope !== 'all')
+expect(
+  'a scoped report selects exactly what its tiles claim',
+  scoped.length > 0 &&
+    scoped.every((r) => {
+      const rows = SCOPE_FILTERS[r.scope]?.(reports.data[r.spine]) ?? []
+      return r.tiles.some((t) => t.value === repInt(rows.length))
+    }),
+  scoped.map((r) => `${r.report_id} scope=${r.scope}`).join(' · ') || 'no scoped report to check',
+)
+
+/*
+ * Every column a table can render has a header. `reports.fields` describes the generator
+ * register only, so the other three rosters' columns are labelled by `REPORT_LABELS` in
+ * server.mjs — and a column in neither prints its raw key as a header (`gen_state`).
+ */
+const labelMapBody = /const REPORT_LABELS = \{([\s\S]*?)\n\}/.exec(server)?.[1] ?? ''
+const labelledKeys = new Set([
+  ...reports.fields.map((f) => f.key),
+  ...[...labelMapBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1]),
+])
+const unlabelled = [
+  ...new Set(Object.values(reports.data).flatMap((rows) => Object.keys(rows[0]))),
+].filter((key) => !labelledKeys.has(key))
+expect(
+  'every roster column has a header, from the field dictionary or REPORT_LABELS',
+  labelMapBody.length > 0 && unlabelled.length === 0,
+  labelMapBody.length === 0
+    ? 'REPORT_LABELS was not found in server.mjs — this check cannot run'
+    : unlabelled.length > 0
+      ? `no header for: ${unlabelled.join(', ')} — they would print as raw keys`
+      : `${labelledKeys.size} labelled keys, none missing`,
+)
+
+/* Every block reference resolves against the spine it reads. The server refuses these at
+   boot; asserted here so it fails the build first. */
+const badBlocks = []
+for (const r of reports.reports) {
+  const rows = reports.data[r.spine] ?? []
+  const rowKeys = new Set(Object.keys(rows[0] ?? {}))
+  if (rows.length === 0) badBlocks.push(`${r.report_id} reads spine "${r.spine}", which has no rows`)
+  for (const b of r.blocks) {
+    if (b.type === 'chart' && !rowKeys.has(b.measure)) badBlocks.push(`${r.report_id} charts ${b.measure}`)
+    if (b.type === 'quarterly' && !rowKeys.has(b.metric)) badBlocks.push(`${r.report_id} trends ${b.metric}`)
+    for (const c of b.type === 'table' ? b.cols : []) {
+      if (!rowKeys.has(c)) badBlocks.push(`${r.report_id} tabulates ${c}`)
+    }
+  }
+}
+expect(
+  'every block reads a column its spine carries',
+  badBlocks.length === 0,
+  badBlocks.length === 0
+    ? `${reports.reports.reduce((t, r) => t + r.blocks.length, 0)} blocks over ${Object.keys(reports.data).length} rosters`
+    : badBlocks.join('; '),
+)
+expect(
+  'and validateDb refuses one that does not',
+  /reports "\$\{r\.report_id\}" charts/.test(server) &&
+    /reports "\$\{r\.report_id\}" tabulates/.test(server),
+  'a blank column reads as "no data" rather than as a broken reference',
+)
+
+/*
+ * One chart component for the whole app. A report's chart payload is an answer's chart
+ * payload, so `ReportBlock` draws nothing itself — a second chart file would be a second
+ * set of rules about what a bar means, and this repo has already had two truths about one
+ * drawing.
+ */
+const reportBlockSrc = read('src/components/ReportBlock.tsx')
+expect(
+  'report charts are drawn by AnswerChart, not a second chart component',
+  reportBlockSrc.includes("from './AnswerChart'") && !reportBlockSrc.includes('<svg'),
+  'the same hand-drawn SVG draws an answer and a report',
+)
+
+
+const reportRoutes = read('src/routes.tsx')
+/* The section is two routes, and the id route exists — a list with no way into a report
+   would leave five cards that do nothing. */
+expect(
+  'both report routes are declared',
+  reportRoutes.includes("path: 'reports'") && reportRoutes.includes("path: 'reports/:reportId'"),
+  '/reports lists them, /reports/:reportId opens one',
+)
+
+/* ---------------- the report section: gates and authoring ---------------- */
+
+/*
+ * Both gates, and neither serves the reports' copy.
+ *
+ * A card headed "Inbound Generator Risk Register · 36 generators" above "No data source is
+ * connected" is a claim about data that is not there — the mistake the What-if page had to
+ * be corrected for — and the same is true above "No graph has been published". The server
+ * is where it cannot come back: the gated branch nulls the persona, the picker set and the
+ * graph, not only the figures.
+ */
+/*
+ * Asserted field by field rather than as one sequence: the first version of this claim
+ * matched the whole literal in order, so adding `graphs: []` to the gated payload broke it
+ * while the fact it guards was still true. A claim keyed to the order of an object literal
+ * is keyed to the spelling.
+ */
+/* Sliced from the section route by name. The first version of this slice matched on the
+   condition alone and found the What-if branch, which has the same gate and none of these
+   fields — a claim that reads the wrong function is not reading the code it names. */
+const reportsIndexRoute =
+  /match: \(p\) => p === '\/reports',[\s\S]*?\n  \},/.exec(server)?.[0] ?? ''
+const gatedBranch =
+  /if \(counts\.published_count === 0\) \{[\s\S]*?\}\)\r?\n\s*\}/.exec(reportsIndexRoute)?.[0] ?? ''
+const withheld = ['graph: null', 'graphs: []', 'saved: []', 'authoring: null']
+expect(
+  'the report endpoints send no copy while nothing is published',
+  gatedBranch.length > 0 &&
+    withheld.every((field) => gatedBranch.includes(field)) &&
+    /connected_sources: connected, \.\.\.counts, report: null/.test(server),
+  gatedBranch.length === 0
+    ? 'the gated branch was not found — this check cannot run'
+    : 'the gate withholds the copy, the graphs and the pickers, not just the figures',
+)
+/*
+ * **Publication is the only precondition**, on all four gated routes — the section, one
+ * report, a saved report and the What-if frame. A connected source is deliberately *not*
+ * one: publishing a graph is already downstream of having something to build it from, and
+ * a second gate in front of it only tells the reader to fix something that is not stopping
+ * them. Counting occurrences alone was too weak once — weakening the lens's gate left the
+ * others behind and the claim passed — so the lens is checked by name as well.
+ */
+const whatifRoute = /match: \(p\) => p === '\/whatif',[\s\S]*?\n  \},/.exec(server)?.[0] ?? ''
+expect(
+  'all four gated routes check publication, and nothing else',
+  (server.match(/if \(counts\.published_count === 0\)/g) ?? []).length >= 4 &&
+    !/connected === 0 \|\| counts\.published_count/.test(server) &&
+    whatifRoute.length > 0 &&
+    whatifRoute.includes('counts.published_count === 0'),
+  whatifRoute.length === 0
+    ? 'the /whatif route was not found — this check cannot run'
+    : 'reports, one report, a saved report and the lens share one rule',
+)
+/*
+ * **The persona is not served to the section.** It was a strip above the grid; that was
+ * removed, so the payload stopped carrying it. `db.reports.meta` is still read on this side —
+ * `entity_plural` labels a computed tile and names the rows a chart dropped, `source_trace`
+ * is on every report — which is exactly why the *unrendered* half must not be sent: a
+ * payload field nothing prints is the one that gets printed later by accident.
+ */
+/* `reportsList` takes the reading role now, so the slice cannot assume an empty parameter
+   list — a claim keyed to a signature breaks the moment the function grows an argument. */
+const reportsListBody =
+  /const reportsList = \([^)]*\) => \(\{[\s\S]*?\n\}\)/.exec(server)?.[0] ?? ''
+expect(
+  'the section payload carries no persona, and the server still uses one',
+  reportsListBody.length > 0 &&
+    !/^\s*meta:/m.test(reportsListBody) &&
+    !client.includes('personaName') &&
+    /db\.reports\.meta\.entity_plural/.test(server) &&
+    /source_trace: db\.reports\.meta\.source_trace/.test(server),
+  reportsListBody.length === 0
+    ? 'reportsList was not found — this check cannot run'
+    : 'nothing renders the persona, so nothing is sent it',
+)
+
+/*
+ * **The section lists what someone made, not the catalogue.** The five written reports are
+ * the starting points inside the wizard; putting them on this page as well made it mostly
+ * fixed content nobody had asked for, above the one or two reports that had been composed.
+ * They are still served in the payload — the wizard reads them — and still rendered by
+ * `/reports/:reportId`, so this asserts where they are *not*: in the section's grid.
+ */
+const sectionSrc = read('src/pages/ReportsPage.tsx')
+expect(
+  'the section lists the reports someone made, not the written five',
+  !sectionSrc.includes('data.reports.map') &&
+    sectionSrc.includes('data.saved.map') &&
+    /* And a section with none says how to make one, in the shell every empty page uses. */
+    sectionSrc.includes('EmptyState') &&
+    read('src/pages/ReportAuthorPage.tsx').includes('take one of the standard reports') &&
+    read('src/routes.tsx').includes("path: 'reports/:reportId'"),
+  'the written five are the wizard’s starting points, and still open at their own URL',
+)
+
+/* And the pages agree: none of the four renders the source empty state. */
+const reportGateSurfaces = [
+  'src/pages/ReportsPage.tsx',
+  'src/pages/ReportPage.tsx',
+  'src/pages/SavedReportPage.tsx',
+  'src/pages/ReportAuthorPage.tsx',
+  'src/pages/WhatIfPage.tsx',
+]
+const stillSourceGated = reportGateSurfaces.filter((f) => read(f).includes('NoSourceConnected'))
+expect(
+  'and no report surface offers the source gate',
+  stillSourceGated.length === 0,
+  stillSourceGated.length === 0
+    ? `${reportGateSurfaces.length} surfaces gate on publication alone`
+    : `still source-gated: ${stillSourceGated.join(', ')}`,
+)
+
+/*
+ * The What-if lens is gated on publication too, and shares the empty state. Two components
+ * describing one precondition drift; one cannot.
+ */
+const noPublished = 'src/components/NoPublishedGraph.tsx'
+expect(
+  'the publish gate is one component, used by both pages',
+  existsSync(join(root, noPublished)) &&
+    read('src/pages/ReportsPage.tsx').includes('NoPublishedGraph') &&
+    read('src/pages/WhatIfPage.tsx').includes('NoPublishedGraph') &&
+    read('src/pages/ReportAuthorPage.tsx').includes('NoPublishedGraph'),
+  'Reports, the report page’s section list and the What-if lens read one wrapper',
+)
+expect(
+  'and it names the fix that applies, which differs by what exists',
+  read(noPublished).includes('builtCount') && read(noPublished).includes('draftCount'),
+  '"publish the build you have" and "nothing is built yet" are different next actions',
+)
+
+/*
+ * The summary catalogue is the prototype's ten tiles re-expressed as data, so the server
+ * has to implement every aggregation and format it names. One it does not would render as
+ * a blank tile beside three figures, which reads as a zero.
+ */
+const aggBody = /const REPORT_AGGS = \{([\s\S]*?)\n\}/.exec(server)?.[1] ?? ''
+const fmtBody = /const REPORT_FORMATS = \{([\s\S]*?)\n\}/.exec(server)?.[1] ?? ''
+const implemented = {
+  aggs: new Set([...aggBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1])),
+  formats: new Set([...fmtBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1])),
+}
+const genFieldsForTiles = new Set(Object.keys(reports.data.generators[0]))
+const brokenTiles = reports.summary_catalog.filter(
+  (t) =>
+    !implemented.aggs.has(t.agg) ||
+    !implemented.formats.has(t.format) ||
+    (t.field !== null && !genFieldsForTiles.has(t.field)),
+)
+expect(
+  'every summary tile aggregates and formats in a way the server implements',
+  aggBody.length > 0 && fmtBody.length > 0 && brokenTiles.length === 0,
+  aggBody.length === 0
+    ? 'REPORT_AGGS was not found in server.mjs — this check cannot run'
+    : brokenTiles.length > 0
+      ? `broken: ${brokenTiles.map((t) => t.key).join(', ')}`
+      : `${reports.summary_catalog.length} tiles · ${implemented.aggs.size} aggregations · ${implemented.formats.size} formats`,
+)
+expect(
+  'and the default summary names tiles that exist',
+  reports.summary_default.length > 0 &&
+    reports.summary_default.every((k) => reports.summary_catalog.some((t) => t.key === k)),
+  reports.summary_default.join(', '),
+)
+
+/*
+ * A generated report's tiles are computed, and say so. The authored tiles describe the
+ * written report over the whole register; showing them against a narrowed frame would
+ * attribute the tenant's figures to a question they never answered.
+ */
+expect(
+  'a computed tile is labelled as computed',
+  /unit: 'computed for this frame'/.test(server) &&
+    /built\.variant === 'written'/.test(read('src/components/ReportView.tsx')),
+  'the built payload reports written or generated, and the one template prints which',
+)
+
+/*
+ * The horizon is the one assumption that filters nothing, and the app says so twice —
+ * where it is chosen and in the built report's caveats. Claiming a time filter that never
+ * ran would be the most quotable false statement on the page.
+ */
+const scopesBody = /const REPORT_SCOPES = \{([\s\S]*?)\n\}/.exec(server)?.[1] ?? ''
+const frameRowsBody = /function reportFrameRows\([\s\S]*?\n\}/.exec(server)?.[0] ?? ''
+expect(
+  'the horizon is declared, not applied — and nothing filters by it',
+  /const REPORT_HORIZON_CAVEAT =/.test(server) &&
+    /* Twice: on the read-back and on the built report. The built one now leads a list —
+       a saved report's graph can add a caveat of its own — so the count is of the
+       constant's *use*, not of one exact line. */
+    (server.match(/REPORT_HORIZON_CAVEAT,?\r?\n?\s*\]?/g) ?? []).length >= 3 &&
+    scopesBody.length > 0 &&
+    !scopesBody.includes('horizon') &&
+    frameRowsBody.length > 0 &&
+    !frameRowsBody.includes('horizon') &&
+    claude.includes('The horizon is declared, not applied'),
+  'stated on the read-back and on the built report; the row filters never read it',
+)
+
+/*
+ * A saved report is a question. Storing a figure would cache an answer that goes stale
+ * silently — the same rule the What-if library follows, and the reason both are stored as
+ * ids rather than results.
+ */
+const savedRow = /const row = \{([\s\S]*?)\n      \}/.exec(server)?.[1] ?? ''
+expect(
+  'a saved report stores its frame and no figures',
+  savedRow.length > 0 &&
+    savedRow.includes('...frame') &&
+    !/tiles|blocks|rows|value/.test(savedRow) &&
+    /commitDb\(\{ \.\.\.db, reports: \{ \.\.\.db\.reports, saved \} \}\)/.test(server),
+  savedRow.length === 0
+    ? 'the saved row literal was not found — this check cannot run'
+    : 'the frame and the question, through commitDb, so it survives a restart',
+)
+expect(
+  'and a re-ingest carries the library forward',
+  /saved: db\.reports\?\.saved \?\? \[\]/.test(reportsIngest),
+  'overwriting it would delete saved questions on the next ingest',
+)
+
+/*
+ * Reading a question back is paced; building is not. The first is the model-shaped act the
+ * copy promises ("I'll read it back"); the second is a read over the rosters, like a
+ * What-if scenario, and pacing it would teach that a traversal costs what a model does.
+ */
+const readRoute = /match: \(p\) => p === '\/reports\/read'[\s\S]*?\n  \},/.exec(server)?.[0] ?? ''
+const buildRoute = /match: \(p\) => p === '\/reports\/build'[\s\S]*?\n  \},/.exec(server)?.[0] ?? ''
+expect(
+  'the read-back is paced and the build is not',
+  readRoute.includes('SUGGEST_MS') && buildRoute.length > 0 && !/_MS/.test(buildRoute),
+  'a picked standard report is not paced either — the chip is the answer',
+)
+expect(
+  'and the read-back returns no figures',
+  readRoute.length > 0 && !/tiles|blocks/.test(readRoute),
+  'nothing runs against the data until the sentence is confirmed',
+)
+
+/* The wizard's own route, declared before the id route it would otherwise fall into. */
+const authorRoutes = read('src/routes.tsx')
+expect(
+  'the authoring route is declared before the report-id route',
+  authorRoutes.indexOf("path: 'reports/new'") > 0 &&
+    authorRoutes.indexOf("path: 'reports/new'") < authorRoutes.indexOf("path: 'reports/:reportId'"),
+  'the same rule the full-window canvas route follows',
+)
+
+/* ---------------- reports: the graph, the template, and a saved report ---------------- */
+
+/*
+ * A report is asked *of a published graph*, so the graph is part of the frame and the
+ * server refuses one that is not live. Defaulting silently to whatever is newest would
+ * attribute the figures to content nobody picked — the same class of quiet substitution as
+ * a matcher answering a question nobody asked.
+ */
+expect(
+  'the frame names the graph a report is asked of, and an unpublished one is refused',
+  /use_case_id: body\.use_case_id \? String\(body\.use_case_id\) : null/.test(server) &&
+    /is not a published graph — published:/.test(server) &&
+    client.includes('use_case_id: frame.useCaseId'),
+  'chosen on step 1, carried through read → build → save',
+)
+expect(
+  'and the section offers every published graph, not just the newest',
+  /const reportGraphs = \(\) =>/.test(server) &&
+    /graphs: reportGraphs\(\)/.test(server) &&
+    read('src/pages/ReportAuthorPage.tsx').includes('Which published graph should answer this?'),
+  'the wizard opens on the list; the newest stays the default for a report read directly',
+)
+
+/*
+ * **One report template.** The package ships five rendered reports with a fixed anatomy,
+ * and a report composed in the wizard is that same anatomy asked under a different frame.
+ * When the layout lived in two files the wizard's copy had already drifted — no badge, its
+ * own tag row, a different footer — which is two answers to "what does a report look like".
+ */
+const reportSurfaces = [
+  'src/pages/ReportPage.tsx',
+  'src/pages/SavedReportPage.tsx',
+  'src/pages/ReportAuthorPage.tsx',
+]
+const surfacesOwnTheirLayout = reportSurfaces.filter((file) => {
+  const src = read(file)
+  return (
+    !src.includes("from '../components/ReportView'") ||
+    src.includes('rp-foot-defs') ||
+    src.includes('StatCards')
+  )
+})
+expect(
+  'every surface renders one report template rather than its own',
+  surfacesOwnTheirLayout.length === 0,
+  surfacesOwnTheirLayout.length === 0
+    ? `${reportSurfaces.length} surfaces read ReportView: written, saved and built`
+    : `re-implementing the layout: ${surfacesOwnTheirLayout.join(', ')}`,
+)
+
+/*
+ * Taking a standard report directly reads and builds it — and **stops there**, because the
+ * one thing the app must not decide is what to call it. A row named by the app is one nobody
+ * recognises a week later, and three of them read as duplicates rather than as three
+ * questions. So `generate` does not save; the page asks for a name and the save is the
+ * reader's act.
+ */
+const reportsStoreSrc = read('src/store/reportsStore.ts')
+const generateBody = /generate: async \(\{[\s\S]*?\n  \},/.exec(reportsStoreSrc)?.[0] ?? ''
+expect(
+  'picking a standard report builds it and asks for a name before keeping it',
+  generateBody.includes('readReportQuestion') &&
+    generateBody.includes('buildReport') &&
+    !generateBody.includes('saveReport') &&
+    generateBody.includes('needsName: true') &&
+    read('src/pages/ReportAuthorPage.tsx').includes('Name this report to keep it'),
+  generateBody.length === 0
+    ? 'the generate action was not found — this check cannot run'
+    : 'read → build, then the reader names it and saves',
+)
+
+/*
+ * Who saved a report. The identity is client-held, so the route has to be *told* — the rule
+ * the consent callback established, and the reason a malformed saved_by is a 400 rather
+ * than a quietly recorded name.
+ */
+expect(
+  'a saved report records who saved it, and is told rather than guessing',
+  read('src/pages/ReportAuthorPage.tsx').includes('useAuthStore') &&
+    /is not an email — send the signed-in address as saved_by/.test(server) &&
+    /saved_by: savedBy \?\? saved\[existing\]\?\.saved_by \?\? null/.test(server),
+  'the identity is client-held, so the route has to be told',
+)
+
+/*
+ * **And so does publishing.** Every "published by" line in the app — Ask, a report's footer,
+ * the wizard's graph cards, the section's graph list — used to read `db.google_account`, the
+ * seeded account, with no way for a reader to know it was not the person who pressed the
+ * button. The publish route is now told `?as=`, keeps it per `useCaseId:sha`, and one helper
+ * reports it: a second place deriving a publisher would be a second answer to "who".
+ */
+expect(
+  'publishing records who did it, and every line reads that one record',
+  /const studioPublishedBy = new Map\(\)/.test(server) &&
+    /const publishedByFor = \(useCaseId\)/.test(server) &&
+    /* Set *or cleared* on every publish: merging would credit the previous publisher for
+       an anonymous re-publish, which a smoke run caught it doing. */
+    /studioPublishedBy\.set\(`\$\{id\}:\$\{sha\}`, as\)/.test(server) &&
+    /studioPublishedBy\.delete\(`\$\{id\}:\$\{sha\}`\)/.test(server) &&
+    !/published_by: db\.google_account\.email/.test(server) &&
+    (server.match(/published_by: publishedByFor\(/g) ?? []).length >= 2 &&
+    client.includes('as ? `${path}?as=${encodeURIComponent(as)}`') &&
+    read('src/store/graphStudioStore.ts').includes('useAuthStore.getState().identity?.email'),
+  'told at publish time, with the tenant account as the fallback for an untold one',
+)
+
+/*
+ * Opening a saved report re-asks it, and one whose graph has since been unpublished says so
+ * instead of claiming live content answered it. Publication is in memory, so that is the
+ * state after every restart.
+ */
+expect(
+  'a saved report is re-asked, and an unpublished graph is reported not hidden',
+  server.includes("match: (p) => /^\\/reports\\/saved\\/[^/]+$/.test(p)") &&
+    /which is not published right now/.test(server) &&
+    read('src/pages/SavedReportPage.tsx').includes('computed just now'),
+  'the row holds a frame, so opening it and generating it are one act',
+)
+expect(
+  'and its route is declared before the report-id route',
+  read('src/routes.tsx').indexOf("path: 'reports/saved/:savedId'") <
+    read('src/routes.tsx').indexOf("path: 'reports/:reportId'"),
+  'two segments cannot collide with one, but the order states the intent',
+)
+
+/* ---------------- the What-if lens draws its graph references ---------------- */
+
+/*
+ * Two drawings — the pool's frame and one load's traversal — and **neither invents anything
+ * it asserts**. The node types, their labels and their colours are the package's
+ * (`graph_reference.node_types`); the frame's centre, its edge name and its cap are
+ * `graph_reference.frame`; and a scenario's edges are built server-side with every label
+ * taken from the graph's declared relationship list. A component picking a hue would be
+ * inventing a legend, and an edge named in a component would claim a relationship the graph
+ * may not have.
+ */
+const whatIfGraphSrc = read('src/components/WhatIfGraph.tsx')
+const declaredRelationships = new Set(db.whatif.graph_reference.relationships)
+const subgraphFn = /function whatifSubgraph\(generator\)[\s\S]*?\n\}/.exec(server)?.[0] ?? ''
+const edgeLabels = [...subgraphFn.matchAll(/rel\('([A-Z_]+)'\)/g)].map((m) => m[1])
+expect(
+  'every edge the traversal draws is a relationship the graph declares',
+  subgraphFn.length > 0 &&
+    edgeLabels.length >= 4 &&
+    edgeLabels.every((l) => declaredRelationships.has(l)),
+  subgraphFn.length === 0
+    ? 'whatifSubgraph was not found — this check cannot run'
+    : `${edgeLabels.join(' · ')} — all in graph_reference.relationships`,
+)
+/*
+ * Both readers of the palette, checked separately: the fill lookup and the legend. Asserting
+ * the expression once passed while the *fill* had been swapped for a local palette and only
+ * the legend still read the data — a claim that finds an expression somewhere does not say
+ * where.
+ */
+const fillFn = /function fillFor\([\s\S]*?\n\}/.exec(whatIfGraphSrc)?.[0] ?? ''
+const legendFn = /function Legend\([\s\S]*?\n\}/.exec(whatIfGraphSrc)?.[0] ?? ''
+expect(
+  'and the drawing takes its palette and its cap from the package',
+  fillFn.includes('frame.graphReference.nodeTypes') &&
+    fillFn.includes('riskColors') &&
+    legendFn.includes('frame.graphReference.nodeTypes') &&
+    whatIfGraphSrc.includes('rules.maxDrawn') &&
+    whatIfGraphSrc.includes('rules.edge') &&
+    /* The cap is stated on the drawing: seven standing for twenty-four is otherwise a
+       silent sample, which is the rule the answer charts and the studio queue also keep. */
+    whatIfGraphSrc.includes('first ${drawn.length} drawn'),
+  'node types, their colours, the centre, the edge and the 7-node cap are all data',
+)
+expect(
+  'the lens draws its own SVG rather than pulling a chart library',
+  whatIfGraphSrc.includes('<svg') &&
+    !/from '(?!\.|react)/.test(whatIfGraphSrc.replace(/from '\.\.\/api\/client'/g, '')) &&
+    !read('package.json').includes('d3') &&
+    !read('package.json').includes('chart.js'),
+  'the same rule the studio canvas and the answer charts follow',
+)
+/* An absence has no circle: the nodes a scenario draws are conditional on what the
+   generator carries, which is decided on the server and asserted here. */
+expect(
+  'a clean load draws no enforcement node and no document',
+  /* Conditional on both sides: the node *and* its edge. Asserting only the node would pass
+     over a diagram that drew an edge to something absent. */
+  subgraphFn.includes('...(hasEnforcement') &&
+    subgraphFn.includes('...(generator.consent_decree') &&
+    (subgraphFn.match(/\.\.\.\(hasEnforcement/g) ?? []).length === 2 &&
+    (subgraphFn.match(/\.\.\.\(generator\.consent_decree/g) ?? []).length === 2,
+  'the same rule the studio canvas keeps for a relationship nobody proposed',
+)
+
+/* ---------------- a report's chip bar, and what a chip does ---------------- */
+
+/*
+ * **A chip re-asks the report; it never hides rows.**
+ *
+ * The tiles and the charts above a table are the server's figures. Filtering rows in the page
+ * would leave them describing a set the table no longer shows — two answers on one screen,
+ * which is the failure this whole section is built to avoid. So the chip hands the slice up,
+ * the report is rebuilt under **the frame it states**, and every figure comes back computed
+ * for that slice. `frame` exists on the payload in *values* for exactly this: reconstructing
+ * a scope from its printed label would be guessing at what the report had already been told.
+ */
+const reportViewSrc = read('src/components/ReportView.tsx')
+expect(
+  'a chip re-asks the report rather than filtering its rows in the page',
+  reportViewSrc.includes('onSlice') &&
+    !/\.filter\(/.test(reportViewSrc) &&
+    /frame: \{[\s\S]*?report_id: report\.report_id/.test(server) &&
+    /slice: async \(filter\) => \{[\s\S]*?buildReport\(\{ \.\.\.report\.frame/.test(
+      read('src/store/reportsStore.ts'),
+    ),
+  'the frame in values is on the payload so a slice can ask again with it',
+)
+/* Every surface that renders a report offers the bar, so a slice is not a property of one
+   page. The wizard slices through its own frame, which is the same object. */
+const slicingSurfaces = [
+  'src/pages/ReportPage.tsx',
+  'src/pages/SavedReportPage.tsx',
+  'src/pages/ReportAuthorPage.tsx',
+]
+/* The prop, not the word: a page that kept its handler and dropped the bar still mentioned
+   `onSlice`, and this claim passed over it until the break-test said otherwise. */
+const notSlicing = slicingSurfaces.filter((f) => !read(f).includes('onSlice={'))
+expect(
+  'and every report surface offers it',
+  notSlicing.length === 0,
+  notSlicing.length === 0 ? `${slicingSurfaces.length} surfaces slice` : `missing: ${notSlicing.join(', ')}`,
+)
+
+/*
+ * Facets are per spine, and the frame validator asks the same function the chips came from.
+ * Checking only the generator dictionary refused a facility's role and a quarter's year —
+ * facets the report itself renders — so a chip would have offered a filter the API rejected.
+ */
+expect(
+  'the facets the chips render are the facets a frame may filter by',
+  /const reportFacetsFor = \(spine\) =>/.test(server) &&
+    /const facets = reportFacetsFor\(report\.spine\)/.test(server) &&
+    /facets: reportFacetsFor\(report\.spine\)/.test(server),
+  'one function behind the chips and the refusal, so they cannot disagree',
+)
+/* The one facet whose value is not a column of its own still filters by the same rule. */
+expect(
+  'the trace flags filter by test, and the tests are the values the chips offer',
+  /const REPORT_FLAG_TESTS = \{/.test(server) &&
+    ['rejected', 'residue', 'out_of_state'].every((v) =>
+      new RegExp(`${v}: \\(t\\) =>`).test(server),
+    ),
+  'rejected · residue · out-of-state — three columns, one control',
+)
+
+/*
+ * The column form. Vertical bars exist for the one case horizontal loses — a short label over
+ * a series that reads left to right — and the guard is that the *form* is still chosen by the
+ * data: a long label falls back to bars however the payload asks.
+ */
+const answerChartSrc = read('src/components/AnswerChart.tsx')
+expect(
+  'a column chart falls back to bars when there are too many of them',
+  /* The rule moved from label length to row count: a name is elided to fit under four
+     columns, which is how the package draws its decree-bound generators, and thirty-six
+     of them is what horizontal bars exist for. */
+  answerChartSrc.includes("block.chart === 'column' && data.length <= 8") &&
+    /function Columns\(/.test(answerChartSrc) &&
+    /d\.label\.length > 16/.test(answerChartSrc) &&
+    claude.includes('column'),
+  'the form comes from the data’s job, not only from the field',
+)
+
+/* ---------------- a report renders like the rendered report ---------------- */
+
+/*
+ * Three ways the app's register drifted from the package's, all of them visible side by side:
+ * the table showed the starter's six columns where the rendered report prints ten, every bar
+ * was one hue where the package colours by risk tier, and the drawing sat at answer width in a
+ * card twice as wide with its title printed above it a second time.
+ */
+const registerCols = db.reports.reports.find((r) => r.report_id === 'risk')?.blocks.find(
+  (b) => b.type === 'table',
+)?.cols ?? []
+expect(
+  'the register tabulates the columns its rendered report prints',
+  registerCols.length === 10 &&
+    ['evals', 'enf', 'tons', 'manifests'].every((k) => registerCols.includes(k)) &&
+    reportsIngest.includes('const TABLE_COLS'),
+  `${registerCols.join(', ')}`,
+)
+expect(
+  'a bar may carry its row’s risk tier, and only a state may vary the hue',
+  /tone: r\.risk === 'high' \? 'crit'/.test(server) &&
+    /const TONE_HUE = \{/.test(answerChartSrc) &&
+    /fill=\{d\.tone \? TONE_HUE\[d\.tone\] : DATA_HUE\}/.test(answerChartSrc),
+  'length still encodes the value; the table beside it repeats the tier with an icon',
+)
+/*
+ * The scorecard is **one grouped chart**, not one per measure.
+ *
+ * Evaluations beside violations per facility *is* the comparison the report makes; two separate
+ * charts make it two findings a reader has to hold at once. Two hues here encode two series and
+ * the legend names both — the second of the two things allowed to vary a magnitude chart's hue,
+ * the other being a point's state. And it keeps **roster order**: sorting by size would bury
+ * the facility the scorecard is about wherever its number falls.
+ */
+expect(
+  'the facility scorecard draws one grouped chart in roster order',
+  /function reportGroupedChart\(report, keys, title\)/.test(server) &&
+    /chart: 'grouped'/.test(server) &&
+    /series: keys\.map/.test(server) &&
+    /* No sort in it: the rows are the roster's, unlike the ranked bars. */
+    !/reportGroupedChart[\s\S]{0,600}\.sort\(/.test(server) &&
+    /function Grouped\(\{ block \}/.test(answerChartSrc) &&
+    answerChartSrc.includes("block.chart === 'grouped' && (block.series?.length ?? 0) > 1"),
+  'two series, a legend, and the subject first',
+)
+expect(
+  'and its values table carries every series',
+  /block\.series && block\.series\.length > 1/.test(answerChartSrc) &&
+    (answerChartSrc.match(/block\.series && block\.series\.length > 1/g) ?? []).length === 2,
+  'the header row and the value cells both, or the table describes one measure of two',
+)
+
+expect(
+  'a report’s chart is drawn at report width, and the cap follows it',
+  /width: 900,/.test(server) &&
+    answerChartSrc.includes('const width = block.width ?? 520') &&
+    /* Every SVG form caps its own upscale — bars, columns and the line. Asserting the
+       expression once passed while one of the three had had its cap removed. */
+    /* Every drawing caps its own upscale. The ring caps at its own size rather than a
+       `width` prop, so the count is of caps, not of the one spelling. */
+    (answerChartSrc.match(/maxWidth: (width|size)/g) ?? []).length ===
+      (answerChartSrc.match(/<svg/g) ?? []).length,
+  'the viewBox grows rather than the cap being lifted, so the text stays its own size',
+)
+expect(
+  'and a chart block does not print its title twice',
+  /* The card gained a class for its padding, so this looks for the absence of a `title` on
+     it rather than for one exact opening tag. */
+  /if \(block\.type === 'chart'\) \{[\s\S]*?<Card className="rp-block"(?! title)/.test(
+    read('src/components/ReportBlock.tsx'),
+  ),
+  'the figure carries the caption; the card no longer repeats it',
+)
+
+/*
+ * The decree report draws a ranking **and the share it raises**.
+ *
+ * A scoped report says "four generators, 1,876 tons" and immediately provokes "out of what?" —
+ * a question its own four rows cannot answer. So a scoped chart carries a companion computed
+ * over the whole register, and its 79.3% is the same figure as the tile beside it. The ring
+ * replaced a meter: a meter reads as progress toward something, and a share of inbound tonnage
+ * is not progress.
+ */
+expect(
+  'a scoped chart carries the share it raises, computed over the whole register',
+  /function reportShareChart\(field, title, note\)/.test(server) &&
+    /const rows = db\.reports\.data\.generators/.test(
+      /function reportShareChart[\s\S]*?\n\}/.exec(server)?.[0] ?? '',
+    ) &&
+    /companion: share/.test(server) &&
+    /* The conditional *and* the render: a mention of `block.companion` survived a mutation
+       that had stopped rendering it, because the width expression mentions it too. */
+    read('src/components/ReportBlock.tsx').includes('{block.companion ? (') &&
+    read('src/components/ReportBlock.tsx').includes('block={block.companion}'),
+  'the share is of the register, not of the report’s own rows',
+)
+expect(
+  'and a two-to-four slice donut is drawn as a ring, not a meter',
+  /function Ring\(\{ block \}/.test(answerChartSrc) &&
+    !/function Meter\(/.test(answerChartSrc) &&
+    !read('src/components/AnswerBlocks.css').includes('ab-meter') &&
+    answerChartSrc.includes("block.chart === 'donut' && data.length >= 2 && data.length <= 4"),
+  'every slice named in the legend, so the ring is never colour-alone',
+)
+/*
+ * Colour: identity at four columns or fewer, state beyond. The package colours its four
+ * decree-bound generators by which generator and its thirty-six-row register by risk tier, and
+ * the readable form decides — the same rule that makes a long register horizontal bars whatever
+ * its block asks for.
+ */
+expect(
+  'a handful of columns are coloured by identity, a long register by state',
+  /data\.length <= 4\r?\n\s*\? CATEGORICAL\[i % CATEGORICAL\.length\]\r?\n\s*: d\.tone/.test(
+    answerChartSrc,
+  ) && /const form = rows\.length <= 6 \? 'column' : 'bar'/.test(server),
+  'the block states a preference; the readable form decides',
+)
+
+/*
+ * **Who a saved report is for — and the honest name for it.**
+ *
+ * The roles are the tenant's own (`auth_roles`, the login's pool), stored as ids so a renamed
+ * role does not leave a stale label behind, and resolved on the way out. An empty audience is
+ * refused: it would hide the report from everyone including whoever set it, which is deletion
+ * with extra steps.
+ *
+ * It is **not** access control, and the panel that sets it says so in those words. The role is
+ * client-held and the login authenticates by shape, so this narrows what the section *shows* a
+ * reader; anything asking the API without a role still gets every row. A control that implied a
+ * permission this mock cannot keep would be the worst kind of claim in the app.
+ */
+const audienceSrc = read('src/components/AudiencePicker.tsx')
+const savedCardSrc = read('src/components/SavedReportCard.tsx')
+expect(
+  'a saved report names the roles it is for, from the tenant’s own pool',
+  /const reportViewerRoles = \(saved\) =>/.test(server) &&
+    /db\.auth_roles\.map\(\(r\) => \(\{ role_id: r\.role_id, label: r\.label \}\)\)/.test(server) &&
+    /viewer_roles: reportViewerRoles\(saved\)/.test(server) &&
+    /a report no role can view is a report you have deleted/.test(server) &&
+    /no such role: \$\{unknown\.join\(', '\)\}/.test(server),
+  'ids stored, labels resolved, and both refusals name the fix',
+)
+expect(
+  'and the control that sets it calls itself a demo, not a permission',
+  /* The *rendered* sentence, not the phrase in the file's own comment — a mutation that
+     changed the visible copy left the comment saying it, and this claim passed. */
+  audienceSrc.includes('the API serves any caller that asks') &&
+    /as_role/.test(server) &&
+    /* Without a role the section serves everything — the safe direction for a control the
+       copy already admits is cosmetic. */
+    /!asRole \|\| row\.viewer_roles\.some/.test(server) &&
+    claude.includes('not access control'),
+  'the section filters what it shows; the API serves any caller that asks',
+)
+
+/*
+ * **The theme sets `Card.bodyPadding: 0`**, so a card in this section has to state its own.
+ *
+ * It is not a style preference: a body at 0 beside a head at antd's default left every saved
+ * report's content flush against the card's left edge while its title sat 24px in, which is the
+ * misalignment a reader sees first. Both edges are set from one token, and every card class in
+ * the section is listed — a new card that forgets is a new card that looks broken.
+ */
+const reportsCss = read('src/pages/ReportsPage.css')
+const cardClasses = ['rp-saved', 'rp-block', 'rp-card', 'rp-mine', 'rp-panel']
+/*
+ * The rule itself, not the selectors: they share one block, so emptying it left every selector
+ * in place and the first version of this claim passed over five unpadded cards.
+ */
+const bodyRule =
+  /([^}]*\.rp-saved > \.ant-card-body[^{]*)\{([^}]*)\}/.exec(reportsCss) ?? ['', '', '']
+const unpadded = cardClasses.filter((cls) => !bodyRule[1].includes(`.${cls} > .ant-card-body`))
+expect(
+  'every card in the report section pads its own body, because the theme pads none',
+  /bodyPadding: 0/.test(theme) &&
+    unpadded.length === 0 &&
+    /padding: var\(--sp-\d\)/.test(bodyRule[2]) &&
+    /\.rp-saved > \.ant-card-head[\s\S]{0,220}padding-inline: var\(--sp-5\)/.test(reportsCss),
+  unpadded.length === 0 && /padding: var\(--sp-\d\)/.test(bodyRule[2])
+    ? `${cardClasses.length} card classes, head and body from one token`
+    : unpadded.length > 0
+      ? `not in the rule: ${unpadded.join(', ')}`
+      : 'the rule lists them and declares no padding',
+)
+
+/*
+ * **The audience panel's select-all is a checkbox with three states, not two.**
+ *
+ * "All roles" beside five role checkboxes has to behave like them, so it is one of them — and it
+ * needs `indeterminate` while some are ticked, because both other states would misreport a
+ * partial selection: `checked` claims every role can view it, `unchecked` claims none can. The
+ * button this replaced could only ever select all, so it went dark the moment all were selected
+ * and said nothing about the state in between.
+ */
+expect(
+  'the audience panel selects every role from one checkbox, and says so when only some are',
+  /indeterminate=\{chosen\.length > 0 && !everyRole\}/.test(audienceSrc) &&
+    /checked=\{everyRole\}/.test(audienceSrc) &&
+    /onChange\(e\.target\.checked \? roles\.map\(\(r\) => r\.roleId\) : \[\]\)/.test(audienceSrc) &&
+    audienceSrc.includes('<b>All roles</b>') &&
+    /* The redundant button is gone, not merely unused — two controls for one choice is how
+       they drift apart. */
+    !/>\s*Every role\s*</.test(audienceSrc) &&
+    /* And it is a component, not a block inside the card — a panel behind the card's `useState`
+       renders closed under `renderToString`, so every assertion above it would pass over
+       nothing. This is the `ConnectSourceWizard` rule, applied to a second panel. */
+    /<AudiencePicker roles=\{roles\} chosen=\{chosen\}/.test(savedCardSrc),
+  'all / some / none, from the one control that sets all of them',
+)
+
+/*
+ * **A card that changes height is laid out by its content.**
+ *
+ * `.rp-saved` was `height: 100%` with a flex-column body and its foot at `margin-top: auto` —
+ * the equal-height trick the written-report cards use. Opening the audience panel inside it then
+ * stretched the box: the head filled a height nothing was setting and the rows below left the
+ * card's frame. The written cards keep the trick; this one may not have it.
+ */
+const savedRule = /\.rp-saved \{([^}]*)\}/.exec(reportsCss)?.[1] ?? ''
+const footRule = /\.rp-saved-foot \{([^}]*)\}/.exec(reportsCss)?.[1] ?? ''
+expect(
+  'the saved-report card sizes itself, so opening a panel inside it cannot stretch it',
+  savedRule.length > 0 &&
+    !/height: 100%/.test(savedRule) &&
+    !/\.rp-saved > \.ant-card-body \{[^}]*flex-direction: column/.test(reportsCss) &&
+    footRule.length > 0 &&
+    !/margin-top: auto/.test(footRule),
+  'no forced height, no flex body, no auto-pushed foot',
 )
 
 /* ---------------- nav / route parity ---------------- */

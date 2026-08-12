@@ -1,0 +1,103 @@
+/*
+ * The What-if graph references — the pool frame and one scenario's traversal.
+ *
+ * Spacing from the --sp-* scale. The node fills are inline, because they are data: the
+ * package states a colour per node type and one per risk tier, and a stylesheet class would
+ * be a second palette to keep in step. Text wears text tokens here, never a node's hue.
+ */
+
+.wg {
+  overflow: hidden;
+  margin-top: var(--sp-2);
+  border: 1px solid #e5e8ee;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.wg-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid #e5e8ee;
+  background: #f2f4f7;
+  color: #6b7488;
+  font-size: 11px;
+}
+
+.wg-id {
+  color: #8994a8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+}
+
+/*
+ * Capped at its own viewBox width. An SVG scales its text with everything else, so a
+ * 500-unit drawing stretched across a wide column renders 9px labels at twice that — the
+ * same trap the answer charts had to cap.
+ */
+.wg-svg {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.wg-edge {
+  stroke: #cfd5e0;
+  stroke-width: 1.3;
+}
+
+/* Cased in the panel colour so a relationship name stays readable over a line. */
+.wg-edge-label {
+  fill: #8994a8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 7.5px;
+  paint-order: stroke;
+  stroke: #f9fafb;
+  stroke-width: 3px;
+}
+
+.wg-node-label {
+  fill: #4a5568;
+  font-size: 9px;
+  paint-order: stroke;
+  stroke: #f9fafb;
+  stroke-width: 3px;
+}
+
+/* The figure inside a circle: white on the node's own fill, which the package's palette
+   is dark enough to carry at this weight. */
+.wg-node-mark {
+  fill: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+}
+
+.wg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid #e5e8ee;
+  gap: var(--sp-1) var(--sp-3);
+  color: #6b7488;
+  font-size: 10.5px;
+  list-style: none;
+}
+
+.wg-legend li {
+  display: inline-flex;
+  gap: var(--sp-1);
+  align-items: center;
+}
+
+.wg-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { WhatIfFrame, WhatIfGenerator, WhatIfScenario } from '../api/client'
 import type { ScenarioColumn as Column } from '../store/whatifStore'
 import StatusTag from './StatusTag'
+import { ScenarioSubgraph } from './WhatIfGraph'
 import './ScenarioColumn.css'
 
 /*
@@ -213,7 +214,7 @@ export default function ScenarioColumn({
           >
             {card.graphLink}
           </button>
-          {graphOpen ? <Subgraph scenario={scenario} /> : null}
+          {graphOpen ? <ScenarioSubgraph frame={frame} scenario={scenario} /> : null}
 
           <div className="sc-save">
             {savedEntry && !dirty ? (
@@ -232,43 +233,3 @@ export default function ScenarioColumn({
   )
 }
 
-/**
- * The path one admitted load traverses, drawn as a chain.
- *
- * Inline SVG and no library, for the reason the ontology canvas has none. It is a
- * *chain* here rather than a free layout because that is what the traversal is: the
- * generator's records lead to the generator, and the generator ships to the facility.
- */
-function Subgraph({ scenario }: { scenario: WhatIfScenario }) {
-  const nodes = scenario.subgraph.nodes
-  const w = 300
-  const rowH = 34
-  const h = nodes.length * rowH + 8
-  return (
-    <svg
-      className="sc-graph"
-      viewBox={`0 0 ${w} ${h}`}
-      role="img"
-      aria-label={`Traversal: ${nodes.map((n) => n.label).join(' → ')}`}
-    >
-      {nodes.slice(0, -1).map((_, i) => (
-        <line
-          key={i}
-          className="sc-graph-edge"
-          x1={18}
-          y1={i * rowH + 22}
-          x2={18}
-          y2={(i + 1) * rowH + 22}
-        />
-      ))}
-      {nodes.map((n, i) => (
-        <g key={`${n.key}-${n.label}`} className={`sc-graph-node is-${n.key}`}>
-          <circle cx={18} cy={i * rowH + 22} r={6} />
-          <text x={34} y={i * rowH + 25}>
-            {n.label}
-          </text>
-        </g>
-      ))}
-    </svg>
-  )
-}

@@ -750,12 +750,24 @@ export type AnswerBlock =
   | { type: 'metric'; items: AnswerMetric[] }
   | {
       type: 'chart'
-      chart: 'bar' | 'line' | 'pie' | 'donut'
+      /** `column` is vertical bars, for a short label over a left-to-right series. */
+      chart: 'bar' | 'line' | 'column' | 'grouped' | 'pie' | 'donut'
       title: string
       x_label?: string | null
       y_label?: string | null
       note?: string | null
-      data: { label: string; value: number }[]
+      /** A wider viewBox where the surface is wider — a report card, not an answer column. */
+      width?: number | null
+      /** Two measures over the same rows: a grouped chart names them, one hue each. */
+      series?: { key: string; label: string }[] | null
+      /** A point may carry a state: the register's bars are coloured by compliance risk. */
+      data: {
+        label: string
+        value: number
+        tone?: 'good' | 'warn' | 'crit' | null
+        /** One value per series on a grouped chart, keyed by measure. */
+        values?: Record<string, number> | null
+      }[]
     }
   | { type: 'table'; title: string; columns: string[]; rows: AnswerCell[][] }
 
@@ -2155,7 +2167,7 @@ const ANSWER_BLOCK = variant('type', {
   }),
   chart: shape({
     type: str,
-    chart: oneOf(['bar', 'line', 'pie', 'donut']),
+    chart: oneOf(['bar', 'line', 'column', 'grouped', 'pie', 'donut']),
     title: str,
     x_label: nullable(str),
     y_label: nullable(str),
@@ -3718,13 +3730,23 @@ export async function askStudio(
  * Publishing an older row is what a rollback is, and the server's gate still
  * refuses an unreviewed graph whichever row is chosen.
  */
+/**
+ * Publish one version, and record who did it.
+ *
+ * `as` is the signed-in address. The server cannot look it up — the identity is
+ * client-held — so every "published by" line in the app is only as true as this argument,
+ * which is the same contract the consent callback has. Omitting it falls back to the
+ * tenant's seeded account rather than to nobody.
+ */
 export async function publishVersion(
   useCaseId: string,
   sha256: string,
+  as?: string | null,
 ): Promise<GraphStudioPayload> {
+  const path = `${studioPath(useCaseId)}/versions/${sha256}/publish`
   return withStudio(
     'The published version',
-    await request<unknown>(`${studioPath(useCaseId)}/versions/${sha256}/publish`, {
+    await request<unknown>(as ? `${path}?as=${encodeURIComponent(as)}` : path, {
       method: 'POST',
     }),
   )
@@ -4146,7 +4168,34 @@ export interface WhatIfScenarioMeasure {
 export interface WhatIfSubgraphNode {
   key: string
   label: string
-  risk?: 'high' | 'med' | 'low'
+  /** The figure inside the circle — null on a node that is not a count. */
+  count: number | null
+  /** Only the generator carries one; the tier is a state, so it is drawn as one. */
+  risk: 'high' | 'med' | 'low' | null
+}
+
+/** One traversal step. `label` is a relationship the graph declares, never a phrase. */
+export interface WhatIfSubgraphEdge {
+  from: string
+  to: string
+  label: string
+}
+
+/** A node type in the legend: what it is called, and the colour the package gave it. */
+export interface WhatIfNodeType {
+  key: string
+  label: string
+  color: string
+  /** On the generator only: the colour per risk tier. */
+  riskColors?: Record<string, string>
+}
+
+/** How the pool frame is drawn — the package states the centre, the edge and the cap. */
+export interface WhatIfGraphFrame {
+  description: string
+  centerNode: string
+  edge: string
+  maxDrawn: number
 }
 
 /** One scenario column: what admitting this load would inherit. */
@@ -4161,7 +4210,11 @@ export interface WhatIfScenario {
   cleanNote: string | null
   /** What the scenario cannot see, stated rather than hidden. */
   residualNote: string
-  subgraph: { nodes: WhatIfSubgraphNode[]; relationships: string[] }
+  subgraph: {
+    nodes: WhatIfSubgraphNode[]
+    edges: WhatIfSubgraphEdge[]
+    relationships: string[]
+  }
 }
 
 /**
@@ -4201,6 +4254,10 @@ export interface WhatIfAuthoringStep {
 
 export interface WhatIfFrame {
   connectedSources: number
+  /** 0 while no graph is published — the lens overlays the published graph. */
+  publishedCount: number
+  builtCount: number
+  draftCount: number
   facility: {
     id: string
     name: string
@@ -4245,7 +4302,12 @@ export interface WhatIfFrame {
     }
     closingNote: string
   }
-  graphReference: { nodeTypes: { key: string; label: string }[]; relationships: string[] }
+  graphReference: {
+    nodeTypes: WhatIfNodeType[]
+    relationships: string[]
+    /** How the pool frame is drawn: what sits at the centre, the edge, and the cap. */
+    frame: WhatIfGraphFrame
+  }
 }
 
 /*
@@ -4295,6 +4357,10 @@ const WHATIF_SAVED = shape({ saved_id: str, name: str, generator_id: str })
 
 const WHATIF_FRAME = shape({
   connected_sources: num,
+  /* The publish gate, the same three counts the report section carries. */
+  published_count: num,
+  built_count: num,
+  draft_count: num,
   /* Null before a source is connected — the page shows NoSourceConnected, and a
      fabricated facility would be a claim about a tenant with no data. */
   facility: nullable(
@@ -4367,8 +4433,18 @@ const WHATIF_FRAME = shape({
     closing_note: str,
   }),
   graph_reference: shape({
-    node_types: arrayOf(shape({ key: str, label: str })),
+    /* The palette is the package's own: a node type states its colour, and the generator
+       states one per risk tier. A component picking hues here would be inventing a legend. */
+    node_types: arrayOf(
+      shape({ key: str, label: str, color: str, risk_colors: nullable(objectOnly) }),
+    ),
     relationships: arrayOf(str),
+    frame: shape({
+      description: str,
+      center_node: str,
+      edge: str,
+      max_drawn: num,
+    }),
   }),
 })
 
@@ -4406,7 +4482,15 @@ const WHATIF_SCENARIO = shape({
   clean_note: nullable(str),
   residual_note: str,
   subgraph: shape({
-    nodes: arrayOf(shape({ key: str, label: str })),
+    nodes: arrayOf(
+      shape({
+        key: str,
+        label: str,
+        count: nullable(num),
+        risk: nullable(oneOf(['high', 'med', 'low'])),
+      }),
+    ),
+    edges: arrayOf(shape({ from: str, to: str, label: str })),
     relationships: arrayOf(str),
   }),
 })
@@ -4471,6 +4555,9 @@ interface RawWhatIfStep {
 
 interface RawWhatIfFrame {
   connected_sources: number
+  published_count: number
+  built_count: number
+  draft_count: number
   facility: WhatIfFrame['facility']
   generators: RawWhatIfGenerator[]
   watched_measures: WhatIfMeasure[]
@@ -4522,7 +4609,16 @@ interface RawWhatIfFrame {
     }
     closing_note: string
   }
-  graph_reference: { node_types: { key: string; label: string }[]; relationships: string[] }
+  graph_reference: {
+    node_types: {
+      key: string
+      label: string
+      color: string
+      risk_colors?: Record<string, string>
+    }[]
+    relationships: string[]
+    frame: { description: string; center_node: string; edge: string; max_drawn: number }
+  }
 }
 
 const EMPTY_ADD_MEASURE = { label: '', placeholder: '', button: '', help: '' }
@@ -4540,6 +4636,9 @@ export async function getWhatIfFrame(): Promise<WhatIfFrame> {
 
   return {
     connectedSources: raw.connected_sources,
+    publishedCount: raw.published_count,
+    builtCount: raw.built_count,
+    draftCount: raw.draft_count,
     facility: raw.facility,
     generators: raw.generators.map(toWhatIfGenerator),
     measures: raw.watched_measures,
@@ -4608,8 +4707,19 @@ export async function getWhatIfFrame(): Promise<WhatIfFrame> {
       closingNote: raw.runtime.closing_note,
     },
     graphReference: {
-      nodeTypes: raw.graph_reference.node_types,
+      nodeTypes: raw.graph_reference.node_types.map((t) => ({
+        key: t.key,
+        label: t.label,
+        color: t.color,
+        riskColors: t.risk_colors,
+      })),
       relationships: raw.graph_reference.relationships,
+      frame: {
+        description: raw.graph_reference.frame.description,
+        centerNode: raw.graph_reference.frame.center_node,
+        edge: raw.graph_reference.frame.edge,
+        maxDrawn: raw.graph_reference.frame.max_drawn,
+      },
     },
   }
 }
@@ -4666,7 +4776,11 @@ interface RawWhatIfScenario {
   flagged: boolean
   clean_note: string | null
   residual_note: string
-  subgraph: { nodes: WhatIfSubgraphNode[]; relationships: string[] }
+  subgraph: {
+    nodes: WhatIfSubgraphNode[]
+    edges: WhatIfSubgraphEdge[]
+    relationships: string[]
+  }
 }
 
 /** What admitting one load would inherit. Recomputed every time; nothing is stored. */
@@ -4739,4 +4853,1016 @@ export async function deleteWhatIfScenario(savedId: string): Promise<WhatIfSaved
     WHATIF_SAVED_PAYLOAD,
   )
   return raw.saved.map(toWhatIfSaved)
+}
+
+/* ---------------- Reports ---------------- */
+
+/*
+ * The report section: five written reports over four rosters.
+ *
+ * **Every figure here was computed by the server**, including each chart's series and
+ * each table's order — a report is a question re-asked of the roster, not a stored
+ * result, so nothing on this side sums a column. The one thing the client decides is
+ * the chart *form*, and `AnswerChart` already owns that decision.
+ *
+ * A row is deliberately **not** camelCased. Its keys are the field keys the report's own
+ * columns name (`last_enf`, `gen_state`), and a table looks a cell up by that key —
+ * renaming them here would leave every column reading its header from the data and its
+ * value from nowhere.
+ */
+
+/**
+ * A summary tile, as the package's report rendered it.
+ *
+ * `tone` excludes `info` because these are the four tones a `Stat` accepts and a tile
+ * *is* a `Stat` — the report's own reading of its figure, carried through unchanged.
+ */
+export interface ReportTile {
+  label: string
+  /** Formatted by the report: "$1.80M", "26 / 46", "Class I". */
+  value: string
+  unit: string
+  tone: Exclude<Tone, 'info'> | null
+}
+
+/** One labelled segment of a report's footer — "Source.", "Confidence.", "Bridge.". */
+export interface ReportFootnote {
+  label: string
+  text: string
+}
+
+export interface ReportColumn {
+  key: string
+  label: string
+  /** `num` is right-aligned and tabular; `cat` reads as text. */
+  kind: 'num' | 'cat'
+}
+
+/** A cell is whatever the roster carries — a trace's custody chain is a list. */
+export type ReportCell = string | number | boolean | string[]
+export type ReportRow = Record<string, ReportCell>
+
+/**
+ * Charts are the answer-chart shape exactly, so one component draws both.
+ *
+ * A report's chart may carry a **companion** — the share beside the ranking, as the package's
+ * decree report draws them side by side. It is a chart in its own right, computed on the
+ * server; the block does not become a container of two, because the second answers a question
+ * the first raises rather than standing alone.
+ */
+export type ReportChart = Extract<AnswerBlock, { type: 'chart' }> & {
+  companion?: Extract<AnswerBlock, { type: 'chart' }> | null
+}
+
+export type ReportBlock =
+  | ReportChart
+  | {
+      type: 'table'
+      title: string
+      columns: ReportColumn[]
+      rows: ReportRow[]
+      /** What the ranking is, stated: an unexplained order reads as significant. */
+      sortedBy: string | null
+    }
+  | {
+      type: 'facilities'
+      title: string
+      columns: ReportColumn[]
+      rows: ReportRow[]
+      /** The facility the scorecard is about, so its row can be marked. */
+      subject: string | null
+      charts: ReportChart[]
+    }
+  | {
+      type: 'quarterly'
+      title: string
+      columns: ReportColumn[]
+      rows: ReportRow[]
+      charts: ReportChart[]
+    }
+  | { type: 'traces'; title: string; columns: ReportColumn[]; rows: ReportRow[] }
+
+/** One card in the section list. */
+export interface ReportSummary {
+  reportId: string
+  reportTag: string
+  heading: string
+  subtitle: string
+  question: string
+  spine: string
+  /** Rows this report is about, and rows on its spine — 4 of 36 is the report. */
+  rowCount: number
+  spineTotal: number
+  blockKinds: string[]
+  tiles: ReportTile[]
+}
+
+export interface ReportsIndex {
+  connectedSources: number
+  /**
+   * The publish gate. `publishedCount` is the precondition; `builtCount` and `draftCount`
+   * are what the empty state needs to name the right fix — "finish the wizard" and
+   * "press Publish" are different problems.
+   */
+  publishedCount: number
+  builtCount: number
+  draftCount: number
+  /** Every published graph a question may be asked of, newest build first. */
+  graphs: ReportGraph[]
+  /** The default — the newest published — for a report opened straight off the section. */
+  graph: ReportGraph | null
+  reports: ReportSummary[]
+  saved: SavedReport[]
+  /** Null while either gate is closed — the wizard has nothing to ask against. */
+  authoring: ReportAuthoring | null
+}
+
+export interface Report {
+  reportId: string
+  reportTag: string
+  heading: string
+  subtitle: string
+  badge: string
+  /** Only two of the five carry a lead note. */
+  note: string | null
+  title: string
+  question: string
+  spine: string
+  rowCount: number
+  spineTotal: number
+  /** The question as a sentence, with its assumptions filled in. */
+  reading: string
+  assumptions: { slot: string; label: string }[]
+  /** What this report can be sliced by — rendered as its chip bar. */
+  facets: ReportFacet[]
+  /** The frame it was built under, in values: what a chip re-asks it with. */
+  frame: ReportFrame
+  tiles: ReportTile[]
+  footer: ReportFootnote[]
+  blocks: ReportBlock[]
+  sourceTrace: string
+  /** The published graph this was answered against — null only before one exists. */
+  graph: ReportGraph | null
+}
+
+/**
+ * The published graph the section is asked of.
+ *
+ * A report is available once a graph has been published, so the content that answered it
+ * is reportable — the same claim Ask makes about its own answers, for the same reason.
+ */
+export interface ReportGraph {
+  useCaseId: string
+  name: string
+  domainId: string | null
+  version: string | null
+  /** Null on a graph that is no longer published — there is no live content to name. */
+  sha256: string | null
+  builtAt: string | null
+  /**
+   * Who published it: the account that pressed Publish, which the publish route is told as
+   * `?as=`. Null only where nothing is published; the tenant's own account stands in for a
+   * version published before this was recorded.
+   */
+  publishedBy: string | null
+  entityCount: number | null
+  relationshipCount: number | null
+  /** False on a saved report whose graph has since been unpublished. */
+  live: boolean
+}
+
+const REPORT_TILE = shape({
+  label: str,
+  value: str,
+  unit: str,
+  tone: nullable(oneOf(['good', 'warn', 'crit', 'neutral'])),
+})
+
+const REPORT_COLUMNS = arrayOf(shape({ key: str, label: str, kind: oneOf(['num', 'cat']) }))
+/* A row's own keys are the report's field keys, so only its object-ness is checked here.
+   The columns are what a table renders, and every one of those is checked above. */
+const REPORT_ROWS = arrayOf(shape({}))
+
+/* One field list, two shapes: a chart, and a chart that may carry a companion. */
+const REPORT_CHART_FIELDS = {
+  type: oneOf(['chart']),
+  chart: oneOf(['bar', 'line', 'column', 'grouped', 'pie', 'donut']),
+  title: str,
+  x_label: nullable(str),
+  y_label: nullable(str),
+  note: nullable(str),
+  width: nullable(num),
+  series: nullable(arrayOf(shape({ key: str, label: str }))),
+  data: arrayOf(
+    shape({
+      label: str,
+      value: num,
+      tone: nullable(oneOf(['good', 'warn', 'crit'])),
+      values: nullable(objectOnly),
+    }),
+  ),
+}
+
+const REPORT_CHART = shape(REPORT_CHART_FIELDS)
+
+const REPORT_CHART_WITH_COMPANION = shape({
+  ...REPORT_CHART_FIELDS,
+  companion: nullable(shape(REPORT_CHART_FIELDS)),
+})
+
+const REPORT_BLOCK = variant('type', {
+  chart: REPORT_CHART_WITH_COMPANION,
+  table: shape({
+    title: str,
+    columns: REPORT_COLUMNS,
+    rows: REPORT_ROWS,
+    sorted_by: nullable(str),
+  }),
+  facilities: shape({
+    title: str,
+    columns: REPORT_COLUMNS,
+    rows: REPORT_ROWS,
+    subject: nullable(str),
+    charts: arrayOf(REPORT_CHART),
+  }),
+  quarterly: shape({
+    title: str,
+    columns: REPORT_COLUMNS,
+    rows: REPORT_ROWS,
+    charts: arrayOf(REPORT_CHART),
+  }),
+  traces: shape({ title: str, columns: REPORT_COLUMNS, rows: REPORT_ROWS }),
+})
+
+/* Nullable because it is null until a graph is published, which is the gate itself. */
+const REPORT_GRAPH_FIELDS = {
+  use_case_id: str,
+  name: str,
+  domain_id: nullable(str),
+  version: nullable(str),
+  sha256: nullable(str),
+  built_at: nullable(str),
+  published_by: nullable(str),
+  entity_count: nullable(num),
+  relationship_count: nullable(num),
+  live: nullable(bool),
+}
+const REPORT_GRAPH = nullable(shape(REPORT_GRAPH_FIELDS))
+const REPORT_GRAPHS = arrayOf(shape(REPORT_GRAPH_FIELDS))
+
+/* ---------------- Reports: authoring ---------------- */
+
+/*
+ * Authoring a report is three steps and two calls, and the split is the promise the page
+ * makes: **"nothing runs against your compliance data until you're happy with it"**.
+ *
+ *   POST /reports/read   → a sentence and a frame. No figures. Paced, because reading a
+ *                          question back is the one act here that reads as a model call.
+ *   POST /reports/build  → the report. Every figure computed server-side, and the payload
+ *                          says whether it is the *written* report or a **generated** one.
+ *
+ * A saved report holds its frame and never its figures, so re-opening one re-asks it —
+ * the same rule the What-if library follows.
+ */
+
+/** One option on a picker, with the tenant's own gloss. */
+export interface ReportOption {
+  value: string
+  label: string
+  detail: string
+}
+
+/** The three questions a frame answers, and what each may be set to. */
+export interface ReportOpts {
+  scope: { question: string; options: ReportOption[] }
+  measure: { question: string; options: ReportOption[] }
+  horizon: { question: string; options: ReportOption[] }
+}
+
+/** A facet a generator report can be sliced by, with the values present in the roster. */
+export interface ReportFacet {
+  key: string
+  label: string
+  values: { value: string; label: string; count: number }[]
+}
+
+export interface ReportAuthoring {
+  opts: ReportOpts
+  facets: ReportFacet[]
+  defaults: { scope: string; measure: string; horizon: string }
+}
+
+/** What a report is asked under. Sent to /reports/build and stored in the library. */
+export interface ReportFrame {
+  reportId: string
+  /** The published graph this is asked of — part of the frame, not of the request. */
+  useCaseId: string | null
+  scope: string
+  measure: string
+  horizon: string
+  filters: { key: string; value: string }[]
+}
+
+/** A filter as the built report reports it back, with both labels resolved. */
+export interface ReportFilter {
+  key: string
+  label: string
+  value: string
+  valueLabel: string
+}
+
+/** The read-back: what the question was understood as, before anything runs. */
+export interface ReportReadBack {
+  question: string
+  /** The graph the question is being asked of, echoed back. */
+  graph: ReportGraph | null
+  /** False is a real outcome: it was read as the register and says so. */
+  matched: boolean
+  why: string
+  reportTag: string
+  heading: string
+  spine: string
+  frame: ReportFrame
+  reading: string
+  assumptions: { slot: string; label: string }[]
+  caveats: string[]
+}
+
+/** A built report: a `Report`, plus what makes it this frame's rather than the written one. */
+export interface BuiltReport extends Report {
+  /** `written` = the frame the report was written for; `generated` = re-asked. */
+  variant: 'written' | 'generated'
+  filters: ReportFilter[]
+  /** Null unless the spine has no summary to compute — said rather than left blank. */
+  summaryNote: string | null
+  caveats: string[]
+}
+
+export interface SavedReport {
+  savedId: string
+  name: string
+  question: string | null
+  reportId: string
+  /** The graph it was asked of — `live: false` if that graph is no longer published. */
+  graph: ReportGraph | null
+  /** The signed-in address the browser sent when it was saved. */
+  savedBy: string | null
+  /**
+   * The roles this report is meant for.
+   *
+   * A demo control, not a permission: the role is client-held, so it narrows what the section
+   * shows a reader rather than what the API will serve. Defaults to every role.
+   */
+  viewerRoles: { roleId: string; label: string }[]
+  reportTag: string
+  heading: string
+  scope: string
+  measure: string
+  horizon: string
+  scopeLabel: string
+  measureLabel: string
+  horizonLabel: string
+  filters: ReportFilter[]
+  savedAt: string
+}
+
+const REPORT_OPTS = shape({
+  scope: shape({ q: str, options: arrayOf(shape({ value: str, label: str, d: str })) }),
+  measure: shape({ q: str, options: arrayOf(shape({ value: str, label: str, d: str })) }),
+  horizon: shape({ q: str, options: arrayOf(shape({ value: str, label: str, d: str })) }),
+})
+
+const REPORT_AUTHORING = nullable(
+  shape({
+    opts: REPORT_OPTS,
+    facets: arrayOf(
+      shape({
+        key: str,
+        label: str,
+        values: arrayOf(shape({ value: str, label: str, count: num })),
+      }),
+    ),
+    defaults: shape({ scope: str, measure: str, horizon: str }),
+  }),
+)
+
+const REPORT_FILTERS = arrayOf(shape({ key: str, label: str, value: str, value_label: str }))
+
+const REPORT_FRAME = shape({
+  report_id: str,
+  use_case_id: nullable(str),
+  scope: str,
+  measure: str,
+  horizon: str,
+  filters: arrayOf(shape({ key: str, value: str })),
+})
+
+const REPORT_READBACK = shape({
+  question: str,
+  graph: REPORT_GRAPH,
+  matched: bool,
+  why: str,
+  report_tag: str,
+  heading: str,
+  spine: str,
+  frame: REPORT_FRAME,
+  reading: str,
+  assumptions: arrayOf(shape({ slot: str, label: str })),
+  caveats: arrayOf(str),
+})
+
+const REPORT_SAVED_ROW = shape({
+  saved_id: str,
+  name: str,
+  question: nullable(str),
+  report_id: str,
+  use_case_id: nullable(str),
+  graph: REPORT_GRAPH,
+  saved_by: nullable(str),
+  viewer_roles: arrayOf(shape({ role_id: str, label: str })),
+    report_tag: str,
+    heading: str,
+    scope: str,
+    measure: str,
+    horizon: str,
+    scope_label: str,
+    measure_label: str,
+    horizon_label: str,
+  filters: REPORT_FILTERS,
+  saved_at: str,
+})
+
+const REPORT_SAVED = arrayOf(REPORT_SAVED_ROW)
+const REPORT_SAVED_PAYLOAD = shape({ saved: REPORT_SAVED })
+
+
+
+const REPORTS_INDEX = shape({
+  connected_sources: num,
+  published_count: num,
+  built_count: num,
+  draft_count: num,
+  graph: REPORT_GRAPH,
+  graphs: REPORT_GRAPHS,
+  saved: REPORT_SAVED,
+  authoring: REPORT_AUTHORING,
+  reports: arrayOf(
+    shape({
+      report_id: str,
+      report_tag: str,
+      heading: str,
+      subtitle: str,
+      question: str,
+      spine: str,
+      row_count: num,
+      spine_total: num,
+      block_kinds: arrayOf(str),
+      tiles: arrayOf(REPORT_TILE),
+    }),
+  ),
+})
+
+/* One report's fields, shared by the written payload and the built one — a built report
+   is the same report asked under a chosen frame, so its shape cannot drift from this. */
+const REPORT_FIELDS = {
+  report_id: str,
+  report_tag: str,
+  heading: str,
+  subtitle: str,
+  badge: str,
+  note: nullable(str),
+  title: str,
+  question: str,
+  spine: str,
+  row_count: num,
+  spine_total: num,
+  reading: str,
+  assumptions: arrayOf(shape({ slot: str, label: str })),
+  facets: arrayOf(
+    shape({
+      key: str,
+      label: str,
+      values: arrayOf(shape({ value: str, label: str, count: num })),
+    }),
+  ),
+  frame: REPORT_FRAME,
+  tiles: arrayOf(REPORT_TILE),
+  footer: arrayOf(shape({ label: str, text: str })),
+  blocks: arrayOf(REPORT_BLOCK),
+  source_trace: str,
+  graph: REPORT_GRAPH,
+}
+
+const REPORT_PAYLOAD = shape({
+  connected_sources: num,
+  published_count: num,
+  built_count: num,
+  draft_count: num,
+  report: nullable(shape(REPORT_FIELDS)),
+})
+
+interface RawReportSummary {
+  report_id: string
+  report_tag: string
+  heading: string
+  subtitle: string
+  question: string
+  spine: string
+  row_count: number
+  spine_total: number
+  block_kinds: string[]
+  tiles: ReportTile[]
+}
+
+interface RawReportBlock {
+  type: ReportBlock['type']
+  title: string
+  columns?: ReportColumn[]
+  rows?: ReportRow[]
+  sorted_by?: string | null
+  subject?: string | null
+  charts?: ReportChart[]
+  chart?: ReportChart['chart']
+  data?: ReportChart['data']
+  x_label?: string | null
+  y_label?: string | null
+  note?: string | null
+}
+
+interface RawReport {
+  report_id: string
+  report_tag: string
+  heading: string
+  subtitle: string
+  badge: string
+  note: string | null
+  title: string
+  question: string
+  spine: string
+  row_count: number
+  spine_total: number
+  reading: string
+  assumptions: { slot: string; label: string }[]
+  facets: ReportFacet[]
+  frame: RawReportFrame
+  tiles: ReportTile[]
+  footer: ReportFootnote[]
+  blocks: RawReportBlock[]
+  source_trace: string
+  graph: RawReportGraph | null
+}
+
+interface RawReportGraph {
+  use_case_id: string
+  name: string
+  domain_id?: string | null
+  version: string | null
+  sha256: string | null
+  built_at: string | null
+  published_by?: string | null
+  entity_count?: number | null
+  relationship_count?: number | null
+  live?: boolean
+}
+
+const toReportGraph = (g: RawReportGraph | null): ReportGraph | null =>
+  g
+    ? {
+        useCaseId: g.use_case_id,
+        name: g.name,
+        domainId: g.domain_id ?? null,
+        version: g.version,
+        sha256: g.sha256,
+        builtAt: g.built_at,
+        publishedBy: g.published_by ?? null,
+        entityCount: g.entity_count ?? null,
+        relationshipCount: g.relationship_count ?? null,
+        /* Absent means live: only a saved report's graph carries the flag, and only
+           because it can name one that has since been unpublished. */
+        live: g.live ?? true,
+      }
+    : null
+
+/* `sorted_by` is the only snake_case field a block carries that the UI reads; every
+   other block arrives in the shape its chart or table component already takes. */
+const toReportBlock = (b: RawReportBlock): ReportBlock =>
+  b.type === 'table'
+    ? {
+        type: 'table',
+        title: b.title,
+        columns: b.columns ?? [],
+        rows: b.rows ?? [],
+        sortedBy: b.sorted_by ?? null,
+      }
+    : (b as unknown as ReportBlock)
+
+/** The section: what has been written, and what this dataset cannot answer. */
+export async function getReports(asRole?: string | null): Promise<ReportsIndex> {
+  const raw = validate<{
+    connected_sources: number
+    published_count: number
+    built_count: number
+    draft_count: number
+    graph: RawReportGraph | null
+    graphs: RawReportGraph[]
+    saved: RawSavedReport[]
+    authoring: RawReportAuthoring | null
+    reports: RawReportSummary[]
+  }>(
+    'The report section',
+    await request<unknown>(
+      asRole ? `/reports?as_role=${encodeURIComponent(asRole)}` : '/reports',
+    ),
+    REPORTS_INDEX,
+  )
+
+  return {
+    connectedSources: raw.connected_sources,
+    publishedCount: raw.published_count,
+    builtCount: raw.built_count,
+    draftCount: raw.draft_count,
+    graph: toReportGraph(raw.graph),
+    graphs: raw.graphs.map((g) => toReportGraph(g)).filter((g): g is ReportGraph => g !== null),
+    saved: raw.saved.map(toSaved),
+    authoring: raw.authoring ? toAuthoring(raw.authoring) : null,
+    reports: raw.reports.map((r) => ({
+      reportId: r.report_id,
+      reportTag: r.report_tag,
+      heading: r.heading,
+      subtitle: r.subtitle,
+      question: r.question,
+      spine: r.spine,
+      rowCount: r.row_count,
+      spineTotal: r.spine_total,
+      blockKinds: r.block_kinds,
+      tiles: r.tiles,
+    })),
+  }
+}
+
+/* One mapper for a report however it arrived — read by id, or built from a frame. */
+const toReport = (r: RawReport): Report => ({
+  reportId: r.report_id,
+  reportTag: r.report_tag,
+  heading: r.heading,
+  subtitle: r.subtitle,
+  badge: r.badge,
+  note: r.note,
+  title: r.title,
+  question: r.question,
+  spine: r.spine,
+  rowCount: r.row_count,
+  spineTotal: r.spine_total,
+  reading: r.reading,
+  assumptions: r.assumptions,
+  facets: r.facets,
+  frame: toFrame(r.frame),
+  tiles: r.tiles,
+  footer: r.footer,
+  blocks: r.blocks.map(toReportBlock),
+  sourceTrace: r.source_trace,
+  graph: toReportGraph(r.graph),
+})
+
+/** One report, with every figure already computed against its roster. */
+export async function getReport(reportId: string): Promise<{
+  connectedSources: number
+  publishedCount: number
+  builtCount: number
+  draftCount: number
+  report: Report | null
+}> {
+  const raw = validate<{
+    connected_sources: number
+    published_count: number
+    built_count: number
+    draft_count: number
+    report: RawReport | null
+  }>(
+    'The report',
+    await request<unknown>(`/reports/${encodeURIComponent(reportId)}`),
+    REPORT_PAYLOAD,
+  )
+
+  return {
+    connectedSources: raw.connected_sources,
+    publishedCount: raw.published_count,
+    builtCount: raw.built_count,
+    draftCount: raw.draft_count,
+    report: raw.report ? toReport(raw.report) : null,
+  }
+}
+
+interface RawReportOptSlot {
+  q: string
+  options: { value: string; label: string; d: string }[]
+}
+
+interface RawReportAuthoring {
+  opts: Record<'scope' | 'measure' | 'horizon', RawReportOptSlot>
+  facets: ReportFacet[]
+  defaults: { scope: string; measure: string; horizon: string }
+}
+
+interface RawReportFrame {
+  report_id: string
+  use_case_id: string | null
+  scope: string
+  measure: string
+  horizon: string
+  filters: { key: string; value: string }[]
+}
+
+interface RawReportFilter {
+  key: string
+  label: string
+  value: string
+  value_label: string
+}
+
+interface RawSavedReport {
+  saved_id: string
+  name: string
+  question: string | null
+  report_id: string
+  use_case_id: string | null
+  graph: RawReportGraph | null
+  saved_by: string | null
+  viewer_roles: { role_id: string; label: string }[]
+  report_tag: string
+  heading: string
+  scope: string
+  measure: string
+  horizon: string
+  scope_label: string
+  measure_label: string
+  horizon_label: string
+  filters: RawReportFilter[]
+  saved_at: string
+}
+
+/* `q`/`d` are the prototype's field names for the question and the gloss; spelled out
+   here because a picker's help text is read by a user, not by the prototype. */
+const toOptSlot = (slot: RawReportOptSlot) => ({
+  question: slot.q,
+  options: slot.options.map((o) => ({ value: o.value, label: o.label, detail: o.d })),
+})
+
+const toAuthoring = (raw: RawReportAuthoring): ReportAuthoring => ({
+  opts: {
+    scope: toOptSlot(raw.opts.scope),
+    measure: toOptSlot(raw.opts.measure),
+    horizon: toOptSlot(raw.opts.horizon),
+  },
+  facets: raw.facets,
+  defaults: raw.defaults,
+})
+
+const toFrame = (raw: RawReportFrame): ReportFrame => ({
+  reportId: raw.report_id,
+  useCaseId: raw.use_case_id ?? null,
+  scope: raw.scope,
+  measure: raw.measure,
+  horizon: raw.horizon,
+  filters: raw.filters,
+})
+
+const fromFrame = (frame: ReportFrame) => ({
+  report_id: frame.reportId,
+  use_case_id: frame.useCaseId,
+  scope: frame.scope,
+  measure: frame.measure,
+  horizon: frame.horizon,
+  filters: frame.filters,
+})
+
+const toFilter = (f: RawReportFilter): ReportFilter => ({
+  key: f.key,
+  label: f.label,
+  value: f.value,
+  valueLabel: f.value_label,
+})
+
+const toSaved = (s: RawSavedReport): SavedReport => ({
+  savedId: s.saved_id,
+  name: s.name,
+  question: s.question,
+  reportId: s.report_id,
+  graph: toReportGraph(s.graph),
+  savedBy: s.saved_by,
+  viewerRoles: s.viewer_roles.map((r) => ({ roleId: r.role_id, label: r.label })),
+  reportTag: s.report_tag,
+  heading: s.heading,
+  scope: s.scope,
+  measure: s.measure,
+  horizon: s.horizon,
+  scopeLabel: s.scope_label,
+  measureLabel: s.measure_label,
+  horizonLabel: s.horizon_label,
+  filters: s.filters.map(toFilter),
+  savedAt: s.saved_at,
+})
+
+/**
+ * Read a typed question back as one sentence — or start from a standard report.
+ *
+ * Nothing is built here. Pass `reportId` to start from a chip, in which case there is no
+ * question to interpret and the answer is immediate; a typed question is paced.
+ */
+export async function readReportQuestion(input: {
+  question?: string
+  reportId?: string
+  /** The published graph the question is asked of. */
+  useCaseId?: string | null
+}): Promise<ReportReadBack> {
+  const raw = validate<{
+    question: string
+    graph: RawReportGraph | null
+    matched: boolean
+    why: string
+    report_tag: string
+    heading: string
+    spine: string
+    frame: RawReportFrame
+    reading: string
+    assumptions: { slot: string; label: string }[]
+    caveats: string[]
+  }>(
+    'The read-back',
+    await request<unknown>('/reports/read', {
+      method: 'POST',
+      body: {
+        question: input.question ?? null,
+        report_id: input.reportId ?? null,
+        use_case_id: input.useCaseId ?? null,
+      },
+    }),
+    REPORT_READBACK,
+  )
+
+  return {
+    question: raw.question,
+    graph: toReportGraph(raw.graph),
+    matched: raw.matched,
+    why: raw.why,
+    reportTag: raw.report_tag,
+    heading: raw.heading,
+    spine: raw.spine,
+    frame: toFrame(raw.frame),
+    reading: raw.reading,
+    assumptions: raw.assumptions,
+    caveats: raw.caveats,
+  }
+}
+
+/* The built-report shape and its mapper, shared by `POST /reports/build` and
+   `GET /reports/saved/:id` — the two ways one arrives. Two copies would drift. */
+const BUILT_REPORT_FIELDS = {
+  ...REPORT_FIELDS,
+  variant: oneOf(['written', 'generated']),
+  filters: REPORT_FILTERS,
+  summary_note: nullable(str),
+  caveats: arrayOf(str),
+}
+
+const toBuiltReport = (
+  r: RawReport & {
+    variant: 'written' | 'generated'
+    filters: RawReportFilter[]
+    summary_note: string | null
+    caveats: string[]
+  },
+): BuiltReport => ({
+  ...toReport(r),
+  variant: r.variant,
+  filters: r.filters.map(toFilter),
+  summaryNote: r.summary_note,
+  caveats: r.caveats,
+})
+
+/** Build the report this frame describes. Every figure comes back computed. */
+export async function buildReport(frame: ReportFrame): Promise<BuiltReport> {
+  const raw = validate<{
+    report: RawReport & {
+      variant: 'written' | 'generated'
+      filters: RawReportFilter[]
+      summary_note: string | null
+      caveats: string[]
+    }
+  }>(
+    'The built report',
+    await request<unknown>('/reports/build', { method: 'POST', body: fromFrame(frame) }),
+    shape({ report: shape(BUILT_REPORT_FIELDS) }),
+  )
+
+  return toBuiltReport(raw.report)
+}
+
+
+/** Save a question to the library — the frame, never the figures. */
+export async function saveReport(input: {
+  savedId?: string | null
+  name: string
+  question: string | null
+  frame: ReportFrame
+  /** The signed-in address. The server cannot look it up — the identity is client-held. */
+  savedBy?: string | null
+}): Promise<SavedReport[]> {
+  const raw = validate<{ saved: RawSavedReport[] }>(
+    'The saved report',
+    await request<unknown>('/reports/saved', {
+      method: 'POST',
+      body: {
+        saved_id: input.savedId ?? null,
+        name: input.name,
+        question: input.question,
+        saved_by: input.savedBy ?? null,
+        ...fromFrame(input.frame),
+      },
+    }),
+    REPORT_SAVED_PAYLOAD,
+  )
+  return raw.saved.map(toSaved)
+}
+
+/**
+ * Set which roles a saved report is meant for.
+ *
+ * Its own call rather than a re-save: the frame, the name and the question are untouched, and
+ * re-posting all three to change an audience invites one of them to arrive stale.
+ */
+export async function setSavedReportRoles(
+  savedId: string,
+  roleIds: string[],
+): Promise<SavedReport[]> {
+  const raw = validate<{ saved: RawSavedReport[] }>(
+    'The report audience',
+    await request<unknown>(`/reports/saved/${encodeURIComponent(savedId)}/roles`, {
+      method: 'POST',
+      body: { viewer_roles: roleIds },
+    }),
+    REPORT_SAVED_PAYLOAD,
+  )
+  return raw.saved.map(toSaved)
+}
+
+/** Remove a saved question. */
+export async function deleteSavedReport(savedId: string): Promise<SavedReport[]> {
+  const raw = validate<{ saved: RawSavedReport[] }>(
+    'The saved report',
+    await request<unknown>(`/reports/saved/${encodeURIComponent(savedId)}`, { method: 'DELETE' }),
+    REPORT_SAVED_PAYLOAD,
+  )
+  return raw.saved.map(toSaved)
+}
+
+/**
+ * Open a saved report: its frame, re-asked now.
+ *
+ * The row comes back beside the report because the page states what the figures do not —
+ * who saved it, when, and which graph it was asked of.
+ */
+export async function getSavedReport(savedId: string): Promise<{
+  connectedSources: number
+  publishedCount: number
+  builtCount: number
+  draftCount: number
+  saved: SavedReport | null
+  report: BuiltReport | null
+}> {
+  const raw = validate<{
+    connected_sources: number
+    published_count: number
+    built_count: number
+    draft_count: number
+    saved: RawSavedReport | null
+    report:
+      | (RawReport & {
+          variant: 'written' | 'generated'
+          filters: RawReportFilter[]
+          summary_note: string | null
+          caveats: string[]
+        })
+      | null
+  }>(
+    'The saved report',
+    await request<unknown>(`/reports/saved/${encodeURIComponent(savedId)}`),
+    shape({
+      connected_sources: num,
+      published_count: num,
+      built_count: num,
+      draft_count: num,
+      saved: nullable(REPORT_SAVED_ROW),
+      report: nullable(shape(BUILT_REPORT_FIELDS)),
+    }),
+  )
+
+  return {
+    connectedSources: raw.connected_sources,
+    publishedCount: raw.published_count,
+    builtCount: raw.built_count,
+    draftCount: raw.draft_count,
+    saved: raw.saved ? toSaved(raw.saved) : null,
+    report: raw.report ? toBuiltReport(raw.report) : null,
+  }
 }

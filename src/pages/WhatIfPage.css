@@ -335,3 +335,19 @@
   margin: 0;
   font-size: 11px;
 }
+
+/* The disclosure that opens a graph reference — the package's own words, as a link. */
+.wi-graph-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #b23c17;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.wi-graph-link:hover {
+  text-decoration: underline;
+}

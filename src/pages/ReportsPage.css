@@ -1,0 +1,942 @@
+/*
+ * The report section — the list and one report share this sheet, because they are one
+ * design: the same chips, the same chain marks, the same footer.
+ *
+ * Spacing from the --sp-* scale only; layout via antd Row/Col. Every chip here is a
+ * **category** (a report tag, a block kind, an assumption, a row count) and stays
+ * neutral, so nothing on the page can be mistaken for a status. The two status colours
+ * that do appear — a risk tier in a register, a rejected load in a trace — are
+ * `StatusTag`s, with an icon and a word.
+ */
+
+.rp-dim {
+  color: #8994a8;
+}
+
+/* ---------------- the section list ---------------- */
+
+/*
+ * A card is one report, and the whole card is the target.
+ *
+ * Full height with a column body, so the figures pin to the foot: the question and the
+ * tenant's subtitle differ by a line or two between reports, and two cards side by side
+ * with their tile strips at different heights is the thing that made this grid look
+ * unaligned. Everything above the strip stacks from the top; the strip has `margin-top:
+ * auto`, so the strips line up across a row whatever the prose does.
+ */
+.rp-card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.rp-card:hover {
+  border-color: #f6c3b2;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 4%), 0 6px 16px rgb(16 24 40 / 6%);
+}
+
+.rp-card > .ant-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+/* The tag and the heading share a baseline rather than a centre line: the tag is a
+   smaller mark, and centring it made the heading sit low. */
+.rp-card-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: baseline;
+  white-space: normal;
+}
+
+.rp-card-heading {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/*
+ * The question the report answers — the line a reader scans for, so it leads. A medium
+ * weight rather than bold: the heading above it is already 600, and two bold lines stacked
+ * give the eye no order to read them in.
+ */
+.rp-card-q {
+  margin: 0 0 var(--sp-2);
+  color: #253044;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.rp-card-sub {
+  margin: 0;
+  color: #6b7488;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* Carries the gap to the strip below it: the strip's own top margin is `auto` and
+   collapses to nothing on a tall card, so the fixed space has to live here. */
+.rp-card-chips {
+  margin-top: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+/*
+ * The card's headline figures. A definition list would be the semantic choice, but the
+ * value has to lead and be the bigger mark, so each item is a stacked pair.
+ *
+ * `auto-fit` with a floor rather than four fixed columns: cards in a row are the same
+ * width, so auto-fit lays them out identically — and the floor is what lets a half-width
+ * card fall to two columns instead of ellipsing "CONSENT-DECREE GENERATORS" to fit four.
+ * Aligning the columns is not worth truncating the label that says what the figure is.
+ */
+.rp-card-tiles {
+  display: grid;
+  /* `auto` on top is what pins the strip to the foot of the card, and the foot is what
+     aligns the figures across a row whatever the prose above them does. */
+  margin: auto 0 0;
+  padding: var(--sp-4) 0 0;
+  border-top: 1px solid #eef0f4;
+  gap: var(--sp-4) var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  list-style: none;
+}
+
+.rp-card-tiles li {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.rp-tile-v {
+  color: #0f1729;
+  /* Tabular figures, so 36 · 1,876 · 79.3% share a column width down the grid. */
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.rp-tile-k {
+  overflow: hidden;
+  color: #8994a8;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* A label column and a detail column, one row each — a bulleted list of prose put the name
+   mid-sentence, where the reader is not looking for it. Used by the published-graph list. */
+.rp-defs {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: var(--sp-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+  list-style: none;
+}
+
+.rp-defs li {
+  display: grid;
+  gap: var(--sp-1) var(--sp-3);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (width >= 900px) {
+  .rp-defs li {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+}
+
+/* ---------------- one report ---------------- */
+
+/* The facility a report is about, stated beside its heading rather than in it. */
+.rp-badge {
+  display: inline-flex;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid #f6c3b2;
+  border-radius: 999px;
+  background: #fdefea;
+  color: #b23c17;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rp-note {
+  margin-bottom: var(--sp-4);
+}
+
+.rp-reading-text {
+  margin: var(--sp-1) 0 var(--sp-3);
+  color: #4a5568;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.rp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* Neutral on purpose — see the note at the top of this file. */
+.rp-chip {
+  margin: 0;
+  font-size: 11px;
+}
+
+/* The subject row of a comparison, tinted so the peers read as context. */
+.rp-subject > td {
+  background: #fdf3ef;
+  font-weight: 600;
+}
+
+.rp-foot {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid #eef0f4;
+  color: #4a5568;
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+
+.rp-foot p {
+  margin: 0;
+}
+
+/*
+ * Label column, text column — **one** grid for the whole list, not a grid per row: each
+ * report chooses its own labels ("Bridge.", "Why it matters."), and per-row grids would
+ * size each label independently and leave the sentences starting at different x again.
+ * `max-content` on the shared column sizes it to the longest label this report uses.
+ */
+.rp-foot-defs {
+  display: grid;
+  margin: 0 0 var(--sp-2);
+  gap: var(--sp-1) var(--sp-3);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (width >= 900px) {
+  .rp-foot-defs {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+}
+
+.rp-foot-defs dt {
+  color: #0f1729;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rp-foot-defs dd {
+  margin: 0;
+}
+
+/* ---------------- the saved library ---------------- */
+
+.rp-tray {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.rp-tray:last-of-type {
+  margin-bottom: var(--sp-2);
+}
+
+.rp-tray-meta {
+  font-size: 11.5px;
+}
+
+.rp-tray-actions {
+  display: inline-flex;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+/* ---------------- authoring ---------------- */
+
+.rp-steps {
+  max-width: 520px;
+  margin: 0 auto var(--sp-5);
+}
+
+.rp-ask h3,
+.rp-confirm h3 {
+  margin: 0 0 var(--sp-3);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.rp-ask-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-3);
+  font-size: 12px;
+}
+
+.rp-divider {
+  margin: var(--sp-5) 0 var(--sp-4);
+  border-top: 1px solid #eef0f4;
+}
+
+.rp-label {
+  margin-bottom: var(--sp-2);
+  color: #8994a8;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A standard report to start from — a category, so neutral. */
+.rp-starter {
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid #e5e8ee;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f1729;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.rp-starter:hover {
+  border-color: #f4562b;
+  color: #b23c17;
+}
+
+/* The sentence the whole flow exists to get right. */
+.rp-reading-quote {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
+  border-left: 3px solid #f4562b;
+  background: #fdf6f3;
+  color: #0f1729;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.rp-picker {
+  margin-bottom: var(--sp-5);
+}
+
+.rp-picker-q {
+  margin-bottom: var(--sp-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rp-picker-note {
+  margin: var(--sp-2) 0 0;
+  color: #8994a8;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+/* An option carries its own gloss, so the two lines stack inside one target. */
+.rp-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 260px;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid #e5e8ee;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.rp-opt:hover {
+  border-color: #cfd5e0;
+}
+
+.rp-opt.is-on {
+  border-color: #f4562b;
+  background: #fdf1ec;
+}
+
+.rp-opt.is-slim {
+  flex-direction: row;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.rp-opt-label {
+  color: #0f1729;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.rp-opt-detail {
+  color: #8994a8;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.rp-facet {
+  margin-bottom: var(--sp-3);
+}
+
+.rp-foot-row {
+  display: flex;
+  gap: var(--sp-3);
+  justify-content: flex-end;
+  margin-top: var(--sp-4);
+}
+
+.rp-built-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: var(--sp-4);
+}
+
+.rp-built-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+/* ---------------- custody chains ---------------- */
+
+.rp-trace {
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.rp-trace:last-child {
+  border-bottom: 0;
+}
+
+.rp-trace-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+  margin-bottom: var(--sp-2);
+}
+
+.rp-trace-meta {
+  color: #8994a8;
+  font-size: 11.5px;
+}
+
+.rp-trace-flags {
+  display: inline-flex;
+  gap: var(--sp-2);
+  align-items: center;
+  margin-left: auto;
+}
+
+.rp-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  align-items: center;
+  font-size: 11.5px;
+}
+
+.rp-chain-step {
+  display: inline-flex;
+  gap: var(--sp-1);
+  align-items: center;
+}
+
+.rp-chain-node {
+  padding: 2px var(--sp-2);
+  border: 1px solid #e5e8ee;
+  border-radius: 6px;
+  background: #f7f8fa;
+  white-space: nowrap;
+}
+
+/* The receiving end of the chain — where custody stops, which is the point of it. */
+.rp-chain-node.is-end {
+  border-color: #f6c3b2;
+  background: #fdefea;
+  color: #b23c17;
+}
+
+.rp-chain-arrow {
+  color: #f4562b;
+  font-weight: 700;
+}
+
+/* ---------------- one report, whichever way it was reached ---------------- */
+
+/*
+ * The head of `ReportView`. The badge and the surface's own actions sit in a column on the
+ * right so a two-line heading cannot push them out of alignment with each other.
+ */
+.rp-view-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--sp-4);
+}
+
+.rp-view-title {
+  margin: var(--sp-2) 0 var(--sp-1);
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.rp-view-sub {
+  max-width: 760px;
+  margin: 0;
+  color: #6b7488;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.rp-view-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-items: flex-end;
+}
+
+.rp-view-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ---------------- choosing a published graph ---------------- */
+
+.rp-graphs {
+  display: grid;
+  margin-top: var(--sp-4);
+  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+/* A graph is a choice, so it is a button; the pressed state is the only "selected" mark. */
+.rp-graph {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-4);
+  border: 1px solid #e5e8ee;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.rp-graph:hover {
+  border-color: #cfd5e0;
+}
+
+.rp-graph.is-on {
+  border-color: #f4562b;
+  background: #fdf1ec;
+}
+
+.rp-graph-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: baseline;
+}
+
+.rp-graph-name {
+  color: #0f1729;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rp-graph-meta {
+  color: #6b7488;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* The content hash — an identity, so it is set as one. */
+.rp-graph-sha {
+  overflow: hidden;
+  color: #8994a8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+}
+
+/* Which graph the wizard is asking, carried on every step after the choice. */
+.rp-asking-of {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+  margin-bottom: var(--sp-3);
+  color: #6b7488;
+  font-size: 11.5px;
+}
+
+/* ---------------- your reports ---------------- */
+
+/* The name opens the report, so it is a button rather than a heading beside one. */
+.rp-tray-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #0f1729;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.rp-tray-open:hover {
+  color: #b23c17;
+  text-decoration: underline;
+}
+
+.rp-mine .rp-tray:last-of-type {
+  border-bottom: 0;
+}
+
+/* ---------------- a group of report cards ---------------- */
+
+/* A heading for a group of cards, so "standard" and "yours" are two named sets rather
+   than one long grid. */
+.rp-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  align-items: baseline;
+  margin: var(--sp-6) 0 var(--sp-3);
+}
+
+.rp-group:first-of-type {
+  margin-top: 0;
+}
+
+.rp-group h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rp-group span {
+  font-size: 12px;
+}
+
+/* Actions on a saved card, pinned under the strip that pins to the foot. */
+.rp-card-foot {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: auto;
+  padding-top: var(--sp-4);
+}
+
+/* ---------------- naming a report before it is kept ---------------- */
+
+.rp-name-card {
+  margin-bottom: var(--sp-4);
+  border-color: #f6c3b2;
+  background: #fdf6f3;
+}
+
+.rp-name-row {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (width >= 900px) {
+  .rp-name-row {
+    align-items: center;
+    grid-template-columns: minmax(0, 1fr) 260px max-content;
+  }
+}
+
+/* ---------------- the report's own filter bar ---------------- */
+
+/*
+ * The chip bar the package's reports carry. Every chip is a **category** — a slice is not a
+ * state — so they stay neutral, and the active one is marked with the brand tint the rest of
+ * this section uses for a chosen option.
+ */
+.rp-fbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.rp-fgroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.rp-fchip {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid #e5e8ee;
+  border-radius: 999px;
+  background: #fff;
+  color: #4a5568;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.rp-fchip:hover:not(:disabled) {
+  border-color: #cfd5e0;
+  color: #0f1729;
+}
+
+.rp-fchip.is-on {
+  border-color: #f4562b;
+  background: #fdf1ec;
+  color: #b23c17;
+  font-weight: 600;
+}
+
+.rp-fchip:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* ---------------- the package's density ---------------- */
+
+/*
+ * A report is a dense document, and the app's defaults are not: the package sets an 11.5px
+ * uppercase label over a 27px figure in a 16px card, and a 12.5px table at 9px cell padding.
+ * Scoped to the report surfaces rather than changed in `StatCards` or the theme, because the
+ * telemetry pages want the looser default and share both.
+ */
+.rp-tiles .ant-card-body {
+  padding: var(--sp-4) var(--sp-4);
+}
+
+.rp-tiles .ant-statistic-title {
+  margin-bottom: var(--sp-2);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+
+.rp-tiles .ant-statistic-content {
+  font-size: 27px;
+  line-height: 1.1;
+}
+
+.rp-table .ant-table {
+  font-size: 12.5px;
+}
+
+.rp-table .ant-table-thead > tr > th {
+  padding: var(--sp-2) var(--sp-3);
+  color: #6b7488;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rp-table .ant-table-tbody > tr > td {
+  padding: var(--sp-2) var(--sp-3);
+}
+
+/* Figures line up down a column, as they do in the package's tables. */
+.rp-table .ant-table-cell[class*='align-right'] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- a card's own padding ---------------- */
+
+/*
+ * **The theme sets `Card.bodyPadding: 0`**, so every card body here has to state its own — and
+ * a body at 0 beside a head at antd's default is what left this section's content flush to the
+ * card's left edge while its title sat 24px in. Both edges are set from the same token so they
+ * cannot drift again.
+ */
+.rp-saved > .ant-card-body,
+.rp-block > .ant-card-body,
+.rp-card > .ant-card-body,
+.rp-mine > .ant-card-body,
+.rp-panel > .ant-card-body {
+  padding: var(--sp-5);
+}
+
+.rp-saved > .ant-card-head,
+.rp-block > .ant-card-head,
+.rp-card > .ant-card-head,
+.rp-mine > .ant-card-head,
+.rp-panel > .ant-card-head {
+  padding-inline: var(--sp-5);
+}
+
+/* ---------------- a saved report's card ---------------- */
+
+/*
+ * The same card language as a written report, with room to breathe: the frame, who kept it, and
+ * who it is for are three separate readings, so each gets its own band rather than running into
+ * one grey paragraph.
+ */
+/*
+ * Plain block flow inside, deliberately.
+ *
+ * This card was `height: 100%` with a flex-column body and its foot pushed down by
+ * `margin-top: auto` — the equal-height trick the *written* report cards use. On a card that
+ * expands (the audience panel opens inside it) that stretched the box: the head grew to fill a
+ * height nothing was setting, and the content below it left the card's frame. A card that can
+ * change height is laid out by its content, and the spacing below is all explicit.
+ */
+.rp-saved {
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.rp-saved:hover {
+  border-color: #f6c3b2;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 4%), 0 6px 16px rgb(16 24 40 / 6%);
+}
+
+.rp-saved-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: baseline;
+  white-space: normal;
+}
+
+.rp-saved-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.rp-saved-q {
+  margin: 0 0 var(--sp-3);
+  color: #253044;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.rp-saved-frame {
+  margin-bottom: var(--sp-4);
+}
+
+/*
+ * Label column, value column, one grid for the whole list — a fixed label width so the values
+ * line up down the card, which per-row grids do not do.
+ */
+.rp-saved-meta {
+  display: grid;
+  margin: 0 0 var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid #eef0f4;
+  gap: var(--sp-2) var(--sp-4);
+  grid-template-columns: 84px minmax(0, 1fr);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.rp-saved-meta dt {
+  color: #8994a8;
+  font-weight: 600;
+}
+
+.rp-saved-meta dd {
+  margin: 0;
+  color: #253044;
+}
+
+/* The actions: one row, with the destructive one pushed to the far end. */
+.rp-saved-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+/* Destructive, and quiet: last in the row, no border, its colour doing the warning. */
+.rp-saved-remove {
+  margin-left: auto;
+}
+
+/* ---------------- who can view ---------------- */
+
+.rp-audience {
+  margin-top: var(--sp-4);
+  padding: var(--sp-4);
+  border: 1px solid #f6c3b2;
+  border-radius: 10px;
+  background: #fdf6f3;
+  cursor: default;
+}
+
+.rp-audience-roles {
+  display: grid;
+  margin: var(--sp-3) 0;
+  gap: var(--sp-3);
+}
+
+.rp-audience-role {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.rp-audience-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: center;
+  padding-top: var(--sp-3);
+  border-top: 1px solid #f6d9cd;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* The select-all sits above its own rule, so the five roles read as its members. */
+.rp-audience-all {
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid #f6d9cd;
+  margin-top: var(--sp-3);
+}

@@ -1260,3 +1260,174 @@ run had its payload.
 absent data is still a claim about absent data. Put everything the gate excludes in one
 component rather than gating each piece, so the next paragraph added to the page cannot
 land on the wrong side.
+
+---
+
+## A break-test that broke nothing, and nearly cost a good claim
+
+**Symptom** — the seven new `check-docs` claims for the report section were each broken
+once to prove they could fail. Two came back **MISSED**. On the face of it that meant two
+assertions that cannot fail — the worst kind — and the obvious next move was to rewrite
+them.
+
+**Root cause** — neither claim was weak; the *mutations* were. One searched for
+`"  gen_state: 'Generator state',\n"` in a CRLF file and matched nothing, so the file was
+never modified — the repo's own `\r?\n` pitfall, this time in the throwaway rather than in
+the check. The other bumped a generator's penalty by 1,000 and no checked identity
+depended on that generator, which was a real gap: the register's headline tile
+(`Total penalty exposure $1.80M`) was not among the identities being recomputed.
+
+**Fix** — the mutation now uses `/\r?\n/`, and the missing identity was added, so a
+roster edit anywhere in the register moves a checked figure. Both claims fail when broken,
+verified by breaking them again.
+
+**Guard** — *mechanical*, and the point of the entry: the break-harness now **verifies the
+mutation landed** (it compares file hashes before and after, and restores from a copy
+rather than from git), so "the claim did not fire" can no longer be confused with "the
+file did not change".
+
+**Rule** — **when a break-test reports a claim as unbreakable, suspect the break first.**
+A false MISSED argues for deleting a working guard, which is worse than a false pass — and
+one of the two here was pointing at a genuine hole in the identity set, which is exactly
+what a break-test is for.
+
+**Later, the same harness earned its keep the other way.** The publish gate added to
+Reports and the What-if lens was guarded by counting occurrences of
+`connected === 0 || counts.published_count === 0` and requiring at least two. Weakening the
+*lens's* gate left the two in the report routes behind, so the claim passed while the lens
+had stopped checking publication — a page open on a precondition it no longer tested. The
+break-test found it, and the claim now checks the `/whatif` route body specifically as well
+as the count. **A claim that counts instances does not say which instance**; where the fact
+is "each of these three does X", assert it of each.
+
+
+---
+
+## A re-publish credited the previous publisher
+
+**Symptom** — publishing was wired to the signed-in user, so "published by ana.delgado@…"
+appeared where the seeded account used to. Then a smoke run unpublished that version and
+published it again **without** sending an identity, and every line still read
+`ana.delgado@…` — crediting a person who had not performed that publish.
+
+**Root cause** — the record is keyed `useCaseId:sha256`, and the handler only *set* it when
+an identity arrived. A version's content hash does not change when it is republished, so the
+old entry survived and the fallback never applied. The key describes a version; the fact it
+holds describes an *act*.
+
+**Fix** — the handler now writes on every publish: the address when it is told one, and a
+`delete` when it is not, so the tenant-account fallback applies to a publish nobody claimed.
+
+**Guard** — *mechanical*: `check-docs` asserts both the `set` and the `delete` are present,
+and the smoke asserts all three states in order — told, untold, told again — because the bug
+only appears on the second publish of one version.
+
+**Rule** — **a record keyed by a thing, holding a fact about an act, has to be rewritten on
+every act.** Setting-only is a merge, and a merge inherits whatever the last actor left
+behind. The tell was that the fallback path could never be reached twice.
+
+
+---
+
+## Six claims that found a string somewhere other than where it mattered
+
+**Symptom** — six times in one session, a `check-docs` claim passed while the fact it guarded
+was broken. Each time the break-test caught it, and each time the claim was searching a whole
+file for a string that appears more than once:
+
+- `frame.graphReference.nodeTypes` — gutting the *fill* lookup passed on the legend's copy.
+- `maxWidth: width` — removing the cap from one of three SVG forms passed on the other two.
+- `onSlice` — a page that kept its handler and dropped the prop still mentioned it.
+- `block.companion` — a block that stopped rendering it still mentioned it in a width expression.
+- `if (connected === 0 || …)` — weakening the lens's gate left the report routes' copies behind.
+- `It is not access control` — changing the *rendered* sentence left the file's own comment
+  saying it.
+
+**Root cause** — `read(file).includes(x)` answers "does this string appear", and the claim
+needed "does this string appear *here*, and everywhere it has to". A file that legitimately
+mentions a token twice — once in code, once in a comment or a second call site — makes the
+loose form unfalsifiable.
+
+**Fix** — each claim now slices the function it is about (`fillFor`, `Legend`, `reportsList`),
+counts occurrences against a denominator that comes from the code (`maxWidth` per `<svg>`), or
+keys on the longer phrase that only the rendered copy carries.
+
+**Guard** — *documented*, and the break-harness is the mechanism: every new claim is broken at
+least once before it is trusted, which is what surfaced all six. A claim that cannot be broken
+is not yet a guard.
+
+**Rule** — **assert the fact at its site, not the token in its file.** If the property is "each
+of these N does X", check each, or count against N. If it is "the copy says X", key on a phrase
+long enough that a comment cannot satisfy it.
+
+## The equal-height card trick stretched a card that opens a panel
+
+**Symptom** — the saved-report card rendered as a very tall, almost empty box with its title
+floating in the middle of it, and the rows below the title (Saved by / Asked of / Visible to, the
+action row, the audience panel) drew *outside* the card's frame, underneath the Published-graphs
+panel beside it. Nothing errored.
+
+**Root cause** — `.rp-saved` carried the treatment the written-report cards use to line a grid
+up: `height: 100%`, `display: flex; flex-direction: column` on the body, and the foot pushed down
+with `margin-top: auto`. That is correct for cards whose height is set from outside and whose
+content never changes. This card *expands* — the **Who can view** panel opens inside it — so the
+forced height and the auto-pushed foot were fighting the content: antd's head filled the height
+nothing was actually setting, and everything after it overflowed a box that would not grow.
+
+**Fix** — the card is laid out by its content: no `height`, no flex body, no `auto` margin, and
+the spacing below each part stated explicitly. The written-report cards keep the trick, because
+nothing inside them changes size.
+
+**Guard** — *mechanical*. `check-docs` reads the `.rp-saved` and `.rp-saved-foot` rule bodies and
+fails if any of the three reappears — the rule body, not the selector, because the earlier padding
+claim had already been fooled once by an emptied block.
+
+**Rule** — **equal-height cards and expanding cards are two different layouts.** Before copying a
+card's CSS, ask whether anything inside the new one can change height.
+
+## A panel behind a `useState` cannot be asserted on from its parent
+
+**Symptom** — a 13-assertion smoke over `SavedReportCard` reported eight failures that all read
+as missing markup: no "Who can view this report", no roles, no checkboxes. The component was
+correct; `renderToString` had simply rendered the card with `audienceOpen` false.
+
+**Root cause** — the documented rule for `Modal`/`Drawer` is about portals, but the underlying
+problem is broader: **`renderToString` renders the initial state**, so anything behind a
+`useState` toggle is absent from the string. Worse, the eight failures were the *lucky* case —
+had the assertions been "is absent" checks, they would all have passed over an empty render, which
+is the failure mode `CLAUDE.md` already warns about for `useEffect` and virtualised trees.
+
+Patching the hook does not fix it either: a component that does `import { useState } from 'react'`
+never reads `React.useState`, so shimming the namespace changed nothing.
+
+**Fix** — extracted the panel to `AudiencePicker`, exactly as `ConnectSourceWizard` is separate
+from `ConnectSourceModal`, and the smoke renders it directly with three audiences (some / all /
+none). The card's own smoke now asserts the *closed* card does **not** draw the panel, which is
+the fact that made the extraction necessary.
+
+**Guard** — *mechanical*. The audience claim requires the card to compose `<AudiencePicker …>`, so
+inlining the panel back into the card fails the build.
+
+**Rule** — **if a smoke has to see it, it cannot live behind the parent's state.** Extract the
+body; do not try to open it from the test.
+
+## A break-test harness that could not fail
+
+**Symptom** — seven mutations in a row reported `MISSED` against two new claims. Both claims were
+correct, and a hand-run of `check-docs` on the same mutated file listed the failure.
+
+**Root cause** — two bugs in the harness, one after the other. It first read `stdout`, and
+`check-docs` writes its failure list to **stderr**. Fixed, it then decoded the subprocess through
+the Windows console codepage, where the `✗` it was grepping for did not survive the round trip —
+so it found zero failing lines in output that plainly had two.
+
+**Fix** — decode with `encoding='utf-8'`, match on the claim's own text rather than the glyph, and
+treat a run with no `claims are stale` summary as a **crash** rather than a pass, because a
+mutation can make the checker throw before it reports.
+
+**Guard** — *documented*, in `CLAUDE.md`'s pitfalls. There is nothing to mechanise: the harness is
+scratch code by design.
+
+**Rule** — **a break test is an assertion, so the vacuous-assertion rule covers it.** When a
+mutation reports MISSED, suspect the harness before the claim: three of these have now been the
+harness (a `\n` that never matched, a stream, an encoding) and none has been a false claim.

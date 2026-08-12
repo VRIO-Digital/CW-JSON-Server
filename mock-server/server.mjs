@@ -496,6 +496,47 @@ const DB_SHAPE = {
     Array.isArray(v.resolvable) &&
     isObject(v.formats) &&
     isObject(v.headroom),
+  /*
+   * The reports section, nested-checked for the reason `whatif` is: losing one key
+   * does not throw, it answers. Without `data` every report renders its authored
+   * tiles above an empty table — "nothing to report" rather than "a roster went
+   * missing". Without `fields` every column header prints its raw key (`last_enf`).
+   * Without `tiles` or `footer` a report loses the two things that make it citable:
+   * its headline figures and the table it was read from.
+   */
+  reports: (v) =>
+    isObject(v) &&
+    isObject(v.meta) &&
+    Array.isArray(v.fields) &&
+    v.fields.length > 0 &&
+    isObject(v.assumptions) &&
+    /* The wizard's three pickers, the facets it slices by, the summary a generated
+       report computes, and the saved library. Losing `opts` leaves step 2 with a
+       sentence nobody can change; losing `summary_catalog` leaves a generated report
+       with no tiles, which reads as "nothing to summarise". */
+    isObject(v.opts) &&
+    Array.isArray(v.slice_default) &&
+    Array.isArray(v.summary_catalog) &&
+    v.summary_catalog.length > 0 &&
+    Array.isArray(v.summary_default) &&
+    Array.isArray(v.saved) &&
+    isObject(v.data) &&
+    Object.values(v.data).every((rows) => Array.isArray(rows) && rows.length > 0) &&
+    Array.isArray(v.reports) &&
+    v.reports.length > 0 &&
+    v.reports.every(
+      (r) =>
+        isObject(r) &&
+        r.report_id &&
+        r.heading &&
+        r.spine &&
+        Array.isArray(r.blocks) &&
+        r.blocks.length > 0 &&
+        Array.isArray(r.tiles) &&
+        r.tiles.length > 0 &&
+        Array.isArray(r.footer) &&
+        r.footer.length > 0,
+    ),
 }
 
 const DB_HINTS = {
@@ -537,6 +578,11 @@ const DB_HINTS = {
   whatif:
     'object with facility{}, generators[], watched_measures[], candidate_pools[], formats{}, ' +
     'resolvable[], headroom{} — the What-if lens, from "npm run ingest:whatif"',
+  reports:
+    'object with meta{}, fields[], assumptions{}, opts{}, slice_default[], ' +
+    'summary_catalog[], summary_default[], saved[], data{ generators[], facilities[], ' +
+    'quarters[], traces[] } and reports[] of { report_id, heading, spine, blocks[], ' +
+    'tiles[], footer[] } — the report section, from "npm run ingest:reports"',
 }
 
 function validateDb(candidate) {
@@ -651,6 +697,103 @@ function validateDb(candidate) {
         problems.push(
           `whatif.resolvable "${r.keywords?.[0]}" resolves to "${r.resolves_to}", which is not a ` +
             'watched measure — authoring would report success and add nothing',
+        )
+      }
+    }
+  }
+
+  /*
+   * A report is references all the way down — a spine into `data`, a chart measure and
+   * table columns into `fields`, a scope into the filters this server implements — and
+   * every broken one renders rather than throwing. A missing spine gives tiles above an
+   * empty table; a column naming a field the rows do not carry gives a header with
+   * blank cells under it; a scope this server does not know would throw *inside* the
+   * route, which arrives as a 400 on a report that plainly exists. All three read as
+   * statements about the data. `npm run ingest:reports` checks the same references
+   * against the package; this checks the document being served.
+   */
+  if (problems.length === 0) {
+    const rep = candidate.reports
+    const fieldKeys = new Set(rep.fields.map((f) => f.key))
+    for (const r of rep.reports) {
+      const rows = rep.data[r.spine]
+      if (!Array.isArray(rows)) {
+        problems.push(
+          `reports "${r.report_id}" reads spine "${r.spine}", which reports.data does not have — ` +
+            'its report would render its tiles above an empty table',
+        )
+        continue
+      }
+      const rowKeys = new Set(Object.keys(rows[0]))
+      if (!(r.scope in REPORT_SCOPES)) {
+        problems.push(
+          `reports "${r.report_id}" is scoped "${r.scope}", which this server has no filter for — ` +
+            `known scopes: ${Object.keys(REPORT_SCOPES).join(', ')}`,
+        )
+      }
+      if (!REPORT_LABEL_KEY[r.spine]) {
+        problems.push(
+          `reports.data."${r.spine}" has no label column declared in REPORT_LABEL_KEY, so every ` +
+            'chart bar and table row on that spine would be unnamed',
+        )
+      } else if (!rowKeys.has(REPORT_LABEL_KEY[r.spine])) {
+        problems.push(
+          `reports.data."${r.spine}" rows do not carry "${REPORT_LABEL_KEY[r.spine]}", the column ` +
+            'their labels come from',
+        )
+      }
+      for (const block of r.blocks) {
+        if (block.type === 'chart' && !rowKeys.has(block.measure)) {
+          problems.push(
+            `reports "${r.report_id}" charts "${block.measure}", which its ${r.spine} rows do not ` +
+              'carry — every bar would be zero, which reads as no exposure',
+          )
+        }
+        if (block.type === 'quarterly' && !rowKeys.has(block.metric)) {
+          problems.push(
+            `reports "${r.report_id}" trends "${block.metric}", which its ${r.spine} rows do not carry`,
+          )
+        }
+        for (const col of block.type === 'table' ? block.cols : []) {
+          if (!fieldKeys.has(col) || !rowKeys.has(col)) {
+            problems.push(
+              `reports "${r.report_id}" tabulates "${col}", which ${
+                fieldKeys.has(col) ? `its ${r.spine} rows do not carry` : 'reports.fields does not describe'
+              } — the column would render with blank cells`,
+            )
+          }
+        }
+      }
+      /*
+       * A summary key with no tile behind it drops out of a generated report's strip,
+       * leaving three tiles where the written report states four — a short summary reads
+       * as an answer, the same failure a use-case template's missing persona id has.
+       */
+      for (const key of r.summary_keys ?? []) {
+        if (!rep.summary_catalog.some((t) => t.key === key)) {
+          problems.push(
+            `reports "${r.report_id}" summarises "${key}", which reports.summary_catalog ` +
+              'does not define — a re-asked report would show one tile fewer than the written one',
+          )
+        }
+      }
+    }
+    /*
+     * A saved question is re-asked, so its frame has to still resolve. One naming a
+     * report or a scope that no longer exists would come back as a library row that
+     * opens onto nothing.
+     */
+    for (const s of rep.saved ?? []) {
+      if (!rep.reports.some((r) => r.report_id === s.report_id)) {
+        problems.push(
+          `reports.saved "${s.name ?? s.saved_id}" is saved against report "${s.report_id}", ` +
+            'which no longer exists — it would open onto nothing',
+        )
+      }
+      if (!(s.scope in REPORT_SCOPES)) {
+        problems.push(
+          `reports.saved "${s.name ?? s.saved_id}" is scoped "${s.scope}", which this server ` +
+            'has no filter for',
         )
       }
     }
@@ -1939,6 +2082,31 @@ function publishedVersion(useCaseId) {
   return (studioVersions.get(useCaseId) ?? []).find((v) => v.sha256 === sha) ?? null
 }
 
+/*
+ * Who published what, keyed `useCaseId:sha256`.
+ *
+ * **The server has to be told.** The identity is client-held — there is no session here to
+ * look a user up from — so the publish route takes `as=<email>` exactly as the consent
+ * callback does, and this is where it is kept. Before this, every "published by" line in
+ * the app read `db.google_account`, the seeded account, and a reader had no way to know it
+ * was not the person who pressed the button.
+ *
+ * In memory, like publication itself: a restart forgets both together, which is the only
+ * consistent thing it could do.
+ */
+const studioPublishedBy = new Map()
+
+/**
+ * The account to name as publisher: whoever published it, or the seeded account when
+ * nobody was recorded — a version published before this existed, or by a caller that sent
+ * no identity. The fallback is the tenant's own account rather than a blank, because
+ * "published by nobody" is not true of a live version.
+ */
+const publishedByFor = (useCaseId) => {
+  const sha = studioLive.get(useCaseId)
+  return (sha && studioPublishedBy.get(`${useCaseId}:${sha}`)) || db.google_account.email
+}
+
 /**
  * The label of what is serving, for the pages that print it. Null before anything
  * is published — no version number is invented to fill the tag.
@@ -2708,7 +2876,8 @@ function askableGraph(useCase) {
     /* When that build finished, and the content it is. Ask prints both, because
        "which graph answered this" is a question a reader is entitled to ask. */
     published_at: published.created_at,
-    published_by: db.google_account.email,
+    /* Whoever published it, which the publish route was told. */
+    published_by: publishedByFor(useCase.use_case_id),
     graph_id: published.graph_id,
     sha256: published.sha256,
     // Step 6 decided this, so the engine never picks at runtime.
@@ -3341,21 +3510,1045 @@ function whatifScenario(generator, watchKeys) {
     residual_note: db.whatif.runtime.scenario_card.residual_note,
     /* The subgraph this load traverses — drawn on the card. Built from what the
        generator actually carries, so a clean load draws no enforcement node. */
-    subgraph: {
-      nodes: [
-        { key: 'generator', label: generator.name, risk: generator.risk },
-        { key: 'evaluation', label: `${generator.evaluations} evaluations` },
-        ...(generator.violations > 0
-          ? [{ key: 'violation', label: `${generator.violations} violations` }]
+    subgraph: whatifSubgraph(generator),
+  }
+}
+
+/**
+ * The sub-graph one admitted load traverses, as something drawable.
+ *
+ * **Its shape is the package's, not this file's.** `graph_reference.scenario_subgraph`
+ * states the traversal in prose — "Evaluations —EVALUATION_OF→ Generator, Violations
+ * —FOUND_IN→ Evaluations, Enforcement —ENFORCEMENT_AGAINST→ Generator (if any)" — and
+ * `graph_reference.relationships` is the list of edge names the graph has. Every edge below
+ * takes its label from that list rather than from a string typed here, so a diagram cannot
+ * name a relationship the graph does not have; `check-docs` asserts the subset.
+ *
+ * The node's **count** is separate from its label so the drawing can put the figure inside
+ * the circle and the type beside it. It used to be baked into one string ("14 evaluations"),
+ * which a chain could print and a diagram could not.
+ *
+ * Built from what the generator actually carries: a clean load draws no enforcement node,
+ * and one under no decree draws no document. An absence has no circle — the same rule the
+ * studio canvas follows for a relationship nobody proposed.
+ */
+function whatifSubgraph(generator) {
+  const rel = (name) =>
+    db.whatif.graph_reference.relationships.includes(name) ? name : null
+  const hasEnforcement = generator.enforcement > 0
+  const hasViolations = generator.violations > 0
+
+  return {
+    nodes: [
+      {
+        key: 'evaluation',
+        label: 'Evaluations',
+        count: generator.evaluations,
+        risk: null,
+      },
+      ...(hasViolations
+        ? [{ key: 'violation', label: 'Violations', count: generator.violations, risk: null }]
+        : []),
+      ...(hasEnforcement
+        ? [
+            {
+              key: 'enforcement',
+              label: 'Enforcement',
+              count: generator.enforcement,
+              risk: null,
+            },
+          ]
+        : []),
+      ...(generator.consent_decree
+        ? [{ key: 'document', label: 'Consent decree', count: null, risk: null }]
+        : []),
+      { key: 'generator', label: generator.name, count: null, risk: generator.risk },
+      { key: 'facility', label: db.whatif.facility.name, count: null, risk: null },
+    ],
+    edges: [
+      ...(hasViolations ? [{ from: 'violation', to: 'evaluation', label: rel('FOUND_IN') }] : []),
+      { from: 'evaluation', to: 'generator', label: rel('EVALUATION_OF') },
+      ...(hasEnforcement
+        ? [{ from: 'enforcement', to: 'generator', label: rel('ENFORCEMENT_AGAINST') }]
+        : []),
+      ...(generator.consent_decree
+        ? [{ from: 'document', to: 'generator', label: rel('DESCRIBED_BY') }]
+        : []),
+      { from: 'generator', to: 'facility', label: rel('SHIPS_TO') },
+    ].filter((e) => e.label !== null),
+    relationships: db.whatif.graph_reference.relationships,
+  }
+}
+
+/* ---------------- Reports ----------------
+ *
+ * Five written reports over four rosters, from "npm run ingest:reports".
+ *
+ * **A report is a question asked of the data, not a stored table** — its own lead note
+ * says so — so nothing here is a saved result. `db.reports` holds the rosters, the
+ * report's authored copy (heading, subtitle, tiles, footer, all extracted from the
+ * package's rendered HTML) and the *definition* of each block; every figure a block
+ * shows is computed on this side of the wire, on every request. A page that summed a
+ * column itself would be a second source for the number, which is the rule the What-if
+ * headroom already follows.
+ *
+ * A report's scope is part of its question. Four of the five ask about every inbound
+ * generator; the consent-decree report asks about the four under a decree, and its
+ * scope is applied here rather than baked into a copy of the roster — so the report and
+ * the register it draws from cannot drift.
+ */
+const REPORT_SCOPES = {
+  all: (rows) => rows,
+  cd: (rows) => rows.filter((r) => r.cd === true),
+  enf: (rows) => rows.filter((r) => r.enf > 0),
+  oos: (rows) => rows.filter((r) => r.state !== 'TX'),
+}
+
+/** Which column names a row on each spine — a bar with no label is not a bar. */
+const REPORT_LABEL_KEY = {
+  generators: 'generator',
+  facilities: 'facility',
+  quarters: 'quarter',
+  traces: 'mtn',
+}
+
+/*
+ * Headers for the three rosters the package's field dictionary does not describe.
+ *
+ * `reports.fields` describes the *generator* register — that is what the authoring tool
+ * filters and tabulates — so a facility's `last_eval` or a trace's `mtn` has no label
+ * in the data. These are headers for those columns and nothing more: no figure, no
+ * claim, and `check-docs` fails if a column reaches a table with neither a field label
+ * nor an entry here, because the alternative is a header reading `gen_state`.
+ */
+const REPORT_LABELS = {
+  facility: 'Facility',
+  role: 'Role',
+  last_eval: 'Last evaluation',
+  quarter: 'Quarter',
+  rej: 'Rejected loads',
+  res: 'Residue manifests',
+  mtn: 'Manifest tracking number',
+  gen_state: 'Generator state',
+  shipped: 'Shipped',
+  received: 'Received',
+  days: 'Days in possession',
+  transporters: 'Custody chain',
+  residue: 'Residue',
+  rejected: 'Rejected',
+  status: 'Status',
+}
+
+/*
+ * A report is asked of the **published** graph, so the section is gated on one existing
+ * — the same precondition as Ask, and for the same reason: a figure attributed to a
+ * graph nobody has published is a figure from nowhere. `publishedVersion` lives in
+ * memory, so a restart takes the section back to its gate until something is published
+ * again; that is already true of Ask and is not worth a second mechanism.
+ */
+const publishedGraphs = () =>
+  builtGraphs()
+    .map((useCase) => ({ useCase, published: publishedVersion(useCase.use_case_id) }))
+    .filter((row) => row.published !== null)
+    /* Newest build first, by the same field Ask sorts its list on (`created_at`, the
+       build that produced the version). Publishing flips a pointer and mints no date. */
+    .sort((a, b) => Date.parse(b.published.created_at ?? 0) - Date.parse(a.published.created_at ?? 0))
+
+/**
+ * Every published graph a report can be asked of, newest build first.
+ *
+ * Plural, because the reader chooses: the authoring wizard opens on this list, and a
+ * question is asked *of* one of them. `published_by` is the same field Ask reports and
+ * has the same caveat — it is the seeded account, not the signed-in user, because
+ * publishing is not told who did it.
+ */
+const reportGraphs = () =>
+  publishedGraphs().map(({ useCase, published }) => ({
+    use_case_id: useCase.use_case_id,
+    name: useCase.name,
+    domain_id: useCase.domain_id ?? null,
+    version: published.config_version,
+    sha256: published.sha256,
+    /* The build that produced the live content. Publishing does not mint a date of its
+       own, so none is invented here. */
+    built_at: published.created_at ?? null,
+    published_by: publishedByFor(useCase.use_case_id),
+    entity_count: published.entities ?? null,
+    relationship_count: published.relationships ?? null,
+  }))
+
+/** The default: the most recently published graph. Null before anything is published. */
+const reportGraph = () => reportGraphs()[0] ?? null
+
+/**
+ * The graph a saved report names, whether or not it is still published.
+ *
+ * A saved report holds a `use_case_id`, and publication lives in memory — so a row saved
+ * before a restart names a graph that is no longer live. That is reported rather than
+ * hidden: the figures still compute (they come from the rosters), but the report says the
+ * content it was asked of is not published now, which is a different claim from being
+ * unable to answer.
+ */
+const reportGraphFor = (useCaseId) => {
+  if (!useCaseId) return null
+  const live = reportGraphs().find((g) => g.use_case_id === useCaseId)
+  if (live) return { ...live, live: true }
+  const useCase = db.graph_use_cases.find((u) => u.use_case_id === useCaseId)
+  if (!useCase) return null
+  return {
+    use_case_id: useCase.use_case_id,
+    name: useCase.name,
+    domain_id: useCase.domain_id ?? null,
+    version: useCase.config_version ?? null,
+    sha256: null,
+    built_at: null,
+    published_by: null,
+    entity_count: null,
+    relationship_count: null,
+    live: false,
+  }
+}
+
+/** The counts the two empty states need: "publish one" and "finish one" differ. */
+const reportGraphCounts = () => ({
+  published_count: publishedGraphs().length,
+  built_count: builtGraphs().length,
+  draft_count: db.graph_use_cases.length - builtGraphs().length,
+})
+
+const reportField = (key) => db.reports.fields.find((f) => f.key === key)
+const reportLabel = (key) => reportField(key)?.label ?? REPORT_LABELS[key] ?? key
+/** `kind` decides alignment, so it is read from the dictionary before the value. */
+const reportKind = (key, rows) =>
+  reportField(key)?.kind ?? (typeof rows[0]?.[key] === 'number' ? 'num' : 'cat')
+const reportColumns = (keys, rows) =>
+  keys.map((key) => ({ key, label: reportLabel(key), kind: reportKind(key, rows) }))
+
+/**
+ * The rows a report is about: its spine, narrowed by its own scope.
+ *
+ * A frame built by the authoring wizard passes its own already-filtered `rows`, so every
+ * block, chart and count below derives from one row list rather than each recomputing a
+ * filter and risking a different answer to "how many are in view".
+ */
+const reportRows = (report) =>
+  report.rows ?? REPORT_SCOPES[report.scope](db.reports.data[report.spine])
+
+/**
+ * A part-to-whole share over the register, as a ring.
+ *
+ * The consent-decree report's second chart: what proportion of *all* inbound tonnage comes
+ * from generators carrying an open violation. Computed over the whole register rather than the
+ * report's own scope, because that is the claim — the tile beside it reads 79.3% **of total
+ * inbound**, and a share of four generators' tonnage would be a different number wearing the
+ * same label.
+ *
+ * Two slices, each directly labelled, so the ring's colours name a category the legend
+ * repeats. Only built where the split is real: with nothing on one side there is no share to
+ * draw, and a full ring is not a comparison.
+ */
+function reportShareChart(field, title, note) {
+  const rows = db.reports.data.generators
+  const carrying = rows.filter((r) => Number(r.viols) > 0)
+  const clean = rows.filter((r) => Number(r.viols) === 0)
+  const sum = (set) => set.reduce((t, r) => t + Number(r[field] ?? 0), 0)
+  if (carrying.length === 0 || clean.length === 0) return null
+  return {
+    type: 'chart',
+    chart: 'donut',
+    title,
+    width: 420,
+    x_label: 'Compliance status',
+    y_label: reportLabel(field),
+    series: null,
+    data: [
+      { label: 'From open-violation generators', value: sum(carrying), tone: null, values: null },
+      { label: 'From clean-record generators', value: sum(clean), tone: null, values: null },
+    ],
+    note,
+  }
+}
+
+/**
+ * Two measures over the same rows, as one grouped chart.
+ *
+ * The package's scorecard draws evaluations and violations **side by side per facility**, and
+ * that pairing *is* the comparison — two separate charts make it two findings a reader has to
+ * hold in their head at once. Two hues here encode two *series* rather than two values of one
+ * measure, and the legend names both, which is the case a categorical palette exists for.
+ *
+ * **Roster order, not ranked.** A scorecard's subject leads and its comparators follow;
+ * sorting by size would bury the facility the report is about wherever its number happens to
+ * fall.
+ */
+function reportGroupedChart(report, keys, title) {
+  const rows = reportRows(report)
+  const labelKey = REPORT_LABEL_KEY[report.spine]
+  return {
+    type: 'chart',
+    chart: 'grouped',
+    title,
+    width: 900,
+    x_label: reportLabel(labelKey),
+    y_label: null,
+    series: keys.map((key) => ({ key, label: reportLabel(key) })),
+    data: rows.map((r) => ({
+      label: String(r[labelKey]),
+      /* One value per series, keyed by its measure, so a point cannot lose which is which.
+         `value` stays as the first series so anything reading a flat chart still reads one. */
+      values: Object.fromEntries(keys.map((key) => [key, Number(r[key] ?? 0)])),
+      value: Number(r[keys[0]] ?? 0),
+      tone: null,
+    })),
+    note: null,
+  }
+}
+
+/**
+ * One chart, in the shape the page's chart component already takes.
+ *
+ * Rows carrying nothing are dropped rather than drawn as zero-length bars, and the
+ * count that was dropped is reported in the note: 22 of the 36 generators have never
+ * been penalised, and 22 empty bars would say the chart is broken rather than that the
+ * register is mostly clean. **No cap, and no silent one** — a report that showed a top
+ * ten would have to say so, so it shows all of them.
+ */
+function reportChart(report, measure, title, form = 'bar') {
+  const rows = reportRows(report)
+  const labelKey = REPORT_LABEL_KEY[report.spine]
+  const carrying = rows.filter((r) => Number(r[measure]) > 0)
+  const ordered =
+    form === 'line'
+      ? /* A trend keeps the roster's order: quarters are already chronological, and
+           sorting them by size would make a line meaningless. */
+        rows
+      : [...carrying].sort((a, b) => Number(b[measure]) - Number(a[measure]))
+  const dropped = form === 'line' ? 0 : rows.length - carrying.length
+
+  return {
+    type: 'chart',
+    chart: form,
+    title,
+    x_label: reportLabel(labelKey),
+    y_label: reportLabel(measure),
+    data: ordered.map((r) => ({
+      label: String(r[labelKey]),
+      value: Number(r[measure]),
+      /*
+       * The row's risk tier, where the roster carries one. The package's register colours its
+       * bars by tier and says so in the caption; a tier is a *state*, so it is the one thing
+       * that may vary a magnitude chart's hue — length still encodes the value, and the table
+       * beside it repeats the tier as a tag with an icon and a word.
+       */
+      tone: r.risk === 'high' ? 'crit' : r.risk === 'med' ? 'warn' : r.risk === 'low' ? 'good' : null,
+    })),
+    /* Wider than an answer's chart: a report card is the page's full width, and a 520-unit
+       drawing centred in it left half the card empty. The viewBox grows rather than the cap
+       being lifted, so the text stays the size it was drawn at. */
+    width: 900,
+    note:
+      dropped > 0
+        ? /* Named by the spine, not by the tenant's own "inbound generators" — that
+             phrase is true of the register and false of the facility scorecard, and
+             "4 of 5 inbound generators" would be a wrong sentence about facilities. */
+          `${ordered.length} of ${rows.length} ` +
+          `${report.spine === 'generators' ? db.reports.meta.entity_plural : report.spine} carry ` +
+          `${reportLabel(measure).toLowerCase()} on record; the other ${dropped} are at zero.`
+        : null,
+  }
+}
+
+/** A block's definition plus everything it displays, computed now. */
+function reportBlock(report, block) {
+  const rows = reportRows(report)
+
+  if (block.type === 'chart') {
+    /*
+     * `chartType` in the package is `bar` or `column`. A long axis of generator names is
+     * unreadable vertically, so a wide register is drawn as horizontal bars whatever it asks
+     * for — but a **narrowed** one is short enough for columns, which is how the package draws
+     * its four decree-bound generators, and the block's own preference decides it there.
+     */
+    const rows = reportRows(report)
+    /*
+     * **Few rows are columns; a long register is bars.** The authoring block states a
+     * preference (`chartType`), and the package's own rendered reports do not always follow
+     * it — Report 5 asks for `bar` and draws four vertical columns. The readable form is the
+     * one that decides, which is the rule the chart component states for itself: a name elides
+     * to fit under four columns and thirty-six of them is what horizontal bars are for.
+     */
+    const form = rows.length <= 6 ? 'column' : 'bar'
+    const main = reportChart(report, block.measure, block.title, form)
+    /*
+     * The share beside it, where the report is about a subset: "how much of the whole is
+     * this?" is the question a scoped report raises and cannot answer from its own rows. Only
+     * on the generator register, which is the roster the split is defined over.
+     */
+    const share =
+      report.scope !== 'all' && report.spine === 'generators'
+        ? reportShareChart(
+            block.measure,
+            `Inbound ${reportLabel(block.measure).toLowerCase()} by generator compliance status`,
+            'Share of the whole register, not of this report’s rows — the question a scoped report raises.',
+          )
+        : null
+    return share ? { ...main, companion: share } : main
+  }
+
+  if (block.type === 'table') {
+    const sortKey = block.cols.includes(report.measure) ? report.measure : null
+    const ordered = sortKey
+      ? [...rows].sort((a, b) => Number(b[sortKey]) - Number(a[sortKey]))
+      : rows
+    return {
+      type: 'table',
+      title: block.title,
+      columns: reportColumns(block.cols, rows),
+      rows: ordered,
+      /* What the order means. A ranked table whose ranking is unstated invites the
+         reader to assume the roster's order is significant. */
+      sorted_by: sortKey ? reportLabel(sortKey) : null,
+    }
+  }
+
+  if (block.type === 'facilities') {
+    /*
+     * The scorecard. The package drew evaluations and violations as one grouped bar
+     * chart; here they are two single-series charts, because one hue per magnitude is
+     * the rule the chart component keeps and a grouped form would be a second encoding
+     * it does not have. The comparison survives — same rows, same order.
+     */
+    const keys = Object.keys(rows[0])
+    return {
+      type: 'facilities',
+      title: block.title,
+      columns: reportColumns(keys, rows),
+      rows,
+      /* The facility the report is *about*, so its row can be marked. Computed at
+         ingest from the roster's roles and checked to be exactly one. */
+      subject: report.subject ?? null,
+      /* One grouped chart where both measures are present — the pairing is the point — and a
+         single-series chart where only one is. */
+      charts: (() => {
+        const pair = ['evals', 'viols'].filter((key) => keys.includes(key))
+        if (pair.length > 1) {
+          const title = `${pair.map((key) => reportLabel(key)).join(' & ')} by facility`
+          return [reportGroupedChart(report, pair, title)]
+        }
+        return pair.map((key) => reportChart(report, key, `${reportLabel(key)} by facility`))
+      })(),
+    }
+  }
+
+  if (block.type === 'quarterly') {
+    return {
+      type: 'quarterly',
+      title: block.title,
+      columns: reportColumns(Object.keys(rows[0]), rows),
+      rows,
+      /*
+       * Two charts, as the package's quarterly report draws them: the metric the block names,
+       * as a trend, and the manifest count beside it. `column` rather than `bar` because a
+       * quarter label is short and a trend reads left to right — the component picks the form
+       * from the data's job, and this is the job.
+       */
+      charts: [
+        reportChart(report, block.metric, `${reportLabel(block.metric)} by quarter`, 'line'),
+        ...(block.metric !== 'manifests' && 'manifests' in (rows[0] ?? {})
+          ? [reportChart(report, 'manifests', `${reportLabel('manifests')} by quarter`, 'column')]
           : []),
-        ...(generator.enforcement > 0
-          ? [{ key: 'enforcement', label: `${generator.enforcement} enforcement` }]
-          : []),
-        ...(generator.consent_decree ? [{ key: 'document', label: 'consent decree' }] : []),
-        { key: 'facility', label: db.whatif.facility.name },
       ],
-      relationships: db.whatif.graph_reference.relationships,
+    }
+  }
+
+  /* Traces. Rendered as custody chains rather than a grid, because the chain is the
+     finding: a manifest's transporters are ordered, and an order is not a cell. */
+  return {
+    type: 'traces',
+    title: block.title,
+    columns: reportColumns(Object.keys(rows[0]), rows),
+    rows,
+  }
+}
+
+/* ---------------- authoring: a report asked under other assumptions ----------------
+ *
+ * The five written reports are read under the assumptions they were written for. Asking
+ * one under a *different* scope or filter produces a different report, and the authored
+ * tiles no longer describe it — "With enforcement history 15 of 36" is a statement about
+ * the whole register. So a generated report computes its summary from
+ * `summary_catalog`, whose aggregations are declared as data at ingest precisely so this
+ * side implements them once.
+ */
+const REPORT_AGGS = {
+  rows: (rows) => rows.length,
+  sum: (rows, field) => rows.reduce((t, r) => t + Number(r[field] ?? 0), 0),
+  count_positive: (rows, field) => rows.filter((r) => Number(r[field]) > 0).length,
+  count_true: (rows, field) => rows.filter((r) => r[field] === true).length,
+  count_high: (rows, field) => rows.filter((r) => r[field] === 'high').length,
+  count_out_of_state: (rows, field) => rows.filter((r) => r[field] !== 'TX').length,
+}
+
+/** The prototype's own formats: money rounded to the dollar, tonnage with a unit. */
+const REPORT_FORMATS = {
+  int: (v) => Math.round(v).toLocaleString('en-US'),
+  money: (v) => `$${Math.round(v).toLocaleString('en-US')}`,
+  tons: (v) => `${Number(v).toLocaleString('en-US', { maximumFractionDigits: 1 })} t`,
+}
+
+/** The summary a generated report states, computed over the rows actually in view. */
+function reportSummary(keys, rows) {
+  return keys
+    .map((key) => db.reports.summary_catalog.find((t) => t.key === key))
+    .filter(Boolean)
+    .map((tile) => ({
+      label: tile.label,
+      value: REPORT_FORMATS[tile.format](REPORT_AGGS[tile.agg](rows, tile.field)),
+      /* Computed over the frame, and it says so — these must never be mistaken for the
+         package's authored figures, which describe the written report. */
+      unit: 'computed for this frame',
+      tone: tile.tone,
+    }))
+}
+
+/**
+ * The frame a question was asked under: a report, a scope, a ranking, a horizon, and
+ * any facet filters.
+ *
+ * **The horizon is declared, not applied.** Nothing in these rosters is sliced by it —
+ * the register is cumulative and the quarterly roster is the whole window the package
+ * ships — so applying one would invent a filter, and stating one silently would claim a
+ * filter that did not run. It is carried into the sentence and reported as a caveat.
+ */
+const REPORT_HORIZON_CAVEAT =
+  'The time window is part of the question as stated, not a filter that ran: these ' +
+  'rosters are cumulative — the register carries a generator’s whole federal history and ' +
+  'the quarterly roster is the full 2023–2026 window. Every figure below is over all of it.'
+
+/** A frame off the wire, with every field a string and the filter list an array. */
+const reportFrameFrom = (body) => ({
+  report_id: String(body.report_id ?? ''),
+  use_case_id: body.use_case_id ? String(body.use_case_id) : null,
+  scope: String(body.scope ?? ''),
+  measure: String(body.measure ?? ''),
+  horizon: String(body.horizon ?? ''),
+  filters: Array.isArray(body.filters) ? body.filters : [],
+})
+
+const reportFrameProblem = (frame) => {
+  const report = db.reports.reports.find((r) => r.report_id === frame.report_id)
+  if (!report) {
+    return `no report "${frame.report_id}" — this section has ${db.reports.reports
+      .map((r) => r.report_id)
+      .join(', ')}`
+  }
+  /*
+   * A question is asked *of a published graph*, so the frame names one and it has to be
+   * live. Refused rather than defaulted: silently answering against a different graph than
+   * the one chosen would attribute the figures to content nobody picked.
+   */
+  if (frame.use_case_id) {
+    const live = reportGraphs().some((g) => g.use_case_id === frame.use_case_id)
+    if (!live) {
+      const published = reportGraphs()
+      return published.length === 0
+        ? `no graph is published — publish one in Graph Studio, then ask it`
+        : `"${frame.use_case_id}" is not a published graph — published: ${published
+            .map((g) => g.use_case_id)
+            .join(', ')}`
+    }
+  }
+  for (const [slot, value] of Object.entries({
+    scope: frame.scope,
+    measure: frame.measure,
+    horizon: frame.horizon,
+  })) {
+    if (!db.reports.opts[slot].options.some((o) => o.value === value)) {
+      return `"${value}" is not one of the ${slot} options — pick one of ${db.reports.opts[
+        slot
+      ].options
+        .map((o) => o.value)
+        .join(', ')}`
+    }
+  }
+  /*
+   * A filter has to be one of the facets *this report's spine* offers. Checking only the
+   * generator dictionary refused a facility's role and a quarter's year — facets the report
+   * itself renders as chips — so this asks the same function the chips came from.
+   */
+  const facets = reportFacetsFor(report.spine)
+  for (const filter of frame.filters ?? []) {
+    const facet = facets.find((f) => f.key === filter.key)
+    if (!facet) {
+      return `"${filter.key}" cannot be filtered on for ${report.spine} — this report slices by ${
+        facets.map((f) => f.key).join(', ') || 'nothing'
+      }`
+    }
+    if (!facet.values.some((v) => v.value === String(filter.value))) {
+      return `"${filter.value}" is not a ${filter.key} in this report — it has ${facet.values
+        .map((v) => v.value)
+        .join(', ')}`
+    }
+  }
+  return null
+}
+
+/** A facet value as it reads on a chip: `cd` is a flag, `risk` a tier. */
+const reportFacetLabel = (key, value) =>
+  key === 'cd' ? (value === 'true' ? 'Yes' : 'No') : String(value)
+
+/** The rows a frame selects: its scope, then each facet filter. */
+function reportFrameRows(report, frame) {
+  const scoped = REPORT_SCOPES[frame.scope](db.reports.data[report.spine])
+  return (frame.filters ?? []).reduce((rows, filter) => {
+    /* `flag` is one control over three columns, so it filters by test rather than by
+       equality — the only facet whose value is not a column of its own. */
+    if (filter.key === 'flag') {
+      const test = REPORT_FLAG_TESTS[String(filter.value)]
+      return test ? rows.filter(test) : rows
+    }
+    return rows.filter((r) => String(r[filter.key]) === String(filter.value))
+  }, scoped)
+}
+
+/**
+ * A report built from a frame.
+ *
+ * Two outcomes, and the payload says which. When the frame matches what the report was
+ * written for, this *is* the written report — the authored tiles and all, because
+ * nothing about the question changed. Otherwise it is **generated**: the summary is
+ * recomputed over the rows in view and labelled as such, so the tenant's authored
+ * figures are never shown against a frame they do not describe.
+ *
+ * The horizon is not part of that decision, because it filters nothing (see the caveat).
+ */
+/*
+ * The report as this frame asks for it.
+ *
+ * One object, and everything downstream reads its figures and its labels off it —
+ * `reportView`, `reportBlock` and the reading sentence all take it — so a built report
+ * cannot disagree with itself about what was asked.
+ */
+function reportFrameAsked(report, frame) {
+  const label = (slot, value) =>
+    db.reports.opts[slot].options.find((o) => o.value === value)?.label ?? null
+  return {
+    ...report,
+    scope: frame.scope,
+    measure: frame.measure,
+    scope_label: label('scope', frame.scope) ?? report.scope_label,
+    measure_label: label('measure', frame.measure) ?? report.measure_label,
+    horizon_label: label('horizon', frame.horizon),
+    /* The graph this frame was asked of, which is the reader's pick rather than whatever
+       happens to be newest. */
+    graph: reportGraphFor(frame.use_case_id) ?? reportGraph(),
+    rows: reportFrameRows(report, frame),
+  }
+}
+
+/** The sentence to check in step 2, and the chips that change it. Nothing is built. */
+const reportBuildReading = (report, frame) => {
+  const reading = reportReading(reportFrameAsked(report, frame))
+  return { reading: reading.text, assumptions: reading.assumptions }
+}
+
+function reportBuild(report, frame) {
+  const written =
+    frame.scope === report.scope &&
+    frame.measure === report.measure &&
+    (frame.filters ?? []).length === 0
+  const asked = { ...reportFrameAsked(report, frame), applied_filters: frame.filters ?? [] }
+
+  return {
+    ...reportView(asked),
+    variant: written ? 'written' : 'generated',
+    /* Filters narrow the rows a *generated* report shows; a written one has none by
+       definition, which is what `written` above checks. */
+    filters: (frame.filters ?? []).map((f) => ({
+      key: f.key,
+      label: reportLabel(f.key),
+      value: String(f.value),
+      value_label: reportFacetLabel(f.key, f.value),
+    })),
+    tiles: written
+      ? report.tiles
+      : reportSummary(
+          report.summary_keys.length > 0 ? report.summary_keys : db.reports.summary_default,
+          asked.rows,
+        ),
+    /*
+     * A generated report has no authored tiles to show, and on a spine the summary
+     * catalogue does not describe (facilities, quarters, traces) it has no summary at
+     * all — said plainly rather than left as an empty strip.
+     */
+    summary_note:
+      written || report.spine === 'generators'
+        ? null
+        : `This summary is only defined for the ${db.reports.meta.entity_plural} register, so a re-asked ${report.spine} report states none.`,
+    caveats: [
+      REPORT_HORIZON_CAVEAT,
+      /* A saved report whose graph is no longer published still computes — the figures
+         come from the rosters — but it must not claim to have been asked of live content.
+         Publication is in memory, so this is the state after every restart. */
+      ...(asked.graph && asked.graph.live === false
+        ? [
+            `This was saved against ${asked.graph.name}, which is not published right now. ` +
+              'The figures are current — they come from the connected rosters — but nothing ' +
+              'live answered it. Publish that graph again in Graph Studio to restore the link.',
+          ]
+        : []),
+    ],
+  }
+}
+
+/**
+ * Which report a typed question is asking for.
+ *
+ * Matched the way `matchAskAnswer` matches a recorded answer, at the same threshold and
+ * with the same tie rule, so the two surfaces cannot disagree about whether a sentence
+ * names something. **A miss is reported, not hidden**: the prototype routed every
+ * unrecognised question to the generator register silently, which is a guess presented
+ * as an understanding. Here the register is still the fallback — it is the only frame a
+ * question about the inbound network can start from — but the read-back says the question
+ * was not recognised, and the whole point of the Confirm step is that the reader fixes it
+ * before anything is built.
+ */
+function reportMatch(question) {
+  const asked = askTokens(question)
+  const fallback = db.reports.reports[0]
+  if (asked.length === 0) {
+    return { report: fallback, matched: false, why: 'No words to match — start from a standard report or say more.' }
+  }
+
+  const normalise = (s) => askTokens(s).join(' ')
+  const exact = db.reports.reports.find((r) => normalise(r.question) === asked.join(' '))
+  if (exact) return { report: exact, matched: true, why: `This is ${exact.report_tag}’s own question.` }
+
+  const scored = db.reports.reports
+    .map((r) => {
+      const own = new Set(askTokens(r.question))
+      const shared = asked.filter((w) => own.has(w))
+      return { report: r, score: shared.length / asked.length, shared }
+    })
+    .sort((x, y) => y.score - x.score)
+
+  const [best, runnerUp] = scored
+  if (best.score < ASK_MATCH_MIN || (runnerUp && runnerUp.score === best.score)) {
+    return {
+      report: fallback,
+      matched: false,
+      why:
+        `That does not match one of the ${db.reports.reports.length} standard reports closely enough to be sure, ` +
+        `so it is being read as ${fallback.report_tag} — the ${db.reports.meta.entity_plural} register. ` +
+        'Change any underlined part below, or start from a standard report.',
+    }
+  }
+  return {
+    report: best.report,
+    matched: true,
+    why: `Read as ${best.report.report_tag} — it matches on ${best.shared.slice(0, 4).join(', ')}.`,
+  }
+}
+
+/** The facets a generator report can be sliced by, with the values actually present. */
+/*
+ * What a report can be sliced by, per spine.
+ *
+ * **The generator register's facets are declared** — `slice_default` names them and
+ * `fields.filterable` allows them. The other three rosters declare none, so theirs are
+ * derived from the column that distinguishes their rows: a facility's role, a quarter's
+ * year, a trace's flags. Every value carries the count of rows behind it, so an empty facet
+ * reads as "none of these" rather than as a chip that failed to fill — and a facet with only
+ * one value is dropped, because a filter that cannot change the answer is furniture.
+ *
+ * A chip re-asks the report with that filter rather than hiding rows locally: every figure
+ * above the table is the server's, and a chart that kept the whole roster while the table
+ * showed a slice would be two answers on one screen.
+ */
+const FACET_LABELS = { role: 'Role', year: 'Year', flag: 'Show' }
+
+const reportFacetsFor = (spine) => {
+  const rows = db.reports.data[spine] ?? []
+  const facet = (key, label, values) => ({ key, label, values: values.filter((v) => v.count > 0) })
+  const distinct = (pick) => [...new Set(rows.map(pick).map(String))].sort()
+
+  if (spine === 'generators') {
+    return db.reports.slice_default
+      .map((key) => reportField(key))
+      .filter((field) => field && field.filterable)
+      .map((field) =>
+        facet(
+          field.key,
+          field.label,
+          distinct((g) => g[field.key]).map((value) => ({
+            value,
+            label: reportFacetLabel(field.key, value),
+            count: rows.filter((g) => String(g[field.key]) === value).length,
+          })),
+        ),
+      )
+      .filter((f) => f.values.length > 1)
+  }
+
+  if (spine === 'facilities') {
+    return [
+      facet(
+        'role',
+        FACET_LABELS.role,
+        distinct((f) => f.role).map((value) => ({
+          value,
+          label: value,
+          count: rows.filter((f) => f.role === value).length,
+        })),
+      ),
+    ].filter((f) => f.values.length > 1)
+  }
+
+  if (spine === 'quarters') {
+    return [
+      facet(
+        'year',
+        FACET_LABELS.year,
+        distinct((q) => q.quarter.slice(0, 4)).map((value) => ({
+          value,
+          label: value,
+          count: rows.filter((q) => q.quarter.startsWith(value)).length,
+        })),
+      ),
+    ].filter((f) => f.values.length > 1)
+  }
+
+  if (spine === 'traces') {
+    /* A trace's flags are three different columns, so this is one control over the three the
+       package's own filter bar offers: rejected, residue, out-of-state. */
+    const flags = [
+      { value: 'rejected', label: 'Rejected', test: (t) => t.rejected === 'Y' },
+      { value: 'residue', label: 'Residue', test: (t) => t.residue === 'Y' },
+      { value: 'out_of_state', label: 'Out-of-state', test: (t) => t.gen_state !== 'TX' },
+    ]
+    return [
+      facet(
+        'flag',
+        FACET_LABELS.flag,
+        flags.map((f) => ({ value: f.value, label: f.label, count: rows.filter(f.test).length })),
+      ),
+    ].filter((f) => f.values.length > 0)
+  }
+
+  return []
+}
+
+/** The wizard's own facet set: the register's, because that is the spine it narrows. */
+const reportFacets = () => reportFacetsFor('generators')
+
+/** The flag filters, as row tests — the one facet whose value is not a column. */
+const REPORT_FLAG_TESTS = {
+  rejected: (t) => t.rejected === 'Y',
+  residue: (t) => t.residue === 'Y',
+  out_of_state: (t) => t.gen_state !== 'TX',
+}
+
+/** The reading sentence, with each slot filled by the assumption behind it. */
+function reportReading(report) {
+  const used = report.reading.slots.map((slot) => ({
+    slot,
+    label:
+      slot === 'scope'
+        ? report.scope_label
+        : slot === 'measure'
+          ? report.measure_label
+          : /* A frame carries its own horizon; a written report is read under the
+               file's default. Either way the sentence and the chips agree. */
+            (report.horizon_label ?? db.reports.assumptions[slot].label),
+  }))
+  const text = used.reduce(
+    (sentence, { slot, label }) => sentence.replaceAll(`{${slot}}`, label),
+    report.reading.template,
+  )
+  return { text, assumptions: used }
+}
+
+/** Every role, or the ones a saved row names — resolved to `{ role_id, label }`. */
+const reportViewerRoles = (saved) => {
+  const all = db.auth_roles.map((r) => ({ role_id: r.role_id, label: r.label }))
+  const ids = saved.viewer_roles
+  if (!Array.isArray(ids) || ids.length === 0) return all
+  return all.filter((r) => ids.includes(r.role_id))
+}
+
+/**
+ * The roles a save may name, checked against the role pool.
+ *
+ * An empty list is refused rather than stored: it would hide the report from everyone,
+ * including whoever set it, and "saved but invisible" is the same as deleted with extra steps.
+ * An unknown id is refused naming the pool, because a role nobody can hold would silently
+ * narrow the list to nothing.
+ */
+const reportViewerRolesProblem = (ids) => {
+  if (ids === null || ids === undefined) return null
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return `name at least one role — a report no role can view is a report you have deleted. Roles: ${db.auth_roles
+      .map((r) => r.role_id)
+      .join(', ')}`
+  }
+  const unknown = ids.filter((id) => !db.auth_roles.some((r) => r.role_id === id))
+  if (unknown.length > 0) {
+    return `no such role: ${unknown.join(', ')} — this tenant has ${db.auth_roles
+      .map((r) => r.role_id)
+      .join(', ')}`
+  }
+  return null
+}
+
+/** A saved question, with the labels its frame reads by now. */
+const reportSavedView = (saved) => {
+  const report = db.reports.reports.find((r) => r.report_id === saved.report_id)
+  const label = (slot, value) =>
+    db.reports.opts[slot].options.find((o) => o.value === value)?.label ?? value
+  return {
+    ...saved,
+    report_tag: report?.report_tag ?? saved.report_id,
+    heading: report?.heading ?? saved.report_id,
+    /*
+     * The graph it was asked of, and whether that content is still published. Publication
+     * lives in memory, so a row saved before a restart names a graph that is no longer
+     * live — reported rather than hidden, because "asked of a graph nobody has published
+     * now" is a caveat on the figures, not a failure to produce them.
+     */
+    graph: reportGraphFor(saved.use_case_id),
+    /* Who saved it: the browser's own signed-in identity, sent with the save. Unlike the
+       graph's `published_by` — which is the seeded account, because publishing is never
+       told who did it — this one really is the person who acted. */
+    saved_by: saved.saved_by ?? null,
+    /*
+     * Which roles this report is meant for, resolved to their labels.
+     *
+     * **A demo control, and the copy says so.** The login authenticates by shape and the role
+     * is client-held, so this cannot be access control — it narrows what the section *shows* a
+     * reader with that role, which is what a demo of governed reporting needs, and the panel
+     * that sets it states plainly that the API will still serve the report to anyone who asks.
+     * Defaults to every role: a report nobody can see is a report that vanished.
+     */
+    viewer_roles: reportViewerRoles(saved),
+    /*
+     * Resolved on the way out, never stored. A saved question holds its frame and no
+     * figures — re-open it next week and it is re-asked, which is the same rule the
+     * What-if library follows for exactly the same reason.
+     */
+    scope_label: label('scope', saved.scope),
+    measure_label: label('measure', saved.measure),
+    horizon_label: label('horizon', saved.horizon),
+    filters: (saved.filters ?? []).map((f) => ({
+      key: f.key,
+      label: reportLabel(f.key),
+      value: String(f.value),
+      value_label: reportFacetLabel(f.key, f.value),
+    })),
+  }
+}
+
+/** The section: what has been written, and what this dataset cannot answer. */
+/*
+ * The section's payload.
+ *
+ * **The persona is not in it.** `db.reports.meta` names the tenant persona these reports
+ * were written for, and the section printed it as a strip above the grid until that was
+ * removed — so it is not served here. It is still read server-side, where it is load-bearing:
+ * `entity_plural` labels a computed summary tile and names the rows a chart dropped, and
+ * `source_trace` is on every report. A payload field nothing renders is the kind of thing
+ * that gets rendered later by accident.
+ */
+/*
+ * The section, as a given role would see it.
+ *
+ * `asRole` is the browser's own signed-in role, sent on the request the way `as=` sends the
+ * address. It narrows the saved list to the reports meant for that role — the demo of governed
+ * reporting — and it is **not** a permission: the role is client-held, so anything asking the
+ * API directly still gets every row. The panel that sets an audience says exactly that.
+ */
+const reportsList = (asRole) => ({
+  /*
+   * The published graphs a report can be asked of — plural, because the wizard opens on
+   * this list and the reader picks. `graph` stays as the default (the newest) so a report
+   * opened straight off the section still names what answered it.
+   */
+  graphs: reportGraphs(),
+  graph: reportGraph(),
+  saved: (db.reports.saved ?? [])
+    .map(reportSavedView)
+    .filter((row) => !asRole || row.viewer_roles.some((r) => r.role_id === asRole)),
+  authoring: {
+    opts: db.reports.opts,
+    facets: reportFacets(),
+    defaults: Object.fromEntries(
+      Object.entries(db.reports.assumptions).map(([slot, chosen]) => [slot, chosen.value]),
+    ),
+  },
+  reports: db.reports.reports.map((r) => ({
+    report_id: r.report_id,
+    report_tag: r.report_tag,
+    heading: r.heading,
+    subtitle: r.subtitle,
+    question: r.question,
+    spine: r.spine,
+    /* Both counts, because "5 traces" and "36 generators" are the difference between a
+       sample and a register, and a card that showed neither would look identical. */
+    row_count: reportRows(r).length,
+    spine_total: db.reports.data[r.spine].length,
+    block_kinds: r.blocks.map((b) => b.type),
+    tiles: r.tiles,
+  })),
+})
+
+/** One report, with every figure computed against the roster it names. */
+const reportView = (report) => {
+  const reading = reportReading(report)
+  return {
+    report_id: report.report_id,
+    report_tag: report.report_tag,
+    heading: report.heading,
+    subtitle: report.subtitle,
+    badge: report.badge,
+    note: report.note,
+    title: report.title,
+    question: report.question,
+    spine: report.spine,
+    row_count: reportRows(report).length,
+    spine_total: db.reports.data[report.spine].length,
+    reading: reading.text,
+    assumptions: reading.assumptions,
+    /*
+     * The frame in **values**, beside the labels the page prints.
+     *
+     * `assumptions` is for reading; this is for asking again. A chip on the report has to
+     * rebuild it under the same scope, measure and horizon plus one filter, and reconstructing
+     * those from their labels would be guessing at what it had already been told.
+     */
+    frame: {
+      report_id: report.report_id,
+      use_case_id: report.graph?.use_case_id ?? reportGraph()?.use_case_id ?? null,
+      scope: report.scope,
+      measure: report.measure,
+      horizon: report.horizon_label
+        ? (db.reports.opts.horizon.options.find((o) => o.label === report.horizon_label)?.value ??
+          db.reports.assumptions.horizon.value)
+        : db.reports.assumptions.horizon.value,
+      filters: (report.applied_filters ?? []).map((f) => ({ key: f.key, value: String(f.value) })),
     },
+    /* What this report can be sliced by — the chip bar the package's own reports carry. A
+       chip re-asks the report, so the figures never describe a different set than the rows. */
+    facets: reportFacetsFor(report.spine),
+    tiles: report.tiles,
+    footer: report.footer,
+    blocks: report.blocks.map((block) => reportBlock(report, block)),
+    /* Where the figures come from, in the tenant's words. */
+    source_trace: db.reports.meta.source_trace,
+    /*
+     * And which published graph answered it — the claim Ask makes about its own answers,
+     * made here for the same reason. A frame carries its own pick; a written report read
+     * straight off the section defaults to the newest published one.
+     */
+    graph: report.graph ?? reportGraph(),
   }
 }
 
@@ -4778,7 +5971,7 @@ const routes = [
   {
     method: 'POST',
     match: (p) => /^\/graph-studio\/[^/]+\/versions\/[0-9a-f]+\/publish$/.test(p),
-    handle: (_req, res, { pathname }) => {
+    handle: (_req, res, { pathname, query }) => {
       const [, , rawId, , sha] = pathname.split('/')
       const id = decodeURIComponent(rawId)
       const found = findBuiltGraph(id)
@@ -4801,7 +5994,29 @@ const routes = [
         })
       }
 
+      /*
+       * Who is publishing. Sent as `as=<email>` because the identity is client-held and
+       * this server has nothing to look it up from — the rule the consent callback set. A
+       * malformed one is refused rather than recorded: every "published by" line in the app
+       * reads this, and a name nobody can be is worse than the seeded fallback.
+       */
+      const as = query.get('as')
+      if (as !== null && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(as)) {
+        return send(res, 400, {
+          error: `"${as}" is not an email — send the signed-in address as ?as=, or nothing`,
+        })
+      }
+
       studioLive.set(id, sha)
+      /*
+       * Written on every publish, never merged into what was there. This records *this*
+       * publish act, so a publish that names nobody has to fall back to the tenant account
+       * rather than inherit the last publisher's name — which is what it did until a smoke
+       * run unpublished and republished anonymously and the page still credited the
+       * previous person.
+       */
+      if (as) studioPublishedBy.set(`${id}:${sha}`, as)
+      else studioPublishedBy.delete(`${id}:${sha}`)
       send(res, 200, { published: sha, studio: graphStudio(found.useCase) })
     },
   },
@@ -5521,11 +6736,18 @@ const routes = [
     match: (p) => p === '/whatif',
     handle: (_req, res) => {
       const connected = connectedSources().length
-      // Gated like every other analysis page: nothing exists until a source is
-      // connected, and a lens over an empty graph would be a lens over nothing.
-      if (connected === 0) {
+      const counts = reportGraphCounts()
+      /*
+       * One gate, the same one the report section has: publication. The copy calls this a
+       * read-only overlay **on the knowledge graph**, so without a published graph there
+       * is nothing to overlay and figures shown anyway would be attributed to content
+       * nobody has published. A connected source is not a second precondition — the two
+       * pages share one rule, which is why they share one empty state.
+       */
+      if (counts.published_count === 0) {
         return send(res, 200, {
-          connected_sources: 0,
+          connected_sources: connected,
+          ...counts,
           facility: null,
           generators: [],
           watched_measures: [],
@@ -5542,6 +6764,7 @@ const routes = [
       }
       send(res, 200, {
         connected_sources: connected,
+        ...counts,
         ...whatifFrame(),
         saved: [...whatifSaved.values()],
       })
@@ -5680,6 +6903,335 @@ const routes = [
          page turns it back into an unsaved draft rather than closing it out from under
          the reader. */
       send(res, 200, { saved: [...whatifSaved.values()], deleted: id })
+    },
+  },
+
+  /* ---------------- Reports ---------------- */
+
+  /*
+   * The section: the five written reports, and the fields this dataset cannot answer.
+   *
+   * **One gate, and it is publication.** A report is asked of the *published* graph, so
+   * nothing is reported until a version is live — and that is the *only* precondition:
+   * connecting a source is not one, because publishing a graph is already downstream of
+   * having something to build it from. `connected_sources` still rides along for the
+   * pages that report it, but it gates nothing here. `built_count` and `draft_count` are
+   * beside `published_count` because "finish the wizard" and "press Publish" are
+   * different fixes and the empty page has to name the right one.
+   *
+   * The gate serves no copy. A card headed "Inbound Generator Risk Register · 36
+   * generators" above "No graph has been published" is a claim about data nothing has
+   * answered for, which is the mistake the What-if page had to be corrected for.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/reports',
+    handle: (_req, res, { query }) => {
+      const connected = connectedSources().length
+      const counts = reportGraphCounts()
+      if (counts.published_count === 0) {
+        return send(res, 200, {
+          connected_sources: connected,
+          ...counts,
+          graph: null,
+          graphs: [],
+          reports: [],
+          saved: [],
+          authoring: null,
+        })
+      }
+      /* The role the browser reports, if it reports one. Unknown roles are ignored rather
+         than refused: a stale client naming a role that has been removed should see the
+         section, not an error — and it will see every report, which is the safe direction for
+         a control the copy already calls a demo. */
+      const asRole = query.get('as_role')
+      const known = asRole && db.auth_roles.some((r) => r.role_id === asRole) ? asRole : null
+      send(res, 200, { connected_sources: connected, ...counts, ...reportsList(known) })
+    },
+  },
+
+  /*
+   * One report, computed. Every figure on it is derived here from the roster its spine
+   * names, so the page renders numbers rather than arriving at them.
+   *
+   * An unknown id is a 404 naming the ids that exist — the section is five fixed
+   * reports, so a miss is a typo or a stale link rather than something to be lenient
+   * about. Refused with the same sentence whichever gate is closed: "no such report",
+   * "nothing connected" and "nothing published" are three different problems.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/reports\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/reports/'.length))
+      const report = db.reports.reports.find((r) => r.report_id === id)
+      if (!report) {
+        return send(res, 404, {
+          error:
+            `no report "${id}" — this section has ` +
+            `${db.reports.reports.map((r) => r.report_id).join(', ')}`,
+        })
+      }
+      const connected = connectedSources().length
+      const counts = reportGraphCounts()
+      if (counts.published_count === 0) {
+        return send(res, 200, { connected_sources: connected, ...counts, report: null })
+      }
+      send(res, 200, { connected_sources: connected, ...counts, report: reportView(report) })
+    },
+  },
+
+  /*
+   * Reading a typed question back, before anything runs against the data.
+   *
+   * The page promises exactly this — "I'll read it back in one plain sentence first —
+   * nothing runs against your compliance data until you're happy with it" — so this
+   * endpoint returns a *sentence and a frame*, never a report. It is **paced** like the
+   * suggesters, because reading a question is the one act here that reads as a model
+   * call, and one that returned instantly would teach that it is free.
+   *
+   * A question that matches nothing is still read back, against the register, and the
+   * payload says it was not recognised. Refusing outright would leave the reader with a
+   * blank step; guessing silently would put words in their mouth.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/reports/read',
+    handle: async (req, res) => {
+      const { question, report_id, use_case_id } = await readJson(req)
+      const asked = String(question ?? '').trim()
+      /* The graph is chosen before the question, so it is validated before the question
+         is read: a sentence read back against a graph nobody published is theatre. */
+      if (use_case_id && !reportGraphs().some((g) => g.use_case_id === use_case_id)) {
+        return send(res, 400, {
+          error: reportFrameProblem({ report_id: db.reports.reports[0].report_id, use_case_id, scope: db.reports.reports[0].scope, measure: db.reports.reports[0].measure, horizon: db.reports.assumptions.horizon.value }),
+        })
+      }
+      /* Picking a standard report is not a question to interpret, so it is not paced and
+         not matched — the chip *is* the answer. */
+      const picked = report_id
+        ? db.reports.reports.find((r) => r.report_id === report_id)
+        : null
+      if (report_id && !picked) {
+        return send(res, 404, {
+          error: `no report "${report_id}" — this section has ${db.reports.reports
+            .map((r) => r.report_id)
+            .join(', ')}`,
+        })
+      }
+      if (!picked && !asked) {
+        return send(res, 400, {
+          error: 'type what you need, or start from one of the standard reports',
+        })
+      }
+
+      const match = picked
+        ? { report: picked, matched: true, why: `Starting from ${picked.report_tag}.` }
+        : reportMatch(asked)
+      const frame = {
+        report_id: match.report.report_id,
+        /* Carried through every step: the graph the question is asked of is part of the
+           frame, not a detail of the request that read it back. */
+        use_case_id: use_case_id ?? reportGraph()?.use_case_id ?? null,
+        scope: match.report.scope,
+        measure: match.report.measure,
+        horizon: db.reports.assumptions.horizon.value,
+        filters: [],
+      }
+      const payload = {
+        question: picked ? picked.question : asked,
+        matched: match.matched,
+        why: match.why,
+        report_tag: match.report.report_tag,
+        heading: match.report.heading,
+        spine: match.report.spine,
+        graph: reportGraphFor(frame.use_case_id),
+        frame,
+        /* The sentence to check, and the pickers that change it. */
+        ...reportBuildReading(match.report, frame),
+        caveats: [REPORT_HORIZON_CAVEAT],
+      }
+      if (picked) return send(res, 200, payload)
+      setTimeout(() => send(res, 200, payload), SUGGEST_MS).unref?.()
+    },
+  },
+
+  /*
+   * Building the report the confirmed frame describes.
+   *
+   * Not paced: this is a read over the rosters, the same as a What-if scenario, and the
+   * copy promises the figures recompute rather than that a model runs. Every one of them
+   * is computed here — and the payload says whether what came back is the written report
+   * or a **generated** one, because a generated report must never show the tenant's
+   * authored tiles against a frame they do not describe.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/reports/build',
+    handle: async (req, res) => {
+      const frame = reportFrameFrom(await readJson(req))
+      const problem = reportFrameProblem(frame)
+      if (problem) return send(res, 400, { error: problem })
+
+      const report = db.reports.reports.find((r) => r.report_id === frame.report_id)
+      send(res, 200, { report: reportBuild(report, frame) })
+    },
+  },
+
+  /*
+   * The saved library.
+   *
+   * **A saved report is a question, not a result** — the frame and nothing else, so
+   * re-opening one next week re-asks it against whatever the rosters then hold. It is
+   * written through `commitDb`, which means it survives a restart: a question someone
+   * composed is their work, the same asymmetry that lets a graph brief persist while a
+   * registered source does not.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/reports/saved',
+    handle: async (req, res) => {
+      const body = await readJson(req)
+      const frame = reportFrameFrom(body)
+      const problem = reportFrameProblem(frame)
+      if (problem) return send(res, 400, { error: problem })
+      const name = String(body.name ?? '').trim()
+      if (!name) {
+        return send(res, 400, { error: 'name this report so the library is readable' })
+      }
+      /*
+       * Who saved it. The identity is client-held, so this route has to be *told* —
+       * the same reason the consent callback takes `as=`. A malformed one is refused
+       * rather than quietly recorded, because a name nobody can be is worse than none.
+       */
+      const viewerRoles = Array.isArray(body.viewer_roles) ? body.viewer_roles.map(String) : null
+      const rolesProblem = reportViewerRolesProblem(viewerRoles)
+      if (rolesProblem) return send(res, 400, { error: rolesProblem })
+      const savedBy = body.saved_by ? String(body.saved_by).trim() : null
+      if (savedBy !== null && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(savedBy)) {
+        return send(res, 400, { error: `"${savedBy}" is not an email — send the signed-in address as saved_by, or nothing` })
+      }
+
+      const saved = [...(db.reports.saved ?? [])]
+      const existing = body.saved_id ? saved.findIndex((s) => s.saved_id === body.saved_id) : -1
+      const row = {
+        saved_id: existing >= 0 ? body.saved_id : `rp-${saved.length + 1}-${hash(name) % 9999}`,
+        name,
+        question: String(body.question ?? '').trim() || null,
+        ...frame,
+        saved_by: savedBy ?? saved[existing]?.saved_by ?? null,
+        /* Kept as ids, resolved to labels on the way out — a stored label would go stale the
+           moment a role is renamed in db.json. */
+        viewer_roles: viewerRoles ?? saved[existing]?.viewer_roles ?? db.auth_roles.map((r) => r.role_id),
+        saved_at: new Date().toISOString(),
+      }
+      if (existing >= 0) saved[existing] = row
+      else saved.push(row)
+
+      commitDb({ ...db, reports: { ...db.reports, saved } })
+      send(res, 200, { saved: (db.reports.saved ?? []).map(reportSavedView) })
+    },
+  },
+
+  /*
+   * Opening a saved report.
+   *
+   * **It is re-asked, not recalled.** The row holds a frame, so this rebuilds it against
+   * the rosters as they are now — which is the whole reason a saved report stores no
+   * figures. The row comes back beside the report so the page can say who saved it, when,
+   * and which graph it was asked of.
+   *
+   * Two path segments, so the single-segment `GET /reports/:reportId` cannot match it —
+   * but `GET /reports/saved` with no id does fall through to that route, which answers
+   * `no report "saved"` and names the five that exist. That is the right refusal.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/reports\/saved\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/reports/saved/'.length))
+      const saved = (db.reports.saved ?? []).find((s) => s.saved_id === id)
+      if (!saved) {
+        return send(res, 404, {
+          error:
+            `no saved report ${id} — the library has ` +
+            `${(db.reports.saved ?? []).length} report(s)`,
+        })
+      }
+      const connected = connectedSources().length
+      const counts = reportGraphCounts()
+      if (counts.published_count === 0) {
+        return send(res, 200, { connected_sources: connected, ...counts, report: null, saved: null })
+      }
+      const report = db.reports.reports.find((r) => r.report_id === saved.report_id)
+      send(res, 200, {
+        connected_sources: connected,
+        ...counts,
+        saved: reportSavedView(saved),
+        report: reportBuild(report, {
+          report_id: saved.report_id,
+          use_case_id: saved.use_case_id ?? null,
+          scope: saved.scope,
+          measure: saved.measure,
+          horizon: saved.horizon,
+          filters: saved.filters ?? [],
+        }),
+      })
+    },
+  },
+
+  /*
+   * Who a saved report is for.
+   *
+   * Its own endpoint rather than a field on the save, because setting it is not re-saving the
+   * report: the frame, the name and the question are untouched, and asking the caller to
+   * re-post all three to change an audience invites one of them to arrive stale.
+   *
+   * **This is a demo control and the panel says so.** The role is client-held and the login
+   * authenticates by shape, so it narrows what the section *shows* rather than what the API
+   * will serve — which is the honest version of governed reporting in a mock.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/reports\/saved\/[^/]+\/roles$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/reports/saved/'.length, -'/roles'.length),
+      )
+      const saved = db.reports.saved ?? []
+      const row = saved.find((s) => s.saved_id === id)
+      if (!row) return send(res, 404, { error: `no saved report ${id}` })
+
+      const { viewer_roles } = await readJson(req)
+      const ids = Array.isArray(viewer_roles) ? viewer_roles.map(String) : null
+      const problem = reportViewerRolesProblem(ids)
+      if (problem) return send(res, 400, { error: problem })
+
+      commitDb({
+        ...db,
+        reports: {
+          ...db.reports,
+          saved: saved.map((s) => (s.saved_id === id ? { ...s, viewer_roles: ids } : s)),
+        },
+      })
+      send(res, 200, { saved: (db.reports.saved ?? []).map(reportSavedView) })
+    },
+  },
+
+  {
+    method: 'DELETE',
+    match: (p) => /^\/reports\/saved\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/reports/saved/'.length))
+      const saved = db.reports.saved ?? []
+      if (!saved.some((s) => s.saved_id === id)) {
+        return send(res, 404, { error: `no saved report ${id}` })
+      }
+      commitDb({
+        ...db,
+        reports: { ...db.reports, saved: saved.filter((s) => s.saved_id !== id) },
+      })
+      send(res, 200, { saved: (db.reports.saved ?? []).map(reportSavedView), deleted: id })
     },
   },
 ]

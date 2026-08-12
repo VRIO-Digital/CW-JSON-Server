@@ -2,9 +2,10 @@ import { Alert, App, Button, Col, Input, Row, Space, Spin, Tabs } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import type { WhatIfFrame } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
-import NoSourceConnected from '../components/NoSourceConnected'
+import NoPublishedGraph from '../components/NoPublishedGraph'
 import PageHeader from '../components/PageHeader'
 import ScenarioColumn from '../components/ScenarioColumn'
+import { PoolFrame } from '../components/WhatIfGraph'
 import {
   headroomFor,
   poolMembers,
@@ -83,9 +84,14 @@ export default function WhatIfPage() {
        * just said is not there. The whole lens, chrome included, lives in
        * `WhatIfLens`, so the ungated branch has no copy to leak.
        */}
-      {frame.connectedSources === 0 ? (
-        <NoSourceConnected
-          detail="Candidate loads, their federal compliance records, and what accepting one would make this facility inherit."
+      {frame.publishedCount === 0 ? (
+        /* The second precondition. The copy calls this a read-only overlay *on the
+           knowledge graph*: with nothing published there is no graph to overlay, and
+           figures shown anyway would be attributed to content nobody has published. */
+        <NoPublishedGraph
+          detail="The lens overlays the published graph — it traverses it to reach each generator's federal record."
+          builtCount={frame.builtCount}
+          draftCount={frame.draftCount}
         />
       ) : (
         <WhatIfLens frame={frame} onMessage={message.error} />
@@ -184,6 +190,8 @@ function Authoring({
   const resolving = useWhatIfStore((s) => s.resolving)
   const resolve = useWhatIfStore((s) => s.resolve)
   const [typed, setTyped] = useState('')
+  /* Local: whether the pool's graph reference is open. A disclosure is not the frame. */
+  const [frameOpen, setFrameOpen] = useState(false)
 
   const { authoring } = frame
   const members = useMemo(() => poolMembers(frame, pool), [frame, pool])
@@ -355,6 +363,22 @@ function Authoring({
               </li>
             ))}
           </ul>
+
+          {/*
+           * The frame this pool *is*, drawn: every candidate shipping to the facility. The
+           * link's words are the package's (`step.graph_link`), and the drawing states its
+           * own cap, because a fan of seven standing for twenty-four is otherwise a silent
+           * sample.
+           */}
+          <button
+            type="button"
+            className="wi-graph-link"
+            onClick={() => setFrameOpen((open) => !open)}
+            aria-expanded={frameOpen}
+          >
+            {authoring.graphLink}
+          </button>
+          {frameOpen ? <PoolFrame frame={frame} members={members} /> : null}
 
           <div className="wi-foot">
             <Button onClick={() => setStep(1)}>← Back</Button>

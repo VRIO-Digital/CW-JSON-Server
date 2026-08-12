@@ -243,54 +243,6 @@
   color: #8994a8;
 }
 
-.sc-graph {
-  width: 100%;
-  /* Capped at the viewBox width: an SVG scales its text with everything else, so
-     without this the 9px labels render large on a wide column. */
-  max-width: 300px;
-  margin-top: var(--sp-2);
-}
-
-.sc-graph-edge {
-  stroke: #cfd6e0;
-  stroke-width: 1.2;
-}
-
-.sc-graph-node text {
-  fill: #4b5a75;
-  font-size: 9.5px;
-}
-
-.sc-graph-node circle {
-  fill: #8994a8;
-}
-
-/* The node hues are the package's own, and they name the ontology type the traversal
-   passed through — the same vocabulary the studio canvas uses. */
-.sc-graph-node.is-facility circle {
-  fill: #eb6834;
-}
-
-.sc-graph-node.is-generator circle {
-  fill: #2570cd;
-}
-
-.sc-graph-node.is-evaluation circle {
-  fill: #0f766e;
-}
-
-.sc-graph-node.is-violation circle {
-  fill: #b45309;
-}
-
-.sc-graph-node.is-enforcement circle {
-  fill: #be123c;
-}
-
-.sc-graph-node.is-document circle {
-  fill: #7c3aed;
-}
-
 .sc-save {
   margin-top: var(--sp-4);
   padding-top: var(--sp-3);

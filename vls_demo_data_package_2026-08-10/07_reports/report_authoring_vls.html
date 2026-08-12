@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Weave — Report Authoring · VLS Deer Park</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#f3f4f6; --bg1:#ffffff; --card:#ffffff; --card2:#f4f5f7; --inset:#f7f8f9;
+  --line:#e3e5e9; --line2:#d3d6db;
+  --text:#1b1e22; --mut:#5c636b; --dim:#9aa0a8;
+  --orange:#f2691d; --orange-hi:#e85d10; --orange-soft:rgba(242,105,29,.10); --orange-line:rgba(242,105,29,.40);
+  --green:#0d9f6e; --green-soft:rgba(13,159,110,.10);
+  --amber:#b47d0a; --amber-soft:rgba(180,125,10,.12); --amber-line:rgba(180,125,10,.34);
+  --red:#dc4444; --red-soft:rgba(220,68,68,.10);
+  --cyan:#0284c7; --cyan-soft:rgba(2,132,199,.10);
+  --shadow:0 8px 28px rgba(20,25,35,.10);
+  --shadow-lg:0 14px 40px rgba(20,25,35,.16);
+  --r-s:7px; --r-m:11px; --r-l:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg0);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Space Grotesk','Inter',sans-serif;letter-spacing:-.01em}
+.mono{font-family:'JetBrains Mono',monospace}
+button{font-family:'Inter'}
+
+.top{display:flex;align-items:center;gap:12px;padding:14px 26px;border-bottom:1px solid var(--line);background:var(--bg1)}
+.wordmark{font-family:'Space Grotesk';font-weight:700;font-size:18px;letter-spacing:-.02em}
+.wordmark b{color:var(--orange);font-weight:500}
+.crumb{color:var(--dim);font-size:12px}
+.crumb b{color:var(--mut);font-weight:600}
+.whoami{margin-left:auto;display:flex;align-items:center;gap:9px}
+.av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--orange-hi);font-size:11px;font-weight:700}
+.who{line-height:1.25;text-align:right}
+.who .n{font-size:12.5px;font-weight:600}
+.who .r{font-size:10px;color:var(--dim)}
+
+.wrap{max-width:920px;margin:0 auto;padding:38px 26px 100px}
+.stepDots{display:flex;gap:7px;justify-content:center;margin-bottom:30px}
+.dot{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:11px}
+.dot .n{width:20px;height:20px;border-radius:50%;border:1px solid var(--line2);display:grid;place-items:center;font-size:10.5px;font-weight:600;background:var(--card)}
+.dot.on{color:var(--text)}
+.dot.on .n{background:var(--orange-soft);border-color:var(--orange-line);color:var(--orange-hi)}
+.dot.done .n{background:var(--green-soft);border-color:rgba(13,159,110,.4);color:var(--green)}
+.dot .bar{width:26px;height:1px;background:var(--line2)}
+
+.pane{display:none;animation:fade .3s ease}
+.pane.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ASK */
+.askHead{text-align:center;margin-bottom:26px}
+.askHead h1{font-size:27px;font-weight:600;margin-bottom:9px}
+.askHead p{color:var(--mut);font-size:14px;max-width:560px;margin:0 auto;line-height:1.6}
+.askBox{background:var(--card);border:1px solid var(--line2);border-radius:var(--r-l);padding:6px;box-shadow:var(--shadow);transition:border-color .15s;max-width:720px;margin:0 auto}
+.askBox:focus-within{border-color:var(--orange-line)}
+.askBox textarea{width:100%;background:transparent;border:0;resize:none;color:var(--text);font-family:'Inter';font-size:16px;line-height:1.55;padding:16px 16px 6px;outline:none}
+.askBox textarea::placeholder{color:var(--dim)}
+.askFoot{display:flex;align-items:center;gap:10px;padding:8px 10px}
+.askFoot .hint{color:var(--dim);font-size:11.5px}
+.spacer{flex:1}
+.btn{font-weight:600;font-size:13.5px;border-radius:var(--r-s);padding:9px 16px;cursor:pointer;border:1px solid var(--line2);background:var(--card);color:var(--text);transition:all .15s}
+.btn:hover{background:var(--card2)}
+.btn.pri{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.pri:hover{background:var(--orange-hi);border-color:var(--orange-hi)}
+.btn.big{padding:12px 24px;font-size:14.5px}
+.btn.sm{padding:6px 12px;font-size:12px}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.ghost{background:transparent}
+.starters{margin-top:22px;text-align:center}
+.starters .lbl{color:var(--dim);font-size:11.5px;margin-bottom:11px}
+.chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--mut);border-radius:20px;padding:8px 15px;font-size:12.5px;cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--orange-line);color:var(--orange-hi);background:var(--orange-soft)}
+.chip .rp{font-size:9.5px;color:var(--dim);margin-left:7px}
+
+/* CONFIRM */
+.confHead{text-align:center;margin-bottom:22px}
+.confHead .eyebrow{color:var(--orange-hi);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin-bottom:9px}
+.confHead h2{font-size:21px;font-weight:600}
+.readCard{background:var(--card);border:1px solid var(--line2);border-radius:var(--r-l);padding:26px 28px;box-shadow:var(--shadow);max-width:760px;margin:0 auto}
+.reading{font-size:19px;line-height:1.75;color:var(--text);font-family:'Space Grotesk','Inter';font-weight:400}
+.slot{display:inline-flex;align-items:center;gap:5px;background:var(--orange-soft);border:1px solid var(--orange-line);border-radius:6px;padding:1px 9px;color:var(--orange-hi);cursor:pointer;font-weight:600;font-size:17px;font-family:'Space Grotesk';transition:all .12s}
+.slot:hover{background:rgba(242,105,29,.18)}
+.slot i{font-style:normal;font-size:10px;opacity:.7}
+.sliceRow{margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+.sliceRow .lab{font-size:12.5px;color:var(--mut);margin-bottom:11px}
+.sliceRow .lab b{color:var(--text);font-weight:600}
+.sliceChips{display:flex;flex-wrap:wrap;gap:9px}
+.sliceChip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--card);color:var(--mut);border-radius:20px;padding:7px 14px;font-size:12.5px;cursor:pointer;transition:all .15s}
+.sliceChip .bx{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--line2);display:grid;place-items:center;font-size:10px;color:#fff}
+.sliceChip.on{border-color:var(--orange-line);color:var(--orange-hi);background:var(--orange-soft)}
+.sliceChip.on .bx{background:var(--orange);border-color:var(--orange)}
+.confMeta{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);display:flex;gap:22px;flex-wrap:wrap}
+.confMeta .m{font-size:12px;color:var(--mut)}
+.confMeta .m b{display:block;color:var(--text);font-size:13px;font-weight:600;margin-top:2px}
+.confActs{display:flex;align-items:center;gap:12px;margin-top:26px;justify-content:center}
+.confActs .back{color:var(--mut);font-size:12.5px;cursor:pointer}
+.confActs .back:hover{color:var(--text)}
+.confNote{text-align:center;color:var(--dim);font-size:11.5px;margin-top:16px;line-height:1.6;max-width:640px;margin:16px auto 0}
+
+/* menus + picker */
+.menu{position:absolute;z-index:80;background:var(--card);border:1px solid var(--line2);border-radius:var(--r-m);box-shadow:var(--shadow-lg);padding:7px;min-width:230px}
+.menu.picker{min-width:290px}
+.menu .mq{font-size:10.5px;color:var(--dim);padding:5px 8px 8px;text-transform:uppercase;letter-spacing:.05em}
+.menu .opt{display:block;width:100%;text-align:left;background:transparent;border:0;color:var(--text);font-size:13px;padding:8px 10px;border-radius:var(--r-s);cursor:pointer}
+.menu .opt:hover{background:var(--orange-soft);color:var(--orange-hi)}
+.menu .opt.sel{color:var(--orange-hi);font-weight:600}
+.menu .opt .d{display:block;font-size:10.5px;color:var(--dim);margin-top:1px}
+.menu .opt:hover .d{color:var(--mut)}
+.menu .opt.danger:hover{background:var(--red-soft);color:var(--red)}
+.menu .grp{font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;padding:9px 10px 4px}
+.psearch{width:100%;border:1px solid var(--line2);border-radius:var(--r-s);padding:8px 11px;font-family:'Inter';font-size:13px;outline:none;margin-bottom:5px;color:var(--text);background:var(--inset)}
+.psearch:focus{border-color:var(--orange-line);background:var(--card)}
+.plist{max-height:260px;overflow-y:auto}
+.opt.na{cursor:not-allowed;color:var(--dim);padding:8px 10px;border-radius:var(--r-s)}
+.opt.na .d.err{color:var(--red);display:flex;gap:5px;align-items:flex-start;margin-top:3px}
+.opt.na:hover{background:var(--red-soft)}
+.pEmpty{padding:12px 10px;font-size:12px;color:var(--dim)}
+.pDot{width:6px;height:6px;border-radius:50%;flex:none;margin-top:6px}
+.pDot.cat{background:var(--cyan)}.pDot.num{background:var(--orange)}.pDot.cta{background:var(--green)}
+.psugLabel{font-size:9.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);margin:8px 2px 4px}
+.opt.custom{border:1px dashed var(--orange-line);border-radius:var(--r-s);margin-bottom:2px}
+.opt.custom:hover{background:var(--orange-soft)}
+.optRow{display:flex;gap:8px;align-items:flex-start}
+
+/* REPORT */
+.repHead{display:flex;align-items:flex-start;gap:16px;margin-bottom:16px}
+.repHead h1{font-size:24px;font-weight:600}
+.repHead .rq{color:var(--mut);font-size:13.5px;margin-top:4px;font-style:italic}
+.repHead .racts{margin-left:auto;display:flex;gap:8px}
+.trust{display:flex;align-items:center;gap:9px;background:var(--green-soft);border:1px solid rgba(13,159,110,.28);border-radius:var(--r-s);padding:9px 14px;font-size:12px;color:var(--mut);margin-bottom:18px}
+.trust .dotg{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}
+.trust b{color:var(--text);font-weight:600}
+
+.block{position:relative;border-radius:var(--r-m);transition:box-shadow .12s}
+.editing .block{cursor:pointer}
+.editing .block:hover{box-shadow:0 0 0 2px var(--orange-line)}
+.editing .block.sel{box-shadow:0 0 0 2px var(--orange)}
+.blockTag{display:none;position:absolute;top:-10px;left:12px;background:var(--orange);color:#fff;font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px;z-index:5}
+.editing .block:hover .blockTag,.editing .block.sel .blockTag{display:block}
+.blockBar{display:none;position:absolute;top:-15px;right:12px;background:var(--card);border:1px solid var(--line2);border-radius:20px;box-shadow:var(--shadow);padding:4px;gap:3px;z-index:6;align-items:center}
+.block.sel .blockBar{display:flex}
+.blockBar button{border:0;background:transparent;color:var(--mut);font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:14px;cursor:pointer;display:flex;align-items:center;gap:4px}
+.blockBar button:hover{background:var(--card2);color:var(--text)}
+.blockBar button.on{background:var(--orange-soft);color:var(--orange-hi)}
+.blockBar button.danger:hover{background:var(--red-soft);color:var(--red)}
+.blockBar .div{width:1px;height:18px;background:var(--line);margin:0 2px}
+.blockBar .seg{display:flex;background:var(--inset);border-radius:14px;padding:2px}
+.blockBar .seg.mv button{padding:5px 9px;font-size:13px;line-height:1}
+.blockBar button.mvOff{opacity:.3;cursor:default}
+.blockBar button.mvOff:hover{background:transparent;color:var(--mut)}
+
+.filterBar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:13px 16px}
+.filterBar .fl{font-size:11px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.fSel{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--card);border-radius:20px;padding:6px 12px;font-size:12.5px;cursor:pointer;color:var(--text)}
+.fSel:hover{border-color:var(--orange-line)}
+.fSel .k{color:var(--dim)}
+.fSel .v{font-weight:600}
+.fSel i{font-style:normal;font-size:9px;color:var(--dim)}
+.fNone{font-size:12px;color:var(--dim)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:16px 17px}
+.kpi .v{font-size:26px;font-weight:600;font-family:'Space Grotesk';letter-spacing:-.02em}
+.kpi .v.bad{color:var(--red)}.kpi .v.warn{color:var(--amber)}
+.kpi .l{font-size:11.5px;color:var(--mut);margin-top:3px}
+.kpi .src{font-size:10px;color:var(--dim);margin-top:8px;cursor:pointer}
+.kpi .src:hover{color:var(--cyan)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:18px 20px}
+.panel h3{font-size:14px;font-weight:600;margin-bottom:2px}
+.panel .ph{color:var(--dim);font-size:11.5px;margin-bottom:16px}
+.stack{display:flex;flex-direction:column;gap:16px}
+
+.barRow{display:grid;grid-template-columns:190px 1fr 96px;align-items:center;gap:12px;margin-bottom:10px}
+.barRow .nm{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barTrack{background:var(--inset);border-radius:5px;height:22px;overflow:hidden}
+.barFill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--orange),var(--orange-hi))}
+.barFill.over{background:linear-gradient(90deg,#e0561a,var(--red))}
+.barFill.warn{background:linear-gradient(90deg,var(--amber),#c98a12)}
+.barFill.ok{background:linear-gradient(90deg,var(--green),#0b8a60)}
+.barVal{font-size:12px;color:var(--mut);text-align:right;font-family:'JetBrains Mono'}
+.barVal.bad{color:var(--red)}
+.cols{display:flex;align-items:flex-end;gap:10px;height:200px;padding-top:10px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px}
+.colBar{width:70%;max-width:40px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--orange-hi),var(--orange))}
+.colBar.over{background:linear-gradient(180deg,var(--red),#e0561a)}
+.colBar.cy{background:linear-gradient(180deg,var(--cyan),#0369a1)}
+.colV{font-size:10px;font-family:'JetBrains Mono';color:var(--mut)}
+.colN{font-size:9.5px;color:var(--dim);text-align:center;line-height:1.2;height:26px;overflow:hidden}
+
+/* grouped facility bars */
+.gbars{display:flex;flex-direction:column;gap:14px}
+.gbarRow{display:grid;grid-template-columns:200px 1fr;align-items:center;gap:12px}
+.gbarRow .nm{font-size:12.5px}
+.gbarRow .nm .tag{display:block;font-size:9.5px;color:var(--dim);margin-top:1px}
+.gbarRow.self .nm{font-weight:700;color:var(--orange-hi)}
+.gpair{display:flex;flex-direction:column;gap:5px}
+.gseg{display:flex;align-items:center;gap:8px}
+.gtrack{flex:1;background:var(--inset);border-radius:4px;height:15px;overflow:hidden}
+.gtrack .gf{height:100%;border-radius:4px}
+.gseg .gl{font-size:9.5px;color:var(--dim);width:64px}
+.gseg .gv{font-size:11px;font-family:'JetBrains Mono';color:var(--mut);width:26px;text-align:right}
+.leg{display:flex;gap:16px;margin-bottom:14px;font-size:11px;color:var(--mut)}
+.leg span{display:inline-flex;align-items:center;gap:6px}
+.leg .sw{width:11px;height:11px;border-radius:3px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;color:var(--dim);font-weight:600;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:0 10px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th.num,td.num{text-align:right;font-family:'JetBrains Mono'}
+td{padding:11px 10px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+td .sub{font-size:10.5px;color:var(--dim);margin-top:2px}
+.pill{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:20px}
+.pill.bad{background:var(--red-soft);color:var(--red)}
+.pill.warn{background:var(--amber-soft);color:var(--amber)}
+.pill.ok{background:var(--green-soft);color:var(--green)}
+.pill.info{background:var(--cyan-soft);color:var(--cyan)}
+
+.editBanner{display:flex;align-items:center;gap:12px;background:var(--orange-soft);border:1px solid var(--orange-line);border-radius:var(--r-m);padding:12px 16px;margin-bottom:16px}
+.editBanner .t{font-size:12.5px;color:var(--text)}
+.editBanner .t b{font-weight:600}
+.addBlockRow{margin-top:4px}
+.addBlockBtn{width:100%;border:1.5px dashed var(--line2);background:transparent;color:var(--mut);border-radius:var(--r-m);padding:13px;font-size:13px;font-weight:600;cursor:pointer}
+.addBlockBtn:hover{border-color:var(--orange-line);color:var(--orange-hi);background:var(--orange-soft)}
+
+.footBar{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line2);border-radius:var(--r-m);padding:16px 20px;margin-top:22px}
+.footBar .draft{font-size:12.5px;color:var(--mut)}
+.footBar .draft b{color:var(--amber)}
+
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;border-radius:var(--r-m);padding:12px 20px;font-size:13px;box-shadow:var(--shadow-lg);opacity:0;transition:all .3s;pointer-events:none;display:flex;gap:10px;align-items:center;z-index:120}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .tk{color:#5be3a7}
+.note{background:var(--amber-soft);border:1px solid var(--amber-line);border-radius:var(--r-s);padding:6px 11px;font-size:11px;color:var(--amber);display:inline-block;margin-top:16px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <span class="wordmark">Context<b>·</b>Weave</span>
+  <span class="crumb">Reports&nbsp;/&nbsp;<b>Author a report</b></span>
+  <div class="whoami">
+    <div class="who"><div class="n" id="pName"></div><div class="r" id="pRole"></div></div>
+    <div class="av" id="pAv"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="stepDots" id="dots">
+    <div class="dot on" data-s="1"><span class="n">1</span> Ask</div><div class="bar"></div>
+    <div class="dot" data-s="2"><span class="n">2</span> Confirm</div><div class="bar"></div>
+    <div class="dot" data-s="3"><span class="n">3</span> Report</div>
+  </div>
+
+  <!-- 1. ASK -->
+  <div class="pane on" id="pane1">
+    <div class="askHead">
+      <h1>What report do you need?</h1>
+      <p>Ask for it the way you'd ask a colleague. I'll read it back in one plain sentence first — nothing runs against your compliance data until you're happy with it.</p>
+    </div>
+    <div class="askBox">
+      <textarea id="prompt" rows="2" placeholder="e.g. Which inbound generators carry the most compliance risk?"></textarea>
+      <div class="askFoot">
+        <span class="hint">Plain English is fine — no filters or waste codes to set up.</span>
+        <span class="spacer"></span>
+        <button class="btn pri" onclick="readQuestion()">Read my question →</button>
+      </div>
+    </div>
+    <div class="starters">
+      <div class="lbl">Or start from one of your standard reports:</div>
+      <div class="chips" id="starterChips"></div>
+    </div>
+  </div>
+
+  <!-- 2. CONFIRM -->
+  <div class="pane" id="pane2">
+    <div class="confHead">
+      <div class="eyebrow">Here's what I understood</div>
+      <h2>Check this reads right, then build it</h2>
+    </div>
+    <div class="readCard">
+      <div class="reading" id="reading"></div>
+      <div class="sliceRow" id="sliceRow">
+        <div class="lab">I'll add these as <b>filters</b> so you can slice the report once it's built. Turn off any you don't need — you can add more later:</div>
+        <div class="sliceChips" id="sliceChips"></div>
+      </div>
+      <div class="confMeta">
+        <div class="m">Runs under your access<b id="mScope"></b></div>
+        <div class="m">Stays private until you publish<b>Only you can see the draft</b></div>
+        <div class="m">Every figure is traceable<b>Back to EPA &amp; e-Manifest source</b></div>
+      </div>
+    </div>
+    <div class="confActs">
+      <span class="back" onclick="go(1)">← Change my question</span>
+      <button class="btn pri big" onclick="build()">Build the report →</button>
+    </div>
+    <div class="confNote">The orange words are my assumptions — click any to change it. Nothing has run against your data yet, so changing your mind here is free.</div>
+  </div>
+
+  <!-- 3. REPORT -->
+  <div class="pane" id="pane3">
+    <div class="repHead">
+      <div>
+        <h1 id="repTitle">Inbound generators by compliance risk</h1>
+        <div class="rq" id="repQ"></div>
+      </div>
+      <div class="racts">
+        <button class="btn ghost sm" onclick="go(2)">← Adjust question</button>
+        <button class="btn sm" id="editToggle" onclick="toggleEdit()">✎ Edit report</button>
+      </div>
+    </div>
+
+    <div class="trust">
+      <span class="dotg"></span>
+      <span>Resolved just now under <b>your</b> access — <b id="tScope"></b>. Every number traces to source. <b>Nothing saved yet.</b></span>
+    </div>
+
+    <div id="editBanner"></div>
+    <div id="reportBody" class="stack"></div>
+    <div id="addBlockRow"></div>
+
+    <div class="footBar">
+      <span class="draft"><b>Draft.</b> Save it to your library, or publish it so your audience sees it.</span>
+      <span class="spacer"></span>
+      <button class="btn sm" onclick="toast('Saved to your library as a private draft.')">Save to library</button>
+      <button class="btn pri sm" onclick="toast('Sent for publish — a Domain Architect approves before your audience sees it.')">Publish…</button>
+    </div>
+
+    <div class="note">Exploration only — demo data. Proposal for how a compliance user authors and edits a report; not wired to the live graph.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="tk">✓</span><span id="toastMsg"></span></div>
+
+<script>
+var DATA = {"meta": {"persona_name": "Ana Delgado", "persona_role": "EHS Compliance Lead \u00b7 VLS Deer Park", "persona_initials": "AD", "entity_plural": "inbound generators", "scope_line": "the VLS Deer Park inbound network", "source_trace": "Traces to: EPA RCRAInfo + e-Manifest + facility intake ledger, refreshed today."}, "fields": [{"key": "generator", "label": "Generator", "kind": "cat", "filterable": false}, {"key": "state", "label": "State", "kind": "cat", "filterable": true}, {"key": "risk", "label": "Compliance risk", "kind": "cat", "filterable": true}, {"key": "cd", "label": "Consent decree", "kind": "cat", "filterable": true}, {"key": "evals", "label": "RCRA evaluations", "kind": "num", "filterable": false}, {"key": "viols", "label": "Open violations", "kind": "num", "filterable": false}, {"key": "enf", "label": "Enforcement actions", "kind": "num", "filterable": false}, {"key": "penalty", "label": "Penalty exposure", "kind": "num", "filterable": false}, {"key": "tons", "label": "Tons shipped to VLS", "kind": "num", "filterable": false}, {"key": "manifests", "label": "Manifests", "kind": "num", "filterable": false}, {"key": "last_enf", "label": "Last enforcement", "kind": "cat", "filterable": false}, {"key": "wastecode", "label": "Waste code", "kind": "cat", "avail": false, "filterable": false, "note": "Waste codes live on individual manifests, not the generator profile. Add a manifest-trace block to see them."}, {"key": "transporter", "label": "Transporter", "kind": "cat", "avail": false, "filterable": false, "note": "Transporter is a manifest-level field. Add a manifest-trace block to follow custody chains."}, {"key": "daily", "label": "Daily volume", "kind": "num", "avail": false, "filterable": false, "note": "Only quarterly aggregates are modeled here \u2014 daily receipts aren't in this dataset."}], "assumptions": {"scope": {"value": "all", "label": "all inbound generators"}, "measure": {"value": "penalty", "label": "penalty exposure"}, "horizon": {"value": "h24", "label": "over the trailing 24 months"}}, "opts": {"scope": {"q": "Which generators should I include?", "options": [{"value": "all", "label": "all inbound generators", "d": "Every generator shipping to VLS Deer Park (36)"}, {"value": "enf", "label": "generators under enforcement", "d": "Only those with an enforcement action on record"}, {"value": "oos", "label": "out-of-state generators", "d": "Generators outside Texas"}, {"value": "cd", "label": "generators under a consent decree", "d": "Only generators bound by a decree or CAFO"}]}, "measure": {"q": "Rank them by what?", "options": [{"value": "penalty", "label": "penalty exposure", "d": "Assessed EPA penalties"}, {"value": "tons", "label": "tonnage shipped to VLS", "d": "Hazardous tonnage received at Deer Park"}, {"value": "viols", "label": "open violations", "d": "Unresolved RCRA violations"}, {"value": "enf", "label": "enforcement actions", "d": "Count of enforcement actions"}]}, "horizon": {"q": "Over what time window?", "options": [{"value": "h24", "label": "over the trailing 24 months", "d": "Rolling 24-month window"}, {"value": "h12", "label": "over the last 12 months", "d": "Rolling 12-month window"}, {"value": "ytd", "label": "year to date, 2026", "d": "Jan 1, 2026 to today"}, {"value": "all", "label": "across all history on file", "d": "Everything since 2023"}]}}, "generators": [{"generator": "Arkema Inc. Crosby", "state": "TX", "risk": "high", "evals": 14, "viols": 4, "enf": 4, "penalty": 397500, "tons": 1355.0, "manifests": 60, "cd": false, "last_enf": "03/25/2026"}, {"generator": "ExxonMobil Baytown Complex", "state": "TX", "risk": "med", "evals": 12, "viols": 3, "enf": 2, "penalty": 318000, "tons": 1061.8, "manifests": 46, "cd": false, "last_enf": "03/02/2026"}, {"generator": "J.R. Simplot Company Don Plant", "state": "ID", "risk": "high", "evals": 16, "viols": 9, "enf": 4, "penalty": 293500, "tons": 350.4, "manifests": 15, "cd": true, "last_enf": "01/08/2026"}, {"generator": "Ascend Performance Materials Pasadena", "state": "TX", "risk": "med", "evals": 12, "viols": 3, "enf": 2, "penalty": 252000, "tons": 741.7, "manifests": 35, "cd": false, "last_enf": "07/31/2021"}, {"generator": "PCS Nitrogen Fertilizer LP", "state": "LA", "risk": "high", "evals": 17, "viols": 6, "enf": 3, "penalty": 164000, "tons": 472.7, "manifests": 21, "cd": true, "last_enf": "10/04/2022"}, {"generator": "Intercontinental Terminals Company Deer Park", "state": "TX", "risk": "high", "evals": 20, "viols": 6, "enf": 1, "penalty": 78000, "tons": 1061.4, "manifests": 52, "cd": false, "last_enf": "03/07/2022"}, {"generator": "Dow Chemical La Porte Operations", "state": "TX", "risk": "med", "evals": 11, "viols": 1, "enf": 1, "penalty": 78000, "tons": 841.8, "manifests": 33, "cd": false, "last_enf": "07/24/2021"}, {"generator": "Denka Performance Elastomer LLC", "state": "LA", "risk": "high", "evals": 22, "viols": 9, "enf": 3, "penalty": 70500, "tons": 579.1, "manifests": 28, "cd": true, "last_enf": "06/13/2026"}, {"generator": "Vopak Terminal Deer Park", "state": "TX", "risk": "med", "evals": 6, "viols": 3, "enf": 1, "penalty": 34000, "tons": 909.5, "manifests": 40, "cd": false, "last_enf": "09/28/2019"}, {"generator": "TPC Group Houston Plant", "state": "TX", "risk": "med", "evals": 11, "viols": 3, "enf": 1, "penalty": 34000, "tons": 1175.3, "manifests": 46, "cd": false, "last_enf": "05/07/2024"}, {"generator": "Marathon Galveston Bay Refinery", "state": "TX", "risk": "med", "evals": 10, "viols": 3, "enf": 2, "penalty": 32500, "tons": 988.0, "manifests": 40, "cd": false, "last_enf": "08/01/2025"}, {"generator": "Pemex Deer Park", "state": "TX", "risk": "med", "evals": 7, "viols": 4, "enf": 2, "penalty": 25000, "tons": 1085.4, "manifests": 46, "cd": false, "last_enf": "07/13/2022"}, {"generator": "The Chemours Company Fayetteville Works", "state": "NC", "risk": "high", "evals": 15, "viols": 4, "enf": 1, "penalty": 12000, "tons": 473.4, "manifests": 19, "cd": true, "last_enf": "05/10/2025"}, {"generator": "LyondellBasell Channelview Complex", "state": "TX", "risk": "high", "evals": 21, "viols": 5, "enf": 1, "penalty": 7500, "tons": 1502.7, "manifests": 61, "cd": false, "last_enf": "03/19/2024"}, {"generator": "Chevron Phillips Chemical Cedar Bayou Plant", "state": "TX", "risk": "low", "evals": 3, "viols": 0, "enf": 0, "penalty": 0, "tons": 402.9, "manifests": 20, "cd": false, "last_enf": ""}, {"generator": "LyondellBasell Houston Refinery", "state": "TX", "risk": "med", "evals": 13, "viols": 1, "enf": 1, "penalty": 0, "tons": 847.5, "manifests": 36, "cd": false, "last_enf": "09/19/2025"}, {"generator": "INEOS Olefins & Polymers USA La Porte", "state": "TX", "risk": "low", "evals": 5, "viols": 1, "enf": 0, "penalty": 0, "tons": 662.5, "manifests": 27, "cd": false, "last_enf": ""}, {"generator": "Covestro LLC Baytown", "state": "TX", "risk": "low", "evals": 5, "viols": 0, "enf": 0, "penalty": 0, "tons": 678.3, "manifests": 27, "cd": false, "last_enf": ""}, {"generator": "Occidental Chemical Deer Park", "state": "TX", "risk": "med", "evals": 11, "viols": 1, "enf": 0, "penalty": 0, "tons": 905.9, "manifests": 40, "cd": false, "last_enf": ""}, {"generator": "Occidental Chemical La Porte", "state": "TX", "risk": "low", "evals": 4, "viols": 0, "enf": 0, "penalty": 0, "tons": 423.5, "manifests": 25, "cd": false, "last_enf": ""}, {"generator": "Lubrizol Deer Park", "state": "TX", "risk": "low", "evals": 5, "viols": 1, "enf": 0, "penalty": 0, "tons": 686.3, "manifests": 29, "cd": false, "last_enf": ""}, {"generator": "Kuraray America Pasadena", "state": "TX", "risk": "low", "evals": 4, "viols": 0, "enf": 0, "penalty": 0, "tons": 579.6, "manifests": 29, "cd": false, "last_enf": ""}, {"generator": "Celanese Clear Lake Plant", "state": "TX", "risk": "med", "evals": 12, "viols": 4, "enf": 0, "penalty": 0, "tons": 1110.4, "manifests": 51, "cd": false, "last_enf": ""}, {"generator": "BASF Corporation Pasadena", "state": "TX", "risk": "low", "evals": 4, "viols": 1, "enf": 0, "penalty": 0, "tons": 662.6, "manifests": 29, "cd": false, "last_enf": ""}, {"generator": "Air Liquide Bayport", "state": "TX", "risk": "low", "evals": 2, "viols": 1, "enf": 0, "penalty": 0, "tons": 667.5, "manifests": 31, "cd": false, "last_enf": ""}, {"generator": "Kaneka North America La Porte", "state": "TX", "risk": "low", "evals": 2, "viols": 0, "enf": 0, "penalty": 0, "tons": 673.3, "manifests": 30, "cd": false, "last_enf": ""}, {"generator": "Goodyear Chemical Bayport", "state": "TX", "risk": "med", "evals": 7, "viols": 1, "enf": 0, "penalty": 0, "tons": 774.3, "manifests": 36, "cd": false, "last_enf": ""}, {"generator": "Evonik Corporation Houston", "state": "TX", "risk": "low", "evals": 3, "viols": 0, "enf": 0, "penalty": 0, "tons": 567.7, "manifests": 24, "cd": false, "last_enf": ""}, {"generator": "Huntsman Corporation Bayport", "state": "TX", "risk": "low", "evals": 5, "viols": 1, "enf": 0, "penalty": 0, "tons": 438.4, "manifests": 21, "cd": false, "last_enf": ""}, {"generator": "Braskem America La Porte", "state": "TX", "risk": "low", "evals": 2, "viols": 0, "enf": 0, "penalty": 0, "tons": 731.1, "manifests": 33, "cd": false, "last_enf": ""}, {"generator": "Phillips 66 Pasadena Terminal", "state": "TX", "risk": "low", "evals": 2, "viols": 0, "enf": 0, "penalty": 0, "tons": 631.4, "manifests": 23, "cd": false, "last_enf": ""}, {"generator": "Valero Houston Refinery", "state": "TX", "risk": "med", "evals": 14, "viols": 1, "enf": 0, "penalty": 0, "tons": 1084.7, "manifests": 47, "cd": false, "last_enf": ""}, {"generator": "Enterprise Products Mont Belvieu", "state": "TX", "risk": "low", "evals": 3, "viols": 0, "enf": 0, "penalty": 0, "tons": 617.0, "manifests": 29, "cd": false, "last_enf": ""}, {"generator": "Kinder Morgan Pasadena Terminal", "state": "TX", "risk": "low", "evals": 5, "viols": 0, "enf": 0, "penalty": 0, "tons": 361.9, "manifests": 20, "cd": false, "last_enf": ""}, {"generator": "Shell Chemical LP Deer Park", "state": "TX", "risk": "low", "evals": 3, "viols": 1, "enf": 0, "penalty": 0, "tons": 503.4, "manifests": 25, "cd": false, "last_enf": ""}, {"generator": "Kraton Polymers Houston", "state": "TX", "risk": "low", "evals": 5, "viols": 1, "enf": 0, "penalty": 0, "tons": 702.2, "manifests": 26, "cd": false, "last_enf": ""}], "facilities": [{"facility": "VLS Texas Molecular", "role": "VLS (operator)", "state": "TX", "evals": 3, "viols": 1, "enf": 0, "penalty": 0, "last_eval": "2025-06-30"}, {"facility": "Clean Harbors Deer Park LLC", "role": "Comparator TSDF", "state": "TX", "evals": 10, "viols": 4, "enf": 0, "penalty": 0, "last_eval": "2025-05-14"}, {"facility": "US Ecology Texas Robstown", "role": "Comparator TSDF", "state": "TX", "evals": 6, "viols": 0, "enf": 0, "penalty": 0, "last_eval": "2025-07-21"}, {"facility": "Veolia Port Arthur", "role": "Comparator TSDF", "state": "TX", "evals": 7, "viols": 3, "enf": 0, "penalty": 0, "last_eval": "2025-07-22"}, {"facility": "WM Disposal Services of Texas", "role": "Comparator TSDF", "state": "TX", "evals": 5, "viols": 1, "enf": 0, "penalty": 0, "last_eval": "2026-06-13"}], "quarters": [{"quarter": "2023 Q1", "manifests": 69, "tons": 1701.5, "rej": 3, "res": 4}, {"quarter": "2023 Q2", "manifests": 99, "tons": 2224.5, "rej": 1, "res": 4}, {"quarter": "2023 Q3", "manifests": 87, "tons": 1784.8, "rej": 2, "res": 4}, {"quarter": "2023 Q4", "manifests": 91, "tons": 2054.1, "rej": 4, "res": 3}, {"quarter": "2024 Q1", "manifests": 97, "tons": 2336.9, "rej": 1, "res": 2}, {"quarter": "2024 Q2", "manifests": 76, "tons": 1671.3, "rej": 1, "res": 3}, {"quarter": "2024 Q3", "manifests": 81, "tons": 1848.3, "rej": 1, "res": 6}, {"quarter": "2024 Q4", "manifests": 78, "tons": 1712.7, "rej": 1, "res": 2}, {"quarter": "2025 Q1", "manifests": 77, "tons": 1648.2, "rej": 1, "res": 2}, {"quarter": "2025 Q2", "manifests": 84, "tons": 2010.6, "rej": 2, "res": 3}, {"quarter": "2025 Q3", "manifests": 76, "tons": 1933.5, "rej": 2, "res": 4}, {"quarter": "2025 Q4", "manifests": 85, "tons": 1961.6, "rej": 1, "res": 3}, {"quarter": "2026 Q1", "manifests": 95, "tons": 2031.9, "rej": 5, "res": 3}, {"quarter": "2026 Q2", "manifests": 105, "tons": 2390.7, "rej": 1, "res": 3}], "traces": [{"mtn": "346581037ELC", "generator": "Arkema Inc. Crosby", "gen_state": "TX", "shipped": "2024-01-26", "received": "2024-01-31", "days": 5, "transporters": ["Sprint Waste Services LP"], "tons": "24.614", "residue": "N", "rejected": "N", "status": "Received"}, {"mtn": "510680225HMV", "generator": "Phillips 66 Pasadena Terminal", "gen_state": "TX", "shipped": "2025-10-01", "received": "2025-10-06", "days": 5, "transporters": ["Veolia ES Technical Solutions LLC", "US Ecology Texas Inc.", "Cyn Environmental Services"], "tons": "41.636", "residue": "N", "rejected": "N", "status": "Received"}, {"mtn": "150105586FLE", "generator": "Covestro LLC Baytown", "gen_state": "TX", "shipped": "2023-10-22", "received": "2023-10-25", "days": 3, "transporters": ["US Ecology Texas Inc."], "tons": "35.248", "residue": "N", "rejected": "Y", "status": "Received"}, {"mtn": "915040780HMV", "generator": "Dow Chemical La Porte Operations", "gen_state": "TX", "shipped": "2024-02-26", "received": "2024-03-02", "days": 5, "transporters": ["US Ecology Texas Inc."], "tons": "5.796", "residue": "Y", "rejected": "N", "status": "Received"}, {"mtn": "583052521HMV", "generator": "Denka Performance Elastomer LLC", "gen_state": "LA", "shipped": "2024-02-15", "received": "2024-02-17", "days": 2, "transporters": ["Sprint Waste Services LP"], "tons": "19.164", "residue": "N", "rejected": "N", "status": "Received"}], "starters": [{"id": "risk", "label": "Inbound generators by compliance risk", "report_tag": "Report 2", "q": "Which inbound generators carry the most compliance risk?", "spine": "generators", "title": "Inbound generators by compliance risk", "reading": {"template": "Rank {scope} by {measure}, {horizon}, so I can see which generators carry the most compliance risk.", "slots": ["scope", "measure", "horizon"]}, "blocks": [{"type": "kpis", "kpis": ["count", "enf", "penalty", "cd"], "title": "Summary"}, {"type": "chart", "chartType": "bar", "measure": "penalty", "title": "Penalty exposure by generator"}, {"type": "table", "cols": ["generator", "state", "risk", "viols", "penalty", "cd"], "title": "Generator risk detail"}]}, {"id": "cd", "label": "Consent-decree / CAFO exposure", "report_tag": "Report 5", "q": "How much of our inbound waste comes from generators under a consent decree?", "spine": "generators", "scope": "cd", "title": "Consent-decree generators \u2014 exposure", "reading": {"template": "Show {scope} by {measure}, {horizon}, and how much of our inbound tonnage they represent.", "slots": ["scope", "measure", "horizon"]}, "blocks": [{"type": "kpis", "kpis": ["cd", "tons", "penalty", "manifests"], "title": "Summary"}, {"type": "chart", "chartType": "bar", "measure": "tons", "title": "Tonnage from decree-bound generators"}, {"type": "table", "cols": ["generator", "state", "penalty", "tons", "cd"], "title": "Decree detail"}]}, {"id": "facility", "label": "Facility compliance scorecard", "report_tag": "Report 1", "q": "How does VLS Deer Park's compliance record compare to other Texas TSDFs?", "spine": "facilities", "title": "VLS Deer Park vs Texas comparator TSDFs", "reading": {"template": "Compare VLS Deer Park's evaluations and violations against its Texas comparator TSDFs, {horizon}.", "slots": ["horizon"]}, "blocks": [{"type": "facilities", "title": "Facility compliance scorecard"}]}, {"id": "quarterly", "label": "Quarterly inbound waste profile", "report_tag": "Report 4", "q": "How has our inbound hazardous-waste volume trended by quarter?", "spine": "quarters", "title": "Inbound waste volume by quarter", "reading": {"template": "Trend inbound tonnage and manifest counts by quarter, {horizon}, and flag quarters with load-rejection spikes.", "slots": ["horizon"]}, "blocks": [{"type": "quarterly", "metric": "tons", "title": "Quarterly inbound waste profile"}]}, {"id": "trace", "label": "Cradle-to-grave manifest traces", "report_tag": "Report 3", "q": "Trace recent shipments from generator to final disposition at VLS.", "spine": "traces", "title": "Cradle-to-grave manifest traces", "reading": {"template": "Follow recent manifests from generator through the transporter chain to VLS receipt, {horizon}, so I can prove chain of custody.", "slots": ["horizon"]}, "blocks": [{"type": "traces", "title": "Cradle-to-grave manifest traces"}]}], "presets": [{"label": "Summary tiles", "d": "Generators, enforcement, penalty, decrees", "block": {"type": "kpis", "kpis": ["count", "enf", "penalty", "cd"], "title": "Summary"}}, {"label": "Risk chart", "d": "Generators ranked by penalty exposure", "block": {"type": "chart", "chartType": "bar", "measure": "penalty", "title": "Penalty exposure by generator"}}, {"label": "Tonnage chart", "d": "Tons shipped to VLS per generator", "block": {"type": "chart", "chartType": "column", "measure": "tons", "title": "Tonnage by generator"}}, {"label": "Generator table", "d": "Ranked table with risk, penalty, decree", "block": {"type": "table", "cols": ["generator", "state", "risk", "viols", "penalty", "cd"], "title": "Generator detail"}}, {"label": "Facility scorecard", "d": "VLS Deer Park vs Texas comparator TSDFs", "block": {"type": "facilities", "title": "Facility compliance scorecard"}}, {"label": "Quarterly trend", "d": "Inbound tonnage and manifests by quarter", "block": {"type": "quarterly", "metric": "tons", "title": "Quarterly inbound waste profile"}}, {"label": "Manifest traces", "d": "Cradle-to-grave custody chains", "block": {"type": "traces", "title": "Cradle-to-grave manifest traces"}}], "slice_default": ["state", "risk", "cd"]};
+
+/* ============================ STATE ============================ */
+var A = JSON.parse(JSON.stringify(DATA.assumptions));   // working copy of scope/measure/horizon
+var OPTS = DATA.opts;
+var FIELDS = DATA.fields;
+var GEN = DATA.generators, FAC = DATA.facilities, QTR = DATA.quarters, TRC = DATA.traces;
+var SLICE_DEFAULT = DATA.slice_default;
+var curStarter = DATA.starters[0];      // the selected report question
+var F = [];                             // active filters [{key,val}]
+
+function field(k){return FIELDS.find(function(f){return f.key===k;});}
+function money(v){return '$'+Math.round(v).toLocaleString('en-US');}
+function labelize(k,v){
+  if(k==='risk') return {high:'High',med:'Med',low:'Low'}[v]||v;
+  if(k==='cd')   return v?'Yes':'No';
+  return v;
+}
+
+/* ============================ PERSONA ============================ */
+document.getElementById('pName').textContent=DATA.meta.persona_name;
+document.getElementById('pRole').textContent=DATA.meta.persona_role;
+document.getElementById('pAv').textContent=DATA.meta.persona_initials;
+
+/* ============================ FIELD VALUES ============================ */
+function val(p,key){ // numeric/raw value for a generator row
+  return p[key];
+}
+function fmt(key,v){
+  if(key==='penalty') return money(v);
+  if(key==='tons')    return (+v).toLocaleString('en-US',{maximumFractionDigits:1})+' t';
+  if(['evals','viols','enf','manifests'].indexOf(key)>=0) return (+v).toLocaleString('en-US');
+  return v;
+}
+function catVal(p,key){ // categorical display value
+  if(key==='cd')   return p.cd?'Yes':'No';
+  if(key==='risk') return labelize('risk',p.risk);
+  return p[key];
+}
+function catValues(key){
+  var s={}; GEN.forEach(function(p){s[catVal(p,key)]=1;});
+  return Object.keys(s).sort();
+}
+function riskClass(p){return p.risk==='high'?'over':p.risk==='med'?'warn':'ok';}
+
+/* ============================ SCOPE + FILTER ============================ */
+function scopeSet(){
+  var sv=A.scope.value;
+  return GEN.filter(function(p){
+    if(sv==='enf') return p.enf>0;
+    if(sv==='oos') return p.state!=='TX';
+    if(sv==='cd')  return p.cd;
+    return true; // all
+  });
+}
+function hasFilter(k){return F.some(function(f){return f.key===k;});}
+function filtered(){
+  return scopeSet().filter(function(p){
+    return F.every(function(f){return f.val==='All'||catVal(p,f.key)===f.val;});
+  });
+}
+function scopeCount(){return scopeSet().length;}
+
+/* ============================ BLOCKS ============================ */
+var uid=0; function nid(){return 'b'+(++uid);}
+var blocks=[];
+function loadStarterBlocks(){
+  blocks = curStarter.blocks.map(function(b){var c=JSON.parse(JSON.stringify(b));c.id=nid();return c;});
+}
+var BLOCK_PRESETS = DATA.presets;
+/* signature identifies a block so we don't re-suggest one already in the report */
+function blockSig(b){return b.type+(b.type==='chart'?':'+b.measure:'')+(b.type==='quarterly'?':'+(b.metric||'tons'):'');}
+
+/* ============================ CONFIRM SCREEN ============================ */
+function slot(k){return '<span class="slot" onclick="openSlot(event,\''+k+'\')">'+A[k].label+' <i>▾</i></span>';}
+function readingHTML(){
+  var r=curStarter.reading;
+  var txt=r.template;
+  (r.slots||[]).forEach(function(k){txt=txt.replace('{'+k+'}',slot(k));});
+  return txt;
+}
+function paintReading(){document.getElementById('reading').innerHTML=readingHTML();}
+function paintSlice(){
+  var genReport = curStarter.spine==='generators';
+  document.getElementById('sliceRow').style.display = genReport ? 'block':'none';
+  if(!genReport) return;
+  document.getElementById('sliceChips').innerHTML=SLICE_DEFAULT.map(function(k){
+    var on=hasFilter(k);
+    return '<button class="sliceChip'+(on?' on':'')+'" onclick="toggleSlice(\''+k+'\')">'
+      +'<span class="bx">'+(on?'✓':'')+'</span>'+field(k).label+'</button>';
+  }).join('');
+}
+function toggleSlice(k){
+  if(hasFilter(k)) F=F.filter(function(f){return f.key!==k;});
+  else F.push({key:k,val:'All'});
+  paintSlice();
+}
+function updScopeMeta(){
+  document.getElementById('mScope').textContent = scopeCount()+' of '+GEN.length+' '+DATA.meta.entity_plural+' you can see';
+}
+
+/* ============================ MENUS + PICKER ============================ */
+function closeMenu(){var m=document.getElementById('cwmenu');if(m)m.remove();}
+document.addEventListener('click',closeMenu);
+function ev(e){if(e)e.stopPropagation();}
+function place(m,e){var r=e.currentTarget.getBoundingClientRect();m.style.left=Math.min(r.left,window.innerWidth-300)+'px';m.style.top=(r.bottom+window.scrollY+6)+'px';}
+
+function openMenu(e,title,items){
+  ev(e);closeMenu();
+  var m=document.createElement('div');m.className='menu';m.id='cwmenu';
+  m.innerHTML=(title?'<div class="mq">'+title+'</div>':'')+items.map(function(it,i){
+    return '<button class="opt'+(it.sel?' sel':'')+(it.danger?' danger':'')+'" data-i="'+i+'">'
+      +it.label+(it.d?'<span class="d">'+it.d+'</span>':'')+'</button>';
+  }).join('');
+  document.body.appendChild(m);
+  m.querySelectorAll('.opt').forEach(function(b){b.addEventListener('click',function(x){ev(x);closeMenu();items[+b.dataset.i].fn();});});
+  place(m,e);
+}
+function openPicker(e,title,items,onPick){
+  ev(e);closeMenu();
+  var m=document.createElement('div');m.className='menu picker';m.id='cwmenu';
+  m.addEventListener('click',function(x){x.stopPropagation();});
+  m.innerHTML='<div class="mq">'+title+'</div><input class="psearch" placeholder="Search fields…"><div class="plist"></div>';
+  document.body.appendChild(m);
+  var inp=m.querySelector('.psearch'), listEl=m.querySelector('.plist');
+  function draw(q){
+    q=(q||'').toLowerCase().trim();
+    var matched=items.filter(function(f){return f.label.toLowerCase().indexOf(q)>=0;});
+    if(!matched.length){listEl.innerHTML='<div class="pEmpty">No field called “'+q+'”. Try another name — I can only build from fields in your graph.</div>';return;}
+    listEl.innerHTML=matched.map(function(f){
+      if(f.avail===false){
+        return '<div class="opt na"><div class="optRow"><span class="pDot '+f.kind+'"></span><div>'+f.label
+          +'<span class="d err">⚠ '+f.note+'</span></div></div></div>';
+      }
+      return '<button class="opt" data-k="'+f.key+'"><div class="optRow"><span class="pDot '+f.kind+'"></span><div>'
+        +f.label+'<span class="d">'+(f.kind==='num'?'number':f.kind==='cat'?'category':'text')+'</span></div></div></button>';
+    }).join('');
+    listEl.querySelectorAll('.opt[data-k]').forEach(function(b){b.addEventListener('click',function(){closeMenu();onPick(b.dataset.k);});});
+  }
+  inp.addEventListener('input',function(){draw(inp.value);});
+  draw('');place(m,e);setTimeout(function(){inp.focus();},0);
+}
+function openSlot(e,k){
+  openMenu(e,OPTS[k].q,OPTS[k].options.map(function(o){
+    return {label:o.label,d:o.d,sel:o.value===A[k].value,fn:function(){
+      A[k]={value:o.value,label:o.label};
+      if(k==='scope'){F=[];updScopeMeta();}
+      paintReading();
+    }};
+  }));
+}
+
+/* ============================ NAV ============================ */
+function paintStarters(){
+  document.getElementById('starterChips').innerHTML=DATA.starters.map(function(s,i){
+    return '<button class="chip" onclick="pickStarter('+i+')">'+s.label+'<span class="rp">'+s.report_tag+'</span></button>';
+  }).join('');
+}
+function pickStarter(i){
+  curStarter=DATA.starters[i];
+  document.getElementById('prompt').value=curStarter.q;
+  A=JSON.parse(JSON.stringify(DATA.assumptions));
+  if(curStarter.scope){A.scope={value:curStarter.scope, label:optLabel('scope',curStarter.scope)};}
+  F=(curStarter.filters||[]).map(function(f){return {key:f.key,val:f.val};});
+  paintReading();paintSlice();updScopeMeta();go(2);
+}
+function optLabel(k,v){var o=OPTS[k].options.find(function(x){return x.value===v;});return o?o.label:v;}
+function go(step){
+  [1,2,3].forEach(function(s){document.getElementById('pane'+s).classList.toggle('on',s===step);});
+  document.querySelectorAll('#dots .dot').forEach(function(d){var s=+d.dataset.s;d.classList.toggle('on',s===step);d.classList.toggle('done',s<step);});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function readQuestion(){
+  var p=document.getElementById('prompt').value.trim();
+  if(!p){document.querySelector('.askBox').style.borderColor='var(--red)';document.getElementById('prompt').focus();return;}
+  // free-typed question routes to the generator report by default
+  if(p!==curStarter.q){curStarter=DATA.starters[0];A=JSON.parse(JSON.stringify(DATA.assumptions));F=[];}
+  paintReading();paintSlice();updScopeMeta();go(2);
+}
+function build(){
+  editMode=false;sel=null;loadStarterBlocks();
+  document.getElementById('repTitle').textContent=curStarter.title;
+  document.getElementById('repQ').textContent='“'+document.getElementById('prompt').value.trim()+'”';
+  renderReport();go(3);
+}
+
+/* ============================ RENDER ============================ */
+function renderReport(){
+  var genReport = curStarter.spine==='generators';
+  var html = genReport ? blockWrap('filters','Filters',filterBarHTML()) : '';
+  blocks.forEach(function(b){
+    if(b.type==='kpis')      html+=blockWrap(b.id,'Summary tiles',kpisHTML(b));
+    if(b.type==='chart')     html+=blockWrap(b.id,'Chart',chartPanelHTML(b));
+    if(b.type==='table')     html+=blockWrap(b.id,'Table',tablePanelHTML(b));
+    if(b.type==='facilities')html+=blockWrap(b.id,'Facility comparison',facilitiesHTML(b));
+    if(b.type==='quarterly') html+=blockWrap(b.id,'Trend',quarterlyHTML(b));
+    if(b.type==='traces')    html+=blockWrap(b.id,'Manifest traces',tracesHTML(b));
+  });
+  document.getElementById('reportBody').innerHTML=html;
+  document.getElementById('tScope').textContent = genReport
+    ? filtered().length+' of '+scopeCount()+' '+DATA.meta.entity_plural
+    : DATA.meta.scope_line;
+  document.getElementById('addBlockRow').innerHTML = editMode
+    ? '<div class="addBlockRow"><button class="addBlockBtn" onclick="addBlockMenu(event)">+ Add a block — chart, table, facility comparison, trend or manifest traces</button></div>' : '';
+  applyEdit();
+}
+function blockWrap(id,tag,inner){
+  return '<div class="block" data-blk="'+id+'" onclick="selectBlock(event,\''+id+'\')">'
+    +'<span class="blockTag">'+tag+'</span><div class="blockBar" id="bar_'+id+'"></div>'+inner+'</div>';
+}
+function srcTag(text){return '<div class="src" onclick="ev(event);toast(\''+text+'\')">◇ source</div>';}
+
+/* -------- filters -------- */
+function filterBarHTML(){
+  if(!F.length) return '<div class="filterBar"><span class="fl">Filters</span><span class="fNone">No filters yet — select this bar and add one.</span></div>';
+  return '<div class="filterBar"><span class="fl">Filter</span>'+F.map(function(f){
+    return '<button class="fSel" onclick="openFilterVals(event,\''+f.key+'\')"><span class="k">'+field(f.key).label
+      +':</span> <span class="v">'+f.val+'</span> <i>▾</i></button>';
+  }).join('')+'</div>';
+}
+
+/* -------- KPIs (generators) -------- */
+/* Each tile is a named metric computed over the filtered generator set.
+   A kpis block carries a list of tile ids; edit mode adds/removes them. */
+var KPI_CATALOG=[
+  {id:'count',    label:DATA.meta.entity_plural+' in view', cls:'',    fn:function(r){return r.length;}},
+  {id:'enf',      label:'under EPA enforcement',            cls:'warn',fn:function(r){return r.filter(function(p){return p.enf>0;}).length;}},
+  {id:'penalty',  label:'total penalty exposure',           cls:'bad', fn:function(r){return money(r.reduce(function(s,p){return s+p.penalty;},0));}},
+  {id:'cd',       label:'under a consent decree / CAFO',    cls:'bad', fn:function(r){return r.filter(function(p){return p.cd;}).length;}},
+  {id:'tons',     label:'total tons shipped to VLS',        cls:'',    fn:function(r){return Math.round(r.reduce(function(s,p){return s+p.tons;},0)).toLocaleString('en-US')+' t';}},
+  {id:'manifests',label:'manifests on file',                cls:'',    fn:function(r){return r.reduce(function(s,p){return s+p.manifests;},0).toLocaleString('en-US');}},
+  {id:'viols',    label:'open RCRA violations',             cls:'warn',fn:function(r){return r.reduce(function(s,p){return s+p.viols;},0);}},
+  {id:'highrisk', label:'high-risk generators',             cls:'bad', fn:function(r){return r.filter(function(p){return p.risk==='high';}).length;}},
+  {id:'oos',      label:'out-of-state generators',          cls:'',    fn:function(r){return r.filter(function(p){return p.state!=='TX';}).length;}},
+  {id:'evals',    label:'RCRA evaluations on record',       cls:'',    fn:function(r){return r.reduce(function(s,p){return s+p.evals;},0);}}
+];
+var KPI_DEFAULT=['count','enf','penalty','cd'];
+function kpiDef(id){return KPI_CATALOG.find(function(k){return k.id===id;});}
+function kpiIds(b){if(b&&!b.kpis)b.kpis=KPI_DEFAULT.slice();return (b&&b.kpis)?b.kpis:KPI_DEFAULT;}
+function kpisHTML(b){
+  var rows=filtered();
+  return '<div class="kpis">'+kpiIds(b).map(function(id){
+    var k=kpiDef(id);if(!k)return '';
+    return '<div class="kpi"><div class="v '+k.cls+'">'+k.fn(rows)+'</div><div class="l">'+k.label+'</div>'
+      +srcTag(DATA.meta.source_trace)+'</div>';
+  }).join('')+'</div>';
+}
+
+/* -------- chart (generators) -------- */
+function chartPanelHTML(b){
+  return '<div class="panel"><h3>'+b.title+'</h3><div class="ph">'+chartSub(b)+'</div>'+chartHTML(b)+'</div>';
+}
+function chartSub(b){
+  var m=b.measure;
+  if(m==='penalty') return 'Assessed EPA penalty per generator. High-risk generators in red. Top 12 shown.';
+  if(m==='tons')    return 'Tonnage shipped to VLS Deer Park, per generator. Top 12 shown.';
+  if(m==='viols')   return 'Open RCRA violations per generator. Top 12 shown.';
+  if(m==='enf')     return 'Enforcement actions on record per generator. Top 12 shown.';
+  return field(m).label+' per generator. Top 12 shown.';
+}
+function chartHTML(b){
+  var m=b.measure;
+  var data=filtered().slice().filter(function(p){return val(p,m)>0;}).sort(function(a,c){return val(c,m)-val(a,m);}).slice(0,12);
+  if(!data.length) return '<div class="ph">No generators with a non-zero value for this measure under the current filters.</div>';
+  var maxV=Math.max.apply(null,data.map(function(p){return val(p,m);}));
+  if(b.chartType==='bar'){
+    return data.map(function(p){var w=(val(p,m)/maxV*100).toFixed(0);
+      return '<div class="barRow"><div class="nm">'+p.generator+'</div><div class="barTrack"><div class="barFill '+riskClass(p)+'" style="width:'+w+'%"></div></div><div class="barVal'+(p.risk==='high'?' bad':'')+'">'+fmt(m,val(p,m))+'</div></div>';
+    }).join('');
+  }
+  if(b.chartType==='column'){
+    return '<div class="cols">'+data.map(function(p){var h=(val(p,m)/maxV*100).toFixed(0);
+      return '<div class="col"><div class="colV">'+fmt(m,val(p,m))+'</div><div class="colBar '+(p.risk==='high'?'over':'')+'" style="height:'+h+'%"></div><div class="colN">'+p.generator.split(' ').slice(0,2).join(' ')+'</div></div>';
+    }).join('')+'</div>';
+  }
+  // line
+  var W=620,H=180,pad=24,n=data.length;
+  var X=function(i){return pad+(W-2*pad)*(n===1?0.5:i/(n-1));};
+  var Y=function(v){return H-pad-(H-2*pad)*(v/maxV);};
+  var pts=data.map(function(p,i){return X(i)+','+Y(val(p,m));});
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:200px" preserveAspectRatio="none">'
+    +'<path d="M'+pad+','+(H-pad)+' L'+pts.join(' L')+' L'+(W-pad)+','+(H-pad)+' Z" fill="rgba(242,105,29,.10)"/>'
+    +'<polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--orange)" stroke-width="2.5"/>'
+    +data.map(function(p,i){return '<circle cx="'+X(i)+'" cy="'+Y(val(p,m))+'" r="3.5" fill="var(--orange)"/>';}).join('')+'</svg>';
+}
+
+/* -------- table (generators) -------- */
+function tablePanelHTML(b){
+  return '<div class="panel"><h3>'+b.title+'</h3><div class="ph">Ranked by penalty exposure. In the real product each generator opens its manifest lineage.</div>'+tableHTML(b)+'</div>';
+}
+function tableHTML(b){
+  var data=filtered().slice().sort(function(a,c){return c.penalty-a.penalty;});
+  var head='<tr>'+b.cols.map(function(k){var f=field(k);return '<th'+(f.kind==='num'?' class="num"':'')+'>'+f.label+'</th>';}).join('')+'</tr>';
+  if(!data.length) return '<table><thead>'+head+'</thead></table><div class="ph" style="margin-top:12px">No generators match the current filters.</div>';
+  var body=data.map(function(p){return '<tr>'+b.cols.map(function(k){return cell(k,p);}).join('')+'</tr>';}).join('');
+  return '<table><thead>'+head+'</thead><tbody>'+body+'</tbody></table>';
+}
+function cell(k,p){
+  var f=field(k);
+  if(k==='generator') return '<td>'+p.generator+'<div class="sub">'+p.state+' · '+p.manifests+' manifests · last action '+(p.last_enf||'—')+'</div></td>';
+  if(k==='risk'){var c=p.risk==='high'?'bad':p.risk==='med'?'warn':'ok';return '<td><span class="pill '+c+'">'+labelize('risk',p.risk)+'</span></td>';}
+  if(k==='cd')  return '<td>'+(p.cd?'<span class="pill info">Decree</span>':'<span style="color:var(--dim)">—</span>')+'</td>';
+  if(k==='penalty') return '<td class="num" style="color:'+(p.penalty>0?'var(--red)':'var(--dim)')+'">'+(p.penalty>0?money(p.penalty):'—')+'</td>';
+  if(f.kind==='num') return '<td class="num">'+fmt(k,val(p,k))+'</td>';
+  return '<td>'+catVal(p,k)+'</td>';
+}
+
+/* -------- facility comparison (Report 1) -------- */
+function facilitiesHTML(b){
+  var maxE=Math.max.apply(null,FAC.map(function(f){return f.evals;}));
+  var maxV=Math.max.apply(null,FAC.map(function(f){return f.viols;}))||1;
+  var legend='<div class="leg"><span><span class="sw" style="background:var(--cyan)"></span>RCRA evaluations</span><span><span class="sw" style="background:var(--red)"></span>Violations</span></div>';
+  var rows=FAC.map(function(f){
+    var self=f.role.indexOf('VLS')>=0;
+    var ew=(f.evals/maxE*100).toFixed(0), vw=(f.viols/maxV*100).toFixed(0);
+    return '<div class="gbarRow'+(self?' self':'')+'"><div class="nm">'+f.facility+'<span class="tag">'+f.role+' · '+f.state+'</span></div>'
+      +'<div class="gpair">'
+      +'<div class="gseg"><span class="gl">Evaluations</span><div class="gtrack"><div class="gf" style="width:'+ew+'%;background:var(--cyan)"></div></div><span class="gv">'+f.evals+'</span></div>'
+      +'<div class="gseg"><span class="gl">Violations</span><div class="gtrack"><div class="gf" style="width:'+vw+'%;background:var(--red)"></div></div><span class="gv">'+f.viols+'</span></div>'
+      +'</div></div>';
+  }).join('');
+  return '<div class="panel"><h3>'+b.title+'</h3><div class="ph">VLS Deer Park (operator) beside its Texas comparator TSDFs. Fewer violations per evaluation is better.</div>'
+    +legend+'<div class="gbars">'+rows+'</div>'+srcTag(DATA.meta.source_trace)+'</div>';
+}
+
+/* -------- quarterly trend (Report 4) -------- */
+function quarterlyHTML(b){
+  var metric=b.metric||'tons';
+  var maxV=Math.max.apply(null,QTR.map(function(q){return q[metric];}));
+  var cols=QTR.map(function(q){
+    var h=(q[metric]/maxV*100).toFixed(0);
+    var spike=q.rej>=3;
+    var label=metric==='tons'?Math.round(q.tons):q.manifests;
+    return '<div class="col"><div class="colV">'+label+'</div><div class="colBar'+(spike?' over':' cy')+'" style="height:'+h+'%"></div><div class="colN">'+q.quarter.replace(' ',' ')+'</div></div>';
+  }).join('');
+  var unit=metric==='tons'?'tons received':'manifests received';
+  return '<div class="panel"><h3>'+b.title+'</h3><div class="ph">Inbound '+unit+' by quarter, 2023 Q1 – 2026 Q2. Red columns flag quarters with 3+ load rejections.</div>'
+    +'<div class="cols">'+cols+'</div>'+srcTag(DATA.meta.source_trace)+'</div>';
+}
+
+/* -------- manifest traces (Report 3) -------- */
+function tracesHTML(b){
+  var head='<tr><th>Manifest (MTN)</th><th>Generator</th><th>Ship → receive</th><th class="num">Days</th><th>Transporter chain</th><th>Disposition</th></tr>';
+  var body=TRC.map(function(t){
+    var disp = t.rejected==='Y' ? '<span class="pill warn">Load rejected</span>'
+             : t.residue==='Y' ? '<span class="pill info">Residue return</span>'
+             : '<span class="pill ok">Received clean</span>';
+    var chain = t.transporters.length>1 ? t.transporters[0]+' <span class="sub">+'+(t.transporters.length-1)+' more</span>' : t.transporters[0];
+    return '<tr><td class="mono">'+t.mtn+'</td><td>'+t.generator+'<div class="sub">'+t.gen_state+' · '+t.tons+' t</div></td>'
+      +'<td>'+t.shipped+' → '+t.received+'</td><td class="num">'+t.days+'</td><td>'+chain+'</td><td>'+disp+'</td></tr>';
+  }).join('');
+  return '<div class="panel"><h3>'+b.title+'</h3><div class="ph">Recent shipments followed generator → transporter → VLS receipt. Each MTN opens its full custody chain in the real product.</div>'
+    +'<table><thead>'+head+'</thead><tbody>'+body+'</tbody></table>'+srcTag(DATA.meta.source_trace)+'</div>';
+}
+
+/* ============================ FILTER VALUES ============================ */
+function openFilterVals(e,k){
+  ev(e);
+  var items=[{label:'All',sel:cur(k)==='All',fn:function(){setF(k,'All');}}];
+  catValues(k).forEach(function(v){items.push({label:v,sel:cur(k)===v,fn:function(){setF(k,v);}});});
+  openMenu(e,'Filter by '+field(k).label,items);
+}
+function cur(k){var f=F.find(function(x){return x.key===k;});return f?f.val:'All';}
+function setF(k,v){var f=F.find(function(x){return x.key===k;});if(f)f.val=v;renderReport();}
+
+/* ============================ EDIT MODE ============================ */
+var editMode=false,sel=null;
+function toggleEdit(){
+  editMode=!editMode;sel=null;
+  var t=document.getElementById('editToggle');
+  t.classList.toggle('pri',editMode);t.innerHTML=editMode?'✓ Done editing':'✎ Edit report';
+  document.getElementById('editBanner').innerHTML=editMode
+    ? '<div class="editBanner"><span class="t"><b>Editing.</b> Click any part of the report — a filter, a chart, a table — to change it. Add as many blocks as you need.</span></div>' : '';
+  renderReport();
+}
+function selectBlock(e,id){if(!editMode)return;ev(e);sel=id;applyEdit();}
+function applyEdit(){
+  document.getElementById('pane3').classList.toggle('editing',editMode);
+  document.querySelectorAll('#reportBody .block').forEach(function(el){
+    var id=el.dataset.blk,on=(editMode&&sel===id);
+    el.classList.toggle('sel',on);
+    var bar=document.getElementById('bar_'+id);if(bar)bar.innerHTML=on?barFor(id):'';
+  });
+}
+function moveSeg(id){
+  var i=blocks.findIndex(function(x){return x.id===id;});
+  var up = btn('↑','moveBlock(event,\''+id+'\',-1)', i<=0?'mvOff':'');
+  var dn = btn('↓','moveBlock(event,\''+id+'\',1)', i>=blocks.length-1?'mvOff':'');
+  return '<span class="seg mv">'+up+dn+'</span><span class="div"></span>';
+}
+function barFor(id){
+  if(id==='filters') return btn('+ Add filter','addFilterPicker(event)')+btn('− Remove filter','removeFilterMenu(event)');
+  var b=blocks.find(function(x){return x.id===id;});if(!b)return '';
+  var mv=moveSeg(id);
+  if(b.type==='kpis') return mv+btn('+ Add tile','addKpiPicker(event,\''+id+'\')')+btn('− Remove tile','removeKpiMenu(event,\''+id+'\')')
+    +'<span class="div"></span>'+btn('🗑 Delete','deleteBlock(event,\''+id+'\')','danger');
+  if(b.type==='chart') return mv+'<div class="seg">'+seg(id,'Bar','bar')+seg(id,'Column','column')+seg(id,'Line','line')+'</div>'
+    +'<span class="div"></span>'+btn('⇄ Change data','chartDataPicker(event,\''+id+'\')')
+    +'<span class="div"></span>'+btn('🗑 Delete','deleteBlock(event,\''+id+'\')','danger');
+  if(b.type==='table') return mv+btn('+ Add column','addColPicker(event,\''+id+'\')')+btn('− Remove column','removeColMenu(event,\''+id+'\')')
+    +'<span class="div"></span>'+btn('🗑 Delete','deleteBlock(event,\''+id+'\')','danger');
+  if(b.type==='quarterly') return mv+'<div class="seg">'+qseg(id,'Tons','tons')+qseg(id,'Manifests','manifests')+'</div>'
+    +'<span class="div"></span>'+btn('🗑 Delete','deleteBlock(event,\''+id+'\')','danger');
+  return mv+btn('🗑 Delete','deleteBlock(event,\''+id+'\')','danger');
+}
+function moveBlock(e,id,dir){
+  ev(e);
+  var i=blocks.findIndex(function(x){return x.id===id;});var j=i+dir;
+  if(i<0||j<0||j>=blocks.length)return;
+  var t=blocks[i];blocks[i]=blocks[j];blocks[j]=t;
+  renderReport();
+}
+function addKpiPicker(e,id){
+  ev(e);var b=blocks.find(function(x){return x.id===id;});var have=kpiIds(b);
+  var items=KPI_CATALOG.filter(function(k){return have.indexOf(k.id)<0;}).map(function(k){
+    return {label:cap(k.label),fn:function(){b.kpis.push(k.id);renderReport();toast('Added tile: '+k.label);}};
+  });
+  if(!items.length){openMenu(e,null,[{label:'Every available tile is already shown',fn:function(){}}]);return;}
+  openMenu(e,'Add a summary tile',items);
+}
+function removeKpiMenu(e,id){
+  ev(e);var b=blocks.find(function(x){return x.id===id;});var have=kpiIds(b);
+  if(have.length<=1){openMenu(e,null,[{label:'Keep at least one tile',fn:function(){}}]);return;}
+  openMenu(e,'Remove a summary tile',have.map(function(kid){var k=kpiDef(kid);
+    return {label:cap(k.label),danger:true,fn:function(){b.kpis=b.kpis.filter(function(x){return x!==kid;});renderReport();}};
+  }));
+}
+function btn(l,call,cls){return '<button class="'+(cls||'')+'" onclick="'+call+'">'+l+'</button>';}
+function seg(id,l,t){var b=blocks.find(function(x){return x.id===id;});return '<button class="'+(b.chartType===t?'on':'')+'" onclick="setChart(event,\''+id+'\',\''+t+'\')">'+l+'</button>';}
+function qseg(id,l,t){var b=blocks.find(function(x){return x.id===id;});return '<button class="'+((b.metric||'tons')===t?'on':'')+'" onclick="setMetric(event,\''+id+'\',\''+t+'\')">'+l+'</button>';}
+function setChart(e,id,t){ev(e);blocks.find(function(b){return b.id===id;}).chartType=t;renderReport();}
+function setMetric(e,id,t){ev(e);blocks.find(function(b){return b.id===id;}).metric=t;renderReport();}
+function deleteBlock(e,id){ev(e);blocks=blocks.filter(function(b){return b.id!==id;});sel=null;renderReport();toast('Block removed. Add it back any time from “+ Add a block”.');}
+
+/* ---- free-text → block ---- */
+function cap(t){t=t.trim();return t.charAt(0).toUpperCase()+t.slice(1);}
+function blockFromText(t){
+  var s=t.toLowerCase();
+  if(/facility|peer|tsdf|scorecard|deer park|compar/.test(s)) return {type:'facilities',title:cap(t)};
+  if(/quarter|trend|over time|monthly|volume|profile/.test(s)) return {type:'quarterly',metric:/manifest/.test(s)?'manifests':'tons',title:cap(t)};
+  if(/trace|cradle|lineage|manifest|custody|chain/.test(s)) return {type:'traces',title:cap(t)};
+  if(/summary|tiles|kpi|headline|top ?line|total|count/.test(s)) return {type:'kpis',kpis:KPI_DEFAULT.slice(),title:cap(t)};
+  var measure = /penalt|fine/.test(s)?'penalty' : /ton|tonnage|weight|volume/.test(s)?'tons'
+              : /violation|viol/.test(s)?'viols' : /enforce|action/.test(s)?'enf' : 'penalty';
+  if(/chart|graph|bar|column|plot|rank|by generator/.test(s)){
+    var ct=/column/.test(s)?'column':/line/.test(s)?'line':'bar';
+    return {type:'chart',chartType:ct,measure:measure,title:cap(t)};
+  }
+  var cols=['generator'];
+  FIELDS.forEach(function(f){if(f.avail!==false&&f.key!=='generator'&&s.indexOf(f.label.toLowerCase())>=0)cols.push(f.key);});
+  if(cols.length===1) cols=['generator','state','risk','viols','penalty','cd'];
+  return {type:'table',cols:cols,title:cap(t)};
+}
+function pushBlock(b,label){
+  b.id=nid();blocks.push(b);sel=b.id;renderReport();
+  var el=document.querySelector('[data-blk="'+b.id+'"]');if(el&&el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'center'});
+  toast(label);
+}
+function addBlockMenu(e){
+  ev(e);closeMenu();
+  var m=document.createElement('div');m.className='menu picker';m.id='cwmenu';
+  m.addEventListener('click',function(x){x.stopPropagation();});
+  m.innerHTML='<div class="mq">Add a block</div>'
+    +'<input class="psearch" placeholder="Describe the block you want…">'
+    +'<div class="pcustom"></div><div class="psugLabel">Suggestions</div><div class="plist"></div>';
+  document.body.appendChild(m);
+  var inp=m.querySelector('.psearch'),customEl=m.querySelector('.pcustom'),listEl=m.querySelector('.plist');
+  function commitCustom(text){var b=blockFromText(text);b.custom=true;var kind=b.type==='kpis'?'summary':b.type;closeMenu();pushBlock(b,'Built a '+kind+' block from “'+text+'”. Refine it with the block’s own controls.');}
+  // Don't re-offer a block the report already has (matched by type + measure/metric).
+  var present={};blocks.forEach(function(b){present[blockSig(b)]=1;});
+  var avail=BLOCK_PRESETS.filter(function(p){return !present[blockSig(p.block)];});
+  function draw(q){
+    q=(q||'').trim();var ql=q.toLowerCase();
+    if(q){
+      customEl.innerHTML='<button class="opt custom"><div class="optRow"><span class="pDot cta"></span><div>Build “'+q+'”<span class="d">Create this block from your description</span></div></div></button>';
+      customEl.querySelector('.opt').addEventListener('click',function(){commitCustom(q);});
+    } else customEl.innerHTML='';
+    var matched=avail.filter(function(p){return (p.label+' '+p.d).toLowerCase().indexOf(ql)>=0;});
+    listEl.innerHTML=matched.length
+      ? matched.map(function(p){var gi=BLOCK_PRESETS.indexOf(p);return '<button class="opt" data-i="'+gi+'">'+p.label+'<span class="d">'+p.d+'</span></button>';}).join('')
+      : '<div class="pEmpty">'+(avail.length?'No matching suggestion':'Every standard block is already in the report')+' — press <b>Build</b> above to create exactly what you typed.</div>';
+    listEl.querySelectorAll('.opt[data-i]').forEach(function(btn){btn.addEventListener('click',function(){
+      var p=BLOCK_PRESETS[+btn.dataset.i];var blk=JSON.parse(JSON.stringify(p.block));closeMenu();pushBlock(blk,'Added “'+p.label+'”.');
+    });});
+  }
+  inp.addEventListener('keydown',function(x){if(x.key==='Enter'&&inp.value.trim()){commitCustom(inp.value.trim());}});
+  inp.addEventListener('input',function(){draw(inp.value);});
+  draw('');place(m,e);setTimeout(function(){inp.focus();},0);
+}
+function addFilterPicker(e){
+  var items=FIELDS.filter(function(f){return f.filterable&&!hasFilter(f.key);});
+  openPicker(e,'Add a filter',items,function(k){
+    if(!field(k).avail){toast('That field isn’t available at generator granularity.');return;}
+    F.push({key:k,val:'All'});renderReport();toast('Added filter: '+field(k).label);
+  });
+}
+function removeFilterMenu(e){
+  ev(e);
+  if(!F.length){openMenu(e,null,[{label:'No filters to remove',fn:function(){}}]);return;}
+  openMenu(e,'Remove a filter',F.map(function(f){
+    return {label:field(f.key).label,danger:true,fn:function(){F=F.filter(function(x){return x.key!==f.key;});renderReport();}};
+  }));
+}
+function addColPicker(e,id){
+  var b=blocks.find(function(x){return x.id===id;});
+  var items=FIELDS.filter(function(f){return f.key!=='generator'&&b.cols.indexOf(f.key)<0;});
+  openPicker(e,'Add a column',items,function(k){
+    if(!field(k).avail){toast('That field isn’t available at generator granularity.');return;}
+    b.cols.push(k);renderReport();toast('Added column: '+field(k).label);
+  });
+}
+function removeColMenu(e,id){
+  ev(e);var b=blocks.find(function(x){return x.id===id;});
+  var rem=b.cols.filter(function(k){return k!=='generator';});
+  if(!rem.length){openMenu(e,null,[{label:'Keep at least the Generator column',fn:function(){}}]);return;}
+  openMenu(e,'Remove a column',rem.map(function(k){
+    return {label:field(k).label,danger:true,fn:function(){b.cols=b.cols.filter(function(x){return x!==k;});renderReport();}};
+  }));
+}
+function chartDataPicker(e,id){
+  var b=blocks.find(function(x){return x.id===id;});
+  var items=FIELDS.filter(function(f){return f.kind==='num';});
+  openPicker(e,'Chart which number?',items,function(k){
+    if(!field(k).avail){toast('That measure isn’t available at generator granularity.');return;}
+    b.measure=k;b.title=field(k).label+' by generator';renderReport();toast('Chart now shows: '+field(k).label);
+  });
+}
+
+/* ============================ TOAST ============================ */
+var tt;
+function toast(m){var t=document.getElementById('toast');document.getElementById('toastMsg').textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('on');},3200);}
+
+/* ============================ INIT ============================ */
+paintStarters();paintReading();paintSlice();updScopeMeta();
+</script>
+</body>
+</html>

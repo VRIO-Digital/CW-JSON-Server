@@ -523,7 +523,7 @@ protection, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
-2. **Server shape check** — `validateDb` verifies all 24 required keys and
+2. **Server shape check** — `validateDb` verifies all 25 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
 3. **Atomic write** — temp file + rename, so a failed write cannot truncate
@@ -1483,6 +1483,17 @@ the appetite is 10 actions, the baseline is 0, and the largest single load carri
 Headroom says 5 more loads. Do not manufacture a breach to exercise the red styling;
 `check-docs` asserts CLAUDE.md and the roster agree about whether one load can cross it.
 
+### Two graph references, both drawn
+
+The pool step opens the **frame** (every candidate fanned into the facility, capped at the
+package's 7 and saying so) and a runtime column opens the **traversal** (evaluations →
+violations → enforcement → the generator → the TSDF, with any consent decree). Inline SVG in
+`WhatIfGraph.tsx`, no library. The node types, their labels and their colours are
+`graph_reference.node_types`; the frame's centre, edge and cap are `graph_reference.frame`;
+and the scenario's nodes and edges come from the server with every edge label drawn from the
+graph's declared relationships. **An absence has no circle** — a clean load draws no
+enforcement node.
+
 **Where it fails:** an empty typed measure -> 400 before the pace; a load outside the
 pool -> 404 naming the frame; an unwatched measure key -> 400 naming the step that adds
 it; a saved id that does not exist -> 404. Adding a column past `compare.max` is refused
@@ -1491,6 +1502,135 @@ cannot be removed — an empty compare strip has no control that would bring one
 
 Deleting a library entry **unlinks** any open column rather than closing it: the reader
 was looking at that load.
+
+---
+
+## Flow 11 — Reports: a written question, re-asked
+
+**Files:** `ReportsPage.tsx` (the section), `ReportPage.tsx` + `ReportBlock.tsx` (one
+report) and `ReportAuthorPage.tsx` (composing one) -> `reportsStore` -> `GET /reports`,
+`GET /reports/:reportId`, `POST /reports/read`, `POST /reports/build`,
+`POST|DELETE /reports/saved`. Data from `07_reports/` via `npm run ingest:reports`.
+
+Five reports over four rosters: the inbound generator register (36), the comparator
+facility scorecard (5), quarterly inbound volume (14 quarters) and a sample of five
+cradle-to-grave manifest traces — plus any question a user composes from them.
+
+### One gate, and it is publication
+
+A report is asked of the **published** graph, so that is the whole precondition: nothing
+published shows `NoPublishedGraph`, which names the fix from `built_count` / `draft_count`,
+and the gate serves none of the reports' copy. **A connected source is not a second gate** —
+publishing is already downstream of having something to build from, so checking it first
+would point the reader at something that is not stopping them. **The What-if lens shares the
+rule** and the component: its copy calls it an overlay on the knowledge graph, and there is
+nothing to overlay until one is live. Publication is in-memory, so a restart closes it
+again.
+
+### Nothing is stored but the question
+
+`db.reports` holds the rosters, each report's authored copy, and each report's *block
+definitions*. It holds no results. `reportView` computes every series, every row order and
+every count on each request, which is what makes the lead note ("a re-executable
+question, not a stored table") true rather than decorative — and why no component here
+sums a column.
+
+### Two files per report
+
+| file | what it gives |
+|---|---|
+| `report_authoring_data.json` | the rosters, the field dictionary, the assumptions, and the five `starters` — a question, a spine, its blocks |
+| `Report_N_*.html` | that report's rendered copy: heading, subtitle, badge, lead note, four summary tiles, footer |
+
+Joined on the starter's own `report_tag`, never by position. The ingest recomputes 17 of
+the authored tiles against the rosters and **refuses to write** when one disagrees,
+naming both figures; `check-docs` re-checks the same identities against `db.json`.
+
+### Reading one
+
+A breadcrumb, the heading with the facility it is about, the report's own question and
+the sentence it was asked as — scope, ranking, window, each from the assumption behind
+it — then the tiles, the blocks, and a footer stating the source table, the confidence
+and what the report is scoped to. The scope is part of the question: the consent-decree
+report is `4 of 36 generators` and says so beside the sentence.
+
+Five block kinds, each with a renderer: `chart` and `table`, `facilities` (two
+single-series charts plus the scorecard, its subject row marked), `quarterly` (a trend
+plus the detail table) and `traces` (custody chains, rendered as chains — a manifest's
+transporters are ordered). Charts are `AnswerChart`, the same component Ask uses.
+
+### Composing one — Graph, Ask, Confirm, Report
+
+`/reports/new`. **Step 1 is the graph**: every published graph, with its version, content
+hash, size and publisher, because a report is asked *of* one and names it afterwards —
+`use_case_id` rides in the frame from there, and a frame naming an unpublished graph is
+refused. Then type a question, or **take a standard report as it stands**, which reads and
+builds it against that graph and lands on the report — where it asks what to call it before
+keeping it. `POST /reports/read` returns
+**a sentence and a frame, no figures** (paced, because reading a question back is the one
+model-shaped act here — a picked chip is neither matched nor paced); Confirm shows that
+sentence with the three pickers and the register's facets; `POST /reports/build` then
+computes it.
+
+One template renders every report — written, built, saved — and `check-docs` fails if a
+surface re-implements it. That template carries the **chip bar**: every spine offers facets
+(the register's declared, a facility's role, a quarter's year, a trace's flags), and a chip
+**re-asks the report** with that filter rather than hiding rows, so the tiles and the charts
+follow the slice. Two charts sit side by side where a block has two, and quarterly volumes use
+the `column` form — vertical bars for a short label over a left-to-right series. A **scoped**
+chart also carries the share it raises: the decree report's four columns sit beside a ring
+showing the whole register's split, whose 79.3% is the tile beside it. Six rows or fewer draw as
+columns whatever the block asks for, coloured by identity; a long register draws as horizontal
+bars coloured by risk tier.
+
+### The section lists what was made
+
+`/reports` shows the composed reports as cards and nothing else — the written five are the
+wizard's starting points, not entries here, and a section with none says how to make one.
+They are still in the payload (the wizard reads them) and still open at `/reports/:reportId`.
+
+### Your reports: open, edit, re-ask
+
+`GET /reports/saved/:id` rebuilds a saved frame against the current rosters, so opening one
+and generating it are the same act, and `/reports/saved/:savedId` renders it in that same
+template. **Edit** reopens the wizard on the row, and saving **updates** it rather than
+adding a second row asking one question. A row states who saved it — the browser's own
+signed-in address, sent as `saved_by` — and which graph answered it, with a caveat when that
+graph is no longer published, which is the state after every restart. The graph's own
+`published_by` stays the seeded account: publishing is never told who did it.
+
+**`variant` is the honesty of the flow.** `written` means the frame is the one the report
+was written for, so the authored tiles still describe it; `generated` means it was re-asked,
+and its tiles are recomputed from `summary_catalog` and labelled *computed for this frame*.
+The tenant's authored figures never appear against a frame they do not describe.
+
+**The horizon is declared, not applied** — nothing in these rosters is sliced by time — and
+that is stated where it is chosen and again in the built report's caveats. Scope, measure
+and facet filters do apply.
+
+**A saved report is a question, not a result**: the frame and the question, through
+`commitDb`, so it survives a restart and re-opening it re-asks it. Per-block editing from
+the prototype is not built.
+
+**Who can view** opens `AudiencePicker` inside the row's card: an **All roles** checkbox —
+`indeterminate` while only some are ticked — over one checkbox per tenant role with its
+`access_note`. Ticking All sends every role id; unticking it sends none, which the section
+refuses client-side and the server refuses again. It is a separate component because a panel
+behind a `useState` renders closed under `renderToString`, and it prints the sentence saying
+this filters what the section shows rather than granting anything.
+
+### Where it fails
+
+An unknown report id -> **404 naming the five that exist**; nothing connected or nothing
+published -> the gates above, and the server sends no report copy at all, so no heading can
+appear over either. An empty ask -> 400; an unknown scope, measure or horizon -> 400 naming
+the options; a filter on an unfilterable field -> 400 naming the ones that are; saving
+without a name -> 400; unticking every role, from the picker or the API, -> refused with the
+sentence that says a report no role can view is a report you have deleted. A block naming a measure or column its spine does not carry is
+refused by `validateDb` at boot rather than rendering as a blank column; a column with
+neither a field label nor a `REPORT_LABELS` entry fails `check-docs` rather than printing
+`gen_state` as a header; and a saved row pointing at a report that no longer exists is
+refused at boot rather than opening onto nothing.
 
 ## Adding things
 

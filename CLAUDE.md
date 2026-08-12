@@ -13,6 +13,7 @@ npm run audit       # audit gate (fails on any advisory, minus the allowlist)
 npm run check-docs  # asserts this file's factual claims against the code
 npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db.json)
 npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
+npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
 npm run preflight   # lint + build + audit + check-docs — run before calling work done
 ```
 
@@ -76,7 +77,7 @@ text is missing, assert in the same run that the render had its data.**
 
 ## Architecture
 
-A single-tenant data-governance console. Five feature pages plus a dev-only
+A single-tenant data-governance console. Six feature pages plus a dev-only
 `db.json` editor, all reading from a zero-dependency mock API.
 
 ```
@@ -166,7 +167,7 @@ Consequences worth knowing before debugging:
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
-  editor cannot save a document that would crash the app. There are 24 required
+  editor cannot save a document that would crash the app. There are 25 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
   Graph — not just a catalogue page. `column_profiles` and
@@ -830,6 +831,23 @@ single load carries 4, so one load cannot cross it. Headroom is the measure that
 "how close am I" — the package's own formula, computed per pool at ingest — and it says
 5 more enforcement-carrying loads. Do not manufacture a breach to exercise the styling.
 
+**Both graph references are drawn, and the drawing is the payload's.** The pool step opens
+a **frame** — every candidate in the pool, fanned into the facility they ship to — and a
+runtime column opens the **traversal** one admitted load makes: its evaluations, violations,
+enforcement and any consent decree, into the generator, into the TSDF. Hand-written inline
+SVG in `WhatIfGraph.tsx`, no library, for the reason the studio canvas has none.
+
+What each drawing asserts comes from the data: the node types, their labels and their
+**colours** are `graph_reference.node_types` (the package's palette, so a component is not
+inventing a legend); the frame's centre, edge name and 7-node cap are
+`graph_reference.frame`, and the cap is stated on the drawing because a fan of seven standing
+for twenty-four is otherwise a silent sample; and a scenario's nodes and **edges** are
+computed server-side from what the generator carries, every edge label taken from the graph's
+own relationship list — `check-docs` asserts the subset. A clean load draws no enforcement
+node and one under no decree draws no document: **an absence has no circle**, the same rule
+the studio canvas follows. The component decides only *where* a circle goes, because these
+are two fixed schematics rather than a layout over an unknown graph.
+
 **Nothing is predicted.** Every figure is a record the graph already holds. `residual`
 is stated on every scenario — risk from records not yet connected to a generator — so a
 reader does not take the figures for the whole picture, and a clean load says "nothing
@@ -841,6 +859,243 @@ filtering on a missing field would offer nobody, and a `resolvable` naming no me
 would report "Resolved — added" and add nothing. All three read as answers.
 `npm run ingest:whatif` checks the same references against the package and refuses to
 write.
+
+### Reports (`/reports`)
+
+The five reports written for this tenant, plus the ones a user composes. `/reports` lists
+**only the composed ones**, as cards: the written five are the starting points *inside* the
+wizard, and listing them here as well made the page mostly fixed content nobody had asked
+for, above the one or two reports that had actually been made. A section with none shows how
+to make one. `/reports/new` authors one, `/reports/saved/:savedId` opens a composed one, and
+`/reports/:reportId` still renders a written one — reached from the wizard or by URL rather
+than from a grid. `reports` is the **25th** required `db.json` key, seeded by
+`npm run ingest:reports` from `07_reports/`, and its nav entry was a roadmap placeholder
+until this page landed.
+
+**One template renders all three** — written, built in the wizard, opened from the library.
+`ReportView` is that template, and `check-docs` fails if a surface re-implements it: the
+package ships five reports with a fixed anatomy (heading, the facility it is about, a lead
+note, the question, four tiles, the blocks, a footer stating source and confidence), and a
+composed report is that same anatomy asked under a different frame. The wizard's own copy of
+the layout had already drifted — no badge, its own tag row, a different footer — which is
+two answers to "what does a report look like".
+
+**A report is asked of the published graph, and that is the *only* gate** — the same
+precondition as Ask. Nothing published → `NoPublishedGraph`, which names the fix that
+applies from `built_count` / `draft_count` ("publish the build you have" and "finish a
+draft" are different actions). **A connected source is deliberately not a second gate**:
+publishing a graph is already downstream of having something to build it from, so a source
+check in front of it only tells the reader to fix something that is not stopping them.
+`connected_sources` still rides on every payload for the pages that report it, and gates
+nothing. **The What-if lens shares the one rule** — it is a read-only overlay *on the
+knowledge graph*, so there is nothing to overlay until one is published — and both pages
+share `NoPublishedGraph`, the third `EmptyState` wrapper, so one precondition cannot be
+described two ways. `check-docs` asserts that all four gated routes test publication alone
+and that no report surface renders the source state. Publication lives in memory, so a
+restart closes the gate again; that is already true of Ask and does not get a second
+mechanism.
+
+Every report names the published content that answered it (`graph`: name, version,
+`sha256`) in its footer — the claim Ask already makes about its own answers.
+
+**A report is a question re-asked, not a stored table** — the package's own lead note
+says so, so `db.reports` stores no result. It holds four rosters (36 inbound generators,
+5 comparator facilities, 14 quarters, 5 manifest traces), a field dictionary, the
+assumptions a report is read under, and each report's *definition*. Every figure —
+each chart's series, each table's order, every count on a card — is computed in
+`reportView` on each request, so the page renders numbers rather than arriving at them.
+The rule is the What-if headroom's: arithmetic on a measure in a component is a second
+source for it.
+
+**The ingest reads two files per report, because they answer two questions.**
+`report_authoring_data.json` is the data and the five report definitions (`starters` —
+a question, a spine, and its blocks). Each `Report_N_*.html` is the *rendered* report,
+and its heading, subtitle, badge, lead note, four summary tiles and footer are copy the
+tenant wrote about that one report and which the JSON does not carry. They are joined on
+the starter's own `report_tag` ("Report 2" → `Report_2_*.html`), never by position.
+
+**The authored tiles are checked against the roster, and a mismatch refuses the write.**
+A tile transcribed from a rendered page is exactly the figure that goes quietly stale, so
+`npm run ingest:reports` recomputes 17 of them — 36 generators, 15 with enforcement
+history, 1,200 manifests, 27,311 tons, 4 under a decree, $540k combined penalty — and
+fails naming both numbers when one disagrees. That is what keeps a tile authored rather
+than invented. `check-docs` re-checks the same identities against `db.json`.
+
+**A report's scope is part of its question.** Four ask about every inbound generator; the
+consent-decree report asks about the four under a decree, and its scope is applied in
+`reportView` rather than baked into a copy of the roster. The ingest refuses unless a
+scoped report selects exactly what its own tiles count, so `4 of 36` cannot drift into
+`36 of 36` while the tiles still say four.
+
+**Five block kinds, and every one has a renderer**: `chart`, `table`, `facilities`
+(the scorecard, its subject row marked), `quarterly` (a trend plus its detail) and
+`traces` (custody chains — a manifest's transporters are *ordered*, and an order laid
+into a cell reads as a set). A `kpis` block is dropped at ingest: the tiles it names are
+already the report's own, with a label, a unit and a tone a key list cannot express, and
+rendering both would print one summary twice. `validateDb` refuses a block whose measure
+or column its spine does not carry — a blank column reads as "no data" rather than as a
+broken reference.
+
+**Charts are `AnswerChart`.** A report's chart payload *is* an answer's chart payload, so
+the same hand-drawn SVG draws both and there is no second set of rules about what a bar
+means. Two consequences: the package's `bar`/`column` distinction collapses to horizontal
+bars (the labels are generator names), and its one grouped chart becomes two
+single-series charts, because one hue per magnitude is the rule that component keeps.
+Rows carrying nothing are dropped rather than drawn as zero-length bars, and the note
+says how many — 22 of the 36 generators have never been penalised, and **no cap is
+silent**.
+
+**What the dataset cannot answer is on the page.** Waste code, transporter and daily
+volume are `avail: false` in the field dictionary, each with the package's reason, and the
+section lists all three: "where is the waste-code breakdown" is a question the page
+should answer rather than answer by omission.
+
+Column headers for the three rosters the field dictionary does not describe live in
+`REPORT_LABELS` in `server.mjs`. They are headers and nothing else — no figure, no
+claim — and `check-docs` fails if a column reaches a table with neither a field label nor
+an entry there, because the alternative is a header reading `gen_state`.
+
+#### Authoring a report (`/reports/new`)
+
+Four steps — **Graph → Ask → Confirm → Report** — and the split *is* the promise the page
+makes: "nothing runs against your compliance data until you're happy with it".
+
+**The graph is chosen first, and it is part of the frame.** `GET /reports` returns
+`graphs` — every published graph, with its version, content hash, size and publisher — the
+wizard opens on that list, and `use_case_id` travels through read → build → save. A frame
+naming an unpublished graph is **refused, naming the ones that are**: defaulting to whatever
+is newest would attribute the figures to content nobody picked. The default remains the
+newest for a written report opened straight off the section, which is the only case where
+nobody chose.
+
+**Picking a standard report builds it, then asks what to call it.** A chip on step 2 runs
+read → build against the chosen graph and lands on the report — readable immediately, and
+**not yet kept**: the name prompt leads the page, pre-filled with the report's heading and
+the graph version so there is something to accept, and saving is the reader's act. Naming is
+the one thing the app must not decide; a row named by the app is one nobody recognises a
+week later, and three of them read as duplicates rather than as three questions. The save
+still posts a frame the server validated rather than one the page assembled.
+
+**A saved report is opened, edited, and re-asked.** `GET /reports/saved/:id` rebuilds its
+frame against the current rosters — the row holds no figures, so opening it and generating
+it are the same act — and "Edit" reopens the wizard on that row, where saving **updates it**
+instead of leaving two rows asking one question. A row whose graph has since been
+unpublished still answers, and says so in a caveat rather than claiming live content: with
+publication in memory, that is the state after every restart.
+
+**Who did what is reported precisely, and both are told rather than guessed.** A saved
+report names **who saved it** (`saved_by`); a graph names **who published it** (`?as=` on the
+publish route, kept per version). Both are the browser's own signed-in address, validated as
+an email and refused otherwise, because the identity is client-held and the server has
+nothing to look it up from — the rule the consent callback established. Two different claims
+about two different acts, and the copy does not blur them.
+
+- **`POST /reports/read` returns a sentence and a frame, never figures**, and is **paced**
+  (`SUGGEST_MS`) because reading a question back is the one act here that reads as a model
+  call. Picking a standard report instead is neither matched nor paced — the chip *is* the
+  answer.
+- **An unrecognised question says so.** Matching reuses `askTokens` and `ASK_MATCH_MIN`
+  with the same tie rule as `matchAskAnswer`, so the two surfaces cannot disagree about
+  whether a sentence names something. A miss is still read as the generator register —
+  it is the only frame the inbound network can start from — but the read-back reports
+  that it was not recognised. The prototype routed every unrecognised question there
+  silently, which is a guess presented as an understanding.
+- **`POST /reports/build` computes the report.** Not paced: it is a read over the rosters,
+  like a What-if scenario. It reports `variant`, and that field is the honesty of the whole
+  flow: **`written`** when the frame is the one the report was written for (so the authored
+  tiles still describe it), **`generated`** otherwise — and a generated report's tiles are
+  recomputed from `summary_catalog` over the rows in view and carry "computed for this
+  frame". The tenant's authored figures are never shown against a frame they do not
+  describe. On a spine the catalogue does not cover (facilities, quarters, traces) a
+  generated report states no summary and says why rather than showing an empty strip.
+- **A report carries a chip bar, and a chip re-asks it.** Every spine offers facets — the
+  register's are declared (`slice_default` + `fields.filterable`), and the other three are
+  derived from the column that distinguishes their rows: a facility's `role`, a quarter's
+  `year`, a trace's `flag` (three columns, one control). A chip does **not** hide rows: it
+  rebuilds the report under the frame it states plus that filter, so the tiles and the charts
+  follow the slice instead of describing a set the table no longer shows. That is why
+  `frame` is on the payload in *values* beside the assumption labels — recovering a scope
+  from its printed label would be guessing at what the report was already told. The frame
+  validator asks the same `reportFacetsFor` the chips came from, so a chip cannot offer a
+  filter the API refuses.
+- **A report renders like the rendered report.** Three things had drifted from the package's
+  own pages, all visible side by side: the table showed the *starter's* six columns where
+  Report 2 prints ten (evaluations, tonnage and manifests too — transcribed per report in the
+  ingest as `TABLE_COLS`, every key checked against the field dictionary); every bar was one
+  hue where the package colours by **risk tier**, so a data point may now carry a `tone` and
+  that is the one thing allowed to vary a magnitude chart's hue, because a tier is a *state*
+  and the table beside it repeats it as a tag with an icon; and the drawing sat at answer
+  width in a card twice as wide, with its title printed above it twice. A report's chart now
+  asks for a **900-unit viewBox** — the box grows rather than the cap being lifted, so the text
+  stays the size it was drawn at — and the card no longer repeats the caption the figure
+  carries. Tile and table density are scoped to `.rp-tiles` / `.rp-table` rather than changed
+  in `StatCards` or the theme, which the telemetry pages share.
+- **Two charts sit side by side**, as the package's reports draw them, and `AnswerChart`
+  gained two forms. A **`column`** form for the one case horizontal bars lose — a short label
+  over a left-to-right series, which is what a quarter is; a long label still falls back to
+  `bar` however the payload asks. And a **`grouped`** form: the facility scorecard draws
+  evaluations *beside* violations per facility, because that pairing is the comparison the
+  report makes, and two separate charts made it two findings a reader had to hold at once. It
+  keeps **roster order** so the subject leads rather than being buried wherever its number
+  falls, and its values table carries a column per series. Two hues there encode two
+  *measures*, with a legend — that plus a point's `tone` are the only two things allowed to
+  vary a magnitude chart's hue, and both are named on the drawing.
+- **A scoped chart carries the share it raises.** "Four generators, 1,876 tons" provokes "out
+  of what?", and the report's own four rows cannot answer it — so a scoped chart on the
+  register comes with a **companion**: the split of the whole register by compliance status,
+  whose 79.3% is the figure the tile beside it states. It is drawn as a **ring** with both
+  sides in the legend. That replaced the meter: a meter reads as *progress toward* something
+  and a share of inbound tonnage is not progress, so `donut` with two to four slices is now a
+  ring and `Meter` is gone.
+- **Colour on columns: identity at four or fewer, state beyond.** The package colours its four
+  decree-bound generators by *which generator* and its thirty-six-row register by risk tier, so
+  a handful of directly labelled columns take the categorical hues and a long one takes the
+  tone. And **the readable form decides, not the block's preference**: a report block may ask
+  for `bar`, but six rows or fewer are drawn as columns and a long register as horizontal bars —
+  the package's own Report 5 asks for `bar` and draws four columns.
+- **A chart and the rows behind it are two cards**, as the package lays them out, and a chart
+  card carries no title of its own: the figure already has a caption. A report's lead note
+  prints as the tenant's paragraph with no heading added above it.
+- **`summary_catalog` is the prototype's ten tiles re-expressed as data** — a label, a
+  tone, the field it reads and how it aggregates — because a closure cannot be served.
+  `server.mjs` implements the six aggregations and three formats it names, and the ingest
+  refuses one it does not.
+- **The horizon is declared, not applied**, and the app says so where the horizon is
+  chosen *and* in the built report's caveats. Nothing in these rosters is sliced by
+  time — the register carries a generator's whole federal history and the quarterly roster
+  is the full window — so applying one would invent a filter and stating one silently would
+  claim a filter that never ran. Scope, measure and facet filters all really apply.
+- **A saved report names who it is for, and the control says what it is.** Its card carries a
+  **Who can view** panel — `AudiencePicker`, its own component for the same reason
+  `ConnectSourceWizard` is separate from its modal: it renders behind the card's `useState`, so a
+  `renderToString` of the card draws it closed and every assertion about its checkboxes would
+  pass over nothing. Inside, a checkbox per `auth_role` — the login's own pool, with each role's
+  `access_note` beside it, which until now was collected and rendered nowhere — stored as role
+  *ids* so a renamed role leaves no stale label. **All roles is one of those checkboxes, with
+  three states.** It is `indeterminate` while only some are ticked, because the other two would
+  each misreport a partial selection, and it replaced an *Every role* button: a button beside
+  checkboxes reads as a different kind of act, and that one could only ever select all, so it
+  went dark the moment it had and said nothing about the state in between. A new report is visible to every role, an empty
+  audience is refused (that is deletion with extra steps), and an unknown role id is refused
+  naming the pool. `GET /reports?as_role=…` then shows a reader only the reports their role is
+  named on. **It is not access control and the panel says so in those words**: the role is
+  client-held and the login authenticates by shape, so this narrows what the section *shows*,
+  while the API still serves every row to a caller that asks without a role. A control that
+  implied a permission this mock cannot keep would be the worst claim in the app.
+- **A card that can change height is laid out by its content.** `.rp-saved` had the
+  equal-height treatment the written-report cards use — `height: 100%`, a flex-column body, the
+  foot pushed down by `margin-top: auto` — and opening the audience panel inside it stretched the
+  box: the head filled a height nothing was setting and the rows below left the card's frame. The
+  written cards keep the trick because nothing inside them expands; this one may not have it, and
+  `check-docs` asserts all three are absent from it.
+- **A saved report is a question, not a result.** `POST /reports/saved` stores the frame
+  and the question through `commitDb`, so it survives a restart — the same asymmetry that
+  keeps a graph brief and drops a registered source — and stores **no figures**, so
+  re-opening one re-asks it. `check-docs` asserts both halves.
+
+Step 3's per-block editing from the prototype (add/remove/reorder blocks, retitle, switch
+a chart's measure, pick columns) is **not built**, and `presets` is deliberately not in the
+payload for that reason: a picker with nothing behind it is worse than an absent one.
 
 ### Identity (`/login`)
 
@@ -891,21 +1146,30 @@ here, not informing it. The
 display name that comes back is derived from the email
 (`displayNameFromEmail()`, the twin of `emailInitials()`) — the login form
 collects no name, so one is never invented. `check-docs` asserts all three halves
-of that path. The audit trail's `triggered_by` and Graph Studio's
-`approved_by` / `published_by` still read `db.google_account` and are **not**
-wired to the session; wire them the same way or leave them, but do not read them
-as the current user.
+of that path.
+
+**Publishing is told who, the same way.** `POST …/versions/:sha/publish` takes `?as=<email>`
+from the store, records it per `useCaseId:sha`, and every "published by" line — Ask, the
+report footer, the wizard's graph cards, the section's graph list — reads that record
+through `publishedByFor`. It falls back to `db.google_account` for a version published
+before this existed or by a caller that sent nothing, because "published by nobody" is not
+true of a live version. A malformed `as` is a 400, not a quiet fallback. The audit trail's
+`triggered_by` and Graph Studio's `approved_by` are **still** `db.google_account` and are
+not wired to the session; wire them the same way or leave them, but do not read them as the
+current user.
 
 ### State (`src/store/`)
 
-zustand. Nine modules (plus `asyncState.ts`, the shared machinery): `authStore`
+zustand. Ten modules (plus `asyncState.ts`, the shared machinery): `authStore`
 (who is signed in — the one module persisted to `localStorage`, everything else
 is server-derived), `sourcesStore`, `catalogueStore` (browse / columns /
 document browse / documents / jobs / signals), `graphStore` (domains / use
 cases), `graphStudioStore` (the studio's list + one graph's review),
 `askStore` (live graphs + the last answer), `whatifStore` (the What-if frame plus
-one column per admitted load — the *load*, never the figures), `telemetryStore`
-(audit / traces / evals), `dbStore`.
+one column per admitted load — the *load*, never the figures), `reportsStore` (the
+section list, plus one report keyed by the id in the URL — it keeps that id beside the
+report so a slow fetch cannot leave one report's tiles under another's heading),
+`telemetryStore` (audit / traces / evals), `dbStore`.
 
 The Drive stores are separate from the BigQuery ones rather than one store
 branching on connector: the payloads share no fields, so a union `data` would
@@ -993,9 +1257,27 @@ brand there, not in stylesheets.
 
 **Spacing comes from one scale.** `--sp-1`…`--sp-9` (4px steps) in `index.css`,
 mirrored as `SP` in `theme.ts` for antd's numeric props (`gutter`, `gap`,
-`Space size`). Keep the two in step. No raw px in any `margin`/`padding`/`gap`.
+`Space size`). Keep the two in step. No raw px in any `margin`/`padding`/`gap` — the
+check reads **every** stylesheet under `src/` (it used to read a hand-kept list of nine and
+had stopped covering six), and exempts only sub-scale insets: 1–2px on a pill cannot be
+expressed with a 4px scale, anything 4px or over must come from it.
 
-**Layout uses antd's 24-column `Row`/`Col`**, not CSS grid.
+**Layout uses antd's 24-column `Row`/`Col`**, not CSS grid — inside a card, grid is fine
+where the content *is* a grid.
+
+**The theme sets `Card.bodyPadding: 0`, so a card states its own.** That is a live trap, not a
+preference: a body at 0 beside a head at antd's default leaves a card's content flush against its
+left edge while the title sits 24px in, which is the first thing a reader notices. The report
+section pads head and body from one token for every card class it has, and `check-docs` asserts
+the rule *declares* the padding rather than merely listing the selectors — the two share one
+block, so emptying it once left five cards unpadded with every selector still in place.
+
+**A card grid aligns on its foot, not its top.** Cards in a row are the same height
+already; what makes a grid look broken is a figure strip that floats after prose of
+different lengths. Make the card body a flex column and give the strip `margin-top: auto`,
+so the numbers line up across the row whatever the copy above them does — and where an odd
+last card would sit beside a hole, span it (`xl={24}`), because a half-width card next to
+empty space reads as one that failed to load. Both are in `ReportsPage`.
 
 **Empty pages use `EmptyState`, never antd's `Empty`.** A grey box saying
 "No data" states the problem and stops. Every empty page here is a page *before a
@@ -1026,13 +1308,13 @@ Sources. `/login` has no `NAV_ITEMS` entry — there is nothing to navigate to
 before signing in, and once signed in there is no reason to navigate back.
 
 **The sidebar advertises more than exists, and serves more than it advertises.**
-`NAV_ITEMS` has **8** live entries and `routes.tsx` has a page for **6** of them
-(`/new-graph`, `/ask`, `/sources`, `/catalogue`, `/graph-studio`, `/what-if`). The other
-two — Knowledge Graphs, Reports — are roadmap placeholders with no route, so clicking
-one falls through `path: '*'` to `NotFoundPage`. That is a deliberate shell, not a
-broken link: when one gets a page, add it to `routes.tsx` and nothing else changes —
-`/what-if` was one of them until the What-if lens landed, and adding it needed exactly
-that one line.
+`NAV_ITEMS` has **8** live entries and `routes.tsx` has a page for **7** of them
+(`/new-graph`, `/ask`, `/reports`, `/sources`, `/catalogue`, `/graph-studio`,
+`/what-if`). The last one — Knowledge Graphs — is a roadmap placeholder with no route, so
+clicking it falls through `path: '*'` to `NotFoundPage`. That is a deliberate shell, not a
+broken link: when it gets a page, add it to `routes.tsx` and nothing else changes —
+`/what-if` and `/reports` were both placeholders until their pages landed, and each
+needed exactly that one line.
 
 The traffic also runs the other way. **Four routes are reachable by URL only**, having
 been commented out of `NAV_ITEMS` rather than deleted: `/audit`, `/trace`,
@@ -1085,7 +1367,7 @@ and prefer writing ~100 lines to pulling in a package.
 relevant `SKILLS.md` flow and `docs/REGRESSIONS.md`) → build → verify → **record**.
 The record phase is not optional — it is why the same bug does not land twice.
 
-- **`SKILLS.md`** — the ten end-to-end flows, their files, and their failure modes.
+- **`SKILLS.md`** — the eleven end-to-end flows, their files, and their failure modes.
   Read the section before changing a flow; update it after.
 - **`docs/REGRESSIONS.md`** — every bug that cost real time, with the guard that
   stops it recurring. Append on every fix. Prefer a guard that fails the build
@@ -1197,9 +1479,39 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   graph (36 inbound generators)" printed directly above "No data source is connected".
   Nothing errored — served copy about absent data reads as data. Put the whole lens in
   one component on the connected branch rather than gating each piece.
+- **Assert a fact at its site, not its token in a file.** Six claims this session passed while
+  what they guarded was broken, every one of them a whole-file `includes` for a string the file
+  mentions twice — in a second call site, a width expression, or the file's own comment. Slice
+  the function, count against a denominator the code provides, or key on a phrase only the
+  rendered copy carries. Full list in `docs/REGRESSIONS.md`.
+- **When a break-test reports a claim as unbreakable, suspect the break first.** Two of
+  the report claims came back "MISSED" because the mutation never landed — one searched
+  for a bare `\n` in a CRLF file — and the obvious next move would have been to rewrite
+  two working guards. Verify the file actually changed. (One of the two *was* pointing at
+  a real gap: the register's headline tile was not among the recomputed identities.)
+- **A record keyed by a thing, holding a fact about an act, must be rewritten on every
+  act.** `studioPublishedBy` is keyed by `useCaseId:sha256` and holds who published — and
+  because a re-publish does not change the content hash, setting-only meant an anonymous
+  re-publish kept crediting the previous publisher. Write *or clear* it every time; the tell
+  is a fallback path that can never be reached twice.
 - **A vacuous assertion is worse than no assertion.** Two written this session passed
   over nothing — one `|| true`, one `!x || x` — and both were reporting success. If an
   assertion cannot fail, it is a comment.
+- **The equal-height card trick breaks a card that expands.** `height: 100%` plus a flex body
+  plus `margin-top: auto` on the foot is right for a grid of fixed cards and wrong for one with a
+  panel inside it: the saved-report card grew a tall empty head and spilled its meta rows out of
+  its own frame the first time the audience panel opened.
+- **A panel behind a `useState` cannot be asserted on from its parent.** `renderToString` renders
+  the initial state, so a closed panel makes every check about its contents pass over nothing —
+  the `Modal`/`Drawer` rule applies to plain conditional state too. Extract the panel
+  (`AudiencePicker`, `ConnectSourceWizard`) rather than shimming the hook: a component that
+  imports `useState` by name never reads `React.useState`, so patching the namespace does nothing.
+- **A break-test harness has to read the stream and the encoding `check-docs` actually uses.**
+  Seven mutations reported MISSED in one session against claims that were all correct: the first
+  harness read `stdout` (the failures go to `stderr`), and the second decoded them through the
+  console codepage, where the `✗` it was grepping for did not survive. A break test that cannot
+  fail is exactly the vacuous assertion it exists to prevent — **match on the claim's own text**,
+  and treat a run with no summary line as a crash rather than a pass.
 - **`text-overflow: ellipsis` does nothing on a flex container**, and antd v6
   buttons are `inline-flex`. Put it on the inner label span with `min-width: 0`.
   Text clipped at *both* ends is the tell: that is a centred flex item, not a

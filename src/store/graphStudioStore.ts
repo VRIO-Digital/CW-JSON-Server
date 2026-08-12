@@ -23,6 +23,7 @@ import {
   type StudioGraphsPayload,
 } from '../api/client'
 import { createReadStore, toMessage, type Result } from './asyncState'
+import { useAuthStore } from './authStore'
 
 /** The studio's front door — the graphs that have been built. Read-only. */
 export const useStudioGraphsStore = createReadStore<StudioGraphsPayload>(listStudioGraphs)
@@ -155,7 +156,17 @@ export const useGraphStudioStore = create<StudioState>()((set, get) => ({
     if (!useCaseId) return { ok: false, error: 'No graph is open.' }
     set({ pending: `publish-${sha256}` })
     try {
-      set({ data: await publishVersion(useCaseId, sha256) })
+      /* Who is publishing, from the one place that knows: the browser's own identity.
+         A server route that names a person has to be told — the rule the consent
+         callback established, and the reason every "published by" line can now say the
+         person who pressed the button instead of the seeded account. */
+      set({
+        data: await publishVersion(
+          useCaseId,
+          sha256,
+          useAuthStore.getState().identity?.email ?? null,
+        ),
+      })
       return { ok: true }
     } catch (error) {
       return { ok: false, error: toMessage(error) }
