@@ -2036,22 +2036,88 @@ expect(
 )
 
 /*
- * **The section lists what someone made, not the catalogue.** The five written reports are
- * the starting points inside the wizard; putting them on this page as well made it mostly
- * fixed content nobody had asked for, above the one or two reports that had been composed.
- * They are still served in the payload — the wizard reads them — and still rendered by
- * `/reports/:reportId`, so this asserts where they are *not*: in the section's grid.
+ * **The Library is one grid of governed definitions.**
+ *
+ * Written and composed reports are the same kind of thing here — a question somebody is
+ * accountable for — so they are listed together, from the server's governance list, and told
+ * apart by `kind` rather than by which array they arrived in. Two grids was the earlier model and
+ * it put the same composed report in both when the second one was added.
+ *
+ * Each still opens at its own URL: a written definition at `/reports/:reportId`, a composed one at
+ * `/reports/saved/:savedId`.
  */
 const sectionSrc = read('src/pages/ReportsPage.tsx')
 expect(
-  'the section lists the reports someone made, not the written five',
-  !sectionSrc.includes('data.reports.map') &&
-    sectionSrc.includes('data.saved.map') &&
-    /* And a section with none says how to make one, in the shell every empty page uses. */
-    sectionSrc.includes('EmptyState') &&
+  'the Library lists every governed definition, from the server’s own list',
+  /governance\.reports\.filter/.test(sectionSrc) &&
+    /* Not the raw arrays beside it: `saved` listed again would double every composed row. */
+    !sectionSrc.includes('data.saved.map') &&
+    !sectionSrc.includes('data.reports.map') &&
+    /kind === 'saved' && report\.savedId/.test(sectionSrc) &&
     read('src/pages/ReportAuthorPage.tsx').includes('take one of the standard reports') &&
     read('src/routes.tsx').includes("path: 'reports/:reportId'"),
-  'the written five are the wizard’s starting points, and still open at their own URL',
+  'one grid, both kinds, each opening at its own URL',
+)
+
+/*
+ * **Three tabs, and the governance behind them is the server's arithmetic.**
+ *
+ * Library says what exists, Author says who may write one, Operations & audience says how both are
+ * governed. Every count, cell and check on them is computed in `reportGovernanceView` on each
+ * request — a chip that counted its own filtered array would be a second answer to "how many are
+ * published", and a governance grid is the worst place to have two.
+ */
+const govBody = /const reportGovernanceView = \(asRole\) => \{[\s\S]*?\n\}/.exec(server)?.[0] ?? ''
+expect(
+  'the report section is three tabs, and its figures are computed server-side',
+  /label: 'Library'/.test(sectionSrc) &&
+    /label: 'Author'/.test(sectionSrc) &&
+    /label: 'Operations & audience'/.test(sectionSrc) &&
+    govBody.length > 0 &&
+    /* The chips render the served count rather than measuring a local list. */
+    /\{s\.count\}/.test(sectionSrc) &&
+    /const count = \(key\) =>/.test(govBody) &&
+    /entitled_count: rows\.filter\(entitledTo\)\.length/.test(govBody),
+  govBody.length === 0
+    ? 'reportGovernanceView was not found — this check cannot run'
+    : 'tabs in the page, arithmetic in the server',
+)
+
+/*
+ * **The two gates are never collapsed into one, and gate 2 admits it is not applied.**
+ *
+ * Gate 1 is who may see that a report exists; gate 2 is which rows a predicate admits. The notes
+ * that say so are served, so the components render them rather than holding a second copy — and
+ * gate 2's says **declared, not applied**, because no roster in this prototype is filtered per
+ * persona and a silent predicate would claim a filter that never ran.
+ */
+const gatesSrc = read('src/components/ReportGates.tsx')
+expect(
+  'both gates print the served note, and gate 2 says it is declared rather than applied',
+  /\{gate\.note\}/.test(gatesSrc) &&
+    /* The page holds no copy of either sentence — a component restating served copy prints it
+       twice and puts words in the tenant's mouth. */
+    !gatesSrc.includes('who may see that a report EXISTS') &&
+    !sectionSrc.includes('who may see that a report EXISTS') &&
+    /Declared here and not applied/.test(read('scripts/seed-report-governance.mjs')) &&
+    /* And the grid names its columns: the prototype's own headers printed [object Object]. */
+    /\{col\.title\}/.test(gatesSrc),
+  'served copy, named columns, and the honest caveat on the predicate',
+)
+
+/*
+ * `db.reports.governance` is required, and nested — the same reason
+ * `graph_studio.sanity_checks` is. Losing it does not throw: the Library would render with no
+ * lifecycle chips and the Operations tab with no gates, and an ungoverned report section reads as
+ * a section with nothing to govern.
+ */
+expect(
+  'the governance block is required at boot, and the seed refuses to write a broken one',
+  /isObject\(v\.governance\) &&/.test(server) &&
+    /Array\.isArray\(v\.governance\.data_scope\)/.test(server) &&
+    /seed-report-governance: refusing to write/.test(read('scripts/seed-report-governance.mjs')) &&
+    /has no data scope row/.test(read('scripts/seed-report-governance.mjs')),
+  'refused at boot, and refused at the seam that writes it',
 )
 
 /* And the pages agree: none of the four renders the source empty state. */

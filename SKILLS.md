@@ -1608,6 +1608,26 @@ The tenant's authored figures never appear against a frame they do not describe.
 that is stated where it is chosen and again in the built report's caveats. Scope, measure
 and facet filters do apply.
 
+### Three tabs
+
+**Library** is one grid of governed definitions — written and composed — each carrying its
+lifecycle state, version, author, as-of date, floor line, schedule and entitled personas.
+Lifecycle chips (All current · Published · Pending approval · Archived) and a category select
+narrow what is listed; neither changes a definition. The banner states how many definitions the
+signed-in persona is entitled to and how many it is not, computed server-side.
+
+**Author** is the wizard's front door plus a permission: `may_author` rides on the persona's
+data scope, and a persona that cannot see the figures gets a refusal naming who can.
+
+**Operations & audience** is four sub-tabs: **The two gates** (gate 1 audience entitlement as a
+role × definition matrix, gate 2 data scope — *declared, not applied*), **Refresh & schedule**,
+**Report audit** (only acts with a record behind them) and **Publish checks** (four
+preconditions, recomputed).
+
+Authored in `db.reports.governance` (`node scripts/seed-report-governance.mjs`): state, version,
+author, category, as-of, schedule, approval, audience. Everything else — counts, floor lines,
+cells, checks — is computed in `reportGovernanceView` per request.
+
 **A saved report is a question, not a result**: the frame and the question, through
 `commitDb`, so it survives a restart and re-opening it re-asks it. Per-block editing from
 the prototype is not built.

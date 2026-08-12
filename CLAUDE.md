@@ -862,11 +862,11 @@ write.
 
 ### Reports (`/reports`)
 
-The five reports written for this tenant, plus the ones a user composes. `/reports` lists
-**only the composed ones**, as cards: the written five are the starting points *inside* the
-wizard, and listing them here as well made the page mostly fixed content nobody had asked
-for, above the one or two reports that had actually been made. A section with none shows how
-to make one. `/reports/new` authors one, `/reports/saved/:savedId` opens a composed one, and
+The five reports written for this tenant, plus the ones a user composes, in **three tabs** —
+**Library**, **Author**, **Operations & audience**. Library is one grid of every governed
+definition, written and composed alike, told apart by `kind` rather than by which array it
+arrived in; each still opens at its own URL. Two grids was the earlier model, and it listed a
+composed report twice as soon as the second grid was added. `/reports/new` authors one, `/reports/saved/:savedId` opens a composed one, and
 `/reports/:reportId` still renders a written one — reached from the wizard or by URL rather
 than from a grid. `reports` is the **25th** required `db.json` key, seeded by
 `npm run ingest:reports` from `07_reports/`, and its nav entry was a roadmap placeholder
@@ -954,6 +954,47 @@ Column headers for the three rosters the field dictionary does not describe live
 `REPORT_LABELS` in `server.mjs`. They are headers and nothing else — no figure, no
 claim — and `check-docs` fails if a column reaches a table with neither a field label nor
 an entry there, because the alternative is a header reading `gen_state`.
+
+**Every line on a Library card is a served fact.** A card carries the definition's title, its
+lifecycle state (`published` · `pending_approval` · `archived`, as a `StatusTag` with an icon and
+a word), the report's own question in quotes, the tenant's lead paragraph, the as-of date of the
+data it reads, the **floor** it stands on, and a governance footer: version, author, personas
+entitled, refresh schedule, whether it is parameterized, and how it was approved. A pending or
+archived definition states why in the tenant's words.
+
+**What is authored and what is computed is a hard line.** `db.reports.governance` — seeded by
+`node scripts/seed-report-governance.mjs` — holds only the decisions: state, version, author,
+category, as-of, schedule, approval, and which personas each definition's audience names. Every
+number and every cell is computed in `reportGovernanceView` on each request: the chip counts, the
+floor line, `parameterized` (a spine with facets), the entitlement matrix, the audit rows and the
+publish checks. A chip that counted its own filtered array would be a second answer to "how many
+are published", and a governance grid is the worst place in the app to hold two.
+
+**`governance` is required, and nested for the reason `graph_studio.sanity_checks` is.** Losing it
+does not throw — the Library would render with no lifecycle chips and Operations with no gates, and
+an ungoverned report section reads as one with nothing to govern. `validateDb` refuses it at boot;
+the seed refuses to write a row naming a report or a persona that does not exist.
+
+**The section is read *as* the signed-in persona.** `load(roleId)` forwards to
+`GET /reports?as_role=…`, so the banner's "N entitled · M not entitled" is true of the reader —
+and `createReadStore` now forwards arguments rather than the report section growing a store of its
+own. An unknown role is ignored server-side, the safe direction for a control the copy calls a demo.
+
+**Author is a permission, not just a button.** `may_author` comes from the persona's data-scope row,
+so a persona that cannot see the underlying figures cannot define what a report asserts about them —
+and the refusal names who can. The wizard itself is unchanged; it is now reached from this tab.
+
+**Operations & audience is four sub-tabs, and the first is the two gates.** Gate 1 is *audience
+entitlement* — who may see that a report exists — as a role × definition matrix whose cells state
+their verdict in words and tint to match. Gate 2 is *data scope* — which rows a predicate admits and
+which columns are masked — and it is **declared, not applied**: no roster in this prototype is
+filtered per persona, so applying a predicate would invent a filter and stating one silently would
+claim a filter that never ran (the horizon's rule). The two are never merged, because one permission
+built from both is wrong in both directions. **Refresh & schedule** lists what runs when and what it
+stands on; **Report audit** lists only acts with a record behind them (who defined which version, how
+it was approved, who saved a composed report, whether the content it was asked of is still published);
+**Publish checks** recomputes four preconditions per definition, including the one that fails after
+every restart, because publication lives in memory.
 
 #### Authoring a report (`/reports/new`)
 
