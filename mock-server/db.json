@@ -6,9 +6,9 @@
   },
   "auth_roles": [
     {
-      "role_id": "platform_admin",
-      "label": "Platform Admin",
-      "access_note": "No business figures. Structure, lineage, cost and access only."
+      "role_id": "business_user_executive",
+      "label": "Business User — Executive",
+      "access_note": "Business figures and KPI answers only. No underlying structure exposed."
     },
     {
       "role_id": "domain_architect",
@@ -16,19 +16,14 @@
       "access_note": "No cost or business figures. Structure and lineage for owned domains only."
     },
     {
-      "role_id": "data_analyst",
-      "label": "Data Analyst",
-      "access_note": "No cost figures. Profiled structure, lineage and entities only."
-    },
-    {
-      "role_id": "business_user_executive",
-      "label": "Business User (Executive)",
-      "access_note": "Business figures and KPI answers only. No underlying structure exposed."
-    },
-    {
       "role_id": "business_user_project",
-      "label": "Business User (Project)",
+      "label": "Business User — Project Level",
       "access_note": "Business figures for the assigned project only. No underlying structure exposed."
+    },
+    {
+      "role_id": "platform_admin",
+      "label": "Platform Admin",
+      "access_note": "No business figures. Structure, lineage, cost and access only."
     }
   ],
   "credentials": [
@@ -14240,12 +14235,188 @@
         "measure": "penalty",
         "horizon": "h24",
         "filters": [],
-        "saved_by": "vrio-org-management@vriodigital.com",
+        "saved_by": "ellis.hargrove@vriodigital.com",
         "viewer_roles": [
           "domain_architect"
         ],
-        "saved_at": "2026-08-12T14:58:05.364Z"
+        "saved_at": "2026-08-12T17:51:16.591Z"
+      },
+      {
+        "saved_id": "rp-2-5540",
+        "name": "Inbound Generator Risk Register · v1",
+        "question": "Which inbound generators carry the most compliance risk?",
+        "report_id": "risk",
+        "use_case_id": "uc-waste-management-mspxkh5q2",
+        "scope": "all",
+        "measure": "penalty",
+        "horizon": "h24",
+        "filters": [],
+        "saved_by": "ellis.hargrove@vriodigital.com",
+        "viewer_roles": [
+          "business_user_executive",
+          "domain_architect",
+          "business_user_project",
+          "platform_admin"
+        ],
+        "saved_at": "2026-08-12T17:51:14.146Z"
+      },
+      {
+        "saved_id": "rp-3-4502",
+        "name": "roshan",
+        "question": "How does VLS Deer Park's compliance record compare to other Texas TSDFs?",
+        "report_id": "facility",
+        "use_case_id": "uc-waste-management-mspxkh5q2",
+        "scope": "all",
+        "measure": "penalty",
+        "horizon": "h24",
+        "filters": [],
+        "saved_by": "ellis.hargrove@vriodigital.com",
+        "viewer_roles": [
+          "business_user_executive",
+          "domain_architect",
+          "business_user_project",
+          "platform_admin"
+        ],
+        "saved_at": "2026-08-12T17:51:54.865Z"
       }
-    ]
+    ],
+    "governance": {
+      "statuses": [
+        {
+          "key": "published",
+          "label": "Published",
+          "tone": "good"
+        },
+        {
+          "key": "pending_approval",
+          "label": "Pending approval",
+          "tone": "warn"
+        },
+        {
+          "key": "archived",
+          "label": "Archived",
+          "tone": "neutral"
+        }
+      ],
+      "reports": [
+        {
+          "report_id": "risk",
+          "status": "published",
+          "version": "v13",
+          "author": "Dana Whitfield",
+          "category": "Inbound risk",
+          "as_of": "2026-08-10",
+          "schedule": "Daily 07:00 UTC",
+          "approval": "two-person",
+          "audience": [
+            "domain_architect",
+            "business_user_executive",
+            "business_user_project"
+          ],
+          "note": null
+        },
+        {
+          "report_id": "facility",
+          "status": "published",
+          "version": "v7",
+          "author": "Dana Whitfield",
+          "category": "Facility comparison",
+          "as_of": "2026-08-10",
+          "schedule": "Weekly Mon 06:00 UTC",
+          "approval": "two-person",
+          "audience": [
+            "domain_architect",
+            "business_user_executive",
+            "business_user_project"
+          ],
+          "note": null
+        },
+        {
+          "report_id": "quarterly",
+          "status": "published",
+          "version": "v4",
+          "author": "Ellis Hargrove",
+          "category": "Volume & trend",
+          "as_of": "2026-08-10",
+          "schedule": "Monthly 1st 06:00 UTC",
+          "approval": "self-approved",
+          "audience": [
+            "domain_architect",
+            "business_user_executive"
+          ],
+          "note": null
+        },
+        {
+          "report_id": "cd",
+          "status": "pending_approval",
+          "version": "v2",
+          "author": "Dana Whitfield",
+          "category": "Enforcement exposure",
+          "as_of": "2026-08-10",
+          "schedule": "On demand",
+          "approval": null,
+          "audience": [
+            "domain_architect",
+            "business_user_executive"
+          ],
+          "note": "Submitted and awaiting a second person. Not visible to its audience until published — and publishing widens nobody’s data scope."
+        },
+        {
+          "report_id": "trace",
+          "status": "archived",
+          "version": "v9",
+          "author": "Rei Nakamura",
+          "category": "Custody",
+          "as_of": "2026-06-30",
+          "schedule": "On demand",
+          "approval": "self-approved",
+          "audience": [
+            "domain_architect",
+            "business_user_project"
+          ],
+          "note": "Archived when the manifest sample was cut to five traces. Opens by link for anyone entitled; it is not listed as current."
+        }
+      ],
+      "data_scope": [
+        {
+          "role_id": "domain_architect",
+          "scope": "All facilities, detail grain",
+          "predicate": "TRUE — the only persona that sees derivation, lineage and cost",
+          "grain": "manifest line",
+          "masked": "none",
+          "may_author": true
+        },
+        {
+          "role_id": "business_user_executive",
+          "scope": "All facilities, summary grain",
+          "predicate": "TRUE — every inbound generator, figures only",
+          "grain": "generator",
+          "masked": "derivation, lineage, cost",
+          "may_author": false
+        },
+        {
+          "role_id": "business_user_project",
+          "scope": "Assigned facility only",
+          "predicate": "receiving_facility = 'VLS Deer Park'",
+          "grain": "generator",
+          "masked": "derivation, lineage, cost",
+          "may_author": false
+        },
+        {
+          "role_id": "platform_admin",
+          "scope": "No business figures",
+          "predicate": "FALSE — structure, lineage, cost and access, never a measure",
+          "grain": "—",
+          "masked": "every measure",
+          "may_author": false
+        }
+      ],
+      "gate_notes": {
+        "both": "Two grids, administered separately, never collapsed into one. The first says who may see that a report exists. The second says which rows a viewer’s predicate admits. Merging them produces a single permission that is wrong in both directions — over-broad for the executive, over-narrow for the auditor.",
+        "entitlement": "Audience entitlement (gate 1) — who may see that a report EXISTS. It says nothing about which rows a viewer’s predicate admits; that is gate 2 below. A viewer can be entitled to a report and correctly see zero rows in it.",
+        "data_scope": "Data scope (gate 2) — which rows a session’s predicate admits and which columns are masked. Declared here and not applied: no roster in this prototype is filtered per persona, so a predicate that silently ran would claim a filter this mock does not have.",
+        "author": "Writing a new report definition is a separate permission because a report is a governed object — once published it is what an audience treats as the truth. Authoring rides on the data scope, not on the job title: a persona that cannot see the underlying figures cannot define what a report asserts about them."
+      }
+    }
   }
 }

@@ -29,7 +29,12 @@ import { createReadStore, toMessage, type Result } from './asyncState'
  * report so a page arriving at a different id re-fetches rather than rendering the
  * previous one under the new heading — the failure a plain `data` field invites.
  */
-export const useReportsStore = createReadStore<ReportsIndex>(getReports)
+/*
+ * The section list, read **as a persona**: `load(roleId)` forwards to `getReports(asRole)`, so
+ * the entitlement banner's counts are true of the reader. A role the server does not know is
+ * ignored there rather than refused — the safe direction for a control the copy calls a demo.
+ */
+export const useReportsStore = createReadStore<ReportsIndex, [(string | null)?]>(getReports)
 
 interface ReportState {
   /** The id this store holds a report for, or was last asked for. */

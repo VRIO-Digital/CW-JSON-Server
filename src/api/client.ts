@@ -4975,6 +4975,8 @@ export interface ReportsIndex {
   saved: SavedReport[]
   /** Null while either gate is closed — the wizard has nothing to ask against. */
   authoring: ReportAuthoring | null
+  /** The three tabs' payload. Null while the publish gate is closed, like `authoring`. */
+  governance: ReportGovernance | null
 }
 
 export interface Report {
@@ -5297,8 +5299,334 @@ const REPORT_SAVED_PAYLOAD = shape({ saved: REPORT_SAVED })
 
 
 
+/*
+ * ---------------- the section's governance view ----------------
+ *
+ * The three tabs — Library, Author, Operations & audience — are one payload, computed by the
+ * server on every request. Nothing here is figures a component could recompute: the chip counts,
+ * the floor line, each entitlement cell and every check arrive decided, because a governance grid
+ * is exactly where a second source becomes a second answer.
+ */
+
+/** One card in the Library, written or composed. */
+export interface GovernedReport {
+  reportId: string
+  /** `written` is one of the tenant's five definitions; `saved` is one someone composed. */
+  kind: 'written' | 'saved'
+  savedId: string | null
+  reportTag: string
+  title: string
+  /** The report's own question, quoted on the card rather than paraphrased. */
+  question: string
+  lead: string
+  status: string
+  statusLabel: string
+  tone: Tone
+  version: string | null
+  author: string | null
+  category: string
+  asOf: string | null
+  schedule: string
+  /** null when nothing was recorded — never the word "none" pretending to be an approval. */
+  approval: string | null
+  note: string | null
+  floor: string | null
+  parameterized: boolean
+  rowCount: number
+  spineTotal: number
+  entitledRoles: { roleId: string; label: string }[]
+}
+
+export interface GovernanceStatus {
+  key: string
+  label: string
+  tone: Tone
+  count: number
+}
+
+/** The data scope a persona carries — declared, and the page says it is not applied. */
+export interface DataScopeRow {
+  roleId: string
+  label: string
+  scope: string
+  predicate: string
+  grain: string
+  masked: string
+  mayAuthor: boolean
+}
+
+export interface EntitlementCell {
+  reportId: string
+  state: string
+  label: string
+  tone: Tone
+}
+
+export interface ReportGovernance {
+  reports: GovernedReport[]
+  statuses: GovernanceStatus[]
+  categories: string[]
+  viewer: {
+    roleId: string | null
+    label: string | null
+    entitledCount: number
+    notEntitledCount: number
+    scope: DataScopeRow | null
+  }
+  author: { mayAuthor: boolean; note: string; authors: string[] }
+  gates: {
+    note: string
+    entitlement: {
+      note: string
+      columns: { reportId: string; title: string; reportTag: string; status: string }[]
+      roles: { roleId: string; label: string; cells: EntitlementCell[] }[]
+    }
+    dataScope: { note: string; rows: DataScopeRow[] }
+  }
+  schedule: {
+    reportId: string
+    title: string
+    schedule: string
+    asOf: string | null
+    floor: string | null
+    parameterized: boolean
+    statusLabel: string
+    tone: Tone
+  }[]
+  audit: {
+    reportId: string
+    title: string
+    act: string
+    actor: string
+    at: string | null
+    detail: string
+    tone: Tone
+  }[]
+  publishChecks: {
+    reportId: string
+    title: string
+    checks: { key: string; label: string; pass: boolean; detail: string }[]
+  }[]
+}
+
+const TONE = oneOf(['good', 'warn', 'crit', 'info', 'neutral'])
+
+const GOVERNED_REPORT = shape({
+  report_id: str,
+  kind: oneOf(['written', 'saved']),
+  saved_id: nullable(str),
+  report_tag: str,
+  title: str,
+  question: str,
+  lead: str,
+  status: str,
+  status_label: str,
+  tone: TONE,
+  version: nullable(str),
+  author: nullable(str),
+  category: str,
+  as_of: nullable(str),
+  schedule: str,
+  approval: nullable(str),
+  note: nullable(str),
+  floor: nullable(str),
+  parameterized: bool,
+  row_count: num,
+  spine_total: num,
+  entitled_roles: arrayOf(shape({ role_id: str, label: str })),
+})
+
+const DATA_SCOPE_ROW = shape({
+  role_id: str,
+  /*
+   * Absent on the banner's own row.
+   *
+   * Gate 2's rows are resolved against `auth_roles` on the way out and carry a label; the
+   * viewer's scope is the governance row itself, and the persona's name is already beside it as
+   * `viewer.label`. So the label is optional here and falls back to the id rather than being
+   * required of a payload that has no reason to repeat it.
+   */
+  label: nullable(str),
+  scope: str,
+  predicate: str,
+  grain: str,
+  masked: str,
+  may_author: bool,
+})
+
+const REPORT_GOVERNANCE = shape({
+  reports: arrayOf(GOVERNED_REPORT),
+  statuses: arrayOf(shape({ key: str, label: str, tone: TONE, count: num })),
+  categories: arrayOf(str),
+  viewer: shape({
+    role_id: nullable(str),
+    label: nullable(str),
+    entitled_count: num,
+    not_entitled_count: num,
+    scope: nullable(DATA_SCOPE_ROW),
+  }),
+  author: shape({ may_author: bool, note: str, authors: arrayOf(str) }),
+  gates: shape({
+    note: str,
+    entitlement: shape({
+      note: str,
+      columns: arrayOf(shape({ report_id: str, title: str, report_tag: str, status: str })),
+      roles: arrayOf(
+        shape({
+          role_id: str,
+          label: str,
+          cells: arrayOf(shape({ report_id: str, state: str, label: str, tone: TONE })),
+        }),
+      ),
+    }),
+    data_scope: shape({ note: str, rows: arrayOf(DATA_SCOPE_ROW) }),
+  }),
+  schedule: arrayOf(
+    shape({
+      report_id: str,
+      title: str,
+      schedule: str,
+      as_of: nullable(str),
+      floor: nullable(str),
+      parameterized: bool,
+      status_label: str,
+      tone: TONE,
+    }),
+  ),
+  audit: arrayOf(
+    shape({
+      report_id: str,
+      title: str,
+      act: str,
+      actor: str,
+      at: nullable(str),
+      detail: str,
+      tone: TONE,
+    }),
+  ),
+  publish_checks: arrayOf(
+    shape({
+      report_id: str,
+      title: str,
+      checks: arrayOf(shape({ key: str, label: str, pass: bool, detail: str })),
+    }),
+  ),
+})
+
+interface RawDataScope {
+  role_id: string
+  label?: string | null
+  scope: string
+  predicate: string
+  grain: string
+  masked: string
+  may_author: boolean
+}
+
+const toScope = (s: RawDataScope): DataScopeRow => ({
+  roleId: s.role_id,
+  label: s.label ?? s.role_id,
+  scope: s.scope,
+  predicate: s.predicate,
+  grain: s.grain,
+  masked: s.masked,
+  mayAuthor: s.may_author,
+})
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const toGovernance = (g: any): ReportGovernance => ({
+  reports: g.reports.map((r: any) => ({
+    reportId: r.report_id,
+    kind: r.kind,
+    savedId: r.saved_id ?? null,
+    reportTag: r.report_tag,
+    title: r.title,
+    question: r.question,
+    lead: r.lead,
+    status: r.status,
+    statusLabel: r.status_label,
+    tone: r.tone,
+    version: r.version,
+    author: r.author,
+    category: r.category,
+    asOf: r.as_of,
+    schedule: r.schedule,
+    approval: r.approval,
+    note: r.note,
+    floor: r.floor,
+    parameterized: r.parameterized,
+    rowCount: r.row_count,
+    spineTotal: r.spine_total,
+    entitledRoles: r.entitled_roles.map((e: any) => ({ roleId: e.role_id, label: e.label })),
+  })),
+  statuses: g.statuses,
+  categories: g.categories,
+  viewer: {
+    roleId: g.viewer.role_id,
+    label: g.viewer.label,
+    entitledCount: g.viewer.entitled_count,
+    notEntitledCount: g.viewer.not_entitled_count,
+    scope: g.viewer.scope ? toScope(g.viewer.scope) : null,
+  },
+  author: { mayAuthor: g.author.may_author, note: g.author.note, authors: g.author.authors },
+  gates: {
+    note: g.gates.note,
+    entitlement: {
+      note: g.gates.entitlement.note,
+      columns: g.gates.entitlement.columns.map((c: any) => ({
+        reportId: c.report_id,
+        title: c.title,
+        reportTag: c.report_tag,
+        status: c.status,
+      })),
+      roles: g.gates.entitlement.roles.map((r: any) => ({
+        roleId: r.role_id,
+        label: r.label,
+        cells: r.cells.map((c: any) => ({
+          reportId: c.report_id,
+          state: c.state,
+          label: c.label,
+          tone: c.tone,
+        })),
+      })),
+    },
+    dataScope: {
+      note: g.gates.data_scope.note,
+      rows: g.gates.data_scope.rows.map(toScope),
+    },
+  },
+  schedule: g.schedule.map((s: any) => ({
+    reportId: s.report_id,
+    title: s.title,
+    schedule: s.schedule,
+    asOf: s.as_of,
+    floor: s.floor,
+    parameterized: s.parameterized,
+    statusLabel: s.status_label,
+    tone: s.tone,
+  })),
+  audit: g.audit.map((a: any) => ({
+    reportId: a.report_id,
+    title: a.title,
+    act: a.act,
+    actor: a.actor,
+    at: a.at,
+    detail: a.detail,
+    tone: a.tone,
+  })),
+  publishChecks: g.publish_checks.map((p: any) => ({
+    reportId: p.report_id,
+    title: p.title,
+    checks: p.checks,
+  })),
+})
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 const REPORTS_INDEX = shape({
   connected_sources: num,
+  /* Null while the publish gate is closed: the section has no library to govern until a graph
+     is published, and a governance block full of empty lists would read as "nothing governed". */
+  governance: nullable(REPORT_GOVERNANCE),
   published_count: num,
   built_count: num,
   draft_count: num,
@@ -5468,6 +5796,8 @@ export async function getReports(asRole?: string | null): Promise<ReportsIndex> 
     saved: RawSavedReport[]
     authoring: RawReportAuthoring | null
     reports: RawReportSummary[]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    governance: any
   }>(
     'The report section',
     await request<unknown>(
@@ -5485,6 +5815,7 @@ export async function getReports(asRole?: string | null): Promise<ReportsIndex> 
     graphs: raw.graphs.map((g) => toReportGraph(g)).filter((g): g is ReportGraph => g !== null),
     saved: raw.saved.map(toSaved),
     authoring: raw.authoring ? toAuthoring(raw.authoring) : null,
+    governance: raw.governance ? toGovernance(raw.governance) : null,
     reports: raw.reports.map((r) => ({
       reportId: r.report_id,
       reportTag: r.report_tag,

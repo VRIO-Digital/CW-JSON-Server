@@ -522,6 +522,31 @@ const DB_SHAPE = {
     Array.isArray(v.saved) &&
     isObject(v.data) &&
     Object.values(v.data).every((rows) => Array.isArray(rows) && rows.length > 0) &&
+    /*
+     * The governance block. Nested rather than top-level, and required for the reason
+     * `graph_studio.sanity_checks` is: losing it does not throw, it answers. The Library would
+     * render with no lifecycle chips, the Operations tab with no gates, and an ungoverned report
+     * section reads as a report section with nothing to govern.
+     */
+    isObject(v.governance) &&
+    Array.isArray(v.governance.statuses) &&
+    v.governance.statuses.length > 0 &&
+    Array.isArray(v.governance.reports) &&
+    v.governance.reports.length > 0 &&
+    v.governance.reports.every(
+      (g) =>
+        isObject(g) &&
+        g.report_id &&
+        g.status &&
+        g.version &&
+        g.author &&
+        g.category &&
+        Array.isArray(g.audience) &&
+        g.audience.length > 0,
+    ) &&
+    Array.isArray(v.governance.data_scope) &&
+    v.governance.data_scope.length > 0 &&
+    isObject(v.governance.gate_notes) &&
     Array.isArray(v.reports) &&
     v.reports.length > 0 &&
     v.reports.every(
@@ -581,8 +606,11 @@ const DB_HINTS = {
   reports:
     'object with meta{}, fields[], assumptions{}, opts{}, slice_default[], ' +
     'summary_catalog[], summary_default[], saved[], data{ generators[], facilities[], ' +
-    'quarters[], traces[] } and reports[] of { report_id, heading, spine, blocks[], ' +
-    'tiles[], footer[] } — the report section, from "npm run ingest:reports"',
+    'quarters[], traces[] }, reports[] of { report_id, heading, spine, blocks[], ' +
+    'tiles[], footer[] } and governance{ statuses[], reports[] of ' +
+    '{ report_id, status, version, author, category, audience[] }, data_scope[], gate_notes{} } ' +
+    '— the report section, from "npm run ingest:reports" and ' +
+    '"node scripts/seed-report-governance.mjs"',
 }
 
 function validateDb(candidate) {
@@ -4466,7 +4494,326 @@ const reportSavedView = (saved) => {
  * reporting — and it is **not** a permission: the role is client-held, so anything asking the
  * API directly still gets every row. The panel that sets an audience says exactly that.
  */
+/*
+ * ---------------- the section's governance view ----------------
+ *
+ * The three tabs the report section renders — Library, Author, Operations & audience — are one
+ * payload, computed here.
+ *
+ * **What is read and what is computed.** `db.reports.governance` holds the governance decisions
+ * (a report's lifecycle state, its definition version, its author, its category, the as-of date
+ * of the data it reads, its refresh schedule, its approval, and the personas its audience names)
+ * because nothing in the package implies them. Everything else on those tabs is derived on every
+ * request: the chip counts, the floor line, whether a report is parameterized, every entitlement
+ * cell, the publish checks and the audit rows. A figure a component could compute is a second
+ * source for it, and a governance grid is exactly where two sources become two answers.
+ */
+const REPORT_STATUS_TONE = { published: 'good', pending_approval: 'warn', archived: 'neutral' }
+
+const reportStatusLabel = (key) =>
+  db.reports.governance.statuses.find((s) => s.key === key)?.label ?? key
+
+/*
+ * One cell of gate 1.
+ *
+ * A cell answers "may this persona see that this report EXISTS", which is why a pending report
+ * reads *entitled once published* rather than plain "entitled": the audience is decided, the
+ * visibility is not. Both facts in one string, because a reviewer reading the grid is deciding
+ * whether the audience is right, not whether the report is finished.
+ */
+const reportEntitlementCell = (governanceRow, roleId) => {
+  if (!governanceRow.audience.includes(roleId)) {
+    return { state: 'not_entitled', label: 'not entitled', tone: 'crit' }
+  }
+  if (governanceRow.status === 'published') {
+    return { state: 'entitled_published', label: 'entitled - published', tone: 'good' }
+  }
+  if (governanceRow.status === 'pending_approval') {
+    return {
+      state: 'entitled_pending',
+      label: 'entitled once published - awaiting approval',
+      tone: 'warn',
+    }
+  }
+  return {
+    state: 'entitled_archived',
+    label: 'entitled - archived, opens by link only',
+    tone: 'neutral',
+  }
+}
+
+/**
+ * The floor under a report: the roster it reads and how much of it there is.
+ *
+ * Derived from the report's own spine rather than authored, so a report cannot claim a floor it
+ * does not stand on. `row_count` is what its scope selects, `spine_total` the whole roster —
+ * "4 of 36" is the difference between a scoped report and a register.
+ */
+const reportFloorLine = (report) => {
+  const rows = reportRows(report).length
+  const total = db.reports.data[report.spine].length
+  const roster = REPORT_SCOPES[report.spine]?.label ?? report.spine
+  return rows === total
+    ? `floor set by the ${roster} of ${total} rows`
+    : `floor set by ${rows} of ${total} rows in the ${roster}`
+}
+
+/** A report definition, as the Library card and the Operations tables read it. */
+const reportGovernanceRow = (governanceRow) => {
+  const report = db.reports.reports.find((r) => r.report_id === governanceRow.report_id)
+  return {
+    report_id: governanceRow.report_id,
+    kind: 'written',
+    report_tag: report.report_tag,
+    title: report.heading,
+    /* The question in the report's own words, and the paragraph the tenant wrote under it. Both
+       are the report's own copy — the card quotes, it does not paraphrase. */
+    question: report.question,
+    lead: report.note ?? report.subtitle ?? '',
+    status: governanceRow.status,
+    status_label: reportStatusLabel(governanceRow.status),
+    tone: REPORT_STATUS_TONE[governanceRow.status] ?? 'neutral',
+    version: governanceRow.version,
+    author: governanceRow.author,
+    category: governanceRow.category,
+    as_of: governanceRow.as_of,
+    schedule: governanceRow.schedule,
+    approval: governanceRow.approval,
+    note: governanceRow.note,
+    floor: reportFloorLine(report),
+    /* Derived: a report is parameterized exactly when its spine offers facets to slice by. */
+    parameterized: reportFacetsFor(report.spine).length > 0,
+    row_count: reportRows(report).length,
+    spine_total: db.reports.data[report.spine].length,
+    entitled_roles: governanceRow.audience.map((role_id) => ({
+      role_id,
+      label: db.auth_roles.find((r) => r.role_id === role_id)?.label ?? role_id,
+    })),
+  }
+}
+
+/**
+ * A composed report, in the same shape as a written one.
+ *
+ * The Library is one grid, so a saved row has to answer the same questions a written report
+ * does — and every answer here is a fact the row already carries: who saved it stands in for the
+ * author, its graph's version for the definition version, its audience for the entitlement. What
+ * it cannot claim is an approval, and it says so with a null rather than a label.
+ */
+const reportSavedGovernanceRow = (saved) => {
+  const view = reportSavedView(saved)
+  const report = db.reports.reports.find((r) => r.report_id === saved.report_id)
+  return {
+    report_id: saved.saved_id,
+    kind: 'saved',
+    saved_id: saved.saved_id,
+    report_tag: view.report_tag,
+    title: saved.name,
+    question: saved.question ?? report?.question ?? '',
+    lead: report?.note ?? '',
+    status: 'published',
+    status_label: reportStatusLabel('published'),
+    tone: 'good',
+    version: view.graph?.version ?? null,
+    author: view.saved_by,
+    category: 'Composed',
+    as_of: saved.saved_at ? String(saved.saved_at).slice(0, 10) : null,
+    schedule: 'On demand',
+    approval: null,
+    note:
+      view.graph && !view.graph.live
+        ? 'Asked of a graph nobody has published now, so it re-asks against the current rosters and says so in its caveats.'
+        : null,
+    floor: report ? reportFloorLine(report) : null,
+    parameterized: report ? reportFacetsFor(report.spine).length > 0 : false,
+    row_count: report ? reportRows(report).length : 0,
+    spine_total: report ? db.reports.data[report.spine].length : 0,
+    entitled_roles: view.viewer_roles,
+  }
+}
+
+/**
+ * The whole governance view, as one persona sees it.
+ *
+ * `asRole` hides nothing here — the grid's point is that a reader can see how many definitions
+ * exist that they are *not* entitled to, which is a governance fact rather than a leak. What it
+ * does is report that number, so "6 entitled, 1 not listed" is computed rather than written.
+ */
+const reportGovernanceView = (asRole) => {
+  const written = db.reports.governance.reports.map(reportGovernanceRow)
+  const saved = (db.reports.saved ?? []).map(reportSavedGovernanceRow)
+  const rows = [...written, ...saved]
+
+  const count = (key) =>
+    key === 'current'
+      ? rows.filter((r) => r.status !== 'archived').length
+      : rows.filter((r) => r.status === key).length
+
+  const entitledTo = (row) => !asRole || row.entitled_roles.some((r) => r.role_id === asRole)
+  /* Resolved the same way gate 2's rows are, so one scope row cannot be labelled in one place
+     and unlabelled in another. */
+  const scopeRaw = db.reports.governance.data_scope.find((s) => s.role_id === asRole) ?? null
+  const scopeRow = scopeRaw
+    ? {
+        ...scopeRaw,
+        label: db.auth_roles.find((r) => r.role_id === scopeRaw.role_id)?.label ?? scopeRaw.role_id,
+      }
+    : null
+
+  return {
+    reports: rows,
+    /* `current` leads and is not a stored state: published + pending is what a reader means. */
+    statuses: [
+      { key: 'current', label: 'All current', tone: 'neutral', count: count('current') },
+      ...db.reports.governance.statuses.map((s) => ({ ...s, count: count(s.key) })),
+    ],
+    categories: [...new Set(rows.map((r) => r.category))].sort(),
+    /*
+     * The banner. Both halves are computed: how many definitions this persona is named on, and
+     * how many exist that it is not — the second is what makes the first mean something.
+     */
+    viewer: {
+      role_id: asRole,
+      label: asRole ? db.auth_roles.find((r) => r.role_id === asRole)?.label ?? asRole : null,
+      entitled_count: rows.filter(entitledTo).length,
+      not_entitled_count: rows.filter((r) => !entitledTo(r)).length,
+      scope: scopeRow,
+    },
+    /* The Author tab: a permission, and who holds it. */
+    author: {
+      may_author: scopeRow ? scopeRow.may_author === true : true,
+      note: db.reports.governance.gate_notes.author,
+      authors: db.reports.governance.data_scope
+        .filter((s) => s.may_author)
+        .map((s) => db.auth_roles.find((r) => r.role_id === s.role_id)?.label ?? s.role_id),
+    },
+    gates: {
+      note: db.reports.governance.gate_notes.both,
+      entitlement: {
+        note: db.reports.governance.gate_notes.entitlement,
+        /* The grid's columns are report definitions, named — a header has to say which report a
+           cell is about, or the grid is a wall of tinted words. */
+        columns: rows.map((r) => ({
+          report_id: r.report_id,
+          title: r.title,
+          report_tag: r.report_tag,
+          status: r.status,
+        })),
+        roles: db.auth_roles.map((role) => ({
+          role_id: role.role_id,
+          label: role.label,
+          cells: [
+            ...db.reports.governance.reports.map((g) => ({
+              report_id: g.report_id,
+              ...reportEntitlementCell(g, role.role_id),
+            })),
+            ...(db.reports.saved ?? []).map((s) => ({
+              report_id: s.saved_id,
+              ...reportEntitlementCell(
+                { audience: reportViewerRoles(s).map((r) => r.role_id), status: 'published' },
+                role.role_id,
+              ),
+            })),
+          ],
+        })),
+      },
+      data_scope: {
+        note: db.reports.governance.gate_notes.data_scope,
+        rows: db.reports.governance.data_scope.map((s) => ({
+          ...s,
+          label: db.auth_roles.find((r) => r.role_id === s.role_id)?.label ?? s.role_id,
+        })),
+      },
+    },
+    /* Refresh & schedule: what runs when, and what it stands on. */
+    schedule: rows.map((r) => ({
+      report_id: r.report_id,
+      title: r.title,
+      schedule: r.schedule,
+      as_of: r.as_of,
+      floor: r.floor,
+      parameterized: r.parameterized,
+      status_label: r.status_label,
+      tone: r.tone,
+    })),
+    /*
+     * Report audit: acts this app can actually account for — who wrote a definition and at which
+     * version, who approved it, who saved a composed row and when, and whether the content it was
+     * asked of is still published. No invented event log: an audit trail with fabricated rows is
+     * worse than a short one.
+     */
+    audit: [
+      ...written.map((r) => ({
+        report_id: r.report_id,
+        title: r.title,
+        act: `defined ${r.version}`,
+        actor: r.author,
+        at: r.as_of,
+        detail: r.approval
+          ? `${r.status_label.toLowerCase()} · ${r.approval}`
+          : `${r.status_label.toLowerCase()} · no approval recorded`,
+        tone: r.tone,
+      })),
+      ...(db.reports.saved ?? []).map((s) => {
+        const view = reportSavedView(s)
+        return {
+          report_id: s.saved_id,
+          title: s.name,
+          act: 'saved a composed report',
+          actor: view.saved_by ?? 'unknown',
+          at: s.saved_at ? String(s.saved_at).slice(0, 10) : null,
+          detail: view.graph
+            ? `asked of ${view.graph.name} ${view.graph.version ?? ''}`.trim() +
+              (view.graph.live ? '' : ' - not published now')
+            : 'no graph recorded',
+          tone: view.graph?.live ? 'good' : 'warn',
+        }
+      }),
+    ],
+    /*
+     * Publish checks: the preconditions, recomputed. Each is a real test against real state, so a
+     * tick here is a fact rather than a decoration — and the one that fails after every restart
+     * (publication lives in memory) is the one the reader most needs named.
+     */
+    publish_checks: rows.map((r) => ({
+      report_id: r.report_id,
+      title: r.title,
+      checks: [
+        {
+          key: 'audience',
+          label: 'Audience names at least one persona',
+          pass: r.entitled_roles.length > 0,
+          detail: `${r.entitled_roles.length} of ${db.auth_roles.length} personas`,
+        },
+        {
+          key: 'floor',
+          label: 'Spine roster resolves to rows',
+          pass: r.row_count > 0,
+          detail: r.floor ?? 'no roster',
+        },
+        {
+          key: 'approval',
+          label: 'Approval recorded',
+          pass: r.approval !== null,
+          detail: r.approval ?? 'none - a definition may not be published unapproved',
+        },
+        {
+          key: 'graph',
+          label: 'A published graph to ask it of',
+          pass: publishedGraphs().length > 0,
+          detail:
+            publishedGraphs().length > 0
+              ? `${publishedGraphs().length} published`
+              : 'nothing published - publication lives in memory, so a restart closes this',
+        },
+      ],
+    })),
+  }
+}
+
 const reportsList = (asRole) => ({
+  /* The three tabs' own payload — see reportGovernanceView above. */
+  governance: reportGovernanceView(asRole),
   /*
    * The published graphs a report can be asked of — plural, because the wizard opens on
    * this list and the reader picks. `graph` stays as the default (the newest) so a report

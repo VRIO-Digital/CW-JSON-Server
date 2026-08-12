@@ -21,12 +21,18 @@ export function toMessage(error: unknown): string {
 /** Actions report back rather than throwing, so callers need no try/catch. */
 export type Result = { ok: true } | { ok: false; error: string }
 
-export interface ReadState<T> {
+export interface ReadState<T, A extends unknown[] = []> {
   data: T | null
   loading: boolean
   error: string | null
-  /** Resolves to the data, or null when the call failed. */
-  load: () => Promise<T | null>
+  /**
+   * Resolves to the data, or null when the call failed.
+   *
+   * Arguments are forwarded to the fetcher, so an endpoint that takes one — the report section
+   * is read *as* a persona — needs no store of its own. A fetcher with no parameters keeps the
+   * no-argument `load()` it always had.
+   */
+  load: (...args: A) => Promise<T | null>
   reset: () => void
 }
 
@@ -37,16 +43,18 @@ export interface ReadState<T> {
  * handle a rejection, and a failed reload leaves the previous data in place
  * instead of blanking the screen.
  */
-export function createReadStore<T>(fetcher: () => Promise<T>) {
-  return create<ReadState<T>>()((set) => ({
+export function createReadStore<T, A extends unknown[] = []>(
+  fetcher: (...args: A) => Promise<T>,
+) {
+  return create<ReadState<T, A>>()((set) => ({
     data: null,
     loading: false,
     error: null,
 
-    load: async () => {
+    load: async (...args: A) => {
       set({ loading: true })
       try {
-        const data = await fetcher()
+        const data = await fetcher(...args)
         set({ data, error: null, loading: false })
         return data
       } catch (error) {

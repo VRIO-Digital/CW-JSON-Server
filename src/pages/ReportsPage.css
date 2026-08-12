@@ -940,3 +940,405 @@
   border-bottom: 1px solid #f6d9cd;
   margin-top: var(--sp-3);
 }
+
+/* ================= the three tabs ================= */
+
+/*
+ * Library · Author · Operations & audience. One section, three jobs: what exists, who may write
+ * one, and how both are governed. The tabs carry the section's own chrome — no card of their own,
+ * because a tab strip inside a card reads as a widget rather than as the page.
+ */
+
+.rp-tabs .ant-tabs-content,
+.rp-subtabs .ant-tabs-content {
+  padding-top: var(--sp-2);
+}
+
+.rp-subtabs {
+  margin-top: calc(-1 * var(--sp-2));
+}
+
+.rp-mono {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+/* ---------------- the entitlement banner ---------------- */
+
+/*
+ * Two facts on one line, and they are deliberately not merged: how many definitions this persona
+ * is entitled to, and the data scope it carries. The sentence on the right is the one that keeps
+ * them apart — a reader who thinks the predicate filtered the *list* has the model backwards.
+ */
+.rp-entitle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-6);
+  align-items: center;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-inner);
+  background: #fbfcfd;
+  font-size: 12.5px;
+  margin-bottom: var(--sp-4);
+}
+
+.rp-entitle-role {
+  color: #1f2733;
+}
+
+.rp-entitle-scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+/* ---------------- the state chips ---------------- */
+
+.rp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-4);
+}
+
+.rp-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/*
+ * A lifecycle filter, not a status mark: it carries the brand tint when chosen and stays neutral
+ * otherwise, because the *state* is on the card as a `StatusTag` with an icon and a word. A chip
+ * that borrowed the status palette would put two vocabularies on one screen.
+ */
+.rp-status-chip {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: 999px;
+  background: #fff;
+  color: #566173;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.rp-status-chip:hover {
+  border-color: #f6c3b2;
+}
+
+.rp-status-on {
+  border-color: #f4562b;
+  background: #fff3ee;
+  color: #d24a1f;
+}
+
+.rp-status-count {
+  color: #8994a8;
+  font-size: 11px;
+}
+
+.rp-status-on .rp-status-count {
+  color: #d98164;
+}
+
+.rp-category {
+  min-width: 180px;
+}
+
+/* ---------------- a library card ---------------- */
+
+/*
+ * Laid out by its content, like the saved card and for the same reason: the audience panel opens
+ * inside it. See docs/REGRESSIONS.md — the equal-height trick stretches a card that expands.
+ */
+.rp-lib {
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.rp-lib:hover {
+  border-color: #f6c3b2;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 4%), 0 6px 16px rgb(16 24 40 / 6%);
+}
+
+.rp-lib > .ant-card-body {
+  padding: var(--sp-5);
+}
+
+.rp-lib-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-2);
+}
+
+.rp-lib-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+/* The report's own question, quoted — italic because it is the definition's words, not ours. */
+.rp-lib-q {
+  margin: 0 0 var(--sp-3);
+  font-style: italic;
+  font-size: 12.5px;
+  color: #566173;
+}
+
+.rp-lib-lead {
+  margin: 0 0 var(--sp-3);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Why a definition is pending or archived, in the tenant's words. */
+.rp-lib-note {
+  padding: var(--sp-3);
+  border-radius: var(--radius-inner);
+  background: #fff8ec;
+  color: #8a5a12;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: var(--sp-3);
+}
+
+.rp-lib-as-of {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  color: #566173;
+}
+
+.rp-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8994a8;
+}
+
+.rp-dot-good {
+  background: #2f9e63;
+}
+
+.rp-dot-warn {
+  background: #d98a15;
+}
+
+.rp-dot-crit {
+  background: #d2402a;
+}
+
+.rp-lib-floor {
+  margin-top: var(--sp-1);
+  color: #8994a8;
+}
+
+/* The governance footer, above the rule that separates it from the actions. */
+.rp-lib-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  align-items: center;
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid #f0f2f6;
+  color: #8994a8;
+  font-size: 11.5px;
+}
+
+.rp-lib-foot > * + *::before {
+  content: '· ';
+}
+
+.rp-lib-ask {
+  padding: 0;
+  height: auto;
+  font-size: 11.5px;
+}
+
+.rp-lib-approval {
+  color: #566173;
+}
+
+.rp-lib-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+  margin-top: var(--sp-3);
+}
+
+.rp-audience-holder {
+  flex-basis: 100%;
+}
+
+/* ---------------- Author ---------------- */
+
+.rp-author-note {
+  margin: 0 0 var(--sp-4);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 70ch;
+}
+
+.rp-author-steps {
+  display: block;
+  margin-top: var(--sp-4);
+  font-size: 12.5px;
+  max-width: 70ch;
+}
+
+.rp-author-who {
+  margin-top: var(--sp-2);
+}
+
+/* ---------------- the two gates ---------------- */
+
+.rp-gate {
+  margin-bottom: var(--sp-5);
+}
+
+.rp-gate > .ant-card-body {
+  padding: var(--sp-5);
+}
+
+.rp-gate > .ant-card-head {
+  padding-inline: var(--sp-5);
+}
+
+.rp-gate-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.rp-gate-note {
+  margin: 0 0 var(--sp-4);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 95ch;
+}
+
+.rp-gate-foot {
+  display: block;
+  margin-top: var(--sp-4);
+  font-size: 12px;
+}
+
+/* A column per definition outgrows any page, so the grid scrolls inside its own container. */
+.rp-matrix-scroll {
+  overflow-x: auto;
+}
+
+.rp-matrix {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+
+.rp-matrix th {
+  text-align: left;
+  font-weight: 600;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid #e9ecf1;
+  vertical-align: bottom;
+}
+
+.rp-matrix td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid #f4f6f9;
+  vertical-align: top;
+}
+
+.rp-matrix-role {
+  min-width: 150px;
+  color: #566173;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10.5px;
+}
+
+tbody .rp-matrix-role {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12.5px;
+  color: #1f2733;
+}
+
+.rp-matrix-col {
+  display: block;
+  min-width: 130px;
+  color: #1f2733;
+}
+
+.rp-matrix-tag {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 400;
+}
+
+/*
+ * A cell states its verdict in words and tints to match, so the grid is readable in one pass and
+ * never colour-only. The tones are the reserved three plus neutral — this is state, not category.
+ */
+.rp-cell {
+  display: block;
+  min-width: 130px;
+  padding: var(--sp-2);
+  border-radius: 8px;
+  line-height: 1.35;
+}
+
+.rp-cell-good {
+  background: #eaf7ef;
+  color: #1f7a48;
+}
+
+.rp-cell-warn {
+  background: #fdf3e2;
+  color: #8a5a12;
+}
+
+.rp-cell-crit {
+  background: #fdeceb;
+  color: #a5301f;
+}
+
+.rp-cell-neutral {
+  background: #f6f8fa;
+  color: #566173;
+  border: 1px solid #e9ecf1;
+}
+
+/* ---------------- publish checks ---------------- */
+
+.rp-checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.rp-checks li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: baseline;
+  font-size: 12.5px;
+}
+
+.rp-check-label {
+  font-weight: 600;
+}
