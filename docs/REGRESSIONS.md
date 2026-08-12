@@ -933,3 +933,225 @@ nothing between them still say exactly that.
 **Rule** — **a matcher's threshold is a claim about the data, so re-derive it when
 the data changes.** Uniqueness was a reasonable rule for eight invented entities and
 a wrong one for a graph whose whole purpose is that two records name the same thing.
+
+---
+
+## Eight canvas claims passed while comparing against nothing
+
+**Symptom** — `check-docs` reported the canvas agreed with the demo package on every
+count. It had not compared them at all: each claim's detail line read *"the package is
+not in this checkout — nothing to compare against"*, and nobody read the details of a
+passing claim.
+
+**Root cause** — the repo-wide removal of the word "VLS" ran over `check-docs.mjs` as
+well as the app, turning `vls_demo_data_package_…` into ` _demo_data_package_…` — a
+leading space and a missing directory name. `kg` was guarded with
+`existsSync(kgPath) ? … : null` and every claim was written `kg === null || <real
+test>`, so a path that could never resolve made all eight vacuously true.
+
+**Fix** — corrected the path, asserted that it *exists* as its own claim, asserted the
+ingest script reads the same two paths, and dropped the `kg === null ||` escape from
+every claim below so they can only pass by actually agreeing.
+
+**Guard** — *mechanical*: the path's existence is now claim #1 of the block, so the
+whole block cannot silently skip. Breaking the path fails the build instead of
+turning eight claims green.
+
+**Rule** — **a guard whose good answer is its own inability to run is describing
+itself.** This is the fourth `check-docs` claim in this repo to fail open (after `\n`
+vs `\r?\n`, a renamed local, and a `=>` in a type annotation), and each one reported
+an empty or absent list. When a claim can be satisfied by *finding nothing*, assert
+that it found something first.
+
+---
+
+## The graph rebuild left a legend colour with no members
+
+**Symptom** — after ingesting the rebuilt `knowledge_graph.json`, the canvas legend
+still offered **column value → dimension** as one of its four origin classes. Nothing
+errored; the chip simply counted 0 forever.
+
+**Root cause** — the package was rebuilt as spec-faithful AGB Layer 1, and its
+`not_nodes` block records that the three column-value node types (`WasteCode` 13,
+`ViolationType` 9, `EnforcementType` 5) were **deliberately** retired: a code carried
+on a row is an attribute of the shipment, not an entity with its own registry. The
+`dimension` hue encoded a build rule the graph no longer follows.
+
+**Fix** — the class became `schema` (type-level → concept / measure), covering the 7
+concept and 3 measure-element nodes that the rebuild *added* and that no hue described.
+Four hues either way, palette unchanged, so the pairwise contrast work still stands.
+
+**Guard** — *mechanical*: `check-docs` asserts every legend hue has members on the
+canvas (it always did), plus two new claims — that the retired types are absent from
+the canvas, and that `dimension` is gone from the legend, `CANVAS_GROUPS` and the
+`CanvasGroup` union. The second is **scoped to the canvas vocabulary**: a first
+attempt searched the whole of `client.ts` for the token and failed on the profiler's
+eight column classes, which include an unrelated `dimension`.
+
+**Rule** — **a facet stuck at 0 reads as "none in this corpus", not as a broken map**
+— and a legend row is worse than a facet, because it also advertises a claim the data
+denies. When ingested data changes shape, re-derive the categories rather than
+re-pointing them.
+
+---
+
+## A concept node was matched as an instance
+
+**Symptom** — "tell me about the Denka facility please" came back *"Facility and Denka
+Performance Elastomer LLC are both in the graph, but nothing connects them yet."* The
+facility and its own CAFO document are one hop apart.
+
+**Root cause** — the rebuild added 7 type-level `Concept` nodes labelled exactly
+"Facility", "Manifest", "Document". The matcher's stoplist already refused the *word*
+"facility", but the whole-label shortcut (`asked.includes(n.label.toLowerCase())`) ran
+before the stoplist and matched the node whose entire label is that word. Two paths
+into the matcher, one rule between them.
+
+**Fix** — concepts are excluded from instance matching (`element_class !== 'concept'`,
+because a concept *is* the type), and the whole-label shortcut now clears the stoplist
+too.
+
+**Guard** — *mechanical*: `check-docs` asserts both halves are in the matcher, and the
+smoke run asserts a question containing "facility" matches only real entities while
+still answering over the facility→document hop — the failure mode is not "abstains",
+it is "answers about the wrong pair", so both directions are checked.
+
+**Rule** — **a stoplist on words does not cover a node whose whole label is one of
+them.** When new data changes what labels look like, re-check every path into the
+matcher, not the one the rule was written for.
+
+---
+
+## The demo package contradicted itself about a retired edge type
+
+**Symptom** — nothing visible. The ingested sanity check sc3 told the reader
+"Generator facilities carry HAS_ENFORCEMENT edges" and planned
+`MATCH (f:Facility)-[:HAS_ENFORCEMENT]->(:EnforcementType)`, against a graph that has
+neither.
+
+**Root cause** — `graph_studio.json`'s prose was written against the previous build.
+Its own `traversal` block correctly walks `ENFORCEMENT_AGAINST` to an `Enforcement`
+event, and only the traversal resolves against the roster — so the package disagreed
+with itself and just one reading was possible.
+
+**Fix** — the ingest rewrites those three strings (`PROSE_FIXES`) with the correction
+stated in a comment, since a re-ingest must not quietly restore them.
+
+**Guard** — *mechanical*: `check-docs` asserts no verdict, chip or plan names a
+retired type, and that every relationship a plan matches on (`[:X]`) is one the graph
+has. The claim took two attempts: refusing the names outright failed on the check that
+says *"no WasteCode node"* — which is the correct thing to say — and an earlier pass
+keyed to "any SCREAMING_SNAKE word" failed on `EPA_ID` and an `LDR_SET` inside a
+Cypher comment. It now fires only on a retired type asserted as one the graph **has**,
+verified in both directions against sc3's pre-fix and post-fix prose.
+
+**Rule** — **when ingested data contradicts itself, resolve toward the half that
+resolves against the roster, and guard the correction** — the source file is not going
+to change under you, but the next re-ingest will.
+
+---
+
+## The type ring: three failures before the palette held
+
+**Symptom** — nothing shipped broken; the validator caught all three before they did.
+Worth recording because each is a general trap.
+
+**Root cause and fix, in order:**
+
+1. **Light rings on a light ground.** The first palette reused the demo viewer's own
+   hues (`#c9a3f5`, `#fb923c`, `#f43f5e`…). Those are designed for a `#0d1117` ground.
+   On a white page inside a mid-tone fill they failed twelve ways at once: a ring has
+   **two** neighbours — the fill inside and the page outside — and a light hue holds
+   against neither. Fixed by going dark.
+2. **A ring the same hue as the fill it sits on.** Facility's slate-blue `#3d4a63` sat
+   6° from the `#2570cd` row fill, which reads as no ring at all; Document's dark brown
+   and Alias's dark plum had the same problem against their own fills. Facility became
+   a true neutral (`#3f3f46`, so the hue test treats it as separated from everything),
+   and Document and Alias **lost their rings entirely** — each is the only type on its
+   fill, so the fill already names it and a ring would encode the same fact twice.
+3. **A ring drawn as a stroke on the disc did not appear.** `.gc-disc` sets `stroke` in
+   the stylesheet, and **a CSS rule beats an SVG presentation attribute**, so
+   `stroke={ring}` was silently overridden. It would also have fought the disc's state
+   strokes (proposed / selected / answer path). The ring became its own `<circle>`.
+
+**Guard** — *mechanical*: `check-docs` recomputes all four palette rules per ring (3:1
+vs the page; 3:1 **or** a 40° hue turn vs its fill; 40° or 2:1 vs a sibling; and a ring
+exists exactly where a fill carries more than one type), asserts each ringed type is
+really drawn on the fill it declares, and asserts the ring is its own circle rather than
+a stroke on the disc.
+
+**Rule** — **the rule for a fill is not the rule for a ring.** A fill has one
+neighbour and a ring has two, so a palette that passed as fills can fail as rings — and
+the hue-turn alternative to the luminance test is what keeps any variety possible, since
+a ring dark enough to clear 3:1 against a mid-blue fill would have to be near-black, and
+nine near-blacks discriminate nothing.
+
+---
+
+## Zoom scrolled the page behind itself
+
+**Symptom** — the first zoom gesture on the canvas scrolled the studio page as well as
+zooming the graph.
+
+**Root cause** — the handler was the JSX `onWheel` prop. React attaches wheel listeners
+at the root as **passive**, and a passive listener's `preventDefault()` is a no-op that
+only warns in some browsers.
+
+**Fix** — the listener is registered by hand in an effect with `{ passive: false }`,
+plus `touch-action: none` on the SVG so the browser is told up front.
+
+**Guard** — *mechanical*: `check-docs` asserts the `{ passive: false }` registration is
+present, so a revert to the JSX prop fails the build.
+
+**Rule** — **a framework's event prop is not always a plain listener.** When a handler
+must `preventDefault`, check how the framework registered it.
+
+---
+
+## CLAUDE.md described a sidebar that had shrunk by five
+
+**Symptom** — the routing note read *"`NAV_ITEMS` has 13 entries; `routes.tsx` serves
+eight of them"*. It was 8 and 5. Found incidentally: a smoke assertion printed
+`8 nav items` while the paragraph beside it said 13.
+
+**Root cause** — six keys were commented out of `NAV_ITEMS` over time. No check read
+either number, so the prose stayed put. `check-docs` had a claim about `/db`'s presence
+in the sidebar but none about the counts, and prose about a count is the easiest kind of
+doc to falsify and the hardest to notice.
+
+**Fix** — rewrote the paragraph from the source: 8 live entries, 5 with a page, 3
+roadmap placeholders that fall through to `NotFoundPage`, and — the half the old
+paragraph never mentioned — **4 routes reachable by URL only** because they were
+commented out of the nav rather than deleted.
+
+**Guard** — *mechanical*: `check-docs` now reads both counts off `nav.ts` and
+`routes.tsx` and requires CLAUDE.md to state them, so commenting a key in or out fails
+the build.
+
+**Rule** — **a number in prose needs a check or it will drift.** Every count in these
+docs that matters is now read from the source; one that is only written down is a
+comment about the past.
+
+---
+
+## A route whose pattern is another route's prefix
+
+**Symptom** — caught by its own guard before it shipped, but the failure mode is
+invisible: `/graph-studio/:id/canvas` declared *after* the `App` tree renders the
+**studio page** instead of the full-window canvas. No error, no 404 — just the wrong
+page at the right URL.
+
+**Root cause** — `graph-studio/:useCaseId` matches the parent segment of
+`graph-studio/x/canvas`, and react-router takes the first sufficient match in
+declaration order.
+
+**Fix** — the canvas route is declared before the `App` tree, with the reason in a
+comment beside it.
+
+**Guard** — *mechanical*: `check-docs` compares the two declaration indices and fails if
+the canvas route moves after `element: <App />`. Verified by moving it and watching the
+claim go red.
+
+**Rule** — **when a new path extends an existing pattern, declaration order is
+load-bearing.** The symptom is a wrong render rather than an error, so it needs a
+positional check, not a smoke test that only asks whether the page loads.

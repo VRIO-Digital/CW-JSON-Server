@@ -173,6 +173,11 @@ Consequences worth knowing before debugging:
   throw. The first silently swaps the profiler's 206 real columns for synthesised
   ones; the second turns every document's "resolved to `FAC:…`, 28 linked
   manifests" into "nothing resolved yet". Both read as an answer.
+  `graph_studio.sanity_checks` is nested rather than top-level but is required for
+  exactly the same reason: without it the Query tab falls through to the live walk,
+  which abstains on a question the recorded set answers in full — and an abstention
+  reads as "the draft cannot answer this", which is the finding that tab exists to
+  report.
 - **`validateDb` also checks *across* keys, not only within one.**
   `graph_use_case_templates` holds nothing but ids into `graph_personas`,
   `graph_kpis` and `graph_hero_questions`, and an id that does not resolve
@@ -180,6 +185,10 @@ Consequences worth knowing before debugging:
   five personas where the use case names six. A short list reads as an answer,
   so the server refuses to boot and names the id. `check-docs` asserts the same
   thing, so it fails the build before it can fail a boot.
+  Two more of these guard the studio: a canvas edge whose endpoint is not a node, and
+  a **sanity check that walks a node or edge the canvas does not have**. Both fail the
+  same silent way — the check still reports "graph can answer this" while the canvas
+  highlights one hop fewer than the answer claims.
 - **`commitDb` validates before it writes, not only in the `/db` editor.** Every
   writer hands it the whole document, so a server that started before a key was
   added to `db.json` would write its stale copy back and silently drop that key.
@@ -450,20 +459,45 @@ fix it** — "not built yet" is a different problem from "no such graph", and on
 one of them is solved by finishing the wizard. The draft *count* is still shown,
 because it answers "where is my graph?".
 
-**Nothing on a card is a decorative number.** `graph_studio` in `db.json` holds
-the four evidence-rich rows, the pivot and each bucket's total; the rest are
-synthesised by `studioItems` the way `synthesiseColumns` synthesises columns — by a
-hash that includes the **use case id**, so every built graph gets its own queue
-and repeats agree. The card shows the length of what was returned, and confidence
-is generated inside each bucket's band because the cards promise `0.85–0.95` and
-`≥0.95`. Buckets below the floor come back as a named `*_sample`, never a list
-pretending to be all 466.
+**Nothing on a card is a decorative number.** `graph_studio` in `db.json` holds the
+queue, the pivot and each bucket's total, all ingested from the package's
+`graph_studio.json` **trust lanes** — `autoApprove` 398, `confirmedFyi` 12,
+`mustReview` 6, `pivot` 1, and those sum to its `elements_total`. The must-review
+lane is **entirely authored**: `must_review_total` equals the number of ingested
+rows, so nothing synthesised pads the lane a reviewer has to clear. The two
+spot-check buckets below it *are* synthesised by `studioItems`, the way
+`synthesiseColumns` synthesises columns — by a hash that includes the **use case id**,
+so every built graph gets its own sample and repeats agree — and confidence is
+generated inside each bucket's band because the cards promise `0.85–0.95` and
+`≥0.95`. They come back as a named `*_sample`, never a list pretending to be all 398.
 
-**A row's buttons are its own.** `action_set` picks them: a causal claim is
-`approve-causal` or `downgrade-correlational`, never plain "approve". The server
-refuses any other choice, so the page cannot offer one the API would reject. A
-`schema-changing` row cannot be resolved without a justification — enforced
-server-side, not merely shown.
+**The queue is five rows plus the pivot, and the split is deliberate.** The package
+ships six must-review decisions; `rq1` is the identity merge — Texas Molecular LP ⇄
+VLS Texas Molecular — which is the one decision that changes what every other row
+*means*, because it decides whether pre-acquisition tonnage is this facility's
+history. So it is ingested as the **pivot** and the queue holds the other five. Its
+arithmetic still matches the package's `mustReviewTotal` of 6, and `check-docs`
+asserts the merge appears in exactly one of the two places: listing it in both would
+ask one question twice and let a reviewer answer it two ways.
+
+**A row's buttons are its own — its labels, not just its family.** Each row states
+three, in its own terms: "Keep distinct", "Declare basis = manifest", "Leave
+orphaned". The *choice* behind each is still one of the fixed set (`approve` keeps the
+element, `correct` marks it studio-authored, `reject` drops it) because what a
+decision means to the canvas has to be identical on every row. The server validates
+against **the row's own `actions`** and names them in the refusal, and the page reads
+that same list, so it cannot offer a button the API would reject. `action_set` remains
+the fallback family for a row that states none — which is where the causal pair
+(`approve-causal` / `downgrade-correlational`) still lives. A `schema-changing` row
+cannot be resolved without a justification, enforced server-side, not merely shown.
+
+**A row's `graph_refs` are not what it makes provisional.** The refs are the nodes a
+row is *about*; the provisional set is the elements whose existence it is still
+deciding, mapped explicitly in the ingest. Marking refs would dash the receiving TSDF
+as a 0.68-confidence proposal because a waste-code modelling question mentioned it.
+Two rows deliberately mark nothing: rq5 *declines* a promotion, so there is no node to
+dash, and rq6 is about three attachments that fell below the floor and were never
+drawn — an absence has no circle.
 
 **The pivot is a separate precondition from the queue.** Clearing every row still
 leaves publish blocked while it is open, because settling it changes what the
@@ -525,57 +559,136 @@ rebuild changed nothing.
   counts, so an empty result reads as "none match" rather than a broken chip.
 
   **What it draws is the demo package's own knowledge graph** —
-  `05_knowledge_graph/knowledge_graph.json`, 93 nodes and 92 edges, ingested into
-  `graph_studio.canvas` by `npm run ingest:graph`. That script is the layout: it
+  `05_knowledge_graph/knowledge_graph.json`, **189 nodes and 241 edges**, ingested
+  into `graph_studio.canvas` by `npm run ingest:graph`. That script is the layout: it
   runs a deterministic force pass plus a separation pass and writes `x`, `y` and `r`,
-  so **re-run it rather than hand-editing 93 nodes** — the same rule as the column
-  profiles. It also reseeds the review queue, the pivot and the synthesis pools,
-  because a queue naming entities the canvas has never heard of is two truths again.
+  so **re-run it rather than hand-editing 189 nodes** — the same rule as the column
+  profiles. It reads `graph_studio.json` from the same folder too, and reseeds the
+  review queue, the pivot, the sanity checks and the synthesis pools, because a queue
+  naming entities the canvas has never heard of is two truths again.
+
+  **The graph is an index, not a copy, and that is the model — not a detail.** The
+  package is spec-faithful AGB Layer 1 with three element classes: 7 `concept` nodes
+  (type-level, one per entity type however many rows), 179 `thin_instance` nodes
+  (identity + provenance *only* — no attributes, no measures, no dates), and 3
+  `measure_element` nodes. Every figure a sublabel or an edge tooltip shows comes
+  from the package's `demo_display` block, which is its cache of what Layer 2 would
+  federate at query time. Do not move a value onto a node to make rendering easier:
+  the separation is the thing being demonstrated.
+
+  **Column values are no longer nodes, and that is a decision the package records.**
+  The previous graph promoted distinct column values — 13 `WasteCode`, 9
+  `ViolationType`, 5 `EnforcementType` — and `not_nodes` now lists all three with
+  `was_wrongly` beside them: a code carried on a row is an attribute of the shipment,
+  not an entity with its own registry. The events those columns described are nodes
+  instead (40 `Evaluation`, 38 `Violation`, 31 `Enforcement`). `check-docs` fails if
+  a retired type reappears on the canvas, and rq5 in the queue is the standing offer
+  to promote them anyway — declined by default.
+
   Three things on the drawing are data, not styling, and none may be chosen for
   looks:
 
-  - **Colour is the node's origin class**, which is the graph's own account of how
-    it was built: a row becomes an entity, a distinct column value becomes a
-    dimension, an uploaded document becomes a document node, a raw name resolves
-    through an alias. Four classes, not seven ontology types, because a categorical
-    palette stops being reliably distinguishable past four and *any* two nodes can
-    end up adjacent here — the type rides on the sublabel and the inspector. The
-    hues are validated pairwise, and each carries an `ink` measured against its
-    fill: white clears 4.5:1 on the blue and the magenta, not on the green.
-    `check-docs` recomputes every pair.
+  - **The fill is the node's origin class**, which is the graph's own account of how it
+    was built: a source row becomes an entity or event, an uploaded document becomes
+    a document node, a raw name resolves through an alias, and `schema` is the pair of
+    classes that are not instances at all — the type-level concepts and the measure
+    elements. Four classes, not nine ontology types, because a categorical palette
+    stops being reliably distinguishable past four and *any* two nodes can end up
+    adjacent here. The hues are validated pairwise, and each carries an `ink` measured
+    against its fill: white clears 4.5:1 on the blue and the magenta, not on the
+    green. `check-docs` recomputes every pair. **`dimension` was the fourth class and
+    was retired with the column-value nodes** — a legend row with no members
+    advertises a claim the graph denies, so the hue moved rather than staying empty.
+  - **The ring is the node's ontology type.** A second encoding rather than nine
+    fills, so the canvas answers "what kind of thing is this" as well as "where did it
+    come from" without a palette nobody can read. **A ring exists only where a fill
+    carries more than one type** — `row` holds five and `schema` holds two, so those
+    seven are ringed; `document` and `alias` hold one type each, and their fill already
+    names it. That constraint is what makes the palette possible: a ring only has to
+    separate its *siblings on the same fill*, never all nine at once. Four rules, all
+    recomputed by `check-docs` — 3:1 against the page, 3:1 *or* a 40° hue turn against
+    the fill inside it, and a 40° turn or 2:1 against a sibling. The ring is **its own
+    circle, not a stroke on the disc**: a stylesheet rule beats a presentation
+    attribute, and the disc's stroke is where the states are drawn.
   - **Size is degree.** `r` comes from the server, scaled by the square root of the
     relationships a node carries, so the receiving TSDF is the biggest circle
-    because 53 edges land on it — not because it is the subject.
+    because 61 edges land on it — not because it is the subject.
   - **`source` is the catalogue object** the node was built from
     (`epa_hazwaste.FRS_Facility_profile`, `Compliance Docs ·
     08_unstructured/chemours-cd.pdf`), on the node's tooltip and in the inspector.
     A node whose provenance is not on it is a claim the reader has to take on trust.
 
-  **Labels appear when they can be read.** A node big enough carries its name
-  inside, wrapped; the other 73 are labelled underneath *on hover, or once a filter
-  cuts the view to 28 nodes* — 73 labels wider than their circles, on a layout whose
-  circles sit 26px apart, is a grey smear rather than a picture. Edge labels follow
-  the same rule. The legend says so, and it doubles as the origin filter so one
-  control cannot disagree with itself about what a colour means.
+  **The reader can move the view, and that is what reveals the labels.** Scroll zooms
+  about the cursor, dragging the background pans, and **Reset view** appears only once
+  either has moved. Both are hand-written — `getScreenCTM` does the client-pixel → view
+  → graph conversion, so nothing has to reproduce the viewBox letterboxing — and both
+  are local, like the node drag: the server's positions are still the picture. The
+  wheel listener is registered with `{ passive: false }` **by hand**, because React
+  registers `onWheel` as passive and a passive listener cannot `preventDefault`, so the
+  page scrolls behind the zoom.
 
-  **An edge whose endpoint is not a node is refused at boot.** The package shipped
-  20 of them — three alias names and an unitemised enforcement type its roster
-  omitted — and a skipped edge is silent: 17 facilities simply appeared to have no
-  enforcement. `validateDb` checks the endpoints across keys, and the ingest
-  materialises the four missing nodes rather than dropping their edges.
-- **Query & sanity-check** asks the *draft*. The answer is a real walk over the
-  edges that exist, and its path is what lights up on the canvas — the answer
-  carries the marked canvas back with it, so there is no second request and no
-  second truth. A question naming one entity, or two that nothing connects, is
-  **not answerable and says why**; an answer resting on an undecided edge is
-  answerable *and* flagged provisional. Matching needs the whole label or a word
-  that is **rare and not a type name**: a word naming more than 5% of the nodes
-  ("texas") names none of them, and a word from the ontology's own vocabulary
-  ("facility", "waste" — read off the node types and edge labels, not a hand-written
-  list) cannot name an instance. The rule used to be "unique to one node", which
-  refused to match "chemours" the moment a facility and the consent decree about it
-  shared a name — the bridge from unstructured to structured that this graph exists
-  for.
+  **Labels appear when they can be read.** A node big enough carries its name inside,
+  wrapped; the other 159 are labelled *beside* it — the label of a 23px node is four
+  times its width, so stacking those underneath is what made them collide — and they
+  arrive once the view can hold them: **zoomed past `LABEL_AT_ZOOM` (1.35×)**, narrowed
+  by a filter to 28 nodes, or hovered. Edge labels follow the same rule. Every label is
+  cased in the page colour with `paint-order: stroke`, or it is illegible exactly where
+  the graph is densest. The threshold is stated once and the hint interpolates it;
+  `check-docs` fails on a hardcoded copy.
+
+  **Clicking a node dims everything outside its neighbourhood**, and a note says what
+  is shown and how to undo it. At 189 nodes "which of these lines are mine" is not
+  answerable by looking, so this is the interaction that makes the picture readable. It
+  is the *neighbourhood* rather than the node, because a node with nothing around it
+  explains nothing — and it is on click, not hover, because dimming that follows the
+  pointer is a strobe.
+
+  **The legend is both filters.** Two axes, fill and ring, each row carrying its count
+  from the server's `facets`, so one control cannot disagree with itself about what a
+  colour means and what it shows.
+
+  **An edge whose endpoint is not a node is refused at boot.** An earlier package
+  shipped 20 of them — three alias names and an unitemised enforcement type its
+  roster omitted — and a skipped edge is silent: 17 facilities simply appeared to
+  have no enforcement. `validateDb` checks the endpoints across keys. **This build
+  resolves cleanly**, so the ingest no longer materialises anything and *throws* if it
+  has to: `check-docs` asserts the canvas is exactly the roster, because a canvas
+  bigger than the package means something is being invented again.
+- **Query & sanity-check** asks the *draft*, by one of two routes, and the answer
+  always says which.
+
+  **A recorded check wins, and names itself.** `graph_studio.sanity_checks` holds the
+  five the package wrote (from `graph_studio.json`) — a hero question, a verdict, the
+  context chips, the Cypher the engine would plan, its cost against the budget, and
+  the sub-graph it walks. Served exactly the way `ask_answers` is: matched on the
+  question at **the same `ASK_MATCH_MIN`**, so the studio cannot pass a question Ask
+  then declines, with `recorded: true` and `check_id` on the payload so a written
+  verdict is never read as something the walk derived. Anything unrecognised falls
+  through to the walk, which abstains.
+
+  **A recorded check is not exempt from the caveats.** They are computed from the
+  edges it actually used, so sc1 — which rides the Chemours `DESCRIBED_BY` edge that
+  rq2 has open — is answerable *and* flagged provisional. That is the whole point of
+  keeping one canvas behind both surfaces.
+
+  **A recorded traversal is a sub-graph, not a chain.** `path_labels` is empty on a
+  recorded check and the hops are listed from `edges_used` instead: sc3 walks three
+  generators and three enforcement actions that all meet at the receiving TSDF, and
+  arrow-joining those seven ids would claim a route nobody walked.
+
+  The walk itself is a real breadth-first search over the edges that exist, and its
+  path is what lights up on the canvas — the answer carries the marked canvas back
+  with it, so there is no second request and no second truth. A question naming one
+  entity, or two that nothing connects, is **not answerable and says why**. Matching
+  needs the whole label or a word that is **rare and not a type name**: a word naming
+  more than 5% of the nodes ("texas") names none of them, and a word from the
+  ontology's own vocabulary ("facility", "waste" — read off the node types and edge
+  labels, not a hand-written list) cannot name an instance. **Nor can a concept
+  node**, whose label *is* a bare type name — the whole-label shortcut has to clear
+  the same stoplist, or "the Denka facility" resolves to `CONCEPT:Facility`. The rule
+  used to be "unique to one node", which refused to match "chemours" the moment a
+  facility and the consent decree about it shared a name — the bridge from
+  unstructured to structured that this graph exists for.
 - **Quality report** re-runs the same three preconditions the publish gate uses.
 - **Versions** lists **every version, which is to say every build** — newest
   first, one row each, from `studioVersions`. A row carries what identifies it
@@ -848,16 +961,31 @@ back to return the user to where they were headed rather than always landing on
 Sources. `/login` has no `NAV_ITEMS` entry — there is nothing to navigate to
 before signing in, and once signed in there is no reason to navigate back.
 
-**The sidebar currently advertises more than exists.** `NAV_ITEMS` has 13
-entries; `routes.tsx` serves eight of them (`/sources`, `/new-graph`,
-`/graph-studio`, `/ask`, `/catalogue`, `/audit`, `/trace`, `/validation`) plus
-`/db` by URL, all gated behind `RequireAuth`, plus `/login` ungated. Graph Studio
-is two routes — `/graph-studio` lists the built graphs and
-`/graph-studio/:useCaseId` opens one. The other five — Knowledge Graphs,
-Reports, Graph Builds, What-if Lenses, Feedback & Learning — are roadmap
-placeholders with no route, so clicking one falls through `path: '*'` to
-`NotFoundPage`. That is a deliberate shell, not a broken link: when one gets a
-page, add it to `routes.tsx` and nothing else changes.
+**The sidebar advertises more than exists, and serves more than it advertises.**
+`NAV_ITEMS` has **8** live entries and `routes.tsx` has a page for **5** of them
+(`/new-graph`, `/ask`, `/sources`, `/catalogue`, `/graph-studio`). The other three —
+Knowledge Graphs, Reports, What-if Lenses — are roadmap placeholders with no route, so
+clicking one falls through `path: '*'` to `NotFoundPage`. That is a deliberate shell,
+not a broken link: when one gets a page, add it to `routes.tsx` and nothing else
+changes.
+
+The traffic also runs the other way. **Four routes are reachable by URL only**, having
+been commented out of `NAV_ITEMS` rather than deleted: `/audit`, `/trace`,
+`/validation` and `/db`. A fifth is URL-only by design and was never in the list —
+`/graph-studio/:useCaseId/canvas`, the full-window canvas, which the **Full view**
+button on the Canvas tab opens in a new tab.
+
+Graph Studio is therefore three routes: `/graph-studio` lists the built graphs,
+`/graph-studio/:useCaseId` opens one, and `…/canvas` draws that one's graph with the
+whole window. **The canvas route is declared before the `App` tree, and that order
+matters** — `graph-studio/:useCaseId` matches its parent segment and would win
+otherwise, rendering the studio page at the full view's URL. It is also the only page
+besides `/login` that sits *outside* `App`, for the opposite reason: `/login` has
+nothing to navigate to yet, and the full view has nothing to spare. Both stay inside
+`RequireAuth` except `/login` itself.
+
+`check-docs` pins those counts, so a nav entry commented in or out shows up as a doc
+failure rather than as a paragraph nobody re-read.
 
 ## The audit gate
 
@@ -967,7 +1095,28 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **`width: 100%` on a viewBox SVG is a zoom control, not a layout rule.** It
   scales the drawing's text too — an answer chart rendered its 11px labels at 28px
   until each chart capped `max-width` at its own viewBox width. Cap the upscale in
-  the component, where the number already lives.
+  the component, where the number already lives. The canvas has the *inverse*: a
+  1900-unit layout in an 800px panel renders 9.5px labels at ~4px, which is why the
+  small labels are gated on zoom rather than drawn always.
+- **React registers `onWheel` as passive, and a passive listener cannot
+  `preventDefault`.** A zoom built on the JSX prop scrolls the page behind itself. Add
+  the listener by hand with `{ passive: false }` in an effect.
+- **A CSS rule beats an SVG presentation attribute.** `stroke={ring}` on an element
+  whose class already sets `stroke` in the stylesheet does nothing. Give the new mark
+  its own element rather than fighting specificity — and keep the disc's stroke for
+  state, so a category cannot overwrite "proposed".
+- **A ring, unlike a fill, has two neighbours.** It is adjacent to the fill inside and
+  the page outside, so it needs checking against both. The demo viewer's light hues
+  failed twelve ways when reused on a light ground: they hold against neither. Dark
+  rings, and a hue-turn alternative to the luminance rule where luminance would force
+  nine near-blacks.
+- **A new path that extends an existing pattern must be declared first.**
+  `graph-studio/:useCaseId` matches the parent segment of `graph-studio/x/canvas`, so
+  the studio page renders at the full view's URL if the canvas route comes later — a
+  wrong page with no error anywhere. `check-docs` compares the declaration indices.
+- **A number in prose drifts unless something reads it.** The routing note claimed 13
+  nav entries and 8 served long after it was 8 and 5, because no check looked at either.
+  Both are now read off `nav.ts` and `routes.tsx`.
 - **`text-overflow: ellipsis` does nothing on a flex container**, and antd v6
   buttons are `inline-flex`. Put it on the inner label span with `min-width: 0`.
   Text clipped at *both* ends is the tell: that is a centred flex item, not a
@@ -981,6 +1130,25 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   resolution: it refused "chemours" because the facility and its consent decree share
   the name. Relaxing it to plain rarity then answered about "waste" and "facility"
   instead — a type name can never name an instance.
+- **A stoplist on words does not cover a node whose whole label is one of them.** The
+  graph rebuild put 7 type-level `Concept` nodes on the canvas labelled exactly
+  "Facility", "Manifest", "Document" — and the matcher's whole-label shortcut bypassed
+  the stoplist, so "the Denka facility" resolved to `CONCEPT:Facility` and reported
+  the two had nothing between them. A concept *is* the type; it can never be an
+  instance. Both paths into a matcher need the same rule.
+- **A `check-docs` claim keyed to a path can fail open.** `kgPath` read
+  ` _demo_data_package_…` — the repo-wide "VLS" removal ate the directory name — so
+  eight canvas claims passed for a session while comparing against `null`, each
+  reporting "the package is not in this checkout". A guard whose good answer is its
+  own inability to run is describing itself. The path is now asserted to exist, and
+  asserted to be the one the ingest reads.
+- **A retired type may only be named in a negation.** After the column-value nodes
+  were dropped, one sanity check's prose still said "generator → HAS_ENFORCEMENT →
+  EnforcementType" while its own traversal walked `ENFORCEMENT_AGAINST` — the package
+  contradicting itself, and only the traversal resolved. But *refusing* the retired
+  names outright then failed on the check that says "no WasteCode node", which is the
+  correct thing to say. The guard checks for a retired type asserted as one the graph
+  *has*.
 - **A `_2` in the column or entity dictionary is only ever a second copy.**
   Suffixing by vocabulary lap printed a `_2` whose `_1` existed nowhere, because
   the slice starts at a hashed offset; it now counts uses within that table or

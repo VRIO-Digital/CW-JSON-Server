@@ -5,6 +5,7 @@ import AskPage from './pages/AskPage'
 import AuditPage from './pages/AuditPage'
 import CataloguePage from './pages/CataloguePage'
 import DbEditorPage from './pages/DbEditorPage'
+import GraphCanvasFullPage from './pages/GraphCanvasFullPage'
 import GraphStudioListPage from './pages/GraphStudioListPage'
 import GraphStudioPage from './pages/GraphStudioPage'
 import LoginPage from './pages/LoginPage'
@@ -30,6 +31,23 @@ export const routes: RouteObject[] = [
     element: <RequireAuth />,
 
     children: [
+      /*
+       * The canvas with the whole window, opened in a new tab by the **Full view**
+       * button on the studio's Canvas tab.
+       *
+       * Deliberately a sibling of the `App` tree rather than a child of it: `App`
+       * renders the sidebar, and 189 nodes want those 240px. It is the only page
+       * besides `/login` outside that shell, and for the opposite reason — `/login`
+       * has nothing to navigate to, and this has nothing to spare. Still inside
+       * `RequireAuth`, so an unauthenticated URL redirects like everything else, and
+       * still URL-only with no `NAV_ITEMS` entry, by the same rule as `/db`.
+       *
+       * It must sit **before** the `App` route: `graph-studio/:useCaseId` would
+       * otherwise match `graph-studio/x/canvas`'s parent segment and the studio page
+       * would win.
+       */
+      { path: '/graph-studio/:useCaseId/canvas', element: <GraphCanvasFullPage /> },
+
       {
         path: '/',
         element: <App />,

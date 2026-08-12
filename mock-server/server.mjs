@@ -468,7 +468,15 @@ const DB_SHAPE = {
     isObject(v.pivot) &&
     isObject(v.canvas) &&
     Array.isArray(v.canvas.nodes) &&
-    Array.isArray(v.canvas.edges),
+    Array.isArray(v.canvas.edges) &&
+    /*
+     * `sanity_checks` is required for the reason `column_profiles` is: losing it
+     * does not throw. The Query tab falls through to the live walk, which abstains
+     * on a question the recorded set answers in full — and an abstention reads as
+     * "the draft cannot answer this", which is exactly the finding the tab exists
+     * to report. A missing key would look like a failed sanity check.
+     */
+    Array.isArray(v.sanity_checks),
 }
 
 const DB_HINTS = {
@@ -505,7 +513,8 @@ const DB_HINTS = {
     'the three member lists hold ids from graph_personas / graph_kpis / graph_hero_questions',
   graph_use_cases: 'array of { use_case_id, name }',
   graph_studio:
-    'object with review_items[], generated{}, pivot{}, canvas{ nodes[], edges[] }',
+    'object with review_items[], generated{}, pivot{}, canvas{ nodes[], edges[] }, ' +
+    'sanity_checks[] — the recorded Query & sanity-check set, each { check_id, question, path[], edges_used[] }',
 }
 
 function validateDb(candidate) {
@@ -542,6 +551,33 @@ function validateDb(candidate) {
           problems.push(
             `graph_studio.canvas has an edge whose ${side} is "${end}", which is not ` +
               'a node — add the node or remove the edge, or it will be drawn as nothing',
+          )
+        }
+      }
+    }
+
+    /*
+     * A recorded sanity check walks a sub-graph by id, and the answer lights that
+     * walk up on the canvas. An id that resolves to nothing fails the same silent
+     * way a dangling edge does: the check still reports "graph can answer this" and
+     * the canvas highlights one hop less than the answer claims. Same class of bug,
+     * same refusal.
+     */
+    const edgeIds = new Set(candidate.graph_studio.canvas.edges.map((e) => e.edge_id))
+    for (const check of candidate.graph_studio.sanity_checks) {
+      for (const id of check.path ?? []) {
+        if (!nodeIds.has(id)) {
+          problems.push(
+            `graph_studio.sanity_checks "${check.check_id}" walks node "${id}", which is ` +
+              'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
+          )
+        }
+      }
+      for (const id of check.edges_used ?? []) {
+        if (!edgeIds.has(id)) {
+          problems.push(
+            `graph_studio.sanity_checks "${check.check_id}" walks edge "${id}", which is ` +
+              'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
           )
         }
       }
@@ -1875,6 +1911,7 @@ function studioItems(useCaseId, bucket, total, authored = []) {
           : 0.7 + spread / 700
 
     const floor = bucket === 'must_review' ? FLOORS[seed % FLOORS.length] : null
+    const score = Number(confidence.toFixed(2))
     items.push({
       item_id: `rv-${bucket}-${i}`,
       kind: 'relationship',
@@ -1883,18 +1920,46 @@ function studioItems(useCaseId, bucket, total, authored = []) {
         `L/S/T match — lexical ${(0.7 + ((seed >> 2) % 30) / 100).toFixed(2)} · ` +
         `structural ${(0.6 + ((seed >> 5) % 35) / 100).toFixed(2)} · ` +
         `evidence: the join holds on ${(80 + ((seed >> 9) % 20)).toFixed(1)}% of sampled rows.`,
-      confidence: Number(confidence.toFixed(2)),
+      confidence: score,
+      /* The triage lane, from the bucket's own confidence band rather than a fourth
+         number — a sampled row is in the band its bucket promised. */
+      band: score >= 0.95 ? 'High' : score >= 0.85 ? 'Medium' : 'Low',
       floor,
       action_set: 'standard',
+      /* Same three choices as an ingested standard row. A sampled row has no
+         hand-written labels, so it carries the plain ones. */
+      actions: [
+        { choice: 'approve', label: 'Approve' },
+        { choice: 'correct', label: 'Correct…' },
+        { choice: 'reject', label: 'Reject' },
+      ],
+      /* A sampled row's evidence is its own match scores, already in `detail`.
+         Repeating them as bullets would look like a second source. */
+      evidence: [],
+      graph_refs: [],
       justification: floor === 'schema-changing',
     })
   }
   return items
 }
 
+/*
+ * Every row leaves here with the same keys, whether it was ingested or synthesised.
+ * A row that simply omitted `evidence` would fail the client's schema at the
+ * boundary with `evidence should be an array, got undefined`, which reads as a
+ * stale server and is not one.
+ */
 const withDecision = (useCaseId) => (item) => ({
   ...item,
   floor: item.floor ?? null,
+  band: item.band ?? null,
+  evidence: item.evidence ?? [],
+  graph_refs: item.graph_refs ?? [],
+  actions: item.actions ?? [
+    { choice: 'approve', label: 'Approve' },
+    { choice: 'correct', label: 'Correct…' },
+    { choice: 'reject', label: 'Reject' },
+  ],
   decision: studioDecisions.get(`${useCaseId}:${item.item_id}`) ?? null,
 })
 
@@ -1992,6 +2057,18 @@ function graphStudio(useCase) {
     pivot: { ...studio.pivot, open: pivotOpen, chosen: studioPivotChoice.get(id) ?? null },
     pivot_count: pivotOpen ? 1 : 0,
 
+    /*
+     * The questions the Query tab offers as chips — the recorded sanity checks, each
+     * naming the hero question it is a check on. A chip is a promise the brief
+     * already made, so they are read from the set rather than written on the page;
+     * the answers themselves stay behind the request.
+     */
+    sanity_checks: studio.sanity_checks.map((c) => ({
+      check_id: c.check_id,
+      hero_question_id: c.hero_question_id,
+      question: c.question,
+    })),
+
     batch_resolved: decided + (pivotOpen ? 0 : 1),
     batch_total: gen.must_review_total + 1 + gen.spot_check_quota,
 
@@ -2038,15 +2115,23 @@ function findBuiltGraph(useCaseId) {
 /**
  * The origin classes, in legend order.
  *
- * A node's colour says **where it came from**, not what type it is: rows become
- * entity nodes, distinct column values become dimension nodes, uploaded documents
- * become document nodes, and a raw name resolves through an alias node. That is the
- * knowledge graph's own account of how it was built, and it is four categories
- * rather than the seven the type list would need — a seven-hue categorical palette
- * cannot keep every pair distinguishable, and any two nodes can end up adjacent
- * here. The type is carried in the sublabel and the inspector instead.
+ * A node's colour says **where it came from**, not what type it is: a source row
+ * becomes an entity or event node, an uploaded document becomes a document node, a
+ * raw name resolves through an alias node, and the elements that are not instances
+ * at all — the type-level concepts and the measure elements — are the fourth class.
+ * That is the knowledge graph's own build model, and it is four categories rather
+ * than the nine the type list would need: a categorical palette cannot keep every
+ * pair distinguishable past four, and any two nodes can end up adjacent here. The
+ * type and the element class are carried in the sublabel and the inspector instead.
+ *
+ * **`dimension` used to be one of these and is deliberately gone.** The previous
+ * graph promoted distinct column values to nodes — 13 waste codes, 9 violation
+ * types, 5 enforcement types. The package now records all three under `not_nodes`:
+ * a code carried on a row is an attribute of the shipment, not an entity with its
+ * own registry. A legend row for it would be a colour with no members and a claim
+ * the graph denies.
  */
-const CANVAS_GROUPS = ['row', 'dimension', 'document', 'alias']
+const CANVAS_GROUPS = ['row', 'schema', 'document', 'alias']
 
 /**
  * The ontology as the canvas draws it.
@@ -2057,7 +2142,7 @@ const CANVAS_GROUPS = ['row', 'dimension', 'document', 'alias']
  * from proposed to confirmed; correcting it marks the node studio-authored,
  * because a corrected element is no longer purely what the deriver produced.
  */
-function studioCanvas(useCaseId, answerPath = []) {
+function studioCanvas(useCaseId, answerPath = [], answerEdges = null) {
   const decisionFor = (id) =>
     id ? (studioDecisions.get(`${useCaseId}:${id}`) ?? null) : null
 
@@ -2087,6 +2172,11 @@ function studioCanvas(useCaseId, answerPath = []) {
          `type` is the ontology's own type, carried separately because "which source"
          and "which kind of thing" are different questions. */
       type: n.type,
+      /* Which of the build model's three element classes this is — `thin_instance`,
+         `concept` or `measure_element`. The colour folds the last two together, so
+         the inspector is where the distinction survives, and it is the distinction
+         the whole graph rebuild was about: an instance carries identity only. */
+      element_class: n.element_class,
       source: n.source,
       /* Size is data: the number of relationships the node carries. A radius chosen
          for looks would claim an importance the graph does not have. */
@@ -2108,17 +2198,26 @@ function studioCanvas(useCaseId, answerPath = []) {
   const edges = db.graph_studio.canvas.edges.map((e) => {
     const s = state(e.review_item_id)
     return {
+      /* The package's own edge id. It is what a recorded sanity check names, so the
+         highlight can be the exact hops the answer used rather than every edge that
+         happens to run between two nodes on the path. */
+      edge_id: e.edge_id,
       from: e.from,
       to: e.to,
       label: s.proposed ? `${e.label} · proposed` : e.label,
       /* The edge's own properties, verbatim from the graph spec — "manifests=46;
-         tons=1061.8; 2023-03-04..2026-06-23". A relationship with no evidence on it
-         is an assertion, and this is the evidence. */
+         total_tons=1061.8; waste_codes_seen=F005, D035". A relationship with no
+         evidence on it is an assertion, and this is the evidence. Layer 1 holds no
+         values, so these come from the package's federation cache; the three edge
+         kinds it has no values for carry their structural fact instead. */
       detail: e.detail ?? '',
       proposed: s.proposed,
       review_item_id: e.review_item_id ?? null,
-      on_answer_path:
-        answerPath.includes(e.from) && answerPath.includes(e.to),
+      /* An explicit hop list wins where one was given; otherwise both endpoints on
+         the path is the best a derived walk can say. */
+      on_answer_path: answerEdges
+        ? answerEdges.includes(e.edge_id)
+        : answerPath.includes(e.from) && answerPath.includes(e.to),
     }
   })
 
@@ -2141,23 +2240,157 @@ function studioCanvas(useCaseId, answerPath = []) {
         key,
         count: nodes.filter((n) => n.group === key).length,
       })),
+      /* And per ontology type, which the ring encodes. Counted here for the same
+         reason the groups are: the legend's number and the drawing's contents have to
+         come from one place. The *order* is the legend's own, so this is a lookup. */
+      types: [...new Set(nodes.map((n) => n.type))].map((key) => ({
+        key,
+        count: nodes.filter((n) => n.type === key).length,
+      })),
     },
   }
 }
 
 /**
+ * The recorded sanity check for a question, or null.
+ *
+ * `graph_studio.sanity_checks` holds the five the demo package wrote against this
+ * dataset — each one a hero question, a verdict, the Cypher the engine would plan,
+ * its cost against the budget, and the sub-graph it walks. Matched exactly the way
+ * `matchAskAnswer` matches a recorded answer, and for the same reason: a near-miss
+ * served as an answer to something else is worse than the walk's honest abstention.
+ *
+ * The threshold is shared with Ask deliberately. Two matchers over the same
+ * tenant's questions that disagreed about what counts as the same question would
+ * make the studio's sanity check pass on a question Ask then declines.
+ */
+function matchSanityCheck(question) {
+  const checks = db.graph_studio.sanity_checks ?? []
+  const asked = askTokens(question)
+  if (checks.length === 0 || asked.length === 0) return null
+
+  const normalise = (s) => askTokens(s).join(' ')
+  const exact = checks.find((c) => normalise(c.question) === asked.join(' '))
+  if (exact) return { check: exact, how: 'the same question' }
+
+  const scored = checks
+    .map((c) => {
+      const own = new Set(askTokens(c.question))
+      const shared = asked.filter((w) => own.has(w))
+      return { check: c, score: shared.length / asked.length, shared }
+    })
+    .sort((x, y) => y.score - x.score)
+
+  const [best, runnerUp] = scored
+  if (best.score < ASK_MATCH_MIN) return null
+  // A tie means the question named neither — same reasoning as matchTemplate.
+  if (runnerUp && runnerUp.score === best.score) return null
+  return {
+    check: best.check,
+    how: `it matches a recorded check on ${best.shared.slice(0, 4).join(', ')}`,
+  }
+}
+
+/** The fields only a recorded check has, absent on a derived walk. */
+const NO_RECORDED_CHECK = {
+  recorded: false,
+  check_id: null,
+  hero_question_id: null,
+  matched_how: null,
+  verdict: null,
+  verdict_body: null,
+  context: [],
+  plan: null,
+  cost_usd: null,
+  budget_usd: null,
+}
+
+/**
  * Answering a question against the *draft* graph.
  *
- * There is no engine here, so the answer is derived the way a reader would
- * expect one to be: the entities named in the question are matched to nodes,
- * and the path between them is walked over the edges that actually exist. A
- * question whose entities are not both in the graph is **not answerable**, and
- * says which one is missing — that is the sanity check, and a mock that always
- * answers would be worth nothing.
+ * Two ways an answer arrives, and the payload always says which:
+ *
+ *  - **A recorded check.** The package's five, with the verdict and the Cypher plan
+ *    the engine would run. `recorded` is true and `check_id` names it, so a written
+ *    verdict is never read as something the walk derived — the same rule Ask keeps
+ *    for `ask_answers`.
+ *  - **The walk.** No engine here, so the answer is derived the way a reader would
+ *    expect: the entities named in the question are matched to nodes and the path
+ *    between them is walked over the edges that actually exist. A question whose
+ *    entities are not both in the graph is **not answerable**, and says which one is
+ *    missing — that is the sanity check, and a mock that always answers is worth
+ *    nothing.
+ *
+ * Both routes report `caveats` the same way, computed from the edges the answer
+ * actually used. A recorded check is not exempt: sc1 rides the Chemours
+ * `DESCRIBED_BY` edge, which rq2 has open, so it is answerable *and* provisional —
+ * and it says so rather than reading as settled because somebody wrote it down.
  */
 function studioQuery(useCaseId, question) {
   const canvas = studioCanvas(useCaseId)
   const asked = String(question).toLowerCase()
+
+  const label = (id) => canvas.nodes.find((n) => n.node_id === id)?.label ?? id
+  /* The canvas appends " · proposed" to a provisional edge's label for the drawing.
+     A sentence about that edge wants the relationship's name, not the annotation it
+     is already making. */
+  const edgeType = (e) => e.label.replace(/ · proposed$/, '')
+  /*
+   * An answer that leans on an undecided edge is answerable *and* provisional.
+   * Saying so is the point — publishing would change the answer.
+   */
+  const caveatsFor = (edges) =>
+    edges
+      .filter((e) => e.proposed)
+      .map((e) => `${label(e.from)} → ${edgeType(e)} → ${label(e.to)} is still under review`)
+  /* Each hop carries its endpoints' labels, because a hop is rendered as a sentence
+     and the page should not have to re-join it against the node list to do that. */
+  const asHop = (e) => ({
+    edge_id: e.edge_id,
+    from: e.from,
+    to: e.to,
+    label: edgeType(e),
+    from_label: label(e.from),
+    to_label: label(e.to),
+    proposed: e.proposed,
+  })
+
+  const recorded = matchSanityCheck(question)
+  if (recorded) {
+    const { check, how } = recorded
+    const hops = check.edges_used
+      .map((id) => canvas.edges.find((e) => e.edge_id === id))
+      .filter(Boolean)
+    return {
+      question,
+      answerable: true,
+      reason: `${check.verdict} Walked ${hops.length} relationship(s) that exist in the draft.`,
+      matched: check.path.map(label),
+      path: check.path,
+      /*
+       * Deliberately empty. `path_labels` is a *chain* — what the walk below returns
+       * from a breadth-first search, where each node genuinely leads to the next. A
+       * recorded traversal is a sub-graph: sc3 walks three generators and three
+       * enforcement actions that all meet at the receiving TSDF, and printing those
+       * seven ids joined by arrows would claim a route nobody walked. The hops are in
+       * `edges_used`, each one a relationship that exists, and the page renders those.
+       */
+      path_labels: [],
+      edges_used: hops.map(asHop),
+      hops: hops.length,
+      caveats: caveatsFor(hops),
+      recorded: true,
+      check_id: check.check_id,
+      hero_question_id: check.hero_question_id,
+      matched_how: how,
+      verdict: check.verdict,
+      verdict_body: check.verdict_body,
+      context: check.context,
+      plan: check.plan,
+      cost_usd: check.cost_usd,
+      budget_usd: check.budget_usd,
+    }
+  }
 
   /*
    * Matched on the whole label, or on a word distinctive enough to name a node.
@@ -2205,8 +2438,25 @@ function studioQuery(useCaseId, question) {
   }
   const rareMax = Math.max(1, Math.round(canvas.nodes.length * 0.05))
 
-  const matched = canvas.nodes.filter((n) => {
-    if (asked.includes(n.label.toLowerCase())) return true
+  /*
+   * A concept node can never name an instance, because a concept *is* the type.
+   *
+   * The rebuild put the seven type-level nodes on the canvas, labelled exactly
+   * "Facility", "Manifest", "Document" — and the whole-label shortcut below happily
+   * matched them, so "tell me about the Denka facility" resolved to CONCEPT:Facility
+   * and reported that Facility and Denka have nothing between them. The stoplist
+   * already refused the *word* "facility"; what it could not refuse was a node whose
+   * whole label is that word. Same rule, one level up: a type cannot be an instance,
+   * whether it is spelled as a word inside a name or is the entire name.
+   */
+  const instances = canvas.nodes.filter((n) => n.element_class !== 'concept')
+
+  const matched = instances.filter((n) => {
+    const own = n.label.toLowerCase()
+    /* The whole-label match still has to clear the stoplist. It is the shortcut for a
+       multi-word name like "The Chemours Company Fayetteville Works", not a way past
+       the rule that a kind word names no instance. */
+    if (asked.includes(own) && !kindWords.has(own)) return true
     return wordsOf(n.label).some(
       (w) => !kindWords.has(w) && seenIn.get(w) <= rareMax && asked.includes(w),
     )
@@ -2222,9 +2472,11 @@ function studioQuery(useCaseId, question) {
           : `Only ${matched[0].label} is named — a question needs two things to relate.`,
       matched: matched.map((n) => n.label),
       path: [],
+      path_labels: [],
       edges_used: [],
       hops: 0,
       caveats: [],
+      ...NO_RECORDED_CHECK,
     }
   }
 
@@ -2262,9 +2514,11 @@ function studioQuery(useCaseId, question) {
       reason: `${start.label} and ${goal.label} are both in the graph, but nothing connects them yet.`,
       matched: matched.map((n) => n.label),
       path: [],
+      path_labels: [],
       edges_used: [],
       hops: 0,
       caveats: [],
+      ...NO_RECORDED_CHECK,
     }
   }
 
@@ -2278,15 +2532,6 @@ function studioQuery(useCaseId, question) {
     if (edge) edgesUsed.push(edge)
   }
 
-  const label = (id) => canvas.nodes.find((n) => n.node_id === id)?.label ?? id
-  /*
-   * An answer that leans on an undecided edge is answerable *and* provisional.
-   * Saying so is the point — publishing would change the answer.
-   */
-  const caveats = edgesUsed
-    .filter((e) => e.proposed)
-    .map((e) => `${label(e.from)} → ${e.label} → ${label(e.to)} is still under review`)
-
   return {
     question,
     answerable: true,
@@ -2294,9 +2539,10 @@ function studioQuery(useCaseId, question) {
     matched: matched.map((n) => n.label),
     path,
     path_labels: path.map(label),
-    edges_used: edgesUsed.map((e) => ({ from: e.from, to: e.to, label: e.label })),
+    edges_used: edgesUsed.map(asHop),
     hops: edgesUsed.length,
-    caveats,
+    caveats: caveatsFor(edgesUsed),
+    ...NO_RECORDED_CHECK,
   }
 }
 
@@ -4165,16 +4411,27 @@ const routes = [
       if (!item) return send(res, 404, { error: `no review item ${item_id}` })
 
       /*
-       * The choices are the item's own — a causal claim is approved *as causal*
-       * or downgraded, never plainly "approved", because the two mean different
-       * things about the graph and only one keeps the causal edge.
+       * The choices are the item's own, and the row is the authority on them.
+       *
+       * A row states its buttons in its own terms — "Keep distinct", "Declare basis
+       * = manifest", "Leave orphaned" — but each one still resolves to one of the
+       * recorded choices, because what a decision *means* to the canvas has to be
+       * the same on every row: `approve` keeps the element, `correct` marks it
+       * studio-authored, `reject` drops it. So the labels vary and the choices do
+       * not, and this refuses anything the row does not offer. The page cannot
+       * present a button the API would reject, because both read this one list.
        */
-      const allowed =
-        item.action_set === 'causal'
+      const allowed = item.actions
+        ? item.actions.map((a) => a.choice)
+        : item.action_set === 'causal'
           ? ['approve-causal', 'downgrade-correlational', 'reject']
           : ['approve', 'correct', 'reject']
       if (!allowed.includes(choice)) {
-        return send(res, 400, { error: `choice must be one of: ${allowed.join(', ')}` })
+        return send(res, 400, {
+          error:
+            `"${choice}" is not one of the choices ${item_id} offers — ` +
+            `it takes: ${allowed.join(', ')}`,
+        })
       }
 
       // A schema-changing floor is exactly where the reason has to outlive the
@@ -4228,8 +4485,20 @@ const routes = [
       const answer = studioQuery(id, String(question).trim())
       // Paced like the suggesters: an answer that returns instantly reads as a
       // lookup, and this is meant to read as the graph being asked.
+      /* The marked canvas travels back with the answer, so there is no second
+         request and no second truth. A recorded check names its hops, so the
+         highlight is exactly those; a derived walk can only say which nodes it
+         crossed. */
       setTimeout(
-        () => send(res, 200, { ...answer, canvas: studioCanvas(id, answer.path) }),
+        () =>
+          send(res, 200, {
+            ...answer,
+            canvas: studioCanvas(
+              id,
+              answer.path,
+              answer.recorded ? answer.edges_used.map((e) => e.edge_id) : null,
+            ),
+          }),
         SUGGEST_MS,
       ).unref?.()
     },

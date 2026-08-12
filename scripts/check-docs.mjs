@@ -395,21 +395,76 @@ expect(
  * 05_knowledge_graph/knowledge_graph.json, so a hand-edit to either side shows up as
  * a disagreement rather than as a picture that quietly no longer matches the data.
  */
-const kgPath = ' _demo_data_package_2026-08-10/05_knowledge_graph/knowledge_graph.json'
-const kg = existsSync(kgPath) ? JSON.parse(read(kgPath)) : null
+/*
+ * The path is asserted, not merely tried.
+ *
+ * It read ` _demo_data_package_…` for a whole session — the repo-wide removal of
+ * "VLS" ate the directory name here too — so `kg` was null and all eight claims
+ * below passed while comparing against nothing, each one reporting "the package is
+ * not in this checkout". A guard whose good answer is its own inability to run is
+ * describing itself. The package is in the repo, so its absence is now a failure
+ * rather than a skip, and the claims below can drop their null branches.
+ */
+const pkgDir = 'vls_demo_data_package_2026-08-10/05_knowledge_graph'
+const kgPath = `${pkgDir}/knowledge_graph.json`
+const studioPkgPath = `${pkgDir}/graph_studio.json`
+expect(
+  'the knowledge-graph package is where the ingest reads it from',
+  existsSync(join(root, kgPath)) && existsSync(join(root, studioPkgPath)),
+  `${kgPath} + graph_studio.json — the canvas, the queue and the checks all come from here`,
+)
+expect(
+  'and the ingest reads exactly those two paths',
+  [kgPath, studioPkgPath].every((p) => read('scripts/ingest-knowledge-graph.mjs').includes(p)),
+  'a path this check does not share is a path this check cannot verify',
+)
+const kg = JSON.parse(read(kgPath))
+const studioPkg = JSON.parse(read(studioPkgPath))
 const canvas = db.graph_studio.canvas
 
 expect(
   'the canvas holds every relationship the knowledge graph states',
-  kg === null || canvas.edges.length === kg.edges.length,
-  kg === null
-    ? 'the package is not in this checkout — nothing to compare against'
-    : `${canvas.edges.length} edges vs ${kg.edges.length} in the package`,
+  canvas.edges.length === kg.edges.length,
+  `${canvas.edges.length} edges vs ${kg.edges.length} in the package`,
+)
+/*
+ * Exactly the roster, with nothing materialised. The previous package shipped 20
+ * edges pointing at ids its node list omitted, and the ingest had to invent four
+ * nodes to keep them drawable; this build resolves cleanly, so a canvas larger than
+ * the roster means something is being invented again.
+ */
+expect(
+  'and every node it lists, with nothing invented to keep an edge drawable',
+  canvas.nodes.length === kg.nodes.length,
+  `${canvas.nodes.length} vs ${kg.nodes.length} in the package`,
 )
 expect(
-  'and every node it lists, plus the four endpoints its roster omits',
-  kg === null || canvas.nodes.length === kg.nodes.length + 4,
-  kg === null ? 'package absent' : `${canvas.nodes.length} vs ${kg.nodes.length} + 4`,
+  'every element class the package ships reaches the canvas',
+  Object.entries(kg.counts.by_element_class).every(
+    ([cls, n]) => canvas.nodes.filter((x) => x.element_class === cls).length === n,
+  ),
+  Object.entries(kg.counts.by_element_class)
+    .map(([c, n]) => `${c} ${n}`)
+    .join(' · '),
+)
+/*
+ * The column-value node types are gone by decision, not by omission — `not_nodes`
+ * records all three with `was_wrongly` beside them. A canvas that still drew them
+ * would be drawing the modelling mistake the rebuild exists to correct, and the
+ * `dimension` legend hue would come back with it.
+ */
+expect(
+  'the column-value node types the package retired are absent from the canvas',
+  ['WasteCode', 'ViolationType', 'EnforcementType'].every(
+    (t) => !canvas.nodes.some((n) => n.type === t),
+  ),
+  `not_nodes lists ${kg.not_nodes.length} routed columns; a code on a row is an attribute`,
+)
+expect(
+  'and no node carries a value Layer 1 does not hold',
+  kg.nodes.every((n) => !('properties' in n)) &&
+    /demo_display/.test(read('scripts/ingest-knowledge-graph.mjs')),
+  'a thin instance is identity + provenance; the figures come from demo_display',
 )
 /*
  * The failure this replaces: 20 edges pointed at ids the roster did not contain, so
@@ -488,9 +543,31 @@ const contrast = (a, b) => {
 expect(
   'the canvas has four origin classes, and the server agrees',
   legendGroups.length === 4 &&
-    /const CANVAS_GROUPS = \['row', 'dimension', 'document', 'alias'\]/.test(server) &&
-    legendGroups.every((g) => ['row', 'dimension', 'document', 'alias'].includes(g.key)),
+    /const CANVAS_GROUPS = \['row', 'schema', 'document', 'alias'\]/.test(server) &&
+    legendGroups.every((g) => ['row', 'schema', 'document', 'alias'].includes(g.key)),
   legendGroups.map((g) => g.key).join(', ') || 'parsed none — check the literal shape',
+)
+/*
+ * `dimension` was retired with the column-value nodes, and the retirement has to
+ * reach every layer that named it: a legend row with no members advertises a claim
+ * the graph denies, and a schema still accepting the key would let a stale server
+ * send it without complaint.
+ */
+/*
+ * Scoped to the canvas-group vocabulary, not to the spelling of the word.
+ * `dimension` is also one of the profiler's eight column classes, which has nothing
+ * to do with an origin colour — a file-wide search for the token failed on those and
+ * would have gone on failing whatever was done to the canvas, and a check that cries
+ * wolf is how a real red claim gets ignored.
+ */
+const canvasGroupUnion = /export type CanvasGroup =([^\n]*)/.exec(read('src/api/client.ts'))?.[1]
+expect(
+  'the retired dimension class is gone from the legend, the server and the group union',
+  !legend.includes("key: 'dimension'") &&
+    !/CANVAS_GROUPS = \[[^\]]*dimension/.test(server) &&
+    canvasGroupUnion !== undefined &&
+    !canvasGroupUnion.includes('dimension'),
+  `CanvasGroup =${canvasGroupUnion ?? ' (parsed none — check the type’s shape)'}`,
 )
 for (const g of legendGroups) {
   expect(
@@ -505,6 +582,121 @@ expect(
   legendGroups
     .map((g) => `${g.key} ${canvas.nodes.filter((n) => n.group === g.key).length}`)
     .join(' · '),
+)
+
+/*
+ * The type ring — the second encoding, added so the canvas can say what a node *is*
+ * as well as where it came from without a nine-hue fill palette nobody can read.
+ *
+ * Four rules, all recomputed. They were not free: a first pass reused the demo
+ * viewer's own light hues and failed twelve ways, because a light ring holds against
+ * neither a mid-tone fill nor a white page.
+ */
+const ringHues = [
+  ...legend.matchAll(/\{ type: '(\w+)', group: '(\w+)', color: '(#[0-9a-f]{6})' \}/g),
+].map((m) => ({ type: m[1], group: m[2], color: m[3] }))
+const unringed = [...legend.matchAll(/\{ type: '(\w+)', group: '(\w+)' \}(?!,\s*color)/g)]
+  .map((m) => ({ type: m[1], group: m[2] }))
+  .filter((u) => !ringHues.some((r) => r.type === u.type))
+const fillFor = (group) => legendGroups.find((g) => g.key === group)?.color
+const hueOf = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+  const mx = Math.max(r, g, b)
+  const d = mx - Math.min(r, g, b)
+  if (d / mx < 0.12) return null
+  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4
+  return (h * 60 + 360) % 360
+}
+const hueGap = (a, b) => {
+  const [x, y] = [hueOf(a), hueOf(b)]
+  if (x === null || y === null) return 180
+  const d = Math.abs(x - y)
+  return Math.min(d, 360 - d)
+}
+
+expect(
+  'the type ring is declared for every type, ringed or deliberately not',
+  ringHues.length + unringed.length === new Set(canvas.nodes.map((n) => n.type)).size,
+  `${ringHues.length} ringed + ${unringed.length} unringed vs ` +
+    `${new Set(canvas.nodes.map((n) => n.type)).size} types on the canvas`,
+)
+/*
+ * The rule that makes the palette possible: a ring only ever separates its *siblings
+ * on the same fill*, so a fill carrying one type needs none — and could not have one,
+ * because the only hues near those fills are the fills themselves.
+ */
+const typesOnFill = new Map()
+for (const n of canvas.nodes) {
+  if (!typesOnFill.has(n.group)) typesOnFill.set(n.group, new Set())
+  typesOnFill.get(n.group).add(n.type)
+}
+expect(
+  'a ring exists exactly where a fill carries more than one type',
+  ringHues.every((r) => typesOnFill.get(r.group)?.size > 1) &&
+    unringed.every((u) => typesOnFill.get(u.group)?.size === 1),
+  [...typesOnFill].map(([g, s]) => `${g} ${s.size}`).join(' · '),
+)
+expect(
+  'and every ringed type is really drawn on the fill it declares',
+  ringHues.every((r) =>
+    canvas.nodes.filter((n) => n.type === r.type).every((n) => n.group === r.group),
+  ),
+  'a ring validated against the wrong fill is validated against nothing',
+)
+for (const r of ringHues) {
+  const fill = fillFor(r.group)
+  expect(
+    `the ${r.type} ring reads against the page and its fill (${r.color} on ${fill})`,
+    contrast(r.color, '#ffffff') >= 3 &&
+      (contrast(r.color, fill) >= 3 || hueGap(r.color, fill) >= 40),
+    `page ${contrast(r.color, '#ffffff').toFixed(2)}:1 · fill ${contrast(r.color, fill).toFixed(2)}:1 / ` +
+      `${hueGap(r.color, fill).toFixed(0)}°`,
+  )
+}
+expect(
+  'and no two rings on one fill are confusable',
+  ringHues.every((a) =>
+    ringHues
+      .filter((b) => b.group === a.group && b.type !== a.type)
+      .every((b) => hueGap(a.color, b.color) >= 40 || contrast(a.color, b.color) >= 2),
+  ),
+  'siblings need a 40° hue turn or 2:1 — this is the only comparison that matters',
+)
+/*
+ * The ring is its own circle. A stroke on `.gc-disc` would be overridden by the
+ * stylesheet — a CSS rule beats a presentation attribute — and the disc's stroke is
+ * where the *states* are drawn, so a ring there would also fight "proposed",
+ * "selected" and the answer path.
+ */
+expect(
+  'the ring is drawn as its own circle, not a stroke on the disc',
+  /className="gc-ring"/.test(read('src/components/GraphCanvas.tsx')) &&
+    !/gc-disc"[^>]*stroke=\{/.test(read('src/components/GraphCanvas.tsx')),
+  'a stylesheet rule beats a presentation attribute',
+)
+/*
+ * Zoom is what makes the small labels legible, so the component must not restate the
+ * threshold in prose that can drift from the constant it describes — the same rule the
+ * build panel's pace already follows.
+ */
+const gcSource = read('src/components/GraphCanvas.tsx')
+expect(
+  'zoom and pan are hand-written, with no graph library behind them',
+  /getScreenCTM/.test(gcSource) &&
+    !/from 'd3/.test(gcSource) &&
+    !/"d3/.test(read('package.json')),
+  'the audit gate makes every dependency expensive, and this is circles and lines',
+)
+expect(
+  'the wheel listener is registered non-passively, or the page scrolls behind the zoom',
+  /addEventListener\('wheel', onWheel, \{ passive: false \}\)/.test(gcSource),
+  'React registers onWheel as passive, and a passive listener cannot preventDefault',
+)
+expect(
+  'the label-at-zoom threshold is stated once and the hint reads it',
+  /const LABEL_AT_ZOOM = [\d.]+/.test(gcSource) &&
+    /\{LABEL_AT_ZOOM\}×/.test(gcSource),
+  'a hardcoded number in the copy is a second opinion about when labels appear',
 )
 /*
  * A proposed element exists because a review row is open — that is what makes the
@@ -521,15 +713,145 @@ expect(
 )
 expect(
   'the queue is about this graph — its pools are the graph’s own types',
-  kg === null ||
-    kg.node_types.every((t) => db.graph_studio.generated.subjects.includes(t.type)),
+  Object.keys(kg.counts.by_type).every((t) =>
+    db.graph_studio.generated.subjects.includes(t),
+  ),
   'synthesised rows must not name entities the canvas has never heard of',
 )
+/*
+ * The queue is the package's, and the pivot is one of its rows promoted.
+ *
+ * rq1 is the identity merge, which is the one decision that changes what every other
+ * row *means* — so it is the pivot, and the queue holds the other five. Listing it in
+ * both places would ask one question twice and let a reviewer answer it two ways, so
+ * this asserts the split rather than the count alone: 5 + 1 is the package's own
+ * `mustReviewTotal`.
+ */
+const pivot = db.graph_studio.pivot
+const queueIds = db.graph_studio.review_items.map((i) => i.item_id)
 expect(
-  'and the pivot is the package’s own resolution question',
-  /Texas Molecular LP/.test(db.graph_studio.pivot.title) &&
-    db.graph_studio.pivot.options.length === 2,
-  db.graph_studio.pivot.title,
+  'the queue is the package’s rows, less the one promoted to the pivot',
+  db.graph_studio.review_items.length + 1 === studioPkg.lanes.mustReviewTotal &&
+    queueIds.length === studioPkg.review_queue.length - 1,
+  `${queueIds.join(', ')} + 1 pivot = ${studioPkg.lanes.mustReviewTotal} must-review decisions`,
+)
+expect(
+  'and the identity merge is in exactly one of the two, never both',
+  /Texas Molecular/.test(pivot.title) &&
+    pivot.options.length === 2 &&
+    !db.graph_studio.review_items.some((i) => /merge to one facility/.test(i.title)),
+  pivot.title,
+)
+expect(
+  'the lane totals are the package’s trust lanes, not numbers chosen here',
+  db.graph_studio.generated.confirmed_total === studioPkg.lanes.trust.confirmedFyi &&
+    db.graph_studio.generated.auto_approved_total === studioPkg.lanes.trust.autoApprove &&
+    db.graph_studio.generated.must_review_total === db.graph_studio.review_items.length,
+  `auto-approve ${studioPkg.lanes.trust.autoApprove} · confirmed ${studioPkg.lanes.trust.confirmedFyi} · ` +
+    `must-review ${db.graph_studio.generated.must_review_total} (all authored, none padded)`,
+)
+/*
+ * A row states its buttons in its own terms, and every label still resolves to one
+ * of the recorded choices. A row offering a fourth outcome would be a button the
+ * server refuses, which is the failure `action_set` was introduced to stop.
+ */
+const CHOICES = ['approve', 'correct', 'reject', 'approve-causal', 'downgrade-correlational']
+expect(
+  'every row offers its own labels, and every label maps to a recorded choice',
+  db.graph_studio.review_items.every(
+    (i) => i.actions.length > 0 && i.actions.every((a) => CHOICES.includes(a.choice)),
+  ) && /item\.actions\s*\n?\s*\? item\.actions\.map\(\(a\) => a\.choice\)/.test(server),
+  db.graph_studio.review_items
+    .map((i) => `${i.item_id}: ${i.actions.map((a) => a.label).join(' / ')}`)
+    .join(' · '),
+)
+expect(
+  'and the page reads the row’s actions rather than a list of its own',
+  /item\.actions\.length > 0 \? item\.actions/.test(read('src/components/ReviewQueueItem.tsx')),
+  'a page that kept its own list could offer a button the API refuses',
+)
+
+/*
+ * The recorded sanity checks. These are the second surface the package ships, and
+ * they are served the way `ask_answers` is — matched, named as recorded, falling
+ * through to the walk. Three things have to hold, and each one failed silently
+ * before it was checked: every walked id has to exist, no verdict may name an edge
+ * type the graph does not have, and the threshold has to be Ask's.
+ */
+const checks = db.graph_studio.sanity_checks
+const canvasEdgeIds = new Set(canvas.edges.map((e) => e.edge_id))
+expect(
+  'every recorded sanity check the package ships is ingested',
+  checks.length === studioPkg.sanity_checks.length,
+  `${checks.length} checks · ${checks.map((c) => c.hero_question_id).join(', ')}`,
+)
+expect(
+  'each one walks nodes and edges that are on the canvas',
+  checks.every(
+    (c) =>
+      c.path.every((id) => canvasNodeIds.has(id)) &&
+      c.edges_used.every((id) => canvasEdgeIds.has(id)),
+  ),
+  `${checks.reduce((n, c) => n + c.edges_used.length, 0)} hops, all resolvable`,
+)
+expect(
+  'and the server refuses a check that walks something absent',
+  /sanity_checks "\$\{check\.check_id\}" walks node/.test(server),
+  'a highlight one hop short of the answer it claims is silent otherwise',
+)
+/*
+ * The package's sc3 states `HAS_ENFORCEMENT` and an `EnforcementType` node in its
+ * prose while its own traversal walks `ENFORCEMENT_AGAINST` to an `Enforcement`
+ * event. Only the traversal resolves, so the ingest corrects the prose — and this is
+ * what stops the correction being dropped on the next re-ingest.
+ */
+/*
+ * Keyed to the retired names, not to "any SCREAMING_SNAKE word" — the first attempt
+ * was the latter and failed on `EPA_ID` and a `LDR_SET` inside a Cypher comment,
+ * neither of which is a claim about the ontology. What must never survive is a
+ * *retired* type: those are the ones that read as a relationship the graph has.
+ */
+const RETIRED_TYPES = ['HAS_ENFORCEMENT', 'WasteCode', 'ViolationType', 'EnforcementType']
+const checkProse = checks
+  .flatMap((c) => [c.verdict, c.verdict_body, c.plan, ...c.context.flatMap((x) => [x.label, x.meta])])
+  .join(' ')
+/*
+ * Only ever in a negation. Refusing the names outright was the second attempt and it
+ * failed on sc5, which says "no WasteCode node" and "not WasteCode nodes" — telling
+ * the reader the promotion was declined is the whole point of that check, and it is
+ * the opposite of the mistake being guarded against. What must not survive is a
+ * retired type named as something the graph *has*, which is what sc3's prose did.
+ */
+const assertedRetired = RETIRED_TYPES.filter((t) =>
+  [...checkProse.matchAll(new RegExp(`(\\S+\\s+)?${t}`, 'g'))].some(
+    (m) => !/\b(no|not|never|without)\s+$/i.test(m[1] ?? ''),
+  ),
+)
+expect(
+  'a retired type is named only to say it is absent, never as one the graph has',
+  assertedRetired.length === 0,
+  assertedRetired.join(', ') ||
+    `${RETIRED_TYPES.length} retired names, each negated wherever it appears`,
+)
+expect(
+  'and every relationship a plan matches on is one the graph has',
+  [...checkProse.matchAll(/\[\w*:([A-Z_]+)\]/g)].every((m) =>
+    new Set(kg.edges.map((e) => e.type)).has(m[1]),
+  ),
+  [...new Set([...checkProse.matchAll(/\[\w*:([A-Z_]+)\]/g)].map((m) => m[1]))].join(', '),
+)
+expect(
+  'a recorded check is matched at Ask’s threshold, not one of its own',
+  /const checks = db\.graph_studio\.sanity_checks/.test(server) &&
+    /best\.score < ASK_MATCH_MIN/.test(
+      server.slice(server.indexOf('function matchSanityCheck')),
+    ),
+  'two thresholds over one tenant’s questions would let the studio pass what Ask declines',
+)
+expect(
+  'and the answer says which route produced it',
+  /recorded: true/.test(server) && /const NO_RECORDED_CHECK = \{/.test(server),
+  'a written verdict read as a derived one is the one thing this tab must not do',
 )
 /*
  * The query matcher. Both of its guards were paid for: a *kind* word ("facility",
@@ -543,12 +865,26 @@ expect(
     /!kindWords\.has\(w\) && seenIn\.get\(w\) <= rareMax/.test(server),
   'rarity, plus the ontology’s own vocabulary as a stoplist',
 )
+/*
+ * And a concept node cannot be an instance. The rebuild put the seven type-level
+ * nodes on the canvas labelled exactly "Facility", "Manifest", "Document" — and the
+ * whole-label shortcut matched them, so "the Denka facility" resolved to
+ * CONCEPT:Facility and reported the two had nothing between them. The word was
+ * already stopped; the node whose entire label *is* that word was not.
+ */
+expect(
+  'a concept node is never matched as an instance, whole label or not',
+  /n\.element_class !== 'concept'/.test(server) &&
+    /asked\.includes\(own\) && !kindWords\.has\(own\)/.test(server),
+  `${canvas.nodes.filter((n) => n.element_class === 'concept').length} concept nodes are ` +
+    'labelled with bare type names, which is why the shortcut needed the stoplist too',
+)
 expect(
   'the canvas has an ingest to re-run, and the docs name it',
   existsSync(join(root, 'scripts/ingest-knowledge-graph.mjs')) &&
     /"ingest:graph": "node scripts\/ingest-knowledge-graph\.mjs"/.test(read('package.json')) &&
     claude.includes('npm run ingest:graph'),
-  'hand-editing 93 laid-out nodes is not a maintenance path',
+  `hand-editing ${canvas.nodes.length} laid-out nodes is not a maintenance path`,
 )
 expect(
   'the canvas sizes and positions come from the server, not the component',
@@ -1269,6 +1605,74 @@ expect(
   dbInNav ? '/db is in NAV_ITEMS' : '/db is routed but not in NAV_ITEMS',
 )
 expect('nav items parse', navKeys.length >= 5, `${navKeys.length} nav keys`)
+
+/*
+ * The two counts in CLAUDE.md's routing paragraph, pinned.
+ *
+ * They had drifted: the paragraph said "13 entries, eight of them served" long after
+ * six keys were commented out, leaving 8 live and 5 served. Prose about a count is the
+ * easiest kind of doc to falsify and the hardest to notice, so both numbers are read
+ * off the source here.
+ */
+const routesSrc = read('src/routes.tsx')
+const navPaths = [...nav.matchAll(/^ *path: '([^']+)',/gm)].map((m) => m[1])
+const routedPaths = [...routesSrc.matchAll(/path: '([^']+)'/g)].map((m) => m[1])
+const navServed = navPaths.filter(
+  (p) => routedPaths.includes(p) || routedPaths.includes(p.replace(/^\//, '')),
+)
+expect(
+  'CLAUDE.md states how many sidebar entries exist',
+  new RegExp(`\`NAV_ITEMS\` has \\*\\*${navPaths.length}\\*\\* live entries`).test(claude),
+  `${navPaths.length} live nav entries`,
+)
+expect(
+  'and how many of them have a page',
+  new RegExp(`a page for \\*\\*${navServed.length}\\*\\* of them`).test(claude),
+  `${navServed.length} served: ${navServed.join(', ')}`,
+)
+
+/*
+ * The full-window canvas route. Its declaration order is load-bearing:
+ * `graph-studio/:useCaseId` matches the parent segment of `graph-studio/x/canvas`, so
+ * declared after the `App` tree the studio page would render at the full view's URL —
+ * a wrong page with no error anywhere.
+ */
+const canvasRoute = "{ path: '/graph-studio/:useCaseId/canvas'"
+expect(
+  'the full-window canvas route exists and is declared before the App tree',
+  routesSrc.includes(canvasRoute) &&
+    routesSrc.indexOf(canvasRoute) < routesSrc.indexOf("element: <App />"),
+  'a prefix pattern declared first would match it and win',
+)
+expect(
+  'and it is URL-only, reached by the Full view button rather than the sidebar',
+  !navPaths.some((p) => p.includes('/canvas')) &&
+    /fullViewHref=\{`\/graph-studio\//.test(read('src/pages/GraphStudioPage.tsx')),
+  'the same rule as /db: routed, not advertised',
+)
+/*
+ * One canvas component, two frames. A full view that rendered its own drawing would be
+ * a second truth about the same graph, which is the failure the whole studio is built
+ * to avoid — and the button must not appear on the page it points at.
+ */
+expect(
+  'the full view reuses the canvas and the inspector rather than copying them',
+  ['GraphCanvas', 'NodeInspector'].every((c) =>
+    read('src/pages/GraphCanvasFullPage.tsx').includes(`from '../components/${c}'`),
+  ) && read('src/pages/GraphStudioPage.tsx').includes("from '../components/NodeInspector'"),
+  'both views import one component each, so neither can drift',
+)
+/*
+ * Keyed to the prop being *passed* (`fullViewHref=`), not to the word appearing. The
+ * first version searched for the bare name and failed on the comment that explains why
+ * the prop is absent — the same trap as the `dimension` claim and the retired-type
+ * claim: assert the fact, never the spelling.
+ */
+expect(
+  'and the full view offers no Full view button of its own',
+  !/fullViewHref=/.test(read('src/pages/GraphCanvasFullPage.tsx')),
+  'a link to the page you are on is a dead control',
+)
 
 /* ---------------- audit allowlist ---------------- */
 

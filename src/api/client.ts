@@ -634,13 +634,26 @@ export interface ReviewDecision {
  */
 export interface ReviewItem {
   itemId: string
-  kind: 'relationship' | 'entity'
+  /** `measure` is the third: a cross-basis measure is neither entity nor edge. */
+  kind: 'relationship' | 'entity' | 'measure'
   title: string
   detail: string
   confidence: number
+  /** The triage lane the row arrived in, which is the package's, not derived here. */
+  band: 'High' | 'Medium' | 'Low' | null
   floor: string | null
-  /** 'standard' or 'causal' — which three buttons the row offers. */
+  /** 'standard' or 'causal' — the fallback family when a row states no buttons. */
   actionSet: string
+  /**
+   * The row's own buttons. `label` is what it says in the row's terms ("Keep
+   * distinct"); `choice` is what gets recorded, and stays one of the fixed set so a
+   * decision means the same thing to the canvas on every row.
+   */
+  actions: { choice: ReviewChoice; label: string }[]
+  /** What the deriver had to go on, as the package stated it. */
+  evidence: string[]
+  /** Canvas node ids the row is *about* — not necessarily what it makes proposed. */
+  graphRefs: string[]
   /** True when the row cannot be resolved without a recorded reason. */
   justification: boolean
   decision: ReviewDecision | null
@@ -795,6 +808,13 @@ export interface StudioPivot {
   alternativeId: string
   title: string
   detail: string
+  /** Why it is a pivot and not a queue row — the server's sentence, not the page's. */
+  whyPivot: string
+  confidence: number
+  band: 'High' | 'Medium' | 'Low' | null
+  floor: string
+  evidence: string[]
+  graphRefs: string[]
   options: PivotOption[]
   open: boolean
   chosen: string | null
@@ -832,20 +852,33 @@ export interface GraphVersion {
 /**
  * Which legend colour a node takes — its **origin class**, not its type.
  *
- * A row becomes an entity node, a distinct column value becomes a dimension node,
- * an uploaded document becomes a document node, and a raw name resolves through an
- * alias. Four categories, because a categorical palette stops being reliably
+ * A source row becomes an entity or event node, an uploaded document becomes a
+ * document node, a raw name resolves through an alias, and `schema` is the pair of
+ * element classes that are not instances: the type-level concepts and the measure
+ * elements. Four categories, because a categorical palette stops being reliably
  * distinguishable past four when any two marks can end up adjacent; the ontology
- * type rides on `type` and the sublabel instead.
+ * type rides on `type` and `elementClass` instead.
+ *
+ * `dimension` was here until the graph was rebuilt. Column values are no longer
+ * promoted to nodes — a waste code is an attribute of a shipment — so the class has
+ * no members by decision, and a legend row for it would advertise a claim the graph
+ * denies.
  */
-export type CanvasGroup = 'row' | 'dimension' | 'document' | 'alias'
+export type CanvasGroup = 'row' | 'schema' | 'document' | 'alias'
 
 export interface CanvasNode {
   nodeId: string
   label: string
   sublabel: string
-  /** The ontology's own type — Facility, Document, Manifest, WasteCode, … */
+  /** The ontology's own type — Facility, Manifest, Evaluation, Enforcement, … */
   type: string
+  /**
+   * The build model's element class. A `thin_instance` carries identity and
+   * provenance only — its values federate at query time and are not in the graph —
+   * while a `concept` is type-level and a `measure_element` is a quantity promoted
+   * so relationships can point at it.
+   */
+  elementClass: 'thin_instance' | 'concept' | 'measure_element'
   /** The catalogue object it was built from, e.g. `epa_hazwaste.e_manifest`. */
   source: string
   /** Relationships carried. The node's radius is this, not a decorative size. */
@@ -866,10 +899,12 @@ export interface CanvasNode {
 }
 
 export interface CanvasEdge {
+  /** The graph's own id, which is how a recorded sanity check names its hops. */
+  edgeId: string
   from: string
   to: string
   label: string
-  /** The relationship's evidence, verbatim: `manifests=46; tons=1061.8; …`. */
+  /** The relationship's evidence, verbatim: `manifests=46; total_tons=1061.8; …`. */
   detail: string
   proposed: boolean
   reviewItemId: string | null
@@ -883,6 +918,8 @@ export interface CanvasFacets {
   studioAuthored: number
   /** One per origin class, so the legend can carry counts and filter by them. */
   groups: { key: CanvasGroup; count: number }[]
+  /** One per ontology type — what the ring encodes. Rendered in the legend's order. */
+  types: { key: string; count: number }[]
 }
 
 export interface CanvasPayload {
@@ -893,7 +930,39 @@ export interface CanvasPayload {
   facets: CanvasFacets
 }
 
-/** What the draft graph could — or could not — answer. */
+/** One relationship an answer travelled, as a sentence's worth of parts. */
+export interface QueryHop {
+  edgeId: string
+  from: string
+  to: string
+  label: string
+  fromLabel: string
+  toLabel: string
+  /** True where the hop's review row is still open — the answer is provisional. */
+  proposed: boolean
+}
+
+/** A chip of context a recorded check states alongside its verdict. */
+export interface QueryContext {
+  /** What kind of thing it is — `document`, `traversal`, `measure`, `pending`, … */
+  chip: string
+  label: string
+  meta: string
+  /** False where the chip is a caveat rather than a confirmation. */
+  ok: boolean
+}
+
+/**
+ * What the draft graph could — or could not — answer.
+ *
+ * `recorded` says which route answered. A recorded check is one of the demo
+ * package's five, and it brings the verdict, the Cypher the engine would plan, and
+ * its cost against the budget; a derived walk brings `pathLabels`, the chain its
+ * breadth-first search actually followed. The recorded fields are `null` on a walk,
+ * and `pathLabels` is empty on a recorded check — its traversal is a sub-graph, not
+ * a chain, so its hops are in `edgesUsed` and joining them with arrows would claim
+ * a route nobody walked.
+ */
 export interface QueryAnswer {
   question: string
   answerable: boolean
@@ -901,10 +970,22 @@ export interface QueryAnswer {
   matched: string[]
   path: string[]
   pathLabels: string[]
-  edgesUsed: { from: string; to: string; label: string }[]
+  edgesUsed: QueryHop[]
   hops: number
   /** An answer leaning on an undecided edge is answerable *and* provisional. */
   caveats: string[]
+  recorded: boolean
+  checkId: string | null
+  /** The hero question this check is a check *on*. */
+  heroQuestionId: string | null
+  /** How it matched — "the same question", or the words it shared. */
+  matchedHow: string | null
+  verdict: string | null
+  verdictBody: string | null
+  context: QueryContext[]
+  plan: string | null
+  costUsd: number | null
+  budgetUsd: number | null
   canvas: CanvasPayload
 }
 
@@ -920,6 +1001,8 @@ export interface GraphStudioPayload extends StudioGraph {
   autoApprovedCount: number
   pivot: StudioPivot
   pivotCount: number
+  /** The recorded checks, as the Query tab's chips. A chip is a promise already made. */
+  sanityChecks: { checkId: string; heroQuestionId: string; question: string }[]
   batchResolved: number
   batchTotal: number
   publish: { blocked: boolean; reasons: string[]; explanation: string }
@@ -1826,12 +1909,23 @@ const STUDIO_GRAPHS_PAYLOAD = shape({
 
 const REVIEW_ITEM = shape({
   item_id: str,
-  kind: oneOf(['relationship', 'entity']),
+  /* `measure` joined the two on the rebuild: a cross-basis measure is a third kind
+     of thing to review, neither an entity nor a relationship. */
+  kind: oneOf(['relationship', 'entity', 'measure']),
   title: str,
   detail: str,
   confidence: num,
+  /* The triage lane the row arrived in. Nullable rather than absent-tolerant would
+     hide a server that stopped sending it, so it is checked as a value. */
+  band: nullable(oneOf(['High', 'Medium', 'Low'])),
   floor: nullable(str),
   action_set: str,
+  /* The row's own buttons. `choice` is what gets recorded and `label` is what the
+     button says, so a row can offer "Keep distinct" without inventing a fifth
+     recorded outcome. */
+  actions: arrayOf(shape({ choice: str, label: str })),
+  evidence: arrayOf(str),
+  graph_refs: arrayOf(str),
   justification: bool,
   decision: nullable(
     shape({ choice: str, justification: nullable(str), decided_at: str }),
@@ -1864,11 +1958,25 @@ const GRAPH_STUDIO_PAYLOAD = shape({
     alternative_id: str,
     title: str,
     detail: str,
+    /* Why this is a pivot rather than a queue row — the sentence the page prints
+       above the options, so it is the server's and not the component's. */
+    why_pivot: str,
+    confidence: num,
+    band: nullable(oneOf(['High', 'Medium', 'Low'])),
+    floor: str,
+    evidence: arrayOf(str),
+    graph_refs: arrayOf(str),
     options: arrayOf(shape({ option_id: str, label: str, consequence: str })),
     open: bool,
     chosen: nullable(str),
   }),
   pivot_count: num,
+  /* The recorded sanity checks, as chips. Question and hero ref only — the verdict
+     and the plan stay behind the query, so a chip cannot show an answer nobody
+     asked for. */
+  sanity_checks: arrayOf(
+    shape({ check_id: str, hero_question_id: str, question: str }),
+  ),
   batch_resolved: num,
   batch_total: num,
   publish: shape({ blocked: bool, reasons: arrayOf(str), explanation: str }),
@@ -1892,10 +2000,14 @@ const CANVAS_NODE = shape({
   label: str,
   sublabel: str,
   type: str,
+  /* Which of the build model's three element classes the node is. The colour folds
+     `concept` and `measure_element` into one hue, so this is where the distinction
+     survives — and it is the distinction the graph rebuild was about. */
+  element_class: oneOf(['thin_instance', 'concept', 'measure_element']),
   source: str,
   degree: num,
   r: num,
-  group: oneOf(['row', 'dimension', 'document', 'alias']),
+  group: oneOf(['row', 'schema', 'document', 'alias']),
   confidence: num,
   proposed: bool,
   origin: oneOf(['derived', 'studio-authored']),
@@ -1908,6 +2020,9 @@ const CANVAS_NODE = shape({
 })
 
 const CANVAS_EDGE = shape({
+  /* The graph's own edge id. A recorded sanity check names its hops by id, so the
+     highlight is the exact relationships the answer used. */
+  edge_id: str,
   from: str,
   to: str,
   label: str,
@@ -1928,20 +2043,52 @@ const CANVAS_PAYLOAD = shape({
     needs_review: num,
     studio_authored: num,
     groups: arrayOf(
-      shape({ key: oneOf(['row', 'dimension', 'document', 'alias']), count: num }),
+      shape({ key: oneOf(['row', 'schema', 'document', 'alias']), count: num }),
     ),
+    /* Per ontology type — what the ring encodes. Not a `oneOf`: the type list is the
+       graph's, and a new type must show up in the legend rather than fail here. */
+    types: arrayOf(shape({ key: str, count: num })),
   }),
 })
 
+/*
+ * A studio answer, from either route.
+ *
+ * The recorded fields are nullable because a derived walk has none of them — and
+ * `recorded` is the boolean that says which route answered, so a written verdict is
+ * never read as something the walk produced. Nullable rather than optional: a server
+ * that stopped sending `recorded` would otherwise read as "derived" on every answer.
+ */
 const QUERY_PAYLOAD = shape({
   question: str,
   answerable: bool,
   reason: str,
   matched: arrayOf(str),
   path: arrayOf(str),
-  edges_used: arrayOf(shape({ from: str, to: str, label: str })),
+  path_labels: arrayOf(str),
+  edges_used: arrayOf(
+    shape({
+      edge_id: str,
+      from: str,
+      to: str,
+      label: str,
+      from_label: str,
+      to_label: str,
+      proposed: bool,
+    }),
+  ),
   hops: num,
   caveats: arrayOf(str),
+  recorded: bool,
+  check_id: nullable(str),
+  hero_question_id: nullable(str),
+  matched_how: nullable(str),
+  verdict: nullable(str),
+  verdict_body: nullable(str),
+  context: arrayOf(shape({ chip: str, label: str, meta: str, ok: bool })),
+  plan: nullable(str),
+  cost_usd: nullable(num),
+  budget_usd: nullable(num),
   canvas: CANVAS_PAYLOAD,
 })
 
@@ -3093,12 +3240,16 @@ interface RawStudioGraph {
 
 interface RawReviewItem {
   item_id: string
-  kind: 'relationship' | 'entity'
+  kind: 'relationship' | 'entity' | 'measure'
   title: string
   detail: string
   confidence: number
+  band: 'High' | 'Medium' | 'Low' | null
   floor: string | null
   action_set: string
+  actions: { choice: string; label: string }[]
+  evidence: string[]
+  graph_refs: string[]
   justification: boolean
   decision: { choice: string; justification: string | null; decided_at: string } | null
 }
@@ -3117,11 +3268,18 @@ interface RawStudio extends RawStudioGraph {
     alternative_id: string
     title: string
     detail: string
+    why_pivot: string
+    confidence: number
+    band: 'High' | 'Medium' | 'Low' | null
+    floor: string
+    evidence: string[]
+    graph_refs: string[]
     options: { option_id: string; label: string; consequence: string }[]
     open: boolean
     chosen: string | null
   }
   pivot_count: number
+  sanity_checks: { check_id: string; hero_question_id: string; question: string }[]
   batch_resolved: number
   batch_total: number
   publish: { blocked: boolean; reasons: string[]; explanation: string }
@@ -3159,8 +3317,12 @@ const toReviewItem = (i: RawReviewItem): ReviewItem => ({
   title: i.title,
   detail: i.detail,
   confidence: i.confidence,
+  band: i.band,
   floor: i.floor,
   actionSet: i.action_set,
+  actions: i.actions.map((a) => ({ choice: a.choice as ReviewChoice, label: a.label })),
+  evidence: i.evidence,
+  graphRefs: i.graph_refs,
   justification: i.justification,
   decision: i.decision
     ? {
@@ -3186,6 +3348,12 @@ const toStudio = (raw: RawStudio): GraphStudioPayload => ({
     alternativeId: raw.pivot.alternative_id,
     title: raw.pivot.title,
     detail: raw.pivot.detail,
+    whyPivot: raw.pivot.why_pivot,
+    confidence: raw.pivot.confidence,
+    band: raw.pivot.band,
+    floor: raw.pivot.floor,
+    evidence: raw.pivot.evidence,
+    graphRefs: raw.pivot.graph_refs,
     options: raw.pivot.options.map((o) => ({
       optionId: o.option_id,
       label: o.label,
@@ -3195,6 +3363,11 @@ const toStudio = (raw: RawStudio): GraphStudioPayload => ({
     chosen: raw.pivot.chosen,
   },
   pivotCount: raw.pivot_count,
+  sanityChecks: raw.sanity_checks.map((c) => ({
+    checkId: c.check_id,
+    heroQuestionId: c.hero_question_id,
+    question: c.question,
+  })),
   batchResolved: raw.batch_resolved,
   batchTotal: raw.batch_total,
   publish: raw.publish,
@@ -3216,6 +3389,7 @@ interface RawCanvasNode {
   label: string
   sublabel: string
   type: string
+  element_class: 'thin_instance' | 'concept' | 'measure_element'
   source: string
   degree: number
   r: number
@@ -3234,6 +3408,7 @@ interface RawCanvasNode {
 interface RawCanvas {
   nodes: RawCanvasNode[]
   edges: {
+    edge_id: string
     from: string
     to: string
     label: string
@@ -3250,6 +3425,7 @@ interface RawCanvas {
     needs_review: number
     studio_authored: number
     groups: { key: CanvasGroup; count: number }[]
+    types: { key: string; count: number }[]
   }
 }
 
@@ -3259,6 +3435,7 @@ const toCanvas = (raw: RawCanvas): CanvasPayload => ({
     label: n.label,
     sublabel: n.sublabel,
     type: n.type,
+    elementClass: n.element_class,
     source: n.source,
     degree: n.degree,
     r: n.r,
@@ -3274,6 +3451,7 @@ const toCanvas = (raw: RawCanvas): CanvasPayload => ({
     y: n.y,
   })),
   edges: raw.edges.map((e) => ({
+    edgeId: e.edge_id,
     from: e.from,
     to: e.to,
     label: e.label,
@@ -3290,6 +3468,7 @@ const toCanvas = (raw: RawCanvas): CanvasPayload => ({
     needsReview: raw.facets.needs_review,
     studioAuthored: raw.facets.studio_authored,
     groups: raw.facets.groups,
+    types: raw.facets.types,
   },
 })
 
@@ -3457,9 +3636,28 @@ export async function askStudio(
     reason: string
     matched: string[]
     path: string[]
-    edges_used: { from: string; to: string; label: string }[]
+    path_labels: string[]
+    edges_used: {
+      edge_id: string
+      from: string
+      to: string
+      label: string
+      from_label: string
+      to_label: string
+      proposed: boolean
+    }[]
     hops: number
     caveats: string[]
+    recorded: boolean
+    check_id: string | null
+    hero_question_id: string | null
+    matched_how: string | null
+    verdict: string | null
+    verdict_body: string | null
+    context: { chip: string; label: string; meta: string; ok: boolean }[]
+    plan: string | null
+    cost_usd: number | null
+    budget_usd: number | null
     canvas: RawCanvas
   }>(
     'The answer',
@@ -3480,12 +3678,35 @@ export async function askStudio(
     reason: raw.reason,
     matched: raw.matched,
     path: raw.path,
-    // Resolved here rather than trusted from the server: the labels the answer
-    // shows must be the ones the canvas draws.
-    pathLabels: raw.path.map(label),
-    edgesUsed: raw.edges_used,
+    /*
+     * A chain only where there is one. For a derived walk the labels are resolved
+     * here rather than trusted, so what the answer shows is what the canvas draws;
+     * for a recorded check the server sends none, because its traversal is a
+     * sub-graph and arrow-joining its ids would claim a route nobody walked. The
+     * hops are in `edgesUsed` either way.
+     */
+    pathLabels: raw.recorded ? raw.path_labels : raw.path.map(label),
+    edgesUsed: raw.edges_used.map((e) => ({
+      edgeId: e.edge_id,
+      from: e.from,
+      to: e.to,
+      label: e.label,
+      fromLabel: e.from_label,
+      toLabel: e.to_label,
+      proposed: e.proposed,
+    })),
     hops: raw.hops,
     caveats: raw.caveats,
+    recorded: raw.recorded,
+    checkId: raw.check_id,
+    heroQuestionId: raw.hero_question_id,
+    matchedHow: raw.matched_how,
+    verdict: raw.verdict,
+    verdictBody: raw.verdict_body,
+    context: raw.context,
+    plan: raw.plan,
+    costUsd: raw.cost_usd,
+    budgetUsd: raw.budget_usd,
     canvas,
   }
 }

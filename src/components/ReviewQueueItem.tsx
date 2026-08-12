@@ -6,12 +6,18 @@ import { SP } from '../theme'
 import './ReviewQueueItem.css'
 
 /*
- * The buttons a row offers come from its `actionSet`, not from the page.
+ * The buttons a row offers come from the row, not from the page.
  *
- * A causal claim is approved *as causal* or downgraded to correlational —
- * "Approve" would hide which of the two happened, and only one of them keeps
- * the causal edge. Adding a set means adding it here *and* to the server's
- * `allowed` list, which is what refuses anything else.
+ * Each row states its own three, in its own terms: "Keep distinct", "Declare basis
+ * = manifest", "Leave orphaned". The *choice* behind each is still one of the fixed
+ * set — the server validates against this same list on the row — because what a
+ * decision means to the canvas has to be identical everywhere: `approve` keeps the
+ * element, `correct` marks it studio-authored, `reject` drops it.
+ *
+ * The families below are the fallback for a row that states no buttons of its own,
+ * and the reason a causal claim needs one: it is approved *as causal* or downgraded
+ * to correlational, and "Approve" would hide which of the two happened when only one
+ * keeps the causal edge.
  */
 const ACTIONS: Record<string, { choice: ReviewChoice; label: string }[]> = {
   standard: [
@@ -44,12 +50,18 @@ export default function ReviewQueueItem({
   onDecide: (choice: ReviewChoice, justification: string) => void
 }) {
   const [justification, setJustification] = useState('')
-  const actions = ACTIONS[item.actionSet] ?? ACTIONS.standard
+  // The row's own buttons where it has them; the family named by `actionSet` where
+  // it does not. Both come from the server, so neither can offer what it refuses.
+  const actions =
+    item.actions.length > 0 ? item.actions : (ACTIONS[item.actionSet] ?? ACTIONS.standard)
 
   return (
     <div className={`rq-item${item.decision ? ' is-decided' : ''}`}>
       <div className="rq-top">
         <span className="rq-kind">{item.kind}</span>
+        {/* The triage lane. Neutral like the kind chip and for the same reason: a
+            band is which queue the row landed in, not the state of the graph. */}
+        {item.band ? <span className="rq-band">{item.band}</span> : null}
         <span className="rq-title">{item.title}</span>
         {/* Confidence and the floor travel together: the number alone does not
             say why a human is being asked. */}
@@ -60,6 +72,17 @@ export default function ReviewQueueItem({
       </div>
 
       <div className="rq-detail">{item.detail}</div>
+
+      {/* What the deriver had to go on. Listed rather than folded into the detail
+          because a reviewer checking a row reads the evidence, not the prose — and
+          a row with none says nothing here rather than showing an empty heading. */}
+      {item.evidence.length > 0 ? (
+        <ul className="rq-evidence">
+          {item.evidence.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
 
       {item.decision ? (
         <div className="rq-decided">

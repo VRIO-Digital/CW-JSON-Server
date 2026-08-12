@@ -20,10 +20,11 @@ import {
 } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import type { CanvasNode, ReviewChoice } from '../api/client'
+import type { ReviewChoice } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import BuildTab from '../components/BuildTab'
 import GraphCanvas from '../components/GraphCanvas'
+import NodeInspector from '../components/NodeInspector'
 import PageHeader from '../components/PageHeader'
 import ReviewQueueItem from '../components/ReviewQueueItem'
 import StatCards from '../components/StatCards'
@@ -37,68 +38,6 @@ import {
 import { SP } from '../theme'
 import type { Stat } from '../types'
 import './GraphStudioPage.css'
-
-/** The inspector: what one node on the canvas actually is. */
-function Inspector({
-  node,
-  onReview,
-}: {
-  node: CanvasNode | null
-  onReview: () => void
-}) {
-  if (!node) {
-    return (
-      <div className="gs-inspector">
-        <div className="gs-inspector-title">Inspector</div>
-        <div className="gs-inspector-empty">Select a node on the canvas</div>
-      </div>
-    )
-  }
-  return (
-    <div className="gs-inspector">
-      <div className="gs-inspector-title">Inspector</div>
-      <div className="gs-inspector-name">{node.label}</div>
-      <div className="gs-inspector-sub">{node.sublabel}</div>
-
-      <dl className="gs-inspector-facts">
-        <dt>Type</dt>
-        <dd>{node.type}</dd>
-        {/* Which table or file this node was built from. A node whose provenance
-            is not on it is a claim the reader has to take on trust. */}
-        <dt>Source</dt>
-        <dd className="gs-inspector-source">{node.source}</dd>
-        <dt>Relationships</dt>
-        <dd>{node.degree}</dd>
-        <dt>Confidence</dt>
-        <dd>{node.confidence.toFixed(2)}</dd>
-        <dt>Built from</dt>
-        <dd>{node.group}</dd>
-        <dt>Origin</dt>
-        <dd>{node.origin}</dd>
-        <dt>State</dt>
-        <dd>
-          <StatusTag tone={node.proposed ? 'warn' : 'good'}>
-            {node.proposed ? 'under review' : 'confirmed'}
-          </StatusTag>
-        </dd>
-      </dl>
-
-      {/* A proposed node exists because a row in the queue is open. Saying so,
-          and linking there, is what keeps the two tabs one truth. */}
-      {node.proposed ? (
-        <>
-          <div className="gs-inspector-note">
-            This is proposed because its review item is still open. Decide it in
-            the review queue and the node stops being provisional.
-          </div>
-          <Button size="small" onClick={onReview}>
-            Open in review queue
-          </Button>
-        </>
-      ) : null}
-    </div>
-  )
-}
 
 export default function GraphStudioPage() {
   const { message } = App.useApp()
@@ -305,6 +244,18 @@ export default function GraphStudioPage() {
             </strong>
           </div>
           <div className="gs-pivot-detail">{pivot.detail}</div>
+          {/* Why it is a pivot and not a queue row. The server's sentence, because
+              this is the whole justification for the extra gate. */}
+          <div className="gs-pivot-why">{pivot.whyPivot}</div>
+          {/* Same evidence a queue row carries — a pivot is a review decision with a
+              wider blast radius, not a different kind of claim. */}
+          {pivot.evidence.length > 0 ? (
+            <ul className="gs-pivot-evidence">
+              {pivot.evidence.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
           <div className="gs-pivot-options">
             {pivot.options.map((o) => (
               <button
@@ -355,12 +306,16 @@ export default function GraphStudioPage() {
     </>
   )
 
-  async function onAsk() {
-    if (!question.trim()) {
+  /* `asked` is passed by a chip, which must not wait for the state it just set —
+     setQuestion is asynchronous, so reading `question` here would ask the previous
+     one. Typing still falls through to the box's value. */
+  async function onAsk(asked?: string) {
+    const text = (asked ?? question).trim()
+    if (!text) {
       message.warning('Type a question to ask the draft graph.')
       return
     }
-    const result = await ask(question.trim())
+    const result = await ask(text)
     if (!result.ok) message.error(result.error)
   }
 
@@ -375,10 +330,14 @@ export default function GraphStudioPage() {
             canvas={canvas}
             selected={selectedNode}
             onSelect={setSelectedNode}
+            /* The canvas shares this tab with the inspector and the studio's own
+               chrome, and 189 nodes want the window. The full view is the same
+               component on the same data — a bigger frame, not a second drawing. */
+            fullViewHref={`/graph-studio/${encodeURIComponent(useCaseId ?? '')}/canvas`}
           />
         </Col>
         <Col xs={24} xl={7}>
-          <Inspector
+          <NodeInspector
             node={canvas.nodes.find((n) => n.nodeId === selectedNode) ?? null}
             onReview={() => setTab('queue')}
           />
@@ -410,23 +369,103 @@ export default function GraphStudioPage() {
             Canvas tab.
           </div>
 
+          {/* The brief's own hero questions, as chips. Each one is a recorded
+              sanity check, so a chip is a promise the use case already made rather
+              than a suggestion written on this page. */}
+          {data.sanityChecks.length > 0 ? (
+            <div className="gs-query-chips">
+              {data.sanityChecks.map((c) => (
+                <Button
+                  key={c.checkId}
+                  size="small"
+                  disabled={asking}
+                  onClick={() => {
+                    setQuestion(c.question)
+                    void onAsk(c.question)
+                  }}
+                >
+                  <span className="gs-chip-label">{c.question}</span>
+                </Button>
+              ))}
+            </div>
+          ) : null}
+
           {answer ? (
             <div className="gs-answer">
-              <StatusTag tone={answer.answerable ? 'good' : 'crit'}>
-                {answer.answerable
-                  ? `answered over ${answer.hops} hop(s)`
-                  : 'cannot be answered'}
-              </StatusTag>
-              <div className="gs-answer-reason">{answer.reason}</div>
+              <Space size={SP.sm} wrap>
+                <StatusTag tone={answer.answerable ? 'good' : 'crit'}>
+                  {answer.answerable
+                    ? `answered over ${answer.hops} hop(s)`
+                    : 'cannot be answered'}
+                </StatusTag>
+                {/* Which route answered. A written verdict must never be read as
+                    something the walk derived, so the provenance is on the answer
+                    and not in a tooltip. Neutral: "recorded" is not a state. */}
+                {answer.recorded ? (
+                  <Tag variant="outlined">
+                    recorded check {answer.checkId}
+                    {answer.heroQuestionId ? ` · ${answer.heroQuestionId}` : ''}
+                  </Tag>
+                ) : (
+                  <Tag variant="outlined">derived from the draft</Tag>
+                )}
+                {answer.costUsd !== null ? (
+                  <Tag variant="outlined">
+                    ${answer.costUsd.toFixed(2)} of ${answer.budgetUsd?.toFixed(2)} budget
+                  </Tag>
+                ) : null}
+              </Space>
 
-              {answer.answerable ? (
-                <div className="gs-answer-path">
-                  {answer.pathLabels.join('  →  ')}
-                </div>
+              <div className="gs-answer-reason">{answer.reason}</div>
+              {answer.verdictBody ? (
+                <div className="gs-answer-body">{answer.verdictBody}</div>
+              ) : null}
+              {/* How a recorded check was matched, because "the same question" and
+                  "it shared four words" are different claims. */}
+              {answer.matchedHow ? (
+                <div className="gs-answer-match">Matched: {answer.matchedHow}</div>
+              ) : null}
+
+              {/* Context the check states beside its verdict. `ok: false` is a
+                  caveat rather than a confirmation, and reads as one. */}
+              {answer.context.length > 0 ? (
+                <ul className="gs-answer-context">
+                  {answer.context.map((c) => (
+                    <li key={`${c.chip}:${c.label}`} className={c.ok ? '' : 'is-pending'}>
+                      <span className="gs-context-chip">{c.chip}</span>
+                      <span className="gs-context-label">{c.label}</span>
+                      <span className="gs-context-meta">{c.meta}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {/* A chain only where the walk found one. A recorded traversal is a
+                  sub-graph, so its hops are listed instead of arrow-joined — three
+                  generators meeting at one TSDF is not a route. */}
+              {answer.pathLabels.length > 0 ? (
+                <div className="gs-answer-path">{answer.pathLabels.join('  →  ')}</div>
+              ) : null}
+              {answer.edgesUsed.length > 0 ? (
+                <ul className="gs-answer-hops">
+                  {answer.edgesUsed.map((h) => (
+                    <li key={h.edgeId} className={h.proposed ? 'is-proposed' : ''}>
+                      {h.fromLabel} <span className="gs-hop-rel">{h.label}</span>{' '}
+                      {h.toLabel}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {/* What the engine would run. Shown because a plan nobody can read is
+                  an answer taken on trust. */}
+              {answer.plan ? (
+                <pre className="gs-answer-plan">{answer.plan}</pre>
               ) : null}
 
               {/* An answer resting on an undecided edge is answerable *and*
-                  provisional. Publishing would change it. */}
+                  provisional. Publishing would change it — and a recorded check is
+                  not exempt: it is flagged from the edges it actually used. */}
               {answer.caveats.length > 0 ? (
                 <Alert
                   style={{ marginTop: SP.md }}

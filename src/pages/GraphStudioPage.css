@@ -73,6 +73,25 @@
   line-height: 1.55;
 }
 
+/* Why this is a pivot rather than a queue row — the sentence that justifies the
+   second gate, so it reads as the point and not as an aside. */
+.gs-pivot-why {
+  margin-top: var(--sp-2);
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.gs-pivot-evidence {
+  margin: var(--sp-2) 0 0;
+  padding-left: var(--sp-5);
+  color: #4b5a75;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
 .gs-pivot-options {
   display: flex;
   gap: var(--sp-3);
@@ -255,6 +274,126 @@
   color: #0f1729;
   font-size: 12.5px;
   font-weight: 600;
+  overflow-x: auto;
+}
+
+/* The hero-question chips. antd v6 buttons are inline-flex, so the ellipsis goes on
+   the inner span with min-width: 0 — on the flex container it does nothing, and text
+   clipped at both ends is the tell that it was tried there. */
+.gs-query-chips {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.gs-chip-label {
+  display: block;
+  max-width: 34ch;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gs-answer-body {
+  margin-top: var(--sp-3);
+  color: #0f1729;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.gs-answer-match {
+  margin-top: var(--sp-2);
+  color: #8994a8;
+  font-size: 11.5px;
+}
+
+/* Context a recorded check states beside its verdict. The list marker is dropped
+   because each row leads with its own chip. */
+.gs-answer-context {
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gs-answer-context li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.gs-context-chip {
+  padding: 1px var(--sp-2);
+  border: 1px solid #e9ecf1;
+  border-radius: 4px;
+  background: #f7f8fa;
+  color: #8994a8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+}
+
+.gs-context-label {
+  color: #0f1729;
+}
+
+.gs-context-meta {
+  color: #8994a8;
+}
+
+/* A row the check flagged rather than confirmed. `ok: false` on a context chip means
+   "this leans on something unsettled", which is a state, so it takes the warn ink the
+   caveat alert uses rather than a decorative tint. */
+.gs-answer-context li.is-pending .gs-context-chip {
+  border-color: #f2d5a8;
+  background: #fdf3e7;
+  color: #b45309;
+}
+
+.gs-answer-context li.is-pending .gs-context-label {
+  color: #b45309;
+}
+
+/* The relationships an answer travelled, one per line. A recorded traversal is a
+   sub-graph rather than a chain, so it is listed and never arrow-joined. */
+.gs-answer-hops {
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.gs-answer-hops li {
+  padding: var(--sp-1) 0;
+  color: #0f1729;
+}
+
+.gs-answer-hops li.is-proposed {
+  color: #b45309;
+}
+
+.gs-hop-rel {
+  padding: 0 var(--sp-2);
+  color: #8994a8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+/* The query plan. Scrolls in its own box: Cypher does not wrap usefully, and the
+   page body must never scroll sideways. */
+.gs-answer-plan {
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  background: #f7f8fa;
+  color: #4b5a75;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
   overflow-x: auto;
 }
 
