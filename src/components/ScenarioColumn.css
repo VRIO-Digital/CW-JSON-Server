@@ -1,0 +1,304 @@
+/*
+ * One scenario column. Spacing from the --sp-* scale only.
+ *
+ * The source tags are **categories** — which federal record a figure came from — so
+ * they stay tinted-but-neutral in weight and never borrow a STATUS colour. The one
+ * status on this card is a breach, which is red and carries a StatusTag with its own
+ * icon and words beside it.
+ */
+
+.sc {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.sc-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.sc-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: #fdeae4;
+  color: #f4562b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sc-remove {
+  padding: 0 var(--sp-2);
+  border: 0;
+  background: none;
+  color: #8994a8;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sc-remove:hover {
+  color: #f4562b;
+}
+
+.sc-label {
+  display: block;
+  margin-bottom: var(--sp-1);
+  color: #8994a8;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sc-select {
+  width: 100%;
+}
+
+.sc-loading {
+  padding: var(--sp-5) 0;
+  color: #8994a8;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ---- the federal sources behind the figures ---- */
+
+.sc-sources {
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.sc-sources li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+}
+
+.sc-src {
+  padding: 1px var(--sp-2);
+  flex-shrink: 0;
+  border: 1px solid #e9ecf1;
+  border-radius: 4px;
+  background: #f7f8fa;
+  color: #4b5a75;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+}
+
+/* One tint per source, as the package names them. A category, not a state. */
+.sc-src.is-man {
+  border-color: #cfe0f5;
+  background: #eef5fd;
+  color: #1f5aa8;
+}
+
+.sc-src.is-rcra {
+  border-color: #ddd3f5;
+  background: #f2eefd;
+  color: #5b3fa8;
+}
+
+.sc-src.is-echo {
+  border-color: #f5cdd3;
+  background: #fdeef1;
+  color: #a8283c;
+}
+
+.sc-src.is-doc {
+  border-color: #f2ddb8;
+  background: #fdf6e8;
+  color: #8a5a11;
+}
+
+.sc-src-line {
+  color: #4b5a75;
+}
+
+/* ---- the watched measures ---- */
+
+.sc-measures {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid #f2f4f7;
+}
+
+.sc-measure + .sc-measure {
+  margin-top: var(--sp-3);
+}
+
+.sc-measure-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.sc-measure-label {
+  color: #4b5a75;
+  font-size: 11.5px;
+}
+
+.sc-measure-value {
+  color: #0f1729;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A breach is the one status on this card, so it is the one place a status colour
+   appears — and it ships a StatusTag with an icon and words, never colour alone. */
+.sc-measure.is-breached .sc-measure-value {
+  color: #b3261e;
+}
+
+.sc-measure-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-top: 1px;
+  font-size: 10.5px;
+}
+
+.sc-delta {
+  color: #8994a8;
+}
+
+.sc-delta.is-up {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.sc-baseline {
+  color: #8994a8;
+}
+
+.sc-breach {
+  margin-top: var(--sp-2);
+}
+
+.sc-clean {
+  margin-top: var(--sp-3);
+}
+
+/* ---- trace, and the graph it references ---- */
+
+.sc-link {
+  margin-top: var(--sp-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #f4562b;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sc-link:hover {
+  text-decoration: underline;
+}
+
+.sc-trace {
+  margin-top: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid #f2f4f7;
+  border-radius: 8px;
+  background: #fbfcfd;
+  font-size: 11px;
+}
+
+.sc-trace-head {
+  margin-bottom: var(--sp-2);
+  color: #4b5a75;
+  line-height: 1.5;
+}
+
+.sc-trace-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+  color: #4b5a75;
+  line-height: 1.5;
+}
+
+.sc-trace-row.is-residual {
+  margin-top: var(--sp-1);
+  padding-top: var(--sp-2);
+  border-top: 1px dashed #e4e8ee;
+  color: #8994a8;
+}
+
+.sc-graph {
+  width: 100%;
+  /* Capped at the viewBox width: an SVG scales its text with everything else, so
+     without this the 9px labels render large on a wide column. */
+  max-width: 300px;
+  margin-top: var(--sp-2);
+}
+
+.sc-graph-edge {
+  stroke: #cfd6e0;
+  stroke-width: 1.2;
+}
+
+.sc-graph-node text {
+  fill: #4b5a75;
+  font-size: 9.5px;
+}
+
+.sc-graph-node circle {
+  fill: #8994a8;
+}
+
+/* The node hues are the package's own, and they name the ontology type the traversal
+   passed through — the same vocabulary the studio canvas uses. */
+.sc-graph-node.is-facility circle {
+  fill: #eb6834;
+}
+
+.sc-graph-node.is-generator circle {
+  fill: #2570cd;
+}
+
+.sc-graph-node.is-evaluation circle {
+  fill: #0f766e;
+}
+
+.sc-graph-node.is-violation circle {
+  fill: #b45309;
+}
+
+.sc-graph-node.is-enforcement circle {
+  fill: #be123c;
+}
+
+.sc-graph-node.is-document circle {
+  fill: #7c3aed;
+}
+
+.sc-save {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid #f2f4f7;
+}
+
+.sc-saved-flag {
+  color: #1b7f4f;
+  font-size: 11.5px;
+  font-weight: 600;
+}

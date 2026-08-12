@@ -477,6 +477,25 @@ const DB_SHAPE = {
      * to report. A missing key would look like a failed sanity check.
      */
     Array.isArray(v.sanity_checks),
+  /*
+   * The What-if lens. Every nested key is checked for the reason `column_profiles` is:
+   * losing one does not throw. Without `generators` the pools are empty and the page
+   * reads "no generator qualifies"; without `watched_measures` a scenario column has
+   * nothing to recompute and reads as "no inherited risk"; without `headroom` the
+   * inverse question prints an em dash, which reads as "no limit". All three are
+   * answers, and all three would be wrong.
+   */
+  whatif: (v) =>
+    isObject(v) &&
+    isObject(v.facility) &&
+    Array.isArray(v.generators) &&
+    v.generators.length > 0 &&
+    Array.isArray(v.watched_measures) &&
+    v.watched_measures.length > 0 &&
+    Array.isArray(v.candidate_pools) &&
+    Array.isArray(v.resolvable) &&
+    isObject(v.formats) &&
+    isObject(v.headroom),
 }
 
 const DB_HINTS = {
@@ -515,6 +534,9 @@ const DB_HINTS = {
   graph_studio:
     'object with review_items[], generated{}, pivot{}, canvas{ nodes[], edges[] }, ' +
     'sanity_checks[] — the recorded Query & sanity-check set, each { check_id, question, path[], edges_used[] }',
+  whatif:
+    'object with facility{}, generators[], watched_measures[], candidate_pools[], formats{}, ' +
+    'resolvable[], headroom{} — the What-if lens, from "npm run ingest:whatif"',
 }
 
 function validateDb(candidate) {
@@ -580,6 +602,56 @@ function validateDb(candidate) {
               'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
           )
         }
+      }
+    }
+  }
+
+  /*
+   * The What-if lens is a web of references into its own generator roster, and `/db`
+   * lets a user edit it live. Every one of these reads as an answer when it breaks: a
+   * measure on a field nobody carries shows 0 inherited risk, a pool on a missing field
+   * offers nobody, and a resolvable naming no measure reports "Resolved — added" and
+   * adds nothing. `npm run ingest:whatif` checks the same things against the package;
+   * this checks the document actually being served.
+   */
+  if (problems.length === 0) {
+    const w = candidate.whatif
+    const genFields = new Set(Object.keys(w.generators[0]))
+    const measureKeys = new Set(w.watched_measures.map((m) => m.key))
+    for (const m of w.watched_measures) {
+      if (!genFields.has(m.field)) {
+        problems.push(
+          `whatif.watched_measures "${m.key}" reads generator field "${m.field}", which no ` +
+            'generator carries — it would show as no inherited risk rather than as an error',
+        )
+      }
+      if (!(m.format in w.formats)) {
+        problems.push(
+          `whatif.watched_measures "${m.key}" wants format "${m.format}", which whatif.formats ` +
+            'does not define — its figure would print raw',
+        )
+      }
+    }
+    for (const p of w.candidate_pools) {
+      if (p.filter && !genFields.has(p.filter.field)) {
+        problems.push(
+          `whatif.candidate_pools "${p.key}" filters on "${p.filter.field}", which no generator ` +
+            'carries — the pool would offer nobody, which reads as "none qualify"',
+        )
+      }
+      if (!(p.key in w.headroom)) {
+        problems.push(
+          `whatif.headroom has no entry for pool "${p.key}" — the inverse question would print ` +
+            'an em dash, which reads as "no limit". Re-run "npm run ingest:whatif"',
+        )
+      }
+    }
+    for (const r of w.resolvable) {
+      if (r.resolves_to !== null && !measureKeys.has(r.resolves_to)) {
+        problems.push(
+          `whatif.resolvable "${r.keywords?.[0]}" resolves to "${r.resolves_to}", which is not a ` +
+            'watched measure — authoring would report success and add nothing',
+        )
       }
     }
   }
@@ -3101,6 +3173,192 @@ function browsableDocuments(source) {
 }
 
 
+/* ---------------- The What-if lens ----------------
+ *
+ * A read-only overlay on the graph: it admits a candidate load *hypothetically* and
+ * reports what that load would make the facility inherit. Nothing here writes to the
+ * graph, and the saved library holds generator ids rather than figures — which is what
+ * lets a saved scenario stay true as the graph changes.
+ */
+
+/** The saved library, in memory. Lost on restart, like a registered source. */
+const whatifSaved = new Map()
+let whatifSavedSeq = 1
+
+const WHATIF_OPS = {
+  '>': (a, b) => a > b,
+  '<': (a, b) => a < b,
+  '==': (a, b) => a === b,
+  '!=': (a, b) => a !== b,
+  '>=': (a, b) => a >= b,
+}
+
+/** The generators a pool admits. A pool with no filter is every generator. */
+const whatifPool = (poolKey) => {
+  const pool = db.whatif.candidate_pools.find((p) => p.key === poolKey)
+  if (!pool || pool.filter === null) return db.whatif.generators
+  const op = WHATIF_OPS[pool.filter.op]
+  return db.whatif.generators.filter((g) => op(g[pool.filter.field], pool.filter.value))
+}
+
+/**
+ * A figure, printed the way the package says to print it.
+ *
+ * The formats are data (`{v}`, `${v/1000}k`, `{v?yes:no}`) because the prototype's
+ * formatting closures were re-expressed declaratively — so this reads the template
+ * rather than carrying a second opinion about how a penalty is written. An unknown
+ * format prints the raw value rather than throwing: `validateDb` already refuses a
+ * measure naming one that does not exist, so reaching here means the document changed
+ * under a running process, and a raw number is more use than a crash.
+ */
+function whatifFormat(value, format) {
+  if (format === 'currency_k') return `$${Math.round(Number(value) / 1000)}k`
+  if (format === 'boolean_yesno') return value ? 'yes' : 'no'
+  return String(value)
+}
+
+/** The frame every scenario is judged inside. */
+const whatifFrame = () => ({
+  facility: db.whatif.facility,
+  generators: db.whatif.generators,
+  transporters: db.whatif.transporters,
+  watched_measures: db.whatif.watched_measures,
+  /* Each pool carries its own count, so an empty pool reads as "nobody qualifies"
+     rather than as a dropdown that failed to populate. */
+  candidate_pools: db.whatif.candidate_pools.map((p) => ({
+    ...p,
+    count: whatifPool(p.key).length,
+  })),
+  formats: db.whatif.formats,
+  /* One row per pool, computed at ingest and keyed by the pool it belongs to — an
+     array rather than a map so a missing pool is a short list rather than an undefined
+     lookup. `room: null` where nothing in the pool carries enforcement: there is no
+     break point to state, and dividing by zero would print "unlimited headroom", the
+     opposite of what an empty carrying set means. */
+  headroom: db.whatif.candidate_pools.map((p) => ({
+    pool: p.key,
+    ...db.whatif.headroom[p.key],
+  })),
+  copy: db.whatif.copy,
+  state_defaults: db.whatif.state_defaults,
+  authoring: db.whatif.authoring,
+  runtime: db.whatif.runtime,
+  graph_reference: db.whatif.graph_reference,
+})
+
+/**
+ * What admitting one load would inherit.
+ *
+ * Every measure reports three things and they are different questions: `inherited` is
+ * what this load brings, `baseline` is what the facility already carries, and `value`
+ * is the sum — the figure that gets judged against the appetite line. A measure with
+ * no baseline (a consent decree is not something a facility has a running count of)
+ * reports the load's own value and says its baseline is null rather than printing 0,
+ * because 0 would be a claim.
+ */
+function whatifScenario(generator, watchKeys) {
+  const { facility } = db.whatif
+  const measures = db.whatif.watched_measures
+    .filter((m) => watchKeys.includes(m.key))
+    .map((m) => {
+      const inherited = generator[m.field]
+      const baseline = m.baseline_field === null ? null : facility.baseline[m.baseline_field]
+      /* Summed only where a baseline exists. A boolean measure has nothing to add to. */
+      const value = baseline === null ? inherited : baseline + inherited
+      const appetite =
+        m.appetite_field === null ? null : facility.appetite[m.appetite_field]
+      const breached =
+        m.breach === null
+          ? false
+          : WHATIF_OPS[m.breach.op](value, facility.appetite[m.breach.against.slice('appetite.'.length)])
+      return {
+        key: m.key,
+        label: m.label,
+        source: m.source,
+        grounds: m.grounds,
+        unit: m.unit,
+        value,
+        value_text: whatifFormat(value, m.format),
+        inherited,
+        inherited_text: whatifFormat(inherited, m.format),
+        baseline,
+        baseline_text: baseline === null ? null : whatifFormat(baseline, m.format),
+        appetite,
+        breached,
+        /* Whether this load moved the figure at all. A load that changes nothing is a
+           real answer and reads better than a "▲ +0". */
+        moved: m.format === 'boolean_yesno' ? Boolean(inherited) : Number(inherited) > 0,
+      }
+    })
+
+  /*
+   * The source lines, filled from the package's templates. Every figure on the card
+   * cites the federal source it came from — "no value is invented" is the promise, and
+   * a citation the reader cannot see is not one.
+   */
+  const filled = db.whatif.runtime.sources.map((s) => {
+    const line = s.line
+      .replaceAll('{transporter}', generator.transporter)
+      .replaceAll('{manifests}', String(generator.manifests))
+      .replaceAll('{tons}', String(Math.round(generator.tons)))
+      .replaceAll('{id}', generator.id)
+      .replaceAll('{evaluations}', String(generator.evaluations))
+      .replaceAll('{violations}', String(generator.violations))
+      .replaceAll('{enforcement}', String(generator.enforcement))
+      .replaceAll('{last_enforcement}', generator.last_enforcement)
+      .replaceAll('{name}', generator.name)
+    /* ECHO's template carries both readings separated by "|" — the enforcement line and
+       the no-enforcement line — because whether a generator has public enforcement is
+       exactly what that source answers. */
+    const [withEnf, withoutEnf] = line.split('  |  ')
+    return {
+      key: s.key,
+      label: s.label,
+      line:
+        s.key === 'ECHO'
+          ? generator.enforcement > 0
+            ? withEnf
+            : (withoutEnf ?? withEnf)
+          : line,
+      // The document source only applies where a decree was actually extracted.
+      applies: s.key === 'DOC' ? Boolean(generator.consent_decree) : true,
+    }
+  })
+
+  const flagged =
+    generator.violations > 0 || generator.enforcement > 0 || Boolean(generator.consent_decree)
+
+  return {
+    generator,
+    measures,
+    sources: filled.filter((s) => s.applies),
+    /* Nothing connects to this load, said plainly. The alternative — an empty trace
+       panel — reads as "not checked" rather than "checked, and clean". */
+    flagged,
+    clean_note: flagged ? null : db.whatif.runtime.scenario_card.clean_note,
+    /* What the scenario cannot see. Stated rather than hidden, so a reader does not
+       take these figures for the whole picture. */
+    residual_note: db.whatif.runtime.scenario_card.residual_note,
+    /* The subgraph this load traverses — drawn on the card. Built from what the
+       generator actually carries, so a clean load draws no enforcement node. */
+    subgraph: {
+      nodes: [
+        { key: 'generator', label: generator.name, risk: generator.risk },
+        { key: 'evaluation', label: `${generator.evaluations} evaluations` },
+        ...(generator.violations > 0
+          ? [{ key: 'violation', label: `${generator.violations} violations` }]
+          : []),
+        ...(generator.enforcement > 0
+          ? [{ key: 'enforcement', label: `${generator.enforcement} enforcement` }]
+          : []),
+        ...(generator.consent_decree ? [{ key: 'document', label: 'consent decree' }] : []),
+        { key: 'facility', label: db.whatif.facility.name },
+      ],
+      relationships: db.whatif.graph_reference.relationships,
+    },
+  }
+}
+
 const routes = [
   /* ---------------- db.json editor ---------------- */
 
@@ -5242,6 +5500,186 @@ const routes = [
       }
       registered.delete(sourceId)
       send(res, 200, { deleted: sourceId })
+    },
+  },
+
+  /* ---------------- The What-if lens ---------------- */
+
+  /*
+   * The frame: the facility, the measures that can be watched, the pools a scenario
+   * can draw from, and the copy the page prints.
+   *
+   * **`resolvable` is deliberately not in this payload.** It is the list of phrasings
+   * the graph can ground, and the whole premise of the authoring step is that the
+   * *graph* decides what grounds — "what doesn't ground is refused, not invented". A
+   * client holding the keyword list could answer that itself, which would make the
+   * refusal a piece of theatre. It stays server-side and `POST /whatif/resolve` is the
+   * only way to ask.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/whatif',
+    handle: (_req, res) => {
+      const connected = connectedSources().length
+      // Gated like every other analysis page: nothing exists until a source is
+      // connected, and a lens over an empty graph would be a lens over nothing.
+      if (connected === 0) {
+        return send(res, 200, {
+          connected_sources: 0,
+          facility: null,
+          generators: [],
+          watched_measures: [],
+          candidate_pools: [],
+          formats: {},
+          headroom: [],
+          saved: [],
+          copy: db.whatif.copy,
+          state_defaults: db.whatif.state_defaults,
+          authoring: db.whatif.authoring,
+          runtime: db.whatif.runtime,
+          graph_reference: db.whatif.graph_reference,
+        })
+      }
+      send(res, 200, {
+        connected_sources: connected,
+        ...whatifFrame(),
+        saved: [...whatifSaved.values()],
+      })
+    },
+  },
+
+  /*
+   * Resolving a typed measure against the graph.
+   *
+   * Three verdicts and they are the point: `resolved` adds the measure it grounded to,
+   * `grounds_not_inherited` explains that the measure is real but measures the wrong
+   * thing (tonnage measures the Manifest, not inherited risk), and `refused` says
+   * nothing in this graph resolves it. Paced like the suggesters, because a resolution
+   * that returns instantly reads as a lookup in a list the client already had — which
+   * is exactly what this is not.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/whatif/resolve',
+    handle: async (req, res) => {
+      const { text } = await readJson(req)
+      const asked = String(text ?? '').trim()
+      if (!asked) return send(res, 400, { error: 'type a measure to resolve against the graph' })
+
+      const hit = db.whatif.resolvable.find((r) =>
+        r.keywords.some((k) => asked.toLowerCase().includes(k)),
+      )
+      const copy = db.whatif.resolve_copy
+      const fill = (s) =>
+        String(s ?? '')
+          .replaceAll('{q}', asked)
+          .replaceAll(
+            '{label}',
+            db.whatif.watched_measures.find((m) => m.key === hit?.resolves_to)?.label ?? '',
+          )
+
+      const answer = !hit
+        ? {
+            verdict: 'refused',
+            measure_key: null,
+            tone: copy.refused.tone,
+            title: fill(copy.refused.title),
+            body: fill(copy.refused.body),
+          }
+        : hit.verdict === 'grounds_not_inherited'
+          ? {
+              verdict: 'grounds_not_inherited',
+              measure_key: null,
+              tone: copy.grounds_not_inherited.tone,
+              title: fill(copy.grounds_not_inherited.title),
+              body: `${hit.note}.`,
+            }
+          : {
+              verdict: 'resolved',
+              measure_key: hit.resolves_to,
+              tone: copy.resolved.tone,
+              title: fill(copy.resolved.title),
+              body: `${hit.note}.`,
+            }
+
+      setTimeout(() => send(res, 200, { text: asked, ...answer }), SUGGEST_MS).unref?.()
+    },
+  },
+
+  /*
+   * One scenario column: what admitting this load would inherit.
+   *
+   * Computed on the server, every time, because a figure the page arrived at itself is
+   * a figure with two sources. Nothing is stored — a scenario is a read-only overlay
+   * and this route writes nothing, which is what lets the copy promise it never writes
+   * back. Not paced: this is a traversal, not a model call, and the copy says every
+   * figure recomputes *live* when a load is swapped.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/whatif/scenario',
+    handle: async (req, res) => {
+      const { generator_id, watch } = await readJson(req)
+      const generator = db.whatif.generators.find((g) => g.id === generator_id)
+      if (!generator) {
+        return send(res, 404, {
+          error: `no generator ${generator_id} in this pool — the Runtime only offers loads the frame allows`,
+        })
+      }
+      const keys = Array.isArray(watch) ? watch : []
+      const unknown = keys.filter((k) => !db.whatif.watched_measures.some((m) => m.key === k))
+      if (unknown.length > 0) {
+        return send(res, 400, {
+          error: `not a watched measure: ${unknown.join(', ')} — author it in step 1 first`,
+        })
+      }
+      send(res, 200, whatifScenario(generator, keys))
+    },
+  },
+
+  /*
+   * The saved library. **It stores the admitted load and never the numbers**, so a
+   * saved scenario stays live as the graph changes — re-opening it recomputes. That is
+   * the whole reason `POST /whatif/scenario` exists separately: the library holds a
+   * generator id, and the figures are derived every time they are shown.
+   *
+   * In memory, like registered sources: a scenario library is a working session, not
+   * something a mock writes back over its seed.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/whatif/saved',
+    handle: async (req, res) => {
+      const { saved_id, name, generator_id } = await readJson(req)
+      const generator = db.whatif.generators.find((g) => g.id === generator_id)
+      if (!generator) return send(res, 404, { error: `no generator ${generator_id}` })
+
+      /* The package's own default, so an unnamed scenario is still identifiable in the
+         library rather than listed as an empty row. */
+      const fallback = db.whatif.runtime.saved_library.default_name_template.replace(
+        '{first_two_words_of_generator}',
+        generator.name.split(/\s+/).slice(0, 2).join(' '),
+      )
+      const label = String(name ?? '').trim() || fallback
+
+      // An update keeps the id, so the column stays linked to its library entry.
+      const id = saved_id && whatifSaved.has(saved_id) ? saved_id : `sv-${whatifSavedSeq++}`
+      whatifSaved.set(id, { saved_id: id, name: label, generator_id })
+      send(res, 200, { saved: [...whatifSaved.values()] })
+    },
+  },
+
+  {
+    method: 'DELETE',
+    match: (p) => /^\/whatif\/saved\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/whatif/saved/'.length))
+      if (!whatifSaved.has(id)) return send(res, 404, { error: `no saved scenario ${id}` })
+      whatifSaved.delete(id)
+      /* Deleting from the library leaves any open column in place, just unlinked — the
+         page turns it back into an unsaved draft rather than closing it out from under
+         the reader. */
+      send(res, 200, { saved: [...whatifSaved.values()], deleted: id })
     },
   },
 ]

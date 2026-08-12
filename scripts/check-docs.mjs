@@ -1591,6 +1591,168 @@ expect(
   `${routeCount} routes implemented, ${declared.size} listed in the header comment`,
 )
 
+/* ---------------- the What-if lens ---------------- */
+
+/*
+ * The package is the source of truth, the same rule the canvas follows. Every claim
+ * here compares `db.whatif` against
+ * "09 What if lens"/whatif_vls_data.json, so a hand-edit to either shows up as a
+ * disagreement rather than as a page that quietly no longer matches its data.
+ */
+const whatifPkgPath = 'vls_demo_data_package_2026-08-10/09_What if lens/whatif_vls_data.json'
+const whatifPkgHere = existsSync(join(root, whatifPkgPath))
+expect(
+  'the What-if package is where its ingest reads it from',
+  whatifPkgHere && read('scripts/ingest-whatif.mjs').includes(whatifPkgPath),
+  whatifPkgHere ? whatifPkgPath : `${whatifPkgPath} is not in this checkout`,
+)
+/* Read only once its presence is a claim of its own, so a wrong path is a red claim
+   naming the file rather than a stack trace nobody reads as a doc failure. */
+const whatifPkg = whatifPkgHere ? JSON.parse(read(whatifPkgPath)) : null
+const whatif = db.whatif
+
+expect(
+  'every generator the package ships reaches db.whatif',
+  whatifPkg !== null && whatif.generators.length === whatifPkg.generators.length,
+  `${whatif.generators.length} generators`,
+)
+/*
+ * The four reference classes the ingest checks, re-checked against the *document being
+ * served*. Each fails silently: a measure on a missing field renders as no inherited
+ * risk, a pool on a missing field offers nobody, a resolvable naming no measure reports
+ * success and adds nothing.
+ */
+const genFields = new Set(Object.keys(whatif.generators[0]))
+const measureKeys = new Set(whatif.watched_measures.map((m) => m.key))
+expect(
+  'every watched measure reads a field a generator actually carries',
+  whatif.watched_measures.every((m) => genFields.has(m.field)),
+  whatif.watched_measures.map((m) => `${m.key}→${m.field}`).join(' · '),
+)
+expect(
+  'and names a format the package defines',
+  whatif.watched_measures.every((m) => m.format in whatif.formats),
+  Object.keys(whatif.formats).join(', '),
+)
+expect(
+  'every pool filters on a real field and has a headroom row',
+  whatif.candidate_pools.every(
+    (p) => (p.filter === null || genFields.has(p.filter.field)) && p.key in whatif.headroom,
+  ),
+  whatif.candidate_pools.map((p) => p.key).join(', '),
+)
+expect(
+  'every resolvable phrasing resolves to a measure or to nothing on purpose',
+  whatif.resolvable.every((r) => r.resolves_to === null || measureKeys.has(r.resolves_to)),
+  `${whatif.resolvable.length} phrasings`,
+)
+/* A keyword on two entries makes the verdict depend on list order — the same "a tie
+   matches nothing" problem `matchTemplate` has. */
+const whatifKeywords = whatif.resolvable.flatMap((r) => r.keywords)
+expect(
+  'and no keyword appears on two of them, so no verdict is order-dependent',
+  new Set(whatifKeywords).size === whatifKeywords.length,
+  `${whatifKeywords.length} keywords, ${new Set(whatifKeywords).size} distinct`,
+)
+expect(
+  'the server refuses a document that breaks any of those',
+  /whatif\.watched_measures "\$\{m\.key\}" reads generator field/.test(server) &&
+    /whatif\.candidate_pools "\$\{p\.key\}" filters on/.test(server) &&
+    /whatif\.resolvable ".*" resolves to/.test(server),
+  'validateDb checks whatif across keys, like the studio canvas',
+)
+
+/*
+ * The premise of the authoring step: the *graph* decides what grounds. A client holding
+ * the keyword list could answer for itself, and the refusal would be theatre.
+ */
+expect(
+  'the resolvable keyword list never reaches the client',
+  /\*\*`resolvable` is deliberately not in this payload\.\*\*/.test(server) &&
+    !/resolvable: db\.whatif\.resolvable/.test(server) &&
+    !read('src/api/client.ts').includes('resolvable:'),
+  'POST /whatif/resolve is the only way to ask',
+)
+/*
+ * The library's contract, and the reason a scenario is computed rather than stored: it
+ * keeps the admitted load so every figure recomputes against today's graph.
+ */
+expect(
+  'the saved library stores the admitted load and never the figures',
+  /whatifSaved\.set\(id, \{ saved_id: id, name: label, generator_id \}\)/.test(server) &&
+    !/whatifSaved\.set\([^)]*measures/.test(server),
+  'a saved scenario stays live as the graph changes',
+)
+expect(
+  'and the store keeps a column as its load, not its numbers',
+  /export interface ScenarioColumn \{/.test(read('src/store/whatifStore.ts')) &&
+    /generatorId: string/.test(read('src/store/whatifStore.ts')),
+  'figures live in `computed`, derived on every swap',
+)
+/*
+ * The pool filters exist twice — as data on the server, and as a switch in the store so
+ * the dropdown can list membership rather than only count it. The two must agree, or a
+ * pool offers loads the frame excluded.
+ */
+const storeSrc = read('src/store/whatifStore.ts')
+expect(
+  'the client has a membership rule for every pool the package ships',
+  whatif.candidate_pools
+    .filter((p) => p.filter !== null)
+    .every((p) => new RegExp(`case '${p.key}':`).test(storeSrc)),
+  whatif.candidate_pools.map((p) => p.key).join(', '),
+)
+/* The breach rule is real but unreachable against this roster — the appetite is 10 and
+   the largest single load carries 4. Asserted so nobody "fixes" the styling by inventing
+   a breach, and so a data change that *does* make it reachable is noticed. */
+const enfMeasure = whatif.watched_measures.find((m) => m.key === 'enf')
+/* Read off the measure rather than hardcoded here, so this stays a claim about the
+   breach rule the data declares and not about the word "enf". */
+const maxLoad = Math.max(...whatif.generators.map((g) => g[enfMeasure.field]))
+const enfBaseline = whatif.facility.baseline[enfMeasure.baseline_field]
+const enfAppetite = whatif.facility.appetite[enfMeasure.appetite_field]
+expect(
+  'CLAUDE.md states whether one load can breach the appetite line',
+  maxLoad + enfBaseline < enfAppetite ===
+    claude.includes('The breach rule is real but currently unreachable'),
+  `max load ${maxLoad} + baseline ${enfBaseline} vs appetite ${enfAppetite}`,
+)
+expect(
+  'and headroom is the package formula, computed once on the server',
+  whatifPkg !== null &&
+    whatifPkg.runtime.headroom.formula.includes('floor((appetite.enf - baseline.enf)') &&
+    /Math\.floor\(\(appetite - pkg\.facility\.baseline/.test(read('scripts/ingest-whatif.mjs')) &&
+    !/Math\.floor/.test(read('src/pages/WhatIfPage.tsx')),
+  'a break point computed in the page would be arithmetic on a measure',
+)
+/*
+ * The connection gate replaces the lens rather than sitting under it.
+ *
+ * The page printed its header chrome above `NoSourceConnected`: the banner naming 36
+ * inbound generators and the provenance note naming the package the figures came from,
+ * both above the sentence "No data source is connected". Nothing errored — a claim about
+ * data that is not there reads as data.
+ *
+ * Guarded structurally: the whole lens lives in one component rendered only on the
+ * connected branch, so the gate has no source-derived copy to leak. Asserted both ways —
+ * absent from the gate, present in the lens — because deleting the strings would
+ * otherwise satisfy half of it.
+ */
+const whatIfSrc = read('src/pages/WhatIfPage.tsx')
+const gateAt = whatIfSrc.indexOf('export default function WhatIfPage(')
+const lensAt = whatIfSrc.indexOf('\nfunction ', gateAt)
+const gatedCopy = ['copy.banner', 'copy.overlayPill', 'copy.dataNote']
+expect(
+  'the What-if gate replaces the lens rather than rendering beside it',
+  gateAt !== -1 &&
+    lensAt > gateAt &&
+    whatIfSrc.slice(gateAt, lensAt).includes('NoSourceConnected') &&
+    gatedCopy.every(
+      (k) => !whatIfSrc.slice(gateAt, lensAt).includes(k) && whatIfSrc.slice(lensAt).includes(k),
+    ),
+  `${gatedCopy.join(', ')} render only where a source is connected`,
+)
+
 /* ---------------- nav / route parity ---------------- */
 
 const navKeys = [...nav.matchAll(/^ *\{ key: '(\w+)'|^ *key: '(\w+)',/gm)]

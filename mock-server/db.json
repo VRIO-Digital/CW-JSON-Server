@@ -5993,67 +5993,7 @@
       }
     ]
   },
-  "graph_use_cases": [
-    {
-      "use_case_id": "uc-waste-management-msprsil92",
-      "name": "Waste Management",
-      "status": "committed",
-      "domain_id": "hazardous-waste",
-      "business_need": "tewrt",
-      "personas": [
-        {
-          "name": "Chief Information Officer",
-          "description": "Unify fragmented compliance data without ripping out existing systems; trust the answers (evidence + confidence).",
-          "source": "ai"
-        },
-        {
-          "name": "Operations Director, Deer Park",
-          "description": "Understand inbound volume, rejections, and transporter performance (days in possession).",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Rejected inbound loads",
-          "description": "Measured in manifests, from e_manifest REJECTION=Y.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "bigquery:vrio-contextweave-demo",
-          "mode": "subset",
-          "objects": [
-            "epa_hazwaste.e_manifest_all",
-            "epa_hazwaste.e_manifest"
-          ]
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "Is ‘Texas Molecular’ the same facility as ‘Texas Molecular LP’ — how does the system know?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Which generators shipping to Deer Park are under active RCRA enforcement, and how much waste did we accept from them?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "citations": "required",
-      "answer_formats": [
-        {
-          "format_id": "volume-rollup",
-          "name": "Volume rollup",
-          "format": "scalar + grouped table"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 7,
-      "updated_at": "2026-08-12T07:31:47.637Z"
-    }
-  ],
+  "graph_use_cases": [],
   "graph_personas": [
     {
       "persona_id": "reliability-engineer",
@@ -12054,5 +11994,788 @@
       "confidence_level": "High",
       "confidence": 0.95
     }
-  ]
+  ],
+  "whatif": {
+    "copy": {
+      "page_title": "What-if",
+      "banner": "VLS Texas Molecular — Deer Park, TX · built on the real VLS demo graph (36 inbound generators, EPA RCRAInfo + e-Manifest + ECHO, synthetic figures). A scenario admits a candidate load into the graph; the watched measures recompute by traversal to federal records.",
+      "subtitle": "See the risk before you accept the next load. Authoring sets the frame — which measures you watch, and which pool of candidate generators you draw from. Then in Runtime you swap loads in and out live, save the ones worth keeping, and open any figure to the federal record it came from. Nothing is predicted.",
+      "overlay_pill": "◈ read-only overlay · never writes back",
+      "tabs": [
+        {
+          "key": "author",
+          "label": "Authoring"
+        },
+        {
+          "key": "runtime",
+          "label": "Runtime"
+        }
+      ],
+      "data_note": "Synthetic values, real names. Source: vls_demo_data_package_2026-08-10 / 07_reports + 05_knowledge_graph."
+    },
+    "state_defaults": {
+      "tab": "author",
+      "step": 1,
+      "count": 2,
+      "watch": {
+        "enf": true,
+        "penalty": true,
+        "viols": true,
+        "cd": false
+      },
+      "pool": "all"
+    },
+    "facility": {
+      "id": "FAC:TXD000719518",
+      "name": "VLS Texas Molecular",
+      "role": "RCRA Class I injection TSDF · Deer Park, TX",
+      "baseline": {
+        "enf": 0,
+        "penalty": 0,
+        "viols": 1
+      },
+      "appetite": {
+        "enf": 10
+      }
+    },
+    "transporters": [
+      "Sprint Waste Services LP",
+      "Veolia ES Technical Solutions LLC",
+      "US Ecology Texas Inc.",
+      "Cyn Environmental Services"
+    ],
+    "generators": [
+      {
+        "id": "TXD100000",
+        "name": "Arkema Inc. Crosby",
+        "state": "TX",
+        "risk": "high",
+        "transporter": "Sprint Waste Services LP",
+        "evaluations": 14,
+        "violations": 4,
+        "enforcement": 4,
+        "penalty": 397500,
+        "tons": 1355,
+        "manifests": 60,
+        "consent_decree": false,
+        "last_enforcement": "03/25/2026"
+      },
+      {
+        "id": "TXD107919",
+        "name": "ExxonMobil Baytown Complex",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "Veolia ES Technical Solutions LLC",
+        "evaluations": 12,
+        "violations": 3,
+        "enforcement": 2,
+        "penalty": 318000,
+        "tons": 1061.8,
+        "manifests": 46,
+        "consent_decree": false,
+        "last_enforcement": "03/02/2026"
+      },
+      {
+        "id": "TXD115838",
+        "name": "J.R. Simplot Company Don Plant",
+        "state": "ID",
+        "risk": "high",
+        "transporter": "US Ecology Texas Inc.",
+        "evaluations": 16,
+        "violations": 9,
+        "enforcement": 4,
+        "penalty": 293500,
+        "tons": 350.4,
+        "manifests": 15,
+        "consent_decree": true,
+        "last_enforcement": "01/08/2026"
+      },
+      {
+        "id": "TXD123757",
+        "name": "Ascend Performance Materials Pasadena",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "Cyn Environmental Services",
+        "evaluations": 12,
+        "violations": 3,
+        "enforcement": 2,
+        "penalty": 252000,
+        "tons": 741.7,
+        "manifests": 35,
+        "consent_decree": false,
+        "last_enforcement": "07/31/2021"
+      },
+      {
+        "id": "TXD131676",
+        "name": "PCS Nitrogen Fertilizer LP",
+        "state": "LA",
+        "risk": "high",
+        "transporter": "Sprint Waste Services LP",
+        "evaluations": 17,
+        "violations": 6,
+        "enforcement": 3,
+        "penalty": 164000,
+        "tons": 472.7,
+        "manifests": 21,
+        "consent_decree": true,
+        "last_enforcement": "10/04/2022"
+      },
+      {
+        "id": "TXD139595",
+        "name": "Intercontinental Terminals Company Deer Park",
+        "state": "TX",
+        "risk": "high",
+        "transporter": "Veolia ES Technical Solutions LLC",
+        "evaluations": 20,
+        "violations": 6,
+        "enforcement": 1,
+        "penalty": 78000,
+        "tons": 1061.4,
+        "manifests": 52,
+        "consent_decree": false,
+        "last_enforcement": "03/07/2022"
+      },
+      {
+        "id": "TXD147514",
+        "name": "Dow Chemical La Porte Operations",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "US Ecology Texas Inc.",
+        "evaluations": 8,
+        "violations": 1,
+        "enforcement": 1,
+        "penalty": 78000,
+        "tons": 841.8,
+        "manifests": 33,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD155433",
+        "name": "Denka Performance Elastomer LLC",
+        "state": "LA",
+        "risk": "high",
+        "transporter": "Cyn Environmental Services",
+        "evaluations": 14,
+        "violations": 9,
+        "enforcement": 3,
+        "penalty": 70500,
+        "tons": 579.1,
+        "manifests": 28,
+        "consent_decree": true,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD163352",
+        "name": "Vopak Terminal Deer Park",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "Sprint Waste Services LP",
+        "evaluations": 9,
+        "violations": 3,
+        "enforcement": 1,
+        "penalty": 34000,
+        "tons": 909.5,
+        "manifests": 40,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD171271",
+        "name": "TPC Group Houston Plant",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "Veolia ES Technical Solutions LLC",
+        "evaluations": 9,
+        "violations": 3,
+        "enforcement": 1,
+        "penalty": 34000,
+        "tons": 1175.3,
+        "manifests": 46,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD179190",
+        "name": "Marathon Galveston Bay Refinery",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "US Ecology Texas Inc.",
+        "evaluations": 10,
+        "violations": 3,
+        "enforcement": 2,
+        "penalty": 32500,
+        "tons": 988,
+        "manifests": 40,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD187109",
+        "name": "Pemex Deer Park",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "Cyn Environmental Services",
+        "evaluations": 11,
+        "violations": 4,
+        "enforcement": 2,
+        "penalty": 25000,
+        "tons": 1085.4,
+        "manifests": 46,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD195028",
+        "name": "The Chemours Company Fayetteville Works",
+        "state": "NC",
+        "risk": "high",
+        "transporter": "Sprint Waste Services LP",
+        "evaluations": 9,
+        "violations": 4,
+        "enforcement": 1,
+        "penalty": 12000,
+        "tons": 473.4,
+        "manifests": 19,
+        "consent_decree": true,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD202947",
+        "name": "LyondellBasell Channelview Complex",
+        "state": "TX",
+        "risk": "high",
+        "transporter": "Veolia ES Technical Solutions LLC",
+        "evaluations": 13,
+        "violations": 5,
+        "enforcement": 1,
+        "penalty": 7500,
+        "tons": 1502.7,
+        "manifests": 61,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD210866",
+        "name": "Chevron Phillips Chemical Cedar Bayou Plant",
+        "state": "TX",
+        "risk": "low",
+        "transporter": "US Ecology Texas Inc.",
+        "evaluations": 6,
+        "violations": 0,
+        "enforcement": 0,
+        "penalty": 0,
+        "tons": 402.9,
+        "manifests": 20,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD218785",
+        "name": "LyondellBasell Houston Refinery",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "Cyn Environmental Services",
+        "evaluations": 7,
+        "violations": 1,
+        "enforcement": 1,
+        "penalty": 0,
+        "tons": 847.5,
+        "manifests": 36,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD226704",
+        "name": "INEOS Olefins & Polymers USA La Porte",
+        "state": "TX",
+        "risk": "low",
+        "transporter": "Sprint Waste Services LP",
+        "evaluations": 6,
+        "violations": 1,
+        "enforcement": 0,
+        "penalty": 0,
+        "tons": 662.5,
+        "manifests": 27,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD234623",
+        "name": "Covestro LLC Baytown",
+        "state": "TX",
+        "risk": "low",
+        "transporter": "Veolia ES Technical Solutions LLC",
+        "evaluations": 6,
+        "violations": 0,
+        "enforcement": 0,
+        "penalty": 0,
+        "tons": 678.3,
+        "manifests": 27,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD242542",
+        "name": "Occidental Chemical Deer Park",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "US Ecology Texas Inc.",
+        "evaluations": 7,
+        "violations": 1,
+        "enforcement": 0,
+        "penalty": 0,
+        "tons": 905.9,
+        "manifests": 40,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD250461",
+        "name": "Celanese Clear Lake Plant",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "Cyn Environmental Services",
+        "evaluations": 9,
+        "violations": 4,
+        "enforcement": 0,
+        "penalty": 0,
+        "tons": 1110.4,
+        "manifests": 51,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD258380",
+        "name": "Valero Houston Refinery",
+        "state": "TX",
+        "risk": "med",
+        "transporter": "Sprint Waste Services LP",
+        "evaluations": 6,
+        "violations": 1,
+        "enforcement": 0,
+        "penalty": 0,
+        "tons": 1084.7,
+        "manifests": 47,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD266299",
+        "name": "Occidental Chemical La Porte",
+        "state": "TX",
+        "risk": "low",
+        "transporter": "Veolia ES Technical Solutions LLC",
+        "evaluations": 5,
+        "violations": 0,
+        "enforcement": 0,
+        "penalty": 0,
+        "tons": 423.5,
+        "manifests": 25,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD274218",
+        "name": "Lubrizol Deer Park",
+        "state": "TX",
+        "risk": "low",
+        "transporter": "US Ecology Texas Inc.",
+        "evaluations": 5,
+        "violations": 1,
+        "enforcement": 0,
+        "penalty": 0,
+        "tons": 686.3,
+        "manifests": 29,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      },
+      {
+        "id": "TXD282137",
+        "name": "Shell Chemical LP Deer Park",
+        "state": "TX",
+        "risk": "low",
+        "transporter": "Cyn Environmental Services",
+        "evaluations": 5,
+        "violations": 1,
+        "enforcement": 0,
+        "penalty": 0,
+        "tons": 503.4,
+        "manifests": 25,
+        "consent_decree": false,
+        "last_enforcement": "—"
+      }
+    ],
+    "watched_measures": [
+      {
+        "key": "enf",
+        "label": "Inherited open enforcement",
+        "unit": "actions",
+        "source": "ECHO",
+        "grounds": "CONCEPT:Enforcement · ENFORCEMENT_AGAINST",
+        "field": "enforcement",
+        "format": "integer",
+        "inherited": true,
+        "baseline_field": "enf",
+        "appetite_field": "enf",
+        "breach": {
+          "op": ">=",
+          "against": "appetite.enf"
+        }
+      },
+      {
+        "key": "penalty",
+        "label": "Inherited penalty exposure",
+        "unit": "$",
+        "source": "ECHO",
+        "grounds": "MEAS:penalty_amount (summable)",
+        "field": "penalty",
+        "format": "currency_k",
+        "inherited": true,
+        "baseline_field": "penalty",
+        "appetite_field": null,
+        "breach": null
+      },
+      {
+        "key": "viols",
+        "label": "Inherited open violations",
+        "unit": "",
+        "source": "RCRA",
+        "grounds": "CONCEPT:Violation · VIOLATION_AT",
+        "field": "violations",
+        "format": "integer",
+        "inherited": true,
+        "baseline_field": "viols",
+        "appetite_field": null,
+        "breach": null
+      },
+      {
+        "key": "cd",
+        "label": "Consent-decree / CAFO exposure",
+        "unit": "",
+        "source": "DOC",
+        "grounds": "CONCEPT:Document · DESCRIBED_BY",
+        "field": "consent_decree",
+        "format": "boolean_yesno",
+        "inherited": true,
+        "baseline_field": null,
+        "appetite_field": null,
+        "breach": null
+      }
+    ],
+    "formats": {
+      "integer": {
+        "template": "{v}",
+        "desc": "whole number, printed as-is"
+      },
+      "currency_k": {
+        "template": "${v/1000}k",
+        "desc": "USD divided by 1000, rounded to whole, suffixed 'k' (e.g. 397500 -> $398k)"
+      },
+      "boolean_yesno": {
+        "template": "{v?yes:no}",
+        "desc": "1/true -> 'yes', 0/false -> 'no'"
+      }
+    },
+    "resolvable": [
+      {
+        "keywords": [
+          "penalty",
+          "fine",
+          "dollar",
+          "exposure"
+        ],
+        "resolves_to": "penalty",
+        "verdict": "resolved",
+        "note": "grounds to MEAS:penalty_amount — a summable measure element"
+      },
+      {
+        "keywords": [
+          "enforcement",
+          "action"
+        ],
+        "resolves_to": "enf",
+        "verdict": "resolved",
+        "note": "grounds to CONCEPT:Enforcement via ENFORCEMENT_AGAINST"
+      },
+      {
+        "keywords": [
+          "violation",
+          "viol"
+        ],
+        "resolves_to": "viols",
+        "verdict": "resolved",
+        "note": "grounds to CONCEPT:Violation via VIOLATION_AT"
+      },
+      {
+        "keywords": [
+          "consent",
+          "decree",
+          "cafo"
+        ],
+        "resolves_to": "cd",
+        "verdict": "resolved",
+        "note": "grounds to CONCEPT:Document via DESCRIBED_BY"
+      },
+      {
+        "keywords": [
+          "tons",
+          "tonnage",
+          "quantity",
+          "volume"
+        ],
+        "resolves_to": null,
+        "verdict": "grounds_not_inherited",
+        "note": "grounds to MEAS:quantity_tons — but it measures the Manifest, not inherited risk; add it to a Report instead"
+      }
+    ],
+    "resolve_copy": {
+      "resolved": {
+        "tone": "ok",
+        "title": "Resolved — \"{label}\" added."
+      },
+      "grounds_not_inherited": {
+        "tone": "warn",
+        "title": "Grounds, but not as an inherited-risk measure."
+      },
+      "refused": {
+        "tone": "bad",
+        "title": "Doesn't ground.",
+        "body": "Nothing in this graph resolves \"{q}\". A measure that doesn't map to a relationship or measure element can't be watched — author it in Reports first, or rephrase."
+      }
+    },
+    "candidate_pools": [
+      {
+        "key": "all",
+        "label": "All inbound generators",
+        "filter": null
+      },
+      {
+        "key": "enf",
+        "label": "Under enforcement",
+        "filter": {
+          "op": ">",
+          "field": "enforcement",
+          "value": 0
+        }
+      },
+      {
+        "key": "oos",
+        "label": "Out-of-state",
+        "filter": {
+          "op": "!=",
+          "field": "state",
+          "value": "TX"
+        }
+      },
+      {
+        "key": "cd",
+        "label": "Under a consent decree / CAFO",
+        "filter": {
+          "op": "==",
+          "field": "consent_decree",
+          "value": true
+        }
+      }
+    ],
+    "authoring": {
+      "steps": [
+        {
+          "n": 1,
+          "key": "watch",
+          "title": "Watched measures",
+          "heading": "What are you watching move?",
+          "help": "These are governed measures the graph already computes — pick the ones each candidate load should be judged against.",
+          "add_measure": {
+            "label": "Add a measure the graph can support",
+            "placeholder": "e.g. inherited penalty dollars, out-of-state days in possession…",
+            "button": "Resolve against graph",
+            "help": "A watched measure is the same object as a Report — it must ground to a real relationship in this graph before it can be watched. What doesn't ground is refused, not invented."
+          }
+        },
+        {
+          "n": 2,
+          "key": "pool",
+          "title": "Candidate pool",
+          "heading": "Which loads can a scenario draw from?",
+          "help": "This is the frame — the Runtime dropdowns only offer loads from this pool. Narrow it to the generators worth stress-testing.",
+          "preview_rows": 8,
+          "graph_link": "◈ Show the graph this pool references"
+        },
+        {
+          "n": 3,
+          "key": "review",
+          "title": "Review",
+          "heading": "Review",
+          "note": "This is a read-only overlay. Running a scenario admits a candidate load into the graph hypothetically and traces what it connects to — the generator's federal compliance record and any public enforcement. Nothing is accepted by saving; a scenario never writes to the graph. The residual — records not yet connected to a generator — is stated in Runtime, not hidden."
+        }
+      ],
+      "scenario_count": {
+        "heading": "How many scenarios do you want side by side?",
+        "help": "Each scenario is independent — its own candidate load. You'll pick and swap the actual loads in Runtime.",
+        "options": [
+          1,
+          2,
+          3
+        ],
+        "default": 2
+      },
+      "cta_step1": "Continue — choose the pool →",
+      "cta_step2": "Continue — review →",
+      "cta_step3": "Save frame & run →"
+    },
+    "runtime": {
+      "compare": {
+        "min": 1,
+        "max": 3,
+        "default": 2,
+        "help": "“Add to compare” opens a saved scenario as a new column beside the others — it never replaces one. Each stores only the admitted load; re-opening recomputes against today's graph."
+      },
+      "scenario_card": {
+        "load_label": "Candidate load — the lever",
+        "name_placeholder": "Name this scenario (e.g. Accept Arkema load)",
+        "trace_link": "▸ Trace every flag to its source record",
+        "trace_header": "These figures come from three federal sources plus enforcement documents — no value is invented.",
+        "residual_note": "Risk from records not yet connected to this generator is not in these figures — the scenario states what it cannot yet see rather than implying completeness.",
+        "clean_note": "No open violations or enforcement connect to this load.",
+        "graph_link": "◈ Show the graph this references"
+      },
+      "headroom": {
+        "label": "Headroom — the inverse question",
+        "formula": "floor((appetite.enf - baseline.enf) / avg_enforcement_of_carrying_generators_in_pool)",
+        "measure": "enf",
+        "against": "appetite.enf",
+        "sentence": "{room} more enforcement-carrying load(s) before inherited open enforcement crosses the facility's {appetite}-action appetite line",
+        "help": "From this pool, enforcement-carrying generators average {avg} actions each. Goal-Seek-style break point, computed from the same records — not a forecast."
+      },
+      "saved_library": {
+        "title": "Saved scenario library",
+        "stores": "admitted_load_only",
+        "empty": "None yet. Save a column above to keep it here — the library stores the admitted load only, and every figure recomputes when you re-open it.",
+        "full_help": "Compare strip is full (3). Remove a column to add another.",
+        "save_btn": "＋ Save this scenario",
+        "update_btn": "↻ Update saved scenario",
+        "saved_flag": "✓ Saved to library",
+        "add_btn": "Add to compare",
+        "default_name_template": "Accept {first_two_words_of_generator} load"
+      },
+      "closing_note": "Swap a load and every figure recomputes by traversal, live. What a spreadsheet can't do is inherit a generator's entire federal record the moment you consider its load. A saved scenario stores only the admitted load — never the numbers — so it stays live as the graph changes.",
+      "sources": [
+        {
+          "key": "MAN",
+          "label": "e-Manifest",
+          "color": "blue",
+          "line": "via {transporter} · {manifests} manifests · {tons} tons"
+        },
+        {
+          "key": "RCRA",
+          "label": "RCRAInfo",
+          "color": "purple",
+          "line": "{id} · {evaluations} evaluations · {violations} open violation(s)"
+        },
+        {
+          "key": "ECHO",
+          "label": "ECHO",
+          "color": "red",
+          "line": "{enforcement} enforcement action(s) · last {last_enforcement}  |  no public enforcement"
+        },
+        {
+          "key": "DOC",
+          "label": "Document",
+          "color": "amber",
+          "line": "Under consent decree / CAFO · DESCRIBED_BY {name}"
+        }
+      ]
+    },
+    "graph_reference": {
+      "node_types": [
+        {
+          "key": "facility",
+          "label": "Facility (VLS)",
+          "color": "orange"
+        },
+        {
+          "key": "generator",
+          "label": "Generator",
+          "color": "red",
+          "risk_colors": {
+            "high": "red",
+            "med": "amber",
+            "low": "green"
+          }
+        },
+        {
+          "key": "evaluation",
+          "label": "Evaluation",
+          "color": "cyan"
+        },
+        {
+          "key": "violation",
+          "label": "Violation",
+          "color": "amber"
+        },
+        {
+          "key": "enforcement",
+          "label": "Enforcement",
+          "color": "red"
+        },
+        {
+          "key": "document",
+          "label": "Document",
+          "color": "purple"
+        }
+      ],
+      "relationships": [
+        "SHIPS_TO",
+        "EVALUATION_OF",
+        "FOUND_IN",
+        "ENFORCEMENT_AGAINST",
+        "DESCRIBED_BY",
+        "VIOLATION_AT"
+      ],
+      "frame": {
+        "description": "The frame — pool generators SHIP_TO VLS Deer Park; up to 7 drawn.",
+        "center_node": "facility",
+        "edge": "SHIPS_TO",
+        "max_drawn": 7
+      },
+      "scenario_subgraph": {
+        "description": "What one admitted load traverses: Evaluations —EVALUATION_OF→ Generator, Violations —FOUND_IN→ Evaluations, Enforcement —ENFORCEMENT_AGAINST→ Generator (if any), Consent decree —DESCRIBED_BY→ Generator (if any), Generator —SHIPS_TO→ VLS.",
+        "nodes": [
+          "evaluations",
+          "violations",
+          "enforcement(if enf>0)",
+          "document(if cd)",
+          "generator",
+          "facility"
+        ]
+      }
+    },
+    "headroom": {
+      "all": {
+        "room": 5,
+        "avg": 1.9,
+        "carrying": 15,
+        "appetite": 10
+      },
+      "enf": {
+        "room": 5,
+        "avg": 1.9,
+        "carrying": 15,
+        "appetite": 10
+      },
+      "oos": {
+        "room": 3,
+        "avg": 2.8,
+        "carrying": 4,
+        "appetite": 10
+      },
+      "cd": {
+        "room": 3,
+        "avg": 2.8,
+        "carrying": 4,
+        "appetite": 10
+      }
+    }
+  }
 }

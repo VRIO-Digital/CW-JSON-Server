@@ -1,0 +1,337 @@
+/*
+ * The What-if lens. Spacing from the --sp-* scale only; layout via antd Row/Col.
+ *
+ * The measure and pool chips are **categories** and stay neutral. The one status colour
+ * on this screen is a breach on a scenario column, and that lives in
+ * ScenarioColumn.css with an icon and words beside it.
+ */
+
+.wi-pill {
+  display: inline-block;
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid #cfe0f5;
+  border-radius: 999px;
+  background: #eef5fd;
+  color: #1f5aa8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.wi-banner {
+  margin-bottom: var(--sp-4);
+}
+
+.wi-error {
+  margin-bottom: var(--sp-4);
+}
+
+.wi-note {
+  margin-top: var(--sp-5);
+  color: #8994a8;
+  font-size: 11px;
+}
+
+.wi-card {
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-5);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.wi-card h3 {
+  margin: 0 0 var(--sp-1);
+  color: #0f1729;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wi-help {
+  margin: 0 0 var(--sp-3);
+  color: #8994a8;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.wi-label {
+  margin-bottom: var(--sp-2);
+  color: #8994a8;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.wi-divider {
+  margin: var(--sp-4) 0;
+  border-top: 1px solid #f2f4f7;
+}
+
+.wi-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+/* A single button sits right, so the primary action is where it is on every other
+   step; two buttons split. */
+.wi-foot > :only-child {
+  margin-left: auto;
+}
+
+/* ---- the step rail ---- */
+
+.wi-rail {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-4);
+  padding: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+
+.wi-rail-step button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: 999px;
+  background: #fff;
+  color: #8994a8;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* A step ahead of the current one is not reachable — its question depends on an answer
+   that has not been given, so the control says so by being unavailable. */
+.wi-rail-step button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.wi-rail-step.is-on button {
+  border-color: #f8c9b9;
+  background: #fdeae4;
+  color: #f4562b;
+  font-weight: 600;
+}
+
+.wi-rail-step.is-done button {
+  color: #1b7f4f;
+}
+
+.wi-rail-idx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #f2f4f7;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.wi-rail-step.is-on .wi-rail-idx {
+  background: #f4562b;
+  color: #fff;
+}
+
+.wi-rail-step.is-done .wi-rail-idx {
+  background: #e6f4ec;
+  color: #1b7f4f;
+}
+
+/* ---- measure / pool chips ---- */
+
+.wi-chips {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.wi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 999px;
+  background: #fff;
+  color: #4b5a75;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.wi-chip:hover {
+  border-color: #d8dde6;
+}
+
+.wi-chip.is-on {
+  border-color: #f8c9b9;
+  background: #fdeae4;
+  color: #f4562b;
+  font-weight: 600;
+}
+
+.wi-chip.is-seg {
+  min-width: 42px;
+  justify-content: center;
+}
+
+/* Which federal source the measure comes from — a category tag, monospaced because it
+   is a system name rather than prose. */
+.wi-src {
+  padding: 1px var(--sp-2);
+  border: 1px solid #e9ecf1;
+  border-radius: 4px;
+  background: #f7f8fa;
+  color: #8994a8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px;
+}
+
+/* What the measure grounds to. Shown on the chip because a watched measure that cannot
+   name its relationship is not a governed measure. */
+.wi-grounds {
+  color: #8994a8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px;
+  font-weight: 400;
+}
+
+.wi-chip.is-on .wi-grounds {
+  color: #c2724f;
+}
+
+.wi-count {
+  color: #8994a8;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wi-chip.is-on .wi-count {
+  color: #f4562b;
+}
+
+.wi-add {
+  display: flex;
+  width: 100%;
+  max-width: 560px;
+}
+
+.wi-resolution {
+  margin: var(--sp-3) 0;
+}
+
+/* ---- the pool preview ---- */
+
+.wi-preview {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wi-preview li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid #f7f8fa;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.wi-preview strong {
+  color: #0f1729;
+}
+
+.wi-preview-meta {
+  color: #8994a8;
+  font-size: 11px;
+}
+
+/*
+ * The risk band. This one *is* a state — it is the generator's own compliance standing —
+ * so it takes the status palette, and the word is always beside the colour.
+ */
+.wi-risk {
+  padding: 1px var(--sp-2);
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wi-risk.is-high {
+  background: #fdeef1;
+  color: #a8283c;
+}
+
+.wi-risk.is-med {
+  background: #fdf3e7;
+  color: #b45309;
+}
+
+.wi-risk.is-low {
+  background: #e6f4ec;
+  color: #1b7f4f;
+}
+
+/* ---- runtime ---- */
+
+.wi-strip {
+  margin-bottom: var(--sp-4);
+}
+
+.wi-headroom {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.wi-headroom-n {
+  color: #b45309;
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* No room left is a state, and it is the one figure on this card that turns red. */
+.wi-headroom-n.is-none {
+  color: #b3261e;
+}
+
+.wi-headroom-text {
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.wi-tray {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid #f7f8fa;
+  flex-wrap: wrap;
+}
+
+.wi-tray strong {
+  color: #0f1729;
+  font-size: 12.5px;
+}
+
+.wi-tray-meta {
+  margin: 0;
+  font-size: 11px;
+}

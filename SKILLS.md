@@ -523,7 +523,7 @@ protection, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
-2. **Server shape check** — `validateDb` verifies all 23 required keys and
+2. **Server shape check** — `validateDb` verifies all 24 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
 3. **Atomic write** — temp file + rename, so a failed write cannot truncate
@@ -1397,6 +1397,100 @@ Graph Studio; an empty question → 400. Every one of them is shown verbatim, so
 each is written as a sentence to a user.
 
 ---
+
+## Flow 10 — What-if: judging a load before accepting it
+
+**Files:** `WhatIfPage.tsx` + `ScenarioColumn.tsx` -> `whatifStore` ->
+`GET /whatif`, `POST /whatif/resolve`, `POST /whatif/scenario`,
+`POST|DELETE /whatif/saved`. Data from `09_What if lens/whatif_vls_data.json` via
+`npm run ingest:whatif`.
+
+The question is "what would this load cost us", asked **before** the load is accepted.
+A scenario admits a candidate generator hypothetically and the watched measures
+recompute by traversal to its federal record: RCRAInfo evaluations and violations,
+ECHO enforcement and penalties, an extracted consent decree. Nothing is predicted, and
+nothing is written.
+
+### It never writes back
+
+The copy promises this three times, so the code keeps it: `POST /whatif/scenario`
+computes and returns, storing nothing, and the saved library holds **generator ids,
+never figures**. That is why computing is a call and not a calculation — re-open a
+saved scenario next week and it shows next week's record. A store that cached the
+numbers would cache an answer that quietly went stale, and `check-docs` asserts both
+halves.
+
+### Nothing connected shows the gate and nothing else
+
+`GET /whatif` answers with empty collections, `facility: null` and `connected_sources: 0`
+— but it still returns the copy, so the page has strings it must not print yet. Only
+`PageHeader` is shared between the two branches; the pill, the "What this lens is built
+on" banner, the tabs and the provenance note are all inside `WhatIfLens`, which renders
+only when a source is connected. Otherwise the banner's "36 inbound generators" appears
+one line above `NoSourceConnected`. `check-docs` asserts the gate names none of that copy
+and the lens names all of it.
+
+### Authoring sets the frame, in three steps
+
+1. **Watched measures** — chips for the four governed measures, each showing the
+   relationship it grounds to. Plus a text box: type a measure and the *graph* answers.
+2. **Candidate pool** — which generators a scenario may draw from, each pool carrying
+   its count, with a preview of the first 8. The Runtime dropdowns offer this pool and
+   nothing else, which is what makes the step more than decoration.
+3. **Review** — the frame in one sentence, and the read-only guarantee.
+
+The rail is clickable **backwards only**: a later step's question depends on this one's
+answer, so jumping ahead would ask it against nothing. Step 1 refuses to continue with
+no measure watched, and step 2 with an empty pool — both with the reason, not a silently
+disabled button.
+
+### A measure must ground before it can be watched
+
+`POST /whatif/resolve` gives one of three verdicts:
+
+| verdict | what happens | example |
+|---|---|---|
+| `resolved` | the measure it grounded to is added | "inherited penalty dollars" -> MEAS:penalty_amount |
+| `grounds_not_inherited` | nothing is added, and it says why | "tonnage" grounds, but measures the Manifest, not inherited risk |
+| `refused` | nothing in this graph resolves it | "days of sunshine" |
+
+**The keyword list is deliberately absent from `GET /whatif`.** A client holding it
+could answer for itself, and the refusal would be theatre — so the graph is asked, and
+`check-docs` asserts the list never reaches the payload. Paced like the suggesters: a
+resolution that returns instantly reads as a lookup in a list the client already had.
+
+### Runtime swaps loads inside that frame
+
+Up to 3 columns, each `{ generatorId, name, savedId }`. Swap the dropdown and that
+column recomputes. Each measure reports three different things — `inherited` (what the
+load brings), `baseline` (what the facility already carries) and `value` (the sum, judged
+against the appetite line) — and a measure with **no** baseline reports `null` rather
+than `0`, because a consent decree is not something a facility keeps a running count of
+and 0 would be a claim. A load that moves nothing says so instead of printing "+0".
+
+Every figure cites its federal source, and the trace panel repeats them against the
+specific records. A **clean** load says "nothing connects" rather than showing an empty
+trace, which would read as "not checked". The **residual** — risk from records not yet
+connected to a generator — is stated on every scenario.
+
+**Headroom** is the inverse question: how many more enforcement-carrying loads fit
+before the appetite line. The package states the formula, the ingest computes it per
+pool, and the page prints it — arithmetic on a measure in a component would be a second
+source for a number.
+
+**The breach rule is real but currently unreachable**, and that is the data's answer:
+the appetite is 10 actions, the baseline is 0, and the largest single load carries 4.
+Headroom says 5 more loads. Do not manufacture a breach to exercise the red styling;
+`check-docs` asserts CLAUDE.md and the roster agree about whether one load can cross it.
+
+**Where it fails:** an empty typed measure -> 400 before the pace; a load outside the
+pool -> 404 naming the frame; an unwatched measure key -> 400 naming the step that adds
+it; a saved id that does not exist -> 404. Adding a column past `compare.max` is refused
+with a sentence rather than a disabled button that does nothing, and the last column
+cannot be removed — an empty compare strip has no control that would bring one back.
+
+Deleting a library entry **unlinks** any open column rather than closing it: the reader
+was looking at that load.
 
 ## Adding things
 

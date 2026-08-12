@@ -4050,3 +4050,693 @@ export async function getEvals(): Promise<EvalsPayload> {
     })),
   }
 }
+
+/* ---------------- The What-if lens ---------------- */
+
+/**
+ * A candidate generator — one possible load.
+ *
+ * Every figure here is a federal record the graph already holds, not a projection:
+ * `evaluations` and `violations` come from RCRAInfo, `enforcement` and `penalty` from
+ * ECHO, `manifests` and `tons` from e-Manifest, `consentDecree` from an extracted
+ * document. Nothing on this page is predicted.
+ */
+export interface WhatIfGenerator {
+  id: string
+  name: string
+  state: string
+  risk: 'high' | 'med' | 'low'
+  transporter: string
+  evaluations: number
+  violations: number
+  enforcement: number
+  penalty: number
+  tons: number
+  manifests: number
+  consentDecree: boolean
+  lastEnforcement: string
+}
+
+/** A measure that can be watched, because the graph already computes it. */
+export interface WhatIfMeasure {
+  key: string
+  label: string
+  unit: string
+  /** Which federal source it comes from — ECHO, RCRA, DOC. */
+  source: string
+  /** The relationship or measure element it grounds to. */
+  grounds: string
+  /** True where the measure is inherited from the load rather than the facility's own. */
+  inherited: boolean
+}
+
+/** A pool of candidate loads, carrying its own count. */
+export interface WhatIfPool {
+  key: string
+  label: string
+  count: number
+}
+
+/**
+ * The inverse question, per pool: how many more enforcement-carrying loads fit.
+ *
+ * `room` is `null` where nothing in the pool carries enforcement — there is no break
+ * point to state, and a `0` there would read as "no room left" when the truth is "no
+ * load in this pool moves the figure".
+ */
+export interface WhatIfHeadroom {
+  pool: string
+  room: number | null
+  avg: number | null
+  carrying: number
+  appetite: number
+}
+
+/** A saved scenario. Stores the admitted load, never the figures. */
+export interface WhatIfSaved {
+  savedId: string
+  name: string
+  generatorId: string
+}
+
+/** One watched measure, computed for one candidate load. */
+export interface WhatIfScenarioMeasure {
+  key: string
+  label: string
+  source: string
+  grounds: string
+  unit: string
+  /** The figure judged against the appetite line: baseline plus what is inherited. */
+  value: number | boolean
+  valueText: string
+  /** What this load brings. */
+  inherited: number | boolean
+  inheritedText: string
+  /** What the facility already carries, or `null` where it keeps no running count. */
+  baseline: number | boolean | null
+  baselineText: string | null
+  appetite: number | null
+  /** True where `value` crosses the facility's stated appetite. */
+  breached: boolean
+  /** False where this load moves the figure not at all — a real answer. */
+  moved: boolean
+}
+
+/** A node in the subgraph one admitted load traverses. */
+export interface WhatIfSubgraphNode {
+  key: string
+  label: string
+  risk?: 'high' | 'med' | 'low'
+}
+
+/** One scenario column: what admitting this load would inherit. */
+export interface WhatIfScenario {
+  generator: WhatIfGenerator
+  measures: WhatIfScenarioMeasure[]
+  /** The federal record behind each figure. "No value is invented" is the promise. */
+  sources: { key: string; label: string; line: string }[]
+  /** True where anything at all connects to this load. */
+  flagged: boolean
+  /** Said plainly when nothing does — an empty trace panel reads as "not checked". */
+  cleanNote: string | null
+  /** What the scenario cannot see, stated rather than hidden. */
+  residualNote: string
+  subgraph: { nodes: WhatIfSubgraphNode[]; relationships: string[] }
+}
+
+/**
+ * What the graph said about a typed measure.
+ *
+ * Three verdicts, and the refusal is the important one: a measure that does not ground
+ * to a relationship cannot be watched, and saying so is the difference between a
+ * governed measure and a made-up one.
+ */
+export interface WhatIfResolution {
+  text: string
+  verdict: 'resolved' | 'grounds_not_inherited' | 'refused'
+  /** The measure it added, or null for the two verdicts that add nothing. */
+  measureKey: string | null
+  tone: 'ok' | 'warn' | 'bad'
+  title: string
+  body: string
+}
+
+/** The copy the page prints. All of it server-side, none of it written in a component. */
+export interface WhatIfCopy {
+  pageTitle: string
+  banner: string
+  subtitle: string
+  overlayPill: string
+  dataNote: string
+  tabs: { key: string; label: string }[]
+}
+
+export interface WhatIfAuthoringStep {
+  n: number
+  key: string
+  title: string
+  heading: string
+  help: string
+}
+
+export interface WhatIfFrame {
+  connectedSources: number
+  facility: {
+    id: string
+    name: string
+    role: string
+    baseline: Record<string, number>
+    appetite: Record<string, number>
+  } | null
+  generators: WhatIfGenerator[]
+  measures: WhatIfMeasure[]
+  pools: WhatIfPool[]
+  headroom: WhatIfHeadroom[]
+  saved: WhatIfSaved[]
+  copy: WhatIfCopy
+  defaults: { tab: string; step: number; count: number; watch: string[]; pool: string }
+  authoring: {
+    steps: WhatIfAuthoringStep[]
+    addMeasure: { label: string; placeholder: string; button: string; help: string }
+    previewRows: number
+    reviewNote: string
+    scenarioCount: { heading: string; help: string; options: number[]; default: number }
+    cta: [string, string, string]
+    graphLink: string
+  }
+  runtime: {
+    compare: { min: number; max: number; default: number; help: string }
+    card: {
+      loadLabel: string
+      namePlaceholder: string
+      traceLink: string
+      traceHeader: string
+      graphLink: string
+    }
+    headroom: { label: string; sentence: string; help: string }
+    library: {
+      title: string
+      empty: string
+      fullHelp: string
+      saveBtn: string
+      updateBtn: string
+      savedFlag: string
+      addBtn: string
+    }
+    closingNote: string
+  }
+  graphReference: { nodeTypes: { key: string; label: string }[]; relationships: string[] }
+}
+
+/*
+ * The schemas. Every field the page reads is checked at the boundary, because `/db`
+ * lets a user edit this data live and a measure reading `undefined` renders as "no
+ * inherited risk" — an answer, and the wrong one.
+ */
+
+/** A measure's value is a number or a boolean: a consent decree is yes/no, and
+ *  coercing it to 0/1 would print "0" where the answer is "no". */
+const numOrBool: FieldCheck = (v, path, issues) => {
+  if (typeof v !== 'number' && typeof v !== 'boolean') {
+    issues.push(`${path} should be a number or a boolean, got ${typeof v}`)
+  }
+}
+
+/** An object whose keys are the tenant's, so the keys are not enumerable here — but
+ *  it still has to *be* an object, which is what a bare `shape({})` asserts. */
+const objectOnly = shape({})
+
+const WHATIF_GENERATOR = shape({
+  id: str,
+  name: str,
+  state: str,
+  risk: oneOf(['high', 'med', 'low']),
+  transporter: str,
+  evaluations: num,
+  violations: num,
+  enforcement: num,
+  penalty: num,
+  tons: num,
+  manifests: num,
+  consent_decree: bool,
+  last_enforcement: str,
+})
+
+const WHATIF_MEASURE = shape({
+  key: str,
+  label: str,
+  unit: str,
+  source: str,
+  grounds: str,
+  inherited: bool,
+})
+
+const WHATIF_SAVED = shape({ saved_id: str, name: str, generator_id: str })
+
+const WHATIF_FRAME = shape({
+  connected_sources: num,
+  /* Null before a source is connected — the page shows NoSourceConnected, and a
+     fabricated facility would be a claim about a tenant with no data. */
+  facility: nullable(
+    shape({ id: str, name: str, role: str, baseline: objectOnly, appetite: objectOnly }),
+  ),
+  generators: arrayOf(WHATIF_GENERATOR),
+  watched_measures: arrayOf(WHATIF_MEASURE),
+  candidate_pools: arrayOf(shape({ key: str, label: str, count: num })),
+  headroom: arrayOf(
+    shape({
+      pool: str,
+      room: nullable(num),
+      avg: nullable(num),
+      carrying: num,
+      appetite: num,
+    }),
+  ),
+  saved: arrayOf(WHATIF_SAVED),
+  copy: shape({
+    page_title: str,
+    banner: str,
+    subtitle: str,
+    overlay_pill: str,
+    data_note: str,
+    tabs: arrayOf(shape({ key: str, label: str })),
+  }),
+  state_defaults: shape({
+    tab: str,
+    step: num,
+    count: num,
+    watch: objectOnly,
+    pool: str,
+  }),
+  authoring: shape({
+    /* `help` is nullable because step 3 carries a `note` instead — the review step has
+       nothing to explain, it has a guarantee to state. Declaring it as a required
+       string made the whole frame fail to read, which is the validator doing its job. */
+    steps: arrayOf(shape({ n: num, key: str, title: str, heading: str, help: nullable(str) })),
+    scenario_count: shape({
+      heading: str,
+      help: str,
+      options: arrayOf(num),
+      default: num,
+    }),
+    cta_step1: str,
+    cta_step2: str,
+    cta_step3: str,
+  }),
+  runtime: shape({
+    compare: shape({ min: num, max: num, default: num, help: str }),
+    scenario_card: shape({
+      load_label: str,
+      name_placeholder: str,
+      trace_link: str,
+      trace_header: str,
+      residual_note: str,
+      clean_note: str,
+      graph_link: str,
+    }),
+    headroom: shape({ label: str, sentence: str, help: str }),
+    saved_library: shape({
+      title: str,
+      empty: str,
+      full_help: str,
+      save_btn: str,
+      update_btn: str,
+      saved_flag: str,
+      add_btn: str,
+    }),
+    closing_note: str,
+  }),
+  graph_reference: shape({
+    node_types: arrayOf(shape({ key: str, label: str })),
+    relationships: arrayOf(str),
+  }),
+})
+
+const WHATIF_RESOLUTION = shape({
+  text: str,
+  verdict: oneOf(['resolved', 'grounds_not_inherited', 'refused']),
+  measure_key: nullable(str),
+  tone: oneOf(['ok', 'warn', 'bad']),
+  title: str,
+  body: str,
+})
+
+const WHATIF_SCENARIO = shape({
+  generator: WHATIF_GENERATOR,
+  measures: arrayOf(
+    shape({
+      key: str,
+      label: str,
+      source: str,
+      grounds: str,
+      unit: str,
+      value: numOrBool,
+      value_text: str,
+      inherited: numOrBool,
+      inherited_text: str,
+      baseline: nullable(numOrBool),
+      baseline_text: nullable(str),
+      appetite: nullable(num),
+      breached: bool,
+      moved: bool,
+    }),
+  ),
+  sources: arrayOf(shape({ key: str, label: str, line: str })),
+  flagged: bool,
+  clean_note: nullable(str),
+  residual_note: str,
+  subgraph: shape({
+    nodes: arrayOf(shape({ key: str, label: str })),
+    relationships: arrayOf(str),
+  }),
+})
+
+const WHATIF_SAVED_PAYLOAD = shape({ saved: arrayOf(WHATIF_SAVED) })
+
+interface RawWhatIfGenerator {
+  id: string
+  name: string
+  state: string
+  risk: 'high' | 'med' | 'low'
+  transporter: string
+  evaluations: number
+  violations: number
+  enforcement: number
+  penalty: number
+  tons: number
+  manifests: number
+  consent_decree: boolean
+  last_enforcement: string
+}
+
+interface RawWhatIfSaved {
+  saved_id: string
+  name: string
+  generator_id: string
+}
+
+const toWhatIfGenerator = (g: RawWhatIfGenerator): WhatIfGenerator => ({
+  id: g.id,
+  name: g.name,
+  state: g.state,
+  risk: g.risk,
+  transporter: g.transporter,
+  evaluations: g.evaluations,
+  violations: g.violations,
+  enforcement: g.enforcement,
+  penalty: g.penalty,
+  tons: g.tons,
+  manifests: g.manifests,
+  consentDecree: g.consent_decree,
+  lastEnforcement: g.last_enforcement,
+})
+
+const toWhatIfSaved = (s: RawWhatIfSaved): WhatIfSaved => ({
+  savedId: s.saved_id,
+  name: s.name,
+  generatorId: s.generator_id,
+})
+
+interface RawWhatIfStep {
+  n: number
+  key: string
+  title: string
+  heading: string
+  help: string | null
+  add_measure?: { label: string; placeholder: string; button: string; help: string }
+  preview_rows?: number
+  graph_link?: string
+  note?: string
+}
+
+interface RawWhatIfFrame {
+  connected_sources: number
+  facility: WhatIfFrame['facility']
+  generators: RawWhatIfGenerator[]
+  watched_measures: WhatIfMeasure[]
+  candidate_pools: WhatIfPool[]
+  headroom: WhatIfHeadroom[]
+  saved: RawWhatIfSaved[]
+  copy: {
+    page_title: string
+    banner: string
+    subtitle: string
+    overlay_pill: string
+    data_note: string
+    tabs: { key: string; label: string }[]
+  }
+  state_defaults: {
+    tab: string
+    step: number
+    count: number
+    watch: Record<string, boolean>
+    pool: string
+  }
+  authoring: {
+    steps: RawWhatIfStep[]
+    scenario_count: { heading: string; help: string; options: number[]; default: number }
+    cta_step1: string
+    cta_step2: string
+    cta_step3: string
+  }
+  runtime: {
+    compare: { min: number; max: number; default: number; help: string }
+    scenario_card: {
+      load_label: string
+      name_placeholder: string
+      trace_link: string
+      trace_header: string
+      residual_note: string
+      clean_note: string
+      graph_link: string
+    }
+    headroom: { label: string; sentence: string; help: string }
+    saved_library: {
+      title: string
+      empty: string
+      full_help: string
+      save_btn: string
+      update_btn: string
+      saved_flag: string
+      add_btn: string
+    }
+    closing_note: string
+  }
+  graph_reference: { node_types: { key: string; label: string }[]; relationships: string[] }
+}
+
+const EMPTY_ADD_MEASURE = { label: '', placeholder: '', button: '', help: '' }
+
+/** The frame: the facility, what can be watched, and what a scenario can draw from. */
+export async function getWhatIfFrame(): Promise<WhatIfFrame> {
+  const raw = validate<RawWhatIfFrame>(
+    'The What-if lens',
+    await request<unknown>('/whatif'),
+    WHATIF_FRAME,
+  )
+
+  const steps = raw.authoring.steps
+  const step = (key: string) => steps.find((s) => s.key === key)
+
+  return {
+    connectedSources: raw.connected_sources,
+    facility: raw.facility,
+    generators: raw.generators.map(toWhatIfGenerator),
+    measures: raw.watched_measures,
+    pools: raw.candidate_pools,
+    headroom: raw.headroom,
+    saved: raw.saved.map(toWhatIfSaved),
+    copy: {
+      pageTitle: raw.copy.page_title,
+      banner: raw.copy.banner,
+      subtitle: raw.copy.subtitle,
+      overlayPill: raw.copy.overlay_pill,
+      dataNote: raw.copy.data_note,
+      tabs: raw.copy.tabs,
+    },
+    /* The defaults arrive as an object of flags because that is how the prototype held
+       them; the store wants the keys that are on, which is the same fact in the shape
+       the UI uses. */
+    defaults: {
+      tab: raw.state_defaults.tab,
+      step: raw.state_defaults.step,
+      count: raw.state_defaults.count,
+      watch: Object.entries(raw.state_defaults.watch)
+        .filter(([, on]) => on)
+        .map(([key]) => key),
+      pool: raw.state_defaults.pool,
+    },
+    authoring: {
+      steps: steps.map((s) => ({
+        n: s.n,
+        key: s.key,
+        title: s.title,
+        heading: s.heading,
+        /* Defaulted here so every component reads a string. Step 3's guarantee lands in
+           `reviewNote` instead, which is where its `note` goes. */
+        help: s.help ?? '',
+      })),
+      /* Step 1's add-measure copy, step 2's preview size and step 3's note live on
+         their own steps in the package; lifted here so each component reads one flat
+         object rather than hunting the array for its own key. */
+      addMeasure: step('watch')?.add_measure ?? EMPTY_ADD_MEASURE,
+      previewRows: step('pool')?.preview_rows ?? 8,
+      reviewNote: step('review')?.note ?? '',
+      scenarioCount: raw.authoring.scenario_count,
+      cta: [raw.authoring.cta_step1, raw.authoring.cta_step2, raw.authoring.cta_step3],
+      graphLink: step('pool')?.graph_link ?? '',
+    },
+    runtime: {
+      compare: raw.runtime.compare,
+      card: {
+        loadLabel: raw.runtime.scenario_card.load_label,
+        namePlaceholder: raw.runtime.scenario_card.name_placeholder,
+        traceLink: raw.runtime.scenario_card.trace_link,
+        traceHeader: raw.runtime.scenario_card.trace_header,
+        graphLink: raw.runtime.scenario_card.graph_link,
+      },
+      headroom: raw.runtime.headroom,
+      library: {
+        title: raw.runtime.saved_library.title,
+        empty: raw.runtime.saved_library.empty,
+        fullHelp: raw.runtime.saved_library.full_help,
+        saveBtn: raw.runtime.saved_library.save_btn,
+        updateBtn: raw.runtime.saved_library.update_btn,
+        savedFlag: raw.runtime.saved_library.saved_flag,
+        addBtn: raw.runtime.saved_library.add_btn,
+      },
+      closingNote: raw.runtime.closing_note,
+    },
+    graphReference: {
+      nodeTypes: raw.graph_reference.node_types,
+      relationships: raw.graph_reference.relationships,
+    },
+  }
+}
+
+/**
+ * Ask the graph whether a typed measure grounds.
+ *
+ * The answer comes from the server because the *graph* decides what grounds — the
+ * keyword list is deliberately absent from the frame payload, so this is the only way
+ * to ask and a refusal cannot be faked client-side.
+ */
+export async function resolveWhatIfMeasure(text: string): Promise<WhatIfResolution> {
+  const raw = validate<{
+    text: string
+    verdict: 'resolved' | 'grounds_not_inherited' | 'refused'
+    measure_key: string | null
+    tone: 'ok' | 'warn' | 'bad'
+    title: string
+    body: string
+  }>(
+    'The measure resolution',
+    await request<unknown>('/whatif/resolve', { method: 'POST', body: { text } }),
+    WHATIF_RESOLUTION,
+  )
+  return {
+    text: raw.text,
+    verdict: raw.verdict,
+    measureKey: raw.measure_key,
+    tone: raw.tone,
+    title: raw.title,
+    body: raw.body,
+  }
+}
+
+interface RawWhatIfScenario {
+  generator: RawWhatIfGenerator
+  measures: {
+    key: string
+    label: string
+    source: string
+    grounds: string
+    unit: string
+    value: number | boolean
+    value_text: string
+    inherited: number | boolean
+    inherited_text: string
+    baseline: number | boolean | null
+    baseline_text: string | null
+    appetite: number | null
+    breached: boolean
+    moved: boolean
+  }[]
+  sources: { key: string; label: string; line: string }[]
+  flagged: boolean
+  clean_note: string | null
+  residual_note: string
+  subgraph: { nodes: WhatIfSubgraphNode[]; relationships: string[] }
+}
+
+/** What admitting one load would inherit. Recomputed every time; nothing is stored. */
+export async function computeWhatIfScenario(input: {
+  generatorId: string
+  watch: string[]
+}): Promise<WhatIfScenario> {
+  const raw = validate<RawWhatIfScenario>(
+    'The scenario',
+    await request<unknown>('/whatif/scenario', {
+      method: 'POST',
+      body: { generator_id: input.generatorId, watch: input.watch },
+    }),
+    WHATIF_SCENARIO,
+  )
+  return {
+    generator: toWhatIfGenerator(raw.generator),
+    measures: raw.measures.map((m) => ({
+      key: m.key,
+      label: m.label,
+      source: m.source,
+      grounds: m.grounds,
+      unit: m.unit,
+      value: m.value,
+      valueText: m.value_text,
+      inherited: m.inherited,
+      inheritedText: m.inherited_text,
+      baseline: m.baseline,
+      baselineText: m.baseline_text,
+      appetite: m.appetite,
+      breached: m.breached,
+      moved: m.moved,
+    })),
+    sources: raw.sources,
+    flagged: raw.flagged,
+    cleanNote: raw.clean_note,
+    residualNote: raw.residual_note,
+    subgraph: raw.subgraph,
+  }
+}
+
+/** Save or update a library entry. Stores the admitted load, never the figures. */
+export async function saveWhatIfScenario(input: {
+  savedId?: string | null
+  name: string
+  generatorId: string
+}): Promise<WhatIfSaved[]> {
+  const raw = validate<{ saved: RawWhatIfSaved[] }>(
+    'The saved scenario',
+    await request<unknown>('/whatif/saved', {
+      method: 'POST',
+      body: {
+        saved_id: input.savedId ?? null,
+        name: input.name,
+        generator_id: input.generatorId,
+      },
+    }),
+    WHATIF_SAVED_PAYLOAD,
+  )
+  return raw.saved.map(toWhatIfSaved)
+}
+
+/** Remove a library entry. Any open column stays put, just unlinked. */
+export async function deleteWhatIfScenario(savedId: string): Promise<WhatIfSaved[]> {
+  const raw = validate<{ saved: RawWhatIfSaved[] }>(
+    'The saved scenario',
+    await request<unknown>(`/whatif/saved/${encodeURIComponent(savedId)}`, {
+      method: 'DELETE',
+    }),
+    WHATIF_SAVED_PAYLOAD,
+  )
+  return raw.saved.map(toWhatIfSaved)
+}

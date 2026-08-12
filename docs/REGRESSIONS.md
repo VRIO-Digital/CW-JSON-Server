@@ -1155,3 +1155,108 @@ claim go red.
 **Rule** — **when a new path extends an existing pattern, declaration order is
 load-bearing.** The symptom is a wrong render rather than an error, so it needs a
 positional check, not a smoke test that only asks whether the page loads.
+
+---
+
+## One absent string stopped the whole What-if frame from loading
+
+**Symptom** — `The What-if lens could not be read … authoring.steps[2].help should be a
+string, got undefined`. Nothing on the page rendered.
+
+**Root cause** — the package's three authoring steps look alike but are not: steps 1 and
+2 carry `help`, and step 3 carries `note` instead, because the review step has nothing to
+explain and a guarantee to state. The schema declared `help: str` for all three from
+reading the first two.
+
+**Fix** — `help: nullable(str)`, defaulted to `''` in the mapper so every component still
+reads a string, and step 3's `note` surfaces as `reviewNote` where the page actually
+wants it.
+
+**Guard** — *mechanical*: the schema itself, which is what caught it. This is the
+validator working exactly as designed — the failure named the field and the index, and
+it took one read of the package to see why.
+
+**Rule** — **do not infer a required field from the first element of an array.** Near
+identical objects diverge exactly where their purpose does, and a schema is a claim about
+all of them.
+
+---
+
+## Two Alerts printed the tenant's sentence twice
+
+**Symptom** — caught by a smoke assertion, not by eye: the What-if page's review Alert and
+its closing Alert each had a hardcoded title that was already the first sentence of the
+note passed as their description.
+
+**Root cause** — the package writes those notes as one string that opens with the point
+("This is a read-only overlay. Running a scenario…"). Wanting a bold lead, I retyped that
+sentence as the Alert title instead of splitting it off the data. So the emphasis was
+real but the sentence appeared twice, and the words were mine claiming to be theirs.
+
+**Fix** — a `lead()` helper splits the first sentence off the served string; both Alerts
+use it. Nothing on the page is now written in a component.
+
+**Guard** — *mechanical*: the smoke greps `WhatIfPage.tsx` and `ScenarioColumn.tsx` for
+the first 40 characters of every served copy string and fails if any appears. That check
+is what found this.
+
+**Rule** — **if the payload carries the sentence, the component must not.** When copy
+needs emphasis the data does not encode, derive it from the data rather than retyping it.
+
+---
+
+## Two assertions in one session that could not fail
+
+**Symptom** — a smoke run reported `ok` for "labels are cased against the page" and for
+"no copy was hardcoded". Neither was checking anything: the first was
+`html.includes(x) || true`, the second `!html.includes(x) || html.includes(x)`.
+
+**Root cause** — both were written as placeholders while reaching for the real check
+(one needed to read the stylesheet, the other the component source, and neither fact is
+in the rendered HTML), then left as passing lines.
+
+**Fix** — both now read the file they are actually claims about: `paint-order: stroke`
+inside the specific CSS rule, and the served copy strings against the component sources.
+The second immediately found a real bug.
+
+**Guard** — *documented*, and honestly so: there is no mechanical way to detect a
+tautology in an arbitrary boolean without a linter rule for it, and oxlint has none
+enabled here. The note in CLAUDE.md's pitfall list is the guard, alongside the standing
+rule that already exists for this class — **whenever you assert that something is
+absent, assert in the same run that the check had its data.**
+
+**Rule** — **an assertion that cannot fail is a comment.** This is the same family as the
+`check-docs` claims that passed over an empty list; the difference is only that these
+were in a throwaway rather than in the build.
+
+---
+
+## A page's banner described data it had just said was not connected
+
+**Symptom** — with no source connected, `/what-if` rendered its header, the
+`read-only overlay` pill and the banner *VLS Texas Molecular — Deer Park, TX · built on
+the real demo graph (36 inbound generators, EPA RCRAInfo + e-Manifest + ECHO)* directly
+above the empty state saying **No data source is connected**. Two answers on one screen,
+and the confident-looking one was wrong.
+
+**Root cause** — only the tabs were behind the gate. `GET /whatif` returns its copy
+regardless of `connected_sources`, and the pill, the banner and the provenance note were
+rendered above the branch rather than inside it — the same mistake as putting a
+`StatCards` row above a gate, except copy reads as a claim rather than as zeros.
+
+**Fix** — the whole lens (pill, banner, tabs, note) moved into `WhatIfLens`, rendered
+only on the connected branch. `PageHeader` is all the two branches share, which is what
+every other gated page already did.
+
+**Guard** — *mechanical*: `check-docs` slices `WhatIfPage.tsx` at the first non-exported
+function and asserts the gate half names `NoSourceConnected` and none of `copy.banner` /
+`copy.overlayPill` / `copy.dataNote`, while the lens half names all three. Both
+directions, so deleting the copy cannot satisfy it. Broken three ways before being
+trusted — chrome back above the gate, a served string deleted, the gate removed — and an
+SSR smoke asserted both renders, with the header's served subtitle proving the "absent"
+run had its payload.
+
+**Rule** — **a connection gate replaces the page, not just its cards.** Served copy about
+absent data is still a claim about absent data. Put everything the gate excludes in one
+component rather than gating each piece, so the next paragraph added to the page cannot
+land on the wrong side.

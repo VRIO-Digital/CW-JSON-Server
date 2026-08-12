@@ -12,6 +12,7 @@ npm run lint        # oxlint
 npm run audit       # audit gate (fails on any advisory, minus the allowlist)
 npm run check-docs  # asserts this file's factual claims against the code
 npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db.json)
+npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
 npm run preflight   # lint + build + audit + check-docs — run before calling work done
 ```
 
@@ -165,7 +166,7 @@ Consequences worth knowing before debugging:
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
-  editor cannot save a document that would crash the app. There are 23 required
+  editor cannot save a document that would crash the app. There are 24 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
   Graph — not just a catalogue page. `column_profiles` and
@@ -779,6 +780,68 @@ a metric's `flag`, because a share is not a state. **Each chart caps `max-width`
 its own viewBox width** — an SVG scales its text with everything else, so without
 the cap a wide column rendered 11px labels at 28px.
 
+### The What-if lens (`/what-if`)
+
+Where a load is judged **before** it is accepted. Ingested from
+`09_What if lens/whatif_vls_data.json` by `npm run ingest:whatif` into `db.whatif` —
+24 candidate generators with their federal records, 4 watchable measures, 4 candidate
+pools, and every string the page prints.
+
+**It is a read-only overlay and nothing on it writes to the graph.** The copy says so
+three times, so the code has to keep it: `POST /whatif/scenario` computes and returns,
+storing nothing, and the saved library holds **generator ids, never figures**. That is
+the whole reason computing is a call rather than a calculation — a saved scenario
+re-opened next week shows next week's record, and a store that cached the numbers would
+be caching an answer that quietly went stale.
+
+**Two tabs are two jobs.** *Authoring* sets the frame — which governed measures are
+watched, which pool a scenario may draw from, how many columns to compare — over three
+steps, each narrowing the next, so the rail is clickable backwards only. *Runtime* swaps
+loads inside that frame; every figure recomputes on the server.
+
+**The connection gate replaces the lens, header chrome included.** `GET /whatif` returns
+its copy whether or not a source is connected, so the page's banner ("built on the real
+demo graph — 36 inbound generators") and its provenance note used to print above
+`NoSourceConnected` — a claim about data one line above the sentence saying there is
+none. The whole lens lives in `WhatIfLens`, rendered only when `connected_sources > 0`,
+so the gated branch has no source-derived copy to leak; only `PageHeader` is common to
+both, as on every other gated page. `check-docs` asserts the split both ways.
+
+**A measure must ground before it can be watched, and the graph decides.**
+`POST /whatif/resolve` answers with one of three verdicts: `resolved` adds the measure
+it grounded to, `grounds_not_inherited` explains that the measure is real but measures
+the wrong thing (tonnage measures the Manifest, not inherited risk), and `refused` says
+nothing in this graph resolves it. **The keyword list is deliberately absent from
+`GET /whatif`** — a client holding it could answer for itself, which would make the
+refusal theatre. `check-docs` asserts it never reaches the payload. Paced like the
+suggesters, because a resolution that returns instantly reads as a lookup in a list the
+client already had.
+
+**Every figure names the federal source it came from**, and a measure reports three
+different things: `inherited` (what the load brings), `baseline` (what the facility
+already carries) and `value` (the sum, judged against the appetite line). A measure with
+no baseline — a consent decree is not something a facility keeps a running count of —
+reports `null` rather than `0`, because 0 would be a claim. A load that moves nothing
+says so instead of printing "+0".
+
+**The breach rule is real but currently unreachable, and that is the data's answer.**
+`enf` breaches at the facility's 10-action appetite; the baseline is 0 and the largest
+single load carries 4, so one load cannot cross it. Headroom is the measure that answers
+"how close am I" — the package's own formula, computed per pool at ingest — and it says
+5 more enforcement-carrying loads. Do not manufacture a breach to exercise the styling.
+
+**Nothing is predicted.** Every figure is a record the graph already holds. `residual`
+is stated on every scenario — risk from records not yet connected to a generator — so a
+reader does not take the figures for the whole picture, and a clean load says "nothing
+connects" rather than showing an empty trace panel.
+
+`whatif` is the 24th required `db.json` key, and `validateDb` checks *across* it: a
+measure reading a field no generator carries would render as no inherited risk, a pool
+filtering on a missing field would offer nobody, and a `resolvable` naming no measure
+would report "Resolved — added" and add nothing. All three read as answers.
+`npm run ingest:whatif` checks the same references against the package and refuses to
+write.
+
 ### Identity (`/login`)
 
 Gates the whole app, so it is the one flow that sits outside `RequireAuth`
@@ -835,13 +898,14 @@ as the current user.
 
 ### State (`src/store/`)
 
-zustand. Eight modules (plus `asyncState.ts`, the shared machinery): `authStore`
+zustand. Nine modules (plus `asyncState.ts`, the shared machinery): `authStore`
 (who is signed in — the one module persisted to `localStorage`, everything else
 is server-derived), `sourcesStore`, `catalogueStore` (browse / columns /
 document browse / documents / jobs / signals), `graphStore` (domains / use
 cases), `graphStudioStore` (the studio's list + one graph's review),
-`askStore` (live graphs + the last answer), `telemetryStore` (audit / traces /
-evals), `dbStore`.
+`askStore` (live graphs + the last answer), `whatifStore` (the What-if frame plus
+one column per admitted load — the *load*, never the figures), `telemetryStore`
+(audit / traces / evals), `dbStore`.
 
 The Drive stores are separate from the BigQuery ones rather than one store
 branching on connector: the payloads share no fields, so a union `data` would
@@ -962,12 +1026,13 @@ Sources. `/login` has no `NAV_ITEMS` entry — there is nothing to navigate to
 before signing in, and once signed in there is no reason to navigate back.
 
 **The sidebar advertises more than exists, and serves more than it advertises.**
-`NAV_ITEMS` has **8** live entries and `routes.tsx` has a page for **5** of them
-(`/new-graph`, `/ask`, `/sources`, `/catalogue`, `/graph-studio`). The other three —
-Knowledge Graphs, Reports, What-if Lenses — are roadmap placeholders with no route, so
-clicking one falls through `path: '*'` to `NotFoundPage`. That is a deliberate shell,
-not a broken link: when one gets a page, add it to `routes.tsx` and nothing else
-changes.
+`NAV_ITEMS` has **8** live entries and `routes.tsx` has a page for **6** of them
+(`/new-graph`, `/ask`, `/sources`, `/catalogue`, `/graph-studio`, `/what-if`). The other
+two — Knowledge Graphs, Reports — are roadmap placeholders with no route, so clicking
+one falls through `path: '*'` to `NotFoundPage`. That is a deliberate shell, not a
+broken link: when one gets a page, add it to `routes.tsx` and nothing else changes —
+`/what-if` was one of them until the What-if lens landed, and adding it needed exactly
+that one line.
 
 The traffic also runs the other way. **Four routes are reachable by URL only**, having
 been commented out of `NAV_ITEMS` rather than deleted: `/audit`, `/trace`,
@@ -1020,7 +1085,7 @@ and prefer writing ~100 lines to pulling in a package.
 relevant `SKILLS.md` flow and `docs/REGRESSIONS.md`) → build → verify → **record**.
 The record phase is not optional — it is why the same bug does not land twice.
 
-- **`SKILLS.md`** — the seven end-to-end flows, their files, and their failure modes.
+- **`SKILLS.md`** — the ten end-to-end flows, their files, and their failure modes.
   Read the section before changing a flow; update it after.
 - **`docs/REGRESSIONS.md`** — every bug that cost real time, with the guard that
   stops it recurring. Append on every fix. Prefer a guard that fails the build
@@ -1117,6 +1182,24 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **A number in prose drifts unless something reads it.** The routing note claimed 13
   nav entries and 8 served long after it was 8 and 5, because no check looked at either.
   Both are now read off `nav.ts` and `routes.tsx`.
+- **A field the whole array does not share is not a required field.** The What-if
+  authoring steps carry `help` — except step 3, which carries `note` instead — and a
+  schema declaring `help: str` made the entire frame fail to read over one absent
+  string. Check the actual data before declaring a field on a list of near-identical
+  objects.
+- **Copy already in the payload must not be restated in a component.** Two Alerts on the
+  What-if page hardcoded the first sentence of a tenant note that the payload already
+  held, so each printed it twice — and put words in the tenant's mouth. Split the lead
+  sentence off the data instead. A smoke assertion now greps the components for the
+  served strings.
+- **A connection gate has to replace the page's chrome as well as its cards.** The
+  What-if banner and provenance note sat outside the gate, so "built on the real demo
+  graph (36 inbound generators)" printed directly above "No data source is connected".
+  Nothing errored — served copy about absent data reads as data. Put the whole lens in
+  one component on the connected branch rather than gating each piece.
+- **A vacuous assertion is worse than no assertion.** Two written this session passed
+  over nothing — one `|| true`, one `!x || x` — and both were reporting success. If an
+  assertion cannot fail, it is a comment.
 - **`text-overflow: ellipsis` does nothing on a flex container**, and antd v6
   buttons are `inline-flex`. Put it on the inner label span with `min-width: 0`.
   Text clipped at *both* ends is the tell: that is a centred flex item, not a

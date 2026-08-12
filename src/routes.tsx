@@ -14,6 +14,7 @@ import NotFoundPage from './pages/NotFoundPage'
 import SourcesPage from './pages/SourcesPage'
 import TracePage from './pages/TracePage'
 import ValidationPage from './pages/ValidationPage'
+import WhatIfPage from './pages/WhatIfPage'
 
 /*
  * Element routes only — no loaders, actions, or SSR. See the ALLOWLIST note in
@@ -62,6 +63,10 @@ export const routes: RouteObject[] = [
           // Ask queries a *published* graph, so it lists none until one is live.
           { path: 'ask', element: <AskPage /> },
           { path: 'catalogue', element: <CataloguePage /> },
+          /* The What-if lens — a read-only overlay that admits a candidate load
+             hypothetically and reports what the facility would inherit. Its nav entry
+             already existed as a roadmap placeholder; this is the page behind it. */
+          { path: 'what-if', element: <WhatIfPage /> },
           { path: 'audit', element: <AuditPage /> },
           { path: 'trace', element: <TracePage /> },
           { path: 'validation', element: <ValidationPage /> },
