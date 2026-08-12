@@ -17,7 +17,6 @@ React is pinned to the 18 line (`^18.3.1`), so `npm update` will not pull in
 React 19. `@types/react` and `@types/react-dom` are pinned to their matching
 18.x lines — mixing React 18 with React 19 types is a common source of
 confusing type errors, so keep those three in step if you ever bump versions.
-
 ## Scripts
 
 ```bash
