@@ -1782,3 +1782,65 @@ survives. Six break tests, all caught.
 **Rule** — **when a UI can remove a row, it has to be able to say the row is gone.** "Shorter" is not a
 message. And when the file and the screen disagree, suspect the process before the data: an old server's
 own refusal messages date it, because they validate against a schema that has moved on.
+
+## Defaults checked less carefully than the live set they overwrite
+
+**Symptom** — two of ten break-test mutations against the new Settings claims reported MISSED, and this
+time the breaks were right and the guards were wrong.
+
+**Root cause** — `settings.json` holds two permission blocks per persona: `nav_permissions` (live) and
+`defaults` (what Reset copies over it). Both the validator and the `check-docs` claim scrutinised the live
+set — every navigation key present, a locked key on — and said nothing about `defaults`. So a key missing
+from `defaults`, or a locked row that was on now and off by default, passed every check and became a
+broken live state the first time anybody pressed **Reset to defaults**. Nothing threw at any point; the
+sidebar simply showed an item it should not.
+
+The mutations found it by accident: `String.replace` with a plain string replaces the *first* occurrence,
+and in that file `defaults` comes before `nav_permissions` — so both mutations landed on the block nobody
+was checking. Two "unbreakable claims" that were really two blind spots.
+
+**Fix** — `validateSettings` now requires the two blocks to carry identical key sets per persona, and a
+read-only key to be `true` in **both**. The claim checks both blocks too. All ten mutations are caught.
+
+**Guard** — *mechanical*, at the boot validator and in `check-docs`, plus the seed's own refusal.
+
+**Rule** — **a fallback is state, and needs the same checks as the state it replaces.** Anything that can
+be copied over the live values later — defaults, presets, a reset payload, a seed — is a delayed way of
+setting them, so every invariant that protects the live set has to protect it too. And when a break test
+reports MISSED, check *where* the mutation landed before concluding the claim is unbreakable: with a
+plain-string replace, that is wherever the text first appears.
+
+## A write whose response is lost, reported as a write that did not happen
+
+**Symptom** — reported from a screenshot: toggling a persona's navigation access showed *"Cannot reach the
+mock server. Start it with npm run mock (port 4000), then try again."* The page had loaded fine and was
+showing all four personas and nine permission rows.
+
+**Root cause** — two things, and only the second is a defect.
+
+*The trigger* was transient. The mock server was restarted between the page load and the click — the
+verification work in that session was rewriting `server.mjs`, and the process was restarted to pick the
+changes up. A `fetch` that cannot connect throws, and `toMessage`'s network branch produces exactly that
+sentence. The server, the route and the payload were all fine minutes later, from `curl` and through the
+real client.
+
+*The defect* was what happened next: **the write had been applied.** The server received the PATCH,
+committed it, and the response was lost. `setPermission` only updated its copy on success, so the page
+went on showing the old value while `settings.json` held the new one — and the toast said the change had
+failed. It was found by accident: a check written to assert "Settings is off for Domain Architect, as the
+screenshot shows" failed, because by then it was on.
+
+**Fix** — a failed write now re-reads from the server before returning its `Result`. For a *refusal* the
+re-read changes nothing (the server never applied it); for a *lost response* it replaces a hopeful guess
+with what is actually stored. One GET, and the page stops being able to lie about it.
+
+**Guard** — *mechanical*, and it needed a fetch stub that fails in the right way: a plain rejection tests
+nothing, because the request never reaches the server. The test lets the write through, *then* throws, so
+the server has applied it and the client has not heard — and asserts the store ends up agreeing with the
+server. A refusal is asserted in the same run to keep the re-read from hiding one.
+
+**Rule** — **"the write failed" and "I did not hear whether the write succeeded" are different facts, and
+a network error is the second one.** Anything that reports an outcome after a lost response is guessing;
+ask the server instead. And when a break test or a verification run rewrites source that a running process
+loaded, expect a restart in the middle of somebody's click — the confusing error is the process, not the
+code.

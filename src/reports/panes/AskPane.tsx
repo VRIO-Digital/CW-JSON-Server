@@ -19,6 +19,8 @@ interface Props {
   onChange(v: string): void;
   onSetGraph(value: string, label: string): void;
   onRead(): void;
+  /** True while the question is being read back — the button says so and refuses a second click. */
+  reading?: boolean;
   onPickStarter(index: number): void;
 }
 
@@ -30,6 +32,7 @@ export function AskPane({
   onChange,
   onSetGraph,
   onRead,
+  reading,
   onPickStarter,
 }: Props) {
   const { open } = useMenu();
@@ -81,8 +84,15 @@ export function AskPane({
           </button>
           <span className="hint">Plain English is fine — no filters or waste codes to set up.</span>
           <span className="spacer" />
-          <button className="btn pri" onClick={onRead}>
-            Read my question →
+          {/* Disabled while it runs: a second click would start a second read of the same question. */}
+          <button className="btn pri" onClick={onRead} disabled={reading}>
+            {reading ? (
+              <>
+                <span className="rp-spin" aria-hidden="true" /> Reading your question…
+              </>
+            ) : (
+              <>Read my question →</>
+            )}
           </button>
         </div>
       </div>

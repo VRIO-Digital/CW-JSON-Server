@@ -1,0 +1,125 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "role_id": "business_user_executive",
+      "name": "Ellis Hargrove",
+      "email": "ellis.hargrove@vriodigital.com"
+    },
+    {
+      "id": 2,
+      "role_id": "domain_architect",
+      "name": "Dana Whitfield",
+      "email": "dana.whitfield@vriodigital.com"
+    },
+    {
+      "id": 3,
+      "role_id": "business_user_project",
+      "name": "Rei Nakamura",
+      "email": "rei.nakamura@vriodigital.com"
+    },
+    {
+      "id": 4,
+      "role_id": "platform_admin",
+      "name": "Adaeze Okonjo",
+      "email": "adaeze.okonjo@vriodigital.com"
+    }
+  ],
+  "defaults": {
+    "business_user_executive": {
+      "graphs": true,
+      "new-graph": true,
+      "ask": true,
+      "reports": true,
+      "sources": true,
+      "catalogue": true,
+      "graph-studio": true,
+      "what-if": true,
+      "settings": false
+    },
+    "domain_architect": {
+      "graphs": true,
+      "new-graph": true,
+      "ask": true,
+      "reports": true,
+      "sources": true,
+      "catalogue": true,
+      "graph-studio": true,
+      "what-if": true,
+      "settings": false
+    },
+    "business_user_project": {
+      "graphs": true,
+      "new-graph": true,
+      "ask": true,
+      "reports": true,
+      "sources": true,
+      "catalogue": true,
+      "graph-studio": true,
+      "what-if": true,
+      "settings": false
+    },
+    "platform_admin": {
+      "graphs": false,
+      "new-graph": false,
+      "ask": false,
+      "reports": false,
+      "sources": false,
+      "catalogue": false,
+      "graph-studio": false,
+      "what-if": false,
+      "settings": true
+    }
+  },
+  "read_only": {
+    "platform_admin": [
+      "settings"
+    ]
+  },
+  "nav_permissions": {
+    "business_user_executive": {
+      "graphs": true,
+      "new-graph": true,
+      "ask": true,
+      "reports": true,
+      "sources": true,
+      "catalogue": true,
+      "graph-studio": true,
+      "what-if": true,
+      "settings": false
+    },
+    "domain_architect": {
+      "graphs": true,
+      "new-graph": true,
+      "ask": true,
+      "reports": true,
+      "sources": true,
+      "catalogue": true,
+      "graph-studio": true,
+      "what-if": true,
+      "settings": false
+    },
+    "business_user_project": {
+      "graphs": true,
+      "new-graph": true,
+      "ask": true,
+      "reports": true,
+      "sources": true,
+      "catalogue": true,
+      "graph-studio": true,
+      "what-if": true,
+      "settings": false
+    },
+    "platform_admin": {
+      "graphs": true,
+      "new-graph": true,
+      "ask": true,
+      "reports": true,
+      "sources": true,
+      "catalogue": false,
+      "graph-studio": true,
+      "what-if": true,
+      "settings": true
+    }
+  }
+}

@@ -32,7 +32,8 @@ fighting the premise.
 Every page below is gated behind this one. `routes.tsx` wraps the whole `/`
 tree in a `RequireAuth` layout route; visiting any of them signed out redirects
 to `/login` with the attempted location carried in `state.from`, and signing in
-sends the user back there instead of always landing on Sources.
+sends the user back there instead of the default landing page. That default is **Ask** —
+what the console is for — and `routes.tsx`’s `/` index redirect points at the same place.
 
 ### The form
 
@@ -1520,7 +1521,7 @@ package for how its state flows; the short version is that `App.tsx` owns the st
 the four assumptions, the filters, the block list and edit mode, and the panes are
 presentational.
 
-### Three changes were made to it, and nothing else
+### Four changes were made to it, and nothing else
 
 Its `main.tsx` and `Sidebar` were dropped (this app has a sidebar, and the prototype's named a
 different persona than the signed-in one); its `ToastProvider` and `MenuProvider` wrap the page
@@ -1528,6 +1529,11 @@ rather than the app; and its stylesheet was **scoped** to `.cw-reports`. That la
 optional — the original sets `*`, `body`, `button`, `h1,h2,h3`, `table`, `th` and `td` as bare
 selectors and would restyle every other page silently. `check-docs` asserts it stays scoped and
 that the page mounts it in a matching wrapper.
+
+Its two authoring steps were also **paced** — `READ_MS` 2s, `BUILD_MS` 3s, each behind a spinner and a
+disabled button — because both were instant, and an act that returns instantly teaches that it is free.
+Client-side only because these steps have no request behind them; the refusal for an empty question is not
+paced, and the timer is cleared on unmount.
 
 It is also the one stylesheet exempt from the `--sp-*` rule, as a named one-entry list that
 `check-docs` holds at one entry — and it carries a **do-not-hand-edit** rule, so anything this repo
@@ -1635,6 +1641,71 @@ than hiding it.
 The dataset's vocabulary is the tenant's — the same starters, scopes, measures and horizons as
 `db.reports` — so the frame it builds is one `POST /reports/build` would accept. Start there,
 and keep the two definitions from drifting.
+
+## Flow 12 — Settings: users, personas and what each one sees
+
+**Files:** `mock-server/settings.json` (its own small store) + `scripts/seed-settings.mjs` ->
+`GET /settings` / `PATCH /settings/personas/:roleId/nav` / `POST …/reset` ->
+`src/api/client.ts` -> `src/store/settingsStore.ts` (the one place visibility is decided) ->
+`src/pages/SettingsPage.tsx` -> `src/components/UsersPanel.tsx` and
+`src/components/PersonaPermissionsPanel.tsx` (both pure, so both assertable) ->
+`src/nav.ts` + `src/components/Sidebar.tsx` for the effect.
+
+**The flow:** Settings → Persona Configuration → pick a persona → toggle a navigation item → the
+sidebar changes on the next render, and the change is saved.
+
+### Its own database
+
+`settings.json`, separate from `db.json` on purpose: that file is the tenant's data, this one holds only
+what this page administers — users, each persona's navigation access, and the authored `defaults` those
+reset to. Two files, two validators, one job each, so a settings write cannot touch a report and an
+ingest that rebuilds `db.reports` cannot drop a permission. **It persists**: a permission survives a
+restart, unlike a registered source. `npm run seed:settings` re-authors it and the server refuses to boot
+on a bad one, naming that command.
+
+### What it stores and what it does not
+
+**Stores:** the four users, the live permissions, the authored defaults, and the read-only rule.
+
+**Does not store:** persona labels. `db.auth_roles` / `GET /auth/roles` is the one place the four are
+declared, and the server resolves labels on the way out — so a rename reaches every surface at once.
+`check-docs` fails if a label appears in `settings.json` or a user names a role the tenant lacks.
+
+**Nor the navigation list twice:** the seed's `NAV_KEYS` is compared to `nav.ts`, so a key it has that
+the sidebar lacks (a permission nobody can exercise) or one the sidebar has that it lacks (an item no
+persona can hide) fails the build.
+
+### The login has no role picker
+
+`POST /auth/login` takes `{ email, password }`. The persona is the one on that address's row in
+`settings.json`, so an unknown address is **refused**, naming who is set up. The form used to ask, which
+meant one address could sign in as any persona; `LoginPage` no longer reads `GET /auth/roles` at all.
+Still not authentication — the password is length-checked and nothing more.
+
+### Four rules the code has to keep
+
+- **One place decides visibility.** `visibleNavItems` in `settingsStore`; the sidebar filters through it
+  and nothing else does. `App`'s mobile header reads the *unfiltered* list on purpose — it names the page
+  you are on, and a hidden page is still reachable.
+- **Settings belongs to Platform Admin**, on and **fixed** there, off-but-configurable elsewhere. The
+  lock is enforced by the **server**, which refuses a change to a fixed key with a sentence rather than
+  ignoring it — a disabled switch is a courtesy to whoever is looking at it, and any other path into the
+  store could otherwise strand the one persona that can grant everything.
+- **`defaults` and `nav_permissions` must carry the same keys**, and a locked row must be on in *both*.
+  Reset copies the defaults over the live set, so a gap there arrives later rather than never. A break
+  test found that hole.
+- **Hiding is not authorising.** `/settings` is routed unconditionally, so a persona whose sidebar drops
+  it can still reach the page — and the tab warns when that state is reached and names the URL. The Alert
+  says "this controls what is shown, not what is permitted" in those words.
+
+### Where it fails
+
+`GET /settings` failing -> the page shows `ApiErrorAlert` with a retry; a failed *reload* keeps the
+previous data and says so, and until the first load returns every navigation item is visible, so a slow
+or unreachable server never empties the sidebar. A persona with no entry -> the server refuses to boot
+rather than serving an undefined sidebar. An unknown navigation key or a non-boolean in a write -> a 400
+naming the real keys.
+
 
 ## Adding things
 

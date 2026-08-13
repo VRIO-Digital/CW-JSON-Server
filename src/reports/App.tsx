@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { META, OPTS, STARTERS } from './data';
 import { assumptionsForStarter, freshAssumptions } from './lib/assumptions';
 import { instantiate, isMeasure } from './lib/blocks';
@@ -142,6 +142,27 @@ export interface GovernanceActions {
 /** The chip that leads the bar. Not a stored state — the server counts it as everything not archived. */
 const ALL_CURRENT = 'current';
 
+/**
+ * How long the two authoring steps take, and why they take any time at all.
+ *
+ * Reading a question back and composing a report are the section's two pieces of *work*, and both were
+ * instant: the button moved the step and the next pane was simply there. An operation that returns
+ * instantly and shows nothing teaches that it is free — the same reason the profiler's stages, the
+ * suggesters and the graph build are all paced, and the reason `POST /reports/read` is paced server-side
+ * while `POST /reports/build` is not.
+ *
+ * **Client-side here because there is no request behind them.** These steps run against the prototype's
+ * own dataset, so there is nothing whose return could advance them; everywhere a request *does* exist,
+ * the rule stands — a stage advances when its call returns, never on a timer.
+ *
+ * Building is the longer of the two because it is the heavier act: it instantiates every block.
+ */
+const READ_MS = 2_000;
+const BUILD_MS = 3_000;
+
+/** Which step is running, so the pane can disable its button and say so. */
+export type Working = 'read' | 'build' | null;
+
 export default function App({
   identity,
   graphOptions,
@@ -224,6 +245,39 @@ export default function App({
   const [sharing, setSharing] = useState<{ kind: 'governed' | 'saved'; id: string } | null>(null);
   const [savingShare, setSavingShare] = useState(false);
 
+  /**
+   * Which authoring step is running, and the timer running it.
+   *
+   * The ref is not a nicety: leaving the tab, or clicking through to the Library, unmounts nothing here
+   * but *does* change what the pending callback would do — and an unmount mid-step would fire `setState`
+   * on a dead component. Cleared on unmount and before each new run, so only one step is ever in flight.
+   */
+  const [working, setWorking] = useState<Working>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearRun = useCallback(() => {
+    if (timer.current !== null) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearRun, [clearRun]);
+
+  /** Holds `label` for `ms`, then does the work. One step at a time. */
+  const run = useCallback(
+    (label: Exclude<Working, null>, ms: number, done: () => void) => {
+      clearRun();
+      setWorking(label);
+      timer.current = setTimeout(() => {
+        timer.current = null;
+        setWorking(null);
+        done();
+      }, ms);
+    },
+    [clearRun],
+  );
+
   /** Set when the open report already exists in the library. */
   const [openedId, setOpenedId] = useState<string | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -287,6 +341,10 @@ export default function App({
   /** Free-typed questions route to the generator report — the default spine. */
   function readQuestion() {
     const p = prompt.trim();
+    /*
+     * **The refusal is immediate.** Errors are never paced anywhere in this app — a two-second wait for
+     * "you did not type a question" is the app pretending to think about nothing.
+     */
     if (!p) {
       setError(true);
       return;
@@ -298,7 +356,7 @@ export default function App({
       setFilters([]);
       setOpenedId(null);
     }
-    go(2);
+    run('read', READ_MS, () => go(2));
   }
 
   function setSlot(key: SlotKey, value: string, label: string) {
@@ -314,8 +372,10 @@ export default function App({
   function build() {
     setEditMode(false);
     setSelected(null);
-    setBlocks(starter.blocks.map(instantiate));
-    go(3);
+    run('build', BUILD_MS, () => {
+      setBlocks(starter.blocks.map(instantiate));
+      go(3);
+    });
   }
 
   /* ----------------------------------------------------------- library flow */
@@ -520,6 +580,7 @@ export default function App({
               if (error) setError(false);
             }}
             onRead={readQuestion}
+            reading={working === 'read'}
             onPickStarter={pickStarter}
           />
         )}
@@ -535,6 +596,7 @@ export default function App({
             onToggleSlice={toggleSlice}
             onBack={() => go(1)}
             onBuild={build}
+            building={working === 'build'}
           />
         )}
 

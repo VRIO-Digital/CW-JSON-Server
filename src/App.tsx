@@ -21,6 +21,13 @@ export default function App() {
     setDrawerOpen(false)
   }, [pathname])
 
+  /*
+   * The mobile bar names the page you are on, so it looks up **every** nav item rather than the
+   * visible ones. A page hidden from the sidebar is still reachable by URL — persona permissions are a
+   * navigation preference, not a gate — and a header reading "ContextWeave" over the Reports page
+   * because Reports is hidden would be the filter leaking into a label. Visibility is decided in one
+   * place, `visibleNavItems`, and this is not it.
+   */
   const activeLabel =
     NAV_ITEMS.find((item) => pathname.startsWith(item.path))?.label ??
     'ContextWeave'

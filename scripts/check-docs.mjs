@@ -418,8 +418,24 @@ expect(
   [kgPath, studioPkgPath].every((p) => read('scripts/ingest-knowledge-graph.mjs').includes(p)),
   'a path this check does not share is a path this check cannot verify',
 )
-const kg = JSON.parse(read(kgPath))
-const studioPkg = JSON.parse(read(studioPkgPath))
+/*
+ * **Parsed only if it is there.** The claim above already fails when the package is absent; parsing it
+ * regardless turned that into a *crash*, which took the whole run down and hid the other 350-odd claims
+ * behind an ENOENT stack. A check-docs that cannot report at all is worse than one red claim — and the
+ * package is only the ingests' source, so a checkout without it is a legitimate state to be told about.
+ *
+ * The fallbacks are **empty rather than absent**, which is deliberate: every claim below compares the
+ * package against `db.json`, so empty makes them fail loudly (`0` against the canvas's 189) instead of
+ * passing vacuously over `null`. A guard whose answer is "0 of 0" is describing itself, and this file has
+ * been bitten by that before.
+ */
+const kgHere = existsSync(join(root, kgPath)) && existsSync(join(root, studioPkgPath))
+const kg = kgHere
+  ? JSON.parse(read(kgPath))
+  : { nodes: [], edges: [], not_nodes: [], demo_display: {} }
+const studioPkg = kgHere
+  ? JSON.parse(read(studioPkgPath))
+  : { trustLanes: {}, mustReview: [], sanityChecks: [], synthesis: {} }
 const canvas = db.graph_studio.canvas
 
 expect(
@@ -3078,6 +3094,209 @@ expect(
   new RegExp(`a page for \\*\\*${navServed.length}\\*\\* of them`).test(claude),
   `${navServed.length} served: ${navServed.join(', ')}`,
 )
+
+/*
+ * ---------------- Settings: its own store, and the one fixed toggle ----------------
+ *
+ * Five claims, each guarding a rule that fails by *answering* rather than by throwing.
+ */
+const settingsSeed = read('scripts/seed-settings.mjs')
+const settingsStore = read('src/store/settingsStore.ts')
+const personaPanel = read('src/components/PersonaPermissionsPanel.tsx')
+const sidebarSrc = read('src/components/Sidebar.tsx')
+const loginPage = read('src/pages/LoginPage.tsx')
+const settingsRaw = read('mock-server/settings.json')
+const settingsFile = JSON.parse(settingsRaw)
+/*
+ * Comments stripped for every absence claim below — by now a habit, not a fix. A file that explains why
+ * it does *not* do something names the thing it does not do: `App.tsx`'s comment says it deliberately
+ * avoids `visibleNavItems`, and the login's says it no longer has a `roleId`.
+ */
+const appCode = codeOnly(read('src/App.tsx'))
+
+/*
+ * **A separate store from `db.json`, holding only what Settings administers.**
+ *
+ * That separation is the point: a settings write cannot touch a report, and an ingest that rebuilds
+ * `db.reports` cannot drop a permission — which is not hypothetical, since the reports ingest silently
+ * dropped `governance` for exactly that reason. It has its own validator and its own writer, and the
+ * server refuses to boot on a bad one rather than serving a sidebar nobody configured.
+ */
+expect(
+  'the settings store is its own file, with its own validator and writer',
+  /const SETTINGS_PATH = join\(here, 'settings\.json'\)/.test(server) &&
+    /function validateSettings\(candidate\)/.test(server) &&
+    /function commitSettings\(next\)/.test(server) &&
+    /refusing to start — mock-server\/settings\.json cannot be served/.test(server) &&
+    /npm run seed:settings/.test(server) &&
+    /"seed:settings": "node scripts\/seed-settings\.mjs"/.test(read('package.json')),
+  'settings.json is validated, committed and re-authorable on its own',
+)
+
+/*
+ * **It names personas by `role_id` and never by label.** `db.auth_roles` is the pool — what report
+ * audiences validate against, what the login echoes back — so one answer to "who exists". A label stored
+ * here would go stale the moment a role is renamed, in a file nobody would think to look at.
+ */
+const settingsRoleIds = [
+  ...settingsFile.users.map((u) => u.role_id),
+  ...Object.keys(settingsFile.defaults),
+  ...Object.keys(settingsFile.nav_permissions),
+  ...Object.keys(settingsFile.read_only),
+]
+expect(
+  'every persona the settings store names is one this tenant has, and no label is stored',
+  settingsRoleIds.length > 0 &&
+    settingsRoleIds.every((id) => db.auth_roles.some((r) => r.role_id === id)) &&
+    !db.auth_roles.some((r) => settingsRaw.includes(r.label)) &&
+    /* Resolved on the way out, so a rename reaches every surface at once. */
+    /role_label: db\.auth_roles\.find\(\(r\) => r\.role_id === u\.role_id\)\?\.label/.test(server) &&
+    /* And the seed refuses a role id `db.json` does not have. */
+    /which db\.auth_roles does not have/.test(settingsSeed),
+  `${new Set(settingsRoleIds).size} personas referenced, all by id`,
+)
+
+/*
+ * **The configurable items are the sidebar's own.** The seed cannot import a `.tsx` module, so its list is
+ * written once and compared here: a key it has that the sidebar does not is a permission nobody can
+ * exercise, and one the sidebar has that it lacks is an item no persona can hide.
+ */
+const seededNavKeys = (/const NAV_KEYS = \[([\s\S]*?)\]/.exec(settingsSeed)?.[1] ?? '')
+  .split(',')
+  .map((s) => s.trim().replace(/^'|'$/g, ''))
+  .filter(Boolean)
+expect(
+  'the settings store configures exactly the sidebar’s navigation items',
+  seededNavKeys.length > 0 &&
+    seededNavKeys.join(',') === navKeys.join(',') &&
+    /*
+     * Every persona carries every one of them in **both** blocks. `defaults` matters as much as the live
+     * set, because Reset copies it over: a key missing there is a permission that silently becomes
+     * "not configured" — visible — the first time anybody resets. The break test found that gap by
+     * mutating the defaults, where an earlier version of this claim was not looking.
+     */
+    [settingsFile.nav_permissions, settingsFile.defaults].every((block) =>
+      Object.values(block).every((perms) =>
+        seededNavKeys.every((k) => typeof perms[k] === 'boolean'),
+      ),
+    ) &&
+    /key: 'settings',[\s\S]{0,80}path: '\/settings',/.test(nav) &&
+    /\{ path: 'settings', element: <SettingsPage \/> \}/.test(routesSrc),
+  seededNavKeys.length === 0
+    ? 'the seed’s NAV_KEYS were not parsed — this check cannot run'
+    : `${seededNavKeys.length} keys, matching nav.ts`,
+)
+
+/*
+ * **One place decides what the sidebar shows, and the lock is the server's.**
+ *
+ * Two filters would drift the first time a rule changed. And a disabled switch is a courtesy to whoever
+ * is looking at it — if that were the only rule, any other path into the store could turn Settings off
+ * and strand the persona that administers everything. `/settings` is routed unconditionally for the
+ * same reason.
+ */
+expect(
+  'the sidebar filters in one place, and the server enforces the fixed toggle',
+  /export const visibleNavItems =/.test(settingsStore) &&
+    /visibleNavItems\(settings, activePersonaId\)/.test(sidebarSrc) &&
+    !/NAV_ITEMS\.filter/.test(codeOnly(sidebarSrc)) &&
+    /* `App` looks up the unfiltered list on purpose — it names the page, it does not gate it. */
+    /NAV_ITEMS\.find\(\(item\) => pathname\.startsWith\(item\.path\)\)/.test(appCode) &&
+    !/visibleNavItems/.test(appCode) &&
+    /* Refused server-side, with the reason, before anything is written. */
+    /if \(navReadOnly\(roleId, key\) && value !== current\[key\]\)/.test(server) &&
+    /is fixed for \$\{role\.label\} and cannot be changed/.test(server) &&
+    /* The lock is on, not off: a locked-off item could never be granted, and both writers refuse it. */
+    /a locked-off item can never be granted/.test(server) &&
+    /a locked-off item can never be turned on/.test(settingsSeed) &&
+    /Reset would make it unreachable/.test(server) &&
+    /* True in the live set *and* in the defaults, or Reset would make the locked row unreachable. */
+    Object.entries(settingsFile.read_only).every(([roleId, keys]) =>
+      keys.every(
+        (k) =>
+          settingsFile.nav_permissions[roleId][k] === true &&
+          settingsFile.defaults[roleId][k] === true,
+      ),
+    ) &&
+    /disabled=\{locked\}/.test(personaPanel) &&
+    /* Hiding is not authorising, said on the page and true of the route. */
+    /not what is permitted/.test(personaPanel),
+  'one filter, one enforcer, and a page that stays reachable',
+)
+
+/*
+ * **The login asks for two fields, and the persona is looked up.**
+ *
+ * It used to ask which persona you were, which meant one address could sign in as any of them. Now the
+ * settings store answers that, so an unknown address is refused rather than admitted as whatever it
+ * claimed — and the role picker, and the roles fetch that filled it, are gone.
+ */
+/*
+ * **`/login/data` frames a file that has to be there.**
+ *
+ * The route names a document in `public/` by filename. Renaming or moving the file would leave the path
+ * answering with an empty frame — a blank page, no error, nothing in the console — so the name is checked
+ * against the directory. It is also deliberately *outside* `RequireAuth`: it is a document to be read, and
+ * behind the gate a typed URL would bounce to the login and never show it.
+ */
+const docRoutePath = /path: '\/login\/data',[\s\S]{0,400}?file="([^"]+)"/.exec(routesSrc)?.[1] ?? ''
+expect(
+  'the /login/data document route names a file that exists, and is reachable signed out',
+  docRoutePath.length > 0 &&
+    existsSync(join(root, 'public', docRoutePath)) &&
+    /* Declared at the top level, so no `RequireAuth` parent wraps it. */
+    routesSrc.indexOf("path: '/login/data'") < routesSrc.indexOf('<RequireAuth />') &&
+    /* Framed rather than inlined: the document sets bare `*`, `body` and heading rules. */
+    /<iframe/.test(read('src/pages/StaticDocPage.tsx')) &&
+    /* The filename is the route's, not the component's — it takes any file. Comments stripped: the
+       component's own doc comment names the document it was written for, and this claim failed on that
+       prose first time out. Fifth time in this file; `codeOnly` is the habit, not the fix. */
+    !codeOnly(read('src/pages/StaticDocPage.tsx')).includes(docRoutePath),
+  docRoutePath.length === 0
+    ? 'the document route was not parsed — this check cannot run'
+    : `public/${docRoutePath}`,
+)
+
+/*
+ * **The landing page is one place, named twice, and the two must agree.**
+ *
+ * Signing in with nowhere particular to go and visiting a bare `/` are the same question, answered in two
+ * files — `LANDING` in `LoginPage` and the index redirect in `routes.tsx`. Two answers is not a crash; it
+ * is a fresh sign-in and a bookmark of `/` quietly landing on different pages. Read off both rather than
+ * pinned to a value, so changing the landing page needs one edit in each and no edit here.
+ */
+const landing = /const LANDING = '([^']+)'/.exec(loginPage)?.[1] ?? ''
+const indexRedirect = /\{ index: true, element: <Navigate to="([^"]+)" replace \/> \}/.exec(routesSrc)?.[1] ?? ''
+expect(
+  'the login’s landing page and the index redirect are the same page, and it is routed',
+  landing.length > 0 &&
+    landing === indexRedirect &&
+    /* And it exists — a landing page with no route lands on NotFoundPage. */
+    navPaths.includes(landing) &&
+    routedPaths.includes(landing.replace(/^\//, '')) &&
+    /* Still a fallback: a visitor bounced off a protected page goes back there instead. */
+    /\?\?\s*LANDING/.test(loginPage) &&
+    /state as \{ from\?: Location \}/.test(loginPage),
+  landing.length === 0 || indexRedirect.length === 0
+    ? 'the landing page or the index redirect was not parsed — this check cannot run'
+    : `login lands on ${landing || '(none)'}, index redirects to ${indexRedirect || '(none)'}`,
+)
+
+expect(
+  'the login collects no role, and the server resolves one from the settings users',
+  !/roleId/.test(codeOnly(loginPage)) &&
+    !/listAuthRoles/.test(loginPage) &&
+    /const \{ email, password \} = await readJson\(req\)/.test(server) &&
+    /settings\.users\.find\(/.test(server) &&
+    /No user is set up for/.test(server) &&
+    /* Still not authentication: the password is length-checked and nothing else. */
+    /Password must be at least 6 characters/.test(server) &&
+    /* And the identity now carries the user's own name, which it had no way to know before. */
+    /name: user\.name/.test(server) &&
+    /name: str,/.test(client),
+  'two fields in, a looked-up persona out',
+)
+
 
 /*
  * The full-window canvas route. Its declaration order is load-bearing:

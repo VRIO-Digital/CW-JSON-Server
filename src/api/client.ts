@@ -58,10 +58,19 @@ export interface AuthRolesPayload {
  */
 export interface SessionIdentity {
   email: string
+  /**
+   * The user's own name, from the settings store.
+   *
+   * The login used to have none to report — it collected an address and a role and nothing else, which
+   * is why the avatar is initials rather than a name. Now the address resolves to a user, so this is
+   * read rather than invented.
+   */
+  name: string
+  /** **Looked up, not claimed.** The settings store says which persona this address is. */
   roleId: string
   roleLabel: string
   accessNote: string
-  /** Derived from the email — there is no name field to draw one from. */
+  /** Derived from the email, which is still what the avatar draws. */
   initials: string
   signedInAt: string
 }
@@ -1307,6 +1316,7 @@ const AUTH_ROLES_PAYLOAD = shape({
 
 const SESSION_IDENTITY_PAYLOAD = shape({
   email: str,
+  name: str,
   role_id: str,
   role_label: str,
   access_note: str,
@@ -2296,23 +2306,40 @@ export class ApiError extends Error {
   }
 }
 
-// No backticks: this is shown in a toast, where they render as characters.
-const UNREACHABLE =
-  'Cannot reach the mock server. Start it with npm run mock (port 4000), then try again.'
+/*
+ * No backticks: this is shown in a toast, where they render as characters.
+ *
+ * **It names the request it could not make.** "Cannot reach the mock server" on its own sent a real
+ * report round in circles: the server *was* running and answering that very endpoint from a terminal, so
+ * the message described a state that was not true and hid the two things that discriminate — which URL
+ * was tried, and by which method. A GET that works while a PATCH fails is a different fault from a dead
+ * server, and only the URL says which.
+ */
+const unreachable = (method: string, url: string) =>
+  `Cannot reach the mock server — ${method} ${url} did not complete. ` +
+  'Start it with npm run mock (port 4000), check that address is the one you expect, then try again.'
 
 async function request<T>(
   path: string,
   init?: { method?: string; body?: unknown },
 ): Promise<T> {
+  const method = init?.method ?? 'GET'
+  const url = `${BASE}${path}`
   let res: Response
   try {
-    res = await fetch(`${BASE}${path}`, {
-      method: init?.method ?? 'GET',
+    res = await fetch(url, {
+      method,
       headers: init?.body ? { 'content-type': 'application/json' } : undefined,
       body: init?.body ? JSON.stringify(init.body) : undefined,
     })
-  } catch {
-    throw new ApiError(UNREACHABLE, 0)
+  } catch (cause) {
+    /*
+     * A browser `fetch` throws for a dead server, a blocked request and a failed CORS preflight alike,
+     * and says which only in the console. Carrying the underlying message through is what tells those
+     * apart from a toast — `TypeError: Failed to fetch` is the generic one, anything else is a clue.
+     */
+    const detail = cause instanceof Error && cause.message ? ` (${cause.message})` : ''
+    throw new ApiError(unreachable(method, url) + detail, 0)
   }
 
   const payload = await res.json().catch(() => ({}))
@@ -2349,10 +2376,10 @@ export async function listAuthRoles(): Promise<AuthRolesPayload> {
 export async function login(input: {
   email: string
   password: string
-  roleId: string
 }): Promise<SessionIdentity> {
   const raw = validate<{
     email: string
+    name: string
     role_id: string
     role_label: string
     access_note: string
@@ -2362,19 +2389,165 @@ export async function login(input: {
     'The signed-in session',
     await request<unknown>('/auth/login', {
       method: 'POST',
-      body: { email: input.email, password: input.password, role_id: input.roleId },
+      /* No role. It is the *user's*, looked up in the settings store by address — the form used to ask,
+         which meant one address could sign in as any persona. */
+      body: { email: input.email, password: input.password },
     }),
     SESSION_IDENTITY_PAYLOAD,
   )
 
   return {
     email: raw.email,
+    name: raw.name,
     roleId: raw.role_id,
     roleLabel: raw.role_label,
     accessNote: raw.access_note,
     initials: raw.initials,
     signedInAt: raw.signed_in_at,
   }
+}
+
+/*
+ * ---------------- Settings: users, and each persona's navigation ----------------
+ *
+ * From `settings.json`, a **separate store** from `db.json` holding only what this section administers.
+ * Both writes commit, so a permission survives a restart.
+ *
+ * **Neither is access control.** They record and report a navigation preference; the persona arrives
+ * from a browser whose login authenticates by shape. Any UI on top has to say so in those words.
+ */
+
+export interface SettingsUser {
+  id: number
+  name: string
+  email: string
+  roleId: string
+  /** Resolved from `db.auth_roles` on the way out, so no label is stored twice. */
+  roleLabel: string
+}
+
+export interface SettingsPersona {
+  roleId: string
+  label: string
+  accessNote: string
+  /** Live access, per navigation key. */
+  nav: Record<string, boolean>
+  /** Keys whose toggle is fixed — served rather than re-derived, because the server enforces it. */
+  readOnly: string[]
+  /** What Reset returns to, so the page keeps no copy of what "default" means. */
+  defaults: Record<string, boolean>
+}
+
+export interface SettingsPayload {
+  users: SettingsUser[]
+  personas: SettingsPersona[]
+}
+
+/*
+ * An object whose keys are unknown and whose values must all be booleans — which `shape` cannot
+ * express, since it checks named fields. The keys are navigation items, so they are the app's to know
+ * and not the validator's; what has to be true is that every value is a real boolean, because a
+ * `"false"` string would read as *on* everywhere it is tested.
+ *
+ * A `Check` pushes onto `issues` and never throws, like every other checker here.
+ */
+const boolMap: FieldCheck = (v, path, issues) => {
+  if (v === null || typeof v !== 'object' || Array.isArray(v)) {
+    issues.push(`${path} should be an object of booleans`)
+    return
+  }
+  for (const [key, value] of Object.entries(v)) {
+    if (typeof value !== 'boolean') {
+      issues.push(`${path}.${key} should be a boolean, got ${value === null ? 'null' : typeof value}`)
+    }
+  }
+}
+
+const SETTINGS_PAYLOAD = shape({
+  users: arrayOf(
+    shape({ id: num, name: str, email: str, role_id: str, role_label: str }),
+  ),
+  personas: arrayOf(
+    shape({
+      role_id: str,
+      label: str,
+      access_note: str,
+      nav: boolMap,
+      read_only: arrayOf(str),
+      defaults: boolMap,
+    }),
+  ),
+})
+
+const toSettings = (raw: {
+  users: { id: number; name: string; email: string; role_id: string; role_label: string }[]
+  personas: {
+    role_id: string
+    label: string
+    access_note: string
+    nav: Record<string, boolean>
+    read_only: string[]
+    defaults: Record<string, boolean>
+  }[]
+}): SettingsPayload => ({
+  users: raw.users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    roleId: u.role_id,
+    roleLabel: u.role_label,
+  })),
+  personas: raw.personas.map((p) => ({
+    roleId: p.role_id,
+    label: p.label,
+    accessNote: p.access_note,
+    nav: p.nav,
+    readOnly: p.read_only,
+    defaults: p.defaults,
+  })),
+})
+
+export async function getSettings(): Promise<SettingsPayload> {
+  return toSettings(
+    validate('The settings', await request<unknown>('/settings'), SETTINGS_PAYLOAD),
+  )
+}
+
+/**
+ * Saves one persona's navigation access.
+ *
+ * The whole set per write, so the payload says what the answer *is* rather than what changed — and the
+ * reply is the whole view, so the caller renders a validated payload instead of patching its own copy.
+ * A key the app does not have, a non-boolean, or a change to a fixed key are all refused by the server
+ * with a sentence; none of them is silently dropped.
+ */
+export async function setPersonaNav(
+  roleId: string,
+  nav: Record<string, boolean>,
+): Promise<SettingsPayload> {
+  return toSettings(
+    validate(
+      'The persona’s navigation',
+      await request<unknown>(`/settings/personas/${encodeURIComponent(roleId)}/nav`, {
+        method: 'PATCH',
+        body: { nav },
+      }),
+      SETTINGS_PAYLOAD,
+    ),
+  )
+}
+
+/** Back to the persona's authored defaults, which live in the same store. */
+export async function resetPersonaNav(roleId: string): Promise<SettingsPayload> {
+  return toSettings(
+    validate(
+      'The persona’s navigation',
+      await request<unknown>(`/settings/personas/${encodeURIComponent(roleId)}/reset`, {
+        method: 'POST',
+      }),
+      SETTINGS_PAYLOAD,
+    ),
+  )
 }
 
 /** The scope depends on the connector, so the provider goes out with the start. */

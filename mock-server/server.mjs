@@ -19,7 +19,10 @@
  *   PUT    /db/:section                    replace one key  { value }
  *   GET    /health
  *   GET    /auth/roles                     the personas the login dropdown offers
- *   POST   /auth/login                     { email, password, role_id }
+ *   POST   /auth/login                     { email, password } — role comes from settings.json
+ *   GET    /settings                       users + personas + each one's navigation access
+ *   PATCH  /settings/personas/:roleId/nav  { nav: { key: bool } }
+ *   POST   /settings/personas/:roleId/reset
  *   GET    /projects
  *   GET    /projects/:projectId/datasets
  *   GET    /drives
@@ -83,6 +86,22 @@ import { dirname, join } from 'node:path'
 const here = dirname(fileURLToPath(import.meta.url))
 const DB_PATH = join(here, 'db.json')
 const db = JSON.parse(readFileSync(DB_PATH, 'utf8'))
+
+/*
+ * ---------------- the Settings store, which is a second file on purpose ----------------
+ *
+ * `db.json` is the tenant's data — sources, profiles, the graph, the reports. `settings.json` holds only
+ * what the Settings page administers: the users, and which navigation each persona may see. Two files,
+ * two validators, one job each, so a settings write cannot touch a report and an ingest that rebuilds
+ * `db.reports` cannot drop a permission. (That second hazard is not hypothetical: the reports ingest
+ * silently dropped `governance` for exactly that reason.)
+ *
+ * **It names personas by `role_id` and never by label.** `db.auth_roles` is the pool — what report
+ * audiences validate against, what the login echoes back — so there is one answer to "who exists" and
+ * this file cannot drift from it. `validateSettings` refuses a role id `db.json` does not have.
+ */
+const SETTINGS_PATH = join(here, 'settings.json')
+let settings = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'))
 
 const PORT = Number(process.argv[2] ?? process.env.MOCK_PORT ?? 4000)
 
@@ -915,6 +934,189 @@ function commitDb(next) {
   for (const key of Object.keys(db)) delete db[key]
   Object.assign(db, next)
 }
+
+/* ---------------- the settings store: its shape, and its writer ---------------- */
+
+/**
+ * What `settings.json` has to be to be servable.
+ *
+ * Every rule here is one whose breach **answers rather than throws**: a persona with no permission set
+ * shows a sidebar it should not, a user naming a role `db.auth_roles` lacks signs in as nobody, and a
+ * key locked *off* is a permission that can never be granted. None of those raise anything.
+ *
+ * Checked **across files** where it has to be — the personas are `db.auth_roles`, not a list here.
+ */
+function validateSettings(candidate) {
+  const problems = []
+  if (!isObject(candidate)) return ['settings.json must be a JSON object']
+
+  const roleIds = db.auth_roles.map((r) => r.role_id)
+  const { users, defaults, read_only: readOnly, nav_permissions: perms } = candidate
+
+  if (!Array.isArray(users) || users.length === 0) {
+    problems.push('"users" must be a non-empty array — the login resolves a role from it')
+  } else {
+    for (const u of users) {
+      if (!isObject(u) || !u.email || !u.name || !u.role_id) {
+        problems.push('every user needs { id, name, email, role_id }')
+        continue
+      }
+      if (!roleIds.includes(u.role_id)) {
+        problems.push(
+          `user "${u.email}" is role "${u.role_id}", which db.auth_roles does not have ` +
+            `(${roleIds.join(', ')})`,
+        )
+      }
+    }
+    const seen = users.map((u) => String(u.email).toLowerCase())
+    if (new Set(seen).size !== seen.length) {
+      problems.push('two users share an email — the login resolves a role by address')
+    }
+  }
+
+  for (const [label, block] of [
+    ['defaults', defaults],
+    ['nav_permissions', perms],
+  ]) {
+    if (!isObject(block)) {
+      problems.push(`"${label}" must be an object keyed by role_id`)
+      continue
+    }
+    for (const roleId of roleIds) {
+      if (!isObject(block[roleId])) {
+        problems.push(`"${label}" has no entry for persona "${roleId}"`)
+      }
+    }
+    for (const [roleId, entry] of Object.entries(block)) {
+      if (!roleIds.includes(roleId)) problems.push(`"${label}" names persona "${roleId}", which is not one`)
+      if (!isObject(entry)) continue
+      for (const [key, value] of Object.entries(entry)) {
+        if (typeof value !== 'boolean') {
+          problems.push(`"${label}.${roleId}.${key}" must be true or false`)
+        }
+      }
+    }
+  }
+
+  /*
+   * **`defaults` and `nav_permissions` must cover the same keys, per persona.**
+   *
+   * Reset copies a persona's defaults over its live set, so a key missing from `defaults` is a
+   * permission that silently becomes "not configured" — visible — the first time anybody resets. And a
+   * key missing from the live set falls back to the default anyway, so the two disagreeing is always a
+   * drifted file rather than an intention. Neither throws; both change what a sidebar shows.
+   */
+  if (isObject(defaults) && isObject(perms)) {
+    for (const roleId of db.auth_roles.map((r) => r.role_id)) {
+      const a = Object.keys(defaults[roleId] ?? {}).sort()
+      const b = Object.keys(perms[roleId] ?? {}).sort()
+      const missing = a.filter((k) => !b.includes(k))
+      const extra = b.filter((k) => !a.includes(k))
+      if (missing.length > 0 || extra.length > 0) {
+        problems.push(
+          `"${roleId}" has different navigation keys in defaults and nav_permissions` +
+            (missing.length > 0 ? ` (missing: ${missing.join(', ')})` : '') +
+            (extra.length > 0 ? ` (unknown: ${extra.join(', ')})` : ''),
+        )
+      }
+    }
+  }
+
+  if (!isObject(readOnly)) {
+    problems.push('"read_only" must be an object keyed by role_id')
+  } else {
+    for (const [roleId, keys] of Object.entries(readOnly)) {
+      if (!roleIds.includes(roleId)) problems.push(`"read_only" names persona "${roleId}", which is not one`)
+      if (!Array.isArray(keys)) {
+        problems.push(`"read_only.${roleId}" must be an array of navigation keys`)
+        continue
+      }
+      for (const key of keys) {
+        /*
+         * Locked *off* is the silent one: a row nobody can ever switch on, and no error anywhere.
+         *
+         * Checked against the **defaults as well as the live set**, because Reset copies the defaults
+         * over the live set — a lock that is on now and off by default becomes unreachable the first
+         * time anybody resets that persona, which is the same fault arriving later.
+         */
+        if (perms?.[roleId]?.[key] !== true) {
+          problems.push(
+            `"${roleId}" locks "${key}" but it is not on — a locked-off item can never be granted`,
+          )
+        }
+        if (defaults?.[roleId]?.[key] !== true) {
+          problems.push(
+            `"${roleId}" locks "${key}" but its default is off — Reset would make it unreachable`,
+          )
+        }
+      }
+    }
+  }
+
+  /* Somebody has to be able to open the page that grants everything else. */
+  if (isObject(perms) && !Object.values(perms).some((p) => isObject(p) && p.settings === true)) {
+    problems.push('no persona has "settings" — nobody could open the page that grants it')
+  }
+
+  return problems
+}
+
+/**
+ * Writes the settings store, validating first — temp file + rename, like `commitDb`.
+ *
+ * Unlike `db`, the in-memory copy is **reassigned** rather than mutated in place, and that is safe here
+ * for a reason worth stating: nothing captures the object, only the binding. Every route reads
+ * `settings.x` at call time.
+ */
+function commitSettings(next) {
+  const problems = validateSettings(next)
+  if (problems.length > 0) {
+    throw new Error(
+      `refusing to write settings.json — ${problems.join('; ')}. Re-author it with ` +
+        '"npm run seed:settings" if it has drifted.',
+    )
+  }
+  const text = `${JSON.stringify(next, null, 2)}\n`
+  const tmp = `${SETTINGS_PATH}.tmp`
+  writeFileSync(tmp, text, 'utf8')
+  renameSync(tmp, SETTINGS_PATH)
+  settings = next
+}
+
+/** One persona's live access, falling back to its authored defaults. */
+const navPermissionsFor = (roleId) => ({
+  ...(settings.defaults[roleId] ?? {}),
+  ...(settings.nav_permissions[roleId] ?? {}),
+})
+
+/** Whether a persona's toggle for one navigation key is fixed. */
+const navReadOnly = (roleId, key) => (settings.read_only[roleId] ?? []).includes(key)
+
+/**
+ * The Settings payload: the users, the personas, and each one's access.
+ *
+ * Personas are resolved from `db.auth_roles` on the way out, so a label is never stored here and a
+ * renamed role reaches every surface at once. `read_only` rides along per persona rather than being a
+ * rule the client re-derives — the server enforces it, so the client should be *told* it.
+ */
+const settingsView = () => ({
+  users: settings.users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role_id: u.role_id,
+    role_label: db.auth_roles.find((r) => r.role_id === u.role_id)?.label ?? u.role_id,
+  })),
+  personas: db.auth_roles.map((role) => ({
+    role_id: role.role_id,
+    label: role.label,
+    access_note: role.access_note ?? '',
+    nav: navPermissionsFor(role.role_id),
+    read_only: settings.read_only[role.role_id] ?? [],
+    /* So the page can offer Reset without keeping its own copy of what "default" means. */
+    defaults: settings.defaults[role.role_id] ?? {},
+  })),
+})
 
 /** FNV-1a — stable across requests so profiled stats never shift under the UI. */
 function hash(str) {
@@ -5089,7 +5291,7 @@ const routes = [
     method: 'POST',
     match: (p) => p === '/auth/login',
     handle: async (req, res) => {
-      const { email, password, role_id } = await readJson(req)
+      const { email, password } = await readJson(req)
 
       if (!email || !EMAIL_RE.test(String(email))) {
         return send(res, 400, { error: 'Enter a valid email address.' })
@@ -5097,22 +5299,159 @@ const routes = [
       if (!password || String(password).length < 6) {
         return send(res, 400, { error: 'Password must be at least 6 characters.' })
       }
-      if (!role_id) {
-        return send(res, 400, { error: 'Pick a role before signing in.' })
+
+      /*
+       * **The role is the user's, not the form's.** The login used to ask for one, which meant the same
+       * address could sign in as any persona — so the picker was the whole of "who are you". Settings now
+       * holds a user list, and that is where the role comes from: one address, one persona, administered
+       * in one place.
+       *
+       * Matched case-insensitively, because an email address is not case-sensitive to the person typing
+       * it and "Ellis.Hargrove@…" being nobody would be a puzzle rather than a rule.
+       */
+      const address = String(email).trim()
+      const user = settings.users.find(
+        (u) => String(u.email).toLowerCase() === address.toLowerCase(),
+      )
+      if (!user) {
+        return send(res, 400, {
+          error:
+            `No user is set up for ${address}. This prototype signs in the people Settings knows: ` +
+            `${settings.users.map((u) => u.email).join(', ')}.`,
+        })
       }
-      const role = db.auth_roles.find((r) => r.role_id === role_id)
+      /* Refused rather than defaulted: a persona this tenant does not have is a broken settings file,
+         and signing somebody in as nobody is worse than telling them so. */
+      const role = db.auth_roles.find((r) => r.role_id === user.role_id)
       if (!role) {
-        return send(res, 400, { error: `unknown role ${role_id}` })
+        return send(res, 400, {
+          error:
+            `${address} is set up as "${user.role_id}", which is not one of this tenant's personas. ` +
+            'Re-author the settings store with "npm run seed:settings".',
+        })
       }
 
+      /*
+       * **Still not authentication.** There is no credential store: the password is length-checked and
+       * nothing more, exactly as before. What changed is that the *persona* is now looked up rather than
+       * claimed. Nothing built on this should read it as a verified identity.
+       */
       send(res, 200, {
-        email,
+        email: user.email,
+        name: user.name,
         role_id: role.role_id,
         role_label: role.label,
         access_note: role.access_note ?? '',
-        initials: emailInitials(email),
+        initials: emailInitials(user.email),
         signed_in_at: new Date().toISOString(),
       })
+    },
+  },
+
+  /*
+   * ---------------- Settings: the users, and what each persona may see ----------------
+   *
+   * Served from `settings.json`, which is a **separate store** from `db.json` — see the note where it is
+   * loaded. Both writes commit, so a permission survives a restart; unlike a registered source, a
+   * decision about who sees what is somebody's work.
+   *
+   * **Neither route is access control.** They record and report a navigation preference; the persona
+   * arrives from a browser whose login authenticates by shape. Every surface here says so in words.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/settings',
+    handle: (_req, res) => send(res, 200, settingsView()),
+  },
+
+  /*
+   * One persona's navigation access. Whole set per write rather than one key at a time, so the payload
+   * says what the answer is instead of what changed — and the reply is the whole view, so the page
+   * renders a validated payload rather than patching its own copy.
+   */
+  {
+    method: 'PATCH',
+    match: (p) => /^\/settings\/personas\/[^/]+\/nav$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const roleId = decodeURIComponent(
+        pathname.slice('/settings/personas/'.length, -'/nav'.length),
+      )
+      const role = db.auth_roles.find((r) => r.role_id === roleId)
+      if (!role) {
+        return send(res, 404, {
+          error:
+            `no persona "${roleId}" — this tenant has ` +
+            db.auth_roles.map((r) => r.role_id).join(', '),
+        })
+      }
+
+      const body = await readJson(req)
+      if (!isObject(body.nav)) {
+        return send(res, 400, {
+          error: 'send nav as an object of { navigationKey: true | false }',
+        })
+      }
+
+      const current = navPermissionsFor(roleId)
+      const known = Object.keys(current)
+      const next = { ...current }
+      for (const [key, value] of Object.entries(body.nav)) {
+        /* A key the sidebar does not have would be a permission nobody can exercise, stored forever. */
+        if (!known.includes(key)) {
+          return send(res, 400, {
+            error: `no navigation item "${key}" — this app has ${known.join(', ')}`,
+          })
+        }
+        if (typeof value !== 'boolean') {
+          return send(res, 400, { error: `"${key}" must be true or false` })
+        }
+        /*
+         * **The lock is enforced here, not only by a disabled switch.** A disabled control is a courtesy
+         * to whoever is looking at it; this is the rule. Refused rather than ignored, because silently
+         * keeping a value the caller asked to change is how a UI comes to disagree with the server.
+         */
+        if (navReadOnly(roleId, key) && value !== current[key]) {
+          return send(res, 400, {
+            error:
+              `"${key}" is fixed for ${role.label} and cannot be changed. It is the page that ` +
+              'grants every other permission, so the persona that administers it keeps it.',
+          })
+        }
+        next[key] = value
+      }
+
+      commitSettings({
+        ...settings,
+        nav_permissions: { ...settings.nav_permissions, [roleId]: next },
+      })
+      send(res, 200, settingsView())
+    },
+  },
+
+  /* Back to the authored defaults for one persona — which live in the same file, so this copies rather
+     than reconstructs. */
+  {
+    method: 'POST',
+    match: (p) => /^\/settings\/personas\/[^/]+\/reset$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const roleId = decodeURIComponent(
+        pathname.slice('/settings/personas/'.length, -'/reset'.length),
+      )
+      if (!db.auth_roles.some((r) => r.role_id === roleId)) {
+        return send(res, 404, {
+          error:
+            `no persona "${roleId}" — this tenant has ` +
+            db.auth_roles.map((r) => r.role_id).join(', '),
+        })
+      }
+      commitSettings({
+        ...settings,
+        nav_permissions: {
+          ...settings.nav_permissions,
+          [roleId]: { ...(settings.defaults[roleId] ?? {}) },
+        },
+      })
+      send(res, 200, settingsView())
     },
   },
 
@@ -7869,6 +8208,22 @@ if (startupProblems.length > 0) {
     '\n  Restore the file, then start again:' +
       '\n      git show HEAD:mock-server/db.json > mock-server/db.json\n',
   )
+  process.exit(1)
+}
+
+/*
+ * The same treatment for the settings store, and for a sharper version of the same reason.
+ *
+ * A missing permission set does not throw: the sidebar would simply show every item to a persona that
+ * should see three, which reads as an answer. A missing user does not throw either — the login would
+ * refuse an address that is supposed to work, and the fix ("re-seed") is not guessable from
+ * "no user with that address". Both name the command here instead.
+ */
+const settingsProblems = validateSettings(settings)
+if (settingsProblems.length > 0) {
+  console.error('\nmock-server: refusing to start — mock-server/settings.json cannot be served.')
+  for (const problem of settingsProblems) console.error(`  · ${problem}`)
+  console.error('\n  Re-author it, then start again:\n      npm run seed:settings\n')
   process.exit(1)
 }
 

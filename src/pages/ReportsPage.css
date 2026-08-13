@@ -160,6 +160,53 @@
 }
 
 /*
+ * ---- the authoring steps' spinner ----
+ *
+ * The vendored sheet has no spinner: nothing in the prototype took any time, because reading a question
+ * and composing a report were both instant. Authored here rather than there, like every other rule this
+ * repo adds to the section, and on the `--sp-*` scale.
+ *
+ * It borrows the button's own text colour (`currentColor`) so it is correct on the primary button and on
+ * anything else it is ever put on, instead of pinning a hue that only matches one.
+ */
+.cw-reports .rp-spin {
+  display: inline-block;
+  /* Sized to the label beside it rather than to the scale — this is type, not spacing. */
+  width: 12px;
+  height: 12px;
+  margin-inline-end: var(--sp-2);
+  vertical-align: -1px;
+  border: 2px solid currentColor;
+  /* One transparent edge is what makes a ring read as spinning rather than pulsing. */
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: rp-spin 0.7s linear infinite;
+}
+
+@keyframes rp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*
+ * Respect the setting that asks for less motion: the spin becomes a fade, which still says "working"
+ * without moving anything. A loading state is exactly the case where an animation is information, so it
+ * is softened rather than removed.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .cw-reports .rp-spin {
+    animation: rp-pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes rp-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+/*
  * ---- why the list is shorter than the tenant's own set of reports ----
  *
  * `warn`, not `crit`: nothing is broken and nothing is lost — a decision was withdrawn and a command

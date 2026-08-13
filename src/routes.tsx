@@ -12,7 +12,9 @@ import LoginPage from './pages/LoginPage'
 import NewGraphPage from './pages/NewGraphPage'
 import NotFoundPage from './pages/NotFoundPage'
 import ReportsPage from './pages/ReportsPage'
+import SettingsPage from './pages/SettingsPage'
 import SourcesPage from './pages/SourcesPage'
+import StaticDocPage from './pages/StaticDocPage'
 import TracePage from './pages/TracePage'
 import ValidationPage from './pages/ValidationPage'
 import WhatIfPage from './pages/WhatIfPage'
@@ -28,6 +30,29 @@ export const routes: RouteObject[] = [
   // Outside RequireAuth on purpose: this is the one page reachable while
   // signed out, and the only one with no sidebar to render.
   { path: '/login', element: <LoginPage /> },
+
+  /*
+   * The settings/users/connectors description, at a path somebody can type.
+   *
+   * The document lives in `public/` and Vite already serves it under its own long filename; this is the
+   * short address for it. **Reachable signed out**, like `/login` and for the same reason — it is a
+   * document to be read, and behind the gate a typed URL would bounce to the login and never show it.
+   * Nothing on it is tenant data.
+   *
+   * A sibling of `/login`, not a child: react-router matches these paths exactly, so `/login` does not
+   * swallow `/login/data` and the declaration order does not matter here. That is worth stating because
+   * the opposite is true elsewhere in this table — `graph-studio/:useCaseId` *does* match its child's
+   * parent segment, which is why the canvas route below has to come first.
+   */
+  {
+    path: '/login/data',
+    element: (
+      <StaticDocPage
+        file="context-weave-settings-users-connectors-use-description.html"
+        title="Context Weave — settings, users and connectors"
+      />
+    ),
+  },
 
   {
     element: <RequireAuth />,
@@ -55,7 +80,10 @@ export const routes: RouteObject[] = [
         element: <App />,
 
         children: [
-          { index: true, element: <Navigate to="/sources" replace /> },
+          /* The same landing page the login falls back to — Ask, what the console is for. Kept in step
+             with `LANDING` in `LoginPage`; two answers to "where does no particular page go" would send a
+             fresh sign-in and a bare `/` to different places. */
+          { index: true, element: <Navigate to="/ask" replace /> },
           { path: 'sources', element: <SourcesPage /> },
           { path: 'new-graph', element: <NewGraphPage /> },
           // The studio lists built graphs; a graph's own review lives under its id.
@@ -80,6 +108,16 @@ export const routes: RouteObject[] = [
              hypothetically and reports what the facility would inherit. Its nav entry
              already existed as a roadmap placeholder; this is the page behind it. */
           { path: 'what-if', element: <WhatIfPage /> },
+          /*
+           * Users and persona access — the two tabs that configure who sees what.
+           *
+           * **The route is unconditional, and that is deliberate.** Persona permissions hide a
+           * navigation *item*; they do not gate a *page*, so `/settings` answers even for a persona
+           * whose sidebar no longer lists it. That is what stops a reader turning Settings off for a
+           * persona and losing the only way to turn it back on, and it is the same honesty every
+           * other permission surface here states: hiding is not authorising.
+           */
+          { path: 'settings', element: <SettingsPage /> },
           { path: 'audit', element: <AuditPage /> },
           { path: 'trace', element: <TracePage /> },
           { path: 'validation', element: <ValidationPage /> },

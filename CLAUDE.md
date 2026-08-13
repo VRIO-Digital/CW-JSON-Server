@@ -15,6 +15,7 @@ npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db
 npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
 npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
 npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
+npm run seed:settings   # re-authors mock-server/settings.json — users and persona navigation
 npm run preflight   # lint + build + audit + check-docs — run before calling work done
 ```
 
@@ -868,7 +869,7 @@ port of `vls_demo_data_package_2026-08-10/repor code` — its own types, panes, 
 dataset and stylesheet, using React and nothing else. It is not built from this app's
 components, and that is the point: it was imported rather than reimplemented.
 
-Three things were changed to make it a page instead of an app, and nothing else:
+Four things were changed to make it a page instead of an app, and nothing else:
 
 - **Its `main.tsx` and its `Sidebar` were dropped.** This app draws the sidebar, the wordmark and
   the signed-in persona; the prototype's named a *different* persona, so keeping it would have
@@ -882,6 +883,15 @@ Three things were changed to make it a page instead of an app, and nothing else:
   antd component's margins and restyles every table on Sources, Ask, Catalogue, Graph Studio and
   What-if — silently, on pages nobody touched. `check-docs` asserts every selector stays scoped,
   that the tokens stay off `:root`, and that the page mounts it in a matching wrapper.
+
+- **Its two authoring steps are paced.** `READ_MS` (2s) and `BUILD_MS` (3s) hold "Read my question" and
+  "Build the report" behind a spinner and a disabled button, because both were instant — and an operation
+  that returns instantly and shows nothing teaches that it is free, which is why the profiler, the
+  suggesters and the graph build are all paced. **Client-side, uniquely**: these steps run against the
+  prototype’s own dataset, so there is no request whose return could advance them. Everywhere a request
+  does exist the rule is unchanged — a stage advances when its call returns, never on a timer. The
+  empty-question refusal is *not* paced, and one runner clears its timer on unmount so leaving mid-step
+  cannot fire into a dead component.
 
 **It is the one stylesheet exempt from the `--sp-*` spacing rule.** 173 spacing declarations on
 a 2px rhythm that a 4px scale cannot express without redrawing the design, in a file carried
@@ -1199,32 +1209,103 @@ applying a predicate would invent a filter and stating one silently would claim 
 never ran. One permission built from both is wrong in both directions.
 
 
+### Settings (`/settings`)
+
+Two tabs — **Add User** and **Persona Configuration** — over `SettingsPage` → `settingsStore` →
+`GET /settings`, served from **`mock-server/settings.json`**.
+
+**It has its own small database, separate from `db.json`.** That file is the tenant's data — sources,
+profiles, the graph, the reports; this one holds only what this page administers: the users, each
+persona's navigation access, and the authored defaults those reset to. Two files, two validators, one job
+each, so a settings write cannot touch a report and an ingest that rebuilds `db.reports` cannot drop a
+permission. The second hazard is not hypothetical — the reports ingest silently dropped `governance` for
+exactly that reason. `npm run seed:settings` re-authors it, and the server refuses to boot on a bad one
+naming that command.
+
+**It persists.** A permission survives a restart, unlike a registered source: a decision about who sees
+what is somebody's work. `commitSettings` writes temp-file-then-rename and validates first, like
+`commitDb`; the in-memory copy is reassigned rather than mutated in place, which is safe because nothing
+captures the object — every route reads `settings.x` at call time.
+
+**It names personas by `role_id` and never by label.** `db.auth_roles` is still the pool — what report
+audiences validate against, what the login echoes back — and the server resolves labels on the way out,
+so a rename reaches every surface at once. `validateSettings` checks *across* the two files and refuses a
+role id `db.json` does not have.
+
+**`defaults` and `nav_permissions` must carry the same keys.** Reset copies the defaults over the live
+set, so a key missing from `defaults` is a permission that silently becomes "not configured" — visible —
+the first time anybody resets. Both blocks are checked, and so is the lock below: a locked row that is on
+now but off by default becomes unreachable at the next Reset. A break test found that gap.
+
+**The configurable items are the sidebar's own.** The seed cannot import a `.tsx` module, so its
+`NAV_KEYS` is written once and `check-docs` compares it to `nav.ts` — a key it has that the sidebar does
+not is a permission nobody can exercise; one the sidebar has that it lacks is an item no persona can hide.
+
+**One place decides visibility: `visibleNavItems`.** The sidebar filters through it and nothing else
+does — a component that also filtered would be a second answer to "can this persona see Reports". A
+toggle moves the sidebar on the next render, with no reload. `App`'s mobile header deliberately reads the
+*unfiltered* list: it names the page you are on, and a hidden page is still reachable.
+
+**The persona the sidebar shows is the one selected here.** It starts as whoever signed in
+(`syncActivePersona` adopts a role only when none is active, so previewing another persona is not undone
+by the next render) and sign-out clears it. Before the fetch returns, or with no persona active, every
+item shows — a sidebar that started empty and filled in would read as a broken app, and an absent key
+means "not configured", never "denied".
+
+**Settings belongs to Platform Admin.** It is the page that administers every other persona, so it is on
+and **fixed** there and off-but-configurable everywhere else — which is how it gets granted. The lock is
+enforced by the **server**, in `PATCH /settings/personas/:roleId/nav`, not merely by a disabled switch: a
+disabled control is a courtesy to whoever is looking at it, and any other path into the store could
+otherwise strand the one persona that can grant everything. A change to a fixed key is refused with a
+sentence rather than ignored, because silently keeping a value the caller asked to change is how a UI
+comes to disagree with the server.
+
+**Hiding is not authorising**, and the tab says so in those words. `/settings` is routed
+unconditionally, so a persona whose sidebar no longer lists it can still reach the page — which is what
+stops a reader turning Settings off for a configurable persona and losing the way back. The page warns
+when that state is reached and names the URL. Do not build anything on these permissions that assumes
+they gate access; they are the same client-held preference `viewer_roles` is.
+
 ### Identity (`/login`)
 
 Gates the whole app, so it is the one flow that sits outside `RequireAuth`
 rather than behind it — see Routing below for how the route table wraps that.
 
-**This is a persona demo, not a user directory.** `POST /auth/login` has no
-account store to check a password against, so it authenticates by *shape*: a
-well-formed email, a password of a plausible length, a role that exists in
-`auth_roles`. Any password signs in as the role picked — exactly as the
-BigQuery/Drive consent screens prove a request is well-formed rather than that a
-real Google account sits behind it. `LoginPage` says this on the page itself;
-do not build a feature on top of this login that assumes it verifies anything.
+**This is a persona demo, and there is now a small user directory behind it.**
+`POST /auth/login` takes **`{ email, password }`** and nothing else. There is
+still no credential store, so the password is length-checked and no more — but
+the *persona* is looked up rather than claimed: the address has to be one of the
+users in `settings.json`, and the role on that row is the one you sign in as. An
+unknown address is refused, naming the people Settings knows.
 
-**The five roles come from `db.json`, not a hardcoded union**, the same pattern
-as `graph_domains`/`graph_personas`: `GET /auth/roles` serves `{ role_id, label,
-access_note }` for the login dropdown, and `POST /auth/login` echoes the picked
-role's `label` back in the session so the sidebar never has to re-fetch the pool
-to render it. Adding a sixth role is a `db.json` edit, not a code change.
+**The role picker is gone, and that is the point.** The form used to ask which
+persona you were, so one address could sign in as any of them — the dropdown was
+the whole of "who are you". `LoginPage` no longer reads `GET /auth/roles` at all,
+and the empty-Select-with-no-reason failure mode went with it. It still verifies
+nothing, exactly as the BigQuery/Drive consent screens prove a request is
+well-formed rather than that a real Google account sits behind it; the page says
+so. Do not build a feature on this login that assumes it authenticates.
 
-`access_note` describes what a role may see. It is carried through the API and
-the session but **nothing renders it** — the sidebar's "My data access" card was
-removed. Keep it or drop it deliberately; do not re-add a card on the assumption
-that a signed-in user has been told what their role can reach.
+**The four roles still come from `db.json`, not a hardcoded union**, the same
+pattern as `graph_domains`/`graph_personas`: `GET /auth/roles` serves
+`{ role_id, label, access_note }`, `settings.json` names those `role_id`s and
+never a label, and `POST /auth/login` echoes the resolved `label` back in the
+session so the sidebar never has to re-fetch the pool to render it. Adding a
+fifth role is a `db.json` edit plus a `settings.json` one — the seed refuses a
+user whose role the pool does not have.
+
+**The session now carries the user's `name`**, which the login previously had no
+way to know. The avatar is still initials from the email, because that is what it
+has always drawn.
+
+`access_note` describes what a role may see. It is carried through the API and the
+session, and the Persona Configuration tab now prints it beside the persona being
+configured — the first surface to render it. The sidebar's "My data access" card is
+still gone; do not re-add one on the assumption that a signed-in user has been told
+what their role can reach.
 
 **The identity is client-held, not server state.** `useAuthStore` persists
-`{ email, roleId, roleLabel, accessNote, initials, signedInAt }` to
+`{ email, name, roleId, roleLabel, accessNote, initials, signedInAt }` to
 `localStorage` (key `contextweave.identity`) so a refresh does not force a
 re-login — unlike a registered source, there is no server-side session for a
 restart to lose. `initials` comes from the email (`adaeze.okonjo@…` → `AO`, via
@@ -1262,7 +1343,7 @@ current user.
 
 ### State (`src/store/`)
 
-zustand. Ten modules (plus `asyncState.ts`, the shared machinery): `authStore`
+zustand. Eleven modules (plus `asyncState.ts`, the shared machinery): `authStore`
 (who is signed in — the one module persisted to `localStorage`, everything else
 is server-derived), `sourcesStore`, `catalogueStore` (browse / columns /
 document browse / documents / jobs / signals), `graphStore` (domains / use
@@ -1271,7 +1352,8 @@ cases), `graphStudioStore` (the studio's list + one graph's review),
 one column per admitted load — the *load*, never the figures), `reportsStore` (the
 section list, plus one report keyed by the id in the URL — it keeps that id beside the
 report so a slow fetch cannot leave one report's tiles under another's heading),
-`telemetryStore` (audit / traces / evals), `dbStore`.
+`telemetryStore` (audit / traces / evals), `settingsStore` (which persona the sidebar is showing and
+what each may see — from settings.json — its own small store, separate from db.json), `dbStore`.
 
 The Drive stores are separate from the BigQuery ones rather than one store
 branching on connector: the payloads share no fields, so a union `data` would
@@ -1410,13 +1492,17 @@ Sources. `/login` has no `NAV_ITEMS` entry — there is nothing to navigate to
 before signing in, and once signed in there is no reason to navigate back.
 
 **The sidebar advertises more than exists, and serves more than it advertises.**
-`NAV_ITEMS` has **8** live entries and `routes.tsx` has a page for **7** of them
+`NAV_ITEMS` has **9** live entries and `routes.tsx` has a page for **8** of them
 (`/new-graph`, `/ask`, `/reports`, `/sources`, `/catalogue`, `/graph-studio`,
-`/what-if`). The last one — Knowledge Graphs — is a roadmap placeholder with no route, so
-clicking it falls through `path: '*'` to `NotFoundPage`. That is a deliberate shell, not a
-broken link: when it gets a page, add it to `routes.tsx` and nothing else changes —
+`/what-if`, `/settings`). The last one — Knowledge Graphs — is a roadmap placeholder with no
+route, so clicking it falls through `path: '*'` to `NotFoundPage`. That is a deliberate shell,
+not a broken link: when it gets a page, add it to `routes.tsx` and nothing else changes —
 `/what-if` and `/reports` were both placeholders until their pages landed, and each
 needed exactly that one line.
+
+**And the sidebar is filtered.** `visibleNavItems` in `settingsStore` decides which of those nine
+entries a persona sees — see Settings below. `App`'s mobile header deliberately looks up the
+*unfiltered* list, because it names the page you are on and a hidden page is still reachable by URL.
 
 **`/reports` is one route, not four.** The React section that had a page per report was
 removed; what is there now is the demo package's authoring prototype, vendored into
@@ -1425,7 +1511,11 @@ a URL here.
 
 The traffic also runs the other way. **Four routes are reachable by URL only**, having
 been commented out of `NAV_ITEMS` rather than deleted: `/audit`, `/trace`,
-`/validation` and `/db`. A fifth is URL-only by design and was never in the list —
+`/validation` and `/db`. Two more are URL-only by design and were never in the list. **`/login/data`** frames
+the settings/users/connectors description from `public/` — a document, so it sits outside `App` *and*
+outside `RequireAuth`, because behind the gate a typed URL would bounce to the login and never show it.
+Nothing on it is tenant data. `check-docs` asserts the file it names is really in `public/`, since a rename
+would leave the path answering with a blank frame and no error. The other is —
 `/graph-studio/:useCaseId/canvas`, the full-window canvas, which the **Full view**
 button on the Canvas tab opens in a new tab.
 
@@ -1474,7 +1564,7 @@ and prefer writing ~100 lines to pulling in a package.
 relevant `SKILLS.md` flow and `docs/REGRESSIONS.md`) → build → verify → **record**.
 The record phase is not optional — it is why the same bug does not land twice.
 
-- **`SKILLS.md`** — the eleven end-to-end flows, their files, and their failure modes.
+- **`SKILLS.md`** — the twelve end-to-end flows, their files, and their failure modes.
   Read the section before changing a flow; update it after.
 - **`docs/REGRESSIONS.md`** — every bug that cost real time, with the guard that
   stops it recurring. Append on every fix. Prefer a guard that fails the build
@@ -1614,6 +1704,14 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   ends in `process.exit`, so a claim added after it is dead — `check-docs` still passes and every
   break test reports `MISSED`. The tell is the **claim total not moving**. Add claims in the
   section they belong to, and confirm the count went up.
+- **"The write failed" and "I did not hear whether it succeeded" are different facts.** A settings toggle
+  reported "cannot reach the mock server" for a PATCH the server had already committed, because the store
+  only updated on success — so the page showed the old value and the toast blamed the write. A failed write
+  now re-reads before reporting. A network error means the outcome is unknown; ask the server.
+- **A fallback is state, and needs the same checks as the state it replaces.** `settings.json` holds
+  live permissions and the `defaults` Reset copies over them; both the validator and its claim checked
+  only the live set, so a broken default became a broken sidebar at the next Reset with nothing throwing.
+  Presets, defaults, seeds and reset payloads are all delayed ways of setting the real thing.
 - **A list that is merely shorter is not a message.** Deleting a report's governance row removed it from
   the Library with nothing saying why, and "only 4 reports showing" was reported twice against a
   `db.json` that held all five. The section now serves `governance.ungoverned` and the page states it
@@ -1631,7 +1729,12 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **A file can have mixed line endings after scripted edits**, so a break test that searches for `\n`
   in a CRLF region silently fails to mutate and reports the claim as unbreakable. Check the mutation
   landed before rewriting a working guard.
-- **Strip comments before asserting that code does not say something.** Two `check-docs` claims failed
+- **Strip comments before asserting that code does not say something — assume it, do not discover it.**
+  This has now cost five claims across three sessions: the comment explaining why a file does *not* do
+  something names the thing it does not do. `!/Approval/` matched the note about removing the approval
+  line; `!/access_requests/` matched the note about dropping the key; `!/visibleNavItems/` matched
+  `App.tsx`'s note about deliberately not calling it. Use `codeOnly()` for every absence claim, and key
+  on the narrowest token that carries the fact. Two `check-docs` claims failed
   against correct code because they were whole-file searches for a word the file mentions *in the
   comment explaining its removal* — "no approval line", "not \"gone for good\"". A third was too broad:
   `!/Approval/` also matched "Access pending approval", a different feature. Use `codeOnly()` and key on

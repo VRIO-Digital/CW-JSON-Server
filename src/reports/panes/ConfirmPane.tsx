@@ -17,6 +17,8 @@ interface Props {
   onToggleSlice(key: string): void;
   onBack(): void;
   onBuild(): void;
+  /** True while the report is being composed. */
+  building?: boolean;
 }
 
 const SLOT_TOKEN = /(\{[a-z]+\})/g;
@@ -31,6 +33,7 @@ export function ConfirmPane({
   onToggleSlice,
   onBack,
   onBuild,
+  building,
 }: Props) {
   const { open } = useMenu();
   const isGeneratorReport = starter.spine === 'generators';
@@ -122,8 +125,15 @@ export function ConfirmPane({
         <span className="back" onClick={onBack}>
           ← Change my question
         </span>
-        <button className="btn pri big" onClick={onBuild}>
-          Build the report →
+        {/* Disabled while it runs, so one click cannot compose the blocks twice. */}
+        <button className="btn pri big" onClick={onBuild} disabled={building}>
+          {building ? (
+            <>
+              <span className="rp-spin" aria-hidden="true" /> Building your report…
+            </>
+          ) : (
+            <>Build the report →</>
+          )}
         </button>
       </div>
 

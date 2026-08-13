@@ -8,7 +8,8 @@ interface AuthState {
   identity: SessionIdentity | null
   signingIn: boolean
 
-  login: (input: { email: string; password: string; roleId: string }) => Promise<Result>
+  /** No role: the persona is the user's own, resolved from the settings store by email. */
+  login: (input: { email: string; password: string }) => Promise<Result>
   /** Purely local — there is no server-side session to revoke. */
   logout: () => void
 }

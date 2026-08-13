@@ -1,8 +1,10 @@
 import { Button, Menu, Typography } from 'antd'
+import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { SessionIdentity } from '../api/client'
-import { NAV_ITEMS } from '../nav'
+import type { NavItem } from '../nav'
 import { useAuthStore } from '../store/authStore'
+import { useSettingsStore, visibleNavItems } from '../store/settingsStore'
 import './Sidebar.css'
 
 /**
@@ -44,13 +46,77 @@ export function SidebarFooter({
   )
 }
 
+/**
+ * The navigation the active persona may see.
+ *
+ * **One source, and this is it.** `visibleNavItems` in `settingsStore` is the only thing that decides
+ * whether an item appears; a component that also filtered would be a second answer to "can this
+ * persona see Reports". The list is read on every render, so a toggle in Settings moves the sidebar
+ * without a reload — which is the whole point of the section.
+ *
+ * Split from the store-connected `Sidebar` for the same reason `SidebarFooter` is: `renderToString`
+ * renders zustand's *initial* state, so a filtered list only becomes assertable when the list is
+ * passed in.
+ */
+export function SidebarMenu({
+  items,
+  pathname,
+  onPick,
+}: {
+  items: NavItem[]
+  pathname: string
+  onPick: (item: NavItem) => void
+}) {
+  const selected = items.find((item) => pathname.startsWith(item.path))
+  return (
+    <Menu
+      mode="inline"
+      theme="dark"
+      selectedKeys={selected ? [selected.key] : []}
+      className="sidebar-menu"
+      items={items.map(({ key, label, icon: Icon }) => ({
+        key,
+        icon: <Icon />,
+        label,
+      }))}
+      onClick={({ key }) => {
+        const item = items.find((i) => i.key === key)
+        if (item) onPick(item)
+      }}
+    />
+  )
+}
+
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const identity = useAuthStore((s) => s.identity)
   const logout = useAuthStore((s) => s.logout)
+  const settings = useSettingsStore((s) => s.data)
+  const activePersonaId = useSettingsStore((s) => s.activePersonaId)
+  const syncActivePersona = useSettingsStore((s) => s.syncActivePersona)
+  const loadSettings = useSettingsStore((s) => s.load)
 
-  const selected = NAV_ITEMS.find((item) => pathname.startsWith(item.path))
+  /*
+   * The sidebar starts on the signed-in persona's access, and stays wherever Settings put it after
+   * that — `syncActivePersona` adopts a role only when none is active, so previewing another persona
+   * is not undone by the next render. Signing out clears it, so the next sign-in adopts theirs.
+   */
+  useEffect(() => {
+    syncActivePersona(identity?.roleId ?? null)
+  }, [identity?.roleId, syncActivePersona])
+
+  /*
+   * The permissions are fetched here because the sidebar is the thing they change and it is on every
+   * page — waiting for someone to open Settings would mean the first render after a reload showed the
+   * wrong navigation. Loaded once: `load()` sets `error` in state rather than throwing, and until it
+   * returns every item is visible, so a slow or failed fetch never empties the sidebar.
+   */
+  useEffect(() => {
+    if (identity) void loadSettings()
+  }, [identity, loadSettings])
+
+  const items = visibleNavItems(settings, activePersonaId)
 
   return (
     <div className="sidebar">
@@ -64,19 +130,11 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </Typography.Text>
       </div>
 
-      <Menu
-        mode="inline"
-        theme="dark"
-        selectedKeys={selected ? [selected.key] : []}
-        className="sidebar-menu"
-        items={NAV_ITEMS.map(({ key, label, icon: Icon }) => ({
-          key,
-          icon: <Icon />,
-          label,
-        }))}
-        onClick={({ key }) => {
-          const item = NAV_ITEMS.find((i) => i.key === key)
-          if (item) navigate(item.path)
+      <SidebarMenu
+        items={items}
+        pathname={pathname}
+        onPick={(item) => {
+          navigate(item.path)
           onNavigate?.()
         }}
       />

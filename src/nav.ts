@@ -8,6 +8,7 @@ import {
   // LineChartOutlined,
   PlusOutlined,
   // SafetyCertificateOutlined,
+  SettingOutlined,
   TableOutlined,
   ClusterOutlined,
   QuestionCircleOutlined,
@@ -24,6 +25,7 @@ export type NavKey =
   | 'graph-builds'
   | 'graph-studio'
   | 'what-if'
+  | 'settings'
   | 'trace'
   | 'validation'
   | 'feedback'
@@ -87,6 +89,20 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'What-if Lenses',
     path: '/what-if',
     icon: ExperimentOutlined,
+  },
+  /*
+   * Users and persona access. Last on purpose — it is the one entry that configures the others, and a
+   * sidebar reads better with the thing that changes it at the bottom.
+   *
+   * **This list is also what Settings configures.** `PERMISSION_KEYS` is derived from it rather than
+   * written again, so an entry added here gains a permission row for free, and a permission row can
+   * never name an item the sidebar does not have.
+   */
+  {
+    key: 'settings',
+    label: 'Settings',
+    path: '/settings',
+    icon: SettingOutlined,
   },
   // {
   //   key: 'trace',

@@ -1,0 +1,17 @@
+/*
+ * The persona selector.
+ *
+ * Four personas whose labels run to "Business User — Project Level" do not fit a phone's width, so the
+ * control scrolls inside its own box — the same rule every wide thing here follows, rather than letting
+ * the page scroll sideways. `Segmented` has no scrolling of its own.
+ */
+.persona-picker {
+  overflow-x: auto;
+  /* Room for the control's focus ring, which an `overflow` box would otherwise clip. */
+  padding-bottom: var(--sp-1);
+}
+
+/* The track must not shrink its options to fit: a squeezed persona label wraps mid-phrase. */
+.persona-picker .ant-segmented {
+  width: max-content;
+}
