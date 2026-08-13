@@ -1,0 +1,51 @@
+/*
+ * Where the vendored report prototype sits inside the app shell.
+ *
+ * The prototype was written for a page it owned, so it expects the full width and its own
+ * background — its tab strip is sticky against the viewport and its content column sets its own
+ * padding. `.app-content` pads every page; this one cancels that padding so the prototype gets
+ * the width it was drawn at, exactly as the full-window canvas does.
+ *
+ * The negative margins mirror `.app-content` token for token, breakpoint for breakpoint. They
+ * are not a pixel guess: if that padding changes, these change with it.
+ */
+
+/*
+ * Sides and bottom only — **not the top**. The page header sits above this, inside the shell's
+ * own top padding; cancelling that too would pull the prototype up over the header.
+ */
+.rp-host {
+  margin: 0 calc(var(--sp-7) * -1) calc(var(--sp-9) * -1);
+}
+
+/*
+ * The scope class, carried into a portal without boxing.
+ *
+ * `MenuProvider` portals its popovers to `document.body`, outside the wrapper this page mounts,
+ * so the class has to travel with the portal or none of the prototype's scoped rules match — a
+ * menu with no `position`, `z-index` or background, rendering below the whole page. That looked
+ * exactly like a dead button.
+ *
+ * `display: contents` is what makes carrying it safe. `.cw-reports` also holds the prototype's
+ * body rules — `height: 100%` and an opaque background — which at body level would paint a sheet
+ * over the app; and any box here would become the containing block for the menu's `position:
+ * absolute`, whose `left`/`top` are computed against the document. No box, neither problem.
+ *
+ * It lives in this stylesheet rather than the vendored one because it is an integration rule,
+ * not part of the prototype's design.
+ */
+.cw-reports.cw-portal {
+  display: contents;
+}
+
+@media (max-width: 991px) {
+  .rp-host {
+    margin: 0 calc(var(--sp-5) * -1) calc(var(--sp-8) * -1);
+  }
+}
+
+@media (max-width: 575px) {
+  .rp-host {
+    margin: 0 calc(var(--sp-4) * -1) calc(var(--sp-7) * -1);
+  }
+}

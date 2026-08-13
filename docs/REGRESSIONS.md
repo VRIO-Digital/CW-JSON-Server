@@ -1431,3 +1431,93 @@ scratch code by design.
 **Rule** — **a break test is an assertion, so the vacuous-assertion rule covers it.** When a
 mutation reports MISSED, suspect the harness before the claim: three of these have now been the
 harness (a `\n` that never matched, a stream, an encoding) and none has been a false claim.
+
+## A card body at 0 beside a head at antd's default
+
+**Symptom** — in the report section, every card's content sat flush against its left edge while its
+title sat 24px in. The first thing a reader noticed, on five card classes at once.
+
+**Root cause** — the theme sets `Card.bodyPadding: 0` globally, so a card has to state its own
+padding. The heads kept antd's default; the bodies had none.
+
+**Fix** — both edges set from one token, for every card class in the section.
+
+**Guard** — was *mechanical*, in `check-docs`: it read the rule's declaration rather than the list
+of selectors, because the selectors share one block and emptying it once left all five in place
+while every card went unpadded. **That guard is gone with the report UI.** The rule survives here
+and in `CLAUDE.md`'s pitfalls, and applies to any new card in this app.
+
+**Rule** — **`Card.bodyPadding: 0` is a live trap, not a preference.** A new card class states its
+own body padding, from the same token as its head, or it looks broken on first sight.
+
+## A select-all that could only ever select
+
+**Symptom** — the saved-report audience control had an *Every role* button beside five role
+checkboxes. It went dark the moment all five were ticked and said nothing about the state in
+between, so a partial selection looked identical to none.
+
+**Root cause** — two mistakes in one control. A button beside checkboxes reads as a different kind
+of act, and a two-state control cannot describe three states: all, none, and some.
+
+**Fix** — replaced with an **All roles checkbox** carrying `indeterminate` while only some are
+ticked. `checked` would claim every role can view it and `unchecked` would claim none can; both
+are wrong for a partial selection.
+
+**Guard** — was *mechanical* in `check-docs` and went with the report UI. Recorded here because it
+is a general control-design rule, not a report one.
+
+**Rule** — **a select-all belongs to the same control family as what it selects, and it needs three
+states.** If it cannot be `indeterminate`, it will misreport a partial selection.
+
+## Scoping a stylesheet breaks everything that portals out of the scope
+
+**Symptom** — after importing the report prototype, **Delete did nothing**. Nor did any other
+menu: the assumption dropdowns on Confirm, the field picker, the add-block menu. No console
+error, no failed request, no visible change on click.
+
+**Root cause** — two correct decisions that combine into a silent break. The vendored stylesheet
+had to be **scoped** under `.cw-reports`, because it sets `*{margin:0;padding:0}`, `body`,
+`button`, `table`, `th` and `td` as bare selectors and would otherwise restyle every page in the
+app. And `MenuProvider` **portals to `document.body`** — which is outside that wrapper. So the
+popover matched none of its own rules: no `position: absolute`, no `z-index`, no background, no
+padding. It rendered as unstyled text below the entire page.
+
+The Delete button *was* firing. It opened a confirmation nobody could see, so the second click
+that actually deletes was never available.
+
+**Fix** — the portal carries the class with it: `createPortal(<div className="cw-reports
+cw-portal">…</div>, document.body)`, with `.cw-reports.cw-portal { display: contents }`. Boxless
+is the load-bearing half — `.cw-reports` also holds the prototype's `height: 100%` and opaque
+background, which at body level would paint a sheet over the app, and any box would become the
+containing block for a menu whose `left`/`top` are computed against the document.
+
+**Guard** — *mechanical*. `check-docs` walks `src/reports/**` for `createPortal(`, requires each
+call to open with the scoped wrapper, and requires the `display: contents` rule to exist. Three
+break tests: wrapper removed, wrapper made a box, rule deleted.
+
+**Rule** — **when you scope a stylesheet, audit every portal in the code it styles.** A portal is
+a hole in the scope, and the failure is invisible: unstyled content off-screen reads as a dead
+control, not as a CSS problem. The same applies to anything using `document.body` as a mount —
+tooltips, modals, toasts, popovers.
+
+## A claim appended to the end of check-docs never runs
+
+**Symptom** — a new claim was added, `check-docs` passed, and all six break tests reported
+`MISSED`. The claim looked correct and the mutations were landing.
+
+**Root cause** — it was appended with `cat >>`, which put it **after** the reporting block at the
+bottom of the file — and that block ends in `process.exit(0)` / `process.exit(1)`. The claim was
+never evaluated at all. `check-docs` reported the same total as before, which is the tell: the
+count did not move.
+
+**Fix** — moved it above `/* ---------------- report ---------------- */`. The count went 333 →
+334 and all six mutations were caught.
+
+**Guard** — *diagnostic*, and it is the break test itself. A claim that cannot fail is the
+vacuous assertion this repo already forbids; what is new is that appending to the file is a way
+to create one **without writing a bad claim**. The break test is what found it, exactly as it
+found the three token-vs-fact claims.
+
+**Rule** — **add claims in the section they belong to, never at the end of the file**, and check
+the claim total moved. Six `MISSED` in a row is never six unbreakable claims — the repo's own
+note already says to suspect the break first; suspect the *placement* too.

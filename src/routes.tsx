@@ -11,10 +11,7 @@ import GraphStudioPage from './pages/GraphStudioPage'
 import LoginPage from './pages/LoginPage'
 import NewGraphPage from './pages/NewGraphPage'
 import NotFoundPage from './pages/NotFoundPage'
-import ReportAuthorPage from './pages/ReportAuthorPage'
-import ReportPage from './pages/ReportPage'
 import ReportsPage from './pages/ReportsPage'
-import SavedReportPage from './pages/SavedReportPage'
 import SourcesPage from './pages/SourcesPage'
 import TracePage from './pages/TracePage'
 import ValidationPage from './pages/ValidationPage'
@@ -67,21 +64,18 @@ export const routes: RouteObject[] = [
           // Ask queries a *published* graph, so it lists none until one is live.
           { path: 'ask', element: <AskPage /> },
           { path: 'catalogue', element: <CataloguePage /> },
-          /* The report section lists the written reports; a report opens under its own
-             id. Its nav entry was a roadmap placeholder until this page landed, exactly
-             as `/what-if` was. */
-          { path: 'reports', element: <ReportsPage /> },
           /*
-           * Declared before the id route. React Router v6 ranks a static segment above a
-           * dynamic one, so `reports/new` would win either way — but the rule this repo
-           * already learned the hard way (`graph-studio/:useCaseId` swallowing
-           * `…/canvas`) is to declare the specific path first and not depend on ranking.
+           * The report section — the authoring prototype from the demo package, vendored into
+           * `src/reports/` and mounted by this page. **One route, not four**: the prototype
+           * owns its own navigation (three tabs) and its own library, so a report is not a URL
+           * here the way it was in the React section this replaced.
+           *
+           * Available once a graph is published, which is the same precondition Ask and the
+           * What-if lens have. The `/reports*` API is still served and still typed in
+           * `client.ts`, but this page reads one field of it — the publish count — because the
+           * prototype's figures are its own demo dataset.
            */
-          { path: 'reports/new', element: <ReportAuthorPage /> },
-          /* A report someone composed. Two segments, so the single-segment id route below
-             cannot swallow it — but declared first anyway, by the same rule. */
-          { path: 'reports/saved/:savedId', element: <SavedReportPage /> },
-          { path: 'reports/:reportId', element: <ReportPage /> },
+          { path: 'reports', element: <ReportsPage /> },
           /* The What-if lens — a read-only overlay that admits a candidate load
              hypothetically and reports what the facility would inherit. Its nav entry
              already existed as a roadmap placeholder; this is the page behind it. */

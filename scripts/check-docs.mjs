@@ -1563,8 +1563,26 @@ const cssFiles = (function walkCss(dir) {
         : [],
   )
 })('src')
+/*
+ * **One exemption, and it is vendored code.**
+ *
+ * `src/reports/reports-prototype.css` is the report prototype's own stylesheet, carried over
+ * from the demo package with its figures and its 2px rhythm intact — 173 spacing declarations
+ * a 4px scale cannot express without redrawing the design. It is design source material, not
+ * something authored here, and the rule this check enforces is about what the team writes.
+ *
+ * The exemption is **narrowed by two other claims** rather than taken on trust: the file must
+ * stay scoped under `.cw-reports` (below), and this list must stay one entry long — so nothing
+ * authored in this repo can quietly join it, and the vendored sheet cannot quietly go global.
+ */
+const SPACING_EXEMPT = ['src/reports/reports-prototype.css']
+expect(
+  'the spacing rule has exactly one exemption, and it is the vendored stylesheet',
+  SPACING_EXEMPT.length === 1 && cssFiles.includes(SPACING_EXEMPT[0]),
+  'anything authored here comes from --sp-*; this one is carried over unchanged',
+)
 const rawPx = []
-for (const file of cssFiles) {
+for (const file of cssFiles.filter((f) => !SPACING_EXEMPT.includes(f))) {
   const hits =
     read(file).match(
       /^\s*(margin|padding|gap|row-gap|column-gap)[^:]*:\s*[^;]*\b\d+px/gm,
@@ -1580,6 +1598,80 @@ expect(
   rawPx.length === 0
     ? `${cssFiles.length} stylesheets, all layout spacing from --sp-*`
     : rawPx.join(' | '),
+)
+
+/*
+ * **The vendored stylesheet is scoped, and that is not tidiness.**
+ *
+ * It was written for a page it owned outright: `*{margin:0;padding:0}`, `body`, `button`,
+ * `h1,h2,h3`, `table`, `th`, `td` and `:root` were all bare. Unscoped, it resets every antd
+ * component's margins and restyles every table on Sources, Ask, Catalogue, Graph Studio and
+ * What-if — and it would do it silently, on pages nobody was editing.
+ *
+ * So: every selector in the file starts with the scope, its tokens sit on that class rather
+ * than `:root`, and the page mounts it inside a matching wrapper. A `@`-rule or a keyframe stop
+ * is not a selector and is skipped — which is how the first version of the transform failed,
+ * latching on a single-line `@keyframes` and leaving two thirds of the file global.
+ */
+const protoCss = read(SPACING_EXEMPT[0])
+/* Comments stripped first: the file's own header quotes `*{margin:0;padding:0}` while
+   explaining why that rule had to be scoped, and scanning the raw text reported the
+   explanation as an unscoped selector. */
+const unscoped = protoCss
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split(/\r?\n/)
+  .filter((line) => /\{/.test(line))
+  .map((line) => line.slice(0, line.indexOf('{')).trim())
+  .filter((sel) => sel && !sel.startsWith('@') && !/^(from|to|\d+%)$/.test(sel))
+  .filter((sel) => !sel.split(',').every((one) => one.trim().startsWith('.cw-reports')))
+expect(
+  'the vendored report stylesheet is scoped, so it cannot restyle the rest of the app',
+  protoCss.length > 0 &&
+    unscoped.length === 0 &&
+    /* Its tokens moved off `:root` — left there they would win over the host's on every page. */
+    !/^:root\s*\{/m.test(protoCss) &&
+    /* And the page really wraps it in that class. */
+    /className="cw-reports"/.test(read('src/pages/ReportsPage.tsx')),
+  unscoped.length > 0
+    ? `unscoped selectors: ${unscoped.slice(0, 3).join(' | ')}`
+    : 'every selector under .cw-reports, tokens on the wrapper, page wraps in it',
+)
+
+/*
+ * **A portal leaves the scope, so the scope has to travel with it.**
+ *
+ * Scoping the stylesheet broke every menu in the prototype and nothing said so. `MenuProvider`
+ * portals to `document.body`, outside the page's `.cw-reports` wrapper, so none of the scoped
+ * rules matched: no `position: absolute`, no `z-index`, no background. The popover rendered as
+ * unstyled text below the whole page — and a Delete button whose confirmation is invisible looks
+ * precisely like a button that does nothing.
+ *
+ * So: every portal out of the vendored tree carries the class, and it carries it boxlessly —
+ * `.cw-reports` holds the prototype's `height: 100%` and opaque background, which at body level
+ * would cover the app, and any box would change the containing block the menu positions against.
+ */
+const portalFiles = (function walkTsx(dir) {
+  return readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory()
+      ? walkTsx(`${dir}/${entry.name}`)
+      : entry.name.endsWith('.tsx')
+        ? [`${dir}/${entry.name}`]
+        : [],
+  )
+})('src/reports').filter((f) => read(f).includes('createPortal('))
+const unscopedPortals = portalFiles.filter(
+  (f) => !/createPortal\(\s*(?:\/\*[\s\S]*?\*\/\s*)?<div className="cw-reports cw-portal">/.test(read(f)),
+)
+expect(
+  'every portal out of the vendored tree carries the scope class, boxlessly',
+  portalFiles.length > 0 &&
+    unscopedPortals.length === 0 &&
+    /\.cw-reports\.cw-portal\s*\{\s*display:\s*contents;?\s*\}/.test(read('src/pages/ReportsPage.css')),
+  portalFiles.length === 0
+    ? 'no portal was found in src/reports — this check cannot run'
+    : unscopedPortals.length > 0
+      ? `portals outside the scope: ${unscopedPortals.join(', ')}`
+      : `${portalFiles.length} portal file(s), each scoped`,
 )
 
 /* ---------------- poll interval ---------------- */
@@ -1942,21 +2034,34 @@ expect(
  * set of rules about what a bar means, and this repo has already had two truths about one
  * drawing.
  */
-const reportBlockSrc = read('src/components/ReportBlock.tsx')
-expect(
-  'report charts are drawn by AnswerChart, not a second chart component',
-  reportBlockSrc.includes("from './AnswerChart'") && !reportBlockSrc.includes('<svg'),
-  'the same hand-drawn SVG draws an answer and a report',
-)
 
 
+/*
+ * **The report section is one route and a published-graph gate.**
+ *
+ * The prototype owns its own navigation — three tabs and its own library — so there is no
+ * per-report URL the way the React section had. What this app contributes is the shell mount
+ * and the precondition: available once a graph is published, the same rule Ask and the lens
+ * follow, through the same component that states it.
+ */
 const reportRoutes = read('src/routes.tsx')
-/* The section is two routes, and the id route exists — a list with no way into a report
-   would leave five cards that do nothing. */
+const reportsPage = read('src/pages/ReportsPage.tsx')
 expect(
-  'both report routes are declared',
-  reportRoutes.includes("path: 'reports'") && reportRoutes.includes("path: 'reports/:reportId'"),
-  '/reports lists them, /reports/:reportId opens one',
+  'the report section is one route, gated on a published graph',
+  /\{ path: 'reports', element: <ReportsPage \/> \}/.test(reportRoutes) &&
+    /* One route, not the four the React section had. */
+    !/path: 'reports\//.test(reportRoutes) &&
+    /publishedCount === 0/.test(reportsPage) &&
+    /<NoPublishedGraph/.test(reportsPage) &&
+    /* The gate reads the API; it does not guess from something local. */
+    /createReadStore\(getReports\)/.test(reportsPage),
+  'one page, and it opens only once something is published',
+)
+expect(
+  'and the endpoints behind it are still served',
+  server.includes("match: (p) => p === '/reports'") &&
+    /match: \(p\) => \/\^\\\/reports\\\/\[\^\/\]\+\$\/\.test\(p\)/.test(server),
+  'the section reads published_count from it; the rest is waiting for a UI that asks',
 )
 
 /* ---------------- the report section: gates and authoring ---------------- */
@@ -2046,18 +2151,6 @@ expect(
  * Each still opens at its own URL: a written definition at `/reports/:reportId`, a composed one at
  * `/reports/saved/:savedId`.
  */
-const sectionSrc = read('src/pages/ReportsPage.tsx')
-expect(
-  'the Library lists every governed definition, from the server’s own list',
-  /governance\.reports\.filter/.test(sectionSrc) &&
-    /* Not the raw arrays beside it: `saved` listed again would double every composed row. */
-    !sectionSrc.includes('data.saved.map') &&
-    !sectionSrc.includes('data.reports.map') &&
-    /kind === 'saved' && report\.savedId/.test(sectionSrc) &&
-    read('src/pages/ReportAuthorPage.tsx').includes('take one of the standard reports') &&
-    read('src/routes.tsx').includes("path: 'reports/:reportId'"),
-  'one grid, both kinds, each opening at its own URL',
-)
 
 /*
  * **Three tabs, and the governance behind them is the server's arithmetic.**
@@ -2069,18 +2162,15 @@ expect(
  */
 const govBody = /const reportGovernanceView = \(asRole\) => \{[\s\S]*?\n\}/.exec(server)?.[0] ?? ''
 expect(
-  'the report section is three tabs, and its figures are computed server-side',
-  /label: 'Library'/.test(sectionSrc) &&
-    /label: 'Author'/.test(sectionSrc) &&
-    /label: 'Operations & audience'/.test(sectionSrc) &&
-    govBody.length > 0 &&
-    /* The chips render the served count rather than measuring a local list. */
-    /\{s\.count\}/.test(sectionSrc) &&
+  'the governance figures are computed per request, not stored',
+  govBody.length > 0 &&
     /const count = \(key\) =>/.test(govBody) &&
-    /entitled_count: rows\.filter\(entitledTo\)\.length/.test(govBody),
+    /entitled_count: rows\.filter\(entitledTo\)\.length/.test(govBody) &&
+    /* And `db.reports.governance` holds decisions only — no count, no cell, no check. */
+    !/count:\s*\d/.test(JSON.stringify(db.reports.governance)),
   govBody.length === 0
     ? 'reportGovernanceView was not found — this check cannot run'
-    : 'tabs in the page, arithmetic in the server',
+    : 'a chip that counted its own filtered array would be a second answer',
 )
 
 /*
@@ -2091,19 +2181,6 @@ expect(
  * gate 2's says **declared, not applied**, because no roster in this prototype is filtered per
  * persona and a silent predicate would claim a filter that never ran.
  */
-const gatesSrc = read('src/components/ReportGates.tsx')
-expect(
-  'both gates print the served note, and gate 2 says it is declared rather than applied',
-  /\{gate\.note\}/.test(gatesSrc) &&
-    /* The page holds no copy of either sentence — a component restating served copy prints it
-       twice and puts words in the tenant's mouth. */
-    !gatesSrc.includes('who may see that a report EXISTS') &&
-    !sectionSrc.includes('who may see that a report EXISTS') &&
-    /Declared here and not applied/.test(read('scripts/seed-report-governance.mjs')) &&
-    /* And the grid names its columns: the prototype's own headers printed [object Object]. */
-    /\{col\.title\}/.test(gatesSrc),
-  'served copy, named columns, and the honest caveat on the predicate',
-)
 
 /*
  * `db.reports.governance` is required, and nested — the same reason
@@ -2120,22 +2197,12 @@ expect(
   'refused at boot, and refused at the seam that writes it',
 )
 
-/* And the pages agree: none of the four renders the source empty state. */
-const reportGateSurfaces = [
-  'src/pages/ReportsPage.tsx',
-  'src/pages/ReportPage.tsx',
-  'src/pages/SavedReportPage.tsx',
-  'src/pages/ReportAuthorPage.tsx',
-  'src/pages/WhatIfPage.tsx',
-]
-const stillSourceGated = reportGateSurfaces.filter((f) => read(f).includes('NoSourceConnected'))
-expect(
-  'and no report surface offers the source gate',
-  stillSourceGated.length === 0,
-  stillSourceGated.length === 0
-    ? `${reportGateSurfaces.length} surfaces gate on publication alone`
-    : `still source-gated: ${stillSourceGated.join(', ')}`,
-)
+/*
+ * The four report surfaces that used to be checked here — the section, one report, a saved
+ * report and the wizard — are gone with the UI. The rule they enforced (publication is the
+ * only gate; a connected source is never a second one) now has one surface left, checked
+ * below, plus the server-side claim above that all the gated routes test publication alone.
+ */
 
 /*
  * The What-if lens is gated on publication too, and shares the empty state. Two components
@@ -2143,12 +2210,10 @@ expect(
  */
 const noPublished = 'src/components/NoPublishedGraph.tsx'
 expect(
-  'the publish gate is one component, used by both pages',
+  'the publish gate is one component, and the lens still uses it',
   existsSync(join(root, noPublished)) &&
-    read('src/pages/ReportsPage.tsx').includes('NoPublishedGraph') &&
-    read('src/pages/WhatIfPage.tsx').includes('NoPublishedGraph') &&
-    read('src/pages/ReportAuthorPage.tsx').includes('NoPublishedGraph'),
-  'Reports, the report page’s section list and the What-if lens read one wrapper',
+    read('src/pages/WhatIfPage.tsx').includes('NoPublishedGraph'),
+  'the report pages that shared it are gone; the wrapper and the lens remain',
 )
 expect(
   'and it names the fix that applies, which differs by what exists',
@@ -2197,9 +2262,8 @@ expect(
  */
 expect(
   'a computed tile is labelled as computed',
-  /unit: 'computed for this frame'/.test(server) &&
-    /built\.variant === 'written'/.test(read('src/components/ReportView.tsx')),
-  'the built payload reports written or generated, and the one template prints which',
+  /unit: 'computed for this frame'/.test(server),
+  'the built payload labels every tile it recomputed for a frame',
 )
 
 /*
@@ -2264,14 +2328,9 @@ expect(
   'nothing runs against the data until the sentence is confirmed',
 )
 
-/* The wizard's own route, declared before the id route it would otherwise fall into. */
-const authorRoutes = read('src/routes.tsx')
-expect(
-  'the authoring route is declared before the report-id route',
-  authorRoutes.indexOf("path: 'reports/new'") > 0 &&
-    authorRoutes.indexOf("path: 'reports/new'") < authorRoutes.indexOf("path: 'reports/:reportId'"),
-  'the same rule the full-window canvas route follows',
-)
+/* The wizard's route-order claim went with the wizard. The rule it followed — declare the
+   specific path before the dynamic one, never rely on ranking — is still asserted by the
+   full-window canvas claim further down, which is where this repo learned it. */
 
 /* ---------------- reports: the graph, the template, and a saved report ---------------- */
 
@@ -2289,11 +2348,10 @@ expect(
   'chosen on step 1, carried through read → build → save',
 )
 expect(
-  'and the section offers every published graph, not just the newest',
+  'and the API offers every published graph, not just the newest',
   /const reportGraphs = \(\) =>/.test(server) &&
-    /graphs: reportGraphs\(\)/.test(server) &&
-    read('src/pages/ReportAuthorPage.tsx').includes('Which published graph should answer this?'),
-  'the wizard opens on the list; the newest stays the default for a report read directly',
+    /graphs: reportGraphs\(\)/.test(server),
+  'the payload lists them; a frame naming an unpublished one is refused',
 )
 
 /*
@@ -2301,27 +2359,7 @@ expect(
  * and a report composed in the wizard is that same anatomy asked under a different frame.
  * When the layout lived in two files the wizard's copy had already drifted — no badge, its
  * own tag row, a different footer — which is two answers to "what does a report look like".
- */
-const reportSurfaces = [
-  'src/pages/ReportPage.tsx',
-  'src/pages/SavedReportPage.tsx',
-  'src/pages/ReportAuthorPage.tsx',
-]
-const surfacesOwnTheirLayout = reportSurfaces.filter((file) => {
-  const src = read(file)
-  return (
-    !src.includes("from '../components/ReportView'") ||
-    src.includes('rp-foot-defs') ||
-    src.includes('StatCards')
-  )
 })
-expect(
-  'every surface renders one report template rather than its own',
-  surfacesOwnTheirLayout.length === 0,
-  surfacesOwnTheirLayout.length === 0
-    ? `${reportSurfaces.length} surfaces read ReportView: written, saved and built`
-    : `re-implementing the layout: ${surfacesOwnTheirLayout.join(', ')}`,
-)
 
 /*
  * Taking a standard report directly reads and builds it — and **stops there**, because the
@@ -2330,19 +2368,6 @@ expect(
  * questions. So `generate` does not save; the page asks for a name and the save is the
  * reader's act.
  */
-const reportsStoreSrc = read('src/store/reportsStore.ts')
-const generateBody = /generate: async \(\{[\s\S]*?\n  \},/.exec(reportsStoreSrc)?.[0] ?? ''
-expect(
-  'picking a standard report builds it and asks for a name before keeping it',
-  generateBody.includes('readReportQuestion') &&
-    generateBody.includes('buildReport') &&
-    !generateBody.includes('saveReport') &&
-    generateBody.includes('needsName: true') &&
-    read('src/pages/ReportAuthorPage.tsx').includes('Name this report to keep it'),
-  generateBody.length === 0
-    ? 'the generate action was not found — this check cannot run'
-    : 'read → build, then the reader names it and saves',
-)
 
 /*
  * Who saved a report. The identity is client-held, so the route has to be *told* — the rule
@@ -2351,8 +2376,7 @@ expect(
  */
 expect(
   'a saved report records who saved it, and is told rather than guessing',
-  read('src/pages/ReportAuthorPage.tsx').includes('useAuthStore') &&
-    /is not an email — send the signed-in address as saved_by/.test(server) &&
+  /is not an email — send the signed-in address as saved_by/.test(server) &&
     /saved_by: savedBy \?\? saved\[existing\]\?\.saved_by \?\? null/.test(server),
   'the identity is client-held, so the route has to be told',
 )
@@ -2387,16 +2411,11 @@ expect(
 expect(
   'a saved report is re-asked, and an unpublished graph is reported not hidden',
   server.includes("match: (p) => /^\\/reports\\/saved\\/[^/]+$/.test(p)") &&
-    /which is not published right now/.test(server) &&
-    read('src/pages/SavedReportPage.tsx').includes('computed just now'),
+    /which is not published right now/.test(server),
   'the row holds a frame, so opening it and generating it are one act',
 )
-expect(
-  'and its route is declared before the report-id route',
-  read('src/routes.tsx').indexOf("path: 'reports/saved/:savedId'") <
-    read('src/routes.tsx').indexOf("path: 'reports/:reportId'"),
-  'two segments cannot collide with one, but the order states the intent',
-)
+/* Its route-order claim went with the route — see the note where the report routes used to be
+   asserted. The endpoint itself is still checked, above. */
 
 /* ---------------- the What-if lens draws its graph references ---------------- */
 
@@ -2475,32 +2494,14 @@ expect(
  * for that slice. `frame` exists on the payload in *values* for exactly this: reconstructing
  * a scope from its printed label would be guessing at what the report had already been told.
  */
-const reportViewSrc = read('src/components/ReportView.tsx')
 expect(
-  'a chip re-asks the report rather than filtering its rows in the page',
-  reportViewSrc.includes('onSlice') &&
-    !/\.filter\(/.test(reportViewSrc) &&
-    /frame: \{[\s\S]*?report_id: report\.report_id/.test(server) &&
-    /slice: async \(filter\) => \{[\s\S]*?buildReport\(\{ \.\.\.report\.frame/.test(
-      read('src/store/reportsStore.ts'),
-    ),
-  'the frame in values is on the payload so a slice can ask again with it',
+  'a chip re-asks the report with its own frame, in values',
+  /frame: \{[\s\S]*?report_id: report\.report_id/.test(server) &&
+    /facets: reportFacetsFor\(report\.spine\)/.test(server),
+  'recovering a scope from its printed label would be guessing at what it was told',
 )
-/* Every surface that renders a report offers the bar, so a slice is not a property of one
-   page. The wizard slices through its own frame, which is the same object. */
-const slicingSurfaces = [
-  'src/pages/ReportPage.tsx',
-  'src/pages/SavedReportPage.tsx',
-  'src/pages/ReportAuthorPage.tsx',
-]
-/* The prop, not the word: a page that kept its handler and dropped the bar still mentioned
-   `onSlice`, and this claim passed over it until the break-test said otherwise. */
-const notSlicing = slicingSurfaces.filter((f) => !read(f).includes('onSlice={'))
-expect(
-  'and every report surface offers it',
-  notSlicing.length === 0,
-  notSlicing.length === 0 ? `${slicingSurfaces.length} surfaces slice` : `missing: ${notSlicing.join(', ')}`,
-)
+/* The claim that every report surface offered the chip bar went with those surfaces. What the
+   server still owes a future UI is asserted above: the frame in values, and the facets. */
 
 /*
  * Facets are per spine, and the frame validator asks the same function the chips came from.
@@ -2606,15 +2607,6 @@ expect(
       (answerChartSrc.match(/<svg/g) ?? []).length,
   'the viewBox grows rather than the cap being lifted, so the text stays its own size',
 )
-expect(
-  'and a chart block does not print its title twice',
-  /* The card gained a class for its padding, so this looks for the absence of a `title` on
-     it rather than for one exact opening tag. */
-  /if \(block\.type === 'chart'\) \{[\s\S]*?<Card className="rp-block"(?! title)/.test(
-    read('src/components/ReportBlock.tsx'),
-  ),
-  'the figure carries the caption; the card no longer repeats it',
-)
 
 /*
  * The decree report draws a ranking **and the share it raises**.
@@ -2631,11 +2623,7 @@ expect(
     /const rows = db\.reports\.data\.generators/.test(
       /function reportShareChart[\s\S]*?\n\}/.exec(server)?.[0] ?? '',
     ) &&
-    /companion: share/.test(server) &&
-    /* The conditional *and* the render: a mention of `block.companion` survived a mutation
-       that had stopped rendering it, because the width expression mentions it too. */
-    read('src/components/ReportBlock.tsx').includes('{block.companion ? (') &&
-    read('src/components/ReportBlock.tsx').includes('block={block.companion}'),
+    /companion: share/.test(server),
   'the share is of the register, not of the report’s own rows',
 )
 expect(
@@ -2673,8 +2661,6 @@ expect(
  * reader; anything asking the API without a role still gets every row. A control that implied a
  * permission this mock cannot keep would be the worst kind of claim in the app.
  */
-const audienceSrc = read('src/components/AudiencePicker.tsx')
-const savedCardSrc = read('src/components/SavedReportCard.tsx')
 expect(
   'a saved report names the roles it is for, from the tenant’s own pool',
   /const reportViewerRoles = \(saved\) =>/.test(server) &&
@@ -2683,18 +2669,6 @@ expect(
     /a report no role can view is a report you have deleted/.test(server) &&
     /no such role: \$\{unknown\.join\(', '\)\}/.test(server),
   'ids stored, labels resolved, and both refusals name the fix',
-)
-expect(
-  'and the control that sets it calls itself a demo, not a permission',
-  /* The *rendered* sentence, not the phrase in the file's own comment — a mutation that
-     changed the visible copy left the comment saying it, and this claim passed. */
-  audienceSrc.includes('the API serves any caller that asks') &&
-    /as_role/.test(server) &&
-    /* Without a role the section serves everything — the safe direction for a control the
-       copy already admits is cosmetic. */
-    /!asRole \|\| row\.viewer_roles\.some/.test(server) &&
-    claude.includes('not access control'),
-  'the section filters what it shows; the API serves any caller that asks',
 )
 
 /*
@@ -2705,76 +2679,25 @@ expect(
  * misalignment a reader sees first. Both edges are set from one token, and every card class in
  * the section is listed — a new card that forgets is a new card that looks broken.
  */
-const reportsCss = read('src/pages/ReportsPage.css')
-const cardClasses = ['rp-saved', 'rp-block', 'rp-card', 'rp-mine', 'rp-panel']
 /*
- * The rule itself, not the selectors: they share one block, so emptying it left every selector
- * in place and the first version of this claim passed over five unpadded cards.
+ * The card-padding, select-all and card-height claims that stood here read
+ * `src/pages/ReportsPage.css` and the components it styled. All of them went with the report
+ * UI. The lessons they encoded are not lost — they are entries in `docs/REGRESSIONS.md` and
+ * lines in `CLAUDE.md`'s pitfalls, and they will apply again to whatever renders these
+ * endpoints next: a card body at 0 beside a default head, a select-all that needs three
+ * states, and the equal-height trick breaking a card that expands.
  */
-const bodyRule =
-  /([^}]*\.rp-saved > \.ant-card-body[^{]*)\{([^}]*)\}/.exec(reportsCss) ?? ['', '', '']
-const unpadded = cardClasses.filter((cls) => !bodyRule[1].includes(`.${cls} > .ant-card-body`))
-expect(
-  'every card in the report section pads its own body, because the theme pads none',
-  /bodyPadding: 0/.test(theme) &&
-    unpadded.length === 0 &&
-    /padding: var\(--sp-\d\)/.test(bodyRule[2]) &&
-    /\.rp-saved > \.ant-card-head[\s\S]{0,220}padding-inline: var\(--sp-5\)/.test(reportsCss),
-  unpadded.length === 0 && /padding: var\(--sp-\d\)/.test(bodyRule[2])
-    ? `${cardClasses.length} card classes, head and body from one token`
-    : unpadded.length > 0
-      ? `not in the rule: ${unpadded.join(', ')}`
-      : 'the rule lists them and declares no padding',
-)
 
-/*
- * **The audience panel's select-all is a checkbox with three states, not two.**
- *
- * "All roles" beside five role checkboxes has to behave like them, so it is one of them — and it
- * needs `indeterminate` while some are ticked, because both other states would misreport a
- * partial selection: `checked` claims every role can view it, `unchecked` claims none can. The
- * button this replaced could only ever select all, so it went dark the moment all were selected
- * and said nothing about the state in between.
- */
-expect(
-  'the audience panel selects every role from one checkbox, and says so when only some are',
-  /indeterminate=\{chosen\.length > 0 && !everyRole\}/.test(audienceSrc) &&
-    /checked=\{everyRole\}/.test(audienceSrc) &&
-    /onChange\(e\.target\.checked \? roles\.map\(\(r\) => r\.roleId\) : \[\]\)/.test(audienceSrc) &&
-    audienceSrc.includes('<b>All roles</b>') &&
-    /* The redundant button is gone, not merely unused — two controls for one choice is how
-       they drift apart. */
-    !/>\s*Every role\s*</.test(audienceSrc) &&
-    /* And it is a component, not a block inside the card — a panel behind the card's `useState`
-       renders closed under `renderToString`, so every assertion above it would pass over
-       nothing. This is the `ConnectSourceWizard` rule, applied to a second panel. */
-    /<AudiencePicker roles=\{roles\} chosen=\{chosen\}/.test(savedCardSrc),
-  'all / some / none, from the one control that sets all of them',
-)
-
-/*
- * **A card that changes height is laid out by its content.**
- *
- * `.rp-saved` was `height: 100%` with a flex-column body and its foot at `margin-top: auto` —
- * the equal-height trick the written-report cards use. Opening the audience panel inside it then
- * stretched the box: the head filled a height nothing was setting and the rows below left the
- * card's frame. The written cards keep the trick; this one may not have it.
- */
-const savedRule = /\.rp-saved \{([^}]*)\}/.exec(reportsCss)?.[1] ?? ''
-const footRule = /\.rp-saved-foot \{([^}]*)\}/.exec(reportsCss)?.[1] ?? ''
-expect(
-  'the saved-report card sizes itself, so opening a panel inside it cannot stretch it',
-  savedRule.length > 0 &&
-    !/height: 100%/.test(savedRule) &&
-    !/\.rp-saved > \.ant-card-body \{[^}]*flex-direction: column/.test(reportsCss) &&
-    footRule.length > 0 &&
-    !/margin-top: auto/.test(footRule),
-  'no forced height, no flex body, no auto-pushed foot',
-)
 
 /* ---------------- nav / route parity ---------------- */
 
-const navKeys = [...nav.matchAll(/^ *\{ key: '(\w+)'|^ *key: '(\w+)',/gm)]
+/*
+ * `[\w-]` and not `\w`: every hyphenated key — `new-graph`, `graph-studio`, `what-if` — was
+ * invisible to this, so it parsed 4 of 8 and the `>= 5` below passed by a single entry. Taking
+ * one entry out of the sidebar dropped it to 4 and failed the claim, which is the only reason
+ * anyone looked. A parse that silently sees half the file is the "0 of N" failure again.
+ */
+const navKeys = [...nav.matchAll(/^ *\{ key: '([\w-]+)'|^ *key: '([\w-]+)',/gm)]
   .map((m) => m[1] ?? m[2])
   .filter(Boolean)
 const dbInNav = /^\s*\{ key: 'db'/m.test(nav)
@@ -2785,7 +2708,14 @@ expect(
     : claude.includes('commented out of'),
   dbInNav ? '/db is in NAV_ITEMS' : '/db is routed but not in NAV_ITEMS',
 )
-expect('nav items parse', navKeys.length >= 5, `${navKeys.length} nav keys`)
+/* Against the paths, which parse independently — if the two disagree, one regex is wrong,
+   which is exactly what was true here for however long. */
+const navPathCount = [...nav.matchAll(/^ *path: '([^']+)',/gm)].length
+expect(
+  'nav items parse, and the keys and paths agree on how many there are',
+  navKeys.length >= 5 && navKeys.length === navPathCount,
+  `${navKeys.length} nav keys, ${navPathCount} nav paths`,
+)
 
 /*
  * The two counts in CLAUDE.md's routing paragraph, pinned.
@@ -2891,6 +2821,94 @@ for (const match of [...claude.matchAll(/GHSA-[\w-]+/gi)]) {
       : 'not in ALLOWLIST — say it was removed or pinned, or restore the entry',
   )
 }
+
+/*
+ * **The graph picker offers the graphs that are actually published.**
+ *
+ * The vendored dataset ships four graphs, every one described as "Published", and none of them
+ * exists. Left as the picker's source it asserted four live graphs on a tenant that may have
+ * none — and the seeded library rows said "Reads from the VLS Compliance graph" alongside. So
+ * the host passes `publishedGraphs()` down and both pickers and the library seed take it.
+ *
+ * Asserted at three sites because the fallback is what makes it silent: with no list passed,
+ * everything still renders, just naming graphs nobody published.
+ */
+const reportsHost = read('src/pages/ReportsPage.tsx')
+const askPane = read('src/reports/panes/AskPane.tsx')
+const confirmPane = read('src/reports/panes/ConfirmPane.tsx')
+const graphMapper = /const graphOptions = useMemo\([\s\S]*?\n  \)/.exec(reportsHost)?.[0] ?? ''
+expect(
+  'the report graph picker lists only published graphs, from the server',
+  graphMapper.length > 0 &&
+    /data\?\.graphs \?\? \[\]/.test(graphMapper) &&
+    /* No invented freshness: the payload reports size and publisher, not a refresh time. */
+    !/refreshed/.test(graphMapper) &&
+    /* Both pickers read the passed list rather than the dataset's. */
+    /items=\{graphOptions\.map/.test(askPane) &&
+    !/items=\{OPTS\.graph\.options/.test(askPane) &&
+    /key === 'graph' \? graphOptions : OPTS\[key\]\.options/.test(confirmPane) &&
+    /* And the seeded library rows read from it too, or every card names a fictional graph. */
+    /seedLibrary\(first \?/.test(read('src/reports/App.tsx')) &&
+    /export function seedLibrary\(graph\?: Assumption\)/.test(read('src/reports/lib/library.ts')),
+  graphMapper.length === 0
+    ? 'the graph mapper was not found — this check cannot run'
+    : 'picker, confirm slot and library seed all take the published list',
+)
+
+/*
+ * **Every chart form the toolbar offers actually draws.**
+ *
+ * `line` was on the package prototype's toolbar and existed nowhere here: `ChartType` was
+ * `'bar' | 'column'`, `ChartBlock` had no branch for it, and the button was absent. A form a
+ * reader can pick and cannot see is the "control with nothing behind it" rule, one layer down —
+ * and it fails silently, because the block falls through to bars and looks like it ignored the
+ * click.
+ */
+const chartBlockSrc = read('src/reports/components/blocks/ChartBlock.tsx')
+const reportPaneSrc = read('src/reports/panes/ReportPane.tsx')
+const chartForms = [
+  ...(/\['bar', 'column', 'line'\] as const/.exec(reportPaneSrc) ? ['bar', 'column', 'line'] : []),
+]
+expect(
+  'every chart form the toolbar offers has a renderer',
+  chartForms.length === 3 &&
+    /export type ChartType = 'bar' \| 'column' \| 'line'/.test(read('src/reports/types.ts')) &&
+    /* A branch each: line by name, column by name, bars as the fallback. */
+    /block\.chartType === 'line'/.test(chartBlockSrc) &&
+    /block\.chartType === 'column'/.test(chartBlockSrc) &&
+    /* And the line branch really draws — a polyline, not a placeholder. */
+    /<polyline/.test(chartBlockSrc) &&
+    /* Named for what it changes, not for the maths it used to imply. */
+    reportPaneSrc.includes('⇄ Change data'),
+  chartForms.length !== 3
+    ? 'the toolbar form list was not found — this check cannot run'
+    : 'bar, column and line each have a branch that draws',
+)
+
+/*
+ * **The publish dialog no longer picks an audience, but a report still has one.**
+ *
+ * The `<select>` over the three audiences was removed on request. The value did not go with it:
+ * a republished report keeps the audience it had, a new one takes the default, and the dialog
+ * hands that back untouched. That forwarding is the part worth guarding — drop it and
+ * `onConfirm` publishes with `undefined`, `audienceLabel` falls through to the raw key, and
+ * every Library card reads "Audience:" followed by nothing while the audience tab miscounts.
+ * Nothing throws.
+ */
+/* Comments stripped: the prop's own doc comment explains that a `<select>` *used to* be here,
+   and searching the raw file matched that explanation. Fourth time in this file — if the string
+   could legitimately appear in prose, strip the prose. */
+const publishDialog = read('src/reports/components/PublishDialog.tsx')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^\s*\/\/.*$/gm, '')
+expect(
+  'the publish dialog carries the audience it was given, and offers no picker',
+  /onConfirm\(trimmed, initialAudience\)/.test(publishDialog) &&
+    !/<select/.test(publishDialog) &&
+    /* The pool is still read, by the label lookup the Library cards use. */
+    /AUDIENCES\.find\(\(a\) => a\.key === key\)/.test(read('src/reports/lib/library.ts')),
+  'removed as a control, kept as a value',
+)
 
 /* ---------------- report ---------------- */
 
