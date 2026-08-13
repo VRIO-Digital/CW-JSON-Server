@@ -38,6 +38,120 @@
   display: contents;
 }
 
+/*
+ * ---- the Library's lifecycle chip bar, and the groups it separates ----
+ *
+ * Authored here rather than in `reports-prototype.css` for the reason `.cw-portal` is: that sheet
+ * is vendored and carries a "do not hand-edit" rule, so anything this repo writes for the section
+ * lives beside it instead. Which also means these are **not** exempt from the `--sp-*` scale — the
+ * exemption is a one-entry list and the vendored sheet is the entry.
+ *
+ * The colours are the prototype's own tokens. They are declared on `.cw-reports`, and every
+ * selector here is a descendant of it, so the bar cannot drift from the design around it.
+ */
+.cw-reports .rp-chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-5);
+}
+
+.cw-reports .rp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--mut);
+  border-radius: 20px;
+  padding: var(--sp-2) var(--sp-3);
+  font-family: 'Inter';
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cw-reports .rp-chip:hover {
+  border-color: var(--orange-line);
+  color: var(--orange-hi);
+  background: var(--orange-soft);
+}
+
+/* Selected. The one chip in brand colour, so which state is being shown is never ambiguous. */
+.cw-reports .rp-chip.on {
+  border-color: var(--orange-line);
+  background: var(--orange-soft);
+  color: var(--orange-hi);
+}
+
+/*
+ * A state with no members. Dimmed and still clickable: for a lifecycle, nothing blocked is good
+ * news rather than a broken chip, and selecting it says so in words.
+ */
+.cw-reports .rp-chip.zero:not(.on) {
+  color: var(--dim);
+}
+
+.cw-reports .rp-chipCount {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--dim);
+  background: var(--inset);
+  border-radius: 10px;
+  padding: 0 var(--sp-2);
+}
+
+.cw-reports .rp-chip.on .rp-chipCount {
+  color: var(--orange-hi);
+  background: rgba(242, 105, 29, 0.16);
+}
+
+.cw-reports .rp-group {
+  margin-bottom: var(--sp-6);
+}
+
+.cw-reports .rp-group > h2,
+.cw-reports h2.rp-shelfHead {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cw-reports .rp-group > p {
+  color: var(--mut);
+  font-size: 12.5px;
+  line-height: 1.6;
+  max-width: 640px;
+  margin: var(--sp-1) 0 var(--sp-4);
+}
+
+.cw-reports h2.rp-shelfHead {
+  margin-bottom: var(--sp-4);
+}
+
+/*
+ * Why a definition is in the state it is in. `crit`-adjacent copy would be wrong — the note
+ * explains rather than alarms — so it takes the sheet's neutral inset rather than a status tint.
+ */
+.cw-reports .rcard .rp-gnote {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--mut);
+  background: var(--inset);
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  padding: var(--sp-2) var(--sp-3);
+}
+
+/*
+ * The tone the vendored sheet has no pill for. It ships ok / warn / bad / info because the
+ * prototype had no state that was neither good nor bad; `archived` is exactly that.
+ */
+.cw-reports .pill.rp-neutral {
+  background: var(--card2);
+  color: var(--mut);
+}
+
 @media (max-width: 991px) {
   .rp-host {
     margin: 0 calc(var(--sp-5) * -1) calc(var(--sp-8) * -1);

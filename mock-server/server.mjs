@@ -531,6 +531,9 @@ const DB_SHAPE = {
     isObject(v.governance) &&
     Array.isArray(v.governance.statuses) &&
     v.governance.statuses.length > 0 &&
+    /* A state needs all three: the chip reads the label and tints itself from the tone, so a
+       state missing either renders as a chip with no name or no state colour. */
+    v.governance.statuses.every((s) => isObject(s) && s.key && s.label && s.tone) &&
     Array.isArray(v.governance.reports) &&
     v.governance.reports.length > 0 &&
     v.governance.reports.every(
@@ -538,6 +541,13 @@ const DB_SHAPE = {
         isObject(g) &&
         g.report_id &&
         g.status &&
+        /*
+         * **Across keys**, and for the reason the graph's edge endpoints are checked: a status the
+         * state pool does not declare does not throw. It has no label, so the card prints the raw
+         * key; and it matches no chip, so the row is reachable only under "All current" while
+         * every other chip under-counts by one. A short count reads as an answer.
+         */
+        v.governance.statuses.some((s) => s.key === g.status) &&
         g.version &&
         g.author &&
         g.category &&
@@ -607,8 +617,9 @@ const DB_HINTS = {
     'object with meta{}, fields[], assumptions{}, opts{}, slice_default[], ' +
     'summary_catalog[], summary_default[], saved[], data{ generators[], facilities[], ' +
     'quarters[], traces[] }, reports[] of { report_id, heading, spine, blocks[], ' +
-    'tiles[], footer[] } and governance{ statuses[], reports[] of ' +
-    '{ report_id, status, version, author, category, audience[] }, data_scope[], gate_notes{} } ' +
+    'tiles[], footer[] } and governance{ statuses[] of { key, label, tone }, reports[] of ' +
+    '{ report_id, status naming one of those states, version, author, category, audience[] }, ' +
+    'data_scope[], gate_notes{} } ' +
     '— the report section, from "npm run ingest:reports" and ' +
     '"node scripts/seed-report-governance.mjs"',
 }
@@ -4508,10 +4519,18 @@ const reportSavedView = (saved) => {
  * cell, the publish checks and the audit rows. A figure a component could compute is a second
  * source for it, and a governance grid is exactly where two sources become two answers.
  */
-const REPORT_STATUS_TONE = { published: 'good', pending_approval: 'warn', archived: 'neutral' }
+/*
+ * A lifecycle state's label and its tone both come from `governance.statuses`, which is the one
+ * place they are written. A second map here is how a state ends up tinted `warn` on a card and
+ * `neutral` on the chip that counts it — two answers to what the state *is*, which is the whole
+ * failure this section is built to avoid. `validateDb` refuses a report whose status is not in
+ * that list, so the fallbacks below cannot be reached by seeded data.
+ */
+const reportState = (key) => db.reports.governance.statuses.find((s) => s.key === key) ?? null
 
-const reportStatusLabel = (key) =>
-  db.reports.governance.statuses.find((s) => s.key === key)?.label ?? key
+const reportStatusLabel = (key) => reportState(key)?.label ?? key
+
+const reportStatusTone = (key) => reportState(key)?.tone ?? 'neutral'
 
 /*
  * One cell of gate 1.
@@ -4533,6 +4552,18 @@ const reportEntitlementCell = (governanceRow, roleId) => {
       state: 'entitled_pending',
       label: 'entitled once published - awaiting approval',
       tone: 'warn',
+    }
+  }
+  /*
+   * Blocked needs its own cell, or it falls to the archived one below and reads "entitled -
+   * archived, opens by link only" — which says the audience can open it. They cannot: it was never
+   * published. The audience is decided and the report is going nowhere until the block clears.
+   */
+  if (governanceRow.status === 'blocked') {
+    return {
+      state: 'entitled_blocked',
+      label: 'entitled once published - blocked, nothing to open',
+      tone: 'crit',
     }
   }
   return {
@@ -4572,7 +4603,7 @@ const reportGovernanceRow = (governanceRow) => {
     lead: report.note ?? report.subtitle ?? '',
     status: governanceRow.status,
     status_label: reportStatusLabel(governanceRow.status),
-    tone: REPORT_STATUS_TONE[governanceRow.status] ?? 'neutral',
+    tone: reportStatusTone(governanceRow.status),
     version: governanceRow.version,
     author: governanceRow.author,
     category: governanceRow.category,

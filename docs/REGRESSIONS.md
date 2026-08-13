@@ -1521,3 +1521,60 @@ found the three token-vs-fact claims.
 **Rule** — **add claims in the section they belong to, never at the end of the file**, and check
 the claim total moved. Six `MISSED` in a row is never six unbreakable claims — the repo's own
 note already says to suspect the break first; suspect the *placement* too.
+
+## A state added to a pool falls through the if-chain into the wrong answer
+
+**Symptom** — caught while adding `blocked` to the report lifecycle, before it shipped, but both
+halves were live faults the moment the state existed and neither would have thrown.
+
+`reportEntitlementCell` tests `published`, then `pending_approval`, then **returns the archived
+cell**. A `blocked` definition therefore reported *"entitled - archived, opens by link only"* to
+every persona in its audience — telling them they can open a report that was never published. And
+`reportGovernanceRow` read its tone from `REPORT_STATUS_TONE`, a literal map in `server.mjs`, while
+the chip that counts the same state read `tone` from `governance.statuses` in `db.json`. A state
+missing from the map came back `neutral` on the card and `crit` on its chip: two answers to what
+the state *is*, on one screen.
+
+**Root cause** — one concept written twice, and an if-chain whose `else` is a specific answer
+rather than a fallback. Both are the same shape of bug: adding a member to a pool silently gets a
+wrong answer from code that was correct for the members that existed when it was written.
+
+**Fix** — the tone is read from the pool (`reportState(key)?.tone`) and the second map is gone;
+`blocked` has its own entitlement cell (*"entitled once published - blocked, nothing to open"*,
+`crit`). `validateDb` refuses a governed report whose `status` is not one of the declared states,
+and the seed refuses to write one — because that failure is silent too: an undeclared status has no
+label, so the card prints the raw key, and it matches no chip, so the row is reachable only under
+"All current" while every other chip under-counts by one.
+
+**Guard** — *mechanical*, three claims. Every governed report sits in a declared state (asserted
+against `db.json`, plus the boot check and the seed refusal). Every state declares `key`, `label`
+and `tone`, the tone is read from the pool, and `REPORT_STATUS_TONE` must not come back. And every
+declared state **but `archived`** has a branch naming it in `reportEntitlementCell` — keyed to the
+end of the chain, which is where the fallthrough lands.
+
+**Rule** — **an `else` that returns a specific answer is not a fallback**, and a pool's properties
+belong to the pool. When a list in `db.json` gains a member, grep for every `=== 'member'` chain and
+every literal map keyed by the same vocabulary: the compiler cannot see either, and both fail by
+answering.
+
+## An "absent" assertion scoped to the page passes over the wrong grid
+
+**Symptom** — a smoke assertion that the Library's empty state *draws no card* failed against
+correct code. `renderToString` had rendered exactly what it should.
+
+**Root cause** — the Library now holds two grids: the governed definitions the chips filter, and
+the session shelf below them. `!html.includes('rcard')` was asked of the whole page, and the shelf's
+cards are supposed to be there. A second assertion nearly went the same way — `!html.includes(...)`
+for a definition title, where the shelf's own seeded names come from the prototype's dataset and
+could have collided with it.
+
+**Fix** — the assertions slice the page between the two headings and ask only the governed section.
+
+**Guard** — *documented*, and it is the repo's existing rule applied to a second surface: **assert a
+fact at its site, not its token in the page.** The related trap — `renderToString` splitting
+`text {expr} text` into separate nodes, so an `includes` of the whole sentence fails — was fixed by
+making the copy one expression rather than by loosening the assertion.
+
+**Rule** — before believing a red "is absent" assertion, ask **which** part of the render it read.
+Two grids on one page make every unscoped negative assertion ambiguous, and the failure looks like
+a code bug.

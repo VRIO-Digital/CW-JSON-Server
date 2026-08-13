@@ -1029,16 +1029,56 @@ so in those words.
 #### Governance is authored; everything about it is computed
 
 `db.reports.governance` — seeded by `node scripts/seed-report-governance.mjs` — holds only the
-decisions: state (`published` · `pending_approval` · `archived`), version, author, category,
-as-of, schedule, approval, and which personas each definition's audience names. Every number and
-every cell is computed in `reportGovernanceView` per request: the chip counts, the floor line,
-`parameterized` (a spine with facets), the entitlement matrix, the audit rows and the publish
+decisions: state (`published` · `pending_approval` · `blocked` · `archived`), version, author,
+category, as-of, schedule, approval, and which personas each definition's audience names. Every
+number and every cell is computed in `reportGovernanceView` per request: the chip counts, the floor
+line, `parameterized` (a spine with facets), the entitlement matrix, the audit rows and the publish
 checks. A count taken from its own filtered array would be a second answer to "how many are
 published".
 
+**A state is declared once, in `governance.statuses`, and everything reads it from there** — its
+key, the label a chip and a card print, and the `tone` both tint themselves with. `server.mjs` used
+to keep a second tone map beside it, which is how a state ends up `warn` on a card and `neutral` on
+the chip counting it; `reportStatusTone` reads the pool instead and `check-docs` fails if a second
+copy comes back. `blocked` is not `pending_approval` with worse manners — pending waits on a
+person, blocked names a precondition that fails, so it carries `crit`, the row says which publish
+check it fails, and both states are *current*: only `archived` is not.
+
+**A state also needs its own entitlement cell.** The chain in `reportEntitlementCell` ends at
+archived, so a state added without a branch falls into "entitled - archived, opens by link only" —
+which tells an audience it can open something that was never published. `check-docs` asserts every
+declared state but `archived` has a branch naming it.
+
 `governance` is **required**, and nested for the reason `graph_studio.sanity_checks` is: losing
 it does not throw, it just renders as a section with nothing to govern. `validateDb` refuses it
-at boot; the seed refuses to write a row naming a report or a persona that does not exist.
+at boot; the seed refuses to write a row naming a report or a persona that does not exist. It also
+checks **across** the block: a `status` the state pool does not declare has no label, so the card
+prints the raw key, and it matches no chip, so the row is reachable only under "All current" while
+every other chip under-counts by one. Neither throws.
+
+#### The Library's lifecycle chips are the one governance surface that is rendered
+
+`GET /reports` carries the whole governance view and `client.ts` types all of it, but only two
+things reach the screen: the publish gate, and the Library's chip bar — `All current` plus every
+declared state, each with the count the server computed. `ReportsPage` passes
+`governance` into the vendored prototype, `App` holds which state is selected, and `LibraryPane`
+renders the bar and the governed definitions in it. The prototype **declares the payload's shape
+itself** (`Governance`, `GovernedRow`, `GovernanceState` in `src/reports/App.tsx`) rather than
+importing `client.ts`'s types, the same as `GraphOption`: absent the props it is exactly the
+standalone prototype it was, chip bar and all.
+
+**The chips filter the tenant's definitions, not the shelf.** A report saved in this browser is
+local to it — the prototype does not `POST /reports/saved` — so it is listed under *Saved in this
+session* below the governed grid and the chips do not count it. Calling it governed would be the
+claim this section exists to avoid. `LibraryPane` prints `s.count` and never computes one, and its
+`current` filter is the server's rule (everything not archived) so the bar and the grid agree by
+construction.
+
+**A chip at 0 is a state, not a broken map** — unlike the document dictionary's type facets, where
+0 means the map is wrong. Nothing blocked is good news, so the chip dims and stays clickable and
+the empty grid says so in words. New CSS for the section goes in `ReportsPage.css`, not the
+vendored sheet, which carries a do-not-hand-edit rule — and so it is on the `--sp-*` scale like
+everything else authored here.
 
 **`may_author`** comes from the persona's data-scope row: a persona that cannot see the
 underlying figures cannot define what a report asserts about them, and the refusal names who
@@ -1464,6 +1504,18 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   ends in `process.exit`, so a claim added after it is dead — `check-docs` still passes and every
   break test reports `MISSED`. The tell is the **claim total not moving**. Add claims in the
   section they belong to, and confirm the count went up.
+- **An `else` that returns a specific answer is not a fallback.** `reportEntitlementCell` tested
+  published, then pending, then *returned the archived cell* — so a `blocked` definition told its
+  audience it could open a report nobody published. Its tone came from a literal map in
+  `server.mjs` while the chip counting the same state read `governance.statuses`, so one state read
+  `neutral` on the card and `crit` on the chip. When a pool in `db.json` gains a member, grep every
+  `=== 'member'` chain and every literal map keyed by the same vocabulary; the compiler sees
+  neither, and both fail by answering.
+- **A negative assertion on a page with two grids is ambiguous.** The Library holds the governed
+  definitions and the session shelf, so `!html.includes('rcard')` failed against correct code —
+  the shelf's cards are meant to be there. Slice the render to the section you mean. And
+  `renderToString` splits `text {expr} text` into separate nodes, so make interpolated copy one
+  expression rather than loosening the assertion around it.
 - **A vacuous assertion is worse than no assertion.** Two written this session passed
   over nothing — one `|| true`, one `!x || x` — and both were reporting success. If an
   assertion cannot fail, it is a comment.

@@ -29,10 +29,16 @@ import './ReportsPage.css'
  * here. Neither is antd's, and that is deliberate: this is vendored code kept intact rather
  * than a rewrite onto the host's components.
  *
- * **The figures are the prototype's own demo dataset.** Nothing here reads `db.json` or calls
- * `/reports*`. The API is still served and `client.ts` still types it, so wiring this to real
- * data is a later job — but until then nothing on the page should be read as tenant data. The
- * prototype says so itself.
+ * **The figures are the prototype's own demo dataset.** Nothing here reads `db.json` for a
+ * *figure* — the blocks, the charts and the rosters are all the prototype's own, so nothing among
+ * them should be read as tenant data, and it says so itself. Wiring those to `/reports*` is still
+ * a later job.
+ *
+ * **Two things on the page are the tenant's, and both are governance rather than measurement.**
+ * The publish gate below, and the Library's lifecycle states — `governance.statuses` and
+ * `governance.reports` from `GET /reports`, which is where the tenant's five report definitions
+ * and their states live. They are passed down rather than fetched in the prototype, so the
+ * vendored code keeps standing alone with no host: absent, the Library is exactly what it was.
  *
  * **The one thing that is real is the gate.** The section is available once a graph is
  * published, which is the same precondition Ask and the What-if lens have and the same
@@ -169,6 +175,13 @@ export default function ReportsPage() {
                   identity ? { name: identity.email, role: identity.roleLabel } : undefined
                 }
                 graphOptions={graphOptions}
+                /*
+                 * The Library's lifecycle chips and the definitions they count. Passed straight
+                 * through: the states, their labels, their tones and every count arrive decided
+                 * from `reportGovernanceView`, and a component that recomputed one would be a
+                 * second answer to "how many are published".
+                 */
+                governance={data?.governance}
               />
             </MenuProvider>
           </ToastProvider>

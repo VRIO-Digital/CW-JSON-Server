@@ -59,10 +59,62 @@ export interface GraphOption {
   d?: string;
 }
 
+/**
+ * The tenant's governed report definitions, and the lifecycle states they sit in.
+ *
+ * **Declared here rather than imported from `client.ts`**, the same as `GraphOption` above: the
+ * prototype has to keep standing alone with no host, so what it knows about the API is a shape it
+ * states, not a dependency on the app's client. The served types are structurally these.
+ *
+ * Every field is a served fact. Nothing on a governed card is computed here — least of all a
+ * count: `count` arrives decided, because a chip that counted its own filtered array would be a
+ * second answer to "how many are published".
+ */
+export interface GovernanceState {
+  key: string;
+  label: string;
+  /** `good` · `warn` · `crit` · `neutral` — a state colour, so the chip may not choose its own. */
+  tone: string;
+  count: number;
+}
+
+export interface GovernedRow {
+  reportId: string;
+  kind: 'written' | 'saved';
+  reportTag: string;
+  title: string;
+  question: string;
+  status: string;
+  statusLabel: string;
+  tone: string;
+  version: string | null;
+  author: string | null;
+  category: string;
+  asOf: string | null;
+  schedule: string;
+  approval: string | null;
+  note: string | null;
+  floor: string | null;
+  entitledRoles: { roleId: string; label: string }[];
+}
+
+export interface Governance {
+  statuses: GovernanceState[];
+  reports: GovernedRow[];
+}
+
+/** The chip that leads the bar. Not a stored state — the server counts it as everything not archived. */
+const ALL_CURRENT = 'current';
+
 export default function App({
   identity,
   graphOptions,
-}: { identity?: ReportsIdentity; graphOptions?: GraphOption[] } = {}) {
+  governance,
+}: {
+  identity?: ReportsIdentity;
+  graphOptions?: GraphOption[];
+  governance?: Governance | null;
+} = {}) {
   const toast = useToast();
 
   const [tab, setTab] = useState<ReportTab>('library');
@@ -103,6 +155,13 @@ export default function App({
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+
+  /*
+   * Which lifecycle state the Library is filtered to. Held here rather than in the pane so that
+   * leaving the tab and coming back does not silently reset the filter under a heading that still
+   * says how many rows the state has.
+   */
+  const [libraryState, setLibraryState] = useState<string>(ALL_CURRENT);
 
   /** Set when the open report already exists in the library. */
   const [openedId, setOpenedId] = useState<string | null>(null);
@@ -378,6 +437,11 @@ export default function App({
             <LibraryPane
               mode="library"
               reports={library}
+              /* Absent with no host — the prototype standing alone shows the shelf and no chips. */
+              states={governance?.statuses}
+              governed={governance?.reports}
+              activeState={libraryState}
+              onPickState={setLibraryState}
               onAuthorNew={authorNew}
               onEdit={openForEdit}
               onDelete={deleteReport}

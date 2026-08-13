@@ -2198,6 +2198,64 @@ expect(
 )
 
 /*
+ * **The Library's lifecycle chips: one pool, one count, and no state without a home.**
+ *
+ * The chip bar is `governance.statuses` — the states the tenant declares, plus a leading
+ * `current` the server computes as everything not archived. Three ways this goes quietly wrong,
+ * so three claims.
+ */
+const seed = read('scripts/seed-report-governance.mjs')
+const stateKeys = db.reports.governance.statuses.map((s) => s.key)
+expect(
+  'every governed report sits in a declared lifecycle state',
+  stateKeys.length > 0 &&
+    db.reports.governance.reports.length > 0 &&
+    db.reports.governance.reports.every((r) => stateKeys.includes(r.status)) &&
+    /* Refused at boot and at the seam that writes it — a status with no state has no label, so
+       the card prints the raw key, and it matches no chip, so every other chip under-counts. */
+    /v\.governance\.statuses\.some\(\(s\) => s\.key === g\.status\)/.test(server) &&
+    /which is not one of the lifecycle states/.test(seed),
+  `${stateKeys.length} states, ${db.reports.governance.reports.length} definitions: ` +
+    db.reports.governance.reports.map((r) => `${r.report_id}=${r.status}`).join(' '),
+)
+expect(
+  'a state declares its own label and tone, and the server keeps no second copy',
+  db.reports.governance.statuses.every((s) => s.key && s.label && s.tone) &&
+    /* Read from the pool, not from a map beside it: a state tinted `warn` on a card and
+       `neutral` on the chip counting it is two answers to what the state is. */
+    /const reportStatusTone = \(key\) => reportState\(key\)\?\.tone/.test(server) &&
+    !/REPORT_STATUS_TONE/.test(server) &&
+    /* And each state the pool declares needs its own entitlement cell, or it falls through the
+       chain into the archived one — which tells an audience it can open something unpublished. */
+    stateKeys
+      .filter((k) => k !== 'archived')
+      .every((k) => new RegExp(`governanceRow\\.status === '${k}'`).test(server)),
+  `tones from the pool: ${db.reports.governance.statuses.map((s) => `${s.key}/${s.tone}`).join(' ')}`,
+)
+/*
+ * And the chips print the count they were served. A count computed beside the grid is the second
+ * answer this whole section is built to avoid — `LibraryPane` reads `s.count` and filters rows by
+ * the same rule the server counts them with (`current` is everything not archived).
+ */
+const libraryPane = read('src/reports/panes/LibraryPane.tsx')
+const chipBar = /<div className="rp-chipRow"[\s\S]*?<\/div>/.exec(libraryPane)?.[0] ?? ''
+expect(
+  'the chip bar prints the served count and never one of its own',
+  chipBar.length > 0 &&
+    /\{s\.count\}/.test(chipBar) &&
+    /\{s\.label\}/.test(chipBar) &&
+    !/\.filter\(/.test(chipBar) &&
+    !/\.length/.test(chipBar) &&
+    /* The page hands the payload down; the prototype declares the shape rather than importing
+       the client's, so it still stands alone with no host. */
+    /governance=\{data\?\.governance\}/.test(read('src/pages/ReportsPage.tsx')) &&
+    /key === 'current' \? rows\.filter\(\(r\) => r\.status !== 'archived'\)/.test(libraryPane),
+  chipBar.length === 0
+    ? 'the chip bar was not found — this check cannot run'
+    : 'labels, tones and counts all arrive decided',
+)
+
+/*
  * The four report surfaces that used to be checked here — the section, one report, a saved
  * report and the wizard — are gone with the UI. The rule they enforced (publication is the
  * only gate; a connected source is never a second one) now has one surface left, checked

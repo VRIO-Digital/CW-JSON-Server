@@ -52,6 +52,20 @@ const PERSONAS = [
   },
 ]
 
+/*
+ * The lifecycle a report definition moves through, and the chip bar's own order.
+ *
+ * `blocked` is not `pending_approval` with worse manners: pending is waiting on a person, blocked
+ * names a precondition that fails, so it carries `crit` and the row says which check it fails.
+ * Both are *current* — only `archived` is not.
+ */
+const STATUSES = [
+  { key: 'published', label: 'Published', tone: 'good' },
+  { key: 'pending_approval', label: 'Pending approval', tone: 'warn' },
+  { key: 'blocked', label: 'Blocked', tone: 'crit' },
+  { key: 'archived', label: 'Archived', tone: 'neutral' },
+]
+
 const REPORTS = {
   risk: {
     status: 'published',
@@ -65,15 +79,21 @@ const REPORTS = {
     note: null,
   },
   facility: {
-    status: 'published',
+    status: 'blocked',
     version: 'v7',
     author: 'Dana Whitfield',
     category: 'Facility comparison',
     as_of: '2026-08-10',
     schedule: 'Weekly Mon 06:00 UTC',
-    approval: 'two-person',
+    /*
+     * Null, so the publish check that reads it fails — a blocked definition has to be blocked
+     * on something a reader can see, not on a label. What separates it from `pending_approval`
+     * is the note: pending is waiting on a person who means to approve, blocked names a reason
+     * approving it as written would be wrong.
+     */
+    approval: null,
     audience: ['domain_architect', 'business_user_executive', 'business_user_project'],
-    note: null,
+    note: 'Approval withdrawn: gate 1 names Business User — Project Level, whose data scope admits one facility, and the scorecard compares five. Either the audience narrows or the scope widens — publishing it as written would settle that by showing rows the predicate excludes.',
   },
   quarterly: {
     status: 'published',
@@ -160,6 +180,20 @@ for (const id of Object.keys(REPORTS)) {
 for (const id of ids) {
   if (!REPORTS[id]) problems.push(`report "${id}" has no governance row — every report needs a status`)
 }
+/*
+ * A status the state pool does not declare is the silent one: it has no label, so the card prints
+ * the raw key, and it matches no chip — so the row is reachable only under "All current" and every
+ * other chip under-counts by one. Neither throws.
+ */
+const stateKeys = STATUSES.map((s) => s.key)
+for (const [id, row] of Object.entries(REPORTS)) {
+  if (!stateKeys.includes(row.status))
+    problems.push(
+      `report "${id}" is "${row.status}", which is not one of the lifecycle states ` +
+        `(${stateKeys.join(', ')}) — it would match no chip`,
+    )
+}
+
 for (const [id, row] of Object.entries(REPORTS)) {
   if (row.audience.length === 0) problems.push(`report "${id}" is entitled to nobody`)
   for (const role of row.audience) {
@@ -198,13 +232,15 @@ if (problems.length > 0) {
 db.auth_roles = PERSONAS
 
 db.reports.governance = {
-  /* The lifecycle states, in the order the chips show them. `current` is not one of them: it is
-     published + pending, computed, because that is what a reader means by "current". */
-  statuses: [
-    { key: 'published', label: 'Published', tone: 'good' },
-    { key: 'pending_approval', label: 'Pending approval', tone: 'warn' },
-    { key: 'archived', label: 'Archived', tone: 'neutral' },
-  ],
+  /*
+   * The lifecycle states, in the order the chips show them, and the one place their labels and
+   * tones are written — `server.mjs` reads the tone from here rather than keeping a second map,
+   * because a state tinted `warn` on a card and `neutral` on a chip is two answers to what it is.
+   *
+   * `current` is not one of them: it is everything not archived, computed, because that is what a
+   * reader means by "current". A blocked definition is current — it is this quarter's problem.
+   */
+  statuses: STATUSES,
   reports: Object.entries(REPORTS).map(([report_id, row]) => ({ report_id, ...row })),
   data_scope: Object.entries(SCOPE).map(([role_id, row]) => ({ role_id, ...row })),
   /* The copy the Operations tab leads with. Served rather than held in the component, so the

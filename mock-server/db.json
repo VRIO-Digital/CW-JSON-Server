@@ -14293,6 +14293,11 @@
           "tone": "warn"
         },
         {
+          "key": "blocked",
+          "label": "Blocked",
+          "tone": "crit"
+        },
+        {
           "key": "archived",
           "label": "Archived",
           "tone": "neutral"
@@ -14317,19 +14322,19 @@
         },
         {
           "report_id": "facility",
-          "status": "published",
+          "status": "blocked",
           "version": "v7",
           "author": "Dana Whitfield",
           "category": "Facility comparison",
           "as_of": "2026-08-10",
           "schedule": "Weekly Mon 06:00 UTC",
-          "approval": "two-person",
+          "approval": null,
           "audience": [
             "domain_architect",
             "business_user_executive",
             "business_user_project"
           ],
-          "note": null
+          "note": "Approval withdrawn: gate 1 names Business User — Project Level, whose data scope admits one facility, and the scorecard compares five. Either the audience narrows or the scope widens — publishing it as written would settle that by showing rows the predicate excludes."
         },
         {
           "report_id": "quarterly",

@@ -1507,10 +1507,12 @@ was looking at that load.
 
 ## Flow 11 — Reports: the vendored authoring prototype
 
-**Files:** `src/pages/ReportsPage.tsx` (the gate and the mount) -> `src/reports/**` (the
-prototype: `App.tsx` owns all state, `panes/` the three authoring steps plus the library,
-`components/blocks/` the six block bodies, `data/dataset.json` the figures,
-`reports-prototype.css` the styles) -> `GET /reports` for `published_count` only.
+**Files:** `src/pages/ReportsPage.tsx` (the gate, the mount, and the governance it passes down) ->
+`src/reports/**` (the prototype: `App.tsx` owns all state, `panes/` the three authoring steps plus
+the library, `components/blocks/` the six block bodies, `data/dataset.json` the figures,
+`reports-prototype.css` the styles) -> `src/pages/ReportsPage.css` (integration rules authored
+here: the `.rp-host` margins, the portal scope class, and the Library's chip bar) ->
+`GET /reports` for the publish counts, the published graphs, and `governance`.
 
 **It is vendored, not written here.** `src/reports/` is a port of
 `vls_demo_data_package_2026-08-10/repor code`, imported whole. Read its own README in the
@@ -1528,18 +1530,37 @@ selectors and would restyle every other page silently. `check-docs` asserts it s
 that the page mounts it in a matching wrapper.
 
 It is also the one stylesheet exempt from the `--sp-*` rule, as a named one-entry list that
-`check-docs` holds at one entry.
+`check-docs` holds at one entry — and it carries a **do-not-hand-edit** rule, so anything this repo
+adds to the section is styled from `ReportsPage.css` instead, on the `--sp-*` scale, scoped under
+`.cw-reports` so it inherits the prototype's own colour tokens. The Library's chip bar is the
+current example.
 
 ### What is real and what is not
 
-**Real:** the gate. The section opens once a graph is published — the same precondition Ask and
-the What-if lens have, through the same `NoPublishedGraph` — and the page reads
-`published_count` / `built_count` / `draft_count`.
+**Real:** the gate, and the Library's lifecycle chips. The section opens once a graph is published
+— the same precondition Ask and the What-if lens have, through the same `NoPublishedGraph` — and
+the page reads `published_count` / `built_count` / `draft_count`.
+
+The chip bar is `governance.statuses` from `GET /reports`: **All current** plus every state the
+tenant declares (`Published` · `Pending approval` · `Blocked` · `Archived`), each with the count
+`reportGovernanceView` computed, filtering the tenant's governed report definitions above the shelf.
+`ReportsPage` passes `governance` in, `App` holds the selected state, `LibraryPane` draws both. Three
+rules hold it together:
+
+- **The count is printed, never computed.** `LibraryPane` renders `s.count` and its `current` filter
+  is the server's own rule (everything not archived), so bar and grid cannot disagree.
+- **The chips do not reach the shelf.** A report saved in this browser never left it — the prototype
+  does not `POST /reports/saved` — so it sits under *Saved in this session* and is not counted as a
+  governed definition.
+- **The prototype declares the payload's shape itself** (`Governance` / `GovernedRow` /
+  `GovernanceState` in `App.tsx`) rather than importing `client.ts`, exactly as it does for
+  `GraphOption`. Drop the props and it is the standalone prototype again.
 
 **Not real:** every figure. The prototype renders its own `dataset.json`; nothing reads
-`db.json`, nothing calls `/reports*`, and publishing inside it does not leave the browser. The
-`/reports*` API is still served and still typed in `client.ts` — see the **Reports** section of
-`CLAUDE.md` for what it guarantees — and wiring the two together is a separate job.
+`db.json` for a measure, nothing calls `/reports*` for a chart, and publishing inside it does not
+leave the browser. The rest of the `/reports*` API is still served and still typed in `client.ts` —
+see the **Reports** section of `CLAUDE.md` for what it guarantees — and wiring the figures is a
+separate job.
 
 ### Where it fails
 
