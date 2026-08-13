@@ -118,6 +118,13 @@ export interface GovernedRow {
 export interface Governance {
   statuses: GovernanceState[];
   reports: GovernedRow[];
+  /**
+   * Definitions the tenant has that nothing governs — normally empty, and stated on the page when it
+   * is not. A shorter list with nothing explaining it reads as data loss; this is the explanation,
+   * and `restore` is the command that ends it.
+   */
+  ungoverned?: { reportId: string; reportTag: string; title: string }[];
+  restore?: string;
 }
 
 /**
@@ -608,6 +615,8 @@ export default function App({
               activeState={libraryState}
               onPickState={setLibraryState}
               shareRoles={shareRoles}
+              ungoverned={governance?.ungoverned}
+              restore={governance?.restore}
               /* Absent with no host, and the pane then offers no action it cannot carry out. */
               onOpenGoverned={actions ? (row) => openGoverned(row, false) : undefined}
               onEditGoverned={actions ? (row) => openGoverned(row, true) : undefined}

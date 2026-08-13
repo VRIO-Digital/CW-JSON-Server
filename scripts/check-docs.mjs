@@ -2286,6 +2286,33 @@ expect(
 )
 
 /*
+ * **A list that is merely shorter is not an answer.**
+ *
+ * A report is a definition (`db.reports.reports`, ingested) plus the decision to govern it
+ * (`governance.reports`, seeded). Delete drops the second and the row leaves the Library with nothing
+ * saying why — which reads as data loss, and twice sent "Report N is missing" at a section whose own
+ * file still held it. So the gap is computed and named, with the command that ends it, and the page
+ * states it above the list. It covers the stale-process case too: a server serving an older `db.json`
+ * from memory reports which definition it is short.
+ */
+expect(
+  'a definition nothing governs is named, with the way to restore it',
+  /* Computed from the two collections, never stored. */
+  /const ungoverned = db\.reports\.reports\r?\n\s*\.filter\(\(r\) => !db\.reports\.governance\.reports\.some/.test(server) &&
+    /restore: 'npm run seed:governance'/.test(server) &&
+    /* Typed and validated, so a stale server that omits it fails at the boundary rather than in a
+       render — and the field is not `nullable`, because an empty list is the normal answer. */
+    /ungoverned: arrayOf\(shape\(\{ report_id: str, report_tag: str, title: str \}\)\)/.test(client) &&
+    /* Rendered, and the component keeps no copy of the command. */
+    /ungoverned\.map\(\(r\) => `\$\{r\.reportTag\} — \$\{r\.title\}`\)/.test(libraryPane) &&
+    /<code>\{restore\}<\/code>/.test(libraryPane) &&
+    !/npm run seed:governance/.test(codeOnly(libraryPane)) &&
+    /* And it says the other thing that causes it, because a re-seed does not fix a stale process. */
+    /older copy from memory/.test(libraryPane),
+  'computed, served, rendered — and the command is the server’s string',
+)
+
+/*
  * **A published report's name is how its audience refers to it, so two cannot share one.**
  *
  * Checked across the whole list — governed definitions and session reports alike, because they sit in

@@ -4733,8 +4733,29 @@ const reportGovernanceView = (asRole) => {
       }
     : null
 
+  /*
+   * **The definitions this tenant has that are not governed**, and how to get them back.
+   *
+   * A report lives in two places: `db.reports.reports` is the definition, ingested from the package,
+   * and `db.reports.governance.reports` is the decision to govern it. Delete drops the second, and
+   * the row then leaves the Library with nothing anywhere saying why — the list is simply shorter.
+   * That reads as data loss, and it has sent two rounds of "Report N is missing" at a section whose
+   * own file still holds it.
+   *
+   * So the gap is reported rather than left to be counted. It is computed, not stored, and it names
+   * the command that fixes it — which is also the answer when the cause is a **stale process**: a
+   * server that deleted a row before `db.json` was re-seeded keeps serving four from memory, and its
+   * own payload now says which one it is short.
+   */
+  const ungoverned = db.reports.reports
+    .filter((r) => !db.reports.governance.reports.some((g) => g.report_id === r.report_id))
+    .map((r) => ({ report_id: r.report_id, report_tag: r.report_tag, title: r.heading }))
+
   return {
     reports: rows,
+    ungoverned,
+    /* Named here rather than assembled in the page, so one string says it everywhere. */
+    restore: 'npm run seed:governance',
     /* `current` leads and is not a stored state: published + pending is what a reader means. */
     statuses: [
       { key: 'current', label: 'All current', tone: 'neutral', count: count('current') },

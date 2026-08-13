@@ -5377,6 +5377,19 @@ export interface EntitlementCell {
 
 export interface ReportGovernance {
   reports: GovernedReport[]
+  /**
+   * Definitions the tenant has that nothing governs — normally empty.
+   *
+   * A report is a definition (`db.reports.reports`, ingested) plus the decision to govern it
+   * (`governance.reports`, seeded). Delete drops the second, and the row then leaves the Library with
+   * nothing saying why: the list is just shorter, which reads as data loss. This is that gap, named,
+   * so the page can state it instead of leaving somebody to count cards. It is also what a **stale
+   * process** looks like — one that deleted a row before `db.json` was re-seeded keeps serving the
+   * short list from memory, and this says which one it is short.
+   */
+  ungoverned: { reportId: string; reportTag: string; title: string }[]
+  /** The command that re-authors them. Served, so one string says it everywhere. */
+  restore: string
   statuses: GovernanceStatus[]
   categories: string[]
   viewer: {
@@ -5471,6 +5484,8 @@ const DATA_SCOPE_ROW = shape({
 
 const REPORT_GOVERNANCE = shape({
   reports: arrayOf(GOVERNED_REPORT),
+  ungoverned: arrayOf(shape({ report_id: str, report_tag: str, title: str })),
+  restore: str,
   statuses: arrayOf(shape({ key: str, label: str, tone: TONE, count: num })),
   categories: arrayOf(str),
   viewer: shape({
@@ -5576,6 +5591,12 @@ const toGovernance = (g: any): ReportGovernance => ({
     audienceNamed: r.audience_named,
     entitledRoles: r.entitled_roles.map((e: any) => ({ roleId: e.role_id, label: e.label })),
   })),
+  ungoverned: (g.ungoverned ?? []).map((r: any) => ({
+    reportId: r.report_id,
+    reportTag: r.report_tag,
+    title: r.title,
+  })),
+  restore: g.restore,
   statuses: g.statuses,
   categories: g.categories,
   viewer: {

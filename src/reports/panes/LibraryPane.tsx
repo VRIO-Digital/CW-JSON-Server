@@ -22,6 +22,13 @@ interface Props {
   /** The role pool, served — used to name the roles a row is shared with. */
   shareRoles?: ShareRole[];
   /**
+   * Definitions the tenant has that nothing governs, and the command that re-authors them. Normally
+   * empty; stated above the list when it is not, because a list that is simply *shorter* reads as
+   * data loss and leaves a reader counting cards against a file they cannot see.
+   */
+  ungoverned?: { reportId: string; reportTag: string; title: string }[];
+  restore?: string;
+  /**
    * The five acts on a governed row. All optional and all absent together, because the host is what
    * carries them out — a row offers only what can actually happen.
    *
@@ -71,6 +78,8 @@ export function LibraryPane({
   activeState = 'current',
   onPickState,
   shareRoles,
+  ungoverned,
+  restore,
   onOpenGoverned,
   onEditGoverned,
   onShareGoverned,
@@ -178,6 +187,35 @@ export function LibraryPane({
               </button>
             ))}
           </div>
+
+          {/*
+            * **Why the list is shorter than the tenant's own set of reports.**
+            *
+            * Normally absent. A definition that nothing governs — deleted, or missing from a server
+            * process that is serving an older `db.json` from memory — would otherwise just be a row
+            * that is not there, which reads as data loss and leaves a reader counting cards. Named,
+            * with the command that ends it, and the command is the server's string rather than one
+            * spelled here.
+            */}
+          {!!ungoverned?.length && (
+            <div className="rp-missing">
+              <b>
+                {ungoverned.length === 1
+                  ? '1 of this tenant’s report definitions is not governed'
+                  : `${ungoverned.length} of this tenant’s report definitions are not governed`}
+              </b>
+              <div>
+                {ungoverned.map((r) => `${r.reportTag} — ${r.title}`).join(', ')}. Its definition still
+                exists; only the decision to govern it is gone, so it is not listed here.
+              </div>
+              {restore && (
+                <div>
+                  Run <code>{restore}</code> to re-author it. If it reappears in the file but not here,
+                  the mock server is serving an older copy from memory — restart it.
+                </div>
+              )}
+            </div>
+          )}
 
           <section className="rp-group">
             {/*

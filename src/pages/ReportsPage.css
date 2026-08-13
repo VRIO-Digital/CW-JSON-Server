@@ -160,6 +160,41 @@
 }
 
 /*
+ * ---- why the list is shorter than the tenant's own set of reports ----
+ *
+ * `warn`, not `crit`: nothing is broken and nothing is lost — a decision was withdrawn and a command
+ * puts it back. It sits above the grid rather than in it, because it is about the list itself.
+ */
+.cw-reports .rp-missing {
+  background: var(--amber-soft);
+  border: 1px solid var(--amber-line);
+  border-radius: var(--r-s);
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--mut);
+}
+
+.cw-reports .rp-missing b {
+  display: block;
+  color: var(--amber);
+  font-size: 12.5px;
+  margin-bottom: var(--sp-1);
+}
+
+.cw-reports .rp-missing code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  /* 1px vertical is sub-scale inset on an inline chip; the horizontal comes from the scale. */
+  padding: 1px var(--sp-1);
+  color: var(--text);
+}
+
+/*
  * ---- the Share picker, in a dialog ----
  *
  * It used to sit inline under the row it changed, and that is what put it here: the panel grew the

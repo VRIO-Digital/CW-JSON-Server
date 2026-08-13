@@ -1143,6 +1143,11 @@ the starter's. It returns `null` where nothing matches and the row then offers n
   command and the confirmation says so, because "gone for good" and "a seed brings it back" are
   different promises to make to somebody clicking Delete. The last row cannot be deleted: a section
   with nothing to govern reads as broken rather than empty.
+
+  **And the gap is stated, not left to be counted.** `governance.ungoverned` lists every definition
+  with no governance row, and the Library names them above the list with the served `restore` command —
+  because a list that is simply one card shorter reads as data loss. It also names the other cause a
+  re-seed cannot fix: a server serving an older `db.json` from memory.
 Both **commit**, because both are somebody's decision: a restart clears a registered source and a
 publication, and it must not clear who a report was shared with. Each answers with the whole
 governance view, and the page **re-reads the section** rather than adopting that reply — one path into
@@ -1609,6 +1614,15 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   ends in `process.exit`, so a claim added after it is dead — `check-docs` still passes and every
   break test reports `MISSED`. The tell is the **claim total not moving**. Add claims in the
   section they belong to, and confirm the count went up.
+- **A list that is merely shorter is not a message.** Deleting a report's governance row removed it from
+  the Library with nothing saying why, and "only 4 reports showing" was reported twice against a
+  `db.json` that held all five. The section now serves `governance.ungoverned` and the page states it
+  with the restore command. If a UI can remove a row, it has to be able to say the row is gone.
+- **When the file and the screen disagree, suspect the process before the data.** A mock server running
+  since before two turns of changes had deleted a row from its own memory; re-seeding fixed the file and
+  not the process, and `PUT /db` was *refused* because that old process still validated a key the file no
+  longer has. An old server's own refusal messages date it. `PUT /db` reloads in place and keeps
+  in-memory publication; a restart clears it and closes every gate.
 - **When a feature is removed, guard its absence at every layer it touched.** The report access gate
   spanned the server, a route, a required `db.json` key, a client schema and fetcher, two handlers, a
   card and a stylesheet. Half of it is worse than all of it: a card gating on `access` while the payload

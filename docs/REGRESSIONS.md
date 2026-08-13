@@ -1744,3 +1744,41 @@ removal names everything removed, so an un-stripped guard reads its own explanat
 reported MISSED because it searched for `\n` in a CRLF region of `server.mjs` — the file has *mixed*
 endings after scripted edits. Verify the mutation landed before believing a claim is unbreakable; the
 repo's note says suspect the break first, and mixed endings are why.
+
+## A list that is merely shorter, and a stale process serving it
+
+**Symptom** — reported twice, a turn apart: "Report 1 is missing, only 4 reports showing". Both times
+the report actually absent was **Report 3** (`trace`), and both times `db.json` on disk held all five.
+Nothing on the page or in the payload said a row was missing; the list was simply one card shorter, and
+the only way to notice which was to count cards against a file the reader cannot see.
+
+**Root cause** — two faults compounding.
+
+*The silent one:* a report is a **definition** (`db.reports.reports`, ingested from the package) plus a
+**decision to govern it** (`db.reports.governance.reports`, seeded). Delete drops the second. Nothing
+threw, nothing was logged, and no payload field described the gap — so a withdrawn decision was
+indistinguishable from data loss.
+
+*The stale one:* the mock server had been running since before two turns of server changes. It deleted
+`trace` from its own in-memory `db`; a later `npm run seed:governance` fixed the **file** and not the
+**process**, so it kept serving four. `PUT /db` — normally the way to reload in place without losing
+in-memory publication — was **refused**, because that old process still validated against a key the
+current `db.json` no longer has (`access_requests`). The tell was the refusal naming a key nobody had
+mentioned for two turns.
+
+**Fix** — the section computes `governance.ungoverned` (definition id, tag and title) and serves
+`restore: 'npm run seed:governance'`; the Library states both above the list, in `warn`, and adds the
+sentence a re-seed cannot fix: *if it reappears in the file but not here, the server is serving an older
+copy from memory — restart it.* The user's session was recovered without a restart by `PUT`ing a payload
+with `access_requests: []` re-added to satisfy the old validator, then re-seeding to drop it again — the
+published graph survived, which a restart would have cleared.
+
+**Guard** — *mechanical*, cross-layer: `check-docs` asserts the gap is computed from the two
+collections and not stored, that `restore` is served, that `client.ts` validates `ungoverned`
+non-nullably (an empty list is the normal answer), that the page renders the names and the served
+command, that the component keeps **no copy** of that command, and that the stale-process sentence
+survives. Six break tests, all caught.
+
+**Rule** — **when a UI can remove a row, it has to be able to say the row is gone.** "Shorter" is not a
+message. And when the file and the screen disagree, suspect the process before the data: an old server's
+own refusal messages date it, because they validate against a schema that has moved on.

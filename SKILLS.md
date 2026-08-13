@@ -1573,6 +1573,12 @@ make a name different, and a report never collides with itself.
 a definition has gone missing from the list — the confirmation says so rather than promising "gone for
 good".
 
+**A missing report says so.** `governance.ungoverned` names every definition with no governance row and
+the Library states them above the list with the served restore command, because a list that is merely one
+card shorter reads as data loss. It also names the cause a re-seed cannot fix: **a mock server serving an
+older `db.json` from memory.** That is the likely answer whenever the file and the screen disagree — and
+`PUT /db` reloads a running server in place, keeping the in-memory publication that a restart would clear.
+
 **The picker is a dialog at `App`'s root, not a panel in the card.** Inline it stretched its whole grid
 row and left the sibling cards with their buttons a screen below their text; `LibraryPane` only opens
 it. The governed grid also takes a wider column (`minmax(400px, 1fr)`) with `white-space: nowrap` on
