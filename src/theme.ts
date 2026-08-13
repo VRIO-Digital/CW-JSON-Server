@@ -2,6 +2,15 @@ import type { ThemeConfig } from 'antd'
 
 export const BRAND = '#f4562b'
 export const BRAND_SOFT = '#fdeae4'
+/**
+ * The brand, darkened until it can be *read* on its own tint.
+ *
+ * `BRAND` on `BRAND_SOFT` measures **2.91:1** — below the 4.5 body text needs, which would have made a
+ * selected item the hardest thing on the control to read. This is the same hue at 5.96:1. Use it wherever
+ * brand-coloured text sits on `BRAND_SOFT`; `BRAND` itself is for fills, borders and marks, where 3:1 is
+ * the bar. `check-docs` recomputes both ratios.
+ */
+export const BRAND_INK = '#9e3819'
 
 /**
  * The 4px spacing scale, for antd props that take numbers (gutter, gap, Space
@@ -74,6 +83,25 @@ export const antdTheme: ThemeConfig = {
       itemHoverColor: INK,
       itemSelectedBg: BRAND_SOFT,
       itemSelectedColor: BRAND,
+    },
+    /*
+     * The persona picker, and anything else segmented.
+     *
+     * antd marks selection with a **white thumb on a near-white track**, which at this size is almost
+     * invisible — a reader could not tell which persona they had clicked. The app already has a language
+     * for "this one is selected": the sidebar's `Menu` above uses a brand-soft fill with brand text, so
+     * this borrows it rather than inventing a second signal. Brand, not a status hue — being selected is
+     * not a state of the world, and `STATUS.good/warn/crit` stay reserved.
+     *
+     * `trackBg` is the page ground rather than `SURFACE_2`, so the unselected items read as *inset* and the
+     * selected one as lifted; on a white card a near-white track gave the whole control no edge at all.
+     */
+    Segmented: {
+      trackBg: BG,
+      itemColor: INK_2,
+      itemHoverColor: INK,
+      itemSelectedBg: BRAND_SOFT,
+      itemSelectedColor: BRAND_INK,
     },
     Card: {
       headerBg: SURFACE,

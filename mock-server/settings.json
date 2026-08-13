@@ -83,9 +83,9 @@
       "ask": true,
       "reports": true,
       "sources": true,
-      "catalogue": true,
-      "graph-studio": true,
-      "what-if": true,
+      "catalogue": false,
+      "graph-studio": false,
+      "what-if": false,
       "settings": false
     },
     "domain_architect": {
@@ -116,7 +116,7 @@
       "ask": true,
       "reports": true,
       "sources": true,
-      "catalogue": false,
+      "catalogue": true,
       "graph-studio": true,
       "what-if": true,
       "settings": true

@@ -1,0 +1,108 @@
+/*
+ * Settings — layout only. Every colour here is a theme token; nothing states a brand hue of its own.
+ */
+
+/*
+ * **The section has a width.**
+ *
+ * This is the change that mattered most. A permissions table stretched across a 1600px window puts each
+ * switch a hand-span from the label it belongs to, with a quarter-screen of nothing between them — which
+ * is why the page read as unfinished rather than as sparse. Capped, the three columns sit close enough to
+ * be read as one row. The app's other reading-width pages do the same (`AskPage` 620px, `GraphStudioPage`
+ * 460px, `LoginPage` 400px); wider than those because this one is a table, not a column of prose.
+ */
+.settings-page {
+  max-width: 920px;
+}
+
+/*
+ * **Cards pad their own head and body, from one token.**
+ *
+ * The theme sets `Card.bodyPadding: 0`, so a card that says nothing has its content flush against its
+ * left edge while its title sits inset — the trap `CLAUDE.md` records for the report section. An earlier
+ * version reached for `style={{ padding }}` on the card *root*, which pads around the header too and
+ * leaves a double inset above the title. Head and body, named separately, one token.
+ */
+.settings-page .ant-card-head {
+  padding-inline: var(--sp-5);
+}
+
+.settings-page .ant-card-body {
+  padding: var(--sp-5);
+}
+
+.settings-page .settings-card + .settings-card {
+  margin-top: var(--sp-4);
+}
+
+/*
+ * A table inside a padded body, **not** flush to the card's edges.
+ *
+ * Zeroing the body padding was the other half of why this looked broken: the "Navigation item" header sat
+ * at x=0 while the card's own title sat inset, so nothing on the card lined up with anything else. The
+ * body keeps its padding and everything inside it shares one left edge — table, warning and footnote.
+ */
+.settings-page .settings-table .ant-table-wrapper {
+  /* Its own scroll box, so a narrow screen scrolls the table rather than the page. */
+  overflow-x: auto;
+}
+
+/* One inset for everything in the card, so the footnote lines up with the first column. */
+.settings-page .settings-foot {
+  margin: var(--sp-4) 0 0;
+  max-width: 68ch;
+}
+
+.settings-page .settings-alert {
+  margin-bottom: var(--sp-4);
+}
+
+/*
+ * ---- the standing caveat ----
+ *
+ * Not an `Alert`. `colorInfo` is the brand orange, so `type="info"` renders warm and reads as a warning
+ * about something — which is wrong for a sentence that is always true and never a problem. A quiet rule
+ * beside small text says "read me once" instead, and leaves amber free for the one thing on this page that
+ * *is* a warning: a persona that has hidden Settings from itself.
+ */
+.settings-note {
+  border-inline-start: 2px solid #e9ecf1;
+  padding-inline-start: var(--sp-3);
+  margin-bottom: var(--sp-5);
+  max-width: 68ch;
+}
+
+/*
+ * ---- the persona picker ----
+ *
+ * Four labels running to "Business User — Project Level" do not fit a phone, so the control scrolls inside
+ * its own box rather than widening the page — the rule every wide thing here follows. `Segmented` has no
+ * scrolling of its own.
+ */
+.persona-picker {
+  overflow-x: auto;
+  /* Room for the control's focus ring, which an `overflow` box would otherwise clip. */
+  padding-bottom: var(--sp-1);
+}
+
+/* The track must not shrink its options to fit: a squeezed persona label wraps mid-phrase. */
+.persona-picker .ant-segmented {
+  width: max-content;
+}
+
+/*
+ * The selected persona carries weight as well as colour.
+ *
+ * The brand fill and brand text come from the theme, beside the sidebar's — this adds the one thing a
+ * token cannot express. Weight *and* colour, because colour alone is the thing this repo refuses
+ * everywhere else: a reader who cannot separate the two hues still sees which item is heavier.
+ */
+.persona-picker .ant-segmented-item-selected {
+  font-weight: 600;
+}
+
+/* The access note belongs to the picker above it, so it sits close rather than centred in dead space. */
+.settings-page .persona-note {
+  margin: var(--sp-3) 0 0;
+  max-width: 68ch;
+}

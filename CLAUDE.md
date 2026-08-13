@@ -1470,6 +1470,14 @@ once the step is taken, the one action that takes it, and the numbered path from
 here to a filled screen. `NoSourceConnected` is the source-specific wrapper;
 Graph Studio's is the second. Give a new one copy, not a new look.
 
+**Brand text on the brand tint needs `BRAND_INK`, not `BRAND`.** `BRAND` on `BRAND_SOFT` is
+2.91:1 — under AA — so a *selected* item styled that way is the hardest thing on the control to read.
+`BRAND_INK` is the same hue at 5.96:1, and `check-docs` recomputes both. `BRAND` stays correct for fills,
+borders and marks, where 3:1 is the bar. Selection also carries **weight**, because colour alone is what
+this repo refuses everywhere else. The sidebar’s own selected rule in `Sidebar.css` still uses the raw
+brand on a 12% wash (2.65:1) and predates this; it is bolded, and worth fixing when that file is next
+touched.
+
 **Status colours are reserved.** `STATUS.good` / `warn` / `crit` mean state only —
 never decoration. Every status tag ships an icon *and* a text label
 (`StatusTag`), so state is never colour-alone. Class/category chips stay neutral

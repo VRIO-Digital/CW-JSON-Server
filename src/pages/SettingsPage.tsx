@@ -6,6 +6,7 @@ import PersonaPermissionsPanel from '../components/PersonaPermissionsPanel'
 import UsersPanel from '../components/UsersPanel'
 import { useAuthStore } from '../store/authStore'
 import { personaFor, useSettingsStore } from '../store/settingsStore'
+import './SettingsPage.css'
 
 /*
  * Settings — the users, and what each persona may see.
@@ -53,7 +54,7 @@ export default function SettingsPage() {
   const header = (
     <PageHeader
       title="Settings"
-      subtitle="Who uses this console, and what each persona sees of it. Navigation access is configured per persona, applies to the sidebar immediately, and is saved — it survives a restart. Hiding an item is a navigation preference rather than a permission."
+      subtitle="Who can sign in, and what each persona sees of the console."
     />
   )
 
@@ -84,7 +85,7 @@ export default function SettingsPage() {
   const persona = personaFor(data, selectedId)
 
   return (
-    <>
+    <div className="settings-page">
       {header}
 
       {/* A failed *reload* keeps the previous data on screen and says so, rather than blanking it. */}
@@ -129,6 +130,6 @@ export default function SettingsPage() {
           },
         ]}
       />
-    </>
+    </div>
   )
 }

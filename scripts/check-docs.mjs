@@ -3232,6 +3232,36 @@ expect(
  * claimed — and the role picker, and the roles fetch that filled it, are gone.
  */
 /*
+ * **A selected item must be readable, not just tinted.**
+ *
+ * The persona picker's selected option is a brand-soft fill with brand-coloured text — the language the
+ * sidebar already uses for "this one". Straight `BRAND` on `BRAND_SOFT` measures 2.91:1, which would make
+ * the *selected* label the hardest thing on the control to read: the opposite of the point. `BRAND_INK` is
+ * the same hue darkened until it clears 4.5, and this recomputes it rather than trusting the comment.
+ *
+ * Weight is asserted too, because colour alone is what this repo refuses everywhere else.
+ */
+const themeSrc = read('src/theme.ts')
+const hexOf = (name) => new RegExp(`${name} = '(#[0-9a-f]{6})'`, 'i').exec(themeSrc)?.[1] ?? ''
+const brandInk = hexOf('BRAND_INK')
+const brandSoft = hexOf('BRAND_SOFT')
+expect(
+  'the selected persona is readable on its own fill, and carries weight as well as colour',
+  brandInk !== '' &&
+    brandSoft !== '' &&
+    contrast(brandInk, brandSoft) >= 4.5 &&
+    /* The fill itself only has to separate from the card, which is a 3:1 job it does not need to pass —
+       what matters is that it is not the *same* as the card, or there is no selected state at all. */
+    contrast(brandSoft, '#ffffff') > 1.05 &&
+    /itemSelectedColor: BRAND_INK/.test(themeSrc) &&
+    /font-weight: 600/.test(read('src/pages/SettingsPage.css')),
+  brandInk === '' || brandSoft === ''
+    ? 'BRAND_INK or BRAND_SOFT was not parsed — this check cannot run'
+    : `${contrast(brandInk, brandSoft).toFixed(2)}:1 for the label, ` +
+      `${contrast(brandSoft, '#ffffff').toFixed(2)}:1 for the fill`,
+)
+
+/*
  * **`/login/data` frames a file that has to be there.**
  *
  * The route names a document in `public/` by filename. Renaming or moving the file would leave the path

@@ -1,4 +1,4 @@
-import { Card, Table, Typography } from 'antd'
+import { Card, Table, Tag, Typography } from 'antd'
 import type { SettingsUser } from '../api/client'
 import { SP } from '../theme'
 
@@ -23,53 +23,70 @@ export default function UsersPanel({
   signedInEmail?: string | null
 }) {
   return (
-    <>
-      <Typography.Paragraph type="secondary" style={{ maxWidth: 720, fontSize: 13.5 }}>
-        The people this prototype can sign in, one per persona. <b>The login has no role picker:</b> it
-        takes an email and a password, and the persona is the one on that user’s row here. There is no
-        user-creation endpoint — adding a person is an edit to the settings store, then
-        <Typography.Text code>npm run seed:settings</Typography.Text>. What each persona may{' '}
-        <em>see</em> is on the Persona Configuration tab.
-      </Typography.Paragraph>
+    <Card
+      className="settings-card settings-table"
+      title="Users and roles"
+      /*
+       * The one sentence a reader needs, in the card's own header rather than as a paragraph above it.
+       * This tab had three lines of prose before the table began, and the table is the content.
+       */
+      extra={
+        <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+          {users.length} people can sign in
+        </Typography.Text>
+      }
+    >
+      <Table<SettingsUser>
+        dataSource={users}
+        rowKey="id"
+        pagination={false}
+        /* Dense: four rows of names do not need the default row height. */
+        size="small"
+        /* Names and addresses overflow a phone; the table scrolls inside its own box rather than making
+           the page scroll sideways. */
+        scroll={{ x: 'max-content' }}
+        columns={[
+          {
+            title: 'User',
+            dataIndex: 'name',
+            render: (name: string, row) => (
+              <>
+                <Typography.Text strong>{name}</Typography.Text>
+                {signedInEmail && row.email.toLowerCase() === signedInEmail.toLowerCase() ? (
+                  <Tag style={{ marginInlineStart: SP.sm }}>you</Tag>
+                ) : null}
+              </>
+            ),
+          },
+          {
+            title: 'Persona',
+            dataIndex: 'roleLabel',
+            /* A category, so a neutral chip — never a status colour, which would read as a state. */
+            render: (label: string) => <Tag>{label}</Tag>,
+          },
+          {
+            title: 'Email',
+            dataIndex: 'email',
+            render: (email: string) => (
+              <Typography.Text type="secondary" copyable>
+                {email}
+              </Typography.Text>
+            ),
+          },
+        ]}
+      />
 
-      <Card title="Users and roles" style={{ padding: SP.base }}>
-        <Table<SettingsUser>
-          dataSource={users}
-          rowKey="id"
-          pagination={false}
-          size="middle"
-          /* Four columns of names and addresses overflow a phone; the table scrolls inside its own box
-             rather than making the page scroll sideways. */
-          scroll={{ x: 'max-content' }}
-          columns={[
-            { title: '#', dataIndex: 'id', width: 56 },
-            { title: 'Role', dataIndex: 'roleLabel' },
-            {
-              title: 'User',
-              dataIndex: 'name',
-              render: (name: string, row) => (
-                <>
-                  <Typography.Text strong>{name}</Typography.Text>
-                  {signedInEmail && row.email.toLowerCase() === signedInEmail.toLowerCase() ? (
-                    <Typography.Text type="secondary" style={{ marginInlineStart: SP.sm }}>
-                      (you)
-                    </Typography.Text>
-                  ) : null}
-                </>
-              ),
-            },
-            {
-              title: 'Email',
-              dataIndex: 'email',
-              render: (email: string) => (
-                <Typography.Text type="secondary" copyable>
-                  {email}
-                </Typography.Text>
-              ),
-            },
-          ]}
-        />
-      </Card>
-    </>
+      {/*
+        * The two facts that are not in the table, once, under it: where the persona comes from, and that
+        * adding a person is an edit rather than a form. The `#` column that used to lead the table is
+        * gone — row order carries no meaning, so it was a column of decoration.
+        */}
+      <Typography.Paragraph type="secondary" className="settings-foot" style={{ fontSize: 12.5 }}>
+        <b>The email is what you sign in with</b>, and the persona is the one on that row — the login has no
+        role picker. There is no user-creation endpoint — add a person by editing the settings store, then{' '}
+        <Typography.Text code>npm run seed:settings</Typography.Text>. What each persona may <em>see</em>{' '}
+        is on the Persona Configuration tab.
+      </Typography.Paragraph>
+    </Card>
   )
 }
