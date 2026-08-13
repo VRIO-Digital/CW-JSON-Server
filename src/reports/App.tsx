@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { META, OPTS, STARTERS } from './data';
 import { assumptionsForStarter, freshAssumptions } from './lib/assumptions';
 import { instantiate, isMeasure } from './lib/blocks';
-import { audienceLabel, newReportId, seedLibrary, stamp, upsert } from './lib/library';
+import { audienceLabel, fromGoverned, newReportId, seedLibrary, stamp, upsert } from './lib/library';
+import { ShareDialog, type ShareRole } from './components/SharePicker';
 import { hasFilter, scopeSet, selectRows } from './lib/select';
 import { PublishDialog } from './components/PublishDialog';
 import { StepDots } from './components/StepDots';
@@ -95,12 +96,39 @@ export interface GovernedRow {
   approval: string | null;
   note: string | null;
   floor: string | null;
+  /** Shared with nobody — a decision, not an audience that failed to resolve. */
+  private: boolean;
   entitledRoles: { roleId: string; label: string }[];
+  /**
+   * Whether the signed-in role may open this report, and what it asked for if not.
+   *
+   * **Not access control**, and the picker says so on the page: the role is the browser's and the
+   * API still serves every row to a caller that names none. What it drives is which actions a row
+   * offers, and whether it says an approval is pending.
+   */
+  access: {
+    entitled: boolean;
+    request: { state: string; requestedAt: string; by: string; approvers: string[] } | null;
+    mayRequest: boolean;
+  };
 }
 
 export interface Governance {
   statuses: GovernanceState[];
   reports: GovernedRow[];
+}
+
+/**
+ * The three acts a row offers that reach the server.
+ *
+ * The host performs them — the prototype does not import `client.ts`, the same reason it declares
+ * the payload's shape rather than borrowing the app's types. Each returns the repo's `Result` so
+ * nothing here has a `try/catch` and a refusal arrives as the server's own sentence.
+ */
+export interface GovernanceActions {
+  share(reportId: string, audience: string[]): Promise<{ ok: boolean; error?: string }>;
+  remove(reportId: string): Promise<{ ok: boolean; error?: string }>;
+  requestAccess(reportId: string): Promise<{ ok: boolean; error?: string; alreadyOpen?: boolean }>;
 }
 
 /** The chip that leads the bar. Not a stored state — the server counts it as everything not archived. */
@@ -110,10 +138,15 @@ export default function App({
   identity,
   graphOptions,
   governance,
+  shareRoles,
+  actions,
 }: {
   identity?: ReportsIdentity;
   graphOptions?: GraphOption[];
   governance?: Governance | null;
+  /** The role pool, served — never a list this component keeps. */
+  shareRoles?: ShareRole[];
+  actions?: GovernanceActions;
 } = {}) {
   const toast = useToast();
 
@@ -124,6 +157,13 @@ export default function App({
    * graph nobody published. Declared after `graphs` below, which is why this reads it lazily.
    */
   const [library, setLibrary] = useState<SavedReport[]>(() => {
+    /*
+     * **Hosted, the shelf starts empty.** Its four seeded rows are the prototype's own fiction —
+     * other people's reports, with bylines nobody here has — and beside a grid of the tenant's real
+     * governed definitions they read as five more reports that do not exist. Standing alone the
+     * prototype keeps them, because there is no real list to stand next to.
+     */
+    if (governance) return [];
     const first = graphOptions?.length ? graphOptions[0] : undefined;
     return seedLibrary(first ? { value: first.value, label: first.label } : undefined);
   });
@@ -162,6 +202,19 @@ export default function App({
    * says how many rows the state has.
    */
   const [libraryState, setLibraryState] = useState<string>(ALL_CURRENT);
+
+  /*
+   * Which report's Share dialog is open, and whether its write is in flight.
+   *
+   * **Held here, not in `LibraryPane`.** The picker began as a panel inside the card it changed,
+   * which grew that card by ~400px — and because the grid's cards are equal-height with their action
+   * row pinned by `margin-top: auto`, every sibling in the row stretched to match and four cards
+   * ended up with a chasm between their text and their buttons. A dialog at this level cannot touch
+   * the grid. `kind` is what tells a governed definition (a server row) from a session report (a
+   * local one), because Share means something different to each.
+   */
+  const [sharing, setSharing] = useState<{ kind: 'governed' | 'saved'; id: string } | null>(null);
+  const [savingShare, setSavingShare] = useState(false);
 
   /** Set when the open report already exists in the library. */
   const [openedId, setOpenedId] = useState<string | null>(null);
@@ -283,6 +336,96 @@ export default function App({
     setEditMode(false);
     setTab('author');
     scrollTop();
+  }
+
+  /* ------------------------------------------- the governed definitions */
+
+  /**
+   * Opens a governed definition as a report.
+   *
+   * It loads through the same `load()` the shelf uses, because a governed row resolves to one of the
+   * prototype's starters — the definitions and the starters are the same five reports out of the
+   * same file. A row that resolves to none offers no Open, so this returning early cannot leave a
+   * button that quietly does nothing.
+   */
+  function openGoverned(row: GovernedRow, forEdit: boolean) {
+    const built = fromGoverned(row, assumptions.graph);
+    if (!built) {
+      toast(`“${row.title}” has no authoring definition behind it, so it cannot be opened here.`);
+      return;
+    }
+    load(built);
+    setEditMode(forEdit);
+    setTab('author');
+    scrollTop();
+  }
+
+  /* The row the open dialog is about, resolved from whichever list it came from. */
+  const sharedGoverned =
+    sharing?.kind === 'governed'
+      ? governance?.reports.find((r) => r.reportId === sharing.id)
+      : undefined;
+  const sharedSaved =
+    sharing?.kind === 'saved' ? library.find((r) => r.id === sharing.id) : undefined;
+
+  /** Share, Delete and Request access all run through the host and report its own sentence back. */
+  async function saveShare(audience: string[]) {
+    const named = (n: number) => `${n} role${n === 1 ? '' : 's'}`;
+
+    if (sharedSaved) {
+      /* Local, and the row says so: this report has no governance row for the API to change. */
+      setLibrary((prev) =>
+        prev.map((r) => (r.id === sharedSaved.id ? { ...r, viewerRoles: audience } : r)),
+      );
+      setSharing(null);
+      toast(
+        audience.length === 0
+          ? `“${sharedSaved.name}” is marked private in this browser.`
+          : `“${sharedSaved.name}” is marked for ${named(audience.length)} in this browser — publish it to make that real.`,
+      );
+      return;
+    }
+
+    if (!sharedGoverned || !actions) return;
+    setSavingShare(true);
+    const result = await actions.share(sharedGoverned.reportId, audience);
+    setSavingShare(false);
+    if (!result.ok) {
+      /* The dialog stays open on a refusal, so the choice is not lost with the sentence. */
+      toast(result.error ?? 'Could not change who this report is shared with.');
+      return;
+    }
+    setSharing(null);
+    toast(
+      audience.length === 0
+        ? `“${sharedGoverned.title}” is private — nobody else can see that it exists.`
+        : `“${sharedGoverned.title}” is shared with ${named(audience.length)}.`,
+    );
+  }
+
+  async function removeGoverned(row: GovernedRow) {
+    if (!actions) return;
+    const result = await actions.remove(row.reportId);
+    /* The server's refusal verbatim — it is the one that knows why, including the last-row case. */
+    toast(
+      result.ok
+        ? `“${row.title}” is no longer governed. Re-seed the governance rows to bring it back.`
+        : (result.error ?? 'Could not remove this definition.'),
+    );
+  }
+
+  async function requestGovernedAccess(row: GovernedRow) {
+    if (!actions) return;
+    const result = await actions.requestAccess(row.reportId);
+    if (!result.ok) {
+      toast(result.error ?? 'Could not request access.');
+      return;
+    }
+    toast(
+      result.alreadyOpen
+        ? `Your request for “${row.title}” was already open — nobody has answered it yet.`
+        : `Requested access to “${row.title}”. It shows as pending until somebody grants it.`,
+    );
   }
 
   function deleteReport(id: string) {
@@ -442,6 +585,19 @@ export default function App({
               governed={governance?.reports}
               activeState={libraryState}
               onPickState={setLibraryState}
+              shareRoles={shareRoles}
+              /* Absent with no host, and the pane then offers no action it cannot carry out. */
+              onOpenGoverned={actions ? (row) => openGoverned(row, false) : undefined}
+              onEditGoverned={actions ? (row) => openGoverned(row, true) : undefined}
+              /* Share only *opens* the dialog — see the note on `sharing` above for why it is here. */
+              onShareGoverned={
+                actions ? (row) => setSharing({ kind: 'governed', id: row.reportId }) : undefined
+              }
+              onRemoveGoverned={actions ? removeGoverned : undefined}
+              onRequestGovernedAccess={actions ? requestGovernedAccess : undefined}
+              onShareSaved={
+                shareRoles?.length ? (report) => setSharing({ kind: 'saved', id: report.id }) : undefined
+              }
               onAuthorNew={authorNew}
               onEdit={openForEdit}
               onDelete={deleteReport}
@@ -460,6 +616,27 @@ export default function App({
           )}
         </div>
       </main>
+
+      {/*
+        * Beside `PublishDialog`, and for the same reason it is here: a dialog at the root of the page
+        * cannot be stretched by, or stretch, anything in the grid it was opened from.
+        */}
+      {(sharedGoverned || sharedSaved) && (
+        <ShareDialog
+          reportTitle={sharedGoverned?.title ?? sharedSaved?.name ?? ''}
+          roles={shareRoles ?? []}
+          selected={
+            sharedGoverned
+              ? sharedGoverned.entitledRoles.map((r) => r.roleId)
+              : (sharedSaved?.viewerRoles ?? [])
+          }
+          saving={savingShare}
+          /* A session report has no governance row, so what is picked stays in this browser. */
+          localOnly={!!sharedSaved}
+          onCancel={() => setSharing(null)}
+          onSave={saveShare}
+        />
+      )}
 
       {publishOpen && (
         <PublishDialog

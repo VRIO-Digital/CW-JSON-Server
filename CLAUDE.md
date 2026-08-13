@@ -1036,6 +1036,16 @@ line, `parameterized` (a spine with facets), the entitlement matrix, the audit r
 checks. A count taken from its own filtered array would be a second answer to "how many are
 published".
 
+**All five definitions are seeded `published`, so three chips legitimately sit at 0.** The pool
+declares four states and the data currently uses one; a lifecycle chip at 0 means "nothing is
+blocked", which is news rather than a broken map. Changing a `status` in the seed is the one-line
+way to populate the others.
+
+**`access_requests` sits beside `governance` under `db.reports`** — nested, not a 26th top-level key,
+and required for the sharper half of the `graph_studio.sanity_checks` reason: losing `governance`
+stops the boot, but losing *these* does not throw at all. Every row reads "no request made", and a
+reader who asked last week is waiting on something nobody was told about.
+
 **A state is declared once, in `governance.statuses`, and everything reads it from there** — its
 key, the label a chip and a card print, and the `tone` both tint themselves with. `server.mjs` used
 to keep a second tone map beside it, which is how a state ends up `warn` on a card and `neutral` on
@@ -1079,6 +1089,70 @@ construction.
 the empty grid says so in words. New CSS for the section goes in `ReportsPage.css`, not the
 vendored sheet, which carries a do-not-hand-edit rule — and so it is on the `--sp-*` scale like
 everything else authored here.
+
+#### Four actions on a row, and the three that reach the server
+
+**Open report · Edit report · Share · Delete**, and each is offered only where it can be carried
+out — a button that 404s is worse than one that is absent. Open and Edit need an authoring starter
+behind the row; Share and Delete are the *governance row's* own, so a composed (`kind: 'saved'`)
+row gets neither.
+
+**Open and Edit work because a governed definition *is* one of the prototype's starters.** Both come
+from `07_reports/report_authoring_data.json`, so `fromGoverned` matches a row to a starter on
+`report_tag` — not on position, and not on the title, which differs between the tenant's heading and
+the starter's. It returns `null` where nothing matches and the row then offers no Open.
+
+- **`PATCH /reports/governance/:id/audience` is Share.** `[]` is **private**, and private is a
+  decision: `validateDb` accepts an empty audience for exactly that reason, while the *seed* still
+  refuses one because there it is a typo and nothing on that side tells the two apart. Sharing *with*
+  a role also settles whatever that role had requested — a request outliving the thing it asked for
+  would show "pending approval" on a report the reader can already open.
+- **`DELETE /reports/governance/:id` drops the governance row, not the definition.** The definition
+  is the package's and stays in `db.reports.reports`, so a re-seed restores it — the reply carries the
+  command and the confirmation says so, because "gone for good" and "a seed brings it back" are
+  different promises to make to somebody clicking Delete. The last row cannot be deleted: a section
+  with nothing to govern reads as broken rather than empty.
+- **`POST /reports/access-requests` is Request access**, and **nothing in this app approves one.**
+  The ask is recorded `pending` and the row names who could answer it (the personas that may author,
+  since widening an audience is authoring). An approve button would have to be a second person acting
+  as themselves, and this login authenticates by shape. Asking twice is one request, returned
+  unchanged rather than refused — the intent is already recorded and an error would read as failure.
+
+All three **commit**, because all three are somebody's decision: a restart clears a registered source
+and a publication, and it must not clear who a report was shared with or who is waiting to be let in.
+Each answers with the whole governance view, and the page **re-reads the section** rather than
+adopting that reply — one path into the state on screen instead of two.
+
+**The access state is not access control, and the picker says so on the page.** The role travels from
+the browser and the login authenticates by shape, so what this narrows is what a reader is *shown*;
+the API still serves every row to a caller that names no role, and a caller naming none is treated as
+entitled rather than locked out. That is the rule `viewer_roles` established, applied to gate 1 — and
+CLAUDE.md's requirement that any UI built on it say so in those words is met by `SharePicker`'s own
+caveat line.
+
+**The Share picker renders the served role pool.** `GET /auth/roles` is the source, the same one the
+login reads; a list of four roles written into the component would be a second answer to "who exists"
+and could offer a role the API refuses — which is precisely what a client-side copy of the consent
+scopes did. It is also **its own component**, because a panel behind a parent's `useState` cannot be
+asserted on: `renderToString` renders the closed state and every check about its contents passes over
+nothing.
+
+**And it is a dialog at `App`'s root, beside `PublishDialog`, never a panel inside a card.** Inline it
+grew its card by ~400px, which in an equal-height grid stretched every sibling in the row and left
+four cards with a chasm between their text and their buttons. `LibraryPane` only *opens* it —
+`check-docs` asserts the pane renders neither the picker nor any dialog chrome.
+
+**Share is on the session cards too**, over the same dialog, writing `viewerRoles` on the local row.
+Those roles stay in the browser — the prototype does not post its saved reports — so the dialog and
+the row both say so, and `viewerRoles` is absent rather than `[]` until Share is used: never-shared
+and deliberately-private are different facts, and only the second is a decision. It is a **separate
+field from the prototype's own `audience`** (Operations / Compliance), because those are two pools and
+translating one into the other would invent a mapping.
+
+**Hosted, the shelf starts empty.** The prototype's four seeded library rows are its own fiction —
+other people's reports with bylines nobody here has — and beside a grid of the tenant's real
+definitions they read as four more reports that do not exist. Standing alone it keeps them, because
+there is no real list for them to stand next to.
 
 **`may_author`** comes from the persona's data-scope row: a persona that cannot see the
 underlying figures cannot define what a report asserts about them, and the refusal names who
@@ -1504,6 +1578,16 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   ends in `process.exit`, so a claim added after it is dead — `check-docs` still passes and every
   break test reports `MISSED`. The tell is the **claim total not moving**. Add claims in the
   section they belong to, and confirm the count went up.
+- **`x = { … }` on a shared key deletes everything not listed.** `ingest-reports.mjs` rebuilds
+  `db.reports` wholesale and carried `saved` forward by hand; `governance` was added later by another
+  script and was not carried, so a re-ingest would have deleted every audience and data-scope row.
+  When a script owns a subtree, derive the carry-forward list from `validateDb` rather than
+  remembering it — and refuse to write rather than produce a document that cannot boot.
+- **When a field becomes writable, re-read every rule that assumed it was authored.** Allowing a
+  private (empty) report audience broke two rules written when only the seed set it: `validateDb`
+  would have refused the commit, and a publish check would have reported a deliberately private
+  report as failing. The seed and the API legitimately want *different* invariants on that field;
+  naming which and why is the fix, not collapsing them.
 - **An `else` that returns a specific answer is not a fallback.** `reportEntitlementCell` tested
   published, then pending, then *returned the archived cell* — so a `blocked` definition told its
   audience it could open a report nobody published. Its tone came from a literal map in
@@ -1519,10 +1603,17 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **A vacuous assertion is worse than no assertion.** Two written this session passed
   over nothing — one `|| true`, one `!x || x` — and both were reporting success. If an
   assertion cannot fail, it is a comment.
-- **The equal-height card trick breaks a card that expands.** `height: 100%` plus a flex body
-  plus `margin-top: auto` on the foot is right for a grid of fixed cards and wrong for one with a
-  panel inside it: the saved-report card grew a tall empty head and spilled its meta rows out of
-  its own frame the first time the audience panel opened.
+- **The equal-height card trick breaks a card that expands**, and it has now bitten twice.
+  `height: 100%` plus a flex body plus `margin-top: auto` on the foot is right for a grid of fixed
+  cards and wrong for one with a panel inside it: the saved-report card grew a tall empty head and
+  spilled its meta rows out of its own frame the first time the audience panel opened, and the
+  report Share panel later stretched its whole grid row, leaving four sibling cards with a chasm
+  between their text and their buttons. **Anything that expands belongs outside the grid** — a
+  dialog at the page root is the default, not the fallback.
+- **A flex row shrinks its items before it wraps.** Four action buttons in a 275px card column had
+  nowhere to go, so every label broke mid-phrase ("Open" over "report") instead of moving to a
+  second line — and a `.spacer` with `flex: 1` reserved the width that would have let them fit. Set
+  `flex-wrap: wrap` and `white-space: nowrap` together, or the layout degrades by mangling text.
 - **A panel behind a `useState` cannot be asserted on from its parent.** `renderToString` renders
   the initial state, so a closed panel makes every check about its contents pass over nothing —
   the `Modal`/`Drawer` rule applies to plain conditional state too. Extract the panel

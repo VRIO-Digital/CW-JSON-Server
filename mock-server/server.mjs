@@ -551,12 +551,28 @@ const DB_SHAPE = {
         g.version &&
         g.author &&
         g.category &&
-        Array.isArray(g.audience) &&
-        g.audience.length > 0,
+        /*
+         * An array, and **not** a non-empty one. Share can set a definition private, which is
+         * `audience: []` and a decision a reader made — so the server has to boot with it. The
+         * seed still refuses an empty audience, because there it is a typo and nothing on that
+         * side can tell the two apart.
+         */
+        Array.isArray(g.audience),
     ) &&
     Array.isArray(v.governance.data_scope) &&
     v.governance.data_scope.length > 0 &&
     isObject(v.governance.gate_notes) &&
+    /*
+     * Requests for access to a report the asker is not entitled to. Required, and for the sharper
+     * half of the `graph_studio.sanity_checks` reason: losing `governance` stops the boot, but
+     * losing *these* does not throw at all — every row reads "no request made", and a reader who
+     * asked a week ago is waiting on something nobody was ever told about. An empty list is the
+     * normal state and is a fact; the key being gone is not.
+     */
+    Array.isArray(v.access_requests) &&
+    v.access_requests.every(
+      (r) => isObject(r) && r.report_id && r.role_id && r.by && r.requested_at && r.state,
+    ) &&
     Array.isArray(v.reports) &&
     v.reports.length > 0 &&
     v.reports.every(
@@ -617,7 +633,9 @@ const DB_HINTS = {
     'object with meta{}, fields[], assumptions{}, opts{}, slice_default[], ' +
     'summary_catalog[], summary_default[], saved[], data{ generators[], facilities[], ' +
     'quarters[], traces[] }, reports[] of { report_id, heading, spine, blocks[], ' +
-    'tiles[], footer[] } and governance{ statuses[] of { key, label, tone }, reports[] of ' +
+    'tiles[], footer[] }, access_requests[] of ' +
+    '{ report_id, role_id, by, requested_at, state } and ' +
+    'governance{ statuses[] of { key, label, tone }, reports[] of ' +
     '{ report_id, status naming one of those states, version, author, category, audience[] }, ' +
     'data_scope[], gate_notes{} } ' +
     '— the report section, from "npm run ingest:reports" and ' +
@@ -4589,6 +4607,63 @@ const reportFloorLine = (report) => {
     : `floor set by ${rows} of ${total} rows in the ${roster}`
 }
 
+/**
+ * Whether the calling role may open a report, and what it asked for if it may not.
+ *
+ * **This is not access control, and the copy on the row has to say so in those words.** The role is
+ * client-held — the login authenticates by shape — so this narrows what a reader is *shown* while
+ * the API still serves every row to a caller that asks without a role. It is the rule `viewer_roles`
+ * already established, applied to gate 1.
+ *
+ * A caller naming no role is treated as entitled rather than as locked out: with no role there is
+ * nothing to check, and refusing everything would make the section unreadable in the one case where
+ * nothing was claimed.
+ */
+const reportAccessFor = (audience, reportId, asRole) => {
+  const entitled = !asRole || audience.includes(asRole)
+  const request =
+    asRole && !entitled
+      ? ((db.reports.access_requests ?? [])
+          .filter((r) => r.report_id === reportId && r.role_id === asRole)
+          /* The latest, so re-requesting does not stack up rows that each claim to be the state. */
+          .sort((a, b) => String(b.requested_at).localeCompare(String(a.requested_at)))[0] ?? null)
+      : null
+  return {
+    entitled,
+    /* Null rather than a state string standing in for "nothing was asked". */
+    request: request
+      ? {
+          state: request.state,
+          requested_at: request.requested_at,
+          by: request.by,
+          /* Who would answer it — the personas that may author a definition are the ones that can
+             widen its audience. Named, because "pending" with no addressee is a dead end. */
+          approvers: reportAuthorRoleLabels(),
+        }
+      : null,
+    /* Asking twice changes nothing, so the button is offered once. */
+    may_request: !entitled && !request,
+  }
+}
+
+/*
+ * The role the browser reports, ignored when it names nothing this tenant has.
+ *
+ * Read the same way on the section's GET and on all three writes, so a write cannot answer with a
+ * view computed for a different reader than the one that asked. An unknown role falls back to "no
+ * role", which sees every row — the safe direction for a control whose own copy calls it a demo.
+ */
+const reportRoleFrom = (query) => {
+  const asRole = query.get('as_role')
+  return asRole && db.auth_roles.some((r) => r.role_id === asRole) ? asRole : null
+}
+
+/** The personas that may author, which is also who can answer a request for access. */
+const reportAuthorRoleLabels = () =>
+  db.reports.governance.data_scope
+    .filter((s) => s.may_author)
+    .map((s) => db.auth_roles.find((r) => r.role_id === s.role_id)?.label ?? s.role_id)
+
 /** A report definition, as the Library card and the Operations tables read it. */
 const reportGovernanceRow = (governanceRow) => {
   const report = db.reports.reports.find((r) => r.report_id === governanceRow.report_id)
@@ -4616,10 +4691,18 @@ const reportGovernanceRow = (governanceRow) => {
     parameterized: reportFacetsFor(report.spine).length > 0,
     row_count: reportRows(report).length,
     spine_total: db.reports.data[report.spine].length,
-    entitled_roles: governanceRow.audience.map((role_id) => ({
-      role_id,
-      label: db.auth_roles.find((r) => r.role_id === role_id)?.label ?? role_id,
-    })),
+    /* Private is an empty audience and says so as a fact, so the card need not infer it from a
+       zero — "shared with nobody" and "we could not resolve anybody" are different things. */
+    private: governanceRow.audience.length === 0,
+    /* How many role ids the audience *names*, beside how many of them resolved. Equal is the
+       invariant; unequal means a persona was renamed or removed under a live audience. */
+    audience_named: governanceRow.audience.length,
+    entitled_roles: governanceRow.audience
+      .map((role_id) => {
+        const role = db.auth_roles.find((r) => r.role_id === role_id)
+        return role ? { role_id, label: role.label } : null
+      })
+      .filter(Boolean),
   }
 }
 
@@ -4659,6 +4742,10 @@ const reportSavedGovernanceRow = (saved) => {
     parameterized: report ? reportFacetsFor(report.spine).length > 0 : false,
     row_count: report ? reportRows(report).length : 0,
     spine_total: report ? db.reports.data[report.spine].length : 0,
+    private: view.viewer_roles.length === 0,
+    /* A saved row's audience is already resolved on the way out of `reportSavedView`, so what it
+       names and what resolved are the same list by construction. */
+    audience_named: view.viewer_roles.length,
     entitled_roles: view.viewer_roles,
   }
 }
@@ -4671,8 +4758,20 @@ const reportSavedGovernanceRow = (saved) => {
  * does is report that number, so "6 entitled, 1 not listed" is computed rather than written.
  */
 const reportGovernanceView = (asRole) => {
-  const written = db.reports.governance.reports.map(reportGovernanceRow)
-  const saved = (db.reports.saved ?? []).map(reportSavedGovernanceRow)
+  /*
+   * `access` is attached here rather than in the row builders because it is the only thing on a row
+   * that depends on who is asking — the rest of a definition is the same fact whoever reads it.
+   */
+  const withAccess = (row) => ({
+    ...row,
+    access: reportAccessFor(
+      row.entitled_roles.map((r) => r.role_id),
+      row.report_id,
+      asRole,
+    ),
+  })
+  const written = db.reports.governance.reports.map(reportGovernanceRow).map(withAccess)
+  const saved = (db.reports.saved ?? []).map(reportSavedGovernanceRow).map(withAccess)
   const rows = [...written, ...saved]
 
   const count = (key) =>
@@ -4811,10 +4910,21 @@ const reportGovernanceView = (asRole) => {
       title: r.title,
       checks: [
         {
+          /*
+           * **What this tests is that every persona the audience names still exists**, not that it
+           * names one. Private is a decision Share can make, so "nobody" passes and says so; what
+           * fails is an audience naming a persona that has been renamed or removed under it, which
+           * silently narrows who can see the report and looks like nothing at all.
+           */
           key: 'audience',
-          label: 'Audience names at least one persona',
-          pass: r.entitled_roles.length > 0,
-          detail: `${r.entitled_roles.length} of ${db.auth_roles.length} personas`,
+          label: 'Every persona the audience names still exists',
+          pass: r.audience_named === r.entitled_roles.length,
+          detail: r.private
+            ? 'private - shared with nobody, which is a decision rather than a gap'
+            : r.audience_named === r.entitled_roles.length
+              ? `${r.entitled_roles.length} of ${db.auth_roles.length} personas`
+              : `names ${r.audience_named}, ${r.entitled_roles.length} resolve - ` +
+                'a persona was renamed or removed under this audience',
         },
         {
           key: 'floor',
@@ -7318,13 +7428,215 @@ const routes = [
           authoring: null,
         })
       }
-      /* The role the browser reports, if it reports one. Unknown roles are ignored rather
-         than refused: a stale client naming a role that has been removed should see the
-         section, not an error — and it will see every report, which is the safe direction for
-         a control the copy already calls a demo. */
-      const asRole = query.get('as_role')
-      const known = asRole && db.auth_roles.some((r) => r.role_id === asRole) ? asRole : null
-      send(res, 200, { connected_sources: connected, ...counts, ...reportsList(known) })
+      /* The role the browser reports, read by `reportRoleFrom` — the same reader for this GET and
+         for all three governance writes, so a write cannot answer with a view computed for
+         somebody else. */
+      send(res, 200, { connected_sources: connected, ...counts, ...reportsList(reportRoleFrom(query)) })
+    },
+  },
+
+  /*
+   * ---------------- the three acts a reader performs on a governed definition ----------------
+   *
+   * Share, Delete and Request access. All three **commit**, because all three are somebody's
+   * decision rather than a derived figure: a restart clears a registered source and a publication,
+   * and it must not clear who a report was shared with or who is waiting to be let in.
+   *
+   * Each answers with the governance view rather than a bare `{ ok: true }`, so the page renders a
+   * validated payload instead of patching its own copy of the state it just changed — the same rule
+   * every studio decision follows.
+   *
+   * **None of them is access control**, and the routes cannot pretend otherwise: the role arrives
+   * from the browser, which the login authenticates by shape. They record and report decisions. Any
+   * UI built on them has to say so in those words.
+   */
+
+  /* Share — who may see that this report exists. `[]` is private, and is a decision. */
+  {
+    method: 'PATCH',
+    match: (p) => /^\/reports\/governance\/[^/]+\/audience$/.test(p),
+    handle: async (req, res, { pathname, query }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/reports/governance/'.length, -'/audience'.length),
+      )
+      const row = db.reports.governance.reports.find((r) => r.report_id === id)
+      if (!row) {
+        return send(res, 404, {
+          error:
+            `no governed report "${id}" — this tenant governs ` +
+            `${db.reports.governance.reports.map((r) => r.report_id).join(', ')}`,
+        })
+      }
+
+      const body = await readJson(req)
+      if (!Array.isArray(body.audience)) {
+        return send(res, 400, {
+          error:
+            'send audience as an array of role ids — an empty array makes the report private, ' +
+            `which is a decision. Roles: ${db.auth_roles.map((r) => r.role_id).join(', ')}`,
+        })
+      }
+      const ids = [...new Set(body.audience.map(String))]
+      const unknown = ids.filter((rid) => !db.auth_roles.some((r) => r.role_id === rid))
+      if (unknown.length > 0) {
+        return send(res, 400, {
+          error:
+            `no such role: ${unknown.join(', ')} — this tenant has ` +
+            db.auth_roles.map((r) => r.role_id).join(', '),
+        })
+      }
+
+      commitDb({
+        ...db,
+        reports: {
+          ...db.reports,
+          governance: {
+            ...db.reports.governance,
+            reports: db.reports.governance.reports.map((r) =>
+              r.report_id === id ? { ...r, audience: ids } : r,
+            ),
+          },
+          /*
+           * Sharing *with* a role settles whatever that role asked for. Leaving the request
+           * pending would show "access pending approval" on a report the reader can now open —
+           * the request outliving the thing it asked for.
+           */
+          access_requests: (db.reports.access_requests ?? []).map((r) =>
+            r.report_id === id && ids.includes(r.role_id) && r.state === 'pending'
+              ? { ...r, state: 'granted' }
+              : r,
+          ),
+        },
+      })
+      send(res, 200, { governance: reportGovernanceView(reportRoleFrom(query)) })
+    },
+  },
+
+  /*
+   * Delete — drops the **governance row**, which is what makes a report a governed definition.
+   *
+   * The definition itself is the package's and stays in `db.reports.reports`, so this is
+   * recoverable: `node scripts/seed-report-governance.mjs` re-authors every row. The refusal below
+   * and the message on success both say so, because "deleted" that cannot be undone and "deleted"
+   * that a seed restores are different promises to make to somebody clicking Delete.
+   */
+  {
+    method: 'DELETE',
+    match: (p) => /^\/reports\/governance\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const id = decodeURIComponent(pathname.slice('/reports/governance/'.length))
+      const row = db.reports.governance.reports.find((r) => r.report_id === id)
+      if (!row) {
+        return send(res, 404, {
+          error:
+            `no governed report "${id}" — this tenant governs ` +
+            `${db.reports.governance.reports.map((r) => r.report_id).join(', ')}`,
+        })
+      }
+      if (db.reports.governance.reports.length === 1) {
+        return send(res, 400, {
+          error:
+            'this is the last governed definition — removing it would leave the section with ' +
+            'nothing to govern, which reads as a broken page rather than an empty one. Re-seed ' +
+            'with "node scripts/seed-report-governance.mjs" if that is really what you want.',
+        })
+      }
+
+      commitDb({
+        ...db,
+        reports: {
+          ...db.reports,
+          governance: {
+            ...db.reports.governance,
+            reports: db.reports.governance.reports.filter((r) => r.report_id !== id),
+          },
+          /* Nobody can be waiting for access to a definition that is no longer governed. */
+          access_requests: (db.reports.access_requests ?? []).filter((r) => r.report_id !== id),
+        },
+      })
+      send(res, 200, {
+        removed: id,
+        restore: 'node scripts/seed-report-governance.mjs',
+        governance: reportGovernanceView(reportRoleFrom(query)),
+      })
+    },
+  },
+
+  /*
+   * Request access — a reader asking to be added to a report's audience.
+   *
+   * **Nothing in this app approves it.** The request is recorded and reported as `pending`, and the
+   * row names who could answer it (the personas that may author, since widening an audience is
+   * authoring). An approve action would have to be a second person acting as themselves, and this
+   * login authenticates by shape — so the honest thing is to record the ask and say who it is with,
+   * rather than to build a button that grants it to whoever clicked.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/reports/access-requests',
+    handle: async (req, res, { query }) => {
+      const body = await readJson(req)
+      const id = String(body.report_id ?? '')
+      const row = db.reports.governance.reports.find((r) => r.report_id === id)
+      if (!row) {
+        return send(res, 404, {
+          error:
+            `no governed report "${id}" — this tenant governs ` +
+            `${db.reports.governance.reports.map((r) => r.report_id).join(', ')}`,
+        })
+      }
+
+      const roleId = String(body.role_id ?? '')
+      if (!db.auth_roles.some((r) => r.role_id === roleId)) {
+        return send(res, 400, {
+          error:
+            `no such role: ${roleId || '(none sent)'} — send the signed-in role as role_id; ` +
+            `this tenant has ${db.auth_roles.map((r) => r.role_id).join(', ')}`,
+        })
+      }
+      if (row.audience.includes(roleId)) {
+        return send(res, 400, {
+          error: `${roleId} is already entitled to "${id}" — there is nothing to request`,
+        })
+      }
+      /* Told, not looked up: the identity is client-held, so a request from nobody is refused
+         rather than recorded against the seeded account. */
+      const by = String(query.get('as') ?? '').trim()
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(by)) {
+        return send(res, 400, {
+          error: `"${by}" is not an email — send the signed-in address as as=<email>`,
+        })
+      }
+
+      const requests = db.reports.access_requests ?? []
+      const open = requests.find(
+        (r) => r.report_id === id && r.role_id === roleId && r.state === 'pending',
+      )
+      /* Asking twice is not two requests. Returned unchanged rather than refused: the reader's
+         intent is already recorded, and an error would read as the ask having failed. */
+      if (!open) {
+        commitDb({
+          ...db,
+          reports: {
+            ...db.reports,
+            access_requests: [
+              ...requests,
+              {
+                report_id: id,
+                role_id: roleId,
+                by,
+                requested_at: new Date().toISOString(),
+                state: 'pending',
+              },
+            ],
+          },
+        })
+      }
+      send(res, 200, {
+        requested: id,
+        already_open: !!open,
+        governance: reportGovernanceView(reportRoleFrom(query)),
+      })
     },
   },
 

@@ -504,6 +504,31 @@ db.reports = {
    * silently delete saved questions on the next `npm run ingest:reports`.
    */
   saved: db.reports?.saved ?? [],
+  /*
+   * **Nothing under `db.reports` that this script does not author may be dropped here**, and
+   * `db.reports = { … }` drops everything not listed. Two keys are not the package's:
+   *
+   * - `governance` — the lifecycle states, the audiences and the data scopes, authored by
+   *   `node scripts/seed-report-governance.mjs`. It was added after this script and was not
+   *   carried, so a re-ingest deleted it and the server then refused to boot naming `reports`.
+   *   Loud rather than silent, which is the only reason it was survivable.
+   * - `access_requests` — readers asking for a report they are not entitled to. Losing these is
+   *   worse than loud: every row reads "no request made" and whoever asked waits on nothing.
+   *
+   * `??` and not `||`: an empty request list is a fact, not a missing one.
+   */
+  governance: db.reports?.governance,
+  access_requests: db.reports?.access_requests ?? [],
+}
+
+/* Which is not a comment's job to enforce. A re-ingest that would drop governance stops here. */
+if (!db.reports.governance) {
+  console.error(
+    'ingest-reports: refusing to write — db.reports.governance is missing, so this ingest would\n' +
+      '  leave the section ungoverned and the server unable to boot. Seed it first:\n' +
+      '      node scripts/seed-report-governance.mjs',
+  )
+  process.exit(1)
 }
 
 writeFileSync(DB, `${JSON.stringify(db, null, 2)}\n`, 'utf8')

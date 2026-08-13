@@ -191,6 +191,16 @@ export interface SavedReport {
   publishedRole: string;
   savedAt: string;
   audience: string;
+  /**
+   * The app personas Share put on this row, as role ids. **A different pool from `audience` above**,
+   * which is the prototype's own group vocabulary (Operations / Compliance) — so the two are kept
+   * apart rather than one translated into the other.
+   *
+   * Optional, and absent means Share has never been used here: a report nobody has shared and one
+   * deliberately made private (`[]`) are different facts, and only the second is a decision. It stays
+   * in this browser, because the prototype does not post its saved reports to the API.
+   */
+  viewerRoles?: string[];
 }
 
 /* -------------------------------------------------------------------- app */

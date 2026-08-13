@@ -1,6 +1,7 @@
 import { STARTERS } from '../data';
-import { audienceLabel, initials } from '../lib/library';
+import { audienceLabel, initials, starterForTag } from '../lib/library';
 import { OptionList, useMenu } from '../components/MenuProvider';
+import type { ShareRole } from '../components/SharePicker';
 import type { GovernanceState, GovernedRow } from '../App';
 import type { SavedReport } from '../types';
 
@@ -19,6 +20,22 @@ interface Props {
   governed?: GovernedRow[];
   activeState?: string;
   onPickState?(key: string): void;
+  /** The role pool, served — used to name the roles a row is shared with. */
+  shareRoles?: ShareRole[];
+  /**
+   * The five acts on a governed row. All optional and all absent together, because the host is what
+   * carries them out — a row offers only what can actually happen.
+   *
+   * **Share only opens the dialog.** The dialog itself is `App`'s, not this pane's: rendered inside a
+   * card it stretched every sibling in the grid row, which is the equal-height-card trap.
+   */
+  onOpenGoverned?(row: GovernedRow): void;
+  onEditGoverned?(row: GovernedRow): void;
+  onShareGoverned?(row: GovernedRow): void;
+  onRemoveGoverned?(row: GovernedRow): void | Promise<void>;
+  onRequestGovernedAccess?(row: GovernedRow): void | Promise<void>;
+  /** Share on a report saved in this session — the same dialog, over the row's local audience. */
+  onShareSaved?(report: SavedReport): void;
   onAuthorNew(): void;
   onEdit(report: SavedReport): void;
   onDelete(id: string): void;
@@ -68,6 +85,13 @@ export function LibraryPane({
   governed,
   activeState = 'current',
   onPickState,
+  shareRoles,
+  onOpenGoverned,
+  onEditGoverned,
+  onShareGoverned,
+  onRemoveGoverned,
+  onRequestGovernedAccess,
+  onShareSaved,
   onAuthorNew,
   onEdit,
   onDelete,
@@ -159,7 +183,8 @@ export function LibraryPane({
                 </div>
               </div>
             ) : (
-              <div className="cards">
+              /* `.cards` plus a wider minimum column — four actions do not fit in 330px. */
+              <div className="cards rp-govGrid">
                 {inView.map((r) => (
                   <div className="rcard" key={r.reportId}>
                     <div className="rtop">
@@ -186,19 +211,134 @@ export function LibraryPane({
                     </div>
 
                     <div className="rmeta">
+                      {/*
+                        * Who it is shared with, by name. A count alone ("3 of 4") does not answer
+                        * the question Share exists to answer, and private is stated as a decision
+                        * rather than left to be inferred from a zero.
+                        */}
                       <div>
-                        Audience: <b>{r.entitledRoles.length}</b> of the personas ·{' '}
-                        {r.schedule}
+                        Shared with:{' '}
+                        <b>
+                          {r.private
+                            ? 'nobody — private'
+                            : r.entitledRoles.map((role) => role.label).join(', ')}
+                        </b>
                       </div>
-                      {/* Null rather than the word "none" pretending to be an approval. */}
                       <div>
-                        Approval: <b>{r.approval ?? 'none recorded'}</b>
+                        {r.schedule} · Approval: <b>{r.approval ?? 'none recorded'}</b>
                       </div>
                       {r.floor && <div>{r.floor}</div>}
                     </div>
 
                     {/* Why it is in this state, in the tenant's own words, where there is a reason. */}
                     {r.note && <div className="rp-gnote">{r.note}</div>}
+
+                    {/*
+                      * **The access state, where the actions would be.** A reader whose role is not
+                      * in the audience is not shown Open — they are shown what they can do about
+                      * it, and once they have done it, that it is with somebody. `crit` is wrong for
+                      * both: not being entitled is a state of the world, not a fault.
+                      */}
+                    {!r.access.entitled ? (
+                      <div className="rp-access">
+                        {r.access.request ? (
+                          <>
+                            <span className="pill warn">Access pending approval</span>
+                            <div className="rmeta">
+                              <div>
+                                Requested by <b>{r.access.request.by}</b>
+                                {r.access.request.requestedAt
+                                  ? ` on ${r.access.request.requestedAt.slice(0, 10)}`
+                                  : ''}
+                              </div>
+                              {/* Named, because "pending" with no addressee is a dead end. */}
+                              <div>
+                                With <b>{r.access.request.approvers.join(', ') || 'nobody yet'}</b> —
+                                nothing in this demo grants it, so it stays pending until an audience
+                                is widened from Share.
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="pill rp-neutral">Not shared with your role</span>
+                            <div className="rmeta">
+                              <div>
+                                You can see that it exists and not what it says. Ask to be added to
+                                its audience.
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        {r.access.mayRequest && onRequestGovernedAccess && (
+                          <div className="racts2">
+                            <button
+                              className="btn sm pri"
+                              onClick={() => void onRequestGovernedAccess(r)}
+                            >
+                              Request access
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /*
+                       * Four actions, and each is offered only where it can be carried out: Open and
+                       * Edit need a starter behind the row, Share and Delete are the governance row's
+                       * own and a composed report has none. A button that 404s is worse than absent.
+                       */
+                      <div className="racts2">
+                        {onOpenGoverned && starterForTag(r.reportTag, r.reportId) && (
+                          <button className="btn sm" onClick={() => onOpenGoverned(r)}>
+                            Open report
+                          </button>
+                        )}
+                        {onEditGoverned && starterForTag(r.reportTag, r.reportId) && (
+                          <button className="btn sm" onClick={() => onEditGoverned(r)}>
+                            ✎ Edit report
+                          </button>
+                        )}
+                        {onShareGoverned && r.kind === 'written' && (
+                          <button className="btn sm" onClick={() => onShareGoverned(r)}>
+                            ↗ Share
+                          </button>
+                        )}
+                        {onRemoveGoverned && r.kind === 'written' && (
+                          <>
+                            {/*
+                              * No `.spacer` before Delete. `flex: 1` pushed it to the far edge, which
+                              * in a 275px column forced the row to wrap and broke every label across
+                              * two lines. Four buttons reading left to right, wrapping as a row.
+                              */}
+                            <button
+                              className="btn sm danger"
+                              onClick={(e) =>
+                                open(
+                                  e,
+                                  <OptionList
+                                    title={`Remove “${r.title}” from the governed set?`}
+                                    items={[
+                                      {
+                                        label: 'Yes, remove it',
+                                        /* What actually happens, not "gone for good": the
+                                           definition is the package's and a re-seed restores it. */
+                                        d: 'It stops being a governed definition and leaves this list. Re-seeding the governance rows brings it back.',
+                                        danger: true,
+                                        onPick: () => void onRemoveGoverned(r),
+                                      },
+                                      { label: 'Keep it', onPick: () => {} },
+                                    ]}
+                                  />,
+                                )
+                              }
+                            >
+                              ✕ Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+
                   </div>
                 ))}
               </div>
@@ -209,7 +349,17 @@ export function LibraryPane({
         </>
       )}
 
-      {reports.length === 0 ? (
+      {/*
+        * Hosted, the shelf starts empty and says so in one line rather than with the full empty
+        * state — a second dashed panel under a grid of five real reports reads as a broken section.
+        * Standing alone the shelf *is* the page, and keeps the panel that tells you where to start.
+        */}
+      {showStates && reports.length === 0 ? (
+        <p className="rp-shelfNote">
+          Nothing here yet. A report you save or publish from <b>Author a report</b> is listed under
+          this heading — it stays yours until somebody governs it.
+        </p>
+      ) : reports.length === 0 ? (
         <div className="emptyState">
           <div className="t">{isAudience ? `Nothing published to ${audienceName} yet` : 'Your library is empty'}</div>
           <div className="d2">
@@ -252,6 +402,25 @@ export function LibraryPane({
                 <div>
                   Audience: <b>{audienceLabel(r.audience)}</b> · {blockSummary(r)}
                 </div>
+                {/*
+                  * The roles Share put on this row, where it has been used. Absent until then rather
+                  * than shown as "nobody", because a report nobody has shared yet and one deliberately
+                  * made private are different facts — and only the second is a decision.
+                  */}
+                {r.viewerRoles && (
+                  <div>
+                    Shared with:{' '}
+                    <b>
+                      {r.viewerRoles.length === 0
+                        ? 'nobody — private'
+                        : (shareRoles ?? [])
+                            .filter((role) => r.viewerRoles?.includes(role.roleId))
+                            .map((role) => role.label)
+                            .join(', ')}
+                    </b>{' '}
+                    · in this browser only
+                  </div>
+                )}
                 <div>
                   Reads from <b>{r.assumptions.graph.label}</b>
                 </div>
@@ -265,12 +434,21 @@ export function LibraryPane({
                 ) : (
                   <>
                     <button className="btn sm" onClick={() => onOpen(r)}>
-                      Open
+                      Open report
                     </button>
                     <button className="btn sm" onClick={() => onEdit(r)}>
                       ✎ Edit report
                     </button>
-                    <span className="spacer" />
+                    {/*
+                      * Share, on the same four actions the governed rows offer, so the row reads the
+                      * same wherever it sits. What it writes is local — this report has no governance
+                      * row to change — and the dialog and the row both say so.
+                      */}
+                    {onShareSaved && (
+                      <button className="btn sm" onClick={() => onShareSaved(r)}>
+                        ↗ Share
+                      </button>
+                    )}
                     <button
                       className="btn sm danger"
                       onClick={(e) =>

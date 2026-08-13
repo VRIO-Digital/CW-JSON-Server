@@ -2256,6 +2256,144 @@ expect(
 )
 
 /*
+ * **`db.reports` is rebuilt wholesale by the ingest, so everything else that writes into it has to
+ * be carried forward there.**
+ *
+ * `db.reports = { … }` is a delete of every key not listed. `saved` was carried by hand; `governance`
+ * was added later by a different script and was not, so a re-ingest would have dropped every
+ * audience and data-scope row. The list is read off the validator rather than remembered, so a key
+ * required later is covered without editing this claim.
+ */
+const ingestReports = read('scripts/ingest-reports.mjs')
+const ingestLiteral = /db\.reports = \{[\s\S]*?\n\}/.exec(ingestReports)?.[0] ?? ''
+/*
+ * The keys `validateDb` demands under `reports` — read from that branch of `DB_SHAPE` and nowhere
+ * else, so the list is the validator's rather than one kept here. It is the last entry in the
+ * object, so the slice is anchored on the *next declaration* rather than on a brace: a brace at that
+ * indent appears several times inside the branch itself.
+ *
+ * `\r?\n`, never a bare `\n` — these files check out with CRLF on Windows, and the first version of
+ * this claim matched nothing and reported it as "0 of 0 keys, all carried" until the cannot-run
+ * guard caught it.
+ */
+const reportsBranch =
+  /\r?\n {2}reports: \(v\) =>[\s\S]*?\r?\n\}\r?\n\r?\nconst DB_HINTS/.exec(server)?.[0] ?? ''
+const requiredUnderReports = [...reportsBranch.matchAll(/\bv\.([a-z_]+)\b/g)].map((m) => m[1])
+expect(
+  'every key the report section requires survives a re-ingest',
+  ingestLiteral.length > 0 &&
+    requiredUnderReports.length > 5 &&
+    /* `key:` or the shorthand `key,` — the ingest writes `reports,` from a local of that name. */
+    [...new Set(requiredUnderReports)].every((key) =>
+      new RegExp(`\\b${key}\\s*[:,]`).test(ingestLiteral),
+    ) &&
+    /* And it refuses rather than writing a document the server cannot boot. */
+    /refusing to write — db\.reports\.governance is missing/.test(ingestReports),
+  ingestLiteral.length === 0 || requiredUnderReports.length <= 5
+    ? 'the ingest literal or the validator branch was not found — this check cannot run'
+    : 'dropped by the re-ingest: ' +
+      ([...new Set(requiredUnderReports)]
+        .filter((key) => !new RegExp(`\\b${key}\\s*[:,]`).test(ingestLiteral))
+        .join(', ') ||
+        'nothing, so it is the refusal message that is missing'),
+)
+
+/*
+ * **A private audience is a decision, and the two surfaces that touch it want different rules.**
+ *
+ * Share can set `audience: []`, so the server has to boot with one — while the seed still refuses an
+ * empty audience, because there it can only be a typo. And the publish check tests that every
+ * persona the audience *names* resolves, so private passes and what fails is an audience naming a
+ * persona that was removed under it.
+ */
+expect(
+  'an empty audience boots, the seed still refuses one, and the publish check reads integrity',
+  /* Not `length > 0` any more — a Share-to-nobody would have failed the commit. */
+  !/governance\.reports\.every\([\s\S]*?g\.audience\.length > 0/.test(server) &&
+    /Array\.isArray\(g\.audience\),/.test(server) &&
+    /is entitled to nobody — seed an audience/.test(seed) &&
+    /pass: r\.audience_named === r\.entitled_roles\.length/.test(server) &&
+    /private - shared with nobody/.test(server),
+  'the seed and the API want different invariants on one field, deliberately',
+)
+
+/*
+ * **The three acts on a row, and the two claims they cannot be built without.**
+ *
+ * Each commits, because each is somebody's decision — and none of them is access control, which the
+ * picker has to say on the page in those words.
+ */
+const sharePicker = read('src/reports/components/SharePicker.tsx')
+const reportsApp = read('src/reports/App.tsx')
+const reportsCss = read('src/pages/ReportsPage.css')
+expect(
+  'Share, Delete and Request access all commit, and each answers with the governance view',
+  /match: \(p\) => \/\^\\\/reports\\\/governance\\\/\[\^\/\]\+\\\/audience\$\//.test(server) &&
+    /match: \(p\) => p === '\/reports\/access-requests'/.test(server) &&
+    /* Committed rather than in memory: a restart must not forget who a report was shared with. */
+    (server.match(/access_requests: \[/g) ?? []).length > 0 &&
+    (server.match(/governance: reportGovernanceView\(reportRoleFrom\(query\)\)/g) ?? []).length === 3 &&
+    /* Delete drops the governance row and says how to get it back. */
+    /restore: 'node scripts\/seed-report-governance\.mjs'/.test(server) &&
+    /this is the last governed definition/.test(server),
+  'three writes, one reader of the role, and a delete that admits it is reversible',
+)
+expect(
+  'the picker renders the served role pool and says it is not access control',
+  /* No copy of the four personas here — the pool arrives as a prop from `GET /auth/roles`. */
+  !/business_user_executive|domain_architect|platform_admin/.test(sharePicker) &&
+    /roles\.map\(\(role\) =>/.test(sharePicker) &&
+    /not access control/.test(sharePicker) &&
+    /createReadStore\(listAuthRoles\)/.test(read('src/pages/ReportsPage.tsx')) &&
+    /* Its own component, or `renderToString` renders it closed and every assertion about it is
+       vacuous — the `ConnectSourceWizard` rule. */
+    /import \{ ShareDialog, type ShareRole \} from '\.\/components\/SharePicker'/.test(reportsApp),
+  'the pool is served, the caveat is on the page, and the panel is assertable',
+)
+
+/*
+ * **The Share picker is a dialog at the page's root, and nothing in a card may expand.**
+ *
+ * It began as a panel inline under the row it changed. The grid's cards are equal-height with their
+ * action row pinned by `margin-top: auto`, so a card that grew by 400px stretched every sibling in
+ * its row and left four cards with a chasm between their text and their buttons — the second time
+ * this repo has met that trap. The guard is structural: the pane must hold neither the picker nor a
+ * dialog, and `App` must render it beside `PublishDialog`.
+ */
+expect(
+  'the share picker cannot stretch the grid it was opened from',
+  /*
+   * The pane opens it and never *renders* it — keyed on the JSX and on the dialog chrome, not on the
+   * module name: the pane still imports `ShareRole` as a type to name the roles a row is shared with,
+   * and forbidding that would be keying the claim to a spelling rather than to the fact.
+   */
+  !/<SharePicker|<ShareDialog|modalBack/.test(libraryPane) &&
+    /onShareGoverned\?\(row: GovernedRow\): void/.test(libraryPane) &&
+    /<ShareDialog/.test(reportsApp) &&
+    /* Held at App level beside the other dialog, not inside the pane. */
+    /const \[sharing, setSharing\] = useState/.test(reportsApp) &&
+    /* And a label may wrap the row, never itself — four buttons in a 275px column broke every one. */
+    /white-space: nowrap/.test(reportsCss) &&
+    /minmax\(400px, 1fr\)/.test(reportsCss) &&
+    /cards rp-govGrid/.test(libraryPane),
+  'a dialog at the root, a wider column, and labels that do not break',
+)
+
+/*
+ * Nothing in this app approves an access request, and the row has to name who could — "pending" with
+ * no addressee is a dead end, and a button that granted it to whoever clicked would be a lie about
+ * a login that authenticates by shape.
+ */
+expect(
+  'a pending request names who could answer it, and nothing here grants it',
+  /approvers: reportAuthorRoleLabels\(\)/.test(server) &&
+    /may_author/.test(server) &&
+    !/state: 'approved'/.test(server) &&
+    /nothing in this demo grants it/.test(libraryPane),
+  'recorded and reported; an audience is widened from Share instead',
+)
+
+/*
  * The four report surfaces that used to be checked here — the section, one report, a saved
  * report and the wizard — are gone with the UI. The rule they enforced (publication is the
  * only gate; a connected source is never a second one) now has one surface left, checked

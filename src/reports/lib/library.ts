@@ -65,6 +65,65 @@ export function seedLibrary(graph?: Assumption): SavedReport[] {
   return LIBRARY.map((e) => expandEntry(e, graph));
 }
 
+/**
+ * A governed definition, opened as a report.
+ *
+ * The definitions and the prototype's starters come from the same file in the package
+ * (`07_reports/report_authoring_data.json`), so a governed row **is** one of these starters — which
+ * is what makes Open and Edit possible on a row that arrived from the API. It is matched on
+ * `report_tag` ("Report 2"), not on position and not on the title: a composed row carries its
+ * origin report's tag too, and the titles differ between the tenant's heading and the starter's.
+ *
+ * Returns `null` rather than throwing when nothing matches, and the caller offers no Open on a row
+ * it cannot build — a button that opens the wrong report is worse than a button that is absent.
+ */
+export function starterForTag(reportTag: string, reportId?: string): Starter | undefined {
+  return (
+    STARTERS.find((s) => s.report_tag === reportTag) ??
+    (reportId ? STARTERS.find((s) => s.id === reportId) : undefined)
+  );
+}
+
+/** Builds the report a governed row names, so the existing open/edit path can load it. */
+export function fromGoverned(
+  row: {
+    reportId: string;
+    reportTag: string;
+    title: string;
+    question: string;
+    author: string | null;
+    category: string;
+    asOf: string | null;
+    entitledRoles: { roleId: string; label: string }[];
+  },
+  graph?: Assumption,
+): SavedReport | null {
+  const starter = starterForTag(row.reportTag, row.reportId);
+  if (!starter) return null;
+  return {
+    id: row.reportId,
+    name: row.title,
+    /* Every governed row the Library offers to open is published; a draft is not a definition. */
+    status: 'published',
+    starterId: starter.id,
+    /* The tenant's question, not the starter's — the card quotes it and the report should agree. */
+    question: row.question || starter.q,
+    assumptions: assumptionsForStarter(starter, graph),
+    filters: [],
+    blocks: starter.blocks.map(instantiate),
+    /* Whoever defined it, and nobody invented where it is missing. */
+    publishedBy: row.author ?? 'unknown',
+    publishedRole: row.category,
+    savedAt: row.asOf ?? '',
+    /*
+     * The prototype's own audience vocabulary is a single group key, and a governed row names app
+     * personas — a different pool. Rather than mistranslate one into the other, the report opens
+     * under the prototype's default group and the *row* is where the real audience is stated.
+     */
+    audience: AUDIENCES[0]?.key ?? 'operations',
+  };
+}
+
 /** Replaces the report with the same id, or appends it. Newest first. */
 export function upsert(list: SavedReport[], report: SavedReport): SavedReport[] {
   const i = list.findIndex((r) => r.id === report.id);

@@ -1537,13 +1537,49 @@ current example.
 
 ### What is real and what is not
 
-**Real:** the gate, and the Library's lifecycle chips. The section opens once a graph is published
-— the same precondition Ask and the What-if lens have, through the same `NoPublishedGraph` — and
-the page reads `published_count` / `built_count` / `draft_count`.
+**Real:** the gate, and the whole Library — the five governed definitions, their lifecycle chips,
+their four actions, who each is shared with, and whether the signed-in role may open it. The section
+opens once a graph is published (the same precondition Ask and the What-if lens have, through the
+same `NoPublishedGraph`) and the page reads `published_count` / `built_count` / `draft_count`.
+
+**The report list is the tenant's five definitions, Reports 1–5, all seeded `published`** — the same
+five the package's `07_reports` describes, which is also where the prototype's five authoring
+starters come from. That shared origin is what makes **Open report** and **Edit report** work on a
+row that arrived from the API: `fromGoverned` matches a row to its starter on `report_tag`.
+
+**Four actions per row**, each offered only where it can be carried out:
+
+| Action | Endpoint | Notes |
+|---|---|---|
+| Open report | — | loads the starter behind the row, read-only |
+| Edit report | — | the same, in edit mode |
+| Share | `PATCH /reports/governance/:id/audience` | `[]` is private, and private is a decision |
+| Delete | `DELETE /reports/governance/:id` | drops the **governance row**; a re-seed restores it |
+| Request access | `POST /reports/access-requests` | shown instead of the four when not entitled |
+
+The same four are on the *Saved in this session* cards, over the same dialog — but Share there writes
+`viewerRoles` on the local row and nothing else: a session report has no governance row, so the dialog
+and the card both say the choice stays in this browser.
+
+**The picker is a dialog at `App`'s root, not a panel in the card.** Inline it stretched its whole grid
+row and left the sibling cards with their buttons a screen below their text; `LibraryPane` only opens
+it. The governed grid also takes a wider column (`minmax(400px, 1fr)`) with `white-space: nowrap` on
+the buttons, because four actions in a 330px card broke every label mid-phrase.
+
+**The access state is what a non-entitled reader sees.** Signed in as a role no audience names —
+`platform_admin` is on none of the five, so it is the one to demo with — every row reads *Not shared
+with your role* with a **Request access** button; once asked it reads *Access pending approval*,
+naming who asked, when, and who could answer. **Nothing here approves one**: an approve button would
+have to be a second person acting as themselves and this login authenticates by shape, so the ask is
+recorded and an audience is widened from Share instead. Sharing with the asker closes the request.
+
+**None of it is access control**, and `SharePicker` says so on the page: the role is the browser's,
+and the API still serves every row to a caller that names none.
 
 The chip bar is `governance.statuses` from `GET /reports`: **All current** plus every state the
 tenant declares (`Published` · `Pending approval` · `Blocked` · `Archived`), each with the count
-`reportGovernanceView` computed, filtering the tenant's governed report definitions above the shelf.
+`reportGovernanceView` computed, filtering the definitions above the shelf. With all five published,
+three of those chips sit at 0 — which for a lifecycle means nothing is blocked, not a broken chip.
 `ReportsPage` passes `governance` in, `App` holds the selected state, `LibraryPane` draws both. Three
 rules hold it together:
 
@@ -1551,7 +1587,8 @@ rules hold it together:
   is the server's own rule (everything not archived), so bar and grid cannot disagree.
 - **The chips do not reach the shelf.** A report saved in this browser never left it — the prototype
   does not `POST /reports/saved` — so it sits under *Saved in this session* and is not counted as a
-  governed definition.
+  governed definition. Hosted, that shelf **starts empty**: the prototype's four seeded rows are its
+  own fiction and would read as four more reports that do not exist beside the real five.
 - **The prototype declares the payload's shape itself** (`Governance` / `GovernedRow` /
   `GovernanceState` in `App.tsx`) rather than importing `client.ts`, exactly as it does for
   `GraphOption`. Drop the props and it is the standalone prototype again.

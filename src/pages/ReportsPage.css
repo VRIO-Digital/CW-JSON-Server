@@ -111,6 +111,31 @@
   margin-bottom: var(--sp-6);
 }
 
+/*
+ * ---- the governed grid, and why it is wider than the shelf's ----
+ *
+ * The vendored `.cards` grid is `minmax(330px, 1fr)`, drawn for a card with two buttons. A governed
+ * row carries four, and at 330px — 275px of usable width after the card's padding — the row wrapped
+ * and every label broke mid-phrase: "Open" over "report", "Edit" over "report". Widening the column
+ * is the fix rather than shortening the labels, because "Open report" is what the row is for.
+ */
+.cw-reports .rp-govGrid {
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+}
+
+/*
+ * A label may wrap the *row*, never itself. `.racts2` is `display: flex` with no wrap, so a fifth
+ * button or a narrower viewport used to squeeze the labels instead of moving them to a second line.
+ */
+.cw-reports .rcard .racts2 {
+  flex-wrap: wrap;
+  row-gap: var(--sp-2);
+}
+
+.cw-reports .rcard .racts2 .btn {
+  white-space: nowrap;
+}
+
 .cw-reports .rp-group > h2,
 .cw-reports h2.rp-shelfHead {
   font-size: 15px;
@@ -150,6 +175,141 @@
 .cw-reports .pill.rp-neutral {
   background: var(--card2);
   color: var(--mut);
+}
+
+.cw-reports .rp-shelfNote {
+  color: var(--mut);
+  font-size: 12.5px;
+  line-height: 1.6;
+  max-width: 640px;
+}
+
+/*
+ * ---- where the actions would be, when the reader is not entitled ----
+ *
+ * Its own block rather than a disabled action row: "you may not open this" and "here is what you can
+ * do about it" are different sentences, and greying out four buttons says neither.
+ */
+.cw-reports .rcard .rp-access {
+  margin-top: auto;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+
+.cw-reports .rcard .rp-access .racts2 {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/*
+ * ---- the Share picker, in a dialog ----
+ *
+ * It used to sit inline under the row it changed, and that is what put it here: the panel grew the
+ * card by ~400px, the grid's equal-height cards all stretched to match, and four of them ended up
+ * with their buttons a screen away from their text. In `.modal` it has no box of its own — the
+ * dialog is the frame — and the grid cannot feel it at all.
+ */
+.cw-reports .rp-shareModal {
+  /* Wider than the publish dialog's 470px: four roles each carry a line of access note. */
+  max-width: 540px;
+}
+
+.cw-reports .rp-shareModal .rp-share {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.cw-reports .rp-share {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--inset);
+  border: 1px solid var(--line2);
+  border-radius: var(--r-s);
+}
+
+.cw-reports .rp-shareHead h3 {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.cw-reports .rp-shareHead p,
+.cw-reports .rp-shareCaveat {
+  color: var(--mut);
+  font-size: 11.5px;
+  line-height: 1.55;
+  margin-top: var(--sp-1);
+}
+
+.cw-reports .rp-shareList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin: var(--sp-3) 0;
+}
+
+.cw-reports .rp-shareRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-s);
+  cursor: pointer;
+}
+
+.cw-reports .rp-shareRow:hover {
+  background: var(--card);
+  border-color: var(--line);
+}
+
+.cw-reports .rp-shareRow input {
+  /* 2px is sub-scale optical alignment against the label's first line, not spacing. */
+  margin-top: 2px;
+  flex: none;
+  accent-color: var(--orange);
+}
+
+.cw-reports .rp-shareName {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.cw-reports .rp-shareNote {
+  display: block;
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.5;
+}
+
+/* Private is the absence of an audience, so it sits apart from the roles rather than among them. */
+.cw-reports .rp-shareRow.rp-private {
+  margin-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding-top: var(--sp-3);
+}
+
+.cw-reports .rp-shareRow.rp-private:hover {
+  border-color: transparent;
+  border-top-color: var(--line);
+}
+
+.cw-reports .rp-shareCaveat {
+  border-left: 2px solid var(--line2);
+  padding-left: var(--sp-2);
+}
+
+.cw-reports .rp-shareActs {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
 }
 
 @media (max-width: 991px) {

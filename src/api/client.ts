@@ -5334,7 +5334,31 @@ export interface GovernedReport {
   parameterized: boolean
   rowCount: number
   spineTotal: number
+  /** Shared with nobody — a decision Share made, not an audience that failed to resolve. */
+  private: boolean
+  /** How many role ids the audience *names*, beside how many resolved in `entitledRoles`. */
+  audienceNamed: number
   entitledRoles: { roleId: string; label: string }[]
+  /**
+   * Whether the calling role may open this report, and what it asked for if not.
+   *
+   * **Not access control.** The role is client-held and the login authenticates by shape, so this
+   * narrows what a reader is shown while the API still serves every row to a caller that names no
+   * role — the rule `viewerRoles` established. Any UI reading it has to say so in those words.
+   */
+  access: {
+    entitled: boolean
+    /** Null when nothing was asked — never a state string standing in for silence. */
+    request: {
+      state: string
+      requestedAt: string
+      by: string
+      /** Who could answer it. "Pending" with no addressee is a dead end. */
+      approvers: string[]
+    } | null
+    /** Asking twice changes nothing, so the action is offered once. */
+    mayRequest: boolean
+  }
 }
 
 export interface GovernanceStatus {
@@ -5433,7 +5457,18 @@ const GOVERNED_REPORT = shape({
   parameterized: bool,
   row_count: num,
   spine_total: num,
+  private: bool,
+  audience_named: num,
   entitled_roles: arrayOf(shape({ role_id: str, label: str })),
+  access: shape({
+    entitled: bool,
+    /* `nullable` accepts an absent key as well as null, and absent is correct here: a row for a
+       caller that named no role has nothing to report. */
+    request: nullable(
+      shape({ state: str, requested_at: str, by: str, approvers: arrayOf(str) }),
+    ),
+    may_request: bool,
+  }),
 })
 
 const DATA_SCOPE_ROW = shape({
@@ -5557,7 +5592,21 @@ const toGovernance = (g: any): ReportGovernance => ({
     parameterized: r.parameterized,
     rowCount: r.row_count,
     spineTotal: r.spine_total,
+    private: r.private,
+    audienceNamed: r.audience_named,
     entitledRoles: r.entitled_roles.map((e: any) => ({ roleId: e.role_id, label: e.label })),
+    access: {
+      entitled: r.access.entitled,
+      request: r.access.request
+        ? {
+            state: r.access.request.state,
+            requestedAt: r.access.request.requested_at,
+            by: r.access.request.by,
+            approvers: r.access.request.approvers,
+          }
+        : null,
+      mayRequest: r.access.may_request,
+    },
   })),
   statuses: g.statuses,
   categories: g.categories,
@@ -6138,6 +6187,89 @@ export async function setSavedReportRoles(
 }
 
 /** Remove a saved question. */
+/*
+ * ---------------- the three acts on a governed definition ----------------
+ *
+ * Share, Delete and Request access. Each answers with the whole governance view rather than an
+ * acknowledgement, so the caller renders a validated payload instead of patching its own copy of
+ * what it just changed — and each is validated on the way in for the reason every read is: `/db`
+ * makes a malformed payload reachable, and a write's answer is rendered exactly like a fetched one.
+ *
+ * **None of them is access control.** They record and report decisions; the role travels from the
+ * browser, which the login authenticates by shape.
+ */
+const GOVERNANCE_REPLY = shape({ governance: REPORT_GOVERNANCE })
+
+/**
+ * Who may see that a report exists. An **empty** list makes it private, which is a decision the
+ * server records rather than a refusal — so this takes the roles and does not require one.
+ */
+export async function setReportAudience(
+  reportId: string,
+  audience: string[],
+  asRole?: string | null,
+): Promise<ReportGovernance> {
+  const raw = validate<{ governance: any }>(
+    'The report audience',
+    await request<unknown>(
+      `/reports/governance/${encodeURIComponent(reportId)}/audience${asRoleQuery(asRole)}`,
+      { method: 'PATCH', body: { audience } },
+    ),
+    GOVERNANCE_REPLY,
+  )
+  return toGovernance(raw.governance)
+}
+
+/**
+ * Removes a report's **governance row**, which is what makes it a governed definition.
+ *
+ * The definition itself is the package's and stays in `db.reports`, so this is recoverable by
+ * re-seeding — `restore` carries the command, and a caller that promises "gone for good" would be
+ * promising something the server did not do.
+ */
+export async function deleteGovernedReport(
+  reportId: string,
+  asRole?: string | null,
+): Promise<{ removed: string; restore: string; governance: ReportGovernance }> {
+  const raw = validate<{ removed: string; restore: string; governance: any }>(
+    'The governed report',
+    await request<unknown>(
+      `/reports/governance/${encodeURIComponent(reportId)}${asRoleQuery(asRole)}`,
+      { method: 'DELETE' },
+    ),
+    shape({ removed: str, restore: str, governance: REPORT_GOVERNANCE }),
+  )
+  return { removed: raw.removed, restore: raw.restore, governance: toGovernance(raw.governance) }
+}
+
+/**
+ * Asks to be added to a report's audience.
+ *
+ * `by` is the signed-in address and the server cannot look it up, so a request from nobody is
+ * refused rather than recorded against the seeded account. `alreadyOpen` is true when the ask was
+ * already on record: asking twice is one request, and reporting it as new would be a second row.
+ */
+export async function requestReportAccess(input: {
+  reportId: string
+  roleId: string
+  by: string
+}): Promise<{ alreadyOpen: boolean; governance: ReportGovernance }> {
+  const raw = validate<{ already_open: boolean; governance: any }>(
+    'The access request',
+    await request<unknown>(
+      `/reports/access-requests?as=${encodeURIComponent(input.by)}` +
+        `&as_role=${encodeURIComponent(input.roleId)}`,
+      { method: 'POST', body: { report_id: input.reportId, role_id: input.roleId } },
+    ),
+    shape({ requested: str, already_open: bool, governance: REPORT_GOVERNANCE }),
+  )
+  return { alreadyOpen: raw.already_open, governance: toGovernance(raw.governance) }
+}
+
+/* One place that spells the role parameter, so a write cannot ask for a different reader's view. */
+const asRoleQuery = (asRole?: string | null) =>
+  asRole ? `?as_role=${encodeURIComponent(asRole)}` : ''
+
 export async function deleteSavedReport(savedId: string): Promise<SavedReport[]> {
   const raw = validate<{ saved: RawSavedReport[] }>(
     'The saved report',

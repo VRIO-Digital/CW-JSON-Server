@@ -1578,3 +1578,90 @@ making the copy one expression rather than by loosening the assertion.
 **Rule** — before believing a red "is absent" assertion, ask **which** part of the render it read.
 Two grids on one page make every unscoped negative assertion ambiguous, and the failure looks like
 a code bug.
+
+## An ingest that rebuilds a whole key deletes everything added to it since
+
+**Symptom** — found by reading, not by breaking: `npm run ingest:reports` would have deleted
+`db.reports.governance` — the lifecycle states, every audience, every data-scope row — and the server
+would then have refused to boot naming `reports`.
+
+**Root cause** — the script ends with `db.reports = { … }`, a whole-key replacement listing what the
+package provides. `saved` was carried forward explicitly, with a comment saying exactly why. Then
+`governance` was added by a *different* script months later, and nothing brought the two together:
+the ingest had no reason to mention a key that did not exist when it was written, and the seed had no
+way to know the ingest would flatten it.
+
+**Fix** — `governance` and the new `access_requests` are carried forward beside `saved`, and the
+script **refuses to write** when `governance` is absent rather than producing a db.json the server
+cannot boot. `access_requests` matters more than it looks: losing `governance` is loud, but losing
+requests is silent — every row reads "no request made" and whoever asked waits on nothing.
+
+**Guard** — *mechanical*, two claims. Every key `validateDb` requires under `db.reports` that the
+ingest does not author must appear in the ingest's object literal (read off the validator, so a key
+added later is covered without touching the check). And the refusal message must exist.
+
+**Rule** — **`x = { … }` on a shared key is a delete of everything not listed.** When a script owns a
+whole subtree, the test is not "did I write what I meant" but "is every key anything else writes
+still here" — and the list has to be derived from the validator rather than remembered.
+
+## An if-chain's fallthrough and a widened invariant, from one feature
+
+**Symptom** — two consequences of adding a *private* (empty) audience, both caught before shipping.
+`validateDb` required `audience.length > 0`, so the first Share-to-nobody would have refused the
+commit — a user action failing on a rule written before that action existed. And the publish check
+read "Audience names at least one persona", so a deliberately private report would have shown a
+failing precondition, which reads as broken rather than as private.
+
+**Root cause** — an invariant that was right when the audience was only ever authored, carried into a
+world where a reader can set it. The check tested the *shape* of a decision instead of its integrity.
+
+**Fix** — `validateDb` takes any array; the **seed** still refuses an empty audience, because there
+it can only be a typo and nothing on that side distinguishes the two. The publish check now tests
+that every persona the audience *names* still resolves — private passes and says so, and what fails
+is an audience naming a persona that was renamed or removed under it, which is the real silent
+narrowing and previously had no check at all.
+
+**Guard** — *mechanical*. `check-docs` asserts the validator accepts an empty audience, that the seed
+still refuses one, and that the publish check compares `audience_named` against what resolved rather
+than against zero.
+
+**Rule** — **when a field becomes writable, re-read every rule that assumed it was authored.** Two
+different surfaces can want two different invariants on one field, and that is not an inconsistency
+to resolve — the seed and the API here genuinely need different rules, and saying which and why is
+the fix.
+
+## The equal-height card trick breaks a card that expands — a second time
+
+**Symptom** — reported from a screenshot. The Share panel opened inside its card and the whole grid
+row grew to ~600px: the four cards beside it kept their text at the top and had their action rows
+pinned at the very bottom, a chasm of empty card between. Separately, in a 275px column every button
+label broke mid-phrase — "Open" over "report", "✎ Edit" over "report".
+
+**Root cause** — two independent faults that read as one bad layout.
+
+The panel: `.rcard` is `height: 100%` in a `grid` with `.racts2 { margin-top: auto }`. That is the
+right recipe for a grid of fixed cards and wrong for one that expands — a taller card sets the row
+height for its siblings, and `margin-top: auto` then pushes their buttons all the way down. **This
+repo already had this entry**, for the saved-report card's audience panel; the note said "wrong for
+one with a panel inside it" and a panel went inside one anyway.
+
+The labels: `.racts2` is `display: flex` with no `flex-wrap`, so four buttons in a narrow column had
+nowhere to go and the flex items shrank, breaking each label internally instead of moving to a second
+line. A `.spacer` (`flex: 1`) before Delete made it worse by reserving the width that would have let
+them fit.
+
+**Fix** — the picker is a `ShareDialog` rendered at `App`'s root beside `PublishDialog`, in the
+prototype's own `.modalBack` / `.modal` chrome, so nothing in a card expands at all. The action row
+gets `flex-wrap: wrap` with `white-space: nowrap` on the buttons — a label may wrap the row, never
+itself — the `.spacer` is gone, and the governed grid takes its own `minmax(400px, 1fr)` because four
+actions do not fit in 330px.
+
+**Guard** — *mechanical*. `check-docs` asserts `LibraryPane` renders neither `<SharePicker>`,
+`<ShareDialog>` nor `modalBack`; that `App` holds the `sharing` state and renders the dialog; and that
+the nowrap rule and the wider column both exist. Keyed on the JSX rather than the module name, because
+the pane legitimately still imports `ShareRole` as a type. Four break tests, all caught.
+
+**Rule** — **anything that expands belongs outside an equal-height grid.** A dialog at the page root
+is the default, not the fallback: it cannot be stretched by the grid and cannot stretch it. And when a
+flex row runs out of room it shrinks its items before it wraps — say `flex-wrap: wrap` and
+`white-space: nowrap` together, or the layout degrades by mangling text rather than by reflowing.

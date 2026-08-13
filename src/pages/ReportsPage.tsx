@@ -1,6 +1,12 @@
 import { Spin } from 'antd'
-import { useEffect, useMemo } from 'react'
-import { getReports } from '../api/client'
+import { useCallback, useEffect, useMemo } from 'react'
+import {
+  deleteGovernedReport,
+  getReports,
+  listAuthRoles,
+  requestReportAccess,
+  setReportAudience,
+} from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import NoPublishedGraph from '../components/NoPublishedGraph'
 import PageHeader from '../components/PageHeader'
@@ -8,7 +14,7 @@ import ReportsApp from '../reports/App'
 import { MenuProvider } from '../reports/components/MenuProvider'
 import { ToastProvider } from '../reports/components/Toast'
 import { useAuthStore } from '../store/authStore'
-import { createReadStore } from '../store/asyncState'
+import { createReadStore, toMessage } from '../store/asyncState'
 import '../reports/reports-prototype.css'
 import './ReportsPage.css'
 
@@ -50,11 +56,23 @@ import './ReportsPage.css'
    needs one field of it. */
 const usePublishGate = createReadStore(getReports)
 
+/*
+ * The role pool the Share picker offers, **served rather than held here**.
+ *
+ * `db.auth_roles` is the one place the personas are declared and `GET /auth/roles` is how they
+ * reach a client — the login already reads it. A list of four roles written into the picker would
+ * be a second answer to "who exists" and could offer one the API refuses, which is exactly what a
+ * client-side copy of the consent scopes did.
+ */
+const useShareRoles = createReadStore(listAuthRoles)
+
 export default function ReportsPage() {
   const data = usePublishGate((s) => s.data)
   const loading = usePublishGate((s) => s.loading)
   const error = usePublishGate((s) => s.error)
   const load = usePublishGate((s) => s.load)
+  const roles = useShareRoles((s) => s.data)
+  const loadRoles = useShareRoles((s) => s.load)
   /*
    * Who a report saved here is credited to. The identity is client-held, so anything that
    * records *who* has to be told — the rule the consent callback established. Without this the
@@ -97,9 +115,85 @@ export default function ReportsPage() {
     [data],
   )
 
+  /*
+   * The section is read **as the signed-in role**, which is what puts an access state on every row:
+   * a report whose audience does not name that role comes back not-entitled, with whatever it has
+   * asked for. Read with no role, every row is entitled — which is the safe direction for a control
+   * the page itself calls a demo, and the only sensible answer when nothing was claimed.
+   */
+  const asRole = useAuthStore((s) => s.identity?.roleId ?? null)
+  const signedInAs = identity?.email ?? null
+
   useEffect(() => {
-    void load()
-  }, [load])
+    void load(asRole)
+  }, [load, asRole])
+
+  useEffect(() => {
+    void loadRoles()
+  }, [loadRoles])
+
+  /*
+   * The three acts, handed to the prototype as `Result`-returning callbacks.
+   *
+   * Each re-reads the section rather than patching the copy it just changed — one GET, and the
+   * state on screen is always what the server last said. A write's own reply carries the governance
+   * view too, but adopting it would mean two paths into the same state and one of them untested.
+   */
+  const share = useCallback(
+    async (reportId: string, audience: string[]) => {
+      try {
+        await setReportAudience(reportId, audience, asRole)
+        await load(asRole)
+        return { ok: true }
+      } catch (e) {
+        return { ok: false, error: toMessage(e) }
+      }
+    },
+    [asRole, load],
+  )
+
+  const remove = useCallback(
+    async (reportId: string) => {
+      try {
+        await deleteGovernedReport(reportId, asRole)
+        await load(asRole)
+        return { ok: true }
+      } catch (e) {
+        return { ok: false, error: toMessage(e) }
+      }
+    },
+    [asRole, load],
+  )
+
+  const requestAccess = useCallback(
+    async (reportId: string) => {
+      /* Told, never guessed: the identity is client-held, so with nobody signed in there is no
+         address to record and the ask is refused here rather than attributed to the seed. */
+      if (!asRole || !signedInAs) {
+        return { ok: false, error: 'Sign in before requesting access — a request has to name who made it.' }
+      }
+      try {
+        const result = await requestReportAccess({ reportId, roleId: asRole, by: signedInAs })
+        await load(asRole)
+        return { ok: true, alreadyOpen: result.alreadyOpen }
+      } catch (e) {
+        return { ok: false, error: toMessage(e) }
+      }
+    },
+    [asRole, signedInAs, load],
+  )
+
+  const actions = useMemo(() => ({ share, remove, requestAccess }), [share, remove, requestAccess])
+
+  const shareRoles = useMemo(
+    () =>
+      (roles?.roles ?? []).map((r) => ({
+        roleId: r.roleId,
+        label: r.label,
+        accessNote: r.accessNote,
+      })),
+    [roles],
+  )
 
   /*
    * Three clauses, in the shape every other section header uses: what the page lists, the
@@ -182,6 +276,8 @@ export default function ReportsPage() {
                  * second answer to "how many are published".
                  */
                 governance={data?.governance}
+                shareRoles={shareRoles}
+                actions={actions}
               />
             </MenuProvider>
           </ToastProvider>

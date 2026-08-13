@@ -14224,62 +14224,7 @@
         "summary_keys": []
       }
     ],
-    "saved": [
-      {
-        "saved_id": "rp-1-5540",
-        "name": "Inbound Generator Risk Register · v1",
-        "question": "Which inbound generators carry the most compliance risk?",
-        "report_id": "risk",
-        "use_case_id": "uc-waste-management-mspxkh5q2",
-        "scope": "all",
-        "measure": "penalty",
-        "horizon": "h24",
-        "filters": [],
-        "saved_by": "ellis.hargrove@vriodigital.com",
-        "viewer_roles": [
-          "domain_architect"
-        ],
-        "saved_at": "2026-08-12T17:51:16.591Z"
-      },
-      {
-        "saved_id": "rp-2-5540",
-        "name": "Inbound Generator Risk Register · v1",
-        "question": "Which inbound generators carry the most compliance risk?",
-        "report_id": "risk",
-        "use_case_id": "uc-waste-management-mspxkh5q2",
-        "scope": "all",
-        "measure": "penalty",
-        "horizon": "h24",
-        "filters": [],
-        "saved_by": "ellis.hargrove@vriodigital.com",
-        "viewer_roles": [
-          "business_user_executive",
-          "domain_architect",
-          "business_user_project",
-          "platform_admin"
-        ],
-        "saved_at": "2026-08-12T17:51:14.146Z"
-      },
-      {
-        "saved_id": "rp-3-4502",
-        "name": "roshan",
-        "question": "How does VLS Deer Park's compliance record compare to other Texas TSDFs?",
-        "report_id": "facility",
-        "use_case_id": "uc-waste-management-mspxkh5q2",
-        "scope": "all",
-        "measure": "penalty",
-        "horizon": "h24",
-        "filters": [],
-        "saved_by": "ellis.hargrove@vriodigital.com",
-        "viewer_roles": [
-          "business_user_executive",
-          "domain_architect",
-          "business_user_project",
-          "platform_admin"
-        ],
-        "saved_at": "2026-08-12T17:51:54.865Z"
-      }
-    ],
+    "saved": [],
     "governance": {
       "statuses": [
         {
@@ -14313,28 +14258,24 @@
           "as_of": "2026-08-10",
           "schedule": "Daily 07:00 UTC",
           "approval": "two-person",
+          "audience": [],
+          "note": null
+        },
+        {
+          "report_id": "facility",
+          "status": "published",
+          "version": "v7",
+          "author": "Dana Whitfield",
+          "category": "Facility comparison",
+          "as_of": "2026-08-10",
+          "schedule": "Weekly Mon 06:00 UTC",
+          "approval": "two-person",
           "audience": [
             "domain_architect",
             "business_user_executive",
             "business_user_project"
           ],
           "note": null
-        },
-        {
-          "report_id": "facility",
-          "status": "blocked",
-          "version": "v7",
-          "author": "Dana Whitfield",
-          "category": "Facility comparison",
-          "as_of": "2026-08-10",
-          "schedule": "Weekly Mon 06:00 UTC",
-          "approval": null,
-          "audience": [
-            "domain_architect",
-            "business_user_executive",
-            "business_user_project"
-          ],
-          "note": "Approval withdrawn: gate 1 names Business User — Project Level, whose data scope admits one facility, and the scorecard compares five. Either the audience narrows or the scope widens — publishing it as written would settle that by showing rows the predicate excludes."
         },
         {
           "report_id": "quarterly",
@@ -14353,33 +14294,18 @@
         },
         {
           "report_id": "cd",
-          "status": "pending_approval",
+          "status": "published",
           "version": "v2",
           "author": "Dana Whitfield",
           "category": "Enforcement exposure",
           "as_of": "2026-08-10",
           "schedule": "On demand",
-          "approval": null,
+          "approval": "two-person",
           "audience": [
             "domain_architect",
             "business_user_executive"
           ],
-          "note": "Submitted and awaiting a second person. Not visible to its audience until published — and publishing widens nobody’s data scope."
-        },
-        {
-          "report_id": "trace",
-          "status": "archived",
-          "version": "v9",
-          "author": "Rei Nakamura",
-          "category": "Custody",
-          "as_of": "2026-06-30",
-          "schedule": "On demand",
-          "approval": "self-approved",
-          "audience": [
-            "domain_architect",
-            "business_user_project"
-          ],
-          "note": "Archived when the manifest sample was cut to five traces. Opens by link for anyone entitled; it is not listed as current."
+          "note": "Publishing widens nobody’s data scope — an entitled reader still sees only the rows their own predicate admits."
         }
       ],
       "data_scope": [
@@ -14422,6 +14348,22 @@
         "data_scope": "Data scope (gate 2) — which rows a session’s predicate admits and which columns are masked. Declared here and not applied: no roster in this prototype is filtered per persona, so a predicate that silently ran would claim a filter this mock does not have.",
         "author": "Writing a new report definition is a separate permission because a report is a governed object — once published it is what an audience treats as the truth. Authoring rides on the data scope, not on the job title: a persona that cannot see the underlying figures cannot define what a report asserts about them."
       }
-    }
+    },
+    "access_requests": [
+      {
+        "report_id": "risk",
+        "role_id": "platform_admin",
+        "by": "shantanu.wagh@vriodigital.com",
+        "requested_at": "2026-08-13T10:26:44.548Z",
+        "state": "pending"
+      },
+      {
+        "report_id": "risk",
+        "role_id": "domain_architect",
+        "by": "ellis.hargrove@vriodigital.com",
+        "requested_at": "2026-08-13T10:29:18.568Z",
+        "state": "pending"
+      }
+    ]
   }
 }

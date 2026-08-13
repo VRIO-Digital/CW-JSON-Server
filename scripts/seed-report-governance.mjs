@@ -79,21 +79,15 @@ const REPORTS = {
     note: null,
   },
   facility: {
-    status: 'blocked',
+    status: 'published',
     version: 'v7',
     author: 'Dana Whitfield',
     category: 'Facility comparison',
     as_of: '2026-08-10',
     schedule: 'Weekly Mon 06:00 UTC',
-    /*
-     * Null, so the publish check that reads it fails — a blocked definition has to be blocked
-     * on something a reader can see, not on a label. What separates it from `pending_approval`
-     * is the note: pending is waiting on a person who means to approve, blocked names a reason
-     * approving it as written would be wrong.
-     */
-    approval: null,
+    approval: 'two-person',
     audience: ['domain_architect', 'business_user_executive', 'business_user_project'],
-    note: 'Approval withdrawn: gate 1 names Business User — Project Level, whose data scope admits one facility, and the scorecard compares five. Either the audience narrows or the scope widens — publishing it as written would settle that by showing rows the predicate excludes.',
+    note: null,
   },
   quarterly: {
     status: 'published',
@@ -107,18 +101,18 @@ const REPORTS = {
     note: null,
   },
   cd: {
-    status: 'pending_approval',
+    status: 'published',
     version: 'v2',
     author: 'Dana Whitfield',
     category: 'Enforcement exposure',
     as_of: '2026-08-10',
     schedule: 'On demand',
-    approval: null,
+    approval: 'two-person',
     audience: ['domain_architect', 'business_user_executive'],
-    note: 'Submitted and awaiting a second person. Not visible to its audience until published — and publishing widens nobody’s data scope.',
+    note: 'Publishing widens nobody’s data scope — an entitled reader still sees only the rows their own predicate admits.',
   },
   trace: {
-    status: 'archived',
+    status: 'published',
     version: 'v9',
     author: 'Rei Nakamura',
     category: 'Custody',
@@ -126,7 +120,7 @@ const REPORTS = {
     schedule: 'On demand',
     approval: 'self-approved',
     audience: ['domain_architect', 'business_user_project'],
-    note: 'Archived when the manifest sample was cut to five traces. Opens by link for anyone entitled; it is not listed as current.',
+    note: 'Reads the five-trace manifest sample rather than the whole custody register — the floor line below says so.',
   },
 }
 
@@ -194,8 +188,18 @@ for (const [id, row] of Object.entries(REPORTS)) {
     )
 }
 
+/*
+ * A seeded report entitled to nobody is refused, and **the API's Share action is not** — the two
+ * are different surfaces. Private is a decision a reader makes on a row and the server records it;
+ * an empty `audience` here is a maintainer's typo, and there is nothing on the seed's side to tell
+ * the two apart. `validateDb` allows an empty audience for the same reason: once Share can set one,
+ * the server has to boot with it.
+ */
 for (const [id, row] of Object.entries(REPORTS)) {
-  if (row.audience.length === 0) problems.push(`report "${id}" is entitled to nobody`)
+  if (row.audience.length === 0)
+    problems.push(
+      `report "${id}" is entitled to nobody — seed an audience, or make it private from Share`,
+    )
   for (const role of row.audience) {
     if (!roleIds.includes(role))
       problems.push(`report "${id}" is entitled to "${role}", which is not one of the personas`)
@@ -256,9 +260,17 @@ db.reports.governance = {
   },
 }
 
+/*
+ * Requests for access, which are readers' acts rather than authored decisions — so this only
+ * ensures the key exists and never overwrites it. Losing it does not throw: every row would simply
+ * read "no request made", and someone waiting on an approval would be waiting on nothing.
+ */
+db.reports.access_requests = db.reports.access_requests ?? []
+
 writeFileSync(DB, JSON.stringify(db, null, 2) + '\n', 'utf8')
 console.log(
   `seed-report-governance: ${db.auth_roles.length} personas, ` +
     `${db.reports.governance.reports.length} governed reports, ` +
-    `${db.reports.governance.data_scope.length} scope rows.`,
+    `${db.reports.governance.data_scope.length} scope rows, ` +
+    `${db.reports.access_requests.length} access requests kept.`,
 )
