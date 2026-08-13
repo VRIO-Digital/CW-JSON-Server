@@ -261,16 +261,15 @@ db.reports.governance = {
 }
 
 /*
- * Requests for access, which are readers' acts rather than authored decisions — so this only
- * ensures the key exists and never overwrites it. Losing it does not throw: every row would simply
- * read "no request made", and someone waiting on an approval would be waiting on nothing.
+ * `access_requests` held readers' asks for a report they were not entitled to, and this script used
+ * to carry them forward. It went with the pending-approval state, so the key is dropped rather than
+ * kept: a list nothing writes and nothing reads is a fact about the app that is no longer true.
  */
-db.reports.access_requests = db.reports.access_requests ?? []
+delete db.reports.access_requests
 
 writeFileSync(DB, JSON.stringify(db, null, 2) + '\n', 'utf8')
 console.log(
   `seed-report-governance: ${db.auth_roles.length} personas, ` +
     `${db.reports.governance.reports.length} governed reports, ` +
-    `${db.reports.governance.data_scope.length} scope rows, ` +
-    `${db.reports.access_requests.length} access requests kept.`,
+    `${db.reports.governance.data_scope.length} scope rows.`,
 )

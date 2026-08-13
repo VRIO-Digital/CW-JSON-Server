@@ -124,6 +124,41 @@ export function fromGoverned(
   };
 }
 
+/**
+ * Why a name cannot be used, or `null`.
+ *
+ * **A published report's name is how its audience refers to it**, so two of them cannot share one:
+ * "open the Consent-Decree Exposure report" has to name one thing. The rule is checked against both
+ * halves of the one list — the tenant's governed definitions and the reports saved in this browser —
+ * because they now sit in the same grid and a reader does not know or care which collection a name
+ * came from.
+ *
+ * Three deliberate narrowings:
+ *
+ * - **Only published names are reserved.** A draft is nobody's reference point yet, so two drafts may
+ *   share a name; publishing one of them is where it has to be resolved.
+ * - **Case and surrounding space do not make a name different.** "Risk Register" and "risk register "
+ *   are the same name to a reader, so they collide.
+ * - **A report never collides with itself.** `excludeId` is the row being renamed or re-published;
+ *   without it, re-publishing anything under its own name would be refused.
+ */
+export function nameProblem(
+  name: string,
+  taken: { id: string; name: string; published: boolean }[],
+  excludeId?: string | null,
+): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) return 'Give the report a name — it is what your audience refers to it by.';
+
+  const key = trimmed.toLowerCase();
+  const clash = taken.find(
+    (t) => t.published && t.id !== excludeId && t.name.trim().toLowerCase() === key,
+  );
+  return clash
+    ? `“${clash.name}” is already published under that name. Pick another, or edit the existing report instead.`
+    : null;
+}
+
 /** Replaces the report with the same id, or appends it. Newest first. */
 export function upsert(list: SavedReport[], report: SavedReport): SavedReport[] {
   const i = list.findIndex((r) => r.id === report.id);

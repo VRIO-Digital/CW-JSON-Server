@@ -5338,27 +5338,16 @@ export interface GovernedReport {
   private: boolean
   /** How many role ids the audience *names*, beside how many resolved in `entitledRoles`. */
   audienceNamed: number
-  entitledRoles: { roleId: string; label: string }[]
   /**
-   * Whether the calling role may open this report, and what it asked for if not.
+   * The roles the audience names, resolved.
    *
-   * **Not access control.** The role is client-held and the login authenticates by shape, so this
-   * narrows what a reader is shown while the API still serves every row to a caller that names no
-   * role — the rule `viewerRoles` established. Any UI reading it has to say so in those words.
+   * **Stated, not enforced.** A per-row `access` block once said whether the calling role could open
+   * a report and what it had requested; it and its endpoint were removed. Nothing replaced them,
+   * which is the honest position: the role is client-held and the login authenticates by shape, so
+   * the API serves every row to a caller that names none and a gate built on this was never access
+   * control. `as_role` still narrows the *saved* rows and still reports `viewer.notEntitledCount`.
    */
-  access: {
-    entitled: boolean
-    /** Null when nothing was asked — never a state string standing in for silence. */
-    request: {
-      state: string
-      requestedAt: string
-      by: string
-      /** Who could answer it. "Pending" with no addressee is a dead end. */
-      approvers: string[]
-    } | null
-    /** Asking twice changes nothing, so the action is offered once. */
-    mayRequest: boolean
-  }
+  entitledRoles: { roleId: string; label: string }[]
 }
 
 export interface GovernanceStatus {
@@ -5460,15 +5449,6 @@ const GOVERNED_REPORT = shape({
   private: bool,
   audience_named: num,
   entitled_roles: arrayOf(shape({ role_id: str, label: str })),
-  access: shape({
-    entitled: bool,
-    /* `nullable` accepts an absent key as well as null, and absent is correct here: a row for a
-       caller that named no role has nothing to report. */
-    request: nullable(
-      shape({ state: str, requested_at: str, by: str, approvers: arrayOf(str) }),
-    ),
-    may_request: bool,
-  }),
 })
 
 const DATA_SCOPE_ROW = shape({
@@ -5595,18 +5575,6 @@ const toGovernance = (g: any): ReportGovernance => ({
     private: r.private,
     audienceNamed: r.audience_named,
     entitledRoles: r.entitled_roles.map((e: any) => ({ roleId: e.role_id, label: e.label })),
-    access: {
-      entitled: r.access.entitled,
-      request: r.access.request
-        ? {
-            state: r.access.request.state,
-            requestedAt: r.access.request.requested_at,
-            by: r.access.request.by,
-            approvers: r.access.request.approvers,
-          }
-        : null,
-      mayRequest: r.access.may_request,
-    },
   })),
   statuses: g.statuses,
   categories: g.categories,
@@ -6188,15 +6156,17 @@ export async function setSavedReportRoles(
 
 /** Remove a saved question. */
 /*
- * ---------------- the three acts on a governed definition ----------------
+ * ---------------- the two acts on a governed definition ----------------
  *
- * Share, Delete and Request access. Each answers with the whole governance view rather than an
- * acknowledgement, so the caller renders a validated payload instead of patching its own copy of
- * what it just changed — and each is validated on the way in for the reason every read is: `/db`
- * makes a malformed payload reachable, and a write's answer is rendered exactly like a fetched one.
+ * Share and Delete. Each answers with the whole governance view rather than an acknowledgement, so
+ * the caller renders a validated payload instead of patching its own copy of what it just changed —
+ * and each is validated on the way in for the reason every read is: `/db` makes a malformed payload
+ * reachable, and a write's answer is rendered exactly like a fetched one.
  *
- * **None of them is access control.** They record and report decisions; the role travels from the
- * browser, which the login authenticates by shape.
+ * A third act, `POST /reports/access-requests`, was removed with the pending-approval state.
+ *
+ * **Neither is access control.** They record and report decisions; the role travels from the browser,
+ * which the login authenticates by shape.
  */
 const GOVERNANCE_REPLY = shape({ governance: REPORT_GOVERNANCE })
 
@@ -6240,30 +6210,6 @@ export async function deleteGovernedReport(
     shape({ removed: str, restore: str, governance: REPORT_GOVERNANCE }),
   )
   return { removed: raw.removed, restore: raw.restore, governance: toGovernance(raw.governance) }
-}
-
-/**
- * Asks to be added to a report's audience.
- *
- * `by` is the signed-in address and the server cannot look it up, so a request from nobody is
- * refused rather than recorded against the seeded account. `alreadyOpen` is true when the ask was
- * already on record: asking twice is one request, and reporting it as new would be a second row.
- */
-export async function requestReportAccess(input: {
-  reportId: string
-  roleId: string
-  by: string
-}): Promise<{ alreadyOpen: boolean; governance: ReportGovernance }> {
-  const raw = validate<{ already_open: boolean; governance: any }>(
-    'The access request',
-    await request<unknown>(
-      `/reports/access-requests?as=${encodeURIComponent(input.by)}` +
-        `&as_role=${encodeURIComponent(input.roleId)}`,
-      { method: 'POST', body: { report_id: input.reportId, role_id: input.roleId } },
-    ),
-    shape({ requested: str, already_open: bool, governance: REPORT_GOVERNANCE }),
-  )
-  return { alreadyOpen: raw.already_open, governance: toGovernance(raw.governance) }
 }
 
 /* One place that spells the role parameter, so a write cannot ask for a different reader's view. */

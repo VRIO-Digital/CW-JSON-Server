@@ -2,7 +2,15 @@ import { useMemo, useState } from 'react';
 import { META, OPTS, STARTERS } from './data';
 import { assumptionsForStarter, freshAssumptions } from './lib/assumptions';
 import { instantiate, isMeasure } from './lib/blocks';
-import { audienceLabel, fromGoverned, newReportId, seedLibrary, stamp, upsert } from './lib/library';
+import {
+  audienceLabel,
+  fromGoverned,
+  nameProblem,
+  newReportId,
+  seedLibrary,
+  stamp,
+  upsert,
+} from './lib/library';
 import { ShareDialog, type ShareRole } from './components/SharePicker';
 import { hasFilter, scopeSet, selectRows } from './lib/select';
 import { PublishDialog } from './components/PublishDialog';
@@ -98,19 +106,13 @@ export interface GovernedRow {
   floor: string | null;
   /** Shared with nobody — a decision, not an audience that failed to resolve. */
   private: boolean;
-  entitledRoles: { roleId: string; label: string }[];
   /**
-   * Whether the signed-in role may open this report, and what it asked for if not.
-   *
-   * **Not access control**, and the picker says so on the page: the role is the browser's and the
-   * API still serves every row to a caller that names none. What it drives is which actions a row
-   * offers, and whether it says an approval is pending.
+   * The roles the audience names, resolved. **Stated and not acted on**: the request-access /
+   * pending-approval state that once gated a row on this was removed, and nothing here gates on it.
+   * Which is the honest position anyway — the role is client-held and the API serves every row to a
+   * caller that names none, so a gate built on it could never have been access control.
    */
-  access: {
-    entitled: boolean;
-    request: { state: string; requestedAt: string; by: string; approvers: string[] } | null;
-    mayRequest: boolean;
-  };
+  entitledRoles: { roleId: string; label: string }[];
 }
 
 export interface Governance {
@@ -128,7 +130,6 @@ export interface Governance {
 export interface GovernanceActions {
   share(reportId: string, audience: string[]): Promise<{ ok: boolean; error?: string }>;
   remove(reportId: string): Promise<{ ok: boolean; error?: string }>;
-  requestAccess(reportId: string): Promise<{ ok: boolean; error?: string; alreadyOpen?: boolean }>;
 }
 
 /** The chip that leads the bar. Not a stored state — the server counts it as everything not archived. */
@@ -414,20 +415,6 @@ export default function App({
     );
   }
 
-  async function requestGovernedAccess(row: GovernedRow) {
-    if (!actions) return;
-    const result = await actions.requestAccess(row.reportId);
-    if (!result.ok) {
-      toast(result.error ?? 'Could not request access.');
-      return;
-    }
-    toast(
-      result.alreadyOpen
-        ? `Your request for “${row.title}” was already open — nobody has answered it yet.`
-        : `Requested access to “${row.title}”. It shows as pending until somebody grants it.`,
-    );
-  }
-
   function deleteReport(id: string) {
     const gone = library.find((r) => r.id === id);
     setLibrary((prev) => prev.filter((r) => r.id !== id));
@@ -457,13 +444,48 @@ export default function App({
     return record;
   }
 
+  /**
+   * Every name a published report already occupies — **across the whole list**, governed definitions
+   * and session reports alike, because they sit in one grid and a reader does not know which
+   * collection a name came from. Every governed definition here is published by definition; a session
+   * report counts only once it has been published locally.
+   */
+  const takenNames = [
+    ...(governance?.reports ?? []).map((r) => ({
+      id: r.reportId,
+      name: r.title,
+      published: true,
+    })),
+    ...library.map((r) => ({ id: r.id, name: r.name, published: r.status === 'published' })),
+  ];
+
+  /* One rule, both paths: the dialog checks as you type, Save draft checks before it writes. */
+  const problemFor = (name: string) => nameProblem(name, takenNames, openedId);
+
   function saveDraft() {
-    const r = save('draft', opened?.name ?? starter.title, opened?.audience ?? AUDIENCE_KEY);
+    const name = opened?.name ?? starter.title;
+    /*
+     * A draft may share a name with another draft, so this only fires when a *published* report
+     * already holds it. Save draft has no name field to show the error beside, so it toasts and
+     * leaves the report unsaved rather than writing a second row under a name already in use.
+     */
+    const problem = problemFor(name);
+    if (problem) {
+      toast(problem);
+      return;
+    }
+    const r = save('draft', name, opened?.audience ?? AUDIENCE_KEY);
     toast(`Saved “${r.name}” to your library as a private draft.`);
     goTab('library');
   }
 
   function publish(name: string, audience: string) {
+    /* The dialog will not submit a name this refuses; checked again because it is the writer. */
+    const problem = problemFor(name);
+    if (problem) {
+      toast(problem);
+      return;
+    }
     save('published', name, audience);
     setPublishOpen(false);
     toast(`“${name}” published to ${audienceLabel(audience)} — a Domain Architect approves before it goes live.`);
@@ -594,7 +616,6 @@ export default function App({
                 actions ? (row) => setSharing({ kind: 'governed', id: row.reportId }) : undefined
               }
               onRemoveGoverned={actions ? removeGoverned : undefined}
-              onRequestGovernedAccess={actions ? requestGovernedAccess : undefined}
               onShareSaved={
                 shareRoles?.length ? (report) => setSharing({ kind: 'saved', id: report.id }) : undefined
               }
@@ -643,6 +664,7 @@ export default function App({
           initialName={opened?.name ?? starter.title}
           initialAudience={opened?.audience ?? AUDIENCE_KEY}
           republish={opened?.status === 'published'}
+          nameProblem={problemFor}
           onCancel={() => setPublishOpen(false)}
           onConfirm={publish}
         />

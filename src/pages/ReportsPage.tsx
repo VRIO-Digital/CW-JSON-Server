@@ -1,12 +1,6 @@
 import { Spin } from 'antd'
 import { useCallback, useEffect, useMemo } from 'react'
-import {
-  deleteGovernedReport,
-  getReports,
-  listAuthRoles,
-  requestReportAccess,
-  setReportAudience,
-} from '../api/client'
+import { deleteGovernedReport, getReports, listAuthRoles, setReportAudience } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import NoPublishedGraph from '../components/NoPublishedGraph'
 import PageHeader from '../components/PageHeader'
@@ -116,13 +110,13 @@ export default function ReportsPage() {
   )
 
   /*
-   * The section is read **as the signed-in role**, which is what puts an access state on every row:
-   * a report whose audience does not name that role comes back not-entitled, with whatever it has
-   * asked for. Read with no role, every row is entitled — which is the safe direction for a control
-   * the page itself calls a demo, and the only sensible answer when nothing was claimed.
+   * The section is read **as the signed-in role**, which narrows the *saved* rows to the ones that
+   * name it and lets the payload report how many definitions it is not on. It no longer decides what
+   * a row may do: a per-row access state used to gate the actions on this, and it was removed with
+   * the pending-approval flow. Read with no role, nothing is narrowed — which is the honest default,
+   * since the role is client-held and the API serves every row to a caller that names none.
    */
   const asRole = useAuthStore((s) => s.identity?.roleId ?? null)
-  const signedInAs = identity?.email ?? null
 
   useEffect(() => {
     void load(asRole)
@@ -165,25 +159,7 @@ export default function ReportsPage() {
     [asRole, load],
   )
 
-  const requestAccess = useCallback(
-    async (reportId: string) => {
-      /* Told, never guessed: the identity is client-held, so with nobody signed in there is no
-         address to record and the ask is refused here rather than attributed to the seed. */
-      if (!asRole || !signedInAs) {
-        return { ok: false, error: 'Sign in before requesting access — a request has to name who made it.' }
-      }
-      try {
-        const result = await requestReportAccess({ reportId, roleId: asRole, by: signedInAs })
-        await load(asRole)
-        return { ok: true, alreadyOpen: result.alreadyOpen }
-      } catch (e) {
-        return { ok: false, error: toMessage(e) }
-      }
-    },
-    [asRole, signedInAs, load],
-  )
-
-  const actions = useMemo(() => ({ share, remove, requestAccess }), [share, remove, requestAccess])
+  const actions = useMemo(() => ({ share, remove }), [share, remove])
 
   const shareRoles = useMemo(
     () =>

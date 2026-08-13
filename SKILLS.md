@@ -1555,26 +1555,43 @@ row that arrived from the API: `fromGoverned` matches a row to its starter on `r
 | Edit report | — | the same, in edit mode |
 | Share | `PATCH /reports/governance/:id/audience` | `[]` is private, and private is a decision |
 | Delete | `DELETE /reports/governance/:id` | drops the **governance row**; a re-seed restores it |
-| Request access | `POST /reports/access-requests` | shown instead of the four when not entitled |
 
-The same four are on the *Saved in this session* cards, over the same dialog — but Share there writes
-`viewerRoles` on the local row and nothing else: a session report has no governance row, so the dialog
-and the card both say the choice stays in this browser.
+The same four are on the session cards, over the same dialog — but Share there writes `viewerRoles` on
+the local row and nothing else: a session report has no governance row, so the dialog and the card both
+say the choice stays in this browser.
+
+**It is one list, not two groups.** Governed definitions and session reports share a grid, told apart by
+the card (`GovernedCard` / `SessionCard`) rather than by a heading. A session report answers to its own
+*Saved here* chip — never the tenant's Published — and the chip counts come from the same `inState` the
+grid filters with, because the server cannot count rows it has not been told about.
+
+**A published name is unique.** `nameProblem` is the one rule, applied across the whole list; the publish
+dialog checks live and Save draft checks before writing. Drafts may share a name, case and space do not
+make a name different, and a report never collides with itself.
+
+**Delete drops the governance row, and `npm run seed:governance` restores it.** That is also the fix when
+a definition has gone missing from the list — the confirmation says so rather than promising "gone for
+good".
 
 **The picker is a dialog at `App`'s root, not a panel in the card.** Inline it stretched its whole grid
 row and left the sibling cards with their buttons a screen below their text; `LibraryPane` only opens
 it. The governed grid also takes a wider column (`minmax(400px, 1fr)`) with `white-space: nowrap` on
 the buttons, because four actions in a 330px card broke every label mid-phrase.
 
-**The access state is what a non-entitled reader sees.** Signed in as a role no audience names —
-`platform_admin` is on none of the five, so it is the one to demo with — every row reads *Not shared
-with your role* with a **Request access** button; once asked it reads *Access pending approval*,
-naming who asked, when, and who could answer. **Nothing here approves one**: an approve button would
-have to be a second person acting as themselves and this login authenticates by shape, so the ask is
-recorded and an audience is widened from Share instead. Sharing with the asker closes the request.
+**There is no access gate on a row, and there was one.** A per-row `access` block decided whether the
+signed-in role could open a report; a reader outside the audience saw *Request access* / *Access pending
+approval* **instead of** the four actions. Removed on request, along with `POST /reports/access-requests`,
+`db.reports.access_requests` and `requestReportAccess`. The audience is still stated on the row and acted
+on nowhere.
+
+`check-docs` guards the absence on **every layer at once** — server, client, card and stylesheet —
+because a partial revival is the dangerous shape: a card gating on `access` while the payload no longer
+sends one renders a row with no actions at all, which is the symptom that prompted the removal. Re-adding
+it deliberately means deleting that claim in the same commit. `docs/REGRESSIONS.md` records what it was.
 
 **None of it is access control**, and `SharePicker` says so on the page: the role is the browser's,
-and the API still serves every row to a caller that names none.
+and the API still serves every row to a caller that names none. That is also why the gate's removal lost
+nothing real.
 
 The chip bar is `governance.statuses` from `GET /reports`: **All current** plus every state the
 tenant declares (`Published` · `Pending approval` · `Blocked` · `Archived`), each with the count

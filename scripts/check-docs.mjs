@@ -2233,26 +2233,104 @@ expect(
   `tones from the pool: ${db.reports.governance.statuses.map((s) => `${s.key}/${s.tone}`).join(' ')}`,
 )
 /*
- * And the chips print the count they were served. A count computed beside the grid is the second
- * answer this whole section is built to avoid — `LibraryPane` reads `s.count` and filters rows by
- * the same rule the server counts them with (`current` is everything not archived).
+ * **One list, and one rule that both counts it and filters it.**
+ *
+ * The Library was two grids under two headings — governed definitions, then reports saved in this
+ * session — and is now a single list holding both. That merge is what moved the chip counts off the
+ * server: it cannot count rows nobody has told it about, so a served count beside a list holding
+ * session reports would be counting something else. The *pool* is still the server's — keys, labels,
+ * tones, order — and the count comes from the same `inState` the grid filters with, so a chip cannot
+ * say five while the grid shows six.
+ *
+ * A session report is deliberately **not** folded into the tenant's Published chip: it has been
+ * submitted to nobody, so it answers to `SESSION` and its own pill still says what it is locally.
  */
+/*
+ * **Comments stripped before asserting an absence.**
+ *
+ * Two claims below say a component does *not* say something — "Approval", "gone for good" — and both
+ * passed over the file's own prose the first time, because the comment explaining the removal names
+ * the thing removed. This repo's rule is to assert the fact at its site; for an absence, the site is
+ * the code, so the prose comes out first.
+ */
+const codeOnly = (src) =>
+  src
+    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '') // JSX comment blocks
+    .replace(/\/\*[\s\S]*?\*\//g, '') // block comments
+    .replace(/^\s*\/\/.*$/gm, '') // line comments
+
 const libraryPane = read('src/reports/panes/LibraryPane.tsx')
-const chipBar = /<div className="rp-chipRow"[\s\S]*?<\/div>/.exec(libraryPane)?.[0] ?? ''
+const chipBar = /<div className="rp-chipRow"[\s\S]*?\n {10}<\/div>/.exec(libraryPane)?.[0] ?? ''
 expect(
-  'the chip bar prints the served count and never one of its own',
+  'the chip bar and the grid read one rule, over one list',
   chipBar.length > 0 &&
-    /\{s\.count\}/.test(chipBar) &&
-    /\{s\.label\}/.test(chipBar) &&
-    !/\.filter\(/.test(chipBar) &&
-    !/\.length/.test(chipBar) &&
-    /* The page hands the payload down; the prototype declares the shape rather than importing
-       the client's, so it still stands alone with no host. */
-    /governance=\{data\?\.governance\}/.test(read('src/pages/ReportsPage.tsx')) &&
-    /key === 'current' \? rows\.filter\(\(r\) => r\.status !== 'archived'\)/.test(libraryPane),
+    /* Both call sites derive from `inState`, which is declared once. */
+    (libraryPane.match(/inState\(cards, /g) ?? []).length === 2 &&
+    /const inState = <T extends \{ stateKey: string \}>/.test(libraryPane) &&
+    /const inView = showStates \? inState\(cards, activeState\)/.test(libraryPane) &&
+    /\.map\(\(s\) => \(\{ \.\.\.s, count: inState\(cards, s\.key\)\.length \}\)\)/.test(libraryPane) &&
+    /* The pool is still served, and a session row gets its own key rather than Published's. */
+    /\.\.\.\(states \?\? \[\]\)/.test(libraryPane) &&
+    /export const SESSION = 'session'/.test(libraryPane) &&
+    /stateKey: SESSION/.test(libraryPane) &&
+    /* And the two headings are gone — one grid, both kinds of card. */
+    !/Governed definitions|Saved in this session/.test(libraryPane) &&
+    /<GovernedCard/.test(libraryPane) &&
+    /<SessionCard/.test(libraryPane) &&
+    /* The page still hands the payload down; the prototype declares its shape rather than
+       importing the client's, so it stands alone with no host. */
+    /governance=\{data\?\.governance\}/.test(read('src/pages/ReportsPage.tsx')),
   chipBar.length === 0
     ? 'the chip bar was not found — this check cannot run'
-    : 'labels, tones and counts all arrive decided',
+    : 'one rule, one list, and the pool still the server’s',
+)
+
+/*
+ * **A published report's name is how its audience refers to it, so two cannot share one.**
+ *
+ * Checked across the whole list — governed definitions and session reports alike, because they sit in
+ * one grid — and in **one** place, because two copies of "is this name taken" is how a dialog accepts
+ * a name the save then rejects. The dialog checks as you type: a collision found only on submit closes
+ * the dialog and loses the name.
+ */
+const libraryLib = read('src/reports/lib/library.ts')
+const reportsAppSrc = read('src/reports/App.tsx')
+expect(
+  'a name already published is refused, by one rule both writers use',
+  /export function nameProblem\(/.test(libraryLib) &&
+    /* Only published names are reserved, and case and space do not make a name different. */
+    /t\.published && t\.id !== excludeId && t\.name\.trim\(\)\.toLowerCase\(\) === key/.test(libraryLib) &&
+    /* Both halves of the list feed it. */
+    /\.\.\.\(governance\?\.reports \?\? \[\]\)\.map/.test(reportsAppSrc) &&
+    /\.\.\.library\.map\(\(r\) => \(\{ id: r\.id, name: r\.name, published: r\.status === 'published' \}\)\)/.test(reportsAppSrc) &&
+    /* And both writers ask it — the dialog live, Save draft before it writes. */
+    /nameProblem=\{problemFor\}/.test(reportsAppSrc) &&
+    (reportsAppSrc.match(/problemFor\(name\)/g) ?? []).length === 2 &&
+    /const problem = nameProblem\?\.\(trimmed\) \?\? null/.test(read('src/reports/components/PublishDialog.tsx')),
+  'one rule, checked live in the dialog and again by the writer',
+)
+
+/*
+ * The approval is off the card, and only off the card. It is still on the payload, and the Operations
+ * tab's audit rows and publish checks still read it — what was removed is restating it in a list whose
+ * job is to say what each report is and who can see it.
+ */
+const governedCard = read('src/reports/panes/GovernedCard.tsx')
+const governedCardCode = codeOnly(governedCard)
+expect(
+  'the report card states no approval, and the server still records one',
+  /*
+   * The *field* is not read and the label is not printed. Not a bare search for "approval": the card
+   * still says **Access pending approval**, which is a different thing entirely — the access state a
+   * reader who is not in the audience sees, and one this section is required to show.
+   */
+  !/r\.approval/.test(governedCardCode) &&
+    !/Approval:/.test(governedCardCode) &&
+    /\{r\.schedule\}/.test(governedCardCode) &&
+    /* Still computed and still served, so removing it from the card removed nothing else. */
+    /approval: governanceRow\.approval/.test(server) &&
+    /label: 'Approval recorded'/.test(server),
+  'removed from the card, kept in the payload',
 )
 
 /*
@@ -2318,25 +2396,26 @@ expect(
 )
 
 /*
- * **The three acts on a row, and the two claims they cannot be built without.**
+ * **The two acts on a row, and the two claims they cannot be built without.**
  *
- * Each commits, because each is somebody's decision — and none of them is access control, which the
- * picker has to say on the page in those words.
+ * Share and Delete. Both commit, because both are somebody's decision — and neither is access
+ * control, which the picker has to say on the page in those words.
  */
 const sharePicker = read('src/reports/components/SharePicker.tsx')
 const reportsApp = read('src/reports/App.tsx')
 const reportsCss = read('src/pages/ReportsPage.css')
 expect(
-  'Share, Delete and Request access all commit, and each answers with the governance view',
+  'Share and Delete both commit, and each answers with the governance view',
   /match: \(p\) => \/\^\\\/reports\\\/governance\\\/\[\^\/\]\+\\\/audience\$\//.test(server) &&
-    /match: \(p\) => p === '\/reports\/access-requests'/.test(server) &&
+    /match: \(p\) => \/\^\\\/reports\\\/governance\\\/\[\^\/\]\+\$\//.test(server) &&
     /* Committed rather than in memory: a restart must not forget who a report was shared with. */
-    (server.match(/access_requests: \[/g) ?? []).length > 0 &&
-    (server.match(/governance: reportGovernanceView\(reportRoleFrom\(query\)\)/g) ?? []).length === 3 &&
+    (server.match(/commitDb\(\{/g) ?? []).length > 0 &&
+    /* Two writes, and one reader of the role — a write cannot answer with somebody else's view. */
+    (server.match(/governance: reportGovernanceView\(reportRoleFrom\(query\)\)/g) ?? []).length === 2 &&
     /* Delete drops the governance row and says how to get it back. */
     /restore: 'node scripts\/seed-report-governance\.mjs'/.test(server) &&
     /this is the last governed definition/.test(server),
-  'three writes, one reader of the role, and a delete that admits it is reversible',
+  'two writes, one reader of the role, and a delete that admits it is reversible',
 )
 expect(
   'the picker renders the served role pool and says it is not access control',
@@ -2380,17 +2459,52 @@ expect(
 )
 
 /*
- * Nothing in this app approves an access request, and the row has to name who could — "pending" with
- * no addressee is a dead end, and a button that granted it to whoever clicked would be a lie about
- * a login that authenticates by shape.
+ * **The pending-approval state was removed, and it must not creep back half-built.**
+ *
+ * A row once carried an `access` block — whether the calling role could open it, and what it had
+ * requested — and a reader outside the audience saw *Request access* / *Access pending approval*
+ * instead of the four actions. It was removed on request. What is dangerous is a partial revival: a
+ * card that gates on `access` while the payload no longer sends one renders a row with no actions at
+ * all, which is exactly the symptom that prompted the removal.
+ *
+ * So this asserts the absence on every layer at once. Re-adding it deliberately means deleting this
+ * claim in the same commit; `docs/REGRESSIONS.md` records what it looked like.
  */
 expect(
-  'a pending request names who could answer it, and nothing here grants it',
-  /approvers: reportAuthorRoleLabels\(\)/.test(server) &&
-    /may_author/.test(server) &&
-    !/state: 'approved'/.test(server) &&
-    /nothing in this demo grants it/.test(libraryPane),
-  'recorded and reported; an audience is widened from Share instead',
+  'the pending-approval state is gone from the payload, the client and the card',
+  /*
+   * Server: no per-row access, and no endpoint to ask on. **Comments stripped** — the note in
+   * `validateDb` explaining that `access_requests` is no longer required names the key it removed,
+   * and this claim failed on that prose the first time it ran. Same lesson as the approval claim.
+   */
+  !/reportAccessFor|access-requests|access_requests|may_request/.test(codeOnly(server)) &&
+    /* Client: no schema field, no type, no fetcher — a stale one would fail every read. */
+    !/requestReportAccess|may_request|mayRequest/.test(codeOnly(client)) &&
+    /* Card: the state is gone and the actions are unconditional. */
+    !/Access pending approval|Request access|rp-access|r\.access/.test(governedCardCode) &&
+    /* And the styles that positioned it went too, rather than sitting dead in the sheet. */
+    !/rp-access/.test(reportsCss) &&
+    /* The audience is still *stated* — removing the gate must not remove the fact. */
+    /nobody — private/.test(governedCardCode) &&
+    /entitledRoles\.map/.test(governedCardCode),
+  'removed on every layer; the audience is stated and gates nothing',
+)
+
+/*
+ * Delete drops a governance row, and the confirmation says what actually happens rather than "gone for
+ * good" — the definition is the package's and `npm run seed:governance` re-authors every row. The copy
+ * lives in an `OptionList` inside a popover that does not exist until clicked, so nothing rendered can
+ * assert it; this is the guard.
+ */
+expect(
+  'Delete promises only what it does, and names the way back',
+  /npm run seed:governance/.test(governedCardCode) &&
+    !/gone for good/.test(governedCardCode) &&
+    /* And the script it names exists. */
+    /"seed:governance": "node scripts\/seed-report-governance\.mjs"/.test(read('package.json')) &&
+    /* The server says the same thing in its reply. */
+    /restore: 'node scripts\/seed-report-governance\.mjs'/.test(server),
+  'the confirmation, the script and the server’s reply all name one command',
 )
 
 /*

@@ -1665,3 +1665,82 @@ the pane legitimately still imports `ShareRole` as a type. Four break tests, all
 is the default, not the fallback: it cannot be stretched by the grid and cannot stretch it. And when a
 flex row runs out of room it shrinks its items before it wraps — say `flex-wrap: wrap` and
 `white-space: nowrap` together, or the layout degrades by mangling text rather than by reflowing.
+
+## An "is absent" claim defeated by the comment explaining the absence
+
+**Symptom** — two `check-docs` claims failed against correct code: "the report card states no approval"
+and "Delete promises only what it does" (which forbids "gone for good"). Both were true of the card.
+
+**Root cause** — the claims were whole-file `includes` for a word the file mentions **in the comment
+that explains why it was removed**: *"and **no approval line**. `approval` is still on the payload…"*
+and *"What actually happens, not \"gone for good\"…"*. The prose documenting the decision is the exact
+text the guard forbids.
+
+A third variant of the same claim was too broad rather than comment-defeated: `!/Approval/` also matched
+**"Access pending approval"**, which is a different feature entirely and one the section is required to
+show.
+
+**Fix** — a `codeOnly()` helper strips JSX comment blocks, block comments and line comments before any
+absence is asserted, and the approval claim keys on the *field* and the *label* (`r.approval`,
+`Approval:`) rather than on the word.
+
+**Guard** — *mechanical*, and it is the break test: seven mutations against these claims, all caught,
+including one that puts the approval line back and one that restores the "gone for good" promise.
+
+**Rule** — **strip comments before asserting that code does not say something**, and prefer the
+narrowest token that carries the fact. A codebase that explains its decisions in prose will always
+mention what it removed; a guard that reads the prose is guarding the wrong file.
+
+## The chip that counted the server's rows, over a list that was not the server's
+
+**Symptom** — no failure yet; caught while merging the Library's two grids into one. The chips printed
+`governance.statuses[].count`, computed server-side. Merging the session reports into the same list
+would have left "Published 5" above six published cards.
+
+**Root cause** — the counts were served precisely so there would be one answer to "how many are
+published", which was right while the list held only the server's rows. The merge changed what the list
+*is*, and a served count then answers a question nobody asked.
+
+**Fix** — the pool stays the server's (keys, labels, tones, order) and the count comes from the same
+`inState` the grid filters with, declared once. A session report answers to its own `SESSION` chip
+rather than the tenant's Published, so nothing ungoverned is counted as governed.
+
+**Guard** — *mechanical*. `check-docs` asserts both call sites derive from `inState(cards, …)`, that
+`SESSION` exists and is what a session row carries, and that neither old heading is back. Break tests:
+restore a heading, and drop the count re-derivation.
+
+**Rule** — **when a list changes what it contains, re-derive every number about it.** "The server
+computes it" is only a single source while the server can see everything being counted.
+
+## The access gate that replaced a row's actions, and what it left behind
+
+**Not a bug — a removal, recorded because the shape is worth remembering.** A per-row `access` block
+reported whether the signed-in role could open a report and what it had requested, and a reader whose
+role the audience did not name saw *Not shared with your role* / *Access pending approval* **instead of**
+Open · Edit · Share · Delete. The first thing a reader noticed was a card with no actions at all.
+
+**What it consisted of**, so a revival is a decision rather than an archaeology exercise:
+`reportAccessFor` and `reportAuthorRoleLabels` in `server.mjs`; a `POST /reports/access-requests` route;
+`db.reports.access_requests` as a required nested key, carried by the ingest and the seed; `access` on
+`GovernedReport` with its schema and mapper; `requestReportAccess` in `client.ts`; a `requestAccess`
+callback on the page and a `requestGovernedAccess` handler in `App`; the `rp-access` block in
+`GovernedCard`; and its styles.
+
+**Why removing it lost nothing real** — the role is client-held and the login authenticates by shape,
+so the API served every row to a caller that named none. A gate on that was never access control, which
+is why the audience is still *stated* on the row and now acted on nowhere.
+
+**Guard** — *mechanical*, and deliberately **cross-layer**: one claim asserts the absence in the server,
+the client, the card and the stylesheet together. The dangerous shape is not the feature, it is half of
+it: a card that gates on `access` while the payload no longer sends one renders a row with no actions,
+which is the original symptom. Six break tests, all caught — including one that re-adds the pill to the
+card and one that leaves the dead CSS behind.
+
+**Rule** — **when a feature is removed, guard its absence at every layer it touched, not just the one
+you deleted last.** And a removal claim must strip comments before searching: the note explaining the
+removal names everything removed, so an un-stripped guard reads its own explanation and fails.
+
+**Aside, and the third time this has cost a break test:** the mutation "delete the `restore:` line"
+reported MISSED because it searched for `\n` in a CRLF region of `server.mjs` — the file has *mixed*
+endings after scripted edits. Verify the mutation landed before believing a claim is unbreakable; the
+repo's note says suspect the break first, and mixed endings are why.

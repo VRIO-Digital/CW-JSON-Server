@@ -14258,7 +14258,11 @@
           "as_of": "2026-08-10",
           "schedule": "Daily 07:00 UTC",
           "approval": "two-person",
-          "audience": [],
+          "audience": [
+            "domain_architect",
+            "business_user_executive",
+            "business_user_project"
+          ],
           "note": null
         },
         {
@@ -14306,6 +14310,21 @@
             "business_user_executive"
           ],
           "note": "Publishing widens nobody’s data scope — an entitled reader still sees only the rows their own predicate admits."
+        },
+        {
+          "report_id": "trace",
+          "status": "published",
+          "version": "v9",
+          "author": "Rei Nakamura",
+          "category": "Custody",
+          "as_of": "2026-06-30",
+          "schedule": "On demand",
+          "approval": "self-approved",
+          "audience": [
+            "domain_architect",
+            "business_user_project"
+          ],
+          "note": "Reads the five-trace manifest sample rather than the whole custody register — the floor line below says so."
         }
       ],
       "data_scope": [
@@ -14348,22 +14367,6 @@
         "data_scope": "Data scope (gate 2) — which rows a session’s predicate admits and which columns are masked. Declared here and not applied: no roster in this prototype is filtered per persona, so a predicate that silently ran would claim a filter this mock does not have.",
         "author": "Writing a new report definition is a separate permission because a report is a governed object — once published it is what an audience treats as the truth. Authoring rides on the data scope, not on the job title: a persona that cannot see the underlying figures cannot define what a report asserts about them."
       }
-    },
-    "access_requests": [
-      {
-        "report_id": "risk",
-        "role_id": "platform_admin",
-        "by": "shantanu.wagh@vriodigital.com",
-        "requested_at": "2026-08-13T10:26:44.548Z",
-        "state": "pending"
-      },
-      {
-        "report_id": "risk",
-        "role_id": "domain_architect",
-        "by": "ellis.hargrove@vriodigital.com",
-        "requested_at": "2026-08-13T10:29:18.568Z",
-        "state": "pending"
-      }
-    ]
+    }
   }
 }

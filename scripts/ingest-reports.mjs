@@ -506,19 +506,15 @@ db.reports = {
   saved: db.reports?.saved ?? [],
   /*
    * **Nothing under `db.reports` that this script does not author may be dropped here**, and
-   * `db.reports = { … }` drops everything not listed. Two keys are not the package's:
+   * `db.reports = { … }` drops everything not listed.
    *
-   * - `governance` — the lifecycle states, the audiences and the data scopes, authored by
-   *   `node scripts/seed-report-governance.mjs`. It was added after this script and was not
-   *   carried, so a re-ingest deleted it and the server then refused to boot naming `reports`.
-   *   Loud rather than silent, which is the only reason it was survivable.
-   * - `access_requests` — readers asking for a report they are not entitled to. Losing these is
-   *   worse than loud: every row reads "no request made" and whoever asked waits on nothing.
-   *
-   * `??` and not `||`: an empty request list is a fact, not a missing one.
+   * `governance` is the one such key: the lifecycle states, the audiences and the data scopes,
+   * authored by `npm run seed:governance`. It was added after this script and was not carried, so a
+   * re-ingest deleted it and the server then refused to boot naming `reports` — loud rather than
+   * silent, which is the only reason it was survivable. `check-docs` now reads the carry-forward list
+   * off `validateDb`, so a key required later is covered without editing this line.
    */
   governance: db.reports?.governance,
-  access_requests: db.reports?.access_requests ?? [],
 }
 
 /* Which is not a comment's job to enforce. A re-ingest that would drop governance stops here. */

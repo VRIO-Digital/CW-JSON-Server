@@ -14,6 +14,7 @@ npm run check-docs  # asserts this file's factual claims against the code
 npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db.json)
 npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
 npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
+npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
 npm run preflight   # lint + build + audit + check-docs — run before calling work done
 ```
 
@@ -1041,10 +1042,10 @@ declares four states and the data currently uses one; a lifecycle chip at 0 mean
 blocked", which is news rather than a broken map. Changing a `status` in the seed is the one-line
 way to populate the others.
 
-**`access_requests` sits beside `governance` under `db.reports`** — nested, not a 26th top-level key,
-and required for the sharper half of the `graph_studio.sanity_checks` reason: losing `governance`
-stops the boot, but losing *these* does not throw at all. Every row reads "no request made", and a
-reader who asked last week is waiting on something nobody was told about.
+**`db.reports.access_requests` is gone**, with the pending-approval state it served. It was a required
+nested key; nothing writes one and nothing reads one now, and a required key for a feature that does
+not exist fails a boot for no reason a user could act on. An older `db.json` may still carry it — an
+extra key is harmless, and `npm run seed:governance` drops it.
 
 **A state is declared once, in `governance.statuses`, and everything reads it from there** — its
 key, the label a chip and a card print, and the `tone` both tint themselves with. `server.mjs` used
@@ -1066,7 +1067,7 @@ checks **across** the block: a `status` the state pool does not declare has no l
 prints the raw key, and it matches no chip, so the row is reachable only under "All current" while
 every other chip under-counts by one. Neither throws.
 
-#### The Library's lifecycle chips are the one governance surface that is rendered
+#### The Library is one list, and the chips count it
 
 `GET /reports` carries the whole governance view and `client.ts` types all of it, but only two
 things reach the screen: the publish gate, and the Library's chip bar — `All current` plus every
@@ -1077,12 +1078,31 @@ itself** (`Governance`, `GovernedRow`, `GovernanceState` in `src/reports/App.tsx
 importing `client.ts`'s types, the same as `GraphOption`: absent the props it is exactly the
 standalone prototype it was, chip bar and all.
 
-**The chips filter the tenant's definitions, not the shelf.** A report saved in this browser is
-local to it — the prototype does not `POST /reports/saved` — so it is listed under *Saved in this
-session* below the governed grid and the chips do not count it. Calling it governed would be the
-claim this section exists to avoid. `LibraryPane` prints `s.count` and never computes one, and its
-`current` filter is the server's rule (everything not archived) so the bar and the grid agree by
-construction.
+**One grid, both kinds of card.** The governed definitions and the reports saved in this session were
+two grids under two headings; they are one list now, and what separates them is on each card
+(`GovernedCard` / `SessionCard`, extracted so both stay assertable) rather than in a heading above a
+group of them. A reader looking for a report should not have to know which collection it landed in.
+
+**That merge is what moved the chip counts off the server.** It cannot count rows nobody has told it
+about, so a served count beside a list holding session reports would be counting something else. The
+*pool* is still the server's — keys, labels, tones, order — and the count comes from the same
+`inState` the grid filters with, declared once, so a chip cannot say five while the grid shows six.
+The server still computes its own counts for the Operations tab, over its own rows.
+
+**A session report is not folded into the tenant's Published chip.** It has been submitted to nobody,
+so it answers to a `SESSION` chip — *Saved here*, present only when something is in it — while its own
+Draft/Published pill still says what it is locally. Counting it as Published would be the one claim
+this section exists to avoid.
+
+**A published report's name is how its audience refers to it, so two cannot share one.** `nameProblem`
+is the single rule, checked across the whole list (both halves — they sit in one grid), and used by
+both writers: the publish dialog checks as you type, and Save draft checks before it writes. Only
+*published* names are reserved (two drafts may collide; publishing is where it is resolved), case and
+surrounding space do not make a name different, and a report never collides with itself.
+
+**The card states no approval.** `approval` is still on the payload and the Operations tab's audit rows
+and publish checks still read it — what was removed is restating it in a list whose job is to say what
+each report is and who can see it.
 
 **A chip at 0 is a state, not a broken map** — unlike the document dictionary's type facets, where
 0 means the map is wrong. Nothing blocked is good news, so the chip dims and stays clickable and
@@ -1090,12 +1110,25 @@ the empty grid says so in words. New CSS for the section goes in `ReportsPage.cs
 vendored sheet, which carries a do-not-hand-edit rule — and so it is on the `--sp-*` scale like
 everything else authored here.
 
-#### Four actions on a row, and the three that reach the server
+#### Four actions on a row, and the two that reach the server
 
-**Open report · Edit report · Share · Delete**, and each is offered only where it can be carried
-out — a button that 404s is worse than one that is absent. Open and Edit need an authoring starter
-behind the row; Share and Delete are the *governance row's* own, so a composed (`kind: 'saved'`)
-row gets neither.
+**Open report · Edit report · Share · Delete**, on every row, and each is offered only where it can be
+carried out — a button that 404s is worse than one that is absent. Open and Edit need an authoring
+starter behind the row; Share and Delete are the *governance row's* own, so a composed
+(`kind: 'saved'`) row gets neither.
+
+**There is no access gate on a row, and there was.** A per-row `access` block said whether the calling
+role could open a report and what it had requested, and a reader outside the audience saw *Request
+access* / *Access pending approval* **instead of** the four actions. It was removed on request, along
+with `POST /reports/access-requests`, `db.reports.access_requests` and `requestReportAccess`. The
+audience is still *stated* on the row ("Shared with: … / nobody — private") and nothing acts on it —
+which is the honest position anyway, because the role is client-held and the API serves every row to a
+caller that names none, so the gate was never access control.
+
+`check-docs` asserts the absence **on every layer at once**, because the dangerous shape is a partial
+revival: a card that gates on `access` while the payload no longer sends one renders a row with no
+actions at all, which is the symptom that prompted the removal. Re-adding it deliberately means
+deleting that claim in the same commit.
 
 **Open and Edit work because a governed definition *is* one of the prototype's starters.** Both come
 from `07_reports/report_authoring_data.json`, so `fromGoverned` matches a row to a starter on
@@ -1104,31 +1137,23 @@ the starter's. It returns `null` where nothing matches and the row then offers n
 
 - **`PATCH /reports/governance/:id/audience` is Share.** `[]` is **private**, and private is a
   decision: `validateDb` accepts an empty audience for exactly that reason, while the *seed* still
-  refuses one because there it is a typo and nothing on that side tells the two apart. Sharing *with*
-  a role also settles whatever that role had requested — a request outliving the thing it asked for
-  would show "pending approval" on a report the reader can already open.
+  refuses one because there it is a typo and nothing on that side tells the two apart.
 - **`DELETE /reports/governance/:id` drops the governance row, not the definition.** The definition
   is the package's and stays in `db.reports.reports`, so a re-seed restores it — the reply carries the
   command and the confirmation says so, because "gone for good" and "a seed brings it back" are
   different promises to make to somebody clicking Delete. The last row cannot be deleted: a section
   with nothing to govern reads as broken rather than empty.
-- **`POST /reports/access-requests` is Request access**, and **nothing in this app approves one.**
-  The ask is recorded `pending` and the row names who could answer it (the personas that may author,
-  since widening an audience is authoring). An approve button would have to be a second person acting
-  as themselves, and this login authenticates by shape. Asking twice is one request, returned
-  unchanged rather than refused — the intent is already recorded and an error would read as failure.
+Both **commit**, because both are somebody's decision: a restart clears a registered source and a
+publication, and it must not clear who a report was shared with. Each answers with the whole
+governance view, and the page **re-reads the section** rather than adopting that reply — one path into
+the state on screen instead of two.
 
-All three **commit**, because all three are somebody's decision: a restart clears a registered source
-and a publication, and it must not clear who a report was shared with or who is waiting to be let in.
-Each answers with the whole governance view, and the page **re-reads the section** rather than
-adopting that reply — one path into the state on screen instead of two.
-
-**The access state is not access control, and the picker says so on the page.** The role travels from
-the browser and the login authenticates by shape, so what this narrows is what a reader is *shown*;
-the API still serves every row to a caller that names no role, and a caller naming none is treated as
-entitled rather than locked out. That is the rule `viewer_roles` established, applied to gate 1 — and
-CLAUDE.md's requirement that any UI built on it say so in those words is met by `SharePicker`'s own
-caveat line.
+**Sharing is not access control, and the picker says so on the page.** The role travels from the
+browser and the login authenticates by shape, so what Share records is *stated* on the row and acted
+on nowhere; the API still serves every row to a caller that names no role. That is the rule
+`viewer_roles` established, applied to gate 1 — and CLAUDE.md's requirement that any UI built on it say
+so in those words is met by `SharePicker`'s own caveat line. It is also why removing the access gate
+lost nothing real: a gate on a client-held role was never enforcing anything.
 
 **The Share picker renders the served role pool.** `GET /auth/roles` is the source, the same one the
 login reads; a list of four roles written into the component would be a second answer to "who exists"
@@ -1149,10 +1174,16 @@ and deliberately-private are different facts, and only the second is a decision.
 field from the prototype's own `audience`** (Operations / Compliance), because those are two pools and
 translating one into the other would invent a mapping.
 
-**Hosted, the shelf starts empty.** The prototype's four seeded library rows are its own fiction —
-other people's reports with bylines nobody here has — and beside a grid of the tenant's real
-definitions they read as four more reports that do not exist. Standing alone it keeps them, because
-there is no real list for them to stand next to.
+**Hosted, the session list starts empty.** The prototype's four seeded library rows are its own fiction
+— other people's reports with bylines nobody here has — and in one list with the tenant's real
+definitions they read as four more reports that do not exist. Standing alone the prototype keeps them,
+because there is no real list for them to stand beside; that branch is also the only one that still
+renders the old empty-state panel.
+
+**Delete promises only what it does.** It drops the governance row, so the confirmation says the
+definition leaves the list and that `npm run seed:governance` brings it back — never "gone for good".
+That script is also the fix when a definition goes missing: it re-authors all five, and it settles a
+pending access request whose audience it just widened, the same way `PATCH …/audience` does.
 
 **`may_author`** comes from the persona's data-scope row: a persona that cannot see the
 underlying figures cannot define what a report asserts about them, and the refusal names who
@@ -1578,6 +1609,23 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   ends in `process.exit`, so a claim added after it is dead — `check-docs` still passes and every
   break test reports `MISSED`. The tell is the **claim total not moving**. Add claims in the
   section they belong to, and confirm the count went up.
+- **When a feature is removed, guard its absence at every layer it touched.** The report access gate
+  spanned the server, a route, a required `db.json` key, a client schema and fetcher, two handlers, a
+  card and a stylesheet. Half of it is worse than all of it: a card gating on `access` while the payload
+  no longer sends one renders a row with no actions — the original symptom. One cross-layer claim, not
+  one per file.
+- **A file can have mixed line endings after scripted edits**, so a break test that searches for `\n`
+  in a CRLF region silently fails to mutate and reports the claim as unbreakable. Check the mutation
+  landed before rewriting a working guard.
+- **Strip comments before asserting that code does not say something.** Two `check-docs` claims failed
+  against correct code because they were whole-file searches for a word the file mentions *in the
+  comment explaining its removal* — "no approval line", "not \"gone for good\"". A third was too broad:
+  `!/Approval/` also matched "Access pending approval", a different feature. Use `codeOnly()` and key on
+  the narrowest token that carries the fact (`r.approval`, not `approval`).
+- **When a list changes what it contains, re-derive every number about it.** The Library's chips printed
+  the server's counts, which was one source while the list held only server rows; merging the session
+  reports in would have shown "Published 5" over six cards. "The server computes it" is a single source
+  only while the server can see everything being counted.
 - **`x = { … }` on a shared key deletes everything not listed.** `ingest-reports.mjs` rebuilds
   `db.reports` wholesale and carried `saved` forward by hand; `governance` was added later by another
   script and was not carried, so a re-ingest would have deleted every audience and data-scope row.

@@ -136,24 +136,6 @@
   white-space: nowrap;
 }
 
-.cw-reports .rp-group > h2,
-.cw-reports h2.rp-shelfHead {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.cw-reports .rp-group > p {
-  color: var(--mut);
-  font-size: 12.5px;
-  line-height: 1.6;
-  max-width: 640px;
-  margin: var(--sp-1) 0 var(--sp-4);
-}
-
-.cw-reports h2.rp-shelfHead {
-  margin-bottom: var(--sp-4);
-}
-
 /*
  * Why a definition is in the state it is in. `crit`-adjacent copy would be wrong — the note
  * explains rather than alarms — so it takes the sheet's neutral inset rather than a status tint.
@@ -175,35 +157,6 @@
 .cw-reports .pill.rp-neutral {
   background: var(--card2);
   color: var(--mut);
-}
-
-.cw-reports .rp-shelfNote {
-  color: var(--mut);
-  font-size: 12.5px;
-  line-height: 1.6;
-  max-width: 640px;
-}
-
-/*
- * ---- where the actions would be, when the reader is not entitled ----
- *
- * Its own block rather than a disabled action row: "you may not open this" and "here is what you can
- * do about it" are different sentences, and greying out four buttons says neither.
- */
-.cw-reports .rcard .rp-access {
-  margin-top: auto;
-  padding-top: var(--sp-3);
-  border-top: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-}
-
-.cw-reports .rcard .rp-access .racts2 {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
 }
 
 /*
