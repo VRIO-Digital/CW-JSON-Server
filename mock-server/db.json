@@ -12057,8 +12057,8 @@
   "whatif": {
     "copy": {
       "page_title": "What-if",
-      "banner": "VLS Texas Molecular — Deer Park, TX · built on the real VLS demo graph (36 inbound generators, EPA RCRAInfo + e-Manifest + ECHO, synthetic figures). A scenario admits a candidate load into the graph; the watched measures recompute by traversal to federal records.",
-      "subtitle": "See the risk before you accept the next load. Authoring sets the frame — which measures you watch, and which pool of candidate generators you draw from. Then in Runtime you swap loads in and out live, save the ones worth keeping, and open any figure to the federal record it came from. Nothing is predicted.",
+      "banner": "Draft mockup v2 · VLS Texas Molecular — Deer Park, TX · built on the real VLS demo graph (36 inbound generators, EPA RCRAInfo + e-Manifest + ECHO, synthetic figures). A scenario admits a candidate load into the graph; the watched measures recompute by traversal to federal records.",
+      "subtitle": "See the risk before you accept the next load. Authoring sets the scenario — which measures you watch, which pool of candidate generators you draw from, and its name. Then in Runtime you swap case loads in and out live, publish the complete scenario when it’s worth sharing, and open any figure to the federal record it came from. Nothing is predicted.",
       "overlay_pill": "◈ read-only overlay · never writes back",
       "tabs": [
         {
@@ -12835,6 +12835,97 @@
         "carrying": 4,
         "appetite": 10
       }
+    },
+    "publishing": {
+      "publish_title": "Publish scenario",
+      "manage_title": "Manage publishing",
+      "call": "The whole scenario travels, or nothing does. A case is not separately shareable — a figure without its frame (what was watched, which pool it was drawn from) is a number without a question.",
+      "readers": {
+        "label": "Readers",
+        "placeholder": "Name or email…",
+        "empty_error": "Add at least one reader.",
+        "caveat": "This narrows who is told the scenario exists. It is not access control: the directory comes from Settings, the role comes from the browser, and the API still serves every scenario to a caller that names nobody.",
+        "scope_note": "Each reader opens the scenario through the data access their persona already carries. What that persona may see is stated beside them; this lens applies no filter of its own."
+      },
+      "graph": {
+        "label": "Bind to a graph",
+        "note": "The scenario stores its frame and each case’s admitted load — never the numbers. Every figure a reader sees is recomputed by traversal against the graph version bound here.",
+        "empty": "Nothing is published, so there is no graph to bind a scenario to."
+      },
+      "freshness": {
+        "label": "Numbers freshness",
+        "presets": [
+          {
+            "id": "open",
+            "label": "Only when it’s opened",
+            "sentence": "Figures recompute from the live tables each time a reader opens it — no schedule."
+          },
+          {
+            "id": "daily",
+            "label": "Every weekday (Mon–Fri) at 6:00 AM",
+            "sentence": "Figures refresh at 6:00 AM, Monday to Friday."
+          },
+          {
+            "id": "monday",
+            "label": "Weekly on Monday at 6:00 AM",
+            "sentence": "One refresh at the start of each week — Monday, 6:00 AM."
+          },
+          {
+            "id": "monthly",
+            "label": "Monthly on the 1st at 6:00 AM",
+            "sentence": "One refresh on the 1st of each month, 6:00 AM."
+          },
+          {
+            "id": "custom",
+            "label": "Custom…",
+            "sentence": "Occurs every {n} {when} at {time}."
+          }
+        ],
+        "days": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+          "Sun"
+        ],
+        "times": [
+          "6:00 AM",
+          "7:00 AM",
+          "8:00 AM",
+          "12:00 PM",
+          "6:00 PM"
+        ],
+        "units": [
+          "day",
+          "week",
+          "month"
+        ],
+        "default": {
+          "preset": "open",
+          "every": 1,
+          "unit": "week",
+          "days": [
+            "Mon"
+          ],
+          "time": "6:00 AM"
+        },
+        "no_day_error": "Pick at least one day of the week."
+      },
+      "done": {
+        "title": "Scenario published",
+        "body": "{name} is now readable by {n}. They open the complete scenario — the frame and every case — never a single case on its own.",
+        "stored": "the frame and each case’s admitted load — never the numbers"
+      },
+      "buttons": {
+        "publish": "Publish scenario",
+        "update": "Update publication",
+        "unpublish": "Unpublish",
+        "manage": "Manage publishing…",
+        "open": "Publish scenario…"
+      },
+      "unpublished_note": "Unpublished — the scenario stays in your library."
     }
   },
   "reports": {
@@ -14261,7 +14352,8 @@
           "audience": [
             "domain_architect",
             "business_user_executive",
-            "business_user_project"
+            "business_user_project",
+            "platform_admin"
           ],
           "note": null
         },
@@ -14292,7 +14384,8 @@
           "approval": "self-approved",
           "audience": [
             "domain_architect",
-            "business_user_executive"
+            "business_user_executive",
+            "platform_admin"
           ],
           "note": null
         },
@@ -14334,7 +14427,13 @@
           "predicate": "TRUE — the only persona that sees derivation, lineage and cost",
           "grain": "manifest line",
           "masked": "none",
-          "may_author": true
+          "may_author": true,
+          "full": false,
+          "mask": false,
+          "rule": {
+            "basis": "state",
+            "values": []
+          }
         },
         {
           "role_id": "business_user_executive",
@@ -14342,7 +14441,10 @@
           "predicate": "TRUE — every inbound generator, figures only",
           "grain": "generator",
           "masked": "derivation, lineage, cost",
-          "may_author": false
+          "may_author": false,
+          "full": true,
+          "mask": false,
+          "rule": null
         },
         {
           "role_id": "business_user_project",
@@ -14350,7 +14452,15 @@
           "predicate": "receiving_facility = 'VLS Deer Park'",
           "grain": "generator",
           "masked": "derivation, lineage, cost",
-          "may_author": false
+          "may_author": false,
+          "full": false,
+          "mask": false,
+          "rule": {
+            "basis": "state",
+            "values": [
+              "TX"
+            ]
+          }
         },
         {
           "role_id": "platform_admin",
@@ -14358,7 +14468,10 @@
           "predicate": "FALSE — structure, lineage, cost and access, never a measure",
           "grain": "—",
           "masked": "every measure",
-          "may_author": false
+          "may_author": false,
+          "full": false,
+          "mask": false,
+          "rule": null
         }
       ],
       "gate_notes": {
@@ -14366,6 +14479,101 @@
         "entitlement": "Audience entitlement (gate 1) — who may see that a report EXISTS. It says nothing about which rows a viewer’s predicate admits; that is gate 2 below. A viewer can be entitled to a report and correctly see zero rows in it.",
         "data_scope": "Data scope (gate 2) — which rows a session’s predicate admits and which columns are masked. Declared here and not applied: no roster in this prototype is filtered per persona, so a predicate that silently ran would claim a filter this mock does not have.",
         "author": "Writing a new report definition is a separate permission because a report is a governed object — once published it is what an audience treats as the truth. Authoring rides on the data scope, not on the job title: a persona that cannot see the underlying figures cannot define what a report asserts about them."
+      },
+      "publishing": {
+        "title": "Publish this report",
+        "republish_title": "Publish your changes",
+        "lead": "It goes live to the people you pick — no approval step. You can change readers or unpublish any time.",
+        "name": {
+          "label": "Report name",
+          "help": "Give it a name your audience will recognise in their library. You can rename it later.",
+          "placeholder": "e.g. Inbound generator risk — Q3 2026"
+        },
+        "readers": {
+          "label": "Who can open it",
+          "placeholder": "Type a name or email address…",
+          "empty": "Nobody yet — this report will be private until you add a reader.",
+          "note": "Each person sees only what their data access rules allow — publishing never widens anyone’s access. Rules are managed in Audit & Governance; the preview above shows the result.",
+          "caveat": "This narrows who is shown the report. It is not access control: the role comes from the browser, and the API still serves every row to a caller that asks without one.",
+          "local_caveat": "This report is saved in your browser, so its readers are recorded here and nobody else can see them. It is not access control either."
+        },
+        "freshness": {
+          "label": "Keep it fresh",
+          "presets": [
+            {
+              "id": "open",
+              "label": "Only when it’s opened",
+              "sentence": "Re-runs against the live tables each time a reader opens it — no schedule."
+            },
+            {
+              "id": "daily",
+              "label": "Every weekday (Mon–Fri) at 6:00 AM",
+              "sentence": "Re-runs at 6:00 AM, Monday to Friday."
+            },
+            {
+              "id": "monday",
+              "label": "Weekly on Monday at 6:00 AM",
+              "sentence": "One re-run at the start of each week — Monday, 6:00 AM."
+            },
+            {
+              "id": "monthly",
+              "label": "Monthly on the 1st at 6:00 AM",
+              "sentence": "One re-run on the 1st of each month, 6:00 AM."
+            }
+          ],
+          "default": "open"
+        },
+        "foot": "Live immediately after you publish.",
+        "buttons": {
+          "publish": "Publish report",
+          "republish": "Publish update",
+          "cancel": "Cancel"
+        }
+      },
+      "audit": {
+        "copy": {
+          "title": "Audit & Governance",
+          "lead": "One place for who sees what. Authors decide who can open a report or scenario when they publish it; you decide which rows each persona may see — and every change here is recorded.",
+          "gates": [
+            {
+              "key": "open",
+              "title": "Who can open it",
+              "detail": "Set by the author at publish time. Managed per report and per what-if below — a report names personas, a scenario names addresses, and neither is merged into the other."
+            },
+            {
+              "key": "scope",
+              "title": "What they see inside",
+              "detail": "An access rule per persona: pick the field the restriction runs on, then the values they may see. It resolves against the live 36-generator register on every read."
+            },
+            {
+              "key": "trail",
+              "title": "What has been recorded",
+              "detail": "Every rule change and every reader added or removed, with who did it. In memory, like publication — a restart forgets both together."
+            }
+          ],
+          "not_enforced": "A rule is recorded, not enforced. No report or scenario in this app filters its rows per persona yet, so what a reader actually opens is unchanged by anything on this page — the resolution below says what the rule would admit, never what somebody saw.",
+          "empty_log": "Nothing recorded yet. Change a rule or a reader and it appears here.",
+          "log_note": "Opens are not in this trail: nothing in this app serves a report to a reader, so an “opened” row would be an event that never happened.",
+          "basis_note": "The fields offered are the register’s own — its identity column plus every field the dictionary declares filterable. A field it does not declare cannot restrict anything."
+        },
+        "categories": [
+          {
+            "key": "all",
+            "label": "All"
+          },
+          {
+            "key": "rule",
+            "label": "Rule changes"
+          },
+          {
+            "key": "reader",
+            "label": "Readers"
+          },
+          {
+            "key": "publish",
+            "label": "Publishing"
+          }
+        ]
       }
     }
   }

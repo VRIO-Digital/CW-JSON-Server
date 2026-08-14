@@ -188,7 +188,135 @@ if (!nodeTypes.has(pkg.graph_reference.frame.center_node)) {
   fail(`the frame centres on "${pkg.graph_reference.frame.center_node}", which is not a declared node type`)
 }
 
-/* ---------------- 7. refuse, or write ---------------- */
+/* ---------------- 7. the publishing block, authored here ----------------
+ *
+ * `whatif_vls_data.json` predates the lens's v2 prototype ("what if lenses/", which
+ * carries the publish flow) and ships **no publishing copy at all** — so unlike every
+ * other section of `db.whatif`, this one is authored rather than transformed. The
+ * strings are the prototype's own, read off `src/data/vlsDemo.ts` and
+ * `src/components/PublishModal.tsx`.
+ *
+ * It lives *in the ingest* rather than beside it in a seed script for one reason: this
+ * script rebuilds `db.whatif` wholesale (`db.whatif = { ...rest }`), so a block seeded
+ * elsewhere would be deleted the next time anybody re-ingests. That is exactly how
+ * `ingest-reports.mjs` nearly dropped every report audience — `x = { … }` on a shared
+ * key deletes what it does not list. Authoring it here makes a re-ingest reproduce it.
+ *
+ * What is deliberately **not** here: the readers and the graph versions. The prototype
+ * ships a five-person `vls.com` directory and a hard-coded `v3`/`v2` graph list; both
+ * are answered by the app's own pools instead — `settings.json`'s users and the graphs
+ * that are actually published — because a copy of either would be a second answer to
+ * "who exists" and could offer a reader the API refuses.
+ */
+const PUBLISHING = {
+  publish_title: 'Publish scenario',
+  manage_title: 'Manage publishing',
+  /* Why a case cannot be shared on its own. The whole premise of the authoring tab is
+     that the frame is what makes a figure mean something. */
+  call:
+    'The whole scenario travels, or nothing does. A case is not separately shareable — a ' +
+    'figure without its frame (what was watched, which pool it was drawn from) is a number ' +
+    'without a question.',
+  readers: {
+    label: 'Readers',
+    placeholder: 'Name or email…',
+    empty_error: 'Add at least one reader.',
+    /* The gate-1 caveat, stated where the decision is made. Required by CLAUDE.md in
+       these words wherever a client-held audience is recorded. */
+    caveat:
+      'This narrows who is told the scenario exists. It is not access control: the ' +
+      'directory comes from Settings, the role comes from the browser, and the API still ' +
+      'serves every scenario to a caller that names nobody.',
+    /* Reader-level scope is *declared*, never applied — the persona's own access note is
+       printed beside them rather than a filter this lens invents and does not run. */
+    scope_note:
+      'Each reader opens the scenario through the data access their persona already ' +
+      'carries. What that persona may see is stated beside them; this lens applies no ' +
+      'filter of its own.',
+  },
+  graph: {
+    label: 'Bind to a graph',
+    note:
+      'The scenario stores its frame and each case’s admitted load — never the numbers. ' +
+      'Every figure a reader sees is recomputed by traversal against the graph version ' +
+      'bound here.',
+    empty: 'Nothing is published, so there is no graph to bind a scenario to.',
+  },
+  freshness: {
+    label: 'Numbers freshness',
+    /* One preset per recurrence the prototype offers. `sentence` is a template rather
+       than a finished string because the custom one interpolates a live control — the
+       same arrangement `runtime.headroom.sentence` already uses for {room}/{appetite}. */
+    presets: [
+      {
+        id: 'open',
+        label: 'Only when it’s opened',
+        sentence: 'Figures recompute from the live tables each time a reader opens it — no schedule.',
+      },
+      {
+        id: 'daily',
+        label: 'Every weekday (Mon–Fri) at 6:00 AM',
+        sentence: 'Figures refresh at 6:00 AM, Monday to Friday.',
+      },
+      {
+        id: 'monday',
+        label: 'Weekly on Monday at 6:00 AM',
+        sentence: 'One refresh at the start of each week — Monday, 6:00 AM.',
+      },
+      {
+        id: 'monthly',
+        label: 'Monthly on the 1st at 6:00 AM',
+        sentence: 'One refresh on the 1st of each month, 6:00 AM.',
+      },
+      { id: 'custom', label: 'Custom…', sentence: 'Occurs every {n} {when} at {time}.' },
+    ],
+    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    times: ['6:00 AM', '7:00 AM', '8:00 AM', '12:00 PM', '6:00 PM'],
+    units: ['day', 'week', 'month'],
+    default: { preset: 'open', every: 1, unit: 'week', days: ['Mon'], time: '6:00 AM' },
+    no_day_error: 'Pick at least one day of the week.',
+  },
+  done: {
+    title: 'Scenario published',
+    /* {name} and {n} are filled where the sentence is printed. A reader count written
+       into the component would be a second source for the same number. */
+    body:
+      '{name} is now readable by {n}. They open the complete scenario — the frame and ' +
+      'every case — never a single case on its own.',
+    stored: 'the frame and each case’s admitted load — never the numbers',
+  },
+  buttons: {
+    publish: 'Publish scenario',
+    update: 'Update publication',
+    unpublish: 'Unpublish',
+    manage: 'Manage publishing…',
+    open: 'Publish scenario…',
+  },
+  unpublished_note: 'Unpublished — the scenario stays in your library.',
+}
+
+/* Each of these fails by *answering*: a preset with no sentence prints an empty
+   recurrence line, a default naming no preset opens the dialog on nothing, and an empty
+   day roster makes the weekly branch unpickable while still offering it. */
+const presetIds = new Set(PUBLISHING.freshness.presets.map((p) => p.id))
+for (const p of PUBLISHING.freshness.presets) {
+  if (!p.sentence) fail(`freshness preset "${p.id}" states no sentence — the recurrence line would be blank`)
+}
+if (!presetIds.has(PUBLISHING.freshness.default.preset)) {
+  fail(`freshness default names preset "${PUBLISHING.freshness.default.preset}", which is not offered`)
+}
+if (!PUBLISHING.freshness.units.includes(PUBLISHING.freshness.default.unit)) {
+  fail(`freshness default names unit "${PUBLISHING.freshness.default.unit}", which is not offered`)
+}
+for (const d of PUBLISHING.freshness.default.days) {
+  if (!PUBLISHING.freshness.days.includes(d)) fail(`freshness default names day "${d}", which is not in the roster`)
+}
+if (!PUBLISHING.freshness.times.includes(PUBLISHING.freshness.default.time)) {
+  fail(`freshness default names time "${PUBLISHING.freshness.default.time}", which is not offered`)
+}
+note(`publishing: ${presetIds.size} freshness presets · ${PUBLISHING.freshness.times.length} times`)
+
+/* ---------------- 8. refuse, or write ---------------- */
 
 if (problems.length > 0) {
   console.error(`\ningest-whatif: ${problems.length} unresolved reference(s):`)
@@ -206,7 +334,30 @@ if (problems.length > 0) {
  * else is stored as the package states it, plus the headroom this script computed.
  */
 const { meta: _meta, ...rest } = pkg
-db.whatif = { ...rest, headroom }
+
+/*
+ * The one string the package no longer describes.
+ *
+ * Its subtitle ends "…swap loads in and out live, **save the ones worth keeping**, and
+ * open any figure to the federal record it came from" — which described a library of
+ * single loads. v2 made the scenario the saved and publishable object, so the sentence
+ * is the v2 prototype's own (`what if lenses/src/App.tsx`). Overridden here rather than
+ * hand-edited into the package, so a re-ingest of the untouched JSON still produces the
+ * copy the page actually implements.
+ */
+const V2_SUBTITLE =
+  'See the risk before you accept the next load. Authoring sets the scenario — which ' +
+  'measures you watch, which pool of candidate generators you draw from, and its name. ' +
+  'Then in Runtime you swap case loads in and out live, publish the complete scenario ' +
+  'when it’s worth sharing, and open any figure to the federal record it came from. ' +
+  'Nothing is predicted.'
+
+db.whatif = {
+  ...rest,
+  copy: { ...rest.copy, subtitle: V2_SUBTITLE },
+  headroom,
+  publishing: PUBLISHING,
+}
 
 writeFileSync(DB, `${JSON.stringify(db, null, 2)}\n`, 'utf8')
 note(`wrote db.whatif · ${Object.keys(db.whatif).length} sections`)

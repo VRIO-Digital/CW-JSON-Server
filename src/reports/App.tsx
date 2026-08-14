@@ -115,9 +115,52 @@ export interface GovernedRow {
   entitledRoles: { roleId: string; label: string }[];
 }
 
+/**
+ * Somebody the publish dialog can pick.
+ *
+ * A **person**, shown with their name and address, whose **role** is what an audience stores —
+ * `viewerRoles` is the audience model everything else in this section reads, and an address here
+ * would be a second one. `scope` and `masked` are that persona's declared data scope, printed
+ * beside them and applied nowhere: no roster is filtered per persona, so a count would state a
+ * filter that never ran.
+ */
+export interface Person {
+  email: string;
+  name: string;
+  roleId: string;
+  roleLabel: string;
+  scope: string | null;
+  masked: string | null;
+}
+
+/** The publish dialog's copy, served rather than written here. */
+export interface Publishing {
+  title: string;
+  republishTitle: string;
+  lead: string;
+  name: { label: string; help: string; placeholder: string };
+  readers: {
+    label: string;
+    placeholder: string;
+    empty: string;
+    note: string;
+    caveat: string;
+    localCaveat: string;
+  };
+  freshness: {
+    label: string;
+    presets: { id: string; label: string; sentence: string }[];
+    default: string;
+  };
+  foot: string;
+  buttons: { publish: string; republish: string; cancel: string };
+}
+
 export interface Governance {
   statuses: GovernanceState[];
   reports: GovernedRow[];
+  people: Person[];
+  publishing: Publishing;
   /**
    * Definitions the tenant has that nothing governs — normally empty, and stated on the page when it
    * is not. A shorter list with nothing explaining it reads as data loss; this is the explanation,
@@ -141,6 +184,12 @@ export interface GovernanceActions {
 
 /** The chip that leads the bar. Not a stored state — the server counts it as everything not archived. */
 const ALL_CURRENT = 'current';
+
+/**
+ * "3 roles" / "1 role" — said the same way by Share and by Publish, which both change the same
+ * field. Two copies of this drifted into "3 roles" and "3 people" for one audience.
+ */
+const named = (n: number) => `${n} role${n === 1 ? '' : 's'}`;
 
 /**
  * How long the two authoring steps take, and why they take any time at all.
@@ -438,8 +487,6 @@ export default function App({
 
   /** Share, Delete and Request access all run through the host and report its own sentence back. */
   async function saveShare(audience: string[]) {
-    const named = (n: number) => `${n} role${n === 1 ? '' : 's'}`;
-
     if (sharedSaved) {
       /* Local, and the row says so: this report has no governance row for the API to change. */
       setLibrary((prev) =>
@@ -546,16 +593,33 @@ export default function App({
     goTab('library');
   }
 
-  function publish(name: string, audience: string) {
+  /**
+   * Publish: name it, say who may open it, say how fresh the figures stay.
+   *
+   * **No approval step, and the toast no longer claims one.** It used to end "— a Domain Architect
+   * approves before it goes live", which described the three-act model (publish → approve →
+   * activate) that was collapsed to publish/unpublish. The report went live immediately either
+   * way, so the sentence was a promise the code never kept.
+   */
+  function publish(name: string, audience: string, viewerRoles: string[], freshness: string) {
     /* The dialog will not submit a name this refuses; checked again because it is the writer. */
     const problem = problemFor(name);
     if (problem) {
       toast(problem);
       return;
     }
-    save('published', name, audience);
+    const record = save('published', name, audience);
+    /* The readers and the schedule are the report's own, and they stay in this browser — the
+       prototype does not post its saved reports, which is what `localOnly` tells the dialog. */
+    setLibrary((prev) =>
+      prev.map((r) => (r.id === record.id ? { ...r, viewerRoles, freshness } : r)),
+    );
     setPublishOpen(false);
-    toast(`“${name}” published to ${audienceLabel(audience)} — a Domain Architect approves before it goes live.`);
+    toast(
+      viewerRoles.length === 0
+        ? `“${name}” is published and private — nobody else is named on it yet.`
+        : `“${name}” is published to ${named(viewerRoles.length)}.`,
+    );
     goTab('library');
   }
 
@@ -640,7 +704,14 @@ export default function App({
               }
             }}
             onSaveDraft={saveDraft}
-            onPublish={() => setPublishOpen(true)}
+            /* Refused with the reason rather than opening a dialog that cannot describe itself:
+               the readers and every string in it are served, so without them there is nothing to
+               show. A button that silently does nothing is the failure this section avoids. */
+            onPublish={() =>
+              governance
+                ? setPublishOpen(true)
+                : toast('The publish dialog is still loading its reader directory — try again in a moment.')
+            }
           />
         )}
       </>
@@ -730,11 +801,21 @@ export default function App({
         />
       )}
 
-      {publishOpen && (
+      {/*
+        * Only with a served directory and copy. Standing alone the prototype has neither, and a
+        * dialog that offered an empty reader list would read as "nobody exists" rather than as the
+        * host not having passed one — so the older name-only dialog is what that branch keeps.
+        */}
+      {publishOpen && governance && (
         <PublishDialog
           initialName={opened?.name ?? starter.title}
           initialAudience={opened?.audience ?? AUDIENCE_KEY}
+          initialViewerRoles={opened?.viewerRoles ?? []}
           republish={opened?.status === 'published'}
+          publishing={governance.publishing}
+          people={governance.people}
+          /* A report saved here never leaves the browser, so its readers stay here too. */
+          localOnly
           nameProblem={problemFor}
           onCancel={() => setPublishOpen(false)}
           onConfirm={publish}

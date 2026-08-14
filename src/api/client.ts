@@ -4307,11 +4307,67 @@ export interface WhatIfHeadroom {
   appetite: number
 }
 
-/** A saved scenario. Stores the admitted load, never the figures. */
+/** One case inside a scenario: the admitted load, and what it is called. */
+export interface WhatIfCase {
+  name: string
+  generatorId: string
+}
+
+/** Somebody a scenario can be published to. The tenant's own users, with their persona. */
+export interface WhatIfReader {
+  email: string
+  name: string
+  roleId: string
+  roleLabel: string
+  /** What that persona may see. Stated beside them — this lens applies no filter. */
+  accessNote: string
+}
+
+/** A published graph a scenario can be bound to. */
+export interface WhatIfGraphOption {
+  useCaseId: string
+  name: string
+  version: string | null
+  sha256: string | null
+}
+
+/** How often a reader's figures re-traverse. Declared, never a promise this mock keeps. */
+export interface WhatIfFreshness {
+  preset: string
+  every: number
+  unit: string
+  days: string[]
+  time: string
+}
+
+/** What a published scenario records: who is told, which content answers it, how often. */
+export interface WhatIfPublication {
+  readers: string[]
+  graphUseCaseId: string
+  graphName: string
+  graphVersion: string | null
+  graphSha256: string | null
+  freshness: WhatIfFreshness
+  publishedBy: string
+  publishedAt: string
+}
+
+/**
+ * A saved scenario: the frame, its cases, and its publication.
+ *
+ * **Stores the admitted load, never the figures.** That is what lets it stay true as the
+ * graph changes — re-opening it recomputes every measure by traversal rather than
+ * reading a number somebody cached last week.
+ */
 export interface WhatIfSaved {
   savedId: string
   name: string
-  generatorId: string
+  /** The frame: which measures were watched and which pool the cases may draw from. */
+  watch: string[]
+  pool: string
+  cases: WhatIfCase[]
+  /** Null while it is a library entry nobody has published. */
+  published: WhatIfPublication | null
 }
 
 /** One watched measure, computed for one candidate load. */
@@ -4425,6 +4481,45 @@ export interface WhatIfAuthoringStep {
   help: string
 }
 
+/**
+ * The publish dialog's copy — all of it the tenant's, none of it written in a component.
+ *
+ * A freshness preset carries its own `sentence` because the recurrence line has to change
+ * as the control does; `custom` interpolates `{n}`, `{when}` and `{time}`, the same
+ * arrangement `runtime.headroom.sentence` uses for `{room}` and `{appetite}`.
+ */
+export interface WhatIfPublishing {
+  publishTitle: string
+  manageTitle: string
+  call: string
+  readers: {
+    label: string
+    placeholder: string
+    emptyError: string
+    caveat: string
+    scopeNote: string
+  }
+  graph: { label: string; note: string; empty: string }
+  freshness: {
+    label: string
+    presets: { id: string; label: string; sentence: string }[]
+    days: string[]
+    times: string[]
+    units: string[]
+    default: WhatIfFreshness
+    noDayError: string
+  }
+  done: { title: string; body: string; stored: string }
+  buttons: {
+    publish: string
+    update: string
+    unpublish: string
+    manage: string
+    open: string
+  }
+  unpublishedNote: string
+}
+
 export interface WhatIfFrame {
   connectedSources: number
   /** 0 while no graph is published — the lens overlays the published graph. */
@@ -4443,7 +4538,17 @@ export interface WhatIfFrame {
   pools: WhatIfPool[]
   headroom: WhatIfHeadroom[]
   saved: WhatIfSaved[]
+  /**
+   * Who a scenario can be published to, and which content it can be bound to.
+   *
+   * Both are the app's own pools — `settings.json`'s users and the graphs that are
+   * actually published — served rather than held here, because a client-side copy of
+   * either is a second answer to "who exists" and can offer what the API refuses.
+   */
+  readers: WhatIfReader[]
+  graphs: WhatIfGraphOption[]
   copy: WhatIfCopy
+  publishing: WhatIfPublishing
   defaults: { tab: string; step: number; count: number; watch: string[]; pool: string }
   authoring: {
     steps: WhatIfAuthoringStep[]
@@ -4526,7 +4631,85 @@ const WHATIF_MEASURE = shape({
   inherited: bool,
 })
 
-const WHATIF_SAVED = shape({ saved_id: str, name: str, generator_id: str })
+const WHATIF_FRESHNESS = shape({
+  preset: str,
+  every: num,
+  unit: str,
+  days: arrayOf(str),
+  time: str,
+})
+
+/*
+ * A saved scenario. `cases` carries generator ids and names and *nothing else* — the
+ * schema is where that contract is visible, because a server that started answering
+ * with cached measures here would otherwise be indistinguishable from one that did not.
+ */
+const WHATIF_SAVED = shape({
+  saved_id: str,
+  name: str,
+  watch: arrayOf(str),
+  pool: str,
+  cases: arrayOf(shape({ name: str, generator_id: str })),
+  published: nullable(
+    shape({
+      readers: arrayOf(str),
+      graph_use_case_id: str,
+      graph_name: str,
+      graph_version: nullable(str),
+      graph_sha256: nullable(str),
+      freshness: WHATIF_FRESHNESS,
+      published_by: str,
+      published_at: str,
+    }),
+  ),
+})
+
+const WHATIF_READER = shape({
+  email: str,
+  name: str,
+  role_id: str,
+  role_label: str,
+  access_note: str,
+})
+
+const WHATIF_GRAPH_OPTION = shape({
+  use_case_id: str,
+  name: str,
+  version: nullable(str),
+  sha256: nullable(str),
+})
+
+const WHATIF_PUBLISHING = shape({
+  publish_title: str,
+  manage_title: str,
+  call: str,
+  readers: shape({
+    label: str,
+    placeholder: str,
+    empty_error: str,
+    caveat: str,
+    scope_note: str,
+  }),
+  graph: shape({ label: str, note: str, empty: str }),
+  freshness: shape({
+    label: str,
+    presets: arrayOf(shape({ id: str, label: str, sentence: str })),
+    days: arrayOf(str),
+    times: arrayOf(str),
+    units: arrayOf(str),
+    default: WHATIF_FRESHNESS,
+    no_day_error: str,
+  }),
+  done: shape({ title: str, body: str, stored: str }),
+  buttons: shape({
+    publish: str,
+    update: str,
+    unpublish: str,
+    manage: str,
+    open: str,
+  }),
+  unpublished_note: str,
+})
 
 const WHATIF_FRAME = shape({
   connected_sources: num,
@@ -4552,6 +4735,11 @@ const WHATIF_FRAME = shape({
     }),
   ),
   saved: arrayOf(WHATIF_SAVED),
+  /* Both empty before a graph is published, and the gate branch sends them so anyway —
+     the shape is checked on every branch, not only the one with data. */
+  readers: arrayOf(WHATIF_READER),
+  graphs: arrayOf(WHATIF_GRAPH_OPTION),
+  publishing: WHATIF_PUBLISHING,
   copy: shape({
     page_title: str,
     banner: str,
@@ -4669,6 +4857,9 @@ const WHATIF_SCENARIO = shape({
 })
 
 const WHATIF_SAVED_PAYLOAD = shape({ saved: arrayOf(WHATIF_SAVED) })
+/* A write answers with the library *and* the id it touched, so the page can link the
+   runtime to the entry without guessing which row is new. */
+const WHATIF_SAVED_WRITE = shape({ saved: arrayOf(WHATIF_SAVED), saved_id: str })
 
 interface RawWhatIfGenerator {
   id: string
@@ -4686,10 +4877,30 @@ interface RawWhatIfGenerator {
   last_enforcement: string
 }
 
+interface RawWhatIfFreshness {
+  preset: string
+  every: number
+  unit: string
+  days: string[]
+  time: string
+}
+
 interface RawWhatIfSaved {
   saved_id: string
   name: string
-  generator_id: string
+  watch: string[]
+  pool: string
+  cases: { name: string; generator_id: string }[]
+  published: {
+    readers: string[]
+    graph_use_case_id: string
+    graph_name: string
+    graph_version: string | null
+    graph_sha256: string | null
+    freshness: RawWhatIfFreshness
+    published_by: string
+    published_at: string
+  } | null
 }
 
 const toWhatIfGenerator = (g: RawWhatIfGenerator): WhatIfGenerator => ({
@@ -4711,7 +4922,21 @@ const toWhatIfGenerator = (g: RawWhatIfGenerator): WhatIfGenerator => ({
 const toWhatIfSaved = (s: RawWhatIfSaved): WhatIfSaved => ({
   savedId: s.saved_id,
   name: s.name,
-  generatorId: s.generator_id,
+  watch: s.watch,
+  pool: s.pool,
+  cases: s.cases.map((c) => ({ name: c.name, generatorId: c.generator_id })),
+  published: s.published
+    ? {
+        readers: s.published.readers,
+        graphUseCaseId: s.published.graph_use_case_id,
+        graphName: s.published.graph_name,
+        graphVersion: s.published.graph_version,
+        graphSha256: s.published.graph_sha256,
+        freshness: s.published.freshness,
+        publishedBy: s.published.published_by,
+        publishedAt: s.published.published_at,
+      }
+    : null,
 })
 
 interface RawWhatIfStep {
@@ -4737,6 +4962,45 @@ interface RawWhatIfFrame {
   candidate_pools: WhatIfPool[]
   headroom: WhatIfHeadroom[]
   saved: RawWhatIfSaved[]
+  readers: {
+    email: string
+    name: string
+    role_id: string
+    role_label: string
+    access_note: string
+  }[]
+  graphs: { use_case_id: string; name: string; version: string | null; sha256: string | null }[]
+  publishing: {
+    publish_title: string
+    manage_title: string
+    call: string
+    readers: {
+      label: string
+      placeholder: string
+      empty_error: string
+      caveat: string
+      scope_note: string
+    }
+    graph: { label: string; note: string; empty: string }
+    freshness: {
+      label: string
+      presets: { id: string; label: string; sentence: string }[]
+      days: string[]
+      times: string[]
+      units: string[]
+      default: RawWhatIfFreshness
+      no_day_error: string
+    }
+    done: { title: string; body: string; stored: string }
+    buttons: {
+      publish: string
+      update: string
+      unpublish: string
+      manage: string
+      open: string
+    }
+    unpublished_note: string
+  }
   copy: {
     page_title: string
     banner: string
@@ -4818,6 +5082,44 @@ export async function getWhatIfFrame(): Promise<WhatIfFrame> {
     pools: raw.candidate_pools,
     headroom: raw.headroom,
     saved: raw.saved.map(toWhatIfSaved),
+    readers: raw.readers.map((r) => ({
+      email: r.email,
+      name: r.name,
+      roleId: r.role_id,
+      roleLabel: r.role_label,
+      accessNote: r.access_note,
+    })),
+    graphs: raw.graphs.map((g) => ({
+      useCaseId: g.use_case_id,
+      name: g.name,
+      version: g.version,
+      sha256: g.sha256,
+    })),
+    publishing: {
+      publishTitle: raw.publishing.publish_title,
+      manageTitle: raw.publishing.manage_title,
+      call: raw.publishing.call,
+      readers: {
+        label: raw.publishing.readers.label,
+        placeholder: raw.publishing.readers.placeholder,
+        emptyError: raw.publishing.readers.empty_error,
+        caveat: raw.publishing.readers.caveat,
+        scopeNote: raw.publishing.readers.scope_note,
+      },
+      graph: raw.publishing.graph,
+      freshness: {
+        label: raw.publishing.freshness.label,
+        presets: raw.publishing.freshness.presets,
+        days: raw.publishing.freshness.days,
+        times: raw.publishing.freshness.times,
+        units: raw.publishing.freshness.units,
+        default: raw.publishing.freshness.default,
+        noDayError: raw.publishing.freshness.no_day_error,
+      },
+      done: raw.publishing.done,
+      buttons: raw.publishing.buttons,
+      unpublishedNote: raw.publishing.unpublished_note,
+    },
     copy: {
       pageTitle: raw.copy.page_title,
       banner: raw.copy.banner,
@@ -4995,23 +5297,76 @@ export async function computeWhatIfScenario(input: {
   }
 }
 
-/** Save or update a library entry. Stores the admitted load, never the figures. */
+/**
+ * Save or update a library entry — the **whole scenario**, frame included.
+ *
+ * The frame travels with the cases because it is what makes them mean anything: a case
+ * re-opened without the measures it was judged against and the pool it was drawn from is
+ * a load with no question attached. Stores the admitted loads, never the figures.
+ */
 export async function saveWhatIfScenario(input: {
   savedId?: string | null
   name: string
-  generatorId: string
-}): Promise<WhatIfSaved[]> {
-  const raw = validate<{ saved: RawWhatIfSaved[] }>(
+  watch: string[]
+  pool: string
+  cases: WhatIfCase[]
+}): Promise<{ saved: WhatIfSaved[]; savedId: string }> {
+  const raw = validate<{ saved: RawWhatIfSaved[]; saved_id: string }>(
     'The saved scenario',
     await request<unknown>('/whatif/saved', {
       method: 'POST',
       body: {
         saved_id: input.savedId ?? null,
         name: input.name,
-        generator_id: input.generatorId,
+        watch: input.watch,
+        pool: input.pool,
+        cases: input.cases.map((c) => ({ name: c.name, generator_id: c.generatorId })),
       },
     }),
-    WHATIF_SAVED_PAYLOAD,
+    WHATIF_SAVED_WRITE,
+  )
+  return { saved: raw.saved.map(toWhatIfSaved), savedId: raw.saved_id }
+}
+
+/**
+ * Publish a saved scenario: who is told, which published graph answers it, how often.
+ *
+ * `as` is the signed-in address, sent for the reason every "who did this" field in this
+ * app is sent — the identity is client-held and the server has nothing to look it up
+ * from. The server refuses a reader outside the directory and a graph that is not
+ * currently published, so neither can be invented here.
+ */
+export async function publishWhatIfScenario(input: {
+  savedId: string
+  readers: string[]
+  graphUseCaseId: string
+  freshness: WhatIfFreshness
+  as?: string | null
+}): Promise<WhatIfSaved[]> {
+  const query = input.as ? `?as=${encodeURIComponent(input.as)}` : ''
+  const raw = validate<{ saved: RawWhatIfSaved[]; saved_id: string }>(
+    'The published scenario',
+    await request<unknown>(`/whatif/saved/${encodeURIComponent(input.savedId)}/publish${query}`, {
+      method: 'POST',
+      body: {
+        readers: input.readers,
+        graph_use_case_id: input.graphUseCaseId,
+        freshness: input.freshness,
+      },
+    }),
+    WHATIF_SAVED_WRITE,
+  )
+  return raw.saved.map(toWhatIfSaved)
+}
+
+/** Stop a scenario being readable. It stays in the library — that is the promise made. */
+export async function unpublishWhatIfScenario(savedId: string): Promise<WhatIfSaved[]> {
+  const raw = validate<{ saved: RawWhatIfSaved[]; saved_id: string }>(
+    'The unpublished scenario',
+    await request<unknown>(`/whatif/saved/${encodeURIComponent(savedId)}/publish`, {
+      method: 'DELETE',
+    }),
+    WHATIF_SAVED_WRITE,
   )
   return raw.saved.map(toWhatIfSaved)
 }
@@ -5548,6 +5903,36 @@ export interface EntitlementCell {
   tone: Tone
 }
 
+/**
+ * The publish dialog's copy.
+ *
+ * Authored in the governance seed rather than shipped by the package, because the prototype's own
+ * dialog states that "a Domain Architect approves before the audience sees it" — a claim that
+ * stopped being true when publish → approve → activate collapsed to publish/unpublish. A freshness
+ * preset carries its own `sentence` so the line under the select is the tenant's words.
+ */
+export interface ReportPublishing {
+  title: string
+  republishTitle: string
+  lead: string
+  name: { label: string; help: string; placeholder: string }
+  readers: {
+    label: string
+    placeholder: string
+    empty: string
+    note: string
+    caveat: string
+    localCaveat: string
+  }
+  freshness: {
+    label: string
+    presets: { id: string; label: string; sentence: string }[]
+    default: string
+  }
+  foot: string
+  buttons: { publish: string; republish: string; cancel: string }
+}
+
 export interface ReportGovernance {
   reports: GovernedReport[]
   /**
@@ -5563,6 +5948,27 @@ export interface ReportGovernance {
   ungoverned: { reportId: string; reportTag: string; title: string }[]
   /** The command that re-authors them. Served, so one string says it everywhere. */
   restore: string
+  /**
+   * Who the publish dialog can pick, and what each of them may see.
+   *
+   * The tenant's own users with the persona they sign in as. A person is picked and their **role**
+   * is what a report's audience stores, because `viewer_roles` is the audience model the
+   * entitlement matrix and `?as_role=` already read — an address here would be a second one.
+   *
+   * `scope` and `masked` are the persona's *declared* data scope, the same `data_scope` row gate 2
+   * renders. Stated beside a name, never applied: no roster in this section is filtered per
+   * persona, so a count would claim a filter that never ran.
+   */
+  people: {
+    email: string
+    name: string
+    roleId: string
+    roleLabel: string
+    scope: string | null
+    masked: string | null
+  }[]
+  /** The publish dialog's copy, authored by `npm run seed:governance`. */
+  publishing: ReportPublishing
   statuses: GovernanceStatus[]
   categories: string[]
   viewer: {
@@ -5659,6 +6065,39 @@ const REPORT_GOVERNANCE = shape({
   reports: arrayOf(GOVERNED_REPORT),
   ungoverned: arrayOf(shape({ report_id: str, report_tag: str, title: str })),
   restore: str,
+  people: arrayOf(
+    shape({
+      email: str,
+      name: str,
+      role_id: str,
+      role_label: str,
+      /* Nullable: a persona with no `data_scope` row has no declared scope to state, and an
+         invented one would be the dialog answering for gate 2. */
+      scope: nullable(str),
+      masked: nullable(str),
+    }),
+  ),
+  publishing: shape({
+    title: str,
+    republish_title: str,
+    lead: str,
+    name: shape({ label: str, help: str, placeholder: str }),
+    readers: shape({
+      label: str,
+      placeholder: str,
+      empty: str,
+      note: str,
+      caveat: str,
+      local_caveat: str,
+    }),
+    freshness: shape({
+      label: str,
+      presets: arrayOf(shape({ id: str, label: str, sentence: str })),
+      default: str,
+    }),
+    foot: str,
+    buttons: shape({ publish: str, republish: str, cancel: str }),
+  }),
   statuses: arrayOf(shape({ key: str, label: str, tone: TONE, count: num })),
   categories: arrayOf(str),
   viewer: shape({
@@ -5770,6 +6209,31 @@ const toGovernance = (g: any): ReportGovernance => ({
     title: r.title,
   })),
   restore: g.restore,
+  people: (g.people ?? []).map((p: any) => ({
+    email: p.email,
+    name: p.name,
+    roleId: p.role_id,
+    roleLabel: p.role_label,
+    scope: p.scope,
+    masked: p.masked,
+  })),
+  publishing: {
+    title: g.publishing.title,
+    republishTitle: g.publishing.republish_title,
+    lead: g.publishing.lead,
+    name: g.publishing.name,
+    readers: {
+      label: g.publishing.readers.label,
+      placeholder: g.publishing.readers.placeholder,
+      empty: g.publishing.readers.empty,
+      note: g.publishing.readers.note,
+      caveat: g.publishing.readers.caveat,
+      localCaveat: g.publishing.readers.local_caveat,
+    },
+    freshness: g.publishing.freshness,
+    foot: g.publishing.foot,
+    buttons: g.publishing.buttons,
+  },
   statuses: g.statuses,
   categories: g.categories,
   viewer: {
@@ -6468,4 +6932,359 @@ export async function getSavedReport(savedId: string): Promise<{
     saved: raw.saved ? toSaved(raw.saved) : null,
     report: raw.report ? toBuiltReport(raw.report) : null,
   }
+}
+
+/* ---------------- Audit & Governance ---------------- */
+
+/*
+ * Who sees what, and what this server has recorded about it.
+ *
+ * **A rule is recorded, not enforced**, and the payload says so rather than leaving it to the page:
+ * no roster in this app is filtered per persona, so `resolution` states what a rule *would* admit
+ * against today's register — never what a reader saw. That distinction is the whole reason the
+ * field is called a resolution and carries its own sample.
+ */
+
+/** A field a restriction may run on: the register's identity column, plus its filterable fields. */
+export interface GovernanceBasis {
+  basis: string
+  label: string
+  /** True on the spine's own identity column — restricting by it names rows one at a time. */
+  identity: boolean
+  values: { value: string; label: string; count: number }[]
+}
+
+/** What a persona's rule admits against today's register. */
+export interface GovernanceResolution {
+  kind: 'full' | 'mask' | 'part' | 'none'
+  count: number
+  total: number
+  summary: string
+  /** The rows it names. A list is checkable in a way "32 of 36" is not. */
+  sample: string[]
+}
+
+export interface GovernancePerson {
+  email: string
+  name: string
+  roleId: string
+  roleLabel: string
+  /** The tenant's authored prose for this persona's scope — beside the rule, never instead of it. */
+  declared: string | null
+  maskedColumns: string | null
+  full: boolean
+  mask: boolean
+  rule: { basis: string; values: string[] } | null
+  resolution: GovernanceResolution
+}
+
+/** A published report or scenario, with its audience resolved to people. */
+export interface GovernanceArtifact {
+  artifactId: string
+  kind: 'report' | 'whatif'
+  kindLabel: string
+  name: string
+  publishedBy: string | null
+  live: boolean
+  statusLabel: string
+  freshness: string | null
+  cases: string[] | null
+  readers: string[]
+  /** What this artifact's audience is actually made of — the two kinds differ. */
+  audienceNote: string
+  /** False on a report: the section has no unpublish, and the row must not offer one. */
+  canUnpublish: boolean
+}
+
+export interface GovernanceEvent {
+  eventId: string
+  at: string
+  category: string
+  actor: string
+  text: string
+  detail: string
+}
+
+export interface GovernanceView {
+  connectedSources: number
+  publishedCount: number
+  builtCount: number
+  draftCount: number
+  rosterTotal: number
+  bases: GovernanceBasis[]
+  people: GovernancePerson[]
+  artifacts: GovernanceArtifact[]
+  log: GovernanceEvent[]
+  logCategories: { key: string; label: string }[]
+  copy: {
+    title: string
+    lead: string
+    gates: { key: string; title: string; detail: string }[]
+    /** The sentence the page turns on: a rule is recorded, not enforced. */
+    notEnforced: string
+    emptyLog: string
+    logNote: string
+    basisNote: string
+  }
+}
+
+const GOVERNANCE_VIEW = shape({
+  connected_sources: num,
+  published_count: num,
+  built_count: num,
+  draft_count: num,
+  roster_total: num,
+  bases: arrayOf(
+    shape({
+      basis: str,
+      label: str,
+      identity: bool,
+      values: arrayOf(shape({ value: str, label: str, count: num })),
+    }),
+  ),
+  people: arrayOf(
+    shape({
+      email: str,
+      name: str,
+      role_id: str,
+      role_label: str,
+      declared: nullable(str),
+      masked_columns: nullable(str),
+      full: bool,
+      mask: bool,
+      rule: nullable(shape({ basis: str, values: arrayOf(str) })),
+      resolution: shape({
+        kind: oneOf(['full', 'mask', 'part', 'none']),
+        count: num,
+        total: num,
+        summary: str,
+        sample: arrayOf(str),
+      }),
+    }),
+  ),
+  artifacts: arrayOf(
+    shape({
+      artifact_id: str,
+      kind: oneOf(['report', 'whatif']),
+      kind_label: str,
+      name: str,
+      published_by: nullable(str),
+      live: bool,
+      status_label: str,
+      freshness: nullable(str),
+      cases: nullable(arrayOf(str)),
+      readers: arrayOf(str),
+      audience_note: str,
+      can_unpublish: bool,
+    }),
+  ),
+  log: arrayOf(
+    shape({ event_id: str, at: str, category: str, actor: str, text: str, detail: str }),
+  ),
+  log_categories: arrayOf(shape({ key: str, label: str })),
+  copy: shape({
+    title: str,
+    lead: str,
+    gates: arrayOf(shape({ key: str, title: str, detail: str })),
+    not_enforced: str,
+    empty_log: str,
+    log_note: str,
+    basis_note: str,
+  }),
+})
+
+interface RawGovernanceView {
+  connected_sources: number
+  published_count: number
+  built_count: number
+  draft_count: number
+  roster_total: number
+  bases: GovernanceBasis[]
+  people: {
+    email: string
+    name: string
+    role_id: string
+    role_label: string
+    declared: string | null
+    masked_columns: string | null
+    full: boolean
+    mask: boolean
+    rule: { basis: string; values: string[] } | null
+    resolution: GovernanceResolution
+  }[]
+  artifacts: {
+    artifact_id: string
+    kind: 'report' | 'whatif'
+    kind_label: string
+    name: string
+    published_by: string | null
+    live: boolean
+    status_label: string
+    freshness: string | null
+    cases: string[] | null
+    readers: string[]
+    audience_note: string
+    can_unpublish: boolean
+  }[]
+  log: {
+    event_id: string
+    at: string
+    category: string
+    actor: string
+    text: string
+    detail: string
+  }[]
+  log_categories: { key: string; label: string }[]
+  copy: {
+    title: string
+    lead: string
+    gates: { key: string; title: string; detail: string }[]
+    not_enforced: string
+    empty_log: string
+    log_note: string
+    basis_note: string
+  }
+}
+
+const toGovernanceView = (raw: RawGovernanceView): GovernanceView => ({
+  connectedSources: raw.connected_sources,
+  publishedCount: raw.published_count,
+  builtCount: raw.built_count,
+  draftCount: raw.draft_count,
+  rosterTotal: raw.roster_total,
+  bases: raw.bases,
+  people: raw.people.map((p) => ({
+    email: p.email,
+    name: p.name,
+    roleId: p.role_id,
+    roleLabel: p.role_label,
+    declared: p.declared,
+    maskedColumns: p.masked_columns,
+    full: p.full,
+    mask: p.mask,
+    rule: p.rule,
+    resolution: p.resolution,
+  })),
+  artifacts: raw.artifacts.map((a) => ({
+    artifactId: a.artifact_id,
+    kind: a.kind,
+    kindLabel: a.kind_label,
+    name: a.name,
+    publishedBy: a.published_by,
+    live: a.live,
+    statusLabel: a.status_label,
+    freshness: a.freshness,
+    cases: a.cases,
+    readers: a.readers,
+    audienceNote: a.audience_note,
+    canUnpublish: a.can_unpublish,
+  })),
+  log: raw.log.map((e) => ({
+    eventId: e.event_id,
+    at: e.at,
+    category: e.category,
+    actor: e.actor,
+    text: e.text,
+    detail: e.detail,
+  })),
+  logCategories: raw.log_categories,
+  copy: {
+    title: raw.copy.title,
+    lead: raw.copy.lead,
+    gates: raw.copy.gates,
+    notEnforced: raw.copy.not_enforced,
+    emptyLog: raw.copy.empty_log,
+    logNote: raw.copy.log_note,
+    basisNote: raw.copy.basis_note,
+  },
+})
+
+/** The whole page. */
+export async function getGovernance(): Promise<GovernanceView> {
+  return toGovernanceView(
+    validate<RawGovernanceView>(
+      'Audit & Governance',
+      await request<unknown>('/governance'),
+      GOVERNANCE_VIEW,
+    ),
+  )
+}
+
+/** `as` is the signed-in address — client-held, so every route that records who has to be told. */
+const asQuery = (as?: string | null) => (as ? `?as=${encodeURIComponent(as)}` : '')
+
+/** Set a persona's access rule. Every writer answers with the whole view, so there is one path in. */
+export async function setGovernanceScope(input: {
+  roleId: string
+  rule?: { basis: string; values: string[] } | null
+  full?: boolean
+  mask?: boolean
+  as?: string | null
+}): Promise<GovernanceView> {
+  const body: Record<string, unknown> = {}
+  if (input.rule !== undefined) body.rule = input.rule
+  if (input.full !== undefined) body.full = input.full
+  if (input.mask !== undefined) body.mask = input.mask
+  return toGovernanceView(
+    validate<RawGovernanceView>(
+      'The access rule',
+      await request<unknown>(
+        `/governance/scope/${encodeURIComponent(input.roleId)}${asQuery(input.as)}`,
+        { method: 'PATCH', body },
+      ),
+      GOVERNANCE_VIEW,
+    ),
+  )
+}
+
+/** Give somebody access. The server writes to whichever pool the artifact keeps. */
+export async function addGovernanceReader(input: {
+  artifactId: string
+  email: string
+  as?: string | null
+}): Promise<GovernanceView> {
+  return toGovernanceView(
+    validate<RawGovernanceView>(
+      'The reader',
+      await request<unknown>(
+        `/governance/artifacts/${encodeURIComponent(input.artifactId)}/readers${asQuery(input.as)}`,
+        { method: 'POST', body: { email: input.email } },
+      ),
+      GOVERNANCE_VIEW,
+    ),
+  )
+}
+
+export async function removeGovernanceReader(input: {
+  artifactId: string
+  email: string
+  as?: string | null
+}): Promise<GovernanceView> {
+  const path =
+    `/governance/artifacts/${encodeURIComponent(input.artifactId)}` +
+    `/readers/${encodeURIComponent(input.email)}${asQuery(input.as)}`
+  return toGovernanceView(
+    validate<RawGovernanceView>(
+      'The reader',
+      await request<unknown>(path, { method: 'DELETE' }),
+      GOVERNANCE_VIEW,
+    ),
+  )
+}
+
+/** Withdraw a published scenario. Refused on a report, which has no such act. */
+export async function unpublishGovernanceArtifact(input: {
+  artifactId: string
+  as?: string | null
+}): Promise<GovernanceView> {
+  return toGovernanceView(
+    validate<RawGovernanceView>(
+      'The withdrawal',
+      await request<unknown>(
+        `/governance/artifacts/${encodeURIComponent(input.artifactId)}/unpublish${asQuery(input.as)}`,
+        { method: 'POST' },
+      ),
+      GOVERNANCE_VIEW,
+    ),
+  )
 }

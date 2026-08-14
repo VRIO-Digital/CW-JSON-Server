@@ -1321,7 +1321,13 @@ for would be a trap.
 
 ### The empty page
 
-Three different sentences, because they have three different fixes:
+**`NoPublishedGraph`, the same component Reports, the What-if lens and Audit &
+Governance render.** Ask had its own copy of it — same gate, different title and
+its own *Open Graph Studio* button — so one precondition read as two problems;
+`check-docs` now asserts all four use the component and none hand-rolls a second.
+Ask passes only its own `detail` sentence and `footnote`.
+
+Three different sentences inside it, because they have three different fixes:
 
 - **built but unpublished** (`built_count > 0`) → "publish it in Graph Studio",
   and the button goes there.
@@ -1401,10 +1407,12 @@ each is written as a sentence to a user.
 
 ## Flow 10 — What-if: judging a load before accepting it
 
-**Files:** `WhatIfPage.tsx` + `ScenarioColumn.tsx` -> `whatifStore` ->
-`GET /whatif`, `POST /whatif/resolve`, `POST /whatif/scenario`,
-`POST|DELETE /whatif/saved`. Data from `09_What if lens/whatif_vls_data.json` via
-`npm run ingest:whatif`.
+**Files:** `WhatIfPage.tsx` + `ScenarioColumn.tsx` + `PublishScenarioDialog.tsx` ->
+`whatifStore` -> `GET /whatif`, `POST /whatif/resolve`, `POST /whatif/scenario`,
+`POST|DELETE /whatif/saved`, `POST|DELETE /whatif/saved/:id/publish`. Data from
+`09_What if lens/whatif_vls_data.json` via `npm run ingest:whatif`; the publish flow is
+the package's v2 prototype (`what if lenses/`), whose copy that ingest authors because
+the JSON predates it.
 
 The question is "what would this load cost us", asked **before** the load is accepted.
 A scenario admits a candidate generator hypothetically and the watched measures
@@ -1495,14 +1503,54 @@ and the scenario's nodes and edges come from the server with every edge label dr
 graph's declared relationships. **An absence has no circle** — a clean load draws no
 enforcement node.
 
-**Where it fails:** an empty typed measure -> 400 before the pace; a load outside the
-pool -> 404 naming the frame; an unwatched measure key -> 400 naming the step that adds
-it; a saved id that does not exist -> 404. Adding a column past `compare.max` is refused
-with a sentence rather than a disabled button that does nothing, and the last column
-cannot be removed — an empty compare strip has no control that would bring one back.
+### A scenario is the frame plus its cases, and that is what gets saved
 
-Deleting a library entry **unlinks** any open column rather than closing it: the reader
-was looking at that load.
+Step 3 asks for a **name**, because the scenario — this frame plus every case in it — is
+the object the library holds and the publish dialog shares. There is no Save on a case:
+the **scenario bar** above the compare strip carries Save/Update and Publish, and states
+which of three things the runtime currently is (not saved · in library · published, with
+its reader count). Opening a library entry loads its measures and pool back into
+Authoring and **recomputes every case** — it stores loads, so re-opening is a computation
+rather than a restore.
+
+### Publishing shares the whole scenario, and both pools are the app's own
+
+`POST /whatif/saved/:id/publish` records three decisions, each checked server-side:
+
+| decision | pool | refused when |
+|---|---|---|
+| readers | `settings.json`'s users, served on the frame with their persona | empty, or an address the directory does not have — named in the refusal |
+| graph | the graphs *currently published* | not live; the message names the ones that are |
+| freshness | the presets `db.whatif.publishing` declares | unknown preset/unit/time, or a weekly custom schedule with no day |
+
+`?as=<email>` says who published it, written every time — client-held identity, so the
+route has to be told, and a re-publish that names nobody must stop crediting whoever went
+last. A malformed `as` is a 400, never a quiet fallback.
+
+**A case is never separately shareable**, and the dialog's first line says why: a figure
+without its frame is a number without a question. Publishing an unsaved scenario saves it
+first rather than refusing — the dialog needs an entry to hang off, and making the reader
+press Save first would be the page enforcing its own storage model.
+
+**Sharing is not access control**, in those words on the panel: the directory is real but
+the role is client-held, and the API serves every scenario to a caller that names none.
+Each reader's persona scope is **stated**, never applied — no roster here is filtered per
+persona.
+
+`PublishScenarioPanel` is exported separately from the `Modal` that wraps it, for the
+reason `ConnectSourceWizard` is: `renderToString` does not traverse a portal, so a check
+about the dialog's contents would otherwise pass over nothing.
+
+**Where it fails:** an empty typed measure -> 400 before the pace; a load outside the
+pool -> 404 naming the frame, or a 400 naming the pool when a *case* leaves its frame; an
+unwatched measure key -> 400 naming the step that adds it; a scenario watching nothing or
+holding no case -> 400; a saved id that does not exist -> 404. Adding a case past
+`compare.max` is refused with a sentence rather than a disabled button that does nothing,
+and the last case cannot be removed — an empty compare strip has no control that would
+bring one back.
+
+Deleting a library entry leaves the runtime open, just **unlinked**: the reader was
+looking at those cases. Unpublishing keeps the scenario, and says so.
 
 ---
 
@@ -1565,6 +1613,37 @@ row that arrived from the API: `fromGoverned` matches a row to its starter on `r
 The same four are on the session cards, over the same dialog — but Share there writes `viewerRoles` on
 the local row and nothing else: a session report has no governance row, so the dialog and the card both
 say the choice stays in this browser.
+
+### Publishing asks three things, and none of them is an approval
+
+`PublishDialog` used to ask for a name and then state *"A Domain Architect approves before the audience
+sees it"* — which stopped being true when publish → approve → activate collapsed to publish/unpublish.
+The report went live immediately either way, so the dialog promised a step nothing performs. Both the
+sentence and the toast that repeated it are gone, and `check-docs` asserts neither comes back.
+
+| It asks | Stored as | Source |
+|---|---|---|
+| a **name** | `SavedReport.name` | reserved across the whole list by `nameProblem`, checked as you type |
+| **who can open it** — people, from Settings' four users | `viewerRoles` (role ids) | `governance.people`, served |
+| **how fresh** the figures stay | `SavedReport.freshness` (a preset id) | `governance.publishing.freshness` |
+
+**People are picked; their role is what is stored.** `viewer_roles` is the audience model the
+entitlement matrix and `?as_role=` already read, so an address there would be a second one. There is
+no invite option: the personas are the pool, and offering to invite an address would promise a reader
+this app cannot create.
+
+**Each reader's scope is stated, never counted.** Beside the name is that persona's declared
+`data_scope` row and its masked columns. A figure like "sees 32 of 36 generators" would claim a filter
+no roster here runs — gate 2 is declared, not applied, which the Operations tab's own note says.
+
+Every string in the dialog is served on `governance.publishing`, authored by
+`npm run seed:governance`. The seed **refuses to write** a preset with no sentence, a default naming
+no preset, a lead claiming an approval step, or a caveat missing "not access control"; `validateDb`
+re-checks the same block at boot, because losing it renders a publish flow that asks for nothing
+rather than throwing.
+
+Publishing a session report keeps its readers in the browser — the prototype does not post its saved
+reports — so the dialog gets `localOnly` and says so.
 
 **It is one list, not two groups.** Governed definitions and session reports share a grid, told apart by
 the card (`GovernedCard` / `SessionCard`) rather than by a heading. A session report answers to its own
@@ -1642,7 +1721,63 @@ The dataset's vocabulary is the tenant's — the same starters, scopes, measures
 `db.reports` — so the frame it builds is one `POST /reports/build` would accept. Start there,
 and keep the two definitions from drifting.
 
-## Flow 12 — Settings: users, personas and what each one sees
+## Flow 12 — Audit & Governance: who sees what
+
+**Files:** `AuditPage.tsx` + `GovernedArtifactCard.tsx` + `AccessRuleEditor.tsx` ->
+`governanceStore` -> `GET /governance`, `PATCH /governance/scope/:roleId`,
+`POST|DELETE /governance/artifacts/:id/readers`, `POST /governance/artifacts/:id/unpublish`.
+Copy from `npm run seed:governance`.
+
+Two gates and a trail. The page opens once a graph is published — the same precondition Ask, the
+What-if lens and Reports have, through the same `NoPublishedGraph` — because everything on it is
+about published artifacts.
+
+### Gate 1 — who can open it
+
+Each published artifact lists its readers as **people**, and the server writes back to whichever
+pool that artifact keeps: a **report** stores persona ids (`viewer_roles`), a **what-if scenario**
+stores addresses. Neither is translated into the other, and each row says which it is. Adding
+somebody to a report therefore names their persona — anyone else holding it is named too, and the
+row states that rather than leaving it to be discovered.
+
+**Unpublish appears only on a scenario.** That publication is a record this server keeps; a report
+definition has no such act, and the refusal names the equivalent — an audience of nobody. Removing
+the *last* reader of a scenario is refused for the same reason and points at unpublish.
+
+### Gate 2 — what they see inside, recorded but not enforced
+
+An access rule per persona: a **basis** (a field) plus the **values** it admits.
+
+| | where it comes from |
+|---|---|
+| the bases | the register’s identity column plus every `fields.filterable` entry — derived, so a basis no report could slice by cannot be offered |
+| the values | the roster’s own distinct values, each carrying how many rows it admits |
+| the resolution | computed on the server against the live 36-generator register, naming the rows as well as counting them |
+
+**Say it in these words: a rule is recorded, not enforced.** No roster in this app is filtered per
+persona, so the resolution is what a rule *would* admit and never what somebody saw. The sentence
+is served (`copy.not_enforced`), printed beside the rules, checked by `validateDb` on the phrase
+rather than the key, and refused by the seed if it goes missing.
+
+Two personas start `full` because their authored predicate is literally `TRUE`; the other two
+start with no rule, because `receiving_facility` is not a column here and `FALSE` is the absence
+of one. A persona with no rule says **“No rule authored yet”** — not “opens empty”, which would be
+a claim about enforcement.
+
+### The trail
+
+What this server has seen: rule changes, readers added and removed, scenarios withdrawn — each
+with who did it, from `?as=`. In memory, like publication. **Opens are absent and the page says
+why**: nothing here serves a report to a reader, so an “opened” row would be an event that never
+happened.
+
+**Where it fails:** a basis the register does not offer -> 400 naming the ones it does; a value not
+on the roster -> 400; an unknown persona -> 404; a reader outside Settings -> 400 naming the
+directory; unpublishing a report -> 400 naming its equivalent; removing a scenario’s only reader ->
+400 pointing at unpublish; a malformed `as` -> 400 rather than a quiet fallback.
+
+---
+## Flow 13 — Settings: users, personas and what each one sees
 
 **Files:** `mock-server/settings.json` (its own small store) + `scripts/seed-settings.mjs` ->
 `GET /settings` / `PATCH /settings/personas/:roleId/nav` / `POST …/reset` ->

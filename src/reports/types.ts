@@ -201,6 +201,14 @@ export interface SavedReport {
    * in this browser, because the prototype does not post its saved reports to the API.
    */
   viewerRoles?: string[];
+  /**
+   * How often the figures re-run, as the id of one of the tenant's freshness presets.
+   *
+   * Set at publish and stored beside the readers. Like them it stays in this browser, and like
+   * them it is **declared**: nothing here schedules anything, so the row states the intention the
+   * publisher chose rather than reporting a job that ran.
+   */
+  freshness?: string;
 }
 
 /* -------------------------------------------------------------------- app */

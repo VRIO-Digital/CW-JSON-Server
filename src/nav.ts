@@ -7,7 +7,7 @@ import {
   FileTextOutlined,
   // LineChartOutlined,
   PlusOutlined,
-  // SafetyCertificateOutlined,
+  SafetyCertificateOutlined,
   SettingOutlined,
   TableOutlined,
   ClusterOutlined,
@@ -91,6 +91,17 @@ export const NAV_ITEMS: NavItem[] = [
     icon: ExperimentOutlined,
   },
   /*
+   * Who sees what, and what this server has recorded about it. Sits beside Settings because the two
+   * administer different halves of the same question — Settings decides which *pages* a persona
+   * reaches, this decides which *rows* it may see and who a published artifact was shared with.
+   */
+  {
+    key: 'audit',
+    label: 'Audit & Governance',
+    path: '/audit',
+    icon: SafetyCertificateOutlined,
+  },
+  /*
    * Users and persona access. Last on purpose — it is the one entry that configures the others, and a
    * sidebar reads better with the thing that changes it at the bottom.
    *
@@ -121,12 +132,6 @@ export const NAV_ITEMS: NavItem[] = [
   //   label: 'Feedback & Learning',
   //   path: '/feedback',
   //   icon: ApartmentOutlined,
-  // },
-  // {
-  //   key: 'audit',
-  //   label: 'Audit & Governance',
-  //   path: '/audit',
-  //   icon: SafetyCertificateOutlined,
   // },
 
   // Dev tool — routed, reachable by URL only.

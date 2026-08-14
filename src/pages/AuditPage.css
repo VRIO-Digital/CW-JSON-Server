@@ -1,0 +1,312 @@
+/*
+ * Audit & Governance. Spacing from the --sp-* scale only; layout via antd Row/Col.
+ *
+ * **Nothing on this page carries a status colour except one thing.** A persona's scope is a
+ * *category* — "sees the whole register" is not a better state than a rule admitting four rows —
+ * so every scope chip stays neutral, the rule the class chips follow everywhere else. The single
+ * exception is the "recorded, not enforced" banner, which is a genuine caveat about what the page
+ * does and is rendered as antd's warning with its icon and its words, never colour alone.
+ */
+
+.gv-error {
+  margin-bottom: var(--sp-4);
+}
+
+.gv-gates {
+  margin-bottom: var(--sp-4);
+}
+
+.gv-gate {
+  height: 100%;
+  padding: var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gv-gate-title {
+  color: #0f1729;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.gv-gate-detail {
+  margin: var(--sp-1) 0 0;
+  color: #8994a8;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.gv-not-enforced {
+  margin-bottom: var(--sp-5);
+}
+
+.gv-help {
+  margin: 0 0 var(--sp-3);
+  color: #8994a8;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.gv-label {
+  color: #8994a8;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---------------- an artifact ---------------- */
+
+.gv-card {
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-5);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gv-card-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.gv-card-name {
+  color: #0f1729;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.gv-card-meta {
+  margin-top: var(--sp-1);
+  color: #8994a8;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.gv-readers {
+  margin-top: var(--sp-4);
+}
+
+.gv-reader + .gv-reader {
+  margin-top: var(--sp-2);
+}
+
+/*
+ * A flex row shrinks its items before it wraps, which is how a set of small buttons ends up
+ * breaking its labels mid-phrase. Wrap and no-wrap are set together for that reason.
+ */
+.gv-reader-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  background: #fafbfd;
+}
+
+.gv-avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: #fdeae4;
+  color: #9e3819;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.gv-reader-who {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.gv-reader-name {
+  color: #0f1729;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.gv-reader-mail {
+  color: #8994a8;
+  font-size: 11px;
+}
+
+/* The access rule, revealed under the reader it belongs to. */
+.gv-access {
+  margin-top: var(--sp-1);
+  padding: var(--sp-4);
+  border: 1px dashed #dfe4ec;
+  border-radius: 8px;
+}
+
+.gv-add {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+
+.gv-add-select {
+  min-width: 260px;
+}
+
+.gv-card-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid #f1f3f7;
+}
+
+.gv-card-foot .gv-help {
+  margin: 0;
+  flex: 1;
+  min-width: 220px;
+}
+
+/* ---------------- the rule ---------------- */
+
+.gv-rule-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.gv-basis {
+  min-width: 240px;
+}
+
+.gv-values {
+  min-width: 260px;
+  flex: 1;
+}
+
+.gv-rule-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+
+.gv-resolves {
+  color: #47536b;
+  font-size: 12.5px;
+}
+
+.gv-mask {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+  color: #8994a8;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* The rows a rule names. Wrapped prose rather than a table — it is a list to read, not to sort. */
+.gv-sample {
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: 8px;
+  background: #fafbfd;
+  color: #47536b;
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+
+/* ---------------- the trail ---------------- */
+
+.gv-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.gv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid #dfe4ec;
+  border-radius: 999px;
+  background: #fff;
+  color: #47536b;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* Selection carries weight as well as tint, because colour alone is what this repo refuses.
+   BRAND_INK on the soft wash, never BRAND — 2.91:1 is under AA. */
+.gv-chip.is-on {
+  border-color: #f4562b;
+  background: #fdeae4;
+  color: #9e3819;
+  font-weight: 600;
+}
+
+.gv-chip-count {
+  color: #8994a8;
+  font-size: 10.5px;
+}
+
+.gv-log {
+  padding: 0 var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gv-event {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid #f1f3f7;
+}
+
+.gv-event:last-child {
+  border-bottom: 0;
+}
+
+.gv-event-text {
+  color: #0f1729;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.gv-event-detail {
+  color: #8994a8;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.gv-event-at {
+  margin-left: auto;
+  flex: none;
+  color: #8994a8;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.gv-log-note,
+.gv-basis-note {
+  margin-top: var(--sp-3);
+  margin-bottom: 0;
+  font-size: 11.5px;
+}

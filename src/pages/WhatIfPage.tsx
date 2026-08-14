@@ -1,15 +1,18 @@
-import { Alert, App, Button, Col, Input, Row, Space, Spin, Tabs } from 'antd'
+import { Alert, App, Button, Col, Input, Row, Space, Spin, Tabs, Tag } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
-import type { WhatIfFrame } from '../api/client'
+import type { WhatIfFrame, WhatIfSaved } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import NoPublishedGraph from '../components/NoPublishedGraph'
 import PageHeader from '../components/PageHeader'
+import PublishScenarioDialog from '../components/PublishScenarioDialog'
 import ScenarioColumn from '../components/ScenarioColumn'
 import { PoolFrame } from '../components/WhatIfGraph'
+import { useAuthStore } from '../store/authStore'
 import {
   headroomFor,
   poolMembers,
   selectColumns,
+  selectCurrent,
   selectSaved,
   useWhatIfStore,
 } from '../store/whatifStore'
@@ -186,6 +189,8 @@ function Authoring({
   const setPool = useWhatIfStore((s) => s.setPool)
   const count = useWhatIfStore((s) => s.count)
   const setCount = useWhatIfStore((s) => s.setCount)
+  const name = useWhatIfStore((s) => s.name)
+  const setName = useWhatIfStore((s) => s.setName)
   const resolution = useWhatIfStore((s) => s.resolution)
   const resolving = useWhatIfStore((s) => s.resolving)
   const resolve = useWhatIfStore((s) => s.resolve)
@@ -398,13 +403,34 @@ function Authoring({
         <div className="wi-card">
           <h3>{authoring.steps[2].heading}</h3>
           <p className="wi-help">
-            <strong>{frame.facility?.name}</strong> · {count} scenario
+            <strong>{frame.facility?.name}</strong> · {count} case
             {count === 1 ? '' : 's'} · pool:{' '}
             {frame.pools.find((p) => p.key === pool)?.label} ({members.length}) · watching:{' '}
             {frame.measures
               .filter((m) => watch.includes(m.key))
               .map((m) => m.label)
               .join(', ')}
+          </p>
+
+          {/*
+           * The scenario's name. It is asked for here rather than in Runtime because the
+           * scenario — this frame plus its cases — is the object that gets saved and
+           * published, and an unnamed one is a library row nobody can refer to. Left
+           * blank, the server names it from the pool rather than storing an empty label.
+           */}
+          <label className="wi-label" htmlFor="wi-name">
+            Scenario name
+          </label>
+          <Input
+            id="wi-name"
+            className="wi-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Out-of-state load acceptance"
+          />
+          <p className="wi-help">
+            The scenario is the publishable object — this frame (watched measures + pool)
+            plus its cases. Readers open the whole scenario, never a single case.
           </p>
 
           {/* The tenant's own note, with its leading claim as the title — split rather
@@ -439,6 +465,7 @@ function Runtime({
 }) {
   const columns = useWhatIfStore(selectColumns)
   const saved = useWhatIfStore(selectSaved)
+  const current = useWhatIfStore(selectCurrent)
   const computed = useWhatIfStore((s) => s.computed)
   const computing = useWhatIfStore((s) => s.computing)
   const pending = useWhatIfStore((s) => s.pending)
@@ -446,14 +473,40 @@ function Runtime({
   const swapLoad = useWhatIfStore((s) => s.swapLoad)
   const renameColumn = useWhatIfStore((s) => s.renameColumn)
   const removeColumn = useWhatIfStore((s) => s.removeColumn)
-  const addColumn = useWhatIfStore((s) => s.addColumn)
-  const save = useWhatIfStore((s) => s.save)
+  const saveCurrent = useWhatIfStore((s) => s.saveCurrent)
+  const openSaved = useWhatIfStore((s) => s.openSaved)
+  const publish = useWhatIfStore((s) => s.publish)
+  const unpublish = useWhatIfStore((s) => s.unpublish)
   const remove = useWhatIfStore((s) => s.remove)
+  /* Client-held, so it has to be *sent*: the server has nothing to look the signed-in
+     user up from, which is why every "who did this" field in this app is told. */
+  const signedInAs = useAuthStore((s) => s.identity?.email ?? null)
+
+  /** Which library entry the publish dialog is open on, or null. */
+  const [publishing, setPublishing] = useState<string | null>(null)
 
   const members = useMemo(() => poolMembers(frame, pool), [frame, pool])
   const headroom = headroomFor(frame, pool)
-  const { library, compare } = frame.runtime
-  const full = columns.length >= compare.max
+  const { compare } = frame.runtime
+  const target = publishing === null ? null : (saved.find((s) => s.savedId === publishing) ?? null)
+
+  /*
+   * Publishing implies the scenario is in the library, so an unsaved one is saved first
+   * rather than refused: the dialog needs an entry to hang off, and asking the reader to
+   * press Save before Publish would be the page enforcing its own storage model.
+   */
+  async function openPublish() {
+    if (current) {
+      setPublishing(current.savedId)
+      return
+    }
+    const result = await saveCurrent()
+    if (!result.ok) {
+      onMessage(result.error)
+      return
+    }
+    setPublishing(result.savedId ?? null)
+  }
 
   if (columns.length === 0) {
     return (
@@ -461,7 +514,7 @@ function Runtime({
         <h3>Nothing is running yet</h3>
         <p className="wi-help">
           Set the frame in <strong>Authoring</strong> — the measures to watch and the pool
-          to draw from — then use “{frame.authoring.cta[2]}” to open the columns.
+          to draw from — then use “{frame.authoring.cta[2]}” to open the cases.
         </p>
       </div>
     )
@@ -469,6 +522,19 @@ function Runtime({
 
   return (
     <>
+      <ScenarioBar
+        frame={frame}
+        current={current}
+        caseCount={columns.length}
+        saving={pending === 'scenario'}
+        onSave={() =>
+          void saveCurrent().then((r) => {
+            if (!r.ok) onMessage(r.error)
+          })
+        }
+        onPublish={() => void openPublish()}
+      />
+
       <Row gutter={[SP.base, SP.base]} className="wi-strip">
         {columns.map((c, i) => (
           <Col key={c.columnId} xs={24} lg={24 / Math.min(columns.length, 3)}>
@@ -480,15 +546,11 @@ function Runtime({
               frame={frame}
               candidates={members}
               canRemove={columns.length > compare.min}
-              pending={pending === c.columnId}
               onSwap={(id) => void swapLoad(c.columnId, id).then((r) => {
                 if (!r.ok) onMessage(r.error)
               })}
               onRename={(name) => renameColumn(c.columnId, name)}
               onRemove={() => removeColumn(c.columnId)}
-              onSave={() => void save(c.columnId).then((r) => {
-                if (!r.ok) onMessage(r.error)
-              })}
             />
           </Col>
         ))}
@@ -524,68 +586,23 @@ function Runtime({
         )}
       </div>
 
-      <div className="wi-card">
-        <div className="wi-label">
-          {library.title}
-          {saved.length > 0 ? ` · ${saved.length}` : ''}
-        </div>
-        {saved.length === 0 ? (
-          <p className="wi-help">{library.empty}</p>
-        ) : (
-          <>
-            {saved.map((s) => {
-              const g = frame.generators.find((x) => x.id === s.generatorId)
-              const open = columns.some((c) => c.savedId === s.savedId)
-              return (
-                <div key={s.savedId} className="wi-tray">
-                  <div>
-                    <strong>{s.name}</strong>
-                    <div className="wi-help wi-tray-meta">
-                      Load: {g?.name ?? s.generatorId}
-                      {g
-                        ? ` · ${g.enforcement} enf · ${g.violations} viol · $${Math.round(g.penalty / 1000)}k${g.consentDecree ? ' · CD' : ''}`
-                        : ''}
-                    </div>
-                  </div>
-                  <Space size={SP.sm}>
-                    <Button
-                      size="small"
-                      disabled={open || full}
-                      title={
-                        open
-                          ? 'Already open in the compare strip'
-                          : full
-                            ? library.fullHelp
-                            : undefined
-                      }
-                      onClick={() =>
-                        void addColumn(s.generatorId, s.name, s.savedId).then((r) => {
-                          if (!r.ok) onMessage(r.error)
-                        })
-                      }
-                    >
-                      {open ? 'In compare' : full ? 'Compare full' : library.addBtn}
-                    </Button>
-                    <Button
-                      size="small"
-                      loading={pending === s.savedId}
-                      onClick={() =>
-                        void remove(s.savedId).then((r) => {
-                          if (!r.ok) onMessage(r.error)
-                        })
-                      }
-                      aria-label={`Delete ${s.name} from the library`}
-                    >
-                      ✕
-                    </Button>
-                  </Space>
-                </div>
-              )
-            })}
-            <p className="wi-help">{full ? library.fullHelp : compare.help}</p>
-          </>
-        )}
-      </div>
+      <ScenarioLibrary
+        frame={frame}
+        saved={saved}
+        currentId={current?.savedId ?? null}
+        pending={pending}
+        onOpen={(id) =>
+          void openSaved(id).then((r) => {
+            if (!r.ok) onMessage(r.error)
+          })
+        }
+        onPublish={setPublishing}
+        onRemove={(id) =>
+          void remove(id).then((r) => {
+            if (!r.ok) onMessage(r.error)
+          })
+        }
+      />
 
       <Alert
         type="info"
@@ -593,6 +610,201 @@ function Runtime({
         title={lead(frame.runtime.closingNote).title}
         description={lead(frame.runtime.closingNote).rest}
       />
+
+      {/*
+       * At the page's level rather than inside a card, and that is not tidiness: a panel
+       * that expands inside an equal-height card grid stretches every sibling in its row,
+       * which is the trap `docs/REGRESSIONS.md` records twice for the report section.
+       */}
+      <PublishScenarioDialog
+        open={target !== null}
+        scenario={target}
+        frame={frame}
+        saving={pending === target?.savedId}
+        onCancel={() => setPublishing(null)}
+        onPublish={(input) =>
+          void publish({ savedId: target!.savedId, ...input, as: signedInAs }).then((r) => {
+            if (!r.ok) onMessage(r.error)
+            else setPublishing(null)
+          })
+        }
+        onUnpublish={() =>
+          void unpublish(target!.savedId).then((r) => {
+            if (!r.ok) onMessage(r.error)
+            else {
+              onMessage(frame.publishing.unpublishedNote)
+              setPublishing(null)
+            }
+          })
+        }
+      />
     </>
+  )
+}
+
+/**
+ * What the runtime currently *is*: the scenario, whether it is in the library, and
+ * whether it has been published.
+ *
+ * The bar exists because the frame and the cases are one object. Save and Publish were
+ * per-column controls in v1, which made the library a shelf of loose loads; here they act
+ * on the scenario, and the row states which of the three states it is in rather than
+ * leaving the reader to infer it from a button's label.
+ */
+function ScenarioBar({
+  frame,
+  current,
+  caseCount,
+  saving,
+  onSave,
+  onPublish,
+}: {
+  frame: WhatIfFrame
+  current: WhatIfSaved | null
+  caseCount: number
+  saving: boolean
+  onSave: () => void
+  onPublish: () => void
+}) {
+  const name = useWhatIfStore((s) => s.name)
+  const watch = useWhatIfStore((s) => s.watch)
+  const pool = useWhatIfStore((s) => s.pool)
+  const published = current?.published ?? null
+
+  return (
+    <div className="wi-card wi-bar">
+      <div className="wi-bar-what">
+        <div className="wi-label">Scenario</div>
+        <div className="wi-bar-name">{name || 'Untitled scenario'}</div>
+        <div className="wi-help wi-bar-meta">
+          {frame.pools.find((p) => p.key === pool)?.label} pool · watching {watch.length}{' '}
+          measure{watch.length === 1 ? '' : 's'} · {caseCount} case
+          {caseCount === 1 ? '' : 's'}
+        </div>
+      </div>
+
+      {/* Three states, and a saved-but-unpublished one is not a lesser published one —
+          so the tag says which, in words, rather than by tint alone. */}
+      {published ? (
+        <Tag color="success">
+          Published · {published.readers.length} reader
+          {published.readers.length === 1 ? '' : 's'}
+        </Tag>
+      ) : current ? (
+        <Tag>In library</Tag>
+      ) : (
+        <Tag>Not saved yet</Tag>
+      )}
+
+      <Space size={SP.sm} wrap>
+        <Button loading={saving} onClick={onSave}>
+          {current ? frame.runtime.library.updateBtn : frame.runtime.library.saveBtn}
+        </Button>
+        <Button type={published ? 'default' : 'primary'} onClick={onPublish}>
+          {published ? frame.publishing.buttons.manage : frame.publishing.buttons.open}
+        </Button>
+      </Space>
+    </div>
+  )
+}
+
+/**
+ * The library: complete scenarios, never loose loads.
+ *
+ * A row states its frame as well as its cases, because that is what makes it re-openable
+ * as the thing it was — opening one loads its measures and pool back into Authoring and
+ * recomputes every case against today's graph. It stores no figures, which is exactly why
+ * re-opening is a computation rather than a restore.
+ */
+function ScenarioLibrary({
+  frame,
+  saved,
+  currentId,
+  pending,
+  onOpen,
+  onPublish,
+  onRemove,
+}: {
+  frame: WhatIfFrame
+  saved: WhatIfSaved[]
+  currentId: string | null
+  pending: string | null
+  onOpen: (savedId: string) => void
+  onPublish: (savedId: string) => void
+  onRemove: (savedId: string) => void
+}) {
+  const { library } = frame.runtime
+
+  return (
+    <div className="wi-card">
+      <div className="wi-label">
+        {library.title}
+        {saved.length > 0 ? ` · ${saved.length}` : ''}
+      </div>
+      {saved.length === 0 ? (
+        <p className="wi-help">{library.empty}</p>
+      ) : (
+        saved.map((s) => {
+          const open = s.savedId === currentId
+          const poolLabel = frame.pools.find((p) => p.key === s.pool)?.label ?? s.pool
+          return (
+            <div key={s.savedId} className="wi-tray">
+              <div className="wi-tray-what">
+                <strong>{s.name}</strong>
+                {s.published ? (
+                  <Tag color="success">
+                    Published · {s.published.readers.length} reader
+                    {s.published.readers.length === 1 ? '' : 's'}
+                  </Tag>
+                ) : null}
+                <div className="wi-help wi-tray-meta">
+                  {poolLabel} pool · watching {s.watch.length} measure
+                  {s.watch.length === 1 ? '' : 's'} · {s.cases.length} case
+                  {s.cases.length === 1 ? '' : 's'}:{' '}
+                  {s.cases
+                    .map(
+                      (c) =>
+                        frame.generators.find((g) => g.id === c.generatorId)?.name ??
+                        c.generatorId,
+                    )
+                    .join(', ')}
+                </div>
+                {/* Which content answers it, and who said so — the same pair Ask and a
+                    report footer report, because "which build did a reader see" is a
+                    question a reader is entitled to ask. */}
+                {s.published ? (
+                  <div className="wi-help wi-tray-meta">
+                    Bound to {s.published.graphName}
+                    {s.published.graphVersion ? ` · ${s.published.graphVersion}` : ''} ·
+                    published by {s.published.publishedBy}
+                  </div>
+                ) : null}
+              </div>
+              <Space size={SP.sm} wrap>
+                <Button
+                  size="small"
+                  disabled={open}
+                  title={open ? 'Already open in Runtime' : undefined}
+                  onClick={() => onOpen(s.savedId)}
+                >
+                  {open ? 'Open' : library.addBtn}
+                </Button>
+                <Button size="small" onClick={() => onPublish(s.savedId)}>
+                  {s.published ? frame.publishing.buttons.manage : frame.publishing.buttons.open}
+                </Button>
+                <Button
+                  size="small"
+                  loading={pending === s.savedId}
+                  onClick={() => onRemove(s.savedId)}
+                  aria-label={`Delete ${s.name} from the library`}
+                >
+                  ✕
+                </Button>
+              </Space>
+            </div>
+          )
+        })
+      )}
+    </div>
   )
 }

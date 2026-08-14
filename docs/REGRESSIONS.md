@@ -1844,3 +1844,157 @@ a network error is the second one.** Anything that reports an outcome after a lo
 ask the server instead. And when a break test or a verification run rewrites source that a running process
 loaded, expect a restart in the middle of somebody's click — the confusing error is the process, not the
 code.
+
+## A seeded account is an object, and a new route read it as a string
+
+**Symptom** — publishing a What-if scenario without an `as=` address returned a 200 that the client then
+refused: *"The published scenario could not be read — the data did not look the way this app expects…
+`saved[0].published.published_by should be a string, got object`."* The message names a stale mock server,
+and the server was three seconds old.
+
+**Root cause** — `db.google_account` is `{ email, name, picture }`, not an address. The new publish route
+was written from the *rule* — "fall back to the tenant's own account, because published by nobody is not
+true of something a reader can open" — and reached for the account rather than its `email`. Every other
+path that names a publisher (`publishedByFor`, the report footer, Ask) reads `.email`; this one was the
+first new reader of that key in a while, and the compiler sees nothing: `server.mjs` is JavaScript, and
+the field is only ever stringified at the edge.
+
+The failure mode worth noting is the *message*. A shape error on a field the client has never seen before
+reads as a stale process, because that is overwhelmingly what it usually is — and the instinct is to
+restart rather than to look at the value.
+
+**Fix** — `published_by: as ?? db.google_account.email`.
+
+**Guard** — *mechanical*, two of them, and the first one already worked: the `client.ts` schema is what
+caught this at all, on the first request, naming the field and the type. `check-docs` now asserts the
+route reads `db.google_account.email` specifically rather than `db.google_account`, so the narrower
+mistake cannot come back silently — a claim keyed on the bare key would have passed against the bug.
+
+**Rule** — **a seeded singleton is a record, not a value.** Before falling back to one, read what it
+actually holds; `grep` the key's other callers, because the convention for unwrapping it lives in them and
+nowhere the compiler can see it. And when a validator reports a shape error, check the *value* before
+blaming the process — the stale-server hint is a good guess, not a diagnosis.
+
+## A `check-docs` helper used above its own definition
+
+**Symptom** — none yet, and that is why it is here. Nine new claims were added to the What-if section of
+`check-docs.mjs`, four of them using `codeOnly()` to strip comments before asserting an absence. That
+helper was declared with `const` **600 lines below**, in the report section where it was first needed.
+
+**Root cause** — a `const` in the temporal dead zone. The claims happened to be added *above* it, so the
+first one to run would have thrown `ReferenceError: Cannot access 'codeOnly' before initialization` — and
+`check-docs` would have died before printing a summary. The section that ends in `process.exit` never runs
+in that case, which produces exactly the failure this file already records once: **the claim total stops
+moving**, every break test reports MISSED, and the obvious next move is to rewrite guards that were fine.
+
+It was caught only because the break-test harness treats "no summary line" as a crash rather than a pass —
+a rule added the last time this bit.
+
+**Fix** — `codeOnly` moved up beside `read`, with a note saying why it lives there.
+
+**Guard** — *documented*, and deliberately so: the mechanical guard already exists and is the harness's
+`if (!/claims/.test(out))` crash branch, which catches this for any future claim. What is added here is
+the reason a shared helper in this file belongs at the top — a claim cannot choose to run after it.
+
+**Rule** — **a helper shared by claims belongs above every claim, not beside its first user.** `check-docs`
+is one long script with no functions, so definition order *is* execution order; anything a claim reaches
+for has to be declared before the first claim that might.
+
+## `codeOnly` deleted 139 lines of the file it was meant to clean
+
+**Symptom** — four freshly written `check-docs` claims about the report publish dialog failed against
+code that plainly satisfied them. `onConfirm(trimmed, initialAudience, roles, fresh)` was on line 150 of
+the component; the claim searching for it said no.
+
+**Root cause** — `codeOnly()` strips comments before an absence is asserted, and its first rule was
+`\{\s*\/\*[\s\S]*?\*\/\s*\}` for JSX comment blocks. The `\s*` between the brace and the star is the
+bug: **any** `{` followed by whitespace and a block comment matched — and `interface Props {` followed by
+a `/** Prefilled name … */` doc comment is exactly that. The non-greedy tail then ran to the first `*/}`
+anywhere below, which was 139 lines further down. Everything between was deleted before a single claim
+looked at it.
+
+Three things made it invisible for two sessions. It only fires on a file whose *first* `{`-then-comment
+happens to be a block opener rather than a JSX comment, so most files were untouched. The strip is
+silent — no error, just a shorter string. And the helper's whole purpose is **absence** claims, which
+pass when the text is missing: a file with its middle removed satisfies every one of them. It surfaced
+only because four *positive* claims were written against the same region and went red.
+
+So the failure mode is the one this file already records twice under a different name: a guard that
+cannot fail. Any `!/…/.test(codeOnly(src))` claim written since this helper landed was, on an affected
+file, asserting over a hole.
+
+**Fix** — require the brace and the star to be adjacent: `\{\/\*`. A JSX comment is written `{/* … */}`
+with nothing between them, so no real one is lost, and the generic block-comment rule that follows
+empties the comment anyway — leaving a bare `{}` that no claim searches for.
+
+**Guard** — *mechanical*, and it is the four positive claims themselves. An absence claim cannot detect
+this (that is the whole problem), so each new area guarded with `codeOnly` now carries at least one
+claim asserting the code **is** there, beside the ones asserting something is not. A break test that
+only ever mutates *in* a forbidden token proves nothing about whether the searched region still exists.
+
+**Rule** — **pair every absence claim with a presence claim over the same region.** "X is not in this
+file" and "this file still contains Y" are cheap together and worthless apart: the first passes over an
+empty string, and only the second notices that the string got empty. The same reasoning is already why
+`renderToString` assertions must prove the render had its data.
+
+## A presence claim satisfied by the comment explaining it
+
+**Symptom** — a break test reported one of eight new claims as unbreakable. The mutation replaced the
+Audit & Governance page's `description={view.copy.notEnforced}` — the served "a rule is recorded, not
+enforced" sentence — with a hardcoded line saying the opposite, and `check-docs` stayed green.
+
+**Root cause** — the claim searched the raw file for `copy.notEnforced`, and the component's own doc
+comment says *"That sentence is served (`copy.notEnforced`) and printed where the rules are"*. The
+token was still in the file after the render had stopped using it.
+
+This file already records that trap five times — but always for **absence** claims, under the rule
+"strip comments before asserting that code does not say something". This is the same failure on a
+**presence** claim, which nothing had warned about: a token in prose proves the *word* is in the file
+and nothing at all about what renders. The absence and presence cases are the same bug, because both
+are whole-file string searches over a file that talks about itself.
+
+The claim it defeated is the load-bearing one on that page. The page lets somebody author a data-access
+rule that nothing enforces, and that sentence is the only thing standing between it and implying a
+filter runs — so an unbreakable guard on it was worse than none.
+
+**Fix** — `codeOnly()` on the page, and key on the rendered expression (`description={view.copy.notEnforced}`)
+rather than the field name.
+
+**Guard** — *mechanical*, and it is the break test itself, which is why the gap surfaced at all. What is
+added is the note in `check-docs` beside that claim naming this specific failure, so the next presence
+claim over a self-documenting file starts from `codeOnly`.
+
+**Rule** — **`codeOnly` is for every whole-file claim, not only the negative ones.** A file that explains
+its own design mentions the identifiers it uses; searching the raw text tells you the author wrote the
+word, not that the code still runs it. Key on the narrowest rendered form — the JSX attribute, the call,
+the assignment — never the bare identifier.
+
+## Two screens for one precondition
+
+**Symptom** — reported as a question about the gated pages: when nothing is published, do they say
+where to go? Three of the four did, in one set of words; the fourth did, in another.
+
+**Root cause** — Ask shipped its own `EmptyState` for the publish gate before `NoPublishedGraph`
+existed, and was never moved onto it. So the same precondition had two screens: **"No graph is live
+yet"** on Ask and **"No graph has been published"** on Reports, the What-if lens and Audit &
+Governance, with different numbered steps and two separate copies of the *Open Graph Studio* button.
+
+Nothing was broken, which is why it survived — both screens sent the reader to the right place. The
+cost is that one gate reads as two problems: somebody who hits it on Ask and again on Reports has no
+way to know they are the same wall, and looks for a second fix. `NoPublishedGraph`'s own doc comment
+had recorded the split as a known fact rather than treating it as a defect.
+
+**Fix** — Ask renders `NoPublishedGraph`. Its two genuinely Ask-specific sentences survive as props:
+`detail` (what appears here once a graph is live) and a new optional `footnote`. The title, the
+action and the steps are deliberately *not* overridable — those are the parts that have to be
+identical for four pages to describe one gate.
+
+**Guard** — *mechanical*, and asserted both ways: every page in `PUBLISH_GATED_PAGES` renders
+`<NoPublishedGraph`, and none of them contains an `<EmptyState` for that branch. The second half is
+what stops the next page quietly growing a private copy — the first half alone passes on a page that
+renders both.
+
+**Rule** — **a shared empty state needs a claim listing the pages that must use it.** A component
+existing is not the same as everybody using it, and the drift is invisible: each page looks right on
+its own, and only somebody who hits the same wall twice notices. When a precondition has one fix,
+give it one screen and enumerate the pages that show it.

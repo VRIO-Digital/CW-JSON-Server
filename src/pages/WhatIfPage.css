@@ -331,9 +331,55 @@
   font-size: 12.5px;
 }
 
+/* The row's own column, so a long case list wraps inside the row rather than pushing
+   the buttons off the end of it. */
+.wi-tray-what {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+}
+
 .wi-tray-meta {
   margin: 0;
   font-size: 11px;
+}
+
+/*
+ * The scenario bar: what the runtime currently is, and the two acts on it.
+ *
+ * A flex row shrinks its items before it wraps, which is how four action buttons in a
+ * narrow column ended up breaking their labels mid-phrase. `flex-wrap` here and
+ * `white-space: nowrap` on the name are set together for that reason.
+ */
+.wi-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+.wi-bar-what {
+  min-width: 220px;
+  flex: 1;
+}
+
+.wi-bar-name {
+  color: #0f1729;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.wi-bar-meta {
+  margin: var(--sp-1) 0 0;
+  font-size: 11.5px;
+}
+
+/* Step 3's scenario name. Full width because it is the field the step is about. */
+.wi-name {
+  margin-bottom: var(--sp-2);
 }
 
 /* The disclosure that opens a graph reference — the package's own words, as a link. */

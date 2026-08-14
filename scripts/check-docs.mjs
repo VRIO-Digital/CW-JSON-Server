@@ -19,6 +19,38 @@ import { dirname, join } from 'node:path'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(root, p), 'utf8')
 
+/*
+ * **Comments stripped before asserting an absence.**
+ *
+ * Claims below say a file does *not* say something — "Approval", "gone for good", a
+ * hard-coded email domain — and several passed over the file's own prose the first time,
+ * because the comment explaining a removal names the thing removed. This repo's rule is
+ * to assert the fact at its site; for an absence, the site is the code, so the prose
+ * comes out first.
+ *
+ * Defined here, beside `read`, rather than beside its first user: it is a `const`, so a
+ * claim earlier in the file that reached for it would die in the temporal dead zone —
+ * and a check-docs that crashes is a check-docs whose claim total silently stops moving.
+ */
+/*
+ * **The `{` and the `/*` must be adjacent**, and that is not cosmetic.
+ *
+ * This rule was `\{\s*\/\*`, which let the `{` of any *block* match a doc comment on the next
+ * line: `interface Props {` followed by `/** … *\/` matched, and the non-greedy tail then ran to
+ * the first `*\/}` anywhere below — swallowing 139 lines of real code out of one component. The
+ * damage is silent and exactly the shape this helper exists to prevent: an absence claim over a
+ * file whose middle has been deleted passes over nothing, and four claims written against that
+ * region reported themselves stale only because they were *positive* ones. A JSX comment is
+ * written `{/* … *\/}` with nothing between the brace and the star, so requiring adjacency loses
+ * none of them; the block-comment rule below then empties the comment and leaves a bare `{}`,
+ * which no claim searches for.
+ */
+const codeOnly = (src) =>
+  src
+    .replace(/\{\/\*[\s\S]*?\*\/\s*\}/g, '') // JSX comment blocks
+    .replace(/\/\*[\s\S]*?\*\//g, '') // block comments
+    .replace(/^\s*\/\/.*$/gm, '') // line comments
+
 const problems = []
 const checked = []
 
@@ -1799,17 +1831,111 @@ expect(
  * The library's contract, and the reason a scenario is computed rather than stored: it
  * keeps the admitted load so every figure recomputes against today's graph.
  */
+/*
+ * The stored scenario, sliced to the two writers rather than searched for whole-file:
+ * both `POST /whatif/saved` and the publish route rewrite an entry, and a measure
+ * leaking into either would be a cached figure the copy promises does not exist.
+ */
+const whatifWriters = codeOnly(server)
+  .split('whatifSaved.set(')
+  .slice(1)
+  .map((s) => s.slice(0, s.indexOf('\n  })') + 1 || 400))
 expect(
-  'the saved library stores the admitted load and never the figures',
-  /whatifSaved\.set\(id, \{ saved_id: id, name: label, generator_id \}\)/.test(server) &&
-    !/whatifSaved\.set\([^)]*measures/.test(server),
-  'a saved scenario stays live as the graph changes',
+  'the saved library stores the admitted loads and never the figures',
+  whatifWriters.length >= 2 &&
+    whatifWriters.every((w) => !/measures|value_text|inherited_text|baseline_text/.test(w)) &&
+    /cases: nextCases/.test(server) &&
+    /nextCases\.push\(\{ name: [^,]+, generator_id: generator\.id \}\)/.test(server),
+  `${whatifWriters.length} writers, none carrying a computed measure`,
+)
+expect(
+  'and a saved entry is the whole scenario — its frame as well as its cases',
+  /watch: watchKeys/.test(server) && /pool: poolKey/.test(server),
+  'a case re-opened without its frame is a load with no question attached',
 )
 expect(
   'and the store keeps a column as its load, not its numbers',
   /export interface ScenarioColumn \{/.test(read('src/store/whatifStore.ts')) &&
     /generatorId: string/.test(read('src/store/whatifStore.ts')),
   'figures live in `computed`, derived on every swap',
+)
+
+/*
+ * Publishing a scenario. Both pools are the app's own — the tenant's users and the
+ * graphs that are actually published — and a client-side copy of either is the mistake
+ * the consent screen made when its scope list described one permission out of two.
+ * Asserted on both halves: served by the server, and *not* written into the dialog.
+ */
+const publishSrc = read('src/components/PublishScenarioDialog.tsx')
+expect(
+  'the publish dialog renders the served reader directory rather than a copy',
+  /const whatifReaders = \(\) =>/.test(server) &&
+    /readers: whatifReaders\(\)/.test(server) &&
+    /settings\.users\.map/.test(server.slice(server.indexOf('const whatifReaders'))) &&
+    /frame\.readers\.map/.test(publishSrc) &&
+    !/@vriodigital\.com|@vls\.com/.test(codeOnly(publishSrc)),
+  'settings.json is the one answer to "who exists"',
+)
+expect(
+  'and binds only to a graph that is currently published',
+  /graphs: reportGraphs\(\)/.test(server) &&
+    /no published graph "\$\{graph_use_case_id\}"/.test(server) &&
+    /frame\.graphs\.map/.test(publishSrc),
+  'a scenario bound to a draft would promise figures nobody published',
+)
+/* A reader outside the directory would be an invented user, so the route refuses it
+   naming who is in it — the same refusal the login makes for an unknown address. */
+expect(
+  'a reader outside the directory is refused naming the directory',
+  /is not in the directory — Settings knows/.test(server),
+  'inventing a reader is inventing a user',
+)
+/* Gate 1 is who is *told*, and the role is client-held. CLAUDE.md requires any UI built
+   on that to say so in those words; this is where the What-if lens says it. */
+expect(
+  'the publish dialog says sharing is not access control',
+  whatif.publishing.readers.caveat.includes('not access control') &&
+    /pub\.readers\.caveat/.test(publishSrc),
+  'the role comes from the browser and the API serves every scenario without one',
+)
+/* Reader scope is declared, never applied — no roster here is filtered per persona, so
+   a filtered count would claim a filter that never ran. */
+expect(
+  'and states each reader’s scope rather than filtering by it',
+  /accessNote/.test(publishSrc) &&
+    !/\.filter\(\(g\) => .*access|scopeFor|readerScope/.test(codeOnly(publishSrc)),
+  'gate 2 is declared, not applied',
+)
+/* Every freshness sentence is the tenant's. A recurrence line assembled in the component
+   would be this app writing copy in the tenant's voice. */
+expect(
+  'the recurrence line is the tenant’s sentence, interpolated',
+  whatif.publishing.freshness.presets.every((p) => p.sentence.length > 0) &&
+    /preset\?\.sentence/.test(publishSrc) &&
+    /\.replace\('\{n\}'/.test(publishSrc),
+  `${whatif.publishing.freshness.presets.length} presets, each stating its own sentence`,
+)
+/* `published_by` holds a fact about an *act* under a key that is a *thing*, which is how
+   `studioPublishedBy` kept crediting the previous publisher. It is written every time. */
+expect(
+  'publishing records who, from the address the browser sent',
+  /* `.email` explicitly: the seeded account is an object, and dropping the field
+     produced `published_by should be a string, got object` at the validator — the one
+     place it could still be caught. Every other "published by" path reads `.email`. */
+  /published_by: as \?\? db\.google_account\.email/.test(server) &&
+    /is not an email — send the signed-in address as \?as=/.test(server) &&
+    /as: signedInAs/.test(read('src/pages/WhatIfPage.tsx')),
+  'the identity is client-held, so the route has to be told',
+)
+/* The publish dialog's body is extracted for the reason ConnectSourceWizard is: antd's
+   Modal portals, and renderToString does not traverse a portal — so a claim about what
+   this dialog contains would pass over nothing. */
+expect(
+  'the publish panel is extracted from its Modal, so it can be asserted on',
+  /export function PublishScenarioPanel\(/.test(publishSrc) &&
+    publishSrc.indexOf('export function PublishScenarioPanel(') <
+      publishSrc.indexOf('<Modal'),
+  'the Modal/Drawer rule, applied to the newest dialog',
 )
 /*
  * The pool filters exist twice — as data on the server, and as a switch in the store so
@@ -1875,6 +2001,153 @@ expect(
       (k) => !whatIfSrc.slice(gateAt, lensAt).includes(k) && whatIfSrc.slice(lensAt).includes(k),
     ),
   `${gatedCopy.join(', ')} render only inside the lens`,
+)
+
+/*
+ * ---------------- one precondition, one screen ----------------
+ *
+ * Four pages need a published graph — Ask, Reports, the What-if lens and Audit & Governance — and
+ * every one of them renders `NoPublishedGraph`, whose single action is **Open Graph Studio**, which
+ * is where the publish button actually is.
+ *
+ * Ask did not, for a long time: it kept a private `EmptyState` with the same precondition under a
+ * different title ("No graph is live yet" against "No graph has been published"), its own three
+ * steps, and its own copy of the button. Nothing broke — two screens describing one gate is exactly
+ * the kind of drift that reads as two different problems, and sends somebody looking for a second
+ * fix. Asserted both ways: every gated page uses the component, and none of them hand-rolls a
+ * second empty state for the same branch.
+ */
+const PUBLISH_GATED_PAGES = [
+  'src/pages/AskPage.tsx',
+  'src/pages/ReportsPage.tsx',
+  'src/pages/WhatIfPage.tsx',
+  'src/pages/AuditPage.tsx',
+]
+expect(
+  'every page gated on publication renders the one empty state',
+  PUBLISH_GATED_PAGES.every((p) => /<NoPublishedGraph\b/.test(codeOnly(read(p)))),
+  `${PUBLISH_GATED_PAGES.length} pages: ${PUBLISH_GATED_PAGES.map((p) => p.split('/').pop()).join(', ')}`,
+)
+expect(
+  'and none of them hand-rolls a second one for the same branch',
+  PUBLISH_GATED_PAGES.every((p) => !/<EmptyState\b/.test(codeOnly(read(p)))),
+  'one precondition, one screen, one next action',
+)
+/* The action is the point of the request that prompted this: a gated page has to say where the
+   publish button is, and only Graph Studio has one. */
+const gateSrc = codeOnly(read('src/components/NoPublishedGraph.tsx'))
+expect(
+  'the gate sends a reader to Graph Studio when there is something to publish',
+  /hasBuilt \? '\/graph-studio' : '\/new-graph'/.test(gateSrc) &&
+    /Open Graph Studio/.test(gateSrc) &&
+    /* The two branches are different fixes; offering one for both sends half the readers
+       to the wrong screen. */
+    /Describe a business need/.test(gateSrc),
+  'built -> publish it; nothing built -> build one first',
+)
+
+/* ---------------- Audit & Governance ---------------- */
+
+/*
+ * The page that lets somebody author a data-access rule. Its claims fall into two families: the
+ * pools it offers are the app's own, and **the rule it authors is not enforced** — which is the
+ * one sentence that stops the whole page implying a filter runs.
+ */
+/*
+ * Comments stripped, and not only for the absence claims below.
+ *
+ * The first version of the "recorded, not enforced" claim searched the raw file for
+ * `copy.notEnforced` and could not be broken: the component's own doc comment explains that the
+ * sentence is served and names the field, so replacing the *rendered* one with a literal left the
+ * claim satisfied by prose. That is the same trap this file records for absence claims, met by a
+ * presence claim — a token in a comment proves nothing about what renders.
+ */
+const auditPage = codeOnly(read('src/pages/AuditPage.tsx'))
+const ruleEditor = read('src/components/AccessRuleEditor.tsx')
+const artifactCard = read('src/components/GovernedArtifactCard.tsx')
+const auditCopy = db.reports.governance.audit.copy
+
+expect(
+  'the governance page states that a rule is recorded, not enforced',
+  auditCopy.not_enforced.includes('recorded, not enforced') &&
+    /description=\{view\.copy\.notEnforced\}/.test(auditPage) &&
+    /* And the server refuses a document that drops it — the phrase, not merely the key. */
+    /recorded, not enforced/.test(server),
+  'no roster here is filtered per persona, so silence would imply one is',
+)
+/*
+ * A restriction basis is the register's own: its identity column plus the fields the dictionary
+ * declares filterable. A written list here could offer a field no report can slice by, and would
+ * stop matching the moment the dictionary changed.
+ */
+expect(
+  'the restriction bases are derived from the register, never written',
+  /fields\.filter\(\(f\) => f\.filterable\)/.test(server) &&
+    /GOVERNANCE_IDENTITY/.test(server) &&
+    /* The page renders what it was served rather than a copy of the field list. */
+    /bases\.map\(/.test(ruleEditor) &&
+    !/'state'|'risk'|'generator'/.test(codeOnly(ruleEditor)),
+  db.reports.fields
+    .filter((f) => f.filterable)
+    .map((f) => f.key)
+    .join(', ') + ' + the identity column',
+)
+/*
+ * The two audience models stay apart. A report keeps persona ids and a scenario keeps addresses;
+ * the server writes to whichever the artifact actually has, and translating one into the other
+ * would invent a mapping — the rule `viewer_roles` was introduced under.
+ */
+expect(
+  'the server owns the mapping from a person to an artifact’s audience',
+  /const governanceAddReader = /.test(server) &&
+    /artifact\.kind === 'report'/.test(server) &&
+    /audience: \[\.\.\.r\.audience, person\.role_id\]/.test(server) &&
+    /readers: \[\.\.\.entry\.published\.readers, person\.email\]/.test(server) &&
+    /* The card states which pool it is, so one is never read as the other. */
+    /audienceNote/.test(artifactCard),
+  'a report names personas, a scenario names addresses',
+)
+/* Unpublish exists for a scenario and not for a report, and the row must not offer what 404s. */
+expect(
+  'unpublish is offered only where the server has that act',
+  /can_unpublish: false/.test(server) &&
+    /is a report definition — this section has no unpublish/.test(server) &&
+    /artifact\.canUnpublish \?/.test(artifactCard),
+  'a report has no unpublish; its equivalent is an audience of nobody',
+)
+/*
+ * The resolution is computed once, on the server, against the live register. A page that
+ * recalculated it would be a second answer to what a rule admits.
+ */
+expect(
+  'the resolution is the server’s, and the page never recomputes it',
+  /const governanceResolution = /.test(server) &&
+    /person\.resolution\.count/.test(ruleEditor) &&
+    !/\.filter\(\(g\)|\.length \/|Math\.round/.test(codeOnly(ruleEditor)),
+  'what a rule would admit has one source',
+)
+/* The trail records what this server saw. An "opened" row would be an event that never happened. */
+expect(
+  'the audit trail says why opens are not in it',
+  auditCopy.log_note.includes('Opens are not in this trail') &&
+    /copy\.logNote/.test(auditPage) &&
+    !/'open'/.test(codeOnly(server).slice(codeOnly(server).indexOf('const governanceLog'), codeOnly(server).indexOf('const governanceBases'))),
+  'nothing here serves a report to a reader',
+)
+/* The rule panel is a prop-driven component for the reason every other panel here is. */
+expect(
+  'the rule editor is its own component, so its contents can be asserted on',
+  /export default function AccessRuleEditor\(/.test(ruleEditor) &&
+    /openFor: string \| null/.test(artifactCard),
+  'renderToString cannot open a panel a parent is holding shut',
+)
+/* The directory the "give somebody access" control offers is served, not written. */
+expect(
+  'the governance page offers the served directory',
+  /people\.filter\(\(p\) => !artifact\.readers\.includes\(p\.email\)\)/.test(artifactCard) &&
+    !/@vriodigital\.com|@vls\.com/.test(codeOnly(artifactCard)) &&
+    /settings\.users\.map/.test(server.slice(server.indexOf('const governancePeople'))),
+  'settings.json is the one answer to "who exists"',
 )
 
 /* ---------------- the report section ---------------- */
@@ -2261,20 +2534,6 @@ expect(
  * A session report is deliberately **not** folded into the tenant's Published chip: it has been
  * submitted to nobody, so it answers to `SESSION` and its own pill still says what it is locally.
  */
-/*
- * **Comments stripped before asserting an absence.**
- *
- * Two claims below say a component does *not* say something — "Approval", "gone for good" — and both
- * passed over the file's own prose the first time, because the comment explaining the removal names
- * the thing removed. This repo's rule is to assert the fact at its site; for an absence, the site is
- * the code, so the prose comes out first.
- */
-const codeOnly = (src) =>
-  src
-    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '') // JSX comment blocks
-    .replace(/\/\*[\s\S]*?\*\//g, '') // block comments
-    .replace(/^\s*\/\/.*$/gm, '') // line comments
-
 const libraryPane = read('src/reports/panes/LibraryPane.tsx')
 const chipBar = /<div className="rp-chipRow"[\s\S]*?\n {10}<\/div>/.exec(libraryPane)?.[0] ?? ''
 expect(
@@ -3472,28 +3731,115 @@ expect(
 )
 
 /*
- * **The publish dialog no longer picks an audience, but a report still has one.**
+ * **The publish dialog picks readers, and still carries the prototype's own audience untouched.**
  *
- * The `<select>` over the three audiences was removed on request. The value did not go with it:
- * a republished report keeps the audience it had, a new one takes the default, and the dialog
- * hands that back untouched. That forwarding is the part worth guarding — drop it and
- * `onConfirm` publishes with `undefined`, `audienceLabel` falls through to the raw key, and
- * every Library card reads "Audience:" followed by nothing while the audience tab miscounts.
- * Nothing throws.
+ * Two pools, deliberately not merged. `audience` is the prototype's group vocabulary (Operations /
+ * Compliance); its `<select>` was removed on request and the *value* did not go with it — a
+ * republished report keeps what it had, a new one takes the default, and the dialog hands that
+ * back. Drop that forwarding and `onConfirm` publishes `undefined`, `audienceLabel` falls through
+ * to the raw key, and every Library card reads "Audience:" followed by nothing. Nothing throws.
+ *
+ * What the dialog *does* pick is `viewerRoles` — the app's four personas, chosen as people from
+ * the served directory. Guarded together, because the danger is one becoming the other: a person's
+ * address stored where a role id belongs would be a second audience model beside the one the
+ * entitlement matrix and `?as_role=` read.
  */
 /* Comments stripped: the prop's own doc comment explains that a `<select>` *used to* be here,
    and searching the raw file matched that explanation. Fourth time in this file — if the string
    could legitimately appear in prose, strip the prose. */
-const publishDialog = read('src/reports/components/PublishDialog.tsx')
-  .replace(/\/\*[\s\S]*?\*\//g, '')
-  .replace(/^\s*\/\/.*$/gm, '')
+const publishDialog = codeOnly(read('src/reports/components/PublishDialog.tsx'))
 expect(
-  'the publish dialog carries the audience it was given, and offers no picker',
-  /onConfirm\(trimmed, initialAudience\)/.test(publishDialog) &&
-    !/<select/.test(publishDialog) &&
+  'the publish dialog carries the prototype’s audience it was given, and offers no picker for it',
+  /onConfirm\(trimmed, initialAudience, roles, fresh\)/.test(publishDialog) &&
     /* The pool is still read, by the label lookup the Library cards use. */
     /AUDIENCES\.find\(\(a\) => a\.key === key\)/.test(read('src/reports/lib/library.ts')),
   'removed as a control, kept as a value',
+)
+expect(
+  'and picks readers as people while storing their roles',
+  /people\.filter\(\(p\) => roles\.includes\(p\.roleId\)\)/.test(publishDialog) &&
+    /setRoles\(\(prev\) => \(prev\.includes\(person\.roleId\)/.test(publishDialog) &&
+    /* An address must never reach the audience list — that is the second-model failure. */
+    !/roles.*\.push\(.*email|setRoles\(\[.*email/.test(publishDialog),
+  'viewer_roles stays the one audience model',
+)
+/*
+ * The directory and every string in the dialog are served. A list written into the component
+ * would be a second answer to "who exists" and could offer somebody the API refuses — the
+ * mistake the consent screen made when its scope list described one permission out of two.
+ */
+expect(
+  'the publish dialog renders the served directory and the served copy',
+  /people\.filter\(/.test(publishDialog) &&
+    /publishing\.readers\.placeholder/.test(publishDialog) &&
+    /publishing\.freshness\.presets\.map/.test(publishDialog) &&
+    !/@vriodigital\.com|Maria Torres|@vls\.com/.test(publishDialog),
+  'governance.people + governance.publishing, from npm run seed:governance',
+)
+/*
+ * **Focusing the field shows the directory.** It offered nothing until something was typed, which
+ * asked the reader to guess at a list only Settings knows — four people, all valid, none of them
+ * discoverable from the dialog. Guarded on both halves: the list is gated on *focus* rather than on
+ * a non-empty query, and the filter admits everyone when the query is empty.
+ */
+expect(
+  'the reader directory opens on focus, not only once something is typed',
+  /onFocus=\{\(\) => onOpen\(true\)\}/.test(publishDialog) &&
+    /* The list is gated on being open, never on the query — that is the whole fix. */
+    /\{open && \(/.test(publishDialog) &&
+    /!q \|\|/.test(publishDialog) &&
+    /* Picking must not close it: a blur before the click would swallow the first pick. */
+    /onMouseDown=\{\(e\) => e\.preventDefault\(\)\}/.test(publishDialog),
+  'four people are the whole pool — there is nothing to page through',
+)
+/*
+ * And the list is its own component with `open` as a *prop*, so a check about what the directory
+ * contains renders it rather than passing over a closed one — the `ConnectSourceWizard` rule,
+ * which a dropdown behind the dialog's own `useState` would have broken.
+ */
+expect(
+  'the reader picker is extracted, so its contents can be asserted on',
+  /export function ReaderFinder\(/.test(publishDialog) &&
+    /open: boolean/.test(publishDialog) &&
+    /<ReaderFinder\b/.test(publishDialog),
+  'renderToString cannot open a panel a parent is holding shut',
+)
+/*
+ * The claim the old dialog made and the code never kept: publish → approve → activate was
+ * collapsed to publish/unpublish, so a Domain Architect approving before an audience sees it
+ * describes a step nothing performs. Guarded on the dialog *and* the toast, because the sentence
+ * lived in both — and asserted positively too, so deleting the copy does not satisfy it.
+ */
+const reportsAppCode = codeOnly(read('src/reports/App.tsx'))
+expect(
+  'neither the publish dialog nor its toast claims an approval step',
+  !/Domain Architect approves/.test(publishDialog) &&
+    !/Domain Architect approves/.test(reportsAppCode) &&
+    db.reports.governance.publishing.lead.includes('no approval step'),
+  'publishing here is immediate, and the lead says so',
+)
+/* Each preset states its own sentence, so the line under the select is the tenant's words. */
+expect(
+  'the freshness line is the tenant’s sentence, not assembled in the component',
+  db.reports.governance.publishing.freshness.presets.every((p) => p.sentence.length > 0) &&
+    db.reports.governance.publishing.freshness.presets.some(
+      (p) => p.id === db.reports.governance.publishing.freshness.default,
+    ) &&
+    /presets\.find\(\(p\) => p\.id === fresh\)\?\.sentence/.test(publishDialog),
+  `${db.reports.governance.publishing.freshness.presets.length} presets, each with its own sentence`,
+)
+/*
+ * Gate 2 beside a name: the persona's *declared* scope, never a filtered count. "Sees 32 of 36
+ * generators" would be this dialog claiming a filter no roster here runs — the rule the
+ * Operations tab's own note states.
+ */
+expect(
+  'a reader’s scope is stated, never counted',
+  /p\.scope/.test(publishDialog) &&
+    /publishing\.readers\.note/.test(publishDialog) &&
+    !/of \{?36|\.filter\(\(g\)/.test(publishDialog) &&
+    db.reports.governance.publishing.readers.caveat.includes('not access control'),
+  'declared, not applied — and the server refuses a document that drops the caveat',
 )
 
 /* ---------------- report ---------------- */

@@ -582,6 +582,38 @@ const DB_SHAPE = {
     v.governance.data_scope.length > 0 &&
     isObject(v.governance.gate_notes) &&
     /*
+     * The publish dialog's copy. Required for the reason the rest of `governance` is: losing it
+     * does not throw, it answers — the dialog renders with no lead, no reader note and a freshness
+     * select with nothing in it, which reads as a publish flow that asks for nothing. And a preset
+     * with no sentence prints a blank line under a control that plainly did something.
+     */
+    isObject(v.governance.publishing) &&
+    isObject(v.governance.publishing.readers) &&
+    /* Required in these words wherever a client-held audience is recorded. */
+    String(v.governance.publishing.readers.caveat ?? '').includes('not access control') &&
+    isObject(v.governance.publishing.freshness) &&
+    Array.isArray(v.governance.publishing.freshness.presets) &&
+    v.governance.publishing.freshness.presets.length > 0 &&
+    v.governance.publishing.freshness.presets.every((p) => isObject(p) && p.id && p.label && p.sentence) &&
+    /* A default naming no preset opens the select on nothing. */
+    v.governance.publishing.freshness.presets.some(
+      (p) => p.id === v.governance.publishing.freshness.default,
+    ) &&
+    /*
+     * The Audit & Governance page's copy. Required for the same reason, and one field of it is
+     * load-bearing rather than decorative: `not_enforced` is the sentence that stops the page
+     * implying a filter runs. A page that lets somebody author a restriction and says nothing
+     * about enforcement is the one claim this whole section exists to avoid, so the phrase is
+     * checked rather than merely the key.
+     */
+    isObject(v.governance.audit) &&
+    isObject(v.governance.audit.copy) &&
+    /recorded, not enforced/.test(String(v.governance.audit.copy.not_enforced ?? '')) &&
+    Array.isArray(v.governance.audit.copy.gates) &&
+    v.governance.audit.copy.gates.length > 0 &&
+    Array.isArray(v.governance.audit.categories) &&
+    v.governance.audit.categories.some((c) => c.key === 'all') &&
+    /*
      * `access_requests` was required here, holding readers' asks for a report they were not entitled
      * to. It went with the pending-approval state: nothing writes one and nothing renders one, and a
      * required key for a feature that does not exist fails a boot for no reason a user could act on.
@@ -650,7 +682,9 @@ const DB_HINTS = {
     'tiles[], footer[] } and ' +
     'governance{ statuses[] of { key, label, tone }, reports[] of ' +
     '{ report_id, status naming one of those states, version, author, category, audience[] }, ' +
-    'data_scope[], gate_notes{} } ' +
+    'data_scope[], gate_notes{}, publishing{ lead, name{}, readers{ caveat saying ' +
+    '"not access control" }, freshness{ presets[] of { id, label, sentence }, default naming ' +
+    'one }, foot, buttons{} } } ' +
     '— the report section, from "npm run ingest:reports" and ' +
     '"node scripts/seed-report-governance.mjs"',
 }
@@ -767,6 +801,41 @@ function validateDb(candidate) {
         problems.push(
           `whatif.resolvable "${r.keywords?.[0]}" resolves to "${r.resolves_to}", which is not a ` +
             'watched measure — authoring would report success and add nothing',
+        )
+      }
+    }
+    /*
+     * The publish dialog, which fails the same silent way. A preset with no sentence
+     * prints a blank recurrence line under a control that plainly did something; a
+     * default naming no preset opens the dialog on nothing; and a `no_day_error` the
+     * route quotes but the document lacks refuses a publish with an empty sentence.
+     */
+    const pub = w.publishing
+    if (!pub || !Array.isArray(pub.freshness?.presets) || pub.freshness.presets.length === 0) {
+      problems.push(
+        'whatif.publishing declares no freshness presets — the publish dialog would offer an ' +
+          'empty schedule control. Re-run "npm run ingest:whatif"',
+      )
+    } else {
+      for (const p of pub.freshness.presets) {
+        if (!p.sentence) {
+          problems.push(
+            `whatif.publishing freshness preset "${p.id}" states no sentence — picking it would ` +
+              'print a blank recurrence line, which reads as "no schedule"',
+          )
+        }
+      }
+      if (!pub.freshness.presets.some((p) => p.id === pub.freshness.default?.preset)) {
+        problems.push(
+          `whatif.publishing freshness default names preset "${pub.freshness.default?.preset}", ` +
+            'which is not offered — the dialog would open on nothing',
+        )
+      }
+      if (!pub.readers?.empty_error || !pub.freshness.no_day_error) {
+        problems.push(
+          'whatif.publishing is missing a refusal sentence (readers.empty_error / ' +
+            'freshness.no_day_error) — the publish route sends those verbatim, so a refusal ' +
+            'would arrive blank',
         )
       }
     }
@@ -3603,9 +3672,41 @@ function browsableDocuments(source) {
  * lets a saved scenario stay true as the graph changes.
  */
 
-/** The saved library, in memory. Lost on restart, like a registered source. */
+/**
+ * The saved library, in memory. Lost on restart, like a registered source.
+ *
+ * **An entry is a whole scenario, not a column.** It carries the frame — the measures
+ * being watched and the pool a case may draw from — plus its cases, and a case is
+ * `{ name, generator_id }`: the admitted load and nothing else. That is the publishable
+ * object, and the reason it is: a figure without its frame (what was watched, which
+ * pool it was drawn from) is a number without a question, so a case cannot be shared on
+ * its own. No entry ever holds a computed measure; `POST /whatif/scenario` derives those
+ * on every read, which is what keeps a scenario true as the graph changes.
+ */
 const whatifSaved = new Map()
 let whatifSavedSeq = 1
+
+/**
+ * Who a scenario can be published to: the tenant's own users, with their persona.
+ *
+ * Served rather than written into the dialog, for the reason the report Share picker
+ * reads `GET /auth/roles` and the consent screen renders the scopes the endpoint
+ * returned — a directory held by the client is a second answer to "who exists", and it
+ * can offer a reader this endpoint then refuses. `access_note` rides along because the
+ * dialog *states* what a reader's persona may see; it does not filter anything, and the
+ * copy beside it says so.
+ */
+const whatifReaders = () =>
+  settings.users.map((u) => {
+    const role = db.auth_roles.find((r) => r.role_id === u.role_id)
+    return {
+      email: u.email,
+      name: u.name,
+      role_id: u.role_id,
+      role_label: role?.label ?? u.role_id,
+      access_note: role?.access_note ?? '',
+    }
+  })
 
 const WHATIF_OPS = {
   '>': (a, b) => a > b,
@@ -3666,6 +3767,12 @@ const whatifFrame = () => ({
   authoring: db.whatif.authoring,
   runtime: db.whatif.runtime,
   graph_reference: db.whatif.graph_reference,
+  publishing: db.whatif.publishing,
+  /* The two pools the publish dialog picks from, both the app's own. Readers are the
+     tenant's users; the graphs are the ones actually published — the lens already only
+     opens when one is, so this list is never empty on this branch. */
+  readers: whatifReaders(),
+  graphs: reportGraphs(),
 })
 
 /**
@@ -4958,6 +5065,34 @@ const reportGovernanceView = (asRole) => {
     ungoverned,
     /* Named here rather than assembled in the page, so one string says it everywhere. */
     restore: 'npm run seed:governance',
+    /* The publish dialog's copy, authored by `npm run seed:governance`. */
+    publishing: db.reports.governance.publishing,
+    /*
+     * **Who the publish dialog can pick.** The tenant's own users from `settings.json`, each
+     * carrying the persona they sign in as and that persona's *declared* data scope — the same
+     * `data_scope` row gate 2 renders, resolved here so one scope row cannot read one way in the
+     * Operations grid and another beside somebody's name.
+     *
+     * A person is picked and their **role** is what gets stored: a report audience is
+     * `viewer_roles`, and translating a person into an address would be a second audience model
+     * beside the one the entitlement matrix and `?as_role=` already read.
+     *
+     * `scope` is stated, never applied. No roster in this section is filtered per persona, so a
+     * count like "sees 32 of 36" would claim a filter that never ran — the note beside the list
+     * says the preview is the rules' result, and the rules are the ones already on the reader.
+     */
+    people: settings.users.map((u) => {
+      const role = db.auth_roles.find((r) => r.role_id === u.role_id)
+      const scope = db.reports.governance.data_scope.find((s) => s.role_id === u.role_id)
+      return {
+        email: u.email,
+        name: u.name,
+        role_id: u.role_id,
+        role_label: role?.label ?? u.role_id,
+        scope: scope?.scope ?? null,
+        masked: scope?.masked ?? null,
+      }
+    }),
     /* `current` leads and is not a stored state: published + pending is what a reader means. */
     statuses: [
       { key: 'current', label: 'All current', tone: 'neutral', count: count('current') },
@@ -5117,6 +5252,308 @@ const reportGovernanceView = (asRole) => {
     })),
   }
 }
+
+/* ---------------- Audit & Governance ----------------
+ *
+ * One page for **who sees what**, and what this server has recorded about it. Two gates and a
+ * trail, and the page names all three:
+ *
+ *  - **Who can open it** — set by the author when they publish, and managed here per artifact.
+ *    A report's audience is `viewer_roles`; a published what-if scenario's is a list of reader
+ *    addresses. Those are two different pools and this page does not merge them: it resolves both
+ *    to *people* for display, and writes back to whichever the artifact actually stores.
+ *  - **What they see inside** — an access rule per persona: a restriction basis (a field the
+ *    register declares filterable) plus the values that persona may see, resolved against the real
+ *    36-generator roster.
+ *  - **Every change is recorded** — in memory, like publication itself.
+ *
+ * **The rule is recorded, not enforced, and the page says so in those words.** No roster in this
+ * app is filtered per persona: a report renders the same rows for everybody. Resolving the rule
+ * against the roster is arithmetic on data this server holds — honest — but claiming a reader
+ * *saw* that subset would be claiming a filter that never ran. That is the distinction gate 2 has
+ * always been documented under, made editable here rather than made real.
+ */
+
+/** What this server has seen. In memory, like publication — a restart forgets both together. */
+const governanceLog = []
+let governanceLogSeq = 1
+const logGovernance = (category, actor, text, detail) => {
+  governanceLog.unshift({
+    event_id: `gl-${governanceLogSeq++}`,
+    at: new Date().toISOString(),
+    category,
+    actor: actor ?? db.google_account.email,
+    text,
+    detail,
+  })
+}
+
+/**
+ * The fields a restriction may run on.
+ *
+ * **Derived, never a written list.** The register's own field dictionary decides: the spine's
+ * identity column, plus every field it declares `filterable`. That is the same set the report
+ * section's facets come from, so a basis offered here cannot be one no report could slice by —
+ * and a field the dictionary stops declaring disappears from both at once. `enf` is deliberately
+ * absent for exactly that reason: the dictionary does not declare it filterable.
+ */
+const GOVERNANCE_IDENTITY = 'generator'
+const governanceBases = () => {
+  const rows = db.reports.data.generators
+  const keys = [
+    GOVERNANCE_IDENTITY,
+    ...db.reports.fields.filter((f) => f.filterable).map((f) => f.key),
+  ].filter((k, i, all) => all.indexOf(k) === i && k in (rows[0] ?? {}))
+
+  return keys.map((key) => {
+    const field = db.reports.fields.find((f) => f.key === key)
+    /* The values are the roster's own distinct values, each carrying how many rows it admits —
+       so an empty basis reads as "nothing qualifies" rather than as a control that failed. */
+    const seen = new Map()
+    for (const row of rows) {
+      const raw = row[key]
+      const value = typeof raw === 'boolean' ? String(raw) : String(raw ?? '')
+      seen.set(value, (seen.get(value) ?? 0) + 1)
+    }
+    return {
+      basis: key,
+      label: field?.label ?? REPORT_LABELS[key] ?? key,
+      identity: key === GOVERNANCE_IDENTITY,
+      values: [...seen.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([value, count]) => ({
+          value,
+          /* A boolean field prints as a sentence, not as "true": a chip reading `true` is a
+             value nobody outside this file can act on. */
+          label:
+            typeof rows.find((r) => String(r[key]) === value)?.[key] === 'boolean'
+              ? value === 'true'
+                ? `${field?.label ?? key}`
+                : `No ${(field?.label ?? key).toLowerCase()}`
+              : value,
+          count,
+        })),
+    }
+  })
+}
+
+/** The rows one rule admits, against today's roster. */
+const governanceRows = (rule) => {
+  if (!rule || !rule.basis || !Array.isArray(rule.values) || rule.values.length === 0) return []
+  return db.reports.data.generators.filter((row) =>
+    rule.values.some((v) => String(row[rule.basis] ?? '') === String(v)),
+  )
+}
+
+/**
+ * What a persona's rule resolves to today.
+ *
+ * Four outcomes and they are different facts: `full` sees the roster, `mask` sees it as totals
+ * only, `part` sees what the rule admits, and `none` sees nothing — which is what an unset rule
+ * means, and it is stated rather than defaulted to "everything".
+ */
+const governanceResolution = (scope) => {
+  const total = db.reports.data.generators.length
+  const basis = scope.rule ? governanceBases().find((b) => b.basis === scope.rule.basis) : null
+  if (scope.full && scope.mask) {
+    return { kind: 'mask', count: total, total, summary: 'Totals only — row figures masked', sample: [] }
+  }
+  if (scope.full) {
+    return { kind: 'full', count: total, total, summary: `All ${total} generators`, sample: [] }
+  }
+  if (!scope.rule || !basis) {
+    /* "No rule yet", not "opens empty": nothing here is enforced, so describing what a reader
+       would see would be a claim about a filter that does not run. */
+    return { kind: 'none', count: 0, total, summary: 'No rule authored yet', sample: [] }
+  }
+  const rows = governanceRows(scope.rule)
+  if (rows.length === 0) {
+    return {
+      kind: 'none',
+      count: 0,
+      total,
+      summary: `${basis.label}: no value picked yet`,
+      sample: [],
+    }
+  }
+  const labelFor = (v) => basis.values.find((x) => x.value === String(v))?.label ?? String(v)
+  return {
+    kind: 'part',
+    count: rows.length,
+    total,
+    summary: `${basis.label}: ${scope.rule.values.map(labelFor).join(', ')}`,
+    /* Named, because "32 of 36" is not checkable and a list of names is. */
+    sample: rows.map((r) => String(r[GOVERNANCE_IDENTITY])),
+  }
+}
+
+/** Every person this tenant has, with the rule their persona carries. */
+const governancePeople = () =>
+  settings.users.map((u) => {
+    const role = db.auth_roles.find((r) => r.role_id === u.role_id)
+    const scope = db.reports.governance.data_scope.find((s) => s.role_id === u.role_id) ?? {}
+    return {
+      email: u.email,
+      name: u.name,
+      role_id: u.role_id,
+      role_label: role?.label ?? u.role_id,
+      /* The tenant's authored description of this persona's scope, beside the rule that is
+         actually editable — two different things, so both are named. */
+      declared: scope.scope ?? null,
+      masked_columns: scope.masked ?? null,
+      full: scope.full === true,
+      mask: scope.mask === true,
+      rule: scope.rule ?? null,
+      resolution: governanceResolution(scope),
+    }
+  })
+
+/** A person by address, or null. The directory is Settings' — nothing here invents one. */
+const governancePerson = (email) =>
+  governancePeople().find((p) => p.email.toLowerCase() === String(email ?? '').toLowerCase()) ?? null
+
+/**
+ * The published artifacts this page governs.
+ *
+ * Two kinds with two audience models, resolved to people either way. A **report** stores role
+ * ids, so its readers are the people holding those roles; a **what-if scenario** stores addresses,
+ * so its readers are those people directly. Each row says which actions it can carry out, because
+ * they differ: a scenario can be unpublished (that route exists), a report cannot — the section
+ * has no such act, and its equivalent is an audience of nobody.
+ */
+const governanceArtifacts = () => {
+  const reports = db.reports.governance.reports.map((row) => {
+    const definition = db.reports.reports.find((r) => r.report_id === row.report_id)
+    const audience = Array.isArray(row.audience) ? row.audience : []
+    return {
+      artifact_id: row.report_id,
+      kind: 'report',
+      kind_label: 'Report',
+      name: definition?.heading ?? row.report_id,
+      published_by: row.author ?? null,
+      live: row.status === 'published',
+      status_label: reportState(row.status)?.label ?? row.status,
+      freshness: row.schedule ?? null,
+      cases: null,
+      /* Every person whose persona the audience names. Two people on one persona both appear —
+         which is the honest reading of a role-based audience, not a bug. */
+      readers: governancePeople()
+        .filter((p) => audience.includes(p.role_id))
+        .map((p) => p.email),
+      audience_note:
+        'Stored as personas, so adding somebody names their persona — anyone else holding it is ' +
+        'named too.',
+      can_unpublish: false,
+    }
+  })
+
+  const scenarios = [...whatifSaved.values()]
+    .filter((s) => s.published !== null)
+    .map((s) => ({
+      artifact_id: s.saved_id,
+      kind: 'whatif',
+      kind_label: 'What-if scenario',
+      name: s.name,
+      published_by: s.published.published_by,
+      live: true,
+      status_label: 'Published',
+      freshness:
+        db.whatif.publishing.freshness.presets.find((p) => p.id === s.published.freshness.preset)
+          ?.label ?? null,
+      cases: s.cases.map((c) => c.name),
+      readers: s.published.readers,
+      audience_note: 'Stored as addresses — a scenario names people, not personas.',
+      can_unpublish: true,
+    }))
+
+  return [...reports, ...scenarios]
+}
+
+const governanceArtifact = (id) => governanceArtifacts().find((a) => a.artifact_id === id) ?? null
+
+/**
+ * Add a person to an artifact's audience, in whatever that artifact stores.
+ *
+ * A **report** keeps persona ids, so naming a person names their persona — and the row says so,
+ * because anyone else holding it is named too. A **scenario** keeps addresses, so it keeps theirs.
+ * Translating one model into the other is what this deliberately does not do.
+ */
+const governanceAddReader = (artifact, person) => {
+  if (artifact.kind === 'report') {
+    const row = db.reports.governance.reports.find((r) => r.report_id === artifact.artifact_id)
+    if (row.audience.includes(person.role_id)) return
+    commitDb({
+      ...db,
+      reports: {
+        ...db.reports,
+        governance: {
+          ...db.reports.governance,
+          reports: db.reports.governance.reports.map((r) =>
+            r.report_id === artifact.artifact_id
+              ? { ...r, audience: [...r.audience, person.role_id] }
+              : r,
+          ),
+        },
+      },
+    })
+    return
+  }
+  const entry = whatifSaved.get(artifact.artifact_id)
+  whatifSaved.set(artifact.artifact_id, {
+    ...entry,
+    published: { ...entry.published, readers: [...entry.published.readers, person.email] },
+  })
+}
+
+/** Remove one, or say why it cannot be done. Returns a sentence on refusal, null on success. */
+const governanceRemoveReader = (artifact, email) => {
+  const person = governancePerson(email)
+  if (artifact.kind === 'report') {
+    commitDb({
+      ...db,
+      reports: {
+        ...db.reports,
+        governance: {
+          ...db.reports.governance,
+          reports: db.reports.governance.reports.map((r) =>
+            r.report_id === artifact.artifact_id
+              ? { ...r, audience: r.audience.filter((rid) => rid !== person?.role_id) }
+              : r,
+          ),
+        },
+      },
+    })
+    return null
+  }
+  const entry = whatifSaved.get(artifact.artifact_id)
+  const readers = entry.published.readers.filter((e) => e !== email)
+  /* A published scenario with no readers is published to nobody, which the publish route already
+     refuses. Unpublish is the act that means that, and the refusal names it. */
+  if (readers.length === 0) {
+    return (
+      `${person?.name ?? email} is the only reader of “${artifact.name}”. A published scenario ` +
+      'names at least one — unpublish it instead, which withdraws it and keeps the author’s draft.'
+    )
+  }
+  whatifSaved.set(artifact.artifact_id, {
+    ...entry,
+    published: { ...entry.published, readers },
+  })
+  return null
+}
+
+/** The page's whole payload. */
+const governanceView = () => ({
+  connected_sources: connectedSources().length,
+  ...reportGraphCounts(),
+  roster_total: db.reports.data.generators.length,
+  bases: governanceBases(),
+  people: governancePeople(),
+  artifacts: governanceArtifacts(),
+  log: governanceLog,
+  log_categories: db.reports.governance.audit.categories,
+  copy: db.reports.governance.audit.copy,
+})
 
 const reportsList = (asRole) => ({
   /* The three tabs' own payload — see reportGovernanceView above. */
@@ -7546,10 +7983,16 @@ const routes = [
           formats: {},
           headroom: [],
           saved: [],
+          /* Both pools empty on this branch, and honestly so: there is no published
+             graph to bind to, so there is nothing to publish and nobody to publish it
+             to. The keys are still sent because the client validates their shape. */
+          readers: [],
+          graphs: [],
           copy: db.whatif.copy,
           state_defaults: db.whatif.state_defaults,
           authoring: db.whatif.authoring,
           runtime: db.whatif.runtime,
+          publishing: db.whatif.publishing,
           graph_reference: db.whatif.graph_reference,
         })
       }
@@ -7664,22 +8107,81 @@ const routes = [
     method: 'POST',
     match: (p) => p === '/whatif/saved',
     handle: async (req, res) => {
-      const { saved_id, name, generator_id } = await readJson(req)
-      const generator = db.whatif.generators.find((g) => g.id === generator_id)
-      if (!generator) return send(res, 404, { error: `no generator ${generator_id}` })
+      const { saved_id, name, watch, pool, cases } = await readJson(req)
 
-      /* The package's own default, so an unnamed scenario is still identifiable in the
-         library rather than listed as an empty row. */
-      const fallback = db.whatif.runtime.saved_library.default_name_template.replace(
-        '{first_two_words_of_generator}',
-        generator.name.split(/\s+/).slice(0, 2).join(' '),
-      )
-      const label = String(name ?? '').trim() || fallback
+      /* The frame first, because a case is only meaningful inside one. A pool the
+         package does not ship would silently admit every generator. */
+      const poolKey = String(pool ?? '')
+      if (!db.whatif.candidate_pools.some((p) => p.key === poolKey)) {
+        return send(res, 400, {
+          error: `no candidate pool "${poolKey}" — pick one of: ${db.whatif.candidate_pools
+            .map((p) => p.key)
+            .join(', ')}`,
+        })
+      }
+      const watchKeys = Array.isArray(watch) ? watch.map(String) : []
+      const unknown = watchKeys.filter((k) => !db.whatif.watched_measures.some((m) => m.key === k))
+      if (unknown.length > 0) {
+        return send(res, 400, {
+          error: `not a watched measure: ${unknown.join(', ')} — author it in step 1 first`,
+        })
+      }
+      /* A scenario judged against nothing is not a scenario, which is the same refusal
+         step 1 makes before it will continue. */
+      if (watchKeys.length === 0) {
+        return send(res, 400, {
+          error: 'a scenario watches at least one measure — pick one in step 1 before saving',
+        })
+      }
 
-      // An update keeps the id, so the column stays linked to its library entry.
+      const rows = Array.isArray(cases) ? cases : []
+      if (rows.length === 0) {
+        return send(res, 400, { error: 'a scenario holds at least one case — open a column in Runtime first' })
+      }
+      const admitted = whatifPool(poolKey)
+      const nextCases = []
+      for (const row of rows) {
+        const generator = db.whatif.generators.find((g) => g.id === row?.generator_id)
+        if (!generator) return send(res, 404, { error: `no generator ${row?.generator_id}` })
+        /* A case whose load the frame excludes would reopen showing a load its own
+           dropdown does not offer — the frame is what the pool step exists to set. */
+        if (!admitted.some((g) => g.id === generator.id)) {
+          return send(res, 400, {
+            error: `${generator.name} is not in the "${poolKey}" pool — a case may only admit a load the frame allows`,
+          })
+        }
+        /* The package's own default, so an unnamed case is still identifiable rather
+           than listed as an empty row. */
+        const fallback = db.whatif.runtime.saved_library.default_name_template.replace(
+          '{first_two_words_of_generator}',
+          generator.name.split(/\s+/).slice(0, 2).join(' '),
+        )
+        nextCases.push({ name: String(row?.name ?? '').trim() || fallback, generator_id: generator.id })
+      }
+
+      // An update keeps the id, so the runtime stays linked to its library entry.
       const id = saved_id && whatifSaved.has(saved_id) ? saved_id : `sv-${whatifSavedSeq++}`
-      whatifSaved.set(id, { saved_id: id, name: label, generator_id })
-      send(res, 200, { saved: [...whatifSaved.values()] })
+      const previous = whatifSaved.get(id) ?? null
+      const label =
+        String(name ?? '').trim() ||
+        previous?.name ||
+        `What-if — ${(db.whatif.candidate_pools.find((p) => p.key === poolKey)?.label ?? poolKey).toLowerCase()}`
+
+      whatifSaved.set(id, {
+        saved_id: id,
+        name: label,
+        watch: watchKeys,
+        pool: poolKey,
+        cases: nextCases,
+        /*
+         * Re-saving keeps the publication, because editing a published scenario is
+         * still that publication — but its readers are reading a frame that just
+         * changed under them, so the entry says when it was last written and the row
+         * reports it. Nothing here is a figure.
+         */
+        published: previous?.published ?? null,
+      })
+      send(res, 200, { saved: [...whatifSaved.values()], saved_id: id })
     },
   },
 
@@ -7694,6 +8196,373 @@ const routes = [
          page turns it back into an unsaved draft rather than closing it out from under
          the reader. */
       send(res, 200, { saved: [...whatifSaved.values()], deleted: id })
+    },
+  },
+
+  /*
+   * Publishing a scenario, and unpublishing it.
+   *
+   * **The whole scenario travels, or nothing does** — which is why this route hangs off
+   * a library entry rather than off a column. Publishing records three decisions and
+   * verifies each against a pool the server owns:
+   *
+   *  - **readers**, checked against `settings.json`'s users. An address outside the
+   *    directory is refused naming who is in it, exactly as the login refuses an
+   *    unknown address: inventing a reader is inventing a user.
+   *  - **the graph it is bound to**, checked against what is *currently* published.
+   *    A scenario bound to a draft would promise figures traversed from content nobody
+   *    published, and defaulting to the newest would attribute them to a graph the
+   *    author never picked.
+   *  - **freshness**, checked against the presets `db.whatif.publishing` declares.
+   *
+   * **It is not access control**, and the dialog says so in those words: the directory
+   * is served, but the role is client-held and this API serves every scenario to a
+   * caller that names nobody. What publishing records is who is *told*.
+   *
+   * `published_by` is taken from `?as=<email>` for the reason every "who did this" field
+   * here is: the identity is client-held and the server has nothing to look it up from.
+   * It is written on every publish rather than only when absent — a record keyed by a
+   * thing but holding a fact about an *act* goes stale the moment the act repeats, which
+   * is how `studioPublishedBy` kept crediting the previous publisher.
+   *
+   * In memory, like the library it lives in and like graph publication itself: a restart
+   * closes every gate on this page, and it must not leave a scenario claiming readers.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/whatif\/saved\/[^/]+\/publish$/.test(p),
+    handle: async (req, res, { pathname, query }) => {
+      const id = decodeURIComponent(pathname.slice('/whatif/saved/'.length, -'/publish'.length))
+      const entry = whatifSaved.get(id)
+      if (!entry) return send(res, 404, { error: `no saved scenario ${id}` })
+
+      const as = query.get('as')
+      if (as !== null && !EMAIL_RE.test(as)) {
+        return send(res, 400, {
+          error: `"${as}" is not an email — send the signed-in address as ?as=, or nothing`,
+        })
+      }
+
+      const { readers, graph_use_case_id, freshness } = await readJson(req)
+
+      const directory = whatifReaders()
+      const picked = Array.isArray(readers) ? [...new Set(readers.map((r) => String(r).trim()))] : []
+      if (picked.length === 0) {
+        return send(res, 400, { error: db.whatif.publishing.readers.empty_error })
+      }
+      const strangers = picked.filter((e) => !directory.some((d) => d.email === e))
+      if (strangers.length > 0) {
+        return send(res, 400, {
+          error:
+            `${strangers.join(', ')} is not in the directory — Settings knows ` +
+            `${directory.map((d) => d.email).join(', ')}`,
+        })
+      }
+
+      /* Order is the directory's, so the row reads the same however they were ticked. */
+      const inDirectoryOrder = directory.filter((d) => picked.includes(d.email)).map((d) => d.email)
+
+      const live = reportGraphs()
+      const graph = live.find((g) => g.use_case_id === graph_use_case_id)
+      if (!graph) {
+        return send(res, 400, {
+          error:
+            live.length === 0
+              ? db.whatif.publishing.graph.empty
+              : `no published graph "${graph_use_case_id}" — published now: ${live
+                  .map((g) => `${g.name} (${g.use_case_id})`)
+                  .join(', ')}`,
+        })
+      }
+
+      const presets = db.whatif.publishing.freshness.presets
+      const fresh = freshness ?? {}
+      const preset = presets.find((p) => p.id === fresh.preset)
+      if (!preset) {
+        return send(res, 400, {
+          error: `no freshness preset "${fresh.preset}" — pick one of: ${presets.map((p) => p.id).join(', ')}`,
+        })
+      }
+      const unit = String(fresh.unit ?? db.whatif.publishing.freshness.default.unit)
+      if (!db.whatif.publishing.freshness.units.includes(unit)) {
+        return send(res, 400, {
+          error: `no freshness unit "${unit}" — pick one of: ${db.whatif.publishing.freshness.units.join(', ')}`,
+        })
+      }
+      const days = Array.isArray(fresh.days) ? fresh.days.map(String) : []
+      const strangeDays = days.filter((d) => !db.whatif.publishing.freshness.days.includes(d))
+      if (strangeDays.length > 0) {
+        return send(res, 400, { error: `not a day of the week: ${strangeDays.join(', ')}` })
+      }
+      /* A weekly recurrence with no day never runs. Refused rather than accepted and
+         quietly never fired, which would read on the row as a live schedule. */
+      if (preset.id === 'custom' && unit === 'week' && days.length === 0) {
+        return send(res, 400, { error: db.whatif.publishing.freshness.no_day_error })
+      }
+      const every = Number(fresh.every)
+      const time = String(fresh.time ?? db.whatif.publishing.freshness.default.time)
+      if (!db.whatif.publishing.freshness.times.includes(time)) {
+        return send(res, 400, {
+          error: `no freshness time "${time}" — pick one of: ${db.whatif.publishing.freshness.times.join(', ')}`,
+        })
+      }
+
+      whatifSaved.set(id, {
+        ...entry,
+        published: {
+          readers: inDirectoryOrder,
+          graph_use_case_id: graph.use_case_id,
+          graph_name: graph.name,
+          /* The content that answers it, not just the brief — the same pair Ask and a
+             report footer report, so "which build did a reader see" is answerable. */
+          graph_version: graph.version,
+          graph_sha256: graph.sha256,
+          freshness: {
+            preset: preset.id,
+            every: Number.isFinite(every) && every >= 1 ? Math.min(Math.round(every), 52) : 1,
+            unit,
+            days,
+            time,
+          },
+          /* `.email`, not the account object — it is the tenant's own seeded account and
+             holds a name and a picture beside the address. The fallback is that account
+             rather than a blank, because "published by nobody" is not true of something
+             a reader can open, and it is written on *every* publish rather than only
+             when absent: an anonymous re-publish must stop crediting whoever went last. */
+          published_by: as ?? db.google_account.email,
+          published_at: new Date().toISOString(),
+        },
+      })
+      send(res, 200, { saved: [...whatifSaved.values()], saved_id: id })
+    },
+  },
+
+  {
+    method: 'DELETE',
+    match: (p) => /^\/whatif\/saved\/[^/]+\/publish$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/whatif/saved/'.length, -'/publish'.length))
+      const entry = whatifSaved.get(id)
+      if (!entry) return send(res, 404, { error: `no saved scenario ${id}` })
+      /* Unpublishing keeps the scenario — it stops being readable, it does not stop
+         existing, and the copy on the dialog promises exactly that. */
+      whatifSaved.set(id, { ...entry, published: null })
+      send(res, 200, { saved: [...whatifSaved.values()], saved_id: id })
+    },
+  },
+
+  /* ---------------- Audit & Governance ---------------- */
+
+  /* The whole page: the two gates, the artifacts they apply to, and the trail. */
+  {
+    method: 'GET',
+    match: (p) => p === '/governance',
+    handle: (_req, res) => send(res, 200, governanceView()),
+  },
+
+  /*
+   * The access rule a persona carries.
+   *
+   * Written against `db.reports.governance.data_scope`, which is where gate 2 already lives — so
+   * this edits the tenant's existing scope row rather than opening a second answer to "what may
+   * this persona see". It **commits**, like a report audience and unlike a registered source: a
+   * decision about who sees what is somebody's work and must survive a restart.
+   *
+   * A rule is **recorded, not enforced** — the page says so and so does the reply. Nothing in this
+   * app filters a roster per persona, so what this changes is what the resolution *would* admit.
+   */
+  {
+    method: 'PATCH',
+    match: (p) => /^\/governance\/scope\/[^/]+$/.test(p),
+    handle: async (req, res, { pathname, query }) => {
+      const roleId = decodeURIComponent(pathname.slice('/governance/scope/'.length))
+      const scope = db.reports.governance.data_scope.find((s) => s.role_id === roleId)
+      if (!scope) {
+        return send(res, 404, {
+          error:
+            `no persona "${roleId}" — this tenant governs ` +
+            db.reports.governance.data_scope.map((s) => s.role_id).join(', '),
+        })
+      }
+
+      const as = query.get('as')
+      if (as !== null && !EMAIL_RE.test(as)) {
+        return send(res, 400, {
+          error: `"${as}" is not an email — send the signed-in address as ?as=, or nothing`,
+        })
+      }
+
+      const body = await readJson(req)
+      const next = { ...scope }
+
+      if ('full' in body) next.full = body.full === true
+      if ('mask' in body) next.mask = body.mask === true
+
+      if ('rule' in body) {
+        if (body.rule === null) {
+          next.rule = null
+        } else {
+          const bases = governanceBases()
+          const basis = bases.find((b) => b.basis === body.rule?.basis)
+          if (!basis) {
+            return send(res, 400, {
+              error:
+                `no restriction basis "${body.rule?.basis}" — the register offers ` +
+                `${bases.map((b) => b.basis).join(', ')}. Only fields the dictionary declares ` +
+                'filterable, plus the spine\'s identity column, can restrict anything',
+            })
+          }
+          const values = Array.isArray(body.rule.values) ? [...new Set(body.rule.values.map(String))] : []
+          const strangers = values.filter((v) => !basis.values.some((x) => x.value === v))
+          if (strangers.length > 0) {
+            return send(res, 400, {
+              error:
+                `${basis.label} has no value ${strangers.join(', ')} in this register — the values ` +
+                'come from the roster itself, so one that is not on it would admit nothing',
+            })
+          }
+          next.rule = { basis: basis.basis, values }
+          /* A rule and "sees everything" are contradictory claims; picking one clears the other
+             rather than leaving a rule that nothing reads. */
+          next.full = false
+        }
+      }
+      /* Masking with no scope would mask nothing — the mask is *how* a scope is shown, not a
+         scope of its own, so it implies the full roster when there is nothing else. */
+      if (next.mask && !next.full && !(next.rule && next.rule.values.length > 0)) next.full = true
+
+      commitDb({
+        ...db,
+        reports: {
+          ...db.reports,
+          governance: {
+            ...db.reports.governance,
+            data_scope: db.reports.governance.data_scope.map((s) =>
+              s.role_id === roleId ? next : s,
+            ),
+          },
+        },
+      })
+
+      const resolved = governanceResolution(next)
+      logGovernance(
+        'rule',
+        as,
+        `changed the access rule for ${db.auth_roles.find((r) => r.role_id === roleId)?.label ?? roleId}`,
+        `${resolved.summary} — resolves to ${resolved.count} of ${resolved.total} generators today. ` +
+          'Recorded, not enforced: no roster here is filtered per persona.',
+      )
+      send(res, 200, governanceView())
+    },
+  },
+
+  /*
+   * A reader on a published artifact.
+   *
+   * **The server owns the mapping**, because the two kinds store different things: a report's
+   * audience is persona ids and a scenario's is addresses. A page that knew which was which would
+   * be a second answer to "what is an audience made of", so it names a person and this route
+   * writes to whichever pool the artifact actually keeps.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/governance\/artifacts\/[^/]+\/readers$/.test(p),
+    handle: async (req, res, { pathname, query }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/governance/artifacts/'.length, -'/readers'.length),
+      )
+      const artifact = governanceArtifact(id)
+      if (!artifact) return send(res, 404, { error: `no published artifact "${id}"` })
+
+      const as = query.get('as')
+      if (as !== null && !EMAIL_RE.test(as)) {
+        return send(res, 400, { error: `"${as}" is not an email — send the signed-in address as ?as=, or nothing` })
+      }
+
+      const { email } = await readJson(req)
+      const person = governancePerson(email)
+      if (!person) {
+        return send(res, 400, {
+          error:
+            `${email} is not in the directory — Settings knows ` +
+            governancePeople().map((p) => p.email).join(', '),
+        })
+      }
+      if (artifact.readers.includes(person.email)) {
+        return send(res, 400, { error: `${person.name} can already open “${artifact.name}”.` })
+      }
+
+      governanceAddReader(artifact, person)
+      logGovernance('reader', as, `gave ${person.name} access to “${artifact.name}”`, artifact.audience_note)
+      send(res, 200, governanceView())
+    },
+  },
+
+  {
+    method: 'DELETE',
+    match: (p) => /^\/governance\/artifacts\/[^/]+\/readers\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const rest = pathname.slice('/governance/artifacts/'.length)
+      const id = decodeURIComponent(rest.slice(0, rest.indexOf('/readers/')))
+      const email = decodeURIComponent(rest.slice(rest.indexOf('/readers/') + '/readers/'.length))
+      const artifact = governanceArtifact(id)
+      if (!artifact) return send(res, 404, { error: `no published artifact "${id}"` })
+      if (!artifact.readers.includes(email)) {
+        return send(res, 404, { error: `${email} is not a reader of “${artifact.name}”` })
+      }
+      const as = query.get('as')
+      if (as !== null && !EMAIL_RE.test(as)) {
+        return send(res, 400, { error: `"${as}" is not an email — send the signed-in address as ?as=, or nothing` })
+      }
+      const person = governancePerson(email)
+
+      const problem = governanceRemoveReader(artifact, email)
+      if (problem) return send(res, 400, { error: problem })
+
+      logGovernance(
+        'reader',
+        as,
+        `removed ${person?.name ?? email} from “${artifact.name}”`,
+        'The link stops working for them on the next read.',
+      )
+      send(res, 200, governanceView())
+    },
+  },
+
+  /*
+   * Unpublish — **offered only where it can be carried out**. A scenario's publication is a record
+   * this server keeps, so it can be withdrawn; a report definition has no such act, and its
+   * equivalent is an audience of nobody. The refusal says which, rather than a button that 404s.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/governance\/artifacts\/[^/]+\/unpublish$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/governance/artifacts/'.length, -'/unpublish'.length),
+      )
+      const artifact = governanceArtifact(id)
+      if (!artifact) return send(res, 404, { error: `no published artifact "${id}"` })
+      if (!artifact.can_unpublish) {
+        return send(res, 400, {
+          error:
+            `“${artifact.name}” is a report definition — this section has no unpublish. Remove ` +
+            'every reader instead, which makes it private and is a decision the row records.',
+        })
+      }
+      const as = query.get('as')
+      if (as !== null && !EMAIL_RE.test(as)) {
+        return send(res, 400, { error: `"${as}" is not an email — send the signed-in address as ?as=, or nothing` })
+      }
+      const entry = whatifSaved.get(id)
+      whatifSaved.set(id, { ...entry, published: null })
+      logGovernance(
+        'publish',
+        as,
+        `unpublished “${artifact.name}”`,
+        'It stays in the author’s library — unpublishing withdraws the readers, not the scenario.',
+      )
+      send(res, 200, governanceView())
     },
   },
 

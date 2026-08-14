@@ -3,9 +3,12 @@ import {
   computeWhatIfScenario,
   deleteWhatIfScenario,
   getWhatIfFrame,
+  publishWhatIfScenario,
   resolveWhatIfMeasure,
   saveWhatIfScenario,
+  unpublishWhatIfScenario,
   type WhatIfFrame,
+  type WhatIfFreshness,
   type WhatIfResolution,
   type WhatIfSaved,
   type WhatIfScenario,
@@ -27,14 +30,20 @@ import { toMessage, type Result } from './asyncState'
  * that quietly went stale — which is exactly what the copy promises it does not do.
  */
 
-/** One column: the admitted load, plus where it is saved. Never the figures. */
+/**
+ * One column — one *case* of the scenario on screen: the admitted load, and what it is
+ * called. Never the figures.
+ *
+ * A column carries no library id of its own, and that is the v2 model rather than an
+ * omission: the publishable object is the whole scenario, so what is linked to a library
+ * entry is the runtime (`curId`), not each column separately. A case shared on its own
+ * would be a figure without the frame that gives it a question.
+ */
 export interface ScenarioColumn {
   /** Local id, so a column survives being reordered or renamed. */
   columnId: string
   generatorId: string
   name: string
-  /** The library entry this column is linked to, or null while it is a draft. */
-  savedId: string | null
 }
 
 interface WhatIfState {
@@ -42,12 +51,14 @@ interface WhatIfState {
   loading: boolean
   error: string | null
 
-  /* ---- authoring ---- */
+  /* ---- authoring: the frame, and none of it is a scenario yet ---- */
   step: number
   /** Measure keys being watched. Order is the frame's, not the click order. */
   watch: string[]
   pool: string
   count: number
+  /** What the scenario is called. Named in step 3, because naming it is publishing it. */
+  name: string
   /** The graph's verdict on the last typed measure, or null. */
   resolution: WhatIfResolution | null
   resolving: boolean
@@ -58,6 +69,8 @@ interface WhatIfState {
   computed: Record<string, WhatIfScenario>
   computing: string[]
   saved: WhatIfSaved[]
+  /** The library entry this runtime *is*, or null while it is an unsaved draft. */
+  curId: string | null
   pending: string | null
 
   load: () => Promise<void>
@@ -65,15 +78,27 @@ interface WhatIfState {
   toggleWatch: (key: string) => void
   setPool: (pool: string) => void
   setCount: (count: number) => void
+  setName: (name: string) => void
   resolve: (text: string) => Promise<Result>
   clearResolution: () => void
   /** Opens the Runtime columns the frame asks for, and computes each. */
   startRun: () => Promise<void>
   swapLoad: (columnId: string, generatorId: string) => Promise<Result>
   renameColumn: (columnId: string, name: string) => void
-  addColumn: (generatorId: string, name?: string, savedId?: string | null) => Promise<Result>
+  addColumn: (generatorId: string, name?: string) => Promise<Result>
   removeColumn: (columnId: string) => void
-  save: (columnId: string) => Promise<Result>
+  /** Save the whole scenario — the frame and its cases — as one library entry. */
+  saveCurrent: () => Promise<Result & { savedId?: string }>
+  /** Load a library entry back into authoring *and* runtime, and recompute it. */
+  openSaved: (savedId: string) => Promise<Result>
+  publish: (input: {
+    savedId: string
+    readers: string[]
+    graphUseCaseId: string
+    freshness: WhatIfFreshness
+    as?: string | null
+  }) => Promise<Result>
+  unpublish: (savedId: string) => Promise<Result>
   remove: (savedId: string) => Promise<Result>
 }
 
@@ -93,6 +118,7 @@ export const useWhatIfStore = create<WhatIfState>()((set, get) => ({
   watch: [],
   pool: 'all',
   count: 2,
+  name: '',
   resolution: null,
   resolving: false,
 
@@ -100,6 +126,7 @@ export const useWhatIfStore = create<WhatIfState>()((set, get) => ({
   computed: {},
   computing: [],
   saved: EMPTY_SAVED,
+  curId: null,
   pending: null,
 
   /*
@@ -139,8 +166,25 @@ export const useWhatIfStore = create<WhatIfState>()((set, get) => ({
       return { watch: order.filter((k) => next.includes(k)) }
     }),
 
-  setPool: (pool) => set({ pool }),
+  /*
+   * Changing the pool invalidates any case whose load it no longer offers. Dropped
+   * rather than silently reassigned: a column that swapped its own load while the reader
+   * was looking at the pool step would be the page answering a question nobody asked.
+   * `startRun` re-seeds from the new pool, which is the visible act that replaces them.
+   */
+  setPool: (pool) =>
+    set((s) => {
+      if (pool === s.pool || !s.frame) return { pool }
+      const allowed = new Set(poolMembers(s.frame, pool).map((g) => g.id))
+      const kept = s.columns.filter((c) => allowed.has(c.generatorId))
+      if (kept.length === s.columns.length) return { pool }
+      const computed = Object.fromEntries(
+        kept.map((c) => [c.columnId, s.computed[c.columnId]]).filter(([, v]) => v !== undefined),
+      ) as Record<string, WhatIfScenario>
+      return { pool, columns: kept, computed }
+    }),
   setCount: (count) => set({ count }),
+  setName: (name) => set({ name }),
 
   resolve: async (text) => {
     set({ resolving: true })
@@ -184,7 +228,6 @@ export const useWhatIfStore = create<WhatIfState>()((set, get) => ({
       columnId: nextColumnId(),
       generatorId: inPool[i % inPool.length].id,
       name: '',
-      savedId: null,
     }))
     set({ columns, computed: {} })
     await Promise.all(columns.map((c) => computeInto(set, get, c)))
@@ -205,63 +248,105 @@ export const useWhatIfStore = create<WhatIfState>()((set, get) => ({
     })),
 
   /*
-   * Adding a column never replaces one — that is the library's stated contract, and the
-   * cap is the frame's `compare.max`. Refusing with a sentence beats silently doing
-   * nothing, which is what the prototype's disabled button did.
+   * Adding a case never replaces one, and the cap is the frame's `compare.max`. Refusing
+   * with a sentence beats silently doing nothing, which is what the prototype's disabled
+   * button did.
    */
-  addColumn: async (generatorId, name = '', savedId = null) => {
+  addColumn: async (generatorId, name = '') => {
     const { frame, columns } = get()
     const max = frame?.runtime.compare.max ?? 3
     if (columns.length >= max) {
-      return { ok: false, error: `The compare strip is full (${max}). Remove a column to add another.` }
+      return { ok: false, error: `The compare strip is full (${max}). Remove a case to add another.` }
     }
-    if (savedId && columns.some((c) => c.savedId === savedId)) {
-      return { ok: false, error: 'That saved scenario is already open in the compare strip.' }
-    }
-    const column = { columnId: nextColumnId(), generatorId, name, savedId }
-    set((s) => ({ columns: [...s.columns, column] }))
+    const column = { columnId: nextColumnId(), generatorId, name }
+    set((s) => ({ columns: [...s.columns, column], count: s.columns.length + 1 }))
     return computeInto(set, get, column)
   },
 
-  /* Always at least one column: an empty compare strip is a page with nothing on it,
+  /* Always at least one case: an empty compare strip is a page with nothing on it,
      and there is no control that would bring one back. */
   removeColumn: (columnId) =>
     set((s) => {
       if (s.columns.length <= (s.frame?.runtime.compare.min ?? 1)) return s
       const { [columnId]: _dropped, ...computed } = s.computed
-      return { columns: s.columns.filter((c) => c.columnId !== columnId), computed }
+      const columns = s.columns.filter((c) => c.columnId !== columnId)
+      return { columns, computed, count: columns.length }
     }),
 
-  save: async (columnId) => {
-    const { columns, computed } = get()
-    const column = columns.find((c) => c.columnId === columnId)
-    if (!column) return { ok: false, error: 'That column is no longer open.' }
-    set({ pending: columnId })
+  /*
+   * Save the scenario, which is the frame *and* its cases.
+   *
+   * One entry, not one per column: the frame is what makes a case mean anything, and the
+   * publish dialog says as much — a figure without what was watched and which pool it
+   * came from is a number without a question. The server answers with the whole library
+   * plus the id it touched, so the runtime links to its entry without guessing which row
+   * is new; the entry it stores holds generator ids and no figure at all.
+   */
+  saveCurrent: async () => {
+    const { columns, curId, name, watch, pool } = get()
+    if (columns.length === 0) {
+      return { ok: false, error: 'There is nothing to save yet — run the frame to open its cases first.' }
+    }
+    set({ pending: 'scenario' })
     try {
-      /* The server names an unnamed scenario from its load, and answers with the whole
-         library — so the tray and the column's saved flag move together. */
-      const saved = await saveWhatIfScenario({
-        savedId: column.savedId,
-        name: column.name,
-        generatorId: column.generatorId,
+      const { saved, savedId } = await saveWhatIfScenario({
+        savedId: curId,
+        name,
+        watch,
+        pool,
+        cases: columns.map((c) => ({ name: c.name, generatorId: c.generatorId })),
       })
-      const entry =
-        saved.find((s) => s.savedId === column.savedId) ??
-        saved.find(
-          (s) => s.generatorId === column.generatorId && !columns.some((c) => c.savedId === s.savedId),
-        )
+      const entry = saved.find((s) => s.savedId === savedId)
       set((s) => ({
         saved,
         pending: null,
-        columns: s.columns.map((c) =>
-          c.columnId === columnId
-            ? { ...c, savedId: entry?.savedId ?? c.savedId, name: entry?.name ?? c.name }
-            : c,
-        ),
+        curId: savedId,
+        /* The server names an unnamed scenario and an unnamed case from their loads, so
+           the page adopts those names rather than leaving the fields it filled blank. */
+        name: entry?.name ?? s.name,
+        columns: s.columns.map((c, i) => ({ ...c, name: entry?.cases[i]?.name ?? c.name })),
       }))
-      // The name may have been filled in by the server, so the figures stay as they are
-      // but the column's identity changed — no recompute, nothing about the load moved.
-      void computed
+      return { ok: true, savedId }
+    } catch (error) {
+      set({ pending: null })
+      return { ok: false, error: toMessage(error) }
+    }
+  },
+
+  /*
+   * Open a library entry: its frame into authoring, its cases into runtime.
+   *
+   * Every figure is recomputed on the way in rather than restored, which is the whole
+   * point of storing the load instead of the numbers — a scenario saved last week shows
+   * this week's federal record.
+   */
+  openSaved: async (savedId) => {
+    const entry = get().saved.find((s) => s.savedId === savedId)
+    if (!entry) return { ok: false, error: 'That scenario is no longer in the library.' }
+    const columns = entry.cases.map((c) => ({
+      columnId: nextColumnId(),
+      generatorId: c.generatorId,
+      name: c.name,
+    }))
+    set({
+      curId: savedId,
+      name: entry.name,
+      watch: entry.watch,
+      pool: entry.pool,
+      count: columns.length,
+      columns,
+      computed: {},
+    })
+    const results = await Promise.all(columns.map((c) => computeInto(set, get, c)))
+    const failed = results.find((r) => !r.ok)
+    return failed ?? { ok: true }
+  },
+
+  publish: async (input) => {
+    set({ pending: input.savedId })
+    try {
+      const saved = await publishWhatIfScenario(input)
+      set({ saved, pending: null })
       return { ok: true }
     } catch (error) {
       set({ pending: null })
@@ -269,17 +354,25 @@ export const useWhatIfStore = create<WhatIfState>()((set, get) => ({
     }
   },
 
-  /* Deleting a library entry unlinks any column showing it rather than closing it: the
-     reader was looking at that load, and losing it would be a surprise. */
+  unpublish: async (savedId) => {
+    set({ pending: savedId })
+    try {
+      const saved = await unpublishWhatIfScenario(savedId)
+      set({ saved, pending: null })
+      return { ok: true }
+    } catch (error) {
+      set({ pending: null })
+      return { ok: false, error: toMessage(error) }
+    }
+  },
+
+  /* Deleting a library entry leaves the runtime open, just unlinked: the reader was
+     looking at those cases, and closing them out from under them would be a surprise. */
   remove: async (savedId) => {
     set({ pending: savedId })
     try {
       const saved = await deleteWhatIfScenario(savedId)
-      set((s) => ({
-        saved,
-        pending: null,
-        columns: s.columns.map((c) => (c.savedId === savedId ? { ...c, savedId: null } : c)),
-      }))
+      set((s) => ({ saved, pending: null, curId: s.curId === savedId ? null : s.curId }))
       return { ok: true }
     } catch (error) {
       set({ pending: null })
@@ -371,3 +464,6 @@ export const headroomFor = (frame: WhatIfFrame, poolKey: string) =>
 
 export const selectColumns = (s: WhatIfState) => s.columns
 export const selectSaved = (s: WhatIfState) => s.saved
+/** The library entry the runtime currently *is*, or null while it is an unsaved draft. */
+export const selectCurrent = (s: WhatIfState) =>
+  s.curId === null ? null : (s.saved.find((e) => e.savedId === s.curId) ?? null)

@@ -12,9 +12,10 @@ it is what stops the same mistake twice.
 
 1. `CLAUDE.md` is already in context — it holds structure, conventions, and the
    pitfall list. Trust it over your own assumptions about this repo.
-2. Read the relevant flow in **`SKILLS.md`** (twelve flows: connect a source ·
+2. Read the relevant flow in **`SKILLS.md`** (thirteen flows: connect a source ·
    registered source · browse→profile→pipeline · column dictionary · `/db`
    editor · request→state · New Graph · Graph Studio · Ask · What-if · Reports ·
+   Audit & Governance ·
    Settings). Read the section, not the whole file.
 3. Read **`docs/REGRESSIONS.md`** if the request is a bug report, or if you are
    about to touch the mock server, antd props, spacing, or a store selector.

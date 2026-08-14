@@ -1,4 +1,4 @@
-import { Button, Input, Select, Spin } from 'antd'
+import { Input, Select, Spin } from 'antd'
 import { useState } from 'react'
 import type { WhatIfFrame, WhatIfGenerator, WhatIfScenario } from '../api/client'
 import type { ScenarioColumn as Column } from '../store/whatifStore'
@@ -43,11 +43,9 @@ export default function ScenarioColumn({
   frame,
   candidates,
   canRemove,
-  pending,
   onSwap,
   onRename,
   onRemove,
-  onSave,
 }: {
   column: Column
   index: number
@@ -56,20 +54,20 @@ export default function ScenarioColumn({
   frame: WhatIfFrame
   candidates: WhatIfGenerator[]
   canRemove: boolean
-  pending: boolean
   onSwap: (generatorId: string) => void
   onRename: (name: string) => void
   onRemove: () => void
-  onSave: () => void
 }) {
   const [traceOpen, setTraceOpen] = useState(false)
   const [graphOpen, setGraphOpen] = useState(false)
   const { card } = frame.runtime
 
-  /* A column linked to a library entry whose load has since been swapped is *dirty* —
-     the button says "Update" rather than showing a saved flag that is no longer true. */
-  const savedEntry = frame.saved.find((s) => s.savedId === column.savedId)
-  const dirty = Boolean(savedEntry && savedEntry.generatorId !== column.generatorId)
+  /*
+   * There is no Save on a case, and that is the v2 model rather than an omission: what
+   * gets saved and published is the whole scenario — this frame plus every case in it —
+   * so the control lives once on the scenario bar. A case shared on its own would be a
+   * figure without the question its frame asks.
+   */
 
   return (
     <div className="sc">
@@ -215,16 +213,6 @@ export default function ScenarioColumn({
             {card.graphLink}
           </button>
           {graphOpen ? <ScenarioSubgraph frame={frame} scenario={scenario} /> : null}
-
-          <div className="sc-save">
-            {savedEntry && !dirty ? (
-              <span className="sc-saved-flag">{frame.runtime.library.savedFlag}</span>
-            ) : (
-              <Button size="small" loading={pending} onClick={onSave}>
-                {savedEntry ? frame.runtime.library.updateBtn : frame.runtime.library.saveBtn}
-              </Button>
-            )}
-          </div>
         </>
       ) : (
         <div className="sc-loading">This load could not be computed.</div>

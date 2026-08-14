@@ -797,6 +797,58 @@ the whole reason computing is a call rather than a calculation — a saved scena
 re-opened next week shows next week's record, and a store that cached the numbers would
 be caching an answer that quietly went stale.
 
+**A scenario is the frame plus its cases, and that is the publishable object.** The
+library used to hold one *column* each — a loose load with no question attached — and v2
+of the package's prototype (`what if lenses/`) makes the whole thing the unit: an entry
+carries the watched measures, the pool, and a case per admitted load. A case cannot be
+saved, shared or published on its own, because a figure without its frame (what was
+watched, which pool it was drawn from) is a number without a question. So Save and
+Publish live once on the **scenario bar**, never on a column, and `POST /whatif/saved`
+refuses a case whose load the frame excludes, a scenario watching nothing, and a pool the
+package does not ship.
+
+**Publishing a scenario records three decisions and verifies each against a pool the
+server owns.** `POST|DELETE /whatif/saved/:id/publish`:
+
+- **Readers** are the tenant's users from `settings.json`, served on the frame as
+  `readers` with their persona and its `access_note`. An address outside the directory is
+  refused **naming who is in it**, the same refusal the login makes for an unknown
+  address — inventing a reader is inventing a user. A directory written into the dialog
+  would be a second answer to "who exists", the mistake the consent screen made with its
+  scope list.
+- **The graph** is one of the graphs *currently published* (`reportGraphs()`, the list the
+  report section reads). A scenario bound to a draft would promise figures traversed from
+  content nobody published; defaulting to the newest would attribute them to a graph the
+  author never picked. The publication stores the version **and** the content hash.
+- **Freshness** is one of the presets `db.whatif.publishing` declares, each carrying its
+  own `sentence`. `custom` interpolates `{n}`/`{when}`/`{time}` in the component the way
+  `runtime.headroom.sentence` interpolates `{room}` — the words stay the tenant's. A
+  weekly custom schedule with no day is refused rather than accepted and never fired.
+
+`published_by` comes from `?as=<email>` — client-held, so the route has to be told — and
+is written on **every** publish rather than only when absent, or an anonymous re-publish
+keeps crediting whoever went last. A malformed `as` is a 400. The fallback is
+`db.google_account.email` (**`.email`** — the seeded account is an object).
+
+**Sharing is not access control, and the dialog says so in those words.** The directory
+is real, but the role is client-held and the API serves every scenario to a caller that
+names nobody; what publishing records is who is *told*. Reader-level scope is likewise
+**declared, not applied** — each reader's persona note is printed beside them and no
+roster here is filtered per persona, so a filtered count would claim a filter that never
+ran. Same two-gate rule the report section states.
+
+**The publishing copy is authored by the ingest, not shipped by the package.**
+`whatif_vls_data.json` predates v2 and carries no publishing block, and
+`npm run ingest:whatif` rebuilds `db.whatif` wholesale — so a block seeded from a
+separate script would be deleted on the next re-ingest, which is how `ingest-reports.mjs`
+nearly dropped every report audience. It is authored inside the ingest instead, checked
+there and again by `validateDb`. The subtitle is overridden there for the same reason:
+the package's ends "save the ones worth keeping", which described a library that no
+longer exists.
+
+Publication lives in memory beside the library and beside graph publication itself, so a
+restart forgets all three together — the only consistent thing it could do.
+
 **Two tabs are two jobs.** *Authoring* sets the frame — which governed measures are
 watched, which pool a scenario may draw from, how many columns to compare — over three
 steps, each narrowing the next, so the rail is clickable backwards only. *Runtime* swaps
@@ -858,7 +910,11 @@ connects" rather than showing an empty trace panel.
 `whatif` is the 24th required `db.json` key, and `validateDb` checks *across* it: a
 measure reading a field no generator carries would render as no inherited risk, a pool
 filtering on a missing field would offer nobody, and a `resolvable` naming no measure
-would report "Resolved — added" and add nothing. All three read as answers.
+would report "Resolved — added" and add nothing. All three read as answers. Its
+`publishing` block is checked the same way and for the same reason: a preset with no
+sentence prints a blank recurrence line under a control that plainly did something, a
+default naming no preset opens the dialog on nothing, and a missing refusal sentence
+arrives as an empty 400 — the route sends those verbatim.
 `npm run ingest:whatif` checks the same references against the package and refuses to
 write.
 
@@ -1114,6 +1170,33 @@ surrounding space do not make a name different, and a report never collides with
 and publish checks still read it — what was removed is restating it in a list whose job is to say what
 each report is and who can see it.
 
+**The publish dialog asks three things, and none of them is an approval.** It used to ask for a name
+and then say *"A Domain Architect approves before the audience sees it"* — a sentence the code stopped
+keeping when publish → approve → activate collapsed to publish/unpublish. The report went live
+immediately either way, so the dialog was promising a sign-off nothing performs. It now asks for:
+
+- **a name**, kept because a published report's name is how its audience refers to it and `nameProblem`
+  reserves it across the whole list;
+- **who can open it** — picked as *people* from `governance.people` (the tenant's users from
+  `settings.json`, served with their persona), and stored as **`viewer_roles`**, because that is the
+  audience model the entitlement matrix and `?as_role=` already read. A directory written into the
+  component would be a second answer to "who exists". There is no invite: the four personas are the
+  pool, and offering to invite an address would promise a reader this app cannot create;
+- **how fresh the figures stay**, from `governance.publishing.freshness.presets`, each carrying its own
+  `sentence` so the line under the select is the tenant's words.
+
+Beside each reader is that persona's **declared** data scope — the same `data_scope` row gate 2 renders
+— and its masked columns. **Stated, never counted.** A figure like "sees 32 of 36 generators" would be
+the dialog claiming a filter no roster here runs, which is the rule the Operations tab's own note
+states. The gate-1 caveat is on the dialog in the required words: sharing narrows who is *told*, and
+it is not access control.
+
+`governance.publishing` is authored by `npm run seed:governance`, which **refuses to write** a preset
+with no sentence, a default naming no preset, a lead that claims an approval step, or a caveat missing
+"not access control". `validateDb` re-checks the same block, because losing it does not throw — the
+dialog would render with no lead, no reader note and an empty freshness select, which reads as a
+publish flow that asks for nothing.
+
 **A chip at 0 is a state, not a broken map** — unlike the document dictionary's type facets, where
 0 means the map is wrong. Nothing blocked is good news, so the chip dims and stays clickable and
 the empty grid says so in words. New CSS for the section goes in `ReportsPage.css`, not the
@@ -1208,6 +1291,45 @@ masked) — and gate 2 is **declared, not applied**: no roster here is filtered 
 applying a predicate would invent a filter and stating one silently would claim a filter that
 never ran. One permission built from both is wrong in both directions.
 
+
+### Audit & Governance (`/audit`)
+
+One page for **who sees what**, over `AuditPage` → `governanceStore` → `GET /governance`,
+`PATCH /governance/scope/:roleId`, `POST|DELETE /governance/artifacts/:id/readers`,
+`POST /governance/artifacts/:id/unpublish`. Its copy is authored by `npm run seed:governance`.
+
+**Two gates and a trail, and the page is honest about which of them is real.**
+
+- **Who can open it** — the audience on each published artifact, managed here. **A report's
+  audience is persona ids and a scenario's is addresses**, and the two are never merged: the page
+  names a *person*, and the server writes to whichever pool that artifact actually keeps
+  (`governanceAddReader`). Each row states which it is, so one is not read as the other.
+- **What they see inside** — an access rule per persona: a restriction **basis** plus the values it
+  admits, resolved against the live 36-generator register. **The basis list is derived, never
+  written**: the register's identity column plus every field the dictionary declares `filterable`.
+  `enf` is deliberately absent because the dictionary does not declare it — a basis nobody could
+  slice a report by is not one.
+- **The trail** — rule changes, readers added and removed, publications withdrawn, each with who
+  did it from `?as=`. In memory, like publication.
+
+**A rule is recorded, not enforced, and that sentence is served and printed where the rules are.**
+No roster in this app is filtered per persona, so `resolution` states what a rule *would* admit —
+never what a reader saw. It is computed once on the server and the page never recalculates it; it
+names the rows as well as counting them, because "32 of 36" is not checkable and a list is.
+`validateDb` checks for the phrase itself rather than the key, and the seed refuses a copy block
+without it: a page that lets somebody author a restriction and stays quiet about enforcement is
+implying one runs, which is the claim this whole section exists to avoid.
+
+**Only two personas start with a rule.** The seed transcribes the two `data_scope` predicates that
+are literally `TRUE` into `full`, and leaves the other two with none — `receiving_facility` is not
+a column on this register and `FALSE — never a measure` is the absence of a rule. Inventing one to
+fill those rows would put a restriction in the tenant's mouth. A persona with no rule says "No rule
+authored yet" rather than "opens empty", which would itself be a claim about enforcement.
+
+**Unpublish is offered only where the server has that act** — a scenario's publication is a record
+this server keeps, a report definition's is not, and the refusal names the equivalent (an audience
+of nobody). The last reader of a published scenario cannot be removed either: a published scenario
+names at least one, so the refusal points at unpublish instead.
 
 ### Settings (`/settings`)
 
@@ -1470,6 +1592,19 @@ once the step is taken, the one action that takes it, and the numbered path from
 here to a filled screen. `NoSourceConnected` is the source-specific wrapper;
 Graph Studio's is the second. Give a new one copy, not a new look.
 
+**One precondition, one screen.** Four pages need a published graph — Ask, Reports, the
+What-if lens and Audit & Governance — and every one renders **`NoPublishedGraph`**, whose
+single action is **Open Graph Studio**, because that is where the publish button is. Only
+the `detail` sentence and an optional `footnote` are per-page; the title, the action and
+the numbered path are not, or the same gate comes to be called two things. Ask kept a
+private copy of it for a long while — "No graph is live yet" against "No graph has been
+published", its own steps, its own button — which reads as two different problems and
+sends a reader looking for a second fix. `check-docs` asserts all four use the component
+*and* that none of them hand-rolls an `EmptyState` on that branch. **The action forks on
+the counts**, and must: `builtCount > 0` means publish what you have (Graph Studio),
+nothing built means build one first (New Graph), and offering one for both sends half the
+readers to the wrong screen.
+
 **Brand text on the brand tint needs `BRAND_INK`, not `BRAND`.** `BRAND` on `BRAND_SOFT` is
 2.91:1 — under AA — so a *selected* item styled that way is the hardest thing on the control to read.
 `BRAND_INK` is the same hue at 5.96:1, and `check-docs` recomputes both. `BRAND` stays correct for fills,
@@ -1500,15 +1635,15 @@ Sources. `/login` has no `NAV_ITEMS` entry — there is nothing to navigate to
 before signing in, and once signed in there is no reason to navigate back.
 
 **The sidebar advertises more than exists, and serves more than it advertises.**
-`NAV_ITEMS` has **9** live entries and `routes.tsx` has a page for **8** of them
+`NAV_ITEMS` has **10** live entries and `routes.tsx` has a page for **9** of them
 (`/new-graph`, `/ask`, `/reports`, `/sources`, `/catalogue`, `/graph-studio`,
-`/what-if`, `/settings`). The last one — Knowledge Graphs — is a roadmap placeholder with no
+`/what-if`, `/audit`, `/settings`). The last one — Knowledge Graphs — is a roadmap placeholder with no
 route, so clicking it falls through `path: '*'` to `NotFoundPage`. That is a deliberate shell,
 not a broken link: when it gets a page, add it to `routes.tsx` and nothing else changes —
-`/what-if` and `/reports` were both placeholders until their pages landed, and each
+`/what-if`, `/reports` and `/audit` were all placeholders until their pages landed, and each
 needed exactly that one line.
 
-**And the sidebar is filtered.** `visibleNavItems` in `settingsStore` decides which of those nine
+**And the sidebar is filtered.** `visibleNavItems` in `settingsStore` decides which of those ten
 entries a persona sees — see Settings below. `App`'s mobile header deliberately looks up the
 *unfiltered* list, because it names the page you are on and a hidden page is still reachable by URL.
 
@@ -1517,9 +1652,9 @@ removed; what is there now is the demo package's authoring prototype, vendored i
 `src/reports/`, which owns its own three-tab navigation and its own library. So a report is not
 a URL here.
 
-The traffic also runs the other way. **Four routes are reachable by URL only**, having
-been commented out of `NAV_ITEMS` rather than deleted: `/audit`, `/trace`,
-`/validation` and `/db`. Two more are URL-only by design and were never in the list. **`/login/data`** frames
+The traffic also runs the other way. **Three routes are reachable by URL only**, having
+been commented out of `NAV_ITEMS` rather than deleted: `/trace`,
+`/validation` and `/db`. `/audit` was the fourth until Audit & Governance got a page. Two more are URL-only by design and were never in the list. **`/login/data`** frames
 the settings/users/connectors description from `public/` — a document, so it sits outside `App` *and*
 outside `RequireAuth`, because behind the gate a typed URL would bounce to the login and never show it.
 Nothing on it is tenant data. `check-docs` asserts the file it names is really in `public/`, since a rename
@@ -1572,7 +1707,7 @@ and prefer writing ~100 lines to pulling in a package.
 relevant `SKILLS.md` flow and `docs/REGRESSIONS.md`) → build → verify → **record**.
 The record phase is not optional — it is why the same bug does not land twice.
 
-- **`SKILLS.md`** — the twelve end-to-end flows, their files, and their failure modes.
+- **`SKILLS.md`** — the thirteen end-to-end flows, their files, and their failure modes.
   Read the section before changing a flow; update it after.
 - **`docs/REGRESSIONS.md`** — every bug that cost real time, with the guard that
   stops it recurring. Append on every fix. Prefer a guard that fails the build
@@ -1838,6 +1973,34 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   so a server route cannot look the signed-in user up: the consent callback
   reported `db.google_account` to everyone until the wizard started sending
   `as=<email>`. Anything new that records "who did this" has the same problem.
+- **A seeded singleton is a record, not a value.** `db.google_account` is
+  `{ email, name, picture }`, and a new publish route fell back to the object instead of
+  `.email` — a 200 the client refused with `published_by should be a string, got object`,
+  which reads as a stale server and was a three-second-old one. Grep the key's other
+  callers before falling back to it; the unwrapping convention lives in them and nowhere
+  the compiler can see. And read the *value* before blaming the process.
+- **A shared empty state needs a claim listing the pages that must use it.** Ask kept a
+  private copy of the publish gate, so one precondition had two screens with two sets of
+  words — invisible, because each page looked right alone. Assert both halves: every gated
+  page renders the shared component, and none of them hand-rolls an `EmptyState` for the
+  same branch.
+- **`codeOnly` is for every whole-file `check-docs` claim, not only the negative ones.** A
+  *presence* claim searching for `copy.notEnforced` passed after the render stopped using
+  it, because the component's own comment names the field — the same self-documenting-file
+  trap already recorded five times for absence claims. Key on the narrowest rendered form
+  (`description={view.copy.notEnforced}`), never the bare identifier.
+- **Pair every absence claim with a presence claim over the same region.** `codeOnly`'s
+  JSX-comment rule was `\{\s*\/\*`, so `interface Props {` followed by a doc comment
+  matched and the non-greedy tail deleted **139 lines** of the component before any claim
+  read it. Absence claims all passed — a file with its middle removed satisfies every
+  one of them — and it surfaced only because four *positive* claims were written against
+  the same region. "X is absent" and "Y is still here" are cheap together and worthless
+  apart. Same reasoning as proving a `renderToString` had its data.
+- **A helper shared by `check-docs` claims belongs above every claim.** The file is one
+  long script, so definition order is execution order: `codeOnly` was declared 600 lines
+  below four new claims that used it, and a `const` in the temporal dead zone would have
+  killed the run before its summary — which is the "claim total stops moving" failure,
+  where every break test reports MISSED and correct guards look broken.
 - **antd v6 renamed props** — read the installed `.d.ts`; do not assume v5.
 - **Selectors must return stable references.** `data?.x ?? []` allocates every
   render and defeats downstream memos; use a module-level constant.

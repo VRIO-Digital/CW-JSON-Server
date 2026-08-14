@@ -33,6 +33,11 @@ const existing = existsSync(SETTINGS) ? JSON.parse(readFileSync(SETTINGS, 'utf8'
  * sidebar does not have (a permission nobody can exercise) or one there that is missing here (an item
  * no persona can hide). The server cannot import a `.tsx` module, so the list is written once here and
  * asserted rather than derived.
+ *
+ * **Nothing but keys goes inside the array.** The claim that compares the two parses this literal
+ * by splitting on commas, so a comment in here — which has commas in it — is read as extra keys.
+ * That is a brittle parse, but the fix belongs on this side: the list is data, and a note about it
+ * is not.
  */
 const NAV_KEYS = [
   'graphs',
@@ -43,6 +48,7 @@ const NAV_KEYS = [
   'catalogue',
   'graph-studio',
   'what-if',
+  'audit',
   'settings',
 ]
 

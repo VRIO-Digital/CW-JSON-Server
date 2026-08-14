@@ -132,6 +132,16 @@ const REPORTS = {
  * would claim a filter that never ran. That is the horizon's rule, and it is the honest way to
  * demo row scoping with no warehouse behind it.
  */
+/*
+ * `rule` is the machine form the Audit & Governance page edits; `predicate` is the prose the
+ * tenant authored. **Seeded only where the prose says something this register can express.**
+ *
+ * Two predicates are literally TRUE, so those personas start `full` — that is a transcription, not
+ * an interpretation. The other two are left with no rule: `receiving_facility` is not a column on
+ * the generator register, and `FALSE — never a measure` is the absence of one. Inventing a rule to
+ * fill those rows would put a restriction in the tenant's mouth, and the page's whole job is to let
+ * somebody author the real one.
+ */
 const SCOPE = {
   domain_architect: {
     scope: 'All facilities, detail grain',
@@ -139,6 +149,9 @@ const SCOPE = {
     grain: 'manifest line',
     masked: 'none',
     may_author: true,
+    full: true,
+    mask: false,
+    rule: null,
   },
   business_user_executive: {
     scope: 'All facilities, summary grain',
@@ -146,6 +159,9 @@ const SCOPE = {
     grain: 'generator',
     masked: 'derivation, lineage, cost',
     may_author: false,
+    full: true,
+    mask: false,
+    rule: null,
   },
   business_user_project: {
     scope: 'Assigned facility only',
@@ -153,6 +169,9 @@ const SCOPE = {
     grain: 'generator',
     masked: 'derivation, lineage, cost',
     may_author: false,
+    full: false,
+    mask: false,
+    rule: null,
   },
   platform_admin: {
     scope: 'No business figures',
@@ -160,7 +179,144 @@ const SCOPE = {
     grain: '—',
     masked: 'every measure',
     may_author: false,
+    full: false,
+    mask: false,
+    rule: null,
   },
+}
+
+
+/*
+ * The publish dialog's copy.
+ *
+ * **Authored here, like every other governance decision, because the package does not ship it.**
+ * The prototype's own dialog asks for a name and states that "a Domain Architect approves before
+ * the audience sees it" — which stopped being true when the three-act model (publish → approve →
+ * activate) was collapsed to publish/unpublish. A dialog promising an approval step that no code
+ * performs is the one thing this section exists to avoid, so the sentence is replaced rather than
+ * kept: publishing is immediate, and the readers are changeable afterwards.
+ *
+ * `ingest-reports.mjs` rebuilds `db.reports` and carries `governance` forward whole, so this
+ * survives a re-ingest; re-running this seed re-authors it.
+ */
+const PUBLISHING_DEF = {
+    title: 'Publish this report',
+    republish_title: 'Publish your changes',
+    /* States what publishing *is* here, in place of the approval claim it replaces. */
+    lead: 'It goes live to the people you pick — no approval step. You can change readers or unpublish any time.',
+    name: {
+      label: 'Report name',
+      help: 'Give it a name your audience will recognise in their library. You can rename it later.',
+      placeholder: 'e.g. Inbound generator risk — Q3 2026',
+    },
+    readers: {
+      label: 'Who can open it',
+      placeholder: 'Type a name or email address…',
+      empty: 'Nobody yet — this report will be private until you add a reader.',
+      /*
+       * Gate 1 and gate 2 in one sentence, and the order matters: picking a reader cannot widen
+       * what they may see. The preview beside each person is their *declared* scope from
+       * `data_scope`, never a filtered count — no roster here is filtered per persona, so a
+       * figure like "sees 32 of 36" would state a filter that never ran.
+       */
+      note: 'Each person sees only what their data access rules allow — publishing never widens anyone’s access. Rules are managed in Audit & Governance; the preview above shows the result.',
+      /* Required in these words wherever a client-held audience is recorded. */
+      caveat:
+        'This narrows who is shown the report. It is not access control: the role comes from the browser, and the API still serves every row to a caller that asks without one.',
+      local_caveat:
+        'This report is saved in your browser, so its readers are recorded here and nobody else can see them. It is not access control either.',
+    },
+    freshness: {
+      label: 'Keep it fresh',
+      /* One preset per recurrence, each stating its own sentence — the recurrence line is the
+         tenant's words, never assembled in a component. `custom` interpolates {n}/{when}/{time}. */
+      presets: [
+        {
+          id: 'open',
+          label: 'Only when it’s opened',
+          sentence: 'Re-runs against the live tables each time a reader opens it — no schedule.',
+        },
+        {
+          id: 'daily',
+          label: 'Every weekday (Mon–Fri) at 6:00 AM',
+          sentence: 'Re-runs at 6:00 AM, Monday to Friday.',
+        },
+        {
+          id: 'monday',
+          label: 'Weekly on Monday at 6:00 AM',
+          sentence: 'One re-run at the start of each week — Monday, 6:00 AM.',
+        },
+        {
+          id: 'monthly',
+          label: 'Monthly on the 1st at 6:00 AM',
+          sentence: 'One re-run on the 1st of each month, 6:00 AM.',
+        },
+      ],
+      default: 'open',
+    },
+    foot: 'Live immediately after you publish.',
+    buttons: { publish: 'Publish report', republish: 'Publish update', cancel: 'Cancel' },
+}
+
+/*
+ * The Audit & Governance page's copy.
+ *
+ * Authored here for the reason the publish dialog's is: the package ships no governance section,
+ * and this script owns every governance decision. The three gate cards state what the page can and
+ * cannot do — and the third one is the important sentence in the whole section: **a rule is
+ * recorded, not enforced.** No roster in this app is filtered per persona, so a page that let you
+ * author a restriction and then said nothing would be implying one runs.
+ */
+const AUDIT_DEF = {
+  copy: {
+    title: 'Audit & Governance',
+    lead:
+      'One place for who sees what. Authors decide who can open a report or scenario when they ' +
+      'publish it; you decide which rows each persona may see — and every change here is recorded.',
+    gates: [
+      {
+        key: 'open',
+        title: 'Who can open it',
+        detail:
+          'Set by the author at publish time. Managed per report and per what-if below — a report ' +
+          'names personas, a scenario names addresses, and neither is merged into the other.',
+      },
+      {
+        key: 'scope',
+        title: 'What they see inside',
+        detail:
+          'An access rule per persona: pick the field the restriction runs on, then the values ' +
+          'they may see. It resolves against the live 36-generator register on every read.',
+      },
+      {
+        key: 'trail',
+        title: 'What has been recorded',
+        detail:
+          'Every rule change and every reader added or removed, with who did it. In memory, like ' +
+          'publication — a restart forgets both together.',
+      },
+    ],
+    /* The honesty note. Stated on the page, not only here. */
+    not_enforced:
+      'A rule is recorded, not enforced. No report or scenario in this app filters its rows per ' +
+      'persona yet, so what a reader actually opens is unchanged by anything on this page — the ' +
+      'resolution below says what the rule would admit, never what somebody saw.',
+    empty_log: 'Nothing recorded yet. Change a rule or a reader and it appears here.',
+    log_note:
+      'Opens are not in this trail: nothing in this app serves a report to a reader, so an ' +
+      '“opened” row would be an event that never happened.',
+    basis_note:
+      'The fields offered are the register’s own — its identity column plus every field the ' +
+      'dictionary declares filterable. A field it does not declare cannot restrict anything.',
+  },
+  /* One per category the log can hold, in the order the chips show them. `all` leads and is not a
+     stored category: it is everything, counted. */
+  categories: [
+    { key: 'all', label: 'All' },
+    { key: 'rule', label: 'Rule changes' },
+    { key: 'reader', label: 'Readers' },
+    { key: 'publish', label: 'Publishing' },
+  ],
 }
 
 const problems = []
@@ -227,11 +383,58 @@ for (const saved of db.reports.saved ?? []) {
   }
 }
 
+/*
+ * The publish dialog's own copy, checked for the failures that read as answers: a preset with no
+ * sentence prints a blank freshness line under a control that plainly did something, and a default
+ * naming no preset opens the select on nothing.
+ */
+const presetIds = PUBLISHING_DEF.freshness.presets.map((p) => p.id)
+for (const p of PUBLISHING_DEF.freshness.presets) {
+  if (!p.sentence) problems.push(`freshness preset "${p.id}" states no sentence — its line would be blank`)
+}
+if (!presetIds.includes(PUBLISHING_DEF.freshness.default)) {
+  problems.push(
+    `freshness default is "${PUBLISHING_DEF.freshness.default}", which is not one of the presets ` +
+      `(${presetIds.join(', ')}) — the select would open on nothing`,
+  )
+}
+/*
+ * The claim the old dialog made and the code never kept. Refused here rather than only removed, so
+ * nobody re-authors an approval step into copy while publish/unpublish is what actually happens.
+ */
+if (/approv/i.test(PUBLISHING_DEF.lead) && !/no approval/i.test(PUBLISHING_DEF.lead)) {
+  problems.push(
+    'the publish lead claims an approval step — publishing here is immediate, and a dialog that ' +
+      'promises a sign-off nothing performs is the failure this section exists to avoid',
+  )
+}
+/*
+ * The one sentence the whole governance page turns on. A page that lets somebody author a
+ * restriction and does not say it is unenforced implies one runs — which is the claim this repo
+ * refuses everywhere else.
+ */
+if (!/recorded, not enforced/.test(AUDIT_DEF.copy.not_enforced)) {
+  problems.push(
+    'the audit copy must say a rule is "recorded, not enforced" — no roster here is filtered per ' +
+      'persona, so a page that stays quiet about it implies a filter that never runs',
+  )
+}
+if (!AUDIT_DEF.categories.some((c) => c.key === 'all')) {
+  problems.push('the audit log has no "All" category — every other chip is a subset of it')
+}
+if (!PUBLISHING_DEF.readers.caveat.includes('not access control')) {
+  problems.push(
+    'the readers caveat must say "not access control" in those words — the role is client-held ' +
+      'and the API serves every row to a caller that names none',
+  )
+}
+
 if (problems.length > 0) {
   console.error('seed-report-governance: refusing to write —')
   for (const p of problems) console.error('  · ' + p)
   process.exit(1)
 }
+
 
 db.auth_roles = PERSONAS
 
@@ -258,7 +461,10 @@ db.reports.governance = {
     author:
       'Writing a new report definition is a separate permission because a report is a governed object — once published it is what an audience treats as the truth. Authoring rides on the data scope, not on the job title: a persona that cannot see the underlying figures cannot define what a report asserts about them.',
   },
+  publishing: PUBLISHING_DEF,
+  audit: AUDIT_DEF,
 }
+
 
 /*
  * `access_requests` held readers' asks for a report they were not entitled to, and this script used

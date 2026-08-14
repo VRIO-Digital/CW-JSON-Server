@@ -1,14 +1,9 @@
-import {
-  ArrowUpOutlined,
-  MessageOutlined,
-  QuestionCircleOutlined,
-} from '@ant-design/icons'
+import { ArrowUpOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { Alert, Button, Input, Select, Spin, Typography, message } from 'antd'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import AnswerBlocks from '../components/AnswerBlocks'
 import ApiErrorAlert from '../components/ApiErrorAlert'
-import EmptyState from '../components/EmptyState'
+import NoPublishedGraph from '../components/NoPublishedGraph'
 import PageHeader from '../components/PageHeader'
 import StatusTag from '../components/StatusTag'
 import {
@@ -18,13 +13,6 @@ import {
 } from '../store/askStore'
 import { SP } from '../theme'
 import './AskPage.css'
-
-/** The path from nothing to a graph you can ask. */
-const LIVE_STEPS = [
-  { title: 'Describe the need', detail: 'New Graph — seven steps, no entity names' },
-  { title: 'Review the build', detail: 'Graph Studio — settle what the deriver flagged' },
-  { title: 'Publish it', detail: 'a published version is what Ask queries' },
-]
 
 const shortDate = (iso: string | null) =>
   iso ? new Date(iso).toISOString().slice(0, 10) : null
@@ -42,7 +30,6 @@ const shortDate = (iso: string | null) =>
  * accepted. Nothing here narrates a capability the server did not report.
  */
 export default function AskPage() {
-  const navigate = useNavigate()
   const [question, setQuestion] = useState('')
   /* The question stays on screen while its answer streams in beneath it — the
      input is cleared on send, so the text has to be held somewhere. */
@@ -111,30 +98,16 @@ export default function AskPage() {
         <Spin />
       ) : !graph ? (
         /*
-         * Nothing is live. Which sentence to show depends on why: a built graph
-         * needs publishing and a draft needs finishing, and sending someone to
-         * the wrong page is the failure this branch exists to avoid.
+         * The shared gate, not a private one. Ask had its own `EmptyState` here — same
+         * precondition, different title, different steps and its own "Open Graph Studio"
+         * button — so the four pages that need a published graph described it two ways. The
+         * only Ask-specific parts are the sentence and the closing line, which are what the
+         * component takes as props.
          */
-        <EmptyState
-          icon={<MessageOutlined />}
-          title="No graph is live yet"
-          detail={
-            data?.builtCount
-              ? `${data.builtCount} graph(s) have been built but none is published. Ask queries a published version — open one in Graph Studio, clear its review queue and publish it.`
-              : data?.draftCount
-                ? `${data.draftCount} use case(s) are still in the wizard. Finish one, build it, then publish it in Graph Studio — Ask queries the published version.`
-                : 'Ask runs against a published knowledge graph. Describe a business need in New Graph, build it, review it in Graph Studio, and publish — then this page can answer.'
-          }
-          action={
-            <Button
-              type="primary"
-              size="large"
-              onClick={() => navigate(data?.builtCount ? '/graph-studio' : '/new-graph')}
-            >
-              {data?.builtCount ? 'Open Graph Studio' : 'Describe a business need'}
-            </Button>
-          }
-          steps={LIVE_STEPS}
+        <NoPublishedGraph
+          detail="Ask queries the published version of a graph — a draft has no version to hold an answer."
+          builtCount={data?.builtCount ?? 0}
+          draftCount={data?.draftCount ?? 0}
           footnote="A draft cannot be asked — there is no version to hold the answer to."
         />
       ) : (
