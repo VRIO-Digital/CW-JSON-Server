@@ -1,8 +1,33 @@
 # Running it in Docker
 
-Two images, because the app is two processes. `npm run dev` alone renders empty
-pages — there is no static fallback data anywhere in `src/` — and the same is
-true in a container.
+## PostgreSQL first
+
+The tenant's data lives in PostgreSQL now, so it is the one process nothing else works
+without. `docker-compose.db.yml` runs just that — its own file, because the database is
+the only service worth running on its own while developing, and its defaults match
+`mock-server/db/pg.mjs`'s defaults exactly so a fresh clone configures nothing.
+
+```bash
+docker compose -f deploy/docker-compose.db.yml up -d
+npm run db:reset        # create + migrate + seed, from mock-server/db.json
+```
+
+Point it somewhere else with `DATABASE_URL`, or per-part with
+`PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE`. **A migration drops the schema and
+rebuilds it**, so `db:seed` follows `db:migrate` every time — there is no migration
+history because there is nothing to migrate from: the seed is a whole document.
+
+The named volume is what makes a restart different from a re-seed. What survives is what
+always survived a `commitDb` — saved graph briefs, saved reports, report audiences.
+Registered sources and publications are still in the server's memory and still die with
+the process. `docker compose -f deploy/docker-compose.db.yml down -v` drops the volume;
+`npm run db:reset` puts the seed back.
+
+## The app
+
+Two images, because the app is two processes on top of the database. `npm run dev` alone
+renders empty pages — there is no static fallback data anywhere in `src/` — and the same
+is true in a container.
 
 | Image | From | Serves |
 |---|---|---|
@@ -73,13 +98,12 @@ it, while a plain `npm run build` produces one that has it.
   refresh would 404.
 - **State resets when the mock container restarts** — registered sources and
   profiling jobs live in memory by design, exactly as they do locally. Saved
-  graph use cases are written to `db.json`, which in a container means the
-  container. To keep them, uncomment the volume in `docker-compose.yml` and
-  mount the **directory**, never the single file: `commitDb` writes
-  `db.json.tmp` beside it and renames, which a single-file bind mount cannot
-  survive.
-- **The mock image installs nothing.** That folder has zero dependencies on
-  purpose, so there is no `npm ci` in it and no audit gate to satisfy.
+  graph use cases and saved reports go through `commitDb` into PostgreSQL, so those
+  survive a mock restart and are lost only with the database volume. No bind mount is
+  needed for them any more; the mock container holds no state worth keeping.
+- **The mock image needs `npm ci`**, because `mock-server/` now has one dependency (`pg`).
+  It also needs to reach the database — set `DATABASE_URL` or the `PG*` variables on that
+  container, and remember `localhost` inside a container is the container.
 - **`npm ci` in the web build runs the audit gate** through `postinstall`. It
   warns and exits 0 when the registry is unreachable, so an offline build still
   succeeds.

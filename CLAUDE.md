@@ -11,18 +11,48 @@ npm run build       # tsc -b && vite build
 npm run lint        # oxlint
 npm run audit       # audit gate (fails on any advisory, minus the allowlist)
 npm run check-docs  # asserts this file's factual claims against the code
+npm run db:reset    # create + migrate + seed — the whole database, from db.json
+npm run db:schema   # regenerates mock-server/db/schema.sql from the model
+npm run db:create   # CREATE DATABASE (no-op if it is already there)
+npm run db:migrate  # drops and rebuilds the `contextweave` schema — leaves it empty
+npm run db:seed     # loads db.json into it, then reads it back and compares
+npm run db:verify   # proves the mapper is lossless, with no database running
 npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db.json)
 npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
 npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
 npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
 npm run seed:settings   # re-authors mock-server/settings.json — users and persona navigation
-npm run preflight   # lint + build + audit + check-docs — run before calling work done
+npm run preflight   # lint + build + audit + db:verify + check-docs — run before calling work done
 ```
 
-**Two processes are required.** `npm run dev` alone renders empty pages: there is no
-static fallback data anywhere in `src/`. Run `npm run mock` in a second terminal.
+**Three processes are required.** PostgreSQL holds the tenant's data, the mock server
+serves it, and Vite serves the app. `npm run dev` alone renders empty pages: there is no
+static fallback data anywhere in `src/`.
+
+```bash
+docker compose -f deploy/docker-compose.db.yml up -d   # PostgreSQL on :5432
+npm run db:reset                                       # create + migrate + seed
+npm run mock                                           # in a second terminal
+npm run dev                                            # in a third
+```
+
 On a different port, `npm run mock -- 4001` also needs the proxy target —
 `MOCK_ORIGIN=http://localhost:4001 npm run dev`, no file edit.
+
+**`db.json` is a seed now, not the store.** The ingest scripts still write it and it is
+still the reviewable copy of the tenant's data — but the server reads PostgreSQL, and an
+edit to the file changes nothing until `npm run db:seed`. That is the first thing to check
+when a `db.json` change appears to do nothing; the boot banner names the database and says
+so. Full chain:
+
+```
+demo package ──► npm run ingest:* ──► db.json ──► npm run db:seed ──► PostgreSQL ──► server.mjs
+```
+
+**Connection settings default to local at every layer**, the same rule `VITE_API_BASE`
+follows, so a fresh clone configures nothing: `postgres:postgres@localhost:5432/contextweave`,
+overridable per-part with `PGHOST`/`PGPORT`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` or wholesale
+with `DATABASE_URL`. `settings.json` is deliberately **not** in the database — see Settings.
 
 ### Where the API lives, per environment
 
@@ -80,29 +110,85 @@ text is missing, assert in the same run that the render had its data.**
 ## Architecture
 
 A single-tenant data-governance console. Six feature pages plus a dev-only
-`db.json` editor, all reading from a zero-dependency mock API.
+data editor, all reading from a mock API over PostgreSQL.
 
 ```
-mock-server/db.json ──► mock-server/server.mjs ──► /api proxy ──► src/api/client.ts
-                                                                       │ validate
-                                                                       ▼
-                                                                  src/store/*
-                                                                       │
-                                                                       ▼
+mock-server/db.json ──► npm run db:seed ──► PostgreSQL (contextweave, 76 tables)
+                                                  │  loadDb() at boot
+                                                  ▼
+                          mock-server/server.mjs ──► /api proxy ──► src/api/client.ts
+                                    ▲                                     │ validate
+                                    │ commitDb() — one transaction        ▼
+                                    └───────────────────────────     src/store/*
+                                                                          │
+                                                                          ▼
                                                               src/pages, src/components
 ```
 
-**Data flows one way and every layer has one job.** `db.json` is the only source
+**Data flows one way and every layer has one job.** PostgreSQL is the only source
 of data; `server.mjs` shapes it and holds mutable run state; `client.ts` fetches
 and validates; the stores hold state and own all error handling; components read
 the stores and render. Never call `client.ts` straight from a component unless it
 is a one-shot read with a local `try/catch` (see `EditDatasetsModal` and
 `EditFoldersModal`).
 
+### The database (`mock-server/db/`)
+
+**76 tables, 38 foreign keys, one `contextweave` schema.** The tenant's data is
+relational, and the constraints are not ORM habit — each one is a failure this repo has
+already had, where nothing threw and the screen simply answered wrongly. A canvas edge
+cannot name a node the roster omits (that one cost 17 facilities their enforcement
+history); a template member cannot name a persona the pool lacks; a report audience
+cannot name a persona `auth_roles` has never heard of; a governance row cannot carry a
+status the pool does not declare; a column profile cannot describe a table the catalogue
+does not list.
+
+`validateDb` still checks every one of those in the server, and that is deliberate
+rather than redundant: the `/db` editor and the ingest scripts hand it whole documents
+that have never been near a database. The constraint is the second line, and it is the
+one that cannot be forgotten.
+
+**One model, three consumers.** `db/model.mjs` declares every table, column and key;
+`db/schema.mjs` generates the DDL from it, `db/mapping.mjs` generates the mapper, and
+`db/pg.mjs` is the store. A hand-written `schema.sql` beside a hand-written mapper is two
+answers to "what columns does `datasets` have", and they drift the first time one is
+edited. Add a table in `model.mjs`, run `npm run db:schema`, and the committed
+`schema.sql` catches up — `check-docs` regenerates it and fails if it has not.
+
+**Tables are for things that reference each other; authored copy stays whole.** The
+36-generator register, the 189 canvas nodes, the 206 column profiles and the 40 written
+answers are rows. `whatif.copy`, `whatif.runtime`, `reports.opts` and
+`reports.governance.publishing` are the tenant's *words* — a heading, a placeholder, a
+preset's sentence — and they live in `doc_blobs(path, value jsonb)`, one row per JSON
+path. The line is **whether anything references it**, not how big it is: nothing joins on
+a button label.
+
+**Two type rules exist to keep the round trip exact.** No `numeric` and no `bigint` — `pg`
+returns both as *strings*, so a confidence of `0.9` would come back `'0.9'` and rebuild a
+document that no longer matches, with nothing throwing. Counts are `integer`, fractions
+are `double precision`. And an optional key stays **absent** rather than becoming `null`:
+`{ tone: null }` is a different document from `{}`, and both `validateDb` and the client
+schemas read presence.
+
+**`npm run db:verify` is the proof, and it needs no database.** `mapping.mjs` imports no
+`pg` on purpose: the risky half of this move is the shape, not the SQL. The check is
+`fromRows(toRows(db.json))` deep-equals `db.json`, run over the real 450 KB document, and
+it names the first differing paths rather than saying "not equal" — a mapper that loses
+`tone` on one stat row renders a chip with no colour and throws nowhere. It is in
+`preflight`. `db:seed` then makes the *other* claim, that PostgreSQL returns what it was
+given, by reading back and comparing.
+
+**A migration drops the schema and rebuilds it**, and there is no migration history. There
+is nothing to migrate *from*: the seed is a whole document, itself regenerated by the
+ingest scripts. So `db:migrate` leaves an empty schema and `db:seed` follows it, every
+time.
+
 ### The mock server (`mock-server/`)
 
-Zero dependencies on purpose — the audit gate makes every added package
-expensive, and a mock backend is not worth widening the dependency surface.
+One dependency, `pg`, and it is the only one this folder is allowed. The audit gate makes
+every package expensive, so one has to earn its place — a PostgreSQL driver does, because
+the alternative was a 450 KB JSON document doubling as the store. Nothing else gets added
+on the same argument.
 
 **What it is seeded with is one source per connector, and no more.**
 `projects` holds a single BigQuery project — `vrio-contextweave-demo`, display
@@ -144,10 +230,15 @@ structured side, so it is read from `db.json` and never synthesised. `validateDb
 checks all four *inside* the nested arrays, and `check-docs` checks them before
 boot.
 
-`db.json` is read once at startup into a `db` object that every route closes
-over. Two kinds of state live here:
+**PostgreSQL is read once at startup into a `db` object that every route closes over**,
+and that is the whole boundary between the store and the app. `loadDb()` reads all 76
+tables and rebuilds the document; `commitDb` writes a whole one back in a transaction.
+Nine thousand lines of handlers were not touched, because what makes this relational is
+the schema and its constraints, not whether each handler writes its own SELECT.
 
-- **From `db.json`** — projects/datasets/tables, drives/folders/documents,
+Two kinds of state live here:
+
+- **From the database** — projects/datasets/tables, drives/folders/documents,
   credentials (`credentials` for BigQuery, `drive_credentials` for Drive), the
   audit / traces / evals payloads, change signals, `column_profiles`,
   `document_extractions`, `column_vocabulary`, `document_vocabulary`.
@@ -161,25 +252,36 @@ Consequences worth knowing before debugging:
   source. A server started before a shape change keeps answering with the old
   fields — `listSources` has a targeted check for exactly this that tells you to
   restart, because the symptom is otherwise blank ids and `Invalid Date`.
+- **Editing `db.json` does nothing until you re-seed.** It is the seed, not the store.
+  This is the same stale-process trap one layer down, so the boot banner names the
+  database, the schema and the table count, and says the file is the seed.
+- **The server refuses to boot on four distinct problems, and names which.** No
+  connection, no schema, a schema whose table count does not match the model (it was
+  applied before a model change), and a schema that is there but empty. Each has a
+  different one-line fix, and a server that answered all four with an empty document
+  would send every one of them to the wrong place.
 - **`validateDb` runs at startup too, and the server refuses to boot when it
-  fails** — naming the missing keys and the restore command. A document a stale
+  fails** — naming the missing keys and the re-seed. A document a stale
   process wrote back can be missing keys no route touched, and without this the
   first symptom is `undefined is not a function` deep inside a route.
-- `PUT /db` writes via temp-file + rename, then mutates the in-memory `db` in
-  place. That in-place mutation is what makes an edit take effect without a
-  restart; reassigning `db` would break every route's closure.
-- **The writes are async; the boot read is not.** `db.json` is 450 KB, and
-  `writeFileSync` stringified and wrote all of it on every commit while every other
-  request waited — so `commitDb` and `commitSettings` are `async` and go through
-  `writeJsonAtomic`. Three things hold that together, and all three are asserted:
-  the writes are **chained per path** (two commits share a temp path, and without the
-  chain the file that lands is neither document — the serialization the synchronous
-  version got for free); the **in-memory swap happens before the first `await`**, so a
-  second handler cannot read the pre-edit document and silently drop the first edit;
-  and a failed write **puts memory back**, so the file and the process cannot diverge.
-  Every call site awaits, or a rejected write becomes an unhandled rejection behind a
-  200. The boot read stays synchronous on purpose: nothing may be served before
-  `db.json` is loaded.
+- `PUT /db` writes the whole document in one transaction, then mutates the in-memory
+  `db` in place. That in-place mutation is what makes an edit take effect without a
+  restart; reassigning `db` would break every route's closure. The editor reports the
+  *database* as its path, because that is where a save lands.
+- **The write is a transaction, and it replaced three hand-built guarantees.** Writing
+  `db.json` needed its writes chained per path (two commits shared a temp file, and the
+  file that landed would have been neither document), and a rollback by hand.
+  `BEGIN` … `COMMIT` is both, plus the one a rename could not give: a failure cannot
+  leave 40 of the 76 tables written. What did *not* change is the ordering rule — the
+  **in-memory swap happens before the first `await`**, so a second handler cannot read
+  the pre-edit document and silently drop the first edit, and a failed write **puts
+  memory back**. Every call site awaits, or a rejected write becomes an unhandled
+  rejection behind a 200. The boot read is `await`ed at the top level, above
+  `server.listen`: nothing may be served before the document is loaded, and a `.then()`
+  there would serve empty pages for one round trip.
+- **`settings.json` is still a file, and that is the point of it.** Two stores, two
+  validators, one job each — see Settings. `writeJsonAtomic` and its per-path chain
+  survive for that one file.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
   editor cannot save a document that would crash the app. There are 25 required
   keys, and the newer ones are as required as the originals: removing `drives`
@@ -1713,6 +1815,12 @@ package. The reason lives in the `//overrides` key beside it in `package.json`.
 Adding a dependency here is a real decision. Check `npm audit` before and after,
 and prefer writing ~100 lines to pulling in a package.
 
+**`pg` is the one runtime dependency the mock server has**, added when the tenant's data
+moved into PostgreSQL — 14 packages, 0 advisories, checked before and after. It is the
+only one that argument carries: a wire protocol is not ~100 lines, and the alternative
+was a 450 KB JSON document doubling as the store. Everything else in `mock-server/` is
+still hand-written for exactly the reason this section gives.
+
 ## Working in this repo
 
 `.claude/skills/contextweave-flow/SKILL.md` defines the loop: orient (read the
@@ -1760,6 +1868,20 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   check is worth adding wherever a payload grows fields. A **404 on an endpoint
   that plainly exists** is the same fault, and the dispatcher's own 404 now says
   so — that one covers every endpoint added from here on.
+- **Editing `db.json` does nothing until `npm run db:seed`.** It is the seed; the server
+  reads PostgreSQL. This is the stale-process trap one layer down and it has the same
+  tell — the file and the screen disagree — so check the boot banner, which names the
+  database and the schema, before suspecting the code.
+- **When a store changes, prove it with a round trip over the real data.** Every way a
+  document-to-relational mapping goes wrong *renders*: an optional key that became
+  `null`, a `numeric` that came back a string, an array that lost its order. `npm run
+  db:verify` compares `fromRows(toRows(db.json))` to `db.json` and names the differing
+  paths; it found six missing optional columns that a shape dump had not, because they
+  were absent from the first element of each array. Keep the mapper free of `pg` so it
+  can run in `preflight` with nothing listening.
+- **`numeric` and `bigint` come back from `pg` as strings.** Counts are `integer`,
+  fractions are `double precision`, and nothing else. A confidence of `0.9` returning
+  `'0.9'` renders perfectly and sorts wrongly.
 - **A new `check-docs` assertion must match `\r?\n`, never a bare `\n`.** These
   files check out with CRLF on Windows; a split on `\n  {\n` found zero
   connectors and reported "0 of 0 available" — a green-looking sweep over an

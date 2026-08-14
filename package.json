@@ -15,7 +15,13 @@
     "ingest:reports": "node scripts/ingest-reports.mjs",
     "seed:governance": "node scripts/seed-report-governance.mjs",
     "seed:settings": "node scripts/seed-settings.mjs",
-    "preflight": "npm run lint && npm run build && npm run audit && npm run check-docs",
+    "db:schema": "node scripts/db-schema.mjs",
+    "db:create": "node scripts/db-create.mjs",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "db:seed": "node scripts/db-seed.mjs",
+    "db:verify": "node scripts/db-verify.mjs",
+    "db:reset": "npm run db:create && npm run db:migrate && npm run db:seed",
+    "preflight": "npm run lint && npm run build && npm run audit && npm run db:verify && npm run check-docs",
     "preview": "vite preview",
     "audit:fix": "npm audit fix",
     "postinstall": "node scripts/audit-gate.mjs low"
@@ -23,6 +29,7 @@
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
     "antd": "^6.5.3",
+    "pg": "^8.23.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.2",

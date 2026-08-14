@@ -79,6 +79,12 @@ if (problems.length > 0) {
 const claude = read('CLAUDE.md')
 const skills = read('SKILLS.md')
 const server = read('mock-server/server.mjs')
+const readJsonSrc = read('mock-server/db/read-json.mjs')
+const modelSrc = read('mock-server/db/model.mjs')
+const mappingSrc = read('mock-server/db/mapping.mjs')
+const pgSrc = read('mock-server/db/pg.mjs')
+const schemaSql = read('mock-server/db/schema.sql')
+const dbSeedSrc = read('scripts/db-seed.mjs')
 const connectors = read('src/data/connectors.ts')
 const indexCss = read('src/index.css')
 const theme = read('src/theme.ts')
@@ -2040,12 +2046,13 @@ expect(
  * one-off: the marker case is checked by name, before parsing.
  */
 expect(
-  'both JSON databases are read through the diagnostic loader, not JSON.parse',
-  /function readJsonDb\(/.test(server) &&
-    /const db = readJsonDb\(/.test(server) &&
+  'both JSON files are read through the diagnostic loader, not JSON.parse',
+  /export function readJsonDb\(/.test(readJsonSrc) &&
+    /* settings.json is still read at boot; db.json is now read by the seed. */
     /let settings = readJsonDb\(/.test(server) &&
+    /const document = readJsonDb\(/.test(dbSeedSrc) &&
     /* The raw parse must not come back for either file. */
-    !/JSON\.parse\(readFileSync\((DB_PATH|SETTINGS_PATH)/.test(codeOnly(server)),
+    !/JSON\.parse\(readFileSync\(/.test(codeOnly(server) + codeOnly(dbSeedSrc)),
   'a byte offset names nothing a person can act on',
 )
 /*
@@ -2061,20 +2068,22 @@ expect(
  * second handler reading a stale document and silently dropping the first edit.
  */
 expect(
-  'the JSON databases are written asynchronously, one write at a time per file',
+  'settings.json is written asynchronously, one write at a time',
   /from 'node:fs\/promises'/.test(server) &&
     /function writeJsonAtomic\(/.test(server) &&
     /const previous = writeChains\.get\(path\)/.test(server) &&
     /* The synchronous writers must not come back. */
     !/writeFileSync|renameSync/.test(codeOnly(server)),
-  'a 450 KB synchronous write blocked every other request',
+  'a synchronous write blocked every other request',
 )
 expect(
   'and the in-memory swap happens before the write yields, not after',
   /async function commitDb\(/.test(server) &&
     /async function commitSettings\(/.test(server) &&
-    /* Swap, then await — the order is the guarantee. */
-    server.indexOf('Object.assign(db, next)') < server.indexOf('await writeJsonAtomic(DB_PATH') &&
+    /* Swap, then await — the order is the guarantee, whether the write is a file or a
+       transaction. `commitDb` now yields on PostgreSQL rather than on a rename. */
+    server.indexOf('Object.assign(db, next)') < server.indexOf('await writeDb(next)') &&
+    server.indexOf('Object.assign(db, next)') !== -1 &&
     /* And a failed write puts memory back, so the two cannot diverge. */
     /Object\.assign\(db, previous\)/.test(server) &&
     /settings = previous/.test(server),
@@ -2088,19 +2097,122 @@ expect(
   ),
   `${(server.match(/await commit(Db|Settings)\(/g) ?? []).length} awaited call sites`,
 )
-/* The boot read stays synchronous on purpose: the server must not listen before its data is in. */
+/*
+ * The boot read blocks `listen`, and it is now a *database* read.
+ *
+ * It used to be `readFileSync`, which blocked by construction. Reading PostgreSQL cannot,
+ * so the guarantee is carried by top-level `await`: `const db = await readDbOrExit()` runs
+ * to completion before the module finishes evaluating, and `server.listen` is below it.
+ * A `.then()` here would serve empty pages for the length of one round trip.
+ */
 expect(
-  'the boot read stays synchronous',
-  /text = readFileSync\(path, 'utf8'\)/.test(server),
-  'nothing may be served before db.json is loaded',
+  'nothing is served before the document is loaded',
+  /const db = await readDbOrExit\(\)/.test(server) &&
+    server.indexOf('const db = await readDbOrExit()') < server.indexOf('server.listen(PORT') &&
+    /* settings.json is still read synchronously, from the file. */
+    /text = readFileSync\(path, 'utf8'\)/.test(readJsonSrc),
+  'the boot read is awaited at the top level, above server.listen',
+)
+
+/*
+ * ---------------- the tenant's data is relational, and one model says so ----------------
+ *
+ * `db.json` is a seed now; the store is PostgreSQL. Four things have to stay true or the
+ * move quietly half-happens, and every one of them fails by *answering* rather than throwing:
+ *
+ *  · the committed DDL is what the model generates — otherwise the database is built to a
+ *    shape the mapper does not write, and the first insert fails with a column error nobody
+ *    can trace back to a model edit;
+ *  · the server does not read `db.json` any more — a fallback to the file would mean an
+ *    unseeded database renders a full app, and nobody would find out until it was deployed;
+ *  · the round trip is proved in `preflight` — a lost optional key renders, it does not throw;
+ *  · the foreign keys that replace `validateDb`'s cross-key checks are actually in the DDL.
+ */
+const generatedSql = (await import('../mock-server/db/schema.mjs')).schemaSql()
+expect(
+  'the committed schema.sql is what the model generates',
+  schemaSql === generatedSql,
+  `${(schemaSql.match(/^CREATE TABLE/gm) ?? []).length} tables — run npm run db:schema after editing model.mjs`,
+)
+
+/*
+ * Counted from the model itself, not from `table: '…'` occurrences in the file — two of the
+ * specs are built by a helper called three times, so a text count says 68 where the model
+ * says 76. That is the "assert the fact, not the spelling" rule this file has already broken
+ * three times.
+ */
+const modelTables = (await import('../mock-server/db/mapping.mjs')).tableOrder().length
+expect(
+  'every table in the model is created, and every one created is in the model',
+  modelTables > 1 && (schemaSql.match(/^CREATE TABLE/gm) ?? []).length === modelTables,
+  `${modelTables} tables`,
+)
+
+expect(
+  'the server reads the database, never db.json',
+  /import \{\s*loadDb,/.test(server) &&
+    /const db = await readDbOrExit\(\)/.test(server) &&
+    /* No fallback to the file: an unseeded database has to be a refusal, not a full app. */
+    !/readJsonDb\([\s\S]{0,40}db\.json/.test(codeOnly(server)) &&
+    !/DB_PATH/.test(codeOnly(server)),
+  'a file fallback would render a full app off an unseeded database',
+)
+
+expect(
+  'the round trip is proved before the build is called done',
+  /"db:verify": "node scripts\/db-verify\.mjs"/.test(read('package.json')) &&
+    /npm run db:verify/.test(read('package.json').match(/"preflight": "[^"]+"/)?.[0] ?? ''),
+  'a lost optional key renders as missing data, it does not throw',
+)
+
+/*
+ * The five constraints that carry a cross-key check `validateDb` also makes. Both exist on
+ * purpose: the `/db` editor and the ingest scripts hand `validateDb` whole documents that
+ * have never been near a database, and the constraint is the half that cannot be forgotten.
+ */
+for (const [child, column, parent] of [
+  /* Both endpoints, not just one: an edge is drawn from two ids and either can be absent. */
+  ['canvas_edges', 'from_node', 'canvas_nodes'],
+  ['canvas_edges', 'to_node', 'canvas_nodes'],
+  ['template_personas', 'persona_id', 'graph_personas'],
+  ['governance_audience', 'role_id', 'auth_roles'],
+  ['governance_reports', 'status', 'governance_statuses'],
+  /* Composite: a profile names a table, and a table is a dataset plus a name. */
+  ['column_profiles', 'dataset_id", "table_id', 'dataset_tables'],
+]) {
+  expect(
+    `${child}.${column.replace('", "', '+')} cannot name a ${parent} that does not exist`,
+    /* Keyed on the constraint's own name and its target, so dropping *this* key fails —
+       a claim matching any constraint on the table would survive losing one of two. */
+    new RegExp(
+      `ADD CONSTRAINT "${child}_${column.replace('", "', '_')}_fkey"\\s+` +
+        `FOREIGN KEY \\("${column}"\\) REFERENCES "contextweave"\\."${parent}"`,
+    ).test(schemaSql),
+    'the failure it stops is silent — a renderer skips what it cannot draw',
+  )
+}
+
+expect(
+  'no numeric and no bigint anywhere in the schema',
+  !/\b(numeric|bigint)\b/.test(schemaSql) &&
+    /double precision/.test(schemaSql) &&
+    /No `numeric`, no `bigint`/.test(pgSrc),
+  'pg returns both as strings, and a confidence of 0.9 coming back as "0.9" renders fine',
+)
+
+expect(
+  'the mapper does not import pg, so the shape can be proved without a database',
+  !/from 'pg'/.test(mappingSrc) && !/from 'pg'/.test(modelSrc) && /from 'pg'/.test(pgSrc),
+  'db:verify runs in preflight, where no database is running',
 )
 
 expect(
   'and a merge conflict is named as one, before the parse',
-  /still has merge conflict markers/.test(server) &&
-    /\^\(<<<<<<<\|=======\|>>>>>>>\)/.test(server) &&
-    /* Each file names the command that rebuilds it — they are different commands. */
-    /npm run seed:governance/.test(server) &&
+  /still has merge conflict markers/.test(readJsonSrc) &&
+    /\^\(<<<<<<<\|=======\|>>>>>>>\)/.test(readJsonSrc) &&
+    /* Each file names the command that rebuilds it — they are different commands, and
+       they are now passed in from two different callers. */
+    /npm run seed:governance/.test(dbSeedSrc) &&
     /npm run seed:settings/.test(server),
   'db.json is generated and committed, so a pull over a re-seeded copy conflicts every time',
 )

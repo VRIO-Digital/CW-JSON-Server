@@ -1,0 +1,40 @@
+# PostgreSQL for the mock server.
+#
+#     docker compose -f deploy/docker-compose.db.yml up -d
+#     npm run db:reset        # create + migrate + seed
+#     npm run mock
+#
+# Its own file rather than a service in a wider compose, because the database is the
+# one process the app cannot start without and the only one worth running on its own
+# while developing. The defaults match `mock-server/db/pg.mjs`'s defaults exactly, so a
+# fresh clone needs nothing configured — the same rule `VITE_API_BASE` follows.
+#
+# **The volume is what makes a restart different from a re-seed.** Registered sources
+# and publications still live in the server's memory and still die with the process;
+# what survives here is what always survived a `commitDb` — saved graph briefs, saved
+# reports, report audiences. Drop the volume and `npm run db:reset` puts the seed back.
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: contextweave-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # Created empty by the image, so `npm run db:create` has nothing to do here —
+      # it stays a no-op rather than an error, which is what a re-run should be.
+      POSTGRES_DB: contextweave
+    ports:
+      - '5432:5432'
+    volumes:
+      - contextweave-pgdata:/var/lib/postgresql/data
+    # `db:migrate` and `db:seed` fail differently from "the server is not up yet", so
+    # the health check is here to tell them apart rather than leaving both as a timeout.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d contextweave']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  contextweave-pgdata:

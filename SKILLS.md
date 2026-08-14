@@ -519,23 +519,30 @@ a fact that was hashed must not sit in the same column looking alike —
 
 Reachable by URL only — routed, but commented out of `NAV_ITEMS`.
 
-Pick a top-level key (or `whole file`), edit JSON, Save. Three layers of
-protection, in order:
+Pick a top-level key (or `whole file`), edit JSON, Save. **Four** layers of protection
+now, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
 2. **Server shape check** — `validateDb` verifies all 25 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
-3. **Atomic write** — temp file + rename, so a failed write cannot truncate
-   `db.json`.
+3. **Foreign keys** — the write is spread across 76 tables, and 38 constraints refuse a
+   row that names something absent. This is the layer that catches what `validateDb`
+   describes but cannot see everywhere: an edge whose endpoint is not a node, an
+   audience naming a persona that does not exist.
+4. **One transaction** — `BEGIN` … `COMMIT`, so a refused row leaves the whole document
+   as it was rather than 40 tables written and 36 not.
 
 Then the in-memory `db` is mutated **in place**, which is what makes the edit live
-without a restart.
+without a restart. The editor's "path" reports the database, not a file — a save no
+longer lands in `db.json`, and naming the file would send an editor to the seed.
 
-Two limits: registered sources are not stored in `db.json` (memory only, lost on
-restart), and referential integrity is not enforced — deleting a project that a
-registered source points at leaves that source with no datasets.
+Three limits: registered sources are not stored at all (memory only, lost on restart);
+`db.json` is the seed and this editor does **not** write to it, so a `db:seed` puts the
+seeded document back over an edit made here; and referential integrity now stops at what
+the model declares — deleting a project that a *registered* source points at still leaves
+that source with no datasets, because registered sources are not in the database.
 
 ---
 

@@ -2083,3 +2083,66 @@ still parses, disk and memory agree, and no temp file is left behind.
 free.** Serialization, read-modify-write atomicity and crash consistency are all free while nothing
 can yield, and all three are silently lost the moment something can. Async I/O is rarely just "add
 `await`"; it is that plus a queue, plus an ordering decision, plus a rollback.
+
+---
+
+## A document store becoming a relational one, and the four things that would have gone quiet
+
+**Symptom** — none yet, and that is the point: this was a deliberate change rather than a bug, and
+every way it could have gone wrong fails by *answering* rather than throwing. Recorded here because
+the guards are what make that acceptable.
+
+`mock-server/db.json` was the runtime store — read at boot, mutated in memory, stringified back on
+every commit. It is now a **seed**: 76 tables and 38 foreign keys in a `contextweave` schema,
+`loadDb()` at boot, `commitDb` writing the whole document in one transaction.
+
+**Root cause of the risk** — four failure modes, none of which raise anything:
+
+1. **A lost optional key.** `tone` is absent on some stat rows, `review_item_id` on most canvas
+   nodes. A column that turns absent into `null` produces `{ tone: null }`, which is a *different*
+   document — `validateDb` and the client schemas both read presence — and renders as a chip with no
+   colour.
+2. **A type that comes back as a string.** `pg` returns `numeric` and `bigint` as strings, because
+   neither fits a JS number in general. A confidence of `0.9` returning `'0.9'` renders perfectly and
+   sorts wrongly.
+3. **A schema that does not match the mapper.** A hand-written `schema.sql` beside a hand-written
+   mapper is two answers to "what columns does `datasets` have", and they drift on the first edit.
+4. **A file fallback.** A server that fell back to `db.json` when the database was empty would render
+   a complete app off an unseeded database, and nobody would find out until it was deployed.
+
+**Fix** — one model (`mock-server/db/model.mjs`) declares the tables; the DDL, the mapper and the
+store are all generated from or written against it. No `numeric` and no `bigint` anywhere — counts
+are `integer`, fractions are `double precision`. An optional column is declared `opt()` and is
+omitted from the rebuilt document when NULL. The server refuses to boot rather than falling back, and
+names which of four distinct problems it hit (no connection · no schema · a schema whose table count
+does not match the model · a schema that is empty).
+
+**Guard** — *mechanical*, and the strongest one is the cheapest:
+
+- **`npm run db:verify`, in `preflight`** — `fromRows(toRows(db.json))` deep-equals `db.json`, over
+  the real 450 KB document, printing the first differing **paths**. `mapping.mjs` imports no `pg`
+  precisely so this can run with nothing installed and nothing listening. It found six missing
+  optional columns on its first run — `pii` on both vocabularies, `top_questions`, `rationale`, a
+  block `note` and a report block `metric` — none of which a shape dump had shown, because they were
+  absent from the first element of each array.
+- **`npm run db:seed` reads back and compares.** `db:verify` proves the *mapper* is lossless;
+  this proves *PostgreSQL* is, which is a different claim and the one that catches (2).
+- **`assertInsertable()`** refuses a model whose foreign keys are not topologically sorted, at
+  `db:schema` time. It caught two on the first run (`credentials` before `projects`,
+  `drive_credentials` before `drives`) that would otherwise have failed on the first write against a
+  real database, long after the model, the mapper and the round trip had all passed.
+- **`check-docs` regenerates `schema.sql` and compares** it to the committed file, and asserts the
+  five constraints that carry a cross-key check `validateDb` also makes, that the server has no
+  `DB_PATH` and no file fallback, and that `db:verify` is in `preflight`.
+
+**Rule** — **when a store changes, the proof is a round trip over the real data, not a spot check.**
+The interesting failures are all one key wide and every one of them renders. And **keep the
+shape-mapping layer free of the driver**: the risky half of a store migration is the shape, and a
+mapper that imports `pg` cannot be proved without a database, which means it will not be proved in
+`preflight`, which means it will not be proved.
+
+**Second rule** — **a transaction is three hand-built guarantees at once.** The previous entry
+records having to rebuild serialization, read-modify-write atomicity and crash consistency by hand
+when the file writes went async. `BEGIN` … `COMMIT` is all three, and adds one a rename could not
+give: a failure cannot leave 40 of 76 tables written. The one thing it does *not* replace is the
+ordering rule — the in-memory swap still has to happen before the first `await`.
