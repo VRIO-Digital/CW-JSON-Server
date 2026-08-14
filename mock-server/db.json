@@ -14458,7 +14458,9 @@
           "rule": {
             "basis": "state",
             "values": [
-              "TX"
+              "TX",
+              "LA",
+              "NC"
             ]
           }
         },

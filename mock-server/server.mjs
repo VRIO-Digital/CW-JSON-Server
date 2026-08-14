@@ -79,7 +79,8 @@
  *   GET    /evals                          { stats, runs, checks }
  */
 import { createServer } from 'node:http'
-import { readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
+import { rename, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -1042,12 +1043,51 @@ const dbSections = () =>
   }))
 
 /**
+ * Write one file atomically, off the event loop, **one write at a time per path**.
+ *
+ * `db.json` is 450 KB, and `writeFileSync` stringified and wrote all of it on every commit while
+ * every other request waited. Asynchronous writing gives that time back — but it also removes the
+ * thing the synchronous version got for free: with `await` in the middle, two commits can be in
+ * flight at once, and they share a temp path. The second would write `db.json.tmp` while the first
+ * was still renaming it, and the file that landed would be neither document. So the writes are
+ * chained per path: the queue is what makes "atomic" still true once the write can yield.
+ *
+ * The chain never rejects — a failed write settles it and is re-thrown to *that* caller only, so
+ * one bad write cannot wedge every later one behind a rejected promise.
+ */
+const writeChains = new Map()
+function writeJsonAtomic(path, text) {
+  const previous = writeChains.get(path) ?? Promise.resolve()
+  const next = previous.then(async () => {
+    const tmp = `${path}.tmp`
+    await writeFile(tmp, text, 'utf8')
+    await rename(tmp, path)
+  })
+  writeChains.set(
+    path,
+    next.catch(() => {}),
+  )
+  return next
+}
+
+/**
  * Writes via a temp file + rename so a failed write cannot leave a truncated
  * db.json, then hot-swaps the in-memory document in place — every route closes
  * over `db`, so mutating it is what makes the edit take effect without a
  * restart.
+ *
+ * **Async, and the order of the two steps is the load-bearing part.** Validation and the in-memory
+ * swap both happen *synchronously*, before the first `await`; only the file write yields. That is
+ * what keeps a second handler from reading a stale document: every call site builds its `next` from
+ * `db` and calls straight into here, so by the time anything else can run, `db` already holds the
+ * new state. Swapping after the write instead would open a window where two overlapping edits each
+ * read the pre-edit document and the second silently dropped the first.
+ *
+ * The cost of swapping first is that a failed write would leave memory ahead of the file, so the
+ * previous document is kept and restored if the write rejects — the caller gets the error *and* the
+ * two agree again, which is what the synchronous version guaranteed by never getting that far.
  */
-function commitDb(next) {
+async function commitDb(next) {
   /*
    * Every writer passes the whole document, so a server that started before a
    * key was added to db.json would write its stale copy back and silently drop
@@ -1064,12 +1104,22 @@ function commitDb(next) {
   }
 
   const text = `${JSON.stringify(next, null, 2)}\n`
-  const tmp = `${DB_PATH}.tmp`
-  writeFileSync(tmp, text, 'utf8')
-  renameSync(tmp, DB_PATH)
 
+  /* Kept so the swap can be undone if the write fails — see the note above. */
+  const previous = { ...db }
   for (const key of Object.keys(db)) delete db[key]
   Object.assign(db, next)
+
+  try {
+    await writeJsonAtomic(DB_PATH, text)
+  } catch (error) {
+    for (const key of Object.keys(db)) delete db[key]
+    Object.assign(db, previous)
+    throw new Error(
+      `could not write db.json — ${error.message}. Nothing was changed; the in-memory ` +
+        'document has been put back the way it was.',
+    )
+  }
 }
 
 /* ---------------- the settings store: its shape, and its writer ---------------- */
@@ -1205,7 +1255,7 @@ function validateSettings(candidate) {
  * for a reason worth stating: nothing captures the object, only the binding. Every route reads
  * `settings.x` at call time.
  */
-function commitSettings(next) {
+async function commitSettings(next) {
   const problems = validateSettings(next)
   if (problems.length > 0) {
     throw new Error(
@@ -1214,10 +1264,20 @@ function commitSettings(next) {
     )
   }
   const text = `${JSON.stringify(next, null, 2)}\n`
-  const tmp = `${SETTINGS_PATH}.tmp`
-  writeFileSync(tmp, text, 'utf8')
-  renameSync(tmp, SETTINGS_PATH)
+
+  /* Same order as `commitDb`, and for the same reason: the binding moves before the write yields,
+     so nothing can read the old settings in between. Put back if the write fails. */
+  const previous = settings
   settings = next
+  try {
+    await writeJsonAtomic(SETTINGS_PATH, text)
+  } catch (error) {
+    settings = previous
+    throw new Error(
+      `could not write settings.json — ${error.message}. Nothing was changed; the in-memory ` +
+        'settings have been put back the way they were.',
+    )
+  }
 }
 
 /** One persona's live access, falling back to its authored defaults. */
@@ -5546,11 +5606,11 @@ const governanceArtifact = (id) => governanceArtifacts().find((a) => a.artifact_
  * because anyone else holding it is named too. A **scenario** keeps addresses, so it keeps theirs.
  * Translating one model into the other is what this deliberately does not do.
  */
-const governanceAddReader = (artifact, person) => {
+const governanceAddReader = async (artifact, person) => {
   if (artifact.kind === 'report') {
     const row = db.reports.governance.reports.find((r) => r.report_id === artifact.artifact_id)
     if (row.audience.includes(person.role_id)) return
-    commitDb({
+    await commitDb({
       ...db,
       reports: {
         ...db.reports,
@@ -5574,10 +5634,10 @@ const governanceAddReader = (artifact, person) => {
 }
 
 /** Remove one, or say why it cannot be done. Returns a sentence on refusal, null on success. */
-const governanceRemoveReader = (artifact, email) => {
+const governanceRemoveReader = async (artifact, email) => {
   const person = governancePerson(email)
   if (artifact.kind === 'report') {
-    commitDb({
+    await commitDb({
       ...db,
       reports: {
         ...db.reports,
@@ -5736,7 +5796,7 @@ const routes = [
       const next = isObject(body) && 'db' in body ? body.db : body
       const problems = validateDb(next)
       if (problems.length > 0) return send(res, 400, { error: problems.join('; '), problems })
-      commitDb(next)
+      await commitDb(next)
       send(res, 200, { saved: true, sections: dbSections() })
     },
   },
@@ -5754,7 +5814,7 @@ const routes = [
       const next = { ...db, [section]: body.value }
       const problems = validateDb(next)
       if (problems.length > 0) return send(res, 400, { error: problems.join('; '), problems })
-      commitDb(next)
+      await commitDb(next)
       send(res, 200, { saved: true, section, sections: dbSections() })
     },
   },
@@ -5925,7 +5985,7 @@ const routes = [
         next[key] = value
       }
 
-      commitSettings({
+      await commitSettings({
         ...settings,
         nav_permissions: { ...settings.nav_permissions, [roleId]: next },
       })
@@ -5938,7 +5998,7 @@ const routes = [
   {
     method: 'POST',
     match: (p) => /^\/settings\/personas\/[^/]+\/reset$/.test(p),
-    handle: (_req, res, { pathname }) => {
+    handle: async (_req, res, { pathname }) => {
       const roleId = decodeURIComponent(
         pathname.slice('/settings/personas/'.length, -'/reset'.length),
       )
@@ -5949,7 +6009,7 @@ const routes = [
             db.auth_roles.map((r) => r.role_id).join(', '),
         })
       }
-      commitSettings({
+      await commitSettings({
         ...settings,
         nav_permissions: {
           ...settings.nav_permissions,
@@ -7799,7 +7859,7 @@ const routes = [
         updated_at: new Date().toISOString(),
       }
 
-      commitDb({
+      await commitDb({
         ...db,
         graph_use_cases: existing
           ? db.graph_use_cases.map((u) =>
@@ -7825,12 +7885,12 @@ const routes = [
   {
     method: 'DELETE',
     match: (p) => /^\/graph-use-cases\/.+$/.test(p),
-    handle: (_req, res, { pathname }) => {
+    handle: async (_req, res, { pathname }) => {
       const id = decodeURIComponent(pathname.slice('/graph-use-cases/'.length))
       if (!db.graph_use_cases.some((u) => u.use_case_id === id)) {
         return send(res, 404, { error: `no use case ${id}` })
       }
-      commitDb({
+      await commitDb({
         ...db,
         graph_use_cases: db.graph_use_cases.filter((u) => u.use_case_id !== id),
       })
@@ -8499,7 +8559,7 @@ const routes = [
          scope of its own, so it implies the full roster when there is nothing else. */
       if (next.mask && !next.full && !(next.rule && next.rule.values.length > 0)) next.full = true
 
-      commitDb({
+      await commitDb({
         ...db,
         reports: {
           ...db.reports,
@@ -8560,7 +8620,7 @@ const routes = [
         return send(res, 400, { error: `${person.name} can already open “${artifact.name}”.` })
       }
 
-      governanceAddReader(artifact, person)
+      await governanceAddReader(artifact, person)
       logGovernance('reader', as, `gave ${person.name} access to “${artifact.name}”`, artifact.audience_note)
       send(res, 200, governanceView())
     },
@@ -8569,7 +8629,7 @@ const routes = [
   {
     method: 'DELETE',
     match: (p) => /^\/governance\/artifacts\/[^/]+\/readers\/[^/]+$/.test(p),
-    handle: (_req, res, { pathname, query }) => {
+    handle: async (_req, res, { pathname, query }) => {
       const rest = pathname.slice('/governance/artifacts/'.length)
       const id = decodeURIComponent(rest.slice(0, rest.indexOf('/readers/')))
       const email = decodeURIComponent(rest.slice(rest.indexOf('/readers/') + '/readers/'.length))
@@ -8584,7 +8644,7 @@ const routes = [
       }
       const person = governancePerson(email)
 
-      const problem = governanceRemoveReader(artifact, email)
+      const problem = await governanceRemoveReader(artifact, email)
       if (problem) return send(res, 400, { error: problem })
 
       logGovernance(
@@ -8726,7 +8786,7 @@ const routes = [
         })
       }
 
-      commitDb({
+      await commitDb({
         ...db,
         reports: {
           ...db.reports,
@@ -8753,7 +8813,7 @@ const routes = [
   {
     method: 'DELETE',
     match: (p) => /^\/reports\/governance\/[^/]+$/.test(p),
-    handle: (_req, res, { pathname, query }) => {
+    handle: async (_req, res, { pathname, query }) => {
       const id = decodeURIComponent(pathname.slice('/reports/governance/'.length))
       const row = db.reports.governance.reports.find((r) => r.report_id === id)
       if (!row) {
@@ -8772,7 +8832,7 @@ const routes = [
         })
       }
 
-      commitDb({
+      await commitDb({
         ...db,
         reports: {
           ...db.reports,
@@ -8968,7 +9028,7 @@ const routes = [
       if (existing >= 0) saved[existing] = row
       else saved.push(row)
 
-      commitDb({ ...db, reports: { ...db.reports, saved } })
+      await commitDb({ ...db, reports: { ...db.reports, saved } })
       send(res, 200, { saved: (db.reports.saved ?? []).map(reportSavedView) })
     },
   },
@@ -9047,7 +9107,7 @@ const routes = [
       const problem = reportViewerRolesProblem(ids)
       if (problem) return send(res, 400, { error: problem })
 
-      commitDb({
+      await commitDb({
         ...db,
         reports: {
           ...db.reports,
@@ -9061,13 +9121,13 @@ const routes = [
   {
     method: 'DELETE',
     match: (p) => /^\/reports\/saved\/[^/]+$/.test(p),
-    handle: (_req, res, { pathname }) => {
+    handle: async (_req, res, { pathname }) => {
       const id = decodeURIComponent(pathname.slice('/reports/saved/'.length))
       const saved = db.reports.saved ?? []
       if (!saved.some((s) => s.saved_id === id)) {
         return send(res, 404, { error: `no saved report ${id}` })
       }
-      commitDb({
+      await commitDb({
         ...db,
         reports: { ...db.reports, saved: saved.filter((s) => s.saved_id !== id) },
       })

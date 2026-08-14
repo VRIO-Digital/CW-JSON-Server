@@ -2048,6 +2048,53 @@ expect(
     !/JSON\.parse\(readFileSync\((DB_PATH|SETTINGS_PATH)/.test(codeOnly(server)),
   'a byte offset names nothing a person can act on',
 )
+/*
+ * ---------------- the writes are async, and serialized ----------------
+ *
+ * `db.json` is 450 KB and was stringified and written with `writeFileSync` on every commit, with
+ * every other request waiting behind it. Asynchronous writing gives that back — and takes away the
+ * one thing the synchronous version had for free: with an `await` in the middle, two commits can be
+ * in flight at once and they share a temp path, so the file that lands is neither document.
+ *
+ * Three things have to hold together, so all three are asserted: the writes are async, they are
+ * chained per path, and the in-memory swap happens *before* the first await — which is what stops a
+ * second handler reading a stale document and silently dropping the first edit.
+ */
+expect(
+  'the JSON databases are written asynchronously, one write at a time per file',
+  /from 'node:fs\/promises'/.test(server) &&
+    /function writeJsonAtomic\(/.test(server) &&
+    /const previous = writeChains\.get\(path\)/.test(server) &&
+    /* The synchronous writers must not come back. */
+    !/writeFileSync|renameSync/.test(codeOnly(server)),
+  'a 450 KB synchronous write blocked every other request',
+)
+expect(
+  'and the in-memory swap happens before the write yields, not after',
+  /async function commitDb\(/.test(server) &&
+    /async function commitSettings\(/.test(server) &&
+    /* Swap, then await — the order is the guarantee. */
+    server.indexOf('Object.assign(db, next)') < server.indexOf('await writeJsonAtomic(DB_PATH') &&
+    /* And a failed write puts memory back, so the two cannot diverge. */
+    /Object\.assign\(db, previous\)/.test(server) &&
+    /settings = previous/.test(server),
+  'swapping after the write would let two edits each read the pre-edit document',
+)
+/* Every writer is awaited, or a rejected write becomes an unhandled rejection and a 200. */
+expect(
+  'every commit call site awaits',
+  !/(^|[^a-zA-Z.])commit(Db|Settings)\(/m.test(
+    codeOnly(server).replace(/await commit(Db|Settings)\(/g, '').replace(/async function commit(Db|Settings)\(/g, ''),
+  ),
+  `${(server.match(/await commit(Db|Settings)\(/g) ?? []).length} awaited call sites`,
+)
+/* The boot read stays synchronous on purpose: the server must not listen before its data is in. */
+expect(
+  'the boot read stays synchronous',
+  /text = readFileSync\(path, 'utf8'\)/.test(server),
+  'nothing may be served before db.json is loaded',
+)
+
 expect(
   'and a merge conflict is named as one, before the parse',
   /still has merge conflict markers/.test(server) &&

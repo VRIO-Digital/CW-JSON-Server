@@ -168,6 +168,18 @@ Consequences worth knowing before debugging:
 - `PUT /db` writes via temp-file + rename, then mutates the in-memory `db` in
   place. That in-place mutation is what makes an edit take effect without a
   restart; reassigning `db` would break every route's closure.
+- **The writes are async; the boot read is not.** `db.json` is 450 KB, and
+  `writeFileSync` stringified and wrote all of it on every commit while every other
+  request waited — so `commitDb` and `commitSettings` are `async` and go through
+  `writeJsonAtomic`. Three things hold that together, and all three are asserted:
+  the writes are **chained per path** (two commits share a temp path, and without the
+  chain the file that lands is neither document — the serialization the synchronous
+  version got for free); the **in-memory swap happens before the first `await`**, so a
+  second handler cannot read the pre-edit document and silently drop the first edit;
+  and a failed write **puts memory back**, so the file and the process cannot diverge.
+  Every call site awaits, or a rejected write becomes an unhandled rejection behind a
+  200. The boot read stays synchronous on purpose: nothing may be served before
+  `db.json` is loaded.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
   editor cannot save a document that would crash the app. There are 25 required
   keys, and the newer ones are as required as the originals: removing `drives`
@@ -1979,6 +1991,12 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   which reads as a stale server and was a three-second-old one. Grep the key's other
   callers before falling back to it; the unwrapping convention lives in them and nowhere
   the compiler can see. And read the *value* before blaming the process.
+- **When a synchronous operation becomes asynchronous, write down what it was getting
+  for free.** Making the `db.json` writes async cost three guarantees at once:
+  serialization (two commits share a temp path), read-modify-write atomicity (a handler
+  reading the pre-edit document drops the previous edit), and crash consistency (a write
+  that throws never reached the swap). Each had to be put back by hand — a queue, an
+  ordering decision, a rollback. Async I/O is rarely just "add `await`".
 - **`db.json` is generated *and* committed, so a pull over a re-seeded copy conflicts.**
   A deployed box crash-looped on `Expected double-quoted property name in JSON at
   position 2464` while the real problem was `<<<<<<< Updated upstream` at line 113.

@@ -2047,3 +2047,39 @@ And when a fallback exists so a run can continue without an optional input, enum
 the code that reads them: a fallback missing one key does not degrade, it crashes somewhere less
 obvious, and a check-docs that cannot print its summary is the "claim total stops moving" failure
 this file already records twice.
+
+## Making the writes async removes a guarantee the sync version gave for free
+
+**Symptom** — none yet; this is the hazard introduced by a change, recorded before it bites.
+
+`db.json` is 450 KB. `commitDb` stringified and wrote all of it with `writeFileSync` on every
+commit — a report audience change, a governance rule, a saved graph brief — and every other request
+waited behind it. Moving to `fs/promises` gives that time back.
+
+**What it takes away.** Three things were true only because the write could not yield:
+
+1. **One writer at a time.** Both writers use the same temp path (`db.json.tmp`). With an `await` in
+   the middle, two commits overlap: the second writes the temp file while the first is renaming it,
+   and what lands is neither document. Synchronous code could not produce that.
+2. **No stale read.** `commitDb(next)` swapped memory immediately after writing, and nothing could
+   run in between. Asynchronously, if the swap waits for the write, a second handler builds *its*
+   `next` from the pre-edit `db` and the first edit disappears — a lost update with no error.
+3. **The file and the process agree.** A synchronous write that threw never reached the swap.
+
+**Fix** — all three are kept explicitly rather than assumed. `writeJsonAtomic` chains writes per
+path, so "atomic" survives the yield; the chain's stored link swallows rejections so one bad write
+cannot wedge every later one behind it. `commitDb` and `commitSettings` validate and swap
+**synchronously**, before the first `await`, so the new state is visible to the next handler the
+moment the call is made — every call site builds `next` and calls straight in, so there is no window.
+And the previous document is kept and restored if the write rejects, which is the only way to keep
+(3) once the swap comes first.
+
+**Guard** — *mechanical*, four claims: the writes are async and chained, the swap precedes the await
+(compared by source position) and rolls back, every call site awaits, and the boot read stays
+synchronous. Plus a live test firing eight overlapping writes at one route and asserting `db.json`
+still parses, disk and memory agree, and no temp file is left behind.
+
+**Rule** — **when a synchronous operation becomes asynchronous, write down what it was getting for
+free.** Serialization, read-modify-write atomicity and crash consistency are all free while nothing
+can yield, and all three are silently lost the moment something can. Async I/O is rarely just "add
+`await`"; it is that plus a queue, plus an ordering decision, plus a rollback.
