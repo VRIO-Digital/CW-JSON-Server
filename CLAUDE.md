@@ -1979,6 +1979,17 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   which reads as a stale server and was a three-second-old one. Grep the key's other
   callers before falling back to it; the unwrapping convention lives in them and nowhere
   the compiler can see. And read the *value* before blaming the process.
+- **`db.json` is generated *and* committed, so a pull over a re-seeded copy conflicts.**
+  A deployed box crash-looped on `Expected double-quoted property name in JSON at
+  position 2464` while the real problem was `<<<<<<< Updated upstream` at line 113.
+  Both databases now load through `readJsonDb`, which checks for conflict markers
+  *before* parsing and names the file, the line and the rebuild command —
+  `validateDb`'s careful refusal is useless here because `JSON.parse` runs first.
+  **A diagnostic that runs after the parse never runs on the worst input.**
+- **A partial fallback moves a crash rather than removing it.** `check-docs` guards a
+  missing demo package with empty objects so its claims fail loudly instead of vacuously
+  — but the fallback omitted `counts`, so the run still died three claims later and
+  printed no summary. Enumerate a fallback's keys from the code that dereferences them.
 - **A shared empty state needs a claim listing the pages that must use it.** Ask kept a
   private copy of the publish gate, so one precondition had two screens with two sets of
   words — invisible, because each page looked right alone. Assert both halves: every gated

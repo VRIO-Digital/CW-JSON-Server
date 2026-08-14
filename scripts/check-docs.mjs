@@ -464,10 +464,34 @@ expect(
 const kgHere = existsSync(join(root, kgPath)) && existsSync(join(root, studioPkgPath))
 const kg = kgHere
   ? JSON.parse(read(kgPath))
-  : { nodes: [], edges: [], not_nodes: [], demo_display: {} }
+  : /*
+     * **Every key the claims below reach for**, not just the obvious ones. `counts` was missing
+     * from this fallback, so the guard worked exactly as far as the first claim that walked into
+     * `kg.counts.by_element_class` — and then threw, taking the whole run down with an ENOENT-shaped
+     * TypeError. That is the failure this fallback was written to prevent, reintroduced by an
+     * incomplete version of it: a partial guard is a guard that moves the crash rather than
+     * removing it. Adding a claim that reads a new package key means adding that key here.
+     */
+    {
+      nodes: [],
+      edges: [],
+      not_nodes: [],
+      demo_display: {},
+      counts: { by_element_class: {}, by_type: {} },
+    }
 const studioPkg = kgHere
   ? JSON.parse(read(studioPkgPath))
-  : { trustLanes: {}, mustReview: [], sanityChecks: [], synthesis: {} }
+  : /* Same rule: the keys the claims below actually walk into, which are not the keys the real
+       file leads with. `lanes`, `review_queue` and `sanity_checks` are what they read. */
+    {
+      trustLanes: {},
+      mustReview: [],
+      sanityChecks: [],
+      synthesis: {},
+      lanes: { trust: {}, mustReviewTotal: 0 },
+      review_queue: [],
+      sanity_checks: [],
+    }
 const canvas = db.graph_studio.canvas
 
 expect(
@@ -2001,6 +2025,37 @@ expect(
       (k) => !whatIfSrc.slice(gateAt, lensAt).includes(k) && whatIfSrc.slice(lensAt).includes(k),
     ),
   `${gatedCopy.join(', ')} render only inside the lens`,
+)
+
+/*
+ * ---------------- the two JSON databases are read diagnostically ----------------
+ *
+ * `JSON.parse` on a broken file reports a byte offset and nothing else — not the file, not the
+ * line, not the fix — and it runs *before* `validateDb`, so the careful refusal that names the
+ * missing key never gets a chance. A deployed box crash-looped on
+ * `Expected double-quoted property name in JSON at position 2464` while the real problem was
+ * `<<<<<<< Updated upstream` sitting at line 113 of `db.json`.
+ *
+ * `db.json` is generated *and* committed, so that conflict is a recurring event rather than a
+ * one-off: the marker case is checked by name, before parsing.
+ */
+expect(
+  'both JSON databases are read through the diagnostic loader, not JSON.parse',
+  /function readJsonDb\(/.test(server) &&
+    /const db = readJsonDb\(/.test(server) &&
+    /let settings = readJsonDb\(/.test(server) &&
+    /* The raw parse must not come back for either file. */
+    !/JSON\.parse\(readFileSync\((DB_PATH|SETTINGS_PATH)/.test(codeOnly(server)),
+  'a byte offset names nothing a person can act on',
+)
+expect(
+  'and a merge conflict is named as one, before the parse',
+  /still has merge conflict markers/.test(server) &&
+    /\^\(<<<<<<<\|=======\|>>>>>>>\)/.test(server) &&
+    /* Each file names the command that rebuilds it — they are different commands. */
+    /npm run seed:governance/.test(server) &&
+    /npm run seed:settings/.test(server),
+  'db.json is generated and committed, so a pull over a re-seeded copy conflicts every time',
 )
 
 /*

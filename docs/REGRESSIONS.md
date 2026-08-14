@@ -1998,3 +1998,52 @@ renders both.
 existing is not the same as everybody using it, and the drift is invisible: each page looks right on
 its own, and only somebody who hits the same wall twice notices. When a precondition has one fix,
 give it one screen and enumerate the pages that show it.
+
+## A crash-looping server reporting a byte offset, and a guard that only moved its crash
+
+**Symptom** — two faults, found together from a deployed box's log:
+
+    SyntaxError: Expected double-quoted property name in JSON at position 2464 (line 113 column 1)
+        at JSON.parse (<anonymous>)
+        at file:///home/ubuntu/CW-JSON-Server/mock-server/server.mjs:104:21
+
+repeating forever under the process manager. And locally, `npm run check-docs` died with
+`TypeError: Cannot read properties of undefined (reading 'by_element_class')`, taking all 386 claims
+down with it.
+
+**Root cause** — two, and they share a shape: **a guard that runs too late, and a guard that only
+covers half of what it guards.**
+
+*The box.* `mock-server/db.json` is a **generated file that is also committed**, so a pull or a
+stash pop over a re-seeded copy conflicts every time — and the file had `<<<<<<< Updated upstream`
+sitting at line 113. `validateDb` exists precisely to refuse a bad document while naming the key and
+the command that restores it, but it never ran: `JSON.parse` is the first thing to touch the file,
+and it reports a byte offset and nothing else. No file name, no line, no fix, and a restart loop
+reprinting it.
+
+*The check.* The demo package directory is untracked, and had been removed from the working tree.
+`check-docs` already had a fallback for exactly that — with a comment explaining that a crash hides
+every other claim — but the fallback object omitted `counts`, which the third claim walks into. A
+partial guard does not remove the crash, it **moves** it: the run still died, one claim later, and
+the summary line still never printed. Filling `counts` moved it to `counts.by_type` one claim after
+that. The keys a fallback needs are the ones the claims *dereference*, which are not the ones the
+real file leads with.
+
+**Fix** — a `readJsonDb(path, label, restore)` that both databases go through. It checks for conflict
+markers **before parsing** and names the marker, its line and the fix; turns a parse failure's byte
+offset into a line and column; and names the file and its rebuild command in every case. And the
+`check-docs` fallbacks now list every key the claims read, enumerated from the source rather than
+discovered one crash at a time.
+
+**Guard** — *mechanical*. `check-docs` asserts both databases are read through the loader and that
+the raw `JSON.parse(readFileSync(...))` does not come back, that the conflict-marker case is checked
+by name, and that each file names its own rebuild command. All three refusal paths — conflict,
+malformed, missing — were exercised against a copy of the box's actual failure and reproduce its
+line 113.
+
+**Rule** — **a diagnostic that runs after the parse is a diagnostic that never runs on the worst
+input.** Anything read at boot needs its failure named *at the read*, not by the validator behind it.
+And when a fallback exists so a run can continue without an optional input, enumerate its keys from
+the code that reads them: a fallback missing one key does not degrade, it crashes somewhere less
+obvious, and a check-docs that cannot print its summary is the "claim total stops moving" failure
+this file already records twice.
