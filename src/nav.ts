@@ -10,13 +10,11 @@ import {
   SafetyCertificateOutlined,
   SettingOutlined,
   TableOutlined,
-  ClusterOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons'
 import type { ComponentType } from 'react'
 
 export type NavKey =
-  | 'graphs'
   | 'new-graph'
   | 'ask'
   | 'reports'
@@ -40,12 +38,6 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  {
-    key: 'graphs',
-    label: 'Knowledge Graphs',
-    path: '/graphs',
-    icon: ClusterOutlined,
-  },
   {
     key: 'new-graph',
     label: 'New Graph',

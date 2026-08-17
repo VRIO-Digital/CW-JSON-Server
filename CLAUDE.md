@@ -1847,16 +1847,18 @@ back to return the user to where they were headed rather than always landing on
 Sources. `/login` has no `NAV_ITEMS` entry — there is nothing to navigate to
 before signing in, and once signed in there is no reason to navigate back.
 
-**The sidebar advertises more than exists, and serves more than it advertises.**
-`NAV_ITEMS` has **10** live entries and `routes.tsx` has a page for **9** of them
-(`/new-graph`, `/ask`, `/reports`, `/sources`, `/catalogue`, `/graph-studio`,
-`/what-if`, `/audit`, `/settings`). The last one — Knowledge Graphs — is a roadmap placeholder with no
-route, so clicking it falls through `path: '*'` to `NotFoundPage`. That is a deliberate shell,
-not a broken link: when it gets a page, add it to `routes.tsx` and nothing else changes —
-`/what-if`, `/reports` and `/audit` were all placeholders until their pages landed, and each
-needed exactly that one line.
+**Every sidebar entry now has a page.** `NAV_ITEMS` has **9** live entries and `routes.tsx`
+has a page for **9** of them (`/new-graph`, `/ask`, `/reports`, `/sources`, `/catalogue`,
+`/graph-studio`, `/what-if`, `/audit`, `/settings`). **Knowledge Graphs was the tenth and is
+gone** — a roadmap placeholder with no route, so clicking it fell through `path: '*'` to
+`NotFoundPage`; it was removed on request. Removing it was four coordinated edits, which is
+what any nav entry costs: the `NAV_ITEMS` entry, its `NavKey` and its icon import in `nav.ts`,
+its key in the seed's `NAV_KEYS`, and a re-seed of `settings.json` so no persona carries a
+permission for an item that does not exist. A future placeholder is the same four in reverse
+plus the one line in `routes.tsx` when it gets a page — `/what-if`, `/reports` and `/audit`
+were all placeholders until theirs landed.
 
-**And the sidebar is filtered.** `visibleNavItems` in `settingsStore` decides which of those ten
+**And the sidebar is filtered.** `visibleNavItems` in `settingsStore` decides which of those nine
 entries a persona sees — see Settings below. `App`'s mobile header deliberately looks up the
 *unfiltered* list, because it names the page you are on and a hidden page is still reachable by URL.
 

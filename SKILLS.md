@@ -2044,6 +2044,14 @@ declared, and the server resolves labels on the way out — so a rename reaches 
 the sidebar lacks (a permission nobody can exercise) or one the sidebar has that it lacks (an item no
 persona can hide) fails the build.
 
+**Removing an item is four edits, and the seed's carry-forward is the one that bites.** `nav.ts` loses
+the `NAV_ITEMS` entry, the `NavKey` and the icon import; the seed loses the `NAV_KEYS` key; then
+`npm run seed:settings`. `defaults` is re-authored every run but `nav_permissions` is *kept* — those are
+somebody's decisions — so a blind spread left the removed key alive in the live set while the defaults
+dropped it, and `validateSettings` refuses that pair by name ("different navigation keys in defaults and
+nav_permissions"). The carry-forward is narrowed to `NAV_KEYS`, so the seed cannot write a file the
+server then refuses to boot on while naming the seed as the fix. Removing Knowledge Graphs found it.
+
 ### The login has no role picker
 
 `POST /auth/login` takes `{ email, password }`. The persona is the one on that address's row in

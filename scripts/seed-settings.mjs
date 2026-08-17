@@ -40,7 +40,6 @@ const existing = existsSync(SETTINGS) ? JSON.parse(readFileSync(SETTINGS, 'utf8'
  * is not.
  */
 const NAV_KEYS = [
-  'graphs',
   'new-graph',
   'ask',
   'reports',
@@ -146,14 +145,21 @@ const settings = {
    * The live set, which is what the sidebar reads and the Settings page writes. Kept where it already
    * exists: these are somebody's decisions, and re-running the seed to pick up a new default should not
    * silently discard them. A persona with none starts from its defaults.
+   *
+   * **The carry-forward is narrowed to `NAV_KEYS`, and that is not tidiness.** A blind spread kept
+   * whatever the old file held, so removing an item from the sidebar left its permission behind in the
+   * live set while `defaults` — re-authored every run — lost it. `validateSettings` refuses exactly that
+   * pair ("different navigation keys in defaults and nav_permissions"), so the seed would write a file
+   * the server then refuses to boot on, naming this script as the fix. Removing `graphs` found it.
    */
   nav_permissions: Object.fromEntries(
-    Object.keys(DEFAULTS).map((roleId) => [
-      roleId,
-      existing.nav_permissions?.[roleId]
-        ? { ...DEFAULTS[roleId], ...existing.nav_permissions[roleId] }
-        : { ...DEFAULTS[roleId] },
-    ]),
+    Object.keys(DEFAULTS).map((roleId) => {
+      const live = existing.nav_permissions?.[roleId] ?? {}
+      const kept = Object.fromEntries(
+        NAV_KEYS.filter((k) => typeof live[k] === 'boolean').map((k) => [k, live[k]]),
+      )
+      return [roleId, { ...DEFAULTS[roleId], ...kept }]
+    }),
   ),
 }
 
