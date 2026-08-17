@@ -1098,9 +1098,19 @@ Eleven stages, in dependency order — `pin_inputs`, `a01_schema_parsing`,
 
 **Each stage names its own substeps, and they are what advances.** A stage carries
 2–3 (`pin_inputs` → `resolve_use_case`, `seal_coverage_evidence`,
-`pin_source_versions`) — 31 in total at `BUILD_STEP_MS` (**5s**) each, so a run
-takes about **2m 35s**. That is slow on purpose: a substep is paced to be narrated
+`pin_source_versions`) — 31 in total at `BUILD_STEP_MS` (**3s**) each, so a run
+takes about **1m 33s**. That is slow on purpose: a substep is paced to be narrated
 while it runs, not merely to prove the work was not free.
+
+**Build first — the other five tabs are locked until a run completes.** Review queue,
+Canvas, Query & sanity-check, Quality report and Versions read a build's output, so they
+are `disabled` while this graph's history holds no `complete` run, and one flag
+(`builtOnce`) drives all five. The lock states itself above the tabs while it holds, in
+different words while a run is in flight. Two failure modes it avoids: the studio's
+default arrival tab is the queue, so a locked tab has to be pushed off `activeKey` or antd
+renders an unreachable pane; and the queue's rows are the package's, so it looks
+populated before anything has been built — which is the whole reason the gate is worth
+having. Rebuilding after settling rows is unchanged.
 
 **Because it takes minutes, the panel states the pace and the time left.** Both come
 from `step_ms` in the payload, never from a number typed into the component — a

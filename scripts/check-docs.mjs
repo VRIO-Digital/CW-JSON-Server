@@ -1540,6 +1540,45 @@ expect(
   'a stage index kept alongside a step index is two counters that can disagree',
 )
 /*
+ * **Build first: the studio's other five tabs are locked until a build has completed.**
+ *
+ * They all read a build's output, and the review queue is the loudest case — its rows are
+ * the package's, so it looks populated whether or not anything has been built. Three
+ * halves, and the third is the one that fails silently: a *disabled* tab that is also the
+ * *active* one renders its pane with no way to leave it, and the studio's default arrival
+ * tab is the queue, so that is the normal path rather than an edge case.
+ */
+const studioPage = read('src/pages/GraphStudioPage.tsx')
+const studioCode = codeOnly(studioPage)
+const lockedTabs = ['queue', 'canvas', 'query', 'quality', 'versions']
+expect(
+  'every studio tab but Build is locked until a build completes',
+  /const builtOnce = builds\.some\(\(b\) => b\.status === 'complete'\)/.test(studioCode) &&
+    (studioCode.match(/disabled: !builtOnce/g) ?? []).length === lockedTabs.length,
+  `${(studioCode.match(/disabled: !builtOnce/g) ?? []).length} of ${lockedTabs.length} tabs carry the flag`,
+)
+expect(
+  'and Build itself never is',
+  !/key: 'build',\s*label: 'Build',\s*disabled/.test(studioCode),
+  'locking the one tab that unlocks the others is a dead end',
+)
+expect(
+  'a locked tab cannot stay the active one',
+  /if \(!builtOnce && tab !== 'build'\) setTab\('build'\)/.test(studioCode),
+  'the default arrival tab is the queue, so this is the normal path',
+)
+/* And it says why, where the tabs are, only while they are locked — and it says something
+   different while a run is in flight, because "start one" is the wrong instruction for
+   somebody already watching one. */
+expect(
+  'the lock explains itself and names the act that lifts it',
+  /\{builtOnce \? null : \(/.test(studioPage) &&
+    /Build this graph first/.test(studioPage) &&
+    /buildRunning\s*\?/.test(studioPage),
+  'a row of disabled tabs with no sentence beside them reads as a broken page',
+)
+
+/*
  * The pace is documented, and the page derives from it rather than restating it.
  *
  * A build now takes minutes, not seconds, so the duration on screen is load-bearing:

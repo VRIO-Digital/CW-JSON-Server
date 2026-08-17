@@ -2190,7 +2190,7 @@ const BUILD_STEPS = BUILD_STAGES.flatMap((stage, stageIndex) =>
 )
 
 /*
- * 5s per substep — 31 of them, so a whole build is ≈2m 35s.
+ * 3s per substep — 31 of them, so a whole build is ≈1m 33s.
  *
  * Deliberately far slower than PIPELINE or DERIVATION_STAGE_MS. Those pace an
  * operation so it cannot read as free; this one is paced so each substep can be
@@ -2201,7 +2201,7 @@ const BUILD_STEPS = BUILD_STAGES.flatMap((stage, stageIndex) =>
  * the sentence on the page follows from it rather than repeating it — `step_ms` is
  * in the payload for exactly that reason.
  */
-const BUILD_STEP_MS = 5_000
+const BUILD_STEP_MS = 3_000
 
 /**
  * Every build ever run, newest first, keyed by use case. In memory like every
