@@ -2367,3 +2367,41 @@ claim needs `codeOnly()`, because the comment explaining why a field is *no long
 it (sixth time); and a whole-file search for `answer_formats` matches `graph_answer_formats`,
 the pool that is *supposed* to still be there — scope the region, or the claim is about the
 wrong thing.
+
+---
+
+## A seed that carried forward a permission for an item that no longer existed
+
+**Cost** — caught while removing two surfaces on request: *"in the data catalogue remove the
+change signals tab"*, then *"remove the knowledge graph menu in the sidebar"*. Found by reading
+the seed before running it, not by a failed boot — but the boot is where it would have landed.
+
+**What happened.** `scripts/seed-settings.mjs` re-authors `defaults` on every run and
+deliberately *keeps* `nav_permissions`, because those are somebody's decisions and picking up a
+new default should not discard them. The carry-forward was a blind spread —
+`{ ...DEFAULTS[roleId], ...existing.nav_permissions[roleId] }` — so it preserved whatever the
+old file held, including keys `NAV_KEYS` no longer names. Removing `graphs` from the sidebar
+and from `NAV_KEYS` therefore produced a `settings.json` whose `defaults` had nine keys and
+whose `nav_permissions` had ten. `validateSettings` refuses exactly that pair — *"has different
+navigation keys in defaults and nav_permissions (unknown: graphs)"* — so the server would refuse
+to boot, **naming `npm run seed:settings` as the fix**: the script that had just written the
+broken file. A seed whose output fails the validator that recommends it is a loop with no exit.
+
+**Fix** — the carry-forward is narrowed to `NAV_KEYS` before the spread, so a key that left the
+sidebar leaves the live set with it. `defaults` was always re-authored; now both blocks answer to
+the same list.
+
+**Guard** — the existing `check-docs` claim already compares `NAV_KEYS` to `nav.ts` in both
+directions, and already asserts every persona carries every seeded key in **both** blocks — which
+is what makes this fixable rather than latent. What was missing was nothing on the doc side, so
+CLAUDE.md's routing paragraph and SKILLS.md's Settings flow now state that removing a nav item is
+four coordinated edits and name the carry-forward as the one that bites.
+
+**Rule** — **a merge that preserves state has to be narrowed to the keys that still exist.** This
+is the mirror of the already-recorded `x = { … }` trap, where rebuilding a subtree wholesale
+*deleted* what it did not list: spreading an old document forward *keeps* what the new schema
+dropped. Both are the same question asked in opposite directions — when two blocks must agree and
+one is re-authored while the other is carried, the carried one needs filtering, not just merging.
+And the older rule holds again: *a fallback is state, and needs the same checks as the state it
+replaces.* `defaults` is a delayed way of setting `nav_permissions`, so a schema change has to
+reach both on the same run.

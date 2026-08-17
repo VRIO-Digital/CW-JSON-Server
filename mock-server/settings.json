@@ -27,7 +27,6 @@
   ],
   "defaults": {
     "business_user_executive": {
-      "graphs": true,
       "new-graph": true,
       "ask": true,
       "reports": true,
@@ -39,7 +38,6 @@
       "settings": false
     },
     "domain_architect": {
-      "graphs": true,
       "new-graph": true,
       "ask": true,
       "reports": true,
@@ -51,7 +49,6 @@
       "settings": false
     },
     "business_user_project": {
-      "graphs": true,
       "new-graph": true,
       "ask": true,
       "reports": true,
@@ -63,7 +60,6 @@
       "settings": false
     },
     "platform_admin": {
-      "graphs": false,
       "new-graph": false,
       "ask": false,
       "reports": false,
@@ -82,7 +78,6 @@
   },
   "nav_permissions": {
     "business_user_executive": {
-      "graphs": true,
       "new-graph": true,
       "ask": true,
       "reports": true,
@@ -94,7 +89,6 @@
       "settings": false
     },
     "domain_architect": {
-      "graphs": true,
       "new-graph": true,
       "ask": true,
       "reports": true,
@@ -106,7 +100,6 @@
       "settings": false
     },
     "business_user_project": {
-      "graphs": true,
       "new-graph": true,
       "ask": true,
       "reports": true,
@@ -118,7 +111,6 @@
       "settings": false
     },
     "platform_admin": {
-      "graphs": true,
       "new-graph": true,
       "ask": true,
       "reports": true,
