@@ -676,7 +676,7 @@ export default function GraphStudioPage() {
             key: 'queue',
             label: (
               <span>
-                Review queue <Tag className="gs-tab-count">{data.queueCount}</Tag>
+                Review queue <Tag className="gs-tab-count"></Tag>
               </span>
             ),
             disabled: !builtOnce,
