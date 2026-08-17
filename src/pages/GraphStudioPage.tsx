@@ -128,6 +128,32 @@ export default function GraphStudioPage() {
     void open(useCaseId)
   }, [useCaseId, shownBuild?.status, shownBuild?.buildId, open])
 
+  /*
+   * **Build first: every other tab is locked until a build has completed.**
+   *
+   * Reviewing a queue, reading a canvas or publishing a version all describe *a build's
+   * output*, so offering them before one has finished offers a reading of nothing — and
+   * the queue is the loudest case, because it looks populated either way (its rows are
+   * the package's, not the run's). The gate is a completed run in this graph's history,
+   * which is also what mints a version, so Versions cannot be empty behind an unlocked
+   * tab.
+   *
+   * Note what this reverses: settling review rows changes what a build produces, so
+   * **Rebuild stays the normal case** — this only says a graph has to have been built
+   * once before its output can be read.
+   */
+  const builtOnce = builds.some((b) => b.status === 'complete')
+  /* A build run is only ever `running` or `complete` — unlike a profiling job, it has no
+     queued state, so there is no third case for the sentence to cover. */
+  const buildRunning = builds.some((b) => b.status === 'running')
+
+  /* A locked tab cannot be the active one, or antd renders its pane with the tab
+     unselectable — a blank page with no way back. Arrivals default to the queue, so this
+     is the normal path on a graph whose build has not run, not an edge case. */
+  useEffect(() => {
+    if (!builtOnce && tab !== 'build') setTab('build')
+  }, [builtOnce, tab])
+
   const back = (
     <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/graph-studio')}>
       All graphs
@@ -572,6 +598,23 @@ export default function GraphStudioPage() {
         {loading ? 'refreshing…' : `${data.queueCount} item(s) still need a human`}
       </Typography.Paragraph>
 
+      {/* Said once, above the tabs, and only while they are locked — a row of disabled
+          tabs with no sentence beside them reads as a broken page. It names the act that
+          unlocks them, and while a run is in flight it says that instead, because "run a
+          build" is the wrong instruction for somebody already watching one. */}
+      {builtOnce ? null : (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: SP.base }}
+          title={
+            buildRunning
+              ? 'Building — the review queue, canvas, query, quality report and versions open when this run completes.'
+              : 'Build this graph first. The other tabs read a build’s output, so they stay locked until a run completes — start one below.'
+          }
+        />
+      )}
+
       <Tabs
         activeKey={tab}
         onChange={setTab}
@@ -600,6 +643,8 @@ export default function GraphStudioPage() {
               />
             ),
           },
+          /* Every tab below reads a build's output, so each carries the same
+             `disabled` — one flag, so none of them can open while the others are shut. */
           {
             key: 'queue',
             label: (
@@ -607,14 +652,26 @@ export default function GraphStudioPage() {
                 Review queue <Tag className="gs-tab-count">{data.queueCount}</Tag>
               </span>
             ),
+            disabled: !builtOnce,
             children: reviewQueue,
           },
-          { key: 'canvas', label: 'Canvas', children: canvasTab },
-          { key: 'query', label: 'Query & sanity-check', children: queryTab },
-          { key: 'quality', label: 'Quality report', children: qualityTab },
+          { key: 'canvas', label: 'Canvas', disabled: !builtOnce, children: canvasTab },
+          {
+            key: 'query',
+            label: 'Query & sanity-check',
+            disabled: !builtOnce,
+            children: queryTab,
+          },
+          {
+            key: 'quality',
+            label: 'Quality report',
+            disabled: !builtOnce,
+            children: qualityTab,
+          },
           {
             key: 'versions',
             label: 'Versions',
+            disabled: !builtOnce,
             children: (
               <VersionsTab
                 versions={data.versions}

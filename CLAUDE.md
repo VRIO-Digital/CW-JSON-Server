@@ -655,9 +655,21 @@ kept in that graph's history, and an earlier one stays loadable. Settling review
 rows changes what a build produces, so **Rebuild** is the normal case, not an
 escape hatch.
 
+**And build first: the other five tabs are locked until a run completes.** Review queue,
+Canvas, Query & sanity-check, Quality report and Versions all read *a build's output*, so
+they are `disabled` while `builds` holds no `complete` run — the review queue most of all,
+because its rows are the package's and it looks populated whether or not anything has been
+built. One flag (`builtOnce`) drives all five, so they cannot disagree. Two things this
+needs and has: a locked tab **cannot stay the active one** — the studio's default arrival
+tab is the queue, and a disabled *and* selected tab renders a pane with no way out — and
+the lock **says why**, above the tabs, only while it holds, in different words while a run
+is in flight ("start one" is the wrong instruction for somebody already watching one).
+This does not reverse the paragraph above: rebuilding after settling rows is still the
+normal case; a graph simply has to have been built once before its output can be read.
+
 **Each stage names its own substeps, and the substeps are what advance.**
-`BUILD_STEPS` is `BUILD_STAGES` flattened — 31 substeps at `BUILD_STEP_MS`, **5s**
-each, so a whole build runs ≈**2m 35s** — and a run keeps **one cursor** into that
+`BUILD_STEPS` is `BUILD_STAGES` flattened — 31 substeps at `BUILD_STEP_MS`, **3s**
+each, so a whole build runs ≈**1m 33s** — and a run keeps **one cursor** into that
 list. Every state on screen is derived from it: a substep is complete before the
 cursor, running at it, pending after, and a stage is `running` exactly while the
 cursor sits inside it. A stage index kept alongside a step index is two counters
@@ -666,7 +678,7 @@ substeps still spins. Adding a stage means adding its substeps too — a stage w
 none is a row claiming work nobody can see, which is what this replaced, and
 `check-docs` fails on it.
 
-**A build takes minutes, so the panel says how many.** 5s a substep is slow on
+**A build takes minutes, so the panel says how many.** 3s a substep is slow on
 purpose — slow enough to narrate a row while it runs — which makes an unexplained
 spinner read as a wedged process. `buildView` reports `step_ms`, and the note and
 the "…left" figure derive from it: change the pace on the server and the page

@@ -2367,3 +2367,36 @@ claim needs `codeOnly()`, because the comment explaining why a field is *no long
 it (sixth time); and a whole-file search for `answer_formats` matches `graph_answer_formats`,
 the pool that is *supposed* to still be there — scope the region, or the claim is about the
 wrong thing.
+
+## The studio's output tabs were readable before anything had been built
+
+**Cost** — asked for from use: *"until build completed should not show the others, disable that,
+build first"*, plus a faster pace.
+
+**What happened.** `/graph-studio/:id` opened on the **Review queue** by default, and every tab
+was live from the first render. All five besides Build describe a build's *output* — the rows a
+run produced, the canvas it drew, the versions it minted — so before any run had completed they
+offered a reading of nothing. The review queue is the worst of them and the reason this is not
+cosmetic: its rows are the demo package's, not the run's, so it looks fully populated whether or
+not a build has ever happened. A reviewer could settle six decisions against a graph that did
+not exist yet.
+
+**Fix** — one flag, `builtOnce` (`builds.some(b => b.status === 'complete')`), disables the other
+five tabs, and an Alert above them names the act that lifts the lock — different words while a
+run is in flight, because "start one" is wrong for somebody already watching one. The pace also
+dropped from 5s a substep to **3s**, so a whole run is 1m 33s instead of 2m 35s; the number lives
+once in `BUILD_STEP_MS` and reaches the page through `step_ms`.
+
+**Guard** — *mechanical*: all five tabs carry `disabled: !builtOnce` (counted, not spot-checked),
+Build itself never does, the active-tab guard exists, and the sentence branches on
+`buildRunning`. Two break-tested. The existing pace claim did its job unprompted — changing the
+constant failed `check-docs` on both docs until they were updated, which is exactly what it is
+for. Plus a live run through `useGraphBuildStore`: no completed run before, none while queued,
+one after, and the run really took ~93s.
+
+**Rule** — **a tab that reads another tab's output is a precondition, not a peer.** Ordering
+tabs left-to-right implies a sequence without enforcing one, and the tab that looks most
+convincing when empty is the one that does damage — a queue whose rows come from a package
+renders identically before and after the run that is supposed to produce them. When locking one,
+push it off `activeKey` too: disabled *and* selected is a pane with no way out, and the default
+arrival tab is exactly the one that gets locked.
