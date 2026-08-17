@@ -45,19 +45,61 @@
   flex-shrink: 0;
 }
 
-.ask-rail-new {
-  margin-bottom: var(--sp-2);
+/*
+ * Shut, the panel is its toggle and nothing else — `width: auto` so the thread takes the rest
+ * of the row rather than the column reserving space for a list nobody asked to see.
+ */
+.ask-rail.is-collapsed {
+  width: auto;
 }
 
-.ask-rail-title {
+/* The one control that is always there. Quiet by default — asking is the page's act, and a
+   loud history button argues with the composer for attention. */
+.ask-rail-toggle {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  color: #8994a8;
-  font-size: 11px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  background: #fff;
+  color: #4b5a75;
+  cursor: pointer;
+}
+
+.ask-rail-toggle:hover {
+  border-color: #d8dde6;
+  color: #0f1729;
+}
+
+/* Open, it reads as the heading of what is under it — and the chevron turns, which is the
+   only thing on the control that says which way it will move. */
+.ask-rail-toggle.is-open {
+  border-color: transparent;
+  background: none;
+  color: #0f1729;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+}
+
+.ask-rail-toggle-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.ask-rail-chevron {
+  color: #8994a8;
+  font-size: 10px;
+  transition: transform 120ms ease;
+}
+
+.ask-rail-toggle.is-open .ask-rail-chevron {
+  transform: rotate(90deg);
+}
+
+.ask-rail-new {
+  margin-bottom: var(--sp-2);
 }
 
 .ask-rail-count {

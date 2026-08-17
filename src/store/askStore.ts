@@ -63,6 +63,15 @@ interface AskState {
   streamedSteps: AskStep[]
   streamedSummary: { answered: boolean; text: string } | null
   streamedBlocks: AnswerBlock[]
+  /**
+   * How many blocks the summary said were coming.
+   *
+   * The page draws one shimmer per paragraph not yet landed, and this is the number it counts
+   * from — the server's, stated in the summary event, because the answer is composed before
+   * the stream opens. A client-side guess would put a placeholder under an answer that had
+   * finished, which is a promise nothing keeps.
+   */
+  streamedBlockCount: number
 
   /** What the reader requires of an answer — the Answer requirements tab. See below. */
   citations: Citations | null
@@ -107,6 +116,7 @@ export const useAskStore = create<AskState>()((set, get) => ({
   streamedSteps: EMPTY_STEPS,
   streamedBlocks: EMPTY_BLOCKS,
   streamedSummary: null,
+  streamedBlockCount: 0,
 
   load: async () => {
     set({ loading: true })
@@ -213,6 +223,7 @@ export const useAskStore = create<AskState>()((set, get) => ({
       streamedSteps: EMPTY_STEPS,
       streamedBlocks: EMPTY_BLOCKS,
       streamedSummary: null,
+      streamedBlockCount: 0,
     })
     /* The served default stands in until the reader picks one, so "required" is
        defined in exactly one place — the payload. */
@@ -238,6 +249,8 @@ export const useAskStore = create<AskState>()((set, get) => ({
                   ? (event.summary ?? event.answer ?? '')
                   : event.reason,
               },
+              // What the shimmers are counted from — the server's own figure.
+              streamedBlockCount: event.blockCount,
             })
           } else if (event.kind === 'block') {
             set({ streamedBlocks: [...get().streamedBlocks, event.block] })
@@ -257,7 +270,12 @@ export const useAskStore = create<AskState>()((set, get) => ({
        * *not* written: a question with no answer is not a turn, and restoring one would
        * be a spinner nobody can end.
        */
-      set({ streamedSteps: EMPTY_STEPS, streamedBlocks: EMPTY_BLOCKS, streamedSummary: null })
+      set({
+        streamedSteps: EMPTY_STEPS,
+        streamedBlocks: EMPTY_BLOCKS,
+        streamedSummary: null,
+        streamedBlockCount: 0,
+      })
       return { ok: false, error: toMessage(error) }
     } finally {
       set({ asking: false, askedNow: '' })

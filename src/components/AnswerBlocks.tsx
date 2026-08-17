@@ -132,15 +132,44 @@ function TableBlock({ block }: { block: Extract<AnswerBlock, { type: 'table' }> 
   )
 }
 
+/**
+ * A paragraph that has not arrived yet.
+ *
+ * **It is a placeholder for a promise, not an animation over nothing.** The count comes from
+ * the summary event's `block_count` — the server knows how many blocks it is about to send,
+ * because the answer is composed before the stream opens — so a shimmer stands for a specific
+ * paragraph that is genuinely coming. Inventing one would be the same lie as a stage that
+ * ticks without a request.
+ *
+ * Three lines of different widths rather than one bar: a paragraph is ragged, and a single
+ * rectangle reads as an image loading.
+ */
+function PendingBlock() {
+  return (
+    <div className="ab-block ab-pending" aria-hidden="true">
+      <span className="ab-shimmer" style={{ width: '92%' }} />
+      <span className="ab-shimmer" style={{ width: '84%' }} />
+      <span className="ab-shimmer" style={{ width: '46%' }} />
+    </div>
+  )
+}
+
 export default function AnswerBlocks({
   blocks,
   /** True while more may still arrive, so the last block gets the cursor. */
   streaming = false,
+  /**
+   * How many paragraphs are still to come — the server's own count, minus what has landed.
+   * Drawn as shimmer placeholders, so a 5s gap between paragraphs reads as composition in
+   * progress rather than as a page that stopped.
+   */
+  pending = 0,
 }: {
   blocks: AnswerBlock[]
   streaming?: boolean
+  pending?: number
 }) {
-  if (blocks.length === 0) return null
+  if (blocks.length === 0 && pending <= 0) return null
   return (
     <div className="ab-blocks">
       {blocks.map((block, i) => (
@@ -153,6 +182,9 @@ export default function AnswerBlocks({
           {block.type === 'chart' ? <AnswerChart block={block} /> : null}
           {block.type === 'table' ? <TableBlock block={block} /> : null}
         </div>
+      ))}
+      {Array.from({ length: Math.max(0, pending) }, (_, i) => (
+        <PendingBlock key={`pending-${i}`} />
       ))}
     </div>
   )

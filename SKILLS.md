@@ -1475,9 +1475,16 @@ the flow that spends it.
 wizard went — see Flow 6. Both sit behind the one publish gate; only `PageHeader` and the
 graph picker are outside it.
 
-### New chat, and this session's history
+### History — New chat, and this session's threads
 
 **Files:** `AskChatRail.tsx`, `AskAnswerView.tsx`, `src/data/askChats.ts` → `sessionStorage`
+
+**It is a collapsible panel called History, shut by default.** The toggle names it and carries
+the thread **count**, so nothing is hidden without a trace; collapsed, the component returns
+early and the rows are not in the markup — a shut panel still in the DOM is a narrower page
+rather than a lighter one, and it is the difference an assertion can see. `aria-expanded` states
+which it is. Expanded, it is the panel below. Two acts shut it again — New chat and opening a
+thread — because both end in reading, and reading wants the width.
 
 Asking appends a **turn** — the question plus the answer it got — to the active chat, and the
 thread renders every turn oldest-first. Before this the page kept one `answer` and replaced it,
@@ -1497,9 +1504,22 @@ turn rather than copied.
 
 **The agent's messages are the server's stages.** The in-flight turn renders the streamed
 `stage` lines, then the summary, then each block, paced *between* the pieces (`ASK_STAGE_MS`
-420ms, `ASK_BLOCK_MS` 380ms) so a five-block answer takes longer than a one-line abstention.
-The page holds no timer of its own — a stage appears because a stage happened. Switching chats
-mid-answer is refused with a sentence rather than allowed to strand the stream.
+420ms, `ASK_BLOCK_MS` **5s**) so a five-block answer takes ~25s and a one-line abstention does
+not. The page holds no timer of its own — a stage appears because a stage happened. Switching
+chats mid-answer is refused with a sentence rather than allowed to strand the stream.
+
+**Each paragraph still to come is a shimmer, counted from `block_count`.** The summary event
+states how many blocks follow — the answer is composed before the stream opens, so the server
+knows — and `AnswerBlocks` draws `block_count − landed` placeholders. That number matters: a
+client-side guess would leave a placeholder under a finished answer, which is a promise nothing
+keeps. Three ragged lines rather than one bar, `aria-hidden` (the working line says the same
+thing in words), and the pan drops under `prefers-reduced-motion`.
+
+**The Answer requirements tab is switched off** — its tab item and the five hooks feeding it are
+commented out together in `AskPage.tsx`, and `check-docs` reads that through `codeOnly` so the
+claim cannot pass over a comment. Everything behind it is intact (`AnswerRequirementsPanel`, the
+served pool, the request fields, the per-answer verdict); every question is asked with the
+served default `required` while it is off, and two uncomments bring it back.
 
 **Where it fails:** storage disabled or full is silent by design (the page runs without history,
 which is the same state as a fresh tab); a chat whose graph is no longer published still reads

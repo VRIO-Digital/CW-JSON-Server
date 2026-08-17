@@ -2,7 +2,8 @@ import { ArrowUpOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { Button, Input, Select, Spin, Tabs, Typography, message } from 'antd'
 import { useEffect, useState } from 'react'
 import AnswerBlocks from '../components/AnswerBlocks'
-import AnswerRequirementsPanel from '../components/AnswerRequirementsPanel'
+// Commented with the tab it renders — see the note beside the hooks below.
+// import AnswerRequirementsPanel from '../components/AnswerRequirementsPanel'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import AskAnswerView from '../components/AskAnswerView'
 import AskChatRail from '../components/AskChatRail'
@@ -12,9 +13,9 @@ import {
   selectActiveChat,
   selectAskGraphs,
   selectChats,
-  selectCitations,
   selectCurrentGraph,
-  selectRequirementOptions,
+  // selectCitations and selectRequirementOptions are the Answer requirements tab's, and
+  // commented with it. They are still exported and still the single definitions.
   useAskStore,
 } from '../store/askStore'
 import { useAuthStore } from '../store/authStore'
@@ -41,6 +42,14 @@ const EMPTY_TURNS: AskTurn[] = []
  */
 export default function AskPage() {
   const [question, setQuestion] = useState('')
+  /*
+   * The history panel starts **shut**, so the thread has the whole width — an answer's charts
+   * and tables are what the page is for, and a 260px column standing open to show a list a
+   * reader consults occasionally costs them a quarter of it. The toggle carries the count, so
+   * nothing is hidden without a trace. Page state rather than the store's: this is which
+   * furniture is open, not anything about the conversation.
+   */
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const data = useAskStore((s) => s.data)
   const loading = useAskStore((s) => s.loading)
@@ -73,18 +82,30 @@ export default function AskPage() {
   const signedInAs = useAuthStore((s) => s.identity?.email ?? null)
   const graphs = useAskStore(selectAskGraphs)
   const graph = useAskStore(selectCurrentGraph)
-  /* The Answer requirements tab. The pool is served; the pick is the reader's, and
-     `selectCitations` is the one place the effective value is decided — so the control
-     cannot show one value while the request carries another. */
-  const requirementOptions = useAskStore(selectRequirementOptions)
-  const citations = useAskStore(selectCitations)
-  const formatIds = useAskStore((s) => s.formatIds)
-  const setCitations = useAskStore((s) => s.setCitations)
-  const toggleFormat = useAskStore((s) => s.toggleFormat)
+  /*
+   * The Answer requirements tab is **switched off** — the tab item is commented out at the
+   * bottom of this file, and these five hooks are commented with it because
+   * `noUnusedLocals` fails the build over a binding nothing reads.
+   *
+   * Nothing behind it was removed: the panel, the served pool, `POST /ask`'s `citations` and
+   * `formats` and the per-answer `requirements` verdict are all still there, and every answer
+   * is asked with the **served default** (`required`) while this is off. Uncommenting both
+   * blocks is the whole of turning it back on.
+   *
+   * The pool is served and `selectCitations` is the one place the effective value is decided,
+   * so the control could not show one value while the request carried another.
+   */
+  // const requirementOptions = useAskStore(selectRequirementOptions)
+  // const citations = useAskStore(selectCitations)
+  // const formatIds = useAskStore((s) => s.formatIds)
+  // const setCitations = useAskStore((s) => s.setCitations)
+  // const toggleFormat = useAskStore((s) => s.toggleFormat)
   // Selected one at a time: a block arriving must not re-render the picker.
   const streamedSteps = useAskStore((s) => s.streamedSteps)
   const streamedBlocks = useAskStore((s) => s.streamedBlocks)
   const streamedSummary = useAskStore((s) => s.streamedSummary)
+  /* The server said how many paragraphs are coming; the shimmers are the ones still out. */
+  const streamedBlockCount = useAskStore((s) => s.streamedBlockCount)
 
   useEffect(() => {
     void load()
@@ -170,7 +191,7 @@ export default function AskPage() {
           items={[
             {
               key: 'ask',
-              label: 'Ask',
+              label: 'Chat',
               children: (
             <div className="ask-shell">
               {/* New chat, and this session's history. Its own component: a list behind a
@@ -179,8 +200,20 @@ export default function AskPage() {
                 chats={chats}
                 activeChatId={activeChatId}
                 asking={asking}
-                onNewChat={newChat}
-                onOpen={openChat}
+                collapsed={!historyOpen}
+                onToggle={() => setHistoryOpen((open) => !open)}
+                onNewChat={() => {
+                  newChat()
+                  /* Starting a thread is the one act that closes the panel behind itself: the
+                     next thing the reader does is type, and the width belongs to that. */
+                  setHistoryOpen(false)
+                }}
+                onOpen={(chatId) => {
+                  openChat(chatId)
+                  /* Same reason: picking a thread means reading it, and reading wants the
+                     width. The panel is a step away, not a place to stay. */
+                  setHistoryOpen(false)
+                }}
                 onDelete={deleteChat}
                 onClear={clearHistory}
               />
@@ -260,7 +293,14 @@ export default function AskPage() {
                           <p className="ask-answer">{streamedSummary.text}</p>
                         ) : null}
 
-                        <AnswerBlocks blocks={streamedBlocks} streaming />
+                        {/* One shimmer per paragraph the summary promised and the stream has
+                            not delivered yet — a paragraph lands every 5s, and an empty gap
+                            that long reads as a page that stopped. */}
+                        <AnswerBlocks
+                          blocks={streamedBlocks}
+                          streaming
+                          pending={streamedBlockCount - streamedBlocks.length}
+                        />
 
                         <div className="ask-working">
                           <Spin size="small" />
@@ -331,24 +371,24 @@ export default function AskPage() {
             </div>
               ),
             },
-            {
-              key: 'requirements',
-              label: 'Answer requirements',
-              children: requirementOptions ? (
-                /* The pool is served, so this renders nothing until the list lands: a
-                   control offering options the API has not confirmed is the mistake a
-                   client-side copy of the consent scopes already made once. */
-                <AnswerRequirementsPanel
-                  options={requirementOptions}
-                  citations={citations}
-                  onCitations={setCitations}
-                  formatIds={formatIds}
-                  onToggleFormat={toggleFormat}
-                />
-              ) : (
-                <Spin />
-              ),
-            },
+            // {
+            //   key: 'requirements',
+            //   label: 'Answer requirements',
+            //   children: requirementOptions ? (
+            //     /* The pool is served, so this renders nothing until the list lands: a
+            //        control offering options the API has not confirmed is the mistake a
+            //        client-side copy of the consent scopes already made once. */
+            //     <AnswerRequirementsPanel
+            //       options={requirementOptions}
+            //       citations={citations}
+            //       onCitations={setCitations}
+            //       formatIds={formatIds}
+            //       onToggleFormat={toggleFormat}
+            //     />
+            //   ) : (
+            //     <Spin />
+            //   ),
+            // },
           ]}
         />
       )}

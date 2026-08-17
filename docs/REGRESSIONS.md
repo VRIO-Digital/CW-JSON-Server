@@ -2528,3 +2528,42 @@ markup, do not estimate it.** An "is this row marked" assertion used a 400-chara
 then 1,200; antd's message icon renders **1,244** characters of SVG path between the attribute
 and the label. Both failed against correct code. A one-line probe printing the two indices
 settled it in seconds.
+
+## A shimmer has to stand for a paragraph somebody promised
+
+**Cost** — asked for from use: each paragraph delayed 5 seconds, with a shimmer while it comes.
+
+**What happened.** Blocks were paced at `ASK_BLOCK_MS` 380ms, which is fast enough that the gap
+between paragraphs is invisible. At 5s it is very visible — and an empty 5-second gap reads as a
+page that stopped, not as an answer being composed. So the delay needs a placeholder, and a
+placeholder immediately raises the question this repo keeps asking: *is it standing for
+something real?* A shimmer drawn "while streaming" would sit under the last paragraph of a
+finished answer, promising a paragraph that was never coming — the same lie as a stage that ticks
+without a request, one component down.
+
+**Fix** — the summary event now carries **`block_count`**. The answer is composed before the
+stream opens, so the server knows exactly how many blocks follow; the page draws
+`block_count − landed` placeholders and the count reaches zero as the last one lands. Three
+ragged lines rather than one bar (a paragraph is ragged; a rectangle reads as an image loading),
+`aria-hidden` because the working line already says "Composing the rest of the answer…", and the
+pan drops under `prefers-reduced-motion` — it is decoration over a stated fact.
+
+**Guard** — four claims, all break-tested: `ASK_BLOCK_MS` is 5000 and the route awaits it, the
+summary states `block_count` and the client validates it, the page subtracts landed from promised
+(a literal `pending={1}` fails), and reduced motion is honoured. Plus 13 live assertions: the
+placeholder count, the negative-count guard, shimmers before the first block, an empty answer
+rendering nothing, and the measured gaps between blocks (~5s each, every promised block arriving).
+
+**Rule** — **a placeholder is a claim about the future, so something has to have promised it.**
+"Draw a skeleton while loading" is the version of this that lies at the end of every stream; the
+fix is to make the producer state the count, which it can, because it already knows.
+
+### And a note on the disabled Answer requirements tab
+
+Found while fixing the above: the tab item had been commented out in `AskPage.tsx`, which left
+five hooks and an import unused — `noUnusedLocals` failed `tsc -b`, so the build was broken. The
+five hooks and the import are now commented **with** it, because half a switch is the shape that
+breaks: a commented tab beside live hooks fails the build, and a commented tab beside a live panel
+import is a component nothing renders. `check-docs` reads the absence through `codeOnly` — the
+first version of that claim matched the commented-out tab and cheerfully reported a feature that
+was not on screen, which is the ninth time that trap has been paid for here.

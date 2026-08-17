@@ -919,7 +919,15 @@ created **by asking**, so "New chat" only clears the active id and the list neve
 empty threads. Switching graphs starts a new thread: an answer belongs to the version that
 produced it.
 
-**The history is `sessionStorage`, keyed by the signed-in address, and the rail says so.**
+**The history panel is called History, and it starts shut.** A permanent 260px column costs
+the thread a quarter of its width on every screen to show a list a reader consults
+occasionally, so the panel collapses to a single toggle — which carries the **count**, because a
+shut control with no number says nothing about what is behind it. Collapsed means *absent*, not
+hidden: the component returns early, so the rows are not in the markup at all. Expanding reveals
+New chat and the threads; starting a thread or opening one shuts it again, because both acts end
+in reading and reading wants the width.
+
+**The history is `sessionStorage`, keyed by the signed-in address, and the panel says so.**
 Session rather than local because a chat is a working session — the same reasoning that keeps
 registered sources and review decisions in the mock server's memory — and keyed by email
 because the identity is client-held and two people share a browser. A signed-out caller reads
@@ -935,9 +943,27 @@ than restored as a spinner nobody can end.
 
 **The agent's own messages are the server's stages.** While a question is in flight the turn
 renders the streamed `stage` lines, then the summary, then each block, paced between the pieces
-(`ASK_STAGE_MS`, `ASK_BLOCK_MS`) — so a five-block answer legitimately takes longer than a
-one-line abstention. The page holds no timer: a stage appears because a stage happened, the
-same distinction `GoogleConsentPanel` draws.
+(`ASK_STAGE_MS` 420ms, `ASK_BLOCK_MS` **5s**) — so a five-block answer legitimately takes ~25s
+and a one-line abstention does not. The page holds no timer: a stage appears because a stage
+happened, the same distinction `GoogleConsentPanel` draws.
+
+**A paragraph every 5s, with a shimmer for the ones still out.** Five seconds is long enough
+that an empty gap reads as a page that stopped, so every paragraph still to come is drawn as a
+placeholder — and the *count* is the summary event's `block_count`, not a guess. The server
+knows it because the answer is composed before the stream opens; a client-side guess would put a
+shimmer under an answer that had finished, which is the same lie as a stage that ticks without a
+request. Three ragged lines rather than one bar (a paragraph is ragged; a rectangle reads as an
+image loading), `aria-hidden` because the page already says "Composing the rest of the answer…"
+in words, and the pan yields to `prefers-reduced-motion` — it is decoration over a stated fact.
+
+**The Answer requirements tab is currently switched off.** Its tab item and the five hooks that
+feed it are commented out together in `AskPage.tsx` — together, because `noUnusedLocals` fails
+the build over a binding nothing reads, and because a commented tab beside a live panel import
+is a component nothing renders. Nothing behind it was removed: `AnswerRequirementsPanel`, the
+served pool on `GET /ask`, `POST /ask`'s `citations` and `formats`, and the per-answer
+`requirements` verdict are all still there and still asserted. While it is off every question is
+asked with the **served default** (`required`), and turning it back on is uncommenting the two
+blocks. `check-docs` reads it through `codeOnly`, so the claim cannot pass over the comment.
 
 **Two tabs: Ask, and Answer requirements.** The second is where step 6 of the wizard
 went. A reader picks what an answer has to carry — citations `required`/`optional`, and

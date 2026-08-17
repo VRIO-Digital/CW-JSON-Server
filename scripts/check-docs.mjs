@@ -2406,6 +2406,54 @@ expect(
   'if this loop ever polls while idle, say so here — the claim above assumes it does not',
 )
 
+/* ---------------- a paragraph every 5s, and a shimmer for the ones still out ---------------- */
+
+/*
+ * **The pace is the server's, and the shimmer count is a promise it made.**
+ *
+ * A block lands every `ASK_BLOCK_MS`, now 5s — long enough that an empty gap reads as a page
+ * that stopped, which is why each paragraph still to come gets a placeholder. The count comes
+ * from the summary event's `block_count`: the answer is composed before the stream opens, so
+ * the server knows the number, and a client-side guess would draw a placeholder under an
+ * answer that had already finished. That is the same lie as a stage that ticks without a
+ * request, one component down.
+ */
+/* Its own binding: `askPage` is declared further down and reading it from here is a temporal
+   dead zone, which kills the whole run rather than failing one claim. Twice now. */
+const askPagePaced = read('src/pages/AskPage.tsx')
+const askBlockMs = Number(
+  ((server.match(/const ASK_BLOCK_MS = ([\d_]+)/) ?? [])[1] ?? '0').replace(/_/g, ''),
+)
+expect(
+  'a paragraph is paced at 5s, on the server',
+  askBlockMs === 5000 && /await pause\(ASK_BLOCK_MS\)/.test(server),
+  `ASK_BLOCK_MS is ${askBlockMs}ms`,
+)
+expect(
+  'and the summary states how many paragraphs are coming',
+  /block_count: \(answer\.blocks \?\? \[\]\)\.length/.test(server) &&
+    /block_count: num/.test(client) &&
+    /blockCount: e\.block_count/.test(client),
+  'validated at the boundary like every other event field',
+)
+/* The count reaches the page from the store, and the page subtracts what has landed — so a
+   shimmer stands for a specific paragraph rather than for a hope. */
+const blocksComponent = read('src/components/AnswerBlocks.tsx')
+expect(
+  'the shimmers are the promised paragraphs minus the landed ones',
+  /streamedBlockCount: event\.blockCount/.test(read('src/store/askStore.ts')) &&
+    /pending=\{streamedBlockCount - streamedBlocks\.length\}/.test(askPagePaced) &&
+    /Math\.max\(0, pending\)/.test(blocksComponent),
+  'a placeholder for a paragraph nobody promised is an animation over nothing',
+)
+expect(
+  'and the shimmer is decoration, so it yields to reduced motion',
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]*?animation: none/.test(
+    read('src/components/AnswerBlocks.css'),
+  ) && /aria-hidden="true"/.test(blocksComponent),
+  'the page states the same fact in words — a screen reader has it already',
+)
+
 /* ---------------- Ask is a conversation, kept for the session ---------------- */
 
 /*
@@ -2469,9 +2517,41 @@ expect(
   'the rail is a component, and offers New chat plus the history',
   /export default function AskChatRail/.test(chatRail) &&
     /^\s*New chat$/m.test(codeOnly(chatRail)) &&
-    /Chat history/.test(chatRail) &&
     /<AskChatRail/.test(askPageSrc),
   'a panel behind a parent’s state renders as whatever the initial state says',
+)
+/*
+ * **It collapses, and collapsed means absent rather than styled away.**
+ *
+ * The panel is a 260px column the thread pays for on every screen, so it starts shut and the
+ * toggle carries the count — a collapsed control with no number says nothing about what is
+ * behind it. The early return is what makes "shut" real: hiding the rows in CSS would leave
+ * them in the markup, which is the difference between a narrower page and a lighter one, and
+ * the difference an assertion can see.
+ */
+expect(
+  'History collapses to its toggle, and the rows are gone rather than hidden',
+  /collapsed: boolean/.test(chatRail) &&
+    /if \(collapsed\) \{\s*return \(/.test(chatRail) &&
+    /aria-expanded=\{!collapsed\}/.test(chatRail) &&
+    /className="ask-rail is-collapsed"/.test(chatRail),
+  'a shut panel still in the DOM is a narrower page, not a lighter one',
+)
+expect(
+  'and the toggle names the panel and counts what is in it',
+  /ask-rail-toggle-label">History</.test(chatRail) &&
+    /\{chats\.length\}<\/span>/.test(chatRail) &&
+    /\.ask-rail\.is-collapsed \{[\s\S]*?width: auto/.test(read('src/pages/AskPage.css')),
+  'shut with no count is a control with nothing to say',
+)
+/* Shut by default, and shut again by the two acts that mean "now I am reading": starting a
+   thread and picking one. */
+expect(
+  'the thread has the width until the reader asks for the history',
+  /useState\(false\)/.test(askPageSrc) &&
+    /collapsed=\{!historyOpen\}/.test(askPageSrc) &&
+    (askPageSrc.match(/setHistoryOpen\(false\)/g) ?? []).length === 2,
+  'New chat and opening a thread both end in reading, and reading wants the width',
 )
 expect(
   'and it says the history lives in the tab, not on the server',
@@ -2605,12 +2685,32 @@ expect(
 
 /* --- what replaced it, asserted over the same region --- */
 
+/*
+ * **The tab is currently switched off**, and the claim says so rather than passing over a
+ * comment — which is exactly what it did at first: `/label: 'Answer requirements'/` matched
+ * the commented-out tab item and reported a feature that is not on screen. `codeOnly` is the
+ * difference, for the ninth recorded time.
+ *
+ * Everything behind it is still wired and still asserted below: the panel, the served pool,
+ * the request fields and the per-answer verdict. What this pins is that the *whole* switch is
+ * off together — a commented tab beside live hooks is a build failure, and a commented tab
+ * beside a live panel import is a component nothing renders.
+ */
 expect(
-  'Ask has an Answer requirements tab beside the question box',
-  /label: 'Answer requirements'/.test(askPage) &&
-    /label: 'Ask'/.test(askPage) &&
-    /<AnswerRequirementsPanel/.test(askPage),
-  'the choice is made where a question is asked, not once per brief',
+  'the Answer requirements tab is off, and off in one piece',
+  !/label: 'Answer requirements'/.test(askPageCode) &&
+    !/<AnswerRequirementsPanel/.test(askPageCode) &&
+    !/selectRequirementOptions/.test(askPageCode) &&
+    !/selectCitations/.test(askPageCode),
+  'switch it back on by uncommenting the tab item and the five hooks beside it',
+)
+expect(
+  'and what it fed is untouched, so turning it back on is two uncomments',
+  existsSync(join(root, 'src/components/AnswerRequirementsPanel.tsx')) &&
+    /export const selectCitations/.test(read('src/store/askStore.ts')) &&
+    /answer_requirements: \{/.test(server) &&
+    /citations: requested\.citations/.test(server),
+  'the pool, the request fields and the verdict all still exist',
 )
 /* Its own component, because `renderToString` renders the tab that is open: a panel
    written inline makes every assertion about its contents pass over nothing. */

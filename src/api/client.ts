@@ -4190,6 +4190,8 @@ export type AskEvent =
       summary: string | null
       reason: string
       answer: string | null
+      /** How many blocks are still to come — what the shimmers are counted from. */
+      blockCount: number
     }
   | { kind: 'block'; index: number; block: AnswerBlock }
   | { kind: 'done'; answer: AskAnswer }
@@ -4200,6 +4202,9 @@ const ASK_SUMMARY_EVENT = shape({
   summary: nullable(str),
   reason: str,
   answer: nullable(str),
+  /* How many blocks follow. The page draws one shimmer per paragraph it is waiting for, so
+     this is a promise the server keeps rather than a guess the client makes. */
+  block_count: num,
 })
 const ASK_BLOCK_EVENT = shape({ index: num, block: ANSWER_BLOCK })
 
@@ -4271,8 +4276,16 @@ export async function askQuestionStreaming(
         summary: string | null
         reason: string
         answer: string | null
+        block_count: number
       }>('The answer summary', data, ASK_SUMMARY_EVENT)
-      onEvent({ kind: 'summary', ...e })
+      onEvent({
+        kind: 'summary',
+        answered: e.answered,
+        summary: e.summary,
+        reason: e.reason,
+        answer: e.answer,
+        blockCount: e.block_count,
+      })
     } else if (event === 'block') {
       const e = validate<{ index: number; block: AnswerBlock }>(
         'An answer block',

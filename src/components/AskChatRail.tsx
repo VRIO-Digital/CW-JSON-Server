@@ -1,4 +1,10 @@
-import { DeleteOutlined, MessageOutlined, PlusOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  HistoryOutlined,
+  MessageOutlined,
+  PlusOutlined,
+  RightOutlined,
+} from '@ant-design/icons'
 import { App, Button, Popconfirm } from 'antd'
 import type { AskChat } from '../data/askChats'
 import { CHATS_KEPT } from '../data/askChats'
@@ -10,22 +16,30 @@ const day = (iso: string) => {
 }
 
 /**
- * **New chat**, and this session's history.
+ * **History** — collapsed to a single control, expanded to New chat and this session's threads.
+ *
+ * **It starts collapsed, and that is the point.** A permanent 260px column costs the thread a
+ * quarter of its width on every screen to show a list a reader consults occasionally; the
+ * toggle carries its own **count**, so the history is discoverable without being open, and an
+ * answer's charts and tables get the room. Expanding reveals the same panel as before.
  *
  * Its own component rather than a branch in `AskPage`, for the reason the requirements panel
  * is: a list rendered inside a page whose state decides whether it appears cannot be asserted
  * on — `renderToString` renders whatever the initial state says, and every check about the
- * rows would pass over nothing.
+ * rows would pass over nothing. The toggle lives *here* rather than on the page for the same
+ * reason: collapsed and expanded are two renders of one component, so both are assertable.
  *
  * **The history is this session's, in this browser, for this signed-in address**, and the
  * footnote says so in those words. It is `sessionStorage`, so closing the tab ends it and
- * nothing is posted anywhere — the same honesty the studio's in-memory decisions get. A rail
+ * nothing is posted anywhere — the same honesty the studio's in-memory decisions get. A panel
  * that looked like an archive would be promising a server-side one that does not exist.
  */
 export default function AskChatRail({
   chats,
   activeChatId,
   asking,
+  collapsed,
+  onToggle,
   onNewChat,
   onOpen,
   onDelete,
@@ -35,6 +49,9 @@ export default function AskChatRail({
   activeChatId: string | null
   /** A question in flight: switching threads mid-answer would strand it. */
   asking: boolean
+  /** Collapsed hides everything but the toggle, and the thread takes the full width. */
+  collapsed: boolean
+  onToggle: () => void
   onNewChat: () => void
   onOpen: (chatId: string) => void
   onDelete: (chatId: string) => void
@@ -49,8 +66,40 @@ export default function AskChatRail({
     return true
   }
 
+  /*
+   * The toggle. It names the panel, states how many threads are in it, and points the way it
+   * will move — a chevron that turns is the only thing on a collapsed control that says it can
+   * open. `aria-expanded` carries the same fact for a reader who cannot see the chevron.
+   */
+  const toggle = (
+    <button
+      type="button"
+      className={`ask-rail-toggle${collapsed ? '' : ' is-open'}`}
+      aria-expanded={!collapsed}
+      onClick={onToggle}
+    >
+      <HistoryOutlined aria-hidden="true" />
+      <span className="ask-rail-toggle-label">History</span>
+      {/* The count is on the toggle *because* it is usually shut: a collapsed panel with no
+          number is a control with nothing to say about what is behind it. */}
+      {chats.length > 0 ? (
+        <span className="ask-rail-count">{chats.length}</span>
+      ) : null}
+      <RightOutlined className="ask-rail-chevron" aria-hidden="true" />
+    </button>
+  )
+
+  if (collapsed) {
+    return (
+      <aside className="ask-rail is-collapsed" aria-label="Chat history">
+        {toggle}
+      </aside>
+    )
+  }
+
   return (
-    <aside className="ask-rail" aria-label="Chats">
+    <aside className="ask-rail" aria-label="Chat history">
+      {toggle}
       <Button
         block
         icon={<PlusOutlined />}
@@ -64,11 +113,6 @@ export default function AskChatRail({
       >
         New chat
       </Button>
-
-      <div className="ask-rail-title">
-        Chat history
-        {chats.length > 0 ? <span className="ask-rail-count">{chats.length}</span> : null}
-      </div>
 
       {chats.length === 0 ? (
         /* Not antd's `Empty`: this is a panel before a step has been taken, and it says

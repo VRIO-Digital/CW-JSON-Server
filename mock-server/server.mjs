@@ -3307,7 +3307,17 @@ function studioQuery(useCaseId, question) {
  * enough to watch, short enough that nobody wonders whether it hung.
  */
 const ASK_STAGE_MS = 420
-const ASK_BLOCK_MS = 380
+/*
+ * **A paragraph every 5 seconds.** Slower than it was (380ms) and slow on purpose: an answer
+ * that lands in one blink reads as a lookup, and this one is meant to read as composed — a
+ * reader watches a paragraph arrive, takes it in, and the next follows. The cost is that a
+ * five-block answer takes ~25s, which is why the page draws a shimmer for each paragraph
+ * still to come rather than leaving an unexplained gap.
+ *
+ * Change this number and the page follows: nothing client-side restates it, and the count of
+ * shimmers comes from `block_count` below rather than from a guess about the pace.
+ */
+const ASK_BLOCK_MS = 5_000
 
 /** What a decision on a gap means for anyone asking the graph afterwards. */
 const GAP_CAVEAT = {
@@ -7802,6 +7812,15 @@ const routes = [
         summary: answer.summary,
         reason: answer.reason,
         answer: answer.answer,
+        /*
+         * How many blocks are still to come.
+         *
+         * The page draws one shimmer per paragraph it is waiting for, and that has to be a
+         * *fact* rather than an animation: a placeholder for a piece nobody promised is the
+         * same lie as a stage that ticks without a request. The count is known here — the
+         * answer is composed before the stream opens — so it is stated here.
+         */
+        block_count: (answer.blocks ?? []).length,
       })
 
       for (const [index, block] of (answer.blocks ?? []).entries()) {

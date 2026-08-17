@@ -291,3 +291,51 @@
   width: 100%;
   height: auto;
 }
+
+/* ---- a paragraph still to come ---- */
+
+/*
+ * The shimmer.
+ *
+ * A paragraph now lands every `ASK_BLOCK_MS` (5s), which is long enough that an empty gap
+ * reads as a page that stopped — so each paragraph the server said is coming gets a
+ * placeholder. One shimmer per promised block, never one per hopeful guess: the count is the
+ * summary event's `block_count`.
+ */
+.ab-pending {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.ab-shimmer {
+  height: 12px;
+  border-radius: 6px;
+  /* Two stops of ground either side of a lighter band, panned across. The band is only ~8%
+     lighter: a bright sweep on a white page is a strobe, not a hint. */
+  background: linear-gradient(90deg, #eef1f5 8%, #f7f9fb 24%, #eef1f5 40%);
+  background-size: 300% 100%;
+  animation: ab-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes ab-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: 0 0;
+  }
+}
+
+/*
+ * Motion is a preference, and this one is decoration over a fact the page states in words
+ * anyway ("Composing the rest of the answer…"). Reduced motion gets the placeholder without
+ * the pan — the shape still says a paragraph is coming.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ab-shimmer {
+    animation: none;
+    background: #eef1f5;
+  }
+}
