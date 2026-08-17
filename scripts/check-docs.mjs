@@ -750,30 +750,55 @@ for (const [label, path] of [
   )
 }
 
-/* ---------------- what Disconnect and Delete warn about ---------------- */
+/* ---------------- what Disconnect and Delete ask ---------------- */
 
 /*
- * Both acts state their consequences before they are carried out, and the copy makes three
- * checkable promises. Each fails silently on its own: a warning nobody can act on is noise, and a
- * warning that is *wrong* is worse than none.
+ * **Both confirmations are one question and nothing else.**
+ *
+ * They used to state their consequences — what happened to the row, whether the act could be
+ * undone, and which pages closed if it was the last connected source. All three were removed on
+ * request; `docs/REGRESSIONS.md` records what that costs. What is guarded now is the shape that
+ * replaced them, and the guard is **one cross-layer claim rather than one per file**, because the
+ * dangerous state is a partial revival: a `description` back on one Popconfirm and not the other is
+ * two dialogs telling a reader different amounts about the same pair of acts.
+ *
+ * Four legs, each of which fails by *answering* rather than by throwing:
+ *
+ *  - the sentence is **interpolated from the act**, so "delete" can never appear over a disconnect.
+ *    Two hardcoded strings render perfectly well, which is why this keys on the template;
+ *  - it is written **once**, in `src/data/sourceActions.ts` — copy rather than a component, so a
+ *    test can call it, since a `Popconfirm` portals out of `renderToString`;
+ *  - **both** dialogs read it, and neither carries a `description`;
+ *  - the deleted component is gone from disk, not merely unreferenced.
+ *
+ * Read off `codeOnly`, or the comment in the page explaining that it carries *no* description would
+ * satisfy the absence leg on its own — the self-documenting-file trap, recorded seven times now.
  */
 const sourcesPage = read('src/pages/SourcesPage.tsx')
-const impact = read('src/components/SourceImpactNotice.tsx')
-const impactCode = codeOnly(impact)
+const sourcesCode = codeOnly(sourcesPage)
+const sourceActions = codeOnly(read('src/data/sourceActions.ts'))
 expect(
-  'both destructive actions warn through the shared notice',
-  (sourcesPage.match(/<SourceImpactNotice\s/g) ?? []).length === 2 &&
-    /action="disconnect"/.test(sourcesPage) &&
-    /action="delete"/.test(sourcesPage),
-  'one component, so the two cannot describe the same app differently',
+  'both confirmations ask one interpolated question and say nothing else',
+  /Are you sure you want to \$\{action\} this source\?/.test(sourceActions) &&
+    (sourcesCode.match(/title=\{confirmSourceAction\('(disconnect|delete)'\)\}/g) ?? [])
+      .length === 2 &&
+    !/description=/.test(sourcesCode) &&
+    !/SourceImpactNotice/.test(sourcesCode) &&
+    !existsSync(join(root, 'src/components/SourceImpactNotice.tsx')) &&
+    !existsSync(join(root, 'src/components/SourceImpactNotice.css')),
+  'one sentence, from one place, on both acts — and the consequence copy gone from every layer',
 )
 /*
- * The promise of an undo has to be performed by something. "Reconnect on this row" was a sentence
- * before it was a route — which is the publish dialog's "a Domain Architect approves" mistake, a
- * dialog promising a step nothing carries out. All four legs are asserted together.
+ * **The undo still exists, and nothing on screen promises it any more.**
+ *
+ * That is the honest position rather than an oversight: the disconnect dialog used to say "Reconnect
+ * on this row undoes it", and a promise in a dialog has to be performed by something — the publish
+ * dialog's "a Domain Architect approves" mistake. The sentence is gone; the *act* is not, so all
+ * four legs stay asserted. A reader now discovers it from the button on the row instead of being
+ * told, which is why the button is the fourth leg.
  */
 expect(
-  'the undo the disconnect warning promises actually exists',
+  'the undo the warning used to promise still exists, button included',
   server.includes("/reconnect$/.test(p)") &&
     /export async function reconnectSource/.test(client) &&
     /reconnect: async \(sourceId\)/.test(read('src/store/sourcesStore.ts')) &&
@@ -791,10 +816,15 @@ expect(
   'it mutates the record in place, so the profiled objects survive',
 )
 /*
- * The list of pages is the claim most likely to rot. Ask, Reports, the What-if lens and Audit
- * gate on a *published graph*, so they keep answering when the last source goes — and the notice
- * says so by name. If one of them ever gates on a connected source instead, this fails rather
- * than leaving the dialog telling a reader something the app disproves on the next click.
+ * **Which precondition each page gates on, asserted per page.**
+ *
+ * These two loops used to have a second half each, cross-checking every page named in the
+ * disconnect warning against the gate it actually rendered — the warning is gone, and with it the
+ * risk of a dialog naming the wrong pages. The page half is kept, because it guards something
+ * independent and still live: **the two gates are different preconditions**, and a page that
+ * swapped one for the other would be right-looking and wrong. Ask on `NoSourceConnected` would go
+ * dark with the last source while still answering from published content; the Data Catalogue on
+ * `NoPublishedGraph` would demand a publish before it would show a table to profile.
  */
 const publicationGated = [
   ['Ask', 'src/pages/AskPage.tsx'],
@@ -805,19 +835,11 @@ const publicationGated = [
 for (const [label, path] of publicationGated) {
   const page = read(path)
   expect(
-    `${label} still gates on publication, as the warning says`,
+    `${label} gates on publication, not on a connected source`,
     /<NoPublishedGraph/.test(page) && !/<NoSourceConnected/.test(codeOnly(page)),
-    'the notice names it among the pages that keep answering',
-  )
-  expect(
-    `and the notice names ${label} in that sentence`,
-    (impactCode.match(/const stillLive =\s*\r?\n?\s*'([^']+)'/) ?? [])[1]?.includes(label) ??
-      false,
-    'a page that keeps working must be named, or the warning overstates',
+    'it answers from published content, so the last source going does not close it',
   )
 }
-/* The other half: the pages the warning says do close are the ones that really gate on a
-   connected source. Named individually — "some features stop working" is not checkable. */
 const connectionGated = [
   ['Data Catalogue', 'src/pages/CataloguePage.tsx'],
   ['Traces', 'src/pages/TracePage.tsx'],
@@ -826,10 +848,8 @@ const connectionGated = [
 for (const [label, path] of connectionGated) {
   expect(
     `${label} really closes with no source connected`,
-    /<NoSourceConnected/.test(read(path)) &&
-      ((impactCode.match(/const gated =\s*\r?\n?\s*'([^']+)'/) ?? [])[1]?.includes(label) ??
-        false),
-    'the warning names it among the pages that close',
+    /<NoSourceConnected/.test(read(path)),
+    'its data comes from the source, so it has nothing to show without one',
   )
 }
 /*
@@ -850,12 +870,10 @@ expect(
     /Disconnected — reconnect this source before changing its allowlist\./.test(sourcesPage),
   'a disabled control with no reason on it reads as broken',
 )
-expect(
-  'the warning counts the other connected sources rather than asserting',
-  /othersConnected > 0/.test(impactCode) &&
-    /s\.status !== 'disconnected'/.test(sourcesPage),
-  '"the last connected source" is true per row, so it is counted from the rows on screen',
-)
+/* The claim that stood here — "the warning counts the other connected sources rather than
+   asserting" — guarded `othersConnected`, which the notice took with it. Deleted rather than
+   loosened: a claim kept alive against a feature that is gone is the vacuous assertion this file
+   exists to prevent. Its replacement is the cross-layer absence claim at the top of this section. */
 
 /* ---------------- the real column profile is the one served ---------------- */
 

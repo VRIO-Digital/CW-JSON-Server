@@ -352,30 +352,34 @@ Four actions, all through the store:
 | Reconnect *(disconnected rows)* | `POST /sources/:id/reconnect` | re-issues the handle **in place** — the undo for Disconnect |
 | Delete | `DELETE /sources/:id` | removes it, its profiled objects and their notes. No undo |
 
-**Both destructive actions warn first, through `SourceImpactNotice`** — one component,
-so the two cannot describe the same app differently, and its own component because a
-Popconfirm portals out of `renderToString` and inline copy there cannot be asserted on.
+**Both destructive actions confirm with one question and nothing else** — *"Are you sure
+you want to disconnect / delete this source?"*, the `Popconfirm`'s title, no
+`description`. The sentence is in `src/data/sourceActions.ts`: copy rather than a
+component, because a Popconfirm portals out of `renderToString` and inline copy there
+cannot be asserted on, while a function can be called by a test directly.
 
-What the warning is allowed to say is pinned by `check-docs`:
+`SourceImpactNotice` — which stated what each act did to the row, whether it could be
+undone, and which pages closed when the last connected source went — **was deleted on
+request**, with its stylesheet and its `othersConnected` prop. `docs/REGRESSIONS.md` has
+the entry. Two things follow, and both matter when reading this flow:
 
-- **Which pages close** — Data Catalogue, Profiling jobs, Traces and Validation, which
-  really do gate on a connected source, plus New Graph's Sources step.
-- **Which keep answering** — Ask, Reports, Graph Studio, the What-if lens and Audit &
-  Governance, which gate on a *published graph*. Every one of those names is checked
-  against the gate its page renders, because telling somebody Ask goes dark is a claim
-  the next click disproves.
-- **Only when it applies.** The page counts the other connected rows and passes the
-  number; with another source connected the notice says no page closes at all.
-- **Reversible in those words, and performed.** Disconnect's undo is the Reconnect
-  button, which keeps every profiled object — verified end to end (1 table / 10 columns
-  before, after disconnect, and after reconnect). Re-registering through the wizard is
-  *not* the undo: `POST /sources` builds a fresh record and the profile drops to 0/0
-  (also verified), which is why Delete's line says connecting it again starts from
-  nothing profiled.
-- **Three lines, not an essay.** The first draft ran ~75 words on a routine disconnect;
-  the smoke test now holds each branch to a word budget, so the next sentence somebody
-  wants to add has to earn its place. The page lists appear **only** when this is the
-  last connected source — otherwise the notice says just "no page closes".
+- **The acts are unchanged; only the copy is gone.** Disconnect is still reversible via
+  the Reconnect button and keeps every profiled object — verified end to end (1 table /
+  10 columns before, after disconnect, and after reconnect). Re-registering through the
+  wizard is still *not* the undo: `POST /sources` builds a fresh record and the profile
+  drops to 0/0 (also verified). Delete still has none. A reader is no longer told any of
+  it, so **do not read the quiet dialog as evidence that the act is harmless**.
+- **What `check-docs` pins is now the shape, in one cross-layer claim.** The sentence is
+  interpolated from the act, so "delete" cannot appear over a disconnect; it is written
+  once, so the two dialogs cannot diverge; neither Popconfirm carries a `description`;
+  and the deleted files are off disk. One claim rather than one per file, because a
+  partial revival — a description back on one dialog only — is the shape that fails
+  silently.
+
+The per-page gate claims survive that removal and are now about the pages themselves:
+Data Catalogue, Traces and Validation render `NoSourceConnected`; Ask, Reports, the
+What-if lens and Audit render `NoPublishedGraph`. Two different preconditions, and a page
+that swapped one for the other would look right and be wrong.
 
 A disconnected row shows **Reconnect** in place of Disconnect: two buttons where only
 one can ever apply is a row asking a question it has already answered.

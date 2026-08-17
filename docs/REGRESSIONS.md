@@ -2601,3 +2601,54 @@ correct about a real entity (the configuration) and wrong about the list it appe
 is the kind of error that survives review because every individual sentence about it is true.
 When changing what a number counts, keep the property that made the old one safe — here,
 assign-once-and-store — rather than only the behaviour that was asked for.
+
+---
+
+## The destructive-action warning was removed on request, and the acts were not
+
+**Cost** — none yet; recorded because the *next* person to read `SourcesPage` will find two
+dialogs that look harmless guarding two acts that are not. Asked for across two turns:
+*"in the disconnect this source and delete the source just add the description r u sure you
+want to disconnect and r u sure you want to delete"*, then *"remove all the description from
+the disconnect and delete button just there should r you sure you want to delete and r u sure
+you want to disconnect"*.
+
+**What happened.** This file already carries the entry that *created*
+`SourceImpactNotice` — "A destructive action that described the row instead of the app" —
+because a one-line description said what happened to the row and nothing about what happened
+to the app. That notice is now deleted. Both `Popconfirm`s are a title and nothing else.
+
+**What was removed, and what each line was for:**
+
+- *"Reconnect on this row undoes it — nothing profiled is lost."* / *"This cannot be undone —
+  connecting it again starts from nothing profiled."* The only statement anywhere that the two
+  acts differ in reversibility. `POST /sources/:id/reconnect` still restores the handle **in
+  place** and `registered.delete` still takes every profiled table, column, document and note.
+- *"It is the only connected source: Data Catalogue, Profiling jobs, Traces and Validation
+  close. Ask, Reports, Graph Studio, the What-if lens and Audit & Governance keep working."*
+  Deleting the last connected source still closes those four surfaces. Nothing says so now.
+- The `othersConnected` count, which existed so that line appeared **only** when it applied.
+
+**Fix** — not a fix; a requested removal, carried out completely rather than half-way.
+`SourceImpactNotice.tsx` and `.css` are off disk, `othersConnected` is gone from
+`SourcesPage`, and the sentence lives in `src/data/sourceActions.ts` — copy rather than a
+component, because a `Popconfirm` portals out of `renderToString` and a function can be
+called by a test directly. The question is the **title**: as a description it sat under
+"Delete this source?", which is the same question twice.
+
+**Guard** — *mechanical*, and deliberately **one cross-layer claim**: the sentence is
+interpolated from `action` (two hardcoded strings render fine and let the delete dialog ask
+about disconnecting), both titles read it, neither Popconfirm carries a `description`, and
+both deleted files are absent from disk. Three claims that guarded the removed copy were
+**deleted rather than loosened** — the notice's page lists and its `othersConnected` count —
+because a claim kept alive against a feature that is gone is the vacuous assertion this file
+exists to prevent. The two per-page gate loops were *kept* with the notice half stripped:
+they guard something independent and still live, namely that `NoSourceConnected` and
+`NoPublishedGraph` are two different preconditions.
+
+**Rule** — **when a warning is removed, the danger it warned about does not go with it.**
+Write down what the screen no longer says, next to the code that still does it; the removal
+is cheap to repeat and the knowledge is not. And the older rule, applied for the fourth
+time: guard an absence **at every layer at once**. A `description` restored on one dialog and
+not the other is two dialogs telling a reader different amounts about the same pair of acts,
+and nothing errors.

@@ -886,7 +886,7 @@
       "folders": [
         {
           "folder_id": "f_08_unstructured",
-          "name": "08_unstructured",
+          "name": "Compliance Data",
           "path": "/Compliance Docs/08_unstructured",
           "description": "EPA enforcement documents — consent decrees, complaints, settlements and CAFOs, mapped into the graph by entity extraction",
           "documents": [

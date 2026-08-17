@@ -257,38 +257,35 @@ request, so the endpoint, its `db.json` payload, `listChangeSignals` and
 plus the four selectors; do not delete the layers below it to "finish" the removal,
 and do not name Change signals in copy that lists the app's pages.
 
-**Disconnect and Delete both state their consequences first, and `SourceImpactNotice`
-is the one place that copy lives.** A one-line description said what happened to the
-*row* and nothing about what happened to the app, and deleting the last connected
-source closes five pages. Three rules the notice keeps, all asserted:
+**Disconnect and Delete ask one question and say nothing else.** *"Are you sure you want
+to disconnect / delete this source?"* is the `Popconfirm`'s **title**, and there is no
+`description` on either. `SourceImpactNotice` — which stated the consequences — was
+deleted on request, along with its stylesheet, its `othersConnected` prop and the helper
+in `SourcesPage` that computed it. `src/data/sourceActions.ts` holds the sentence.
 
-- **It names the pages, and it is right about them.** Data Catalogue, Profiling jobs,
-  Traces and Validation gate on a connected source and close. **Ask,
-  Reports, Graph Studio, the What-if lens and Audit & Governance do not** — they gate
-  on a *published graph* and keep answering from published content. Warning that Ask
-  will go dark is a claim the next click disproves, so `check-docs` cross-checks each
-  named page against the gate it actually renders.
-- **It counts rather than asserts.** "The last connected source" is true per row, so
-  the page passes the number of others still connected and the notice branches on it.
-- **Reversible and irreversible are said in those words**, and the reversible one is
-  performed. `POST /sources/:id/reconnect` re-issues the handle from the credential
-  store and flips the status back **in place**, so every profiled object survives —
-  which is why the row offers **Reconnect** instead of Disconnect once it is
-  disconnected. **Re-registering is not that act**: `POST /sources` builds a fresh
-  record and the profiled objects go with the old one, which is why Delete's line
-  says connecting it again starts from nothing profiled rather than letting "connect
-  it again" read as an undo. Delete has no undo — `registered.delete` takes the
-  profiled tables, columns, documents and every note typed against them.
+**What that costs is recorded rather than glossed, because the acts did not change.**
+Nothing on screen now says that Disconnect is reversible and Delete is not, or that
+deleting the last connected source closes the Data Catalogue, Profiling jobs, Traces and
+Validation. All of it is still true: `POST /sources/:id/reconnect` re-issues the handle
+**in place** so every profiled object survives (which is why a disconnected row offers
+**Reconnect**), `POST /sources` is *not* that act and starts from nothing profiled, and
+`registered.delete` takes the profiled tables, columns, documents and every note typed
+against them. The app is simply quieter about consequences it still has. Full entry in
+`docs/REGRESSIONS.md`; **do not restore any of it without being asked** — it was removed
+twice over, deliberately.
 
-**Three short lines, and a word budget in the smoke test to keep them that way.** The
-first draft explained each consequence in full and ran to ~75 words on a routine
-disconnect, which is how a warning gets clicked through unread. What survived the cut
-is the subject, the reversibility and — *only when it applies* — the one line about
-the rest of the app: with another source connected the notice says nothing more than
-that no page closes.
+**Two rules survive, and one `check-docs` claim covers both across every layer.** The
+sentence is **interpolated from the act**, so "delete" can never appear over a
+disconnect; and it is written **once**, so the two dialogs cannot come to word the same
+pair of acts differently. The claim also asserts neither Popconfirm has grown a
+`description` back and that the deleted files are off disk — a partial revival is the
+shape that fails silently, so the guard is one cross-layer claim rather than one per
+file.
 
-A promise of an undo has to be carried out by something: a dialog that offered a
-sign-off nothing performed is the mistake this section already recorded once.
+**Copy, not a component.** A `Popconfirm` portals out of `renderToString`, so a sentence
+written inline in the page cannot be asserted on; held in `src/data/` it can be called
+directly by a test, like `profilingOutcome` and `connectSteps`. That was also the
+original reason the notice was its own component.
 
 Profiled counts are deliberately 0 on registration: registration is instant,
 counts only land once the profiler has run. Do not "fix" this by populating them

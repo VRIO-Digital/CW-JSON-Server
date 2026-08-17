@@ -18,9 +18,9 @@ import EditDatasetsModal from '../components/EditDatasetsModal'
 import EditFoldersModal from '../components/EditFoldersModal'
 import NoSourceConnected from '../components/NoSourceConnected'
 import PageHeader from '../components/PageHeader'
-import SourceImpactNotice from '../components/SourceImpactNotice'
 import StatCards from '../components/StatCards'
 import StatusTag from '../components/StatusTag'
+import { confirmSourceAction } from '../data/sourceActions'
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import { SP } from '../theme'
 import type { Stat } from '../types'
@@ -76,14 +76,6 @@ export default function SourcesPage() {
     ],
     [data],
   )
-
-  /**
-   * Connected sources other than this one — what decides whether disconnecting or deleting it
-   * closes anything. Counted from the rows on screen rather than from `connectedSources`, so the
-   * figure and the table can never disagree about which rows are connected.
-   */
-  const othersConnected = (row: SourceRow) =>
-    sources.filter((s) => s.sourceId !== row.sourceId && s.status !== 'disconnected').length
 
   async function handleDisconnect(row: SourceRow) {
     const result = await disconnect(row.sourceId)
@@ -186,7 +178,11 @@ export default function SourcesPage() {
             </span>
           </Tooltip>
           {/* A disconnected row offers the undo instead of the act it has already had: two
-              buttons where only one can ever apply is a row asking a question it has answered. */}
+              buttons where only one can ever apply is a row asking a question it has answered.
+
+              Both confirmations below are a question and nothing else — no `description`. Both
+              titles come from `confirmSourceAction`, so neither can word the act the other's
+              way. */}
           {row.status === 'disconnected' ? (
             <Button
               size="small"
@@ -197,14 +193,7 @@ export default function SourcesPage() {
             </Button>
           ) : (
             <Popconfirm
-              title="Disconnect this source?"
-              description={
-                <SourceImpactNotice
-                  action="disconnect"
-                  source={row}
-                  othersConnected={othersConnected(row)}
-                />
-              }
+              title={confirmSourceAction('disconnect')}
               okText="Disconnect"
               cancelText="Keep connected"
               onConfirm={() => void handleDisconnect(row)}
@@ -215,14 +204,7 @@ export default function SourcesPage() {
             </Popconfirm>
           )}
           <Popconfirm
-            title="Delete this source?"
-            description={
-              <SourceImpactNotice
-                action="delete"
-                source={row}
-                othersConnected={othersConnected(row)}
-              />
-            }
+            title={confirmSourceAction('delete')}
             okText="Delete permanently"
             cancelText="Cancel"
             okButtonProps={{ danger: true }}
