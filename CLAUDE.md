@@ -250,13 +250,20 @@ no source is connected, and each page renders `NoSourceConnected` instead of its
 cards. A *disconnected* source counts as not connected, but stays listed on
 Sources so it can still be reconnected or deleted.
 
+**`/change-signals` has no surface.** The Data Catalogue's third tab was removed on
+request, so the endpoint, its `db.json` payload, `listChangeSignals` and
+`useSignalsStore` are all still there with nothing reading them — the same waiting-for
+-a-caller state the `/reports*` endpoints are in. Re-adding the tab is a `Tabs` entry
+plus the four selectors; do not delete the layers below it to "finish" the removal,
+and do not name Change signals in copy that lists the app's pages.
+
 **Disconnect and Delete both state their consequences first, and `SourceImpactNotice`
 is the one place that copy lives.** A one-line description said what happened to the
 *row* and nothing about what happened to the app, and deleting the last connected
 source closes five pages. Three rules the notice keeps, all asserted:
 
 - **It names the pages, and it is right about them.** Data Catalogue, Profiling jobs,
-  Change signals, Traces and Validation gate on a connected source and close. **Ask,
+  Traces and Validation gate on a connected source and close. **Ask,
   Reports, Graph Studio, the What-if lens and Audit & Governance do not** — they gate
   on a *published graph* and keep answering from published content. Warning that Ask
   will go dark is a claim the next click disproves, so `check-docs` cross-checks each
@@ -413,7 +420,7 @@ while `active_count > 0`) and why starting a run switches the Catalogue to the
 jobs tab — a queued job is otherwise invisible. **And why queueing one re-reads
 the board**: that poll stops at `active_count: 0`, so a second run started with
 the tab already open is invisible to it. `handleQueued` loads the jobs list along
-with the sources and signals; without it the re-profile confirm queued a run that
+with the sources; without it the re-profile confirm queued a run that
 really ran while the board sat on the completed job, which reads as a button that
 did nothing. A poll that stops is not a subscription. Already-profiled objects are
 skipped; an all-skipped job completes instantly rather than faking a run.
@@ -1621,7 +1628,8 @@ current user.
 zustand. Eleven modules (plus `asyncState.ts`, the shared machinery): `authStore`
 (who is signed in — the one module persisted to `localStorage`, everything else
 is server-derived), `sourcesStore`, `catalogueStore` (browse / columns /
-document browse / documents / jobs / signals), `graphStore` (domains / use
+document browse / documents / jobs — plus `signals`, which nothing reads since
+the Change signals tab was removed), `graphStore` (domains / use
 cases), `graphStudioStore` (the studio's list + one graph's review),
 `askStore` (live graphs + the last answer), `whatifStore` (the What-if frame plus
 one column per admitted load — the *load*, never the figures), `reportsStore` (the

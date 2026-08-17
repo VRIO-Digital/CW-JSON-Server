@@ -14,7 +14,7 @@ import './SourceImpactNotice.css'
  * missing:
  *
  * - **It says which pages, and it is right about them.** The Data Catalogue, Profiling jobs,
- *   Change signals, Traces and Validation gate on a *connected source*. Ask, Reports, Graph Studio,
+ *   Traces and Validation gate on a *connected source*. Ask, Reports, Graph Studio,
  *   the What-if lens and Audit & Governance gate on a *published graph* — they keep answering,
  *   because they read published content rather than this source. Telling somebody Ask will go dark
  *   would be a claim this app disproves the moment they look.
@@ -46,8 +46,7 @@ export default function SourceImpactNotice({
   /* The pages that gate on a connected source, named because "some features stop working" is not
      something a reader can check. Only shown when this is the last one — with another source
      connected, none of them close, and a list of pages that are fine is noise. */
-  const gated =
-    'Data Catalogue, Profiling jobs, Change signals, Traces and Validation close.'
+  const gated = 'Data Catalogue, Profiling jobs, Traces and Validation close.'
 
   const stillLive =
     'Ask, Reports, Graph Studio, the What-if lens and Audit & Governance keep working.'
