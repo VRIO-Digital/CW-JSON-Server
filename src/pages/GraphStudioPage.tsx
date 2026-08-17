@@ -140,12 +140,25 @@ export default function GraphStudioPage() {
      queued state, so there is no third case for the sentence to cover. */
   const buildRunning = builds.some((b) => b.status === 'running')
 
+  /*
+   * **And a rebuild locks them again, for the same reason the first build does.**
+   *
+   * A run in flight is producing the output these tabs read, so what they show while it
+   * runs is the *previous* build's — a canvas and a version list that the run is in the
+   * act of superseding, with nothing on them saying so. That reads as this run's result
+   * arriving early, which is the one thing a reviewer must not be shown; settling a queue
+   * row against a superseded canvas is a decision made on stale evidence. So the lock is
+   * "a completed build and no run in flight", not "has ever been built".
+   */
+  const outputReadable = builtOnce && !buildRunning
+
   /* A locked tab cannot be the active one, or antd renders its pane with the tab
      unselectable — a blank page with no way back. Arrivals default to the queue, so this
-     is the normal path on a graph whose build has not run, not an edge case. */
+     is the normal path on a graph whose build has not run, not an edge case — and a
+     rebuild started from another tab has to move the reader the same way. */
   useEffect(() => {
-    if (!builtOnce && tab !== 'build') setTab('build')
-  }, [builtOnce, tab])
+    if (!outputReadable && tab !== 'build') setTab('build')
+  }, [outputReadable, tab])
 
   const back = (
     <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/graph-studio')}>
@@ -574,8 +587,9 @@ export default function GraphStudioPage() {
       {/* Said once, above the tabs, and only while they are locked — a row of disabled
           tabs with no sentence beside them reads as a broken page. It names the act that
           unlocks them, and while a run is in flight it says that instead, because "run a
-          build" is the wrong instruction for somebody already watching one. */}
-      {builtOnce ? null : (
+          build" is the wrong instruction for somebody already watching one — which is
+          also the only sentence a *rebuild* can carry, since the act is already underway. */}
+      {outputReadable ? null : (
         <Alert
           type="info"
           showIcon
@@ -625,20 +639,20 @@ export default function GraphStudioPage() {
                 Review queue <Tag className="gs-tab-count"></Tag>
               </span>
             ),
-            disabled: !builtOnce,
+            disabled: !outputReadable,
             children: reviewQueue,
           },
-          { key: 'canvas', label: 'Canvas', disabled: !builtOnce, children: canvasTab },
+          { key: 'canvas', label: 'Canvas', disabled: !outputReadable, children: canvasTab },
           {
             key: 'query',
             label: 'Query & sanity-check',
-            disabled: !builtOnce,
+            disabled: !outputReadable,
             children: queryTab,
           },
           {
             key: 'versions',
             label: 'Versions',
-            disabled: !builtOnce,
+            disabled: !outputReadable,
             children: (
               <VersionsTab
                 versions={data.versions}

@@ -659,17 +659,24 @@ kept in that graph's history, and an earlier one stays loadable. Settling review
 rows changes what a build produces, so **Rebuild** is the normal case, not an
 escape hatch.
 
-**And build first: the other four tabs are locked until a run completes.** Review queue,
+**And build first: the other four tabs are locked until a run completes — and locked again
+while one is in flight.** Review queue,
 Canvas, Query & sanity-check and Versions all read *a build's output*, so
 they are `disabled` while `builds` holds no `complete` run — the review queue most of all,
 because its rows are the package's and it looks populated whether or not anything has been
-built. One flag (`builtOnce`) drives all four, so they cannot disagree. Two things this
+built. **A rebuild locks them the same way**, because what they would show while it runs is
+the *previous* build's output with nothing saying so: a canvas and a version list the run is
+in the act of superseding, which reads as this run's result arriving early, and settling a
+queue row against a superseded canvas is a decision made on stale evidence. So the flag is
+`outputReadable` — `builtOnce && !buildRunning` — and it drives all four, so they cannot
+disagree. Two things this
 needs and has: a locked tab **cannot stay the active one** — the studio's default arrival
 tab is the queue, and a disabled *and* selected tab renders a pane with no way out — and
 the lock **says why**, above the tabs, only while it holds, in different words while a run
-is in flight ("start one" is the wrong instruction for somebody already watching one).
+is in flight ("start one" is the wrong instruction for somebody already watching one, and it
+is the only sentence a rebuild can carry).
 This does not reverse the paragraph above: rebuilding after settling rows is still the
-normal case; a graph simply has to have been built once before its output can be read.
+normal case; its output simply cannot be read until it lands.
 
 **Each stage names its own substeps, and the substeps are what advance.**
 `BUILD_STEPS` is `BUILD_STAGES` flattened — 31 substeps at `BUILD_STEP_MS`, **3s**

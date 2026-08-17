@@ -1552,11 +1552,17 @@ expect(
   'a stage index kept alongside a step index is two counters that can disagree',
 )
 /*
- * **Build first: the studio's other five tabs are locked until a build has completed.**
+ * **Build first: the studio's other four tabs are locked until a build has completed —
+ * and locked again while any run is in flight.**
  *
  * They all read a build's output, and the review queue is the loudest case — its rows are
- * the package's, so it looks populated whether or not anything has been built. Three
- * halves, and the third is the one that fails silently: a *disabled* tab that is also the
+ * the package's, so it looks populated whether or not anything has been built. A *rebuild*
+ * has the same problem one level up: while it runs, those tabs show the previous build's
+ * output with nothing saying so, which reads as this run's result arriving early. So the
+ * flag is `builtOnce && !buildRunning`, and the two halves are asserted separately —
+ * dropping the second is the silent half, because the tabs still lock on a fresh graph.
+ *
+ * The active-tab redirect is the half that fails worst: a *disabled* tab that is also the
  * *active* one renders its pane with no way to leave it, and the studio's default arrival
  * tab is the queue, so that is the normal path rather than an edge case.
  */
@@ -1566,8 +1572,14 @@ const lockedTabs = ['queue', 'canvas', 'query', 'versions']
 expect(
   'every studio tab but Build is locked until a build completes',
   /const builtOnce = builds\.some\(\(b\) => b\.status === 'complete'\)/.test(studioCode) &&
-    (studioCode.match(/disabled: !builtOnce/g) ?? []).length === lockedTabs.length,
-  `${(studioCode.match(/disabled: !builtOnce/g) ?? []).length} of ${lockedTabs.length} tabs carry the flag`,
+    (studioCode.match(/disabled: !outputReadable/g) ?? []).length === lockedTabs.length,
+  `${(studioCode.match(/disabled: !outputReadable/g) ?? []).length} of ${lockedTabs.length} tabs carry the flag`,
+)
+expect(
+  'and a run in flight locks them again, so a rebuild cannot be read as its own result',
+  /const buildRunning = builds\.some\(\(b\) => b\.status === 'running'\)/.test(studioCode) &&
+    /const outputReadable = builtOnce && !buildRunning/.test(studioCode),
+  'without the second half these tabs show the superseded build while the new one runs',
 )
 expect(
   'and Build itself never is',
@@ -1576,15 +1588,16 @@ expect(
 )
 expect(
   'a locked tab cannot stay the active one',
-  /if \(!builtOnce && tab !== 'build'\) setTab\('build'\)/.test(studioCode),
+  /if \(!outputReadable && tab !== 'build'\) setTab\('build'\)/.test(studioCode),
   'the default arrival tab is the queue, so this is the normal path',
 )
 /* And it says why, where the tabs are, only while they are locked — and it says something
    different while a run is in flight, because "start one" is the wrong instruction for
-   somebody already watching one. */
+   somebody already watching one. That in-flight sentence is now the only one a rebuild can
+   carry, so the gate has to be the same flag the tabs use. */
 expect(
   'the lock explains itself and names the act that lifts it',
-  /\{builtOnce \? null : \(/.test(studioPage) &&
+  /\{outputReadable \? null : \(/.test(studioPage) &&
     /Build this graph first/.test(studioPage) &&
     /buildRunning\s*\?/.test(studioPage),
   'a row of disabled tabs with no sentence beside them reads as a broken page',
