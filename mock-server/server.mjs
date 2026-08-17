@@ -68,7 +68,6 @@
  *   POST   /graph-studio/:id/query         { question } asked of the draft
  *   POST   /graph-studio/:id/versions/:sha/publish    gate Ask access to one build
  *   POST   /graph-studio/:id/versions/:sha/unpublish  take it out of Ask
- *   POST   /graph-studio/:id/quality-check checks the publish preconditions
  *   GET    /ask                            the graphs that are live, so askable
  *   POST   /ask                            { use_case_id, question, citations, formats }
  *   GET    /graph-use-cases                saved drafts + committed use cases
@@ -2220,9 +2219,6 @@ const DRAFT_STAGES = ['Reading your brief', 'Drafting candidates', 'Ranking agai
 
 // Long enough for the drafting state to be seen, short enough not to annoy.
 const SUGGEST_MS = 1100
-
-/** A quality check reads as work only if it takes long enough to be work. */
-const QUALITY_CHECK_MS = 1200
 
 /** Public shape of a derivation; the coverage only lands when it completes. */
 const derivationView = (run) => ({
@@ -7683,57 +7679,6 @@ const routes = [
       send(res, 200, { chosen: option_id, studio: graphStudio(found.useCase) })
     },
   },
-
-  {
-    method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/quality-check$/.test(p),
-    handle: (_req, res, { pathname }) => {
-      const id = decodeURIComponent(
-        pathname.slice('/graph-studio/'.length, -'/quality-check'.length),
-      )
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-
-      const studio = graphStudio(found.useCase)
-      // Real checks over real state — a report that always passes is decoration.
-      const checks = [
-        {
-          check_id: 'floor-decisions',
-          label: 'Every floor item has a decision',
-          passed: studio.must_review_outstanding === 0,
-          detail: `${studio.must_review_outstanding} of ${studio.must_review_count} still open`,
-        },
-        {
-          check_id: 'pivot-settled',
-          label: 'No entity-resolution pivot is open',
-          passed: !studio.pivot.open,
-          detail: studio.pivot.open
-            ? `${studio.pivot.pivot_id} is unresolved`
-            : `settled as ${studio.pivot.chosen}`,
-        },
-        {
-          check_id: 'schema-justified',
-          label: 'Schema-changing approvals carry a justification',
-          passed: studio.must_review
-            .filter((i) => i.justification && i.decision)
-            .every((i) => Boolean(i.decision.justification)),
-          detail: 'recorded with the decision, not after it',
-        },
-      ]
-      const failed = checks.filter((c) => !c.passed).length
-      setTimeout(
-        () =>
-          send(res, 200, {
-            checks,
-            passed: checks.length - failed,
-            failed,
-            ran_at: new Date().toISOString(),
-          }),
-        QUALITY_CHECK_MS,
-      ).unref?.()
-    },
-  },
-
 
   /*
    * The graphs Ask can query: the ones that are live.

@@ -2652,3 +2652,43 @@ is cheap to repeat and the knowledge is not. And the older rule, applied for the
 time: guard an absence **at every layer at once**. A `description` restored on one dialog and
 not the other is two dialogs telling a reader different amounts about the same pair of acts,
 and nothing errors.
+
+## The Quality report tab was a second surface for one gate, and it is gone
+
+**What happened.** Graph Studio had six tabs, and the sixth ran
+`POST /graph-studio/:id/quality-check` — three checks over real state: every floor item
+decided, no pivot open, every schema-changing approval justified. Those are the *same three
+preconditions* `publish.blocked` computes and reports, which the banner over the review queue
+already states and which the publish route already refuses on. Two surfaces for one gate: a
+reader could run the check, see three ticks, and read that as a verdict separate from the one
+Versions enforces. Removed on request.
+
+**What was removed, per layer** — the endpoint and its `QUALITY_CHECK_MS` pacing in
+`server.mjs` (with its line in the endpoint map at the top of the file); `runQualityCheck`,
+`QualityReport`, `QualityCheck` and `QUALITY_REPORT_PAYLOAD` in `client.ts`; `report`,
+`checking` and `check` in `graphStudioStore` (including the `report: null` in `open`'s
+switching reset); the `quality` tab, `qualityTab`, `onCheck` and the two icon imports in
+`GraphStudioPage.tsx`; and `.gs-check*` / `.gs-quality-head` in `GraphStudioPage.css`.
+`.gs-todo` stayed — the Query tab and the canvas both use it.
+
+**What did not change.** The gate. `publish.blocked`, its `reasons` and its `explanation` are
+still computed once on the server from those three checks, the review queue still carries the
+"Publish is blocked." / "Ready to publish." banner, and `VersionsTab` still reads the same
+list for its disabled button, its tooltip and the refusal. Nothing that enforced anything was
+in the tab; the tab only re-reported it.
+
+**Guard** — *mechanical*, and **one cross-layer claim** rather than one per file, for the
+reason this file has now recorded five times: half a removal is what fails silently — a store
+still holding `report` behind a page that cannot show it, or a `POST …/quality-check` no
+caller reaches. It runs through `codeOnly()` on the server, the client and the store, because
+CLAUDE.md and the two code comments explaining the removal all name the thing removed. It is
+**paired with a presence claim** over the same region (the gate's `gate.blocked` /
+`gate.reasons` on the page, `publish: { blocked` in the client, `must_review_outstanding` on
+the server), because an absence claim alone passes just as well over a file that has been
+gutted. The tab-lock claim's `lockedTabs` went from five to four, so `disabled: !builtOnce`
+is counted against the right denominator. Break-tested: putting `report: null` back in the
+store took the run from 13 stale claims to 14.
+
+**Rule** — **when two surfaces report one gate, deleting the reporting one costs nothing and
+deleting the enforcing one costs everything.** Say in the removal note which was which, next
+to the code that still enforces it.

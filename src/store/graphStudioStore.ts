@@ -9,13 +9,11 @@ import {
   listStudioGraphs,
   publishVersion,
   resolvePivot,
-  runQualityCheck,
   startGraphBuild,
   unpublishVersion,
   type CanvasPayload,
   type GraphBuild,
   type GraphStudioPayload,
-  type QualityReport,
   type QueryAnswer,
   type ReviewChoice,
   type ReviewItem,
@@ -36,9 +34,7 @@ interface StudioState {
   error: string | null
   /** itemId whose decision is in flight, so only that row's buttons spin. */
   pending: string | null
-  checking: boolean
   publishing: boolean
-  report: QualityReport | null
   /** The ontology, and the last answer run against it. */
   canvas: CanvasPayload | null
   canvasLoading: boolean
@@ -52,7 +48,6 @@ interface StudioState {
     justification?: string
   }) => Promise<Result>
   choosePivot: (optionId: string) => Promise<Result>
-  check: () => Promise<Result>
   /** Both name a version by its content hash — the identity of one build. */
   publish: (sha256: string) => Promise<Result>
   unpublish: (sha256: string) => Promise<Result>
@@ -69,9 +64,7 @@ export const useGraphStudioStore = create<StudioState>()((set, get) => ({
   loading: false,
   error: null,
   pending: null,
-  checking: false,
   publishing: false,
-  report: null,
   canvas: null,
   canvasLoading: false,
   answer: null,
@@ -84,9 +77,7 @@ export const useGraphStudioStore = create<StudioState>()((set, get) => ({
     set({
       useCaseId,
       loading: true,
-      ...(switching
-        ? { data: null, report: null, canvas: null, answer: null, error: null }
-        : {}),
+      ...(switching ? { data: null, canvas: null, answer: null, error: null } : {}),
     })
     try {
       set({ data: await getGraphStudio(useCaseId), error: null, loading: false })
@@ -130,20 +121,6 @@ export const useGraphStudioStore = create<StudioState>()((set, get) => ({
       return { ok: false, error: toMessage(error) }
     } finally {
       set({ pending: null })
-    }
-  },
-
-  check: async () => {
-    const useCaseId = get().useCaseId
-    if (!useCaseId) return { ok: false, error: 'No graph is open.' }
-    set({ checking: true })
-    try {
-      set({ report: await runQualityCheck(useCaseId) })
-      return { ok: true }
-    } catch (error) {
-      return { ok: false, error: toMessage(error) }
-    } finally {
-      set({ checking: false })
     }
   },
 

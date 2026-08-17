@@ -1086,7 +1086,7 @@ New Graph step 6 · Save & build graph
         → /graph-studio/:useCaseId            lands on Build, watching that run
 /graph-studio                                every graph you have built
         → click one → Build · Review queue (6) · Canvas · Query & sanity-check
-                      · Quality report · Versions
+                      · Versions
 ```
 
 ### The Build tab
@@ -1106,10 +1106,10 @@ Eleven stages, in dependency order — `pin_inputs`, `a01_schema_parsing`,
 takes about **1m 33s**. That is slow on purpose: a substep is paced to be narrated
 while it runs, not merely to prove the work was not free.
 
-**Build first — the other five tabs are locked until a run completes.** Review queue,
-Canvas, Query & sanity-check, Quality report and Versions read a build's output, so they
+**Build first — the other four tabs are locked until a run completes.** Review queue,
+Canvas, Query & sanity-check and Versions read a build's output, so they
 are `disabled` while this graph's history holds no `complete` run, and one flag
-(`builtOnce`) drives all five. The lock states itself above the tabs while it holds, in
+(`builtOnce`) drives all four. The lock states itself above the tabs while it holds, in
 different words while a run is in flight. Two failure modes it avoids: the studio's
 default arrival tab is the queue, so a locked tab has to be pushed off `activeKey` or antd
 renders an unreachable pane; and the queue's rows are the package's, so it looks
@@ -1151,9 +1151,15 @@ restart clears them. If the wizard's build fails to start, the brief is still
 committed and the message says both.
 
 Every tab is built. The header carries only what is live — each tab owns its own
-actions, so the quality check runs from the Quality report tab where its result
-lands, and publishing runs from a version's own row in Versions, where the version
+actions, so publishing runs from a version's own row in Versions, where the version
 being published is the one you are looking at.
+
+**There was a Quality report tab, and it is gone** — removed on request, with
+`POST /graph-studio/:id/quality-check`, `runQualityCheck`, the `QualityReport` types
+and the store's `report` / `checking` / `check`. It recomputed the three preconditions
+`publish.blocked` already reports, so it was a second surface for one gate. The gate
+is untouched: the banner over the review queue and the refusal on publish still state
+those three checks.
 
 ### The list
 

@@ -1,9 +1,4 @@
-import {
-  ArrowLeftOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  WarningOutlined,
-} from '@ant-design/icons'
+import { ArrowLeftOutlined, WarningOutlined } from '@ant-design/icons'
 import {
   Alert,
   App,
@@ -51,8 +46,6 @@ export default function GraphStudioPage() {
   const loading = useGraphStudioStore((s) => s.loading)
   const error = useGraphStudioStore((s) => s.error)
   const pending = useGraphStudioStore((s) => s.pending)
-  const checking = useGraphStudioStore((s) => s.checking)
-  const report = useGraphStudioStore((s) => s.report)
   const canvas = useGraphStudioStore((s) => s.canvas)
   const canvasLoading = useGraphStudioStore((s) => s.canvasLoading)
   const answer = useGraphStudioStore((s) => s.answer)
@@ -62,7 +55,6 @@ export default function GraphStudioPage() {
   const open = useGraphStudioStore((s) => s.open)
   const decide = useGraphStudioStore((s) => s.decide)
   const choosePivot = useGraphStudioStore((s) => s.choosePivot)
-  const check = useGraphStudioStore((s) => s.check)
   const publish = useGraphStudioStore((s) => s.publish)
   const unpublish = useGraphStudioStore((s) => s.unpublish)
   const mustReview = useGraphStudioStore(selectMustReview)
@@ -212,11 +204,6 @@ export default function GraphStudioPage() {
       return
     }
     message.success(`Pivot settled as ${optionId}. The queue now means one thing.`)
-  }
-
-  async function onCheck() {
-    const result = await check()
-    if (!result.ok) message.error(result.error)
   }
 
   /*
@@ -544,46 +531,6 @@ export default function GraphStudioPage() {
     </Row>
   )
 
-  const qualityTab = (
-    <>
-      <div className="gs-quality-head">
-        <Button loading={checking} onClick={() => void onCheck()}>
-          {report ? 'Re-run quality check' : 'Run quality check'}
-        </Button>
-        {report ? (
-          <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-            {report.passed} passed · {report.failed} failed · ran{' '}
-            {new Date(report.ranAt).toLocaleString()}
-          </Typography.Text>
-        ) : null}
-      </div>
-
-      {report ? (
-        report.checks.map((c) => (
-          <div key={c.checkId} className="gs-check">
-            {c.passed ? (
-              <CheckCircleOutlined style={{ color: '#0f7b4f' }} aria-hidden="true" />
-            ) : (
-              <CloseCircleOutlined style={{ color: '#b42318' }} aria-hidden="true" />
-            )}
-            <span className="gs-check-label">{c.label}</span>
-            <span className="gs-check-detail">{c.detail}</span>
-          </div>
-        ))
-      ) : (
-        <div className="gs-todo">
-          <strong>No report yet</strong>
-          <div style={{ marginTop: SP.sm }}>
-            The check reports against the decisions taken so far, so it is worth
-            re-running as the queue clears — it is the same three preconditions
-            the publish gate enforces.
-          </div>
-        </div>
-      )}
-    </>
-  )
-
-
   return (
     <>
       <PageHeader
@@ -601,10 +548,9 @@ export default function GraphStudioPage() {
             {/*
               * Nothing else in this header.
               *
-              * No quality-check button — it lives on the Quality report tab, where
-              * its result appears. And **no publish button**: publishing names a
-              * specific build, so it belongs on that build's row in Versions.
-              * A header "Publish v2…" could not say which of six builds it meant.
+              * **No publish button**: publishing names a specific build, so it
+              * belongs on that build's row in Versions. A header "Publish v2…"
+              * could not say which of six builds it meant.
               *
               * What is here instead is the build the page is showing, so the run
               * and the graph are never separated.
@@ -636,7 +582,7 @@ export default function GraphStudioPage() {
           style={{ marginBottom: SP.base }}
           title={
             buildRunning
-              ? 'Building — the review queue, canvas, query, quality report and versions open when this run completes.'
+              ? 'Building — the review queue, canvas, query and versions open when this run completes.'
               : 'Build this graph first. The other tabs read a build’s output, so they stay locked until a run completes — start one below.'
           }
         />
@@ -688,12 +634,6 @@ export default function GraphStudioPage() {
             label: 'Query & sanity-check',
             disabled: !builtOnce,
             children: queryTab,
-          },
-          {
-            key: 'quality',
-            label: 'Quality report',
-            disabled: !builtOnce,
-            children: qualityTab,
           },
           {
             key: 'versions',

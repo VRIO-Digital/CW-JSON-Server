@@ -1079,20 +1079,6 @@ export interface GraphStudioPayload extends StudioGraph {
   versions: GraphVersion[]
 }
 
-export interface QualityCheck {
-  checkId: string
-  label: string
-  passed: boolean
-  detail: string
-}
-
-export interface QualityReport {
-  checks: QualityCheck[]
-  passed: number
-  failed: number
-  ranAt: string
-}
-
 /** One profiled object a graph could draw from — a table, or a document. */
 export interface GraphSourceObject {
   objectId: string
@@ -2168,13 +2154,6 @@ const QUERY_PAYLOAD = shape({
   cost_usd: nullable(num),
   budget_usd: nullable(num),
   canvas: CANVAS_PAYLOAD,
-})
-
-const QUALITY_REPORT_PAYLOAD = shape({
-  checks: arrayOf(shape({ check_id: str, label: str, passed: bool, detail: str })),
-  passed: num,
-  failed: num,
-  ran_at: str,
 })
 
 /* ---------------- Ask ---------------- */
@@ -4003,32 +3982,6 @@ export async function unpublishVersion(
       method: 'POST',
     }),
   )
-}
-
-export async function runQualityCheck(useCaseId: string): Promise<QualityReport> {
-  const raw = validate<{
-    checks: { check_id: string; label: string; passed: boolean; detail: string }[]
-    passed: number
-    failed: number
-    ran_at: string
-  }>(
-    'The quality report',
-    await request<unknown>(`${studioPath(useCaseId)}/quality-check`, {
-      method: 'POST',
-    }),
-    QUALITY_REPORT_PAYLOAD,
-  )
-  return {
-    checks: raw.checks.map((c) => ({
-      checkId: c.check_id,
-      label: c.label,
-      passed: c.passed,
-      detail: c.detail,
-    })),
-    passed: raw.passed,
-    failed: raw.failed,
-    ranAt: raw.ran_at,
-  }
 }
 
 export async function deleteUseCase(useCaseId: string): Promise<{ deleted: string }> {

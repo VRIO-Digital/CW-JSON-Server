@@ -659,11 +659,11 @@ kept in that graph's history, and an earlier one stays loadable. Settling review
 rows changes what a build produces, so **Rebuild** is the normal case, not an
 escape hatch.
 
-**And build first: the other five tabs are locked until a run completes.** Review queue,
-Canvas, Query & sanity-check, Quality report and Versions all read *a build's output*, so
+**And build first: the other four tabs are locked until a run completes.** Review queue,
+Canvas, Query & sanity-check and Versions all read *a build's output*, so
 they are `disabled` while `builds` holds no `complete` run — the review queue most of all,
 because its rows are the package's and it looks populated whether or not anything has been
-built. One flag (`builtOnce`) drives all five, so they cannot disagree. Two things this
+built. One flag (`builtOnce`) drives all four, so they cannot disagree. Two things this
 needs and has: a locked tab **cannot stay the active one** — the studio's default arrival
 tab is the queue, and a disabled *and* selected tab renders a pane with no way out — and
 the lock **says why**, above the tabs, only while it holds, in different words while a run
@@ -702,7 +702,19 @@ or the pivot is open. `package_id` and `graph_version` are minted **per run**, s
 rebuild is visibly a different package — reporting one id for both would say a
 rebuild changed nothing.
 
-**The six tabs are one truth, not six pictures.**
+**There was a sixth tab — Quality report — and it is gone.** It ran
+`POST /graph-studio/:id/quality-check`, which recomputed the same three preconditions
+`publish.blocked` already reports: a second surface for one gate, and the only one a
+reader could mistake for a separate verdict. Removed on request across every layer at
+once — the endpoint and its `QUALITY_CHECK_MS` pacing, `runQualityCheck` with the
+`QualityReport`/`QualityCheck` types and their schema in `client.ts`, the store's
+`report` / `checking` / `check`, the tab and its `.gs-check*` and `.gs-quality-head`
+styles. **The gate itself is untouched**: `publish.blocked`, its `reasons`, the banner
+above the review queue and the refusal on publish are still those three checks, still
+computed once on the server. `check-docs` asserts the absence on every layer at once,
+because half a removal is the shape that fails silently.
+
+**The five tabs are one truth, not five pictures.**
 
 - **Canvas** is the **vendored graph viewer** (`src/graph-viewer`), a d3-force drawing with
   its own sidebar, legend, search and inspector. **It replaced a hand-written inline SVG**
@@ -852,7 +864,6 @@ rebuild changed nothing.
   used to be "unique to one node", which refused to match "chemours" the moment a
   facility and the consent decree about it shared a name — the bridge from
   unstructured to structured that this graph exists for.
-- **Quality report** re-runs the same three preconditions the publish gate uses.
 - **Versions** lists **every version, which is to say every build** — newest
   first, one row each, from `studioVersions`. A row carries what identifies it
   (`sha256`), what it is (`entities`, `relationships`, `graph_id`), where it came

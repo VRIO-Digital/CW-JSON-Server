@@ -1562,7 +1562,7 @@ expect(
  */
 const studioPage = read('src/pages/GraphStudioPage.tsx')
 const studioCode = codeOnly(studioPage)
-const lockedTabs = ['queue', 'canvas', 'query', 'quality', 'versions']
+const lockedTabs = ['queue', 'canvas', 'query', 'versions']
 expect(
   'every studio tab but Build is locked until a build completes',
   /const builtOnce = builds\.some\(\(b\) => b\.status === 'complete'\)/.test(studioCode) &&
@@ -1588,6 +1588,39 @@ expect(
     /Build this graph first/.test(studioPage) &&
     /buildRunning\s*\?/.test(studioPage),
   'a row of disabled tabs with no sentence beside them reads as a broken page',
+)
+
+/*
+ * **The Quality report tab is gone, on every layer at once.**
+ *
+ * It recomputed the three preconditions `publish.blocked` already reports, so it was a
+ * second surface for one gate. Half a removal is the shape that fails silently — a store
+ * still holding `report` behind a page that cannot show it, or a `POST …/quality-check`
+ * nothing calls — so this is one claim over the server, the client, the store, the page
+ * and the stylesheet rather than one per file. `codeOnly` first: the paragraphs above
+ * name the tab in explaining its removal.
+ */
+const studioStoreCode = codeOnly(read('src/store/graphStudioStore.ts'))
+const studioCssCode = read('src/pages/GraphStudioPage.css')
+expect(
+  'the Quality report tab is gone from every layer',
+  !/quality-check/.test(codeOnly(server)) &&
+    !/QUALITY_CHECK_MS/.test(server) &&
+    !/runQualityCheck|QualityReport|QUALITY_REPORT_PAYLOAD/.test(codeOnly(client)) &&
+    !/runQualityCheck|checking|report:/.test(studioStoreCode) &&
+    !/key: 'quality'/.test(studioCode) &&
+    !/\.gs-check|\.gs-quality-head/.test(studioCssCode),
+  'a store field behind a page that cannot show it is the shape that fails silently',
+)
+/* Paired with a presence claim over the same region: the gate the tab reported on is
+   untouched, and an absence claim alone passes just as well over a deleted file. */
+expect(
+  'and the publish gate it duplicated still states those checks',
+  /gate\.blocked \?/.test(studioCode) &&
+    /gate\.reasons\.join/.test(studioCode) &&
+    /publish: \{ blocked/.test(client) &&
+    /must_review_outstanding/.test(server),
+  'the gate is computed once on the server and read by the banner and the refusal',
 )
 
 /*
