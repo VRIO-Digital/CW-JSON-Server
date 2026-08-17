@@ -9,10 +9,20 @@ import {
   type AskStep,
   type Citations,
 } from '../api/client'
+import {
+  chatTitle,
+  clearChats,
+  loadChats,
+  newId,
+  saveChats,
+  type AskChat,
+  type AskTurn,
+} from '../data/askChats'
 import { toMessage, type Result } from './asyncState'
+import { useAuthStore } from './authStore'
 
 /**
- * Ask's state: which live graph is selected, and the last answer it gave.
+ * Ask's state: which live graph is selected, the chat being had, and the chats before it.
  *
  * Not `createReadStore` — the list is a read, but asking is an action with its
  * own in-flight flag, and the selection has to survive a reload of the list.
@@ -25,38 +35,52 @@ interface AskState {
   /** The graph being asked. Null until the list lands, or when none is live. */
   useCaseId: string | null
   asking: boolean
-  answer: AskAnswer | null
 
   /*
-   * What the reader requires of an answer — the Answer requirements tab.
+   * The conversation.
    *
-   * This was step 6 of the New Graph wizard, declared once per brief. It is asked for
-   * per question now, so it lives here and travels with the ask.
+   * `chats` is this user's history for the session, newest first, and `activeChatId` is the
+   * one on screen — null for a new chat nobody has asked anything in yet, which is why
+   * "New chat" needs no row until the first question lands. A chat is created *by asking*,
+   * so the list never fills with empty entries somebody opened and left.
    *
-   * `citations` is null until it is chosen, and the *served* default fills in — one
-   * source for what "required" means by default, rather than a copy of it here that
-   * could disagree with the payload.
+   * There is no `answer` field any more. The last answer is the last turn of the active
+   * chat, read through `selectActiveChat`: two homes for one answer is how the thread and
+   * the history come to disagree about what was said.
    */
-  citations: Citations | null
-  formatIds: string[]
+  chats: AskChat[]
+  activeChatId: string | null
 
   /*
    * What has arrived so far, while `asking`. The answer is composed and streamed,
-   * so the page renders this and switches to `answer` when `done` lands — which
+   * so the page renders this and switches to the stored turn when `done` lands — which
    * is also the only object that has been validated as a whole.
    *
    * Cleared at the start of each ask rather than at the end: a half-streamed
    * answer must not linger under the next question.
    */
+  askedNow: string
   streamedSteps: AskStep[]
   streamedSummary: { answered: boolean; text: string } | null
   streamedBlocks: AnswerBlock[]
+
+  /** What the reader requires of an answer — the Answer requirements tab. See below. */
+  citations: Citations | null
+  formatIds: string[]
 
   load: () => Promise<void>
   select: (useCaseId: string) => void
   setCitations: (citations: Citations) => void
   toggleFormat: (formatId: string, on: boolean) => void
   ask: (question: string) => Promise<Result>
+
+  /** Start a fresh thread. Nothing is stored until a question is asked in it. */
+  newChat: () => void
+  openChat: (chatId: string) => void
+  deleteChat: (chatId: string) => void
+  clearHistory: () => void
+  /** Re-read this session's chats — on arrival, and whenever the signed-in address changes. */
+  syncHistory: () => void
 }
 
 const EMPTY_GRAPHS: AskGraph[] = []
@@ -64,6 +88,10 @@ const EMPTY_GRAPHS: AskGraph[] = []
 const EMPTY_STEPS: AskStep[] = []
 const EMPTY_BLOCKS: AnswerBlock[] = []
 const EMPTY_FORMATS: string[] = []
+const EMPTY_CHATS: AskChat[] = []
+
+/** Who the history belongs to. Client-held, so it is read at call time rather than captured. */
+const signedInAs = () => useAuthStore.getState().identity?.email ?? null
 
 export const useAskStore = create<AskState>()((set, get) => ({
   data: null,
@@ -71,7 +99,9 @@ export const useAskStore = create<AskState>()((set, get) => ({
   error: null,
   useCaseId: null,
   asking: false,
-  answer: null,
+  chats: EMPTY_CHATS,
+  activeChatId: null,
+  askedNow: '',
   citations: null,
   formatIds: EMPTY_FORMATS,
   streamedSteps: EMPTY_STEPS,
@@ -90,25 +120,31 @@ export const useAskStore = create<AskState>()((set, get) => ({
        */
       const current = get().useCaseId
       const stillLive = data.graphs.some((g) => g.useCaseId === current)
+      const useCaseId = stillLive ? current : (data.graphs[0]?.useCaseId ?? null)
       set({
         data,
         error: null,
         loading: false,
-        useCaseId: stillLive ? current : (data.graphs[0]?.useCaseId ?? null),
-        ...(stillLive ? {} : { answer: null }),
+        useCaseId,
+        ...(stillLive ? {} : { activeChatId: null }),
       })
+      get().syncHistory()
     } catch (error) {
-      // A failed reload keeps the picker and the answer on screen.
+      // A failed reload keeps the picker and the thread on screen.
       set({ error: toMessage(error), loading: false })
     }
   },
 
   select: (useCaseId) => {
     if (get().useCaseId === useCaseId) return
-    // An answer belongs to the graph and version that produced it, so switching
-    // graphs clears it rather than leaving it under a heading it did not come
-    // from. The requirements are the *reader's*, not the graph's, so they stay.
-    set({ useCaseId, answer: null })
+    /*
+     * A chat belongs to the graph and version that produced its answers, so switching
+     * graphs starts a new thread rather than continuing one under a heading it did not come
+     * from. The old chat is still in the history, filed under its own graph.
+     *
+     * The requirements are the *reader's*, not the graph's, so they stay.
+     */
+    set({ useCaseId, activeChatId: null })
   },
 
   setCitations: (citations) => set({ citations }),
@@ -120,19 +156,60 @@ export const useAskStore = create<AskState>()((set, get) => ({
         : state.formatIds.filter((id) => id !== formatId),
     })),
 
+  newChat: () => set({ activeChatId: null }),
+
+  openChat: (chatId) => {
+    const chat = get().chats.find((c) => c.chatId === chatId)
+    if (!chat) return
+    /* Opening a chat also selects the graph it was had against — an answer belongs to the
+       version that produced it, and reading it under another graph's heading would be a
+       claim about content that never answered it. */
+    set({
+      activeChatId: chatId,
+      useCaseId: get().data?.graphs.some((g) => g.useCaseId === chat.useCaseId)
+        ? chat.useCaseId
+        : get().useCaseId,
+    })
+  },
+
+  deleteChat: (chatId) => {
+    const chats = get().chats.filter((c) => c.chatId !== chatId)
+    saveChats(signedInAs(), chats)
+    set({
+      chats,
+      activeChatId: get().activeChatId === chatId ? null : get().activeChatId,
+    })
+  },
+
+  clearHistory: () => {
+    clearChats(signedInAs())
+    set({ chats: EMPTY_CHATS, activeChatId: null })
+  },
+
+  syncHistory: () => {
+    const chats = loadChats(signedInAs())
+    /* The active chat has to still exist — signing in as somebody else replaces the whole
+       list, and pointing at a chat that is not in it renders an empty thread. */
+    const activeChatId = chats.some((c) => c.chatId === get().activeChatId)
+      ? get().activeChatId
+      : null
+    set({ chats, activeChatId })
+  },
+
   ask: async (question) => {
     const useCaseId = get().useCaseId
     if (!useCaseId) return { ok: false, error: 'No graph is live to ask.' }
     if (!question.trim()) return { ok: false, error: 'Ask a question first.' }
+    const asked = question.trim()
 
     /*
-     * The previous answer is cleared here, at the start — not left up while the
-     * next one streams in beneath it, which would put two answers on screen and
-     * make the older one look like part of the new one.
+     * The streamed state is cleared here, at the start — a half-streamed answer must not
+     * linger under the next question. The *thread* is not cleared: this is a conversation,
+     * and the turns above stay where they are.
      */
     set({
       asking: true,
-      answer: null,
+      askedNow: asked,
       streamedSteps: EMPTY_STEPS,
       streamedBlocks: EMPTY_BLOCKS,
       streamedSummary: null,
@@ -144,7 +221,7 @@ export const useAskStore = create<AskState>()((set, get) => ({
     try {
       const answer = await askQuestionStreaming(
         useCaseId,
-        question.trim(),
+        asked,
         { citations: required, formats: get().formatIds },
         (event) => {
           // A stale stream cannot write into the store: switching graphs mid-answer
@@ -165,26 +242,67 @@ export const useAskStore = create<AskState>()((set, get) => ({
           } else if (event.kind === 'block') {
             set({ streamedBlocks: [...get().streamedBlocks, event.block] })
           }
-          // `done` is not applied here — the whole envelope is set below, once,
+          // `done` is not applied here — the whole envelope is committed below, once,
           // from the validated object the fetcher returns.
         },
       )
       if (get().useCaseId !== useCaseId) return { ok: true }
-      set({ answer })
+      appendTurn(asked, answer)
       return { ok: true }
     } catch (error) {
       /*
        * The partial stream is dropped rather than left as a stump. Unlike a
        * failed *reload*, where keeping the old data on screen is right, half an
-       * answer is not an answer — and the message says what went wrong.
+       * answer is not an answer — and the message says what went wrong. The turn is
+       * *not* written: a question with no answer is not a turn, and restoring one would
+       * be a spinner nobody can end.
        */
       set({ streamedSteps: EMPTY_STEPS, streamedBlocks: EMPTY_BLOCKS, streamedSummary: null })
       return { ok: false, error: toMessage(error) }
     } finally {
-      set({ asking: false })
+      set({ asking: false, askedNow: '' })
     }
   },
 }))
+
+/*
+ * Committing a turn: into the active chat, or into a new one if this is the first question.
+ *
+ * Outside the store object because it is not an action a component calls — `ask` is the only
+ * caller, and exposing it would be a second way to write history.
+ */
+function appendTurn(asked: string, answer: AskAnswer) {
+  const state = useAskStore.getState()
+  const graph = state.data?.graphs.find((g) => g.useCaseId === state.useCaseId)
+  if (!state.useCaseId) return
+
+  const turn: AskTurn = {
+    turnId: newId(),
+    question: asked,
+    answer,
+    askedAt: answer.askedAt,
+  }
+  const now = new Date().toISOString()
+  const existing = state.chats.find((c) => c.chatId === state.activeChatId)
+
+  const chat: AskChat = existing
+    ? { ...existing, turns: [...existing.turns, turn], updatedAt: now }
+    : {
+        chatId: newId(),
+        useCaseId: state.useCaseId,
+        graphName: graph?.name ?? state.useCaseId,
+        title: chatTitle(asked),
+        turns: [turn],
+        createdAt: now,
+        updatedAt: now,
+      }
+
+  /* Newest first, and the chat just written is the newest — so a reply moves its thread to
+     the top of the history the way every message list does. */
+  const chats = [chat, ...state.chats.filter((c) => c.chatId !== chat.chatId)]
+  saveChats(useAuthStore.getState().identity?.email ?? null, chats)
+  useAskStore.setState({ chats, activeChatId: chat.chatId })
+}
 
 /** Stable reference — `data?.graphs ?? []` would allocate every render. */
 export const selectAskGraphs = (s: AskState) => s.data?.graphs ?? EMPTY_GRAPHS
@@ -204,3 +322,10 @@ export const selectCitations = (s: AskState): Citations =>
 /** The selected graph itself, which carries the copy the page prints. */
 export const selectCurrentGraph = (s: AskState) =>
   s.data?.graphs.find((g) => g.useCaseId === s.useCaseId) ?? null
+
+/** The thread on screen, or null for a new chat with nothing in it yet. */
+export const selectActiveChat = (s: AskState) =>
+  s.chats.find((c) => c.chatId === s.activeChatId) ?? null
+
+/** This user's history, newest first — what the rail lists. */
+export const selectChats = (s: AskState) => s.chats

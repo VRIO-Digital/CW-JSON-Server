@@ -1475,6 +1475,36 @@ the flow that spends it.
 wizard went — see Flow 6. Both sit behind the one publish gate; only `PageHeader` and the
 graph picker are outside it.
 
+### New chat, and this session's history
+
+**Files:** `AskChatRail.tsx`, `AskAnswerView.tsx`, `src/data/askChats.ts` → `sessionStorage`
+
+Asking appends a **turn** — the question plus the answer it got — to the active chat, and the
+thread renders every turn oldest-first. Before this the page kept one `answer` and replaced it,
+so the question before last was simply gone and there was nothing for a history to be a history
+*of*. `AskAnswerView` was extracted at the same time: one turn's worth of markup, rendered per
+turn rather than copied.
+
+| rule | why |
+|---|---|
+| a chat is created **by asking** | "New chat" only clears the active id, so the list never fills with empty threads somebody opened and left |
+| the thread is the **only** home for an answer | read through `selectActiveChat`; a second copy in the store is how the thread and the history disagree |
+| switching graphs starts a **new** thread | an answer belongs to the version that produced it, and reading it under another graph's heading is a claim about content that never answered it |
+| `sessionStorage`, keyed by the signed-in **address** | a chat is a working session, like a registered source or a review decision; and the identity is client-held, so two people sharing a browser must not read each other's questions |
+| signed out reads and writes **nothing** | "signed out" is not a user, and a shared bucket is exactly how one reader sees another's |
+| **validated on read** | `sessionStorage` is hand-editable, like the `/db` editor, and a restored chat is rendered by the components that render a validated answer. `loadChats` drops what fails — one bad entry costs that entry, and a turn with no answer (a tab closed mid-stream) is dropped rather than restored as an eternal spinner |
+| the rail **states the limit** | `CHATS_KEPT` (20), that closing the tab ends the session, and that nothing is stored on the server — a rail that looked like an archive would promise one that does not exist |
+
+**The agent's messages are the server's stages.** The in-flight turn renders the streamed
+`stage` lines, then the summary, then each block, paced *between* the pieces (`ASK_STAGE_MS`
+420ms, `ASK_BLOCK_MS` 380ms) so a five-block answer takes longer than a one-line abstention.
+The page holds no timer of its own — a stage appears because a stage happened. Switching chats
+mid-answer is refused with a sentence rather than allowed to strand the stream.
+
+**Where it fails:** storage disabled or full is silent by design (the page runs without history,
+which is the same state as a fresh tab); a chat whose graph is no longer published still reads
+back, because the turns are what was said and the answers name the version that said it.
+
 ### What can be asked
 
 Only a graph that is **live** — published, and the version currently serving.

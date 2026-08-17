@@ -4,20 +4,183 @@
  * because status colours are reserved for state.
  */
 
+/*
+ * Two columns now: the chat rail, then the thread with its composer.
+ *
+ * The rail is first in the DOM as well as on screen — it is navigation between threads, and
+ * a list that reads after the conversation it selects is the wrong order for a keyboard or a
+ * screen reader.
+ */
 .ask-shell {
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp-5);
+  min-height: calc(100svh - 220px);
+}
+
+.ask-main {
   display: flex;
   flex-direction: column;
   /*
    * The composer sits at the bottom of the viewport even when one answer does
    * not fill it — a query box that floats mid-page reads as a search field.
    */
-  min-height: calc(100svh - 220px);
+  flex: 1;
+  min-width: 0;
   gap: var(--sp-4);
 }
 
 .ask-thread {
   flex: 1;
   min-height: 0;
+}
+
+/* ---- the chat rail ---- */
+
+.ask-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: 260px;
+  flex-shrink: 0;
+}
+
+.ask-rail-new {
+  margin-bottom: var(--sp-2);
+}
+
+.ask-rail-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: #8994a8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ask-rail-count {
+  padding: 0 var(--sp-2);
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #4b5a75;
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.ask-rail-empty {
+  margin: 0;
+  color: #8994a8;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.ask-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each row is a button plus its delete, so the row is the grid and the title truncates
+   inside it — `text-overflow` does nothing on a flex container. */
+.ask-rail-list li {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.ask-rail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  flex: 1;
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: #4b5a75;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ask-rail-item:hover {
+  background: #eef1f5;
+}
+
+/* Selection carries weight as well as tint, and the ink is BRAND_INK: the raw brand on this
+   wash is 2.65:1, which would make the *selected* row the hardest one to read. */
+.ask-rail-item.is-on {
+  border-color: #f8c9b9;
+  background: #fdeae4;
+  color: #9e3819;
+  font-weight: 600;
+}
+
+.ask-rail-item-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ask-rail-item-title {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-rail-item-meta {
+  overflow: hidden;
+  color: #8994a8;
+  font-size: 11.5px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-rail-del {
+  padding: 0 var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: #8994a8;
+  cursor: pointer;
+}
+
+.ask-rail-del:hover {
+  background: #fdeae4;
+  color: #9e3819;
+}
+
+.ask-rail-clear {
+  margin-top: var(--sp-2);
+}
+
+.ask-rail-note {
+  margin: var(--sp-3) 0 0;
+  padding-top: var(--sp-3);
+  border-top: 1px solid #e9ecf1;
+  color: #8994a8;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* Below the breakpoint the rail goes above the thread rather than beside it — 260px of a
+   phone's width is most of it. */
+@media (max-width: 900px) {
+  .ask-shell {
+    flex-direction: column;
+  }
+
+  .ask-rail {
+    width: auto;
+  }
 }
 
 /* ---- before the first question ---- */

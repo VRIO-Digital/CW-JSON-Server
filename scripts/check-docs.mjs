@@ -2406,6 +2406,108 @@ expect(
   'if this loop ever polls while idle, say so here — the claim above assumes it does not',
 )
 
+/* ---------------- Ask is a conversation, kept for the session ---------------- */
+
+/*
+ * **New chat, chat history, and both stored in `sessionStorage` keyed by the signed-in
+ * address.**
+ *
+ * Three things make this honest rather than merely convenient, and each fails quietly on its
+ * own: the key names the user (two people share a browser), the value is *validated* on read
+ * (`sessionStorage` is hand-editable, exactly like the `/db` editor, and a restored chat is
+ * rendered by the same components a validated answer is), and the rail says the history lives
+ * in the tab — a list that looked like an archive would promise a server-side one that does
+ * not exist.
+ */
+/* Its own binding, declared here: `askPage` below is a `const` in the temporal dead zone
+   from this block's point of view, and reading it from above killed the whole run — the
+   "claim total stops moving" failure, already recorded once. */
+const askPageSrc = read('src/pages/AskPage.tsx')
+const askChats = read('src/data/askChats.ts')
+const askChatsCode = codeOnly(askChats)
+const askStoreSrc = read('src/store/askStore.ts')
+const chatRail = read('src/components/AskChatRail.tsx')
+
+expect(
+  'the chat key names the signed-in address, and the store reads it at call time',
+  /export const chatsKey = \(email: string\)/.test(askChatsCode) &&
+    /contextweave\.ask\.chats\./.test(askChatsCode) &&
+    /useAuthStore\.getState\(\)\.identity\?\.email/.test(askStoreSrc),
+  'two people share a browser; a filter applied on read is one somebody can forget',
+)
+/* Session, not local: a chat is a working session, the same reasoning that keeps registered
+   sources and review decisions in the mock server's memory. */
+expect(
+  'it is session storage, and nothing else',
+  /sessionStorage/.test(askChatsCode) && !/localStorage/.test(askChatsCode),
+  'localStorage would outlive the tab and imply an archive nobody keeps',
+)
+expect(
+  'a signed-out caller reads and writes nothing',
+  /if \(!s \|\| !email\) return \[\]/.test(askChatsCode) &&
+    /if \(!s \|\| !email\) return$/m.test(askChatsCode),
+  '"signed out" is not a user, and a shared bucket is how one reader sees another’s questions',
+)
+/* Validated on the way in, per chat rather than all-or-nothing: one unreadable entry costs
+   that entry, and a turn with no answer is dropped rather than restored as a spinner nobody
+   can end. */
+expect(
+  'a restored chat is validated before it is rendered',
+  /parsed\.filter\(validChat\)/.test(askChatsCode) &&
+    /v\.turns\.every\(validTurn\)/.test(askChatsCode) &&
+    /return v\.answer !== null && validAnswer\(v\.answer\)/.test(askChatsCode),
+  'sessionStorage is as reachable a malformed payload as any response',
+)
+expect(
+  'and a corrupt history is dropped rather than thrown',
+  (askChatsCode.match(/catch \{/g) ?? []).length >= 4,
+  'a bad key must not take the page down; a tab close would have taken it anyway',
+)
+/* The rail is its own component — a list behind a page's state cannot be asserted on — and
+   it states the limit rather than implying an archive. */
+expect(
+  'the rail is a component, and offers New chat plus the history',
+  /export default function AskChatRail/.test(chatRail) &&
+    /^\s*New chat$/m.test(codeOnly(chatRail)) &&
+    /Chat history/.test(chatRail) &&
+    /<AskChatRail/.test(askPageSrc),
+  'a panel behind a parent’s state renders as whatever the initial state says',
+)
+expect(
+  'and it says the history lives in the tab, not on the server',
+  /Closing the tab ends the session; nothing is stored on the server/.test(chatRail) &&
+    /\$\{CHATS_KEPT\} chats/.test(chatRail),
+  'a rail that looked like an archive promises one that does not exist',
+)
+/*
+ * A chat is created *by asking*. "New chat" only clears the active id, so the list never
+ * fills with empty threads somebody opened and left — and the store keeps no second copy of
+ * the last answer: the thread is the history, read through one selector.
+ */
+expect(
+  'a chat is created by asking, and the thread is the only home for an answer',
+  /newChat: \(\) => set\(\{ activeChatId: null \}\)/.test(askStoreSrc) &&
+    /export const selectActiveChat/.test(askStoreSrc) &&
+    !/^\s*answer: AskAnswer \| null$/m.test(codeOnly(askStoreSrc)),
+  'two homes for one answer is how the thread and the history disagree',
+)
+/* Switching graphs starts a new thread: an answer belongs to the version that produced it,
+   and reading it under another graph's heading is a claim about content that never answered. */
+expect(
+  'switching graphs starts a new thread rather than continuing one',
+  /set\(\{ useCaseId, activeChatId: null \}\)/.test(askStoreSrc),
+  'an answer belongs to the version that produced it',
+)
+/* The agent's own messages are the streamed stages, paced by the server between the pieces.
+   The page must not animate ahead of them — the consent panel's stage-versus-timer rule. */
+expect(
+  'the working turn renders the server’s stages, and holds no timer of its own',
+  /streamedSteps\.map/.test(askPageSrc) &&
+    /aria-busy="true"/.test(askPageSrc) &&
+    !/setTimeout|setInterval/.test(codeOnly(askPageSrc)),
+  'a stage appears because a stage happened, never on a client timer',
+)
+
 /* ---------------- answer requirements moved from the wizard to Ask ---------------- */
 
 /*
@@ -2558,11 +2660,15 @@ expect(
   ),
   'a requirement reported as met without checking is theatre',
 )
+/* The rendering half moved into `AskAnswerView` when Ask became a conversation: the page
+   draws a turn per question, and a copy of the markup per turn would drift. The claim follows
+   the markup rather than the filename it used to be in. */
+const answerView = read('src/components/AskAnswerView.tsx')
 expect(
   'and a render format says it was stated, not applied',
   /stated, not applied/.test(requirementsFn) &&
-    /\{answer\.requirements\.note\}/.test(askPage) &&
-    /answer\.requirements\.citations/.test(askPage),
+    /\{answer\.requirements\.note\}/.test(answerView) &&
+    /answer\.requirements\.citations/.test(answerView),
   'a recorded answer holds the blocks the tenant wrote; claiming otherwise is disprovable on screen',
 )
 expect(

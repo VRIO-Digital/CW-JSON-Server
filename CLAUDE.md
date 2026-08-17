@@ -911,6 +911,34 @@ have nothing between them, `answered` is false, `reason` says which, and
 the page tags it `warn`, never `crit`. A query engine that always produces a
 paragraph is a search box with better manners.
 
+**Ask is a conversation, with New chat and a chat history beside it.** A question becomes a
+**turn** (the question plus the answer it got) appended to the active chat; the last answer is
+the last turn, read through `selectActiveChat`, and there is no second copy of it in the store
+— two homes for one answer is how the thread and the history come to disagree. A chat is
+created **by asking**, so "New chat" only clears the active id and the list never fills with
+empty threads. Switching graphs starts a new thread: an answer belongs to the version that
+produced it.
+
+**The history is `sessionStorage`, keyed by the signed-in address, and the rail says so.**
+Session rather than local because a chat is a working session — the same reasoning that keeps
+registered sources and review decisions in the mock server's memory — and keyed by email
+because the identity is client-held and two people share a browser. A signed-out caller reads
+and writes nothing: "signed out" is not a user. `CHATS_KEPT` (20) is the cap, stated on the
+rail along with the fact that closing the tab ends it and **nothing is stored on the server** —
+a rail that looked like an archive would promise one that does not exist.
+
+**And it is validated on the way in.** `sessionStorage` is hand-editable, exactly like the
+`/db` editor, and a restored chat is rendered by the same components that render a validated
+answer — so `loadChats` checks each entry and *drops* what fails rather than throwing: one bad
+chat costs that chat, and a turn with no answer (a tab closed mid-stream) is dropped rather
+than restored as a spinner nobody can end.
+
+**The agent's own messages are the server's stages.** While a question is in flight the turn
+renders the streamed `stage` lines, then the summary, then each block, paced between the pieces
+(`ASK_STAGE_MS`, `ASK_BLOCK_MS`) — so a five-block answer legitimately takes longer than a
+one-line abstention. The page holds no timer: a stage appears because a stage happened, the
+same distinction `GoogleConsentPanel` draws.
+
 **Two tabs: Ask, and Answer requirements.** The second is where step 6 of the wizard
 went. A reader picks what an answer has to carry — citations `required`/`optional`, and
 which render formats they want — and the choice **travels with the question**

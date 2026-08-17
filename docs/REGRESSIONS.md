@@ -2489,3 +2489,42 @@ And the guard lesson, for the eighth recorded time: **strip comments before an a
 presence claim on a file's own text.** The rule I added carries a comment explaining *why* it
 declares `width: 100%` — so the claim passed against a file with the declaration deleted. The
 tell was the break test reporting MISSED on a mutation I had watched land.
+
+## Ask kept one answer, so there was nothing for a history to be a history of
+
+**Cost** — asked for from use: New chat, chat history, stored in session storage per user, and
+visible agent messages while an answer is generated.
+
+**What happened.** `askStore` held a single `answer` and `ask()` replaced it. Every question
+erased the one before it — so the page could not show a conversation, let alone keep one, and
+the streamed stages that *were* already there had nowhere to live but on top of the answer they
+preceded.
+
+**Fix** — a question becomes a **turn** (question + the answer it got) appended to the active
+chat; `AskAnswerView` was extracted so one turn's markup is rendered per turn rather than
+copied; `AskChatRail` offers New chat and this session's threads. History is `sessionStorage`
+keyed by the signed-in address, capped at `CHATS_KEPT`, **validated on read**, and the rail
+states in words that it lives in the tab and that nothing is stored on the server.
+
+Four decisions worth keeping, all asserted: a chat is created *by asking* (so "New chat" only
+clears the active id and the list never fills with empty threads); the thread is the **only**
+home for an answer; switching graphs starts a new thread, because an answer belongs to the
+version that produced it; and a signed-out caller reads and writes nothing.
+
+**Guard** — ten claims, four break-tested. Plus 29 assertions on the storage module and the
+rail (per-user isolation, round trip, the cap, unreadable JSON, a chat missing fields, a turn
+with no answer, one bad entry costing only itself) and 26 live ones through the store against a
+published graph: two questions build one thread in order, it survives a re-read, New chat keeps
+the old one, another user sees none of it, delete and clear touch one user, and an abstention is
+recorded as a turn rather than dropped.
+
+**Rule** — **client storage is a boundary, so it gets a validator like any other.** `/db` made
+that argument for responses; `sessionStorage` is the same shape of risk with a shorter fuse — it
+is hand-editable and it feeds the components that render validated payloads. Drop what fails
+rather than throwing: the reader loses only what closing the tab would have taken.
+
+And a measuring lesson, third time in this log for the same shape: **measure the gap in rendered
+markup, do not estimate it.** An "is this row marked" assertion used a 400-character window,
+then 1,200; antd's message icon renders **1,244** characters of SVG path between the attribute
+and the label. Both failed against correct code. A one-line probe printing the two indices
+settled it in seconds.
