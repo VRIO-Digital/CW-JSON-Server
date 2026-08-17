@@ -23,8 +23,8 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { ReviewChoice } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import BuildTab from '../components/BuildTab'
-import GraphCanvas from '../components/GraphCanvas'
-import NodeInspector from '../components/NodeInspector'
+import GraphViewer from '../graph-viewer/App'
+import { answerPath, fromCanvas } from '../graph-viewer/fromCanvas'
 import PageHeader from '../components/PageHeader'
 import ReviewQueueItem from '../components/ReviewQueueItem'
 import StatCards from '../components/StatCards'
@@ -75,7 +75,8 @@ export default function GraphStudioPage() {
   const [tab, setTab] = useState(
     () => (routerLocation.state as { tab?: string } | null)?.tab ?? 'queue',
   )
-  const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  /* No `selectedNode` here any more: selection, its neighbourhood dimming and the
+     inspector all live inside the vendored viewer, which owns that state. */
   const [question, setQuestion] = useState('')
 
   const builds = useGraphBuildStore((s) => s.history)
@@ -346,29 +347,55 @@ export default function GraphStudioPage() {
   }
 
 
+  /*
+   * The canvas is the **vendored viewer** — `src/graph-viewer`, a d3-force graph with its
+   * own sidebar, legend, search and inspector. It replaced a hand-written inline SVG that
+   * drew the server's precomputed positions: 189 nodes in a fixed arrangement read as a
+   * hairball, and no amount of palette work fixes a layout nobody can pull apart.
+   *
+   * There is **one** canvas component in the app now. The full-view route renders this same
+   * viewer on this same payload, so a bigger frame is all that differs — a full view with
+   * its own drawing would be a second truth, which is the thing this surface exists to
+   * avoid. The viewer brings its own inspector, so the studio's `NodeInspector` column is
+   * gone with it rather than sitting beside a panel that says the same things.
+   */
+  const fullViewHref = `/graph-studio/${encodeURIComponent(useCaseId ?? '')}/canvas`
+
   const canvasTab =
     canvasLoading && !canvas ? (
       <Spin />
     ) : canvas ? (
-      <Row gutter={[SP.base, SP.base]}>
-        <Col xs={24} xl={17}>
-          <GraphCanvas
-            canvas={canvas}
-            selected={selectedNode}
-            onSelect={setSelectedNode}
-            /* The canvas shares this tab with the inspector and the studio's own
-               chrome, and 189 nodes want the window. The full view is the same
-               component on the same data — a bigger frame, not a second drawing. */
-            fullViewHref={`/graph-studio/${encodeURIComponent(useCaseId ?? '')}/canvas`}
+      <>
+        {/*
+          The way to the full window, above the viewer rather than inside it.
+          `src/graph-viewer` is vendored, and app chrome does not belong in it — the
+          folder knows nothing about this app's routes. It is still the only way to
+          reach `…/canvas` besides typing the URL, which is why it cannot be dropped:
+          the route has no nav entry, by the same rule as `/db`.
+        */}
+        <div className="gs-viewer-bar">
+          <span className="gs-viewer-hint">
+            Drag a node · scroll to zoom · click one to inspect it · click a legend row to
+            filter
+          </span>
+          <a
+            className="gs-viewer-full"
+            href={fullViewHref}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Full view ↗
+          </a>
+        </div>
+        <div className="gs-viewer">
+          <GraphViewer
+            graph={fromCanvas(canvas, data.graphName)}
+            /* The Query tab promises the answer's evidence lights up here, and this is
+               that: the same `on_answer_path` marks the drawing already carries. */
+            highlight={answerPath(canvas)}
           />
-        </Col>
-        <Col xs={24} xl={7}>
-          <NodeInspector
-            node={canvas.nodes.find((n) => n.nodeId === selectedNode) ?? null}
-            onReview={() => setTab('queue')}
-          />
-        </Col>
-      </Row>
+        </div>
+      </>
     ) : (
       <div className="gs-todo">The canvas could not be loaded.</div>
     )

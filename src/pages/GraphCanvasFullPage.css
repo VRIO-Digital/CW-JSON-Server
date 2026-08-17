@@ -68,39 +68,16 @@
   font-size: 12.5px;
 }
 
-/* `min-height: 0` on both the row and the canvas column: a flex child defaults to
-   min-content, which for an SVG that wants 1180 units is taller than the viewport, and
-   the page would scroll instead of the drawing fitting. */
+/*
+ * `min-height: 0`, because a flex child defaults to min-content and the viewer's `<svg>`
+ * fills whatever it is given: without it the page scrolls instead of the drawing fitting.
+ *
+ * The canvas/inspector split that used to live here is gone with the hand-written SVG —
+ * the vendored viewer draws its own sidebar, so this holds one child and the media query
+ * that stacked two columns has nothing left to stack.
+ */
 .gcf-body {
   display: flex;
   flex: 1;
   min-height: 0;
-}
-
-.gcf-canvas {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-}
-
-.gcf-side {
-  width: 320px;
-  flex-shrink: 0;
-  overflow-y: auto;
-  padding: var(--sp-4);
-  border-left: 1px solid #e9ecf1;
-}
-
-/* Below the breakpoint the inspector goes under the drawing rather than beside it —
-   320px of a phone's width is most of it. */
-@media (max-width: 900px) {
-  .gcf-body {
-    flex-direction: column;
-  }
-
-  .gcf-side {
-    width: auto;
-    border-left: 0;
-    border-top: 1px solid #e9ecf1;
-  }
 }

@@ -707,13 +707,71 @@ rebuild changed nothing.
 
 **The six tabs are one truth, not six pictures.**
 
-- **Canvas** draws the ontology as hand-written inline SVG — no graph library,
-  for the same reason the mock server has no dependencies. Positions come from
-  the server so a reload draws the same picture; dragging is local, because
-  rearranging is for reading. **An element is "proposed" exactly while its
-  review item is undecided**, so approving a row in the queue un-dashes its node
-  here, and *correcting* one marks it `studio-authored`. The filter chips carry
-  counts, so an empty result reads as "none match" rather than a broken chip.
+- **Canvas** is the **vendored graph viewer** (`src/graph-viewer`), a d3-force drawing with
+  its own sidebar, legend, search and inspector. **It replaced a hand-written inline SVG**
+  that drew the ingest's precomputed positions: 189 nodes in a fixed arrangement read as a
+  hairball, and no palette work fixes a layout nobody can pull apart. The viewer was
+  **vendored rather than reimplemented**, the same way `src/reports/` was — its source of
+  record is `vendor/graph-viewer-source/`, and what runs here is its own hook, its own lib
+  and its own stylesheet.
+
+  **d3 is a real dependency, and a deliberate exception.** "Prefer writing ~100 lines to
+  pulling in a package" still holds everywhere else — the answer charts and the What-if
+  drawings are still hand-written SVG — but a force simulation with drag, zoom and a settling
+  layout is not 100 lines, and the folder that already had one was the thing being asked for.
+  `npm audit` was 0 advisories before and after; the gate runs on every install.
+
+  **One canvas component, two frames.** The studio tab and `…/canvas` (the **Full view ↗**
+  button, which lives on the tab because a vendored viewer knows nothing about this app's
+  routes) render the same component on the same payload. A full view with its own drawing
+  would be a second truth. The viewer brings its own inspector, so the studio's
+  `NodeInspector` column went with the old canvas rather than sitting beside a panel saying
+  the same things.
+
+  **Four changes were made to the folder on the way in, and no others.** It takes its graph
+  as a prop instead of importing the demo dataset that shipped with it; its root carries
+  `cw-graph`, the class its stylesheet is now scoped under (its selectors are as generic as
+  `.link`, `.tab` and `.dot`, and its tokens are *dark* — unscoped it repaints the app);
+  `useForceGraph` gained a `highlight` prop, because the Query tab promises an answer's
+  evidence lights up here and that mechanism already existed for the clicked neighbourhood;
+  and **it fills a container instead of a document**.
+
+  That last one is a bug this already had. The root was the document's own flex root at
+  `100vw`, so it declared no width; dropped into the full view's flex row it sized to
+  *content* — the drawing collapsed to min-content beside a 360px sidebar and two thirds of
+  the page stayed blank white. The width is stated both ways now (`width: 100%` for the
+  studio tab's block container, `flex: 1 1 auto` + `min-width: 0` for the flex one), pressure
+  comes out of the drawing rather than the panel, and the **simulation measures its box**
+  rather than reading `clientWidth` once: an unlaid-out panel measures 0, which piles every
+  node into the corner, and a `ResizeObserver` re-centres instead of keeping a centre for a
+  width the panel no longer has. `check-docs` asserts all four halves.
+
+  **`fromCanvas` renames; it does not invent.** The two shapes were already close, which is
+  why vendoring was possible: `element_class` is exactly the viewer's three classes (only
+  `measure_element` → `measure`), our ontology `type` is the key its palette is written
+  against, `source` is the `provenance` its inspector prints, and the studio's review state
+  becomes its L2 note — *only where there is something to say*, because an absence has no
+  note. `r` is deliberately **not** passed: the viewer sizes a node by class and degree, and
+  two radius rules disagree silently. `check-docs` asserts every type the canvas draws has a
+  hue and that each hue clears 3:1 on the viewer's own dark ground — the old palette was
+  measured against a white page, and reusing either set on the other ground is how the ring
+  hues failed twelve ways the first time.
+
+  **The ingest's positions still do work.** `x`/`y` are handed to d3 as each node's starting
+  position, so a run settles from the arrangement `npm run ingest:graph` wrote rather than
+  from a random scatter — which is why the picture is recognisably the same graph each time,
+  and why re-running the ingest is still how the layout changes.
+
+  **What the retirement cost, stated plainly**: the origin-class fill and the ontology ring
+  (the viewer colours by type instead — nine hues on a dark ground, which is what a light
+  page could not carry), labels gated on `LABEL_AT_ZOOM`, the hand-written `getScreenCTM`
+  pan/zoom with its non-passive wheel listener, and `src/data/canvasLegend.ts`. `group` is
+  still on the payload and still checked at boot — it is the graph's own account of how an
+  element was built — but the drawing no longer encodes it.
+
+  **An element is "proposed" exactly while its review item is undecided**, so settling a row
+  in the queue changes what this shows — it reaches the viewer as the node's L2 note rather
+  than as a dash, which is the one thing a reviewer must not miss.
 
   **What it draws is the demo package's own knowledge graph** —
   `05_knowledge_graph/knowledge_graph.json`, **189 nodes and 241 edges**, ingested
@@ -742,75 +800,26 @@ rebuild changed nothing.
   a retired type reappears on the canvas, and rq5 in the queue is the standing offer
   to promote them anyway — declined by default.
 
-  Three things on the drawing are data, not styling, and none may be chosen for
-  looks:
+  **`source` is the catalogue object** the node was built from
+  (`epa_hazwaste.FRS_Facility_profile`, `Compliance Docs ·
+  08_unstructured/chemours-cd.pdf`), and it reaches the viewer's inspector as
+  `provenance`. A node whose provenance is not on it is a claim the reader has to take on
+  trust.
 
-  - **The fill is the node's origin class**, which is the graph's own account of how it
-    was built: a source row becomes an entity or event, an uploaded document becomes
-    a document node, a raw name resolves through an alias, and `schema` is the pair of
-    classes that are not instances at all — the type-level concepts and the measure
-    elements. Four classes, not nine ontology types, because a categorical palette
-    stops being reliably distinguishable past four and *any* two nodes can end up
-    adjacent here. The hues are validated pairwise, and each carries an `ink` measured
-    against its fill: white clears 4.5:1 on the blue and the magenta, not on the
-    green. `check-docs` recomputes every pair. **`dimension` was the fourth class and
-    was retired with the column-value nodes** — a legend row with no members
-    advertises a claim the graph denies, so the hue moved rather than staying empty.
-  - **The ring is the node's ontology type.** A second encoding rather than nine
-    fills, so the canvas answers "what kind of thing is this" as well as "where did it
-    come from" without a palette nobody can read. **A ring exists only where a fill
-    carries more than one type** — `row` holds five and `schema` holds two, so those
-    seven are ringed; `document` and `alias` hold one type each, and their fill already
-    names it. That constraint is what makes the palette possible: a ring only has to
-    separate its *siblings on the same fill*, never all nine at once. Four rules, all
-    recomputed by `check-docs` — 3:1 against the page, 3:1 *or* a 40° hue turn against
-    the fill inside it, and a 40° turn or 2:1 against a sibling. The ring is **its own
-    circle, not a stroke on the disc**: a stylesheet rule beats a presentation
-    attribute, and the disc's stroke is where the states are drawn.
-  - **Size is degree.** `r` comes from the server, scaled by the square root of the
-    relationships a node carries, so the receiving TSDF is the biggest circle
-    because 61 edges land on it — not because it is the subject.
-  - **`source` is the catalogue object** the node was built from
-    (`epa_hazwaste.FRS_Facility_profile`, `Compliance Docs ·
-    08_unstructured/chemours-cd.pdf`), on the node's tooltip and in the inspector.
-    A node whose provenance is not on it is a claim the reader has to take on trust.
-
-  **The reader can move the view, and that is what reveals the labels.** Scroll zooms
-  about the cursor, dragging the background pans, and **Reset view** appears only once
-  either has moved. Both are hand-written — `getScreenCTM` does the client-pixel → view
-  → graph conversion, so nothing has to reproduce the viewBox letterboxing — and both
-  are local, like the node drag: the server's positions are still the picture. The
-  wheel listener is registered with `{ passive: false }` **by hand**, because React
-  registers `onWheel` as passive and a passive listener cannot `preventDefault`, so the
-  page scrolls behind the zoom.
-
-  **Labels appear when they can be read.** A node big enough carries its name inside,
-  wrapped; the other 159 are labelled *beside* it — the label of a 23px node is four
-  times its width, so stacking those underneath is what made them collide — and they
-  arrive once the view can hold them: **zoomed past `LABEL_AT_ZOOM` (1.35×)**, narrowed
-  by a filter to 28 nodes, or hovered. Edge labels follow the same rule. Every label is
-  cased in the page colour with `paint-order: stroke`, or it is illegible exactly where
-  the graph is densest. The threshold is stated once and the hint interpolates it;
-  `check-docs` fails on a hardcoded copy.
-
-  **Clicking a node dims everything outside its neighbourhood**, and a note says what
-  is shown and how to undo it. At 189 nodes "which of these lines are mine" is not
-  answerable by looking, so this is the interaction that makes the picture readable. It
-  is the *neighbourhood* rather than the node, because a node with nothing around it
-  explains nothing — and it is on click, not hover, because dimming that follows the
-  pointer is a strobe.
-
-  **The legend is both filters.** Two axes, fill and ring, each row carrying its count
-  from the server's `facets`, so one control cannot disagree with itself about what a
-  colour means and what it shows.
+  **Clicking a node dims everything outside its neighbourhood** — the viewer's own
+  interaction, and the reason the hairball became readable. At 189 nodes "which of these
+  lines are mine" is not answerable by looking. Its search box narrows by label, and its
+  legend rows filter by type, each carrying its count.
 
   **An edge whose endpoint is not a node is refused at boot.** An earlier package
   shipped 20 of them — three alias names and an unitemised enforcement type its
   roster omitted — and a skipped edge is silent: 17 facilities simply appeared to
-  have no enforcement. `validateDb` checks the endpoints across keys. **This build
-  resolves cleanly**, so the ingest no longer materialises anything and *throws* if it
-  has to: `check-docs` asserts the canvas is exactly the roster, because a canvas
-  bigger than the package means something is being invented again.
+  have no enforcement. `validateDb` checks the endpoints across keys, and the viewer's own
+  `normalizeGraph` drops such an edge quietly — which is exactly why the boot check has to
+  be the one that catches it. **This build resolves cleanly**, so the ingest no longer
+  materialises anything and *throws* if it has to: `check-docs` asserts the canvas is
+  exactly the roster, because a canvas bigger than the package means something is being
+  invented again.
 - **Query & sanity-check** asks the *draft*, by one of two routes, and the answer
   always says which.
 
@@ -1121,10 +1130,13 @@ Four things were changed to make it a page instead of an app, and nothing else:
   empty-question refusal is *not* paced, and one runner clears its timer on unmount so leaving mid-step
   cannot fire into a dead component.
 
-**It is the one stylesheet exempt from the `--sp-*` spacing rule.** 173 spacing declarations on
-a 2px rhythm that a 4px scale cannot express without redrawing the design, in a file carried
-over unchanged. The exemption is a named one-entry list, and `check-docs` asserts it stays one
-entry long — nothing authored in this repo joins it.
+**It is one of two stylesheets exempt from the `--sp-*` spacing rule**, and both are
+vendored. 173 spacing declarations on a 2px rhythm here, and the graph viewer's own in
+`src/graph-viewer/styles.css` — neither expressible on a 4px scale without redrawing
+somebody else's design, both carried over unchanged. The exemption is a **named two-entry
+list**, and `check-docs` asserts it holds nothing but those two vendored paths: nothing
+authored in this repo joins it, and "vendored" cannot come to mean "inconvenient to
+convert".
 
 **The gate is the only thing on the page that is real.** The section opens once a graph is
 published — the same precondition Ask and the What-if lens have, stated by the same
@@ -1873,6 +1885,14 @@ package. The reason lives in the `//overrides` key beside it in `package.json`.
 
 Adding a dependency here is a real decision. Check `npm audit` before and after,
 and prefer writing ~100 lines to pulling in a package.
+
+**`d3` is the one deliberate exception, and it names its own reason.** The graph
+viewer vendored into `src/graph-viewer` is a d3-force drawing, and a settling force
+layout with drag and zoom is not 100 lines — the alternative was a hand-written
+simulation that would not match the folder it came from. Audit was 0 advisories before
+and after. Everything else that draws here is still hand-written SVG: the answer charts,
+the What-if frame and traversal, and the span-waterfall bar. A second charting or graph
+package needs the same argument made again from scratch.
 
 ## Working in this repo
 

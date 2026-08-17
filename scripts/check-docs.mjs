@@ -1113,15 +1113,19 @@ expect(
 )
 
 /*
- * Colour is the origin class, and the four hues are validated pairwise. The ink on
- * each fill is *measured*, not chosen: white clears 4.5:1 on the blue and the
- * magenta but reaches only 2.8:1 on the green, so those take dark ink. A label
- * nobody can read is not a label, so the contrast is recomputed here.
+ * ---- the canvas is the vendored viewer ----
+ *
+ * The hand-written inline SVG is gone, and with it the decisions this block used to
+ * recompute: a four-hue origin-class fill, an ontology ring inside it, labels gated on
+ * `LABEL_AT_ZOOM`, a `getScreenCTM` pan/zoom, and positions drawn exactly where the ingest
+ * put them. What replaced it is `src/graph-viewer`, vendored whole from `src/grap` — a
+ * d3-force viewer with its own simulation, sidebar, legend and search — because a fixed
+ * layout of 189 nodes reads as a hairball no palette can rescue.
+ *
+ * The claims below are the ones that still have a subject. Everything about *the data* is
+ * unchanged and still checked further down: the roster, the edge endpoints, the retired
+ * types, the review ids.
  */
-const legend = read('src/data/canvasLegend.ts')
-const legendGroups = [
-  ...legend.matchAll(/\{ key: '(\w+)', label: '[^']*', color: '(#[0-9a-f]{6})', ink: '(#[0-9a-f]{6})' \}/g),
-].map((m) => ({ key: m[1], color: m[2], ink: m[3] }))
 const relLum = (hex) => {
   const chan = [1, 3, 5]
     .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
@@ -1132,164 +1136,115 @@ const contrast = (a, b) => {
   const [hi, lo] = [relLum(a), relLum(b)].sort((x, y) => y - x)
   return (hi + 0.05) / (lo + 0.05)
 }
+
+/* One canvas component, rendered by both surfaces. A full view with its own drawing would
+   be a second truth — the thing this surface exists to avoid — and it was a real risk
+   while two canvases existed side by side. */
+const viewerApp = read('src/graph-viewer/App.tsx')
+const studioPageSrc = read('src/pages/GraphStudioPage.tsx')
+const fullPageSrc = read('src/pages/GraphCanvasFullPage.tsx')
 expect(
-  'the canvas has four origin classes, and the server agrees',
-  legendGroups.length === 4 &&
-    /const CANVAS_GROUPS = \['row', 'schema', 'document', 'alias'\]/.test(server) &&
-    legendGroups.every((g) => ['row', 'schema', 'document', 'alias'].includes(g.key)),
-  legendGroups.map((g) => g.key).join(', ') || 'parsed none — check the literal shape',
+  'the studio tab and the full view render one viewer, on one payload',
+  /<GraphViewer/.test(studioPageSrc) &&
+    /<GraphViewer/.test(fullPageSrc) &&
+    [studioPageSrc, fullPageSrc].every((p) => /fromCanvas\(canvas/.test(p)),
+  'both read GET /graph-studio/:id/canvas and hand it to the same component',
 )
-/*
- * `dimension` was retired with the column-value nodes, and the retirement has to
- * reach every layer that named it: a legend row with no members advertises a claim
- * the graph denies, and a schema still accepting the key would let a stale server
- * send it without complaint.
- */
-/*
- * Scoped to the canvas-group vocabulary, not to the spelling of the word.
- * `dimension` is also one of the profiler's eight column classes, which has nothing
- * to do with an origin colour — a file-wide search for the token failed on those and
- * would have gone on failing whatever was done to the canvas, and a check that cries
- * wolf is how a real red claim gets ignored.
- */
-const canvasGroupUnion = /export type CanvasGroup =([^\n]*)/.exec(read('src/api/client.ts'))?.[1]
 expect(
-  'the retired dimension class is gone from the legend, the server and the group union',
-  !legend.includes("key: 'dimension'") &&
-    !/CANVAS_GROUPS = \[[^\]]*dimension/.test(server) &&
-    canvasGroupUnion !== undefined &&
-    !canvasGroupUnion.includes('dimension'),
-  `CanvasGroup =${canvasGroupUnion ?? ' (parsed none — check the type’s shape)'}`,
+  'and the retired drawing is gone from disk, not left unrendered',
+  !existsSync(join(root, 'src/components/GraphCanvas.tsx')) &&
+    !existsSync(join(root, 'src/components/NodeInspector.tsx')) &&
+    !existsSync(join(root, 'src/data/canvasLegend.ts')),
+  'an unreachable second canvas is the second truth waiting to be re-imported',
 )
-for (const g of legendGroups) {
-  expect(
-    `the label on the ${g.key} hue is readable (${g.ink} on ${g.color})`,
-    contrast(g.color, g.ink) >= 4.5,
-    `${contrast(g.color, g.ink).toFixed(2)}:1`,
-  )
-}
+/* d3 is a real dependency now — the repo's rule is to prefer ~100 lines to a package, and
+   this is the deliberate exception. It has to be declared, and the gate has to still pass
+   (that half is `npm run audit`, which preflight runs). */
 expect(
-  'every origin class is used, so no legend row is a dead colour',
-  legendGroups.every((g) => canvas.nodes.some((n) => n.group === g.key)),
-  legendGroups
-    .map((g) => `${g.key} ${canvas.nodes.filter((n) => n.group === g.key).length}`)
-    .join(' · '),
+  'the viewer’s d3 dependency is declared rather than transitive',
+  /"d3": "\^7/.test(read('package.json')) && /"@types\/d3": "\^7/.test(read('package.json')),
+  'the force layout is d3’s; vendoring the folder is what brought it in',
 )
 
 /*
- * The type ring — the second encoding, added so the canvas can say what a node *is*
- * as well as where it came from without a nine-hue fill palette nobody can read.
+ * **Every ontology type on the canvas has a colour in the viewer's palette.**
  *
- * Four rules, all recomputed. They were not free: a first pass reused the demo
- * viewer's own light hues and failed twelve ways, because a light ring holds against
- * neither a mid-tone fill nor a white page.
+ * `colorFor` falls through to a grey default for an unknown type — which is honest but
+ * silent: a new node type renders as "some grey thing" and its legend row reads the same.
+ * This is the fill claim's replacement, keyed to the palette that now draws.
  */
-const ringHues = [
-  ...legend.matchAll(/\{ type: '(\w+)', group: '(\w+)', color: '(#[0-9a-f]{6})' \}/g),
-].map((m) => ({ type: m[1], group: m[2], color: m[3] }))
-const unringed = [...legend.matchAll(/\{ type: '(\w+)', group: '(\w+)' \}(?!,\s*color)/g)]
-  .map((m) => ({ type: m[1], group: m[2] }))
-  .filter((u) => !ringHues.some((r) => r.type === u.type))
-const fillFor = (group) => legendGroups.find((g) => g.key === group)?.color
-const hueOf = (hex) => {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
-  const mx = Math.max(r, g, b)
-  const d = mx - Math.min(r, g, b)
-  if (d / mx < 0.12) return null
-  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4
-  return (h * 60 + 360) % 360
-}
-const hueGap = (a, b) => {
-  const [x, y] = [hueOf(a), hueOf(b)]
-  if (x === null || y === null) return 180
-  const d = Math.abs(x - y)
-  return Math.min(d, 360 - d)
-}
-
-expect(
-  'the type ring is declared for every type, ringed or deliberately not',
-  ringHues.length + unringed.length === new Set(canvas.nodes.map((n) => n.type)).size,
-  `${ringHues.length} ringed + ${unringed.length} unringed vs ` +
-    `${new Set(canvas.nodes.map((n) => n.type)).size} types on the canvas`,
+const viewerLib = read('src/graph-viewer/lib/graph.ts')
+const typeColors = new Map(
+  [...viewerLib.matchAll(/^\s{2}(\w+): "(#[0-9a-f]{6})",$/gm)].map((m) => [m[1], m[2]]),
 )
-/*
- * The rule that makes the palette possible: a ring only ever separates its *siblings
- * on the same fill*, so a fill carrying one type needs none — and could not have one,
- * because the only hues near those fills are the fills themselves.
- */
-const typesOnFill = new Map()
-for (const n of canvas.nodes) {
-  if (!typesOnFill.has(n.group)) typesOnFill.set(n.group, new Set())
-  typesOnFill.get(n.group).add(n.type)
-}
+const canvasTypes = [...new Set(canvas.nodes.map((n) => n.type))]
 expect(
-  'a ring exists exactly where a fill carries more than one type',
-  ringHues.every((r) => typesOnFill.get(r.group)?.size > 1) &&
-    unringed.every((u) => typesOnFill.get(u.group)?.size === 1),
-  [...typesOnFill].map(([g, s]) => `${g} ${s.size}`).join(' · '),
+  'every type the canvas draws has a hue in the viewer’s palette',
+  typeColors.size > 0 && canvasTypes.every((t) => typeColors.has(t)),
+  canvasTypes.filter((t) => !typeColors.has(t)).length > 0
+    ? `no hue for: ${canvasTypes.filter((t) => !typeColors.has(t)).join(', ')}`
+    : `${canvasTypes.length} types, all coloured`,
 )
+/* And each of those hues has to read on the viewer's own ground, which is dark — the
+   earlier palette was measured against a white page, and reusing either set on the other
+   ground is exactly how the ring hues failed twelve ways the first time. */
+const viewerBg = (read('src/graph-viewer/styles.css').match(/--bg:\s*(#[0-9a-f]{6})/) ?? [])[1]
 expect(
-  'and every ringed type is really drawn on the fill it declares',
-  ringHues.every((r) =>
-    canvas.nodes.filter((n) => n.type === r.type).every((n) => n.group === r.group),
-  ),
-  'a ring validated against the wrong fill is validated against nothing',
+  'the viewer’s ground is declared, so its marks can be measured against it',
+  Boolean(viewerBg),
+  `--bg parsed as ${viewerBg ?? 'nothing — check the token'}`,
 )
-for (const r of ringHues) {
-  const fill = fillFor(r.group)
+for (const type of canvasTypes) {
+  const hex = typeColors.get(type)
+  if (!hex || !viewerBg) continue
   expect(
-    `the ${r.type} ring reads against the page and its fill (${r.color} on ${fill})`,
-    contrast(r.color, '#ffffff') >= 3 &&
-      (contrast(r.color, fill) >= 3 || hueGap(r.color, fill) >= 40),
-    `page ${contrast(r.color, '#ffffff').toFixed(2)}:1 · fill ${contrast(r.color, fill).toFixed(2)}:1 / ` +
-      `${hueGap(r.color, fill).toFixed(0)}°`,
+    `the ${type} hue reads on the viewer’s ground (${hex} on ${viewerBg})`,
+    contrast(hex, viewerBg) >= 3,
+    `${contrast(hex, viewerBg).toFixed(2)}:1`,
   )
 }
-expect(
-  'and no two rings on one fill are confusable',
-  ringHues.every((a) =>
-    ringHues
-      .filter((b) => b.group === a.group && b.type !== a.type)
-      .every((b) => hueGap(a.color, b.color) >= 40 || contrast(a.color, b.color) >= 2),
-  ),
-  'siblings need a 40° hue turn or 2:1 — this is the only comparison that matters',
-)
+
 /*
- * The ring is its own circle. A stroke on `.gc-disc` would be overridden by the
- * stylesheet — a CSS rule beats a presentation attribute — and the disc's stroke is
- * where the *states* are drawn, so a ring there would also fight "proposed",
- * "selected" and the answer path.
+ * **The adapter renames; it does not invent.**
+ *
+ * Two shapes met here, and the temptation is to fill the viewer's optional fields with
+ * something plausible. Every field it sets has to come off the payload — and `r` must *not*
+ * be passed, because the viewer sizes a node by class and degree and two radius rules
+ * disagree silently.
  */
+const adapter = codeOnly(read('src/graph-viewer/fromCanvas.ts'))
 expect(
-  'the ring is drawn as its own circle, not a stroke on the disc',
-  /className="gc-ring"/.test(read('src/components/GraphCanvas.tsx')) &&
-    !/gc-disc"[^>]*stroke=\{/.test(read('src/components/GraphCanvas.tsx')),
-  'a stylesheet rule beats a presentation attribute',
+  'the adapter maps the payload’s own fields, and passes no second radius',
+  /element_class: n\.elementClass === 'measure_element' \? 'measure' : n\.elementClass/.test(
+    adapter,
+  ) &&
+    /provenance: n\.source/.test(adapter) &&
+    /x: n\.x/.test(adapter) &&
+    /y: n\.y/.test(adapter) &&
+    !/\br: n\.r\b/.test(adapter),
+  'the seeded positions seed the simulation; the radius is the viewer’s own rule',
 )
-/*
- * Zoom is what makes the small labels legible, so the component must not restate the
- * threshold in prose that can drift from the constant it describes — the same rule the
- * build panel's pace already follows.
- */
-const gcSource = read('src/components/GraphCanvas.tsx')
+/* The Query tab promises an answer's evidence lights up on the canvas. It is the same
+   `on_answer_path` the payload already carries, fed to the highlight the viewer's paint
+   pass already had — not a second highlight with its own rules. */
 expect(
-  'zoom and pan are hand-written, with no graph library behind them',
-  /getScreenCTM/.test(gcSource) &&
-    !/from 'd3/.test(gcSource) &&
-    !/"d3/.test(read('package.json')),
-  'the audit gate makes every dependency expensive, and this is circles and lines',
+  'the answer path still lights up, through the viewer’s own dim/highlight pass',
+  /onAnswerPath/.test(adapter) &&
+    /highlight=\{answerPath\(canvas\)\}/.test(studioPageSrc) &&
+    /highlight=\{answerPath\(canvas\)\}/.test(fullPageSrc) &&
+    /highlight && highlight\.nodes\.size > 0/.test(read('src/graph-viewer/hooks/useForceGraph.ts')),
+  'the Query tab’s hint is a promise about this',
 )
+/* It is fed a graph rather than importing one: the folder shipped with a demo dataset, and
+   a viewer still reading that would draw a graph nobody published. */
 expect(
-  'the wheel listener is registered non-passively, or the page scrolls behind the zoom',
-  /addEventListener\('wheel', onWheel, \{ passive: false \}\)/.test(gcSource),
-  'React registers onWheel as passive, and a passive listener cannot preventDefault',
+  'the viewer takes its graph as a prop, and none of the demo data came with it',
+  /graph: raw \}: \{/.test(viewerApp.replace(/\s+/g, ' ')) === false &&
+    /graph: RawGraph/.test(viewerApp) &&
+    !existsSync(join(root, 'src/graph-viewer/data')),
+  'the demo dataset stayed in src/grap; this one reads the tenant’s canvas',
 )
-expect(
-  'the label-at-zoom threshold is stated once and the hint reads it',
-  /const LABEL_AT_ZOOM = [\d.]+/.test(gcSource) &&
-    /\{LABEL_AT_ZOOM\}×/.test(gcSource),
-  'a hardcoded number in the copy is a second opinion about when labels appear',
-)
+
 /*
  * A proposed element exists because a review row is open — that is what makes the
  * canvas and the queue one truth rather than two pictures. An id on an element with
@@ -1478,11 +1433,15 @@ expect(
     claude.includes('npm run ingest:graph'),
   `hand-editing ${canvas.nodes.length} laid-out nodes is not a maintenance path`,
 )
+/* The ingest's layout is not decoration now that the drawing is a live simulation: the
+   seeded `x`/`y` are handed to d3 as each node's starting position, so a run settles from
+   the arrangement the ingest wrote rather than from a random scatter. That is why the
+   picture is recognisably the same graph every time, and why re-running the ingest is still
+   the way to change the layout. */
 expect(
-  'the canvas sizes and positions come from the server, not the component',
-  /r: n\.r,/.test(server) &&
-    /viewBox=\{`0 0 \$\{box\.w\} \$\{box\.h\}`\}/.test(read('src/components/GraphCanvas.tsx')),
-  'a hardcoded viewBox is a second opinion about the layout',
+  'the seeded positions are still served, and still do work',
+  /x: n\.x/.test(server) && /y: n\.y/.test(server) && /x: n\.x/.test(adapter),
+  'they seed the simulation — d3 reads a node’s existing x/y as its initial position',
 )
 
 /* ---------------- the build pipeline ---------------- */
@@ -2195,22 +2154,33 @@ const cssFiles = (function walkCss(dir) {
   )
 })('src')
 /*
- * **One exemption, and it is vendored code.**
+ * **Two exemptions, and both are vendored code.**
  *
- * `src/reports/reports-prototype.css` is the report prototype's own stylesheet, carried over
- * from the demo package with its figures and its 2px rhythm intact — 173 spacing declarations
- * a 4px scale cannot express without redrawing the design. It is design source material, not
- * something authored here, and the rule this check enforces is about what the team writes.
+ * `src/reports/reports-prototype.css` is the report prototype's own stylesheet and
+ * `src/graph-viewer/styles.css` is the graph viewer's — each carried over with its figures
+ * and its own rhythm intact, together some 200 spacing declarations a 4px scale cannot
+ * express without redrawing two designs. They are design source material, not something
+ * authored here, and the rule this check enforces is about what the team writes.
  *
- * The exemption is **narrowed by two other claims** rather than taken on trust: the file must
- * stay scoped under `.cw-reports` (below), and this list must stay one entry long — so nothing
- * authored in this repo can quietly join it, and the vendored sheet cannot quietly go global.
+ * The exemptions are **narrowed rather than taken on trust**: each file must stay scoped
+ * under its own class (both checked below), and this list must contain nothing but the two
+ * vendored sheets — so nothing authored in this repo can quietly join it, and neither sheet
+ * can quietly go global.
  */
-const SPACING_EXEMPT = ['src/reports/reports-prototype.css']
+const SPACING_EXEMPT = [
+  'src/reports/reports-prototype.css',
+  'src/graph-viewer/styles.css',
+]
 expect(
-  'the spacing rule has exactly one exemption, and it is the vendored stylesheet',
-  SPACING_EXEMPT.length === 1 && cssFiles.includes(SPACING_EXEMPT[0]),
-  'anything authored here comes from --sp-*; this one is carried over unchanged',
+  'the spacing rule is exempt for the two vendored stylesheets and nothing else',
+  SPACING_EXEMPT.length === 2 &&
+    SPACING_EXEMPT.every((f) => cssFiles.includes(f)) &&
+    /* Vendored means it sits in a directory this repo did not author the design of. Both
+       are named, so "vendored" cannot come to mean "inconvenient to convert". */
+    SPACING_EXEMPT.every(
+      (f) => f.startsWith('src/reports/') || f.startsWith('src/graph-viewer/'),
+    ),
+  'anything authored here comes from --sp-*; these two are carried over unchanged',
 )
 const rawPx = []
 for (const file of cssFiles.filter((f) => !SPACING_EXEMPT.includes(f))) {
@@ -2244,7 +2214,7 @@ expect(
  * is not a selector and is skipped — which is how the first version of the transform failed,
  * latching on a single-line `@keyframes` and leaving two thirds of the file global.
  */
-const protoCss = read(SPACING_EXEMPT[0])
+const protoCss = read('src/reports/reports-prototype.css')
 /* Comments stripped first: the file's own header quotes `*{margin:0;padding:0}` while
    explaining why that rule had to be scoped, and scanning the raw text reported the
    explanation as an unscoped selector. */
@@ -2266,6 +2236,102 @@ expect(
   unscoped.length > 0
     ? `unscoped selectors: ${unscoped.slice(0, 3).join(' | ')}`
     : 'every selector under .cw-reports, tokens on the wrapper, page wraps in it',
+)
+
+/*
+ * **And the graph viewer's stylesheet, by the same rule and for worse reasons.**
+ *
+ * It was written for a page it owned outright — `*{box-sizing}`, `html, body`, `#root` — and
+ * its class names are as generic as a stylesheet gets: `.link`, `.tab`, `.dot`, `.n`,
+ * `.side`, `.banner`, `.reset`, `.hint`. Unscoped, `.link` restyles every anchor in the app
+ * and `.tab` fights the studio's own tabs, silently, on pages nobody edited. It is also
+ * *dark*: its tokens on `:root` would repaint the whole app's ground.
+ *
+ * Same three-part check as the report sheet: every selector under the scope, tokens off
+ * `:root`, and the component really wrapping itself in that class. It has no portal, so
+ * there is no fourth part — but if it ever grows one, the report prototype's menu bug is
+ * what happens next.
+ */
+const viewerCss = read('src/graph-viewer/styles.css')
+const viewerUnscoped = viewerCss
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split(/\r?\n/)
+  .filter((line) => /\{/.test(line))
+  .map((line) => line.slice(0, line.indexOf('{')).trim())
+  .filter((sel) => sel && !sel.startsWith('@') && !/^(from|to|\d+%)$/.test(sel))
+  .filter((sel) => !sel.split(',').every((one) => one.trim().startsWith('.cw-graph')))
+expect(
+  'the vendored viewer stylesheet is scoped, so it cannot restyle the rest of the app',
+  viewerCss.length > 0 &&
+    viewerUnscoped.length === 0 &&
+    !/^:root\s*\{/m.test(viewerCss) &&
+    /className="cw-graph"/.test(read('src/graph-viewer/App.tsx')),
+  viewerUnscoped.length > 0
+    ? `unscoped selectors: ${viewerUnscoped.slice(0, 3).join(' | ')}`
+    : 'every selector under .cw-graph, tokens on the wrapper, root wraps in it',
+)
+/* And the three document-level rules are gone rather than scoped: a `height: 100vh` root
+   inside a tab is a viewer taller than the page it sits in, which is why the container sets
+   the height instead. */
+/*
+ * **The viewer's root fills whatever contains it, and the simulation measures that box.**
+ *
+ * Both halves of one bug, reported from the full view: the root was the document's own flex
+ * root in the folder it came from, so it declared no width — dropped into `.gcf-body`'s flex
+ * row it sized to *content*, the drawing collapsed to min-content beside a 360px sidebar,
+ * and two thirds of the page stayed blank. The simulation then centred itself on that narrow
+ * measurement, so the graph sat off-screen left as well.
+ *
+ * A width alone is not enough, which is why the second half is asserted too: the centre was
+ * read once at build time, and a panel that has not been laid out yet measures 0 — every node
+ * piles into the corner and nothing errors.
+ */
+/* Comments stripped before the match — **eighth** time this trap has been paid for. The rule
+   carries a comment explaining *why* it declares a width, so the raw text contains the string
+   `width: 100%`, and a break test that deleted the real declaration still passed. */
+const viewerCssNoComments = viewerCss.replace(/\/\*[\s\S]*?\*\//g, '')
+const viewerCssRoot = (viewerCssNoComments.match(/\.cw-graph \{[\s\S]*?\n\}/) ?? [''])[0]
+expect(
+  'the viewer root fills a block container and a flex one',
+  /width:\s*100%/.test(viewerCssRoot) &&
+    /flex:\s*1 1 auto/.test(viewerCssRoot) &&
+    /min-width:\s*0/.test(viewerCssRoot) &&
+    /height:\s*100%/.test(viewerCssRoot),
+  'without a width it sizes to content, and two thirds of the full view is blank',
+)
+expect(
+  'and width pressure comes out of the drawing, not the panel',
+  /\.cw-graph \.side \{[\s\S]*?flex-shrink:\s*0/.test(viewerCssNoComments) &&
+    /\.cw-graph \.graph \{[\s\S]*?min-width:\s*0/.test(viewerCssNoComments),
+  'a 360px panel squeezed to 200 is unreadable; the drawing just has less room',
+)
+const forceHook = read('src/graph-viewer/hooks/useForceGraph.ts')
+expect(
+  'the simulation centres on a measured box, with a fallback for the unlaid-out case',
+  /const box = \(svgEl: SVGSVGElement\)/.test(forceHook) &&
+    /svgEl\.clientWidth \|\| rect\.width/.test(forceHook) &&
+    /d3\.forceCenter\(\.\.\.box\(svgEl\)\)/.test(forceHook),
+  'clientWidth is 0 before layout, and forceCenter(0, 0) piles every node in the corner',
+)
+expect(
+  'and it re-centres when the panel is resized, rather than keeping a stale centre',
+  /new ResizeObserver\(/.test(forceHook) &&
+    /centre\.x\(cx\)\.y\(cy\)/.test(forceHook) &&
+    /observer\.disconnect\(\)/.test(forceHook),
+  'a window resize otherwise leaves the graph centred on a width it no longer has',
+)
+
+/* Comments stripped — for the seventh recorded time: the header explains *which* document
+   rules were dropped, so it names `html, body`, `#root` and `100vh`, and the raw text
+   satisfied every absence below. */
+const viewerCssCode = viewerCss.replace(/\/\*[\s\S]*?\*\//g, '')
+expect(
+  'and it owns no document-level rule any more',
+  !/^html,?\s*$/m.test(viewerCssCode) &&
+    !/^#root/m.test(viewerCssCode) &&
+    !/height:\s*100vh/.test(viewerCssCode) &&
+    /\.gs-viewer \{[\s\S]*?height:/.test(read('src/pages/GraphStudioPage.css')),
+  'the same component renders in a tab and full-window, so the frame sets the height',
 )
 
 /*
@@ -3935,13 +4001,17 @@ expect(
     whatIfGraphSrc.includes('first ${drawn.length} drawn'),
   'node types, their colours, the centre, the edge and the 7-node cap are all data',
 )
+/* Scoped to *this component*, not to the whole app's dependency list. `d3` is now a real
+   dependency — the vendored graph viewer's force layout — so a package.json search says
+   nothing about whether the lens draws its own SVG, which is the fact this guards. The
+   rule still holds where it was written: nothing in the What-if drawing imports a
+   library. */
 expect(
   'the lens draws its own SVG rather than pulling a chart library',
   whatIfGraphSrc.includes('<svg') &&
     !/from '(?!\.|react)/.test(whatIfGraphSrc.replace(/from '\.\.\/api\/client'/g, '')) &&
-    !read('package.json').includes('d3') &&
-    !read('package.json').includes('chart.js'),
-  'the same rule the studio canvas and the answer charts follow',
+    !/from '(d3|chart\.js|recharts)/.test(whatIfGraphSrc),
+  'the same rule the answer charts follow — the studio canvas is now the one exception',
 )
 /* An absence has no circle: the nodes a scenario draws are conditional on what the
    generator carries, which is decided on the server and asserted here. */
@@ -4462,10 +4532,15 @@ expect(
     routesSrc.indexOf(canvasRoute) < routesSrc.indexOf("element: <App />"),
   'a prefix pattern declared first would match it and win',
 )
+/* The button moved out of the retired canvas component and onto the tab: the vendored
+   viewer knows nothing about this app's routes, so app chrome stays outside it. It is
+   still the only way in besides typing the URL, which is why its absence would strand the
+   route rather than merely hide it. */
 expect(
   'and it is URL-only, reached by the Full view button rather than the sidebar',
   !navPaths.some((p) => p.includes('/canvas')) &&
-    /fullViewHref=\{`\/graph-studio\//.test(read('src/pages/GraphStudioPage.tsx')),
+    /const fullViewHref = `\/graph-studio\//.test(read('src/pages/GraphStudioPage.tsx')) &&
+    /href=\{fullViewHref\}/.test(read('src/pages/GraphStudioPage.tsx')),
   'the same rule as /db: routed, not advertised',
 )
 /*
@@ -4474,11 +4549,16 @@ expect(
  * to avoid — and the button must not appear on the page it points at.
  */
 expect(
-  'the full view reuses the canvas and the inspector rather than copying them',
-  ['GraphCanvas', 'NodeInspector'].every((c) =>
-    read('src/pages/GraphCanvasFullPage.tsx').includes(`from '../components/${c}'`),
-  ) && read('src/pages/GraphStudioPage.tsx').includes("from '../components/NodeInspector'"),
-  'both views import one component each, so neither can drift',
+  'the full view reuses the viewer rather than copying it',
+  [
+    read('src/pages/GraphCanvasFullPage.tsx'),
+    read('src/pages/GraphStudioPage.tsx'),
+  ].every(
+    (page) =>
+      page.includes("from '../graph-viewer/App'") &&
+      page.includes("from '../graph-viewer/fromCanvas'"),
+  ),
+  'both views import one component, so neither can drift — and the inspector is inside it',
 )
 /*
  * Keyed to the prop being *passed* (`fullViewHref=`), not to the word appearing. The
@@ -4488,7 +4568,7 @@ expect(
  */
 expect(
   'and the full view offers no Full view button of its own',
-  !/fullViewHref=/.test(read('src/pages/GraphCanvasFullPage.tsx')),
+  !/fullViewHref/.test(read('src/pages/GraphCanvasFullPage.tsx')),
   'a link to the page you are on is a dead control',
 )
 

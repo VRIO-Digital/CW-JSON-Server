@@ -1,0 +1,423 @@
+/*
+ * The vendored graph viewer's stylesheet — `src/grap/src/styles.css`, carried over with
+ * one change: **every selector is scoped under `.cw-graph`**, and its tokens sit on that
+ * class rather than on `:root`.
+ *
+ * That is load-bearing, not tidiness, and it is the same trap the report prototype set.
+ * The original owns a whole document: `*{box-sizing}`, `html, body`, `#root`, and class
+ * names as generic as `.link`, `.tab`, `.dot`, `.n`, `.side` and `.banner`. Unscoped, its
+ * `.link` restyles every antd anchor and its `.tab` fights the studio's own tabs — silently,
+ * on pages nobody touched.
+ *
+ * The dropped rules are the three that can only mean "this document": the universal
+ * box-sizing (re-declared under the scope), `html, body` (its font, ground and ink moved onto
+ * `.cw-graph`) and `#root`. `.app`'s `height: 100vh` went with them — the viewer renders
+ * inside a tab as well as full-window, so the *container* sets the height.
+ *
+ * Spacing is the original's raw px. This is the second of exactly two stylesheets exempt
+ * from the --sp-* scale, and both are vendored: converting 200 declarations on a foreign
+ * rhythm is how a carried-over design gets redrawn by accident.
+ */
+
+.cw-graph {
+  display: flex;
+  /*
+   * `width: 100%` and `flex: 1`, because this root is a *child* now and was not before.
+   *
+   * The original was the document's own flex root at `100vw`, so it never needed a width.
+   * Dropped into a flex container it sized to content instead: the drawing collapsed to its
+   * min-content beside a 360px sidebar, and two thirds of the full-view page stayed blank
+   * white. Both are stated — `width` for the block container in the studio tab, `flex` and
+   * `min-width: 0` for the flex one on the full-view page — so it fills either.
+   */
+  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.cw-graph *,
+.cw-graph *::before,
+.cw-graph *::after {
+  box-sizing: border-box;
+}
+
+.cw-graph {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel2: #1c2330;
+  --line: #30363d;
+  --ink: #e6edf3;
+  --mut: #8b949e;
+  --acc: #58a6ff;
+}
+
+
+
+/* ── graph ─────────────────────────────────────────────── */
+
+.cw-graph .graph {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.cw-graph .graph svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+
+.cw-graph .graph svg:active {
+  cursor: grabbing;
+}
+
+.cw-graph .link {
+  stroke: #3d4653;
+  stroke-opacity: 0.55;
+}
+
+.cw-graph .link.hi {
+  stroke: var(--acc);
+  stroke-opacity: 0.95;
+}
+
+.cw-graph .link.agg {
+  stroke: #db61a2;
+  stroke-dasharray: 4 3;
+  stroke-opacity: 0.8;
+}
+
+.cw-graph .node circle {
+  stroke: #0d1117;
+  stroke-width: 1.5px;
+  cursor: pointer;
+}
+
+.cw-graph .node.concept circle {
+  stroke: #3fb950;
+  stroke-width: 2px;
+}
+
+.cw-graph .node.measure circle {
+  stroke: #db61a2;
+  stroke-width: 2px;
+}
+
+.cw-graph .node.dim {
+  opacity: 0.12;
+}
+
+.cw-graph .link.dim {
+  opacity: 0.04;
+}
+
+.cw-graph .node text {
+  font-size: 9px;
+  fill: var(--mut);
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #0d1117;
+  stroke-width: 3px;
+}
+
+.cw-graph .node.big text {
+  fill: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cw-graph .elabel {
+  font-size: 6.5px;
+  fill: #7d8794;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #0d1117;
+  stroke-width: 2.5px;
+  letter-spacing: 0.02em;
+}
+
+.cw-graph .elabel.hi {
+  fill: #9fd0ff;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.cw-graph .elabel.dim {
+  opacity: 0.05;
+}
+
+/* ── graph overlays ────────────────────────────────────── */
+
+.cw-graph .ctrl {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(22, 27, 34, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-width: 255px;
+  backdrop-filter: blur(4px);
+}
+
+.cw-graph .ctrl input {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.cw-graph .leg {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  padding: 2px 0;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.cw-graph .leg.off {
+  opacity: 0.35;
+}
+
+.cw-graph .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cw-graph .leg .n {
+  margin-left: auto;
+  color: var(--mut);
+  font-variant-numeric: tabular-nums;
+}
+
+.cw-graph .hint {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  font-size: 10.5px;
+  color: var(--mut);
+  background: rgba(22, 27, 34, 0.85);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.cw-graph .reset {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 11px;
+  padding: 6px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+/* ── sidebar ───────────────────────────────────────────── */
+
+/* `flex-shrink: 0` on the panel and `min-width: 0` on the drawing: with the root now a flex
+   child, any width pressure would come out of the wrong one — a 360px panel squeezed to 200
+   is unreadable, while the drawing simply has less room. */
+.cw-graph .side {
+  width: 360px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+}
+
+.cw-graph .side header {
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cw-graph .side h1 {
+  font-size: 15px;
+  margin: 0 0 3px;
+}
+
+.cw-graph .side .sub {
+  font-size: 11px;
+  color: var(--mut);
+}
+
+.cw-graph .banner {
+  font-size: 11px;
+  line-height: 1.45;
+  padding: 9px 12px;
+  margin: 10px 14px 0;
+  border-radius: 8px;
+}
+
+.cw-graph .banner.demo {
+  background: #3d2c07;
+  border: 1px solid #7a5c14;
+  color: #f0d488;
+}
+
+.cw-graph .banner.faithful {
+  background: #0b2d1a;
+  border: 1px solid #1f6b3f;
+  color: #7ee7a8;
+}
+
+.cw-graph .tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 14px 0;
+}
+
+.cw-graph .tab {
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 6px 6px 0 0;
+  color: var(--mut);
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: none;
+  font-family: inherit;
+}
+
+.cw-graph .tab.on {
+  background: var(--panel2);
+  color: var(--ink);
+  border-color: var(--line);
+  border-bottom-color: var(--panel2);
+}
+
+.cw-graph .side-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.cw-graph .empty {
+  color: var(--mut);
+  font-size: 12px;
+  margin-top: 20px;
+}
+
+.cw-graph .kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid #21262d;
+}
+
+.cw-graph .kv .k {
+  color: var(--mut);
+}
+
+.cw-graph .kv .v {
+  text-align: right;
+  word-break: break-word;
+}
+
+.cw-graph .badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  color: #0d1117;
+  margin-bottom: 8px;
+}
+
+.cw-graph .sect {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mut);
+  margin: 14px 0 4px;
+}
+
+.cw-graph .sect.l2 {
+  color: #f0a35e;
+}
+
+.cw-graph .l2box {
+  background: #241a10;
+  border: 1px dashed #7a5418;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 6px;
+}
+
+.cw-graph .l2tag {
+  font-size: 9px;
+  color: #f0a35e;
+  border: 1px solid #7a5418;
+  border-radius: 10px;
+  padding: 0 6px;
+  margin-left: 6px;
+}
+
+.cw-graph .prov {
+  font-size: 11px;
+  color: var(--mut);
+  font-style: italic;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.cw-graph .rel {
+  padding: 5px 0;
+  border-bottom: 1px solid #21262d;
+  font-size: 11.5px;
+}
+
+.cw-graph .rel .t {
+  color: var(--acc);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+}
+
+.cw-graph .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.cw-graph .note {
+  font-size: 11.5px;
+  color: var(--mut);
+  line-height: 1.55;
+}
+
+.cw-graph .note b {
+  color: var(--ink);
+}
+
+.cw-graph .strike {
+  color: #f43f5e;
+  font-weight: 600;
+}

@@ -1236,14 +1236,49 @@ something a mock writes back over its seed.
 
 ### Canvas
 
-**Files:** `GraphCanvas.tsx` + `data/canvasLegend.ts` → `GET /graph-studio/:id/canvas`
+**Files:** `src/graph-viewer/` (vendored) + `fromCanvas.ts` → `GET /graph-studio/:id/canvas`
 
-The ontology as nodes and edges, drawn in **hand-written inline SVG** — no graph
-library, for the same reason the mock server has no dependencies. Node positions
-*and radii* are seeded in `db.json` so a reload draws the same picture; dragging
-moves a node in local state only, because rearranging is a reading aid, not an edit.
-The viewBox is measured from the nodes rather than fixed in the component — a
-hardcoded box is a second opinion about the layout, and the drag maths reads from it.
+The ontology as nodes and edges, drawn by the **vendored graph viewer** — a d3-force
+graph with its own simulation, drag, zoom, search box, type legend and inspector sidebar.
+It was vendored from `vendor/graph-viewer-source/`, the standalone app that folder still
+is, the same way `src/reports/` was vendored: its hook, its lib, its types and its
+stylesheet are its own, and it was imported rather than reimplemented.
+
+**It replaced a hand-written inline SVG, and that is why d3 is here.** The old canvas drew
+the ingest's precomputed positions: 189 nodes in a fixed arrangement, which reads as a
+hairball whatever the palette does. "Prefer ~100 lines to a package" still holds elsewhere
+— the answer charts and the What-if drawings are still hand-written — but a settling force
+layout with drag and zoom is not 100 lines. `npm audit` was 0 advisories before and after.
+
+**What went with it, so nobody looks for it:** the four-hue origin-class fill and the
+ontology ring inside it, `LABEL_AT_ZOOM` label gating, the `getScreenCTM` pan/zoom and its
+non-passive wheel listener, `src/components/GraphCanvas.tsx`, `NodeInspector.tsx` and
+`src/data/canvasLegend.ts`. The payload still carries `group` (the origin class) and
+`validateDb` still checks it — it is the graph's own account of how an element was built —
+but the drawing no longer encodes it.
+
+**Four changes were made to the folder, and no others.**
+
+| change | why |
+|---|---|
+| it takes its graph as a **prop** | the folder shipped with a synthetic demo dataset; the graph here is the tenant's, and that data stayed in `vendor/` so it cannot render by accident |
+| its root carries **`cw-graph`** | its stylesheet is scoped under that class. Unscoped, `.link`, `.tab`, `.dot`, `.side` and its *dark* `:root` tokens restyle the whole app — the report prototype's trap, with worse selectors |
+| `useForceGraph` gained **`highlight`** | the Query tab promises an answer's evidence lights up on the canvas. The dim/highlight mechanism already existed for the clicked neighbourhood, so the answer path feeds that rather than a second highlight with its own rules |
+| it **fills a container**, not a document | the root was the document's flex root at `100vw` and declared no width, so in the full view's flex row it sized to content: the drawing collapsed to min-content beside the 360px panel and two thirds of the page went blank. `width: 100%` *and* `flex: 1 1 auto` + `min-width: 0`, so it fills a block container and a flex one — and the simulation measures its box (`clientWidth` is 0 before layout, which piles every node into the corner) with a `ResizeObserver` re-centring it after |
+
+**`fromCanvas` renames; it does not invent.** The shapes were already close, which is what
+made vendoring possible: `element_class` is exactly the viewer's three classes (only
+`measure_element` → `measure`), our ontology `type` is the key its `TYPE_COLORS` is written
+against, `source` becomes the `provenance` its inspector prints, `sublabel` becomes its
+`subtype`, and the studio's review state becomes its amber L2 note — **only where there is
+something to say**, because an absence has no note. `r` is deliberately not passed: the
+viewer sizes a node by element class and degree, and two radius rules disagree silently.
+
+**The ingest's positions still do work.** `x`/`y` are handed over as each node's *starting*
+position, which is how d3 reads an existing `x`/`y`, so a run settles from the arrangement
+`npm run ingest:graph` wrote rather than from a random scatter. That is why the picture is
+recognisably the same graph each time, and why re-running the ingest is still how the
+layout changes.
 
 **It draws the demo package's knowledge graph**, ingested from
 `05_knowledge_graph/knowledge_graph.json`: **189 nodes, 241 edges**, one hub (VLS
@@ -1257,7 +1292,7 @@ classes: `concept` (type-level, one node however many rows), `thin_instance`
 `measure_element`. Every figure on a sublabel or an edge tooltip comes from the
 package's `demo_display` block, its cache of what Layer 2 would federate at query
 time. Do not move a value onto a node to make rendering easier: the separation is what
-is being demonstrated, and the inspector's **Element** row is where it is stated.
+is being demonstrated.
 
 **Column values are not nodes, by decision.** The earlier graph promoted 13
 `WasteCode`, 9 `ViolationType` and 5 `EnforcementType`; the package's `not_nodes`
@@ -1266,50 +1301,26 @@ the shipment. The events those columns described are nodes instead. `check-docs`
 fails if a retired type reappears, and rq5 in the queue is the standing offer to
 promote them anyway, declined by default.
 
-**Three things on the drawing are data.**
+**Colour is the ontology type now, on the viewer's dark ground.** Nine hues rather than
+four, which the light page could not have carried — a categorical palette stops being
+reliably distinguishable past four when any two nodes can end up adjacent, and this one
+is read against `#0d1117` instead. `check-docs` asserts every type the canvas draws has a
+hue (`colorFor` otherwise falls through to grey, honestly but silently) and recomputes
+each against that ground at 3:1. Size is the viewer's own rule: `radiusFor` by element
+class, then degree, so the hub is biggest because 61 edges land on it.
 
-| | means | why not decoration |
-|---|---|---|
-| fill | the node's **origin class** — row · schema (concept/measure) · document · alias | the graph's own account of how it was built, and the answer to "which source is this?" |
-| ring | the node's **ontology type**, where a fill carries more than one | the answer to "what kind of thing is this", without nine competing fills |
-| size (`r`) | the node's **degree**, by square root | the hub is biggest because 61 edges land on it, not because it is the subject |
-| `source` | the **catalogue object** it came from | `epa_hazwaste.FRS_Facility_profile`, `Compliance Docs · 08_unstructured/chemours-cd.pdf` |
-
-**Four fills, not nine.** A categorical palette stops being reliably distinguishable
-past four, and on a canvas any two nodes can end up adjacent. Each hue ships an `ink`
-measured against it — white clears 4.5:1 on the blue and the magenta, not on the green
-— and `check-docs` recomputes every pair. The blue is one step darker than it first was
-for exactly that reason. **`dimension` was the fourth class and retired with the
-column-value nodes**: a legend row with no members advertises a claim the graph denies,
-so the hue moved to `schema` rather than sitting empty.
-
-**The ring carries the type, and only where it has to.** `row` holds five types and
-`schema` two, so those seven are ringed; `document` and `alias` hold one type each and
-their fill already names it. That is what makes the palette possible — a ring separates
-its *siblings on the same fill*, never all nine at once — and the four rules
-(`check-docs` recomputes each) are 3:1 against the page, 3:1 **or** a 40° hue turn
-against the fill inside it, and a 40° turn or 2:1 against a sibling. A first attempt
-reused the demo viewer's own light hues and failed twelve ways: a light ring holds
-against neither a mid-tone fill nor a white page. The ring is **its own circle**, not a
-stroke on `.gc-disc` — a stylesheet rule beats a presentation attribute, and the disc's
-stroke is where the states are drawn.
-
-**Zoom, pan, and neighbourhood focus.** Scroll zooms about the cursor, dragging the
-background pans, **Reset view** appears once either has moved, and clicking a node dims
-everything outside its neighbourhood with a note saying so. All hand-written — no graph
-library, for the reason the mock server has no dependencies — and all local, so the
-server's positions remain the picture. Two things bite here: React registers `onWheel`
-as **passive**, so the wheel listener is attached by hand with `{ passive: false }` or
-the page scrolls behind the zoom; and the client-pixel → graph conversion goes through
-`getScreenCTM`, which already knows the viewBox and its letterboxing, rather than
-reproducing that maths and drifting when the panel resizes.
+**Reading it:** drag a node, scroll to zoom, drag the background to pan, **Reset view**
+returns. Clicking a node dims everything outside its neighbourhood — the interaction that
+makes 189 nodes readable, since "which of these lines are mine" is not answerable by
+looking. The search box narrows by label or id; the legend rows filter by type, each with
+its count. The sidebar's two tabs are the viewer's own: **Inspect** (the node, its
+provenance, its relations, its L2 note) and **How it's built**.
 
 **Full view** opens the same graph in a **new tab** at
 `/graph-studio/:useCaseId/canvas`, using the whole window — the studio tab keeps its
-place, its queue and whatever the reader had zoomed to. It is the same `GraphCanvas` and
-the same `NodeInspector` on the same payload; only the frame differs, because a full
-view that drew its own graph would be a second truth about it. Three things about the
-route:
+place, its queue and whatever the reader had zoomed to. It is the **same viewer on the
+same payload**; only the frame differs, because a full view that drew its own graph would
+be a second truth about it. Three things about the route:
 
 - It is declared **before** the `App` tree. `graph-studio/:useCaseId` matches the
   parent segment, so declared after it the studio page would render at the full view's
@@ -1320,19 +1331,10 @@ route:
 - It is **URL-only**, like `/audit`, `/trace`, `/validation` and `/db` — reached by the
   button, never advertised in the sidebar.
 
-The button is `fullViewHref` on `GraphCanvas`, and the full view **does not pass it**:
-a link to the page you are already on is a dead control, and the absence is what makes
-it impossible rather than merely unlikely.
-
-**Labels appear when they can be read.** 30 nodes are big enough to hold their name
-inside, wrapped to three lines; the other 159 are labelled *beside* them — a 23px
-node's label is four times its width, and stacking those underneath is what made 222 of
-them collide. They arrive once the view can hold them: zoomed past **1.35×**, or once a
-filter or search cuts the view to 28 nodes, or on hover. Edge labels follow the same
-rule. Every label is cased in the page colour with `paint-order: stroke`, or it is
-unreadable exactly where the graph is densest. **The legend is both filters** — fill and
-ring, each row carrying its server-side count — so one control cannot disagree with
-itself about what a colour means and what it shows.
+The button lives on the studio's canvas tab, not inside the viewer: `src/graph-viewer` is
+vendored and knows nothing about this app's routes. The full view does **not** render one —
+a link to the page you are already on is a dead control, and the absence is what makes it
+impossible rather than merely unlikely.
 
 **The canvas and the review queue are the same truth.** A node or edge carrying a
 `review_item_id` is *proposed* exactly while that row is undecided — approve rq2 and
@@ -1784,8 +1786,9 @@ disabled button — because both were instant, and an act that returns instantly
 Client-side only because these steps have no request behind them; the refusal for an empty question is not
 paced, and the timer is cleared on unmount.
 
-It is also the one stylesheet exempt from the `--sp-*` rule, as a named one-entry list that
-`check-docs` holds at one entry — and it carries a **do-not-hand-edit** rule, so anything this repo
+It is also one of the two stylesheets exempt from the `--sp-*` rule — the graph viewer's is the
+other, and `check-docs` holds the list at exactly those two vendored paths — and it carries a
+**do-not-hand-edit** rule, so anything this repo
 adds to the section is styled from `ReportsPage.css` instead, on the `--sp-*` scale, scoped under
 `.cw-reports` so it inherits the prototype's own colour tokens. The Library's chip bar is the
 current example.

@@ -2400,3 +2400,92 @@ convincing when empty is the one that does damage — a queue whose rows come fr
 renders identically before and after the run that is supposed to produce them. When locking one,
 push it off `activeKey` too: disabled *and* selected is a pane with no way out, and the default
 arrival tab is exactly the one that gets locked.
+
+## The canvas was a hairball, and no palette work was going to fix it
+
+**Cost** — reported from use with a screenshot: 189 nodes in a fixed arrangement, most of them
+identical blue discs, edges crossing everything. The pointer was at `src/grap` — a standalone
+d3-force viewer already in the tree — and the ask was "it should look like this, based on their
+real components".
+
+**What happened.** The old canvas was hand-written inline SVG drawing the ingest's precomputed
+positions, and a great deal of care had gone into it: a four-hue origin-class fill with measured
+ink, an ontology ring inside it validated four ways, labels gated on zoom, a `getScreenCTM`
+pan/zoom with a hand-attached non-passive wheel listener. Every one of those decisions was
+correct *and none of them addressed the actual problem*, which is that a static force layout of
+189 nodes cannot be pulled apart by looking at it. The reader needed to grab a node and drag the
+graph open; no amount of encoding substitutes for that.
+
+**Fix** — the viewer was **vendored** into `src/graph-viewer` (its hook, lib, types and
+stylesheet), the way `src/reports/` was, and it replaced the canvas in *both* places that drew
+one: the studio tab and the full-window route. `d3` became a declared dependency — the
+deliberate exception to "prefer ~100 lines to a package", because a settling simulation with
+drag and zoom is not 100 lines. Audit was 0 advisories before and after.
+
+Three changes were made to the folder and no others: it takes its graph as a prop (its demo
+dataset stayed behind), its root carries `cw-graph` so its stylesheet could be scoped, and
+`useForceGraph` gained a `highlight` prop so the Query tab's promise — the answer's evidence
+lights up on the canvas — still holds. `fromCanvas` renames and nothing more; the ingest's
+`x`/`y` are handed over as the simulation's *starting* positions, so the seeded layout still
+does work and the picture stays recognisable.
+
+**Guard** — the claims that described the retired drawing were deleted, not weakened, and
+replaced with ones that have a subject: one component rendered by both surfaces, the old files
+gone from disk, d3 declared, every ontology type has a hue, each hue clears 3:1 on the viewer's
+own **dark** ground, the adapter passes no second radius, the answer path is still wired, and
+the stylesheet is scoped with no document-level rule left. Three break-tested. Plus 20 live
+assertions through the real payload (every node and edge survives, all three element classes
+arrive spelled the viewer's way, nothing falls through to grey, the legend counts each node
+once, provenance is present, a proposed node says so and a settled one carries no note).
+
+**Rule** — **when a picture is unreadable, the fix is usually interaction, not encoding.** A
+palette answers "what is this one"; only a movable layout answers "how is this connected". Two
+smaller ones fell out of it. **Vendored source belongs outside `src/`**: the viewer's own folder
+sat at `src/grap`, where it was a second importable copy of the canvas, type-checked by `tsc`
+and swept by `check-docs` — its raw-px stylesheet was already failing the `--sp-*` rule for a
+component nobody rendered. It moved to `vendor/graph-viewer-source/`. And **a claim that says
+"the app has no graph library" is the wrong shape**: the What-if lens's guard asserted
+`!package.json.includes('d3')`, so adding d3 for the studio failed a claim about a component
+that had not changed. Scope a "draws its own SVG" claim to the file that draws.
+
+## A vendored root that filled a document, dropped into a container
+
+**Cost** — reported from use with a screenshot, one turn after the viewer landed: the full view
+rendered the drawing squeezed into a ~300px column beside its 360px sidebar, the graph itself
+cut off to the left, and two thirds of the page blank white.
+
+**What happened.** Two faults, and the second hides behind the first.
+
+`.cw-graph` — the vendored viewer's root — was the *document's* flex root in the app it came
+from, at `height: 100vh` and no width, because a document root needs none. Dropped into
+`.gcf-body`'s flex row it became a flex *item* with `flex-basis: auto` and no width, so it
+sized to **content**: min-content for the drawing plus 360px for the panel, and the rest of the
+page stayed empty. Nothing errored; the viewer worked perfectly inside the box it had asked for.
+
+Then the simulation. `forceCenter` was built once from `svgEl.clientWidth`, which in the folder
+it came from was always the window. Here it was that narrow column — so the layout centred on a
+width the graph does not have and sat off-screen. The same line has a worse failure mode: a
+panel that has not been laid out yet measures **0**, and `forceCenter(0, 0)` piles all 189 nodes
+into the top-left corner.
+
+**Fix** — the width is stated both ways (`width: 100%` for a block container, `flex: 1 1 auto`
+plus `min-width: 0` for a flex one) so the same component fills the studio tab and the full-view
+page; `flex-shrink: 0` on the panel and `min-width: 0` on the drawing so width pressure comes
+out of the right one. The centre is measured through a helper that falls back to
+`getBoundingClientRect`, and a `ResizeObserver` re-centres with a gentle `alpha` nudge rather
+than re-settling from scratch.
+
+**Guard** — four claims, all break-tested: the root declares width *and* flex *and* min-width,
+the panel cannot shrink while the drawing can, the centre goes through the measured box, and the
+observer exists and is disconnected.
+
+**Rule** — **a component that was a document root does not become a child for free.** `100vh`,
+no width, `#root`, `html, body` — each is an assumption about owning the page, and the one that
+bites is the *missing* declaration rather than the present ones, because a sized-to-content flex
+item looks like a small component rather than a broken one. When vendoring a root, state the
+width, state the height at the container, and check anything that **measured** the old box.
+
+And the guard lesson, for the eighth recorded time: **strip comments before an absence or
+presence claim on a file's own text.** The rule I added carries a comment explaining *why* it
+declares `width: 100%` — so the claim passed against a file with the declaration deleted. The
+tell was the break test reporting MISSED on a mutation I had watched land.

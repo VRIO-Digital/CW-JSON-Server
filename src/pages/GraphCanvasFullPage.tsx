@@ -1,10 +1,10 @@
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { Spin } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ApiErrorAlert from '../components/ApiErrorAlert'
-import GraphCanvas from '../components/GraphCanvas'
-import NodeInspector from '../components/NodeInspector'
+import GraphViewer from '../graph-viewer/App'
+import { answerPath, fromCanvas } from '../graph-viewer/fromCanvas'
 import { useGraphStudioStore } from '../store/graphStudioStore'
 import './GraphCanvasFullPage.css'
 import './GraphStudioPage.css'
@@ -18,10 +18,12 @@ import './GraphStudioPage.css'
  * navigate to yet, and this has nothing to spare. 189 nodes want the sidebar's 240px.
  * It stays inside `RequireAuth`, so an unauthenticated URL still redirects.
  *
- * **It is the same component on the same data**, not a second drawing. The canvas, the
- * inspector, the legend and the zoom all come from the studio tab; what differs is the
- * frame. A full view that rendered its own graph would be a second truth, which is the
- * thing this whole surface is built to avoid.
+ * **It is the same component on the same data**, not a second drawing — the vendored
+ * viewer in `src/graph-viewer`, which the studio's Canvas tab also renders. The canvas, its
+ * inspector, its legend, its search and its zoom are all the viewer's; what differs here is
+ * the frame. A full view that rendered its own graph would be a second truth, which is the
+ * thing this whole surface is built to avoid, and after the viewer replaced the
+ * hand-written SVG there is only one canvas component left in the app to render.
  *
  * There is no nav entry, by the same rule as `/db`: it is reachable by URL and by the
  * button, and nothing about it belongs in a sidebar.
@@ -34,7 +36,6 @@ export default function GraphCanvasFullPage() {
   const error = useGraphStudioStore((s) => s.error)
   const open = useGraphStudioStore((s) => s.open)
   const loadCanvas = useGraphStudioStore((s) => s.loadCanvas)
-  const [selectedNode, setSelectedNode] = useState<string | null>(null)
 
   /*
    * Both calls, and in this order: `open` is what sets the store's `useCaseId`, which
@@ -99,27 +100,13 @@ export default function GraphCanvasFullPage() {
           <Spin />
         </div>
       ) : canvas ? (
+        /* One element, not a canvas column beside an inspector column: the viewer draws
+           its own sidebar, and two inspectors would say the same things twice. */
         <div className="gcf-body">
-          <div className="gcf-canvas">
-            {/* No `fullViewHref`: this *is* the full view, and a button linking to the
-                page you are on is a dead control. */}
-            <GraphCanvas
-              full
-              canvas={canvas}
-              selected={selectedNode}
-              onSelect={setSelectedNode}
-            />
-          </div>
-          <aside className="gcf-side">
-            <NodeInspector
-              node={canvas.nodes.find((n) => n.nodeId === selectedNode) ?? null}
-              /* The queue lives on the studio page, so this leaves the full view —
-                 in this tab, since that is where the decision has to be made. */
-              onReview={() => {
-                window.location.href = studioHref
-              }}
-            />
-          </aside>
+          <GraphViewer
+            graph={fromCanvas(canvas, data?.graphName ?? 'This graph')}
+            highlight={answerPath(canvas)}
+          />
         </div>
       ) : (
         <div className="gcf-loading">The canvas could not be loaded.</div>

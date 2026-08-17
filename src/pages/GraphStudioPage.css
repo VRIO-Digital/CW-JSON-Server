@@ -432,3 +432,47 @@
   font-size: 11px;
   color: #0f1729;
 }
+
+/*
+ * The vendored viewer inside the Canvas tab.
+ *
+ * It fills its container by design — the folder it came from set `height: 100vh` on its own
+ * root, which was dropped so the same component can render in a tab and full-window. So the
+ * height is stated here, once, and it is deliberately tall: a force layout of 189 nodes in a
+ * short box is the hairball this replaced.
+ */
+.gs-viewer {
+  height: 640px;
+  min-height: 0;
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .gs-viewer {
+    height: 520px;
+  }
+}
+
+/* The viewer's own frame: what the mouse can do, and the way to the full window. The hint
+   is here rather than inside the vendored viewer, which has its own — this one is about the
+   tab, and the two say the same thing in the same words on purpose. */
+.gs-viewer-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-2);
+}
+
+.gs-viewer-hint {
+  color: #8994a8;
+  font-size: 12.5px;
+}
+
+.gs-viewer-full {
+  font-size: 12.5px;
+  white-space: nowrap;
+}
