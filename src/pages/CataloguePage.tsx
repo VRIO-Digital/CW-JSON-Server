@@ -1,5 +1,4 @@
 import {
-  Alert,
   App,
   Button,
   Col,
@@ -14,8 +13,8 @@ import {
   type TreeDataNode,
 } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ChangeSignal, SourceRow } from '../api/client'
-import { useBrowseStore, useJobsStore, useSignalsStore } from '../store/catalogueStore'
+import type { SourceRow } from '../api/client'
+import { useBrowseStore, useJobsStore } from '../store/catalogueStore'
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import ConnectorIcon from '../components/ConnectorIcon'
@@ -440,52 +439,6 @@ function CatalogueTab({
   )
 }
 
-/* ---------------- Change signals tab ---------------- */
-
-function ChangeSignalsTab({
-  data,
-  error,
-  loading,
-  reload,
-}: {
-  data: { signals: ChangeSignal[]; connected_sources: number } | null
-  error: string | null
-  loading: boolean
-  reload: () => void
-}) {
-  if (error) return <ApiErrorAlert error={error} onRetry={() => void reload()} />
-  if (!loading && (data?.connected_sources ?? 0) === 0) {
-    return (
-      <NoSourceConnected detail="Change signals are raised when a connected source drifts — a column type changes, or volume moves against its baseline." />
-    )
-  }
-
-  return (
-    <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      {(data?.signals ?? []).map((s: ChangeSignal) => (
-        <Alert
-          key={s.signal_id}
-          type={s.severity === 'serious' ? 'error' : 'warning'}
-          showIcon
-          title={
-            <span>
-              {s.kind.replace(/_/g, ' ')} — <code>{s.dataset}.{s.table}</code>
-            </span>
-          }
-          description={
-            <div style={{ fontSize: 13 }}>
-              <div>{s.detail}</div>
-              <div style={{ marginTop: 4, opacity: 0.75 }}>
-                {s.action} · detected {s.detected}
-              </div>
-            </div>
-          }
-        />
-      ))}
-    </Space>
-  )
-}
-
 /* ---------------- Page ---------------- */
 
 export default function CataloguePage() {
@@ -498,18 +451,12 @@ export default function CataloguePage() {
      then — see `handleQueued`. */
   const loadJobs = useJobsStore((s) => s.load)
 
-  const signalsData = useSignalsStore((s) => s.data)
-  const signalsError = useSignalsStore((s) => s.error)
-  const signalsLoading = useSignalsStore((s) => s.loading)
-  const loadSignals = useSignalsStore((s) => s.load)
-
   const [tab, setTab] = useState('catalogue')
   const [running, setRunning] = useState(0)
 
   useEffect(() => {
     void load()
-    void loadSignals()
-  }, [load, loadSignals])
+  }, [load])
 
   // Profiling moves the source counters, so refresh them when a run settles.
   const handleChanged = useCallback(() => {
@@ -530,10 +477,9 @@ export default function CataloguePage() {
    */
   const handleQueued = useCallback(() => {
     void load()
-    void loadSignals()
     void loadJobs()
     setTab('jobs')
-  }, [load, loadSignals, loadJobs])
+  }, [load, loadJobs])
 
   return (
     <>
@@ -568,18 +514,6 @@ export default function CataloguePage() {
                 <ProfilingJobsTab
                   onChanged={handleChanged}
                   onActiveCount={setRunning}
-                />
-              ),
-            },
-            {
-              key: 'signals',
-              label: `Change signals (${signalsData?.count ?? 0})`,
-              children: (
-                <ChangeSignalsTab
-                  data={signalsData}
-                  error={signalsError}
-                  loading={signalsLoading}
-                  reload={loadSignals}
                 />
               ),
             },

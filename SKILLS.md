@@ -358,8 +358,8 @@ Popconfirm portals out of `renderToString` and inline copy there cannot be asser
 
 What the warning is allowed to say is pinned by `check-docs`:
 
-- **Which pages close** — Data Catalogue, Profiling jobs, Change signals, Traces and
-  Validation, which really do gate on a connected source, plus New Graph's Sources step.
+- **Which pages close** — Data Catalogue, Profiling jobs, Traces and Validation, which
+  really do gate on a connected source, plus New Graph's Sources step.
 - **Which keep answering** — Ask, Reports, Graph Studio, the What-if lens and Audit &
   Governance, which gate on a *published graph*. Every one of those names is checked
   against the gate its page renders, because telling somebody Ask goes dark is a claim
@@ -542,7 +542,7 @@ queued job is invisible, which was the whole point of making it async.
 sees zero stops the loop, so there is no traffic at rest.
 
 **So queueing a run has to tell the board — `handleQueued` loads the jobs list**, not just
-the sources and the signals. A poll that stops is not a subscription: the first click
+the sources. A poll that stops is not a subscription: the first click
 mounts the tab and its mount effect loads, but a *second* run started with the tab already
 open lands on an idle board that never asks again. That is the re-profile confirm exactly —
 "Profile N table(s) again" queued a run that really ran, while the list kept showing the
