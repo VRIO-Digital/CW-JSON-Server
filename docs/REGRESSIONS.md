@@ -2083,3 +2083,287 @@ still parses, disk and memory agree, and no temp file is left behind.
 free.** Serialization, read-modify-write atomicity and crash consistency are all free while nothing
 can yield, and all three are silently lost the moment something can. Async I/O is rarely just "add
 `await`"; it is that plus a queue, plus an ordering decision, plus a rollback.
+
+## A break test whose mutation the guard still matched
+
+**Cost** — a claim that reported `MISSED` and looked like it needed rewriting, when it was one
+character short of correct.
+
+**What happened.** The new claim that Drive's allowlist is a tree tested
+`/<FolderTreePicker/.test(wizard)`. The break test renamed the component to
+`<FolderTreePickerX` — and `<FolderTreePickerX` *contains* `<FolderTreePicker`, so the regex still
+matched and the guard reported the fact as still true. Three sibling claims broke correctly in the
+same run, which made this one look like the outlier that needed loosening rather than tightening.
+
+**Fix** — key on something the rename cannot leave behind: `<FolderTreePicker\s+folders=\{…\}`,
+the rendered call with its prop.
+
+**Guard** — the break test itself, re-run until it reports `CAUGHT`.
+
+**Rule** — **a substring match cannot detect a suffix.** An identifier claim needs a boundary — the
+next token, a `\b`, or the prop that follows — or renaming the thing leaves the guard green. Same
+family as the whole-file `includes` that matches the comment explaining the removal: the question is
+always "what is the narrowest text that carries the fact", and a bare identifier is rarely it.
+
+## "1 drive" from a server that had been running since before the drives existed
+
+**Cost** — one debugging cycle spent reading a preview response for a drive the server insisted did
+not exist, `Cannot read properties of undefined (reading 'map')` on `folders`.
+
+**What happened.** `npm run seed:workspaces` wrote three drives into `db.json`, and
+`/sources/oauth/drives` answered with one. The file was right; the process was two hours old and had
+read `db.json` at boot. This is the documented stale-server pitfall, and it still cost time because
+the symptom pointed at the seed — the endpoint answered `200` with a well-formed, complete-looking
+payload, and a *shorter list* is the one stale-server symptom that does not look like a stale server.
+`Get-NetTCPConnection -LocalPort 4000` named the pid; killing it and restarting fixed it instantly.
+
+**Guard** — none mechanical: the seed prints what it wrote, and the server prints its projects and
+drives at boot, so the two can be compared in one glance.
+
+**Rule** — **a stale server that has lost fields announces itself; one that has lost rows does not.**
+`undefined` in three places at once reads as a stale process. A collection with fewer members reads
+as data that was never written. When a list is short and the file says otherwise, check the process
+age before re-running the seed.
+
+## A destructive action that described the row instead of the app
+
+**Cost** — none yet; caught while adding the warnings. Recorded because the shape recurs.
+
+**What happened.** Disconnect and Delete each confirmed with one line about the *record* — "the
+credential is revoked but the registration is kept", "registration and its catalogue entries are
+removed". Deleting the last connected source closes five pages (Data Catalogue, Profiling jobs,
+Change signals, Traces, Validation) and empties New Graph's Sources step, and nothing said so; a
+reader who found out afterwards had no way to tell whether they had broken something.
+
+The tempting fix is worse than the problem: a warning that says "Ask, Reports and Graph Studio will
+stop working" is **false** — those gate on a published graph, not on a connected source, and keep
+answering from published content. An overstated warning is disproved by the next click, and a
+reader who catches one stops believing the others.
+
+**Fix** — `SourceImpactNotice`, one component for both acts, naming the pages that close *and* the
+pages that do not, branching on a count of the other connected rows rather than asserting "the
+last one". Disconnect's "this can be undone" is carried out by `POST /sources/:id/reconnect`, which
+mutates the record in place so every profiled object survives — and the copy distinguishes that
+from re-registering, which builds a fresh record and drops the profile.
+
+**Guard** — *mechanical*, cross-layer: each page named as "keeps answering" must render
+`NoPublishedGraph` and must **not** render `NoSourceConnected`, and each page named as "closes"
+must render `NoSourceConnected`; plus the four legs of the undo (route, fetcher, store action,
+button) and that the route does not `registered.set`. Plus an SSR smoke test over both acts and
+both branches.
+
+**Rule** — **a warning is a claim about the app, so it is checkable — check it.** Name the surfaces
+rather than saying "some features stop working", and assert each name against the gate that page
+really renders. And **never promise an undo that nothing performs**: the publish dialog once
+promised a sign-off that had been deleted, and a "you can reconnect afterwards" with no reconnect is
+the same sentence.
+
+## A break test that mutated the comment instead of the code
+
+**Cost** — two correct guards reported `MISSED`, and the obvious next move was to loosen them.
+
+**What happened.** Break tests for the new warning copy used `String.replace` on a phrase that
+appears twice in the file: once in the doc comment explaining the rule, once in the rendered string.
+`replace` takes the first, so the mutation landed in the comment, the copy was untouched, and the
+claim correctly reported the fact as still true.
+
+**Fix** — `replaceAll`, and both claims then reported `CAUGHT`.
+
+**Rule** — the "strip comments before asserting" rule has a mirror image on the *mutation* side: a
+well-documented file names the fact twice, so a break test's `replace` is as likely to hit the prose
+as the code. Mutate with `replaceAll`, or key the mutation on something only the code carries — and
+when a guard reports MISSED, diff the file before rewriting the guard.
+
+## Two controls for one piece of state, and only one of them showed it
+
+**Cost** — none directly; the catalogue's panels simply had a ✕ nobody needed and a pair of buttons
+that misdescribed the two actions.
+
+**What happened.** The Data Catalogue's detail column opened four panels, each drawing its own
+`✕ close` above its content, while the buttons that opened them showed nothing at all. So the panel
+state had two controls, and the one a reader looks at first — the button they just pressed — was the
+one that did not reflect it. The pair was also a primary and a secondary, which reads as a ranking:
+on a source with nothing profiled the browse panel is the only way forward, and on a profiled one
+the dictionary is the whole point.
+
+**Fix** — the ✕ is gone from all four; both buttons are toggles whose fill is the state — open is
+antd `primary` (brand orange), closed is `default` (white) — plus `aria-pressed` and a line under
+the row saying the same button closes the panel while one is open. `browseOpen` / `dictionaryOpen`
+are derived from `panel` rather than tracked beside it.
+
+**Guard** — *mechanical*: no `CloseOutlined` and no `onClose` in any of the four files (one claim
+each, so a partial revival fails), both buttons typed from their open flag, both `aria-pressed`,
+the flags derived, the hint present and gated, and no button fill declared in the action row's own
+CSS — open reads the brand from `theme.ts`, so there is no second copy to drift. Plus an SSR smoke
+test that each panel renders and draws no close control — the positive half paired with the
+absence, as always.
+
+**Rule** — **one piece of state, one control, and that control shows the state.** A toggle that
+does not look pressed needs a second way out, and the second way out is what makes the first one
+look broken. And when a control is removed, remove its prop in the same commit: a handler nobody
+passes is a button that does nothing.
+
+**Second rule, on the guard side** — a `const` added to `check-docs` can collide with one declared
+600 lines above it, and the whole run dies with `SyntaxError` before printing a summary. That is the
+"claim total stops moving" failure again; grep for the binding before adding it.
+
+**Postscript, on the claim written for it** — the first version asserted the stylesheet held no
+6-digit hex at all inside `.cat-actions*`. The hint line under the buttons legitimately sets
+`color: #97a1b2`, so the claim failed against correct code on the very next run. Narrowed to
+`background` or the brand hexes specifically. A guard that fires on something true is the same
+liability as one that never fires: both teach the next reader to skim past red.
+
+## A message that counted what it would not name, and pointed somewhere else to act
+
+**Cost** — reported from use: *"Nothing to profile — 2 table(s) already profiled. Use Force on the
+run in Profiling jobs to redo them."*
+
+**What happened.** Two failures in one sentence, both about what the reader does next. It counted
+the skipped objects without naming them, so on a source with five views you could not tell whether
+the one you cared about was among the two — the panel had just been used to pick them, and the
+answer was a tab away. And the only way forward it offered was the **Force** button on a *different
+tab*, against the job row that had been created for the run that had just done nothing.
+
+The rule it was obeying was real: "the browse panels never force", so an accidental re-profile
+cannot happen on a first click. But that rule was being paid for by the reader every time the
+common case came up.
+
+**Fix** — `src/data/profilingOutcome.ts`, shared by both browse panels (they differ only by the
+noun). An all-skipped run is now a confirm that names the objects, says what re-profiling does, and
+carries `force: true` on its OK. A *partial* run names its skipped objects in the same words. Names
+are capped at `NAMES_SHOWN` with the remainder counted, never silently truncated.
+
+**Guard** — *mechanical*: the skipped list is interpolated in both branches, the cap is stated, the
+module mentions neither "Profiling jobs" nor "Force", each panel's Start Profiling button calls
+`startProfiling()` unforced while the confirm's `onOk` is the **only** `startProfiling(true)`, and
+neither panel words the outcome itself. Plus a unit-style smoke test over all four branches
+(all-skipped, singular, capped, partial, clean) and a live check that `force: true` really
+re-queues a skipped table.
+
+**Rule** — **a message that reports a count should name what it counted**, when the names are what
+the reader would act on and the list is short enough to say. And **offer the next act where the
+question is asked**: pointing at a control on another screen is a fine thing to *document* and a
+poor thing to *require*. Relaxing a "never do X here" rule is allowed when the rule was protecting
+against an accidental click — put the act behind a confirm rather than behind a different tab.
+
+## A five-second call behind a button spinner, and a break test that a unit word satisfied
+
+**Cost** — asked for from use: a 5s hold on step 3's two acts, then "show a small modal where step 1
+is loading".
+
+**What happened.** `1. Run preview` and `2. Finish` are the only calls in the connect wizard that
+would really reach Google, and both answered before their spinner drew a frame — an act that returns
+instantly teaches that it is free. Pacing them made the opposite problem: five seconds of a button
+spinner that says only "something is happening" reads as a wedged dialog.
+
+**Fix** — `CONNECT_STEP_MS` (5s) holds the *success* reply of `/sources/preview`,
+`/sources/drive/preview`, `/sources` and `/sources/drive`. On the server, so the rule the consent
+stages keep is unbroken: a row advances when its request returns, never on a client timer. Refusals
+answer immediately — a five-second 403 on a mistyped handle is a hang. `ConnectRunPanel` then names
+the act in flight, opening on `busy` (the flag the buttons' spinners already read, so the dialog
+cannot outlive its call), for the Google branches only, with rows from `src/data/connectSteps.ts`.
+The rows themselves moved into **`StageList`**, shared with the sign-in window.
+
+The panel's first shape was one dialog listing **both** acts, the running one spinning and the
+other waiting. Reported from use immediately: under Run preview it had "2. Finish — registering
+the source and its dataset allowlist" on screen, which is work that was not running. It is two
+dialogs now, one per act, each a spinner and a single line saying only what its own call is doing:
+*Discovering the datasets in project vrio-contextweave-demo*, then *Registering project … with the
+datasets you checked.* The explanatory second sentences each had were cut for the same reason the
+disconnect notice has a word budget — a paragraph under a spinner is read once and then never
+again — and what earned its place instead was the **subject**: an id interpolated from the request,
+because a line that could describe any project the account can read is barely a message.
+
+**Guard** — *mechanical*, per endpoint: held on `CONNECT_STEP_MS`, and its refusals not; none of the
+four client handlers holds a timer; the panel is a component rather than a body inside the `Modal`
+(antd portals out of `renderToString`); the message comes from the data module per act; and each
+act's message carries its own unit and **not the other act's verb** — no "registering" in the
+preview line, no "discovering" in the finish one; every one of the four templates carries the
+`{subject}` slot, and the wizard fills both dialogs from the id the request is made with.
+
+**Rule** — **a progress dialog may only describe the call that is running.** A row for the act that
+has not started is a stage that ticks without a request, one step earlier: it puts words on screen
+for work nobody is doing. If two acts need narrating, that is two dialogs.
+
+Two more, about the guards rather than the feature. **Slice a handler at the next
+handler, not at a character count**: a 4000-char window over the BigQuery preview route reached into
+the Drive one, so deleting its own hold still found the neighbour's and the claim could not fail.
+And **a claim that a list is in the right unit has to check every row of it**: `rows.includes(unit)`
+passed a mutation that renamed the second Drive row to "dataset allowlist", because the first row
+still said "folders". Assert the wrong unit is *absent* as well.
+
+## A forced re-profile that ran, on a board that had stopped looking
+
+**Cost** — reported from use: *"when user click again profile table job should run again, it not
+running."* The run was queued and completed on the server the whole time.
+
+**What happened.** `ProfilingJobsTab` loads on mount and then polls **only while
+`active_count > 0`** — the poll that sees 0 stops the loop, which is right for a board nobody is
+adding to. `handleQueued` refreshed the sources and the change signals and switched to the jobs tab,
+but never the jobs list itself; on the first click that worked by accident, because the tab mounted
+fresh and its mount effect loaded.
+
+The re-profile confirm walks straight into the gap. The first click queues an all-skipped job that
+completes instantly, so the board arrives idle and the loop stops. Pressing **Profile 5 table(s)
+again** then posts `force: true`, the server queues a real run — verified: objects `pending`,
+`active_count` 1, and it completes with them `profiled` — and nothing on the page ever asks. The
+list keeps showing the completed job, the tab label keeps saying "Profiling jobs", and no error is
+raised anywhere. It reads as a button that did nothing.
+
+**Fix** — `handleQueued` calls the jobs store's `load()` too. One read puts `active_count` at 1,
+which restarts the poll the board already had.
+
+**Guard** — *mechanical*, two halves: `handleQueued` calls `loadJobs()` (and takes it from
+`useJobsStore`), and the polling effect still returns early at `activeCount === 0` — the claim about
+the first only matters while the second is true, so it says so and fails if the poll ever changes.
+Plus a live store-level test through `useBrowseStore`/`useJobsStore` against a real server: first run
+profiles, second skips everything, the board is idle, the forced run queues, **an untold board still
+reads idle**, one `load()` shows it, and it finishes with the table `profiled`.
+
+**Rule** — **a poll that stops is not a subscription.** Anything that queues work has to tell the
+view that renders it; "it polls" is only true while something is already in flight, and the
+first thing a reader does after a run that did nothing is start one that does. The tell is a feature
+that works the first time and not the second.
+
+## Answer requirements moved out of the brief and onto the question
+
+**Cost** — asked for from use: *"remove answer requirement and add ask tab"*, clarified as
+dropping `answer_formats` entirely and putting the choice under Ask.
+
+**What happened.** Step 6 of the New Graph wizard asked for two things — a citation policy and
+a set of render formats — and stored them on the brief, self-describing, so editing the pool
+could not rewrite what a saved brief promised. The premise was *"the use case declares how
+answers render; the engine never chooses at runtime"*. Nothing ever read the declaration back:
+the citation policy printed on Ask as a sentence, and no answer's blocks were ever chosen from
+`answer_formats`. It was a promise with no keeper.
+
+**Fix** — the wizard is six steps, and the choice is asked for per question on Ask's own
+**Answer requirements** tab. `POST /ask` takes `citations` and `formats`, validates both
+against the server's own pool (unknown format → 400 naming it, before the stream opens), and
+every answer carries `requirements: { citations, formats, satisfied, note }`. **`satisfied` is
+computed**: required citations plus an answer that cites nothing is false, and the page tags it
+`warn`. A format stays **stated, not applied**, in those words, because a recorded answer holds
+the blocks the tenant wrote.
+
+A brief saved on the old step 6 or 7 opens on the new last step — `savedUseCase` clamps the
+stored number rather than leaving a stepper pointing at a step the API would reject.
+
+**Guard** — *mechanical*, and deliberately **one cross-layer block rather than one claim per
+file**: the step list is six and ends on the coverage review; no brief-shaped region of the
+server, the page, the rules or the store mentions `answer_formats` or `citations`;
+`normalizeFormats` and `/graph-answer-formats/suggest` are gone from server, client and store;
+`AnswerRequirementsStep.tsx` is off disk; the page derives every step number from `LAST_STEP`;
+and on the replacement side the tab exists, the panel is its own component, its options come
+from the payload, `satisfied` is the computed expression, and the "stated, not applied" phrase
+reaches the screen. Five of them break-tested. Plus a live end-to-end run (25 assertions: the
+six steps, a refused step 7, the 404'd suggester, the served pool, three answers under
+different requirements, and both refusals) and a render test of the panel (12).
+
+**Rule** — **a declaration nothing reads back is worth less than a request something reports
+on.** When a stored setting has no consumer, the honest move is to ask for it where the work
+happens and report whether it was met — not to keep storing it because the copy sounds
+principled. And two guard lessons, both already recorded and both hit again here: an absence
+claim needs `codeOnly()`, because the comment explaining why a field is *no longer read* names
+it (sixth time); and a whole-file search for `answer_formats` matches `graph_answer_formats`,
+the pool that is *supposed* to still be there — scope the region, or the claim is about the
+wrong thing.

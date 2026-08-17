@@ -138,10 +138,34 @@ Login with Google
     GET /sources/oauth/drives?session=…    the drives, each with a handle
 ```
 
-**There is no popup.** One button runs all three calls, with
-`GoogleConsentPanel` inline beneath it — a row per call. A Google-styled
-click-through window (account chooser → Allow) was built and removed; do not
-re-add one without being asked.
+**The consent happens in a sign-in window** — `GoogleSignInWindow.tsx`, a
+Google-styled click-through with two steps: choose the account, then Allow. (An
+earlier one was built and removed; it was asked for again, and this is it.)
+
+```
+Login with Google  → GET /sources/oauth/start        the window opens on this response
+  [account step]   → the signed-in account, and why there is no second one
+  [consent step]   → one row per scope THAT RESPONSE reported
+  Allow            → GET /sources/oauth/callback     the consent is spent here
+                   → GET /sources/oauth/projects|drives
+  Cancel           → nothing granted, nobody connected, the state goes unspent
+```
+
+**The window opens on the first call's response, not on the click.** It renders
+`start.scopes`, so opening it first would mean opening blank or guessing — and Drive
+asks for two. **Allow is what makes the callback**: nothing is granted while the
+window sits open, `GoogleConsentPanel` shows its row per call *inside* the window
+while it runs, and the window cannot be dismissed mid-request. A failure closes it
+rather than offering Allow again, because the state has been spent either way and a
+second press could only return "invalid or expired state" — the button underneath
+starts a fresh handshake, which is the real retry.
+
+**The account it offers is the browser's, and it says so.** `email`, `name` and
+`initials` come from `useAuthStore`; there is no second account and the window
+explains why rather than showing a greyed-out row that reads as something that
+failed to load. Its footer states that it proves the request is well-formed, not
+that a real Google account is behind it — the same honesty the login page carries.
+`check-docs` asserts the window keeps no scope list of its own.
 
 **The panel lists the scopes `/sources/oauth/start` returned**, not a per-provider
 constant. Drive asks for **two** (`drive.metadata.readonly` *and* `drive.readonly`
@@ -202,12 +226,21 @@ one moment a user should see which scope is being granted. `GoogleConsentPanel`
 shows a row per call, labels from `data/consentStages.ts`, and **a row advances
 only when its request returns**, never on a timer of its own — so the panel
 cannot claim progress the handshake has not made. Add a stage only when there is
-a request behind it. It renders inline under the button while `busy === 'login'`,
-starting at stage 0 — the `/oauth/start` call already in flight.
+a request behind it. It renders inside the sign-in window from
+stage 1 — stage 0, the `/oauth/start` call, is what opened the window.
 
-The button reads "Signing in…" and is disabled meanwhile; the success alert then
-reports the count read (`1 project(s)`, `1 drive(s)` for the seeded demo) — the
-count comes from the response, never a written figure.
+The button reads "Opening Google…" and is disabled while that first call is in
+flight and while the window is open; the success alert then reports the count read
+(`3 project(s)`, `3 drive(s)` with `npm run seed:workspaces` run) — the count comes
+from the response, never a written figure.
+
+**Then the account's workspaces are picked between.** BigQuery lists its projects in
+one searchable Select, by display name with the id beside it — the id is what the
+source registers against, the name is what a human chooses by. Drive is picked in two
+moves: **My Drive / Shared drives**, each carrying its own count, then the drive
+within that kind. Both kinds are always offered; a kind the account has none of shows
+`(0)` and says to pick the other, because a control that disappears reads as broken
+rather than as an empty half of somebody's Drive.
 
 **Only the success path is paced.** A replayed state, an unknown session and a
 cross-provider session all answer in single-digit milliseconds — making an error
@@ -234,11 +267,55 @@ endpoint that accepts a key. Do not reintroduce one.
 ```
 
 Preview validates the handle against the project/drive (a handle for another one
-gets 403) and returns the dataset or folder list, which becomes the allowlist
-checkboxes — all checked, because the copy says "uncheck to exclude". Finish
+gets 403) and returns the dataset or folder list, which becomes the allowlist —
+all checked, because the copy says "uncheck to exclude". Finish
 rejects an empty or unknown list. The Drive preview also reports page counts and
 the distinct MIME types per folder: documents are *counted*, never read, until
 the profiler runs.
+
+**Both acts are paced, on the server, at `CONNECT_STEP_MS` (5s).** Discovering a
+project's datasets and registering a source are the two calls here that would really
+talk to Google, and both returned before their button's spinner drew a frame — an act
+that finishes instantly and shows nothing teaches that it is free. The hold is on the
+four endpoints rather than in the component, so the rule the consent stages follow
+still holds: **a button advances when its request returns, never on a timer the client
+keeps**. Only the success reply waits; every refusal above it (400/401/403/404) answers
+immediately, so a mistyped handle does not take five seconds to report itself.
+`check-docs` asserts both halves per endpoint, and that none of the four handlers
+grows a timer of its own.
+
+**And the act in flight is named — one small modal each, one line each.** Five seconds
+behind a button spinner reads as a wedged dialog, so both acts open `ConnectRunPanel`:
+a spinner and *Discovering the datasets in project vrio-contextweave-demo* under Run
+preview, *Registering project vrio-contextweave-demo with the datasets you checked.* under
+Finish — folders and the drive id, on Drive. **The message names what the call is made
+against**: `{subject}` is interpolated with the id the request itself carries, the way
+`runtime.headroom.sentence` interpolates `{room}`, because "discovering the datasets" could
+be any project the account can read. There is no subject-less variant — step 2 refuses to
+advance without an id, so a fallback would only mask a regression. **Two dialogs, not one
+panel listing both**, because a panel that listed both had "registering the source" on screen
+while nothing was being registered — an act describing work that is not running is the
+same fault as a stage that ticks without a request.
+
+Four things they keep: each opens on its own value of `busy`, the flag the buttons'
+spinners already read (separate state could stay true after the call returned, which is a
+dialog over a finished request); they open for the two Google connectors only, since the
+generic branch has no paced call behind them; the message comes from
+`src/data/connectSteps.ts` per act and in the connector's own unit, never authored in the
+component; and neither act's message carries the other's verb. There is no dismiss —
+nothing here is a decision, and cancelling would leave a five-second call running with
+nothing on screen. The sign-in window's stage rows are `StageList`'s, which these do not
+use: a single act is not a list.
+
+**BigQuery's allowlist is a checkbox group; Drive's is a tree** (`FolderTreePicker`),
+because a drive nests and a project does not. The folders arrive flat with a
+`parent_id` and the tree is built in the component; **checking a folder checks the
+folders inside it**, and the value handed to `POST /sources/drive` stays a plain list
+of folder ids. A folder holding folders states both counts — `3 here · 41 with
+subfolders` — because one number is wrong either way. A folder whose parent is not in
+the list is drawn at the root; the server refuses that shape at boot (`validateDb`
+checks `parent_id` across the drive, and refuses a cycle too), so the component's
+tolerance and the server's refusal are the two halves of one rule.
 
 The dialog **stays open** after Finish so the confirmation stays readable; `Close`
 dismisses it. `onRegistered` refreshes the Sources table without closing.
@@ -265,14 +342,53 @@ The four cards read Registered sources / Profiled tables / Profiled columns /
 Profiled documents. **The last three stay 0** until profiling runs — that is
 correct, not a bug.
 
-Three actions, all through the store:
+Four actions, all through the store:
 
 | Action | Endpoint | Effect |
 |---|---|---|
-| Edit datasets *(BigQuery)* | `PUT /sources/:id/datasets` | narrows the allowlist; catalogue follows immediately |
-| Edit folders *(Drive)* | `PUT /sources/:id/folders` | the same, in folders |
-| Disconnect | `POST /sources/:id/disconnect` | revokes the credential, **keeps** the registration |
-| Delete | `DELETE /sources/:id` | removes it and its catalogue rows |
+| Edit datasets *(BigQuery)* | `PUT /sources/:id/datasets` | narrows the allowlist; catalogue follows immediately. **Disabled while disconnected** |
+| Edit folders *(Drive)* | `PUT /sources/:id/folders` | the same, in folders. Same rule |
+| Disconnect | `POST /sources/:id/disconnect` | revokes the credential, **keeps** the registration and everything profiled |
+| Reconnect *(disconnected rows)* | `POST /sources/:id/reconnect` | re-issues the handle **in place** — the undo for Disconnect |
+| Delete | `DELETE /sources/:id` | removes it, its profiled objects and their notes. No undo |
+
+**Both destructive actions warn first, through `SourceImpactNotice`** — one component,
+so the two cannot describe the same app differently, and its own component because a
+Popconfirm portals out of `renderToString` and inline copy there cannot be asserted on.
+
+What the warning is allowed to say is pinned by `check-docs`:
+
+- **Which pages close** — Data Catalogue, Profiling jobs, Change signals, Traces and
+  Validation, which really do gate on a connected source, plus New Graph's Sources step.
+- **Which keep answering** — Ask, Reports, Graph Studio, the What-if lens and Audit &
+  Governance, which gate on a *published graph*. Every one of those names is checked
+  against the gate its page renders, because telling somebody Ask goes dark is a claim
+  the next click disproves.
+- **Only when it applies.** The page counts the other connected rows and passes the
+  number; with another source connected the notice says no page closes at all.
+- **Reversible in those words, and performed.** Disconnect's undo is the Reconnect
+  button, which keeps every profiled object — verified end to end (1 table / 10 columns
+  before, after disconnect, and after reconnect). Re-registering through the wizard is
+  *not* the undo: `POST /sources` builds a fresh record and the profile drops to 0/0
+  (also verified), which is why Delete's line says connecting it again starts from
+  nothing profiled.
+- **Three lines, not an essay.** The first draft ran ~75 words on a routine disconnect;
+  the smoke test now holds each branch to a word budget, so the next sentence somebody
+  wants to add has to earn its place. The page lists appear **only** when this is the
+  last connected source — otherwise the notice says just "no page closes".
+
+A disconnected row shows **Reconnect** in place of Disconnect: two buttons where only
+one can ever apply is a row asking a question it has already answered.
+
+**And a disconnected row cannot have its allowlist edited.** It holds no credential, so
+widening what it may profile promises access it cannot make. The button is disabled
+*with a tooltip saying which reason applies* — disconnected, or a stubbed connector with
+no discovery — because a greyed-out control with nothing on it reads as broken, and here
+the fix is one button along. **The server refuses the same write on both `/datasets` and
+`/folders`**: a disabled button is only a courtesy to whoever is looking at it, and any
+other path into the route would otherwise store an allowlist nothing can act on — the
+same reasoning as the fixed Settings permission. Verified end to end: 200 connected →
+400 disconnected → 200 after Reconnect.
 
 One button, two modals: the row's `kind` picks `EditDatasetsModal` or
 `EditFoldersModal`. Each allowlist endpoint refuses the other connector's source
@@ -306,6 +422,30 @@ something; before, it would often have echoed the project id.
 
 Neutral tints, not `STATUS`: a name is not a state. The id ellipsises before the
 name does, because its project part is repeated on the meta line under it.
+
+### The two actions, and how a panel closes
+
+The detail column offers exactly two moves — **Browse … for profiling** and **View
+profiled …** — and both are toggles whose **fill is the state**: the one whose panel is
+open is the brand orange (antd `primary`), the other is white (`default`). Neither is
+permanently the primary; that ranking was wrong in both directions, since on a source
+with nothing profiled the browse panel is the only way forward and on a profiled one
+the dictionary is what you came for. The stylesheet paints neither — `type` decides,
+so the brand colour stays declared once, in `theme.ts`.
+
+**The panels have no ✕ of their own.** Each one carried a `close` link above its
+content, which meant two controls for one piece of state and only one of them showed
+what that state was. The button that opened a panel closes it — which puts real weight
+on that fill, since it is now the only thing saying which panel is open. So it is never
+colour alone: **`aria-pressed`** carries the same fact to a screen reader, and a line
+under the row says it in words while a panel is open — and only then, or it is an
+instruction for a state the reader is not in. `browseOpen` / `dictionaryOpen` are
+*derived* from `panel`; a second piece of state beside it is how a button comes to look
+open with nothing under it.
+
+`check-docs` asserts the removal on all four panels at once (no `CloseOutlined`, no
+`onClose`), because half of it is worse than all of it: a ✕ wired to a prop nobody
+passes is a button that does nothing.
 
 ### Browse
 
@@ -369,13 +509,29 @@ sends the objects back to the endpoint the job's `kind` came from.
 Two behaviours that look like bugs but are not:
 
 - An already-profiled table or document is **skipped**. The browse panels never
-  force — their footer is `Select all · Select none · Start Profiling`.
-  Re-profiling is done per-run from the **Force** button on a row in Profiling
-  jobs, which re-queues that job's object set with `force: true`.
+  force on the first click — their footer is `Select all · Select none · Start
+  Profiling`, and Profiling jobs keeps its per-row **Force** for a run that has
+  already finished.
 - A forced commit updates the object's record **in place** — `profiled_tables`
   and `profiled_columns` do not double on a re-run, but `profiled_at` moves.
 - If everything selected is already profiled, the job completes instantly with
-  `nothing to profile` instead of faking a 12-second run.
+  `nothing to profile` instead of faking a 12-second run — **and that outcome is a
+  question, not a notice.** `profilingOutcome` (`src/data/profilingOutcome.ts`,
+  shared by both panels so they differ only by the noun) turns it into a confirm
+  that **names the objects** — `2 table(s) already profiled: route_segments and
+  transporter_manifests.` — says what re-profiling does (re-reads them, replaces
+  what the profiler wrote, in place), and puts `force: true` behind its OK.
+
+  The message this replaced was *"Nothing to profile — 2 table(s) already profiled.
+  Use Force on the run in Profiling jobs to redo them."* It never said which two, so
+  on a five-view source you could not tell whether the one you cared about had run;
+  and the only way forward it offered was on another tab, against the job that had
+  just done nothing. A partial run names its skipped objects for the same reason.
+  Names are capped at `NAMES_SHOWN` (6) with the remainder counted — **no cap is
+  silent**, the rule the report charts follow.
+
+  `check-docs` asserts the Start Profiling button does not force and that the
+  confirm's `onOk` is the only path that does.
 
 ### Watching it
 
@@ -383,7 +539,17 @@ Starting a run **switches to the Profiling jobs tab** — from the Catalogue tab
 queued job is invisible, which was the whole point of making it async.
 
 `ProfilingJobsTab` polls every 3s **only while `active_count > 0`**; the poll that
-sees zero stops the loop, so there is no traffic at rest. Active rows are
+sees zero stops the loop, so there is no traffic at rest.
+
+**So queueing a run has to tell the board — `handleQueued` loads the jobs list**, not just
+the sources and the signals. A poll that stops is not a subscription: the first click
+mounts the tab and its mount effect loads, but a *second* run started with the tab already
+open lands on an idle board that never asks again. That is the re-profile confirm exactly —
+"Profile N table(s) again" queued a run that really ran, while the list kept showing the
+all-skipped job that completed instantly, which reads as a button that did nothing and
+raises no error anywhere.
+
+Active rows are
 expanded by default, tracked as *opt-outs* so a job appearing mid-poll shows its
 progress without a click. The bar is blue while running, green on complete, amber
 on cancelled. `Cancel` → `POST /profiling-jobs/:id/cancel`; cancelling twice
@@ -577,24 +743,33 @@ between `message.success` and `message.error`. No component contains a
 **Files:** `NewGraphPage.tsx` → `graphStore.ts` → `GET /graph-domains`,
 `GET|POST /graph-use-cases`, `DELETE /graph-use-cases/:id`
 
-Seven steps, and the premise is inverted from every other flow: **the user
+Six steps, and the premise is inverted from every other flow: **the user
 describes a business need and the AI derives the graph.** Nobody types an entity
 name — do not add a field that asks for one.
 
 ```
 1 Domain → 2 Personas → 3 KPIs → 4 Sources → 5 Hero questions
-        → 6 Answer requirements → 7 Entities & relationships
+        → 6 Entities & relationships
 ```
 
 Labels come from `WIZARD_STEPS` in `server.mjs` via the `/graph-use-cases`
 payload, so the stepper and the server's `step` validation are the same list.
-**All seven steps are built.**
+**All six steps are built.**
+
+**'Answer requirements' was step 6 and is gone — see Flow 7 (Ask).** The citation policy
+and the render format were declared once per brief; they are asked for per question on
+Ask's own tab now, so nothing on a brief stores them and
+`/graph-answer-formats/suggest` went with the step. A brief saved on the old step 6 or 7
+opens on the new last step — `savedUseCase` clamps the stored number, because a stepper
+pointing at a step the API would reject is worse than opening one screen further back.
+The page keeps the count in `LAST_STEP` (one constant, because it has changed once
+already); `stepTotal` still reads the server's list.
 
 ### Step gating
 
 **A step unlocks only once the one before it is complete.** `stepIssue(step,
 draft)` in `src/data/wizardSteps.ts` is the single definition of "complete" —
-`Next`, the stepper's lock and step 7's build button all read it, so none of them
+`Next`, the stepper's lock and the last step's build button all read it, so none of them
 can disagree about whether a step is done. It returns the message shown to the
 user, so each rule names the fix rather than the rule:
 
@@ -605,8 +780,7 @@ user, so each rule names the fix rather than the rule:
 | 3 KPIs | at least one KPI |
 | 4 Sources | the four checks below |
 | 5 Hero questions | at least one question |
-| 6 Answer requirements | at least one question type selected |
-| 7 Entities & relationships | every gap decided — the build gate |
+| 6 Entities & relationships | every gap decided — the build gate |
 
 `maxStep` on the page is how far the draft has been taken, restored from the
 saved `step` when a use case is opened. A step past it renders `is-locked` with a
@@ -649,7 +823,7 @@ profile a source and the backed domain climbs to the top.
 
 `Next` refuses an unnamed use case or an unpicked domain, then **saves before
 advancing**, so a reload never loses the last answer. The domain is also
-enforced server-side, because every later step derives from it. Step 7's primary
+enforced server-side, because every later step derives from it. The last step's primary
 action commits — status `committed`, which is what makes a row read "ready to
 build".
 
@@ -803,43 +977,28 @@ two-valued on purpose — a third tier would invite ranking instead of choosing.
 The server de-duplicates by text (case-insensitively), caps at 20, accepts a bare
 string from an older draft, and **rejects a question with no text**.
 
-### Step 6 · Answer requirements
+### Step 6 · Answer requirements — removed
 
-**Files:** `AnswerRequirementsStep.tsx` → `useAnswerFormatStore` →
-`POST /graph-answer-formats/suggest`
+The step is gone. Citations and the render format are chosen **per question**, on Ask's
+own Answer requirements tab — Flow 7 documents it. What went with it:
+`AnswerRequirementsStep.tsx`, `useAnswerFormatStore`,
+`POST /graph-answer-formats/suggest`, and the `citations` / `answer_formats` fields on a
+saved brief. The reason is that a declaration nothing checks is worth less than a request
+something reports on: Ask now says, per answer, whether the citations asked for were
+really carried.
 
-Two declarations, and the step exists so they are *declarations*:
+Two things a re-add would have to face, both recorded here because they were the
+step's own claims: it declared how answers render *for every answer the graph would
+ever give*, which the engine never consulted at runtime; and its formats were ranked
+by `suggestFrom` down to three, out of a pool of ten that a reader can now see in full.
 
-- **Citations** — a pair of pills, `Required — every claim cites its source` or
-  `Optional`. Required is the default: a graph that cannot show its source is not
-  auditable, so opting out is the deliberate act.
-- **Answer format by question type** — checkbox cards, each a question type over
-  its render recipe (`Cost drivers` / *narrative + drivers table + trend*). The
-  three shown are drafted from the domain and the brief by the same
-  `suggestFrom` ranking, limited to three because this step picks between
-  formats rather than accumulating them.
-
-The note under the cards is the point of the whole step: *the use case declares
-how answers render; the engine never chooses the format at runtime.*
-
-Unlike steps 2, 3 and 5 there is no Suggest button — the formats **load on
-arrival**, since a choice you cannot see is not a choice.
-
-Saved as `citations` plus `answer_formats: [{ format_id, name, format }]`, stored
-**self-describing on purpose**: editing the pool in `db.json` later must not
-silently change what an already-saved brief promised. A bad `citations` value, a
-format with no `format_id` or `name`, or a non-array is a 400.
-
-The primary action here reads **Generate use-case brief →**, not Next: this is
-the last step the user answers, and step 7 is what the AI derives from it.
-
-### Between 6 and 7 · the derivation run
+### Between 5 and 6 · the derivation run
 
 **Files:** `LlmRun.tsx` → `useDerivationStore` → `POST /graph-derivations`,
 `GET /graph-derivations/:id`
 
 `Generate use-case brief` hands the answers to a derivation and advances
-immediately. Step 7 then shows the run rather than a blank wait:
+immediately. The last step then shows the run rather than a blank wait:
 
 ```
                         ◜  spinner
@@ -856,7 +1015,7 @@ a wizard that jumps straight to a finished answer teaches that deriving a graph 
 instant and free. Entity names stream in proportionally to the bar; cost accrues
 per stage and stops at the cap.
 
-The page polls every 700ms **only while the run is in flight**. Arriving at step 7
+The page polls every 700ms **only while the run is in flight**. Arriving at step 6
 without a run — by clicking the stepper — reviews directly through
 `/graph-coverage` instead, so the step is never blank just because the run started
 elsewhere. Starting a new derivation clears any gap decisions: they were answers
@@ -872,7 +1031,7 @@ deliberately**: there is no model here, so they would otherwise return in about
 teaching that the call is free. Cost is deterministic per brief, and the strip
 shows no figure at all until a run has reported one.
 
-### Step 7 · Entities & relationships (coverage review)
+### Step 6 · Entities & relationships (coverage review)
 
 **Files:** `CoverageStep.tsx` → `useCoverageStore` → `POST /graph-coverage` ·
 build gate in `data/coverage.ts`
@@ -901,7 +1060,7 @@ the graph cannot answer, and shipping it silently is the failure this step exist
 to prevent.
 
 The review is **re-derived on every arrival**, never cached — narrowing a source
-pick on step 4 immediately narrows what step 7 reports.
+pick on step 4 immediately narrows what step 6 reports.
 
 **Where it fails:** an unnamed draft → 400 (`name is required`), an unknown
 domain or an out-of-range step → 400, opening a use case the server no longer has
@@ -917,7 +1076,7 @@ keeps its state.
 `GET|POST /graph-studio/:useCaseId…`
 
 ```
-New Graph step 7 · Save & build graph
+New Graph step 6 · Save & build graph
         → POST /graph-use-cases              commits the brief (pin_inputs)
         → POST /graph-studio/:id/builds       202 + a queued run
         → /graph-studio/:useCaseId            lands on Build, watching that run
@@ -984,7 +1143,7 @@ being published is the one you are looking at.
 
 ### The list
 
-Only graphs that have been **built** — a use case committed on step 7. Each row
+Only graphs that have been **built** — a use case committed on the last step. Each row
 carries its name, domain, `draft v15` / `published`, when it was built, and the
 one number that decides whether it can ship: how many items still need a human.
 
@@ -1295,10 +1454,14 @@ unpublishing a row that is not the published one → 400.
 
 ## Flow 9 — Ask: querying a published graph
 
-`AskPage.tsx` → `askStore` → `GET /ask` · `POST /ask`
+`AskPage.tsx`, `AnswerRequirementsPanel.tsx` → `askStore` → `GET /ask` · `POST /ask`
 
 Where the graph gets used. Everything before this flow produces a graph; this is
 the flow that spends it.
+
+**Two tabs: Ask, and Answer requirements.** The second is where step 6 of the New Graph
+wizard went — see Flow 6. Both sit behind the one publish gate; only `PageHeader` and the
+graph picker are outside it.
 
 ### What can be asked
 
@@ -1310,14 +1473,42 @@ and returns each with the facts the page prints:
 |---|---|
 | `version` | the live published version, never the draft counter |
 | `published_at` / `published_by` | the publish record in Graph Studio |
-| `caveats` | step 7's gap decisions, read back through `GAP_CAVEAT` |
-| `citations` | step 6's promise — `required` or `optional` |
+| `caveats` | the coverage step's gap decisions, read back through `GAP_CAVEAT` |
 | `suggested_questions` | the use case's hero questions, verbatim |
 | `entity_count` / `relationship_count` | the canvas |
 
 Nothing here is page copy dressed as data. A suggestion chip is a hero question
 the brief already committed to; a chip for something the graph was never built
 for would be a trap.
+
+**A graph no longer carries a citations policy.** It was the brief's, declared on the
+removed step 6 and inherited by every answer; it is the reader's per question now, so it
+rides on the *answer* rather than on the graph. A graph-level copy would be a second
+answer to "what did this reader require".
+
+### Answer requirements — what a reader asks an answer to carry
+
+`AnswerRequirementsPanel` renders the pool `GET /ask` serves as
+`answer_requirements`: the two citation options with their labels, the default, the ten
+formats with their recipes, and the note. **Served, not written into the component** —
+for the reason the consent screen renders the scopes the endpoint returned, because a
+client-held list can offer a value `POST /ask` refuses. The pick travels with the
+question (`citations`, `formats: [format_id]`), and `selectCitations` in `askStore` is the
+single definition of the effective value: the reader's choice, or the served default.
+
+**The answer reports on it, computed rather than asserted.** Every envelope carries
+`requirements: { citations, formats, satisfied, note }`:
+
+- **Citations really apply.** `satisfied` is `citations !== 'required' || cited > 0`, so
+  asking for citations and getting an answer that cites nothing is false and the page
+  tags it `warn`. An abstention says nothing was answered, so there is nothing to cite.
+- **A format is stated, not applied**, in those words. A recorded answer holds the blocks
+  the tenant wrote; claiming it was rendered to order is a claim the screen underneath
+  disproves. Same two-gate honesty as a report's audience versus its data scope.
+
+**Where it fails:** an unknown `format_id` → 400 naming the pool; a `citations` value
+outside the two → 400 naming them. Both refuse **before the stream opens** — an error
+must never arrive as an event inside a 200 — and neither is paced.
 
 ### The empty page
 

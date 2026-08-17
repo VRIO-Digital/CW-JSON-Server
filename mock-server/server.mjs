@@ -37,6 +37,7 @@
  *   POST   /sources/drive                  { drive_id, credential_handle, folders, source_name }
  *   GET    /sources                        registered rows only
  *   POST   /sources/:id/disconnect
+ *   POST   /sources/:id/reconnect          re-issues the handle; keeps everything profiled
  *   PUT    /sources/:id/datasets           { datasets }
  *   PUT    /sources/:id/folders            { folders }
  *   DELETE /sources/:sourceId
@@ -53,9 +54,8 @@
  *   POST   /graph-kpis/suggest             step 3 draft { domain_id, business_need }
  *   GET    /graph-sources                  step 4: connected sources + profiled objects
  *   POST   /graph-questions/suggest         step 5 draft { domain_id, business_need }
- *   POST   /graph-answer-formats/suggest    step 6 formats { domain_id, business_need }
- *   POST   /graph-coverage                 step 7 review { name, sources, hero_questions }
- *   POST   /graph-derivations              step 6 -> 7 run; 202 + poll
+ *   POST   /graph-coverage                 step 6 review { name, sources, hero_questions }
+ *   POST   /graph-derivations              step 5 -> 6 run; 202 + poll
  *   GET    /graph-derivations/:derivationId
  *   GET    /graph-studio                   the graphs that have been built
  *   GET    /graph-studio/:useCaseId        that graph's queue, pivot, gate
@@ -70,7 +70,7 @@
  *   POST   /graph-studio/:id/versions/:sha/unpublish  take it out of Ask
  *   POST   /graph-studio/:id/quality-check checks the publish preconditions
  *   GET    /ask                            the graphs that are live, so askable
- *   POST   /ask                            { use_case_id, question } asked of the live one
+ *   POST   /ask                            { use_case_id, question, citations, formats }
  *   GET    /graph-use-cases                saved drafts + committed use cases
  *   POST   /graph-use-cases                upsert a draft { use_case_id?, name, ... }
  *   DELETE /graph-use-cases/:useCaseId
@@ -199,6 +199,18 @@ const oauthStates = new Map()
 const CONSENT_START_MS = 900
 const CONSENT_MS = 1400
 const DISCOVERY_MS = 800
+
+/*
+ * How long step 3's two acts are held — `1. Run preview` and `2. Finish`, on both
+ * connectors. Discovering a project's datasets and registering a source are the
+ * two calls in this wizard that would really talk to Google, and both returned
+ * before the button's spinner drew a frame: an act that finishes instantly and
+ * shows nothing teaches that it is free. Same reasoning as CONSENT_MS and the
+ * profiler's stage timers, and the same rule — **the button advances when its
+ * request returns, not on a timer**, so the hold is here rather than in the
+ * component, and every refusal above it answers immediately.
+ */
+const CONNECT_STEP_MS = 5000
 
 /**
  * How short a source name may be.
@@ -820,6 +832,44 @@ function validateDb(candidate) {
             `graph_studio.sanity_checks "${check.check_id}" walks edge "${id}", which is ` +
               'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
           )
+        }
+      }
+    }
+  }
+
+  /*
+   * A drive is a tree, stored flat: a folder points at its parent, and the connect wizard draws
+   * the nesting from those pointers. A `parent_id` naming no folder of the same drive fails the
+   * same silent way a dangling canvas edge does — the child is not refused, it is drawn at the
+   * root, so a subfolder of "Active matters" appears to be a top-level folder of its own and the
+   * allowlist looks like it covers more of the drive than it does. A cycle is worse: the tree
+   * walk never reaches the root and the folder simply is not drawn at all.
+   */
+  if (problems.length === 0) {
+    for (const drive of candidate.drives) {
+      const own = new Map(drive.folders.map((f) => [f.folder_id, f]))
+      for (const folder of drive.folders) {
+        const parentId = folder.parent_id ?? null
+        if (parentId !== null && !own.has(parentId)) {
+          problems.push(
+            `drive "${drive.drive_id}" folder "${folder.folder_id}" names parent ` +
+              `"${parentId}", which is not a folder of that drive — it would be drawn at the ` +
+              'root instead, which reads as a folder nobody nested',
+          )
+          continue
+        }
+        const seen = new Set([folder.folder_id])
+        let cursor = parentId
+        while (cursor !== null && cursor !== undefined) {
+          if (seen.has(cursor)) {
+            problems.push(
+              `drive "${drive.drive_id}" folder "${folder.folder_id}" is its own ancestor — ` +
+                'a cycle in parent_id leaves the folder off the tree entirely',
+            )
+            break
+          }
+          seen.add(cursor)
+          cursor = own.get(cursor)?.parent_id ?? null
         }
       }
     }
@@ -1746,13 +1796,22 @@ function queueJob({ sourceId, kind, unit, objects, force }) {
  * The New Graph wizard. The labels live here rather than in the page so the
  * stepper the user clicks and the `step` this server accepts are the same list.
  */
+/*
+ * Six steps.
+ *
+ * **'Answer requirements' was the seventh and is gone from the brief.** Citations and
+ * the render format are chosen where an answer is actually asked for — a tab on Ask —
+ * rather than declared once by the use case, so nothing in this list stores them any
+ * more. A brief that had reached the old step 6 or 7 opens on 'Entities &
+ * relationships': `savedUseCase` clamps the stored number to this list's length, which
+ * is the only remap that cannot point at a step that no longer exists.
+ */
 const WIZARD_STEPS = [
   'Domain',
   'Personas',
   'KPIs',
   'Sources',
   'Hero questions',
-  'Answer requirements',
   'Entities & relationships',
 ]
 
@@ -1835,26 +1894,6 @@ function normalizeDrafted(list) {
 }
 
 /**
- * Answer formats as stored, self-describing on purpose: the use case declares
- * how its answers render, so editing the pool in db.json later must not silently
- * change what an already-saved brief promised.
- */
-function normalizeFormats(list) {
-  const seen = new Set()
-  const out = []
-
-  for (const entry of Array.isArray(list) ? list : []) {
-    const raw = entry ?? {}
-    const formatId = String(raw.format_id ?? '').trim()
-    const name = String(raw.name ?? '').trim()
-    if (!formatId || !name || seen.has(formatId)) continue
-    seen.add(formatId)
-    out.push({ format_id: formatId, name, format: String(raw.format ?? '').trim() })
-  }
-  return out
-}
-
-/**
  * Hero questions as stored: the question, whether it is High, and who wrote it.
  *
  * `priority` is deliberately two-valued. High means "this is the graph's
@@ -1914,7 +1953,7 @@ const matchScore = (seed) => Number((0.86 + (hash(seed) % 14) / 100).toFixed(2))
 
 /**
  * The profiled objects a use case's source picks actually resolve to, with the
- * detail step 7 needs: the table it came from, its size, and its columns.
+ * detail step 6 needs: the table it came from, its size, and its columns.
  *
  * Walks `registered` rather than `graphSources()` because coverage needs row
  * counts and the column dictionary, which the step 4 payload deliberately does
@@ -1986,7 +2025,7 @@ const STOPWORDS = new Set([
 ])
 
 /**
- * Step 7's coverage review.
+ * Step 6's coverage review.
  *
  * Every element is derived from something that has actually been profiled: an
  * entity is a profiled table or document, and its evidence names that object.
@@ -2095,7 +2134,7 @@ function graphCoverage({ name, picks, heroQuestions }) {
 }
 
 /*
- * The derivation run between step 6 and step 7.
+ * The derivation run between step 5 and step 6.
  *
  * The answer is computed up front — `graphCoverage` is deterministic — but it is
  * revealed over five stages on timers, the same way the Metadata Profiler is.
@@ -2565,7 +2604,7 @@ function liveVersion(useCaseId) {
   return publishedVersion(useCaseId)?.config_version ?? null
 }
 
-/** A graph is in the studio once it has been built — committed on step 7. */
+/** A graph is in the studio once it has been built — committed on the last step. */
 const builtGraphs = () =>
   db.graph_use_cases.filter((u) => u.status === 'committed')
 
@@ -3281,7 +3320,7 @@ const GAP_CAVEAT = {
 /**
  * What a live graph has already admitted it cannot answer.
  *
- * Not invented here: these are step 7's gap decisions read back, matched to the
+ * Not invented here: these are the coverage step's gap decisions read back, matched to the
  * hero question they were taken against. A gap accepted permanently is a
  * standing caveat for every question asked of this graph, so the page prints it
  * before the first question rather than letting it surface as an abstention
@@ -3330,8 +3369,10 @@ function askableGraph(useCase) {
     published_by: publishedByFor(useCase.use_case_id),
     graph_id: published.graph_id,
     sha256: published.sha256,
-    // Step 6 decided this, so the engine never picks at runtime.
-    citations: useCase.citations === 'optional' ? 'optional' : 'required',
+    /* No `citations` here any more. The brief used to declare it on step 6 and every
+       answer inherited it; it is now asked for per question on Ask's own tab, so it
+       rides on the *answer* rather than on the graph. A graph-level copy would be a
+       second answer to "what did this reader require". */
     caveats: askCaveats(useCase),
     suggested_questions: normalizeQuestions(useCase.hero_questions).map((q) => q.text),
     entity_count: canvas.node_count,
@@ -3408,7 +3449,103 @@ function matchAskAnswer(question) {
 /** How much of the asked question a recorded one must cover to be served. */
 const ASK_MATCH_MIN = 0.6
 
-function askAnswer(useCase, question) {
+/*
+ * Answer requirements — what a reader wants an answer to carry, chosen per question
+ * on Ask's own tab.
+ *
+ * **This used to be step 6 of the wizard**, where the use case declared it once for
+ * every answer it would ever give. It moved because the reader asking is the one who
+ * knows what they need this answer to be, and because a declaration nothing checks is
+ * worth less than a request something reports on.
+ *
+ * The pool is the server's: the formats are `db.graph_answer_formats`, and the two
+ * citation options are authored here rather than in the component, for the reason the
+ * consent screen renders the scopes the endpoint returned — a client holding its own
+ * list can offer a value the API refuses.
+ */
+const CITATION_OPTIONS = [
+  { value: 'required', label: 'Required — every claim cites its source' },
+  { value: 'optional', label: 'Optional' },
+]
+const DEFAULT_CITATIONS = 'required'
+
+/**
+ * The formats a reader may ask for, self-describing on the way out so the page never
+ * has to look a name up by id.
+ */
+const askAnswerFormats = () =>
+  (db.graph_answer_formats ?? []).map((f) => ({
+    format_id: f.format_id,
+    name: f.name,
+    format: String(f.format ?? ''),
+  }))
+
+/**
+ * What the reader asked for, as the payload will state it — or a 400.
+ *
+ * Returned rather than thrown so the route can refuse before the stream opens: an
+ * error must never arrive as an event inside a 200.
+ */
+function askRequested(body) {
+  const citations = body.citations ?? DEFAULT_CITATIONS
+  if (!CITATION_OPTIONS.some((o) => o.value === citations)) {
+    return { error: `citations must be one of: ${CITATION_OPTIONS.map((o) => o.value).join(', ')}` }
+  }
+  const asked = body.formats === undefined ? [] : body.formats
+  if (!Array.isArray(asked)) {
+    return { error: 'formats must be an array of format_id' }
+  }
+  const pool = askAnswerFormats()
+  const unknown = asked.filter((id) => !pool.some((f) => f.format_id === id))
+  if (unknown.length > 0) {
+    return {
+      error: `unknown answer format(s): ${unknown.join(', ')} — this graph offers ${pool
+        .map((f) => f.format_id)
+        .join(', ')}`,
+    }
+  }
+  return { citations, formats: pool.filter((f) => asked.includes(f.format_id)) }
+}
+
+/**
+ * Whether the answer met what was asked of it — **computed, never asserted**.
+ *
+ * Citations are the half that really applies: required plus an answer carrying none is
+ * a fact this can check, and it says so rather than passing the answer off as
+ * compliant. The render format is **stated, not applied** — a recorded answer holds
+ * the blocks the tenant wrote, and claiming they were rendered to order would be a
+ * claim the screen underneath disproves. Same two-gate honesty as a report's audience
+ * versus its data scope.
+ */
+function askRequirements(requested, citations, answered) {
+  const cited = citations.length
+  const satisfied = requested.citations !== 'required' || cited > 0
+
+  const citationNote =
+    requested.citations === 'required'
+      ? cited > 0
+        ? `Citations required — ${cited} attached, one per claim this answer rests on.`
+        : answered
+          ? 'Citations required, and this answer carries none: nothing on the route names a source.'
+          : 'Citations required, but nothing was answered, so there is nothing to cite.'
+      : `Citations optional — ${cited} attached.`
+
+  const formatNote =
+    requested.formats.length > 0
+      ? ` Requested render: ${requested.formats
+          .map((f) => f.name)
+          .join(', ')} — stated, not applied: an answer renders as the blocks it holds.`
+      : ''
+
+  return {
+    citations: requested.citations,
+    formats: requested.formats,
+    satisfied,
+    note: `${citationNote}${formatNote}`,
+  }
+}
+
+function askAnswer(useCase, question, requested = { citations: DEFAULT_CITATIONS, formats: [] }) {
   const id = useCase.use_case_id
   const graph = askableGraph(useCase)
   const walk = studioQuery(id, question)
@@ -3480,6 +3617,7 @@ function askAnswer(useCase, question) {
         path: [],
         reasoning: [...reasoning, { step: 'Declined', detail: a.summary }],
         citations,
+        requirements: askRequirements(requested, citations, false),
         summary: a.summary,
         blocks: a.blocks,
         answer_id: a.answer_id,
@@ -3495,6 +3633,7 @@ function askAnswer(useCase, question) {
       path: walk.answerable ? walk.path_labels : [],
       reasoning,
       citations,
+      requirements: askRequirements(requested, citations, true),
       summary: a.summary,
       blocks: a.blocks,
       answer_id: a.answer_id,
@@ -3517,6 +3656,7 @@ function askAnswer(useCase, question) {
       path: [],
       reasoning: [grounding, { step: 'Abstained', detail: walk.reason }],
       citations: [],
+      requirements: askRequirements(requested, [], false),
       // One shape either way: a walk produces prose, not blocks, and the client
       // renders whichever it is given rather than branching on presence.
       summary: null,
@@ -3574,10 +3714,14 @@ function askAnswer(useCase, question) {
         step: 'Composed the answer',
         detail:
           `Confidence ${confidence.toFixed(2)} — the weakest entity on the route. ` +
-          `${citations.length} citation(s); citations are ${graph.citations} for this use case.`,
+          /* The reader's own requirement for *this* question, not a promise the brief
+             made about every answer: step 6 no longer exists and the use case declares
+             nothing here. */
+          `${citations.length} citation(s); citations are ${requested.citations} for this question.`,
       },
     ],
     citations,
+    requirements: askRequirements(requested, citations, true),
     summary: null,
     blocks: [],
     answer_id: null,
@@ -3595,10 +3739,15 @@ const savedUseCase = (u) => ({
   kpis: normalizeDrafted(u.kpis),
   sources: normalizeSourcePicks(u.sources),
   hero_questions: normalizeQuestions(u.hero_questions),
-  citations: u.citations === 'optional' ? 'optional' : 'required',
-  answer_formats: normalizeFormats(u.answer_formats),
   gap_decisions: normalizeGapDecisions(u.gap_decisions),
-  step: u.step ?? 1,
+  /*
+   * Clamped, because the step list got shorter. A brief saved on the old 'Answer
+   * requirements' (6) or 'Entities & relationships' (7) opens on the new last step —
+   * every answer it holds is still there, and the alternative is a stepper pointing at
+   * a step that does not exist. `citations` and `answer_formats` may still sit on an
+   * older record in db.json; they are simply not read, and the next save drops them.
+   */
+  step: Math.min(Math.max(Number(u.step ?? 1), 1), WIZARD_STEPS.length),
   step_total: WIZARD_STEPS.length,
   updated_at: u.updated_at ?? null,
 })
@@ -6073,6 +6222,9 @@ const routes = [
         drive_id: drive.drive_id,
         folders: drive.folders.map((f) => ({
           folder_id: f.folder_id,
+          // A folder's parent, so a caller can draw the drive as the tree it is
+          // rather than as a flat list of paths. `null` at the root.
+          parent_id: f.parent_id ?? null,
           name: f.name,
           path: f.path,
           document_count: f.documents.length,
@@ -6281,7 +6433,7 @@ const routes = [
       const project = findProject(project_id)
       if (!project) return send(res, 404, { error: `unknown project ${project_id}` })
 
-      send(res, 200, {
+      const payload = {
         project_id,
         dataset_count: project.datasets.length,
         datasets: project.datasets.map((d) => ({
@@ -6292,7 +6444,8 @@ const routes = [
           column_count: d.tables.reduce((s, t) => s + (t.columns ?? 0), 0),
         })),
         registered: false,
-      })
+      }
+      setTimeout(() => send(res, 200, payload), CONNECT_STEP_MS).unref?.()
     },
   },
 
@@ -6317,7 +6470,7 @@ const routes = [
       const drive = findDrive(drive_id)
       if (!drive) return send(res, 404, { error: `unknown drive ${drive_id}` })
 
-      send(res, 200, {
+      const payload = {
         drive_id,
         display_name: drive.display_name,
         kind: drive.kind,
@@ -6325,6 +6478,14 @@ const routes = [
         document_count: drive.folders.reduce((s, f) => s + f.documents.length, 0),
         folders: drive.folders.map((f) => ({
           folder_id: f.folder_id,
+          /*
+           * A drive is a tree, and the allowlist is picked from it. The folders stay one flat
+           * list — every walk over them, here and in `validateDb`, is unchanged — and the
+           * parent pointer is what lets the wizard draw the nesting. `null` is a root, and the
+           * key is present on every folder including the package's own, so "no parent" is never
+           * confused with "seeded before nesting existed".
+           */
+          parent_id: f.parent_id ?? null,
           name: f.name,
           path: f.path,
           description: f.description,
@@ -6334,7 +6495,8 @@ const routes = [
           file_types: [...new Set(f.documents.map((d) => d.mime_type))],
         })),
         registered: false,
-      })
+      }
+      setTimeout(() => send(res, 200, payload), CONNECT_STEP_MS).unref?.()
     },
   },
 
@@ -6394,13 +6556,17 @@ const routes = [
         return sum + (f?.documents.length ?? 0)
       }, 0)
 
-      send(res, alreadyRegistered ? 200 : 201, {
-        ...record,
-        drive: drive_id,
-        display_name: drive.display_name,
-        folder_count: folders.length,
-        document_count: documentCount,
-      })
+      setTimeout(
+        () =>
+          send(res, alreadyRegistered ? 200 : 201, {
+            ...record,
+            drive: drive_id,
+            display_name: drive.display_name,
+            folder_count: folders.length,
+            document_count: documentCount,
+          }),
+        CONNECT_STEP_MS,
+      ).unref?.()
     },
   },
 
@@ -6461,12 +6627,16 @@ const routes = [
         return sum + (d?.tables.length ?? 0)
       }, 0)
 
-      send(res, alreadyRegistered ? 200 : 201, {
-        ...record,
-        project: project_id,
-        dataset_count: datasets.length,
-        table_count: tableCount,
-      })
+      setTimeout(
+        () =>
+          send(res, alreadyRegistered ? 200 : 201, {
+            ...record,
+            project: project_id,
+            dataset_count: datasets.length,
+            table_count: tableCount,
+          }),
+        CONNECT_STEP_MS,
+      ).unref?.()
     },
   },
 
@@ -7019,13 +7189,12 @@ const routes = [
       idKey: 'question_id',
       memberKey: 'hero_questions',
     },
-    // No `memberKey`: a use case states its personas, KPIs and questions, but
-    // never its render formats — step 6 picks those, so they stay ranked.
-    {
-      path: '/graph-answer-formats/suggest',
-      pool: 'graph_answer_formats',
-      idKey: 'format_id',
-    },
+    /*
+     * `/graph-answer-formats/suggest` was the fourth of these and is gone with step 6.
+     * A render format is no longer something a brief drafts and stores: the reader
+     * picks one per question on Ask, from the whole pool, which `GET /ask` serves. A
+     * suggester over three formats was ranking a list short enough to read in full.
+     */
   ].map(({ path, pool, idKey, memberKey }) => ({
     method: 'POST',
     match: (p) => p === path,
@@ -7044,9 +7213,8 @@ const routes = [
             idKey,
             domain_id ?? null,
             business_need ?? '',
-            // A hero question is the graph's contract, so more of them are useful;
-            // answer formats are picked from, not accumulated, so fewer is clearer.
-            pool === 'graph_hero_questions' ? 5 : pool === 'graph_answer_formats' ? 3 : 4,
+            // A hero question is the graph's contract, so more of them are useful.
+            pool === 'graph_hero_questions' ? 5 : 4,
           )
       /*
        * Held briefly on purpose. There is no model here, so the answer is ready
@@ -7077,7 +7245,7 @@ const routes = [
     },
   })),
 
-  // Step 6 → 7. Starts the derivation and returns immediately; the answer
+  // Step 5 → 6. Starts the derivation and returns immediately; the answer
   // arrives by polling, so leaving the page does not lose the run.
   {
     method: 'POST',
@@ -7130,7 +7298,7 @@ const routes = [
   },
 
   /*
-   * Step 7. Derived from the draft rather than from a saved row, so the review
+   * Step 6. Derived from the draft rather than from a saved row, so the review
    * reflects what is on screen — including edits not yet saved.
    */
   {
@@ -7557,6 +7725,18 @@ const routes = [
         count: graphs.length,
         built_count: built.length,
         draft_count: db.graph_use_cases.length - built.length,
+        /*
+         * The Answer requirements tab's pool. It was step 6 of the wizard, where the
+         * brief declared it once; a reader now asks per question, so the options are
+         * served here — the same rule the consent screen follows, because a client
+         * holding its own list can offer a value `POST /ask` refuses.
+         */
+        answer_requirements: {
+          citations_options: CITATION_OPTIONS,
+          default_citations: DEFAULT_CITATIONS,
+          formats: askAnswerFormats(),
+          note: 'Citations really apply — an answer that carries none says so. A render format is stated, not applied: an answer renders as the blocks it holds.',
+        },
       })
     },
   },
@@ -7566,7 +7746,8 @@ const routes = [
     method: 'POST',
     match: (p) => p === '/ask',
     handle: async (req, res) => {
-      const { use_case_id, question } = await readJson(req)
+      const body = await readJson(req)
+      const { use_case_id, question } = body
       const id = String(use_case_id ?? '').trim()
       if (!id) return send(res, 400, { error: 'choose a graph to ask first' })
 
@@ -7580,6 +7761,10 @@ const routes = [
       if (!String(question ?? '').trim()) {
         return send(res, 400, { error: 'ask a question first' })
       }
+      /* What the reader required of this answer, validated here — before the stream
+         opens, like every other refusal on this route. */
+      const requested = askRequested(body)
+      if (requested.error) return send(res, 400, { error: requested.error })
 
       /*
        * The answer is streamed, because it is composed rather than fetched.
@@ -7595,7 +7780,7 @@ const routes = [
        * rather than animating over a finished blob, which is the same distinction
        * `GoogleConsentPanel` draws between a stage and a timer.
        */
-      const answer = askAnswer(found.useCase, String(question).trim())
+      const answer = askAnswer(found.useCase, String(question).trim(), requested)
 
       sseOpen(res)
       // A client that goes away mid-answer stops the loop rather than writing to
@@ -7667,12 +7852,14 @@ const routes = [
         kpis,
         sources,
         hero_questions,
-        citations,
-        answer_formats,
         gap_decisions,
         step,
         status,
       } = body
+      /* `citations` and `answer_formats` are deliberately not read. They were step 6's,
+         and that step is gone — the choice is made per question on Ask now. An older
+         client still sending them is ignored rather than refused: the fields are not
+         wrong, they simply belong to another surface. */
 
       if (!name || !String(name).trim()) {
         return send(res, 400, {
@@ -7738,23 +7925,6 @@ const routes = [
       }
       const questions =
         hero_questions === undefined ? null : normalizeQuestions(hero_questions)
-
-      if (citations !== undefined && citations !== 'required' && citations !== 'optional') {
-        return send(res, 400, { error: 'citations must be "required" or "optional"' })
-      }
-      if (answer_formats !== undefined && !Array.isArray(answer_formats)) {
-        return send(res, 400, {
-          error: 'answer_formats must be an array of { format_id, name, format }',
-        })
-      }
-      if (
-        answer_formats !== undefined &&
-        answer_formats.some((f) => !String(f?.format_id ?? '').trim() || !String(f?.name ?? '').trim())
-      ) {
-        return send(res, 400, { error: 'every answer format needs a format_id and a name' })
-      }
-      const formats =
-        answer_formats === undefined ? null : normalizeFormats(answer_formats)
 
       if (gap_decisions !== undefined) {
         if (!Array.isArray(gap_decisions)) {
@@ -7852,8 +8022,6 @@ const routes = [
         kpis: kpiTags ?? existing?.kpis ?? [],
         sources: sourcePicks ?? existing?.sources ?? [],
         hero_questions: questions ?? existing?.hero_questions ?? [],
-        citations: citations ?? existing?.citations ?? 'required',
-        answer_formats: formats ?? existing?.answer_formats ?? [],
         gap_decisions: decisions ?? existing?.gap_decisions ?? [],
         step: stepNumber,
         updated_at: new Date().toISOString(),
@@ -7914,6 +8082,64 @@ const routes = [
     },
   },
 
+  /*
+   * The other half of Disconnect, and the reason the dialog can promise it is reversible.
+   *
+   * Disconnect revokes the credential and keeps everything else — the allowlist, and every
+   * object the profiler has committed. This re-issues a handle from the credential store, the
+   * same place registering gets one, and flips the status back. **It does not re-register**:
+   * `POST /sources` builds a fresh record, so re-running the wizard on the same project drops
+   * the profiled objects that are still sitting here. The two are different acts and only one
+   * of them is an undo.
+   *
+   * A source that is already connected is refused rather than quietly re-issued: "reconnected"
+   * would be reported for a row that was never disconnected.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/sources\/.+\/reconnect$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/reconnect'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      if (source.status !== 'disconnected') {
+        return send(res, 400, {
+          error: `${sourceId} is already ${source.status} — there is nothing to reconnect`,
+        })
+      }
+
+      if (source.kind === 'bigquery') {
+        const cred = db.credentials.find((c) => c.project_id === source.project_id)
+        if (!cred) {
+          return send(res, 400, {
+            error:
+              `no credential is on file for ${source.project_id} — connect it again from ` +
+              'Connect source, which will re-run the Google consent',
+          })
+        }
+        source.credential_handle = cred.credential_handle
+      } else if (source.kind === 'gdrive') {
+        const cred = db.drive_credentials.find((c) => c.drive_id === source.drive_id)
+        if (!cred) {
+          return send(res, 400, {
+            error:
+              `no credential is on file for ${source.drive_id} — connect it again from ` +
+              'Connect source, which will re-run the Google consent',
+          })
+        }
+        source.credential_handle = cred.credential_handle
+      }
+      /* A generic source's credential was a reference the user pasted, and disconnecting
+         cleared it. Nothing here can re-issue one, and inventing a handle would be worse than
+         the null: the row is a stub either way, and nothing reads it. */
+
+      source.status = source.kind === 'generic' ? 'syncing' : 'connected'
+      send(res, 200, sourceRow(source))
+    },
+  },
+
   // Narrows or widens which datasets the source may profile.
   {
     method: 'PUT',
@@ -7924,6 +8150,18 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      /*
+       * A disconnected source has no credential, so widening what it may profile promises
+       * access it cannot make. The Sources table disables the button too — but a disabled
+       * control is a courtesy to whoever is looking at it, and any other path into this route
+       * would otherwise store an allowlist nothing could act on. Same reasoning as the fixed
+       * Settings permission, which is also enforced here rather than only in the switch.
+       */
+      if (source.status === 'disconnected') {
+        return send(res, 400, {
+          error: `${sourceId} is disconnected — reconnect it before changing its allowlist`,
+        })
+      }
 
       const { datasets } = await readJson(req)
       if (!Array.isArray(datasets) || datasets.length === 0) {
@@ -7955,6 +8193,13 @@ const routes = [
       if (source.kind !== 'gdrive') {
         return send(res, 400, {
           error: `${sourceId} is not a Drive source — use PUT /sources/${sourceId}/datasets`,
+        })
+      }
+      /* The twin of the check on /datasets, and added to both at once: a guard on one connector
+         only is how the two paths come to disagree about what a disconnected source may do. */
+      if (source.status === 'disconnected') {
+        return send(res, 400, {
+          error: `${sourceId} is disconnected — reconnect it before changing its allowlist`,
         })
       }
 

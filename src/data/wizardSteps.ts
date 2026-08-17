@@ -1,5 +1,4 @@
 import type {
-  AnswerFormat,
   CoveragePayload,
   DraftedItem,
   GapChoice,
@@ -10,7 +9,7 @@ import type {
 import { coverageIsDecided } from './coverage'
 
 /**
- * Everything a step is judged on. One object rather than seven signatures, so
+ * Everything a step is judged on. One object rather than six signatures, so
  * adding a step's rule never changes a caller.
  */
 export interface WizardDraft {
@@ -22,7 +21,6 @@ export interface WizardDraft {
   graphSources: GraphSource[]
   sourcePicks: SourcePick[]
   heroQuestions: HeroQuestion[]
-  answerFormats: AnswerFormat[]
   coverage: CoveragePayload | null
   gapDecisions: GapChoice[]
 }
@@ -93,14 +91,12 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
       }
       return null
 
+    /*
+     * The build gate, and the last step — it was 7 while 'Answer requirements' sat at
+     * 6. That step is gone: citations and the render format are chosen per question on
+     * Ask, so nothing between hero questions and the coverage review is judged here.
+     */
     case 6:
-      if (draft.answerFormats.length === 0) {
-        return 'Pick at least one question type — it decides how an answer renders.'
-      }
-      return null
-
-    // The build gate: an undecided gap is a question the graph cannot answer.
-    case 7:
       if (!coverageIsDecided(draft.coverage, draft.gapDecisions)) {
         return 'Decide every gap in the review before building.'
       }

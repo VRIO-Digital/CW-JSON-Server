@@ -16,6 +16,7 @@ npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
 npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
 npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
 npm run seed:settings   # re-authors mock-server/settings.json — users and persona navigation
+npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
 npm run preflight   # lint + build + audit + check-docs — run before calling work done
 ```
 
@@ -104,15 +105,40 @@ is a one-shot read with a local `try/catch` (see `EditDatasetsModal` and
 Zero dependencies on purpose — the audit gate makes every added package
 expensive, and a mock backend is not worth widening the dependency surface.
 
-**What it is seeded with is one source per connector, and no more.**
-`projects` holds a single BigQuery project — `vrio-contextweave-demo`, display
-name *EPA Hazwaste*, one dataset `epa_hazwaste` (US) carrying the five Gold
-business views the demo document specifies (`e_manifest` 50 · `e_manifest_all`
-92 · `RCRA_compliance` 30 · `RCRA_Compliance_Summary` 9 ·
-`FRS_Facility_profile` 25 = **206 columns**). `drives` holds a single shared
-drive, *Compliance Docs*, one folder `08_unstructured`, seven EPA
-enforcement PDFs. `google_account` is `nishant.srivastav@vriodigital.com` —
-the fallback the consent callback names when a caller sends no `as=`.
+**The demo package seeds one source per connector; `npm run seed:workspaces` adds
+the rest.** The package's own are `vrio-contextweave-demo` — display name *EPA
+Hazwaste*, one dataset `epa_hazwaste` (US) carrying the five Gold business views the
+demo document specifies (`e_manifest` 50 · `e_manifest_all` 92 · `RCRA_compliance`
+30 · `RCRA_Compliance_Summary` 9 · `FRS_Facility_profile` 25 = **206 columns**) —
+and the shared drive *Compliance Docs*, whose `08_unstructured` folder holds the
+seven EPA enforcement PDFs. **Neither is ever rewritten**; the seed only adds
+beside them, so a re-ingest of the package still wins.
+
+**It adds them because a picker needs something to pick between.** `projects` holds
+**3** (the demo one, *VLS Transport Ops*, *Compliance Sandbox* — one Select option is
+indistinguishable from a Select that failed to load its others), and `drives` holds
+**3**: the package's shared drive, a second shared drive *VLS Legal*, and a *My
+Drive*. Both kinds exist deliberately — the wizard picks between My Drive and the
+shared drives, and a control with nothing on one side reads as broken rather than as
+an account with no shared drives.
+
+**A drive nests, and the nesting is a `parent_id` on a flat list.** Folders stay one
+array per drive, so every existing walk over `drive.folders` is unchanged; a root
+carries `parent_id: null`, and the key is on every folder including the package's own
+so "no parent" is never confused with "seeded before nesting existed". `validateDb`
+refuses a parent that is not a folder of the same drive, and refuses a cycle: neither
+throws — the first draws the child at the root, which reads as an allowlist covering
+more of the drive than it does, and the second leaves it off the tree entirely.
+
+Everything the seed adds is checked before it is written: a project's catalogue column
+count is *derived* from its profile rather than typed twice, every `class` must be one
+the client's union already declares, every `doc_type` must have a facet bucket, and
+every document it adds resolves into the graph through `document_extractions` — to the
+same facilities the package's own documents resolve to, so nothing invents a node the
+canvas has never heard of.
+
+`google_account` is `nishant.srivastav@vriodigital.com` — the fallback the consent
+callback names when a caller sends no `as=`.
 
 **The `epa_hazwaste` columns are real, and `column_profiles` holds them.** All
 **206**, ingested from the demo package's `02_profiling/Metadata_Profiling.xlsx`
@@ -222,7 +248,40 @@ Nothing exists until a source is connected. `/audit`, `/traces`, `/evals` and
 `/change-signals` return **empty collections plus `connected_sources: 0`** when
 no source is connected, and each page renders `NoSourceConnected` instead of its
 cards. A *disconnected* source counts as not connected, but stays listed on
-Sources so it can still be deleted.
+Sources so it can still be reconnected or deleted.
+
+**Disconnect and Delete both state their consequences first, and `SourceImpactNotice`
+is the one place that copy lives.** A one-line description said what happened to the
+*row* and nothing about what happened to the app, and deleting the last connected
+source closes five pages. Three rules the notice keeps, all asserted:
+
+- **It names the pages, and it is right about them.** Data Catalogue, Profiling jobs,
+  Change signals, Traces and Validation gate on a connected source and close. **Ask,
+  Reports, Graph Studio, the What-if lens and Audit & Governance do not** — they gate
+  on a *published graph* and keep answering from published content. Warning that Ask
+  will go dark is a claim the next click disproves, so `check-docs` cross-checks each
+  named page against the gate it actually renders.
+- **It counts rather than asserts.** "The last connected source" is true per row, so
+  the page passes the number of others still connected and the notice branches on it.
+- **Reversible and irreversible are said in those words**, and the reversible one is
+  performed. `POST /sources/:id/reconnect` re-issues the handle from the credential
+  store and flips the status back **in place**, so every profiled object survives —
+  which is why the row offers **Reconnect** instead of Disconnect once it is
+  disconnected. **Re-registering is not that act**: `POST /sources` builds a fresh
+  record and the profiled objects go with the old one, which is why Delete's line
+  says connecting it again starts from nothing profiled rather than letting "connect
+  it again" read as an undo. Delete has no undo — `registered.delete` takes the
+  profiled tables, columns, documents and every note typed against them.
+
+**Three short lines, and a word budget in the smoke test to keep them that way.** The
+first draft explained each consequence in full and ran to ~75 words on a routine
+disconnect, which is how a warning gets clicked through unread. What survived the cut
+is the subject, the reversibility and — *only when it applies* — the one line about
+the rest of the app: with another source connected the notice says nothing more than
+that no page closes.
+
+A promise of an undo has to be carried out by something: a dialog that offered a
+sign-off nothing performed is the mistake this section already recorded once.
 
 Profiled counts are deliberately 0 on registration: registration is instant,
 counts only land once the profiler has run. Do not "fix" this by populating them
@@ -255,7 +314,19 @@ twin.** Answering a Drive source's `/browse` with an empty dataset list would
 read as "nothing to profile" and send you debugging the allowlist instead of the
 call. When adding an endpoint for one connector, add that guard to both.
 
-Three things the mirror deliberately does *not* make identical:
+Four things the mirror deliberately does *not* make identical:
+
+- **A drive is a tree; a project is two flat lists.** Datasets do not contain
+  datasets, so BigQuery's allowlist stays a checkbox group — folders do, so Drive's
+  is `FolderTreePicker`, built from `parent_id`. **Checking a folder checks the
+  folders inside it**, because that is what a reader means by picking a folder, and
+  the value stays a plain list of folder ids for the register call. A folder holding
+  folders states two counts (`3 here · 41 with subfolders`): one number would be
+  wrong either way, and a container reading "0 documents" beside two full subfolders
+  is exactly the mistake the flat list made. The drive is also picked in two moves —
+  **My Drive or Shared drives** first, then the drive — because a personal drive and
+  an organisation's are different things to connect, and a kind the account has none
+  of is offered with the count that says so rather than hidden.
 
 - **Consent is scoped to the connector.**
   `/sources/oauth/start?provider=bigquery|drive` issues a state remembered *with*
@@ -276,10 +347,40 @@ Three things the mirror deliberately does *not* make identical:
   instant or silent, for the same reason a model call is not. Errors are never
   paced. **A stage advances when its request returns, not on a timer** — so add a
   stage only when there is a call behind it.
-  **There is no sign-in popup.** One button runs all three calls with
-  `GoogleConsentPanel` inline beneath it, a row per call, listing the scopes the
-  response reported. A Google-styled click-through window was built and removed on
-  request — do not re-add one unasked.
+  **The consent happens in a sign-in window** (`GoogleSignInWindow`), asked for and
+  re-added on request after an earlier one was removed: a Google-styled click-through
+  with an account step and a consent step. **The window opens on the first call's
+  response, not on the click** — it renders the scopes `/sources/oauth/start`
+  reported, so a window that opened first could only open blank or guess, and Drive
+  asks for two. **Allow is what spends the consent**: the callback and the discovery
+  call run from that button, `GoogleConsentPanel` shows its row per call inside the
+  window, and Cancel grants nothing and connects nobody. The account it offers is the
+  browser's own and it says so — an account chooser listing invented people would be
+  a claim about who has signed in to Google — and the window states in its own footer
+  that it proves a request is well-formed rather than that a real Google account is
+  behind it. It keeps no scope list of its own; `CONSENT_GRANT_COPY` supplies wording
+  only, and `check-docs` fails if one comes back.
+- **Step 3's two acts are paced too, at `CONNECT_STEP_MS` (5s).** `1. Run preview` and
+  `2. Finish` are the calls that would really reach Google, and both answered before
+  their spinner drew a frame. The hold is on the four endpoints — `/sources/preview`,
+  `/sources/drive/preview`, `/sources`, `/sources/drive` — never in the wizard, so the
+  rule the consent stages keep is unbroken: **a button advances when its request
+  returns, not on a timer the client holds**. Only the success reply waits; the
+  refusals above it are immediate, because a five-second 403 on a mistyped handle
+  reads as a hang. `check-docs` asserts both halves per endpoint and that none of the
+  four handlers grows a timer.
+  **And each act is named while it runs, in its own small modal.** `ConnectRunPanel` is a
+  spinner and one line — *Discovering the datasets in project vrio-contextweave-demo* under
+  Run preview, *Registering project … with the datasets you checked.* under Finish — two
+  dialogs, because one panel listing both rows said "registering the source" while nothing
+  was being registered. The message is `src/data/connectSteps.ts`'s, per act and in the
+  connector's own unit, and neither act's words carry the other's verb. **Its `{subject}` is
+  the id the request is made with** — the project, or the drive on Drive — interpolated the
+  way `runtime.headroom.sentence` interpolates `{room}`, so a five-second wait says which
+  project it is reading. No subject-less variant: step 2 will not advance without an id.
+  Both open on
+  `busy` rather than on state of their own, over the two Google branches only, since the
+  generic one has no paced call behind a dialog.
 - **The document dictionary reviews files, not fields.** Its facets count
   *documents* (`pii` means "holds at least one PII entity"), and the editable note
   is the document's `summary` via `PATCH /sources/:id/documents` — extracted
@@ -309,10 +410,26 @@ Three things the mirror deliberately does *not* make identical:
 (5 stages each — kept equal so a job row reads the same either way) on timers,
 committing objects as they go. This is why `ProfilingJobsTab` polls (3s, only
 while `active_count > 0`) and why starting a run switches the Catalogue to the
-jobs tab — a queued job is otherwise invisible. Already-profiled objects are
+jobs tab — a queued job is otherwise invisible. **And why queueing one re-reads
+the board**: that poll stops at `active_count: 0`, so a second run started with
+the tab already open is invisible to it. `handleQueued` loads the jobs list along
+with the sources and signals; without it the re-profile confirm queued a run that
+really ran while the board sat on the completed job, which reads as a button that
+did nothing. A poll that stops is not a subscription. Already-profiled objects are
 skipped; an all-skipped job completes instantly rather than faking a run.
-`force` is still a server parameter, but the only UI that sets it is the
-**Force** button on a row in Profiling jobs — the browse panels never force.
+**`force` is never the first click, and both places that set it are a second act.**
+Profiling jobs keeps its per-row **Force**, for a run that has already finished. The
+browse panels start unforced always — but when *everything* picked was already
+profiled, the run does nothing, and that outcome is where re-profiling is offered:
+`profilingOutcome` (shared by both panels, so they differ only by the noun) turns it
+into a confirm that **names the objects** and says what profiling them again would do,
+with `force: true` behind its OK. The message it replaced — "Nothing to profile — 2
+table(s) already profiled. Use Force on the run in Profiling jobs to redo them." —
+never said *which* two, and sent the reader to another tab to act on the job that had
+just done nothing. A count with no names leaves you to work out whether the object you
+cared about ran; the naming is capped at `NAMES_SHOWN` and **the cap is stated**, never
+a silent truncation. `check-docs` asserts the button does not force and that the
+confirm's `onOk` is the only path that does.
 
 A forced commit **updates the existing record in place** instead of pushing a
 second one, so `profiled_tables` cannot double while `profiled_at` still moves.
@@ -323,15 +440,26 @@ connectors' runs, and a re-run posts back to the endpoint its `kind` names.
 
 ### The New Graph wizard (`/new-graph`)
 
-Seven steps — Domain, Personas, KPIs, Sources, Hero questions, Answer
-requirements, Entities & relationships — over `NewGraphPage.tsx` → `graphStore`
+Six steps — Domain, Personas, KPIs, Sources, Hero questions, Entities &
+relationships — over `NewGraphPage.tsx` → `graphStore`
 → `/graph-domains`, `/graph-personas/suggest`, `/graph-kpis/suggest`,
-`/graph-sources`, `/graph-questions/suggest`, `/graph-answer-formats/suggest`, `/graph-coverage` and `/graph-use-cases`.
-**All seven steps are built.**
+`/graph-sources`, `/graph-questions/suggest`, `/graph-coverage` and `/graph-use-cases`.
+**All six steps are built.**
+
+**'Answer requirements' was step 6 and is gone.** The citation policy and the render
+format were declared once per brief, for every answer the graph would ever give; they
+are asked for **per question** now, on Ask's own tab — see Ask below. Nothing on a brief
+stores them, `/graph-answer-formats/suggest` is gone with the step, and `LAST_STEP` in
+the page is the one place the count lives (`stepTotal` still reads the server's
+`WIZARD_STEPS`). A brief saved on the old step 6 or 7 opens on the new last step:
+`savedUseCase` clamps the number, because a stepper pointing at a step the API would
+reject is worse than a brief that opens one screen further back. `check-docs` asserts the
+absence on **every layer at once** — the server, the store, the page, the rules and the
+deleted component — because half a removal is the shape that fails silently.
 
 **Steps unlock in order, and one function decides it.** `stepIssue(step, draft)`
 in `src/data/wizardSteps.ts` is the only definition of "this step is complete" —
-`Next`, the stepper's lock and step 7's build button all read it, so they cannot
+`Next`, the stepper's lock and the last step's build button all read it, so they cannot
 disagree. A step past `maxStep` renders locked but stays clickable, and says what
 is missing. Back is always free; jumping forward re-checks the steps in between,
 because an answer can be deleted after it was given. Add a new step's rule there,
@@ -339,7 +467,7 @@ not in the page. Server-side only step 1's domain is enforced (`step > 1` or a
 commit without one → 400) — a later step's rule would stop **Save draft** from
 keeping partial work.
 
-**A model call is never silent or instant.** The derivation between steps 6 and 7
+**A model call is never silent or instant.** The derivation between steps 5 and 6
 is a real async run (`POST /graph-derivations` → 202, poll by id) that reveals its
 entity names and its cost as it goes, and every `Suggest … (LLM)` response is held
 for `SUGGEST_MS` so the drafting state can be seen. Both are paced for the same
@@ -347,20 +475,13 @@ reason `PIPELINE` is: an operation that returns instantly and shows nothing
 teaches that it is free, and this one is not. Never show a cost figure the server
 did not report.
 
-**Step 7 derives only from what is profiled.** `graphCoverage` walks the source
+**Step 6 derives only from what is profiled.** `graphCoverage` walks the source
 picks back to real profiled objects, so an entity names the table it came from
 (`manifest_header (1,240,500 rows)`) and a relationship is claimed only where two
 objects share an identifier column in the dictionary. A hero question no profiled
 column covers becomes a **gap**, and **the build stays blocked until every gap has
 a decision** — that gate is the point of the step, so do not let "Save & build"
 proceed past an undecided one.
-
-**Step 6 declares, it does not decide.** Citations and answer formats are chosen
-by the use case so the engine never picks a render format at runtime — the note
-on the page says so, and `answer_formats` is stored self-describing
-(`{ format_id, name, format }`) so editing the pool cannot rewrite what a saved
-brief promised. Its formats load on arrival rather than behind a Suggest button,
-because the step picks *between* them rather than accumulating them.
 
 **Step 5 is not one of them.** A hero question is a sentence plus a High flag,
 not a name plus a description, so `HeroQuestionsStep` is its own component —
@@ -420,9 +541,10 @@ Two rules the copy on the page promises, and the code has to keep:
   is why `check-docs` asserts every phrase is unique to its own template **and
   present verbatim in it**; two of the current template's phrases were
   paraphrases of its description on the first attempt, and the check caught both.
-  Only personas, KPIs and hero questions are templated; step 6's answer formats
-  have no `memberKey` and stay ranked, because a use case states what it must
-  answer, never how to render it.
+  Only personas, KPIs and hero questions are templated — which is now all three
+  suggesters. The answer formats had no `memberKey` and stayed ranked, because a use
+  case states what it must answer and never how to render it; that suggester is gone
+  with step 6, and the whole pool is offered on Ask instead.
 
   **`detail` is what a suggestion is *for*; `why` is why it was drafted.** They
   are two fields because they answer two questions, and neither may stand in for
@@ -465,7 +587,7 @@ and nothing in this flow should start treating them as permissions.
 
 Where a *built* graph becomes a published one. **The studio lists graphs, it is
 not one graph** — `/graph-studio` shows every use case that has been committed on
-step 7, and `/graph-studio/:useCaseId` opens that one's review. New Graph's
+the last step, and `/graph-studio/:useCaseId` opens that one's review. New Graph's
 "Save & build graph" navigates straight to the new graph's studio, because a
 committed brief is not a finished graph: what the deriver was unsure about is
 exactly what a human has to settle.
@@ -761,10 +883,29 @@ have nothing between them, `answered` is false, `reason` says which, and
 the page tags it `warn`, never `crit`. A query engine that always produces a
 paragraph is a search box with better manners.
 
-**Nothing on the page is written copy pretending to be data.** The version, who
+**Two tabs: Ask, and Answer requirements.** The second is where step 6 of the wizard
+went. A reader picks what an answer has to carry — citations `required`/`optional`, and
+which render formats they want — and the choice **travels with the question**
+(`POST /ask` takes `citations` and `formats`), because the reader asking is the one who
+knows what this answer has to be. The pool is served on `GET /ask`, never written into
+the component, for the reason the consent screen renders the scopes the endpoint
+returned: a client-held list can offer a value the API refuses, and an unknown
+`format_id` is a plain 400 naming the pool, before the stream opens. `selectCitations` is
+the single definition of the effective value — the reader's pick, or the served default —
+so the control cannot show one thing while the request carries another.
+
+**And the answer reports on it, computed rather than asserted.** `requirements` rides on
+every envelope with a `satisfied` flag and a sentence. **Citations really apply**: asking
+for them and getting an answer that cites nothing is a fact, `satisfied` is false and the
+page tags it. **A format is stated, not applied** — a recorded answer holds the blocks
+the tenant wrote, so claiming it was rendered to order is a claim the screen underneath
+disproves. Same two-gate honesty as a report's audience versus its data scope; do not
+collapse them into "the answer met your requirements".
+
+**Nothing else on the page is written copy pretending to be data.** The version, who
 published it and when come from the publish record; the standing caveats are
-step 7's gap decisions read back through `GAP_CAVEAT`; the citation policy is
-step 6's; and the suggestion chips are the use case's own hero questions — a
+the coverage step's gap decisions read back through `GAP_CAVEAT`; and the suggestion
+chips are the use case's own hero questions — a
 chip is a promise the brief already made.
 
 **The answer is streamed, and the recorded one wins.** `ask_answers` holds the

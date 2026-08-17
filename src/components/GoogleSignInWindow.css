@@ -1,0 +1,189 @@
+/*
+ * The Google sign-in window. Spacing from the --sp-* scale only; sub-scale insets (1-2px) are the
+ * one exemption, as everywhere else.
+ *
+ * The palette here is deliberately Google's rather than the brand's: this window stands in for
+ * somebody else's screen, and drawing it in ContextWeave orange would make a consent dialog look
+ * like part of this app. No STATUS colour appears — a permission is not a state.
+ */
+
+.gsi {
+  padding: var(--sp-6);
+  font-family: 'Google Sans', Roboto, -apple-system, 'Segoe UI', sans-serif;
+  color: #202124;
+}
+
+.gsi-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.gsi-head-text {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.gsi-lead {
+  margin-bottom: var(--sp-4);
+  font-size: 14px;
+  color: #5f6368;
+}
+
+/* The account row is a button because choosing it is what advances the window. */
+.gsi-account {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.gsi-account:hover {
+  background: #f8f9fa;
+}
+
+.gsi-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gsi-account-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.gsi-account-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.gsi-account-email {
+  overflow: hidden;
+  font-size: 12.5px;
+  color: #5f6368;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gsi-grants-lead {
+  margin-bottom: var(--sp-2);
+  font-size: 13.5px;
+  color: #202124;
+}
+
+.gsi-grants {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gsi-grant {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+}
+
+.gsi-grant-mark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: var(--sp-1);
+  border-radius: 50%;
+  background: #1a73e8;
+}
+
+.gsi-grant-title {
+  display: block;
+  font-size: 13.5px;
+}
+
+.gsi-grant-detail {
+  display: block;
+  font-size: 12.5px;
+  color: #5f6368;
+}
+
+.gsi-grant-scope {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: #80868b;
+}
+
+.gsi-note {
+  margin-top: var(--sp-4);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #5f6368;
+}
+
+.gsi-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+}
+
+.gsi-btn {
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.gsi-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.gsi-btn-text {
+  background: none;
+  color: #1a73e8;
+}
+
+.gsi-btn-text:hover:not(:disabled) {
+  background: #f1f6fe;
+}
+
+.gsi-btn-primary {
+  background: #1a73e8;
+  color: #fff;
+}
+
+.gsi-btn-primary:hover:not(:disabled) {
+  background: #1867cf;
+}
+
+.gsi-foot {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid #e8eaed;
+  font-size: 11.5px;
+  color: #80868b;
+}
+
+/* The consent progress rows sit inside the window while a request is in flight. */
+.gsi .cs-consent {
+  margin-top: var(--sp-4);
+  margin-bottom: 0;
+}

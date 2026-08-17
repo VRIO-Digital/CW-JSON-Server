@@ -8,12 +8,9 @@ import {
   reviewCoverage,
   saveUseCase,
   startDerivation,
-  suggestAnswerFormats,
   suggestKpis,
   suggestPersonas,
   suggestQuestions,
-  type AnswerFormat,
-  type Citations,
   type CoveragePayload,
   type DerivationRun,
   type GapChoice,
@@ -186,10 +183,6 @@ export const useCoverageStore = create<CoverageState>()((set) => ({
   reset: () => set({ data: null, loading: false, error: null }),
 }))
 
-/** Step 6's formats. Loaded on arrival rather than asked for — the step offers a
-    choice between them, it does not accumulate them. */
-export const useAnswerFormatStore = createSuggestStore(suggestAnswerFormats)
-
 interface UseCasesState {
   data: UseCasesPayload | null
   loading: boolean
@@ -208,8 +201,6 @@ interface UseCasesState {
     kpis: DraftedItem[]
     sources: SourcePick[]
     heroQuestions: HeroQuestion[]
-    citations: Citations
-    answerFormats: AnswerFormat[]
     gapDecisions: GapChoice[]
     step: number
     status?: 'draft' | 'committed'

@@ -1,9 +1,8 @@
-import { CloseOutlined, DownOutlined, EditOutlined } from '@ant-design/icons'
+import { DownOutlined, EditOutlined } from '@ant-design/icons'
 import {
   App,
   Button,
-  Empty,
-  Flex,
+  Empty,
   Input,
   Modal,
   Spin,
@@ -67,11 +66,9 @@ function matches(column: ProfiledColumn, facet: FacetKey) {
 }
 
 export default function ProfiledColumnsPanel({
-  source,
-  onClose,
+  source,
 }: {
-  source: SourceRow
-  onClose: () => void
+  source: SourceRow
 }) {
   const { message } = App.useApp()
   const data = useColumnsStore((s) => s.data)
@@ -240,11 +237,6 @@ export default function ProfiledColumnsPanel({
 
   return (
     <div className="pc-panel">
-      <Flex justify="flex-end">
-        <Button type="link" size="small" icon={<CloseOutlined />} onClick={onClose}>
-          close
-        </Button>
-      </Flex>
 
       {loading ? (
         <Spin />

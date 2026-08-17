@@ -227,3 +227,102 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---- the Answer requirements tab ---- */
+
+/*
+ * What a reader requires of an answer. This was step 6 of the New Graph wizard, and
+ * its styles were the wizard's `.ng-*` — ported rather than imported, because a page
+ * pulling in another page's stylesheet inherits every bare selector in it.
+ *
+ * One change on the way over: the selected pill's text is BRAND_INK, not the raw brand.
+ * BRAND on BRAND_SOFT is 2.91:1, which makes the *chosen* option the hardest thing on
+ * the control to read; the ink is the same hue at 5.96:1. Weight carries the selection
+ * too, because colour alone never does here.
+ */
+
+.ask-req {
+  max-width: 900px;
+}
+
+.ask-req-label {
+  display: block;
+  margin-bottom: var(--sp-2);
+  color: #8994a8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ask-req-field + .ask-req-field {
+  margin-top: var(--sp-5);
+}
+
+.ask-req-toggles {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/* A pair of pills, not a checkbox: these are alternatives, and exactly one always
+   holds. */
+.ask-req-toggle {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid #e9ecf1;
+  border-radius: 999px;
+  background: #fff;
+  color: #4b5a75;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.ask-req-toggle.is-on {
+  border-color: #f8c9b9;
+  background: #fdeae4;
+  color: #9e3819;
+  font-weight: 600;
+}
+
+.ask-req-format {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  height: 100%;
+  padding: var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.ask-req-format.is-on {
+  border-color: #f8c9b9;
+  background: #fffaf8;
+}
+
+.ask-req-format-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.ask-req-format-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #0f1729;
+}
+
+.ask-req-format-recipe {
+  color: #8994a8;
+  font-size: 12.5px;
+}
+
+.ask-req-note,
+.ask-req-empty {
+  display: block;
+  margin-top: var(--sp-3);
+  color: #8994a8;
+  font-size: 12px;
+}

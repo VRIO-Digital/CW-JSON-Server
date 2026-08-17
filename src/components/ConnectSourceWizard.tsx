@@ -16,7 +16,9 @@ import {
   Flex,
   Form,
   Input,
+  Modal,
   Row,
+  Segmented,
   Select,
   Skeleton,
   Space,
@@ -50,8 +52,10 @@ import {
   type ConnectorField,
 } from '../data/connectors'
 import { SOURCE_NAME_MIN, sourceNameProblem } from '../data/sourceName'
+import ConnectRunPanel from './ConnectRunPanel'
 import ConnectorIcon from './ConnectorIcon'
-import GoogleConsentPanel from './GoogleConsentPanel'
+import FolderTreePicker from './FolderTreePicker'
+import GoogleSignInWindow, { type SignInPhase } from './GoogleSignInWindow'
 import { toMessage } from '../store/asyncState'
 import { useAuthStore } from '../store/authStore'
 import { BRAND, BRAND_SOFT, SP } from '../theme'
@@ -150,6 +154,10 @@ export default function ConnectSourceWizard({
    * that re-renders the wizard.
    */
   const signedInAs = useAuthStore((s) => s.identity?.email)
+  /* The sign-in window names the account it is about to connect, so it needs what the browser
+     knows about that person — and nothing more. Primitive selectors, as above. */
+  const signedInName = useAuthStore((s) => s.identity?.name)
+  const signedInInitials = useAuthStore((s) => s.identity?.initials)
   const [step, setStep] = useState(0)
   const [selected, setSelected] = useState<Connector | null>(null)
   const [blocked, setBlocked] = useState<Connector | null>(null)
@@ -175,6 +183,14 @@ export default function ConnectSourceWizard({
    * naming one would understate the grant being made. See docs/REGRESSIONS.md.
    */
   const [oauthScopes, setOauthScopes] = useState<string[]>([])
+  /*
+   * The sign-in window: which of its three phases is showing, and the state `/oauth/start` issued
+   * for it. `null` is closed. The window is opened by the *first* call rather than by the click —
+   * it renders the scopes that call reported, and a window that appeared first would have to
+   * either guess them or open blank.
+   */
+  const [signInPhase, setSignInPhase] = useState<SignInPhase | null>(null)
+  const [oauthState, setOauthState] = useState('')
 
   // ---- BigQuery test & finish state ----
   const [preview, setPreview] = useState<PreviewResult | null>(null)
@@ -183,6 +199,14 @@ export default function ConnectSourceWizard({
 
   // ---- Google Drive state — the same three moves, in folders ----
   const [drives, setDrives] = useState<DriveInfo[]>([])
+  /*
+   * Which half of the account's Drive is being browsed. Google splits the two — a personal My
+   * Drive and the shared drives an organisation owns — and they are different things to connect,
+   * so the picker separates them rather than mixing both into one list where a shared drive and a
+   * personal folder read as peers. The kinds come from the payload; this is only which one is
+   * showing.
+   */
+  const [driveKind, setDriveKind] = useState<string>('shared_drive')
   const [driveId, setDriveId] = useState('')
   const [driveHandle, setDriveHandle] = useState('')
   const [folderAllowlistText, setFolderAllowlistText] = useState('')
@@ -206,6 +230,9 @@ export default function ConnectSourceWizard({
      wizard refuses what the API would refuse, before the round trip. */
   const nameProblem = sourceNameProblem(sourceName)
 
+  /** The drives on the side of the picker that is showing. */
+  const drivesOfKind = drives.filter((d) => d.kind === driveKind)
+
   const isBigQuery = selected?.key === 'bigquery'
   const isDrive = selected?.key === 'gdrive'
   /** Both real connectors run the bespoke consent → preview → finish path. */
@@ -227,15 +254,11 @@ export default function ConnectSourceWizard({
   }
 
   /**
-   * The whole handshake, in one go: consent, then discovery.
-   *
-   * Three calls, and the panel below the button shows a row per call. Stage 0 is
-   * the call already in flight, not a countdown — each row moves only when its
-   * request comes back, so the panel cannot claim progress the handshake has not
-   * made. The scopes the first call reports are kept and rendered, because Drive
-   * asks for two and a footer naming one understates the grant.
+   * Opens the sign-in window — and makes the first call, because the window has to render the
+   * scopes that call reported rather than a copy kept here. Nothing is granted yet: this is the
+   * account chooser, and the callback runs when Allow is pressed.
    */
-  async function loginWithGoogle() {
+  async function openGoogleSignIn() {
     setBusy('login')
     setLoginStage(0)
     setOauthScopes([])
@@ -243,18 +266,50 @@ export default function ConnectSourceWizard({
       // The consent is scoped to the connector, so the state is issued for it.
       const start = await oauthStart(isDrive ? 'drive' : 'bigquery')
       setOauthScopes(start.scopes)
-      setLoginStage(1)
+      setOauthState(start.state)
+      setSignInPhase('account')
+    } catch (err) {
+      fail(err)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  /** Cancelling grants nothing and connects nobody — the state simply goes unspent. */
+  function cancelGoogleSignIn() {
+    setSignInPhase(null)
+    setOauthState('')
+    setLoginStage(0)
+  }
+
+  /**
+   * The rest of the handshake, once the user has allowed it: consent, then discovery.
+   *
+   * Two calls, and the window shows a row per call — plus the `/oauth/start` row already done.
+   * Stage 1 is the call in flight, not a countdown: each row moves only when its request comes
+   * back, so the window cannot claim progress the handshake has not made.
+   */
+  async function grantGoogleConsent() {
+    setBusy('login')
+    setSignInPhase('granting')
+    setLoginStage(1)
+    try {
       if (isDrive) {
         // The consent says who signed in; the session says what they can see.
-        const granted = await driveOauthCallback(start.state, signedInAs)
+        const granted = await driveOauthCallback(oauthState, signedInAs)
         setAccount(granted.account)
         setLoginStage(2)
         const readable = await listOauthDrives(granted.session)
         setDrives(readable)
-        const first = readable[0]
+        /* Open on the half of the Drive that has something in it, rather than on a fixed kind
+           that can legitimately be empty for an account with no shared drives. */
+        const kind =
+          readable.find((d) => d.kind === driveKind)?.kind ?? readable[0]?.kind ?? driveKind
+        setDriveKind(kind)
+        const first = readable.find((d) => d.kind === kind)
         if (first) selectDrive(first.drive_id, readable)
       } else {
-        const granted = await oauthCallback(start.state, signedInAs)
+        const granted = await oauthCallback(oauthState, signedInAs)
         setAccount(granted.account)
         setLoginStage(2)
         const readable = await listOauthProjects(granted.session)
@@ -262,11 +317,17 @@ export default function ConnectSourceWizard({
         const first = readable[0]
         if (first) selectProject(first.project_id, readable)
       }
+      setSignInPhase(null)
     } catch (err) {
       fail(err)
+      /* Closed, not returned to the consent step: the state has been spent either way, and a
+         window offering Allow again would only produce "invalid or expired state" a second time.
+         The button underneath starts a fresh handshake, which is the real retry. */
+      setSignInPhase(null)
     } finally {
       setBusy(null)
       setLoginStage(0)
+      setOauthState('')
     }
   }
 
@@ -458,6 +519,84 @@ export default function ConnectSourceWizard({
 
   return (
     <>
+      {/*
+        One window for both connectors — the handshake differs only in what it asks for, and it
+        asks the server, so a second copy could only drift. It is mounted here rather than inside
+        either branch because a dialog inside a step unmounts when the step changes.
+      */}
+      {signInPhase !== null ? (
+        <GoogleSignInWindow
+          open
+          provider={isDrive ? 'drive' : 'bigquery'}
+          /* Who is signing in is the browser's fact, not the server's — the same reason the
+             "Connected as …" alert below prefers the store. The fallbacks are only for a session
+             that predates those fields. */
+          email={signedInAs ?? ''}
+          name={signedInName ?? signedInAs ?? ''}
+          initials={signedInInitials ?? '—'}
+          phase={signInPhase}
+          scopes={oauthScopes}
+          stage={loginStage}
+          onChooseAccount={() => setSignInPhase('consent')}
+          onAllow={() => void grantGoogleConsent()}
+          onCancel={cancelGoogleSignIn}
+        />
+      ) : null}
+
+      {/*
+        Step 3's two acts, one dialog each — Preview says it is reading, Finish says it is
+        registering, and neither describes the other's work. Mounted here rather than inside
+        either connector's branch for the reason the sign-in window is: a dialog inside a step
+        unmounts with the step.
+
+        Both open from `busy`, the same flag the buttons' spinners read, so a dialog cannot be
+        on screen for a call that has already come back. Closing is likewise the request
+        returning: there is no dismiss, because there is nothing here to decide and cancelling
+        would leave a five-second call still running with nothing on screen.
+
+        Google only: the generic connectors' step 3 is a stubbed test plus one unpaced call,
+        and a progress dialog over it would be narrating work that is not happening.
+      */}
+      {step === 2 && isGoogle && busy === 'preview' ? (
+        <Modal
+          open
+          width={420}
+          centered
+          closable={false}
+          maskClosable={false}
+          keyboard={false}
+          footer={null}
+          title={null}
+        >
+          {/* The subject is the id the request is made with, so the message names the
+              project or drive being read rather than "the datasets" in the abstract. */}
+          <ConnectRunPanel
+            kind={isDrive ? 'gdrive' : 'bigquery'}
+            act="preview"
+            subject={isDrive ? driveId : projectId}
+          />
+        </Modal>
+      ) : null}
+
+      {step === 2 && isGoogle && busy === 'finish' ? (
+        <Modal
+          open
+          width={420}
+          centered
+          closable={false}
+          maskClosable={false}
+          keyboard={false}
+          footer={null}
+          title={null}
+        >
+          <ConnectRunPanel
+            kind={isDrive ? 'gdrive' : 'bigquery'}
+            act="finish"
+            subject={isDrive ? driveId : projectId}
+          />
+        </Modal>
+      ) : null}
+
       <Steps
         current={step}
         style={{ margin: '20px 0 22px' }}
@@ -525,20 +664,12 @@ export default function ConnectSourceWizard({
             type="primary"
             icon={<GoogleOutlined />}
             loading={busy === 'login'}
-            disabled={busy === 'login'}
-            onClick={loginWithGoogle}
+            disabled={busy === 'login' || signInPhase !== null}
+            onClick={openGoogleSignIn}
             style={{ marginBottom: 16 }}
           >
-            {busy === 'login' ? 'Signing in…' : 'Login with Google'}
+            {busy === 'login' ? 'Opening Google…' : 'Login with Google'}
           </Button>
-
-          {busy === 'login' ? (
-            <GoogleConsentPanel
-              provider="bigquery"
-              stage={loginStage}
-              scopes={oauthScopes}
-            />
-          ) : null}
 
           {connectedAs ? (
             <Alert
@@ -578,14 +709,22 @@ export default function ConnectSourceWizard({
             </Form.Item>
 
             {projects.length > 0 ? (
-              <Form.Item label="GCP project">
+              <Form.Item
+                label="GCP project"
+                extra={`${projects.length} project(s) this account can read. One source connects one project — connect the wizard again for another.`}
+              >
                 <Select
                   value={projectId || undefined}
                   onChange={(value) => selectProject(value)}
                   placeholder="Select a project"
+                  showSearch
+                  optionFilterProp="label"
+                  /* The display name leads and the id follows it: an account with several
+                     projects is chosen between by name, and `vrio-cw-sandbox` is an id, not a
+                     name. Both are shown because the id is what the source registers against. */
                   options={projects.map((p) => ({
                     value: p.project_id,
-                    label: `${p.project_id} — ${p.dataset_count} dataset(s) · ${p.location}`,
+                    label: `${p.display_name} (${p.project_id}) — ${p.dataset_count} dataset(s) · ${p.location}`,
                   }))}
                 />
               </Form.Item>
@@ -654,20 +793,12 @@ export default function ConnectSourceWizard({
             type="primary"
             icon={<GoogleOutlined />}
             loading={busy === 'login'}
-            disabled={busy === 'login'}
-            onClick={loginWithGoogle}
+            disabled={busy === 'login' || signInPhase !== null}
+            onClick={openGoogleSignIn}
             style={{ marginBottom: 16 }}
           >
-            {busy === 'login' ? 'Signing in…' : 'Login with Google'}
+            {busy === 'login' ? 'Opening Google…' : 'Login with Google'}
           </Button>
-
-          {busy === 'login' ? (
-            <GoogleConsentPanel
-              provider="drive"
-              stage={loginStage}
-              scopes={oauthScopes}
-            />
-          ) : null}
 
           {connectedAs ? (
             <Alert
@@ -696,17 +827,54 @@ export default function ConnectSourceWizard({
             </Form.Item>
 
             {drives.length > 0 ? (
-              <Form.Item label="Drive">
-                <Select
-                  value={driveId || undefined}
-                  onChange={(value) => selectDrive(value)}
-                  placeholder="Select a drive"
-                  options={drives.map((d) => ({
-                    value: d.drive_id,
-                    label: `${d.display_name} — ${DRIVE_KIND[d.kind] ?? d.kind} · ${d.folder_count} folder(s) · ${d.document_count} document(s)`,
-                  }))}
-                />
-              </Form.Item>
+              <>
+                {/*
+                  My Drive and the shared drives are two different things to connect — one is a
+                  person's, one is the organisation's — so they are picked between rather than
+                  listed together. The kinds come from the payload, and a kind the account has
+                  none of is offered with the count that says so rather than hidden: "0 shared
+                  drives" is an answer, a missing control is not.
+                */}
+                <Form.Item label="Where the documents are">
+                  <Segmented
+                    value={driveKind}
+                    onChange={(value) => {
+                      const kind = String(value)
+                      setDriveKind(kind)
+                      const first = drives.find((d) => d.kind === kind)
+                      if (first) selectDrive(first.drive_id)
+                    }}
+                    options={Object.entries(DRIVE_KIND).map(([kind, label]) => ({
+                      value: kind,
+                      label: `${label} (${drives.filter((d) => d.kind === kind).length})`,
+                    }))}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  label={DRIVE_KIND[driveKind] ?? driveKind}
+                  extra={
+                    drivesOfKind.length === 0
+                      ? `This account can read no ${(DRIVE_KIND[driveKind] ?? driveKind).toLowerCase()}. Pick the other option, or connect an account that can.`
+                      : undefined
+                  }
+                >
+                  <Select
+                    value={
+                      drivesOfKind.some((d) => d.drive_id === driveId)
+                        ? driveId
+                        : undefined
+                    }
+                    onChange={(value) => selectDrive(value)}
+                    placeholder="Select a drive"
+                    disabled={drivesOfKind.length === 0}
+                    options={drivesOfKind.map((d) => ({
+                      value: d.drive_id,
+                      label: `${d.display_name} — ${d.folder_count} folder(s) · ${d.document_count} document(s)`,
+                    }))}
+                  />
+                </Form.Item>
+              </>
             ) : null}
           </Form>
 
@@ -917,13 +1085,12 @@ export default function ConnectSourceWizard({
                 <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>
                   Folder allowlist — check which folders this source may profile
                 </Typography.Text>
-                <Checkbox.Group
+                {/* Drawn as the tree the drive is, not as a flat list: a subfolder and the folder
+                    holding it are not peers, and checking one brings in what is inside it. */}
+                <FolderTreePicker
+                  folders={drivePreview.folders}
                   value={checkedFolders}
-                  onChange={(values) => setCheckedFolders(values as string[])}
-                  options={drivePreview.folders.map((f) => ({
-                    label: `${f.name} — ${f.document_count} doc(s) · ${f.page_count} page(s)`,
-                    value: f.folder_id,
-                  }))}
+                  onChange={setCheckedFolders}
                 />
               </>
             ) : null}

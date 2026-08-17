@@ -30,6 +30,14 @@
     {
       "project_id": "vrio-contextweave-demo",
       "credential_handle": "cred-handle-8b41d0c6"
+    },
+    {
+      "project_id": "vrio-cw-transport-ops",
+      "credential_handle": "cred-handle-3f7c91ab"
+    },
+    {
+      "project_id": "vrio-cw-sandbox",
+      "credential_handle": "cred-handle-c02de845"
     }
   ],
   "projects": [
@@ -93,6 +101,66 @@
               "columns": 25,
               "size_gb": 0,
               "partitioned": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "project_id": "vrio-cw-transport-ops",
+      "display_name": "VLS Transport Ops",
+      "location": "US",
+      "datasets": [
+        {
+          "dataset_id": "transport_ops",
+          "location": "US",
+          "description": "Custody-chain views: which transporter carried which manifest leg, and over what route.",
+          "semantic_layer": "gold",
+          "tables": [
+            {
+              "table_id": "transporter_manifests",
+              "label": "Transporter manifests (legs)",
+              "type": "VIEW",
+              "grain": "one manifest leg carried by one transporter",
+              "rows": 4820,
+              "size_gb": 0,
+              "partitioned": false,
+              "columns": 12
+            },
+            {
+              "table_id": "route_segments",
+              "label": "Route segments",
+              "type": "VIEW",
+              "grain": "one origin→destination segment of a shipment",
+              "rows": 9640,
+              "size_gb": 0,
+              "partitioned": false,
+              "columns": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "project_id": "vrio-cw-sandbox",
+      "display_name": "Compliance Sandbox",
+      "location": "EU",
+      "datasets": [
+        {
+          "dataset_id": "compliance_sandbox",
+          "location": "EU",
+          "description": "Staging for enforcement filings that have not been resolved to a facility yet.",
+          "semantic_layer": "bronze",
+          "tables": [
+            {
+              "table_id": "enforcement_staging",
+              "label": "Enforcement staging",
+              "type": "TABLE",
+              "grain": "one enforcement action awaiting review",
+              "rows": 640,
+              "size_gb": 0,
+              "partitioned": false,
+              "columns": 9
             }
           ]
         }
@@ -799,6 +867,14 @@
     {
       "drive_id": "compliance-docs",
       "credential_handle": "drive-handle-5e97a2b4"
+    },
+    {
+      "drive_id": "my-drive-compliance-lead",
+      "credential_handle": "drive-handle-1c48fa03"
+    },
+    {
+      "drive_id": "vls-legal",
+      "credential_handle": "drive-handle-9ab7e510"
     }
   ],
   "drives": [
@@ -897,6 +973,230 @@
               "size_mb": 3.6,
               "entities": 27,
               "modified": "2025-01-17T00:00:00Z"
+            }
+          ],
+          "parent_id": null
+        },
+        {
+          "folder_id": "f_08_decrees",
+          "parent_id": "f_08_unstructured",
+          "name": "decrees",
+          "path": "/Compliance Docs/08_unstructured/decrees",
+          "description": "Consent decrees split out of the root folder, by filing.",
+          "documents": [
+            {
+              "document_id": "d_chemours_cd_appendix",
+              "name": "chemours-cd-appendix-b.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree (appendix)",
+              "linked_entity": "The Chemours Company Fayetteville Works",
+              "pages": 24,
+              "size_mb": 2.2,
+              "entities": 15,
+              "modified": "2025-11-04T00:00:00Z"
+            },
+            {
+              "document_id": "d_pcs_nitrogen_cd_exhibit",
+              "name": "pcsnitrogenfertilizerlp-cd-exhibit-2.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree (exhibit)",
+              "linked_entity": "PCS Nitrogen Fertilizer LP",
+              "pages": 17,
+              "size_mb": 1.5,
+              "entities": 8,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_08_decrees_2025",
+          "parent_id": "f_08_decrees",
+          "name": "2025",
+          "path": "/Compliance Docs/08_unstructured/decrees/2025",
+          "description": "Decree filings and modifications entered in 2025.",
+          "documents": [
+            {
+              "document_id": "d_simplot_don_cd_mod_signed",
+              "name": "simplot-don-cd-modification-signed-2025.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree (modification)",
+              "linked_entity": "J.R. Simplot Company Don Plant",
+              "pages": 31,
+              "size_mb": 2.8,
+              "entities": 22,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_08_settlements",
+          "parent_id": "f_08_unstructured",
+          "name": "settlements",
+          "path": "/Compliance Docs/08_unstructured/settlements",
+          "description": "Stipulations and settlement orders.",
+          "documents": [
+            {
+              "document_id": "d_stericycle_settlement_exhibit",
+              "name": "stericycle-settlement-exhibit-a.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "settlement",
+              "doc_type_label": "Settlement (exhibit)",
+              "linked_entity": "Stericycle Environmental Solutions",
+              "pages": 12,
+              "size_mb": 1.1,
+              "entities": 20,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "drive_id": "my-drive-compliance-lead",
+      "display_name": "My Drive",
+      "kind": "my_drive",
+      "folders": [
+        {
+          "folder_id": "f_my_intake",
+          "parent_id": null,
+          "name": "Intake",
+          "path": "/My Drive/Intake",
+          "description": "Filings dropped here before they are filed to the shared drive.",
+          "documents": [
+            {
+              "document_id": "d_denka_cafo_intake",
+              "name": "denka-cafo-intake-copy.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "cafo",
+              "doc_type_label": "Consent Agreement/Final Order",
+              "linked_entity": "Denka Performance Elastomer LLC",
+              "pages": 38,
+              "size_mb": 3.4,
+              "entities": 12,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_my_intake_q3",
+          "parent_id": "f_my_intake",
+          "name": "Q3 2025",
+          "path": "/My Drive/Intake/Q3 2025",
+          "description": "Intake for the third quarter.",
+          "documents": [
+            {
+              "document_id": "d_chemours_cp_notes",
+              "name": "chemours-complaint-working-notes.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "complaint",
+              "doc_type_label": "Complaint (working copy)",
+              "linked_entity": "The Chemours Company Fayetteville Works",
+              "pages": 9,
+              "size_mb": 0.8,
+              "entities": 17,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_my_review",
+          "parent_id": null,
+          "name": "Under review",
+          "path": "/My Drive/Under review",
+          "description": "Documents a reviewer has open.",
+          "documents": [
+            {
+              "document_id": "d_stericycle_complaint_review",
+              "name": "stericycle-complaint-review-copy.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "complaint",
+              "doc_type_label": "Complaint",
+              "linked_entity": "Stericycle Environmental Solutions",
+              "pages": 21,
+              "size_mb": 1.9,
+              "entities": 12,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "drive_id": "vls-legal",
+      "display_name": "VLS Legal",
+      "kind": "shared_drive",
+      "folders": [
+        {
+          "folder_id": "f_legal_active",
+          "parent_id": null,
+          "name": "Active matters",
+          "path": "/VLS Legal/Active matters",
+          "description": "Open matters, one folder per state.",
+          "documents": []
+        },
+        {
+          "folder_id": "f_legal_active_la",
+          "parent_id": "f_legal_active",
+          "name": "Louisiana",
+          "path": "/VLS Legal/Active matters/Louisiana",
+          "description": "Louisiana filings.",
+          "documents": [
+            {
+              "document_id": "d_pcs_nitrogen_cd_la",
+              "name": "pcs-nitrogen-cd-la-filing.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree",
+              "linked_entity": "PCS Nitrogen Fertilizer LP",
+              "pages": 44,
+              "size_mb": 4,
+              "entities": 18,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_legal_active_nc",
+          "parent_id": "f_legal_active",
+          "name": "North Carolina",
+          "path": "/VLS Legal/Active matters/North Carolina",
+          "description": "North Carolina filings.",
+          "documents": [
+            {
+              "document_id": "d_chemours_cd_nc",
+              "name": "chemours-cd-nc-filing.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "consent_decree",
+              "doc_type_label": "Consent Decree",
+              "linked_entity": "The Chemours Company Fayetteville Works",
+              "pages": 96,
+              "size_mb": 8.6,
+              "entities": 19,
+              "modified": "2025-11-04T00:00:00Z"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_legal_archive",
+          "parent_id": null,
+          "name": "Archive",
+          "path": "/VLS Legal/Archive",
+          "description": "Closed matters, retained for the record.",
+          "documents": [
+            {
+              "document_id": "d_denka_cafo_archive",
+              "name": "denka-cafo-closed.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "cafo",
+              "doc_type_label": "Consent Agreement/Final Order",
+              "linked_entity": "Denka Performance Elastomer LLC",
+              "pages": 38,
+              "size_mb": 3.4,
+              "entities": 12,
+              "modified": "2025-11-04T00:00:00Z"
             }
           ]
         }
@@ -5990,11 +6290,11 @@
   },
   "graph_use_cases": [
     {
-      "use_case_id": "uc-waste-management-mspxkh5q2",
+      "use_case_id": "uc-waste-management-mswz9wbi4",
       "name": "Waste Management",
       "status": "committed",
       "domain_id": "hazardous-waste",
-      "business_need": "test",
+      "business_need": "roshan222",
       "personas": [
         {
           "name": "Chief Information Officer",
@@ -6002,8 +6302,13 @@
           "source": "ai"
         },
         {
-          "name": "Environmental Compliance Manager",
-          "description": "Screen inbound generators before accepting loads; track open violations and return-to-compliance dates.",
+          "name": "Chief Sustainability Officer",
+          "description": "Prove the facility’s compliance posture to regulators and customers; quantify liability carried in from generators.",
+          "source": "ai"
+        },
+        {
+          "name": "Operations Director, Deer Park",
+          "description": "Understand inbound volume, rejections, and transporter performance (days in possession).",
           "source": "ai"
         }
       ],
@@ -6014,8 +6319,8 @@
           "source": "ai"
         },
         {
-          "name": "Texas Molecular own penalties",
-          "description": "Measured in USD, from RCRA_Compliance_Summary (the operator).",
+          "name": "Distinct generators shipping to Deer Park",
+          "description": "Measured in generators, from entity_roster.",
           "source": "ai"
         }
       ],
@@ -6030,12 +6335,12 @@
       ],
       "hero_questions": [
         {
-          "text": "How has our inbound hazardous-waste volume trended by quarter, and is any generator ramping up shipments to us?",
+          "text": "What share of our inbound tonnage in the last 12 months came from generators carrying an open violation?",
           "priority": "normal",
           "source": "ai"
         },
         {
-          "text": "Show me every rejected load and residue manifest, and which generators they came from.",
+          "text": "Is ‘Texas Molecular’ the same facility as ‘Texas Molecular LP’ — how does the system know?",
           "priority": "normal",
           "source": "ai"
         }
@@ -6043,14 +6348,30 @@
       "citations": "required",
       "answer_formats": [
         {
-          "format_id": "liability-exposure",
-          "name": "Liability exposure",
-          "format": "narrative + exposure table + implicated facility list"
+          "format_id": "exception-report",
+          "name": "Exception report",
+          "format": "exception table + aging buckets"
         }
       ],
       "gap_decisions": [],
       "step": 7,
-      "updated_at": "2026-08-12T10:13:04.622Z"
+      "updated_at": "2026-08-17T08:35:46.254Z"
+    },
+    {
+      "use_case_id": "uc-waste-management-mswz5ium3",
+      "name": "Waste Management",
+      "status": "draft",
+      "domain_id": "hazardous-waste",
+      "business_need": "tst",
+      "personas": [],
+      "kpis": [],
+      "sources": [],
+      "hero_questions": [],
+      "citations": "required",
+      "answer_formats": [],
+      "gap_decisions": [],
+      "step": 2,
+      "updated_at": "2026-08-17T08:31:17.422Z"
     }
   ],
   "graph_personas": [
@@ -9636,6 +9957,384 @@
         "null_pct": 0,
         "distinct": 49
       }
+    ],
+    "transport_ops.transporter_manifests": [
+      {
+        "column_id": "manifest_tracking_number",
+        "label": "MANIFEST TRACKING NUMBER",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA manifest tracking number (MTN) this leg belongs to. Joins to e_manifest.",
+        "derivation": "seeded",
+        "confidence": 0.97,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1200
+      },
+      {
+        "column_id": "transporter_epa_id",
+        "label": "TRANSPORTER EPA ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA identification number of the transporter carrying the leg.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 62
+      },
+      {
+        "column_id": "transporter_name",
+        "label": "TRANSPORTER NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Registered name of the transporter company.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 58
+      },
+      {
+        "column_id": "leg_sequence",
+        "label": "LEG SEQUENCE",
+        "type": "INTEGER",
+        "class": "dimension",
+        "description": "Position of this leg in the shipment’s custody chain, starting at 1.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 4
+      },
+      {
+        "column_id": "pickup_date",
+        "label": "PICKUP DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date the transporter took custody of the shipment.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 720
+      },
+      {
+        "column_id": "delivery_date",
+        "label": "DELIVERY DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date custody passed to the next transporter or to the receiving facility.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 1.4,
+        "distinct": 731
+      },
+      {
+        "column_id": "origin_state",
+        "label": "ORIGIN STATE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "US state the leg departed from.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 31
+      },
+      {
+        "column_id": "destination_state",
+        "label": "DESTINATION STATE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "US state the leg arrived in.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 28
+      },
+      {
+        "column_id": "quantity_tons",
+        "label": "QUANTITY TONS",
+        "type": "FLOAT",
+        "class": "measure",
+        "description": "Tonnage moved on this leg, as declared on the manifest.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1840
+      },
+      {
+        "column_id": "container_count",
+        "label": "CONTAINER COUNT",
+        "type": "INTEGER",
+        "class": "measure",
+        "description": "Number of containers on the leg.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 47
+      },
+      {
+        "column_id": "hazard_class",
+        "label": "HAZARD CLASS",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "DOT hazard class declared for the load. An attribute of the shipment, not an entity.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 9
+      },
+      {
+        "column_id": "signature_captured",
+        "label": "SIGNATURE CAPTURED",
+        "type": "BOOLEAN",
+        "class": "flag",
+        "description": "Whether an electronic signature was captured at hand-off.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      }
+    ],
+    "transport_ops.route_segments": [
+      {
+        "column_id": "segment_id",
+        "label": "SEGMENT ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Surrogate key for the origin→destination segment.",
+        "derivation": "seeded",
+        "confidence": 0.96,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 9640
+      },
+      {
+        "column_id": "manifest_tracking_number",
+        "label": "MANIFEST TRACKING NUMBER",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Manifest the segment belongs to. Joins to e_manifest and to transporter_manifests.",
+        "derivation": "seeded",
+        "confidence": 0.97,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 1200
+      },
+      {
+        "column_id": "origin_facility_id",
+        "label": "ORIGIN FACILITY ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA handler id of the facility the segment departed from.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "destination_facility_id",
+        "label": "DESTINATION FACILITY ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA handler id of the facility the segment arrived at.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 11
+      },
+      {
+        "column_id": "origin_address",
+        "label": "ORIGIN ADDRESS",
+        "type": "STRING",
+        "class": "address",
+        "description": "Street address on file for the origin handler.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 36
+      },
+      {
+        "column_id": "destination_lat",
+        "label": "DESTINATION LAT",
+        "type": "FLOAT",
+        "class": "geo",
+        "description": "Latitude of the destination handler, from the FRS facility record.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 11
+      },
+      {
+        "column_id": "destination_lon",
+        "label": "DESTINATION LON",
+        "type": "FLOAT",
+        "class": "geo",
+        "description": "Longitude of the destination handler, from the FRS facility record.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 11
+      },
+      {
+        "column_id": "distance_miles",
+        "label": "DISTANCE MILES",
+        "type": "FLOAT",
+        "class": "measure",
+        "description": "Road distance of the segment.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2410
+      },
+      {
+        "column_id": "transit_hours",
+        "label": "TRANSIT HOURS",
+        "type": "FLOAT",
+        "class": "measure",
+        "description": "Elapsed hours between departure and arrival scans.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 3.2,
+        "distinct": 1880
+      },
+      {
+        "column_id": "departed_at",
+        "label": "DEPARTED AT",
+        "type": "TIMESTAMP",
+        "class": "date",
+        "description": "Timestamp of the departure scan.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 9310
+      }
+    ],
+    "compliance_sandbox.enforcement_staging": [
+      {
+        "column_id": "staging_id",
+        "label": "STAGING ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "Surrogate key for the staged enforcement row.",
+        "derivation": "seeded",
+        "confidence": 0.95,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 640
+      },
+      {
+        "column_id": "facility_epa_id",
+        "label": "FACILITY EPA ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "EPA handler id the action is filed against.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 118
+      },
+      {
+        "column_id": "facility_name",
+        "label": "FACILITY NAME",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Facility name as it appears on the filing, before resolution.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 121
+      },
+      {
+        "column_id": "enforcement_type",
+        "label": "ENFORCEMENT TYPE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Type of action filed. An attribute of the action, not an entity of its own.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 6
+      },
+      {
+        "column_id": "filed_date",
+        "label": "FILED DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "Date the action was filed.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 512
+      },
+      {
+        "column_id": "penalty_usd",
+        "label": "PENALTY USD",
+        "type": "FLOAT",
+        "class": "measure",
+        "description": "Penalty assessed, in US dollars. Null where none was assessed.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 41.7,
+        "distinct": 209
+      },
+      {
+        "column_id": "reviewed",
+        "label": "REVIEWED",
+        "type": "BOOLEAN",
+        "class": "flag",
+        "description": "Whether a reviewer has cleared the row for promotion.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": false,
+        "null_pct": 0,
+        "distinct": 2
+      },
+      {
+        "column_id": "reviewer_email",
+        "label": "REVIEWER EMAIL",
+        "type": "STRING",
+        "class": "entity",
+        "description": "Address of the reviewer who cleared the row. Personal data.",
+        "derivation": "seeded",
+        "confidence": 0.9,
+        "pii": true,
+        "null_pct": 58.3,
+        "distinct": 9
+      },
+      {
+        "column_id": "review_note",
+        "label": "REVIEW NOTE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "Free-text note the reviewer left when clearing or rejecting the row.",
+        "derivation": "seeded",
+        "confidence": 0.78,
+        "pii": false,
+        "null_pct": 61.1,
+        "distinct": 264
+      }
     ]
   },
   "document_extractions": {
@@ -9708,6 +10407,106 @@
       "state": "TX",
       "linked_manifests": 197,
       "confidence": 0.9
+    },
+    "d_chemours_cd_appendix": {
+      "extraction_id": "DOC:chemours_cd_appendix",
+      "extracted_entity": "The Chemours Company Fayetteville Works",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_facility": "The Chemours Company Fayetteville Works",
+      "state": "NC",
+      "linked_manifests": 19,
+      "confidence": 0.88
+    },
+    "d_pcs_nitrogen_cd_exhibit": {
+      "extraction_id": "DOC:pcs_nitrogen_cd_exhibit",
+      "extracted_entity": "PCS Nitrogen Fertilizer LP",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD663309076",
+      "resolved_facility": "PCS Nitrogen Fertilizer LP",
+      "state": "LA",
+      "linked_manifests": 21,
+      "confidence": 0.88
+    },
+    "d_simplot_don_cd_mod_signed": {
+      "extraction_id": "DOC:simplot_don_cd_mod_signed",
+      "extracted_entity": "J.R. Simplot Company Don Plant",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:IDD698205633",
+      "resolved_facility": "J.R. Simplot Company Don Plant",
+      "state": "ID",
+      "linked_manifests": 15,
+      "confidence": 0.88
+    },
+    "d_stericycle_settlement_exhibit": {
+      "extraction_id": "DOC:stericycle_settlement_exhibit",
+      "extracted_entity": "Stericycle Environmental Solutions",
+      "entity_type": "Transporter",
+      "resolved_node": "FAC:ILR000067890",
+      "resolved_facility": "Stericycle Environmental Solutions",
+      "state": "TX",
+      "linked_manifests": 197,
+      "confidence": 0.88
+    },
+    "d_denka_cafo_intake": {
+      "extraction_id": "DOC:denka_cafo_intake",
+      "extracted_entity": "Denka Performance Elastomer LLC",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD727050419",
+      "resolved_facility": "Denka Performance Elastomer LLC",
+      "state": "LA",
+      "linked_manifests": 28,
+      "confidence": 0.88
+    },
+    "d_chemours_cp_notes": {
+      "extraction_id": "DOC:chemours_cp_notes",
+      "extracted_entity": "The Chemours Company Fayetteville Works",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_facility": "The Chemours Company Fayetteville Works",
+      "state": "NC",
+      "linked_manifests": 19,
+      "confidence": 0.88
+    },
+    "d_stericycle_complaint_review": {
+      "extraction_id": "DOC:stericycle_complaint_review",
+      "extracted_entity": "Stericycle Environmental Solutions",
+      "entity_type": "Transporter",
+      "resolved_node": "FAC:ILR000067890",
+      "resolved_facility": "Stericycle Environmental Solutions",
+      "state": "TX",
+      "linked_manifests": 197,
+      "confidence": 0.88
+    },
+    "d_pcs_nitrogen_cd_la": {
+      "extraction_id": "DOC:pcs_nitrogen_cd_la",
+      "extracted_entity": "PCS Nitrogen Fertilizer LP",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD663309076",
+      "resolved_facility": "PCS Nitrogen Fertilizer LP",
+      "state": "LA",
+      "linked_manifests": 21,
+      "confidence": 0.88
+    },
+    "d_chemours_cd_nc": {
+      "extraction_id": "DOC:chemours_cd_nc",
+      "extracted_entity": "The Chemours Company Fayetteville Works",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:NCD844706749",
+      "resolved_facility": "The Chemours Company Fayetteville Works",
+      "state": "NC",
+      "linked_manifests": 19,
+      "confidence": 0.88
+    },
+    "d_denka_cafo_archive": {
+      "extraction_id": "DOC:denka_cafo_archive",
+      "extracted_entity": "Denka Performance Elastomer LLC",
+      "entity_type": "Generator (facility)",
+      "resolved_node": "FAC:LAD727050419",
+      "resolved_facility": "Denka Performance Elastomer LLC",
+      "state": "LA",
+      "linked_manifests": 28,
+      "confidence": 0.88
     }
   },
   "ask_answers": [

@@ -1,11 +1,11 @@
-import { CheckCircleFilled, LoadingOutlined } from '@ant-design/icons'
-import { Spin } from 'antd'
 import {
   CONSENT_GRANT_COPY,
+  CONSENT_SCOPE_LABEL,
   CONSENT_SCOPES,
   CONSENT_STAGES,
   type ConsentProvider,
 } from '../data/consentStages'
+import StageList from './StageList'
 import './GoogleConsentPanel.css'
 
 /**
@@ -43,25 +43,9 @@ export default function GoogleConsentPanel({
     <div className="cs-consent" role="status" aria-live="polite">
       <div className="cs-consent-title">Signing in with Google…</div>
 
-      <ol className="cs-consent-stages">
-        {stages.map((label, i) => {
-          const state = i < stage ? 'is-done' : i === stage ? 'is-active' : 'is-waiting'
-          return (
-            <li key={label} className={`cs-consent-stage ${state}`}>
-              <span className="cs-consent-mark" aria-hidden="true">
-                {i < stage ? (
-                  <CheckCircleFilled />
-                ) : i === stage ? (
-                  <Spin indicator={<LoadingOutlined spin />} size="small" />
-                ) : (
-                  <span className="cs-consent-dot" />
-                )}
-              </span>
-              {label}
-            </li>
-          )
-        })}
-      </ol>
+      {/* The rows are `StageList`'s — step 3's run panel draws the same ones, and
+          done/running/not-yet is one interaction, not two. */}
+      <StageList stages={stages} stage={stage} />
 
       {/*
         The scopes are the promise being made, so every one is stated. Listed from
@@ -72,7 +56,7 @@ export default function GoogleConsentPanel({
       <ul className="cs-consent-scopes">
         {asked.map((scope) => (
           <li key={scope}>
-            <code>{scope.replace('https://www.googleapis.com/auth/', '')}</code>
+            <code>{CONSENT_SCOPE_LABEL(scope)}</code>
             {CONSENT_GRANT_COPY[scope] ? ` — ${CONSENT_GRANT_COPY[scope].title}` : null}
           </li>
         ))}

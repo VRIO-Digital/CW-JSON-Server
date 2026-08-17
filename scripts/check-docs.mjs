@@ -337,6 +337,526 @@ expect(
   'the wizard holds start.scopes and the panel renders them',
 )
 
+/*
+ * The sign-in window is the click-through the consent happens in, and the same rule binds it: it
+ * renders the scopes the *response* carried. A window with its own list can describe fewer
+ * permissions than are being asked for, which is the one failure a consent screen exists to
+ * prevent — and it is silent, because a window listing one scope looks exactly like a connector
+ * that asks for one.
+ *
+ * `codeOnly`, and keyed on the rendered form rather than the bare identifier: this file's own
+ * comments name the constant it must not read from.
+ */
+const signInWindow = read('src/components/GoogleSignInWindow.tsx')
+const signInCode = codeOnly(signInWindow)
+expect(
+  'the sign-in window renders the scopes the endpoint returned',
+  /scopes: string\[\]/.test(signInCode) && /scopes\.map\(\(scope\)/.test(signInCode),
+  'one row per scope in the payload, not per scope this file knows about',
+)
+expect(
+  'and keeps no list of its own to render instead',
+  !/CONSENT_SCOPES/.test(signInCode) &&
+    !/googleapis\.com\/auth\/[\w.]+'/.test(signInCode),
+  'CONSENT_GRANT_COPY supplies wording only; an unmapped scope still renders',
+)
+/*
+ * Two halves of "nothing is granted until Allow is pressed". The first call runs on the button —
+ * the window has to have the scopes to render — and the callback runs on Allow. A window opened
+ * before `/oauth/start` returned could only open blank or guess, and a callback fired on open
+ * would make the Allow button decoration.
+ */
+const openFn = (wizard.split('async function openGoogleSignIn()')[1] ?? '').slice(0, 900)
+const grantFn = (wizard.split('async function grantGoogleConsent()')[1] ?? '').slice(0, 1600)
+expect(
+  'the sign-in window opens on the response, not on the click',
+  /await oauthStart\(/.test(openFn) &&
+    /setSignInPhase\('account'\)/.test(openFn) &&
+    !/[oO]authCallback\(/.test(openFn),
+  'it renders start.scopes, so it cannot open before that call returns',
+)
+expect(
+  'and Allow is what spends the consent',
+  /driveOauthCallback\(oauthState, signedInAs\)/.test(grantFn) &&
+    /oauthCallback\(oauthState, signedInAs\)/.test(grantFn) &&
+    /onAllow=\{\(\) => void grantGoogleConsent\(\)\}/.test(wizard),
+  'cancelling grants nothing and connects nobody',
+)
+
+/* ---------------- step 3's two acts are paced, and paced on the server ---------------- */
+
+/*
+ * `1. Run preview` and `2. Finish` are the two calls in this wizard that would really
+ * talk to Google, and both returned before their spinner drew a frame. They are held
+ * on `CONNECT_STEP_MS`, and the hold is on the **server** for the reason every other
+ * paced act here is: a stage advances when its request returns, never on a timer the
+ * client keeps. Two halves, and each fails silently on its own — a component timer
+ * beside an instant response paces nothing real, and an unpaced endpoint leaves the
+ * button flashing.
+ */
+const step3Handlers = [
+  ['/sources/preview', 'BigQuery preview'],
+  ['/sources/drive/preview', 'Drive preview'],
+  ['/sources', 'BigQuery register'],
+  ['/sources/drive', 'Drive register'],
+]
+/* Cut at the next route rather than at a character count: the BigQuery preview handler is
+   short enough that a 4000-char slice reached into the Drive one, and a break test that
+   deleted its own hold still found the neighbour's — the claim could not fail. */
+const handlerBody = (path) =>
+  (server.split(`match: (p) => p === '${path}',`)[1] ?? '').split('match: (p) =>')[0]
+for (const [path, what] of step3Handlers) {
+  const body = handlerBody(path)
+  expect(
+    `${what} is held on CONNECT_STEP_MS`,
+    body.length > 0 && /CONNECT_STEP_MS/.test(body),
+    `POST ${path} answers instantly, so its button cannot be seen working`,
+  )
+  /* And only the success reply. A refusal is a 400 the reader has to read and act on —
+     pacing it would make a mistyped handle take five seconds to report itself. */
+  expect(
+    `and ${what} refusals are not`,
+    body.length > 0 &&
+      !/setTimeout\([\s\S]{0,200}?send\(res, 4\d\d/.test(body) &&
+      /return send\(res, 4\d\d/.test(body),
+    'errors are never paced',
+  )
+}
+for (const fn of ['runPreview', 'finishBigQuery', 'runDrivePreview', 'finishDrive']) {
+  /* Cut at the next declaration, for the reason handlerBody does: these four sit next to
+     each other, so a fixed-length slice finds a neighbour's timer instead of its own. */
+  const body = (codeOnly(wizard).split(`async function ${fn}()`)[1] ?? '').split(
+    /\n  (?:async )?function /,
+  )[0]
+  expect(
+    `${fn} keeps no timer of its own`,
+    body.length > 0 && !/setTimeout/.test(body),
+    'the button advances when its request returns, not on a client timer',
+  )
+}
+
+/* ---------------- and the run in flight is named, not just spun ---------------- */
+
+/*
+ * Five seconds behind a button spinner reads as a wedged dialog, so each of step 3's acts
+ * opens its own small modal naming that call — `ConnectRunPanel`. One dialog per act, and
+ * the reason is the failure the first version had: a panel listing both acts said
+ * "registering the source" while nothing was being registered.
+ */
+const runPanel = read('src/components/ConnectRunPanel.tsx')
+const runPanelCode = codeOnly(runPanel)
+const connectSteps = read('src/data/connectSteps.ts')
+
+/* Two dialogs, each gated on its own act. `busy` is the flag the buttons' own spinners read,
+   so neither can be on screen for a call that has already returned — separate state could. */
+const runModals = [
+  ...wizard.matchAll(/busy === '(preview|finish)' \? \(\r?\n\s*<Modal/g),
+].map((m) => m[1])
+expect(
+  'each act opens its own dialog, from busy',
+  runModals.includes('preview') &&
+    runModals.includes('finish') &&
+    runModals.length === 2 &&
+    /act="preview"/.test(wizard) &&
+    /act="finish"/.test(wizard),
+  `${runModals.length} run dialog(s) found — one flag, one dialog per act`,
+)
+/* Google only: the generic connectors' step 3 is a stubbed test and one unpaced call, so a
+   progress dialog over it would narrate work that is not happening. */
+expect(
+  'and only over the two connectors that make those calls',
+  (wizard.match(/\{step === 2 && isGoogle && busy === '(?:preview|finish)' \?/g) ?? [])
+    .length === 2,
+  'the generic branch has no paced request behind a dialog',
+)
+/* The body is its own component because antd portals out of `renderToString`: written
+   inline, every assertion about this copy would pass over nothing. */
+expect(
+  'the panel is a component, not a body inlined in the modal',
+  (wizard.match(/<ConnectRunPanel\s+kind=/g) ?? []).length === 2 &&
+    /export default function ConnectRunPanel/.test(runPanel),
+  'a panel written inside the Modal cannot be asserted on',
+)
+/* And the words are the module's, per act and in the connector's own unit. Copy held in the
+   component is the consent screen's mistake one level down: it can describe an act the
+   wizard does not make. */
+expect(
+  'the copy comes from connectSteps.ts, per act',
+  /CONNECT_ACT_COPY\[kind\]\[act\]\.replace\('\{subject\}', subject\)/.test(runPanelCode) &&
+    !/Discovering|Registering/.test(runPanelCode),
+  'the panel renders the message, it does not author it',
+)
+/*
+ * And the message names what the call is made against — the project or the drive. Two halves:
+ * every template has the slot, and the wizard fills it from the id the request itself carries.
+ * A slot nobody fills renders the literal `{subject}` on screen, and an id from somewhere else
+ * would name a project the call is not reading.
+ */
+const actTemplates = [...connectSteps.matchAll(/(?:preview|finish): '([^']+)'/g)].map(
+  (m) => m[1],
+)
+expect(
+  'every message names its subject',
+  actTemplates.length === 4 && actTemplates.every((t) => t.includes('{subject}')),
+  `${actTemplates.filter((t) => t.includes('{subject}')).length} of ${actTemplates.length} carry the slot`,
+)
+expect(
+  'and the wizard fills it with the id the request is made with',
+  (wizard.match(/subject=\{isDrive \? driveId : projectId\}/g) ?? []).length === 2,
+  'one per dialog — a subject from elsewhere would name the wrong project',
+)
+for (const [kind, unit, notThis] of [
+  ['bigquery', 'dataset', 'folder'],
+  ['gdrive', 'folder', 'dataset'],
+]) {
+  const block = (connectSteps.match(new RegExp(`${kind}: \\{([\\s\\S]*?)\\n  \\},`)) ??
+    [])[1] ?? ''
+  const preview = (block.split('finish:')[0] ?? '').toLowerCase()
+  const finish = (block.split('finish:')[1] ?? '').toLowerCase()
+  expect(
+    `${kind} says what each act is doing, in its own unit`,
+    /preview:/.test(block) &&
+      /finish:/.test(block) &&
+      /* Per act, both halves. The unit has to be right on *every* line of the pair: a claim
+         that only checked the unit appeared passed a break test that renamed the second
+         one's, because the first still carried the word. A Drive source has no datasets. */
+      preview.includes(unit) &&
+      !preview.includes(notThis) &&
+      finish.includes(unit) &&
+      !finish.includes(notThis) &&
+      /* And neither act describes the other's work — the failure this replaced. */
+      !preview.includes('registering') &&
+      !finish.includes('discovering'),
+    `one message per request — ${kind} counts ${unit}s and nothing else`,
+  )
+}
+/* The sign-in window's rows are `StageList`'s, and the styling that came with them moved out
+   of the consent sheet. Two sheets styling one row is how a state ends up looking like two.
+   (The run dialogs draw a single act, so they are not stage rows and do not use it.) */
+expect(
+  'the consent panel draws its rows through StageList',
+  /<StageList stages=\{stages\} stage=\{stage\} \/>/.test(
+    read('src/components/GoogleConsentPanel.tsx'),
+  ) && /\.cs-stage\.is-active/.test(read('src/components/StageList.css')),
+  'one interaction, one component',
+)
+expect(
+  'and no second sheet styles those rows',
+  !/\.cs-consent-stage/.test(read('src/components/GoogleConsentPanel.css')),
+  'the classes live with the component that renders them',
+)
+
+/* ---------------- more than one project, and both kinds of Drive ---------------- */
+
+/*
+ * The wizard's pickers only mean something against data that has something to pick between. A
+ * single project renders a Select with one option — indistinguishable from a picker that failed
+ * to load its others — and a My Drive / Shared drives control with nothing on one side reads as a
+ * broken toggle rather than as an account with no shared drives.
+ */
+expect(
+  'the account can read more than one GCP project',
+  (db.projects ?? []).length >= 3,
+  `${(db.projects ?? []).length} project(s) — npm run seed:workspaces authors the extra ones`,
+)
+const driveKinds = new Set((db.drives ?? []).map((d) => d.kind))
+expect(
+  'and both kinds of Drive exist to pick between',
+  driveKinds.has('my_drive') && driveKinds.has('shared_drive'),
+  `kinds seeded: ${[...driveKinds].join(', ')}`,
+)
+/* A kind with no label renders its raw key — "shared_drive" — as a control's own text. The map is
+   the wizard's; the kinds are the data's, and only one of the two can be wrong silently. */
+const driveKindBlock = wizard.match(/const DRIVE_KIND[^=]*= \{([\s\S]*?)\n\}/)
+const labelledKinds = driveKindBlock
+  ? [...driveKindBlock[1].matchAll(/(\w+):/g)].map((m) => m[1])
+  : []
+expect(
+  'every seeded drive kind has a label in the wizard',
+  labelledKinds.length > 0 && [...driveKinds].every((k) => labelledKinds.includes(k)),
+  `labelled: ${labelledKinds.join(', ')} · seeded: ${[...driveKinds].join(', ')}`,
+)
+
+/* ---------------- a drive is a tree, and it is drawn as one ---------------- */
+
+/*
+ * Nesting is a `parent_id` on a flat list. Four things have to hold together or a subfolder is
+ * quietly drawn as a top-level folder — which reads as an allowlist covering more of the drive
+ * than it does: the data has to nest, the server has to send the pointer on both folder payloads,
+ * the client has to validate it, and the wizard has to draw the tree rather than a flat list.
+ */
+const allFolders = (db.drives ?? []).flatMap((d) =>
+  (d.folders ?? []).map((f) => ({ ...f, drive_id: d.drive_id })),
+)
+expect(
+  'some folders sit inside other folders',
+  allFolders.some((f) => f.parent_id),
+  `${allFolders.filter((f) => f.parent_id).length} of ${allFolders.length} folders are nested`,
+)
+expect(
+  'every parent_id names a folder of the same drive',
+  allFolders.every(
+    (f) =>
+      !f.parent_id ||
+      (db.drives ?? [])
+        .find((d) => d.drive_id === f.drive_id)
+        ?.folders.some((o) => o.folder_id === f.parent_id),
+  ),
+  'an unresolved parent is drawn at the root, not refused',
+)
+expect(
+  'and the server refuses one at boot rather than drawing it at the root',
+  /names parent \$\{parentId\}|names parent \r?\n?\s*`\$\{parentId\}`|which is not a folder of that drive/.test(
+    server,
+  ),
+  'validateDb checks parent_id across the drive, like a canvas edge endpoint',
+)
+expect(
+  'both folder payloads carry the parent pointer',
+  (server.match(/parent_id: f\.parent_id \?\? null/g) ?? []).length === 2,
+  '/drives/:id/folders and /sources/drive/preview',
+)
+expect(
+  'the client validates it as nullable, so a root folder still reads',
+  (client.match(/parent_id: nullable\(str\)/g) ?? []).length === 2,
+  'DRIVE_PREVIEW_PAYLOAD and DRIVE_FOLDERS_PAYLOAD',
+)
+expect(
+  'the wizard picks folders from a tree, not a flat checkbox list',
+  /* `\b` and the prop that follows: `<FolderTreePicker` alone matched a renamed
+     `<FolderTreePickerX` in a break test, so the guard could not fail. */
+  /<FolderTreePicker\s+folders=\{drivePreview\.folders\}/.test(wizard) &&
+    !/options=\{drivePreview\.folders\.map/.test(codeOnly(wizard)),
+  'a subfolder and the folder holding it are not peers',
+)
+
+/* ---------------- the catalogue's two actions are toggles, and the panels have no ✕ ---------------- */
+
+/*
+ * The four catalogue panels used to carry their own "✕ close", which meant two controls for one
+ * piece of state and only one of them showed what the state was. The ✕ is gone and the button that
+ * opened a panel closes it — which only works if the button *says* it is the open one.
+ *
+ * Asserted across every layer the removal touched, because half of it is worse than all of it: a
+ * panel still rendering a ✕ wired to a prop nobody passes is a button that does nothing, and a
+ * toggle with no pressed state is a panel a reader cannot close.
+ */
+/* `cataloguePage` is already read at the top of this file — one binding, reused. */
+const panelFiles = [
+  'src/pages/CataloguePage.tsx',
+  'src/components/ProfiledColumnsPanel.tsx',
+  'src/components/ProfiledDocumentsPanel.tsx',
+  'src/components/DocumentBrowsePanel.tsx',
+]
+for (const path of panelFiles) {
+  const src = codeOnly(read(path))
+  expect(
+    `${path.split('/').pop()} has no close button left in it`,
+    !/CloseOutlined/.test(src) && !/onClose/.test(src),
+    'the ✕, its handler and the prop all go together or none of them do',
+  )
+}
+expect(
+  'the open action is the orange one and the closed one is white',
+  (cataloguePage.match(
+    /type=\{(browseOpen|dictionaryOpen) \? 'primary' : 'default'\}/g,
+  ) ?? []).length === 2,
+  'the fill is the state — neither button is permanently the primary',
+)
+/* Colour alone is never a state anywhere in this app, and here it is the *only* thing saying which
+   panel is open, since the panels lost their ✕. Both non-visual halves are asserted with it. */
+expect(
+  'and open is not signalled by colour alone',
+  /aria-pressed=\{browseOpen\}/.test(cataloguePage) &&
+    /aria-pressed=\{dictionaryOpen\}/.test(cataloguePage),
+  'aria-pressed for a screen reader, the note below in words for everyone',
+)
+/* Scoped to the action row's own rules — the source card's `is-active` border is a different,
+   older use of the brand and not what this claim is about. A whole-file search would have failed
+   against correct code, which is the broad-claim trap this file records five times over. */
+expect(
+  'the action row paints no button fill of its own',
+  ![...read('src/pages/CataloguePage.css').matchAll(/\.cat-actions[^{]*\{([^}]*)\}/g)].some(
+    /* A fill or the brand itself. Not "any hex": the hint line's own text colour is a hex and is
+       not a button fill, and a claim that fails on correct code is a claim nobody re-reads. */
+    (rule) => /background/i.test(rule[1]) || /#f4562b|#9e3819/i.test(rule[1]),
+  ),
+  'open is antd primary, which reads the brand from theme.ts',
+)
+expect(
+  'the open state is derived from the panel, not tracked beside it',
+  /const browseOpen = panel === /.test(cataloguePage) &&
+    /const dictionaryOpen = panel === /.test(cataloguePage),
+  'two pieces of state for one fact is a pressed button with nothing open under it',
+)
+expect(
+  'and the way to close a panel is stated while one is open',
+  /Click the same button again to close the panel\./.test(cataloguePage) &&
+    /\{browseOpen \|\| dictionaryOpen \?/.test(cataloguePage),
+  'the ✕ is gone, so the way back has to be said somewhere',
+)
+/* ---------------- a run that profiled nothing says which objects, and offers the re-run ---------------- */
+
+/*
+ * "Nothing to profile — 2 table(s) already profiled. Use Force on the run in Profiling jobs to redo
+ * them." never said *which* two, and sent the reader to another tab to act on the job that had just
+ * done nothing. Both halves are now answered where the question is asked, and both are asserted:
+ * a message that counts without naming is the failure this replaced.
+ */
+const outcomeSrc = read('src/data/profilingOutcome.ts')
+const outcomeCode = codeOnly(outcomeSrc)
+expect(
+  'a skipped-everything run names the objects it skipped',
+  /already profiled: \$\{namedObjects\(skipped\)\}/.test(outcomeCode),
+  'a count with no names leaves the reader to work out whether theirs ran',
+)
+expect(
+  'and a partial run names them too',
+  /already profiled, skipped: \$\{namedObjects\(skipped\)\}/.test(outcomeCode),
+  'same question, same answer, whether or not something else was queued',
+)
+expect(
+  'the cap on that list is stated, never a silent truncation',
+  /\+ \$\{names\.length - NAMES_SHOWN\} more/.test(outcomeCode),
+  'the rule the report charts follow: no cap is silent',
+)
+expect(
+  'and it no longer sends the reader to the jobs tab to act',
+  !/Profiling jobs/.test(outcomeCode) && !/Force/.test(outcomeCode),
+  'the decision is offered on the dialog that reports the outcome',
+)
+/*
+ * `force` from a browse panel is a *second* act — the confirm on that dialog — never the first
+ * click. Asserted as a pair: the Start Profiling button must not force, and the only `force: true`
+ * is the confirm's `onOk`.
+ */
+for (const [label, path] of [
+  ['BrowsePanel', 'src/pages/CataloguePage.tsx'],
+  ['DocumentBrowsePanel', 'src/components/DocumentBrowsePanel.tsx'],
+]) {
+  const src = codeOnly(read(path))
+  expect(
+    `${label} starts unforced and offers the re-run on the confirm`,
+    /onClick=\{\(\) => void startProfiling\(\)\}/.test(src) &&
+      /onOk: \(\) => startProfiling\(true\)/.test(src) &&
+      (src.match(/startProfiling\(true\)/g) ?? []).length === 1,
+    'one deliberate path to force, and it is not the button',
+  )
+  expect(
+    `and ${label} words the outcome from the shared module`,
+    /profilingOutcome\(job\.objects, '(table|document)', job\.short_id\)/.test(src) &&
+      !/Nothing to profile/.test(src),
+    'BigQuery and Drive differ by a noun, so the wording is written once',
+  )
+}
+
+/* ---------------- what Disconnect and Delete warn about ---------------- */
+
+/*
+ * Both acts state their consequences before they are carried out, and the copy makes three
+ * checkable promises. Each fails silently on its own: a warning nobody can act on is noise, and a
+ * warning that is *wrong* is worse than none.
+ */
+const sourcesPage = read('src/pages/SourcesPage.tsx')
+const impact = read('src/components/SourceImpactNotice.tsx')
+const impactCode = codeOnly(impact)
+expect(
+  'both destructive actions warn through the shared notice',
+  (sourcesPage.match(/<SourceImpactNotice\s/g) ?? []).length === 2 &&
+    /action="disconnect"/.test(sourcesPage) &&
+    /action="delete"/.test(sourcesPage),
+  'one component, so the two cannot describe the same app differently',
+)
+/*
+ * The promise of an undo has to be performed by something. "Reconnect on this row" was a sentence
+ * before it was a route — which is the publish dialog's "a Domain Architect approves" mistake, a
+ * dialog promising a step nothing carries out. All four legs are asserted together.
+ */
+expect(
+  'the undo the disconnect warning promises actually exists',
+  server.includes("/reconnect$/.test(p)") &&
+    /export async function reconnectSource/.test(client) &&
+    /reconnect: async \(sourceId\)/.test(read('src/store/sourcesStore.ts')) &&
+    /onClick=\{\(\) => void handleReconnect\(row\)\}/.test(sourcesPage),
+  'route, fetcher, store action and the button on a disconnected row',
+)
+/* Sliced from a string only that handler carries, and the slice is asserted non-empty first: a
+   split that finds nothing leaves `''`, and "this text is absent" passes over an empty string. */
+const reconnectHandler = (
+  server.split('there is nothing to reconnect')[1] ?? ''
+).slice(0, 2000)
+expect(
+  'and it is an undo rather than a re-registration',
+  reconnectHandler.length > 500 && !/registered\.set\(/.test(reconnectHandler),
+  'it mutates the record in place, so the profiled objects survive',
+)
+/*
+ * The list of pages is the claim most likely to rot. Ask, Reports, the What-if lens and Audit
+ * gate on a *published graph*, so they keep answering when the last source goes — and the notice
+ * says so by name. If one of them ever gates on a connected source instead, this fails rather
+ * than leaving the dialog telling a reader something the app disproves on the next click.
+ */
+const publicationGated = [
+  ['Ask', 'src/pages/AskPage.tsx'],
+  ['Reports', 'src/pages/ReportsPage.tsx'],
+  ['What-if', 'src/pages/WhatIfPage.tsx'],
+  ['Audit', 'src/pages/AuditPage.tsx'],
+]
+for (const [label, path] of publicationGated) {
+  const page = read(path)
+  expect(
+    `${label} still gates on publication, as the warning says`,
+    /<NoPublishedGraph/.test(page) && !/<NoSourceConnected/.test(codeOnly(page)),
+    'the notice names it among the pages that keep answering',
+  )
+  expect(
+    `and the notice names ${label} in that sentence`,
+    (impactCode.match(/const stillLive =\s*\r?\n?\s*'([^']+)'/) ?? [])[1]?.includes(label) ??
+      false,
+    'a page that keeps working must be named, or the warning overstates',
+  )
+}
+/* The other half: the pages the warning says do close are the ones that really gate on a
+   connected source. Named individually — "some features stop working" is not checkable. */
+const connectionGated = [
+  ['Data Catalogue', 'src/pages/CataloguePage.tsx'],
+  ['Traces', 'src/pages/TracePage.tsx'],
+  ['Validation', 'src/pages/ValidationPage.tsx'],
+]
+for (const [label, path] of connectionGated) {
+  expect(
+    `${label} really closes with no source connected`,
+    /<NoSourceConnected/.test(read(path)) &&
+      ((impactCode.match(/const gated =\s*\r?\n?\s*'([^']+)'/) ?? [])[1]?.includes(label) ??
+        false),
+    'the warning names it among the pages that close',
+  )
+}
+/*
+ * A disconnected source has no credential, so its allowlist cannot be edited — and the refusal is
+ * the server's, not just a greyed-out button. Both halves are asserted: the button alone leaves
+ * every other path into the route storing an allowlist nothing can act on, and the route alone
+ * leaves a live-looking button that 400s. The same reasoning as the fixed Settings permission.
+ */
+expect(
+  'a disconnected source cannot have its allowlist edited',
+  (server.match(/is disconnected — reconnect it before changing its allowlist/g) ?? [])
+    .length === 2,
+  'refused on both /datasets and /folders, or the two connectors disagree',
+)
+expect(
+  'and the button says so rather than only being greyed out',
+  /disabled=\{\r?\n?\s*row\.status === 'disconnected'/.test(sourcesPage) &&
+    /Disconnected — reconnect this source before changing its allowlist\./.test(sourcesPage),
+  'a disabled control with no reason on it reads as broken',
+)
+expect(
+  'the warning counts the other connected sources rather than asserting',
+  /othersConnected > 0/.test(impactCode) &&
+    /s\.status !== 'disconnected'/.test(sourcesPage),
+  '"the last connected source" is true per row, so it is counted from the rows on screen',
+)
+
 /* ---------------- the real column profile is the one served ---------------- */
 
 /*
@@ -1753,6 +2273,207 @@ expect(
   'poll interval matches the UI copy',
   jobsTab.includes('refreshing every ${POLL_MS / 1000}s'),
   `POLL_MS=${pollMs} is interpolated into the status line, so they cannot drift`,
+)
+
+/*
+ * And the board is **told** when a run is queued, rather than left to notice.
+ *
+ * It loads on mount and polls only while something is active, so the poll that sees 0 stops
+ * the loop — right for a board nobody is adding to, wrong the moment a second run is queued
+ * with the tab already open. That is the re-profile confirm exactly: the first click lands
+ * here with an all-skipped job that completes instantly, the loop stops, and pressing
+ * "Profile N table(s) again" queues a run this list never asks about. It reads as a button
+ * that did nothing, and nothing errors — the run is real.
+ *
+ * Both halves, because the poll's stop condition is what makes the refresh load-bearing.
+ */
+const queuedHandler = (cataloguePage.split('const handleQueued = useCallback(')[1] ?? '')
+  .split('}, [')[0]
+expect(
+  'queueing a run re-reads the jobs board',
+  /void loadJobs\(\)/.test(queuedHandler) &&
+    /const loadJobs = useJobsStore\(\(s\) => s\.load\)/.test(cataloguePage),
+  'its own poll has already stopped by then, so a queued run would never appear',
+)
+expect(
+  'and the poll it cannot rely on is the one that stops at zero',
+  /if \(activeCount === 0\) return/.test(jobsTab),
+  'if this loop ever polls while idle, say so here — the claim above assumes it does not',
+)
+
+/* ---------------- answer requirements moved from the wizard to Ask ---------------- */
+
+/*
+ * 'Answer requirements' was step 6 of the New Graph wizard: the brief declared the
+ * citation policy and the render format once, for every answer the graph would ever
+ * give. It is asked for **per question** now, on Ask's own tab.
+ *
+ * A removal spanning this many layers fails worst *half-done* — the rule this repo
+ * already learned from the report access gate. So the absence is asserted on every one
+ * of them at once, and the presence of what replaced it in the same pass: an absence
+ * claim over a file whose middle has gone missing passes without meaning anything.
+ */
+const askPage = read('src/pages/AskPage.tsx')
+const askPageCode = codeOnly(askPage)
+const reqPanel = read('src/components/AnswerRequirementsPanel.tsx')
+const wizardRules = read('src/data/wizardSteps.ts')
+const newGraphPage = read('src/pages/NewGraphPage.tsx')
+const graphStore = read('src/store/graphStore.ts')
+
+/* Six steps, and the server's list is the one the stepper renders and the API validates. */
+const wizardSteps = (server.match(/const WIZARD_STEPS = \[([\s\S]*?)\n\]/) ?? [])[1] ?? ''
+const stepLabels = [...wizardSteps.matchAll(/'([^']+)'/g)].map((m) => m[1])
+expect(
+  'the New Graph wizard is six steps, ending on the coverage review',
+  stepLabels.length === 6 && stepLabels[5] === 'Entities & relationships',
+  `${stepLabels.length} step(s): ${stepLabels.join(' · ')}`,
+)
+expect(
+  'and none of them is Answer requirements',
+  !stepLabels.includes('Answer requirements'),
+  'the step is gone — its choice is asked for on Ask',
+)
+/* The page's fallback and its effects key on the same last step. A literal 7 left behind
+   would show a locked seventh step the server never sends. */
+expect(
+  'the page names the last step once, and derives from it',
+  /const LAST_STEP = 6/.test(newGraphPage) &&
+    /step !== LAST_STEP \|\| derivation/.test(newGraphPage) &&
+    /stepIssue\(LAST_STEP, draft\)/.test(newGraphPage) &&
+    !/stepIssue\(7,/.test(codeOnly(newGraphPage)),
+  'a hardcoded 7 renders a step the API would reject',
+)
+/*
+ * And nothing on the wizard side still stores, drafts or judges the old answers.
+ *
+ * The server's two brief-shaped regions rather than the whole file: `graph_answer_formats`
+ * is still a required `db.json` key — it is the pool Ask's tab now reads — so a whole-file
+ * search for `answer_formats` matches the thing that is *supposed* to be there. This is the
+ * same trap as keying an absence claim on a token the file mentions in a comment.
+ */
+/* `codeOnly` first: the comment above the step clamp *names* the two fields it no longer
+   reads, and a raw slice matched that — the self-documenting-file trap, for the sixth time. */
+const savedUseCaseFn = (
+  codeOnly(server).split('const savedUseCase = (u) => ({')[1] ?? ''
+).split('})')[0]
+/* The POST handler, cut at the next route — the GET on the same path comes first, so
+   the split has to key on the method that follows it. */
+const useCaseCommit = (
+  codeOnly(server).split(/match: \(p\) => p === '\/graph-use-cases',\s*handle: async/)[1] ??
+  ''
+).split(/\n {2}\{/)[0]
+for (const [label, code] of [
+  ['a saved brief', savedUseCaseFn],
+  ['the use-case commit', useCaseCommit],
+  ['the wizard page', codeOnly(newGraphPage)],
+  ['the step rules', codeOnly(wizardRules)],
+  ['the graph store', codeOnly(graphStore)],
+]) {
+  expect(
+    `${label} keeps no answer formats or citation policy`,
+    code.length > 0 &&
+      !/answer_formats|answerFormats|suggestAnswerFormats/.test(code) &&
+      !/citations/.test(code),
+    'half a removal is worse than none: a stored field nothing writes reads as data',
+  )
+}
+expect(
+  'and normalizeFormats is gone with them',
+  !/normalizeFormats/.test(codeOnly(server)),
+  'a normaliser for a field nothing stores is dead weight that invites its return',
+)
+expect(
+  'the formats suggester is gone from every layer',
+  !/graph-answer-formats/.test(codeOnly(server)) &&
+    !/graph-answer-formats/.test(codeOnly(client)) &&
+    !/useAnswerFormatStore/.test(codeOnly(graphStore)),
+  'a route with no caller, or a caller with no route, is a 404 waiting to happen',
+)
+/* The step's own component was deleted rather than left unrendered. */
+expect(
+  'and its wizard step component with it',
+  !existsSync(join(root, 'src/components/AnswerRequirementsStep.tsx')),
+  'AnswerRequirementsStep.tsx is still on disk, unreachable',
+)
+
+/* --- what replaced it, asserted over the same region --- */
+
+expect(
+  'Ask has an Answer requirements tab beside the question box',
+  /label: 'Answer requirements'/.test(askPage) &&
+    /label: 'Ask'/.test(askPage) &&
+    /<AnswerRequirementsPanel/.test(askPage),
+  'the choice is made where a question is asked, not once per brief',
+)
+/* Its own component, because `renderToString` renders the tab that is open: a panel
+   written inline makes every assertion about its contents pass over nothing. */
+expect(
+  'and the panel is a component, not a branch inside the page',
+  /export default function AnswerRequirementsPanel/.test(reqPanel) &&
+    !/ask-req-toggle|ask-req-format/.test(askPageCode),
+  'a panel behind a parent’s tab state cannot be asserted on',
+)
+/* The pool is served. A client-side list can offer a value POST /ask refuses — which is
+   exactly what a hand-kept copy of the consent scopes did. */
+expect(
+  'the options come from the payload, never from the component',
+  /options\.citationsOptions\.map/.test(codeOnly(reqPanel)) &&
+    /options\.formats\.map/.test(codeOnly(reqPanel)) &&
+    /\{options\.note\}/.test(codeOnly(reqPanel)) &&
+    !/Required — every claim|narrative \+|scalar \+/.test(codeOnly(reqPanel)),
+  'the server owns what may be asked for',
+)
+expect(
+  'and the server serves them with the graph list',
+  /answer_requirements: \{/.test(server) &&
+    /citations_options: CITATION_OPTIONS/.test(server) &&
+    /formats: askAnswerFormats\(\)/.test(server),
+  'GET /ask carries the pool the tab renders',
+)
+/* One definition of the effective value, or the control shows one thing and the request
+   carries another. */
+expect(
+  'the pick and the request read one selector',
+  /export const selectCitations/.test(read('src/store/askStore.ts')) &&
+    /citations \?\? s\.data\?\.answerRequirements\.defaultCitations/.test(
+      read('src/store/askStore.ts'),
+    ) &&
+    /citations=\{citations\}/.test(askPage),
+  'the served default fills in, and it is defined in one place',
+)
+/* The honesty of the feature: citations are checked, a format is only stated — and the
+   answer reports both rather than the page asserting them. */
+const requirementsFn = (server.split('function askRequirements(')[1] ?? '').split(
+  '\nfunction ',
+)[0]
+expect(
+  'satisfied is computed from the citations the answer really carries',
+  /const satisfied = requested\.citations !== 'required' \|\| cited > 0/.test(
+    requirementsFn,
+  ),
+  'a requirement reported as met without checking is theatre',
+)
+expect(
+  'and a render format says it was stated, not applied',
+  /stated, not applied/.test(requirementsFn) &&
+    /\{answer\.requirements\.note\}/.test(askPage) &&
+    /answer\.requirements\.citations/.test(askPage),
+  'a recorded answer holds the blocks the tenant wrote; claiming otherwise is disprovable on screen',
+)
+expect(
+  'an unknown format is refused, naming the pool',
+  /unknown answer format\(s\)/.test(server) &&
+    /citations must be one of/.test(server) &&
+    /if \(requested\.error\) return send\(res, 400/.test(server),
+  'refused before the stream opens — an error must not arrive inside a 200',
+)
+/* A brief that had reached the removed step has to land somewhere real. */
+expect(
+  'a saved brief past the new last step is clamped, not left pointing at nothing',
+  /step: Math\.min\(Math\.max\(Number\(u\.step \?\? 1\), 1\), WIZARD_STEPS\.length\)/.test(
+    server,
+  ),
+  'db.json still holds a brief saved on the old step 7',
 )
 
 /* ---------------- routes vs the server's own route list ---------------- */

@@ -6,6 +6,7 @@ import {
   Popconfirm,
   Space,
   Table,
+  Tooltip,
   Typography,
   type TableColumnsType,
 } from 'antd'
@@ -17,6 +18,7 @@ import EditDatasetsModal from '../components/EditDatasetsModal'
 import EditFoldersModal from '../components/EditFoldersModal'
 import NoSourceConnected from '../components/NoSourceConnected'
 import PageHeader from '../components/PageHeader'
+import SourceImpactNotice from '../components/SourceImpactNotice'
 import StatCards from '../components/StatCards'
 import StatusTag from '../components/StatusTag'
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
@@ -41,6 +43,7 @@ export default function SourcesPage() {
   const pending = useSourcesStore((s) => s.pending)
   const load = useSourcesStore((s) => s.load)
   const disconnect = useSourcesStore((s) => s.disconnect)
+  const reconnect = useSourcesStore((s) => s.reconnect)
   const remove = useSourcesStore((s) => s.remove)
   const sources = useSourcesStore(selectSources)
 
@@ -74,15 +77,33 @@ export default function SourcesPage() {
     [data],
   )
 
+  /**
+   * Connected sources other than this one — what decides whether disconnecting or deleting it
+   * closes anything. Counted from the rows on screen rather than from `connectedSources`, so the
+   * figure and the table can never disagree about which rows are connected.
+   */
+  const othersConnected = (row: SourceRow) =>
+    sources.filter((s) => s.sourceId !== row.sourceId && s.status !== 'disconnected').length
+
   async function handleDisconnect(row: SourceRow) {
     const result = await disconnect(row.sourceId)
-    if (result.ok) message.success(`${row.sourceId} disconnected — registration kept.`)
-    else message.error(result.error)
+    if (result.ok) {
+      message.success(
+        `${row.sourceName} disconnected — everything it profiled is kept. Reconnect on its row when you want it back.`,
+      )
+    } else message.error(result.error)
+  }
+
+  async function handleReconnect(row: SourceRow) {
+    const result = await reconnect(row.sourceId)
+    if (result.ok) {
+      message.success(`${row.sourceName} reconnected — its profiled objects are unchanged.`)
+    } else message.error(result.error)
   }
 
   async function handleDelete(row: SourceRow) {
     const result = await remove(row.sourceId)
-    if (result.ok) message.success(`${row.sourceId} deleted.`)
+    if (result.ok) message.success(`${row.sourceName} deleted — connect it again to re-register.`)
     else message.error(result.error)
   }
 
@@ -133,32 +154,77 @@ export default function SourcesPage() {
       key: 'actions',
       render: (_, row) => (
         <Space size={SP.sm}>
-          <Button
-            size="small"
-            disabled={row.kind !== 'bigquery' && row.kind !== 'gdrive'}
-            onClick={() => setEditing(row)}
+          {/*
+            Disabled while the source is disconnected: it has no credential, so widening what it
+            may profile would promise access it cannot make. The tooltip says which of the two
+            reasons applies — a control that is greyed out with no explanation reads as broken,
+            and the fix here (Reconnect, one button along) is a click away. The server refuses
+            the same write, because a disabled button is only a courtesy to whoever is looking
+            at it.
+          */}
+          <Tooltip
+            title={
+              row.status === 'disconnected'
+                ? 'Disconnected — reconnect this source before changing its allowlist.'
+                : row.kind !== 'bigquery' && row.kind !== 'gdrive'
+                  ? 'This connector has no discovery yet, so there is no allowlist to edit.'
+                  : undefined
+            }
           >
-            {row.kind === 'gdrive' ? 'Edit folders' : 'Edit datasets'}
-          </Button>
-          <Popconfirm
-            title="Disconnect this source?"
-            description="The credential is revoked but the registration is kept."
-            okText="Disconnect"
-            onConfirm={() => void handleDisconnect(row)}
-          >
+            {/* A disabled antd button fires no events, so the tooltip needs a wrapper to hover. */}
+            <span>
+              <Button
+                size="small"
+                disabled={
+                  row.status === 'disconnected' ||
+                  (row.kind !== 'bigquery' && row.kind !== 'gdrive')
+                }
+                onClick={() => setEditing(row)}
+              >
+                {row.kind === 'gdrive' ? 'Edit folders' : 'Edit datasets'}
+              </Button>
+            </span>
+          </Tooltip>
+          {/* A disconnected row offers the undo instead of the act it has already had: two
+              buttons where only one can ever apply is a row asking a question it has answered. */}
+          {row.status === 'disconnected' ? (
             <Button
               size="small"
-              danger
-              disabled={row.status === 'disconnected'}
+              onClick={() => void handleReconnect(row)}
               loading={pending === row.sourceId}
             >
-              Disconnect
+              Reconnect
             </Button>
-          </Popconfirm>
+          ) : (
+            <Popconfirm
+              title="Disconnect this source?"
+              description={
+                <SourceImpactNotice
+                  action="disconnect"
+                  source={row}
+                  othersConnected={othersConnected(row)}
+                />
+              }
+              okText="Disconnect"
+              cancelText="Keep connected"
+              onConfirm={() => void handleDisconnect(row)}
+            >
+              <Button size="small" danger loading={pending === row.sourceId}>
+                Disconnect
+              </Button>
+            </Popconfirm>
+          )}
           <Popconfirm
             title="Delete this source?"
-            description="Registration and its catalogue entries are removed."
-            okText="Delete"
+            description={
+              <SourceImpactNotice
+                action="delete"
+                source={row}
+                othersConnected={othersConnected(row)}
+              />
+            }
+            okText="Delete permanently"
+            cancelText="Cancel"
             okButtonProps={{ danger: true }}
             onConfirm={() => void handleDelete(row)}
           >

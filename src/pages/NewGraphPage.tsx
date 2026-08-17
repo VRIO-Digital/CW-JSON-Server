@@ -23,15 +23,12 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type {
-  AnswerFormat,
-  Citations,
   GapChoice,
   DraftedItem,
   GraphUseCase,
   HeroQuestion,
   SourcePick,
 } from '../api/client'
-import AnswerRequirementsStep from '../components/AnswerRequirementsStep'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import CoverageStep from '../components/CoverageStep'
 import { LlmRunPanel } from '../components/LlmRun'
@@ -43,7 +40,6 @@ import PageHeader from '../components/PageHeader'
 import StatusTag from '../components/StatusTag'
 import {
   selectUseCases,
-  useAnswerFormatStore,
   useCoverageStore,
   useDerivationStore,
   useGraphDomainsStore,
@@ -60,6 +56,17 @@ import {
 } from '../data/wizardSteps'
 import { SP } from '../theme'
 import './NewGraphPage.css'
+
+/*
+ * The last step — the coverage review, and the build gate.
+ *
+ * It is a constant rather than a literal 7 because the count changed once already:
+ * 'Answer requirements' was step 6 and is gone (citations and the render format are
+ * chosen per question on Ask now), so 'Entities & relationships' moved down one. The
+ * server's `WIZARD_STEPS` is the real list and `stepTotal` reads it; this is the
+ * fallback and the number the review's own effects key on.
+ */
+const LAST_STEP = 6
 
 /*
  * What each step after Domain will collect. Step 1 is built; the rest are
@@ -216,11 +223,6 @@ export default function NewGraphPage() {
   const reviewCoverageNow = useCoverageStore((s) => s.review)
   const resetCoverage = useCoverageStore((s) => s.reset)
 
-  const answerFormats = useAnswerFormatStore((s) => s.suggestions)
-  const formatsLoading = useAnswerFormatStore((s) => s.suggesting)
-  const loadAnswerFormats = useAnswerFormatStore((s) => s.suggest)
-  const resetAnswerFormats = useAnswerFormatStore((s) => s.reset)
-
   const questionSuggestions = useQuestionSuggestStore((s) => s.suggestions)
   const suggestingQuestions = useQuestionSuggestStore((s) => s.suggesting)
   const questionsAsked = useQuestionSuggestStore((s) => s.asked)
@@ -246,8 +248,6 @@ export default function NewGraphPage() {
   const [kpis, setKpis] = useState<DraftedItem[]>([])
   const [sourcePicks, setSourcePicks] = useState<SourcePick[]>([])
   const [heroQuestions, setHeroQuestions] = useState<HeroQuestion[]>([])
-  const [citations, setCitations] = useState<Citations>('required')
-  const [selectedFormats, setSelectedFormats] = useState<AnswerFormat[]>([])
   const [gapDecisions, setGapDecisions] = useState<GapChoice[]>([])
   const [step, setStep] = useState(1)
   // How far this draft has been taken. Steps past it are locked, so the stepper
@@ -262,21 +262,12 @@ export default function NewGraphPage() {
   }, [load, loadDomains, loadGraphSources])
 
   /*
-   * Step 6 offers a choice between question types rather than accumulating them,
-   * so its formats load on arrival instead of behind a "Suggest" button.
-   */
-  useEffect(() => {
-    if (step !== 6) return
-    void loadAnswerFormats({ domainId, businessNeed })
-  }, [step, domainId, businessNeed, loadAnswerFormats])
-
-  /*
-   * Step 7 shows whatever the derivation produced. Arriving without one — by
+   * The last step shows whatever the derivation produced. Arriving without one — by
    * clicking the stepper rather than generating a brief — reviews directly, so
    * the step is never empty just because the run was not started here.
    */
   useEffect(() => {
-    if (step !== 7 || derivation) return
+    if (step !== LAST_STEP || derivation) return
     void reviewCoverageNow({ name, sources: sourcePicks, heroQuestions })
   }, [step, derivation, name, sourcePicks, heroQuestions, reviewCoverageNow])
 
@@ -288,13 +279,13 @@ export default function NewGraphPage() {
   }, [derivation?.status, pollDerivation])
 
   const steps = useMemo(() => data?.steps ?? [], [data])
-  const stepTotal = steps.length || 7
+  const stepTotal = steps.length || LAST_STEP
   const stepLabel = steps[step - 1] ?? ''
   const domains = domainsData?.domains ?? []
   const graphSources = sourcesData?.sources ?? []
 
   /*
-   * Step 7's answer comes from the derivation when one ran, and from a direct
+   * The review's answer comes from the derivation when one ran, and from a direct
    * review when the user jumped here via the stepper. Both the panel and the
    * build gate must read the *same* one — reading different sources is how the
    * button ended up permanently disabled.
@@ -310,7 +301,6 @@ export default function NewGraphPage() {
     graphSources,
     sourcePicks,
     heroQuestions,
-    answerFormats: selectedFormats,
     coverage: activeCoverage,
     gapDecisions,
   }
@@ -324,8 +314,6 @@ export default function NewGraphPage() {
     setKpis(u.kpis)
     setSourcePicks(u.sources)
     setHeroQuestions(u.heroQuestions)
-    setCitations(u.citations)
-    setSelectedFormats(u.answerFormats)
     setGapDecisions(u.gapDecisions)
     setStep(u.step)
     // A saved draft already cleared every step before the one it stopped on.
@@ -335,7 +323,6 @@ export default function NewGraphPage() {
     resetPersonaSuggestions()
     resetKpiSuggestions()
     resetQuestionSuggestions()
-    resetAnswerFormats()
     resetCoverage()
     resetDerivation()
     message.success(`Opened ${u.name} at step ${u.step} of ${u.stepTotal}.`)
@@ -373,8 +360,6 @@ export default function NewGraphPage() {
     setKpis([])
     setSourcePicks([])
     setHeroQuestions([])
-    setCitations('required')
-    setSelectedFormats([])
     setGapDecisions([])
     setStep(1)
     setMaxStep(1)
@@ -382,7 +367,6 @@ export default function NewGraphPage() {
     resetPersonaSuggestions()
     resetKpiSuggestions()
     resetQuestionSuggestions()
-    resetAnswerFormats()
     resetCoverage()
     resetDerivation()
   }
@@ -408,8 +392,6 @@ export default function NewGraphPage() {
       kpis,
       sources: sourcePicks,
       heroQuestions,
-      citations,
-      answerFormats: selectedFormats,
       gapDecisions,
       step: nextStep,
     })
@@ -423,7 +405,7 @@ export default function NewGraphPage() {
     return true
   }
 
-  /** Step 7's primary action: commit the use case as ready to build. */
+  /** The last step's primary action: commit the use case as ready to build. */
   async function buildGraph() {
     const result = await save({
       useCaseId,
@@ -434,8 +416,6 @@ export default function NewGraphPage() {
       kpis,
       sources: sourcePicks,
       heroQuestions,
-      citations,
-      answerFormats: selectedFormats,
       gapDecisions,
       step,
       status: 'committed',
@@ -481,10 +461,10 @@ export default function NewGraphPage() {
     if (!(await saveDraft(nextStep))) return
 
     /*
-     * Leaving step 6 is where the answers are handed to the derivation. It runs
-     * async, so the step advances immediately and step 7 shows it working.
+     * Leaving the hero questions is where the answers are handed to the derivation. It
+     * runs async, so the step advances immediately and the review shows it working.
      */
-    if (step === 6) {
+    if (step === LAST_STEP - 1) {
       const started = await startDerivationRun({
         name,
         sources: sourcePicks,
@@ -775,20 +755,7 @@ export default function NewGraphPage() {
               />
             </Col>
           </Row>
-        ) : step === 6 ? (
-          <Row gutter={[SP.lg, SP.lg]}>
-            <Col xs={24} xl={18}>
-              <AnswerRequirementsStep
-                citations={citations}
-                onCitations={setCitations}
-                formats={answerFormats}
-                loading={formatsLoading}
-                selected={selectedFormats}
-                onSelected={setSelectedFormats}
-              />
-            </Col>
-          </Row>
-        ) : step === 7 ? (
+        ) : step === LAST_STEP ? (
           <Row gutter={[SP.lg, SP.lg]}>
             <Col xs={24} xl={18}>
               {derivation && derivation.status === 'running' ? (
@@ -834,9 +801,9 @@ export default function NewGraphPage() {
             ) : null}
             {step < stepTotal ? (
               <Button type="primary" loading={saving} onClick={() => void next()}>
-                {/* The last answered step produces the brief the AI derives step 7
-                    from, so it says what it does rather than "Next". */}
-                {step === 6 ? 'Generate use-case brief' : 'Next'}{' '}
+                {/* The last answered step produces the brief the AI derives the
+                    review from, so it says what it does rather than "Next". */}
+                {step === LAST_STEP - 1 ? 'Generate use-case brief' : 'Next'}{' '}
                 <ArrowRightOutlined />
               </Button>
             ) : (
@@ -845,12 +812,12 @@ export default function NewGraphPage() {
                   Save Only
                 </Button>
                 {/* Building is blocked until every gap has been decided — an
-                    undecided gap is a question the graph cannot answer. Step 7's
-                    rule, read from the same place as every other step's. */}
+                    undecided gap is a question the graph cannot answer. The last
+                    step's rule, read from the same place as every other step's. */}
                 <Button
                   type="primary"
                   loading={saving}
-                  disabled={stepIssue(7, draft) !== null}
+                  disabled={stepIssue(LAST_STEP, draft) !== null}
                   onClick={() => void buildGraph()}
                 >
                   Save &amp; build graph <ArrowRightOutlined />

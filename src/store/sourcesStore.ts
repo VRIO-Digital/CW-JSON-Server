@@ -3,6 +3,7 @@ import {
   deleteSource,
   disconnectSource,
   listSources,
+  reconnectSource,
   updateSourceDatasets,
   updateSourceFolders,
   type SourceRow,
@@ -30,6 +31,8 @@ interface SourcesState {
 
   load: () => Promise<void>
   disconnect: (sourceId: string) => Promise<Result>
+  /** The undo for `disconnect` — the source keeps everything it had profiled. */
+  reconnect: (sourceId: string) => Promise<Result>
   remove: (sourceId: string) => Promise<Result>
   setDatasets: (sourceId: string, datasets: string[]) => Promise<Result>
   setFolders: (sourceId: string, folders: string[]) => Promise<Result>
@@ -59,6 +62,23 @@ export const useSourcesStore = create<SourcesState>()((set, get) => ({
       await get().load()
       return { ok: true }
     } catch (error) {
+      return { ok: false, error: toMessage(error) }
+    } finally {
+      set({ pending: null })
+    }
+  },
+
+  reconnect: async (sourceId) => {
+    set({ pending: sourceId })
+    try {
+      await reconnectSource(sourceId)
+      await get().load()
+      return { ok: true }
+    } catch (error) {
+      /* Re-read before reporting: a request whose *response* was lost has still been carried
+         out, and "the write failed" and "I did not hear whether it succeeded" are different
+         facts. See docs/REGRESSIONS.md. */
+      await get().load()
       return { ok: false, error: toMessage(error) }
     } finally {
       set({ pending: null })

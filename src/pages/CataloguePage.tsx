@@ -1,4 +1,3 @@
-import { CloseOutlined } from '@ant-design/icons'
 import {
   Alert,
   App,
@@ -16,7 +15,7 @@ import {
 } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeSignal, SourceRow } from '../api/client'
-import { useBrowseStore, useSignalsStore } from '../store/catalogueStore'
+import { useBrowseStore, useJobsStore, useSignalsStore } from '../store/catalogueStore'
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import ConnectorIcon from '../components/ConnectorIcon'
@@ -27,6 +26,7 @@ import ProfiledColumnsPanel from '../components/ProfiledColumnsPanel'
 import ProfiledDocumentsPanel from '../components/ProfiledDocumentsPanel'
 import ProfilingJobsTab from '../components/ProfilingJobsTab'
 import StatusTag from '../components/StatusTag'
+import { profilingOutcome } from '../data/profilingOutcome'
 import { SP } from '../theme'
 import './CataloguePage.css'
 
@@ -61,14 +61,12 @@ function StatBox({
 
 function BrowsePanel({
   source,
-  onClose,
   onProfiled,
 }: {
   source: SourceRow
-  onClose: () => void
   onProfiled: () => void
 }) {
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const data = useBrowseStore((s) => s.data)
   const loading = useBrowseStore((s) => s.loading)
   const browseError = useBrowseStore((s) => s.error)
@@ -136,38 +134,44 @@ function BrowsePanel({
 
   const selected = checked.filter((k) => k.startsWith('t:'))
 
-  async function startProfiling() {
-    // Never forced from here — re-profiling an already-profiled table is done
-    // per-job from the Profiling jobs tab, which has its own Force action.
-    const result = await startProfilingRun(
-      source.sourceId,
-      selected.map(parseLeaf),
-      false,
-    )
+  /**
+   * Starts a run, and reports what it did.
+   *
+   * When everything picked was already profiled the run does nothing, and the old message sent the
+   * reader to another tab to press Force on the job that had just done nothing — without ever
+   * saying *which* objects were already profiled. Both are answered here instead: the objects are
+   * named, and re-profiling is offered as the confirm on that same dialog. `force` still only ever
+   * leaves this panel as a **deliberate second act**, never on the first click.
+   */
+  async function startProfiling(force = false) {
+    const result = await startProfilingRun(source.sourceId, selected.map(parseLeaf), force)
     if (!result.ok) {
       message.warning(result.error)
       return
     }
     const { job } = result
-    const queued = job.objects.filter((o) => o.state === 'pending').length
-    const skipped = job.objects.filter((o) => o.state === 'skipped').length
-    message.success(
-      queued === 0
-        ? `Nothing to profile — ${skipped} table(s) already profiled. Use Force on the run in Profiling jobs to redo them.`
-        : `Queued ${queued} table(s) — job ${job.short_id} is starting.` +
-            (skipped > 0 ? ` ${skipped} already profiled, skipped.` : ''),
-    )
+    const outcome = profilingOutcome(job.objects, 'table', job.short_id)
+    if (outcome.kind === 'nothing-to-do') {
+      modal.confirm({
+        title: outcome.title,
+        content: (
+          <>
+            <Typography.Paragraph>{outcome.detail}</Typography.Paragraph>
+            <Typography.Paragraph type="secondary">{outcome.note}</Typography.Paragraph>
+          </>
+        ),
+        okText: outcome.confirmText,
+        cancelText: 'Leave them as they are',
+        onOk: () => startProfiling(true),
+      })
+    } else {
+      message.success(outcome.text)
+    }
     onProfiled()
   }
 
   return (
     <div className="cat-browse">
-      <Flex justify="flex-end">
-        <Button type="link" size="small" icon={<CloseOutlined />} onClick={onClose}>
-          close
-        </Button>
-      </Flex>
-
       {loading ? (
         <Spin />
       ) : (
@@ -234,6 +238,12 @@ function CatalogueTab({
   const selected =
     sources.find((s) => s.sourceId === activeId) ?? sources[0] ?? null
   const isDrive = selected?.kind === 'gdrive'
+
+  /* Which of the two actions is currently showing its panel. Derived from `panel`
+     rather than tracked beside it: two pieces of state for one fact is how a button
+     comes to look pressed with nothing open under it. */
+  const browseOpen = panel === (isDrive ? 'browse-documents' : 'browse')
+  const dictionaryOpen = panel === (isDrive ? 'documents' : 'columns')
 
   // Keep the selection valid when the list changes underneath.
   useEffect(() => {
@@ -339,36 +349,38 @@ function CatalogueTab({
           </Row>
 
           {/* Same two moves either way — browse and profile, then read the
-              dictionary — in the unit the connector actually holds. */}
+              dictionary — in the unit the connector actually holds.
+
+              Both are toggles, and the fill *is* the state: the one whose panel is
+              open is the brand orange, the other is white. Neither is permanently
+              the primary — that ranking was wrong in both directions, since on a
+              source with nothing profiled the browse panel is the only way forward
+              and on a profiled one the dictionary is what you came for.
+
+              This carries weight it did not before: the panel no longer has a close
+              button, so this is the only thing saying which one is open and the only
+              way to close it. Colour never does that alone — `aria-pressed` says the
+              same thing to a screen reader, and the note below says it in words. */}
           <Space wrap size={SP.sm} className="cat-actions">
             <Button
-              type="primary"
+              type={browseOpen ? 'primary' : 'default'}
+              aria-pressed={browseOpen}
               disabled={selected.kind !== 'bigquery' && !isDrive}
               onClick={() =>
                 setPanel(
-                  isDrive
-                    ? panel === 'browse-documents'
-                      ? 'none'
-                      : 'browse-documents'
-                    : panel === 'browse'
-                      ? 'none'
-                      : 'browse',
+                  browseOpen ? 'none' : isDrive ? 'browse-documents' : 'browse',
                 )
               }
             >
               {isDrive ? 'Browse documents for profiling' : 'Browse table for profiling'}
             </Button>
             <Button
+              type={dictionaryOpen ? 'primary' : 'default'}
+              aria-pressed={dictionaryOpen}
               disabled={selected.kind !== 'bigquery' && !isDrive}
               onClick={() =>
                 setPanel(
-                  isDrive
-                    ? panel === 'documents'
-                      ? 'none'
-                      : 'documents'
-                    : panel === 'columns'
-                      ? 'none'
-                      : 'columns',
+                  dictionaryOpen ? 'none' : isDrive ? 'documents' : 'columns',
                 )
               }
             >
@@ -376,38 +388,40 @@ function CatalogueTab({
             </Button>
           </Space>
 
+          {/* Said once, where the panels open. The ✕ that used to sit inside each panel is gone,
+              so the way back has to be stated somewhere — and only while something is open, or it
+              is an instruction for a state the reader is not in. */}
+          {browseOpen || dictionaryOpen ? (
+            <Typography.Paragraph className="cat-actions-hint">
+              Click the same button again to close the panel.
+            </Typography.Paragraph>
+          ) : null}
+
+          {/* No panel takes an `onClose`: the button that opened it is the control
+              that closes it, and a panel with its own ✕ meant two controls for one
+              piece of state, only one of which showed what that state was. */}
           {panel === 'browse' ? (
             <BrowsePanel
               key={selected.sourceId}
               source={selected}
-              onClose={() => setPanel('none')}
               onProfiled={onChanged}
             />
           ) : null}
 
           {panel === 'columns' ? (
-            <ProfiledColumnsPanel
-              key={`${selected.sourceId}-cols`}
-              source={selected}
-              onClose={() => setPanel('none')}
-            />
+            <ProfiledColumnsPanel key={`${selected.sourceId}-cols`} source={selected} />
           ) : null}
 
           {panel === 'browse-documents' ? (
             <DocumentBrowsePanel
               key={`${selected.sourceId}-docs-browse`}
               source={selected}
-              onClose={() => setPanel('none')}
               onProfiled={onChanged}
             />
           ) : null}
 
           {panel === 'documents' ? (
-            <ProfiledDocumentsPanel
-              key={`${selected.sourceId}-docs`}
-              source={selected}
-              onClose={() => setPanel('none')}
-            />
+            <ProfiledDocumentsPanel key={`${selected.sourceId}-docs`} source={selected} />
           ) : null}
 
           <Typography.Paragraph className="cat-detail-foot">
@@ -480,6 +494,10 @@ export default function CataloguePage() {
   const load = useSourcesStore((s) => s.load)
   const sources = useSourcesStore(selectSources)
 
+  /* The board's own loader. A queued run has to tell it, because its poll has stopped by
+     then — see `handleQueued`. */
+  const loadJobs = useJobsStore((s) => s.load)
+
   const signalsData = useSignalsStore((s) => s.data)
   const signalsError = useSignalsStore((s) => s.error)
   const signalsLoading = useSignalsStore((s) => s.loading)
@@ -498,13 +516,24 @@ export default function CataloguePage() {
     void load()
   }, [load])
 
-  // Starting a run switches to the jobs board — that is where the pipeline is
-  // visible, and a queued job is otherwise invisible from the Catalogue tab.
+  /*
+   * Starting a run switches to the jobs board — that is where the pipeline is visible, and a
+   * queued job is otherwise invisible from the Catalogue tab.
+   *
+   * **And the board is re-read here, not left to its own poll.** It loads on mount and then
+   * polls only while `active_count > 0`, so the poll that sees 0 stops the loop — which is
+   * right for a board nobody is adding to, and wrong the moment a second run is queued while
+   * the tab is already open. That is exactly the re-profile confirm: the first click switched
+   * here with an all-skipped job that completed instantly, the loop stopped, and pressing
+   * "Profile 5 table(s) again" then queued a run on the server that this list never asked
+   * about. The run was real; the board was stale, which reads as a click that did nothing.
+   */
   const handleQueued = useCallback(() => {
     void load()
     void loadSignals()
+    void loadJobs()
     setTab('jobs')
-  }, [load, loadSignals])
+  }, [load, loadSignals, loadJobs])
 
   return (
     <>

@@ -21,6 +21,14 @@ export const CONSENT_STAGES = {
   ],
 } as const
 
+/**
+ * A scope URL as it is shown to a reader — the last segment, which is the part that names the
+ * permission. Shared by the consent panel and the sign-in window so one cannot abbreviate a scope
+ * the other spells out.
+ */
+export const CONSENT_SCOPE_LABEL = (scope: string): string =>
+  scope.replace('https://www.googleapis.com/auth/', '')
+
 export const CONSENT_SCOPES = {
   bigquery: 'bigquery.readonly',
   drive: 'drive.metadata.readonly',

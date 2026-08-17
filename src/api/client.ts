@@ -127,6 +127,13 @@ export type DriveOAuthCallback = OAuthCallback
 
 export interface PreviewFolder {
   folder_id: string
+  /**
+   * The folder this one sits inside, or `null` at the root of the drive.
+   *
+   * A drive is a tree and the allowlist is picked from it, but the folders stay one flat list —
+   * every walk over them is unchanged, and the wizard builds the tree from these pointers.
+   */
+  parent_id: string | null
   name: string
   path: string
   description: string
@@ -547,8 +554,12 @@ export type Kpi = DraftedItem
  * High means "this one matters"; a third tier would invite ranking over choosing.
  */
 /**
- * How answers of one question type render. Self-describing so an already-saved
- * brief keeps promising what it promised, even if the pool is edited later.
+ * How answers of one question type render — one option a reader may ask for on Ask's
+ * Answer requirements tab.
+ *
+ * **No longer part of a use-case brief.** It was step 6 of the wizard, stored
+ * self-describing so a saved brief kept promising what it promised; the choice is made
+ * per question now, so it is served with the graph list and never written to a draft.
  */
 export interface AnswerFormat {
   formatId: string
@@ -613,8 +624,6 @@ export interface GraphUseCase {
   kpis: Kpi[]
   sources: SourcePick[]
   heroQuestions: HeroQuestion[]
-  citations: Citations
-  answerFormats: AnswerFormat[]
   gapDecisions: GapChoice[]
   step: number
   stepTotal: number
@@ -709,14 +718,29 @@ export interface AskGraph {
   version: string
   publishedAt: string | null
   publishedBy: string | null
-  /** What step 6 promised, so the answer never decides it at runtime. */
-  citations: 'required' | 'optional'
-  /** Standing limits — step 7's gap decisions, read back. */
+  /* No graph-level `citations`: the reader chooses per question on the Answer
+     requirements tab, so it rides on the answer instead. */
+  /** Standing limits — the coverage step's gap decisions, read back. */
   caveats: string[]
   /** The hero questions this graph was built for; the chips under the box. */
   suggestedQuestions: string[]
   entityCount: number
   relationshipCount: number
+}
+
+/**
+ * What a reader may require of an answer — the Answer requirements tab's pool.
+ *
+ * Served rather than written into the component, for the reason the consent screen
+ * renders the scopes the endpoint returned: a client holding its own list can offer a
+ * value `POST /ask` refuses.
+ */
+export interface AnswerRequirementOptions {
+  citationsOptions: { value: Citations; label: string }[]
+  defaultCitations: Citations
+  formats: AnswerFormat[]
+  /** Which half really applies, in the server's words. */
+  note: string
 }
 
 export interface AskGraphsPayload {
@@ -725,6 +749,7 @@ export interface AskGraphsPayload {
   /** Built but never published — the fix is Publish, not New Graph. */
   builtCount: number
   draftCount: number
+  answerRequirements: AnswerRequirementOptions
 }
 
 /** One line of the supervisor's working, shown so an answer can be audited. */
@@ -792,6 +817,20 @@ export interface AnswerMetric {
   flag?: 'good' | 'risk' | null
 }
 
+/**
+ * What was required of this answer, and whether it was met — **computed by the server,
+ * never asserted**. Citations really apply: required plus nothing cited is a fact, and
+ * `satisfied` is false. A format is stated, not applied — a recorded answer holds the
+ * blocks the tenant wrote, and claiming they were rendered to order would be a claim
+ * the page underneath disproves.
+ */
+export interface AnswerRequirements {
+  citations: Citations
+  formats: AnswerFormat[]
+  satisfied: boolean
+  note: string
+}
+
 export interface AskAnswer {
   question: string
   useCaseId: string
@@ -816,6 +855,8 @@ export interface AskAnswer {
   blocks: AnswerBlock[]
   /** Which recorded answer this was, or null. Provenance, not decoration. */
   answerId: string | null
+  /** What the reader asked this answer to carry, and whether it did. */
+  requirements: AnswerRequirements
 }
 
 export interface PivotOption {
@@ -1751,8 +1792,6 @@ const USE_CASE = shape({
   kpis: arrayOf(DRAFTED_ITEM),
   sources: arrayOf(SOURCE_PICK),
   hero_questions: arrayOf(HERO_QUESTION),
-  citations: oneOf(['required', 'optional']),
-  answer_formats: arrayOf(ANSWER_FORMAT),
   gap_decisions: arrayOf(GAP_CHOICE),
   step: num,
   step_total: num,
@@ -1855,6 +1894,10 @@ const DRIVE_PREVIEW_PAYLOAD = shape({
   folders: arrayOf(
     shape({
       folder_id: str,
+      /* `nullable`, because a root folder has no parent — and nullable accepts an absent key
+         too, so a drive seeded before nesting still reads rather than failing the whole
+         preview over a folder that simply is not nested. */
+      parent_id: nullable(str),
       name: str,
       path: str,
       description: str,
@@ -1883,7 +1926,13 @@ const OAUTH_DRIVES_PAYLOAD = shape({
 const DRIVE_FOLDERS_PAYLOAD = shape({
   drive_id: str,
   folders: arrayOf(
-    shape({ folder_id: str, name: str, path: str, document_count: num }),
+    shape({
+      folder_id: str,
+      parent_id: nullable(str),
+      name: str,
+      path: str,
+      document_count: num,
+    }),
   ),
 })
 
@@ -2130,11 +2179,19 @@ const ASK_GRAPH = shape({
   version: str,
   published_at: nullable(str),
   published_by: nullable(str),
-  citations: oneOf(['required', 'optional']),
   caveats: arrayOf(str),
   suggested_questions: arrayOf(str),
   entity_count: num,
   relationship_count: num,
+})
+
+const ANSWER_REQUIREMENT_OPTIONS = shape({
+  citations_options: arrayOf(
+    shape({ value: oneOf(['required', 'optional']), label: str }),
+  ),
+  default_citations: oneOf(['required', 'optional']),
+  formats: arrayOf(ANSWER_FORMAT),
+  note: str,
 })
 
 const ASK_GRAPHS_PAYLOAD = shape({
@@ -2142,6 +2199,14 @@ const ASK_GRAPHS_PAYLOAD = shape({
   count: num,
   built_count: num,
   draft_count: num,
+  answer_requirements: ANSWER_REQUIREMENT_OPTIONS,
+})
+
+const ANSWER_REQUIREMENTS = shape({
+  citations: oneOf(['required', 'optional']),
+  formats: arrayOf(ANSWER_FORMAT),
+  satisfied: bool,
+  note: str,
 })
 
 /*
@@ -2217,6 +2282,7 @@ const ASK_ANSWER_PAYLOAD = shape({
   summary: nullable(str),
   blocks: arrayOf(ANSWER_BLOCK),
   answer_id: nullable(str),
+  requirements: ANSWER_REQUIREMENTS,
 })
 
 /* ---------------- Writes answer with a shape too ---------------- */
@@ -2775,6 +2841,22 @@ export async function disconnectSource(sourceId: string): Promise<RawSourceRow> 
   )
 }
 
+/**
+ * The undo for `disconnectSource`. Re-issues the credential handle and flips the status back,
+ * keeping the allowlist and every profiled object — which is what makes Disconnect safe to
+ * offer as reversible. Re-registering through the wizard is *not* this: it builds a fresh
+ * record and the profiled objects go with the old one.
+ */
+export async function reconnectSource(sourceId: string): Promise<RawSourceRow> {
+  return validate<RawSourceRow>(
+    'The reconnected source',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/reconnect`, {
+      method: 'POST',
+    }),
+    SOURCE_ROW,
+  )
+}
+
 export async function deleteSource(sourceId: string): Promise<{ deleted: string }> {
   return validate<{ deleted: string }>(
     'The deleted source',
@@ -2825,7 +2907,13 @@ export async function listProjectDatasets(
 
 export async function listDriveFolders(driveId: string): Promise<{
   drive_id: string
-  folders: { folder_id: string; name: string; path: string; document_count: number }[]
+  folders: {
+    folder_id: string
+    parent_id: string | null
+    name: string
+    path: string
+    document_count: number
+  }[]
 }> {
   const raw = await request<unknown>(`/drives/${encodeURIComponent(driveId)}/folders`)
   return validate('The folder list', raw, DRIVE_FOLDERS_PAYLOAD)
@@ -2986,29 +3074,25 @@ interface RawUseCase {
   kpis: Kpi[]
   sources: { source_id: string; mode: 'all' | 'subset'; objects: string[] }[]
   hero_questions: HeroQuestion[]
-  citations: Citations
-  answer_formats: { format_id: string; name: string; format: string }[]
   gap_decisions: { element_id: string; decision: GapDecision }[]
   step: number
   step_total: number
   updated_at: string | null
 }
 
-/** The fields steps 2–7 added. A server older than them answers with none. */
+/** The fields steps 2–6 added. A server older than them answers with none. */
 const USE_CASE_STEP_FIELDS = [
   'personas',
   'kpis',
   'sources',
   'hero_questions',
-  'citations',
-  'answer_formats',
   'gap_decisions',
 ] as const
 
 /*
- * A use case carrying none of the step 2–7 fields is not a malformed payload —
+ * A use case carrying none of the step 2–6 fields is not a malformed payload —
  * it is a mock server that started before those fields existed and is still
- * answering with the old shape. Seven "should be an array, got undefined" lines
+ * answering with the old shape. Five "should be an array, got undefined" lines
  * describe the symptom and send you reading the schema; this names the cause and
  * the one-line fix. The check has to live here because a stale server cannot
  * warn about itself.
@@ -3023,8 +3107,8 @@ function assertCurrentUseCaseShape(raw: unknown) {
 
   throw new Error(
     'The mock server is running an older version of this app, so a saved use ' +
-      'case came back without its personas, KPIs, sources, questions or answer ' +
-      'settings. Restart it with npm run mock and try again — nothing you ' +
+      'case came back without its personas, KPIs, sources, questions or gap ' +
+      'decisions. Restart it with npm run mock and try again — nothing you ' +
       'entered has been lost.',
   )
 }
@@ -3043,12 +3127,6 @@ const toUseCase = (u: RawUseCase): GraphUseCase => ({
     objects: s.objects,
   })),
   heroQuestions: u.hero_questions,
-  citations: u.citations,
-  answerFormats: u.answer_formats.map((f) => ({
-    formatId: f.format_id,
-    name: f.name,
-    format: f.format,
-  })),
   gapDecisions: u.gap_decisions.map((d) => ({
     elementId: d.element_id,
     decision: d.decision,
@@ -3331,16 +3409,6 @@ export async function getDerivation(derivationId: string): Promise<DerivationRun
   return toDerivation(raw)
 }
 
-export const suggestAnswerFormats = (input: {
-  domainId: string | null
-  businessNeed: string
-}) =>
-  fetchSuggestions(
-    '/graph-answer-formats/suggest',
-    'The answer formats',
-    input,
-  )
-
 export const suggestQuestions = (input: {
   domainId: string | null
   businessNeed: string
@@ -3361,8 +3429,6 @@ export async function saveUseCase(input: {
   kpis: Kpi[]
   sources: SourcePick[]
   heroQuestions: HeroQuestion[]
-  citations: Citations
-  answerFormats: AnswerFormat[]
   gapDecisions: GapChoice[]
   step: number
   status?: 'draft' | 'committed'
@@ -3382,12 +3448,6 @@ export async function saveUseCase(input: {
         objects: s.objects,
       })),
       hero_questions: input.heroQuestions,
-      citations: input.citations,
-      answer_formats: input.answerFormats.map((f) => ({
-        format_id: f.formatId,
-        name: f.name,
-        format: f.format,
-      })),
       gap_decisions: input.gapDecisions.map((d) => ({
         element_id: d.elementId,
         decision: d.decision,
@@ -4012,7 +4072,6 @@ interface RawAskGraph {
   version: string
   published_at: string | null
   published_by: string | null
-  citations: 'required' | 'optional'
   caveats: string[]
   suggested_questions: string[]
   entity_count: number
@@ -4026,12 +4085,18 @@ const toAskGraph = (raw: RawAskGraph): AskGraph => ({
   version: raw.version,
   publishedAt: raw.published_at,
   publishedBy: raw.published_by,
-  citations: raw.citations,
   caveats: raw.caveats,
   suggestedQuestions: raw.suggested_questions,
   entityCount: raw.entity_count,
   relationshipCount: raw.relationship_count,
 })
+
+/** A served format, in the shape the page reads. */
+const toAnswerFormat = (f: {
+  format_id: string
+  name: string
+  format: string
+}): AnswerFormat => ({ formatId: f.format_id, name: f.name, format: f.format })
 
 /** The graphs that are live. An empty list is the page's whole story. */
 export async function listAskGraphs(): Promise<AskGraphsPayload> {
@@ -4040,6 +4105,12 @@ export async function listAskGraphs(): Promise<AskGraphsPayload> {
     count: number
     built_count: number
     draft_count: number
+    answer_requirements: {
+      citations_options: { value: Citations; label: string }[]
+      default_citations: Citations
+      formats: { format_id: string; name: string; format: string }[]
+      note: string
+    }
   }>('The live graphs', await request<unknown>('/ask'), ASK_GRAPHS_PAYLOAD)
 
   return {
@@ -4047,6 +4118,12 @@ export async function listAskGraphs(): Promise<AskGraphsPayload> {
     count: raw.count,
     builtCount: raw.built_count,
     draftCount: raw.draft_count,
+    answerRequirements: {
+      citationsOptions: raw.answer_requirements.citations_options,
+      defaultCitations: raw.answer_requirements.default_citations,
+      formats: raw.answer_requirements.formats.map(toAnswerFormat),
+      note: raw.answer_requirements.note,
+    },
   }
 }
 
@@ -4069,6 +4146,12 @@ type RawAskAnswer = {
   summary: string | null
   blocks: AnswerBlock[]
   answer_id: string | null
+  requirements: {
+    citations: Citations
+    formats: { format_id: string; name: string; format: string }[]
+    satisfied: boolean
+    note: string
+  }
 }
 
 const toAskAnswer = (raw: RawAskAnswer): AskAnswer => ({
@@ -4090,6 +4173,12 @@ const toAskAnswer = (raw: RawAskAnswer): AskAnswer => ({
   summary: raw.summary,
   blocks: raw.blocks,
   answerId: raw.answer_id,
+  requirements: {
+    citations: raw.requirements.citations,
+    formats: raw.requirements.formats.map(toAnswerFormat),
+    satisfied: raw.requirements.satisfied,
+    note: raw.requirements.note,
+  },
 })
 
 /** What arrives while an answer is being composed. */
@@ -4135,12 +4224,20 @@ const ASK_BLOCK_EVENT = shape({ index: num, block: ANSWER_BLOCK })
 export async function askQuestionStreaming(
   useCaseId: string,
   question: string,
+  /* What the reader required of this answer. Sent with the question because it is a
+     property of the asking, not of the graph — the brief no longer declares it. */
+  requirements: { citations: Citations; formats: string[] },
   onEvent: (event: AskEvent) => void,
 ): Promise<AskAnswer> {
   const response = await fetch(`${BASE}/ask`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
-    body: JSON.stringify({ use_case_id: useCaseId, question }),
+    body: JSON.stringify({
+      use_case_id: useCaseId,
+      question,
+      citations: requirements.citations,
+      formats: requirements.formats,
+    }),
   })
 
   if (!response.ok) {

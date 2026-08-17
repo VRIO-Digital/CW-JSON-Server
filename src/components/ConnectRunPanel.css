@@ -1,0 +1,17 @@
+/*
+ * The body of step 3's run dialogs — a spinner and the one line naming the call. It
+ * draws no frame of its own; the modal is the frame. Spacing from the --sp-* scale
+ * only, and nothing here is a status, so no reserved colour goes near it.
+ */
+
+.cs-run {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.cs-run-message {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f1729;
+}

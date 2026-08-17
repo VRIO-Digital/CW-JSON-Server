@@ -1,0 +1,39 @@
+/*
+ * The disconnect / delete warning. Spacing from the --sp-* scale only.
+ *
+ * The two tinted lines are the reserved STATUS colours and mean what they always mean: `good` on
+ * "this can be undone", `crit` on "there is no undo". Neither is decoration — they are the state of
+ * the act being confirmed, which is the one thing the reader is deciding about. Everything else
+ * stays neutral, and every line reads on its own without its colour.
+ */
+
+.src-impact {
+  max-width: 420px;
+}
+
+.src-impact .ant-typography {
+  margin-bottom: var(--sp-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.src-impact .ant-typography:last-child {
+  margin-bottom: 0;
+}
+
+.src-impact-lead {
+  color: #0f1729;
+}
+
+.src-impact-good {
+  color: #0f7b4f;
+}
+
+.src-impact-crit {
+  color: #b42318;
+  font-weight: 500;
+}
+
+.src-impact-note {
+  color: #4b5a75;
+}

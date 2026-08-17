@@ -15,6 +15,7 @@
     "ingest:reports": "node scripts/ingest-reports.mjs",
     "seed:governance": "node scripts/seed-report-governance.mjs",
     "seed:settings": "node scripts/seed-settings.mjs",
+    "seed:workspaces": "node scripts/seed-workspaces.mjs",
     "preflight": "npm run lint && npm run build && npm run audit && npm run check-docs",
     "preview": "vite preview",
     "audit:fix": "npm audit fix",

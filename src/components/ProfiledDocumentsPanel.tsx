@@ -1,9 +1,8 @@
-import { CloseOutlined, DownOutlined, EditOutlined } from '@ant-design/icons'
+import { DownOutlined, EditOutlined } from '@ant-design/icons'
 import {
   App,
   Button,
-  Empty,
-  Flex,
+  Empty,
   Input,
   Modal,
   Spin,
@@ -60,11 +59,9 @@ function matches(document: ProfiledDocument, facet: FacetKey) {
 }
 
 export default function ProfiledDocumentsPanel({
-  source,
-  onClose,
+  source,
 }: {
-  source: SourceRow
-  onClose: () => void
+  source: SourceRow
 }) {
   const { message } = App.useApp()
   const data = useDocumentsStore((s) => s.data)
@@ -179,11 +176,6 @@ export default function ProfiledDocumentsPanel({
 
   return (
     <div className="pc-panel">
-      <Flex justify="flex-end">
-        <Button type="link" size="small" icon={<CloseOutlined />} onClick={onClose}>
-          close
-        </Button>
-      </Flex>
 
       {loading ? (
         <Spin />

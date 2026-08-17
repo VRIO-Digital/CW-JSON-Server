@@ -1,4 +1,3 @@
-import { CloseOutlined } from '@ant-design/icons'
 import {
   App,
   Button,
@@ -14,6 +13,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { SourceRow } from '../api/client'
 import { fileKind } from '../data/mimeTypes'
 import { useDocumentBrowseStore } from '../store/catalogueStore'
+import { profilingOutcome } from '../data/profilingOutcome'
 import '../pages/CataloguePage.css'
 
 /* Tree keys encode the pair so a leaf can be turned back into an object. */
@@ -26,19 +26,19 @@ const parseLeaf = (key: string) => {
 /**
  * The Drive twin of `BrowsePanel`: pick documents, queue a run.
  *
- * Like the table panel it never forces — re-profiling an already-extracted
- * document is done per-run from the Force button in Profiling jobs.
+ * Like the table panel it never forces on the first click. Where every document picked has
+ * already been extracted the run does nothing, and that is the one place re-profiling is offered
+ * from here — named, and as the confirm on a dialog, never silently. Profiling jobs keeps its own
+ * per-run Force for a run that has already finished.
  */
 export default function DocumentBrowsePanel({
   source,
-  onClose,
   onProfiled,
 }: {
   source: SourceRow
-  onClose: () => void
   onProfiled: () => void
 }) {
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const data = useDocumentBrowseStore((s) => s.data)
   const loading = useDocumentBrowseStore((s) => s.loading)
   const browseError = useDocumentBrowseStore((s) => s.error)
@@ -108,35 +108,36 @@ export default function DocumentBrowsePanel({
 
   const selected = checked.filter((k) => k.startsWith('f:'))
 
-  async function startProfiling() {
-    const result = await startProfilingRun(
-      source.sourceId,
-      selected.map(parseLeaf),
-      false,
-    )
+  /** The twin of `BrowsePanel`'s, in documents. Same wording, from `profilingOutcome`. */
+  async function startProfiling(force = false) {
+    const result = await startProfilingRun(source.sourceId, selected.map(parseLeaf), force)
     if (!result.ok) {
       message.warning(result.error)
       return
     }
     const { job } = result
-    const queued = job.objects.filter((o) => o.state === 'pending').length
-    const skipped = job.objects.filter((o) => o.state === 'skipped').length
-    message.success(
-      queued === 0
-        ? `Nothing to profile — ${skipped} document(s) already profiled. Use Force on the run in Profiling jobs to redo them.`
-        : `Queued ${queued} document(s) — job ${job.short_id} is starting.` +
-            (skipped > 0 ? ` ${skipped} already profiled, skipped.` : ''),
-    )
+    const outcome = profilingOutcome(job.objects, 'document', job.short_id)
+    if (outcome.kind === 'nothing-to-do') {
+      modal.confirm({
+        title: outcome.title,
+        content: (
+          <>
+            <Typography.Paragraph>{outcome.detail}</Typography.Paragraph>
+            <Typography.Paragraph type="secondary">{outcome.note}</Typography.Paragraph>
+          </>
+        ),
+        okText: outcome.confirmText,
+        cancelText: 'Leave them as they are',
+        onOk: () => startProfiling(true),
+      })
+    } else {
+      message.success(outcome.text)
+    }
     onProfiled()
   }
 
   return (
     <div className="cat-browse">
-      <Flex justify="flex-end">
-        <Button type="link" size="small" icon={<CloseOutlined />} onClick={onClose}>
-          close
-        </Button>
-      </Flex>
 
       {loading ? (
         <Spin />
