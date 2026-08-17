@@ -2567,3 +2567,37 @@ breaks: a commented tab beside live hooks fails the build, and a commented tab b
 import is a component nothing renders. `check-docs` reads the absence through `codeOnly` — the
 first version of that claim matched the commented-out tab and cheerfully reported a feature that
 was not on screen, which is the ninth time that trap has been paid for here.
+
+## Every build read v1, because the number named the brief
+
+**Cost** — reported from use with a screenshot of the Versions tab: four builds, every row
+labelled `Waste Management · v1`.
+
+**What happened.** The label was a *config* version: `studioConfigVersion`, bumped when a brief
+was **committed** and deliberately not by a build or a publish. That was a defensible model —
+a build is a build *of a configuration*, and the reasoning written down at the time was sound:
+"a version counter that moved on publish would relabel history". But it made the Versions tab,
+which is a list of builds, show one number for all of them and expect the reader to tell them
+apart by content hash. On a demo where the brief is committed once, every row read `v1`.
+
+**Fix** — `studioBuildCount` gives each run the next number when it **starts**: v1, v2, v3. The
+content hash is still the identity; the number is now the build's name for itself. Committing a
+brief moves nothing, and neither does publishing.
+
+**What survived from the old model, because it was the real constraint:** the label is assigned
+once and *stored on the run*, and every surface reads the stored value. A counter read at render
+time would relabel a published `v2` the moment a fourth build finished — which is exactly the
+failure the previous scheme was avoiding, arrived at from the other direction.
+
+**Guard** — three claims, all break-tested: the number comes from `nextBuildVersion` at
+`startBuildFor`, every surface reads `run.config_version` rather than recomputing (restoring
+`configVersion(id)` at the call site fails two claims at once), and `bumpConfigVersion` is gone
+so there is only one counter. Plus 19 live assertions across four builds: v1/v2/v3 in order,
+four labels with no repeats, publishing the **older** v2 leaves its label alone, Ask answers
+from v2 by its own number, and a fourth build takes v4 without touching the published row.
+
+**Rule** — **a label on a list has to name the thing the list contains.** The old number was
+correct about a real entity (the configuration) and wrong about the list it appeared in, which
+is the kind of error that survives review because every individual sentence about it is true.
+When changing what a number counts, keep the property that made the old one safe — here,
+assign-once-and-store — rather than only the behaviour that was asked for.

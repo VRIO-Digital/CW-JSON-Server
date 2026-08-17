@@ -1431,7 +1431,11 @@ facility manifest · v2   loaded  gate passed  published   11/08/2026, 14:57
 ```
 
 **Content-addressed and immutable.** `sha256` is the identity — two builds of one
-brief differ there and nowhere else, which is why several rows read `v2`.
+brief differ there and nowhere else. **Each build also takes its own number — v1, v2, v3**,
+assigned when the run starts and never recomputed, so a published `v2` stays `v2` however many
+builds follow. The number names the build; the hash is still the identity. (It used to name the
+brief's *config* and moved when the brief was committed, so several rows read `v2` — the wrong
+reading of a list of builds.)
 Publishing flips a pointer (`studioLive`, one content hash per graph); it never
 rewrites a row, and unpublishing clears the pointer. The sentence on every row says
 so, so it must stay true.

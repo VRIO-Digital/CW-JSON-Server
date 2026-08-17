@@ -893,7 +893,14 @@ export interface GraphVersion {
   /** The content hash. The identity, and what publish/unpublish name. */
   sha256: string
   graphId: string
-  /** The config this is a version of — shared by every build of one brief. */
+  /**
+   * This version's label — v1, v2, v3, one per build.
+   *
+   * Named `configVersion` for the payload field it maps, which is older than the change: it
+   * used to name the *brief's* config and was shared by every build of it. A build takes the
+   * next number now, assigned once when the run starts, so a published label is never
+   * recomputed by a later rebuild.
+   */
   configVersion: string
   entities: number
   relationships: number
@@ -1214,7 +1221,7 @@ export interface GraphBuild {
   stages: BuildStage[]
   packageId: string
   graphVersion: string
-  /** What Publish would make live — the studio's working draft number. */
+  /** This run's own version — what Publish would make live. One per build. */
   configVersion: string
   startedAt: string
   finishedAt: string | null

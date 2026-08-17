@@ -1444,6 +1444,41 @@ expect(
   'they seed the simulation — d3 reads a node’s existing x/y as its initial position',
 )
 
+/* ---------------- a version per build ---------------- */
+
+/*
+ * **Every build takes the next number — v1, v2, v3 — and keeps it.**
+ *
+ * Two halves, and the second is the one the previous scheme existed to protect. The counter
+ * moves at `startBuildFor`, so each run has its own label; and the label is *stored on the run*
+ * rather than derived, so a published `v2` cannot be recomputed into something else by a later
+ * rebuild. A counter read at render time would relabel history the moment the fourth build
+ * finished.
+ *
+ * The third claim is the one that would have caught the old bug in reverse: committing a brief
+ * must not bump anything. Two counters over one label is how a published version comes to be
+ * called by a number nothing built.
+ */
+expect(
+  'a build takes the next version number, once, when it starts',
+  /function nextBuildVersion\(useCaseId\)/.test(server) &&
+    /studioBuildCount\.set\(useCaseId, next\)/.test(server) &&
+    /config_version: nextBuildVersion\(id\)/.test(server),
+  'assigned at the start of the run, so the label is the build’s own',
+)
+expect(
+  'and every surface reads the stored label rather than recomputing one',
+  /config_version: run\.config_version/.test(server) &&
+    /version: published\.config_version/.test(server) &&
+    !/config_version: configVersion\(/.test(server),
+  'a label derived at render time would relabel a published version on the next build',
+)
+expect(
+  'committing a brief moves no version, so there is only one counter',
+  !/bumpConfigVersion/.test(codeOnly(server)),
+  'two counters over one label is how a published v2 gets called v3',
+)
+
 /* ---------------- the build pipeline ---------------- */
 
 /*

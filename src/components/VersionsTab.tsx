@@ -6,6 +6,12 @@ import './VersionsTab.css'
 /*
  * Every version of a graph — which is to say, every build of it.
  *
+ * **One number per build: v1, v2, v3.** The label is taken when the run starts and never
+ * recomputed, so a published `v2` stays `v2` however many builds follow. It used to name the
+ * brief's *config* instead, shared by every rebuild of it — so several rows read `v2` and were
+ * told apart by hash alone, which is not what a reader means by "version" on a list of builds.
+ * The content hash is still the identity; the number is now the build's name for it.
+ *
  * Rows, not a table: each one carries an identity (a content hash), what it
  * contains, where it came from, and one action. A table would have needed a column
  * per fact and most of them are hashes.

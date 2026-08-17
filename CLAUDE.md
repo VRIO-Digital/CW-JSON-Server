@@ -863,8 +863,9 @@ rebuild changed nothing.
   the gate had passed when it finished.
 
 **A version is content-addressed and immutable.** `sha256` is its identity: two
-builds of one brief differ there and nowhere else, which is why several rows read
-`v2`. **Publishing flips a pointer, it never rewrites a row** — `studioLive` holds
+builds of one brief differ there and nowhere else. **Each build also takes its own
+number — v1, v2, v3** — so the list reads as a list of builds; the number is a name,
+the hash is the identity. **Publishing flips a pointer, it never rewrites a row** — `studioLive` holds
 one content hash per graph, `published` on each row is computed from it, and
 unpublishing clears it. The copy on every row says exactly this, so it has to stay
 true: *immutable — content-addressed; publishing gates Ask access, it does not
@@ -878,10 +879,17 @@ the part that protects correctness — the gate still refuses an unreviewed grap
 whichever row is chosen, and Ask still refuses anything unpublished. **Publishing
 an older row is the rollback**, and it works because any row may be published.
 
-**The config version moves when the brief does.** `configVersion` is bumped by
-committing a brief — not by a build and not by a publish — so every build of one
-brief shares a label and they are told apart by content. A version counter that
-moved on publish would relabel history.
+**A version per build, assigned once, never recomputed.** `studioBuildCount` gives each
+run the next number when it *starts* — v1, v2, v3 — and every surface reads that stored
+value, so a published `v2` stays `v2` however many builds follow it. That immutability is
+the whole point and it is what the previous scheme was protecting by a different route:
+`configVersion` used to be bumped by *committing a brief*, so every rebuild of one brief
+shared a label and several rows legitimately read `v2`, told apart by hash alone. Reported
+from use as the wrong reading of a list of builds, so the label now names the build.
+Committing a brief moves nothing, and neither does publishing — **two counters over one
+label is how a published v2 comes to be called v3 by something that never rebuilt it.**
+A brief that has never been built reports `v1`, which is what its first build will
+produce rather than a claim that a version exists.
 
 **Publishing names a build, so it happens on that build's row.** There is no
 header publish button: "Publish v2…" could not say which of six builds it meant.

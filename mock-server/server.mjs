@@ -2258,18 +2258,35 @@ const derivationView = (run) => ({
 const studioVersions = new Map()
 
 /**
- * The config version a build is built from — `v1` plus the number of times the
- * brief has been committed. It moves when the *brief* changes, not when a build or
- * a publish happens, so every rebuild of one brief carries one version label.
+ * **A version per build: v1, v2, v3.** The number is the count of builds this graph has
+ * started, so every run — first build or tenth rebuild — gets its own label.
+ *
+ * This replaced a *config* version that moved when the brief was committed and stayed put
+ * across rebuilds, so several rows legitimately read `v2` and were told apart by content
+ * hash alone. Content addressing is still the identity (`sha256`, unchanged); what changed is
+ * that the label now names the build rather than the brief, which is what a reader means by
+ * "version" on a list of builds.
+ *
+ * **It is still assigned once, at the start of a run, and never recomputed.** That is the
+ * property the old scheme was protecting: a counter that moved on publish would relabel
+ * history, so a published `v2` must stay `v2` however many builds follow it. Assigning at
+ * `startBuildFor` and reading the stored value everywhere keeps that true.
  */
-const studioConfigVersion = new Map()
+const studioBuildCount = new Map()
 
-const configVersion = (useCaseId) => `v${studioConfigVersion.get(useCaseId) ?? 1}`
-
-/** Called when a brief is committed: a new config is a new version to build. */
-function bumpConfigVersion(useCaseId) {
-  studioConfigVersion.set(useCaseId, (studioConfigVersion.get(useCaseId) ?? 1) + 1)
+/** The next label for this graph, and the count that produced it. Called once per run. */
+function nextBuildVersion(useCaseId) {
+  const next = (studioBuildCount.get(useCaseId) ?? 0) + 1
+  studioBuildCount.set(useCaseId, next)
+  return `v${next}`
 }
+
+/**
+ * The newest label this graph has reached — what the studio header and the wizard's card
+ * show as its draft version. `v1` before anything has been built, because that is the
+ * version the first build will produce, not a claim that one exists.
+ */
+const configVersion = (useCaseId) => `v${studioBuildCount.get(useCaseId) || 1}`
 
 /** Records the version a finished build produced. */
 function recordVersion(run, gatePassed) {
@@ -2388,9 +2405,12 @@ function startBuildFor(useCase) {
        reporting one id for both would say a rebuild changed nothing. */
     package_id: `a${(hash(`package:${buildId}`) % 0xfffffff).toString(16).padStart(7, '0')}`,
     graph_version: `${(hash(`version:${buildId}`) % 0xfffffff).toString(16).padStart(7, '0')}f`,
-    /* The config this build is of. Stable across rebuilds and across publishing —
-       what moves it is a change to the brief. */
-    config_version: configVersion(id),
+    /*
+     * This build's version — v1, v2, v3 — taken once, here, and carried on the run. Every
+     * surface reads it from the run or from the version row the run produced, so a published
+     * label can never be recomputed into a different number by a later rebuild.
+     */
+    config_version: nextBuildVersion(id),
     started_at: new Date().toISOString(),
     finished_at: null,
   }
@@ -2710,10 +2730,10 @@ function studioSummary(useCase) {
     domain_id: useCase.domain_id ?? null,
     business_need: useCase.business_need ?? '',
     /*
-     * `version` is the **config** version — what a build of this brief would be a
-     * version *of*. It moves when the brief is committed again, not when a build
-     * runs and not when something is published, which is why several builds share
-     * one label and differ by content hash.
+     * The newest version label this graph has reached. **A build takes the next number**
+     * (v1, v2, v3), so this moves when a build starts — not when the brief is committed and
+     * not when something is published. Before the first build it reads `v1`, which is what
+     * that build will produce rather than a claim that a version exists.
      */
     version: configVersion(useCase.use_case_id),
     // What is serving, or null. Never a number invented to fill the tag.
@@ -4346,7 +4366,9 @@ const reportGraphFor = (useCaseId) => {
     use_case_id: useCase.use_case_id,
     name: useCase.name,
     domain_id: useCase.domain_id ?? null,
-    version: useCase.config_version ?? null,
+    /* A brief carries no version of its own — versions belong to builds — so a graph nobody
+       published reports null rather than a number that names nothing. */
+    version: null,
     sha256: null,
     built_at: null,
     published_by: null,
@@ -8056,14 +8078,11 @@ const routes = [
       })
 
       /*
-       * A newly committed brief is a new config, so the version label moves. It is
-       * bumped here and nowhere else — not on a build and not on a publish — which
-       * is why every build of one brief carries one label and they differ only by
-       * content hash. Saving a *draft* changes nothing: a draft cannot be built.
+       * Committing a brief no longer moves a version label — **a build does**, and the count
+       * lives in `studioBuildCount`. This is where the old config version was bumped, and it
+       * is deliberately empty now rather than bumping both: two counters over one label is how
+       * a published v2 comes to be called v3 by something that never rebuilt it.
        */
-      if (status === 'committed' && existing?.status !== 'committed') {
-        bumpConfigVersion(record.use_case_id)
-      }
 
       send(res, existing ? 200 : 201, { saved: true, use_case: savedUseCase(record) })
     },
