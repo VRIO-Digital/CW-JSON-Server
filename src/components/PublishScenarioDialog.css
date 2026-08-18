@@ -46,22 +46,52 @@
   line-height: 1.55;
 }
 
-.ps-readers {
-  border: 1px solid #e9ecf1;
-  border-radius: 8px;
+/*
+ * One row per reader inside the dropdown, and one per reader already chosen. The
+ * checkbox list these replaced carried the persona note against every candidate;
+ * a select closes over its options, so the note moved to the chosen list, where
+ * it is still declared and still never applied.
+ */
+.ps-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
 }
 
-.ps-reader {
+.ps-opt-who {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+/* The refusal, at the point of typing rather than after the request. */
+.ps-nobody {
+  display: block;
+  padding: var(--sp-3);
+  color: #8994a8;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ps-chosen {
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  list-style: none;
+}
+
+.ps-chosen-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.3fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto;
   align-items: center;
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
   border-bottom: 1px solid #f1f3f7;
-  cursor: pointer;
 }
 
-.ps-reader:last-child {
+.ps-chosen-row:last-child {
   border-bottom: 0;
 }
 

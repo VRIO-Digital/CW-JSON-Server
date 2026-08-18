@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, InputNumber, Modal, Select, Space, Tag } from 'antd'
+import { Alert, Button, InputNumber, Modal, Select, Space, Tag } from 'antd'
 import { useState } from 'react'
 import type { WhatIfFreshness, WhatIfPublishing, WhatIfSaved } from '../api/client'
 import type { WhatIfFrame } from '../api/client'
@@ -122,25 +122,95 @@ export function PublishScenarioPanel({
 
       <section className="ps-sec">
         <div className="ps-label">{pub.readers.label}</div>
-        <div className="ps-readers" role="group" aria-label={pub.readers.label}>
-          {frame.readers.map((r) => (
-            <label className="ps-reader" key={r.email}>
-              <Checkbox
-                checked={readers.includes(r.email)}
-                onChange={() => toggleReader(r.email)}
-              />
-              <span className="ps-reader-who">
-                <strong>{r.name}</strong>
-                <span className="ps-reader-mail">{r.email}</span>
-              </span>
-              <span className="ps-reader-scope">
+
+        {/*
+         * Type an address or a name; pick from the directory.
+         *
+         * **The value is the served directory and only that.** `mode="multiple"` with
+         * a search box, never `tags` — a free-text entry would let somebody publish to
+         * an address the API then refuses, and inventing a reader is inventing a user.
+         * `notFoundContent` is that refusal moved to the point of typing: it names who
+         * Settings does know, which is the sentence the route sends anyway.
+         *
+         * The placeholder is the tenant's own (`readers.placeholder`), not this
+         * component's — the copy was authored for exactly this control.
+         */}
+        <Select
+          className="ps-wide"
+          mode="multiple"
+          value={readers}
+          onChange={setReaders}
+          placeholder={pub.readers.placeholder}
+          aria-label={pub.readers.label}
+          /* Matched on name, address and persona, so "executive" finds the reader whose
+             persona is Business User — Executive. */
+          filterOption={(input, option) =>
+            (option?.search ?? '').toLowerCase().includes(input.toLowerCase())
+          }
+          notFoundContent={
+            <span className="ps-nobody">
+              Nobody in the directory matches. Settings knows{' '}
+              {frame.readers.map((r) => r.email).join(', ')}.
+            </span>
+          }
+          optionLabelProp="label"
+          options={frame.readers.map((r) => ({
+            value: r.email,
+            /* The closed control shows the address, which is what identifies a person
+               here — two people can share a first name, and the row above already
+               carries the name in full. */
+            label: r.email,
+            search: `${r.name} ${r.email} ${r.roleLabel}`,
+            title: r.accessNote,
+            option: (
+              <span className="ps-opt">
+                <span className="ps-opt-who">
+                  <strong>{r.name}</strong>
+                  <span className="ps-reader-mail">{r.email}</span>
+                </span>
                 {/* A persona is a category, never a state, so it stays neutral. */}
                 <Tag>{r.roleLabel}</Tag>
-                <span className="ps-reader-note">{r.accessNote}</span>
               </span>
-            </label>
-          ))}
-        </div>
+            ),
+          }))}
+          optionRender={(option) => option.data.option}
+        />
+
+        {/*
+         * What each *chosen* reader may see, stated beside them.
+         *
+         * The checkbox list carried this note against every candidate; a select closes
+         * over its options, so the declared scope would disappear at the moment it
+         * matters. It moves under the control instead — still declared, still never
+         * applied, and now only for the people actually being told.
+         */}
+        {readers.length > 0 ? (
+          <ul className="ps-chosen">
+            {frame.readers
+              .filter((r) => readers.includes(r.email))
+              .map((r) => (
+                <li className="ps-chosen-row" key={r.email}>
+                  <span className="ps-reader-who">
+                    <strong>{r.name}</strong>
+                    <span className="ps-reader-mail">{r.email}</span>
+                  </span>
+                  <span className="ps-reader-scope">
+                    <Tag>{r.roleLabel}</Tag>
+                    <span className="ps-reader-note">{r.accessNote}</span>
+                  </span>
+                  <Button
+                    size="small"
+                    type="text"
+                    onClick={() => toggleReader(r.email)}
+                    aria-label={`Remove ${r.name}`}
+                  >
+                    ✕
+                  </Button>
+                </li>
+              ))}
+          </ul>
+        ) : null}
+
         <p className="ps-help">{pub.readers.scopeNote}</p>
         {/* The gate-1 caveat, at the point the decision is made rather than in a doc. */}
         <p className="ps-caveat">{pub.readers.caveat}</p>

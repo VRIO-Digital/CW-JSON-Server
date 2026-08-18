@@ -1107,10 +1107,50 @@ longer exists.
 Publication lives in memory beside the library and beside graph publication itself, so a
 restart forgets all three together — the only consistent thing it could do.
 
-**Two tabs are two jobs.** *Authoring* sets the frame — which governed measures are
+**Three tabs are three jobs.** *Authoring* sets the frame — which governed measures are
 watched, which pool a scenario may draw from, how many columns to compare — over three
 steps, each narrowing the next, so the rail is clickable backwards only. *Runtime* swaps
-loads inside that frame; every figure recomputes on the server.
+loads inside that frame; every figure recomputes on the server. *Published scenarios* is
+a **reading** surface: what has been told to somebody, to whom, which build they see, and
+when it was created as against when it was told.
+
+**The third tab is read-only, which is why it is not part of Runtime.** Every control in
+Runtime swaps a load and recomputes a figure; nothing on Published changes a scenario. Its
+one act — *Manage publishing…* — hands over to the publish dialog, which lives **above the
+tabs** so Runtime's bar and a published card reach the same one. A dialog per tab would be
+two places to change one publication, which is how they come to disagree about what it says.
+
+**The tab list is the tenant's, served on `copy.tabs`.** The package ships two, because
+when it was written a publication had no surface of its own — so the third is appended in
+`npm run ingest:whatif` the way `V2_SUBTITLE` overrides the package's subtitle, and for the
+same reason: a re-ingest of the untouched JSON must still produce the tab list the page
+renders. A tab hardcoded in the component would be a second answer to "what tabs exist".
+
+**One record, one surface — the library says nothing about a publication.** A published
+row in *Saved scenario library* carried a `Published · N readers` tag, a `Bound to … ·
+published by …` line and a **Manage publishing…** button, all of which the Published tab
+now states in full. Two surfaces reporting one record is how they come to disagree, so the
+library kept only its own job: listing what is saved so it can be re-opened. A row's
+publish button is therefore offered **only while publishing is still the act to be done** —
+a published row has none.
+
+Nothing was lost in the move, and that had to be arranged rather than assumed: the details
+view gained **Open in Runtime**, because the library row is no longer where a published
+scenario is re-opened. The runtime *bar* still states the open scenario's own publication —
+that is the scenario you are looking at, not a list of them, and it is the one place the two
+readings do not collide.
+
+**A card states, and never counts.** A publication stores the frame and each case's
+admitted load, never the numbers, so a card that showed a tonnage would be showing
+something the publication does not hold. It names its readers rather than counting them —
+capped, and the cap says so — and carries **two dates**, because `created_at` and
+`published_at` date two different acts: a scenario can sit in the library for a week before
+anybody publishes it. Both are on the saved row; neither is a figure.
+
+**The tab exists whether or not anything is in it, so its empty state names the act that
+fills it** — publish one from Runtime. That is different from the *grid*, which is absent
+entirely when nothing is published: an empty heading over a sentence reads as a section
+that failed to load.
 
 **The connection gate replaces the lens, header chrome included.** `GET /whatif` returns
 its copy whether or not a source is connected, so the page's banner ("built on the real
@@ -1119,6 +1159,30 @@ demo graph — 36 inbound generators") and its provenance note used to print abo
 none. The whole lens lives in `WhatIfLens`, rendered only when `connected_sources > 0`,
 so the gated branch has no source-derived copy to leak; only `PageHeader` is common to
 both, as on every other gated page. `check-docs` asserts the split both ways.
+
+**Every step of the lens is paced, at `WHATIF_STEP_MS` (4s).** Longer than `SUGGEST_MS`
+on purpose: a step here is not a list being ranked, it is a candidate load admitted into
+the graph hypothetically and traversed to the generator's federal record, and an operation
+that returns in 2ms teaches that the traversal is free. It covers *Resolve against graph*,
+*Save frame & run*, *Save / Update saved scenario* and **every load swap in Runtime** —
+each of those has a request, so each is held **on the endpoint**, and the rule the rest of
+the app keeps is unbroken: a step advances when its call returns, not on a timer the client
+holds. **Refusals stay immediate** — a four-second 404 on a generator the pool excludes
+reads as a hang.
+
+A column mid-traversal says so in place rather than blanking: `computing` is per column, so
+*Save frame & run* switches to Runtime at once and each case reports its own wait, the way
+the profiling board does.
+
+**Two steps of Authoring are the one client-side exception, and `STEP_HOLD_MS` names it.**
+Steps 1→2 and 2→3 make no request at all — picking measures and narrowing a pool are
+decisions recorded in the store — so there is nothing whose return could advance them, and
+the alternative to a hold is a step that completes before the reader has seen it start.
+Same reasoning as the report prototype's two client-side steps, and the same hazard: the
+timer is cleared on unmount, so leaving Authoring mid-step cannot fire the advance into a
+component that is gone. **Back is never held** — a reader going back is correcting
+something, and holding that reads as the page fighting them. The two numbers are one pace
+for one flow; if either changes the other should.
 
 **A measure must ground before it can be watched, and the graph decides.**
 `POST /whatif/resolve` answers with one of three verdicts: `resolved` adds the measure

@@ -269,7 +269,7 @@ export function LibraryPane({
         </>
       )}
 
-      /* ---- the standalone path: no host, so no chips and no governed rows ---- */
+      
       {!showStates &&
         (reports.length === 0 ? (
           <div className="emptyState">

@@ -111,7 +111,7 @@
       "settings": false
     },
     "platform_admin": {
-      "new-graph": false,
+      "new-graph": true,
       "ask": true,
       "reports": true,
       "sources": true,

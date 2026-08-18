@@ -1,0 +1,198 @@
+/*
+ * The published-scenario cards, and the details behind one.
+ *
+ * Spacing comes from the `--sp-*` scale in index.css, like everything authored
+ * here — the two vendored sheets are the only exemptions.
+ */
+
+.pubs-lead {
+  margin: 0 0 var(--sp-4);
+}
+
+.pubs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--sp-4);
+}
+
+/*
+ * A button, not a div with a handler: it is focusable, it answers the keyboard and
+ * a screen reader announces it as the control it is. The look is the card's.
+ */
+.pubs-card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.pubs-card:hover {
+  border-color: #d7dce6;
+  box-shadow: 0 2px 10px rgb(20 30 50 / 6%);
+}
+
+.pubs-card:focus-visible {
+  outline: 2px solid var(--cw-brand, #f4562b);
+  outline-offset: 2px;
+}
+
+.pubs-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.pubs-name {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.pubs-meta {
+  color: #6b7688;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* The two dates sit on the card's foot, so a row of cards lines up on them
+   whatever the copy above them does. */
+.pubs-dates {
+  display: grid;
+  margin: var(--sp-3) 0 0;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+}
+
+.pubs-date dt {
+  color: #8994a8;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.pubs-date dd {
+  margin: 0;
+  font-size: 12px;
+}
+
+.pubs-foot {
+  margin-top: auto;
+  padding-top: var(--sp-3);
+  border-top: 1px solid #f1f3f7;
+  color: #8994a8;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* ----- the details ----- */
+
+.pubd-sec {
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid #f1f3f7;
+}
+
+.pubd-sec:last-child {
+  border-bottom: 0;
+}
+
+.pubd-label {
+  margin-bottom: var(--sp-3);
+  color: #6b7688;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pubd-rows {
+  display: grid;
+  margin: 0;
+  gap: var(--sp-2);
+}
+
+.pubd-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: var(--sp-3);
+}
+
+.pubd-row dt {
+  color: #8994a8;
+  font-size: 12px;
+}
+
+.pubd-row dd {
+  margin: 0;
+  font-size: 13px;
+}
+
+.pubd-cases,
+.pubd-readers {
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  list-style: none;
+}
+
+.pubd-case,
+.pubd-reader {
+  display: grid;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid #f1f3f7;
+}
+
+.pubd-case {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+
+.pubd-reader {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+
+.pubd-case:last-child,
+.pubd-reader:last-child {
+  border-bottom: 0;
+}
+
+.pubd-who,
+.pubd-scope {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.pubd-dim {
+  color: #8994a8;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.pubd-help,
+.pubd-caveat {
+  margin: var(--sp-3) 0 0;
+  color: #8994a8;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* The caveat is the one line here that must not read as incidental. */
+.pubd-caveat {
+  padding: var(--sp-3);
+  border-left: 2px solid #e9ecf1;
+  background: #fafbfd;
+}

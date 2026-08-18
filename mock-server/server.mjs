@@ -2220,6 +2220,20 @@ const DRAFT_STAGES = ['Reading your brief', 'Drafting candidates', 'Ranking agai
 // Long enough for the drafting state to be seen, short enough not to annoy.
 const SUGGEST_MS = 1100
 
+/*
+ * What every step of the What-if flow is held for.
+ *
+ * Longer than `SUGGEST_MS` on purpose: a step here is not a list being ranked, it is
+ * a candidate load being admitted into the graph hypothetically and traversed to the
+ * generator's federal record — evaluations, violations, enforcement, any decree — and
+ * an operation that returns in 2ms teaches that the traversal is free. It is not.
+ *
+ * The hold is on the endpoint, never in the page, wherever a request exists: a step
+ * advances when its call returns. Refusals are never paced — a four-second 404 on a
+ * generator the pool excludes reads as a hang.
+ */
+const WHATIF_STEP_MS = 4000
+
 /** Public shape of a derivation; the coverage only lands when it completes. */
 const derivationView = (run) => ({
   derivation_id: run.derivation_id,
@@ -8415,7 +8429,7 @@ const routes = [
               body: `${hit.note}.`,
             }
 
-      setTimeout(() => send(res, 200, { text: asked, ...answer }), SUGGEST_MS).unref?.()
+      setTimeout(() => send(res, 200, { text: asked, ...answer }), WHATIF_STEP_MS).unref?.()
     },
   },
 
@@ -8446,7 +8460,9 @@ const routes = [
           error: `not a watched measure: ${unknown.join(', ')} — author it in step 1 first`,
         })
       }
-      send(res, 200, whatifScenario(generator, keys))
+      /* The traversal itself. Every column's figures come from here, so this is the
+         call the reader is waiting on when a load is swapped. */
+      setTimeout(() => send(res, 200, whatifScenario(generator, keys)), WHATIF_STEP_MS).unref?.()
     },
   },
 
@@ -8523,12 +8539,24 @@ const routes = [
         previous?.name ||
         `What-if — ${(db.whatif.candidate_pools.find((p) => p.key === poolKey)?.label ?? poolKey).toLowerCase()}`
 
+      const at = new Date().toISOString()
+
       whatifSaved.set(id, {
         saved_id: id,
         name: label,
         watch: watchKeys,
         pool: poolKey,
         cases: nextCases,
+        /*
+         * When it was **created**, carried through every re-save.
+         *
+         * This is a different fact from `published.published_at`, and both are on the
+         * row for that reason: a scenario can sit in the library for a week before
+         * anybody publishes it, so a card showing one date would be dating the other
+         * act. Neither is a figure — they are the record of two decisions.
+         */
+        created_at: previous?.created_at ?? at,
+        updated_at: at,
         /*
          * Re-saving keeps the publication, because editing a published scenario is
          * still that publication — but its readers are reading a frame that just
@@ -8537,7 +8565,10 @@ const routes = [
          */
         published: previous?.published ?? null,
       })
-      send(res, 200, { saved: [...whatifSaved.values()], saved_id: id })
+      setTimeout(
+        () => send(res, 200, { saved: [...whatifSaved.values()], saved_id: id }),
+        WHATIF_STEP_MS,
+      ).unref?.()
     },
   },
 

@@ -1,10 +1,13 @@
 import { Alert, App, Button, Col, Input, Row, Space, Spin, Tabs, Tag } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { WhatIfFrame, WhatIfSaved } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import NoPublishedGraph from '../components/NoPublishedGraph'
 import PageHeader from '../components/PageHeader'
 import PublishScenarioDialog from '../components/PublishScenarioDialog'
+import PublishedScenarios, {
+  PublishedScenarioModal,
+} from '../components/PublishedScenarios'
 import ScenarioColumn from '../components/ScenarioColumn'
 import { PoolFrame } from '../components/WhatIfGraph'
 import { useAuthStore } from '../store/authStore'
@@ -28,12 +31,18 @@ import './WhatIfPage.css'
  * says so in three places because it is the property that makes the screen safe to
  * use before a decision rather than after one.
  *
- * Two tabs, and they are two different jobs. **Authoring sets the frame** — which
+ * Three tabs, and they are three different jobs. **Authoring sets the frame** — which
  * governed measures are watched, which pool of generators a scenario may draw from, how
  * many columns to compare — and it is a three-step wizard because each answer narrows
  * the next. **Runtime swaps loads inside that frame** and every figure recomputes on
  * the server, so a saved scenario stays true as the graph changes: the library stores
- * the admitted load, never the numbers.
+ * the admitted load, never the numbers. **Published scenarios reads a publication
+ * back** — who was told, which build they see, when it was created as against when it
+ * was told — and changes nothing, which is why it is not part of Runtime.
+ *
+ * The tab list itself is the tenant's, served on `copy.tabs`. A tab hardcoded here
+ * would be a second answer to what tabs exist; the third one is appended by
+ * `npm run ingest:whatif`, the way that script already overrides the subtitle.
  *
  * Every string on this page comes from the server. The tenant wrote this copy, and a
  * sentence typed into a component here would be a second voice claiming to be theirs.
@@ -46,6 +55,55 @@ import './WhatIfPage.css'
  * not need inventing. Both Alerts on this page originally restated that first sentence
  * as a hardcoded title, which printed it twice and put words in the tenant's mouth.
  */
+/**
+ * How long a step of Authoring is held before it advances.
+ *
+ * **Client-side, and only here.** Everywhere in this app that a step waits, it waits
+ * for a request — a stage advances when its call returns, never on a timer the page
+ * holds. Steps 1→2 and 2→3 of Authoring are the exception, for the same reason the
+ * report prototype's two steps are: they make no request at all. Picking measures and
+ * narrowing a pool are decisions recorded in the store, so there is nothing whose
+ * return could advance them, and the alternative to a hold here is a step that
+ * completes before the reader has seen it start.
+ *
+ * It matches `WHATIF_STEP_MS` in the server, which paces the steps that *do* call:
+ * Resolve against graph, Save frame & run, and every load swap in Runtime. The two
+ * numbers are the same pace for the same flow; if one changes the other should.
+ */
+const STEP_HOLD_MS = 4000
+
+/**
+ * Runs an act after the step hold, with a flag for the button's spinner.
+ *
+ * The timer is cleared on unmount, so leaving Authoring mid-step cannot fire the
+ * advance into a component that is no longer there — the mistake the report
+ * prototype's runner already had to fix once.
+ */
+function useHeldStep(): { holding: boolean; hold: (act: () => void) => void } {
+  const [holding, setHolding] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current)
+    },
+    [],
+  )
+
+  return {
+    holding,
+    hold: (act) => {
+      if (timer.current) return
+      setHolding(true)
+      timer.current = setTimeout(() => {
+        timer.current = null
+        setHolding(false)
+        act()
+      }, STEP_HOLD_MS)
+    },
+  }
+}
+
 function lead(text: string): { title: string; rest: string } {
   const at = text.indexOf('. ')
   if (at === -1) return { title: text, rest: '' }
@@ -142,8 +200,46 @@ function WhatIfTabs({
 }) {
   const [tab, setTab] = useState(frame.defaults.tab)
   const startRun = useWhatIfStore((s) => s.startRun)
+  const saved = useWhatIfStore(selectSaved)
+  const pending = useWhatIfStore((s) => s.pending)
+  const publish = useWhatIfStore((s) => s.publish)
+  const unpublish = useWhatIfStore((s) => s.unpublish)
+  /* Client-held, so it has to be *sent*: the server has nothing to look the signed-in
+     user up from, which is why every "who did this" field in this app is told. */
+  const signedInAs = useAuthStore((s) => s.identity?.email ?? null)
+
+  /**
+   * Which library entry the publish dialog is open on, or null.
+   *
+   * **One dialog, above the tabs, because publishing is one act.** Runtime's bar and
+   * the Published tab's cards both reach it; a dialog per tab would be two places to
+   * change one publication, which is how they come to disagree about what it says.
+   */
+  const [publishing, setPublishing] = useState<string | null>(null)
+  const target = publishing === null ? null : (saved.find((s) => s.savedId === publishing) ?? null)
+
+  const openSaved = useWhatIfStore((s) => s.openSaved)
+
+  /**
+   * Load a published scenario back into Runtime **and go there**.
+   *
+   * The tab switch is the point. `openSaved` recomputes the columns into the store
+   * but changes nothing on screen while the reader is still on the Published tab —
+   * so "Open in Runtime" appeared to do nothing at all. The act is owned here
+   * because this is where the active tab lives; the Published tab cannot switch to
+   * a tab it does not know about.
+   */
+  async function openInRuntime(savedId: string) {
+    const result = await openSaved(savedId)
+    if (!result.ok) {
+      onMessage(result.error)
+      return
+    }
+    setTab('runtime')
+  }
 
   return (
+    <>
     <Tabs
       activeKey={tab}
       onChange={setTab}
@@ -162,11 +258,112 @@ function WhatIfTabs({
               }}
               onMessage={onMessage}
             />
+          ) : t.key === 'published' ? (
+            <Published
+              frame={frame}
+              onManage={setPublishing}
+              onOpenInRuntime={openInRuntime}
+            />
           ) : (
-            <Runtime frame={frame} onMessage={onMessage} />
+            <Runtime frame={frame} onMessage={onMessage} onPublish={setPublishing} />
           ),
       }))}
     />
+
+    {/*
+     * At the page's level rather than inside a card, and that is not tidiness: a panel
+     * that expands inside an equal-height card grid stretches every sibling in its row,
+     * which is the trap `docs/REGRESSIONS.md` records twice for the report section.
+     */}
+    <PublishScenarioDialog
+      open={target !== null}
+      scenario={target}
+      frame={frame}
+      saving={pending === target?.savedId}
+      onCancel={() => setPublishing(null)}
+      onPublish={(input) =>
+        void publish({ savedId: target!.savedId, ...input, as: signedInAs }).then((r) => {
+          if (!r.ok) onMessage(r.error)
+          else setPublishing(null)
+        })
+      }
+      onUnpublish={() =>
+        void unpublish(target!.savedId).then((r) => {
+          if (!r.ok) onMessage(r.error)
+          else {
+            onMessage(frame.publishing.unpublishedNote)
+            setPublishing(null)
+          }
+        })
+      }
+    />
+    </>
+  )
+}
+
+/* ---------------- Published scenarios ---------------- */
+
+/**
+ * The third tab: what has been told to somebody, and to whom.
+ *
+ * **A reading surface, which is why it is not part of Runtime.** Every control in
+ * Runtime swaps a load and recomputes a figure; nothing here changes a scenario. The
+ * one act it offers — "Manage publishing…" — hands straight over to the dialog above
+ * the tabs rather than growing an editor of its own.
+ */
+function Published({
+  frame,
+  onManage,
+  onOpenInRuntime,
+}: {
+  frame: WhatIfFrame
+  onManage: (savedId: string) => void
+  /* Loads the scenario *and* moves to Runtime — owned above, because the active tab
+     is not this component's to change. */
+  onOpenInRuntime: (savedId: string) => void
+}) {
+  const saved = useWhatIfStore(selectSaved)
+  const published = saved.filter((s) => s.published !== null)
+
+  /** Which published scenario's details are open, or null. */
+  const [viewing, setViewing] = useState<string | null>(null)
+  const viewed = viewing === null ? null : (saved.find((s) => s.savedId === viewing) ?? null)
+
+  /* A fragment, like every other tab body: `.wi-card` carries its own bottom margin,
+     so a wrapper here would be a class with no rule behind it. */
+  return (
+    <>
+      {published.length === 0 ? (
+        /* The tab exists whether or not anything is in it, so the empty state has to
+           say which of the two it is — and name the act that fills it. */
+        <div className="wi-card">
+          <div className="wi-label">Published scenarios</div>
+          <p className="wi-help">
+            Nothing has been published yet. Publish a scenario from <strong>Runtime</strong>{' '}
+            — it stores the frame and each case&apos;s admitted load, never the figures, so
+            what a reader opens is recomputed against the graph it is bound to.
+          </p>
+        </div>
+      ) : (
+        <PublishedScenarios frame={frame} saved={saved} onOpenDetails={setViewing} />
+      )}
+
+      {/* Reading the record. */}
+      <PublishedScenarioModal
+        open={viewed !== null}
+        scenario={viewed}
+        frame={frame}
+        onClose={() => setViewing(null)}
+        onManage={(savedId) => {
+          setViewing(null)
+          onManage(savedId)
+        }}
+        onOpenInRuntime={(savedId) => {
+          setViewing(null)
+          onOpenInRuntime(savedId)
+        }}
+      />
+    </>
   )
 }
 
@@ -183,6 +380,9 @@ function Authoring({
 }) {
   const step = useWhatIfStore((s) => s.step)
   const setStep = useWhatIfStore((s) => s.setStep)
+  /* The two forward steps that make no request. Back is never held — a reader going
+     back is correcting something, and holding that reads as the page fighting them. */
+  const { holding, hold } = useHeldStep()
   const watch = useWhatIfStore((s) => s.watch)
   const toggleWatch = useWhatIfStore((s) => s.toggleWatch)
   const pool = useWhatIfStore((s) => s.pool)
@@ -316,9 +516,10 @@ function Authoring({
                 against nothing is not a scenario. */}
             <Button
               type="primary"
+              loading={holding}
               disabled={watch.length === 0}
               title={watch.length === 0 ? 'Pick at least one measure to watch' : undefined}
-              onClick={() => setStep(2)}
+              onClick={() => hold(() => setStep(2))}
             >
               {authoring.cta[0]}
             </Button>
@@ -389,9 +590,10 @@ function Authoring({
             <Button onClick={() => setStep(1)}>← Back</Button>
             <Button
               type="primary"
+              loading={holding}
               disabled={members.length === 0}
               title={members.length === 0 ? 'This pool has no candidate loads' : undefined}
-              onClick={() => setStep(3)}
+              onClick={() => hold(() => setStep(3))}
             >
               {authoring.cta[1]}
             </Button>
@@ -459,9 +661,12 @@ function Authoring({
 function Runtime({
   frame,
   onMessage,
+  onPublish,
 }: {
   frame: WhatIfFrame
   onMessage: (text: string) => void
+  /* Opens the one dialog that lives above the tabs — Runtime no longer owns it. */
+  onPublish: (savedId: string) => void
 }) {
   const columns = useWhatIfStore(selectColumns)
   const saved = useWhatIfStore(selectSaved)
@@ -475,20 +680,11 @@ function Runtime({
   const removeColumn = useWhatIfStore((s) => s.removeColumn)
   const saveCurrent = useWhatIfStore((s) => s.saveCurrent)
   const openSaved = useWhatIfStore((s) => s.openSaved)
-  const publish = useWhatIfStore((s) => s.publish)
-  const unpublish = useWhatIfStore((s) => s.unpublish)
   const remove = useWhatIfStore((s) => s.remove)
-  /* Client-held, so it has to be *sent*: the server has nothing to look the signed-in
-     user up from, which is why every "who did this" field in this app is told. */
-  const signedInAs = useAuthStore((s) => s.identity?.email ?? null)
-
-  /** Which library entry the publish dialog is open on, or null. */
-  const [publishing, setPublishing] = useState<string | null>(null)
 
   const members = useMemo(() => poolMembers(frame, pool), [frame, pool])
   const headroom = headroomFor(frame, pool)
   const { compare } = frame.runtime
-  const target = publishing === null ? null : (saved.find((s) => s.savedId === publishing) ?? null)
 
   /*
    * Publishing implies the scenario is in the library, so an unsaved one is saved first
@@ -497,7 +693,7 @@ function Runtime({
    */
   async function openPublish() {
     if (current) {
-      setPublishing(current.savedId)
+      onPublish(current.savedId)
       return
     }
     const result = await saveCurrent()
@@ -505,7 +701,7 @@ function Runtime({
       onMessage(result.error)
       return
     }
-    setPublishing(result.savedId ?? null)
+    if (result.savedId) onPublish(result.savedId)
   }
 
   if (columns.length === 0) {
@@ -596,7 +792,7 @@ function Runtime({
             if (!r.ok) onMessage(r.error)
           })
         }
-        onPublish={setPublishing}
+        onPublish={onPublish}
         onRemove={(id) =>
           void remove(id).then((r) => {
             if (!r.ok) onMessage(r.error)
@@ -609,34 +805,6 @@ function Runtime({
         showIcon
         title={lead(frame.runtime.closingNote).title}
         description={lead(frame.runtime.closingNote).rest}
-      />
-
-      {/*
-       * At the page's level rather than inside a card, and that is not tidiness: a panel
-       * that expands inside an equal-height card grid stretches every sibling in its row,
-       * which is the trap `docs/REGRESSIONS.md` records twice for the report section.
-       */}
-      <PublishScenarioDialog
-        open={target !== null}
-        scenario={target}
-        frame={frame}
-        saving={pending === target?.savedId}
-        onCancel={() => setPublishing(null)}
-        onPublish={(input) =>
-          void publish({ savedId: target!.savedId, ...input, as: signedInAs }).then((r) => {
-            if (!r.ok) onMessage(r.error)
-            else setPublishing(null)
-          })
-        }
-        onUnpublish={() =>
-          void unpublish(target!.savedId).then((r) => {
-            if (!r.ok) onMessage(r.error)
-            else {
-              onMessage(frame.publishing.unpublishedNote)
-              setPublishing(null)
-            }
-          })
-        }
       />
     </>
   )
@@ -751,12 +919,6 @@ function ScenarioLibrary({
             <div key={s.savedId} className="wi-tray">
               <div className="wi-tray-what">
                 <strong>{s.name}</strong>
-                {s.published ? (
-                  <Tag color="success">
-                    Published · {s.published.readers.length} reader
-                    {s.published.readers.length === 1 ? '' : 's'}
-                  </Tag>
-                ) : null}
                 <div className="wi-help wi-tray-meta">
                   {poolLabel} pool · watching {s.watch.length} measure
                   {s.watch.length === 1 ? '' : 's'} · {s.cases.length} case
@@ -769,16 +931,6 @@ function ScenarioLibrary({
                     )
                     .join(', ')}
                 </div>
-                {/* Which content answers it, and who said so — the same pair Ask and a
-                    report footer report, because "which build did a reader see" is a
-                    question a reader is entitled to ask. */}
-                {s.published ? (
-                  <div className="wi-help wi-tray-meta">
-                    Bound to {s.published.graphName}
-                    {s.published.graphVersion ? ` · ${s.published.graphVersion}` : ''} ·
-                    published by {s.published.publishedBy}
-                  </div>
-                ) : null}
               </div>
               <Space size={SP.sm} wrap>
                 <Button
@@ -789,9 +941,21 @@ function ScenarioLibrary({
                 >
                   {open ? 'Open' : library.addBtn}
                 </Button>
-                <Button size="small" onClick={() => onPublish(s.savedId)}>
-                  {s.published ? frame.publishing.buttons.manage : frame.publishing.buttons.open}
-                </Button>
+                {/*
+                 * Publishing, only where it is the act still to be done.
+                 *
+                 * A published row states nothing about its publication here — no tag,
+                 * no bound-to line, no Manage button. All of that is the Published
+                 * scenarios tab's, and it was in both places at once: two surfaces
+                 * reporting one record, which is how they come to disagree. What the
+                 * library is for is re-opening a scenario, and that is what its row
+                 * still does.
+                 */}
+                {s.published ? null : (
+                  <Button size="small" onClick={() => onPublish(s.savedId)}>
+                    {frame.publishing.buttons.open}
+                  </Button>
+                )}
                 <Button
                   size="small"
                   loading={pending === s.savedId}

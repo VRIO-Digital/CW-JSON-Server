@@ -352,9 +352,30 @@ const V2_SUBTITLE =
   'when it’s worth sharing, and open any figure to the federal record it came from. ' +
   'Nothing is predicted.'
 
+/*
+ * The third tab, for the same reason the subtitle is overridden.
+ *
+ * The package lists two — Authoring and Runtime — because when it was written a
+ * publication had no surface of its own: publishing was something you did to a
+ * library row, and what came of it was a tag on that row. Reading a publication
+ * back is a third job now (who was told, which build they see, when it was
+ * created as against when it was told), and it is a *reading* job: it changes
+ * nothing, which is exactly why it does not belong inside Runtime, where every
+ * control swaps a load.
+ *
+ * Authored here rather than hand-edited into db.json, so a re-ingest of the
+ * untouched package still produces the tab list the page actually renders — the
+ * mistake `ingest-reports.mjs` nearly made with the report audiences.
+ */
+const PUBLISHED_TAB = { key: 'published', label: 'Published scenarios' }
+
+const tabs = rest.copy.tabs.some((t) => t.key === PUBLISHED_TAB.key)
+  ? rest.copy.tabs
+  : [...rest.copy.tabs, PUBLISHED_TAB]
+
 db.whatif = {
   ...rest,
-  copy: { ...rest.copy, subtitle: V2_SUBTITLE },
+  copy: { ...rest.copy, subtitle: V2_SUBTITLE, tabs },
   headroom,
   publishing: PUBLISHING,
 }

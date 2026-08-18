@@ -4432,6 +4432,10 @@ export interface WhatIfPublication {
 export interface WhatIfSaved {
   savedId: string
   name: string
+  /** When it was created — never confused with when it was published. */
+  createdAt: string
+  /** When its frame or its cases were last written. */
+  updatedAt: string
   /** The frame: which measures were watched and which pool the cases may draw from. */
   watch: string[]
   pool: string
@@ -4717,6 +4721,11 @@ const WHATIF_FRESHNESS = shape({
 const WHATIF_SAVED = shape({
   saved_id: str,
   name: str,
+  /* When the scenario was created and when it was last written. Two facts, and
+     neither is `published.published_at` — a library entry can wait a week for
+     somebody to publish it, so a row showing one date would date the other act. */
+  created_at: str,
+  updated_at: str,
   watch: arrayOf(str),
   pool: str,
   cases: arrayOf(shape({ name: str, generator_id: str })),
@@ -4958,6 +4967,8 @@ interface RawWhatIfFreshness {
 interface RawWhatIfSaved {
   saved_id: string
   name: string
+  created_at: string
+  updated_at: string
   watch: string[]
   pool: string
   cases: { name: string; generator_id: string }[]
@@ -4992,6 +5003,8 @@ const toWhatIfGenerator = (g: RawWhatIfGenerator): WhatIfGenerator => ({
 const toWhatIfSaved = (s: RawWhatIfSaved): WhatIfSaved => ({
   savedId: s.saved_id,
   name: s.name,
+  createdAt: s.created_at,
+  updatedAt: s.updated_at,
   watch: s.watch,
   pool: s.pool,
   cases: s.cases.map((c) => ({ name: c.name, generatorId: c.generator_id })),

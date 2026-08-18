@@ -12867,6 +12867,10 @@
         {
           "key": "runtime",
           "label": "Runtime"
+        },
+        {
+          "key": "published",
+          "label": "Published scenarios"
         }
       ],
       "data_note": "Synthetic values, real names. Source: vls_demo_data_package_2026-08-10 / 07_reports + 05_knowledge_graph."
