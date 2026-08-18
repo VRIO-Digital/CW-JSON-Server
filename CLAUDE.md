@@ -1262,14 +1262,38 @@ Four things were changed to make it a page instead of an app, and nothing else:
   What-if — silently, on pages nobody touched. `check-docs` asserts every selector stays scoped,
   that the tokens stay off `:root`, and that the page mounts it in a matching wrapper.
 
-- **Its two authoring steps are paced.** `READ_MS` (2s) and `BUILD_MS` (3s) hold "Read my question" and
-  "Build the report" behind a spinner and a disabled button, because both were instant — and an operation
-  that returns instantly and shows nothing teaches that it is free, which is why the profiler, the
-  suggesters and the graph build are all paced. **Client-side, uniquely**: these steps run against the
+- **Its two authoring steps are paced.** `READ_MS` (2s) holds "Read my question", and "Build the
+  report" is paced per step (below), because both were instant — and an operation that returns
+  instantly and shows nothing teaches that it is free, which is why the profiler, the suggesters and
+  the graph build are all paced. **Client-side, uniquely**: these steps run against the
   prototype’s own dataset, so there is no request whose return could advance them. Everywhere a request
   does exist the rule is unchanged — a stage advances when its call returns, never on a timer. The
   empty-question refusal is *not* paced, and one runner clears its timer on unmount so leaving mid-step
   cannot fire into a dead component.
+
+- **And the build says what it is doing, a step at a time.** It was one 3s hold behind a button
+  that could only say "Building your report…"; it is now a dialog (`BuildRunDialog`) listing the
+  five things composing a report actually does — pinning the graph, selecting the rows, ranking by
+  the measure, composing the blocks, laying out the draft — at `BUILD_STAGE_MS` (**5s**) each, so
+  a run takes the **list's length times that**, ≈**25s**, and no duration is written down anywhere.
+  Adding a step makes the run longer, which is the point; `check-docs` reads the constant and fails
+  both on a duration typed into the component and on this paragraph quoting a different number —
+  the same rule the graph build's panel follows with `step_ms`. A step is paced to be *read*: each
+  states the value it used, and a row that passes faster than its own sentence is a spinner with
+  extra frames.
+
+  **Each step states the value this run used** — the graph's own label, `31 of 36 inbound
+  generators, narrowed by 2 filters`, the measure the read-back named, the blocks about to be
+  instantiated — because a step describing building in general is a spinner with more words.
+  `buildStages()` is a **pure function in `src/reports/lib/`** for the reason `connectSteps.ts`
+  is copy rather than markup: the dialog renders only while a build is in flight, so an assertion
+  made through the page would render it shut and pass over nothing. **A spine `selectRows` never
+  selects does not get a count** — facilities, quarters and traces state the scope line instead,
+  exactly as `ConfirmPane` does, because "36 of 36 inbound generators" would name a selection that
+  never ran against them. Every row is listed from the first frame, `pending` until it runs; the
+  running one carries the spinner and the finished ones a tick, so state is never colour alone.
+  There is no Cancel: nothing is in flight to cancel, and closing it would leave the run to finish
+  behind it.
 
 **It is one of two stylesheets exempt from the `--sp-*` spacing rule**, and both are
 vendored. 173 spacing declarations on a 2px rhythm here, and the graph viewer's own in
