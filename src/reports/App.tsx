@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { META, OPTS, STARTERS } from './data';
+import { GENERATORS, META, OPTS, STARTERS } from './data';
 import { assumptionsForStarter, freshAssumptions } from './lib/assumptions';
 import { instantiate, isMeasure } from './lib/blocks';
+import { buildStages } from './lib/buildSteps';
+import { BuildRunDialog } from './components/BuildRunDialog';
 import {
   audienceLabel,
   fromGoverned,
@@ -205,9 +207,22 @@ const named = (n: number) => `${n} role${n === 1 ? '' : 's'}`;
  * the rule stands — a stage advances when its call returns, never on a timer.
  *
  * Building is the longer of the two because it is the heavier act: it instantiates every block.
+ *
+ * **Building is paced per step, not as one hold.** It used to be a single 3s wait behind a button
+ * that could only say "Building your report…". It is now `BUILD_STAGE_MS` per step of
+ * `buildStages()`, narrated in a dialog — so the total is the list's length times this number and
+ * is never written down anywhere: add a step and the run gets longer, which is the point. The same
+ * derivation the graph build's panel makes from `step_ms`.
+ *
+ * A step is paced to be **read** rather than merely seen: each one states the value it used, and a
+ * row that comes and goes faster than its own sentence can be read is a spinner with extra frames.
+ * It is the pace `ASK_BLOCK_MS` gives a paragraph of an answer, and slower than the graph build's
+ * 3s a substep — which makes the whole run minutes-adjacent rather than instant, and is why the
+ * dialog lists every step from the first frame and says which one it is on. `check-docs` reads this
+ * number and fails if the docs quote a different one.
  */
 const READ_MS = 2_000;
-const BUILD_MS = 3_000;
+const BUILD_STAGE_MS = 5_000;
 
 /** Which step is running, so the pane can disable its button and say so. */
 export type Working = 'read' | 'build' | null;
@@ -327,6 +342,43 @@ export default function App({
     [clearRun],
   );
 
+  /**
+   * Which build step is on screen. An index into `buildStages()`, so the dialog's rows, its
+   * "step 2 of 5" line and how long the run takes all come from one list.
+   */
+  const [buildStep, setBuildStep] = useState(0);
+
+  /**
+   * Walks the steps, one `BUILD_STAGE_MS` each, then does the work.
+   *
+   * Chained timeouts rather than an interval, and always through the same `timer` ref: one
+   * timer is pending at any moment, so `clearRun` on unmount stops the whole run rather than
+   * the step it happens to be on. A second `setInterval` held elsewhere is how a callback
+   * fires into a dead component.
+   */
+  const runStages = useCallback(
+    (count: number, done: () => void) => {
+      clearRun();
+      setWorking('build');
+      setBuildStep(0);
+      const step = (i: number) => {
+        timer.current = setTimeout(() => {
+          timer.current = null;
+          if (i + 1 < count) {
+            setBuildStep(i + 1);
+            step(i + 1);
+            return;
+          }
+          setWorking(null);
+          setBuildStep(0);
+          done();
+        }, BUILD_STAGE_MS);
+      };
+      step(0);
+    },
+    [clearRun],
+  );
+
   /** Set when the open report already exists in the library. */
   const [openedId, setOpenedId] = useState<string | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -334,6 +386,27 @@ export default function App({
   const scopeRows = useMemo(() => scopeSet(assumptions.scope.value), [assumptions.scope.value]);
   const rows = useMemo(() => selectRows(assumptions, filters), [assumptions, filters]);
   const measure: MeasureKey = isMeasure(assumptions.measure.value) ? assumptions.measure.value : 'penalty';
+
+  /*
+   * What the build dialog narrates, computed from the state the build is about to use — so a
+   * step names the graph, the rows and the measure this run actually has, rather than describing
+   * building in general. Recomputed with them; the dialog is open only while nothing can change.
+   */
+  const buildSteps = useMemo(
+    () =>
+      buildStages({
+        graphLabel: assumptions.graph.label,
+        rowCount: rows.length,
+        totalCount: GENERATORS.length,
+        entityPlural: META.entity_plural,
+        scopeLine: META.scope_line,
+        spine: starter.spine,
+        measureLabel: assumptions.measure.label,
+        filterCount: filters.length,
+        blocks: starter.blocks,
+      }),
+    [assumptions.graph.label, assumptions.measure.label, rows.length, starter, filters.length],
+  );
 
   const opened = openedId ? library.find((r) => r.id === openedId) : undefined;
   const audienceReports = library.filter((r) => r.status === 'published' && r.audience === AUDIENCE_KEY);
@@ -421,7 +494,9 @@ export default function App({
   function build() {
     setEditMode(false);
     setSelected(null);
-    run('build', BUILD_MS, () => {
+    /* The blocks are instantiated at the end, not per step: a report half-composed behind a
+       dialog would open onto whichever steps had run if anything ever interrupted it. */
+    runStages(buildSteps.length, () => {
       setBlocks(starter.blocks.map(instantiate));
       go(3);
     });
@@ -779,6 +854,18 @@ export default function App({
           )}
         </div>
       </main>
+
+      {/*
+        * The build, while it runs. At the root beside the other two dialogs rather than inside
+        * `ConfirmPane`: the pane it was started from is about to be replaced by the report, and a
+        * dialog rendered inside it would unmount mid-run on the step that replaces it.
+        *
+        * The button in the pane still disables and still says it is building — this states *what*
+        * is being built, which a disabled button cannot.
+        */}
+      {working === 'build' && (
+        <BuildRunDialog stages={buildSteps} current={buildStep} reportTitle={reportTitle} />
+      )}
 
       {/*
         * Beside `PublishDialog`, and for the same reason it is here: a dialog at the root of the page

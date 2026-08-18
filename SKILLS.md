@@ -1853,10 +1853,17 @@ optional — the original sets `*`, `body`, `button`, `h1,h2,h3`, `table`, `th` 
 selectors and would restyle every other page silently. `check-docs` asserts it stays scoped and
 that the page mounts it in a matching wrapper.
 
-Its two authoring steps were also **paced** — `READ_MS` 2s, `BUILD_MS` 3s, each behind a spinner and a
-disabled button — because both were instant, and an act that returns instantly teaches that it is free.
-Client-side only because these steps have no request behind them; the refusal for an empty question is not
-paced, and the timer is cleared on unmount.
+Its two authoring steps were also **paced** — `READ_MS` 2s for the read-back, and the build at
+`BUILD_STAGE_MS` (**5s**) **per step**, ≈**25s** over the five — because both were instant, and an act that returns instantly
+teaches that it is free. Client-side only because these steps have no request behind them; the refusal
+for an empty question is not paced, and the timer is cleared on unmount.
+
+**Build the report opens a dialog and narrates itself.** `buildStages()` (`src/reports/lib/buildSteps.ts`)
+returns the five things composing a report does, each naming the value this run used — the graph, the rows
+`selectRows` returned, the measure, the blocks — and `BuildRunDialog` lists all five from the first frame,
+ticking each as it completes, then the report opens. The run is the list's length times the pace, so adding
+a step lengthens it and no duration is typed into the component. A spine that is not the generator register
+states its scope line rather than a generator count, because `selectRows` never selected against it.
 
 It is also one of the two stylesheets exempt from the `--sp-*` rule — the graph viewer's is the
 other, and `check-docs` holds the list at exactly those two vendored paths — and it carries a

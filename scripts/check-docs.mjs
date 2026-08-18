@@ -5089,6 +5089,92 @@ expect(
   'declared, not applied — and the server refuses a document that drops the caveat',
 )
 
+/*
+ * **Building the report is narrated, one step at a time, and the pace is per step.**
+ *
+ * It was a single 3s hold behind a button that could only say "Building your report…", which
+ * says *something is happening* and nothing about what — the complaint that put `ConnectRunPanel`
+ * in front of the connect wizard's paced calls and substep rows on the graph build. Three halves,
+ * and the third is the one that fails silently: the run length has to be the **step list's**
+ * length times the pace, never a duration typed into the component, or adding a step leaves the
+ * dialog narrating five rows through four steps' worth of time.
+ */
+const buildStepsLib = read('src/reports/lib/buildSteps.ts')
+const buildDialog = read('src/reports/components/BuildRunDialog.tsx')
+const buildDialogCode = codeOnly(buildDialog)
+expect(
+  'the report build is paced per step, and its length is the step list’s',
+  /const BUILD_STAGE_MS = /.test(reportsAppCode) &&
+    !/\bBUILD_MS\b/.test(reportsAppCode) &&
+    /runStages\(buildSteps\.length,/.test(reportsAppCode) &&
+    /working === 'build' && \(/.test(reportsAppCode) &&
+    /* No duration of its own: the component states no number the pace could disagree with. */
+    !/_MS|\d+\s*ms|\d+ seconds/.test(buildDialogCode),
+  'a duration typed into the dialog is one the server-side rule cannot move',
+)
+/*
+ * And every step states a value **this** run used. A dialog describing building in general is a
+ * spinner with more words; these name the graph, the rows the selection returned, the measure
+ * they are ordered by and the blocks about to be made.
+ *
+ * The negative limb matters as much: `selectRows` only ever selects generators, so a facilities
+ * or quarterly report counting "36 of 36 inbound generators" would name a selection that never
+ * ran against it — the same claim `ConfirmPane` avoids for those spines.
+ */
+expect(
+  'every build step names a value the build actually used',
+  /graphLabel\}/.test(buildStepsLib) &&
+    /\$\{rowCount\} of \$\{totalCount\} \$\{entityPlural\}/.test(buildStepsLib) &&
+    /Ranking by \$\{measureLabel\}/.test(buildStepsLib) &&
+    /Composing \$\{plural\(blocks\.length/.test(buildStepsLib) &&
+    /spine === 'generators'\s*\?/.test(buildStepsLib) &&
+    /* Fed from the state the build is about to use, not from constants in the dialog. */
+    /buildStages\(\{[\s\S]*?graphLabel: assumptions\.graph\.label/.test(reportsAppCode) &&
+    /rowCount: rows\.length/.test(reportsAppCode),
+  'a step describing building in general is a spinner with more words',
+)
+/*
+ * **The pace is documented as the code has it, and the run length is derived from it.**
+ *
+ * A number in prose drifts unless something reads it — this repo has already had a routing note
+ * claiming 13 nav entries against 8. The docs quote both the per-step pace and the total, and the
+ * total is the step count times the pace, so raising the pace fails here rather than quietly
+ * leaving two paragraphs describing a build nobody has any more.
+ */
+/* Named apart from the graph build's `buildStepMs` / `buildRunSecs` — this file is one long
+   script, so a second `const` of the same name is a redeclaration that kills the whole run
+   before its summary, which is the failure where every claim looks broken at once. */
+const reportStageMs = Number(
+  ((reportsAppCode.match(/const BUILD_STAGE_MS = ([\d_]+)/) ?? [])[1] ?? '0').replace(/_/g, ''),
+)
+/* The step count comes from the list itself: `buildStages` returns one object per `id:`. */
+const reportStageCount = (buildStepsLib.match(/^\s+id: '/gm) ?? []).length
+const reportRunSecs = (reportStageMs * reportStageCount) / 1000
+expect(
+  'the build’s pace and run length are documented as the code has them',
+  reportStageMs > 0 &&
+    reportStageCount > 0 &&
+    [claude, skills].every(
+      (doc) =>
+        doc.includes(`(**${reportStageMs / 1000}s**)`) && doc.includes(`**${reportRunSecs}s**`),
+    ),
+  reportStageMs === 0 || reportStageCount === 0
+    ? 'the constant or the step list was not found — this check cannot run'
+    : `BUILD_STAGE_MS ${reportStageMs} · ${reportStageCount} steps ≈ ${reportRunSecs}s`,
+)
+/* Paired presence: the dialog really renders both halves of every step and lists them all from
+   the first frame, because an absence claim alone passes just as well over a gutted component. */
+expect(
+  'and the dialog renders every step from the first frame',
+  /stages\.map\(\(stage, i\) =>/.test(buildDialogCode) &&
+    /\{stage\.label\}/.test(buildDialogCode) &&
+    /\{stage\.detail\}/.test(buildDialogCode) &&
+    /Step \$\{current \+ 1\} of \$\{stages\.length\}/.test(buildDialogCode) &&
+    /* State is never colour alone: a tick on what is done, a spinner on what is running. */
+    /rp-spin/.test(buildDialogCode),
+  'a list that grew a row at a time would hide how much is left',
+)
+
 /* ---------------- report ---------------- */
 
 if (problems.length === 0) {

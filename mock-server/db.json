@@ -886,7 +886,7 @@
       "folders": [
         {
           "folder_id": "f_08_unstructured",
-          "name": "Compliance Data",
+          "name": "08_unstructured",
           "path": "/Compliance Docs/08_unstructured",
           "description": "EPA enforcement documents — consent decrees, complaints, settlements and CAFOs, mapped into the graph by entity extraction",
           "documents": [
@@ -6345,17 +6345,9 @@
           "source": "ai"
         }
       ],
-      "citations": "required",
-      "answer_formats": [
-        {
-          "format_id": "exception-report",
-          "name": "Exception report",
-          "format": "exception table + aging buckets"
-        }
-      ],
       "gap_decisions": [],
-      "step": 7,
-      "updated_at": "2026-08-17T08:35:46.254Z"
+      "step": 6,
+      "updated_at": "2026-08-18T04:28:56.936Z"
     },
     {
       "use_case_id": "uc-waste-management-mswz5ium3",
@@ -15140,23 +15132,6 @@
       ],
       "reports": [
         {
-          "report_id": "risk",
-          "status": "published",
-          "version": "v13",
-          "author": "Dana Whitfield",
-          "category": "Inbound risk",
-          "as_of": "2026-08-10",
-          "schedule": "Daily 07:00 UTC",
-          "approval": "two-person",
-          "audience": [
-            "domain_architect",
-            "business_user_executive",
-            "business_user_project",
-            "platform_admin"
-          ],
-          "note": null
-        },
-        {
           "report_id": "facility",
           "status": "published",
           "version": "v7",
@@ -15187,21 +15162,6 @@
             "platform_admin"
           ],
           "note": null
-        },
-        {
-          "report_id": "cd",
-          "status": "published",
-          "version": "v2",
-          "author": "Dana Whitfield",
-          "category": "Enforcement exposure",
-          "as_of": "2026-08-10",
-          "schedule": "On demand",
-          "approval": "two-person",
-          "audience": [
-            "domain_architect",
-            "business_user_executive"
-          ],
-          "note": "Publishing widens nobody’s data scope — an entitled reader still sees only the rows their own predicate admits."
         },
         {
           "report_id": "trace",
