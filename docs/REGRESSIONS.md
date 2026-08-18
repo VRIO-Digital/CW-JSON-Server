@@ -2443,7 +2443,8 @@ palette answers "what is this one"; only a movable layout answers "how is this c
 smaller ones fell out of it. **Vendored source belongs outside `src/`**: the viewer's own folder
 sat at `src/grap`, where it was a second importable copy of the canvas, type-checked by `tsc`
 and swept by `check-docs` — its raw-px stylesheet was already failing the `--sp-*` rule for a
-component nobody rendered. It moved to `vendor/graph-viewer-source/`. And **a claim that says
+component nobody rendered. It moved to `vendor/graph-viewer-source/`. **That half was reversed on
+2026-08-18** — see the entry below. And **a claim that says
 "the app has no graph library" is the wrong shape**: the What-if lens's guard asserted
 `!package.json.includes('d3')`, so adding d3 for the studio failed a claim about a component
 that had not changed. Scope a "draws its own SVG" claim to the file that draws.
@@ -2692,3 +2693,73 @@ store took the run from 13 stale claims to 14.
 **Rule** — **when two surfaces report one gate, deleting the reporting one costs nothing and
 deleting the enforcing one costs everything.** Say in the removal note which was which, next
 to the code that still enforces it.
+
+## Reference-only source outside `src/` is still a second copy — `vendor/` deleted
+
+*2026-08-18*
+
+**Symptom** — reported from use as a maintenance problem, not a bug: two folders held the graph
+viewer, `vendor/graph-viewer-source/` and `src/graph-viewer/`, and it was not obvious which one
+a change belonged in.
+
+**Cause** — the entry above moved the standalone viewer *out* of `src/` to stop it being a
+second importable copy, which was right about the hazard it named (`tsc` type-checked it,
+`check-docs` swept its raw-px stylesheet) and wrong about the remedy. Moving it out of `src/`
+stopped the tooling seeing it; it did not stop it being a second copy. Nothing imported it,
+nothing checked it against the live one, and no build would have failed if the two diverged —
+so its only remaining job was to be read, which git history already does.
+
+**Fix** — deleted the folder outright. Four doc references were the whole cost: CLAUDE.md and
+SKILLS.md each named it as the viewer's source of record, SKILLS.md claimed the demo dataset
+"stayed in `vendor/`" (it is now simply deleted), and the entry above is cross-referenced to
+this one. No import, no `check-docs` claim and no build step referenced the path — verified by
+grep across `*.ts`, `*.tsx`, `*.mjs`, `*.json` and `*.md` before deleting.
+
+**Guard** — the existing claim that `src/graph-viewer/data` does not exist still holds, and now
+holds for a simpler reason: the demo dataset is gone rather than relocated. Nothing new was
+needed, because the deleted folder had nothing asserting anything about it — which is the
+finding.
+
+**Rule** — **"kept for reference" is a maintenance claim, and unmaintained is what it means.**
+A copy nothing imports, nothing tests and nothing diffs against the live one is not
+documentation; it is a second answer with no mechanism keeping it honest. Version control is
+the reference copy. Before keeping source outside the build for reference, ask what would fail
+if it drifted — if the answer is nothing, delete it. The genuine hazard the earlier entry found
+(vendored code inside `src/` gets type-checked and swept by repo-wide rules) is real and is
+handled where it should be: `src/graph-viewer/` and `src/reports/` are the two named entries on
+the `--sp-*` exemption list, and that list is asserted to hold nothing else.
+
+## A confirm footer that cannot fit its buttons wraps, and reads as misalignment
+
+*2026-08-18*
+
+**Symptom** — reported from use: the re-profile confirm looked like a pair of misaligned
+buttons. "Leave them as they are" sat on one line and "Profile 11 document(s) again" on the
+next, the narrower one above the wider, both hard against the right edge.
+
+**Cause** — not alignment at all: the footer was out of room. A `Modal.confirm` defaults to
+416px, and its `.ant-modal-confirm-btns` is `text-align: end` over inline-block buttons — so it
+does not shrink them to fit, it **wraps** them as inline content, and because each line is
+end-aligned separately the result is two right-aligned lines rather than one shrunken row. The
+two labels are ~400px together against ~334px of usable width once the modal padding (48px) and
+the confirm icon indent (~34px) come out. Both labels are deliberate sentences — the module
+names the act rather than saying OK/Cancel — so they were always going to be wide.
+
+**Fix** — `CONFIRM_WIDTH` (520) in `src/data/profilingOutcome.ts`, applied at both call sites.
+The width lives beside the labels that force it, because shortening `confirmText` or
+`cancelText` is the alternative fix and both are in that file. `cancelText` moved onto the
+`ProfilingOutcome` type in the same change: it had been a literal written twice in two pages
+while the module's stated job — and an existing claim — was that this wording is written once.
+
+**Guard** — the existing "words the outcome from the shared module" claim gained a pair:
+each panel must read `outcome.cancelText`, must not carry the literal, and must pass
+`width: CONFIRM_WIDTH`. Break-tested by restoring the literal in `CataloguePage.tsx`, which
+fails the claim by name.
+
+**Rule** — **a flex row shrinks before it wraps; an inline-block row wraps before it shrinks.**
+The entry above about four action buttons mangling their text mid-phrase is the *same* problem
+in the other layout mode, and the tells are opposite: text broken inside a label means a flex
+row starved its items, and buttons on separate right-aligned lines means an inline row ran out
+of width. Neither is an alignment bug, and neither is fixed by an alignment property — read
+which mode the container is in before reaching for one. antd's confirm footer is the inline
+kind, so a dialog whose buttons are sentences needs a stated width.

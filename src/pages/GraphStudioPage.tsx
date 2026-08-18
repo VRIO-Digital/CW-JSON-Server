@@ -636,7 +636,7 @@ export default function GraphStudioPage() {
             key: 'queue',
             label: (
               <span>
-                Review queue <Tag className="gs-tab-count"></Tag>
+                Review queue
               </span>
             ),
             disabled: !outputReadable,

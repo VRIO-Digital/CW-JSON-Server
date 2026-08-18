@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { SourceRow } from '../api/client'
 import { fileKind } from '../data/mimeTypes'
 import { useDocumentBrowseStore } from '../store/catalogueStore'
-import { profilingOutcome } from '../data/profilingOutcome'
+import { CONFIRM_WIDTH, profilingOutcome } from '../data/profilingOutcome'
 import '../pages/CataloguePage.css'
 
 /* Tree keys encode the pair so a leaf can be turned back into an object. */
@@ -127,7 +127,9 @@ export default function DocumentBrowsePanel({
           </>
         ),
         okText: outcome.confirmText,
-        cancelText: 'Leave them as they are',
+        cancelText: outcome.cancelText,
+        /* Both labels are sentences, and they do not fit antd's default 416px. */
+        width: CONFIRM_WIDTH,
         onOk: () => startProfiling(true),
       })
     } else {

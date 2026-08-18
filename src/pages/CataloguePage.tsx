@@ -25,7 +25,7 @@ import ProfiledColumnsPanel from '../components/ProfiledColumnsPanel'
 import ProfiledDocumentsPanel from '../components/ProfiledDocumentsPanel'
 import ProfilingJobsTab from '../components/ProfilingJobsTab'
 import StatusTag from '../components/StatusTag'
-import { profilingOutcome } from '../data/profilingOutcome'
+import { CONFIRM_WIDTH, profilingOutcome } from '../data/profilingOutcome'
 import { SP } from '../theme'
 import './CataloguePage.css'
 
@@ -160,7 +160,9 @@ function BrowsePanel({
           </>
         ),
         okText: outcome.confirmText,
-        cancelText: 'Leave them as they are',
+        cancelText: outcome.cancelText,
+        /* Both labels are sentences, and they do not fit antd's default 416px. */
+        width: CONFIRM_WIDTH,
         onOk: () => startProfiling(true),
       })
     } else {

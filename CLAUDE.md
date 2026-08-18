@@ -727,9 +727,16 @@ because half a removal is the shape that fails silently.
   its own sidebar, legend, search and inspector. **It replaced a hand-written inline SVG**
   that drew the ingest's precomputed positions: 189 nodes in a fixed arrangement read as a
   hairball, and no palette work fixes a layout nobody can pull apart. The viewer was
-  **vendored rather than reimplemented**, the same way `src/reports/` was — its source of
-  record is `vendor/graph-viewer-source/`, and what runs here is its own hook, its own lib
-  and its own stylesheet.
+  **vendored rather than reimplemented**, the same way `src/reports/` was — what runs here is
+  its own hook, its own lib and its own stylesheet.
+
+  **There is one copy, and it is this one.** The standalone app it was vendored from lived at
+  `vendor/graph-viewer-source/` and was deleted on 2026-08-18: nothing imported it, so it was
+  a second copy of the viewer that could only ever drift from the one being rendered. Its demo
+  dataset went with it — so `src/graph-viewer/data` being absent is now a deletion rather than
+  a relocation, which is the same guarantee by a shorter route. Git history holds the original
+  if the folder's own behaviour is ever in question; change `src/graph-viewer` for anything the
+  app should do.
 
   **d3 is a real dependency, and a deliberate exception.** "Prefer writing ~100 lines to
   pulling in a package" still holds everywhere else — the answer charts and the What-if

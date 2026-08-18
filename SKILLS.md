@@ -1258,9 +1258,11 @@ something a mock writes back over its seed.
 
 The ontology as nodes and edges, drawn by the **vendored graph viewer** — a d3-force
 graph with its own simulation, drag, zoom, search box, type legend and inspector sidebar.
-It was vendored from `vendor/graph-viewer-source/`, the standalone app that folder still
-is, the same way `src/reports/` was vendored: its hook, its lib, its types and its
-stylesheet are its own, and it was imported rather than reimplemented.
+It was vendored the same way `src/reports/` was: its hook, its lib, its types and its
+stylesheet are its own, and it was imported rather than reimplemented. The standalone app it
+came from lived at `vendor/graph-viewer-source/` until 2026-08-18, when it was deleted —
+nothing imported it, so it was a second copy of the viewer with nothing keeping it in step.
+`src/graph-viewer` is the only copy; the original is in git history.
 
 **It replaced a hand-written inline SVG, and that is why d3 is here.** The old canvas drew
 the ingest's precomputed positions: 189 nodes in a fixed arrangement, which reads as a
@@ -1279,7 +1281,7 @@ but the drawing no longer encodes it.
 
 | change | why |
 |---|---|
-| it takes its graph as a **prop** | the folder shipped with a synthetic demo dataset; the graph here is the tenant's, and that data stayed in `vendor/` so it cannot render by accident |
+| it takes its graph as a **prop** | the folder shipped with a synthetic demo dataset; the graph here is the tenant's, and that data was dropped rather than ported so it cannot render by accident — `check-docs` asserts `src/graph-viewer/data` does not exist |
 | its root carries **`cw-graph`** | its stylesheet is scoped under that class. Unscoped, `.link`, `.tab`, `.dot`, `.side` and its *dark* `:root` tokens restyle the whole app — the report prototype's trap, with worse selectors |
 | `useForceGraph` gained **`highlight`** | the Query tab promises an answer's evidence lights up on the canvas. The dim/highlight mechanism already existed for the clicked neighbourhood, so the answer path feeds that rather than a second highlight with its own rules |
 | it **fills a container**, not a document | the root was the document's flex root at `100vw` and declared no width, so in the full view's flex row it sized to content: the drawing collapsed to min-content beside the 360px panel and two thirds of the page went blank. `width: 100%` *and* `flex: 1 1 auto` + `min-width: 0`, so it fills a block container and a flex one — and the simulation measures its box (`clientWidth` is 0 before layout, which piles every node into the corner) with a `ResizeObserver` re-centring it after |

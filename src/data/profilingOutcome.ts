@@ -20,6 +20,20 @@ import type { JobObject } from '../api/client'
  * documents, and the only difference between the two is the noun.
  */
 
+/**
+ * The dialog is wider than antd's 416px default, because these two buttons do not fit in it.
+ *
+ * A confirm's footer is `text-align: end` over inline-block buttons, so it does not shrink them
+ * to fit — it *wraps*, and because each line is end-aligned separately the narrower button lands
+ * on its own line above the wider one. It reads as a misaligned pair rather than as a footer out
+ * of room. "Leave them as they are" and "Profile 11 document(s) again" are ~400px together
+ * against ~334px of usable width once the modal's padding and the icon indent are taken out.
+ *
+ * So the width lives here, beside the labels that set it: shortening `confirmText` or
+ * `cancelText` is what would make it unnecessary, and both are in this file.
+ */
+export const CONFIRM_WIDTH = 520
+
 /** How many objects a message names before it starts counting them instead. */
 export const NAMES_SHOWN = 6
 
@@ -56,6 +70,9 @@ export type ProfilingOutcome =
       /** What profiling them again would mean, said before it is offered. */
       note: string
       confirmText: string
+      /** The other way out, worded as the act it is — written here so the two panels cannot
+          come to word one pair of acts differently, which is this module's whole job. */
+      cancelText: string
       skipped: JobObject[]
     }
 
@@ -80,6 +97,7 @@ export function profilingOutcome(
       detail: `${skipped.length} ${unit}(s) already profiled: ${namedObjects(skipped)}.`,
       note: `Profiling ${skipped.length === 1 ? 'it' : 'them'} again re-reads the ${unit}(s) and replaces what the profiler wrote — the record is updated in place, so nothing is duplicated.`,
       confirmText: `Profile ${skipped.length} ${unit}(s) again`,
+      cancelText: 'Leave them as they are',
       skipped,
     }
   }

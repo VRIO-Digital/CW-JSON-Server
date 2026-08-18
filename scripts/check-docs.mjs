@@ -748,6 +748,17 @@ for (const [label, path] of [
       !/Nothing to profile/.test(src),
     'BigQuery and Drive differ by a noun, so the wording is written once',
   )
+  /* Both buttons, not just the one that acts: the cancel was written twice as a literal while
+     the claim above said the wording was written once, which is how the two dialogs come to
+     offer one pair of acts in two different words. And the confirm carries the width the
+     module states, because antd wraps a footer it cannot fit rather than shrinking it. */
+  expect(
+    `and ${label} takes both button labels and the width from it`,
+    /cancelText: outcome.cancelText/.test(src) &&
+      !/Leave them as they are/.test(src) &&
+      /width: CONFIRM_WIDTH/.test(src),
+    'a footer that cannot fit its labels wraps, and reads as a misaligned pair',
+  )
 }
 
 /* ---------------- what Disconnect and Delete ask ---------------- */
