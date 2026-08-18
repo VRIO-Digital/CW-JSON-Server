@@ -4780,6 +4780,7 @@ expect(
   `${navKeys.length} nav keys, ${navPathCount} nav paths`,
 )
 
+
 /*
  * The two counts in CLAUDE.md's routing paragraph, pinned.
  *
@@ -4814,6 +4815,40 @@ const settingsSeed = read('scripts/seed-settings.mjs')
 const settingsStore = read('src/store/settingsStore.ts')
 const personaPanel = read('src/components/PersonaPermissionsPanel.tsx')
 const sidebarSrc = read('src/components/Sidebar.tsx')
+
+/*
+ * **Every sidebar entry sits under a heading, and the headings are built from what a persona can
+ * actually see.**
+ *
+ * Two ways this fails silently. An item whose `group` is not in `NAV_GROUPS` is grouped under a
+ * heading the menu never renders, so the item simply vanishes from the sidebar — no error, and the
+ * page is still reachable by URL, which is exactly the shape that took a session to notice when
+ * Knowledge Graphs fell through to `NotFoundPage`. And a menu built by mapping `NAV_GROUPS` over the
+ * *unfiltered* list would draw `EXPLORE` above nothing for a persona with no Explore item, which
+ * reads as a section that failed to load rather than as one they may not open.
+ *
+ * So both halves are asserted: the counts agree here, and the sidebar filters before it groups.
+ */
+const navGroupsDeclared = [
+  ...(/const NAV_GROUPS: NavGroup\[\] = \[([\s\S]*?)\]/.exec(nav)?.[1] ?? '').matchAll(
+    /'([^']+)'/g,
+  ),
+].map((m) => m[1])
+const navItemGroups = [...nav.matchAll(/^ *group: '([^']+)',/gm)].map((m) => m[1])
+expect(
+  'every nav item names a declared group, and the sidebar groups what it filtered',
+  navGroupsDeclared.length >= 2 &&
+    navItemGroups.length === navPaths.length &&
+    navItemGroups.every((g) => navGroupsDeclared.includes(g)) &&
+    /* Drawn only where something survived the filter — `items`, never `NAV_ITEMS`. */
+    /NAV_GROUPS\.map\(\(group\) => \({/.test(sidebarSrc) &&
+    /members: items\.filter\(\(item\) => item\.group === group\)/.test(sidebarSrc) &&
+    /\.filter\(\(\{ members \}\) => members\.length > 0\)/.test(sidebarSrc),
+  navItemGroups.length === 0
+    ? 'no nav item groups parsed — this check cannot run'
+    : `${navPaths.length} items across ${navGroupsDeclared.length} groups`,
+)
+
 const loginPage = read('src/pages/LoginPage.tsx')
 /* Same rule as db.json above: refuse rather than check an empty object. */
 const settingsDoc = readJson('mock-server/settings.json')

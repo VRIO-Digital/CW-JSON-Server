@@ -2148,6 +2148,16 @@ permission for an item that does not exist. A future placeholder is the same fou
 plus the one line in `routes.tsx` when it gets a page — `/what-if`, `/reports` and `/audit`
 were all placeholders until theirs landed.
 
+**The nine sit in three groups, and a group is a heading rather than a permission.** `NAV_GROUPS`
+in `nav.ts` declares them in order — **Explore** (Reports, Ask, What-if Lenses), **Build &
+Configure** (New Graph, Sources, Data Catalogue, Graph Studio), **Trust & Operations** (Audit &
+Governance, Settings) — and every item names one. `SidebarMenu` builds the headings from the list
+`visibleNavItems` returned and drops a group with nothing under it, because `EXPLORE` above empty
+space reads as a section that failed to load rather than as one the persona may not open. The
+grouping costs a fifth coordinated edit on top of the four above: `NAV_ITEMS` is in group order, and
+`check-docs` compares that order to the seed's `NAV_KEYS` literally, so a reordering here is a
+reordering there plus `npm run seed:settings`.
+
 **And the sidebar is filtered.** `visibleNavItems` in `settingsStore` decides which of those nine
 entries a persona sees — see Settings below. `App`'s mobile header deliberately looks up the
 *unfiltered* list, because it names the page you are on and a hidden page is still reachable by URL.

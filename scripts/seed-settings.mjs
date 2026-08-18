@@ -40,13 +40,13 @@ const existing = existsSync(SETTINGS) ? JSON.parse(readFileSync(SETTINGS, 'utf8'
  * is not.
  */
 const NAV_KEYS = [
-  'new-graph',
-  'ask',
   'reports',
+  'ask',
+  'what-if',
+  'new-graph',
   'sources',
   'catalogue',
   'graph-studio',
-  'what-if',
   'audit',
   'settings',
 ]

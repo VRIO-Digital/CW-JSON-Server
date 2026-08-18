@@ -2110,7 +2110,14 @@ server then refuses to boot on while naming the seed as the fix. Removing Knowle
 meant one address could sign in as any persona; `LoginPage` no longer reads `GET /auth/roles` at all.
 Still not authentication — the password is length-checked and nothing more.
 
-### Four rules the code has to keep
+### Five rules the code has to keep
+
+- **A group is a heading, never a permission.** `NAV_GROUPS` in `nav.ts` orders the three — Explore,
+  Build & Configure, Trust & Operations — and `SidebarMenu` builds them from the list `visibleNavItems`
+  returned, dropping any group left with nothing under it. A heading over empty space reads as a section
+  that failed to load, not as one the persona may not open. `NAV_ITEMS` is in group order and the seed's
+  `NAV_KEYS` is compared to it *literally*, so reordering the sidebar means reordering the seed and
+  re-running `npm run seed:settings`.
 
 - **One place decides visibility.** `visibleNavItems` in `settingsStore`; the sidebar filters through it
   and nothing else does. `App`'s mobile header reads the *unfiltered* list on purpose — it names the page

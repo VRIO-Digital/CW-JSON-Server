@@ -2,7 +2,7 @@ import { Button, Menu, Typography } from 'antd'
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { SessionIdentity } from '../api/client'
-import type { NavItem } from '../nav'
+import { NAV_GROUPS, type NavItem } from '../nav'
 import { useAuthStore } from '../store/authStore'
 import { useSettingsStore, visibleNavItems } from '../store/settingsStore'
 import './Sidebar.css'
@@ -68,16 +68,33 @@ export function SidebarMenu({
   onPick: (item: NavItem) => void
 }) {
   const selected = items.find((item) => pathname.startsWith(item.path))
+
+  /*
+   * The headings are built from what survived the filter, not from `NAV_GROUPS` directly: a persona
+   * with no Explore item must not be shown an `EXPLORE` heading with nothing under it, which reads as
+   * a section that failed to load rather than as one they may not open. The group order is
+   * `NAV_GROUPS`', and the order inside a group is `NAV_ITEMS`', so both are stated in one place.
+   */
+  const grouped = NAV_GROUPS.map((group) => ({
+    group,
+    members: items.filter((item) => item.group === group),
+  })).filter(({ members }) => members.length > 0)
+
   return (
     <Menu
       mode="inline"
       theme="dark"
       selectedKeys={selected ? [selected.key] : []}
       className="sidebar-menu"
-      items={items.map(({ key, label, icon: Icon }) => ({
-        key,
-        icon: <Icon />,
-        label,
+      items={grouped.map(({ group, members }) => ({
+        key: `group:${group}`,
+        type: 'group' as const,
+        label: group,
+        children: members.map(({ key, label, icon: Icon }) => ({
+          key,
+          icon: <Icon />,
+          label,
+        })),
       }))}
       onClick={({ key }) => {
         const item = items.find((i) => i.key === key)
