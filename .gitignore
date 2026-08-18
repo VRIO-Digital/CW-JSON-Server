@@ -25,3 +25,8 @@ mock-server/db.json.tmp
 *.njsproj
 *.sln
 *.sw?
+dist-ssr/
+backend/captured.json
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/*/__pycache__/

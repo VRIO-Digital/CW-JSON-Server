@@ -19,7 +19,12 @@
     "preflight": "npm run lint && npm run build && npm run audit && npm run check-docs",
     "preview": "vite preview",
     "audit:fix": "npm audit fix",
-    "postinstall": "node scripts/audit-gate.mjs low"
+    "postinstall": "node scripts/audit-gate.mjs low",
+    "api": "python -m uvicorn backend.app.main:app --port 4000",
+    "api:dev": "python -m uvicorn backend.app.main:app --port 4000 --reload",
+    "api:reseed": "python -m backend.reseed",
+    "api:smoke": "python backend/smoke.py",
+    "api:contract": "python backend/capture.py && vite build --ssr backend/integration.tsx --outDir dist-ssr --logLevel warn && node dist-ssr/integration.js"
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
