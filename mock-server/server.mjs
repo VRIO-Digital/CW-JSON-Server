@@ -78,12 +78,27 @@
  *   GET    /evals                          { stats, runs, checks }
  */
 import { createServer } from 'node:http'
-import { readFileSync } from 'node:fs'
-import { rename, writeFile } from 'node:fs/promises'
+import { docRef, presignGet, readDoc, storeKind, writeDoc } from './store.mjs'
+import { exportKey, FORMATS } from './reportExport.mjs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const here = dirname(fileURLToPath(import.meta.url))
+
+/*
+ * `mock-server/.env.local` holds the AWS credentials the S3 store signs with. It is loaded here
+ * rather than required in the shell so that `npm run mock` needs no setup — and it is a *file*
+ * rather than three constants in `store.mjs` because `.gitignore` covers `*.local`: a bucket name
+ * is an address and can be committed, an access key is scraped off GitHub by bots within minutes.
+ *
+ * Absent is fine and silent. A machine running `S3_BUCKET=off` has nothing to sign, and the store
+ * says exactly what is missing if it turns out something did need signing.
+ */
+try {
+  process.loadEnvFile(join(here, '.env.local'))
+} catch {
+  /* no .env.local — the environment is expected to carry whatever is needed. */
+}
 
 /**
  * Read one of the two JSON databases, and **fail with something a person can act on**.
@@ -100,14 +115,34 @@ const here = dirname(fileURLToPath(import.meta.url))
  * offset while the actual problem is `<<<<<<< Updated upstream` sitting in the middle of the file.
  * Naming the marker and its line turns a puzzle into a one-line fix.
  */
-function readJsonDb(path, label, restore) {
+/**
+ * Each document's version as this process last saw it - an S3 ETag, or `null` for a file.
+ * `writeJsonAtomic` sends it back as `If-Match`, which is what turns a second writer into a
+ * refused write instead of a silently lost update.
+ */
+const docEtags = new Map()
+
+async function readJsonDb(ref, label, restore) {
   let text
   try {
-    text = readFileSync(path, 'utf8')
+    /* Awaited, not synchronous: an object is a network read and there is no sync form of one.
+       The guarantee that mattered is kept by where this is awaited rather than by how it reads -
+       boot awaits both documents before `listen`, so nothing is served before its data is in. */
+    const doc = await readDoc(ref)
+    text = doc.text
+    docEtags.set(ref, doc.etag)
   } catch (error) {
     console.error(`\nmock-server: refusing to start — cannot read ${label}.`)
     console.error(`  · ${error.message}`)
-    console.error(`\n  Restore it:\n      ${restore}\n`)
+    /* The remedy depends on where the document was being read from: re-seeding a local file fixes
+       nothing when the server is reading a bucket, and sending somebody to `git checkout` over a
+       credentials error is a wrong instruction rather than merely an unhelpful one. */
+    console.error(
+      storeKind(ref) === 's3'
+        ? `\n  This server reads S3 (${ref}). Check AWS_REGION and the instance role, then:\n` +
+            `      npm run db:push   (uploads the local ${label})\n`
+        : `\n  Restore it:\n      ${restore}\n`,
+    )
     process.exit(1)
   }
 
@@ -144,12 +179,34 @@ function readJsonDb(path, label, restore) {
   }
 }
 
-const DB_PATH = join(here, 'db.json')
-const db = readJsonDb(
-  DB_PATH,
-  'mock-server/db.json',
-  'git checkout HEAD -- mock-server/db.json && npm run seed:governance',
-)
+const DB_PATH = docRef('db.json', join(here, 'db.json'))
+const SETTINGS_PATH = docRef('settings.json', join(here, 'settings.json'))
+
+/*
+ * ---------------- both documents at once, then nothing until both are in ----------------
+ *
+ * **Fetched together because they are independent, and awaited together because the server must not
+ * listen without either.** Read one after the other this cost two full round trips before the port
+ * was open — which on a link to a bucket a continent away is most of a five-second boot, and every
+ * request in that window is a connection refused rather than a slow page. Neither document is
+ * needed to locate the other, so the second request never had a reason to wait for the first.
+ *
+ * `Promise.all` keeps the guarantee exactly as it was: this is still one `await` above
+ * `server.listen`, and nothing is served before both documents are parsed. What changed is only
+ * that the two waits overlap. On the local-file store it makes no measurable difference and costs
+ * nothing.
+ *
+ * A failure in either still exits inside `readJsonDb`, before the other can resolve — a refusal
+ * naming the document that failed, which is what it was before.
+ */
+const [db, loadedSettings] = await Promise.all([
+  readJsonDb(
+    DB_PATH,
+    'mock-server/db.json',
+    'git checkout HEAD -- mock-server/db.json && npm run seed:governance',
+  ),
+  readJsonDb(SETTINGS_PATH, 'mock-server/settings.json', 'npm run seed:settings'),
+])
 
 /*
  * ---------------- the Settings store, which is a second file on purpose ----------------
@@ -164,12 +221,9 @@ const db = readJsonDb(
  * audiences validate against, what the login echoes back — so there is one answer to "who exists" and
  * this file cannot drift from it. `validateSettings` refuses a role id `db.json` does not have.
  */
-const SETTINGS_PATH = join(here, 'settings.json')
-let settings = readJsonDb(
-  SETTINGS_PATH,
-  'mock-server/settings.json',
-  'npm run seed:settings',
-)
+/* Reassignable, because `commitSettings` swaps the whole document in — its ref and its first value
+   both come from the parallel read above. */
+let settings = loadedSettings
 
 const PORT = Number(process.argv[2] ?? process.env.MOCK_PORT ?? 4000)
 
@@ -1105,15 +1159,17 @@ const dbSections = () =>
  * one bad write cannot wedge every later one behind a rejected promise.
  */
 const writeChains = new Map()
-function writeJsonAtomic(path, text) {
-  const previous = writeChains.get(path) ?? Promise.resolve()
+function writeJsonAtomic(ref, text) {
+  const previous = writeChains.get(ref) ?? Promise.resolve()
   const next = previous.then(async () => {
-    const tmp = `${path}.tmp`
-    await writeFile(tmp, text, 'utf8')
-    await rename(tmp, path)
+    /* The version this process last saw, sent back as `If-Match`. On a file it is `null` and
+       `writeDoc` does temp-then-rename as before; on S3 a second writer makes this a refused
+       write rather than a lost update. The new version is kept for the write after this one. */
+    const etag = await writeDoc(ref, text, docEtags.get(ref))
+    docEtags.set(ref, etag)
   })
   writeChains.set(
-    path,
+    ref,
     next.catch(() => {}),
   )
   return next
@@ -2219,6 +2275,19 @@ const DRAFT_STAGES = ['Reading your brief', 'Drafting candidates', 'Ranking agai
 
 // Long enough for the drafting state to be seen, short enough not to annoy.
 const SUGGEST_MS = 1100
+
+/*
+ * How long an export's presigned link opens the file for.
+ *
+ * **The link is the permission**, so its lifetime is the whole of the access decision: anyone
+ * holding it can read that object until it expires, and nothing can revoke it early. An hour is
+ * long enough to send a report to somebody and have them open it, and short enough that a URL
+ * pasted into a ticket or a chat log stops working long before the ticket is closed.
+ *
+ * Reported to the caller as `expires_in` rather than left implicit — a link that has quietly
+ * stopped working reads as a broken report rather than as an expired share.
+ */
+const REPORT_EXPORT_LINK_MS = 60 * 60 * 1000
 
 /*
  * What every step of the What-if flow is held for.
@@ -5971,6 +6040,7 @@ const routes = [
     handle: (_req, res) =>
       send(res, 200, {
         path: DB_PATH,
+        store: storeKind(DB_PATH),
         bytes: Buffer.byteLength(JSON.stringify(db, null, 2), 'utf8'),
         sections: dbSections(),
         required: Object.keys(DB_SHAPE),
@@ -9238,6 +9308,97 @@ const routes = [
   },
 
   /*
+   * ---------------- exporting a built report to a file ----------------
+   *
+   * **This is the one place a figure is written down, and it is a snapshot, not a cache.**
+   * Everything else here re-asks: `db.reports` stores no result, and `GET /reports/saved/:id`
+   * rebuilds from the frame so a stale figure can never be served as a current one. An export is
+   * the opposite act on purpose — somebody needs to send this report to a person who does not have
+   * the app — so the file carries the moment it was generated, the frame it was generated under and
+   * the published graph that answered it. A number detached from those three is a number with no
+   * question attached.
+   *
+   * Nothing reads an export back. It is written to S3 and never fetched by this server, which is
+   * what keeps the rule intact: the export is evidence of what a report said, and the report is
+   * still computed fresh every time it is opened.
+   *
+   * The reply carries a **presigned URL** because a private bucket makes an object unreachable to
+   * exactly the person the export is for. That link is the permission — anyone holding it can read
+   * the object until it expires — so it is a share, not an entitlement, which is the same
+   * distinction this section draws everywhere else. `expires_in` is reported rather than implied:
+   * a link that has quietly stopped working reads as a broken report.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/reports/export',
+    handle: async (req, res) => {
+      const body = await readJson(req)
+      const format = String(body.format ?? 'html').toLowerCase()
+      if (!Object.hasOwn(FORMATS, format)) {
+        return send(res, 400, {
+          error: `"${format}" is not a format this exports — one of: ${Object.keys(FORMATS).join(', ')}. ` +
+            'For PDF, open the HTML export and print to PDF: it carries a print stylesheet.',
+        })
+      }
+
+      const frame = reportFrameFrom(body)
+      const problem = reportFrameProblem(frame)
+      if (problem) return send(res, 400, { error: problem })
+
+      /* Who generated it, told rather than guessed — the rule the consent callback established and
+         `saved_by` follows. Unlike `saved_by` this one is optional: a file with no name on it is
+         still a true record of what the report said, whereas an unattributed *save* is a claim
+         about authorship. A malformed one is still refused rather than quietly dropped. */
+      const by = body.as ? String(body.as).trim() : null
+      if (by && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(by)) {
+        return send(res, 400, { error: `"${by}" is not an email — send the signed-in address as "as", or nothing` })
+      }
+
+      if (storeKind(DB_PATH) !== 's3') {
+        return send(res, 400, {
+          error:
+            'exports are written to S3 and this server is reading local files (S3_BUCKET=off). ' +
+            'Unset S3_BUCKET to export.',
+        })
+      }
+
+      const report = db.reports.reports.find((r) => r.report_id === frame.report_id)
+      const built = reportBuild(report, frame)
+
+      const generatedAt = new Date().toISOString()
+      const spec = FORMATS[format]
+      const text = spec.render(built, { generatedAt, generatedBy: by })
+
+      /* Beside the two documents, under the same prefix — one bucket location for this tenant,
+         so an export is found by the person who knows where db.json is. */
+      const ref = docRef(exportKey(built, spec.ext, generatedAt), null)
+      try {
+        /* No `If-Match`: an export key carries its own timestamp, so it names a new object every
+           time and there is no previous version for a second writer to lose. */
+        await writeDoc(ref, text, null, spec.contentType)
+      } catch (error) {
+        return send(res, 502, { error: `could not write the export — ${error.message}` })
+      }
+
+      const expiresIn = REPORT_EXPORT_LINK_MS / 1000
+      send(res, 200, {
+        export: {
+          ref,
+          format,
+          bytes: Buffer.byteLength(text, 'utf8'),
+          generated_at: generatedAt,
+          generated_by: by,
+          report_id: built.report_id,
+          heading: built.heading,
+          variant: built.variant,
+          url: await presignGet(ref, expiresIn),
+          expires_in: expiresIn,
+        },
+      })
+    },
+  },
+
+  /*
    * The saved library.
    *
    * **A saved report is a question, not a result** — the frame and nothing else, so
@@ -9485,6 +9646,10 @@ if (settingsProblems.length > 0) {
 
 server.listen(PORT, () => {
   console.log(`mock API listening on http://localhost:${PORT}`)
+  console.log(
+    `  reading ${storeKind(DB_PATH)} ${DB_PATH}` +
+      (storeKind(DB_PATH) === 's3' ? ` (writes are conditional on ETag)` : ''),
+  )
   console.log(
     `  ${db.projects.length} GCP projects · ` +
       `${db.projects.reduce((s, p) => s + p.datasets.length, 0)} datasets · ` +

@@ -2763,3 +2763,122 @@ row starved its items, and buttons on separate right-aligned lines means an inli
 of width. Neither is an alignment bug, and neither is fixed by an alignment property — read
 which mode the container is in before reaching for one. antd's confirm footer is the inline
 kind, so a dialog whose buttons are sentences needs a stated width.
+
+## Three PM2 workers over a whole-document writer and in-memory state
+
+*2026-08-18*
+
+**Symptom** — found while planning the move of db.json to S3, not from a bug report, which is the
+worrying part: nothing on screen says which worker answered.
+
+**Cause** — `ecosystem.config.js` had `instances: 3, exec_mode: "cluster"`, and the server is
+built on two assumptions that a second process breaks silently.
+
+Every writer hands `commitDb` the **whole** document. The per-path write chain is what makes the
+async write atomic, and it is a `Map` in one process — it knows nothing about the other two. Two
+workers writing 492 KB each meant the last one won and discarded the other edit, with a 200 on
+both. There are 14 commit call sites.
+
+And roughly a dozen module-level `Map`s hold state that never reaches disk: `registered`,
+`profilingJobs`, `studioLive`, `studioDecisions`, `studioVersions`, `whatifSaved`,
+`oauthSessions`. Three copies behind a round-robin, so a source registered on one worker was
+absent from the other two, and publishing a graph — the gate on Ask, Reports, What-if and Audit —
+took effect for about one request in three.
+
+**Fix** — `instances: 1`, `exec_mode: "fork"`. Not a workaround: a whole-document writer and
+per-process state cannot be replicated by running more copies of it. Raising it again means
+moving that state out of the process first.
+
+**Guard** — a claim asserting the number, the absence of cluster mode, **and that the reason is
+written beside it**. A bare `instances: 1` with no note is a number somebody raises next time
+the box looks busy.
+
+**Rule** — **horizontal scaling is a claim about a process being stateless, and nobody checked.**
+The tell is not in the logs, because both failures are silent by construction: a lost update is a
+successful write, and split-brain state is a feature that works a third of the time. Before
+raising an instance count, grep for module-level mutable state and for any writer that persists a
+whole document rather than a delta. Both were visible in this repo from the first line of
+CLAUDE.md, which says in as many words that registered sources live in memory and die with the
+process.
+
+## Moving the JSON databases to S3: three traps, none of which names S3
+
+*2026-08-18*
+
+**Symptom** — each of these was a failure whose message pointed somewhere other than the fault.
+
+**1. A dotted bucket name fails TLS, not auth.** The bucket is `contextweave.com`. Virtual-hosted
+addressing puts it in the hostname, `contextweave.com.s3.us-east-1.amazonaws.com`, and AWS’s
+certificate is `*.s3.us-east-1.amazonaws.com` — a wildcard matches exactly **one** label, and a
+dotted name is two. The request never leaves the machine: *"Hostname/IP does not match
+certificate’s altnames"*, which mentions neither S3 nor the bucket. Path-style addressing puts the
+bucket in the path against the plain regional host, and **the canonical request has to carry it
+there too** — signing a different resource than you request is a 403 on top of the fix.
+
+**2. A stray session token invalidates a good key.** `AWS_SESSION_TOKEN` was set in the ambient
+environment (912 characters, no matching key) while the access key came from `.env.local`. Reading
+the token unconditionally paired a long-term `AKIA…` key with an unrelated STS token, and S3
+answered `400 InvalidToken` — which reads as "your credentials are bad" and sends you to rotate a
+key that was fine. A token belongs to `ASIA…` credentials and to nothing else.
+
+**3. An identical write does not move the ETag.** The first test of the `If-Match` guard wrote the
+*same bytes* back as a simulated second writer, then expected the server to be refused. It was not,
+and for a moment that read as the guard being ignored by S3. S3 derives a non-multipart ETag from
+the content, so an identical write leaves it unchanged and `If-Match` correctly still matches. The
+guard was fine; the test was vacuous. Re-run with genuinely different bytes it refused correctly.
+
+**Fix** — `addressing()` for the first, an `ASIA` check for the second, and a corrected test for
+the third. All three are commented at their site with the message they produce, because the
+message is the part that misleads.
+
+**Guard** — `npm run verify:sigv4` replays AWS’s published vector offline, so a signing fault is
+told apart from a permissions fault before either is debugged. Claims assert the committed bucket
+and prefix, and that no tracked file matches `AKIA[0-9A-Z]{16}` or a 40-character secret.
+
+**Rule** — **when integrating a service, the first bug is usually in the address, not the auth,
+and the error text will say auth.** TLS failures, malformed tokens and signature mismatches all
+surface as 400/403, which is the same shape as "you lack permission" — so the instinct is to go
+and widen an IAM policy, which fixes nothing and weakens the thing you were not wrong about.
+Verify the signature offline against a published vector, and read the *first* failure literally:
+a certificate error is a certificate error.
+
+**And a fourth, about the checker.** `check-docs` reads `db.json` for ~40 claims, so deleting the
+local copy crashed it at line 239 — no summary, every claim reporting nothing. An empty-object
+fallback only moved the crash to the first `db.projects.every()`, which is the partial-fallback
+trap already recorded here. It now **refuses to run** and names `npm run db:pull`. A checker that
+cannot reach what it checks must refuse, not answer — the same rule the mock server follows when a
+document will not load.
+
+## Writing a report to a file, without turning the section into a cache
+
+*2026-08-18*
+
+**Context** — reports had to be exportable to S3 so they could be sent to somebody outside the app.
+
+**The hazard** — this section is built on "a saved report is a question, not a result": `db.reports`
+stores no figures and `GET /reports/saved/:id` rebuilds from the frame, so a stale figure can never
+be served as a current one. A file *is* a stored result, so an export is the one act that breaks
+that rule, and the obvious next step - reading the file back on the next open - would turn the whole
+section into a cache with none of a cache’s honesty about staleness.
+
+**What keeps it honest** — nothing reads an export back. The export is written, linked and
+forgotten; the report is still computed fresh every time it is opened. `check-docs` asserts the
+*absence* of a read path into `exports/`, because that is the edit somebody would make for good
+reasons on a slow day. And the file carries the moment, the frame, the row count and the graph
+hash, so a figure that has been written down can still be checked against the question it answered.
+
+**Three silent failure modes in the renderers**, each guarded: a comma inside a facility name splits
+a CSV row and shifts every later column by one; an unescaped `<` ends the HTML document and takes
+the rest of the report with it; and a block kind nobody handled renders as nothing at all. None of
+the three throws, and all three produce a file that opens. The kinds are read out of `reportBlock`
+rather than listed in the verifier, so a new one fails the build instead of exporting as blank.
+
+**A mistake made and caught here**: the verifier sliced `reportBlock` "up to the next function
+declaration", which broke because `reportChart` is declared *above* it - the slice ended early and
+the check passed over three of the four kinds while reporting OK. It now slices to the closing brace
+in column 0. Same family as the claims that reported "0 of 0".
+
+**Rule** — **when a system’s correctness rests on never storing a result, the feature that stores
+one needs a guard on the read path, not the write path.** Writing the file is the requested feature
+and is harmless; reading it back is the thing that silently reverses the invariant, and it is the
+change that will look like an optimisation to whoever makes it. Assert the absence of the reader.

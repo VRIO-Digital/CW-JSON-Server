@@ -19,6 +19,28 @@ import { dirname, join } from 'node:path'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(root, p), 'utf8')
 
+/**
+ * The two JSON databases live in S3 now, so neither is necessarily on disk.
+ *
+ * **A missing one must not crash the run.** This file is one long script and the summary prints at
+ * the end, so an exception at line 239 takes every claim with it and prints nothing — the
+ * "claim total stops moving" failure this repo has already been bitten by twice, where correct
+ * guards look broken and every break test reports MISSED. So an absent document falls back to `{}`
+ * and one loud claim names the command that fetches it. The claims that read it then fail
+ * individually, which is noisy and honest, rather than silently passing over an empty object.
+ *
+ * The fallback's *keys* matter: a partial fallback moves the crash rather than removing it, which
+ * is exactly how the demo-package guard failed. Everything dereferenced below is defaulted at its
+ * site with `?? {}` / `?? []`, so `{}` is sufficient here.
+ */
+const readJson = (p) => {
+  try {
+    return { value: JSON.parse(read(p)), here: true }
+  } catch {
+    return { value: {}, here: false }
+  }
+}
+
 /*
  * **Comments stripped before asserting an absence.**
  *
@@ -79,6 +101,10 @@ if (problems.length > 0) {
 const claude = read('CLAUDE.md')
 const skills = read('SKILLS.md')
 const server = read('mock-server/server.mjs')
+/* Where the two JSON documents are read from and written to — the filesystem, or S3. Declared here
+   beside `server` because several claims below read both, and a `const` reached from above its
+   declaration dies in the temporal dead zone, which kills the run before it prints a summary. */
+const store = read('mock-server/store.mjs')
 const connectors = read('src/data/connectors.ts')
 const indexCss = read('src/index.css')
 const theme = read('src/theme.ts')
@@ -232,7 +258,28 @@ expect(
   `code guards ${requiredKeys.length}: ${requiredKeys.join(', ')}`,
 )
 
-const db = JSON.parse(read('mock-server/db.json'))
+const dbDoc = readJson('mock-server/db.json')
+/*
+ * ---------------- the documents have to be here to be checked ----------------
+ *
+ * Both live in S3 now and the local copies were deleted, so neither is necessarily on disk. This
+ * stops the run rather than falling back, and the distinction is the point: roughly forty claims
+ * below walk `db.projects`, `db.graph_studio.canvas`, `db.whatif.generators` and so on, and an
+ * empty-object fallback does not survive the first `.every()` — it moves the crash a few hundred
+ * lines down, which is precisely how the demo-package fallback failed. A crash mid-file prints no
+ * summary, so every claim reads as MISSED and correct guards look broken.
+ *
+ * Refusing early, by name, with the command that fixes it, is what the mock server itself does when
+ * a document will not load. A checker that cannot reach what it checks must say so, not answer.
+ */
+if (!dbDoc.here) {
+  console.error('\ncheck-docs: cannot run — mock-server/db.json is not in this checkout.')
+  console.error('\n  The two JSON databases live in S3 (s3://contextweave.com/EPA/). Fetch them:')
+  console.error('      npm run db:pull\n')
+  console.error('  They are gitignored, so pulling them cannot commit tenant data by accident.\n')
+  process.exit(1)
+}
+const db = dbDoc.value
 const dbKeys = Object.keys(db)
 for (const key of requiredKeys) {
   expect(`db.json has "${key}"`, dbKeys.includes(key), 'DB_SHAPE requires it')
@@ -3184,8 +3231,10 @@ expect(
 expect(
   'both JSON databases are read through the diagnostic loader, not JSON.parse',
   /function readJsonDb\(/.test(server) &&
-    /const db = readJsonDb\(/.test(server) &&
-    /let settings = readJsonDb\(/.test(server) &&
+    /* Both go through it — they are read together now, so both are arguments to one `Promise.all`
+       rather than two separate `await`s. The fact is that neither reaches `JSON.parse` directly. */
+    (server.match(/readJsonDb\(\s*$|readJsonDb\(DB_PATH|readJsonDb\(\s*\n\s*DB_PATH|readJsonDb\(SETTINGS_PATH/gm) ?? []).length >= 2 &&
+    /readJsonDb\(SETTINGS_PATH, 'mock-server\/settings\.json'/.test(server) &&
     /* The raw parse must not come back for either file. */
     !/JSON\.parse\(readFileSync\((DB_PATH|SETTINGS_PATH)/.test(codeOnly(server)),
   'a byte offset names nothing a person can act on',
@@ -3204,11 +3253,12 @@ expect(
  */
 expect(
   'the JSON databases are written asynchronously, one write at a time per file',
-  /from 'node:fs\/promises'/.test(server) &&
+  /from 'node:fs\/promises'/.test(store) &&
     /function writeJsonAtomic\(/.test(server) &&
-    /const previous = writeChains\.get\(path\)/.test(server) &&
-    /* The synchronous writers must not come back. */
-    !/writeFileSync|renameSync/.test(codeOnly(server)),
+    /const previous = writeChains\.get\(ref\)/.test(server) &&
+    /* The synchronous writers must not come back, in either file. */
+    !/writeFileSync|renameSync/.test(codeOnly(server)) &&
+    !/writeFileSync|renameSync/.test(codeOnly(store)),
   'a 450 KB synchronous write blocked every other request',
 )
 expect(
@@ -3230,11 +3280,164 @@ expect(
   ),
   `${(server.match(/await commit(Db|Settings)\(/g) ?? []).length} awaited call sites`,
 )
-/* The boot read stays synchronous on purpose: the server must not listen before its data is in. */
+/*
+ * ---------------- nothing is served before the data is in ----------------
+ *
+ * This used to be spelled `readFileSync`, and the claim was keyed to that call. The guarantee was
+ * never the *synchrony* though — it was the ordering: no request may be answered before both
+ * documents are loaded. An object in S3 has no synchronous read, so the spelling had to change and
+ * the guarantee did not. It is kept by top-level `await` in an ES module, where source order is
+ * execution order: both reads are awaited above `server.listen`, so `listen` cannot run first.
+ *
+ * Asserted as ordering rather than as a call, which is the rule this file keeps everywhere —
+ * a claim keyed to a spelling fails on a rename while the fact it guards is still true.
+ */
 expect(
-  'the boot read stays synchronous',
-  /text = readFileSync\(path, 'utf8'\)/.test(server),
+  'both documents are read, awaited together, before the server listens',
+  /const \[db, loadedSettings\] = await Promise\.all\(\[/.test(server) &&
+    /let settings = loadedSettings/.test(server) &&
+    server.indexOf('await Promise.all([') < server.indexOf('server.listen(') &&
+    /* Top-level await is what makes source order execution order — inside a function it would not. */
+    !/async function main\(|\.then\(\(\) => server\.listen/.test(codeOnly(server)),
   'nothing may be served before db.json is loaded',
+)
+/*
+ * ---------------- the store is S3, and its address is committed ----------------
+ *
+ * This read "defaults to the local file" until the two documents were pushed to the bucket and the
+ * local copies deleted. The default reversed deliberately: there is no file to fall back to, and a
+ * silent fallback would serve an empty app rather than say why. `S3_BUCKET=off` is the one way back
+ * to files, and it has to keep working — the tests and an offline machine both use it.
+ *
+ * **The bucket, the prefix and the region are committed; the credentials are not.** An address
+ * appears in every log line and in `GET /db`'s reply, so hardcoding it costs nothing. An access key
+ * in a tracked file is scraped off GitHub within minutes, so the claim asserts both halves: the
+ * addresses are present, and nothing shaped like a key is.
+ */
+expect(
+  'the bucket and prefix are committed, and switchable, and no credential is',
+  /const DEFAULT_BUCKET = 'contextweave\.com'/.test(store) &&
+    /const DEFAULT_PREFIX = 'EPA'/.test(store) &&
+    /process\.env\.S3_BUCKET \?\? DEFAULT_BUCKET/.test(store) &&
+    /bucket === 'off'/.test(store) &&
+    /docRef\('db\.json', join\(here, 'db\.json'\)\)/.test(server) &&
+    /docRef\('settings\.json', join\(here, 'settings\.json'\)\)/.test(server),
+  'an address can be committed; a key cannot',
+)
+/*
+ * The one that would actually cost something. A long-term key is `AKIA…` + 16 more characters, and
+ * a secret is 40 of base64 — both are greppable, and both are permanent once pushed. Checked across
+ * every file the repo tracks that could plausibly carry one, not just the store.
+ */
+for (const path of [
+  'mock-server/store.mjs',
+  'mock-server/server.mjs',
+  'scripts/s3-sync.mjs',
+  'ecosystem.config.js',
+  'package.json',
+]) {
+  const src = read(path)
+  expect(
+    `${path} carries no AWS credential`,
+    !/AKIA[0-9A-Z]{16}/.test(src) &&
+      !/aws_secret_access_key\s*[=:]\s*['"][A-Za-z0-9/+=]{40}/i.test(src),
+    'a key in a tracked file is public the moment it is pushed',
+  )
+}
+/* And the file that does hold them must stay ignored. */
+expect(
+  'the credential file is gitignored',
+  /\*\.local/.test(read('.gitignore')),
+  'mock-server/.env.local holds the access key and secret',
+)
+/*
+ * ---------------- an export is a snapshot, and never a cache ----------------
+ *
+ * `db.reports` stores no result and `GET /reports/saved/:id` rebuilds from the frame, so a stale
+ * figure can never be served as a current one. `POST /reports/export` is the one place a figure is
+ * written down, and the rule that keeps it from becoming a second source is simple: **nothing reads
+ * an export back**. The moment a read path points at `exports/`, the section has a cache with none
+ * of a cache's honesty about staleness.
+ *
+ * Asserted as the absence of a reader, and as the presence of the three things that make a written
+ * figure honest — when it was generated, under what frame, and which graph answered it.
+ */
+const exporter = read('mock-server/reportExport.mjs')
+expect(
+  'an export is written and never read back',
+  /POST/.test(server) &&
+    /match: \(p\) => p === '\/reports\/export'/.test(server) &&
+    /* No route, and no call anywhere, fetches an export. */
+    !/readDoc\([^)]*export/i.test(codeOnly(server)) &&
+    !/exports\//.test(codeOnly(server).replace(/exportKey\([^)]*\)/g, '')),
+  'a read path into exports/ turns a snapshot into a cache with no staleness story',
+)
+expect(
+  'and it carries the moment, the frame and the graph that answered it',
+  /generated_at: generatedAt/.test(server) &&
+    /generatedAt/.test(exporter) &&
+    /report\.graph/.test(exporter) &&
+    /row_count/.test(exporter),
+  'a figure detached from its question is a number nobody can check',
+)
+/*
+ * The renderers are pure so `verify-report-export` can assert what a report renders to without a
+ * bucket, a network or a published graph. Reaching for `db` here would make the exporter checkable
+ * only by exporting, which is the "assert a fact at its site" rule applied to a whole module.
+ */
+expect(
+  'the renderers are pure, so they can be checked without a bucket',
+  !/\bdb\./.test(codeOnly(exporter)) &&
+    !/readDoc|writeDoc|fetch\(/.test(codeOnly(exporter)) &&
+    /"verify:export": "node scripts\/verify-report-export\.mjs"/.test(read('package.json')) &&
+    /verify:export/.test(read('package.json').match(/"preflight": "[^"]+"/)?.[0] ?? ''),
+  'an exporter that can only be checked by exporting is one nobody checks',
+)
+/*
+ * A private bucket makes an export unreachable to the person it is for, so the reply carries a
+ * presigned link — and the link *is* the permission, so its lifetime is the whole access decision
+ * and has to be stated rather than implied. The same rule the section states about sharing: it
+ * narrows who is told, and it is not access control.
+ */
+expect(
+  'an export comes back with a link that states its own lifetime',
+  /presignGet\(ref, expiresIn\)/.test(server) &&
+    /expires_in: expiresIn/.test(server) &&
+    /const REPORT_EXPORT_LINK_MS/.test(server) &&
+    /* And the duration is never written down in the renderer or the route. */
+    !/3600|60 \* 60/.test(codeOnly(exporter)),
+  'a link that has quietly stopped working reads as a broken report',
+)
+/*
+ * A file write is temp-then-rename because a crashed write truncates; an S3 write is not, because
+ * `PutObject` is atomic per object. What S3 adds is the check a file could never have: `If-Match`
+ * turns a second writer into a refused write instead of a lost update, which is the failure the
+ * three PM2 workers were producing silently.
+ */
+expect(
+  'an S3 write is conditional on the version this process read',
+  /'if-match': etag/.test(store) &&
+    /res\.status === 412/.test(store) &&
+    /docEtags\.set\(ref, etag\)/.test(server) &&
+    /* And the refusal says the process is stale rather than reporting a generic failure. */
+    /was changed by something else since this server read it/.test(store),
+  'two writers of a whole document means the last one silently wins',
+)
+/*
+ * PM2 ran three workers in cluster mode. Every writer hands `commitDb` the whole document and the
+ * write chain is per-process, so two workers meant a lost update; and the live state that never
+ * reaches disk (`registered`, `studioLive`, `profilingJobs`) was three independent copies behind a
+ * round-robin. Neither is visible in a log — the first is a silent overwrite and the second is a
+ * feature that works one request in three.
+ */
+const pm2 = read('ecosystem.config.js')
+expect(
+  'the mock server runs as a single instance',
+  /instances: 1\b/.test(pm2) &&
+    !/exec_mode: "cluster"/.test(codeOnly(pm2)) &&
+    /* The reason is recorded where the number is, or it grows back. */
+    /commitDb/.test(pm2),
+  'a whole-document writer and in-memory state cannot be replicated by running more of it',
 )
 
 expect(
@@ -4612,8 +4815,15 @@ const settingsStore = read('src/store/settingsStore.ts')
 const personaPanel = read('src/components/PersonaPermissionsPanel.tsx')
 const sidebarSrc = read('src/components/Sidebar.tsx')
 const loginPage = read('src/pages/LoginPage.tsx')
+/* Same rule as db.json above: refuse rather than check an empty object. */
+const settingsDoc = readJson('mock-server/settings.json')
+if (!settingsDoc.here) {
+  console.error('\ncheck-docs: cannot run — mock-server/settings.json is not in this checkout.')
+  console.error('\n  Fetch both documents from S3:\n      npm run db:pull\n')
+  process.exit(1)
+}
 const settingsRaw = read('mock-server/settings.json')
-const settingsFile = JSON.parse(settingsRaw)
+const settingsFile = settingsDoc.value
 /*
  * Comments stripped for every absence claim below — by now a habit, not a fix. A file that explains why
  * it does *not* do something names the thing it does not do: `App.tsx`'s comment says it deliberately
@@ -4631,7 +4841,9 @@ const appCode = codeOnly(read('src/App.tsx'))
  */
 expect(
   'the settings store is its own file, with its own validator and writer',
-  /const SETTINGS_PATH = join\(here, 'settings\.json'\)/.test(server) &&
+  /* Its own ref, resolved separately from db.json's, so the two documents cannot come to share a
+     location whichever store they are read from. */
+  /const SETTINGS_PATH = docRef\('settings\.json', join\(here, 'settings\.json'\)\)/.test(server) &&
     /function validateSettings\(candidate\)/.test(server) &&
     /function commitSettings\(next\)/.test(server) &&
     /refusing to start — mock-server\/settings\.json cannot be served/.test(server) &&

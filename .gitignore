@@ -25,3 +25,8 @@ mock-server/db.json.tmp
 *.njsproj
 *.sln
 *.sw?
+
+# The two JSON databases live in S3 (see mock-server/store.mjs). npm run db:pull
+# brings them back locally when a seed or ingest needs to rewrite them.
+mock-server/db.json
+mock-server/settings.json

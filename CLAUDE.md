@@ -17,7 +17,11 @@ npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
 npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
 npm run seed:settings   # re-authors mock-server/settings.json — users and persona navigation
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
-npm run preflight   # lint + build + audit + check-docs — run before calling work done
+npm run db:push     # upload mock-server/db.json + settings.json to S3 (needs S3_BUCKET)
+npm run db:pull     # the other direction — overwrite the local copies from the bucket
+npm run verify:sigv4 # checks the S3 signing against AWS's published vector; no network needed
+npm run verify:export # checks the report HTML/CSV renderers; pure, so no bucket needed
+npm run preflight   # lint + build + audit + verify:sigv4 + verify:export + check-docs — run before calling work done
 ```
 
 **Two processes are required.** `npm run dev` alone renders empty pages: there is no
@@ -169,6 +173,98 @@ is unreadable without "one hazardous-waste shipment (manifest)", and
 structured side, so it is read from `db.json` and never synthesised. `validateDb`
 checks all four *inside* the nested arrays, and `check-docs` checks them before
 boot.
+
+### Where the data lives
+
+**The two documents live in S3, and the local copies are gone.** `mock-server/store.mjs` is the
+whole storage layer: a document is named by a **ref**, and the ref says where it is — an absolute
+path is a file, `s3://bucket/key` is an object.
+
+| | ref | how the bytes move |
+|---|---|---|
+| default, and the deployed box | `s3://contextweave.com/EPA/db.json` | signed `GetObject` / `PutObject` |
+| `S3_BUCKET=off` | `mock-server/db.json` | `readFile`, and temp-file + rename on write |
+
+**The address is committed; the credentials are not, and that split is the rule.** `DEFAULT_BUCKET`,
+`DEFAULT_PREFIX` and `DEFAULT_REGION` are hardcoded in `store.mjs` because a bucket name and a key
+prefix are *addresses* — they appear in every log line and in `GET /db`'s reply, so committing them
+costs nothing and saves setting up an environment. The access key and secret are in
+**`mock-server/.env.local`**, which `.gitignore` covers via `*.local` and `process.loadEnvFile`
+reads at boot. `check-docs` asserts both halves: the addresses are present, and no tracked file
+matches `AKIA[0-9A-Z]{16}` or a 40-character secret. A key in a tracked file is scraped off GitHub
+by bots within minutes of a push, and that is not a hypothetical.
+
+**A bucket name containing a dot must be addressed path-style.** `contextweave.com` does, and the
+virtual-hosted form puts it in the hostname — `contextweave.com.s3.us-east-1.amazonaws.com` —
+against a certificate for `*.s3.us-east-1.amazonaws.com`, whose wildcard matches exactly one label.
+TLS fails before a request is sent, with *"Hostname/IP does not match certificate's altnames"*,
+which names neither S3 nor this repo. `addressing()` puts a dotted bucket in the path instead, and
+the canonical request carries it there too — sign a different resource than you request and the
+answer is 403.
+
+**A session token belongs to temporary credentials only.** `AKIA…` is a long-term IAM key and must
+be sent *without* one; `ASIA…` is from STS and is meaningless without it. Reading
+`AWS_SESSION_TOKEN` unconditionally pairs a long-term key with whatever token is in the environment
+— which is how this first ran, and S3 answered `400 InvalidToken`, which reads as "the credentials
+are bad" and sends you to rotate a key that was fine.
+
+**`npm run db:pull` before `preflight` on a fresh checkout.** `check-docs` reads both documents for
+~40 claims and now **refuses to run** without them, naming the command — it does not fall back to an
+empty object, because roughly forty claims walk `db.projects` and `db.graph_studio.canvas` and the
+first `.every()` would crash mid-file, printing no summary. A checker that cannot reach what it
+checks says so rather than answering. Both files are gitignored, so pulling them cannot commit
+tenant data by accident.
+
+**S3 is signed here rather than with the AWS SDK.** `@aws-sdk/client-s3` is ~40 transitive
+packages through a gate that fails on any advisory at `low`, for two HTTP calls; Node 22 has
+`fetch` and `node:crypto`, so `sigv4()` is ~40 lines instead. It is **pure and exported** for one
+reason: a signature is arithmetic, a wrong one returns `403 SignatureDoesNotMatch`, and a 403 reads
+as a bucket-policy problem — you would go and edit the policy, which is not where the fault is. So
+`npm run verify:sigv4` replays **AWS's own published test vector** and runs in `preflight`, with no
+network and no bucket.
+
+**Both documents are fetched at once, and boot is still dominated by one of them.** They are read
+through a single `Promise.all`, so the two waits overlap and the smaller one costs nothing — but
+`db.json` is 492 KB and takes **~2.9s** to pull from `us-east-1` on a link from India, against
+~850ms for `settings.json` and ~1.0s of Node start-up. So a cold boot is ~5.3s and the fetch is
+most of it. **Parallelising helped by about the smaller fetch and no more**; if boot time matters,
+the fix is a bucket in a closer region (`ap-south-1` measured ~157ms per round trip against
+~957ms for `us-east-1`), not anything in this code.
+
+**And a settings toggle is one round trip, so it inherits that number directly.** `PATCH
+/settings/personas/:roleId/nav` writes `settings.json` and the store waits for the server to
+confirm before it moves the switch, which is deliberate — an earlier bug had a toggle report
+failure for a write that had saved. On a cross-continent bucket that is ~300ms–1.2s of the switch
+appearing to do nothing. Region is the fix here too; an optimistic toggle would only hide it.
+
+**The boot read is awaited, and that is the same guarantee it always had.** It used to be
+`readFileSync`, and the rule was written down as "the boot read stays synchronous" — but the
+guarantee was never the synchrony, it was the *ordering*: nothing may be served before both
+documents are in. An object has no synchronous read, so the spelling changed and the guarantee did
+not. Top-level `await` in an ES module makes source order execution order, both reads sit above
+`server.listen`, and `check-docs` asserts the ordering rather than the call.
+
+**A file write is temp-then-rename; an S3 write is not, and does not need to be.** The rename
+exists because a crashed `writeFile` truncates; `PutObject` is atomic per object. What S3 adds is
+the check a file could never have — **`If-Match` on the ETag this process last read**, so a second
+writer becomes a refused write naming the staleness rather than a silently lost update. The write
+chain stays either way: it is what preserves ordering, and that reasoning is independent of storage.
+
+**The mock server runs as one instance, and that is a correctness requirement.** PM2 ran three in
+cluster mode, which was wrong twice over — every writer hands `commitDb` the *whole* document and
+the write chain is per-process, so two workers meant the last one silently won; and the live state
+that never reaches disk (`registered`, `studioLive`, `profilingJobs`, `whatifSaved`,
+`oauthSessions`) was three independent copies behind a round-robin, so publishing a graph took
+effect for about one request in three. Raising `instances` again means moving all of that state out
+of the process first. `ecosystem.config.js` records this beside the number, and `check-docs`
+asserts both the number and the note.
+
+**The seeds and ingests write files, and only files.** That is correct — they read a demo package
+off disk and must run without credentials — so the flow when the server reads S3 is: re-seed
+locally, check the diff, `npm run db:push`. A push validates the required top-level keys first,
+reading them from `DB_SHAPE` in `server.mjs` rather than listing them again, because otherwise the
+boot failure lands on the deployed box instead of in your terminal. `npm run db:pull` is the other
+direction.
 
 `db.json` is read once at startup into a `db` object that every route closes
 over. Two kinds of state live here:
@@ -1415,6 +1511,56 @@ than recovering a scope from its printed label.
 - **`summary_catalog` is ten tiles expressed as data** — a label, a tone, the field it reads and
   how it aggregates — because a closure cannot be served. `server.mjs` implements the six
   aggregations and three formats it names, and the ingest refuses one it does not.
+
+#### Exporting a report — the one place a figure is written down
+
+`POST /reports/export` builds a report and writes it to S3 as a **file somebody can be sent**:
+`html` or `csv`, under `s3://contextweave.com/EPA/exports/<report_id>-<timestamp>.<ext>`. The
+renderers are `mock-server/reportExport.mjs`.
+
+**It is a snapshot, and never a cache — the distinction is the whole design.** Everything else in
+this section re-asks: `db.reports` stores no result, and `GET /reports/saved/:id` rebuilds from the
+frame so a stale figure cannot be served as a current one. An export is the opposite act on
+purpose, because somebody needs to send this report to a person who does not have the app. What
+keeps the rule intact is that **nothing reads an export back** — no route fetches `exports/`, and
+`check-docs` asserts the absence. The moment a read path points there, the section has a cache with
+none of a cache's honesty about staleness.
+
+So the file carries what makes a written figure checkable: **when it was generated, the frame it
+was generated under, the row count in view, and the published graph that answered it**. A number
+detached from those is a number with no question attached.
+
+**The reply carries a presigned URL, and the link is the permission.** A private bucket makes an
+export unreachable to exactly the person it is for. Anyone holding the link can read that object
+until it expires, and nothing can revoke it early — so it is a *share*, not an entitlement, which is
+the distinction this section draws everywhere else. `REPORT_EXPORT_LINK_MS` (1 hour) is reported
+back as `expires_in` rather than implied: a link that has quietly stopped working reads as a broken
+report.
+
+**No PDF, and that is a dependency decision rather than an omission.** Server-side PDF means a
+headless browser — ~40 transitive packages and a Chromium download — through a gate that fails on
+any advisory at `low`. The HTML carries a print stylesheet instead, with `page-break-inside: avoid`
+on every block, so *Print → Save as PDF* produces the same document. If a real PDF pipeline is
+wanted it should be argued on its own terms, the way d3 was.
+
+Three rules the renderers keep, each guarding a failure that is silent:
+
+- **Every tabular block is emitted, not just the first.** A report holds several; exporting one
+  would be a silent truncation of the rest.
+- **CSV is RFC 4180 quoted.** A comma inside a facility name splits the row and shifts every later
+  column by one, and nothing errors.
+- **The HTML is self-contained and escaped.** It is opened from a private bucket by a remote
+  browser, so an external asset simply fails; and an unescaped `<` ends the document early, taking
+  the rest of the report with it.
+
+`npm run verify:export` checks all of this offline — the renderers are **pure**, which is what makes
+them assertable without a bucket, a network or a published graph. It reads the block kinds out of
+`reportBlock` in `server.mjs` rather than listing them, so a kind added there and not handled in the
+exporter fails the build instead of exporting as nothing.
+
+**Nothing calls it yet.** Like the other `/reports*` endpoints, this one is waiting for a caller —
+the vendored prototype does not talk to the API. Wiring a button means editing vendored code, which
+is a separate decision.
 
 #### Publication is the only gate
 
