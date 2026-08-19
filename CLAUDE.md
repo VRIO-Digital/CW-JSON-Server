@@ -371,6 +371,20 @@ be sent *without* one; `ASIA…` is from STS and is meaningless without it. Read
 — which is how this first ran, and S3 answered `400 InvalidToken`, which reads as "the credentials
 are bad" and sends you to rotate a key that was fine.
 
+**The three JSON documents are committed as well as stored in the bucket — a decision, taken on
+2026-08-19.** They were gitignored, on the reasoning that a committed copy beside a served one is two
+answers to what the figures are. They travel in git now because the repo is how they reach a box with no
+bucket credentials. **The bucket is still what the server reads**: nothing fetches the committed copy, so
+the hazard is not a wrong figure but a stale one — and `db.json` being generated *and* committed is
+precisely the shape that has already crash-looped a deployed box on `<<<<<<< Updated upstream` sitting
+inside the JSON. `readJsonDb` checks for conflict markers before parsing for that reason; after a pull that
+touches them, `npm run db:pull` is what makes the checkout agree with the bucket again.
+
+**The credential files are a different matter and are not a preference.** `mock-server/.env.local` and its
+`.backup` copy stay ignored, all three rules are asserted by `check-docs` — see below — and they have now
+been committed twice, both times stopped by GitHub push protection rather than by us. A key in a tracked
+file is scraped off GitHub within minutes of a push.
+
 **`npm run db:pull` before `preflight` on a fresh checkout.** `check-docs` reads both documents for
 ~40 claims and now **refuses to run** without them, naming the command — it does not fall back to an
 empty object, because roughly forty claims walk `db.projects` and `db.graph_studio.canvas` and the

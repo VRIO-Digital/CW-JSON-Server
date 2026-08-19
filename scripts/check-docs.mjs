@@ -4284,8 +4284,17 @@ expect(
     /const TENANT_WHY = \{/.test(s3sync) &&
     /prototype: "it is the report prototype's own sample data, not a dataset's rosters"/.test(s3sync) &&
     /\(only === 'settings' \|\| only === 'prototype'\)/.test(s3sync) &&
-    /* Gitignored like the other two, so the bucket is the copy that counts. */
-    /mock-server\/reports_prototype\.json/.test(read('.gitignore')),
+    /* **Committed, by decision, and that is a change of mind worth naming.** It was gitignored like the
+       two databases, on the reasoning that a committed copy beside a served one is two answers to what the
+       figures are. It travels in git now because the repo is how these documents reach a box that has no
+       bucket credentials. The bucket is still what the *server* reads — nothing fetches the committed copy
+       — so the risk is not a wrong figure, it is a stale one: `db.json` is generated *and* committed, and a
+       pull over a re-seeded copy conflicts inside the JSON, which has already crash-looped a deployed box
+       on `<<<<<<< Updated upstream`. `readJsonDb` checks for markers before parsing for exactly that.
+       Asserted as the credential rule surviving instead, since that one is not a preference. */
+    /^\*\.local$/m.test(read('.gitignore')) &&
+    /^mock-server\/\.env\.local$/m.test(read('.gitignore')) &&
+    /^mock-server\/\.env\.local\.backup$/m.test(read('.gitignore')),
   'a committed copy beside a served one is two answers to what the figures are',
 )
 

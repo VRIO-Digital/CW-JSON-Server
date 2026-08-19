@@ -3319,3 +3319,49 @@ values the facet *can* have, not how many it has; the answer comes from the rost
 the table, so the check passed whether or not the control showed anything. Sliced to the select's own
 selection markup first, it failed, which is how the `responsive` problem above was found at all. A
 substring assertion over a whole render is only as specific as the rarest string in it.
+
+
+---
+
+## A `.gitignore` rule is a guard, and commenting one out is disabling it
+
+**2026-08-19, the second time in one day.** A push was blocked by GitHub push protection for
+`mock-server/.env.local.backup` — the same AWS key id, secret and OpenAI key as the first block, in a new
+commit. The cause was not a new mistake: every ignore rule protecting them had been **commented out**.
+
+```
+13: # *.local
+40: # mock-server/.env.local
+41: # mock-server/.env.local.backup
+```
+
+With those disabled, a `git add` swept both credential files in. The rules had been added a few hours
+earlier *because of the first blocked push*, so the guard was removed and the failure it prevented happened
+again immediately.
+
+The reason they were commented out is legitimate and separate: the same commit also un-ignored `db.json`,
+`db.CAPEX.json` and `reports_prototype.json`, which somebody wanted committed so they reach a box with no
+bucket credentials. That is a real need and a reasonable decision — it just took the credential rules with
+it, because they sat in the same file and one of them (`*.local`) is what covered both.
+
+**What was done.** `git filter-branch --index-filter` stripped the two paths from the three unpushed
+commits, preserving all three and every other file in them (45, 17 and 2 files). The credential rules were
+restored and *only* those — the data-file rules were left as set, since committing the JSON is a decision,
+not an accident. `.env.local` was then restored to disk from a backup branch, because rewriting the index
+also removed it from the working tree and the server cannot sign an S3 request without it.
+
+**Rule** — **when a guard and a preference share a file, separate them before editing.** The credential
+rules and the data-file rules lived in one `.gitignore` under one comment block; turning off the second
+turned off the first. Guards belong where turning them off is visibly a different act — which is why the
+three lines are now asserted by `check-docs`, so commenting any of them out fails the build rather than
+failing at a push six commits later.
+
+### And a claim that passed over a commented-out rule
+
+The guard asserting the prototype dataset was gitignored read
+`/mock-server\/reports_prototype\.json/.test(read('.gitignore'))` — which matches
+`# mock-server/reports_prototype.json` just as happily. So it passed while the rule was off. `codeOnly`
+does not apply to a `.gitignore`, so the fix is anchoring: `/^mock-server\/\.env\.local$/m` matches a
+live rule and not a commented one. The claim now guards the three credential rules that way, and the
+prototype's own rule is gone from it deliberately, because that one is now a preference rather than a
+guard.
