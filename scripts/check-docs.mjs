@@ -3265,10 +3265,12 @@ expect(
   'and the in-memory swap happens before the write yields, not after',
   /async function commitDb\(/.test(server) &&
     /async function commitSettings\(/.test(server) &&
-    /* Swap, then await — the order is the guarantee. */
-    server.indexOf('Object.assign(db, next)') < server.indexOf('await writeJsonAtomic(DB_PATH') &&
+    /* Swap, then await — the order is the guarantee. The target is the selected dataset's own
+       document (`docs[selected]`) rather than a single `db`, which is what made room for CAPEX; the
+       ordering it has to keep is identical. */
+    server.indexOf('Object.assign(target, next)') < server.indexOf('await writeJsonAtomic(DB_PATHS[selected]') &&
     /* And a failed write puts memory back, so the two cannot diverge. */
-    /Object\.assign\(db, previous\)/.test(server) &&
+    /Object\.assign\(target, previous\)/.test(server) &&
     /settings = previous/.test(server),
   'swapping after the write would let two edits each read the pre-edit document',
 )
@@ -3294,7 +3296,11 @@ expect(
  */
 expect(
   'both documents are read, awaited together, before the server listens',
-  /const \[db, loadedSettings\] = await Promise\.all\(\[/.test(server) &&
+  /* One `db.json` per dataset now, and settings beside them — still one `Promise.all`, still awaited
+     above `listen`. The guarantee was never the count of documents, it is that none of them is
+     served before all of them are in. */
+  /const \[loadedDocs, loadedSettings\] = await Promise\.all\(\[/.test(server) &&
+    /DATASETS\.map\(\(name\) =>/.test(server) &&
     /let settings = loadedSettings/.test(server) &&
     server.indexOf('await Promise.all([') < server.indexOf('server.listen(') &&
     /* Top-level await is what makes source order execution order — inside a function it would not. */
@@ -3320,8 +3326,12 @@ expect(
     /const DEFAULT_PREFIX = 'EPA'/.test(store) &&
     /process\.env\.S3_BUCKET \?\? DEFAULT_BUCKET/.test(store) &&
     /bucket === 'off'/.test(store) &&
-    /docRef\('db\.json', join\(here, 'db\.json'\)\)/.test(server) &&
-    /docRef\('settings\.json', join\(here, 'settings\.json'\)\)/.test(server),
+    /* The prefix is still environment-defaulted, but it is now an *argument*, because a prefix is a
+       dataset and a dataset cannot be a property of the process — see mock-server/datasets.mjs. */
+    /export function docRef\(name, localPath, prefix\)/.test(store) &&
+    /prefix \?\? process\.env\.S3_PREFIX \?\? DEFAULT_PREFIX/.test(store) &&
+    /docRef\('db\.json', join\(here, 'db\.json'\), name\)/.test(server) &&
+    /docRef\('settings\.json', join\(here, 'settings\.json'\), PRIMARY\)/.test(server),
   'an address can be committed; a key cannot',
 )
 /*
@@ -3350,6 +3360,343 @@ expect(
   /\*\.local/.test(read('.gitignore')),
   'mock-server/.env.local holds the access key and secret',
 )
+/*
+ * ---------------- one process, every dataset, one selected per request ----------------
+ *
+ * A prefix is a dataset, and the prefix used to be read once at module load — so a second dataset
+ * meant a second server and `both` was not expressible at all. Every dataset is loaded at boot now
+ * and the selection arrives per request, in an `AsyncLocalStorage` scope entered by the dispatcher.
+ *
+ * The claims below guard the things that fail *by answering* rather than by throwing: a request that
+ * names nothing getting somebody else's data, a write under the merged view vanishing, a key dropping
+ * silently out of the merge, and one dataset's in-memory state showing under another's name.
+ */
+const datasets = read('mock-server/datasets.mjs')
+const dsPanel = read('src/components/DatasetPanel.tsx')
+const dsSwitch = read('src/data/datasetSwitch.ts')
+
+expect(
+  'every dataset is loaded at boot and a request selects one',
+  /export const DATASETS = \['EPA', 'CAPEX'\]/.test(datasets) &&
+    /export const PRIMARY = 'EPA'/.test(datasets) &&
+    /* The refs are built per dataset, so each reads its own prefix. */
+    /DATASETS\.map\(\(name\) => \[name, docRef\('db\.json', join\(here, 'db\.json'\), name\)\]\)/.test(
+      server,
+    ) &&
+    /* `db` resolves to the selected document, which is what left the ~280 `db.<key>` reads alone. */
+    /const db = documentProxy\(currentDoc\)/.test(server) &&
+    /* And the dispatcher is the one place a selection is entered. */
+    /await withDataset\(dataset, \(\) => route\.handle\(/.test(server),
+  'a prefix read at module load is a property of the process, so "both" cannot exist',
+)
+
+expect(
+  'an unrecognised dataset is refused, never quietly served as the primary',
+  /const match = SELECTORS\.find\(\(s\) => s\.toLowerCase\(\) === asked\.toLowerCase\(\)\)/.test(
+    datasets,
+  ) &&
+    /return match \?\? null/.test(datasets) &&
+    /is not a dataset — this tenant has/.test(server),
+  'a typo in ?dataset= would serve EPA under CAPEX’s name, which reads as data',
+)
+
+/*
+ * The merged view refuses **writes**, and where that refusal lives is the whole point.
+ *
+ * It began as a method check in the dispatcher — refuse every non-GET — which is wrong here because
+ * **most reads in this API are POSTs**: `/auth/login` is a lookup, `/ask` is a query,
+ * `/whatif/scenario` computes and stores nothing. The one that mattered was login: switching to `both`
+ * signs the reader out, so a refused login made it a state they could never leave. The refusal is at
+ * the two things that actually write now, so the verb decides nothing.
+ */
+expect(
+  'the merged view refuses writes at the write, not by the verb',
+  /* The document writer. */
+  /cannot write while dataset=/.test(server) &&
+    /* And every live container, which under `both` is a snapshot a write would be lost in. */
+    /cannot change \$\{name\} while dataset=/.test(server) &&
+    /const MAP_WRITERS = \['set', 'delete', 'clear'\]/.test(server) &&
+    /return readOnly\(merged, name, MAP_WRITERS\)/.test(server) &&
+    /return readOnly\(sorted, name, ARRAY_WRITERS\)/.test(server) &&
+    /* The blanket method check must not come back — it is what broke signing in. */
+    !/req\.method !== 'GET'/.test(codeOnly(server)) &&
+    /* And the panel says so where the switch is, not as a surprise toast on another page. */
+    /Connecting a source, profiling, building and publishing all need a single dataset selected/.test(
+      dsPanel,
+    ),
+  'refusing by verb refuses the login, and `both` becomes a state a signed-out reader cannot leave',
+)
+
+expect(
+  'every required key has a merge rule, and one without it stops the boot',
+  /* The plan is checked against the shape, so a key added to one and forgotten in the other fails
+     here rather than dropping out of the merged document at request time. */
+  requiredKeys.every((key) => new RegExp(`\\r?\\n  ${key}:`).test(datasets)) &&
+    requiredKeys.length > 20 &&
+    /export function unplannedKeys\(/.test(datasets) &&
+    /would silently drop/.test(server) &&
+    /Add each one to MERGE_PLAN in mock-server\/datasets\.mjs/.test(server),
+  'a key with no rule drops out of the merged document, which reads as an empty dataset',
+)
+
+expect(
+  'the in-memory state is per dataset, and no container is shared',
+  /* All twelve, named in one place rather than each declaring its own container. */
+  [
+    'registered',
+    'profilingJobs',
+    'graphBuildsByUseCase',
+    'derivations',
+    'studioVersions',
+    'studioBuildCount',
+    'studioDecisions',
+    'studioPivotChoice',
+    'studioLive',
+    'studioPublishedBy',
+    'whatifSaved',
+    'governanceLog',
+  ].every(
+    (name) =>
+      new RegExp(`  ${name}: '(map|array)',`).test(server) &&
+      new RegExp(`const ${name} = liveContainer\\('${name}'\\)`).test(server),
+  ) &&
+    /* And none is a bare container any more, which is what sharing would look like. */
+    !/const (registered|studioLive|whatifSaved|studioDecisions) = new Map\(\)/.test(
+      codeOnly(server),
+    ),
+  'a registration keyed by source id shows under every dataset if the Map is shared',
+)
+
+expect(
+  'an empty collection is allowed only in a secondary dataset',
+  /const empty = activeDataset\(\) !== PRIMARY/.test(server) &&
+    /* Passed to the shape checks, which is how the relaxation reaches them. */
+    /!check\(candidate\[key\], empty\)/.test(server) &&
+    /* The primary still may not lose its rows: the flag is false for it, so `empty ||` cannot fire. */
+    /\(empty \|\| v\.length > 0\)/.test(server) &&
+    /* The boot refusal names the seed rather than the primary's restore command. */
+    /npm run seed:dataset --/.test(server),
+  'seeding a secondary dataset with the primary’s rows shows EPA’s figures under CAPEX’s name',
+)
+
+/*
+ * ---------------- a custom header is a CORS decision ----------------
+ *
+ * Only four request headers are CORS-safelisted, and `x-dataset` is not one of them — so it makes
+ * every cross-origin request *preflighted*, and the browser blocks it unless the `OPTIONS` reply lists
+ * the header in `access-control-allow-headers`. The deployed app calls this server directly on another
+ * origin (see the environment table in CLAUDE.md), so adding the header to `request()` without adding
+ * it to the allow-list broke **every** call in the browser with `TypeError: Failed to fetch`.
+ *
+ * It survived a full round of testing because `curl` does not enforce CORS: the server answered 200 to
+ * everything while the app could not reach it at all. Asserted here as the two halves agreeing — the
+ * name the client sends is the name the server allows, and both reply paths allow it.
+ */
+/* To end of line, not to the first comma: the value is a template literal that contains one,
+   so `[^,]+` truncated it before `${DATASET_HEADER}` and the claim failed against fixed code. */
+const corsBlocks = server.match(/'access-control-allow-headers': .*$/gm) ?? []
+const clientHeader = /'(x-[a-z-]+)': currentDataset\(\)/.exec(client)?.[1] ?? ''
+expect(
+  'every custom request header the client sends is allowed by the preflight',
+  clientHeader.length > 0 &&
+    /* The server declares the name once; the client's literal has to be that same string. */
+    new RegExp(`export const DATASET_HEADER = '${clientHeader}'`).test(datasets) &&
+    /* Both reply paths — the JSON one and the event-stream one, which is also cross-origin. */
+    corsBlocks.length === 2 &&
+    corsBlocks.every((b) => b.includes('${DATASET_HEADER}')) &&
+    /* And nothing is left allowing content-type alone, which is what blocked every request. */
+    !corsBlocks.some((b) => /'content-type',$/.test(b)),
+  'curl ignores CORS, so a missing allow-list header passes every server-side test and blocks the app',
+)
+
+expect(
+  'the dataset pool is served, and the selection is sent from one place',
+  /* Served, never a list in the component — the rule the consent scopes and the role picker follow. */
+  /match: \(p\) => p === '\/datasets'/.test(server) &&
+    /export async function listDatasets\(\)/.test(client) &&
+    /const DATASETS_PAYLOAD = shape\(\{/.test(client) &&
+    /* Two senders and no more: `request` for every endpoint, and the Ask stream's own fetch. */
+    (client.match(/'x-dataset': currentDataset\(\)/g) ?? []).length === 2 &&
+    /* And the panel renders what came back rather than a pair written into it. */
+    !/CAPEX/.test(codeOnly(dsPanel).replace(/^[\s\S]*?export default/, '')),
+  'a client-held pool can offer a dataset the API refuses',
+)
+
+/*
+ * ---------------- changing the dataset ends the session ----------------
+ *
+ * It is not a view toggle. Every page reads the selected dataset and so does everything the session
+ * built — a registered source, a profiling job, a studio decision, a publication — all held in the
+ * mock server's memory under one dataset. So the switch is asked for in Settings, confirmed in words
+ * that name both datasets, and carried out by signing the reader out and reloading the document.
+ *
+ * **The reload is the mechanism, and it is the only one that cannot half-work.** An `<Outlet>` key
+ * remounted the components and left the module-level zustand stores holding the previous dataset's
+ * rows — a guarantee in appearance only. Asserted as: the store performs all three acts, the panel
+ * only ever *asks*, and no remount key came back.
+ */
+/*
+ * Ordering is read off the **code**, not the file: the comment explaining why the selection is
+ * persisted first names `logout()`, and matching the file put that mention 300 characters ahead of
+ * the call — the claim failed against correct code. The same self-documenting-file trap this file
+ * has been caught by five times, so `codeOnly` goes on every claim that reasons about position.
+ */
+const dsStore = read('src/store/datasetStore.ts')
+const dsCode = codeOnly(dsStore)
+expect(
+  'changing the dataset signs the reader out and reloads, from one place',
+  /* Persist first — the selection must survive the reload, and logging out does not touch its key. */
+  dsCode.indexOf('setCurrentDataset(dataset)') < dsCode.indexOf('logout()') &&
+    dsCode.indexOf('logout()') < dsCode.indexOf("window.location.assign('/login')") &&
+    /* The panel opens the dialog; it never switches on the control's own change event. */
+    /onChange=\{\(next\) => setPending\(next\)\}/.test(dsPanel) &&
+    /if \(pending\) switchDataset\(pending\)/.test(dsPanel) &&
+    /* And the retired key did not come back beside it. */
+    !/epoch/.test(dsCode) &&
+    !/<Outlet key=/.test(codeOnly(read('src/App.tsx'))),
+  'a remount clears components, not module-level stores — the rows would survive the switch',
+)
+
+/*
+ * The confirmation names both datasets, and it is copy rather than markup for the reason
+ * `sourceActions` is: a `Modal` portals out of `renderToString`. Interpolated from the two names, so
+ * the CAPEX dialog cannot come to ask about EPA — and it states the sign-out, which is the one
+ * consequence a reader cannot undo by switching back.
+ */
+expect(
+  'the switch confirmation names both datasets and states the sign-out',
+  /export const datasetSwitchTitle = \(\{ from, to \}: DatasetSwitch\)/.test(dsSwitch) &&
+    /\$\{from\} to \$\{to\}/.test(dsSwitch) &&
+    /You will be signed out/.test(dsSwitch) &&
+    /* Rendered from that module, never restated in the panel. */
+    /datasetSwitchTitle\(switching\)/.test(dsPanel) &&
+    /datasetSwitchBody\(switching\)/.test(dsPanel) &&
+    !/Change dataset from/.test(codeOnly(dsPanel)),
+  'two hardcoded sentences let the CAPEX dialog ask about EPA',
+)
+
+/*
+ * And it is administered in Settings, not offered in the sidebar. A control that ends the session
+ * does not belong beside the page links; the sidebar's copy of it was removed when the sign-out was
+ * added, and half a removal is the shape that fails silently.
+ */
+expect(
+  'the dataset control is a Settings tab, and is gone from the sidebar',
+  /key: 'dataset',/.test(read('src/pages/SettingsPage.tsx')) &&
+    /children: <DatasetPanel \/>/.test(read('src/pages/SettingsPage.tsx')) &&
+    !/DatasetP(icker|anel)/.test(read('src/components/Sidebar.tsx')) &&
+    !existsSync(join(root, 'src/components/DatasetPicker.tsx')) &&
+    /* The login says which dataset it lands in, since a switch drops the reader there. */
+    /Signing in to the <strong>\{dataset\}<\/strong> dataset/.test(read('src/pages/LoginPage.tsx')),
+  'a switcher in the nav is one mis-click from ending the session',
+)
+
+expect(
+  'a secondary dataset can be seeded, and the seed reads the merge plan',
+  /"seed:dataset": "node scripts\/seed-dataset\.mjs"/.test(read('package.json')) &&
+    /* Derived from MERGE_PLAN rather than a second list, so the seed cannot disagree with `both`.
+       Keyed on the assignment that builds the document, not on the loop header: that header appears
+       twice in the file (the build and the pre-write check), so a whole-file match for it passed a
+       break test that emptied the build — the self-documenting-file trap, one more time. */
+    /seeded\[key\] = seedValue\(rule, source\[key\]\)/.test(read('scripts/seed-dataset.mjs')) &&
+    /import \{ DATASETS, MERGE_PLAN, PRIMARY \} from '\.\.\/mock-server\/datasets\.mjs'/.test(
+      read('scripts/seed-dataset.mjs'),
+    ) &&
+    /* And it refuses to empty the primary, which holds the tenant's real data. */
+    /is the primary dataset and holds the tenant/.test(read('scripts/seed-dataset.mjs')),
+  'a seed with its own idea of what is shared double-counts a key under both',
+)
+
+/*
+ * ---------------- the dataset is the first segment of every in-app URL ----------------
+ *
+ * `/E/sources`, `/C/reports` — the selected dataset's first letter, so the address says which dataset
+ * the page is showing.
+ *
+ * **The selection is the authority and the URL is its rendering, which is the opposite of the usual
+ * arrangement and is the point.** Adopting a typed letter would make the URL a second way to change
+ * dataset — one that skips the confirmation and the sign-out that make the switch safe, and that would
+ * leave the letter disagreeing with the `x-dataset` header every request carries. So a wrong or missing
+ * letter is *corrected*, never obeyed.
+ */
+const dsApi = read('src/api/dataset.ts')
+const dsGate = read('src/components/DatasetPathGate.tsx')
+
+expect(
+  'the dataset segment is derived from the selection, and the URL never sets it',
+  /export const datasetSegment = \(name: string = current\): string =>/.test(dsApi) &&
+    /export const appPath = \(path: string\): string => `\/\$\{datasetSegment\(\)\}\$\{path\}`/.test(dsApi) &&
+    /* The gate renders a decision made elsewhere; it must not write the selection. */
+    /const fix = datasetPathFix\(location\.pathname, location\.search, location\.hash\)/.test(dsGate) &&
+    /return fix \? <Navigate to=\{fix\} replace \/> : <Outlet \/>/.test(dsGate) &&
+    !/setCurrentDataset/.test(codeOnly(dsGate)),
+  'a URL that could change the dataset would skip the confirmation and the sign-out',
+)
+
+expect(
+  'the correction is a pure function, because a redirect cannot be seen through a render',
+  /* `<Navigate>` navigates in a `useLayoutEffect`, which `renderToString` never runs — a test that
+     mounted the table and read the router's location reported every redirect as broken, including
+     `RequireAuth`'s, which has always worked. The decidable part moved to where it can be asserted,
+     the same reason a `Modal`'s copy lives in `src/data/`. */
+  /export function datasetPathFix\(/.test(dsApi) &&
+    /if \(segment === expected\) return null/.test(dsApi) &&
+    /return `\/\$\{expected\}\$\{rest\}\$\{search\}\$\{hash\}`/.test(dsApi),
+  'a redirect asserted through renderToString passes over nothing',
+)
+
+expect(
+  'a single-letter first segment is the dataset, and anything longer is the route',
+  /* Which is what lets an old unprefixed bookmark be corrected rather than 404 on a dataset whose name
+     happens to be "sources". */
+  /if \(first\.length !== 1\) return \{ segment: null, rest: pathname \}/.test(dsApi) &&
+    /return \{ segment: first\.toUpperCase\(\), rest: tail \?\? '\/' \}/.test(dsApi),
+  'a missing prefix and a wrong one need the same repair',
+)
+
+expect(
+  'every dataset has a distinct letter',
+  /* One letter was asked for and is only unambiguous while the initials differ: two datasets sharing one
+     would share an address, and the URL would name neither. Read off the server's own list. */
+  (() => {
+    const declared = /export const DATASETS = \[([^\]]+)\]/.exec(datasets)?.[1] ?? ''
+    const names = [...declared.matchAll(/'([^']+)'/g)].map((m) => m[1])
+    const both = /export const BOTH = '([^']+)'/.exec(datasets)?.[1] ?? ''
+    const all = [...names, both].filter(Boolean)
+    const letters = all.map((n) => n.slice(0, 1).toUpperCase())
+    return all.length > 2 && new Set(letters).size === letters.length
+  })(),
+  'two datasets sharing an initial would share a URL',
+)
+
+expect(
+  'no in-app navigation is left unprefixed',
+  /* One helper on every `navigate`, `Link` and `href` that points inside the app, so the prefix cannot be
+     present on most routes and missing on one — which is a page that loads and then jumps. `/login` is
+     deliberately outside, being the one address that exists without a dataset. */
+  [
+    'src/pages/GraphStudioListPage.tsx',
+    'src/pages/GraphStudioPage.tsx',
+    'src/pages/NewGraphPage.tsx',
+    'src/pages/GraphCanvasFullPage.tsx',
+    'src/pages/NotFoundPage.tsx',
+    'src/components/NoPublishedGraph.tsx',
+    'src/components/NoSourceConnected.tsx',
+    'src/components/SourcesStep.tsx',
+    'src/components/Sidebar.tsx',
+  ].every((file) => {
+    const src = codeOnly(read(file))
+    /* Every literal in-app target is wrapped: no bare `navigate('/x')` or `to="/x"` survives, except
+       `/login`, which has no dataset. */
+    const bare = [
+      ...src.matchAll(/navigate\('(\/[a-z-]+)'/g),
+      ...src.matchAll(/to="(\/[a-z-]+)"/g),
+    ].map((m) => m[1])
+    return src.includes('appPath') && bare.every((p) => p === '/login')
+  }),
+  'a prefix on most routes and missing on one is a page that loads and then jumps',
+)
+
 /*
  * ---------------- an export is a snapshot, and never a cache ----------------
  *
@@ -3854,6 +4201,123 @@ expect(
     : 'reports, one report, a saved report and the lens share one rule',
 )
 /*
+ * ---------------- the tenant's five reports, rendered ----------------
+ *
+ * `src/07_reports/Report_N_*.html` are the tenant's *rendered* reports. Their layout is now React —
+ * crumb, heading and badge, lead note, four tiles, the facet bar, a card per block, the footnotes — and
+ * their **figures are not**: every number comes from `reportView`, computed per request from
+ * `db.reports` in the EPA bucket. Pasting a rendered figure into a component is the one change that
+ * would break the section's whole premise, and it would look right on screen while doing it.
+ *
+ * Asserted as: the components exist and read the payload, nothing in them does arithmetic, and neither
+ * of the two things the HTML did — Chart.js from a CDN, clickable filter chips — came across.
+ */
+const prReport = read('src/components/report/PublishedReport.tsx')
+const prBlocks = read('src/components/report/ReportBlocks.tsx')
+const prPane = read('src/components/report/PublishedReportPane.tsx')
+const prStore = read('src/store/reportsStore.ts')
+
+expect(
+  'the five rendered reports are React, and every figure is the server’s',
+  /* Each renders what the payload states, by name. */
+  /report\.tiles\.map/.test(prReport) &&
+    /report\.blocks\.map/.test(prReport) &&
+    /report\.footer\.map/.test(prReport) &&
+    /report\.facets\.map/.test(prReport) &&
+    /* No arithmetic on a measure: a component that summed a column would be a second answer to a
+       figure the report already states. `rows.length` is a count of what was rendered, not of data. */
+    !/\.reduce\(|\+=|Math\.(sum|round)\(/.test(codeOnly(prBlocks)) &&
+    !/\.reduce\(|\+=/.test(codeOnly(prReport)),
+  'a figure pasted from the rendered HTML looks right and is a stored result',
+)
+
+expect(
+  'no chart library came across from the rendered HTML',
+  /* The files load Chart.js from a CDN. Charts here are `AnswerChart`, which is why an answer and a
+     report cannot disagree about what a bar means — and why the audit gate is not widened by a port. */
+  /import AnswerChart from '\.\.\/AnswerChart'/.test(prBlocks) &&
+    !/canvas|chart\.js|Chart\.js|cdn\.jsdelivr/i.test(codeOnly(prBlocks)) &&
+    !/"chart\.js"/.test(read('package.json')),
+  'transcribing a script tag is a dependency decision made by accident',
+)
+
+expect(
+  'a facet is stated, not offered',
+  /* `POST /reports/build` takes a frame and has no caller, so a chip that looked clickable would promise
+     a slice nothing applies — the same "declared, not applied" line the horizon already draws. */
+  /stated, not applied/.test(prReport) &&
+    !/onClick/.test(codeOnly(prReport)),
+  'a chip that re-asks nothing is a filter the reader thinks ran',
+)
+
+expect(
+  'a custody chain renders in order, and a report’s columns align as declared',
+  /* A manifest's transporters are ordered: "an order laid into a cell reads as a set", and a comma is
+     exactly that. Alignment comes from the column's own `kind`, never from sniffing this slice's cells —
+     which is how one report right-aligns a column another leaves ragged. */
+  /rb-chain-arrow/.test(prBlocks) &&
+    /* **Both** sites: the header and the cell. A single `includes` passed a break test that changed one
+       of them and left the other — the header right-aligned while its column was not, or the reverse.
+       Second call site, same trap as the seed's loop header. */
+    (prBlocks.match(/c\.kind === 'num'/g) ?? []).length === 2 &&
+    !/\/\^\[\$\\s\]\*-\?/.test(prBlocks),
+  'a chain joined with commas is a set, and sniffed alignment differs per slice',
+)
+
+expect(
+  'the report store keeps the requested id beside the report',
+  /* Opening one report and then another before the first returns would leave the slower reply on screen
+     under the newer heading — one report's tiles below another's title, which reads as data. */
+  /openId: reportId/.test(prStore) &&
+    (prStore.match(/if \(get\(\)\.openId !== reportId\) return/g) ?? []).length === 2 &&
+    /* And it holds no figures of its own. */
+    !/\.reduce\(/.test(codeOnly(prStore)),
+  'a slow fetch would put one report’s figures under another’s heading',
+)
+
+/*
+ * **One list, and it is the Library's.**
+ *
+ * The published reports were briefly a card grid of their own beside the prototype, reachable from a
+ * switch at the top of the page — two lists of the same five definitions, which is two answers to "what
+ * reports exist". The Library already lists them with an **Open report** button, so that button hands the
+ * id over and the pane renders it. Asserted as the absence of a second list *and* the presence of the
+ * hand-over, because half of this is a Library whose Open button does nothing.
+ */
+expect(
+  'the published report opens out of the Library, and there is no second list',
+  /* The pane renders one report and nothing else — no grid, no summaries, no card. */
+  /const openId = useReportsStore\(\(s\) => s\.openId\)/.test(prPane) &&
+    /<PublishedReport report=\{report\} \/>/.test(prPane) &&
+    /Back to Library/.test(prPane) &&
+    !/selectReportSummaries|prs-grid|Open report/.test(codeOnly(prPane)) &&
+    /* Nothing open renders nothing, so the Library is what the reader sees. */
+    /if \(!openId\) return null/.test(prPane) &&
+    /* The deleted grid stays deleted: a partial revival is a second list again. */
+    !existsSync(join(root, 'src/components/report/PublishedReports.tsx')),
+  'two lists of one set of definitions is two answers to what exists',
+)
+
+expect(
+  'Open report reads the published one and Edit still authors',
+  /* Two buttons that ran the same function now do what their labels say. `Open` on a governed row hands
+     the id to the host, which renders the tenant's own figures; `Edit` still loads the authoring
+     definition behind the row. Absent the callback the prototype behaves exactly as it did standing
+     alone, which is what keeps the vendored folder honest. */
+  /onOpenPublished\?: \(reportId: string\) => void;/.test(read('src/reports/App.tsx')) &&
+    /if \(!forEdit && onOpenPublished\) \{/.test(read('src/reports/App.tsx')) &&
+    /onOpenPublished=\{\(reportId\) => void openReport\(reportId\)\}/.test(reportsPage) &&
+    /* One of the two is mounted, never both: the prototype's toast and popover hosts portal to
+       `document.body`, and a second copy is how Delete came to look like a dead button once already. */
+    /\{openReportId \? <PublishedReportPane \/> : null\}/.test(reportsPage) &&
+    /\{openReportId \? null : \(/.test(reportsPage) &&
+    /* No switch came back, and no route per report: `/reports` is one address. */
+    !/Segmented/.test(codeOnly(reportsPage)) &&
+    !/path: 'reports\//.test(read('src/routes.tsx')),
+  'a page per report is the section that was deliberately removed',
+)
+
+/*
  * **The persona is not served to the section.** It was a strip above the grid; that was
  * removed, so the payload stopped carrying it. `db.reports.meta` is still read on this side —
  * `entity_plural` labels a computed tile and names the rows a chart dropped, `source_trace`
@@ -4104,7 +4568,9 @@ const ingestLiteral = /db\.reports = \{[\s\S]*?\n\}/.exec(ingestReports)?.[0] ??
  * guard caught it.
  */
 const reportsBranch =
-  /\r?\n {2}reports: \(v\) =>[\s\S]*?\r?\n\}\r?\n\r?\nconst DB_HINTS/.exec(server)?.[0] ?? ''
+  /* `(v, empty)` since a secondary dataset may hold an empty collection where the primary may not —
+     matched loosely on the parameter list so the branch is still found if that changes again. */
+  /\r?\n {2}reports: \(v[^)]*\) =>[\s\S]*?\r?\n\}\r?\n\r?\nconst DB_HINTS/.exec(server)?.[0] ?? ''
 const requiredUnderReports = [...reportsBranch.matchAll(/\bv\.([a-z_]+)\b/g)].map((m) => m[1])
 expect(
   'every key the report section requires survives a re-ingest',
@@ -4449,7 +4915,10 @@ expect(
  */
 expect(
   'publishing records who did it, and every line reads that one record',
-  /const studioPublishedBy = new Map\(\)/.test(server) &&
+  /* One record per dataset — a publication is keyed by `useCaseId:sha256`, never by dataset, so a
+     shared Map would let a CAPEX graph report an EPA publisher. See LIVE_SHAPE. */
+  /const studioPublishedBy = liveContainer\('studioPublishedBy'\)/.test(server) &&
+    /studioPublishedBy: 'map'/.test(server) &&
     /const publishedByFor = \(useCaseId\)/.test(server) &&
     /* Set *or cleared* on every publish: merging would credit the previous publisher for
        an anonymous re-publish, which a smoke run caught it doing. */
@@ -4878,7 +5347,10 @@ expect(
   'the settings store is its own file, with its own validator and writer',
   /* Its own ref, resolved separately from db.json's, so the two documents cannot come to share a
      location whichever store they are read from. */
-  /const SETTINGS_PATH = docRef\('settings\.json', join\(here, 'settings\.json'\)\)/.test(server) &&
+  /* Read from the primary dataset and named as such: settings holds the users and the persona
+     navigation, which is the tenant's rather than any one dataset's — the same reason it is absent
+     from MERGE_PLAN and a secondary dataset has no copy of it. */
+  /const SETTINGS_PATH = docRef\('settings\.json', join\(here, 'settings\.json'\), PRIMARY\)/.test(server) &&
     /function validateSettings\(candidate\)/.test(server) &&
     /function commitSettings\(next\)/.test(server) &&
     /refusing to start — mock-server\/settings\.json cannot be served/.test(server) &&
@@ -4954,8 +5426,12 @@ expect(
   /export const visibleNavItems =/.test(settingsStore) &&
     /visibleNavItems\(settings, activePersonaId\)/.test(sidebarSrc) &&
     !/NAV_ITEMS\.filter/.test(codeOnly(sidebarSrc)) &&
-    /* `App` looks up the unfiltered list on purpose — it names the page, it does not gate it. */
-    /NAV_ITEMS\.find\(\(item\) => pathname\.startsWith\(item\.path\)\)/.test(appCode) &&
+    /* `App` looks up the unfiltered list on purpose — it names the page, it does not gate it. The
+       comparison is against the route *beneath* the dataset segment, since the URL is `/E/sources`
+       while `NAV_ITEMS` holds `/sources`. */
+    /NAV_ITEMS\.find\(\(item\) => splitDatasetPath\(pathname\)\.rest\.startsWith\(item\.path\)\)/.test(
+      appCode,
+    ) &&
     !/visibleNavItems/.test(appCode) &&
     /* Refused server-side, with the reason, before anything is written. */
     /if \(navReadOnly\(roleId, key\) && value !== current\[key\]\)/.test(server) &&
@@ -5049,21 +5525,31 @@ expect(
  * is a fresh sign-in and a bookmark of `/` quietly landing on different pages. Read off both rather than
  * pinned to a value, so changing the landing page needs one edit in each and no edit here.
  */
-const landing = /const LANDING = '([^']+)'/.exec(loginPage)?.[1] ?? ''
-const indexRedirect = /\{ index: true, element: <Navigate to="([^"]+)" replace \/> \}/.exec(routesSrc)?.[1] ?? ''
+const landing = /export const LANDING = '([^']+)'/.exec(nav)?.[1] ?? ''
 expect(
-  'the login’s landing page and the index redirect are the same page, and it is routed',
+  'the login’s landing page and the index redirect are the same declaration, and it is routed',
   landing.length > 0 &&
-    landing === indexRedirect &&
+    /* **One declaration now, not two agreeing ones.** It used to be a `const` in `LoginPage` and a
+       literal in the index redirect, checked against each other; it lives in `nav.ts` and both import
+       it, which is the stronger version of the same guarantee — they cannot disagree because there is
+       nothing to disagree with. In `nav.ts` rather than `routes.tsx` so `LoginPage` can read it without
+       the two modules importing each other. */
+    /import \{ LANDING \} from '\.\/nav'/.test(routesSrc) &&
+    /import \{ LANDING \} from '\.\.\/nav'/.test(loginPage) &&
+    !/const LANDING =/.test(codeOnly(loginPage)) &&
+    !/const LANDING =/.test(codeOnly(routesSrc)) &&
+    /* Both readers use it, and both are dataset-relative — the letter goes on the front. */
+    /\{ index: true, element: <DatasetRedirect to=\{LANDING\} \/> \}/.test(routesSrc) &&
+    /\{ path: '\/', element: <DatasetRedirect to=\{LANDING\} \/> \}/.test(routesSrc) &&
+    /\?\?\s*appPath\(LANDING\)/.test(loginPage) &&
     /* And it exists — a landing page with no route lands on NotFoundPage. */
     navPaths.includes(landing) &&
     routedPaths.includes(landing.replace(/^\//, '')) &&
     /* Still a fallback: a visitor bounced off a protected page goes back there instead. */
-    /\?\?\s*LANDING/.test(loginPage) &&
     /state as \{ from\?: Location \}/.test(loginPage),
-  landing.length === 0 || indexRedirect.length === 0
-    ? 'the landing page or the index redirect was not parsed — this check cannot run'
-    : `login lands on ${landing || '(none)'}, index redirects to ${indexRedirect || '(none)'}`,
+  landing.length === 0
+    ? 'LANDING was not parsed out of nav.ts — this check cannot run'
+    : `login and the index redirect both land on ${landing}`,
 )
 
 expect(
@@ -5088,11 +5574,17 @@ expect(
  * declared after the `App` tree the studio page would render at the full view's URL —
  * a wrong page with no error anywhere.
  */
-const canvasRoute = "{ path: '/graph-studio/:useCaseId/canvas'"
+const canvasRoute = "{ path: 'graph-studio/:useCaseId/canvas'"
 expect(
   'the full-window canvas route exists and is declared before the App tree',
+  /* Relative to `/:ds` now, like every other page — the dataset's letter is the first segment of every
+     in-app URL. The ordering hazard is unchanged and so is the guard: `graph-studio/:useCaseId` matches
+     the parent segment of `graph-studio/x/canvas`, so the studio page would render at the full view's
+     URL if the App tree were declared first. */
   routesSrc.includes(canvasRoute) &&
-    routesSrc.indexOf(canvasRoute) < routesSrc.indexOf("element: <App />"),
+    routesSrc.indexOf(canvasRoute) < routesSrc.indexOf("element: <App />") &&
+    /* And both sit under the segment, so neither can be reached without one. */
+    routesSrc.indexOf("path: '/:ds'") < routesSrc.indexOf(canvasRoute),
   'a prefix pattern declared first would match it and win',
 )
 /* The button moved out of the retired canvas component and onto the tab: the vendored
@@ -5102,7 +5594,7 @@ expect(
 expect(
   'and it is URL-only, reached by the Full view button rather than the sidebar',
   !navPaths.some((p) => p.includes('/canvas')) &&
-    /const fullViewHref = `\/graph-studio\//.test(read('src/pages/GraphStudioPage.tsx')) &&
+    /const fullViewHref = appPath\(`\/graph-studio\//.test(read('src/pages/GraphStudioPage.tsx')) &&
     /href=\{fullViewHref\}/.test(read('src/pages/GraphStudioPage.tsx')),
   'the same rule as /db: routed, not advertised',
 )

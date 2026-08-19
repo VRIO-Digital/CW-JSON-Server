@@ -2,6 +2,7 @@ import { DeploymentUnitOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Spin, Table, Tag, Typography, type TableColumnsType } from 'antd'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { appPath } from '../api/dataset'
 import type { StudioGraph } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import EmptyState from '../components/EmptyState'
@@ -42,7 +43,7 @@ export default function GraphStudioListPage() {
   }, [load])
 
   const open = (useCaseId: string) =>
-    navigate(`/graph-studio/${encodeURIComponent(useCaseId)}`)
+    navigate(appPath(`/graph-studio/${encodeURIComponent(useCaseId)}`))
 
   /*
    * One row per built graph. The card layout spent a lot of height on four
@@ -110,7 +111,7 @@ export default function GraphStudioListPage() {
         title="Graph Studio"
         subtitle="Where a drafted graph becomes the trusted graph. Open a build to review what the deriver wasn’t sure about, shape the ontology, prove it answers — then publish."
         actions={
-          <Button icon={<PlusOutlined />} onClick={() => navigate('/new-graph')}>
+          <Button icon={<PlusOutlined />} onClick={() => navigate(appPath('/new-graph'))}>
             New graph
           </Button>
         }
@@ -134,7 +135,7 @@ export default function GraphStudioListPage() {
               : 'A graph is built from a business need you describe. Once one is built, this is where you review what the deriver was unsure about, prove it answers, and publish it.'
           }
           action={
-            <Button type="primary" size="large" onClick={() => navigate('/new-graph')}>
+            <Button type="primary" size="large" onClick={() => navigate(appPath('/new-graph'))}>
               {data?.draftCount ? 'Finish a draft' : 'Describe a business need'}
             </Button>
           }

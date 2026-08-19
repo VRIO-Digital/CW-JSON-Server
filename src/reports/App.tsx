@@ -233,6 +233,7 @@ export default function App({
   governance,
   shareRoles,
   actions,
+  onOpenPublished,
 }: {
   identity?: ReportsIdentity;
   graphOptions?: GraphOption[];
@@ -240,6 +241,17 @@ export default function App({
   /** The role pool, served — never a list this component keeps. */
   shareRoles?: ShareRole[];
   actions?: GovernanceActions;
+  /**
+   * Open a governed report as the host's *published* report — the rendered thing an audience reads.
+   *
+   * The fourth callback in the same shape as `actions`, and the vendored prototype's only knowledge of
+   * it: it hands over an id and the host renders. With no host it is absent and **Open report** keeps
+   * doing what it always did, so this folder standing alone is still exactly the prototype it was.
+   *
+   * `Open` and `Edit` stop being the same act, which is what their labels already claimed: Open reads
+   * the published report, Edit loads the authoring definition behind it.
+   */
+  onOpenPublished?: (reportId: string) => void;
 } = {}) {
   const toast = useToast();
 
@@ -541,6 +553,17 @@ export default function App({
    * button that quietly does nothing.
    */
   function openGoverned(row: GovernedRow, forEdit: boolean) {
+    /*
+     * Reading is the host's job now. A published report is computed from the tenant's rosters and
+     * rendered in the format its audience sees; loading the authoring definition instead would show the
+     * prototype's own sample figures under a card that says "Published", which is the one thing a
+     * governed row must not do. Editing still loads the definition, because that is what editing is.
+     */
+    if (!forEdit && onOpenPublished) {
+      onOpenPublished(row.reportId);
+      return;
+    }
+
     const built = fromGoverned(row, assumptions.graph);
     if (!built) {
       toast(`“${row.title}” has no authoring definition behind it, so it cannot be opened here.`);

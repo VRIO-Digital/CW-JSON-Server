@@ -7,7 +7,8 @@ import GraphViewer from '../graph-viewer/App'
 import { answerPath, fromCanvas } from '../graph-viewer/fromCanvas'
 import { useGraphStudioStore } from '../store/graphStudioStore'
 import './GraphCanvasFullPage.css'
-import './GraphStudioPage.css'
+import './GraphStudioPage.css'
+import { appPath } from '../api/dataset'
 
 /*
  * The canvas, with the whole window.
@@ -50,7 +51,7 @@ export default function GraphCanvasFullPage() {
     })()
   }, [useCaseId, open, loadCanvas])
 
-  const studioHref = `/graph-studio/${encodeURIComponent(useCaseId ?? '')}`
+  const studioHref = appPath(`/graph-studio/${encodeURIComponent(useCaseId ?? '')}`)
 
   return (
     <div className="gcf">

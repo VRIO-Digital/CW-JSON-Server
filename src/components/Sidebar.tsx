@@ -1,6 +1,8 @@
 import { Button, Menu, Typography } from 'antd'
+
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { appPath, splitDatasetPath } from '../api/dataset'
 import type { SessionIdentity } from '../api/client'
 import { NAV_GROUPS, type NavItem } from '../nav'
 import { useAuthStore } from '../store/authStore'
@@ -67,7 +69,14 @@ export function SidebarMenu({
   pathname: string
   onPick: (item: NavItem) => void
 }) {
-  const selected = items.find((item) => pathname.startsWith(item.path))
+  /*
+   * Matched against the route *beneath* the dataset segment. `NAV_ITEMS` holds canonical paths
+   * (`/sources`) while the URL is `/E/sources`, so a raw `startsWith` selects nothing and the sidebar
+   * highlights no item on every page — a menu that looks broken rather than one pointing somewhere
+   * wrong. The prefix belongs to the dataset, not to the nav entry.
+   */
+  const route = splitDatasetPath(pathname).rest
+  const selected = items.find((item) => route.startsWith(item.path))
 
   /*
    * The headings are built from what survived the filter, not from `NAV_GROUPS` directly: a persona
@@ -151,7 +160,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         items={items}
         pathname={pathname}
         onPick={(item) => {
-          navigate(item.path)
+          navigate(appPath(item.path))
           onNavigate?.()
         }}
       />

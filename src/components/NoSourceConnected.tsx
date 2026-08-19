@@ -2,7 +2,8 @@ import { DatabaseOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import EmptyState from './EmptyState'
+import EmptyState from './EmptyState'
+import { appPath } from '../api/dataset'
 
 /** The path from nothing to data — the same three steps wherever this appears. */
 const STEPS = [
@@ -44,7 +45,7 @@ export default function NoSourceConnected({
       detail={detail}
       action={
         action ?? (
-          <Link to="/sources">
+          <Link to={appPath('/sources')}>
             <Button type="primary" size="large">
               Connect a source
             </Button>

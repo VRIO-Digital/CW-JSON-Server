@@ -23,7 +23,8 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
-import { docRef, readDoc, storeKind, writeDoc } from '../mock-server/store.mjs'
+import { docRef, localDocPath, readDoc, storeKind, writeDoc } from '../mock-server/store.mjs'
+import { DATASETS, PRIMARY } from '../mock-server/datasets.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
@@ -40,15 +41,52 @@ const DOCS = {
   settings: { name: 'settings.json', local: join(root, 'mock-server/settings.json') },
 }
 
-const [, , direction, only] = process.argv
-
 function die(message) {
   console.error(`\ns3-sync: ${message}\n`)
   process.exit(1)
 }
 
-if (!['push', 'pull'].includes(direction)) die('usage: s3-sync.mjs <push|pull> [db|settings]')
-if (only && !DOCS[only]) die(`unknown document "${only}" — one of: ${Object.keys(DOCS).join(', ')}`)
+/*
+ * ---------------- which dataset, and which document ----------------
+ *
+ * A dataset is a prefix, so syncing one is the same two calls under a different key — but the
+ * argument has to be *named* rather than positional, because `s3-sync.mjs push db` and
+ * `s3-sync.mjs push CAPEX` would otherwise be told apart by nothing. It is matched against the
+ * declared datasets, and an unknown one is a refusal naming them: the alternative is a push that
+ * quietly writes CAPEX's document over EPA's.
+ *
+ * **`settings.json` has no dataset.** It holds the users and the persona navigation, which is the
+ * tenant's rather than a dataset's — the same reason it is not in `MERGE_PLAN` and the server reads
+ * it from the primary alone. Asking for it under a secondary dataset is a mistake worth naming.
+ */
+const args = process.argv.slice(2)
+const direction = args.shift()
+const dataset = args.find((a) => DATASETS.some((d) => d.toLowerCase() === a?.toLowerCase()))
+const named = args.filter((a) => a !== dataset)
+const only = named[0]
+
+const USAGE = `usage: s3-sync.mjs <push|pull> [db|settings] [${DATASETS.join('|')}]`
+
+if (!['push', 'pull'].includes(direction)) die(USAGE)
+if (only && !DOCS[only]) {
+  die(
+    `unknown argument "${only}" — expected a document (${Object.keys(DOCS).join(', ')}) ` +
+      `or a dataset (${DATASETS.join(', ')}).\n  ${USAGE}`,
+  )
+}
+if (named.length > 1) die(`too many arguments: ${named.join(' ')}\n  ${USAGE}`)
+
+const forDataset = DATASETS.find((d) => d.toLowerCase() === dataset?.toLowerCase()) ?? PRIMARY
+
+if (forDataset !== PRIMARY && only === 'settings') {
+  die(
+    `settings.json is the tenant's, not ${forDataset}'s — it holds the users and each persona's ` +
+      `navigation, and there is one copy under ${PRIMARY}.\n  Sync it with: npm run db:${direction} -- settings`,
+  )
+}
+
+/* A secondary dataset has no settings document, so syncing "everything" means its db.json alone. */
+const documents = only ? [only] : forDataset === PRIMARY ? Object.keys(DOCS) : ['db']
 /* The bucket is hardcoded in `store.mjs`, so the only way to have no bucket is to have turned it
    off deliberately — which is a different mistake from not having configured one. */
 if (process.env.S3_BUCKET === 'off') {
@@ -67,25 +105,28 @@ async function requiredDbKeys() {
   return [...block[1].matchAll(/^\s{2}([a-z_]+):/gm)].map((m) => m[1])
 }
 
-for (const key of only ? [only] : Object.keys(DOCS)) {
+for (const key of documents) {
   const { name, local } = DOCS[key]
-  const ref = docRef(name, local)
+  /* `docRef` suffixes the local path for a non-default prefix, so `db.CAPEX.json` is what a
+     CAPEX push reads and a CAPEX pull writes — never the primary's `db.json`. */
+  const ref = docRef(name, local, forDataset)
+  const localPath = localDocPath(local, forDataset)
   if (storeKind(ref) !== 's3') die(`${name} did not resolve to an S3 ref — got ${ref}`)
 
   if (direction === 'push') {
-    const text = await readFile(local, 'utf8')
+    const text = await readFile(localPath, 'utf8')
 
     let parsed
     try {
       parsed = JSON.parse(text)
     } catch (error) {
-      die(`${local} is not valid JSON, so it was not pushed — ${error.message}`)
+      die(`${localPath} is not valid JSON, so it was not pushed — ${error.message}`)
     }
     if (key === 'db') {
       const missing = (await requiredDbKeys()).filter((k) => !(k in parsed))
       if (missing.length > 0) {
         die(
-          `${local} is missing ${missing.length} required key(s) and would stop the server ` +
+          `${localPath} is missing ${missing.length} required key(s) and would stop the server ` +
             `booting: ${missing.join(', ')}. Re-seed before pushing.`,
         )
       }
@@ -95,11 +136,11 @@ for (const key of only ? [only] : Object.keys(DOCS)) {
        process, and the whole point is to replace whatever is there. The server holds the old ETag
        and will refuse its next write — which is correct, and says to restart. */
     await writeDoc(ref, text, null)
-    console.log(`pushed ${local} -> ${ref} (${Buffer.byteLength(text, 'utf8')} bytes)`)
+    console.log(`pushed ${localPath} -> ${ref} (${Buffer.byteLength(text, 'utf8')} bytes)`)
     console.log('  restart the server so it reads the document it will be writing against.')
   } else {
     const { text } = await readDoc(ref)
-    await writeFile(local, text, 'utf8')
-    console.log(`pulled ${ref} -> ${local} (${Buffer.byteLength(text, 'utf8')} bytes)`)
+    await writeFile(localPath, text, 'utf8')
+    console.log(`pulled ${ref} -> ${localPath} (${Buffer.byteLength(text, 'utf8')} bytes)`)
   }
 }

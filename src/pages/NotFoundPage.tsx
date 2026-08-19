@@ -1,5 +1,6 @@
 import { Button, Result } from 'antd'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { appPath } from '../api/dataset'
 
 export default function NotFoundPage() {
   return (
@@ -8,7 +9,7 @@ export default function NotFoundPage() {
       title="Page not found"
       subTitle="That route does not exist. Pick a section from the sidebar to continue."
       extra={
-        <Link to="/sources">
+        <Link to={appPath('/sources')}>
           <Button type="primary">Back to Sources</Button>
         </Link>
       }

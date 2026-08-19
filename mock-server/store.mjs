@@ -61,13 +61,35 @@ export function parseS3Ref(ref) {
  * them, so there is no file to fall back to and a silent fallback would serve an empty app rather
  * than say why. `S3_BUCKET=off` is the deliberate way back to files, for tests and for a machine
  * with no credentials.
+ *
+ * **The prefix is an argument, because a prefix is a dataset.** It used to be read from the
+ * environment here and nowhere else, which made it a property of the *process* — so a second
+ * dataset meant a second server, and `dataset=both` was not expressible at all. `S3_PREFIX` is
+ * still the default, so a box that set it keeps behaving exactly as it did; `datasets.mjs` passes
+ * one explicitly per document instead. `localPath` is suffixed to match, or two datasets reading
+ * files would share one `db.json`.
  */
-export function docRef(name, localPath) {
+export function docRef(name, localPath, prefix) {
   const bucket = process.env.S3_BUCKET ?? DEFAULT_BUCKET
-  if (!bucket || bucket === 'off') return localPath
-  const prefix = (process.env.S3_PREFIX ?? DEFAULT_PREFIX).replace(/^\/+|\/+$/g, '')
-  return `s3://${bucket}/${prefix ? `${prefix}/` : ''}${name}`
+  const chosen = (prefix ?? process.env.S3_PREFIX ?? DEFAULT_PREFIX).replace(/^\/+|\/+$/g, '')
+  if (!bucket || bucket === 'off') return localFor(localPath, chosen)
+  return `s3://${bucket}/${chosen ? `${chosen}/` : ''}${name}`
 }
+
+/**
+ * The local file standing in for one dataset's document when `S3_BUCKET=off`.
+ *
+ * The primary keeps the plain name it always had — `mock-server/db.json` is what every command in
+ * CLAUDE.md, `npm run db:pull` and the seeds all name — so only a non-default prefix takes a
+ * suffix (`db.CAPEX.json`). Sharing one path across datasets would have each boot overwrite the
+ * last, which reads as a dataset that will not stay switched.
+ */
+export function localDocPath(localPath, prefix) {
+  if (!localPath || !prefix || prefix === DEFAULT_PREFIX) return localPath
+  return localPath.replace(/\.json$/, `.${prefix}.json`)
+}
+
+const localFor = localDocPath
 
 /** What kind of store a ref names, for the boot banner and `GET /db`. */
 export const storeKind = (ref) => (parseS3Ref(ref) ? 's3' : 'file')

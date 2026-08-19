@@ -19,7 +19,7 @@ export type NavKey =
   | 'ask'
   | 'reports'
   | 'sources'
-  | 'catalogue'
+  | 'catalog'
   | 'graph-builds'
   | 'graph-studio'
   | 'what-if'
@@ -100,9 +100,9 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'Build & Configure',
   },
   {
-    key: 'catalogue',
-    label: 'Data Catalogue',
-    path: '/catalogue',
+    key: 'catalog',
+    label: 'Data Catalog',
+    path: '/catalog',
     icon: TableOutlined,
     group: 'Build & Configure',
   },
@@ -169,3 +169,15 @@ export const NAV_ITEMS: NavItem[] = [
   // Dev tool — routed, reachable by URL only.
   // { key: 'db', label: 'Mock Data', path: '/db', icon: BuildOutlined, group: 'Build & Configure' },
 ]
+
+/**
+ * Where a sign-in with no particular destination lands, and where a bare `/` goes.
+ *
+ * Here rather than in either reader, because both are route decisions and each used to hold its own
+ * copy — two answers to "where does no particular page go" send a fresh sign-in and a bare `/` to
+ * different places. In `nav.ts` rather than `routes.tsx` so `LoginPage` can read it without the two
+ * modules importing each other.
+ *
+ * Dataset-relative: `appPath` and `DatasetRedirect` put the selected dataset's letter on the front.
+ */
+export const LANDING = '/ask'

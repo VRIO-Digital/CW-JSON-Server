@@ -6,7 +6,8 @@ import NoSourceConnected from './NoSourceConnected'
 import StatusTag from './StatusTag'
 import ConnectorIcon from './ConnectorIcon'
 import { SP } from '../theme'
-import '../pages/NewGraphPage.css'
+import '../pages/NewGraphPage.css'
+import { appPath } from '../api/dataset'
 
 /*
  * Step 4 of New Graph: which connected sources feed the graph, and how much of
@@ -92,7 +93,7 @@ export default function SourcesStep({
                 and entities a graph reasons over, so there is nothing to point this
                 use case at yet.
               </div>
-              <Link to="/catalogue">
+              <Link to={appPath('/catalogue')}>
                 <Button type="primary" size="small">
                   Open the Data Catalogue to profile a source
                 </Button>

@@ -1,7 +1,9 @@
 import { App, Button, Form, Input, Typography } from 'antd'
 import { Navigate, useLocation, useNavigate, type Location } from 'react-router-dom'
+import { appPath, currentDataset } from '../api/dataset'
 import { useAuthStore } from '../store/authStore'
 import './LoginPage.css'
+import { LANDING } from '../nav'
 
 interface LoginFields {
   email: string
@@ -18,7 +20,7 @@ interface LoginFields {
  * The `/` index redirect in `routes.tsx` points at the same place, so the two cannot disagree about where
  * "no particular page" means.
  */
-const LANDING = '/ask'
+
 
 /**
  * The only page outside the app shell — no sidebar, because there is nothing
@@ -47,16 +49,22 @@ export default function LoginPage() {
 
   const identity = useAuthStore((s) => s.identity)
   const signingIn = useAuthStore((s) => s.signingIn)
+
+  /* The dataset the next request will carry — see the note beside where it is printed. */
+  const dataset = currentDataset()
   const login = useAuthStore((s) => s.login)
 
   /*
-   * Where signing in lands: `LANDING`, unless the visitor was bounced off somewhere.
+   * Where signing in lands: the selected dataset's landing page, unless the visitor was bounced off
+   * somewhere.
    *
    * A **fallback, not an override** — a protected page redirects here with its own location in
-   * `state.from`, and going back there is the whole reason that state exists.
+   * `state.from`, and going back there is the whole reason that state exists. That location already
+   * carries a dataset segment if it had one, and `DatasetPathGate` corrects it if it does not, so this
+   * only has to prefix its own default.
    */
   const destination = () =>
-    (location.state as { from?: Location } | null)?.from?.pathname ?? LANDING
+    (location.state as { from?: Location } | null)?.from?.pathname ?? appPath(LANDING)
 
   // Already signed in — a direct visit to /login should not re-collect one.
   if (identity) {
@@ -113,6 +121,17 @@ export default function LoginPage() {
             Sign in
           </Button>
         </Form>
+
+        {/*
+          * **Which dataset this sign-in lands in.** A dataset change signs the reader out, so the
+          * login is the first screen after one — and coming back to an unlabelled form, then finding
+          * a different console behind it, reads as the app having lost the switch. Read from the
+          * client-held selection rather than the server: it is what the next request will carry, and
+          * naming anything else here would be a claim the first page then contradicts.
+          */}
+        <Typography.Text className="login-dataset">
+          Signing in to the <strong>{dataset}</strong> dataset. Change it in Settings once you are in.
+        </Typography.Text>
 
         <Typography.Text type="secondary" className="login-note">
           A persona demo, not a user directory. Your persona comes from the user list in Settings — sign

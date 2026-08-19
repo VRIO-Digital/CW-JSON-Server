@@ -3,6 +3,7 @@ import { Button, Drawer, Grid, Layout, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
+import { splitDatasetPath } from './api/dataset'
 import { NAV_ITEMS } from './nav'
 import './App.css'
 
@@ -29,7 +30,7 @@ export default function App() {
    * place, `visibleNavItems`, and this is not it.
    */
   const activeLabel =
-    NAV_ITEMS.find((item) => pathname.startsWith(item.path))?.label ??
+    NAV_ITEMS.find((item) => splitDatasetPath(pathname).rest.startsWith(item.path))?.label ??
     'ContextWeave'
 
   return (
@@ -74,6 +75,12 @@ export default function App() {
           </Layout.Header>
         ) : null}
 
+        {/*
+          * No dataset key here, deliberately. Changing the dataset signs the reader out and reloads
+          * the document (see `datasetStore.switchDataset`), which reconstructs every module — an
+          * `<Outlet>` key remounted the components and left the module-level stores holding the
+          * previous dataset's rows, which is a mechanism that looks like a guarantee and is not one.
+          */}
         <Layout.Content className="app-content">
           <Outlet />
         </Layout.Content>

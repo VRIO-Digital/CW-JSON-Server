@@ -1,0 +1,102 @@
+/*
+ * Settings → Dataset.
+ *
+ * Every margin, padding and gap comes from the `--sp-*` scale in `index.css` — the rule for
+ * everything authored in this repo, the two vendored stylesheets excepted.
+ *
+ * The theme sets `Card.bodyPadding: 0`, so a card here states its own padding on head and body from
+ * one block — a body at 0 beside a head at antd's default leaves the content flush against the left
+ * edge while the title sits 24px in.
+ */
+
+.dspanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding-top: var(--sp-2);
+}
+
+.dspanel-card .ant-card-head,
+.dspanel-card .ant-card-body {
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.dspanel-lead.ant-typography {
+  max-width: 74ch;
+  margin-bottom: var(--sp-4);
+  color: #475467;
+}
+
+.dspanel-control {
+  width: 100%;
+}
+
+.dspanel-field {
+  display: block;
+}
+
+.dspanel-label.ant-typography {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #98a2b3;
+  margin-bottom: var(--sp-1);
+}
+
+.dspanel-select {
+  min-width: 260px;
+}
+
+.dspanel-opt {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.dspanel-opt-name {
+  font-weight: 600;
+}
+
+.dspanel-opt-detail {
+  font-size: 11px;
+  color: #667085;
+  /* The label renders inside a flex control, so the ellipsis needs its own span — see CLAUDE.md. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * An empty dataset is a state, not a fault: it dims rather than taking a status colour. `warn` and
+ * `crit` are reserved for state, and "nothing in it yet" is news.
+ */
+.dspanel-opt-detail.is-empty {
+  font-style: italic;
+  color: #98a2b3;
+}
+
+.dspanel-note,
+.dspanel-error {
+  max-width: 68ch;
+}
+
+.dspanel-error {
+  margin-top: var(--sp-3);
+}
+
+.dspanel-ref {
+  font-size: 11px;
+  color: #475467;
+  word-break: break-all;
+}
+
+/* An unpopulated dataset, stated on its row. Dim and italic, never a status colour. */
+.dspanel-empty.ant-typography {
+  font-size: 11px;
+  font-style: italic;
+  color: #98a2b3;
+}

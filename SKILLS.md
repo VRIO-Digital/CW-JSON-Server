@@ -718,10 +718,25 @@ component
   └─ useXStore((s) => s.field)          selects narrowly; stable refs from selectors
        └─ store.load()                   try/catch lives here; sets { data | error }
             └─ client.fn()               fetch + snake→camel mapping
-                 └─ validate(schema)     rejects at the boundary, names the path
-                      └─ /api proxy      Vite strips /api
-                           └─ server.mjs
+                 └─ request()            adds x-dataset: EPA | CAPEX | both
+                      └─ validate(schema)  rejects at the boundary, names the path
+                           └─ /api proxy   Vite strips /api
+                                └─ server.mjs
+                                     └─ withDataset(...)   picks the document
+                                          └─ db.<key>      a Proxy over that one
 ```
+
+**Which dataset answered is decided at both ends and nowhere in between.** `request()` is the only
+sender of the header and the dispatcher is the only reader of it, so no store, page or endpoint
+carries a dataset argument. An unrecognised value is a 400 naming the pool, and every non-GET is
+refused while `both` is selected.
+
+**Changing it is Settings → Dataset → confirm → signed out.** The confirmation names both datasets
+(`src/data/datasetSwitch.ts`, interpolated so it cannot name the wrong move) and states the sign-out;
+OK persists the choice, drops the identity and reloads to `/login`. The reload is the point: zustand
+stores are module-level singletons, so remounting the page tree would have left them holding the
+previous dataset's rows. Signing back in reads the persisted selection — its `localStorage` key is not
+the identity's — and the login names the dataset it is signing into.
 
 Failure modes and what the user sees:
 

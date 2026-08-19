@@ -55,7 +55,8 @@ import {
   type WizardDraft,
 } from '../data/wizardSteps'
 import { SP } from '../theme'
-import './NewGraphPage.css'
+import './NewGraphPage.css'
+import { appPath } from '../api/dataset'
 
 /*
  * The last step — the coverage review, and the build gate.
@@ -439,11 +440,11 @@ export default function NewGraphPage() {
     if (!started.ok) {
       // The brief *is* committed; saying otherwise would be worse than the failure.
       message.warning(`Saved and committed, but the build did not start: ${started.error}`)
-      navigate(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`)
+      navigate(appPath(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`))
       return
     }
     message.success('Built — watch the pipeline in Graph Studio.')
-    navigate(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`, {
+    navigate(appPath(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`), {
       state: { tab: 'build' },
     })
   }

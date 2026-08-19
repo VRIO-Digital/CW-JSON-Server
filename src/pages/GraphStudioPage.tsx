@@ -32,7 +32,8 @@ import {
 } from '../store/graphStudioStore'
 import { SP } from '../theme'
 import type { Stat } from '../types'
-import './GraphStudioPage.css'
+import './GraphStudioPage.css'
+import { appPath } from '../api/dataset'
 
 export default function GraphStudioPage() {
   const { message } = App.useApp()
@@ -161,7 +162,7 @@ export default function GraphStudioPage() {
   }, [outputReadable, tab])
 
   const back = (
-    <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/graph-studio')}>
+    <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(appPath('/graph-studio'))}>
       All graphs
     </Button>
   )
@@ -359,7 +360,7 @@ export default function GraphStudioPage() {
    * avoid. The viewer brings its own inspector, so the studio's `NodeInspector` column is
    * gone with it rather than sitting beside a panel that says the same things.
    */
-  const fullViewHref = `/graph-studio/${encodeURIComponent(useCaseId ?? '')}/canvas`
+  const fullViewHref = appPath(`/graph-studio/${encodeURIComponent(useCaseId ?? '')}/canvas`)
 
   const canvasTab =
     canvasLoading && !canvas ? (

@@ -16,8 +16,9 @@ npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
 npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
 npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
 npm run seed:settings   # re-authors mock-server/settings.json — users and persona navigation
+npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secondary dataset
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
-npm run db:push     # upload mock-server/db.json + settings.json to S3 (needs S3_BUCKET)
+npm run db:push     # upload mock-server/db.json + settings.json to S3 (add -- CAPEX for that dataset)
 npm run db:pull     # the other direction — overwrite the local copies from the bucket
 npm run verify:sigv4 # checks the S3 signing against AWS's published vector; no network needed
 npm run verify:export # checks the report HTML/CSV renderers; pure, so no bucket needed
@@ -47,7 +48,14 @@ production build without breaking development.
 
 Two things the direct cross-origin call depends on, both already true: the mock
 server sends `access-control-allow-origin: *` on every response including the
-`OPTIONS` preflight, and the deployed server answers on **4000, not 80**. It is
+`OPTIONS` preflight, and the deployed server answers on **4000, not 80**. It also
+**allows every custom request header the client sends** — `x-dataset` names the dataset, and only
+four request headers are CORS-safelisted, so any other one makes the request *preflighted* and the
+browser blocks it unless the `OPTIONS` reply lists it. Adding a header in `client.ts` without adding
+it to `access-control-allow-headers` breaks **every** call in the browser with `Failed to fetch`,
+while `curl` keeps answering 200 because it does not enforce CORS. `DATASET_HEADER` in
+`datasets.mjs` is the one declaration, both reply paths interpolate it, and `check-docs` asserts the
+client's literal and the server's allow-list are the same string. It is
 also plain HTTP — an `https://` page cannot call it at all, so serving the SPA
 over TLS means putting a proxy in front and setting `VITE_API_BASE=/api`.
 
@@ -184,6 +192,149 @@ path is a file, `s3://bucket/key` is an object.
 |---|---|---|
 | default, and the deployed box | `s3://contextweave.com/EPA/db.json` | signed `GetObject` / `PutObject` |
 | `S3_BUCKET=off` | `mock-server/db.json` | `readFile`, and temp-file + rename on write |
+
+### Two datasets, and one process holds both
+
+**The tenant has two datasets, and a prefix is what one is.** `EPA/` is the primary and holds
+everything described below; `CAPEX/` is the second, created and seeded but not yet populated.
+`mock-server/datasets.mjs` owns which one a request is reading — `store.mjs` still owns only how
+bytes move, and `server.mjs` still owns only what a document means.
+
+| selector | what it reads | writes |
+|---|---|---|
+| `EPA` (default) | `s3://contextweave.com/EPA/db.json` | yes |
+| `CAPEX` | `s3://contextweave.com/CAPEX/db.json` | yes |
+| `both` | the two merged, per `MERGE_PLAN` | **refused** |
+
+**Every dataset is loaded at boot and a request picks one**, by `?dataset=` or the `x-dataset`
+header, defaulting to the primary. The prefix used to be read from the environment once at module
+load, which made a dataset a property of the *process*: a second one meant a second server, and
+`both` was not expressible at all. The selection now travels in an `AsyncLocalStorage` scope entered
+by the dispatcher — the one place a request begins — and `db` is a **Proxy** over "the document this
+request selected". That is why the ~280 `db.<key>` reads in `server.mjs` are untouched and still mean
+what they always meant; threading a request through `reportView`, `studioItems` and `whatifView`
+would have edited most of the file to say one thing.
+
+**An unrecognised selector is a 400 naming the ones that exist**, never a quiet fall back to EPA —
+serving one dataset's figures under another's name is the single failure this split exists to
+prevent. Case is not significant.
+
+**`both` is a reading view, and it refuses writes at the write rather than by the verb.** A merged
+document has no file behind it and a merged live container is a snapshot, so a write would either land
+on a throwaway or have to invent which dataset the row belonged to. Two places refuse, each naming the
+fix: `commitDb` for the document, and every live container for a mutation (`readOnly` wraps the merged
+value and throws on `set`/`push`/…).
+
+**It began as "refuse every non-GET" in the dispatcher, and that was wrong, because most reads in this
+API are POSTs.** `/auth/login` is a lookup, `/ask` is a query, `/whatif/scenario` computes and stores
+nothing, `/reports/build` re-asks a question, `/graph-coverage` walks the profiled objects — a method
+check refused all of them. The one that mattered was login: switching to `both` signs the reader out,
+so a refused login made `both` a state they could never leave. Do not reintroduce a verb check;
+`check-docs` asserts its absence. The Dataset panel states the restriction where the switch is, so it
+does not arrive as a toast from a page the reader did not know was scoped.
+
+**`MERGE_PLAN` states per key what `both` does, and a key it says nothing about stops the boot.**
+Inferring from the value's type would be wrong in both directions: `auth_roles` and
+`column_vocabulary` are both arrays and neither unions (one is the identity pool, the other a
+synthesis vocabulary), while `audit`, `traces` and `evals` are objects holding arrays *and* the
+totals computed over them. The decision on record is **EPA wins every single-valued key** — identity,
+the account, the What-if frame, the section vocabularies — and only genuine collections union
+(projects, drives, graphs, report definitions, canvas nodes and edges, recorded answers). A key with
+no rule would drop out of the merged document, which `validateDb` never sees because it validates the
+two real documents rather than the view built from them; the symptom is a page that works under EPA
+and is empty under `both`, read as "CAPEX has no data".
+
+**The in-memory state is per dataset, because none of it is keyed by dataset.** A registration is
+keyed by source id, a studio decision by `useCaseId:itemId`, a publication by `useCaseId:sha256` — so
+one shared `Map` would show an EPA registration while CAPEX was selected. All twelve containers are
+declared once in `LIVE_SHAPE` and resolved through `liveContainer`, so the call sites are unchanged.
+
+**`settings.json` has no dataset.** It holds the users and each persona's navigation, which is the
+tenant's rather than a dataset's — the same reason it is absent from `MERGE_PLAN` and a secondary
+dataset has no copy of it. `npm run db:push -- CAPEX` therefore pushes that dataset's `db.json`
+alone, and asking for settings under a secondary dataset is refused rather than silently ignored.
+
+**A secondary dataset is seeded, not left empty, and `npm run seed:dataset -- CAPEX` writes it.**
+"Empty" is not a document: `validateDb` requires 25 keys and checks inside most of them, and the two
+obvious ways out are both wrong — seeding CAPEX with EPA's rows shows EPA's figures under CAPEX's
+name, and leaving it invalid stops the server booting. The seed writes the third thing, the primary's
+*structure* with the primary's *rows* removed, and it decides which is which by reading `MERGE_PLAN`
+rather than a second list of its own. It writes a file only, like every other seed here, so the flow
+is: seed, check the diff, `npm run db:push -- CAPEX`.
+
+**So `validateDb` permits an empty collection in a secondary dataset, and nowhere else.** Fourteen
+keys are required non-empty and every one of those rules is right for EPA — a document that came back
+with no projects or no profiles has lost data no route touched. A dataset that is deliberately empty
+is a different fact, so `empty` is true only when the selected dataset is not the primary. Nothing
+else is relaxed: a row that *is* present is checked exactly as strictly, so a malformed CAPEX project
+is still a refusal.
+
+**On the client, the selection is sent from one place and the pool is served from another.** The
+value lives in `src/api/dataset.ts` beside the fetcher that sends it — not in a store, because
+`request()` must read it at module scope for the very first call, before anything has hydrated — and
+it is persisted to `localStorage` under its own key, which `logout()` does not touch. `GET /datasets`
+supplies the options, never a list written into `DatasetPanel`, and each row states what it holds so
+an unpopulated dataset reads as empty rather than as a page that failed. That "no data yet" is on the
+**row** as well as in the select, because a select renders its options through a portal: in the
+dropdown alone it was visible only after opening the control, leaving a reader to infer an empty
+dataset from a line of zeros.
+
+**Changing the dataset is administered in Settings, confirmed in words, and ends the session.** It is
+not a view toggle, and the three parts are one act:
+
+- **Settings → Dataset**, not the sidebar. A control that signs you out does not belong beside the
+  page links, one mis-click away; Settings is where the things that reconfigure the console already
+  are. The panel also lists what each dataset holds, which is the answer to both "did my switch work"
+  and "why is CAPEX empty".
+- **A confirmation naming both datasets**, from `src/data/datasetSwitch.ts` — copy rather than markup
+  for the reason `sourceActions` is (a `Modal` portals out of `renderToString`), and interpolated from
+  the two names so the CAPEX dialog can never ask about EPA. It states the sign-out, because that is
+  the one consequence a reader cannot undo by switching back. The select's `onChange` only opens the
+  dialog; nothing changes until OK.
+- **Then sign out and reload**, in that order after persisting: `setCurrentDataset` → `logout()` →
+  `window.location.assign('/login')`. Persisting first is what makes the choice survive the reload;
+  doing it after would race the navigation, and losing it would bring the app back on the dataset the
+  reader had just left with a sign-out to show for it.
+
+**The reload is the mechanism, and it replaced an `epoch` counter used as the `<Outlet>` key.** That
+key remounted the *components* and left the module-level zustand stores holding the previous
+dataset's rows — stores are singletons, so unmounting the page tree does not clear them. A guarantee
+in appearance only. A full document reload constructs every module again, so nothing can carry a row
+across, and signing out is honest besides: the persona was resolved against the tenant directory, and
+every registered source, profiling job, studio decision and publication in the mock server's memory
+belongs to the dataset it was made under.
+
+**The dataset's letter is the first segment of every in-app URL** — `/E/sources`, `/C/reports`,
+`/B/ask` — so the address says which dataset the page is showing. `datasetSegment` takes the first
+letter and capitalises it; `appPath` puts it on the front of every `navigate`, `Link` and `href` that
+points inside the app, so it cannot be present on most routes and missing on one. `NAV_ITEMS` keeps
+its canonical paths (`/sources`) and the sidebar prefixes them at render, because a prefix baked into
+the nav table would be a second place the dataset lives and stale the moment it changed. `/login` and
+`/login/data` stay unprefixed: they are the addresses that exist without a dataset.
+
+**The selection is the authority and the URL is its rendering — which is backwards for a URL, and
+deliberate.** `DatasetPathGate` sits at `/:ds` and *corrects* a segment that is wrong or missing
+rather than adopting it: `/C/sources` under EPA becomes `/E/sources`, and an old unprefixed
+`/sources` becomes `/E/sources` too. Adopting it would make the URL a second way to change dataset —
+one that skips the confirmation and the sign-out, and that would leave the letter disagreeing with the
+`x-dataset` header every request carries. A single-character first segment is the dataset segment and
+anything longer is route, which is what tells those two repairs apart; search and hash ride along,
+since they belong to the page rather than the prefix.
+
+**One letter is unambiguous only while the initials differ.** `EPA`, `CAPEX` and `both` give `E`, `C`
+and `B`; a third dataset starting with one of those would share an address and the URL would name
+neither, so `check-docs` asserts the letters are distinct rather than leaving it to be discovered.
+
+**The correction is a pure function (`datasetPathFix`), and the gate only renders it.** `<Navigate>`
+navigates in a `useLayoutEffect`, which `renderToString` never runs — a test that mounted the route
+table and read the router's location reported *every* redirect as broken, `RequireAuth`'s included.
+The decidable part lives where it can be asserted, for the same reason a `Modal`'s copy lives in
+`src/data/`.
+
+**And the login says which dataset it will sign into.** A switch drops the reader there, so an
+unlabelled form followed by a different console reads as the app having lost the switch. It is read
+from the client-held selection rather than the server, because that is what the next request will
+carry.
 
 **The address is committed; the credentials are not, and that split is the rule.** `DEFAULT_BUCKET`,
 `DEFAULT_PREFIX` and `DEFAULT_REGION` are hardcoded in `store.mjs` because a bucket name and a key
@@ -1418,6 +1569,67 @@ list**, and `check-docs` asserts it holds nothing but those two vendored paths: 
 authored in this repo joins it, and "vendored" cannot come to mean "inconvenient to
 convert".
 
+**A published report opens out of the Library, and the Library is the only list.** The Library already
+lists every governed definition with an **Open report** button; that button hands the report id to the
+host and the rendered report replaces the prototype until Back. This was briefly a switch at the top of
+the page between a card grid of the five and the prototype — two lists of the same definitions, which is
+two answers to "what reports exist", so the grid was deleted rather than kept beside it.
+
+**`Open report` and `Edit report` therefore stop being the same act**, which is what their labels always
+claimed: Open reads the published report — the tenant's figures, in the format its audience sees — and
+Edit loads the authoring definition behind the row. The prototype learns this through one optional
+callback (`onOpenPublished`, the fourth in the same shape as `actions`); absent it, the folder standing
+alone behaves exactly as it did.
+
+**Which means a report with no governance row cannot be opened.** The Library lists governed rows, so a
+definition missing one is absent from the only list — `governance.ungoverned` names it above the grid with
+the `npm run seed:governance` command that restores it, and that notice is now load-bearing rather than
+informational.
+
+**The reports themselves are the tenant's five, rendered.** `src/07_reports/Report_N_*.html` are the
+tenant's *rendered* reports; their layout is now React — crumb, heading and badge, the lead note, four
+summary tiles, the facet bar, a card per block, then the footnotes — in `src/components/report/`
+(`PublishedReport`, `ReportBlocks`, `PublishedReports`) over `reportsStore`. **Their figures did not
+come across.** Every number is `reportView`'s, computed per request from `db.reports` in
+`s3://contextweave.com/EPA/db.json`; pasting a rendered figure into a component is the one change that
+would break the section's premise while looking right on screen, so `check-docs` asserts no component
+here does arithmetic.
+
+Three things the HTML did that deliberately did not come across:
+
+- **Chart.js from a CDN.** Charts are `AnswerChart` — the server emits a report's chart in the answer
+  shape so one component draws both, which is why an answer and a report cannot come to disagree about
+  what a bar means. Transcribing a `<script src="cdn…">` would widen the dependency surface by
+  accident, through a gate that fails on any advisory at `low`.
+- **Its filter chips as controls.** The facets are rendered and they *state* the frame the report was
+  built under; they do not re-ask it. `POST /reports/build` takes a frame and still has no caller, so a
+  chip that looked clickable would promise a slice that never runs — the same declared-not-applied line
+  the horizon and the persona data scopes draw.
+- **Its `*{margin:0;padding:0}` reset and its own palette.** Authored CSS here is ordinary scoped rules
+  on the `--sp-*` scale; an unscoped reset is exactly what the vendored prototype's sheet had to be
+  scoped under `.cw-reports` to contain.
+
+**Alignment is declared, not sniffed.** A report column states its `kind`, so a penalty column is
+right-aligned because the field dictionary says it is numeric — never because every cell in this slice
+happened to parse as a number, which is how one report right-aligns a column another leaves ragged.
+Both the header and the cell read that one flag.
+
+**A custody chain renders in order.** A trace's transporters are a list, joined with arrows: "an order
+laid into a cell reads as a set", and a comma is exactly that mistake.
+
+**The store keeps the requested id beside the report.** Opening one report and then another before the
+first returns would otherwise leave the slower reply on screen under the newer heading — one report's
+tiles below another's title, which reads as data rather than as a race.
+
+**And it is still one route.** `/reports` is one address; the section that had a page per report was
+removed when the prototype was vendored in, and re-adding five URLs would undo that as a side effect.
+Which report is open is `openId` in the store.
+
+**The authoring prototype is otherwise unchanged and still there.** It owns its three tabs and draws its
+own bundled sample data everywhere except that one button, and only one of the two is mounted at a time —
+it installs a toast host and a popover host that portal to `document.body`, and two of each would leave a
+menu opening against the wrong one, which is how Delete came to look like a dead button once already.
+
 **The gate is the only thing on the page that is real.** The section opens once a graph is
 published — the same precondition Ask and the What-if lens have, stated by the same
 `NoPublishedGraph` component — and `GET /reports` is called for `published_count`,
@@ -1847,8 +2059,13 @@ names at least one, so the refusal points at unpublish instead.
 
 ### Settings (`/settings`)
 
-Two tabs — **Add User** and **Persona Configuration** — over `SettingsPage` → `settingsStore` →
+Three tabs — **Add User**, **Dataset** and **Persona Configuration** — over `SettingsPage` → `settingsStore` →
 `GET /settings`, served from **`mock-server/settings.json`**.
+
+**The Dataset tab is the one that is not about `settings.json`.** It administers which dataset 
+the whole console reads — see *Two datasets* above — and it is here because confirming it signs the 
+reader out, which is a reconfiguration rather than navigation. Nothing on it is written to 
+`settings.json`: the selection is client-held, and the pool comes from `GET /datasets`.
 
 **It has its own small database, separate from `db.json`.** That file is the tenant's data — sources,
 profiles, the graph, the reports; this one holds only what this page administers: the users, each
@@ -1979,7 +2196,7 @@ current user.
 
 ### State (`src/store/`)
 
-zustand. Eleven modules (plus `asyncState.ts`, the shared machinery): `authStore`
+zustand. Thirteen modules (plus `asyncState.ts`, the shared machinery): `authStore`
 (who is signed in — the one module persisted to `localStorage`, everything else
 is server-derived), `sourcesStore`, `catalogueStore` (browse / columns /
 document browse / documents / jobs — plus `signals`, which nothing reads since
@@ -2140,6 +2357,12 @@ history. They are separate so tests can mount the table on a memory router.
 `src/nav.ts` drives the sidebar — **`/db` is routed but commented out of
 `NAV_ITEMS`**, so it is reachable by URL only. Adding a nav item means adding to
 both `NavKey` and `NAV_ITEMS`.
+
+**Every in-app route lives under the dataset's letter** — `/:ds` is a layout route holding
+`DatasetPathGate`, and the pages are relative to it, so `/sources` is really `/E/sources`. See *Two
+datasets* above for why the letter is derived from the selection rather than read from the URL. The
+paths named throughout this file are the canonical ones without the segment, which is also how
+`NAV_ITEMS` states them.
 
 **`/login` sits outside `RequireAuth`, and everything else sits inside it.**
 The route table wraps the whole `/` tree — `App` and every page under it — in a
@@ -2553,6 +2776,13 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   below four new claims that used it, and a `const` in the temporal dead zone would have
   killed the run before its summary — which is the "claim total stops moving" failure,
   where every break test reports MISSED and correct guards look broken.
+- **A custom request header is a CORS decision, and `curl` cannot see it.** Only four request
+  headers are safelisted; any other makes a cross-origin request preflighted, and the browser blocks
+  it unless the `OPTIONS` reply names it in `access-control-allow-headers`. Adding `x-dataset` to
+  `request()` broke every call in the browser (`TypeError: Failed to fetch`) while every server-side
+  test still passed 200 — and it bites hardest where the app calls the server on another origin,
+  which is both the deployed setup and any dev setup whose `VITE_API_BASE` is an origin rather than
+  `/api`. Two reply paths need it: `send` and `sseOpen`.
 - **antd v6 renamed props** — read the installed `.d.ts`; do not assume v5.
 - **Selectors must return stable references.** `data?.x ?? []` allocates every
   render and defeats downstream memos; use a module-level constant.

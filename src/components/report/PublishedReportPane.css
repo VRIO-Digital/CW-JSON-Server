@@ -1,0 +1,11 @@
+/*
+ * The frame around one opened report. `--sp-*` throughout, like everything authored here.
+ */
+
+.prp {
+  padding-top: var(--sp-2);
+}
+
+.prp-back {
+  margin-bottom: var(--sp-4);
+}

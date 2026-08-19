@@ -1,6 +1,9 @@
-import { Navigate, type RouteObject } from 'react-router-dom'
+import type { RouteObject } from 'react-router-dom'
 import App from './App'
+import DatasetPathGate from './components/DatasetPathGate'
+import DatasetRedirect from './components/DatasetRedirect'
 import RequireAuth from './components/RequireAuth'
+import { LANDING } from './nav'
 import AskPage from './pages/AskPage'
 import AuditPage from './pages/AuditPage'
 import CataloguePage from './pages/CataloguePage'
@@ -59,6 +62,21 @@ export const routes: RouteObject[] = [
 
     children: [
       /*
+       * ---------------- the dataset is the first segment of every in-app URL ----------------
+       *
+       * `/E/sources`, `/C/reports` — the selected dataset's first letter, so the address says which
+       * dataset the page is showing. `DatasetPathGate` renders at `/:ds` and corrects a URL whose letter
+       * is wrong or missing; the selection is the authority and the URL is its rendering, because
+       * adopting a typed letter would change dataset without the confirmation and sign-out that make
+       * the switch safe.
+       *
+       * `/` has no segment to match, so it redirects on its own — through a component rather than a
+       * `<Navigate>` built here, since the table is constructed once at module load and would freeze
+       * the dataset selected at that moment.
+       */
+      { path: '/', element: <DatasetRedirect to={LANDING} /> },
+
+      /*
        * The canvas with the whole window, opened in a new tab by the **Full view**
        * button on the studio's Canvas tab.
        *
@@ -73,17 +91,26 @@ export const routes: RouteObject[] = [
        * otherwise match `graph-studio/x/canvas`'s parent segment and the studio page
        * would win.
        */
-      { path: '/graph-studio/:useCaseId/canvas', element: <GraphCanvasFullPage /> },
-
       {
-        path: '/',
-        element: <App />,
+        path: '/:ds',
+        element: <DatasetPathGate />,
 
         children: [
-          /* The same landing page the login falls back to — Ask, what the console is for. Kept in step
-             with `LANDING` in `LoginPage`; two answers to "where does no particular page go" would send a
-             fresh sign-in and a bare `/` to different places. */
-          { index: true, element: <Navigate to="/ask" replace /> },
+          { path: 'graph-studio/:useCaseId/canvas', element: <GraphCanvasFullPage /> },
+
+          {
+            /*
+             * Pathless, so its children's paths are relative to `/:ds` and the shell is one level of
+             * nesting rather than a second path to keep in step. The same layout-route shape
+             * `RequireAuth` uses above.
+             */
+            element: <App />,
+
+            children: [
+          /* The same landing page the login falls back to — Ask, what the console is for. `LANDING` is
+             declared once here and imported by `LoginPage`; two answers to "where does no particular page
+             go" would send a fresh sign-in and a bare `/` to different places. */
+          { index: true, element: <DatasetRedirect to={LANDING} /> },
           { path: 'sources', element: <SourcesPage /> },
           { path: 'new-graph', element: <NewGraphPage /> },
           // The studio lists built graphs; a graph's own review lives under its id.
@@ -123,6 +150,8 @@ export const routes: RouteObject[] = [
           { path: 'validation', element: <ValidationPage /> },
           { path: 'db', element: <DbEditorPage /> },
           { path: '*', element: <NotFoundPage /> },
+            ],
+          },
         ],
       },
     ],

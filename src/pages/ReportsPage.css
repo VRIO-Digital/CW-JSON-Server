@@ -696,3 +696,11 @@
   color: var(--dim);
   font-size: 11.5px;
 }
+
+/*
+ * The switch between the tenant's published reports and the vendored authoring prototype. Its own rule
+ * here rather than in the prototype's sheet, which carries a do-not-hand-edit note.
+ */
+.rp-view {
+  margin-bottom: var(--sp-4);
+}

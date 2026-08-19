@@ -2,6 +2,7 @@ import { App, Spin, Tabs } from 'antd'
 import { useEffect, useState } from 'react'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import PageHeader from '../components/PageHeader'
+import DatasetPanel from '../components/DatasetPanel'
 import PersonaPermissionsPanel from '../components/PersonaPermissionsPanel'
 import UsersPanel from '../components/UsersPanel'
 import { useAuthStore } from '../store/authStore'
@@ -101,6 +102,16 @@ export default function SettingsPage() {
             children: (
               <UsersPanel users={data?.users ?? []} signedInEmail={identity?.email ?? null} />
             ),
+          },
+          {
+            /*
+             * Which dataset the console reads. In Settings rather than the sidebar because it is not
+             * navigation: confirming it signs the reader out, and a control that ends the session does
+             * not belong one mis-click away from the page links.
+             */
+            key: 'dataset',
+            label: 'Dataset',
+            children: <DatasetPanel />,
           },
           {
             key: 'personas',

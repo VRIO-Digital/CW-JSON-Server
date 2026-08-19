@@ -2935,3 +2935,283 @@ ordering encodes depth, every ink sitting on a colour that is itself changing, a
 assumed which direction "fainter" runs. `docs`-side, the earlier failure here was the same mistake in
 the opposite direction — reusing one ground's hues on the other — and the guard that catches both is
 the one that reads the ground from the source instead of restating it.
+
+---
+
+## A prefix read once at module load makes a dataset a property of the process
+
+**2026-08-19.** Adding a second tenant dataset (`CAPEX/` beside `EPA/`) looked like passing a
+different `S3_PREFIX`. It was not, and the reason is where the prefix was read: `docRef` read
+`process.env.S3_PREFIX` itself, and `server.mjs` called it once at module load. So the dataset was a
+property of the **process** — a second dataset meant a second server, and `dataset=both` could not be
+expressed at all, because no single process held two documents to merge.
+
+The prefix is an *argument* now and every dataset is loaded at boot. Four things this cost, each of
+which had to be found rather than predicted:
+
+**282 `db.<key>` reads, and threading a request through all of them would have edited most of the
+file to say one thing.** `reportView`, `studioItems`, `whatifView` and dozens of helpers read `db`
+without any notion of a request. `db` is a `Proxy` over "the document this request selected" instead,
+resolved through an `AsyncLocalStorage` scope the dispatcher enters. Every read is unchanged. The
+proof it is transparent: six endpoints' payloads are **byte-identical** to the pre-change process for
+EPA, and `GET /db` returns the same 189-node canvas and 40 recorded answers.
+
+**Twelve in-memory containers, none of them keyed by dataset.** `registered` is keyed by source id,
+`studioDecisions` by `useCaseId:itemId`, `studioPublishedBy` by `useCaseId:sha256`. Every one would
+have shown an EPA registration under CAPEX — and *answered* rather than thrown. They resolve per
+dataset now, declared once in `LIVE_SHAPE`.
+
+**"Empty" is not a document.** `validateDb` requires 25 keys and checks inside most of them, so a
+genuinely empty `CAPEX/db.json` refuses to boot — and both obvious ways out are worse. Seeding it with
+the primary's rows shows EPA's figures under CAPEX's name, which is the one confusion the split
+exists to prevent; leaving it invalid stops the server. `npm run seed:dataset` writes the third thing,
+the primary's structure with the primary's rows removed, and emptiness is permitted in `validateDb`
+**only for a non-primary dataset** — nothing else is relaxed.
+
+**Two `validateDb` cross-key checks read `rows[0]` and threw on an empty roster.** `whatif`'s field
+check and `reports`' column check both derive the available fields from the first row, so a seeded
+dataset crashed the boot with `Cannot convert undefined or null to object` — inside the validator
+whose whole job is to refuse a document with a sentence. Both are skipped when there is no row to read
+against, because "no generator carries this field" is a real fault with generators and a vacuous one
+without them: it would have reported one unactionable problem per watched measure.
+
+**Rule** — **when a value is read from the environment inside the layer that uses it, it is a
+property of the process, and anything wanting two of them needs a second process.** Before adding a
+"second X", find where X is *bound*, not where it is *used*: a boot-time binding turns a per-request
+concept into a deployment concept, and the tell is that the obvious feature ("show both") is not
+merely unimplemented but inexpressible.
+
+### And two guards that caught their own mistakes
+
+The boot guard `MERGE_PLAN` needed — refuse a key the plan says nothing about — earned its place
+immediately: `reports.governance.audit` was written as a union because the name says audit *trail*,
+and it is the Audit page's **copy**, including the sentence that stops the page implying a filter
+runs. Emptied, it failed the boot with "reports is the wrong shape" and forty lines of hint. A merged
+document is not what `validateDb` validates, so without this the same mistake would have surfaced as
+a page that works under EPA and is blank under `both`.
+
+A break test also reported one new claim unbreakable when it was merely weak: the seed claim matched
+`for (const [key, rule] of Object.entries(MERGE_PLAN))`, which appears **twice** in that file, so
+emptying the loop that builds the document still matched the one that checks it. Keyed on
+`seeded[key] = seedValue(rule, source[key])` now — the line that carries the fact. Same
+self-documenting-file trap already recorded several times over, in a new shape: not a comment naming
+the thing, but a *second call site* of it.
+
+
+---
+
+## A remount key clears components, not module-level stores
+
+**2026-08-19.** The dataset switch first used an `epoch` counter as the `<Outlet>` key: increment it,
+the page tree unmounts and remounts, every `useEffect` reloads. It reads like a guarantee and is not
+one — **zustand stores are module-level singletons**, so unmounting every component leaves each
+store's `data` exactly where it was. The pages would have remounted and rendered the previous
+dataset's rows until each fetch returned.
+
+The switch signs the reader out and reloads the document now, which is the only mechanism here that
+cannot half-work: every module is constructed again, so nothing can carry a row across. That is also
+the honest act rather than a workaround — the persona was resolved against the tenant directory, and
+every registered source, profiling job, studio decision and publication in the mock server's memory
+belongs to the dataset it was made under.
+
+**Rule** — **"remount" is about components; ask separately what holds the data.** Before reaching for
+a key to force a refresh, name where the stale value actually lives. If it is in a module singleton, a
+context, a closure or `localStorage`, unmounting its readers changes nothing.
+
+### Three smaller things the same change turned up
+
+**A `Select`'s options portal, so a fact stated only in the dropdown is not on the page.** Each
+dataset row carried "no data yet" in its option label — invisible until the control was opened, which
+left a reader inferring an empty dataset from a line of zeros. The same reason `Modal` and `Popconfirm`
+copy has to live in `src/data/`: what portals cannot be asserted on, and here it could not be *seen*
+either. It is on the table row now, and the smoke test caught it because the assertion was written
+against the rendered markup rather than against the options array.
+
+**Ordering claims must read `codeOnly`, not the file.** A new claim asserted
+`setCurrentDataset` appears before `logout()` before the reload — and failed against correct code,
+because the comment explaining *why* the selection is persisted first says "which `logout()` does not
+touch", 300 characters ahead of the call. Sixth time this file has been caught by a comment naming the
+thing it explains; the rule is already written down, and a claim reasoning about *position* needs it
+just as much as one asserting absence.
+
+**Persist before you navigate away.** The switch writes the selection, drops the identity, then
+reloads. Doing the write last would race the navigation, and the failure is quiet in the worst way:
+the app comes back up on the dataset the reader had just left, having signed them out to get there.
+
+
+---
+
+## A custom request header blocked every call in the browser, and curl said 200
+
+**2026-08-19.** Adding `x-dataset` to `request()` broke the app completely: the login reported
+*"Cannot reach the mock server — POST http://localhost:4000/auth/login did not complete … (Failed to
+fetch)"*, which reads as a server that is down. The server was up and answering. `curl` got a 200 from
+`/health` and a 200 from `/auth/login` with the same body it always returned.
+
+**Only four request headers are CORS-safelisted.** Any other one makes a cross-origin request
+*preflighted*, and the browser refuses to send the real request unless the `OPTIONS` reply lists that
+header in `access-control-allow-headers`. This server replied `content-type` and nothing else, so
+every request carrying `x-dataset` was blocked before it left the browser. Nothing on the server side
+could see it — a blocked request never arrives.
+
+Two things made it total rather than partial. `request()` sends the header on **every** endpoint, so
+the failure was not one page but all of them. And the app calls the server **cross-origin**: `.env`
+sets `VITE_API_BASE=http://localhost:4000`, so a different port means a different origin and CORS
+applies in development exactly as it does on the deployed box. Through the `/api` proxy the request is
+same-origin and no preflight happens at all, which is why this class of bug is invisible in the setup
+CLAUDE.md documents as the default.
+
+The header name is declared once now (`DATASET_HEADER`), both reply paths interpolate it — `send` and
+`sseOpen`, because the Ask stream is cross-origin too — and `check-docs` asserts the client's literal
+and the server's allow-list are the same string.
+
+**Rule** — **adding a request header is a server change.** Before adding one to a fetch, add it to
+the preflight, and verify in a browser rather than with `curl`: `curl` does not enforce CORS, so it
+cannot reproduce the failure and cannot confirm the fix. The tell that you are looking at CORS and not
+at a dead server is the pair *"Failed to fetch" in the browser, 200 from the command line*.
+
+### And the diagnosis that nearly went wrong
+
+The reported symptom named port 4000 and said "start it with npm run mock", and something *was*
+listening on 4000 — so the obvious reading was the documented Windows pitfall, a background server
+holding the port while wedged. It was not: `curl` proved the process was healthy in the same second.
+**When a client says "cannot reach" and the server answers a direct request, the fault is between
+them** — the origin, the proxy, or the preflight — not in either one.
+
+
+### The same change hid a second dead end: refusing writes by verb refuses the login
+
+Found one line later, in the browser-shaped replay that verified the CORS fix — `POST /auth/login`
+came back `400 POST is not available while dataset=both is selected`.
+
+`both` is a reading view, so the first implementation refused every non-GET at the dispatcher. But
+**most reads in this API are POSTs**: login is a lookup, `/ask` is a query, `/whatif/scenario` computes
+and stores nothing, `/reports/build` re-asks a question. The method check refused all of them — and
+because switching to `both` signs the reader out, the refused login made `both` a state a signed-out
+reader could never leave. The switch worked, the sign-out worked, and the app was then unreachable.
+
+The refusal is at the two things that actually write now: `commitDb` for the document, and a `readOnly`
+wrapper on each merged live container that throws on `set`/`delete`/`push`/… A pure read is answered
+whatever its verb.
+
+**Rule** — **"read-only mode" is a property of the writes, not of the HTTP method.** In an API where
+POST is used for queries, a verb check is a guess about intent, and its false positives are invisible
+until someone walks the flow. Guard the mutation; let the verb mean nothing. And **walk the flow you
+just changed** — this was not reachable by any single-request test, only by switching, being signed
+out, and trying to sign back in.
+
+
+---
+
+## A `<Navigate>` redirect cannot be observed through `renderToString`
+
+**2026-08-19.** Putting the dataset's letter on the front of every URL (`/E/sources`) needed a gate
+that corrects a wrong or missing segment. The obvious test was the one this repo is set up for —
+`routes.tsx` is deliberately separate from `main.tsx` so the table can be mounted on a memory router —
+so: mount at `/sources`, render, read `router.state.location.pathname`, expect `/E/sources`.
+
+**Fourteen of those assertions failed, and the code was right.** `<Navigate>` performs its navigation
+in a `useLayoutEffect`, and `renderToString` never runs effects — it warns about exactly this and then
+renders nothing useful. The router never moved. The tell was in the failures themselves: *"signed out,
+a prefixed URL goes to the login"* also failed, and that path is `RequireAuth`, untouched and
+known-good for months. A harness that reports a working mechanism as broken is describing itself.
+
+The decidable part is now a pure function, `datasetPathFix(pathname, search, hash, expected)`, and the
+gate is three lines that render its answer. 36 assertions, no router, no DOM. Same move as putting a
+`Modal`'s copy in `src/data/`: what cannot be observed where it happens gets moved somewhere it can be.
+
+**Rule** — **before testing a redirect, ask what performs it.** An element-based redirect
+(`<Navigate>`, or anything in `useEffect`/`useLayoutEffect`) is invisible to `renderToString`; only a
+loader-based one shows up in the router's state. And when a new test fails on unchanged code alongside
+the new code, suspect the harness first — the existing behaviour is the control.
+
+### And a decision worth keeping: the URL is derived, not authoritative
+
+The tempting design is the usual one — read the letter from the URL and select that dataset, so the
+address is shareable. It is wrong here, and the reason is a requirement one layer up: **changing dataset
+signs the reader out**, behind a confirmation. A URL-authoritative letter would be a second way to
+change dataset that skips both, and until something resynced them the letter would disagree with the
+`x-dataset` header every request carries. So the selection stays the authority and a wrong letter is
+corrected rather than obeyed.
+
+That also settles what an old bookmark does: `/sources` has no segment, so the whole path is treated as
+route and it is corrected to `/E/sources` rather than 404-ing on a dataset called "sources". A
+single-character first segment is the dataset; anything longer is not.
+
+
+---
+
+## Porting a rendered report means taking its layout and refusing its figures
+
+**2026-08-19.** `src/07_reports/Report_N_*.html` are five *rendered* reports — heading, badge, four
+summary tiles, cards of charts and tables, footnotes — and every figure in them is literal text. The
+obvious conversion is to transcribe them into JSX, which would have produced five components that look
+exactly right and are stored results: precisely what `db.reports` exists not to be, since it stores no
+result and `reportView` computes every series and every row order per request.
+
+What came across was the layout. What did not:
+
+- **The figures.** Each report renders `getReport(id)`'s payload, and `check-docs` asserts no component
+  in `src/components/report/` does arithmetic — a `.reduce` over a column would be a second answer to a
+  number the report already states.
+- **Chart.js from a CDN.** Charts are `AnswerChart`; the server already emits a report's chart in the
+  answer shape so one component draws both. A transcribed `<script src>` is a dependency decision made
+  by accident, through a gate that fails on any advisory at `low`.
+- **The filter chips as controls.** They are rendered and they state the frame the report was built
+  under. `POST /reports/build` still has no caller, so a clickable chip would promise a slice nothing
+  applies.
+- **`*{margin:0;padding:0}` and its own `:root` palette.** The vendored prototype's sheet had to be
+  scoped under `.cw-reports` for exactly this reason; authored CSS repeating it would restyle every
+  antd table in the app.
+
+**Rule** — **when porting a rendered artefact, list what it hardcodes before writing a line.** A
+rendered file's figures, its CDN scripts and its global CSS are all things that "work" on arrival and
+are wrong to keep. The tell for the figures is that nothing breaks: the page looks right and the
+section's premise is gone.
+
+### Two failures the smoke test found, one real and one its own
+
+Rendering all five against the live API produced 84 assertions and four failures.
+
+**Two were real, and both were the interpolation split**, already recorded once for a different
+component: `renderToString` puts a comment node between an interpolation and its neighbouring text, so
+`{a} of {b} {c}` renders as `4<!-- --> of <!-- -->36` and *every* assertion about that sentence passes
+over nothing. Both the scope line and the row count are single template expressions now. This has cost
+a claim twice; the rule is to write interpolated copy as one expression, not to loosen the assertion.
+
+**Two were the harness.** `renderToString` escapes `&` to `&amp;` and `'` to `&#x27;`, so a heading
+reading *Consent-Decree & Out-of-State Exposure* and a sentence reading *Deer Park's* were both in the
+markup and neither was findable. Every needle is escaped the same way now. Worth separating from the
+real two: three of the four failures pointed at the assertion, one pointed at the component, and telling
+them apart is the difference between fixing the code and loosening the test.
+
+### And a break test that missed for the third time in one session
+
+`c.kind === 'num'` appears **twice** in the table renderer — the header cell and the body cell — so a
+whole-file `includes` survived a mutation that removed one of them, which is a right-aligned header over
+a ragged column. Asserting the count (`=== 2`) catches it. That is the second-call-site variant of the
+self-documenting-file trap, now recorded three times: a comment naming the thing, a second loop over the
+same data, and a second call site of the same expression.
+
+
+### And then: two lists of one set of definitions
+
+**Reported from use, one turn later.** The published reports first landed as a card grid of their own,
+behind a switch at the top of the page, beside the prototype's Library. The Library lists the same five
+definitions — with an **Open report** button already on every row. So the section had two lists of one set
+of reports, and the answer to "where is Report 2" depended on which you were looking at.
+
+The grid is deleted. `Open report` hands the id to the host and the rendered report replaces the
+prototype until Back, which also made the row's two buttons mean what they say: Open reads the published
+report, Edit loads the authoring definition. The prototype learns this through one optional callback, so
+the vendored folder standing alone is unchanged.
+
+**The consequence had to be dealt with rather than discovered:** the Library lists *governed* rows, and
+two of the five had no governance row — so with the grid gone they were unreachable. `governance.ungoverned`
+was already saying so above the list, with the command that fixes it; that notice went from informational
+to load-bearing the moment the Library became the only way in. Re-seeded, and loaded with `PUT /db` rather
+than a restart, which keeps the in-memory publication and therefore the report gate open.
+
+**Rule** — **when a new surface duplicates an existing list, delete one before shipping both.** And when
+a list becomes the *only* way to reach something, re-read what that list filters: the Library was always
+allowed to be shorter than the definition set, and that was harmless only while another route existed.

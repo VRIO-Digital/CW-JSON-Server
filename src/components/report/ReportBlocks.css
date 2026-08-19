@@ -1,0 +1,110 @@
+/*
+ * A report's blocks — one card each, as the rendered `Report_N_*.html` draws them.
+ *
+ * Every margin, padding and gap comes from the `--sp-*` scale in `index.css`. The vendored report
+ * prototype's sheet is exempt from that rule; this is authored here and is not.
+ */
+
+.rb-card {
+  background: #fff;
+  border: 1px solid #e9ecf1;
+  border-radius: 12px;
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+
+.rb-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #101828;
+  margin: 0 0 var(--sp-4);
+}
+
+/* One chart, or two side by side where the server computed a companion. */
+.rb-charts {
+  display: grid;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.rb-charts.is-pair {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.rb-sorted.ant-typography {
+  display: block;
+  font-size: 12px;
+  color: #667085;
+  margin-bottom: var(--sp-2);
+}
+
+/* Wide content scrolls inside its own container; the page never scrolls sideways. */
+.rb-table-scroll {
+  overflow-x: auto;
+}
+
+.rb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.rb-table th,
+.rb-table td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid #f0f2f5;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rb-table th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #667085;
+  white-space: nowrap;
+  border-bottom: 1px solid #e9ecf1;
+}
+
+/* Declared numeric by the field dictionary, so the digits line up. */
+.rb-table .rb-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The row the report is about. A wash rather than a status tint: being the subject is not a state, and
+ * `STATUS.good/warn/crit` stay reserved for one.
+ */
+.rb-table tr.is-subject {
+  background: rgba(244, 86, 43, 0.06);
+}
+
+.rb-table tr.is-subject td {
+  font-weight: 600;
+}
+
+/* A custody chain reads in order, so the steps carry arrows and never wrap mid-step. */
+.rb-chain {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  align-items: baseline;
+}
+
+.rb-chain-step {
+  white-space: nowrap;
+}
+
+.rb-chain-arrow {
+  color: #98a2b3;
+  margin-right: var(--sp-1);
+}
+
+.rb-rowcount.ant-typography {
+  display: block;
+  margin-top: var(--sp-2);
+  font-size: 11px;
+  color: #98a2b3;
+}

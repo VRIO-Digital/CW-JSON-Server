@@ -30,6 +30,8 @@ mock-server/db.json.tmp
 # brings them back locally when a seed or ingest needs to rewrite them.
 mock-server/db.json
 mock-server/settings.json
+# One db.json per dataset (db.CAPEX.json, ...) - same reason, same place: S3 holds them.
+mock-server/db.*.json
 
 # Local credentials - never commit. Covered by *.local above; named here so a
 # stray copy (.backup) cannot slip past it.

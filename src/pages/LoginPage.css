@@ -59,3 +59,14 @@
   line-height: 1.6;
   text-align: center;
 }
+
+/*
+ * Which dataset this sign-in lands in. Stated rather than styled as a status: a dataset is not a
+ * state, so it takes neutral ink and the brand only on the name itself.
+ */
+.login-dataset.ant-typography {
+  display: block;
+  margin-top: var(--sp-4);
+  font-size: 12px;
+  color: #475467;
+}

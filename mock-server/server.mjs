@@ -79,6 +79,20 @@
  */
 import { createServer } from 'node:http'
 import { docRef, presignGet, readDoc, storeKind, writeDoc } from './store.mjs'
+import {
+  activeDataset,
+  BOTH,
+  containerProxy,
+  DATASET_HEADER,
+  DATASETS,
+  documentProxy,
+  mergeDocs,
+  PRIMARY,
+  SELECTORS,
+  selectorFrom,
+  unplannedKeys,
+  withDataset,
+} from './datasets.mjs'
 import { exportKey, FORMATS } from './reportExport.mjs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -179,8 +193,20 @@ async function readJsonDb(ref, label, restore) {
   }
 }
 
-const DB_PATH = docRef('db.json', join(here, 'db.json'))
-const SETTINGS_PATH = docRef('settings.json', join(here, 'settings.json'))
+/**
+ * One `db.json` per dataset, and one `settings.json` for the tenant.
+ *
+ * The documents live under a prefix per dataset (`s3://contextweave.com/EPA/db.json`,
+ * `.../CAPEX/db.json`), so the refs are built per dataset rather than once. **Settings is not one
+ * of them**: it holds the users and each persona's navigation, which is the tenant's and not a
+ * dataset's — the same reason `auth_roles` and `google_account` are `primary` in `MERGE_PLAN`.
+ * Duplicating it per prefix would be two answers to "who exists".
+ */
+const DB_PATHS = Object.fromEntries(
+  DATASETS.map((name) => [name, docRef('db.json', join(here, 'db.json'), name)]),
+)
+const DB_PATH = DB_PATHS[PRIMARY]
+const SETTINGS_PATH = docRef('settings.json', join(here, 'settings.json'), PRIMARY)
 
 /*
  * ---------------- both documents at once, then nothing until both are in ----------------
@@ -199,14 +225,170 @@ const SETTINGS_PATH = docRef('settings.json', join(here, 'settings.json'))
  * A failure in either still exits inside `readJsonDb`, before the other can resolve — a refusal
  * naming the document that failed, which is what it was before.
  */
-const [db, loadedSettings] = await Promise.all([
-  readJsonDb(
-    DB_PATH,
-    'mock-server/db.json',
-    'git checkout HEAD -- mock-server/db.json && npm run seed:governance',
+const [loadedDocs, loadedSettings] = await Promise.all([
+  Promise.all(
+    DATASETS.map((name) =>
+      readJsonDb(
+        DB_PATHS[name],
+        `${name}/db.json`,
+        name === PRIMARY
+          ? 'git checkout HEAD -- mock-server/db.json && npm run seed:governance'
+          : `npm run seed:dataset -- ${name} && npm run db:push -- ${name}`,
+      ),
+    ),
   ),
   readJsonDb(SETTINGS_PATH, 'mock-server/settings.json', 'npm run seed:settings'),
 ])
+
+/**
+ * Every dataset's document, by name — the real objects, which `commitDb` swaps in place.
+ *
+ * Reads still go through `db` below. This map is what that resolves *into*, and the only thing that
+ * knows there is more than one document.
+ */
+const docs = Object.fromEntries(DATASETS.map((name, i) => [name, loadedDocs[i]]))
+
+/**
+ * `both`, computed once and rebuilt when a document changes.
+ *
+ * Merging 476 KB of documents on every request would be paid by every page; a version counter is
+ * enough because the only thing that changes a document in this process is `commitDb`, which bumps
+ * it. Held as `null` rather than eagerly built so a server nobody asks `both` of never pays for it.
+ */
+let mergedDoc = null
+const invalidateMerged = () => {
+  mergedDoc = null
+}
+function currentDoc() {
+  const selected = activeDataset()
+  if (selected !== BOTH) return docs[selected]
+  if (!mergedDoc) mergedDoc = mergeDocs(DATASETS.map((name) => docs[name]))
+  return mergedDoc
+}
+
+/**
+ * The document this request selected.
+ *
+ * Every one of the ~280 `db.<key>` reads below is unchanged and means what it always meant — see
+ * the note at the top of `datasets.mjs` for why this is a Proxy rather than a parameter threaded
+ * through every helper.
+ */
+const db = documentProxy(currentDoc)
+
+/* ---------------- the live state, which is per dataset too ---------------- */
+
+/**
+ * Everything this process holds that never reaches disk, one set per dataset.
+ *
+ * **Keyed by dataset because none of it is keyed by dataset.** A registration is keyed by source
+ * id, a decision by `useCaseId:itemId`, a publication by `useCaseId:sha256` — so a single shared
+ * `Map` would show an EPA registration while CAPEX was selected, and settling a CAPEX review row
+ * would answer an EPA one. Neither throws; both answer, which is the failure mode this repo
+ * refuses everywhere else.
+ *
+ * `map` and `array` are the two container kinds, named rather than inferred so a new entry has to
+ * say which it is instead of being guessed from an initialiser that is no longer here.
+ */
+const LIVE_SHAPE = {
+  registered: 'map',
+  profilingJobs: 'array',
+  graphBuildsByUseCase: 'map',
+  derivations: 'map',
+  studioVersions: 'map',
+  studioBuildCount: 'map',
+  studioDecisions: 'map',
+  studioPivotChoice: 'map',
+  studioLive: 'map',
+  studioPublishedBy: 'map',
+  whatifSaved: 'map',
+  governanceLog: 'array',
+}
+
+const live = Object.fromEntries(
+  DATASETS.map((name) => [
+    name,
+    Object.fromEntries(
+      Object.entries(LIVE_SHAPE).map(([key, kind]) => [key, kind === 'map' ? new Map() : []]),
+    ),
+  ]),
+)
+
+/** The timestamp a merged list orders by, taken from the rows rather than assumed. */
+const AT_KEYS = ['at', 'queued_at', 'created_at', 'started_at', 'published_at']
+
+/* The methods that would change a container. Listed rather than detected, so a new one is a decision. */
+const MAP_WRITERS = ['set', 'delete', 'clear']
+const ARRAY_WRITERS = ['push', 'unshift', 'pop', 'shift', 'splice', 'sort', 'reverse', 'fill', 'copyWithin']
+
+/**
+ * A merged container that answers reads and refuses writes by name.
+ *
+ * The alternative was refusing every non-GET at the dispatcher, which also refused `/auth/login`,
+ * `/ask` and every other POST that only reads — and made `both` a state a signed-out reader could not
+ * leave. This refuses the act itself, so the verb no longer decides.
+ */
+function readOnly(value, name, writers) {
+  return new Proxy(value, {
+    get(target, key) {
+      if (typeof key === 'string' && writers.includes(key)) {
+        return () => {
+          throw new Error(
+            `cannot change ${name} while dataset=${BOTH} is selected — it merges every dataset for ` +
+              `reading, so this would be written to a copy and lost. Select ${DATASETS.join(' or ')} first.`,
+          )
+        }
+      }
+      const held = target[key]
+      return typeof held === 'function' ? held.bind(target) : held
+    },
+  })
+}
+
+/**
+ * One dataset's live container, or a read-only merge of every dataset's under `both`.
+ *
+ * The merge is rebuilt per access rather than cached: these hold registrations, jobs and decisions
+ * — tens of entries, copied by reference — and there is no version to invalidate on, because a
+ * profiling timer mutates them between requests as well as during one. **Writing through the merged
+ * view would land on a throwaway**, which is why the dispatcher refuses every non-GET while `both`
+ * is selected rather than leaving a write to succeed and vanish.
+ *
+ * The two arrays are kept newest-first, so a merge interleaves them by their own timestamp instead
+ * of concatenating one dataset's history after the other's.
+ */
+function liveContainer(name) {
+  return containerProxy(() => {
+    const selected = activeDataset()
+    if (selected !== BOTH) return live[selected][name]
+
+    /*
+     * Under `both` the container is a snapshot built for reading, so a mutating call has nowhere to
+     * land — it would succeed against a throwaway and be gone by the next request, which is the
+     * silent-write failure this whole split exists to avoid. Refused by name instead, with the fix in
+     * the sentence. `readOnly` wraps the merged value; the read methods are untouched.
+     */
+    const parts = DATASETS.map((d) => live[d][name])
+    if (LIVE_SHAPE[name] === 'map') {
+      /*
+       * First writer wins, walking in `DATASETS` order — so the primary's entry wins a shared key
+       * (matching `MERGE_PLAN`) *and* comes first in iteration order. Building it the other way
+       * round gets the precedence right and lists the secondary's rows above the primary's, which
+       * reads as a table sorted by nothing.
+       */
+      const merged = new Map()
+      for (const part of parts) {
+        for (const [key, value] of part) if (!merged.has(key)) merged.set(key, value)
+      }
+      return readOnly(merged, name, MAP_WRITERS)
+    }
+    const rows = parts.flat()
+    const at = AT_KEYS.find((k) => rows.some((r) => r && k in r))
+    const sorted = at
+      ? [...rows].sort((a, b) => String(b?.[at] ?? '').localeCompare(String(a?.[at] ?? '')))
+      : [...rows]
+    return readOnly(sorted, name, ARRAY_WRITERS)
+  })
+}
 
 /*
  * ---------------- the Settings store, which is a second file on purpose ----------------
@@ -228,9 +410,9 @@ let settings = loadedSettings
 const PORT = Number(process.argv[2] ?? process.env.MOCK_PORT ?? 4000)
 
 /** Registered sources, keyed by source_id. Resets on restart. */
-const registered = new Map()
+const registered = liveContainer('registered')
 /** Profiling runs, newest first. */
-const profilingJobs = []
+const profilingJobs = liveContainer('profilingJobs')
 /**
  * OAuth states issued by /sources/oauth/start, consumed by the callback —
  * state → the provider it was issued for. A real consent screen ties the state
@@ -327,7 +509,7 @@ const send = (res, status, payload) => {
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'access-control-allow-origin': '*',
-    'access-control-allow-headers': 'content-type',
+    'access-control-allow-headers': `content-type,${DATASET_HEADER}`,
     'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
     'cache-control': 'no-store',
   })
@@ -353,7 +535,7 @@ const sseOpen = (res) => {
     // one late blob. nginx honours this; the Vite dev proxy passes it through.
     'x-accel-buffering': 'no',
     'access-control-allow-origin': '*',
-    'access-control-allow-headers': 'content-type',
+    'access-control-allow-headers': `content-type,${DATASET_HEADER}`,
     'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
   })
 }
@@ -434,9 +616,9 @@ const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v)
  */
 const DB_SHAPE = {
   google_account: (v) => isObject(v) && typeof v.email === 'string',
-  auth_roles: (v) =>
+  auth_roles: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every((r) => isObject(r) && r.role_id && r.label),
   credentials: (v) =>
     Array.isArray(v) &&
@@ -448,9 +630,9 @@ const DB_SHAPE = {
    * renders a blank cell rather than raising anything — the same silent-drop
    * failure `graph_studio.canvas` is checked for.
    */
-  projects: (v) =>
+  projects: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every(
       (p) =>
         isObject(p) &&
@@ -467,9 +649,9 @@ const DB_SHAPE = {
   drive_credentials: (v) =>
     Array.isArray(v) &&
     v.every((c) => isObject(c) && c.drive_id && c.credential_handle),
-  drives: (v) =>
+  drives: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every(
       (d) =>
         isObject(d) &&
@@ -502,13 +684,13 @@ const DB_SHAPE = {
     Array.isArray(v.runs) &&
     Array.isArray(v.checks),
   change_signals: (v) => Array.isArray(v),
-  column_vocabulary: (v) =>
+  column_vocabulary: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every((c) => isObject(c) && c.name && c.type && c.class),
-  document_vocabulary: (v) =>
+  document_vocabulary: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every((c) => isObject(c) && c.name && c.type && c.class),
   /*
    * The real profiled columns, `dataset.table` → columns[]. Required, and checked
@@ -517,9 +699,9 @@ const DB_SHAPE = {
    * invented columns in place of the profiler's, which is the worst kind of
    * wrong. A malformed entry is refused for the same reason.
    */
-  column_profiles: (v) =>
+  column_profiles: (v, empty) =>
     isObject(v) &&
-    Object.keys(v).length > 0 &&
+    (empty || Object.keys(v).length > 0) &&
     Object.values(v).every(
       (columns) =>
         Array.isArray(columns) &&
@@ -539,9 +721,9 @@ const DB_SHAPE = {
    * "resolved to FAC:…, 28 linked manifests" into a shrug, and a graph payoff
    * that silently disappears is worse than one that errors.
    */
-  document_extractions: (v) =>
+  document_extractions: (v, empty) =>
     isObject(v) &&
-    Object.keys(v).length > 0 &&
+    (empty || Object.keys(v).length > 0) &&
     Object.values(v).every(
       (e) =>
         isObject(e) &&
@@ -557,9 +739,9 @@ const DB_SHAPE = {
    * has a real answer for and abstains instead. An empty list is a working app
    * that has lost its content.
    */
-  ask_answers: (v) =>
+  ask_answers: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every(
       (a) =>
         isObject(a) &&
@@ -570,23 +752,23 @@ const DB_SHAPE = {
         a.blocks.every((b) => isObject(b) && typeof b.type === 'string') &&
         typeof a.confidence === 'number',
     ),
-  graph_domains: (v) =>
+  graph_domains: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every((d) => isObject(d) && d.domain_id && d.name),
-  graph_personas: (v) =>
+  graph_personas: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every((p) => isObject(p) && p.persona_id && p.name),
-  graph_kpis: (v) =>
-    Array.isArray(v) && v.length > 0 && v.every((k) => isObject(k) && k.kpi_id && k.name),
-  graph_hero_questions: (v) =>
+  graph_kpis: (v, empty) =>
+    Array.isArray(v) && (empty || v.length > 0) && v.every((k) => isObject(k) && k.kpi_id && k.name),
+  graph_hero_questions: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every((q) => isObject(q) && q.question_id && q.text),
-  graph_answer_formats: (v) =>
+  graph_answer_formats: (v, empty) =>
     Array.isArray(v) &&
-    v.length > 0 &&
+    (empty || v.length > 0) &&
     v.every((f) => isObject(f) && f.format_id && f.name),
   /*
    * A stated answer for a brief the tenant already knows, as opposed to the
@@ -638,13 +820,13 @@ const DB_SHAPE = {
    * inverse question prints an em dash, which reads as "no limit". All three are
    * answers, and all three would be wrong.
    */
-  whatif: (v) =>
+  whatif: (v, empty) =>
     isObject(v) &&
     isObject(v.facility) &&
     Array.isArray(v.generators) &&
-    v.generators.length > 0 &&
+    (empty || v.generators.length > 0) &&
     Array.isArray(v.watched_measures) &&
-    v.watched_measures.length > 0 &&
+    (empty || v.watched_measures.length > 0) &&
     Array.isArray(v.candidate_pools) &&
     Array.isArray(v.resolvable) &&
     isObject(v.formats) &&
@@ -657,11 +839,11 @@ const DB_SHAPE = {
    * Without `tiles` or `footer` a report loses the two things that make it citable:
    * its headline figures and the table it was read from.
    */
-  reports: (v) =>
+  reports: (v, empty) =>
     isObject(v) &&
     isObject(v.meta) &&
     Array.isArray(v.fields) &&
-    v.fields.length > 0 &&
+    (empty || v.fields.length > 0) &&
     isObject(v.assumptions) &&
     /* The wizard's three pickers, the facets it slices by, the summary a generated
        report computes, and the saved library. Losing `opts` leaves step 2 with a
@@ -670,11 +852,11 @@ const DB_SHAPE = {
     isObject(v.opts) &&
     Array.isArray(v.slice_default) &&
     Array.isArray(v.summary_catalog) &&
-    v.summary_catalog.length > 0 &&
+    (empty || v.summary_catalog.length > 0) &&
     Array.isArray(v.summary_default) &&
     Array.isArray(v.saved) &&
     isObject(v.data) &&
-    Object.values(v.data).every((rows) => Array.isArray(rows) && rows.length > 0) &&
+    Object.values(v.data).every((rows) => Array.isArray(rows) && (empty || rows.length > 0)) &&
     /*
      * The governance block. Nested rather than top-level, and required for the reason
      * `graph_studio.sanity_checks` is: losing it does not throw, it answers. The Library would
@@ -688,7 +870,9 @@ const DB_SHAPE = {
        state missing either renders as a chip with no name or no state colour. */
     v.governance.statuses.every((s) => isObject(s) && s.key && s.label && s.tone) &&
     Array.isArray(v.governance.reports) &&
-    v.governance.reports.length > 0 &&
+    /* Governed rows are a dataset's own definitions, so a dataset with no reports has none — the
+       state pool, the data scopes and the publishing copy above are the tenant's and stay required. */
+    (empty || v.governance.reports.length > 0) &&
     v.governance.reports.every(
       (g) =>
         isObject(g) &&
@@ -754,7 +938,7 @@ const DB_SHAPE = {
      * An older `db.json` may still carry it; an extra key is not a problem, and re-seeding drops it.
      */
     Array.isArray(v.reports) &&
-    v.reports.length > 0 &&
+    (empty || v.reports.length > 0) &&
     v.reports.every(
       (r) =>
         isObject(r) &&
@@ -826,9 +1010,28 @@ const DB_HINTS = {
 function validateDb(candidate) {
   const problems = []
   if (!isObject(candidate)) return ['the document must be a JSON object']
+
+  /*
+   * **An empty collection is a real state in a secondary dataset, and a lost one in the primary.**
+   *
+   * Fourteen keys are required non-empty, and every one of those rules is right for EPA: a document
+   * that came back with no projects, no profiles or no report definitions has lost data no route
+   * touched, which is exactly the stale-server fault `commitDb` refuses. But CAPEX is *deliberately*
+   * empty until it is populated, and the alternative to allowing that is worse in both directions —
+   * seed it with EPA's rows and CAPEX shows EPA's figures under CAPEX's name, or leave it invalid
+   * and the server will not boot at all.
+   *
+   * So emptiness is permitted for a dataset that is not the primary, and **nothing else is**: a row
+   * that *is* present is checked exactly as strictly, so a malformed CAPEX project is still a
+   * refusal. The keys holding the section's own vocabulary — the field dictionary, the wizard pools,
+   * the What-if copy, the governance states — are seeded from the primary rather than emptied,
+   * because a page with no copy does not read as an empty dataset, it reads as a broken one.
+   */
+  const empty = activeDataset() !== PRIMARY
+
   for (const [key, check] of Object.entries(DB_SHAPE)) {
     if (!(key in candidate)) problems.push(`"${key}" is missing — ${DB_HINTS[key]}`)
-    else if (!check(candidate[key]))
+    else if (!check(candidate[key], empty))
       problems.push(`"${key}" is the wrong shape — expected ${DB_HINTS[key]}`)
   }
 
@@ -938,10 +1141,20 @@ function validateDb(candidate) {
    */
   if (problems.length === 0) {
     const w = candidate.whatif
-    const genFields = new Set(Object.keys(w.generators[0]))
+    /*
+     * **The field checks need a row to read the fields off, and a seeded dataset has none.**
+     *
+     * "No generator carries this field" is a real fault when there are generators and a vacuous one
+     * when there are not — with an empty roster *every* field is missing, so running these would
+     * report one problem per watched measure and none of them would be actionable. The checks that do
+     * not depend on a row (formats, headroom, resolvable) still run, because those are references
+     * inside the block and are as wrong on an empty dataset as on a full one.
+     */
+    const roster = Array.isArray(w.generators) ? w.generators : []
+    const genFields = roster.length > 0 ? new Set(Object.keys(roster[0])) : null
     const measureKeys = new Set(w.watched_measures.map((m) => m.key))
     for (const m of w.watched_measures) {
-      if (!genFields.has(m.field)) {
+      if (genFields && !genFields.has(m.field)) {
         problems.push(
           `whatif.watched_measures "${m.key}" reads generator field "${m.field}", which no ` +
             'generator carries — it would show as no inherited risk rather than as an error',
@@ -955,7 +1168,7 @@ function validateDb(candidate) {
       }
     }
     for (const p of w.candidate_pools) {
-      if (p.filter && !genFields.has(p.filter.field)) {
+      if (p.filter && genFields && !genFields.has(p.filter.field)) {
         problems.push(
           `whatif.candidate_pools "${p.key}" filters on "${p.filter.field}", which no generator ` +
             'carries — the pool would offer nobody, which reads as "none qualify"',
@@ -1035,7 +1248,16 @@ function validateDb(candidate) {
         )
         continue
       }
-      const rowKeys = new Set(Object.keys(rows[0]))
+      /*
+       * **A column reference can only be checked against a row that exists.**
+       *
+       * The same shape as the What-if roster check above: with an empty spine every column is
+       * "missing", so these would report one problem per block and none of them actionable — and a
+       * dataset being populated in stages legitimately has a definition before its rows, or rows
+       * before the definition. The spine's *existence* and its label column are still checked, since
+       * neither needs a row; `null` here means "no row to check against", not "no keys".
+       */
+      const rowKeys = rows.length > 0 ? new Set(Object.keys(rows[0])) : null
       if (!(r.scope in REPORT_SCOPES)) {
         problems.push(
           `reports "${r.report_id}" is scoped "${r.scope}", which this server has no filter for — ` +
@@ -1047,26 +1269,26 @@ function validateDb(candidate) {
           `reports.data."${r.spine}" has no label column declared in REPORT_LABEL_KEY, so every ` +
             'chart bar and table row on that spine would be unnamed',
         )
-      } else if (!rowKeys.has(REPORT_LABEL_KEY[r.spine])) {
+      } else if (rowKeys && !rowKeys.has(REPORT_LABEL_KEY[r.spine])) {
         problems.push(
           `reports.data."${r.spine}" rows do not carry "${REPORT_LABEL_KEY[r.spine]}", the column ` +
             'their labels come from',
         )
       }
       for (const block of r.blocks) {
-        if (block.type === 'chart' && !rowKeys.has(block.measure)) {
+        if (block.type === 'chart' && rowKeys && !rowKeys.has(block.measure)) {
           problems.push(
             `reports "${r.report_id}" charts "${block.measure}", which its ${r.spine} rows do not ` +
               'carry — every bar would be zero, which reads as no exposure',
           )
         }
-        if (block.type === 'quarterly' && !rowKeys.has(block.metric)) {
+        if (block.type === 'quarterly' && rowKeys && !rowKeys.has(block.metric)) {
           problems.push(
             `reports "${r.report_id}" trends "${block.metric}", which its ${r.spine} rows do not carry`,
           )
         }
         for (const col of block.type === 'table' ? block.cols : []) {
-          if (!fieldKeys.has(col) || !rowKeys.has(col)) {
+          if (!fieldKeys.has(col) || (rowKeys && !rowKeys.has(col))) {
             problems.push(
               `reports "${r.report_id}" tabulates "${col}", which ${
                 fieldKeys.has(col) ? `its ${r.spine} rows do not carry` : 'reports.fields does not describe'
@@ -1210,18 +1432,36 @@ async function commitDb(next) {
 
   const text = `${JSON.stringify(next, null, 2)}\n`
 
+  /*
+   * The dataset this request selected — resolved here rather than taken as an argument, so none of
+   * the callers had to learn about datasets. `both` never reaches this: the dispatcher refuses every
+   * non-GET while it is selected, because a merged document has no single file to write back to and
+   * splitting one into two writes would have to invent which dataset each row came from.
+   */
+  const selected = activeDataset()
+  if (selected === BOTH) {
+    throw new Error(
+      `cannot write while dataset=${BOTH} is selected — it is a merged reading view with no single ` +
+        `document behind it. Select one of ${DATASETS.join(' or ')} and write that.`,
+    )
+  }
+  const target = docs[selected]
+
   /* Kept so the swap can be undone if the write fails — see the note above. */
-  const previous = { ...db }
-  for (const key of Object.keys(db)) delete db[key]
-  Object.assign(db, next)
+  const previous = { ...target }
+  for (const key of Object.keys(target)) delete target[key]
+  Object.assign(target, next)
+  /* The merged view is built from these documents, so it is stale the moment one changes. */
+  invalidateMerged()
 
   try {
-    await writeJsonAtomic(DB_PATH, text)
+    await writeJsonAtomic(DB_PATHS[selected], text)
   } catch (error) {
-    for (const key of Object.keys(db)) delete db[key]
-    Object.assign(db, previous)
+    for (const key of Object.keys(target)) delete target[key]
+    Object.assign(target, previous)
+    invalidateMerged()
     throw new Error(
-      `could not write db.json — ${error.message}. Nothing was changed; the in-memory ` +
+      `could not write ${selected}/db.json — ${error.message}. Nothing was changed; the in-memory ` +
         'document has been put back the way it was.',
     )
   }
@@ -2262,10 +2502,10 @@ const BUILD_STEP_MS = 3_000
  * Every build ever run, newest first, keyed by use case. In memory like every
  * other run here, so a restart clears the history and the 404 says so.
  */
-const graphBuildsByUseCase = new Map()
+const graphBuildsByUseCase = liveContainer('graphBuildsByUseCase')
 
 /** Runs in flight, keyed by id. In memory, like every other run in this mock. */
-const derivations = new Map()
+const derivations = liveContainer('derivations')
 
 const DERIVATION_STAGE_MS = 1300
 const COST_CAP_USD = 1
@@ -2334,7 +2574,7 @@ const derivationView = (run) => ({
  * "immutable — content-addressed; publishing gates Ask access, it does not mutate
  * this graph" means on screen, and it has to stay true.
  */
-const studioVersions = new Map()
+const studioVersions = liveContainer('studioVersions')
 
 /**
  * **A version per build: v1, v2, v3.** The number is the count of builds this graph has
@@ -2351,7 +2591,7 @@ const studioVersions = new Map()
  * history, so a published `v2` must stay `v2` however many builds follow it. Assigning at
  * `startBuildFor` and reading the stored value everywhere keeps that true.
  */
-const studioBuildCount = new Map()
+const studioBuildCount = liveContainer('studioBuildCount')
 
 /** The next label for this graph, and the count that produced it. Called once per run. */
 function nextBuildVersion(useCaseId) {
@@ -2641,15 +2881,15 @@ function graphSources() {
  * working session, not something a mock writes back over its seed. `decisions`
  * is keyed `useCaseId:itemId` so two graphs cannot answer each other's rows.
  */
-const studioDecisions = new Map()
-const studioPivotChoice = new Map()
+const studioDecisions = liveContainer('studioDecisions')
+const studioPivotChoice = liveContainer('studioPivotChoice')
 /*
  * Which version is published, keyed by use case — the **content hash** of one
  * build, not a number. One pointer: publishing sets it, unpublishing clears it, and
  * publishing a different row moves it. The version rows themselves are never
  * touched, which is what makes them immutable.
  */
-const studioLive = new Map()
+const studioLive = liveContainer('studioLive')
 
 const FLOORS = ['schema-changing', 'causal', 'new entity type']
 
@@ -2682,7 +2922,7 @@ function publishedVersion(useCaseId) {
  * In memory, like publication itself: a restart forgets both together, which is the only
  * consistent thing it could do.
  */
-const studioPublishedBy = new Map()
+const studioPublishedBy = liveContainer('studioPublishedBy')
 
 /**
  * The account to name as publisher: whoever published it, or the seeded account when
@@ -4069,7 +4309,7 @@ function browsableDocuments(source) {
  * its own. No entry ever holds a computed measure; `POST /whatif/scenario` derives those
  * on every read, which is what keeps a scenario true as the graph changes.
  */
-const whatifSaved = new Map()
+const whatifSaved = liveContainer('whatifSaved')
 let whatifSavedSeq = 1
 
 /**
@@ -5663,7 +5903,7 @@ const reportGovernanceView = (asRole) => {
  */
 
 /** What this server has seen. In memory, like publication — a restart forgets both together. */
-const governanceLog = []
+const governanceLog = liveContainer('governanceLog')
 let governanceLogSeq = 1
 const logGovernance = (category, actor, text, detail) => {
   governanceLog.unshift({
@@ -6032,6 +6272,41 @@ const reportView = (report) => {
 }
 
 const routes = [
+  /* ---------------- which datasets exist ---------------- */
+
+  /**
+   * The dataset pool, so the selector renders what the server has rather than a list written into
+   * the component.
+   *
+   * The same rule the consent screen follows with its scopes and the Share picker with its roles: a
+   * client-held list can offer a value the API refuses, and here that would mean a selector showing
+   * CAPEX on a deployment that has no CAPEX prefix. Each entry says where it reads from and whether
+   * it holds anything, because "empty" and "not configured" are different answers — and `both` is
+   * reported as a reading view so the UI does not have to know that writes are refused under it.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/datasets',
+    handle: (_req, res) =>
+      send(res, 200, {
+        datasets: DATASETS.map((name) => ({
+          dataset: name,
+          label: name,
+          primary: name === PRIMARY,
+          ref: DB_PATHS[name],
+          store: storeKind(DB_PATHS[name]),
+          /* What this dataset actually holds, so an empty one reads as empty rather than broken. */
+          projects: (docs[name].projects ?? []).length,
+          drives: (docs[name].drives ?? []).length,
+          reports: (docs[name].reports?.reports ?? []).length,
+          graphs: (docs[name].graph_use_cases ?? []).length,
+          populated: (docs[name].projects ?? []).length > 0,
+        })),
+        both: { dataset: BOTH, label: 'Both', read_only: true },
+        selected: activeDataset(),
+      }),
+  },
+
   /* ---------------- db.json editor ---------------- */
 
   {
@@ -6039,8 +6314,11 @@ const routes = [
     match: (p) => p === '/db',
     handle: (_req, res) =>
       send(res, 200, {
-        path: DB_PATH,
-        store: storeKind(DB_PATH),
+        /* The selected dataset's own document and its own ref — under `both`, the primary's ref
+           names where a write would land, and a write under `both` is refused before it gets here. */
+        path: DB_PATHS[activeDataset()] ?? DB_PATH,
+        dataset: activeDataset(),
+        store: storeKind(DB_PATHS[activeDataset()] ?? DB_PATH),
         bytes: Buffer.byteLength(JSON.stringify(db, null, 2), 'utf8'),
         sections: dbSections(),
         required: Object.keys(DB_SHAPE),
@@ -9577,8 +9855,41 @@ const server = createServer(async (req, res) => {
     })
   }
 
+  /*
+   * ---------------- which dataset this request reads ----------------
+   *
+   * The one place a request begins, so the one place the selection is entered. Everything below
+   * `route.handle` — every helper, every timer started inside it — reads `db` and the live
+   * containers through this scope, which is why none of them had to take a dataset argument.
+   *
+   * An unknown value is a refusal naming the ones that exist rather than a quiet fall back to EPA:
+   * a typo in `?dataset=` would otherwise serve EPA's figures under CAPEX's name, which is the
+   * exact confusion the split exists to prevent.
+   */
+  const dataset = selectorFrom(url.searchParams, req.headers)
+  if (!dataset) {
+    const asked = url.searchParams.get('dataset') ?? req.headers['x-dataset']
+    return send(res, 400, {
+      error: `"${asked}" is not a dataset — this tenant has ${SELECTORS.join(', ')}.`,
+    })
+  }
+
+  /*
+   * `both` refuses **writes**, and the refusal lives at the two places that write rather than here.
+   *
+   * This was a check on the method, and that was wrong in a way only the flow shows: **most of the
+   * reads in this API are POSTs.** `/auth/login` is a lookup, `/ask` is a query, `/whatif/scenario`
+   * computes and stores nothing, `/reports/build` re-asks a question, `/graph-coverage` walks the
+   * profiled objects — a blanket method check refused all of them, and the one that mattered was
+   * login: switching to `both` signs the reader out, and they could then never sign back in.
+   *
+   * So `commitDb` refuses a document write and the live containers refuse a mutation, each naming the
+   * fix. A pure read is answered whatever its verb, and nothing that would land on a throwaway can
+   * get through.
+   */
+
   try {
-    await route.handle(req, res, { pathname, query: url.searchParams })
+    await withDataset(dataset, () => route.handle(req, res, { pathname, query: url.searchParams }))
   } catch (err) {
     send(res, 400, { error: err instanceof Error ? err.message : 'bad request' })
   }
@@ -9617,15 +9928,50 @@ process.on('SIGINT', () => {
  * wrote its stale copy back and dropped four of them. Failing here names the
  * missing keys at the one moment the fix is obvious.
  */
-const startupProblems = validateDb(db)
-if (startupProblems.length > 0) {
-  console.error('\nmock-server: refusing to start — mock-server/db.json cannot be served.')
-  for (const problem of startupProblems) console.error(`  · ${problem}`)
-  console.error(
-    '\n  Restore the file, then start again:' +
-      '\n      git show HEAD:mock-server/db.json > mock-server/db.json\n',
-  )
-  process.exit(1)
+/*
+ * Every dataset, not just the primary. A document that cannot be served is the same fault whichever
+ * prefix it came from, and finding out when somebody switches to CAPEX puts the failure a long way
+ * from its cause — the page would simply be the one that broke.
+ */
+for (const name of DATASETS) {
+  const problems = withDataset(name, () => validateDb(docs[name]))
+  if (problems.length > 0) {
+    console.error(`\nmock-server: refusing to start — ${name}/db.json cannot be served.`)
+    for (const problem of problems) console.error(`  · ${problem}`)
+    console.error(
+      name === PRIMARY
+        ? '\n  Restore the file, then start again:' +
+            '\n      npm run db:pull\n'
+        : `\n  Re-seed that dataset, then start again:` +
+            `\n      npm run seed:dataset -- ${name} && npm run db:push -- ${name}\n`,
+    )
+    process.exit(1)
+  }
+}
+
+/*
+ * And every key must have a merge rule, or `dataset=both` answers with a guess.
+ *
+ * A key `MERGE_PLAN` says nothing about is dropped from the merged document — so `both` would serve
+ * a document missing a required key, which `validateDb` would never see because it validates the
+ * two real documents and not the view built from them. The symptom is a page that works under EPA
+ * and is empty under `both`, which reads as "CAPEX has no data". Checked here because this is where
+ * both facts are in hand at once.
+ */
+for (const name of DATASETS) {
+  const unplanned = unplannedKeys(docs[name])
+  if (unplanned.length > 0) {
+    console.error(
+      `\nmock-server: refusing to start — ${name}/db.json has ${unplanned.length} key(s) that ` +
+        `dataset=${BOTH} would silently drop.`,
+    )
+    for (const key of unplanned) console.error(`  · ${key}`)
+    console.error(
+      '\n  Add each one to MERGE_PLAN in mock-server/datasets.mjs, saying whether it is the' +
+        "\n  primary's alone or a collection the datasets union.\n",
+    )
+    process.exit(1)
+  }
 }
 
 /*

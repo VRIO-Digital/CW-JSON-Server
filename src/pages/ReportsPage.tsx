@@ -4,10 +4,12 @@ import { deleteGovernedReport, getReports, listAuthRoles, setReportAudience } fr
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import NoPublishedGraph from '../components/NoPublishedGraph'
 import PageHeader from '../components/PageHeader'
+import PublishedReportPane from '../components/report/PublishedReportPane'
 import ReportsApp from '../reports/App'
 import { MenuProvider } from '../reports/components/MenuProvider'
 import { ToastProvider } from '../reports/components/Toast'
 import { useAuthStore } from '../store/authStore'
+import { useReportsStore } from '../store/reportsStore'
 import { createReadStore, toMessage } from '../store/asyncState'
 import '../reports/reports-prototype.css'
 import './ReportsPage.css'
@@ -117,6 +119,20 @@ export default function ReportsPage() {
    * since the role is client-held and the API serves every row to a caller that names none.
    */
   const asRole = useAuthStore((s) => s.identity?.roleId ?? null)
+
+  /*
+   * ---------------- the published report opens out of the Library ----------------
+   *
+   * **One list, and it is the Library's.** This was a switch at the top of the page between a card grid
+   * of the five reports and the prototype — two lists of the same definitions, which is two answers to
+   * "what reports exist". The Library already lists them with an **Open report** button; that button now
+   * hands the id here and the rendered report replaces the prototype until Back.
+   *
+   * `openId` lives in `reportsStore` rather than in this component, because the store is also what drops
+   * a slow reply that is no longer the report being asked for.
+   */
+  const openReportId = useReportsStore((s) => s.openId)
+  const openReport = useReportsStore((s) => s.open)
 
   useEffect(() => {
     void load(asRole)
@@ -233,6 +249,15 @@ export default function ReportsPage() {
   return (
     <>
       {header}
+
+      {/*
+        * One or the other, never both mounted. The prototype installs a toast host and a popover host
+        * that portal to `document.body`; a second copy behind a hidden panel would leave a menu opening
+        * against the wrong one — which is how Delete came to look like a dead button once already.
+        */}
+      {openReportId ? <PublishedReportPane /> : null}
+
+      {openReportId ? null : (
       <div className="rp-host">
         <div className="cw-reports">
           <ToastProvider>
@@ -254,11 +279,19 @@ export default function ReportsPage() {
                 governance={data?.governance}
                 shareRoles={shareRoles}
                 actions={actions}
+                /*
+                 * **Open report** reads the published report; **Edit report** still loads the authoring
+                 * definition. Two buttons that did the same thing now do what their labels say, and the
+                 * one a governed row needs is the one showing the tenant's own figures rather than the
+                 * prototype's sample data under a card marked "Published".
+                 */
+                onOpenPublished={(reportId) => void openReport(reportId)}
               />
             </MenuProvider>
           </ToastProvider>
         </div>
       </div>
+      )}
     </>
   )
 }

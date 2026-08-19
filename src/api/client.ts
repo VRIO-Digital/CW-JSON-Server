@@ -31,9 +31,54 @@ import {
   type Check as FieldCheck,
 } from './validate'
 
+import { currentDataset } from './dataset'
+
 // The trailing slash is stripped because every path below starts with one, and
 // `${BASE}${path}` would otherwise ask for //sources.
 const BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/$/, '')
+
+/* ---------------- Datasets ---------------- */
+
+/** One tenant dataset, with what it actually holds. */
+export type DatasetRow = {
+  dataset: string
+  label: string
+  primary: boolean
+  ref: string
+  store: string
+  projects: number
+  drives: number
+  reports: number
+  graphs: number
+  populated: boolean
+}
+
+export type DatasetsPayload = {
+  datasets: DatasetRow[]
+  both: { dataset: string; label: string; readOnly: boolean }
+  selected: string
+}
+
+/**
+ * Which datasets this tenant has, and which one this call was answered from.
+ *
+ * `selected` is the server's reading of the header the request carried, so it is what proves the
+ * selection arrived — a selector showing CAPEX while every payload came from EPA is the failure
+ * this endpoint makes visible.
+ */
+export async function listDatasets(): Promise<DatasetsPayload> {
+  const raw = validate<{
+    datasets: DatasetRow[]
+    both: { dataset: string; label: string; read_only: boolean }
+    selected: string
+  }>('The dataset list', await request<unknown>('/datasets'), DATASETS_PAYLOAD)
+
+  return {
+    datasets: raw.datasets,
+    both: { dataset: raw.both.dataset, label: raw.both.label, readOnly: raw.both.read_only },
+    selected: raw.selected,
+  }
+}
 
 /* ---------------- Identity ---------------- */
 
@@ -1343,6 +1388,33 @@ export interface DbPayload {
 
 const AUTH_ROLE = shape({ role_id: str, label: str, access_note: str })
 
+/**
+ * The dataset pool, served rather than written here.
+ *
+ * The same rule the consent screen follows with its scopes and the Share picker with its roles: a
+ * list held in the client can offer a value the API refuses, and here that would be a selector
+ * showing CAPEX on a deployment with no CAPEX prefix. `populated` is the server's own answer to
+ * "does this hold anything", so an empty dataset reads as empty rather than as a page that failed.
+ */
+const DATASET_ROW = shape({
+  dataset: str,
+  label: str,
+  primary: bool,
+  ref: str,
+  store: str,
+  projects: num,
+  drives: num,
+  reports: num,
+  graphs: num,
+  populated: bool,
+})
+
+const DATASETS_PAYLOAD = shape({
+  datasets: arrayOf(DATASET_ROW),
+  both: shape({ dataset: str, label: str, read_only: bool }),
+  selected: str,
+})
+
 const AUTH_ROLES_PAYLOAD = shape({
   roles: arrayOf(AUTH_ROLE),
   count: num,
@@ -2381,7 +2453,17 @@ async function request<T>(
   try {
     res = await fetch(url, {
       method,
-      headers: init?.body ? { 'content-type': 'application/json' } : undefined,
+      /*
+       * **Every request names the dataset it is asking about, and this is the only place that
+       * happens.** The server defaults a caller that names none to its primary, so omitting the
+       * header would silently serve EPA under whatever the selector was showing — the one
+       * confusion the split exists to prevent. A header rather than a query parameter on each
+       * path, because it applies to every endpoint and none of them should have to remember it.
+       */
+      headers: {
+        'x-dataset': currentDataset(),
+        ...(init?.body ? { 'content-type': 'application/json' } : {}),
+      },
       body: init?.body ? JSON.stringify(init.body) : undefined,
     })
   } catch (cause) {
@@ -4196,7 +4278,12 @@ export async function askQuestionStreaming(
 ): Promise<AskAnswer> {
   const response = await fetch(`${BASE}/ask`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
+    /* The stream carries the selection too — an answer belongs to the dataset it was asked of. */
+    headers: {
+      'content-type': 'application/json',
+      accept: 'text/event-stream',
+      'x-dataset': currentDataset(),
+    },
     body: JSON.stringify({
       use_case_id: useCaseId,
       question,

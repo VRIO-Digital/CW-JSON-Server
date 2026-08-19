@@ -2,6 +2,7 @@ import { DeploymentUnitOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
 import { Link } from 'react-router-dom'
 import EmptyState from './EmptyState'
+import { appPath } from '../api/dataset'
 
 /** The path from a built graph to a live one — where the publish button actually is. */
 const STEPS = [
@@ -59,7 +60,7 @@ export default function NoPublishedGraph({
             : `${detail} Nothing has been built yet: describe a business need in New Graph, build it, then publish it.`
       }
       action={
-        <Link to={hasBuilt ? '/graph-studio' : '/new-graph'}>
+        <Link to={appPath(hasBuilt ? '/graph-studio' : '/new-graph')}>
           <Button type="primary" size="large">
             {hasBuilt ? 'Open Graph Studio' : 'Describe a business need'}
           </Button>
