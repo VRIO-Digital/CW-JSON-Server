@@ -298,8 +298,11 @@ export function documentProxy(resolve) {
       },
       has: (_t, key) => key in resolve(),
       ownKeys: () => Reflect.ownKeys(resolve()),
+      /* Configurable always — see `descriptorFor`. The document is an object rather than an array,
+         so this trap has never had a `length` to trip over; it is the same invariant either way, and
+         the two proxies must not answer it differently. */
       getOwnPropertyDescriptor: (_t, key) =>
-        Reflect.getOwnPropertyDescriptor(resolve(), key) ?? {
+        descriptorFor(resolve(), key) ?? {
           value: resolve()[key],
           configurable: true,
           enumerable: true,
@@ -318,9 +321,17 @@ export function documentProxy(resolve) {
  * a per-dataset instance and the call sites are untouched. A method comes back bound to the
  * resolved target, so `registered.set(...)` and `profilingJobs.push(...)` land on the right one.
  */
-export function containerProxy(resolve) {
+export function containerProxy(resolve, kind = 'map') {
+  /*
+   * **The target's *kind* has to match what it stands for, and only arrays care.**
+   *
+   * `Array.isArray` and `JSON.stringify` both read the target, not the traps — so an array container
+   * behind a `{}` target is not an array to either of them, and `GET /governance` serialised its log
+   * as `{"0":...,"1":...}`. The client validator then refuses it (`log should be an array, got
+   * object`), which reads as a stale mock server and is not one. A `[]` target costs nothing.
+   */
   return new Proxy(
-    {},
+    kind === 'array' ? [] : {},
     {
       get: (_t, key) => {
         const target = resolve()
@@ -333,7 +344,39 @@ export function containerProxy(resolve) {
       },
       has: (_t, key) => key in resolve(),
       ownKeys: () => Reflect.ownKeys(resolve()),
-      getOwnPropertyDescriptor: (_t, key) => Reflect.getOwnPropertyDescriptor(resolve(), key),
+      getOwnPropertyDescriptor: (t, key) => descriptorFor(resolve(), key, t),
     },
   )
+}
+
+/**
+ * One resolved property's descriptor, answering the proxy invariant in both directions.
+ *
+ * **A proxy may not report a property as non-configurable unless its own target really has it that
+ * way.** Passing a resolved descriptor straight through is therefore a claim the engine checks and
+ * rejects:
+ *
+ *     'getOwnPropertyDescriptor' on proxy: trap reported non-configurability for property 'length'
+ *     which is either non-existent or configurable in the proxy target
+ *
+ * **An array is what makes this reachable.** `Array.prototype` gives every array a `length` that is
+ * `configurable: false`, and two live containers are arrays (`profilingJobs`, `governanceLog`).
+ *
+ * The tell is *which* operations fail. `.length`, `.push` and `.filter` are fine — those are the
+ * `get` trap. It is `JSON.stringify`, `Object.keys` and `{ ...spread }` that break, because only
+ * those walk descriptors. So a container works perfectly until a route tries to **serialise** it,
+ * and then that one endpoint 500s while every other use is healthy — which, on a page whose only
+ * fetch that is, reads as the whole server being down.
+ *
+ * **And the invariant runs the other way too**, which is why this consults the proxy's own target
+ * rather than forcing `configurable: true` everywhere: a property the target holds as
+ * non-configurable — `length`, on the `[]` an array container now uses — may not be *reported* as
+ * configurable either. Match the target where it has an opinion; claim configurable elsewhere.
+ */
+function descriptorFor(resolved, key, proxyTarget = {}) {
+  const descriptor = Reflect.getOwnPropertyDescriptor(resolved, key)
+  if (!descriptor) return undefined
+  const own = Reflect.getOwnPropertyDescriptor(proxyTarget, key)
+  if (own && !own.configurable) return descriptor
+  return { ...descriptor, configurable: true }
 }

@@ -6,14 +6,15 @@ import NoSourceConnected from './NoSourceConnected'
 import StatusTag from './StatusTag'
 import ConnectorIcon from './ConnectorIcon'
 import { SP } from '../theme'
-import '../pages/NewGraphPage.css'
+import '../pages/NewGraphPage.css'
+
 import { appPath } from '../api/dataset'
 
 /*
  * Step 4 of New Graph: which connected sources feed the graph, and how much of
  * each.
  *
- * The list is the Data Catalogue's *profiled* state, not the registration — a
+ * The list is the Data Catalog's *profiled* state, not the registration — a
  * connected source with nothing profiled is shown and disabled, because "you
  * have not profiled it yet" is a different problem from "you have not connected
  * it", and only the user can tell them apart.
@@ -70,7 +71,7 @@ export default function SourcesStep({
       // inside it reads as a rendering fault rather than as an empty slot.
       <NoSourceConnected
         bare
-        detail="A graph can only draw on data that has been profiled. Connect a BigQuery project or a Google Drive, then profile it in the Data Catalogue — its tables and documents become selectable here."
+        detail="A graph can only draw on data that has been profiled. Connect a BigQuery project or a Google Drive, then profile it in the Data Catalog — its tables and documents become selectable here."
       />
     )
   }
@@ -93,9 +94,9 @@ export default function SourcesStep({
                 and entities a graph reasons over, so there is nothing to point this
                 use case at yet.
               </div>
-              <Link to={appPath('/catalogue')}>
+              <Link to={appPath('/catalog')}>
                 <Button type="primary" size="small">
-                  Open the Data Catalogue to profile a source
+                  Open the Data Catalog to profile a source
                 </Button>
               </Link>
             </div>
@@ -158,7 +159,7 @@ export default function SourcesStep({
             {empty ? (
               <div className="ng-source-warn">
                 Connected, but the profiler has not run here yet — profile it in the
-                Data Catalogue and it becomes selectable.
+                Data Catalog and it becomes selectable.
               </div>
             ) : (
               <>
@@ -241,7 +242,7 @@ export default function SourcesStep({
         <span>
           Only profiled objects are listed. Profiling is what produces the columns
           and entities the graph reasons over, so an unprofiled source has nothing
-          to contribute yet — <Tag>Data Catalogue</Tag> is where that runs.
+          to contribute yet — <Tag>Data Catalog</Tag> is where that runs.
         </span>
       </div>
     </>

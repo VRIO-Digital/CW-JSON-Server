@@ -2753,7 +2753,7 @@ while the module's stated job — and an existing claim — was that this wordin
 
 **Guard** — the existing "words the outcome from the shared module" claim gained a pair:
 each panel must read `outcome.cancelText`, must not carry the literal, and must pass
-`width: CONFIRM_WIDTH`. Break-tested by restoring the literal in `CataloguePage.tsx`, which
+`width: CONFIRM_WIDTH`. Break-tested by restoring the literal in `CatalogPage.tsx`, which
 fails the claim by name.
 
 **Rule** — **a flex row shrinks before it wraps; an inline-block row wraps before it shrinks.**

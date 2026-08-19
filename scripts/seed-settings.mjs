@@ -47,7 +47,7 @@ const NAV_KEYS = [
   'what-if',
   'new-graph',
   'sources',
-  'catalogue',
+  'catalog',
   'graph-studio',
   'audit',
   'settings',

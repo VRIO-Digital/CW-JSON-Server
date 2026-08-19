@@ -294,12 +294,12 @@ for (const key of requiredKeys) {
  * chose. Matched on the field being read, not on a class name, so a restyle does
  * not fail this and a deletion does.
  */
-/* A local binding, not the component: three claims below read it as `cataloguePage`, and a
+/* A local binding, not the component: three claims below read it as `catalogPage`, and a
    whole-file rename of the component caught this declaration and left them behind. */
-const cataloguePage = read('src/pages/CataloguePage.tsx')
+const catalogPage = read('src/pages/CatalogPage.tsx')
 expect(
   'the Catalog names each source, not just its id',
-  (cataloguePage.match(/\{s\.sourceName\}|\{selected\.sourceName\}/g) ?? []).length >= 2,
+  (catalogPage.match(/\{s\.sourceName\}|\{selected\.sourceName\}/g) ?? []).length >= 2,
   'the card and the detail header both render sourceName',
 )
 
@@ -690,9 +690,9 @@ expect(
  * panel still rendering a ✕ wired to a prop nobody passes is a button that does nothing, and a
  * toggle with no pressed state is a panel a reader cannot close.
  */
-/* `cataloguePage` is already read at the top of this file — one binding, reused. */
+/* `catalogPage` is already read at the top of this file — one binding, reused. */
 const panelFiles = [
-  'src/pages/CataloguePage.tsx',
+  'src/pages/CatalogPage.tsx',
   'src/components/ProfiledColumnsPanel.tsx',
   'src/components/ProfiledDocumentsPanel.tsx',
   'src/components/DocumentBrowsePanel.tsx',
@@ -707,7 +707,7 @@ for (const path of panelFiles) {
 }
 expect(
   'the open action is the orange one and the closed one is white',
-  (cataloguePage.match(
+  (catalogPage.match(
     /type=\{(browseOpen|dictionaryOpen) \? 'primary' : 'default'\}/g,
   ) ?? []).length === 2,
   'the fill is the state — neither button is permanently the primary',
@@ -716,8 +716,8 @@ expect(
    panel is open, since the panels lost their ✕. Both non-visual halves are asserted with it. */
 expect(
   'and open is not signalled by colour alone',
-  /aria-pressed=\{browseOpen\}/.test(cataloguePage) &&
-    /aria-pressed=\{dictionaryOpen\}/.test(cataloguePage),
+  /aria-pressed=\{browseOpen\}/.test(catalogPage) &&
+    /aria-pressed=\{dictionaryOpen\}/.test(catalogPage),
   'aria-pressed for a screen reader, the note below in words for everyone',
 )
 /* Scoped to the action row's own rules — the source card's `is-active` border is a different,
@@ -725,7 +725,7 @@ expect(
    against correct code, which is the broad-claim trap this file records five times over. */
 expect(
   'the action row paints no button fill of its own',
-  ![...read('src/pages/CataloguePage.css').matchAll(/\.cat-actions[^{]*\{([^}]*)\}/g)].some(
+  ![...read('src/pages/CatalogPage.css').matchAll(/\.cat-actions[^{]*\{([^}]*)\}/g)].some(
     /* A fill or the brand itself. Not "any hex": the hint line's own text colour is a hex and is
        not a button fill, and a claim that fails on correct code is a claim nobody re-reads. */
     (rule) => /background/i.test(rule[1]) || /#f4562b|#9e3819/i.test(rule[1]),
@@ -734,14 +734,14 @@ expect(
 )
 expect(
   'the open state is derived from the panel, not tracked beside it',
-  /const browseOpen = panel === /.test(cataloguePage) &&
-    /const dictionaryOpen = panel === /.test(cataloguePage),
+  /const browseOpen = panel === /.test(catalogPage) &&
+    /const dictionaryOpen = panel === /.test(catalogPage),
   'two pieces of state for one fact is a pressed button with nothing open under it',
 )
 expect(
   'and the way to close a panel is stated while one is open',
-  /Click the same button again to close the panel\./.test(cataloguePage) &&
-    /\{browseOpen \|\| dictionaryOpen \?/.test(cataloguePage),
+  /Click the same button again to close the panel\./.test(catalogPage) &&
+    /\{browseOpen \|\| dictionaryOpen \?/.test(catalogPage),
   'the ✕ is gone, so the way back has to be said somewhere',
 )
 /* ---------------- a run that profiled nothing says which objects, and offers the re-run ---------------- */
@@ -780,7 +780,7 @@ expect(
  * is the confirm's `onOk`.
  */
 for (const [label, path] of [
-  ['BrowsePanel', 'src/pages/CataloguePage.tsx'],
+  ['BrowsePanel', 'src/pages/CatalogPage.tsx'],
   ['DocumentBrowsePanel', 'src/components/DocumentBrowsePanel.tsx'],
 ]) {
   const src = codeOnly(read(path))
@@ -901,7 +901,7 @@ for (const [label, path] of publicationGated) {
   )
 }
 const connectionGated = [
-  ['Data Catalog', 'src/pages/CataloguePage.tsx'],
+  ['Data Catalog', 'src/pages/CatalogPage.tsx'],
   ['Traces', 'src/pages/TracePage.tsx'],
   ['Validation', 'src/pages/ValidationPage.tsx'],
 ]
@@ -2551,12 +2551,12 @@ expect(
  *
  * Both halves, because the poll's stop condition is what makes the refresh load-bearing.
  */
-const queuedHandler = (cataloguePage.split('const handleQueued = useCallback(')[1] ?? '')
+const queuedHandler = (catalogPage.split('const handleQueued = useCallback(')[1] ?? '')
   .split('}, [')[0]
 expect(
   'queueing a run re-reads the jobs board',
   /void loadJobs\(\)/.test(queuedHandler) &&
-    /const loadJobs = useJobsStore\(\(s\) => s\.load\)/.test(cataloguePage),
+    /const loadJobs = useJobsStore\(\(s\) => s\.load\)/.test(catalogPage),
   'its own poll has already stopped by then, so a queued run would never appear',
 )
 expect(
@@ -3468,6 +3468,37 @@ expect(
       dsPanel,
     ),
   'refusing by verb refuses the login, and `both` becomes a state a signed-out reader cannot leave',
+)
+
+/*
+ * ---------------- a container proxy has to *be* what it stands for ----------------
+ *
+ * **Two proxy faults, both silent until a route tried to serialise one.**
+ *
+ * `containerProxy` passed the resolved descriptor straight through with a bare `{}` target. A proxy
+ * may not report a property as non-configurable unless its own target really holds it that way —
+ * and every array has a `length` that is `configurable: false`. So `JSON.stringify`, `Object.keys`
+ * and `{ ...spread }` all threw *"trap reported non-configurability for property 'length'"*, while
+ * `.length`, `.push` and `.filter` worked perfectly, because only the first three walk descriptors.
+ * `GET /governance` sends its log directly, so that one endpoint 500'd — and on a page whose only
+ * fetch that is, the result reads as the whole server being down.
+ *
+ * Fixing that exposed the second: `Array.isArray` and `JSON.stringify` read the *target*, not the
+ * traps, so an array container behind a `{}` target serialised as `{"0":…,"1":…}` — which the client
+ * validator refuses as `log should be an array, got object`, reading as a stale server.
+ */
+expect(
+  'a live container proxies as the kind it is, and its descriptors satisfy the invariant',
+  /export function containerProxy\(resolve, kind = 'map'\)/.test(datasets) &&
+    /kind === 'array' \? \[\] : \{\}/.test(datasets) &&
+    /\}, LIVE_SHAPE\[name\]\)/.test(server) &&
+    /* The trap answers the invariant in both directions — see `descriptorFor`. */
+    /function descriptorFor\(resolved, key, proxyTarget = \{\}\)/.test(datasets) &&
+    /if \(own && !own\.configurable\) return descriptor/.test(datasets) &&
+    /return \{ \.\.\.descriptor, configurable: true \}/.test(datasets) &&
+    /* Both proxies answer it the same way — two traps disagreeing is how one stays broken. */
+    (datasets.match(/descriptorFor\(resolve\(\), key/g) ?? []).length === 2,
+  'a container that throws on JSON.stringify reads as the server being down',
 )
 
 expect(
@@ -5656,6 +5687,49 @@ expect(
     ? 'the seed’s NAV_KEYS were not parsed — this check cannot run'
     : `${seededNavKeys.length} keys, matching nav.ts`,
 )
+
+/*
+ * ---------------- every in-app link points at a route that exists ----------------
+ *
+ * **A renamed route leaves working-looking links behind.** `/catalogue` became `/catalog` in
+ * `nav.ts` and `routes.tsx` and nowhere else, so the New Graph step-4 button — *"Open the Data
+ * Catalog to profile a source"*, the one exit from that dead end — fell through to `NotFoundPage`.
+ * Nothing errored: a `<Link>` to a path no route matches is a 404 rendered as a page, and only
+ * clicking it tells you.
+ *
+ * Derived from `routes.tsx` rather than listed, and walked rather than given a file list — a
+ * hand-kept list is how the spacing sweep came to cover nine of fifteen stylesheets unnoticed.
+ */
+{
+  const declared = new Set(
+    [...routesSrc.matchAll(/\{ path: '([^']+)', element:/g)].map((m) => m[1]),
+  )
+  /* The addresses that exist without a dataset, plus the catch-all. */
+  const outside = new Set(['login', 'login/data', '*', ''])
+  const tsFiles = (function walkTs(dir) {
+    return readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) =>
+      entry.isDirectory()
+        ? walkTs(`${dir}/${entry.name}`)
+        : /\.tsx?$/.test(entry.name)
+          ? [`${dir}/${entry.name}`]
+          : [],
+    )
+  })('src')
+  const linked = []
+  for (const file of tsFiles) {
+    for (const m of read(file).matchAll(/appPath\('\/([^']*)'\)/g)) linked.push([file, m[1]])
+  }
+  const broken = linked.filter(
+    ([, p]) => !declared.has(p) && !outside.has(p) && !declared.has(p.split('/')[0]),
+  )
+  expect(
+    'every in-app link points at a route that exists',
+    declared.size > 5 && linked.length > 0 && broken.length === 0,
+    broken.length === 0
+      ? `${linked.length} appPath links across ${declared.size} declared routes`
+      : broken.map(([f, p]) => `${f.split(/[\\/]/).pop()} → /${p}`).join(' | '),
+  )
+}
 
 /*
  * **One place decides what the sidebar shows, and the lock is the server's.**

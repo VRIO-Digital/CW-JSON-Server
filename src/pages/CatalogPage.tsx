@@ -14,7 +14,7 @@ import {
 } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SourceRow } from '../api/client'
-import { useBrowseStore, useJobsStore } from '../store/catalogueStore'
+import { useBrowseStore, useJobsStore } from '../store/catalogStore'
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import ConnectorIcon from '../components/ConnectorIcon'
@@ -27,7 +27,7 @@ import ProfilingJobsTab from '../components/ProfilingJobsTab'
 import StatusTag from '../components/StatusTag'
 import { CONFIRM_WIDTH, profilingOutcome } from '../data/profilingOutcome'
 import { SP } from '../theme'
-import './CataloguePage.css'
+import './CatalogPage.css'
 
 /* Tree keys encode the pair so a leaf can be turned back into an object. */
 const leafKey = (dataset: string, table: string) => `t:${dataset}::${table}`
@@ -453,7 +453,7 @@ export default function CatalogPage() {
      then — see `handleQueued`. */
   const loadJobs = useJobsStore((s) => s.load)
 
-  const [tab, setTab] = useState('catalogue')
+  const [tab, setTab] = useState('catalog')
   const [running, setRunning] = useState(0)
 
   useEffect(() => {
@@ -498,10 +498,10 @@ export default function CatalogPage() {
           onChange={setTab}
           items={[
             {
-              key: 'catalogue',
-              label: 'Catalogue',
+              key: 'catalog',
+              label: 'Catalog',
               children: (
-                <CatalogueTab
+                <CatalogTab
                   sources={sources}
                   loading={loading}
                   onChanged={handleQueued}

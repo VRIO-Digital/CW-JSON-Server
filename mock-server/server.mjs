@@ -397,7 +397,7 @@ function liveContainer(name) {
       ? [...rows].sort((a, b) => String(b?.[at] ?? '').localeCompare(String(a?.[at] ?? '')))
       : [...rows]
     return readOnly(sorted, name, ARRAY_WRITERS)
-  })
+  }, LIVE_SHAPE[name])
 }
 
 /*

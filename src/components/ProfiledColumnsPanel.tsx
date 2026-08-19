@@ -2,7 +2,8 @@ import { DownOutlined, EditOutlined } from '@ant-design/icons'
 import {
   App,
   Button,
-  Empty,
+  Empty,
+
   Input,
   Modal,
   Spin,
@@ -18,7 +19,7 @@ import type {
   ProfiledTable,
   SourceRow,
 } from '../api/client'
-import { useColumnsStore } from '../store/catalogueStore'
+import { useColumnsStore } from '../store/catalogStore'
 import './ProfiledColumnsPanel.css'
 
 type FacetKey =
@@ -66,9 +67,11 @@ function matches(column: ProfiledColumn, facet: FacetKey) {
 }
 
 export default function ProfiledColumnsPanel({
-  source,
+  source,
+
 }: {
-  source: SourceRow
+  source: SourceRow
+
 }) {
   const { message } = App.useApp()
   const data = useColumnsStore((s) => s.data)

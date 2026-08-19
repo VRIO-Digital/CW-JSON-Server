@@ -2308,7 +2308,7 @@ current user.
 
 zustand. Thirteen modules (plus `asyncState.ts`, the shared machinery): `authStore`
 (who is signed in — the one module persisted to `localStorage`, everything else
-is server-derived), `sourcesStore`, `catalogueStore` (browse / columns /
+is server-derived), `sourcesStore`, `catalogStore` (browse / columns /
 document browse / documents / jobs — plus `signals`, which nothing reads since
 the Change signals tab was removed), `graphStore` (domains / use
 cases), `graphStudioStore` (the studio's list + one graph's review),
@@ -2396,7 +2396,7 @@ category chip, one level up.
 **Drive file labels come from `fileKind()`** in `src/data/mimeTypes.ts`, shared by
 the browse tree and the document dictionary so one MIME type cannot render as
 `DOCUMENT` in one panel and `GDOC` in the other. The document panels reuse
-`ProfiledColumnsPanel.css` / `CataloguePage.css` classes rather than growing a
+`ProfiledColumnsPanel.css` / `CatalogPage.css` classes rather than growing a
 second stylesheet for the same layout.
 
 **Theme, not CSS.** Brand identity lives in `src/theme.ts` as a `ConfigProvider`
@@ -2483,7 +2483,7 @@ Sources. `/login` has no `NAV_ITEMS` entry — there is nothing to navigate to
 before signing in, and once signed in there is no reason to navigate back.
 
 **Every sidebar entry now has a page.** `NAV_ITEMS` has **9** live entries and `routes.tsx`
-has a page for **9** of them (`/new-graph`, `/ask`, `/reports`, `/sources`, `/catalogue`,
+has a page for **9** of them (`/new-graph`, `/ask`, `/reports`, `/sources`, `/catalog`,
 `/graph-studio`, `/what-if`, `/audit`, `/settings`). **Knowledge Graphs was the tenth and is
 gone** — a roadmap placeholder with no route, so clicking it fell through `path: '*'` to
 `NotFoundPage`; it was removed on request. Removing it was four coordinated edits, which is

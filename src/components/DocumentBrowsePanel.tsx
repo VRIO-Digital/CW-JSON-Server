@@ -12,9 +12,9 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import type { SourceRow } from '../api/client'
 import { fileKind } from '../data/mimeTypes'
-import { useDocumentBrowseStore } from '../store/catalogueStore'
+import { useDocumentBrowseStore } from '../store/catalogStore'
 import { CONFIRM_WIDTH, profilingOutcome } from '../data/profilingOutcome'
-import '../pages/CataloguePage.css'
+import '../pages/CatalogPage.css'
 
 /* Tree keys encode the pair so a leaf can be turned back into an object. */
 const leafKey = (folder: string, document: string) => `f:${folder}::${document}`

@@ -408,11 +408,11 @@ their empty state. There is no Reconnect yet; delete and re-register.
 
 This is the most involved flow and the one most likely to be misunderstood.
 
-**Files:** `CataloguePage.tsx` (`BrowsePanel`) → `catalogueStore.ts`
+**Files:** `CatalogPage.tsx` (`BrowsePanel`) → `catalogStore.ts`
 (`useBrowseStore`, `useJobsStore`) → `ProfilingJobsTab.tsx` → `server.mjs`
 (`runJob`, `PIPELINE`)
 
-**Drive files:** `CataloguePage.tsx` (`DocumentBrowsePanel`) →
+**Drive files:** `CatalogPage.tsx` (`DocumentBrowsePanel`) →
 `useDocumentBrowseStore` → the same `ProfilingJobsTab`.
 
 ### The source list
@@ -916,7 +916,7 @@ With no brief the suggester falls back to domain only and says so
 **Files:** `SourcesStep.tsx` → `useGraphSourcesStore` → `GET /graph-sources`
 
 This is the one step whose answers are not free text: it lists **what the Data
-Catalogue has actually profiled**, per connected source, in that connector's unit
+Catalog has actually profiled**, per connected source, in that connector's unit
 — `epa_dataset2.manifest_header · 42 columns` for BigQuery, `Audit reports /
 FY25 audit.pdf · 26 entities` for Drive.
 
@@ -932,13 +932,13 @@ they already have three is useless advice, so the step distinguishes them:
 | State | What step 4 shows |
 |---|---|
 | nothing connected | `NoSourceConnected` — "Connect a source" → `/sources` |
-| connected, nothing profiled | an **error** alert — "No profiled data yet — you cannot select a source", with "Open the Data Catalog to profile a source" → `/catalogue`, above the cards, each tagged `nothing profiled` and disabled |
+| connected, nothing profiled | an **error** alert — "No profiled data yet — you cannot select a source", with "Open the Data Catalog to profile a source" → `/catalog`, above the cards, each tagged `nothing profiled` and disabled |
 | something profiled | the selection UI; the alert disappears |
 
 **`Next` refuses to leave step 4 empty** (its rule lives with every other step's,
 in `wizardSteps.ts`), and names the fix for each case: no
 sources connected → go to Sources; connected but unprofiled → go to the Data
-Catalogue; profiled but nothing selected → select a source; a `subset` with no
+Catalog; profiled but nothing selected → select a source; a `subset` with no
 objects → pick one or switch back to all. Every later step derives from this
 selection, so advancing empty would build a graph over no data.
 

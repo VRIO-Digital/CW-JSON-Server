@@ -2,7 +2,8 @@ import { DownOutlined, EditOutlined } from '@ant-design/icons'
 import {
   App,
   Button,
-  Empty,
+  Empty,
+
   Input,
   Modal,
   Spin,
@@ -14,7 +15,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import type { ProfiledDocument, ProfiledEntity, SourceRow } from '../api/client'
 import { fileKind } from '../data/mimeTypes'
-import { useDocumentsStore } from '../store/catalogueStore'
+import { useDocumentsStore } from '../store/catalogStore'
 import './ProfiledColumnsPanel.css'
 
 type FacetKey =
@@ -59,9 +60,11 @@ function matches(document: ProfiledDocument, facet: FacetKey) {
 }
 
 export default function ProfiledDocumentsPanel({
-  source,
+  source,
+
 }: {
-  source: SourceRow
+  source: SourceRow
+
 }) {
   const { message } = App.useApp()
   const data = useDocumentsStore((s) => s.data)

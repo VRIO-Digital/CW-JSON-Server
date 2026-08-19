@@ -15439,7 +15439,7 @@
         "what-if": true,
         "new-graph": true,
         "sources": true,
-        "catalogue": true,
+        "catalog": true,
         "graph-studio": true,
         "audit": true,
         "settings": false
@@ -15450,7 +15450,7 @@
         "what-if": true,
         "new-graph": true,
         "sources": true,
-        "catalogue": true,
+        "catalog": true,
         "graph-studio": true,
         "audit": true,
         "settings": false
@@ -15461,7 +15461,7 @@
         "what-if": true,
         "new-graph": true,
         "sources": true,
-        "catalogue": true,
+        "catalog": true,
         "graph-studio": true,
         "audit": true,
         "settings": false
@@ -15472,7 +15472,7 @@
         "what-if": false,
         "new-graph": false,
         "sources": false,
-        "catalogue": false,
+        "catalog": false,
         "graph-studio": false,
         "audit": false,
         "settings": true
@@ -15490,7 +15490,7 @@
         "what-if": false,
         "new-graph": true,
         "sources": true,
-        "catalogue": false,
+        "catalog": true,
         "graph-studio": false,
         "audit": true,
         "settings": false
@@ -15501,7 +15501,7 @@
         "what-if": true,
         "new-graph": true,
         "sources": true,
-        "catalogue": true,
+        "catalog": true,
         "graph-studio": true,
         "audit": true,
         "settings": false
@@ -15512,7 +15512,7 @@
         "what-if": true,
         "new-graph": true,
         "sources": true,
-        "catalogue": true,
+        "catalog": true,
         "graph-studio": true,
         "audit": true,
         "settings": false
@@ -15523,7 +15523,7 @@
         "what-if": true,
         "new-graph": true,
         "sources": true,
-        "catalogue": true,
+        "catalog": false,
         "graph-studio": true,
         "audit": true,
         "settings": true
