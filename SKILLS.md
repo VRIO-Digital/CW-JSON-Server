@@ -694,7 +694,7 @@ protection, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
-2. **Server shape check** — `validateDb` verifies all 25 required keys and
+2. **Server shape check** — `validateDb` verifies all 27 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
 3. **Atomic write** — temp file + rename, so a failed write cannot truncate
@@ -1813,7 +1813,7 @@ rather than a restore.
 
 | decision | pool | refused when |
 |---|---|---|
-| readers | `settings.json`'s users, served on the frame with their persona | empty, or an address the directory does not have — named in the refusal |
+| readers | `db.settings`'s users, served on the frame with their persona | empty, or an address the directory does not have — named in the refusal |
 | graph | the graphs *currently published* | not live; the message names the ones that are |
 | freshness | the presets `db.whatif.publishing` declares | unknown preset/unit/time, or a weekly custom schedule with no day |
 
@@ -2081,7 +2081,7 @@ directory; unpublishing a report -> 400 naming its equivalent; removing a scenar
 ---
 ## Flow 13 — Settings: users, personas and what each one sees
 
-**Files:** `mock-server/settings.json` (its own small store) + `scripts/seed-settings.mjs` ->
+**Files:** `db.settings` (its own subtree of `mock-server/db.json`) + `scripts/seed-settings.mjs` ->
 `GET /settings` / `PATCH /settings/personas/:roleId/nav` / `POST …/reset` ->
 `src/api/client.ts` -> `src/store/settingsStore.ts` (the one place visibility is decided) ->
 `src/pages/SettingsPage.tsx` -> `src/components/UsersPanel.tsx` and
@@ -2091,14 +2091,27 @@ directory; unpublishing a report -> 400 naming its equivalent; removing a scenar
 **The flow:** Settings → Persona Configuration → pick a persona → toggle a navigation item → the
 sidebar changes on the next render, and the change is saved.
 
-### Its own database
+### Its own key
 
-`settings.json`, separate from `db.json` on purpose: that file is the tenant's data, this one holds only
-what this page administers — users, each persona's navigation access, and the authored `defaults` those
-reset to. Two files, two validators, one job each, so a settings write cannot touch a report and an
-ingest that rebuilds `db.reports` cannot drop a permission. **It persists**: a permission survives a
-restart, unlike a registered source. `npm run seed:settings` re-authors it and the server refuses to boot
-on a bad one, naming that command.
+`db.settings` holds only what this page administers — users, each persona's navigation access, and the
+authored `defaults` those reset to.
+
+**It was `mock-server/settings.json`, a file of its own**, on the reasoning that two stores with one job
+each cannot damage one another: a settings write could not touch a report, and an ingest rebuilding
+`db.reports` could not drop a permission. It was folded into `db.json` on request, so the separation is
+now by key — and the guarantee moved to a stronger place rather than being lost. `settings` is a
+`DB_SHAPE` key, so `validateDb` refuses a document without it and `commitDb` validates it before
+**every** write, not just this page's. That covers the case two files never did: a writer that rebuilds
+*some other* subtree and forgets to carry this one, which is how `db.reports.governance` was nearly lost.
+
+`validateSettings` and `commitSettings` both survive, because the message is the point — the refusal a
+permission needs names `npm run seed:settings`, not "restart the server". `commitSettings` validates for
+that message and then hands the whole document to `commitDb`.
+
+**It persists**: a permission survives a restart, unlike a registered source. `npm run seed:settings`
+re-authors it — reading the whole document and replacing one key, because a script that owns a subtree
+and rewrites its parent is how a subtree gets deleted — and the server refuses to boot on a bad one,
+naming that command.
 
 ### What it stores and what it does not
 
@@ -2106,7 +2119,7 @@ on a bad one, naming that command.
 
 **Does not store:** persona labels. `db.auth_roles` / `GET /auth/roles` is the one place the four are
 declared, and the server resolves labels on the way out — so a rename reaches every surface at once.
-`check-docs` fails if a label appears in `settings.json` or a user names a role the tenant lacks.
+`check-docs` fails if a label appears in `db.settings` or a user names a role the tenant lacks.
 
 **Nor the navigation list twice:** the seed's `NAV_KEYS` is compared to `nav.ts`, so a key it has that
 the sidebar lacks (a permission nobody can exercise) or one the sidebar has that it lacks (an item no
@@ -2123,7 +2136,7 @@ server then refuses to boot on while naming the seed as the fix. Removing Knowle
 ### The login has no role picker
 
 `POST /auth/login` takes `{ email, password }`. The persona is the one on that address's row in
-`settings.json`, so an unknown address is **refused**, naming who is set up. The form used to ask, which
+`db.settings`, so an unknown address is **refused**, naming who is set up. The form used to ask, which
 meant one address could sign in as any persona; `LoginPage` no longer reads `GET /auth/roles` at all.
 Still not authentication — the password is length-checked and nothing more.
 

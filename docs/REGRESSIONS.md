@@ -3365,3 +3365,91 @@ does not apply to a `.gitignore`, so the fix is anchoring: `/^mock-server\/\.env
 live rule and not a commented one. The claim now guards the three credential rules that way, and the
 prototype's own rule is gone from it deliberately, because that one is now a preference rather than a
 guard.
+
+## A port that brings its data brings a second source for every figure
+
+**Symptom.** `src/ddd` was a standalone React port of the same five reports the Library
+publishes — a good design, and five components each holding its own roster as compiled-in
+TypeScript constants (36 generators, 5 facilities, 14 quarters, 5 traces). Dropping it in as
+the published-report renderer would have looked right on screen and been correct on the day
+it landed. Every figure would then have been a stored result: `db.reports` stores no result
+precisely so that a report is a re-executable question, and `reportView` computes each series,
+row order and count per request. A roster in a component is that premise inverted, and nothing
+errors.
+
+**Cause.** Two ports of one report is two answers to what it shows, and a diff confirmed they
+already agreed to the row — which is exactly what makes the failure invisible: the copy is
+right until the roster it was transcribed from changes.
+
+**Fix.** Adopt the design, refuse the data. The primitives moved into
+`src/components/report/ui.tsx` and the sheet into `report.css`; the components stayed one
+renderer over the payload rather than five over five rosters, and the standalone folder was
+deleted. Three of its parts stayed behind because each would have made a claim the app cannot
+keep: `ReportChart` wrapped Chart.js (a dependency decision by transcription, through a gate
+that fails at `low`), `FilterBar` filtered rows in the browser (leaving the chart and the KPIs
+describing the unfiltered set — two readings of one screen), and the sheet imported Google
+Fonts over the network.
+
+**Guard.** One cross-layer `check-docs` claim, because half a port is what fails silently: the
+second copy is absent, the primitives exist *and* are what `PublishedReport` renders through,
+every selector in `report.css` is scoped under `.cw-report`, the font import is gone, and no
+component under `src/components/report` declares a row literal. All four halves were
+break-tested.
+
+**Two smaller things it cost on the way.**
+
+- `Ranked by {sortedBy}` rendered as `Ranked by<!-- --> tonnage`: `renderToString` puts a
+  comment node between an interpolation and its neighbouring text, so the assertion passed over
+  nothing. Same trap the scope line already carried a note about — made one expression.
+- The claim asserting `report.css` is scoped read the file's own header comment as selectors,
+  because those lines start with `*`. The self-documenting-file trap, in CSS this time: strip
+  comments before asserting anything about a file's contents, positive or negative.
+
+## Folding two documents into db.json moves a guard that was doing real work
+
+**Symptom.** None yet — this is the entry written *before* the bug, because the change
+removed the structural thing that was preventing it.
+
+**What changed.** `mock-server/settings.json` and `mock-server/reports_prototype.json` were
+folded into `db.json` as the keys `settings` and `reports_prototype`, on request.
+`mock-server/db.CAPEX.json` was deleted at the same time and `DATASETS` dropped to `['EPA']`
+— a name in that list with no document behind it stops the boot, so removing the file meant
+removing the name.
+
+**What the two files were for.** Two stores with one job each: a settings write could not
+touch a report, and an ingest rebuilding `db.reports` could not drop a permission. The second
+half is not hypothetical — `ingest-reports.mjs` rebuilds `db.reports` wholesale and nearly
+deleted `governance` exactly that way, which is already an entry in this file. Merging puts
+three more subtrees inside one script's blast radius.
+
+**How the guarantee was kept.** Not by trusting the ingests. Both keys are in `DB_SHAPE`, so:
+
+- `validateDb` refuses a document missing either, at boot and on every write;
+- `commitDb` validates the **whole** document before every write, so a writer that rebuilt one
+  subtree and forgot to carry another is a refused write naming the key rather than a file that
+  silently lost the tenant's users;
+- `npm run seed:settings` spreads the document (`{ ...db, settings }`) rather than rebuilding it.
+
+That is a *wider* check than the old one — two files only protected against the writers that
+knew about them — applied at every write instead of one. `commitSettings` survives anyway,
+because the message is the point: the refusal a permission needs names `npm run seed:settings`,
+and `commitDb`'s says "restart the server".
+
+**The trap this leaves.** `db.json` now holds tenant configuration as well as tenant data, so
+**any script that writes a subtree must spread the document, never rebuild it**. Three do:
+`ingest-reports.mjs`, `ingest-whatif.mjs`, `ingest-knowledge-graph.mjs`. The rule already
+existed for `governance`; the cost of breaking it is now the login as well.
+
+**Guard.** Five `check-docs` claims re-keyed and break-tested: the settings store is a key with
+its own validator, writer and spreading seed; `commitSettings` routes through `commitDb` and
+keeps none of the ordering itself; the boot read is one `Promise.all` per dataset with both
+former documents read off `db` at call time; the sync tool moves one document; and both keys
+carry `primary` in `MERGE_PLAN`, which is what now makes them tenant-level rather than the
+refusal that used to.
+
+**One thing worth naming about the dataset removal.** The "every dataset has a distinct letter"
+claim cannot fail with one dataset — which is precisely when a check stops being read and
+precisely when the next dataset gets added. Its denominator is the declared list plus `both`, so
+it re-acquires teeth automatically rather than needing to be remembered.
+
+

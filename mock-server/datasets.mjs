@@ -24,8 +24,18 @@ import { AsyncLocalStorage } from 'node:async_hooks'
  * The datasets, in order, and EPA is first because that ordering is load-bearing: it is the
  * primary, so it is what `both` resolves a single-valued key to and what a caller naming no
  * dataset gets.
+ *
+ * **There is one today, and the machinery is still here on purpose.** `CAPEX` was seeded and then
+ * removed on request; what went with it is the *document*, not the ability to hold a second one.
+ * Every dataset in this list is read at boot and a request picks one, so a name here with no
+ * document behind it stops the boot — which is why removing the file means removing the name, and
+ * why adding a dataset back is this array plus `npm run seed:dataset -- <NAME>`.
+ *
+ * `both` therefore currently merges one document with nothing, which is EPA. It is left reachable
+ * rather than special-cased away: the merge is a pure function over this list, and a second
+ * dataset restores its meaning without any of it having to be written again.
  */
-export const DATASETS = ['EPA', 'CAPEX']
+export const DATASETS = ['EPA']
 export const PRIMARY = 'EPA'
 export const BOTH = 'both'
 
@@ -123,6 +133,18 @@ export const MERGE_PLAN = {
 
   /* One facility, one appetite line, one set of candidate loads — a merged frame is not a frame. */
   whatif: 'primary',
+
+  /*
+   * The two documents that used to be files of their own, and both are the **tenant's** rather than
+   * a dataset's — which is exactly why they are `primary` here and were never copied per prefix.
+   *
+   * `settings` holds the users and each persona's navigation: two datasets do not mean eight users,
+   * for the same reason `auth_roles` and `google_account` are `primary`. `reports_prototype` is the
+   * authoring prototype's own sample data, not a dataset's rosters — those are `reports.data` above
+   * — and a copy per dataset would have meant inventing sample figures nobody wrote.
+   */
+  settings: 'primary',
+  reports_prototype: 'primary',
 
   /*
    * Reports: the definitions and the rosters they are asked over are per dataset; the field

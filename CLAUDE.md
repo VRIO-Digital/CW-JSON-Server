@@ -15,7 +15,7 @@ npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db
 npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
 npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
 npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
-npm run seed:settings   # re-authors mock-server/settings.json — users and persona navigation
+npm run seed:settings   # re-authors db.settings — users and persona navigation
 npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secondary dataset
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
 npm run db:push     # upload the three documents to S3 (-- db|settings|prototype, -- CAPEX per dataset)
@@ -184,39 +184,60 @@ boot.
 
 ### Where the data lives
 
-**The two documents live in S3, and the local copies are gone.** `mock-server/store.mjs` is the
-whole storage layer: a document is named by a **ref**, and the ref says where it is — an absolute
-path is a file, `s3://bucket/key` is an object.
+**The document lives in S3, and the local copy is gone.** `mock-server/store.mjs` is the whole
+storage layer: a document is named by a **ref**, and the ref says where it is — an absolute path is
+a file, `s3://bucket/key` is an object.
 
 | | ref | how the bytes move |
 |---|---|---|
 | default, and the deployed box | `s3://contextweave.com/EPA/db.json` | signed `GetObject` / `PutObject` |
 | `S3_BUCKET=off` | `mock-server/db.json` | `readFile`, and temp-file + rename on write |
 
-**There are three documents, not two.** `db.json` per dataset, `settings.json`, and
-**`reports_prototype.json`** — the report prototype's own sample data, which used to be
-`src/reports/data/dataset.json` compiled into the JS bundle. That made it the one thing on screen the
-bucket could not change: a figure on the Authoring tab needed a rebuild and a redeploy. All three are
-read in one `Promise.all` above `server.listen`, and `npm run db:pull` fetches all three.
+**There is one document per dataset, and there used to be three in total.** `settings.json` held the
+users and each persona's navigation; `reports_prototype.json` held the report prototype's own sample
+data (itself once `src/reports/data/dataset.json`, compiled into the JS bundle, which made it the one
+thing on screen the bucket could not change). **Both were folded into `db.json` on request**, as the
+top-level keys `settings` and `reports_prototype`. `npm run db:pull` fetches the one document; the
+boot read is still a `Promise.all` above `server.listen`, now one entry per dataset.
 
-It is **tenant-level, like `settings.json` rather than per dataset**: it is the *prototype's* sample data,
-not a dataset's rosters — those are `db.reports`, which every published report is computed from. A copy
-per prefix would mean inventing CAPEX sample figures nobody wrote, so `npm run db:push -- prototype
-CAPEX` is refused, in its own words rather than settings' (one sentence covering both said "it holds the
-users and each persona's navigation" about the dataset file).
+**The separation those two files bought was real, and it moved rather than went away.** Two stores
+with one job each meant a settings write could not touch a report, and an ingest rebuilding
+`db.reports` could not drop a permission — which is not hypothetical, since `ingest-reports.mjs`
+nearly deleted `governance` that exact way. The guarantee is now carried by `DB_SHAPE`: `settings`
+and `reports_prototype` are **required keys**, so `validateDb` refuses a document missing either and
+`commitDb` validates them before **every** write rather than only the writer that owns them. That is
+a stronger check applied at a wider moment — it catches a writer that rebuilds *some other* subtree
+and forgets to carry these forward, which is the case two separate files never covered. The two
+narrower validators (`validateSettings`, `validatePrototype`) are what `DB_SHAPE` delegates to, so
+none of their rules were restated, and each keeps its own boot refusal because the fix for a drifted
+permission set is a different command from the fix for a stale roster.
 
-### Two datasets, and one process holds both
+Both are still **tenant-level rather than a dataset's**, and that is now expressed as a merge rule:
+`MERGE_PLAN` marks both `primary`, so a secondary dataset's document carries the primary's answer to
+"who exists" rather than a second one. `npm run seed:settings` therefore reads the whole document and
+replaces one key — a script that owns a subtree and rewrites its parent is how a subtree gets deleted.
 
-**The tenant has two datasets, and a prefix is what one is.** `EPA/` is the primary and holds
-everything described below; `CAPEX/` is the second, created and seeded but not yet populated.
+### One dataset today, and the process holds however many there are
+
+**A dataset is a prefix, and there is one.** `EPA/` is the primary and holds everything described
+below. `CAPEX/` was the second — created, seeded, never populated — and **its document was removed on
+request**; what went with it is the document and the name in `DATASETS`, not the ability to hold a
+second one. Every dataset in that list is read at boot, so a name with no document behind it stops
+the boot: removing the file meant removing the name, and adding a dataset back is that array plus
+`npm run seed:dataset -- <NAME>`.
+
 `mock-server/datasets.mjs` owns which one a request is reading — `store.mjs` still owns only how
 bytes move, and `server.mjs` still owns only what a document means.
 
 | selector | what it reads | writes |
 |---|---|---|
 | `EPA` (default) | `s3://contextweave.com/EPA/db.json` | yes |
-| `CAPEX` | `s3://contextweave.com/CAPEX/db.json` | yes |
-| `both` | the two merged, per `MERGE_PLAN` | **refused** |
+| `both` | every dataset merged, per `MERGE_PLAN` | **refused** |
+
+**`both` currently merges one document with nothing, which is EPA.** It is left reachable rather than
+special-cased away: the merge is a pure function over `DATASETS`, so a second dataset restores its
+meaning without any of it being written again. The whole of this section describes machinery that is
+intact and under-exercised — which is the state it was deliberately left in.
 
 **Every dataset is loaded at boot and a request picks one**, by `?dataset=` or the `x-dataset`
 header, defaulting to the primary. The prefix used to be read from the environment once at module
@@ -261,13 +282,15 @@ keyed by source id, a studio decision by `useCaseId:itemId`, a publication by `u
 one shared `Map` would show an EPA registration while CAPEX was selected. All twelve containers are
 declared once in `LIVE_SHAPE` and resolved through `liveContainer`, so the call sites are unchanged.
 
-**`settings.json` has no dataset.** It holds the users and each persona's navigation, which is the
-tenant's rather than a dataset's — the same reason it is absent from `MERGE_PLAN` and a secondary
-dataset has no copy of it. `npm run db:push -- CAPEX` therefore pushes that dataset's `db.json`
-alone, and asking for settings under a secondary dataset is refused rather than silently ignored.
+**The settings have no dataset, and that is a `MERGE_PLAN` rule now rather than a missing file.**
+`db.settings` holds the users and each persona's navigation, which is the tenant's rather than a
+dataset's, so `MERGE_PLAN` marks it — and `reports_prototype` beside it — `primary`: a secondary
+dataset's document carries the primary's answer to "who exists" rather than a second one. While they
+were files of their own the same fact was expressed by refusing to push them under a secondary
+prefix; that refusal is gone with the documents it was about.
 
 **A secondary dataset is seeded, not left empty, and `npm run seed:dataset -- CAPEX` writes it.**
-"Empty" is not a document: `validateDb` requires 25 keys and checks inside most of them, and the two
+"Empty" is not a document: `validateDb` requires 27 keys and checks inside most of them, and the two
 obvious ways out are both wrong — seeding CAPEX with EPA's rows shows EPA's figures under CAPEX's
 name, and leaving it invalid stops the server booting. The seed writes the third thing, the primary's
 *structure* with the primary's *rows* removed, and it decides which is which by reading `MERGE_PLAN`
@@ -403,13 +426,13 @@ network and no bucket.
 **Both documents are fetched at once, and boot is still dominated by one of them.** They are read
 through a single `Promise.all`, so the two waits overlap and the smaller one costs nothing — but
 `db.json` is 492 KB and takes **~2.9s** to pull from `us-east-1` on a link from India, against
-~850ms for `settings.json` and ~1.0s of Node start-up. So a cold boot is ~5.3s and the fetch is
+~1.0s of Node start-up. So a cold boot is ~4s and the fetch is
 most of it. **Parallelising helped by about the smaller fetch and no more**; if boot time matters,
 the fix is a bucket in a closer region (`ap-south-1` measured ~157ms per round trip against
 ~957ms for `us-east-1`), not anything in this code.
 
 **And a settings toggle is one round trip, so it inherits that number directly.** `PATCH
-/settings/personas/:roleId/nav` writes `settings.json` and the store waits for the server to
+/settings/personas/:roleId/nav` writes `db.json` and the store waits for the server to
 confirm before it moves the switch, which is deliberate — an earlier bug had a toggle report
 failure for a write that had saved. On a cross-continent bucket that is ~300ms–1.2s of the switch
 appearing to do nothing. Region is the fix here too; an optimistic toggle would only hide it.
@@ -480,7 +503,7 @@ Consequences worth knowing before debugging:
   200. The boot read stays synchronous on purpose: nothing may be served before
   `db.json` is loaded.
 - `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
-  editor cannot save a document that would crash the app. There are 25 required
+  editor cannot save a document that would crash the app. There are 27 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
   Graph — not just a catalogue page. `column_profiles` and
@@ -1360,7 +1383,7 @@ package does not ship.
 **Publishing a scenario records three decisions and verifies each against a pool the
 server owns.** `POST|DELETE /whatif/saved/:id/publish`:
 
-- **Readers** are the tenant's users from `settings.json`, served on the frame as
+- **Readers** are the tenant's users from `db.settings`, served on the frame as
   `readers` with their persona and its `access_note`. An address outside the directory is
   refused **naming who is in it**, the same refusal the login makes for an unknown
   address — inventing a reader is inventing a user. A directory written into the dialog
@@ -1615,11 +1638,32 @@ informational.
 **The reports themselves are the tenant's five, rendered.** The demo package's `07_reports/Report_N_*.html` are the
 tenant's *rendered* reports; their layout is now React — crumb, heading and badge, the lead note, four
 summary tiles, the facet bar, a card per block, then the footnotes — in `src/components/report/`
-(`PublishedReport`, `ReportBlocks`, `PublishedReports`) over `reportsStore`. **Their figures did not
-come across.** Every number is `reportView`'s, computed per request from `db.reports` in
+(`PublishedReport`, `ReportBlocks`, and the primitives in `ui.tsx`) over `reportsStore`. **Their figures
+did not come across.** Every number is `reportView`'s, computed per request from `db.reports` in
 `s3://contextweave.com/EPA/db.json`; pasting a rendered figure into a component is the one change that
 would break the section's premise while looking right on screen, so `check-docs` asserts no component
 here does arithmetic.
+
+**The chrome is a second port's, and only the chrome.** `src/ddd` held a standalone Vite app — the same
+five reports as five React components, each with its rosters compiled in as TypeScript constants, plus
+seven UI primitives and a stylesheet. The *design* was adopted: `ReportShell`, `KpiRow`, `Card`,
+`DataTable` and the marks (`Tag`, `FlagPill`, `DocRef`, `Chain`) are in `ui.tsx`, and its sheet is
+`report.css`, scoped under `.cw-report`. The *data* was not, and neither was the shape: **one component
+still renders all five**, because the reports differ in their blocks and the blocks are in the payload —
+a component per report could only differ by hardcoding what its report happens to contain, which is a
+stored result wearing a live report's chrome. The standalone copy was deleted rather than kept beside
+this one; two ports of one report are two answers to what it looks like. Three of its parts stayed
+behind, each because it would have made a claim: its `ReportChart` wrapped Chart.js, its `FilterBar` held
+the chip selection in `useState` and filtered rows in the browser, and its sheet imported Google Fonts
+over the network. `check-docs` asserts all of that on one cross-layer claim, because half a port is the
+shape that fails silently.
+
+**A cell's mark comes from its column, never from the shape of its value.** A compliance tier is a `Tag`,
+a consent decree is the purple marker, an enforcement document is a `DocRef`, a `Y` on a trace is a
+`FlagPill` and a list is a `Chain`. Keyed on the column, the register's `risk` renders as a tier on every
+report that carries it; keyed on the value, any three-letter string would become one. **The document
+column is the newest of these** — `db.reports.fields` carries `document`, the four decree-bound
+generators carry their filename and the other 32 carry `null`, because an absence is not a filename.
 
 Three things the HTML did that deliberately did not come across:
 
@@ -1633,9 +1677,11 @@ Three things the HTML did that deliberately did not come across:
   is two readings of one screen. A re-asked report comes back `variant: 'generated'` with its tiles
   recomputed over the rows in view, and says so; clear the facets and the authored figures return as
   `written`.
-- **Its `*{margin:0;padding:0}` reset and its own palette.** Authored CSS here is ordinary scoped rules
-  on the `--sp-*` scale; an unscoped reset is exactly what the vendored prototype's sheet had to be
-  scoped under `.cw-reports` to contain.
+- **Its `*{margin:0;padding:0}` reset and its own palette.** `report.css` scopes every rule under
+  `.cw-report` and puts its layout spacing on the `--sp-*` scale — an unscoped reset is exactly what the
+  vendored prototype's sheet had to be scoped under `.cw-reports` to contain, and the raw px it arrived
+  with was converted rather than added to the spacing exemption: that list is for vendored code, holds
+  two entries, and "vendored" must not come to mean "inconvenient to convert".
 
 **Values on one facet are OR-ed; different facets are AND-ed.** `risk=high, risk=med` reads as "high or
 medium", and adding `cd=true` narrows that — which is the only reading a reader could mean from a
@@ -1680,9 +1726,12 @@ published — the same precondition Ask and the What-if lens have, stated by the
 `NoPublishedGraph` component — and `GET /reports` is called for `published_count`,
 `built_count` and `draft_count` alone.
 
-**Everything the prototype shows is its own demo dataset** — now
-`s3://contextweave.com/EPA/reports_prototype.json`, served by `GET /reports/prototype` and hydrated into
-`src/reports/data.ts` before the prototype renders. Edit the figures in the bucket; no rebuild.
+**Everything the prototype shows is its own demo dataset** — now `db.reports_prototype`, inside
+`s3://contextweave.com/EPA/db.json`, served by `GET /reports/prototype` and hydrated into
+`src/reports/data.ts` before the prototype renders. Edit the figures in the bucket; no rebuild. It was
+a document of its own (`reports_prototype.json`) until that was folded in; what the move had to
+preserve is exactly this sentence — it is *served*, so the bucket still decides what the Authoring tab
+shows, which is the whole reason it stopped being a bundled import.
 
 **That route is declared before `/reports/:id`, and the order is load-bearing.** That matcher is
 `/^\/reports\/[^/]+$/`, so declared second the request would come back as `no report "prototype"` — a 404
@@ -1965,7 +2014,7 @@ immediately either way, so the dialog was promising a sign-off nothing performs.
 - **a name**, kept because a published report's name is how its audience refers to it and `nameProblem`
   reserves it across the whole list;
 - **who can open it** — picked as *people* from `governance.people` (the tenant's users from
-  `settings.json`, served with their persona), and stored as **`viewer_roles`**, because that is the
+  `db.settings`, served with their persona), and stored as **`viewer_roles`**, because that is the
   audience model the entitlement matrix and `?as_role=` already read. A directory written into the
   component would be a second answer to "who exists". There is no invite: the four personas are the
   pool, and offering to invite an address would promise a reader this app cannot create;
@@ -2121,12 +2170,12 @@ names at least one, so the refusal points at unpublish instead.
 ### Settings (`/settings`)
 
 Three tabs — **Add User**, **Dataset** and **Persona Configuration** — over `SettingsPage` → `settingsStore` →
-`GET /settings`, served from **`mock-server/settings.json`**.
+`GET /settings`, served from **`db.settings`** — a key of `db.json`, not a file of its own.
 
-**The Dataset tab is the one that is not about `settings.json`.** It administers which dataset 
+**The Dataset tab is the one that is not about `db.settings`.** It administers which dataset 
 the whole console reads — see *Two datasets* above — and it is here because confirming it signs the 
 reader out, which is a reconfiguration rather than navigation. Nothing on it is written to 
-`settings.json`: the selection is client-held, and the pool comes from `GET /datasets`.
+`db.settings`: the selection is client-held, and the pool comes from `GET /datasets`.
 
 **It has its own small database, separate from `db.json`.** That file is the tenant's data — sources,
 profiles, the graph, the reports; this one holds only what this page administers: the users, each
@@ -2189,7 +2238,7 @@ rather than behind it — see Routing below for how the route table wraps that.
 `POST /auth/login` takes **`{ email, password }`** and nothing else. There is
 still no credential store, so the password is length-checked and no more — but
 the *persona* is looked up rather than claimed: the address has to be one of the
-users in `settings.json`, and the role on that row is the one you sign in as. An
+users in `db.settings`, and the role on that row is the one you sign in as. An
 unknown address is refused, naming the people Settings knows.
 
 **The role picker is gone, and that is the point.** The form used to ask which
@@ -2202,10 +2251,10 @@ so. Do not build a feature on this login that assumes it authenticates.
 
 **The four roles still come from `db.json`, not a hardcoded union**, the same
 pattern as `graph_domains`/`graph_personas`: `GET /auth/roles` serves
-`{ role_id, label, access_note }`, `settings.json` names those `role_id`s and
+`{ role_id, label, access_note }`, `db.settings` names those `role_id`s and
 never a label, and `POST /auth/login` echoes the resolved `label` back in the
 session so the sidebar never has to re-fetch the pool to render it. Adding a
-fifth role is a `db.json` edit plus a `settings.json` one — the seed refuses a
+fifth role is an `auth_roles` edit plus a `settings` one — the seed refuses a
 user whose role the pool does not have.
 
 **The session now carries the user's `name`**, which the login previously had no
@@ -2268,7 +2317,7 @@ one column per admitted load — the *load*, never the figures), `reportsStore` 
 section list, plus one report keyed by the id in the URL — it keeps that id beside the
 report so a slow fetch cannot leave one report's tiles under another's heading),
 `telemetryStore` (audit / traces / evals), `settingsStore` (which persona the sidebar is showing and
-what each may see — from settings.json — its own small store, separate from db.json), `dbStore`.
+what each may see — from db.settings — its own small store over one key of db.json), `dbStore`.
 
 The Drive stores are separate from the BigQuery ones rather than one store
 branching on connector: the payloads share no fields, so a union `data` would
@@ -2439,7 +2488,7 @@ has a page for **9** of them (`/new-graph`, `/ask`, `/reports`, `/sources`, `/ca
 gone** — a roadmap placeholder with no route, so clicking it fell through `path: '*'` to
 `NotFoundPage`; it was removed on request. Removing it was four coordinated edits, which is
 what any nav entry costs: the `NAV_ITEMS` entry, its `NavKey` and its icon import in `nav.ts`,
-its key in the seed's `NAV_KEYS`, and a re-seed of `settings.json` so no persona carries a
+its key in the seed's `NAV_KEYS`, and a re-seed of `db.settings` so no persona carries a
 permission for an item that does not exist. A future placeholder is the same four in reverse
 plus the one line in `routes.tsx` when it gets a page — `/what-if`, `/reports` and `/audit`
 were all placeholders until theirs landed.
@@ -2670,7 +2719,7 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   reported "cannot reach the mock server" for a PATCH the server had already committed, because the store
   only updated on success — so the page showed the old value and the toast blamed the write. A failed write
   now re-reads before reporting. A network error means the outcome is unknown; ask the server.
-- **A fallback is state, and needs the same checks as the state it replaces.** `settings.json` holds
+- **A fallback is state, and needs the same checks as the state it replaces.** `db.settings` holds
   live permissions and the `defaults` Reset copies over them; both the validator and its claim checked
   only the live set, so a broken default became a broken sidebar at the next Reset with nothing throwing.
   Presets, defaults, seeds and reset payloads are all delayed ways of setting the real thing.

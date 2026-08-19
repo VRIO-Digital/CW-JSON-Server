@@ -1,0 +1,318 @@
+/*
+ * The published report's own chrome.
+ *
+ * **Ported from the standalone report app, and every rule is scoped under `.cw-report`.** The sheet it
+ * came from set `h1`, `h2`, `table`, `th` and `td` as bare selectors; unscoped that restyles every antd
+ * table on Sources, Ask, Catalogue and Graph Studio, silently, on pages nobody touched — the same trap
+ * the vendored prototype's sheet had to be scoped under `.cw-reports` to contain.
+ *
+ * **Two things did not come across.** Its Google Fonts `@import` — a network fetch on every report open,
+ * which nothing else in this app does — and its raw px spacing: this file is authored here now, so its
+ * layout spacing comes from `--sp-*` like every other authored sheet. The exemption list is for vendored
+ * code and holds two entries; "vendored" must not come to mean "inconvenient to convert".
+ */
+
+.cw-report {
+  --bg0: #ffffff; --card: #ffffff; --card2: #f5f6f8; --inset: #f3f4f6;
+  --line: #e5e7eb; --line2: #d3d7dc;
+  --text: #191c1f; --mut: #5b626b; --dim: #8a9099;
+  --orange: #ea580c; --orange-hi: #c2410c; --orange-soft: rgba(234, 88, 12, .09); --orange-line: rgba(234, 88, 12, .28);
+  --green: #059669; --green-soft: rgba(5, 150, 105, .11);
+  --amber: #b45309; --amber-soft: rgba(217, 119, 6, .13);
+  --red: #dc2626; --red-soft: rgba(220, 38, 38, .09);
+  --cyan: #0891b2; --purple: #7c3aed; --purple-soft: rgba(124, 58, 237, .10);
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 6px 20px rgba(16, 24, 40, .05);
+  --r-s: 7px; --r-m: 11px;
+
+  background: var(--bg0);
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.cw-report *, .cw-report *::before, .cw-report *::after { box-sizing: border-box; }
+.cw-report h1, .cw-report h2, .cw-report h3, .cw-report p, .cw-report table, .cw-report ul, .cw-report li {
+  margin: 0;
+  padding: 0;
+}
+.cw-report .wrap { max-width: 1180px; }
+
+.cw-report .crumb {
+  color: var(--dim);
+  font-size: 12px;
+  margin-bottom: var(--sp-4);
+}
+.cw-report .crumb b { color: var(--orange); font-weight: 600; }
+
+.cw-report .rhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-5);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--sp-5);
+  margin-bottom: var(--sp-6);
+}
+.cw-report .rhead h1 {
+  font-size: 25px;
+  font-weight: 600;
+  margin-bottom: var(--sp-2);
+}
+.cw-report .rhead .sub { color: var(--mut); font-size: 13.5px; max-width: 720px; }
+
+.cw-report .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  background: var(--orange-soft);
+  border: 1px solid var(--orange-line);
+  color: var(--orange-hi);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cw-report .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+
+/* The facet strip. The controls inside are antd multi-selects: they re-ask the report on the server, so
+   what this styles is the strip and its labels, never a client-side filter of its own. */
+.cw-report .fbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+  margin-bottom: var(--sp-6);
+}
+.cw-report .fbar .lbl {
+  color: var(--dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.cw-report .fbar .fnote { color: var(--orange-hi); font-size: 11.5px; }
+.cw-report .facet {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.cw-report .facet-select { min-width: 210px; }
+
+.cw-report .kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+.cw-report .kpi {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: var(--sp-4);
+  box-shadow: var(--shadow);
+}
+.cw-report .kpi .k {
+  color: var(--mut);
+  font-size: 11.5px;
+  font-weight: 500;
+  margin-bottom: var(--sp-2);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.cw-report .kpi .v { font-size: 27px; font-weight: 600; line-height: 1; }
+.cw-report .kpi .v.sm { font-size: 19px; }
+.cw-report .kpi .u {
+  color: var(--dim);
+  font-size: 12px;
+  margin-top: var(--sp-2);
+}
+.cw-report .kpi.risk { border-color: var(--red-soft); }
+.cw-report .kpi.risk .v { color: var(--red); }
+.cw-report .kpi.good .v { color: var(--green); }
+.cw-report .kpi.warn .v { color: var(--amber); }
+
+.cw-report .card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-6);
+  box-shadow: var(--shadow);
+}
+.cw-report .card h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: var(--sp-1);
+}
+.cw-report .card .cs {
+  color: var(--dim);
+  font-size: 12px;
+  margin-bottom: var(--sp-4);
+}
+
+/* A chart and the companion the server computed beside it. The companion answers a question the first
+   chart raises, so it sits alongside rather than folded in. */
+.cw-report .charts {
+  display: grid;
+  gap: var(--sp-5);
+}
+.cw-report .charts.pair { grid-template-columns: 2fr 1fr; align-items: start; }
+@media (max-width: 900px) {
+  .cw-report .charts.pair { grid-template-columns: 1fr; }
+}
+
+.cw-report .tablescroll { overflow-x: auto; }
+
+.cw-report table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.cw-report thead th {
+  text-align: left;
+  color: var(--mut);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--line2);
+  position: sticky;
+  top: 0;
+  background: var(--card);
+}
+.cw-report tbody td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+}
+.cw-report tbody tr:hover { background: var(--card2); }
+.cw-report tbody tr.hl { background: var(--orange-soft); }
+.cw-report td.num, .cw-report th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.cw-report .rowcount {
+  display: block;
+  color: var(--dim);
+  font-size: 11.5px;
+  margin-top: var(--sp-3);
+}
+.cw-report .sorted {
+  display: block;
+  color: var(--dim);
+  font-size: 11.5px;
+  margin-bottom: var(--sp-3);
+}
+.cw-report .empty {
+  color: var(--dim);
+  font-size: 12.5px;
+  padding: var(--sp-4) var(--sp-3);
+}
+
+.cw-report .tag {
+  display: inline-block;
+  padding: 2px var(--sp-2);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cw-report .tag.high { background: var(--red-soft); color: var(--red); }
+.cw-report .tag.med { background: var(--amber-soft); color: var(--amber); }
+.cw-report .tag.low { background: var(--green-soft); color: var(--green); }
+.cw-report .tag.cd {
+  background: var(--purple-soft);
+  color: var(--purple);
+  border: 1px solid rgba(124, 58, 237, .28);
+}
+
+.cw-report .chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 11.5px;
+}
+.cw-report .chain .node {
+  background: var(--inset);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px var(--sp-2);
+  white-space: nowrap;
+}
+.cw-report .chain .node.dest { border-color: var(--orange-line); color: var(--orange-hi); }
+.cw-report .chain .arw { color: var(--orange); font-weight: 700; }
+
+.cw-report .flagpill { font-size: 10.5px; padding: 1px 7px; border-radius: 5px; font-weight: 600; }
+.cw-report .flagpill.rej { background: var(--red-soft); color: var(--red); }
+.cw-report .flagpill.res { background: var(--amber-soft); color: var(--amber); }
+.cw-report .flagpill.oos { background: var(--purple-soft); color: var(--purple); }
+
+.cw-report .foot {
+  color: var(--dim);
+  font-size: 11.5px;
+  border-top: 1px solid var(--line);
+  padding-top: var(--sp-4);
+  margin-top: var(--sp-2);
+  line-height: 1.7;
+}
+.cw-report .foot b { color: var(--mut); }
+.cw-report .foot code { font-size: 11px; }
+
+.cw-report .note {
+  background: var(--orange-soft);
+  border: 1px solid var(--orange-line);
+  border-radius: var(--r-s);
+  padding: var(--sp-3) var(--sp-4);
+  font-size: 12.5px;
+  color: var(--text);
+  margin-bottom: var(--sp-6);
+}
+.cw-report .docref {
+  color: var(--cyan);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11.5px;
+}
+
+/* The question the report re-asks, read back. The rendered files had no equivalent — a rendered report
+   has no question left in it — and it is the one thing this section promises above all. */
+.cw-report .question {
+  border-left: 2px solid var(--orange-line);
+  padding-left: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+.cw-report .question .k {
+  display: block;
+  color: var(--dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: var(--sp-1);
+}
+.cw-report .question p { font-size: 14px; }
+
+/* Scope, as a figure: "4 of 36 inbound generators" is what makes a scoped report legible beside an
+   unscoped one. Both numbers are the server's. */
+.cw-report .scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-5);
+}
+.cw-report .scope .rows { color: var(--text); font-weight: 600; font-size: 12.5px; }
+.cw-report .scope .assume {
+  background: var(--inset);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px var(--sp-2);
+  color: var(--mut);
+  font-size: 11px;
+}
+
+.cw-report .caveats {
+  list-style: disc;
+  padding-left: var(--sp-5);
+  margin-bottom: var(--sp-6);
+  color: var(--mut);
+  font-size: 12px;
+}

@@ -327,7 +327,7 @@ export default function ReportsPage() {
 
       {hydrationError && !openReportId ? (
         <ApiErrorAlert
-          error={`mock-server/reports_prototype.json is malformed, so the authoring tab cannot render: ${hydrationError}`}
+          error={`db.reports_prototype is malformed, so the authoring tab cannot render: ${hydrationError}`}
           onRetry={() => void loadPrototype()}
         />
       ) : null}

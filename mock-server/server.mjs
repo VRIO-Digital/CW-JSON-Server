@@ -19,7 +19,7 @@
  *   PUT    /db/:section                    replace one key  { value }
  *   GET    /health
  *   GET    /auth/roles                     the personas the login dropdown offers
- *   POST   /auth/login                     { email, password } — role comes from settings.json
+ *   POST   /auth/login                     { email, password } — role comes from db.settings
  *   GET    /settings                       users + personas + each one's navigation access
  *   PATCH  /settings/personas/:roleId/nav  { nav: { key: bool } }
  *   POST   /settings/personas/:roleId/reset
@@ -194,73 +194,61 @@ async function readJsonDb(ref, label, restore) {
 }
 
 /**
- * One `db.json` per dataset, and one `settings.json` for the tenant.
+ * One `db.json` per dataset, and it is the only document there is.
  *
- * The documents live under a prefix per dataset (`s3://contextweave.com/EPA/db.json`,
- * `.../CAPEX/db.json`), so the refs are built per dataset rather than once. **Settings is not one
- * of them**: it holds the users and each persona's navigation, which is the tenant's and not a
- * dataset's — the same reason `auth_roles` and `google_account` are `primary` in `MERGE_PLAN`.
- * Duplicating it per prefix would be two answers to "who exists".
+ * The documents live under a prefix per dataset (`s3://contextweave.com/EPA/db.json`), so the refs
+ * are built per dataset rather than once.
+ *
+ * **There used to be three documents; the other two are keys now.** `settings.json` and
+ * `reports_prototype.json` were separate files on the reasoning that two stores with one job each
+ * cannot damage one another — a settings write could not touch a report, and an ingest rebuilding
+ * `db.reports` could not drop a permission. They were folded into `db.json` as `settings` and
+ * `reports_prototype` on request, so that guarantee is now carried differently: both are keys in
+ * `DB_SHAPE`, so `commitDb` validates them **before every write** rather than only the writer that
+ * owns them, and `validateDb` refuses a document missing either. That is a stronger check than the
+ * old one applied at a narrower moment, and it has to stay — `ingest-reports.mjs` rebuilding
+ * `db.reports` wholesale is precisely how `governance` was nearly deleted once, and there are two
+ * more subtrees in that file's blast radius now.
+ *
+ * Both are still the **tenant's** rather than a dataset's, which is why `MERGE_PLAN` marks them
+ * `primary` and why no secondary dataset carries a copy: two datasets do not mean eight users.
  */
 const DB_PATHS = Object.fromEntries(
   DATASETS.map((name) => [name, docRef('db.json', join(here, 'db.json'), name)]),
 )
 const DB_PATH = DB_PATHS[PRIMARY]
-const SETTINGS_PATH = docRef('settings.json', join(here, 'settings.json'), PRIMARY)
-
-/**
- * The report prototype's own dataset — its 36 generators, its starters, its presets, its library rows.
- *
- * **It used to be `src/reports/data/dataset.json`, compiled into the bundle.** So it was the one thing on
- * screen that editing the bucket could not change: a figure on the Authoring tab needed a rebuild and a
- * redeploy. It is a document now, read at boot beside the other two and served to the page.
- *
- * **Tenant-level, like `settings.json` rather than per dataset.** It is the *prototype's* sample data,
- * not a dataset's rosters — those are `db.reports`, which every published report is computed from. A copy
- * per prefix would mean inventing CAPEX sample figures nobody wrote.
- */
-const PROTOTYPE_PATH = docRef(
-  'reports_prototype.json',
-  join(here, 'reports_prototype.json'),
-  PRIMARY,
-)
 
 /*
- * ---------------- both documents at once, then nothing until both are in ----------------
+ * ---------------- every dataset at once, then nothing until they are all in ----------------
  *
  * **Fetched together because they are independent, and awaited together because the server must not
- * listen without either.** Read one after the other this cost two full round trips before the port
- * was open — which on a link to a bucket a continent away is most of a five-second boot, and every
- * request in that window is a connection refused rather than a slow page. Neither document is
- * needed to locate the other, so the second request never had a reason to wait for the first.
+ * listen without all of them.** Read one after the other this cost a full round trip each before the
+ * port was open — which on a link to a bucket a continent away is most of a five-second boot, and
+ * every request in that window is a connection refused rather than a slow page. No document is
+ * needed to locate another, so none of them ever had a reason to wait.
  *
  * `Promise.all` keeps the guarantee exactly as it was: this is still one `await` above
- * `server.listen`, and nothing is served before both documents are parsed. What changed is only
- * that the two waits overlap. On the local-file store it makes no measurable difference and costs
- * nothing.
+ * `server.listen`, and nothing is served before every document is parsed. What changed is only that
+ * the waits overlap. On the local-file store it makes no measurable difference and costs nothing.
  *
- * A failure in either still exits inside `readJsonDb`, before the other can resolve — a refusal
- * naming the document that failed, which is what it was before.
+ * **This used to read three documents and now reads one per dataset**, because `settings` and
+ * `reports_prototype` are keys inside `db.json` rather than files beside it. The parallelism is kept
+ * rather than unwound: it is what a second dataset needs, and it is the same shape either way.
+ *
+ * A failure in any still exits inside `readJsonDb`, before the others can resolve — a refusal naming
+ * the document that failed, which is what it was before.
  */
-const [loadedDocs, loadedSettings, loadedPrototype] = await Promise.all([
-  Promise.all(
-    DATASETS.map((name) =>
-      readJsonDb(
-        DB_PATHS[name],
-        `${name}/db.json`,
-        name === PRIMARY
-          ? 'git checkout HEAD -- mock-server/db.json && npm run seed:governance'
-          : `npm run seed:dataset -- ${name} && npm run db:push -- ${name}`,
-      ),
+const loadedDocs = await Promise.all(
+  DATASETS.map((name) =>
+    readJsonDb(
+      DB_PATHS[name],
+      `${name}/db.json`,
+      name === PRIMARY
+        ? 'git checkout HEAD -- mock-server/db.json && npm run seed:governance'
+        : `npm run seed:dataset -- ${name} && npm run db:push -- ${name}`,
     ),
   ),
-  readJsonDb(SETTINGS_PATH, 'mock-server/settings.json', 'npm run seed:settings'),
-  readJsonDb(
-    PROTOTYPE_PATH,
-    'mock-server/reports_prototype.json',
-    'npm run db:pull -- prototype',
-  ),
-])
+)
 
 /**
  * Every dataset's document, by name — the real objects, which `commitDb` swaps in place.
@@ -413,21 +401,41 @@ function liveContainer(name) {
 }
 
 /*
- * ---------------- the Settings store, which is a second file on purpose ----------------
+ * ---------------- the Settings store, which is a key rather than a file ----------------
  *
- * `db.json` is the tenant's data — sources, profiles, the graph, the reports. `settings.json` holds only
- * what the Settings page administers: the users, and which navigation each persona may see. Two files,
- * two validators, one job each, so a settings write cannot touch a report and an ingest that rebuilds
- * `db.reports` cannot drop a permission. (That second hazard is not hypothetical: the reports ingest
- * silently dropped `governance` for exactly that reason.)
+ * `db.settings` holds only what the Settings page administers: the users, and which navigation each
+ * persona may see. It was `mock-server/settings.json` — a separate document with a separate validator,
+ * on the reasoning that two stores with one job each cannot damage one another. Folded in on request,
+ * so the separation is now by *key* rather than by file, and the guard moved with it: `settings` is in
+ * `DB_SHAPE`, so `commitDb` validates it before **every** write rather than only this page's, and a
+ * writer that rebuilds another subtree wholesale cannot land a document without it.
+ *
+ * That last part is the hazard the two files existed to prevent, and it is not hypothetical: the reports
+ * ingest silently dropped `governance` for exactly that reason. `ingest-reports.mjs` still rebuilds
+ * `db.reports` wholesale and now has two more subtrees to step around; what stops it is that
+ * `commitDb` and `validateDb` both refuse a document with either key missing.
  *
  * **It names personas by `role_id` and never by label.** `db.auth_roles` is the pool — what report
  * audiences validate against, what the login echoes back — so there is one answer to "who exists" and
- * this file cannot drift from it. `validateSettings` refuses a role id `db.json` does not have.
+ * this key cannot drift from it. `validateSettings` refuses a role id `db.json` does not have.
+ *
+ * Read through `db`, so it is the selected dataset's — which is EPA's whichever dataset that is, since
+ * `MERGE_PLAN` marks it `primary`: the users are the tenant's, not a dataset's.
  */
-/* Reassignable, because `commitSettings` swaps the whole document in — its ref and its first value
-   both come from the parallel read above. */
-let settings = loadedSettings
+const settings = {
+  get users() {
+    return db.settings.users
+  },
+  get defaults() {
+    return db.settings.defaults
+  },
+  get read_only() {
+    return db.settings.read_only
+  },
+  get nav_permissions() {
+    return db.settings.nav_permissions
+  },
+}
 
 /**
  * The prototype dataset, and what it has to be to be servable.
@@ -457,7 +465,7 @@ const PROTOTYPE_OBJECTS = ['meta', 'assumptions', 'opts']
 
 function validatePrototype(candidate) {
   const problems = []
-  if (!isObject(candidate)) return ['reports_prototype.json must be a JSON object']
+  if (!isObject(candidate)) return ['db.reports_prototype must be a JSON object']
   for (const key of PROTOTYPE_OBJECTS) {
     if (!isObject(candidate[key])) problems.push(`"${key}" must be an object`)
   }
@@ -469,10 +477,9 @@ function validatePrototype(candidate) {
   return problems
 }
 
-/* Reassignable for the same reason `settings` is: nothing captures the object, every reader reads it
-   at call time. Nothing writes it yet — the prototype does not save back — so the only assignment is
-   this one, and a writer would go through a `commitPrototype` shaped like `commitSettings`. */
-let prototypeData = loadedPrototype
+/* Read through `db` at call time, like `settings`. Nothing writes it — the prototype does not save
+   back — so a writer would go through `commitDb` the way `commitSettings` now does. */
+const prototypeData = () => db.reports_prototype
 
 const PORT = Number(process.argv[2] ?? process.env.MOCK_PORT ?? 4000)
 
@@ -1019,6 +1026,28 @@ const DB_SHAPE = {
         Array.isArray(r.footer) &&
         r.footer.length > 0,
     ),
+
+  /*
+   * ---------------- the two keys that used to be documents ----------------
+   *
+   * `settings` and `reports_prototype` were `mock-server/settings.json` and
+   * `mock-server/reports_prototype.json`, each with its own validator run once at boot. Folding them
+   * in moved the check here, which is *stronger* rather than merely different: every writer hands
+   * `commitDb` the whole document, so a writer that rebuilds one subtree and forgets to carry these
+   * forward is now a refused write naming the key, rather than a file that silently lost the tenant's
+   * users. `ingest-reports.mjs` rebuilding `db.reports` wholesale is how `governance` was nearly
+   * dropped once, and this is the same hazard with two more subtrees in range.
+   *
+   * Both delegate to the validators that already existed, rather than restating their rules — the
+   * settings one checks *across* `db.auth_roles`, which a shape function here could not do.
+   *
+   * **Neither is relaxed by `empty`.** A secondary dataset may legitimately have no projects and no
+   * profiles, but it has the same tenant behind it: an empty user list is a document that lost its
+   * data in any dataset, and `MERGE_PLAN` marks both `primary` precisely because they are not a
+   * dataset's to vary.
+   */
+  settings: (v) => validateSettings(v).length === 0,
+  reports_prototype: (v) => validatePrototype(v).length === 0,
 }
 
 const DB_HINTS = {
@@ -1072,6 +1101,14 @@ const DB_HINTS = {
     'one }, foot, buttons{} } } ' +
     '— the report section, from "npm run ingest:reports" and ' +
     '"node scripts/seed-report-governance.mjs"',
+  settings:
+    'object with users[] of { email, name, role_id naming one of auth_roles }, ' +
+    'nav_permissions{}, defaults{} carrying the same keys, and read_only{} — what the Settings ' +
+    'page administers, from "npm run seed:settings"',
+  reports_prototype:
+    'object with meta{}, assumptions{}, opts{} and non-empty fields[], generators[], ' +
+    'facilities[], quarters[], traces[], starters[], presets[], slice_default[], audiences[], ' +
+    'library[] — the authoring prototype’s own sample data, from "npm run db:pull"',
 }
 
 function validateDb(candidate) {
@@ -1537,7 +1574,7 @@ async function commitDb(next) {
 /* ---------------- the settings store: its shape, and its writer ---------------- */
 
 /**
- * What `settings.json` has to be to be servable.
+ * What `db.settings` has to be to be servable.
  *
  * Every rule here is one whose breach **answers rather than throws**: a persona with no permission set
  * shows a sidebar it should not, a user naming a role `db.auth_roles` lacks signs in as nobody, and a
@@ -1547,7 +1584,7 @@ async function commitDb(next) {
  */
 function validateSettings(candidate) {
   const problems = []
-  if (!isObject(candidate)) return ['settings.json must be a JSON object']
+  if (!isObject(candidate)) return ['db.settings must be a JSON object']
 
   const roleIds = db.auth_roles.map((r) => r.role_id)
   const { users, defaults, read_only: readOnly, nav_permissions: perms } = candidate
@@ -1661,35 +1698,28 @@ function validateSettings(candidate) {
 }
 
 /**
- * Writes the settings store, validating first — temp file + rename, like `commitDb`.
+ * Writes the settings store — which is now a write of `db.json` with one key replaced.
  *
- * Unlike `db`, the in-memory copy is **reassigned** rather than mutated in place, and that is safe here
- * for a reason worth stating: nothing captures the object, only the binding. Every route reads
- * `settings.x` at call time.
+ * **It is still its own function, and that is deliberate.** The refusal a Settings page needs names
+ * `npm run seed:settings` and describes a permission, not a report; `commitDb`'s names the document
+ * and tells you to restart. Validating here first is what keeps that message, and it costs nothing
+ * because `commitDb` validates the whole document again anyway — this is simply the one caller that
+ * can say which of the twenty-seven keys it was trying to change.
+ *
+ * The ordering guarantees are `commitDb`'s now rather than restated here: the in-memory swap happens
+ * before the first `await`, writes are chained per path, and a failed write puts memory back. That is
+ * exactly the set this function used to implement by hand, and having one implementation of it is a
+ * good half of what the merge bought.
  */
 async function commitSettings(next) {
   const problems = validateSettings(next)
   if (problems.length > 0) {
     throw new Error(
-      `refusing to write settings.json — ${problems.join('; ')}. Re-author it with ` +
-        '"npm run seed:settings" if it has drifted.',
+      `refusing to write the settings — ${problems.join('; ')}. Re-author them with ` +
+        '"npm run seed:settings" if they have drifted.',
     )
   }
-  const text = `${JSON.stringify(next, null, 2)}\n`
-
-  /* Same order as `commitDb`, and for the same reason: the binding moves before the write yields,
-     so nothing can read the old settings in between. Put back if the write fails. */
-  const previous = settings
-  settings = next
-  try {
-    await writeJsonAtomic(SETTINGS_PATH, text)
-  } catch (error) {
-    settings = previous
-    throw new Error(
-      `could not write settings.json — ${error.message}. Nothing was changed; the in-memory ` +
-        'settings have been put back the way they were.',
-    )
-  }
+  await commitDb({ ...db, settings: next })
 }
 
 /** One persona's live access, falling back to its authored defaults. */
@@ -5785,7 +5815,7 @@ const reportGovernanceView = (asRole) => {
     /* The publish dialog's copy, authored by `npm run seed:governance`. */
     publishing: db.reports.governance.publishing,
     /*
-     * **Who the publish dialog can pick.** The tenant's own users from `settings.json`, each
+     * **Who the publish dialog can pick.** The tenant's own users from `db.settings`, each
      * carrying the persona they sign in as and that persona's *declared* data scope — the same
      * `data_scope` row gate 2 renders, resolved here so one scope row cannot read one way in the
      * Operations grid and another beside somebody's name.
@@ -6544,9 +6574,9 @@ const routes = [
   /*
    * ---------------- Settings: the users, and what each persona may see ----------------
    *
-   * Served from `settings.json`, which is a **separate store** from `db.json` — see the note where it is
-   * loaded. Both writes commit, so a permission survives a restart; unlike a registered source, a
-   * decision about who sees what is somebody's work.
+   * Served from `db.settings`, which was a **separate document** until it was folded in — see the note
+   * where it is bound. Both writes commit through `commitDb`, so a permission survives a restart;
+   * unlike a registered source, a decision about who sees what is somebody's work.
    *
    * **Neither route is access control.** They record and report a navigation preference; the persona
    * arrives from a browser whose login authenticates by shape. Every surface here says so in words.
@@ -9030,7 +9060,7 @@ const routes = [
    * a library entry rather than off a column. Publishing records three decisions and
    * verifies each against a pool the server owns:
    *
-   *  - **readers**, checked against `settings.json`'s users. An address outside the
+   *  - **readers**, checked against `db.settings`'s users. An address outside the
    *    directory is refused naming who is in it, exactly as the login refuses an
    *    unknown address: inventing a reader is inventing a user.
    *  - **the graph it is bound to**, checked against what is *currently* published.
@@ -9566,9 +9596,9 @@ const routes = [
     match: (p) => p === '/reports/prototype',
     handle: (_req, res) =>
       send(res, 200, {
-        ref: PROTOTYPE_PATH,
-        store: storeKind(PROTOTYPE_PATH),
-        dataset: prototypeData,
+        ref: DB_PATH,
+        store: storeKind(DB_PATH),
+        dataset: prototypeData(),
       }),
   },
 
@@ -10090,33 +10120,31 @@ for (const name of DATASETS) {
 }
 
 /*
- * The same treatment for the settings store, and for a sharper version of the same reason.
+ * The same treatment for the two keys that used to be documents of their own.
  *
- * A missing permission set does not throw: the sidebar would simply show every item to a persona that
- * should see three, which reads as an answer. A missing user does not throw either — the login would
- * refuse an address that is supposed to work, and the fix ("re-seed") is not guessable from
- * "no user with that address". Both name the command here instead.
+ * **`validateDb` has already refused a document missing either**, since both are `DB_SHAPE` keys now.
+ * These stay for the message rather than the check: `validateDb` reports `"settings" is the wrong
+ * shape` and tells you to restart, and the fix for a drifted permission set is a different command
+ * from the fix for a stale process. A boot refusal naming the wrong command is one nobody can act on.
+ *
+ * Neither failure throws on its own, which is why they are refusals at all. A missing permission set
+ * would show every sidebar item to a persona that should see three; a missing user would refuse an
+ * address that is supposed to work; an unrenderable prototype arrives as an empty Authoring tab. All
+ * three read as answers.
  */
-/*
- * And the prototype's dataset, for the reason the other two are checked: a document that cannot be
- * rendered should stop the boot here rather than arrive as an empty Authoring tab, which reads as a
- * section that failed to load. The command it names is the one that fetches it.
- */
-const prototypeProblems = validatePrototype(prototypeData)
+const prototypeProblems = validatePrototype(prototypeData())
 if (prototypeProblems.length > 0) {
-  console.error(
-    '\nmock-server: refusing to start — mock-server/reports_prototype.json cannot be served.',
-  )
+  console.error('\nmock-server: refusing to start — db.reports_prototype cannot be served.')
   for (const problem of prototypeProblems) console.error(`  · ${problem}`)
-  console.error('\n  Fetch it again, then start again:\n      npm run db:pull -- prototype\n')
+  console.error('\n  Fetch the document again, then start again:\n      npm run db:pull\n')
   process.exit(1)
 }
 
-const settingsProblems = validateSettings(settings)
+const settingsProblems = validateSettings(db.settings)
 if (settingsProblems.length > 0) {
-  console.error('\nmock-server: refusing to start — mock-server/settings.json cannot be served.')
+  console.error('\nmock-server: refusing to start — db.settings cannot be served.')
   for (const problem of settingsProblems) console.error(`  · ${problem}`)
-  console.error('\n  Re-author it, then start again:\n      npm run seed:settings\n')
+  console.error('\n  Re-author them, then start again:\n      npm run seed:settings\n')
   process.exit(1)
 }
 

@@ -1,38 +1,48 @@
 /**
  * One report, rendered the way the tenant's own `Report_N_*.html` renders it.
  *
- * **A port of the demo package's rendered reports (`07_reports/Report_N_*.html`), not a transcription of
- * them.** Those five files
- * carry the layout — crumb, heading and badge, a lead note, four summary tiles, a filter bar, then a
- * card per block, then the footnotes — and *also* carry their figures as literal text. The layout is
- * what came across; every number here is `reportView`'s, computed per request from the roster in
- * `s3://contextweave.com/EPA/db.json`. That is the section's whole premise: a report is a re-executable
- * question, not a stored table, and the fastest way to break it is to paste a rendered figure into a
- * component.
+ * **The chrome is the standalone report app's; every figure is still the server's.** That folder held
+ * five report components with their figures compiled in as TypeScript constants — five hundred lines of
+ * transcribed rosters — and one component per report is one place per report for a number to go stale.
+ * What came across is the *design*: the shell, the tiles, the cards, the table, the marks, all in
+ * `./ui`. What did not come across is its data, because this section's whole premise is that a report
+ * is a re-executable question rather than a stored table, and the fastest way to break it is to paste a
+ * rendered figure into a component. Every number below is `reportView`'s, computed per request from the
+ * roster in `s3://contextweave.com/EPA/db.json`.
  *
- * Two things the HTML did that deliberately did not come across:
+ * **So one component renders all five, not five components.** The reports differ in their blocks, and
+ * the blocks are in the payload — a component per report could only differ by hardcoding what its
+ * report happens to contain.
+ *
+ * Two things the rendered HTML did that deliberately did not come across:
  *
  * - **Chart.js from a CDN.** Charts are `AnswerChart` — the server emits a report's chart in the answer
  *   shape so one component draws both. Transcribing a `<script src="cdn…">` would be a dependency
  *   decision made by accident, through a gate that fails on any advisory at `low`.
- * - **Its filter chips as controls.** The facets are rendered, and they state the frame the report was
- *   built under; they do not re-ask it. `POST /reports/build` takes a frame and is wired to nothing, so
- *   a chip that looked clickable would promise a slice that never runs — the same "declared, not
- *   applied" line the horizon and the persona data scopes already draw.
+ * - **Its filter chips as browser-side state.** The facets re-ask the report through
+ *   `POST /reports/build`, so the table, the chart *and* the tiles recompute together. Both the HTML
+ *   and the standalone port hid rows locally and left the chart and the KPIs describing the unfiltered
+ *   set, which is two readings of one screen.
  */
 
-import { Alert, Select, Tag, Typography } from 'antd'
+import { Alert, Select } from 'antd'
 
 import type { BuiltReport, Report } from '../../api/client'
 import { useReportsStore } from '../../store/reportsStore'
 import ReportBlockView from './ReportBlocks'
-import './PublishedReport.css'
+import { Footnote, KpiRow, Note, ReportShell, type KpiItem, type KpiTone } from './ui'
 
-/** A tile's tone, as the report read its own figure. `null` is a plain figure, not a neutral verdict. */
-const TONE_CLASS: Record<string, string> = {
-  good: 'is-good',
-  warn: 'is-warn',
-  crit: 'is-crit',
+/**
+ * A tile's tone, as the report read its own figure.
+ *
+ * `crit` is the payload's word and `risk` is the tile's class; the two vocabularies meet here rather
+ * than either one being renamed, because `crit` is what every other status surface in this app says and
+ * the class is the ported design's. `null` is a plain figure, not a neutral verdict.
+ */
+const TONE: Record<string, KpiTone> = {
+  good: 'good',
+  warn: 'warn',
+  crit: 'risk',
 }
 
 export default function PublishedReport({ report }: { report: Report | BuiltReport }) {
@@ -47,94 +57,77 @@ export default function PublishedReport({ report }: { report: Report | BuiltRepo
    */
   const isBuilt = 'variant' in report
 
+  const tiles: KpiItem[] = report.tiles.map((tile) => ({
+    label: tile.label,
+    value: tile.value,
+    unit: tile.unit,
+    tone: tile.tone ? (TONE[tile.tone] ?? 'plain') : 'plain',
+  }))
+
   return (
-    <article className="pr">
-      {/* Where the report sits, as its own rendered page states it. */}
-      <nav className="pr-crumb" aria-label="Breadcrumb">
-        Reports <span aria-hidden="true">·</span> <b>{report.title}</b>
-      </nav>
-
-      <header className="pr-head">
-        <div className="pr-head-text">
-          <h2 className="pr-heading">{report.heading}</h2>
-          <p className="pr-sub">{report.subtitle}</p>
-        </div>
-        {/* The subject the report is about — the facility, the network — as the badge in the HTML. */}
-        {report.badge ? <span className="pr-badge">{report.badge}</span> : null}
-      </header>
-
+    <ReportShell
+      crumb={report.title}
+      title={report.heading}
+      subtitle={report.subtitle}
+      badge={report.badge}
+    >
       {/*
         * The lead note, on the two reports that carry one. It is the tenant's sentence about what a
         * report *is*, so it is printed rather than paraphrased — and only where there is one, because an
         * absence has no box.
         */}
-      {report.note ? (
-        <Alert className="pr-note" type="info" showIcon={false} description={report.note} />
-      ) : null}
+      {report.note ? <Note>{report.note}</Note> : null}
 
       {/*
         * The question this report re-asks, read back as a sentence. The HTML had no equivalent — a
         * rendered file has no question left in it — and it is the one thing the section promises above
         * all: a report is a question, and the reader should be able to see which.
         */}
-      <section className="pr-question">
-        <Typography.Text className="pr-question-label">THE QUESTION</Typography.Text>
-        <p className="pr-question-text">{report.reading}</p>
+      <section className="question">
+        <span className="k">The question</span>
+        <p>{report.reading}</p>
       </section>
 
       {/*
-        * The four summary tiles. `tone` is the report's own reading of its figure — which is the one
-        * place a status colour is right on something that is not a state, because a tile *is* a stat.
+        * The summary tiles. `tone` is the report's own reading of its figure — which is the one place a
+        * status colour is right on something that is not a state, because a tile *is* a stat.
         */}
-      {report.tiles.length > 0 ? (
-        <div className="pr-tiles">
-          {report.tiles.map((tile) => (
-            <div
-              key={tile.label}
-              className={`pr-tile${tile.tone ? ` ${TONE_CLASS[tile.tone] ?? ''}` : ''}`}
-            >
-              <span className="pr-tile-label">{tile.label}</span>
-              <span className="pr-tile-value">{tile.value}</span>
-              {tile.unit ? <span className="pr-tile-unit">{tile.unit}</span> : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {tiles.length > 0 ? <KpiRow items={tiles} /> : null}
 
       {/*
         * Scope, and it is a figure rather than a phrase: "4 of 36 inbound generators" is what makes a
         * scoped report legible next to an unscoped one. Both numbers are the server's.
         */}
-      <div className="pr-scope">
+      <div className="scope">
         {/*
           * One expression, not `{a} of {b} {c}`. `renderToString` puts a comment node between every
           * interpolation and its neighbouring text, so a three-part scope line renders as
           * `4<!-- --> of <!-- -->36` and every assertion about the sentence passes over nothing —
           * which is exactly how it was caught here. The rule is written down; this is it applied.
           */}
-        <Typography.Text className="pr-scope-text">
+        <span className="rows">
           {`${report.rowCount.toLocaleString()} of ${report.spineTotal.toLocaleString()} ${report.spine}`}
-        </Typography.Text>
+        </span>
 
         {/*
           * The frame's assumptions, stated. Each is a slot the question was filled in with — and the
           * horizon among them is **declared, not applied**: nothing in these rosters is sliced by time.
           */}
         {report.assumptions.map((a) => (
-          <Tag key={a.slot} variant="outlined" className="pr-assumption">
+          <span key={a.slot} className="assume">
             {a.label}
-          </Tag>
+          </span>
         ))}
       </div>
 
       {/*
-        * ---------------- the filter bar, and it filters ----------------
+        * ---------------- the filter bar, and it filters on the server ----------------
         *
-        * One row per facet: an **All** chip that clears it, then a chip per value with the count the
-        * server computed. Clicking re-asks the report through `POST /reports/build`, so the table, the
-        * chart *and* the tiles recompute together — the prototype these were ported from hid table rows
-        * and left its chart and its four KPIs describing the unfiltered set, which is two readings of one
-        * screen.
+        * One control per facet, each a multi-select whose values carry the count the server computed.
+        * Changing one re-asks the report through `POST /reports/build`, so the table, the chart *and*
+        * the tiles recompute together — the markup this was ported from held its chips in `useState` and
+        * filtered rows in the browser, leaving its chart and its four KPIs describing the unfiltered
+        * set, which is two readings of one screen.
         *
         * **Values on one facet are OR-ed and facets are AND-ed**, so High + Medium reads as "either" and
         * adding Consent-decree narrows that. That is the server's rule; this only sends the list.
@@ -149,17 +142,18 @@ export default function PublishedReport({ report }: { report: Report | BuiltRepo
         * clearing it means, so there is no separate All to keep in step with the selection.
         */}
       {report.facets.length > 0 ? (
-        <div className="pr-facets">
+        <div className="fbar">
           {report.facets.map((facet) => {
             const chosen = filters.filter((f) => f.key === facet.key).map((f) => f.value)
             return (
-              <div key={facet.key} className="pr-facet-row">
-                <Typography.Text className="pr-facets-label" id={`pr-facet-${facet.key}`}>
-                  {facet.label.toUpperCase()}
-                </Typography.Text>
+              <div key={facet.key} className="facet">
+                <span className="lbl" id={`pr-facet-${facet.key}`}>
+                  {facet.label}
+                </span>
 
                 <Select
-                  className="pr-facet-select"
+                  className="facet-select"
+                  size="small"
                   mode="multiple"
                   value={chosen}
                   disabled={filtering}
@@ -194,13 +188,9 @@ export default function PublishedReport({ report }: { report: Report | BuiltRepo
             * showing the tenant's figures against a frame they do not describe.
             */}
           {isBuilt && report.variant === 'generated' ? (
-            <Typography.Text className="pr-facets-note">
-              filtered — every figure below is recomputed for this slice
-            </Typography.Text>
+            <span className="fnote">filtered — every figure below is recomputed for this slice</span>
           ) : null}
-          {filtering ? (
-            <Typography.Text className="pr-facets-note">re-asking…</Typography.Text>
-          ) : null}
+          {filtering ? <span className="fnote">re-asking…</span> : null}
         </div>
       ) : null}
 
@@ -210,10 +200,10 @@ export default function PublishedReport({ report }: { report: Report | BuiltRepo
         * honest about a filter it states and does not apply.
         */}
       {isBuilt && report.summaryNote ? (
-        <Alert className="pr-note" type="info" showIcon={false} description={report.summaryNote} />
+        <Alert className="pr-alert" type="info" showIcon={false} description={report.summaryNote} />
       ) : null}
       {isBuilt && report.caveats.length > 0 ? (
-        <ul className="pr-caveats">
+        <ul className="caveats">
           {report.caveats.map((caveat) => (
             <li key={caveat}>{caveat}</li>
           ))}
@@ -225,17 +215,15 @@ export default function PublishedReport({ report }: { report: Report | BuiltRepo
         <ReportBlockView key={`${block.type}-${i}`} block={block} />
       ))}
 
-      <footer className="pr-foot">
+      <Footnote>
         {report.footer.map((note) => (
-          <p key={note.label} className="pr-foot-note">
+          <p key={note.label}>
             <b>{note.label}</b> {note.text}
           </p>
         ))}
 
         {/* Where the figures came from, in the tenant's own words. */}
-        {report.sourceTrace ? (
-          <p className="pr-foot-note pr-trace">{report.sourceTrace}</p>
-        ) : null}
+        {report.sourceTrace ? <p>{report.sourceTrace}</p> : null}
 
         {/*
           * And which published content answered it. A report is asked *of* a published graph, so naming
@@ -243,7 +231,7 @@ export default function PublishedReport({ report }: { report: Report | BuiltRepo
           * its answers, for the same reason.
           */}
         {report.graph ? (
-          <p className="pr-foot-note pr-graph">
+          <p>
             <b>Answered from</b> {report.graph.name}
             {report.graph.version ? ` ${report.graph.version}` : ''}
             {report.graph.sha256 ? (
@@ -255,7 +243,7 @@ export default function PublishedReport({ report }: { report: Report | BuiltRepo
             {report.graph.publishedBy ? ` · published by ${report.graph.publishedBy}` : ''}
           </p>
         ) : null}
-      </footer>
-    </article>
+      </Footnote>
+    </ReportShell>
   )
 }

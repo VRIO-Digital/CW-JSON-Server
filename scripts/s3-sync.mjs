@@ -36,18 +36,19 @@ try {
   /* no .env.local — the environment is expected to carry whatever is needed. */
 }
 
+/**
+ * The documents, and there is one.
+ *
+ * **There were three.** `settings.json` held the users and each persona's navigation;
+ * `reports_prototype.json` held the authoring prototype's own sample data. Both were folded into
+ * `db.json` as the keys `settings` and `reports_prototype`, so syncing is one object per dataset
+ * rather than three under the primary and one under everything else.
+ *
+ * Kept as a map rather than collapsed to a constant: the shape is what makes a second document a
+ * one-line change, and this file's whole job is knowing which objects exist.
+ */
 const DOCS = {
   db: { name: 'db.json', local: join(root, 'mock-server/db.json') },
-  settings: { name: 'settings.json', local: join(root, 'mock-server/settings.json') },
-  /*
-   * The report prototype's own dataset. It used to be `src/reports/data/dataset.json`, compiled into
-   * the bundle — so changing a figure on the Authoring tab meant a rebuild, and it was the one thing on
-   * screen that no amount of editing the bucket could change. It is a document like the other two now.
-   *
-   * Not per dataset, and tenant-level like `settings.json`: it is the *prototype's* sample data, not a
-   * dataset's rosters — those are `db.reports`, which every published report is computed from.
-   */
-  prototype: { name: 'reports_prototype.json', local: join(root, 'mock-server/reports_prototype.json') },
 }
 
 function die(message) {
@@ -60,13 +61,14 @@ function die(message) {
  *
  * A dataset is a prefix, so syncing one is the same two calls under a different key — but the
  * argument has to be *named* rather than positional, because `s3-sync.mjs push db` and
- * `s3-sync.mjs push CAPEX` would otherwise be told apart by nothing. It is matched against the
+ * `s3-sync.mjs push EPA` would otherwise be told apart by nothing. It is matched against the
  * declared datasets, and an unknown one is a refusal naming them: the alternative is a push that
- * quietly writes CAPEX's document over EPA's.
+ * quietly writes one dataset's document over another's.
  *
- * **`settings.json` has no dataset.** It holds the users and the persona navigation, which is the
- * tenant's rather than a dataset's — the same reason it is not in `MERGE_PLAN` and the server reads
- * it from the primary alone. Asking for it under a secondary dataset is a mistake worth naming.
+ * **The tenant's own two documents are keys in `db.json` now**, so there is no longer a document
+ * that has no dataset — the refusal that used to name one is gone with them. What made them
+ * tenant-level has not changed: `MERGE_PLAN` marks `settings` and `reports_prototype` `primary`, so
+ * a secondary dataset's document carries the primary's answer to "who exists" rather than a second.
  */
 const args = process.argv.slice(2)
 const direction = args.shift()
@@ -74,19 +76,7 @@ const dataset = args.find((a) => DATASETS.some((d) => d.toLowerCase() === a?.toL
 const named = args.filter((a) => a !== dataset)
 const only = named[0]
 
-/**
- * Why a document has no dataset, in its own terms.
- *
- * Both are tenant-level, for different reasons — one holds who may sign in, the other the prototype's
- * sample figures. One sentence covering both said "it holds the users and each persona's navigation"
- * about the dataset file, which is a refusal describing the wrong document.
- */
-const TENANT_WHY = {
-  settings: "it holds the users and each persona's navigation",
-  prototype: "it is the report prototype's own sample data, not a dataset's rosters",
-}
-
-const USAGE = `usage: s3-sync.mjs <push|pull> [db|settings] [${DATASETS.join('|')}]`
+const USAGE = `usage: s3-sync.mjs <push|pull> [${Object.keys(DOCS).join('|')}] [${DATASETS.join('|')}]`
 
 if (!['push', 'pull'].includes(direction)) die(USAGE)
 if (only && !DOCS[only]) {
@@ -99,16 +89,7 @@ if (named.length > 1) die(`too many arguments: ${named.join(' ')}\n  ${USAGE}`)
 
 const forDataset = DATASETS.find((d) => d.toLowerCase() === dataset?.toLowerCase()) ?? PRIMARY
 
-if (forDataset !== PRIMARY && (only === 'settings' || only === 'prototype')) {
-  die(
-    `${DOCS[only].name} is the tenant's, not ${forDataset}'s — ${TENANT_WHY[only]}, and there ` +
-      `is one copy under ${PRIMARY}.
-  Sync it with: npm run db:${direction} -- ${only}`,
-  )
-}
-
-/* A secondary dataset has no settings document, so syncing "everything" means its db.json alone. */
-const documents = only ? [only] : forDataset === PRIMARY ? Object.keys(DOCS) : ['db']
+const documents = only ? [only] : Object.keys(DOCS)
 /* The bucket is hardcoded in `store.mjs`, so the only way to have no bucket is to have turned it
    off deliberately — which is a different mistake from not having configured one. */
 if (process.env.S3_BUCKET === 'off') {

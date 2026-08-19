@@ -8,44 +8,58 @@
  * **Charts are `AnswerChart`, not a chart library.** The server emits a report's chart in the answer
  * shape exactly so one component draws both, which is why an answer and a report cannot come to
  * disagree about what a bar means. The rendered HTML these were converted from used Chart.js from a
- * CDN; adding it back would be a dependency decision made by transcription — and the audit gate is the
- * reason this repo hand-writes its SVG. `d3` is the single exception and it argued its own case.
+ * CDN, and the standalone port that replaced this markup wrapped Chart.js as a dependency; adding it
+ * back would be a dependency decision made by transcription, through a gate that fails on any advisory
+ * at `low`. `d3` is the single exception in this repo and it argued its own case.
  *
- * **Alignment is declared, not sniffed.** A report column states its `kind`, so a column of penalties
- * is right-aligned because the field dictionary says it is numeric — never because every cell in this
- * particular slice happened to parse as a number, which is how an empty column comes to be left-aligned
- * on one report and right on another.
+ * **A cell's mark is chosen by the column it is in, never by the shape of its value.** A compliance
+ * tier is a `Tag`, a consent decree is the purple marker, an enforcement document is a `DocRef`, and a
+ * custody chain is a `Chain`. Keying on the column means the register's `risk` column renders as a tier
+ * on every report that carries it — sniffing the value would render any three-letter string as one.
  */
-
-import { Typography } from 'antd'
 
 import type { ReportBlock, ReportCell, ReportColumn, ReportRow } from '../../api/client'
 import AnswerChart from '../AnswerChart'
-import './ReportBlocks.css'
+import { Card, Chain, DocRef, DataTable, FlagPill, Tag, type Column, type TagKind } from './ui'
+
+/** The compliance tiers the register carries, so an unexpected value renders as text rather than a tier. */
+const TIERS: readonly string[] = ['high', 'med', 'low']
 
 /**
- * One cell.
+ * One cell, marked by the column it sits in.
  *
- * A list is a **custody chain** — a manifest's transporters in the order they held the waste — so it is
- * joined with arrows rather than commas. "An order laid into a cell reads as a set" is the rule the
- * traces block exists to keep, and a comma is exactly that mistake.
+ * The default is the value formatted for reading — a number with its thousands separators, a boolean as
+ * a word, a list as a chain. Everything above that default is a column this section has a mark for.
  */
-function Cell({ value }: { value: ReportCell }) {
-  if (Array.isArray(value)) {
-    return (
-      <span className="rb-chain">
-        {value.map((step, i) => (
-          <span key={`${step}-${i}`} className="rb-chain-step">
-            {i > 0 ? <span className="rb-chain-arrow" aria-hidden="true">→</span> : null}
-            {step}
-          </span>
-        ))}
-      </span>
-    )
+function cellOf(column: ReportColumn, value: ReportCell) {
+  /* A list is a custody chain — the transporters in the order they held the waste. Joined with arrows
+     rather than commas: "an order laid into a cell reads as a set". */
+  if (Array.isArray(value)) return <Chain nodes={value} />
+
+  if (column.key === 'risk' && typeof value === 'string' && TIERS.includes(value)) {
+    return <Tag kind={value as TagKind} />
   }
+
+  /* The bridge from the manifest stream to the enforcement corpus. `false` is not a decree, and an
+     em dash says so without asserting a state. */
+  if (column.key === 'cd') return value ? <Tag kind="cd">CD</Tag> : <>—</>
+
+  /* The file the generator is named in, as the uploaded corpus names it. */
+  if (column.key === 'document') return value ? <DocRef>{String(value)}</DocRef> : <>—</>
+
+  /* A trace's exceptions. The roster carries these as `Y`/`N`, so only the `Y` is a marker: a pill
+     reading "not rejected" would be a flag on a load that has none. */
+  if (column.key === 'rejected') return value === 'Y' ? <FlagPill kind="rej" /> : <>—</>
+  if (column.key === 'residue') return value === 'Y' ? <FlagPill kind="res" /> : <>—</>
+
   if (typeof value === 'boolean') return <>{value ? 'Yes' : 'No'}</>
   if (typeof value === 'number') return <>{value.toLocaleString()}</>
   return <>{value}</>
+}
+
+/** Which column names a row, per spine — how the subject row is found without guessing. */
+const SUBJECT_KEY: Record<string, string> = {
+  facilities: 'facility',
 }
 
 /**
@@ -55,7 +69,7 @@ function Cell({ value }: { value: ReportCell }) {
  * charts above it. One renderer, so a scorecard and a register cannot come to align their numbers
  * differently.
  */
-function ReportTable({
+function BlockTable({
   columns,
   rows,
   subjectKey,
@@ -64,55 +78,40 @@ function ReportTable({
 }: {
   columns: ReportColumn[]
   rows: ReportRow[]
-  /** Which column carries the row's name, for marking the subject. */
   subjectKey?: string
   subject?: string | null
   sortedBy?: string | null
 }) {
+  const cols: Column<ReportRow>[] = columns.map((c) => ({
+    header: c.label,
+    /* Alignment is the column's declared `kind`, read once here and used by both the header and the
+       cell — `DataTable` takes one flag, so the two can no longer drift apart. */
+    num: c.kind === 'num',
+    cell: (row) => cellOf(c, row[c.key]),
+  }))
+
   return (
     <>
-      {/* An unexplained order reads as significant, so a ranking says what it is ranked by. */}
-      {sortedBy ? (
-        <Typography.Text className="rb-sorted">Ranked by {sortedBy}</Typography.Text>
-      ) : null}
+      {/* An unexplained order reads as significant, so a ranking says what it is ranked by.
+          One expression, not `Ranked by {sortedBy}`: `renderToString` puts a comment node between an
+          interpolation and its neighbouring text, so the two-part form renders as
+          `Ranked by<!-- --> tonnage` and every assertion about the sentence passes over nothing. */}
+      {sortedBy ? <span className="sorted">{`Ranked by ${sortedBy}`}</span> : null}
 
-      {/* Its own scroll container: an eight-column table must never make the page scroll sideways. */}
-      <div className="rb-table-scroll">
-        <table className="rb-table">
-          <thead>
-            <tr>
-              {columns.map((c) => (
-                <th key={c.key} className={c.kind === 'num' ? 'rb-num' : undefined}>
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => {
-              /* The facility the scorecard is *about*, marked rather than moved: a subject sorted to
-                 the top would misreport the ranking the server computed. */
-              const isSubject =
-                Boolean(subject) && subjectKey ? String(row[subjectKey] ?? '') === subject : false
-              return (
-                <tr key={i} className={isSubject ? 'is-subject' : undefined}>
-                  {columns.map((c) => (
-                    <td key={c.key} className={c.kind === 'num' ? 'rb-num' : undefined}>
-                      <Cell value={row[c.key]} />
-                    </td>
-                  ))}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={cols}
+        rows={rows}
+        rowKey={(_, index) => String(index)}
+        /* The facility the scorecard is *about*, marked rather than moved: a subject sorted to the top
+           would misreport the ranking the server computed. */
+        rowClassName={(row) =>
+          subject && subjectKey && String(row[subjectKey] ?? '') === subject ? 'hl' : undefined
+        }
+      />
 
-      {/* A count the reader can check the table against, rather than counting rows themselves. */}
-      {/* One expression — see the note on the scope line in PublishedReport. */}
-      <Typography.Text className="rb-rowcount">
-        {`${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`}
-      </Typography.Text>
+      {/* A count the reader can check the table against, rather than counting rows themselves.
+          One expression — see the note on the scope line in PublishedReport. */}
+      <span className="rowcount">{`${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`}</span>
     </>
   )
 }
@@ -124,50 +123,38 @@ function ReportTable({
  * by exposure and shows the whole register's compliance split next to it — so it is drawn beside rather
  * than folded in, and it is the server's chart, not a second reading of the first.
  */
-function ChartCard({ block }: { block: Extract<ReportBlock, { type: 'chart' }> }) {
-  const { companion, ...chart } = block
+function Charts({ charts }: { charts: readonly ReportBlock[] }) {
   return (
-    <div className={companion ? 'rb-charts is-pair' : 'rb-charts'}>
-      <AnswerChart block={chart} />
-      {companion ? <AnswerChart block={companion} /> : null}
+    <div className={charts.length > 1 ? 'charts pair' : 'charts'}>
+      {charts.map((c, i) => (
+        <AnswerChart key={i} block={c as Extract<ReportBlock, { type: 'chart' }>} />
+      ))}
     </div>
   )
 }
 
-/** Which column names a row, per spine — how the subject row is found without guessing. */
-const SUBJECT_KEY: Record<string, string> = {
-  facilities: 'facility',
-}
-
 export default function ReportBlockView({ block }: { block: ReportBlock }) {
   if (block.type === 'chart') {
+    const { companion, ...chart } = block
     return (
-      <section className="rb-card">
-        <ChartCard block={block} />
-      </section>
+      <Card>
+        <Charts charts={companion ? [chart, companion] : [chart]} />
+      </Card>
     )
   }
 
   return (
-    <section className="rb-card">
-      <h3 className="rb-title">{block.title}</h3>
-
+    <Card title={block.title}>
       {/* The charts a scorecard or a trend states above its detail, each the server's own. */}
-      {'charts' in block && block.charts.length > 0 ? (
-        <div className={block.charts.length > 1 ? 'rb-charts is-pair' : 'rb-charts'}>
-          {block.charts.map((c, i) => (
-            <AnswerChart key={i} block={c} />
-          ))}
-        </div>
-      ) : null}
+      {'charts' in block && block.charts.length > 0 ? <Charts charts={block.charts} /> : null}
 
-      <ReportTable
+      <BlockTable
         columns={block.columns}
         rows={block.rows}
-        subjectKey={SUBJECT_KEY[block.type === 'facilities' ? 'facilities' : block.type]}
+        subjectKey={SUBJECT_KEY[block.type]}
         subject={block.type === 'facilities' ? block.subject : null}
         sortedBy={block.type === 'table' ? block.sortedBy : null}
       />
-    </section>
+    </Card>
   )
 }

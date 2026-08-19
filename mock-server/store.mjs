@@ -57,10 +57,11 @@ export function parseS3Ref(ref) {
 /**
  * The ref for one document.
  *
- * S3 is the default now: the local `db.json` and `settings.json` were deleted once the bucket held
- * them, so there is no file to fall back to and a silent fallback would serve an empty app rather
- * than say why. `S3_BUCKET=off` is the deliberate way back to files, for tests and for a machine
- * with no credentials.
+ * S3 is the default now: the local documents were deleted once the bucket held them, so there is no
+ * file to fall back to and a silent fallback would serve an empty app rather than say why.
+ * `S3_BUCKET=off` is the deliberate way back to files, for tests and for a machine with no
+ * credentials. There is **one** document per dataset — `settings.json` and `reports_prototype.json`
+ * were folded into `db.json` as keys — so this is called once per dataset rather than three times.
  *
  * **The prefix is an argument, because a prefix is a dataset.** It used to be read from the
  * environment here and nowhere else, which made it a property of the *process* — so a second
@@ -80,9 +81,10 @@ export function docRef(name, localPath, prefix) {
  * The local file standing in for one dataset's document when `S3_BUCKET=off`.
  *
  * The primary keeps the plain name it always had — `mock-server/db.json` is what every command in
- * CLAUDE.md, `npm run db:pull` and the seeds all name — so only a non-default prefix takes a
- * suffix (`db.CAPEX.json`). Sharing one path across datasets would have each boot overwrite the
- * last, which reads as a dataset that will not stay switched.
+ * CLAUDE.md, `npm run db:pull` and the seeds all name — so only a non-default prefix takes a suffix
+ * (`db.<PREFIX>.json`). Sharing one path across datasets would have each boot overwrite the last,
+ * which reads as a dataset that will not stay switched. There is one dataset today and this is
+ * still what a second one would need, so it is kept rather than inlined away.
  */
 export function localDocPath(localPath, prefix) {
   if (!localPath || !prefix || prefix === DEFAULT_PREFIX) return localPath

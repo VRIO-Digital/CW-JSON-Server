@@ -3231,12 +3231,14 @@ expect(
 expect(
   'both JSON databases are read through the diagnostic loader, not JSON.parse',
   /function readJsonDb\(/.test(server) &&
-    /* Both go through it — they are read together now, so both are arguments to one `Promise.all`
-       rather than two separate `await`s. The fact is that neither reaches `JSON.parse` directly. */
-    (server.match(/readJsonDb\(\s*$|readJsonDb\(DB_PATH|readJsonDb\(\s*\n\s*DB_PATH|readJsonDb\(SETTINGS_PATH/gm) ?? []).length >= 2 &&
-    /readJsonDb\(SETTINGS_PATH, 'mock-server\/settings\.json'/.test(server) &&
-    /* The raw parse must not come back for either file. */
-    !/JSON\.parse\(readFileSync\((DB_PATH|SETTINGS_PATH)/.test(codeOnly(server)),
+    /* One document per dataset, and it is the only kind there is — `settings` and `reports_prototype`
+       are keys inside it rather than files beside it. The fact this guards is unchanged: nothing
+       reaches `JSON.parse` directly, so a byte offset never stands in for a conflict marker. */
+    /readJsonDb\(\s*\n\s*DB_PATHS\[name\],/.test(server) &&
+    /const loadedDocs = await Promise\.all\(/.test(server) &&
+    /* The raw parse must not come back, and neither may the paths that were deleted with the files. */
+    !/JSON\.parse\(readFileSync\(DB_PATH/.test(codeOnly(server)) &&
+    !/SETTINGS_PATH|PROTOTYPE_PATH/.test(codeOnly(server)),
   'a byte offset names nothing a person can act on',
 )
 /*
@@ -3271,7 +3273,12 @@ expect(
     server.indexOf('Object.assign(target, next)') < server.indexOf('await writeJsonAtomic(DB_PATHS[selected]') &&
     /* And a failed write puts memory back, so the two cannot diverge. */
     /Object\.assign\(target, previous\)/.test(server) &&
-    /settings = previous/.test(server),
+    /* `commitSettings` no longer implements any of this. It validates for the sake of its own message
+       — which names `npm run seed:settings` rather than "restart the server" — and hands the whole
+       document to `commitDb`, where the ordering lives. One implementation of the guarantee is the
+       point: the copy it used to keep was a second thing that could get the order wrong. */
+    /await commitDb\(\{ \.\.\.db, settings: next \}\)/.test(server) &&
+    !/settings = previous|writeJsonAtomic\(SETTINGS_PATH/.test(codeOnly(server)),
   'swapping after the write would let two edits each read the pre-edit document',
 )
 /* Every writer is awaited, or a rejected write becomes an unhandled rejection and a 200. */
@@ -3296,15 +3303,16 @@ expect(
  */
 expect(
   'both documents are read, awaited together, before the server listens',
-  /* One `db.json` per dataset now, and settings beside them — still one `Promise.all`, still awaited
-     above `listen`. The guarantee was never the count of documents, it is that none of them is
-     served before all of them are in. */
-  /* Three documents now — one `db.json` per dataset, the tenant's settings, and the report prototype's
-     dataset — still one `Promise.all`, still awaited above `listen`. The guarantee was never the count. */
-  /const \[loadedDocs, loadedSettings, loadedPrototype\] = await Promise\.all\(\[/.test(server) &&
+  /* One `db.json` per dataset, and that is now every document there is — the tenant's settings and the
+     report prototype's sample data are keys inside it. Still one `Promise.all`, still awaited above
+     `listen`. **The guarantee was never the count of documents**: it is that none of them is served
+     before all of them are in, which is why the parallel read is kept for a list of one. */
+  /const loadedDocs = await Promise\.all\(/.test(server) &&
     /DATASETS\.map\(\(name\) =>/.test(server) &&
-    /let settings = loadedSettings/.test(server) &&
-    server.indexOf('await Promise.all([') < server.indexOf('server.listen(') &&
+    /* Both former documents are read off the selected one at call time, never captured at boot. */
+    /return db\.settings\.users/.test(server) &&
+    /const prototypeData = \(\) => db\.reports_prototype/.test(server) &&
+    server.indexOf('await Promise.all(') < server.indexOf('server.listen(') &&
     /* Top-level await is what makes source order execution order — inside a function it would not. */
     !/async function main\(|\.then\(\(\) => server\.listen/.test(codeOnly(server)),
   'nothing may be served before db.json is loaded',
@@ -3332,8 +3340,8 @@ expect(
        dataset and a dataset cannot be a property of the process — see mock-server/datasets.mjs. */
     /export function docRef\(name, localPath, prefix\)/.test(store) &&
     /prefix \?\? process\.env\.S3_PREFIX \?\? DEFAULT_PREFIX/.test(store) &&
-    /docRef\('db\.json', join\(here, 'db\.json'\), name\)/.test(server) &&
-    /docRef\('settings\.json', join\(here, 'settings\.json'\), PRIMARY\)/.test(server),
+    /* One `docRef` call, because a dataset has one document. */
+    /docRef\('db\.json', join\(here, 'db\.json'\), name\)/.test(server),
   'an address can be committed; a key cannot',
 )
 /*
@@ -3379,7 +3387,11 @@ const dsSwitch = read('src/data/datasetSwitch.ts')
 
 expect(
   'every dataset is loaded at boot and a request selects one',
-  /export const DATASETS = \['EPA', 'CAPEX'\]/.test(datasets) &&
+  /* **One dataset today, and the machinery is still per dataset.** CAPEX's document was removed on
+     request; a name in this list with no document behind it stops the boot, so removing the file
+     meant removing the name. What is asserted is the shape, not the count — a boot that loads every
+     dataset and a request that selects one is what makes a second dataset a two-line change. */
+  /export const DATASETS = \['EPA'\]/.test(datasets) &&
     /export const PRIMARY = 'EPA'/.test(datasets) &&
     /* The refs are built per dataset, so each reads its own prefix. */
     /DATASETS\.map\(\(name\) => \[name, docRef\('db\.json', join\(here, 'db\.json'\), name\)\]\)/.test(
@@ -3659,14 +3671,19 @@ expect(
 expect(
   'every dataset has a distinct letter',
   /* One letter was asked for and is only unambiguous while the initials differ: two datasets sharing one
-     would share an address, and the URL would name neither. Read off the server's own list. */
+     would share an address, and the URL would name neither. Read off the server's own list.
+     **The rule matters most while it looks vacuous.** There is one dataset today, so no two letters can
+     collide — which is exactly when a check like this stops being read, and exactly when the next
+     dataset gets added. The denominator is the declared list plus `both`, so it re-acquires teeth the
+     moment a second name appears rather than having to be remembered then. */
   (() => {
     const declared = /export const DATASETS = \[([^\]]+)\]/.exec(datasets)?.[1] ?? ''
     const names = [...declared.matchAll(/'([^']+)'/g)].map((m) => m[1])
     const both = /export const BOTH = '([^']+)'/.exec(datasets)?.[1] ?? ''
     const all = [...names, both].filter(Boolean)
     const letters = all.map((n) => n.slice(0, 1).toUpperCase())
-    return all.length > 2 && new Set(letters).size === letters.length
+    /* At least the primary and `both` must have parsed, or this is asserting over an empty list. */
+    return all.length >= 2 && new Set(letters).size === letters.length
   })(),
   'two datasets sharing an initial would share a URL',
 )
@@ -4224,10 +4241,12 @@ expect(
     /* `codeOnly`: the comment explaining the move quotes the import it replaced, so a whole-file search
        finds it and the claim fails against correct code. Fourth time this file has been caught that way. */
     !/from '\.\/data\/dataset\.json'/.test(codeOnly(protoDoc)) &&
-    /* Read at boot beside the two databases, awaited with them, and named as the primary's. */
-    /const PROTOTYPE_PATH = docRef\(/.test(server) &&
-    /'reports_prototype\.json',/.test(server) &&
-    /const \[loadedDocs, loadedSettings, loadedPrototype\] = await Promise\.all\(\[/.test(server) &&
+    /* **It is a key of `db.json` now rather than a document beside it**, so it arrives with the boot
+       read instead of on a fetch of its own. The fact this claim guards is unchanged and is the
+       reason the move was safe: it is still *served*, so editing the bucket still changes what the
+       Authoring tab shows, with no rebuild. */
+    /const prototypeData = \(\) => db\.reports_prototype/.test(server) &&
+    /reports_prototype: \(v\) => validatePrototype\(v\)\.length === 0,/.test(server) &&
     /* Served, and validated on the way in on both sides. */
     /match: \(p\) => p === '\/reports\/prototype'/.test(server) &&
     /export async function getReportsPrototypeDataset\(\)/.test(client) &&
@@ -4267,23 +4286,27 @@ expect(
   /* Three states, not one spinner: unreachable, malformed, or arrived. The malformed branch names the
      file, because "the authoring tab is empty" is not something a reader can act on. */
   /const \[hydrationError, setHydrationError\] = useState<string \| null>\(null\)/.test(reportsPage) &&
-    /mock-server\/reports_prototype\.json is malformed/.test(reportsPage) &&
-    /* And the server refuses to boot on one rather than serving it. */
+    /db\.reports_prototype is malformed/.test(reportsPage) &&
+    /* And the server refuses to boot on one rather than serving it. Named as the key it now is:
+       a refusal naming a file nobody has is a refusal nobody can act on. */
     /function validatePrototype\(candidate\)/.test(server) &&
     /is empty — the prototype would render nothing/.test(server) &&
-    /refusing to start — mock-server\/reports_prototype\.json cannot be served/.test(server),
+    /refusing to start — db\.reports_prototype cannot be served/.test(server),
   'an empty Authoring tab reads as a section that failed to load',
 )
 
 expect(
-  'it is a tenant document, and the sync tool says so per document',
-  /* Tenant-level like `settings.json` rather than per dataset: it is the *prototype's* sample data, not a
-     dataset's rosters. Asking for it under a secondary dataset is refused in its own words — one sentence
-     covering both said "it holds the users and each persona's navigation" about this file. */
-  /prototype: \{ name: 'reports_prototype\.json'/.test(s3sync) &&
-    /const TENANT_WHY = \{/.test(s3sync) &&
-    /prototype: "it is the report prototype's own sample data, not a dataset's rosters"/.test(s3sync) &&
-    /\(only === 'settings' \|\| only === 'prototype'\)/.test(s3sync) &&
+  'it is tenant-level, and the sync tool has one document to move',
+  /* **Still tenant-level, and now expressed as a merge rule rather than as a refusal.** It was a
+     document of its own that a secondary dataset was refused a copy of, in its own words. It is a key
+     of `db.json` now, so the thing that keeps it the tenant's is `MERGE_PLAN` marking it — and
+     `settings` beside it — `primary`: a secondary dataset's document carries the primary's answer
+     rather than a second one. The sync tool therefore moves one object per dataset, and the refusal
+     it used to carry is gone with the document it was about. */
+  /settings: 'primary',/.test(datasets) &&
+    /reports_prototype: 'primary',/.test(datasets) &&
+    /const DOCS = \{\n  db: \{ name: 'db\.json'/.test(s3sync) &&
+    !/TENANT_WHY|reports_prototype\.json|settings\.json/.test(codeOnly(s3sync)) &&
     /* **Committed, by decision, and that is a change of mind worth naming.** It was gitignored like the
        two databases, on the reasoning that a committed copy beside a served one is two answers to what the
        figures are. It travels in git now because the repo is how these documents reach a box that has no
@@ -4314,6 +4337,7 @@ expect(
 const prReport = read('src/components/report/PublishedReport.tsx')
 const prBlocks = read('src/components/report/ReportBlocks.tsx')
 const prPane = read('src/components/report/PublishedReportPane.tsx')
+const prUi = read('src/components/report/ui.tsx')
 const prStore = read('src/store/reportsStore.ts')
 
 expect(
@@ -4385,13 +4409,59 @@ expect(
   /* A manifest's transporters are ordered: "an order laid into a cell reads as a set", and a comma is
      exactly that. Alignment comes from the column's own `kind`, never from sniffing this slice's cells —
      which is how one report right-aligns a column another leaves ragged. */
-  /rb-chain-arrow/.test(prBlocks) &&
-    /* **Both** sites: the header and the cell. A single `includes` passed a break test that changed one
-       of them and left the other — the header right-aligned while its column was not, or the reverse.
-       Second call site, same trap as the seed's loop header. */
-    (prBlocks.match(/c\.kind === 'num'/g) ?? []).length === 2 &&
-    !/\/\^\[\$\\s\]\*-\?/.test(prBlocks),
+  /* The chain lives in the ported primitives now, so the arrow is asserted there and the routing to it
+     here — a `Chain` nothing hands a list to draws no chain at all. */
+  /className="arw"/.test(prUi) &&
+    /'node dest' : 'node'/.test(prUi) &&
+    /if \(Array\.isArray\(value\)\) return <Chain nodes=\{value\} \/>/.test(prBlocks) &&
+    /* Alignment is read **once**, into the one flag `DataTable` takes, so the header and the cell can no
+       longer be changed apart — the old pair of `c.kind === 'num'` tests passed a break test that
+       changed one of them and left the other, right-aligning a header over a ragged column. */
+    (prBlocks.match(/c\.kind === 'num'/g) ?? []).length === 1 &&
+    (prUi.match(/column\.num \? 'num' : undefined/g) ?? []).length === 2 &&
+    /* And nothing decides alignment from the value: `typeof` in `cellOf` only chooses a format. */
+    !/typeof value === 'number' \? 'num'/.test(codeOnly(prBlocks)),
   'a chain joined with commas is a set, and sniffed alignment differs per slice',
+)
+
+/*
+ * **The published report wears the standalone port's design and none of its data.**
+ *
+ * `src/ddd` was a second React port of the same five reports — one component per report with its rosters
+ * compiled in as TypeScript constants. The design came across into `./ui` and `report.css`; the data did
+ * not, because `db.reports` stores no result and every figure is `reportView`'s per request. A component
+ * holding a roster is the one change that breaks this section's premise while looking right on screen.
+ *
+ * Asserted on every layer at once, because half a port is the shape that fails silently: the second copy
+ * is gone, the primitives are here and are what the report renders through, the sheet is scoped, and no
+ * component under `src/components/report` declares a row of its own.
+ */
+expect(
+  'the report design is ported, and the standalone copy with its compiled-in figures is gone',
+  /* Two ports of one report is two answers to what it looks like. */
+  !existsSync(join(root, 'src/ddd')) &&
+    /* The primitives it carried are here, and they are what the report renders through. */
+    /export function ReportShell\(/.test(prUi) &&
+    /export function KpiRow\(/.test(prUi) &&
+    /export function DataTable</.test(prUi) &&
+    /<ReportShell/.test(prReport) &&
+    /<KpiRow items=\{tiles\} \/>/.test(prReport) &&
+    /* Its sheet is scoped, like the vendored prototype's: bare `table`, `th` and `h1` rules unscoped
+       restyle every antd table in the app, silently, on pages nobody touched. */
+    /* Comments stripped first — the block at the top of that file explains the scoping, so its own
+       `*`-prefixed lines read as selectors to a line filter. The self-documenting-file trap, in CSS. */
+    read('src/components/report/report.css')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => /^[.*]/.test(line))
+      .every((line) => line.startsWith('.cw-report')) &&
+    /* Its Google Fonts import did not come with it: a network fetch on every report open, which nothing
+       else in this app does. */
+    !/fonts\.googleapis\.com/.test(read('src/components/report/report.css')) &&
+    /* And no component here declares a roster — the tell is a row literal naming a spine's own column. */
+    !/generator: '|facility: '|quarter: '/.test(prReport + prBlocks + prUi),
+  'a figure compiled into a component is a stored result wearing a live report’s chrome',
 )
 
 expect(
@@ -5450,15 +5520,20 @@ expect(
 )
 
 const loginPage = read('src/pages/LoginPage.tsx')
-/* Same rule as db.json above: refuse rather than check an empty object. */
-const settingsDoc = readJson('mock-server/settings.json')
-if (!settingsDoc.here) {
-  console.error('\ncheck-docs: cannot run — mock-server/settings.json is not in this checkout.')
-  console.error('\n  Fetch both documents from S3:\n      npm run db:pull\n')
-  process.exit(1)
-}
-const settingsRaw = read('mock-server/settings.json')
-const settingsFile = settingsDoc.value
+/*
+ * **`settings` is a key of `db.json`, not a file beside it.** It was `mock-server/settings.json`, and
+ * `db.reports_prototype` was `mock-server/reports_prototype.json`; both were folded in on request. The
+ * refusal at the top of this file already covers them — a missing `db.json` stops the run naming
+ * `npm run db:pull` — so what is needed here is the key alone, and a document that has lost it is a
+ * *claim* failure rather than a reason the checker cannot run.
+ *
+ * `settingsRaw` is the subtree's text, which is what the claims below search: several check that a
+ * persona *label* appears nowhere in it, since this store names personas by `role_id` and never by
+ * label. Serialising the subtree rather than the whole document keeps that search honest — every other
+ * key legitimately carries labels, and searching all of `db.json` would fail on `auth_roles`.
+ */
+const settingsFile = db.settings ?? {}
+const settingsRaw = JSON.stringify(settingsFile, null, 2)
 /*
  * Comments stripped for every absence claim below — by now a habit, not a fix. A file that explains why
  * it does *not* do something names the thing it does not do: `App.tsx`'s comment says it deliberately
@@ -5475,19 +5550,28 @@ const appCode = codeOnly(read('src/App.tsx'))
  * server refuses to boot on a bad one rather than serving a sidebar nobody configured.
  */
 expect(
-  'the settings store is its own file, with its own validator and writer',
-  /* Its own ref, resolved separately from db.json's, so the two documents cannot come to share a
-     location whichever store they are read from. */
-  /* Read from the primary dataset and named as such: settings holds the users and the persona
-     navigation, which is the tenant's rather than any one dataset's — the same reason it is absent
-     from MERGE_PLAN and a secondary dataset has no copy of it. */
-  /const SETTINGS_PATH = docRef\('settings\.json', join\(here, 'settings\.json'\), PRIMARY\)/.test(server) &&
+  'the settings store is its own key, with its own validator, writer and seed',
+  /* **It was its own file and the separation is by key now.** Two files meant a settings write could
+     not touch a report and an ingest could not drop a permission; folding it in on request moved that
+     guarantee to a stronger place rather than losing it — `settings` is a `DB_SHAPE` key, so
+     `validateDb` refuses a document without it and `commitDb` validates it before *every* write, not
+     just this page's. That covers the case the two files never did: a writer that rebuilds some other
+     subtree wholesale and forgets to carry this one, which is how `db.reports.governance` was nearly
+     lost. Asserted across all of it, because a half-move is what fails quietly. */
+  /settings: \(v\) => validateSettings\(v\)\.length === 0,/.test(server) &&
     /function validateSettings\(candidate\)/.test(server) &&
     /function commitSettings\(next\)/.test(server) &&
-    /refusing to start — mock-server\/settings\.json cannot be served/.test(server) &&
+    /* Its own message still, naming the seed rather than "restart the server". */
+    /refusing to start — db\.settings cannot be served/.test(server) &&
     /npm run seed:settings/.test(server) &&
-    /"seed:settings": "node scripts\/seed-settings\.mjs"/.test(read('package.json')),
-  'settings.json is validated, committed and re-authorable on its own',
+    /"seed:settings": "node scripts\/seed-settings\.mjs"/.test(read('package.json')) &&
+    /* And the seed replaces one key rather than rewriting the document — the failure above, again. */
+    /writeFileSync\(DB, JSON\.stringify\(\{ \.\.\.db, settings \}, null, 2\)/.test(
+      read('scripts/seed-settings.mjs'),
+    ) &&
+    /* The file itself is gone, so nothing can read a stale copy of it. */
+    !existsSync(join(root, 'mock-server/settings.json')),
+  'the settings are validated, committed and re-authorable on their own',
 )
 
 /*

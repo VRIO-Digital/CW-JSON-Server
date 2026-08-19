@@ -1,13 +1,15 @@
 /*
- * Seeds `mock-server/settings.json` — the Settings section's own small database.
+ * Seeds `db.settings` — the Settings section's own subtree of `db.json`.
  *
  *     npm run seed:settings
  *
- * **A separate file from `db.json`, on purpose.** `db.json` is the tenant's *data*: sources, profiles,
- * the graph, the reports. This holds only what the Settings page administers — who the users are and
- * which navigation each persona may see — so a settings write can never touch a report, and re-running
- * an ingest can never drop a permission. It is also the reason `validateDb` says nothing about any of
- * this: two stores, two validators, one job each.
+ * **It was `mock-server/settings.json`, a separate file, and the separation is now by key.** The
+ * reasoning for two files was that a settings write could never touch a report and an ingest could
+ * never drop a permission. Folding it in on request moved that guarantee rather than losing it:
+ * `settings` is a `DB_SHAPE` key, so `validateDb` refuses a document without it and `commitDb`
+ * validates it before **every** write — including a write from an ingest that rebuilt some other
+ * subtree and forgot to carry this one forward, which is the exact failure the two files existed to
+ * prevent and which `db.reports` has already suffered once.
  *
  * **What it does not hold is the persona pool.** The four personas are `db.auth_roles`, which is what
  * report audiences are validated against and what the login echoes back. This file names `role_id`s and
@@ -18,13 +20,13 @@
  * persona that has none. `defaults` is re-authored every run, because that is the thing this file is
  * the source of — Reset in the UI copies it over the live set.
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 
 const DB = new URL('../mock-server/db.json', import.meta.url)
-const SETTINGS = new URL('../mock-server/settings.json', import.meta.url)
 
 const db = JSON.parse(readFileSync(DB, 'utf8'))
-const existing = existsSync(SETTINGS) ? JSON.parse(readFileSync(SETTINGS, 'utf8')) : {}
+/* Whatever is already configured, so a re-run keeps it — see the note on `nav_permissions` below. */
+const existing = db.settings ?? {}
 
 /*
  * The navigation keys a persona's access is configured over — the sidebar's own, in its order.
@@ -163,7 +165,9 @@ const settings = {
   ),
 }
 
-writeFileSync(SETTINGS, JSON.stringify(settings, null, 2) + '\n', 'utf8')
+/* One key replaced, every other carried through — the document is spread rather than rebuilt. A
+   script that owns a subtree and rewrites its parent is how a subtree gets deleted. */
+writeFileSync(DB, JSON.stringify({ ...db, settings }, null, 2) + '\n', 'utf8')
 console.log(
   `seed-settings: ${USERS.length} users, ${Object.keys(DEFAULTS).length} personas, ` +
     `${NAV_KEYS.length} navigation items, ` +
