@@ -39,6 +39,15 @@ try {
 const DOCS = {
   db: { name: 'db.json', local: join(root, 'mock-server/db.json') },
   settings: { name: 'settings.json', local: join(root, 'mock-server/settings.json') },
+  /*
+   * The report prototype's own dataset. It used to be `src/reports/data/dataset.json`, compiled into
+   * the bundle — so changing a figure on the Authoring tab meant a rebuild, and it was the one thing on
+   * screen that no amount of editing the bucket could change. It is a document like the other two now.
+   *
+   * Not per dataset, and tenant-level like `settings.json`: it is the *prototype's* sample data, not a
+   * dataset's rosters — those are `db.reports`, which every published report is computed from.
+   */
+  prototype: { name: 'reports_prototype.json', local: join(root, 'mock-server/reports_prototype.json') },
 }
 
 function die(message) {
@@ -65,6 +74,18 @@ const dataset = args.find((a) => DATASETS.some((d) => d.toLowerCase() === a?.toL
 const named = args.filter((a) => a !== dataset)
 const only = named[0]
 
+/**
+ * Why a document has no dataset, in its own terms.
+ *
+ * Both are tenant-level, for different reasons — one holds who may sign in, the other the prototype's
+ * sample figures. One sentence covering both said "it holds the users and each persona's navigation"
+ * about the dataset file, which is a refusal describing the wrong document.
+ */
+const TENANT_WHY = {
+  settings: "it holds the users and each persona's navigation",
+  prototype: "it is the report prototype's own sample data, not a dataset's rosters",
+}
+
 const USAGE = `usage: s3-sync.mjs <push|pull> [db|settings] [${DATASETS.join('|')}]`
 
 if (!['push', 'pull'].includes(direction)) die(USAGE)
@@ -78,10 +99,11 @@ if (named.length > 1) die(`too many arguments: ${named.join(' ')}\n  ${USAGE}`)
 
 const forDataset = DATASETS.find((d) => d.toLowerCase() === dataset?.toLowerCase()) ?? PRIMARY
 
-if (forDataset !== PRIMARY && only === 'settings') {
+if (forDataset !== PRIMARY && (only === 'settings' || only === 'prototype')) {
   die(
-    `settings.json is the tenant's, not ${forDataset}'s — it holds the users and each persona's ` +
-      `navigation, and there is one copy under ${PRIMARY}.\n  Sync it with: npm run db:${direction} -- settings`,
+    `${DOCS[only].name} is the tenant's, not ${forDataset}'s — ${TENANT_WHY[only]}, and there ` +
+      `is one copy under ${PRIMARY}.
+  Sync it with: npm run db:${direction} -- ${only}`,
   )
 }
 

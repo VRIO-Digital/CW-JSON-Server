@@ -3299,7 +3299,9 @@ expect(
   /* One `db.json` per dataset now, and settings beside them — still one `Promise.all`, still awaited
      above `listen`. The guarantee was never the count of documents, it is that none of them is
      served before all of them are in. */
-  /const \[loadedDocs, loadedSettings\] = await Promise\.all\(\[/.test(server) &&
+  /* Three documents now — one `db.json` per dataset, the tenant's settings, and the report prototype's
+     dataset — still one `Promise.all`, still awaited above `listen`. The guarantee was never the count. */
+  /const \[loadedDocs, loadedSettings, loadedPrototype\] = await Promise\.all\(\[/.test(server) &&
     /DATASETS\.map\(\(name\) =>/.test(server) &&
     /let settings = loadedSettings/.test(server) &&
     server.indexOf('await Promise.all([') < server.indexOf('server.listen(') &&
@@ -4201,9 +4203,97 @@ expect(
     : 'reports, one report, a saved report and the lens share one rule',
 )
 /*
+ * ---------------- the report prototype's dataset is a document, not a bundle ----------------
+ *
+ * It was `src/reports/data/dataset.json`, imported into the JS — so it was the one thing on screen that
+ * editing the bucket could not change: a figure on the Authoring tab needed a rebuild and a redeploy, and
+ * it could not follow the dataset switch either. It lives at
+ * `s3://contextweave.com/EPA/reports_prototype.json` now, served by `GET /reports/prototype`.
+ *
+ * Asserted at both ends and in the middle, because the dangerous shape is a partial move: the file gone
+ * from `src/` while something still imports it fails the build, but the file still in `src/` while the
+ * endpoint exists is two copies that drift.
+ */
+const protoDoc = read('src/reports/data.ts')
+const s3sync = read('scripts/s3-sync.mjs')
+
+expect(
+  'the prototype dataset is fetched, not bundled',
+  /* Gone from the bundle: nothing imports a JSON file anywhere in the app any more. */
+  !existsSync(join(root, 'src/reports/data/dataset.json')) &&
+    /* `codeOnly`: the comment explaining the move quotes the import it replaced, so a whole-file search
+       finds it and the claim fails against correct code. Fourth time this file has been caught that way. */
+    !/from '\.\/data\/dataset\.json'/.test(codeOnly(protoDoc)) &&
+    /* Read at boot beside the two databases, awaited with them, and named as the primary's. */
+    /const PROTOTYPE_PATH = docRef\(/.test(server) &&
+    /'reports_prototype\.json',/.test(server) &&
+    /const \[loadedDocs, loadedSettings, loadedPrototype\] = await Promise\.all\(\[/.test(server) &&
+    /* Served, and validated on the way in on both sides. */
+    /match: \(p\) => p === '\/reports\/prototype'/.test(server) &&
+    /export async function getReportsPrototypeDataset\(\)/.test(client) &&
+    /const PROTOTYPE_PAYLOAD = shape\(\{/.test(client),
+  'a bundled figure needs a rebuild to change, and cannot follow the dataset switch',
+)
+
+expect(
+  'its route is declared before the one that would swallow it',
+  /* `/^\/reports\/[^/]+$/` matches `prototype`, so declared after it the request would come back as
+     `no report "prototype"` — a 404 naming five report ids, none of them the thing asked for. Same hazard
+     as `graph-studio/:useCaseId` matching the canvas route's parent segment, and asserted the same way. */
+  server.indexOf("p === '/reports/prototype'") > 0 &&
+    server.indexOf("p === '/reports/prototype'") <
+      server.indexOf('match: (p) => /^\\/reports\\/[^/]+$/.test(p)'),
+  'a prefix matcher declared first turns the dataset into a missing report id',
+)
+
+expect(
+  'the module publishes the dataset through live bindings, and says nothing renders before it lands',
+  /* `let`, not `const`: ES module bindings are live, so one assignment reaches every consumer without any
+     of them changing. It holds only because no consumer reads these at module scope — checked before the
+     change, and this asserts the shape that makes it true. */
+  /export let GENERATORS: Generator\[\] = \[\]/.test(protoDoc) &&
+    /export function hydrate\(payload: unknown\): void \{/.test(protoDoc) &&
+    /export let isHydrated = false/.test(protoDoc) &&
+    /* Still validated deeply by the prototype's own walker, which now guards a network payload. */
+    /DATA = validateDataset\(payload as Dataset\)/.test(protoDoc) &&
+    /* And the host renders it only once it has landed. */
+    /hydratePrototype\(prototypePayload\.dataset\)/.test(reportsPage) &&
+    /openReportId \|\| !hydrated \|\| prototypeError \|\| hydrationError \? null : \(/.test(reportsPage),
+  'rendering before the fetch draws a register with no rows, which reads as "nothing ships here"',
+)
+
+expect(
+  'a failed fetch and a malformed document are told apart',
+  /* Three states, not one spinner: unreachable, malformed, or arrived. The malformed branch names the
+     file, because "the authoring tab is empty" is not something a reader can act on. */
+  /const \[hydrationError, setHydrationError\] = useState<string \| null>\(null\)/.test(reportsPage) &&
+    /mock-server\/reports_prototype\.json is malformed/.test(reportsPage) &&
+    /* And the server refuses to boot on one rather than serving it. */
+    /function validatePrototype\(candidate\)/.test(server) &&
+    /is empty — the prototype would render nothing/.test(server) &&
+    /refusing to start — mock-server\/reports_prototype\.json cannot be served/.test(server),
+  'an empty Authoring tab reads as a section that failed to load',
+)
+
+expect(
+  'it is a tenant document, and the sync tool says so per document',
+  /* Tenant-level like `settings.json` rather than per dataset: it is the *prototype's* sample data, not a
+     dataset's rosters. Asking for it under a secondary dataset is refused in its own words — one sentence
+     covering both said "it holds the users and each persona's navigation" about this file. */
+  /prototype: \{ name: 'reports_prototype\.json'/.test(s3sync) &&
+    /const TENANT_WHY = \{/.test(s3sync) &&
+    /prototype: "it is the report prototype's own sample data, not a dataset's rosters"/.test(s3sync) &&
+    /\(only === 'settings' \|\| only === 'prototype'\)/.test(s3sync) &&
+    /* Gitignored like the other two, so the bucket is the copy that counts. */
+    /mock-server\/reports_prototype\.json/.test(read('.gitignore')),
+  'a committed copy beside a served one is two answers to what the figures are',
+)
+
+/*
  * ---------------- the tenant's five reports, rendered ----------------
  *
- * `src/07_reports/Report_N_*.html` are the tenant's *rendered* reports. Their layout is now React —
+ * The demo package's `07_reports/Report_N_*.html` are the tenant's *rendered* reports — they were dropped
+ * into this checkout to port, and are not part of it. Their layout is now React —
  * crumb, heading and badge, lead note, four tiles, the facet bar, a card per block, the footnotes — and
  * their **figures are not**: every number comes from `reportView`, computed per request from
  * `db.reports` in the EPA bucket. Pasting a rendered figure into a component is the one change that
@@ -4241,13 +4331,44 @@ expect(
   'transcribing a script tag is a dependency decision made by accident',
 )
 
+/*
+ * **The facet chips filter, and they filter on the server.**
+ *
+ * They were rendered as labels — "stated, not applied" — because `POST /reports/build` had no caller and a
+ * clickable chip would have promised a slice nothing ran. It has a caller now: a chip re-asks the report
+ * through the frame, so the table, the chart *and* the tiles recompute together. The prototype these were
+ * ported from hid table rows and left its chart and its four KPIs describing the unfiltered set, which is
+ * two readings of one screen; that is the bug this does not reproduce.
+ *
+ * **Values on one facet are OR-ed, facets are AND-ed.** A plain reduce over the filter list ANDed
+ * everything, so picking High *and* Medium selected nothing — the arithmetic a multi-select chip bar needs
+ * was unexpressible until `reportFrameRows` grouped by key.
+ */
 expect(
-  'a facet is stated, not offered',
-  /* `POST /reports/build` takes a frame and has no caller, so a chip that looked clickable would promise
-     a slice nothing applies — the same "declared, not applied" line the horizon already draws. */
-  /stated, not applied/.test(prReport) &&
-    !/onClick/.test(codeOnly(prReport)),
-  'a chip that re-asks nothing is a filter the reader thinks ran',
+  'a facet is a multi-select that re-asks the report, and the server groups by facet',
+  /* A dropdown per facet, not a row of chips: the values come from the roster, so how many there are is
+     the data's business — four states fit on a line and twenty do not, and a control that wraps onto
+     three lines is the layout deciding how much data is reasonable. */
+  /mode="multiple"/.test(prReport) &&
+    /onChange=\{\(next: string\[\]\) => void setFacet\(facet\.key, next\)\}/.test(prReport) &&
+    /* An empty selection *is* that facet's "All", so there is no second control to keep in step. */
+    /placeholder="All"/.test(prReport) &&
+    !/toggleFilter|clearFacet/.test(codeOnly(prReport)) &&
+    /* The label is tied to the control, since the facet's name is not inside it. */
+    /aria-labelledby=\{`pr-facet-\$\{facet\.key\}`\}/.test(prReport) &&
+    /* A number rather than `responsive`, which measures and so collapses every tag before layout. */
+    /maxTagCount=\{2\}/.test(prReport) &&
+    /* One action, because a multi-select reports its whole selection rather than a change. */
+    /setFacet: async \(key, values\)/.test(prStore) &&
+    /* The re-ask goes through the frame the server last reported, so scope and measure are its own. */
+    /await buildReport\(\{ \.\.\.current\.frame, filters \}\)/.test(prStore) &&
+    /* Grouped: OR within a key, AND across. One filter per key behaves exactly as it did. */
+    /const byKey = new Map\(\)/.test(server) &&
+    /rows = rows\.filter\(\(r\) => values\.includes\(String\(r\[key\]\)\)\)/.test(server) &&
+    /tests\.some\(\(test\) => test\(r\)\)/.test(server) &&
+    /* And a filtered report says its figures are for the slice rather than showing authored ones. */
+    /recomputed for this slice/.test(prReport),
+  'a chip that hides rows while the chart and the tiles describe the whole set is two readings of one screen',
 )
 
 expect(
@@ -4310,7 +4431,8 @@ expect(
     /* One of the two is mounted, never both: the prototype's toast and popover hosts portal to
        `document.body`, and a second copy is how Delete came to look like a dead button once already. */
     /\{openReportId \? <PublishedReportPane \/> : null\}/.test(reportsPage) &&
-    /\{openReportId \? null : \(/.test(reportsPage) &&
+    /* The prototype branch also waits on its dataset now, so the condition names all four states. */
+    /openReportId \|\| !hydrated \|\| prototypeError \|\| hydrationError \? null : \(/.test(reportsPage) &&
     /* No switch came back, and no route per report: `/reports` is one address. */
     !/Segmented/.test(codeOnly(reportsPage)) &&
     !/path: 'reports\//.test(read('src/routes.tsx')),

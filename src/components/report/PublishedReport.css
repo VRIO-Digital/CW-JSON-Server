@@ -176,6 +176,10 @@
   margin-bottom: var(--sp-5);
 }
 
+.pr-facets .pr-facets-label.ant-typography {
+  min-width: 84px;
+}
+
 .pr-facets-label.ant-typography,
 .pr-facets-note.ant-typography {
   font-size: 10px;
@@ -189,17 +193,36 @@
   font-style: italic;
 }
 
+/* One row per facet: its name, then a multi-select that owns that facet. */
+.pr-facet-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+}
+
 /*
- * A facet is stated, not offered — no pointer, no hover. It looks like a label because it is one; a chip
- * that looked clickable would promise a slice nothing applies.
+ * A facet is a dropdown rather than a row of chips: the values come from the roster, so how many there are
+ * is the data's business, and four states fitting on one line is not a reason to let twenty wrap onto
+ * three. Multi-select because the frame is — values on one facet are OR-ed.
  */
-.pr-facet {
-  background: #f2f4f7;
-  border: 1px solid #e9ecf1;
-  color: #475467;
-  padding: var(--sp-1) var(--sp-3);
-  border-radius: 999px;
+.pr-facet-select {
+  min-width: 220px;
+  max-width: 420px;
+  flex: 0 1 auto;
+}
+
+/* Caveats a frame introduced, in the server's own words. */
+.pr-caveats {
+  margin: 0 0 var(--sp-5);
+  padding-left: var(--sp-5);
+  color: #667085;
   font-size: 12px;
+}
+
+.pr-caveats li {
+  margin-bottom: var(--sp-1);
 }
 
 .pr-foot {

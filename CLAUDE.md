@@ -18,7 +18,7 @@ npm run seed:governance # re-authors db.reports.governance — the fix when a de
 npm run seed:settings   # re-authors mock-server/settings.json — users and persona navigation
 npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secondary dataset
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
-npm run db:push     # upload mock-server/db.json + settings.json to S3 (add -- CAPEX for that dataset)
+npm run db:push     # upload the three documents to S3 (-- db|settings|prototype, -- CAPEX per dataset)
 npm run db:pull     # the other direction — overwrite the local copies from the bucket
 npm run verify:sigv4 # checks the S3 signing against AWS's published vector; no network needed
 npm run verify:export # checks the report HTML/CSV renderers; pure, so no bucket needed
@@ -192,6 +192,18 @@ path is a file, `s3://bucket/key` is an object.
 |---|---|---|
 | default, and the deployed box | `s3://contextweave.com/EPA/db.json` | signed `GetObject` / `PutObject` |
 | `S3_BUCKET=off` | `mock-server/db.json` | `readFile`, and temp-file + rename on write |
+
+**There are three documents, not two.** `db.json` per dataset, `settings.json`, and
+**`reports_prototype.json`** — the report prototype's own sample data, which used to be
+`src/reports/data/dataset.json` compiled into the JS bundle. That made it the one thing on screen the
+bucket could not change: a figure on the Authoring tab needed a rebuild and a redeploy. All three are
+read in one `Promise.all` above `server.listen`, and `npm run db:pull` fetches all three.
+
+It is **tenant-level, like `settings.json` rather than per dataset**: it is the *prototype's* sample data,
+not a dataset's rosters — those are `db.reports`, which every published report is computed from. A copy
+per prefix would mean inventing CAPEX sample figures nobody wrote, so `npm run db:push -- prototype
+CAPEX` is refused, in its own words rather than settings' (one sentence covering both said "it holds the
+users and each persona's navigation" about the dataset file).
 
 ### Two datasets, and one process holds both
 
@@ -1586,7 +1598,7 @@ definition missing one is absent from the only list — `governance.ungoverned` 
 the `npm run seed:governance` command that restores it, and that notice is now load-bearing rather than
 informational.
 
-**The reports themselves are the tenant's five, rendered.** `src/07_reports/Report_N_*.html` are the
+**The reports themselves are the tenant's five, rendered.** The demo package's `07_reports/Report_N_*.html` are the
 tenant's *rendered* reports; their layout is now React — crumb, heading and badge, the lead note, four
 summary tiles, the facet bar, a card per block, then the footnotes — in `src/components/report/`
 (`PublishedReport`, `ReportBlocks`, `PublishedReports`) over `reportsStore`. **Their figures did not
@@ -1601,13 +1613,32 @@ Three things the HTML did that deliberately did not come across:
   shape so one component draws both, which is why an answer and a report cannot come to disagree about
   what a bar means. Transcribing a `<script src="cdn…">` would widen the dependency surface by
   accident, through a gate that fails on any advisory at `low`.
-- **Its filter chips as controls.** The facets are rendered and they *state* the frame the report was
-  built under; they do not re-ask it. `POST /reports/build` takes a frame and still has no caller, so a
-  chip that looked clickable would promise a slice that never runs — the same declared-not-applied line
-  the horizon and the persona data scopes draw.
+- **Its table-only filtering.** The chips *do* filter — clicking one re-asks the report through
+  `POST /reports/build` — but on the server, so the table, the chart **and** the four tiles recompute
+  together. The prototype hid `<tr>`s and left its chart and its KPIs describing the unfiltered set, which
+  is two readings of one screen. A re-asked report comes back `variant: 'generated'` with its tiles
+  recomputed over the rows in view, and says so; clear the facets and the authored figures return as
+  `written`.
 - **Its `*{margin:0;padding:0}` reset and its own palette.** Authored CSS here is ordinary scoped rules
   on the `--sp-*` scale; an unscoped reset is exactly what the vendored prototype's sheet had to be
   scoped under `.cw-reports` to contain.
+
+**Values on one facet are OR-ed; different facets are AND-ed.** `risk=high, risk=med` reads as "high or
+medium", and adding `cd=true` narrows that — which is the only reading a reader could mean from a
+multi-select chip bar. `reportFrameRows` groups the frame's filters by key to get it; a plain reduce over
+the list ANDed everything, so picking High *and* Medium selected nothing and multi-select was
+unexpressible. One filter per key behaves exactly as it did, so a saved frame and an export are unaffected.
+
+**Each facet is a multi-select dropdown, not a row of chips.** The values come from the roster, so how
+many there are is the data's business rather than the layout's: four states fit on one line and twenty do
+not, and a control that wraps onto three lines is the layout deciding how much data is reasonable. An
+empty selection **is** that facet's "All", which is also what clearing it means — so there is no separate
+All control to keep in step with the selection.
+
+**An option states the count it would leave**, from the facet the server serves, and the count is part of
+the option's label rather than a rendered node so the selected tag carries it too. `maxTagCount` is a
+number rather than `responsive`: that mode measures the control, so before layout it collapses every tag
+into "+N …" — which is what the first paint shows and what a render test sees.
 
 **Alignment is declared, not sniffed.** A report column states its `kind`, so a penalty column is
 right-aligned because the field dictionary says it is numeric — never because every cell in this slice
@@ -1635,7 +1666,23 @@ published — the same precondition Ask and the What-if lens have, stated by the
 `NoPublishedGraph` component — and `GET /reports` is called for `published_count`,
 `built_count` and `draft_count` alone.
 
-**Everything the prototype shows is its own demo dataset** (`src/reports/data/dataset.json`).
+**Everything the prototype shows is its own demo dataset** — now
+`s3://contextweave.com/EPA/reports_prototype.json`, served by `GET /reports/prototype` and hydrated into
+`src/reports/data.ts` before the prototype renders. Edit the figures in the bucket; no rebuild.
+
+**That route is declared before `/reports/:id`, and the order is load-bearing.** That matcher is
+`/^\/reports\/[^/]+$/`, so declared second the request would come back as `no report "prototype"` — a 404
+naming five report ids, none of them the thing asked for. Same hazard as `graph-studio/:useCaseId` and the
+canvas route.
+
+**The module's exports are `let`, and that is what makes one fetch reach every consumer.** ES module
+bindings are live, so `hydrate` assigns and the twelve importers see the new values without any of them
+changing. It holds only because **no consumer reads them at module scope** — every one is inside a
+component or a function, which was checked before the change. The empty defaults are not a fallback:
+nothing renders against them, they exist so a stray render during the fetch cannot throw on
+`undefined.map`. `isHydrated` is how the page knows, and the page tells three states apart — unreachable,
+malformed (naming the file), or arrived — because an empty Authoring tab reads as a section that failed
+to load. `validateDataset` still walks the payload and now guards a network read rather than a typo.
 Nothing on it reads `db.json` or calls `/reports*`, and nothing published in it leaves the
 browser. The prototype says so itself. Wiring it to the API is a later job, and the API is
 waiting for it: eight `/reports*` endpoints, `db.reports` still required, both ingest scripts,

@@ -1,11 +1,18 @@
 import { Spin } from 'antd'
-import { useCallback, useEffect, useMemo } from 'react'
-import { deleteGovernedReport, getReports, listAuthRoles, setReportAudience } from '../api/client'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  deleteGovernedReport,
+  getReports,
+  getReportsPrototypeDataset,
+  listAuthRoles,
+  setReportAudience,
+} from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import NoPublishedGraph from '../components/NoPublishedGraph'
 import PageHeader from '../components/PageHeader'
 import PublishedReportPane from '../components/report/PublishedReportPane'
 import ReportsApp from '../reports/App'
+import { hydrate as hydratePrototype, isHydrated } from '../reports/data'
 import { MenuProvider } from '../reports/components/MenuProvider'
 import { ToastProvider } from '../reports/components/Toast'
 import { useAuthStore } from '../store/authStore'
@@ -62,6 +69,16 @@ const usePublishGate = createReadStore(getReports)
  */
 const useShareRoles = createReadStore(listAuthRoles)
 
+/**
+ * The prototype's own dataset, which is a document in the bucket rather than a bundled import.
+ *
+ * `createReadStore` for the same reason the publish gate uses it: one read-only GET, no writes, no
+ * derived state. The prototype's module-level exports are hydrated from it *before* the prototype is
+ * rendered — its consumers read live bindings, so one call reaches all of them, and rendering first
+ * would draw a register with no rows.
+ */
+const usePrototypeDataset = createReadStore(getReportsPrototypeDataset)
+
 export default function ReportsPage() {
   const data = usePublishGate((s) => s.data)
   const loading = usePublishGate((s) => s.loading)
@@ -69,6 +86,16 @@ export default function ReportsPage() {
   const load = usePublishGate((s) => s.load)
   const roles = useShareRoles((s) => s.data)
   const loadRoles = useShareRoles((s) => s.load)
+  const prototypePayload = usePrototypeDataset((s) => s.data)
+  const prototypeError = usePrototypeDataset((s) => s.error)
+  const loadPrototype = usePrototypeDataset((s) => s.load)
+
+  /*
+   * Whether the prototype's data module has been filled in. It mirrors that module's own `isHydrated`,
+   * and it exists because a module-level `let` is not React state: assigning it reaches every consumer
+   * but tells React nothing, so without this the page would hold a dataset nobody had re-rendered to see.
+   */
+  const [hydrated, setHydrated] = useState(isHydrated)
   /*
    * Who a report saved here is credited to. The identity is client-held, so anything that
    * records *who* has to be told — the rule the consent callback established. Without this the
@@ -141,6 +168,32 @@ export default function ReportsPage() {
   useEffect(() => {
     void loadRoles()
   }, [loadRoles])
+
+  /*
+   * Fetch the prototype's dataset, then publish it to the prototype's data module.
+   *
+   * Hydrating in the effect rather than in the store keeps the store a plain reader: what arrives is the
+   * payload, and what the prototype needs is that payload *validated and assigned*, which is
+   * `hydrate`'s job. `validateDataset` throws on a malformed one, so this reports it the way every other
+   * failure on this page is reported rather than letting it escape as an unhandled error.
+   */
+  useEffect(() => {
+    void loadPrototype()
+  }, [loadPrototype])
+
+  const [hydrationError, setHydrationError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!prototypePayload || isHydrated) return
+    try {
+      hydratePrototype(prototypePayload.dataset)
+      /* Force one re-render now that the module's bindings hold data. */
+      setHydrationError(null)
+      setHydrated(true)
+    } catch (e) {
+      setHydrationError(toMessage(e))
+    }
+  }, [prototypePayload])
 
   /*
    * The three acts, handed to the prototype as `Result`-returning callbacks.
@@ -257,7 +310,29 @@ export default function ReportsPage() {
         */}
       {openReportId ? <PublishedReportPane /> : null}
 
-      {openReportId ? null : (
+      {/*
+        * The prototype renders only once its dataset has arrived and been validated.
+        *
+        * Its figures are a served document now, so there is a moment before they exist — and the three
+        * states are told apart rather than collapsed: a failed fetch says the section could not be
+        * reached, a failed *validation* says the document is malformed and names the file, and neither is
+        * a spinner that never ends. Mounting first would draw a register with no rows, which reads as
+        * "nothing ships here".
+        */}
+      {openReportId || prototypeError || hydrationError ? null : hydrated ? null : <Spin />}
+
+      {prototypeError && !openReportId ? (
+        <ApiErrorAlert error={prototypeError} onRetry={() => void loadPrototype()} />
+      ) : null}
+
+      {hydrationError && !openReportId ? (
+        <ApiErrorAlert
+          error={`mock-server/reports_prototype.json is malformed, so the authoring tab cannot render: ${hydrationError}`}
+          onRetry={() => void loadPrototype()}
+        />
+      ) : null}
+
+      {openReportId || !hydrated || prototypeError || hydrationError ? null : (
       <div className="rp-host">
         <div className="cw-reports">
           <ToastProvider>

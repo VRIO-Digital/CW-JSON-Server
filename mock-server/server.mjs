@@ -208,6 +208,23 @@ const DB_PATHS = Object.fromEntries(
 const DB_PATH = DB_PATHS[PRIMARY]
 const SETTINGS_PATH = docRef('settings.json', join(here, 'settings.json'), PRIMARY)
 
+/**
+ * The report prototype's own dataset — its 36 generators, its starters, its presets, its library rows.
+ *
+ * **It used to be `src/reports/data/dataset.json`, compiled into the bundle.** So it was the one thing on
+ * screen that editing the bucket could not change: a figure on the Authoring tab needed a rebuild and a
+ * redeploy. It is a document now, read at boot beside the other two and served to the page.
+ *
+ * **Tenant-level, like `settings.json` rather than per dataset.** It is the *prototype's* sample data,
+ * not a dataset's rosters — those are `db.reports`, which every published report is computed from. A copy
+ * per prefix would mean inventing CAPEX sample figures nobody wrote.
+ */
+const PROTOTYPE_PATH = docRef(
+  'reports_prototype.json',
+  join(here, 'reports_prototype.json'),
+  PRIMARY,
+)
+
 /*
  * ---------------- both documents at once, then nothing until both are in ----------------
  *
@@ -225,7 +242,7 @@ const SETTINGS_PATH = docRef('settings.json', join(here, 'settings.json'), PRIMA
  * A failure in either still exits inside `readJsonDb`, before the other can resolve — a refusal
  * naming the document that failed, which is what it was before.
  */
-const [loadedDocs, loadedSettings] = await Promise.all([
+const [loadedDocs, loadedSettings, loadedPrototype] = await Promise.all([
   Promise.all(
     DATASETS.map((name) =>
       readJsonDb(
@@ -238,6 +255,11 @@ const [loadedDocs, loadedSettings] = await Promise.all([
     ),
   ),
   readJsonDb(SETTINGS_PATH, 'mock-server/settings.json', 'npm run seed:settings'),
+  readJsonDb(
+    PROTOTYPE_PATH,
+    'mock-server/reports_prototype.json',
+    'npm run db:pull -- prototype',
+  ),
 ])
 
 /**
@@ -406,6 +428,51 @@ function liveContainer(name) {
 /* Reassignable, because `commitSettings` swaps the whole document in — its ref and its first value
    both come from the parallel read above. */
 let settings = loadedSettings
+
+/**
+ * The prototype dataset, and what it has to be to be servable.
+ *
+ * **Shallow on purpose.** The page validates it deeply — `src/reports/data/validate.ts` walks every row
+ * and was written when this was a bundled import — so the check here is the one the *server* is
+ * responsible for: refuse to boot on a document the prototype could not render at all. Duplicating the
+ * deep walk in a second language is how the two come to disagree about what a valid row is.
+ *
+ * Every collection is required **non-empty**, unlike a secondary dataset's rosters: this is one authored
+ * sample dataset, and an empty `generators` is a document that lost its data rather than a state anybody
+ * chose. `meta`, `assumptions` and `opts` are objects the panes read fields off directly.
+ */
+const PROTOTYPE_COLLECTIONS = [
+  'fields',
+  'generators',
+  'facilities',
+  'quarters',
+  'traces',
+  'starters',
+  'presets',
+  'slice_default',
+  'audiences',
+  'library',
+]
+const PROTOTYPE_OBJECTS = ['meta', 'assumptions', 'opts']
+
+function validatePrototype(candidate) {
+  const problems = []
+  if (!isObject(candidate)) return ['reports_prototype.json must be a JSON object']
+  for (const key of PROTOTYPE_OBJECTS) {
+    if (!isObject(candidate[key])) problems.push(`"${key}" must be an object`)
+  }
+  for (const key of PROTOTYPE_COLLECTIONS) {
+    const value = candidate[key]
+    if (!Array.isArray(value)) problems.push(`"${key}" must be an array`)
+    else if (value.length === 0) problems.push(`"${key}" is empty — the prototype would render nothing`)
+  }
+  return problems
+}
+
+/* Reassignable for the same reason `settings` is: nothing captures the object, every reader reads it
+   at call time. Nothing writes it yet — the prototype does not save back — so the only assignment is
+   this one, and a writer would go through a `commitPrototype` shaped like `commitSettings`. */
+let prototypeData = loadedPrototype
 
 const PORT = Number(process.argv[2] ?? process.env.MOCK_PORT ?? 4000)
 
@@ -5085,18 +5152,40 @@ const reportFrameProblem = (frame) => {
 const reportFacetLabel = (key, value) =>
   key === 'cd' ? (value === 'true' ? 'Yes' : 'No') : String(value)
 
-/** The rows a frame selects: its scope, then each facet filter. */
+/**
+ * The rows a frame selects: its scope, then its facet filters.
+ *
+ * **Values on one facet are OR-ed; different facets are AND-ed.** Two `risk` filters mean "high or
+ * medium", not "high and medium" — which is nothing, and is what a plain reduce over the list produced.
+ * A chip bar that lets a reader pick High *and* Medium is the whole point of a multi-select facet, and it
+ * was unexpressible until this grouped by key: `risk=high, risk=med, cd=true` reads as
+ * "(high or medium) and under a decree", which is the only reading a reader could mean.
+ *
+ * One filter per key behaves exactly as it did, so a saved frame and an export are unaffected.
+ */
 function reportFrameRows(report, frame) {
   const scoped = REPORT_SCOPES[frame.scope](db.reports.data[report.spine])
-  return (frame.filters ?? []).reduce((rows, filter) => {
+
+  /* Grouped rather than reduced one filter at a time — see the note above. */
+  const byKey = new Map()
+  for (const filter of frame.filters ?? []) {
+    const key = String(filter.key)
+    if (!byKey.has(key)) byKey.set(key, [])
+    byKey.get(key).push(String(filter.value))
+  }
+
+  let rows = scoped
+  for (const [key, values] of byKey) {
     /* `flag` is one control over three columns, so it filters by test rather than by
        equality — the only facet whose value is not a column of its own. */
-    if (filter.key === 'flag') {
-      const test = REPORT_FLAG_TESTS[String(filter.value)]
-      return test ? rows.filter(test) : rows
+    if (key === 'flag') {
+      const tests = values.map((v) => REPORT_FLAG_TESTS[v]).filter(Boolean)
+      if (tests.length > 0) rows = rows.filter((r) => tests.some((test) => test(r)))
+      continue
     }
-    return rows.filter((r) => String(r[filter.key]) === String(filter.value))
-  }, scoped)
+    rows = rows.filter((r) => values.includes(String(r[key])))
+  }
+  return rows
 }
 
 /**
@@ -9458,6 +9547,32 @@ const routes = [
   },
 
   /*
+   * ---------------- the report prototype's own dataset ----------------
+   *
+   * The Authoring tab's sample data, served rather than bundled. It used to be
+   * `src/reports/data/dataset.json` compiled into the JS, which made it the one thing on screen that
+   * editing the bucket could not change — a figure needed a rebuild and a redeploy.
+   *
+   * **Declared before `/reports/:id`, and that ordering is load-bearing.** That route matches
+   * `/^\/reports\/[^/]+$/`, so `prototype` would arrive as a report id and come back as
+   * `no report "prototype"` — a 404 naming five ids, none of them the thing being asked for. Same hazard
+   * as `graph-studio/:useCaseId` matching the canvas route's parent segment.
+   *
+   * Ungated: it is the prototype's own sample data and says so on the page, so it does not wait on a
+   * published graph the way a computed report does.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/reports/prototype',
+    handle: (_req, res) =>
+      send(res, 200, {
+        ref: PROTOTYPE_PATH,
+        store: storeKind(PROTOTYPE_PATH),
+        dataset: prototypeData,
+      }),
+  },
+
+  /*
    * One report, computed. Every figure on it is derived here from the roster its spine
    * names, so the page renders numbers rather than arriving at them.
    *
@@ -9982,6 +10097,21 @@ for (const name of DATASETS) {
  * refuse an address that is supposed to work, and the fix ("re-seed") is not guessable from
  * "no user with that address". Both name the command here instead.
  */
+/*
+ * And the prototype's dataset, for the reason the other two are checked: a document that cannot be
+ * rendered should stop the boot here rather than arrive as an empty Authoring tab, which reads as a
+ * section that failed to load. The command it names is the one that fetches it.
+ */
+const prototypeProblems = validatePrototype(prototypeData)
+if (prototypeProblems.length > 0) {
+  console.error(
+    '\nmock-server: refusing to start — mock-server/reports_prototype.json cannot be served.',
+  )
+  for (const problem of prototypeProblems) console.error(`  · ${problem}`)
+  console.error('\n  Fetch it again, then start again:\n      npm run db:pull -- prototype\n')
+  process.exit(1)
+}
+
 const settingsProblems = validateSettings(settings)
 if (settingsProblems.length > 0) {
   console.error('\nmock-server: refusing to start — mock-server/settings.json cannot be served.')

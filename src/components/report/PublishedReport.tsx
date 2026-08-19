@@ -1,7 +1,8 @@
 /**
  * One report, rendered the way the tenant's own `Report_N_*.html` renders it.
  *
- * **A port of the rendered reports in `src/07_reports/`, not a transcription of them.** Those five files
+ * **A port of the demo package's rendered reports (`07_reports/Report_N_*.html`), not a transcription of
+ * them.** Those five files
  * carry the layout — crumb, heading and badge, a lead note, four summary tiles, a filter bar, then a
  * card per block, then the footnotes — and *also* carry their figures as literal text. The layout is
  * what came across; every number here is `reportView`'s, computed per request from the roster in
@@ -20,9 +21,10 @@
  *   applied" line the horizon and the persona data scopes already draw.
  */
 
-import { Alert, Tag, Typography } from 'antd'
+import { Alert, Select, Tag, Typography } from 'antd'
 
-import type { Report } from '../../api/client'
+import type { BuiltReport, Report } from '../../api/client'
+import { useReportsStore } from '../../store/reportsStore'
 import ReportBlockView from './ReportBlocks'
 import './PublishedReport.css'
 
@@ -33,7 +35,18 @@ const TONE_CLASS: Record<string, string> = {
   crit: 'is-crit',
 }
 
-export default function PublishedReport({ report }: { report: Report }) {
+export default function PublishedReport({ report }: { report: Report | BuiltReport }) {
+  const filters = useReportsStore((s) => s.filters)
+  const filtering = useReportsStore((s) => s.filtering)
+  const setFacet = useReportsStore((s) => s.setFacet)
+
+  /*
+   * A re-asked report carries three fields the first read does not — `variant`, `summaryNote`, `caveats`.
+   * Narrowed once here rather than tested at each use, so the report opened straight from the Library and
+   * the report after a chip click render through the same component.
+   */
+  const isBuilt = 'variant' in report
+
   return (
     <article className="pr">
       {/* Where the report sits, as its own rendered page states it. */}
@@ -115,21 +128,96 @@ export default function PublishedReport({ report }: { report: Report }) {
       </div>
 
       {/*
-        * The facets the report can be sliced by, as its filter bar — rendered, and stating the frame it
-        * was built under rather than offering to change it. See the note at the top of this file.
+        * ---------------- the filter bar, and it filters ----------------
+        *
+        * One row per facet: an **All** chip that clears it, then a chip per value with the count the
+        * server computed. Clicking re-asks the report through `POST /reports/build`, so the table, the
+        * chart *and* the tiles recompute together — the prototype these were ported from hid table rows
+        * and left its chart and its four KPIs describing the unfiltered set, which is two readings of one
+        * screen.
+        *
+        * **Values on one facet are OR-ed and facets are AND-ed**, so High + Medium reads as "either" and
+        * adding Consent-decree narrows that. That is the server's rule; this only sends the list.
+        *
+        * `disabled` while a re-ask is in flight rather than hidden: the control is what the reader just
+        * used, and taking it away is how a second change becomes two questions.
+        *
+        * **A dropdown per facet, not a row of chips.** Chips fit four states and not twenty — the values
+        * come from the roster, so their number is the data's business rather than the layout's, and a
+        * facet that wraps onto three lines is the control deciding how much data is reasonable. Each is
+        * multi-select because the frame is: an empty selection is that facet's "All", which is also what
+        * clearing it means, so there is no separate All to keep in step with the selection.
         */}
       {report.facets.length > 0 ? (
         <div className="pr-facets">
-          <Typography.Text className="pr-facets-label">SLICEABLE BY</Typography.Text>
-          {report.facets.map((facet) => (
-            <span key={facet.key} className="pr-facet">
-              {facet.label}
-            </span>
-          ))}
-          <Typography.Text className="pr-facets-note">
-            stated, not applied — this report was built on the whole scope above
-          </Typography.Text>
+          {report.facets.map((facet) => {
+            const chosen = filters.filter((f) => f.key === facet.key).map((f) => f.value)
+            return (
+              <div key={facet.key} className="pr-facet-row">
+                <Typography.Text className="pr-facets-label" id={`pr-facet-${facet.key}`}>
+                  {facet.label.toUpperCase()}
+                </Typography.Text>
+
+                <Select
+                  className="pr-facet-select"
+                  mode="multiple"
+                  value={chosen}
+                  disabled={filtering}
+                  allowClear
+                  /* Empty reads as "All" rather than as "nothing selected", which is what it means. */
+                  placeholder="All"
+                  aria-labelledby={`pr-facet-${facet.key}`}
+                  /* Wide enough to read a value in, and the popup sizes to its content rather than the
+                     control, so a long label is not truncated in the one place it has to be read. */
+                  popupMatchSelectWidth={false}
+                  /* A number, not `responsive`: that mode measures the control, so with no layout
+                     yet it collapses every tag into "+N …" — which is what the first paint shows
+                     and what a render test sees. Two tags then a count is the same information,
+                     deterministically. */
+                  maxTagCount={2}
+                  onChange={(next: string[]) => void setFacet(facet.key, next)}
+                  options={facet.values.map((value) => ({
+                    value: value.value,
+                    /* The count is the server's, so an option says how much it would leave. It is part of
+                       the label rather than a rendered node so the selected tag carries it too. */
+                    label: `${value.label} · ${value.count}`,
+                  }))}
+                />
+              </div>
+            )
+          })}
+
+          {/*
+            * What the slice did, stated. `variant` is the server's own reading: `written` means the frame
+            * is the one the report was authored for, so the authored tiles still describe it; `generated`
+            * means the tiles were recomputed over the rows in view, and the report says so rather than
+            * showing the tenant's figures against a frame they do not describe.
+            */}
+          {isBuilt && report.variant === 'generated' ? (
+            <Typography.Text className="pr-facets-note">
+              filtered — every figure below is recomputed for this slice
+            </Typography.Text>
+          ) : null}
+          {filtering ? (
+            <Typography.Text className="pr-facets-note">re-asking…</Typography.Text>
+          ) : null}
         </div>
+      ) : null}
+
+      {/*
+        * A spine with no summary to compute says so, and a caveat the frame introduced is printed. Both
+        * are the server's sentences — the horizon caveat in particular is the one that keeps the report
+        * honest about a filter it states and does not apply.
+        */}
+      {isBuilt && report.summaryNote ? (
+        <Alert className="pr-note" type="info" showIcon={false} description={report.summaryNote} />
+      ) : null}
+      {isBuilt && report.caveats.length > 0 ? (
+        <ul className="pr-caveats">
+          {report.caveats.map((caveat) => (
+            <li key={caveat}>{caveat}</li>
+          ))}
+        </ul>
       ) : null}
 
       {/* A card per block, in the order the report defines them. */}

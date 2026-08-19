@@ -80,6 +80,30 @@ export async function listDatasets(): Promise<DatasetsPayload> {
   }
 }
 
+/* ---------------- The report prototype's dataset ---------------- */
+
+/**
+ * The Authoring tab's sample data, from `s3://contextweave.com/EPA/reports_prototype.json`.
+ *
+ * It used to be `import dataset from './data/dataset.json'` — compiled into the bundle, so editing a
+ * figure meant a rebuild and a redeploy, and it was the one thing on screen the bucket could not change.
+ *
+ * Typed as `unknown` on purpose: the prototype declares these shapes itself (`Dataset` in
+ * `src/reports/data.ts`) and validates them on receipt, the same way it declares the `Governance` payload
+ * rather than importing this file's types. Absent its host it is exactly the standalone prototype it was.
+ */
+export async function getReportsPrototypeDataset(): Promise<{
+  ref: string
+  store: string
+  dataset: unknown
+}> {
+  return validate<{ ref: string; store: string; dataset: unknown }>(
+    "The report prototype's dataset",
+    await request<unknown>('/reports/prototype'),
+    PROTOTYPE_PAYLOAD,
+  )
+}
+
 /* ---------------- Identity ---------------- */
 
 /** One persona the login form's role dropdown offers. */
@@ -1407,6 +1431,41 @@ const DATASET_ROW = shape({
   reports: num,
   graphs: num,
   populated: bool,
+})
+
+/**
+ * The report prototype's own dataset, served rather than bundled.
+ *
+ * **Shallow here, and deliberately.** The prototype already validates it deeply — `validateDataset` in
+ * `src/reports/data/validate.ts` walks every row and every enum, and was written when this was a JSON
+ * import — so this checks the envelope the boundary is responsible for and hands the rest over. Two deep
+ * validators over one document is two answers to "what is a valid row".
+ *
+ * `arrayOf(unknownRow)` rather than a row schema for the same reason: the prototype owns those shapes.
+ */
+const PROTOTYPE_ROW = (value: unknown, path: string) =>
+  value !== null && typeof value === 'object' ? [] : [`${path} should be an object`]
+
+const PROTOTYPE_DATASET = shape({
+  meta: shape({}),
+  assumptions: shape({}),
+  opts: shape({}),
+  fields: arrayOf(PROTOTYPE_ROW),
+  generators: arrayOf(PROTOTYPE_ROW),
+  facilities: arrayOf(PROTOTYPE_ROW),
+  quarters: arrayOf(PROTOTYPE_ROW),
+  traces: arrayOf(PROTOTYPE_ROW),
+  starters: arrayOf(PROTOTYPE_ROW),
+  presets: arrayOf(PROTOTYPE_ROW),
+  audiences: arrayOf(PROTOTYPE_ROW),
+  library: arrayOf(PROTOTYPE_ROW),
+  slice_default: arrayOf(str),
+})
+
+const PROTOTYPE_PAYLOAD = shape({
+  ref: str,
+  store: str,
+  dataset: PROTOTYPE_DATASET,
 })
 
 const DATASETS_PAYLOAD = shape({

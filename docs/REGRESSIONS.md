@@ -3143,7 +3143,7 @@ single-character first segment is the dataset; anything longer is not.
 
 ## Porting a rendered report means taking its layout and refusing its figures
 
-**2026-08-19.** `src/07_reports/Report_N_*.html` are five *rendered* reports — heading, badge, four
+**2026-08-19.** The demo package's `07_reports/Report_N_*.html` are five *rendered* reports — heading, badge, four
 summary tiles, cards of charts and tables, footnotes — and every figure in them is literal text. The
 obvious conversion is to transcribe them into JSX, which would have produced five components that look
 exactly right and are stored results: precisely what `db.reports` exists not to be, since it stores no
@@ -3215,3 +3215,107 @@ than a restart, which keeps the in-memory publication and therefore the report g
 **Rule** — **when a new surface duplicates an existing list, delete one before shipping both.** And when
 a list becomes the *only* way to reach something, re-read what that list filters: the Library was always
 allowed to be shorter than the definition set, and that was harmless only while another route existed.
+
+
+---
+
+## The last bundled dataset, and what a `const` export costs
+
+**2026-08-19.** An audit of "what is displayed and where does it come from" turned up exactly one file the
+app read at runtime that was not in the bucket: `src/reports/data/dataset.json`, 21,922 bytes imported
+into the JS. Everything else on screen already came from `EPA/db.json` or `EPA/settings.json`. So it was
+the one thing a reader could not change by editing the bucket — a figure on the Authoring tab needed a
+rebuild and a redeploy — and it was invisible as a problem precisely because it worked.
+
+It is `EPA/reports_prototype.json` now, read at boot with the other two and served by
+`GET /reports/prototype`. Four things that mattered:
+
+**A `const` export cannot be hydrated.** The module published `export const GENERATORS = DATA.generators`,
+and twelve files import those names. ES module bindings are *live*, so `export let` plus one `hydrate()`
+reaches every importer without any of them changing — but only if **no consumer reads the binding at
+module scope**, since that captures the value once. That was checked across all twelve before the change
+rather than discovered after: every read is inside a component or a function.
+
+**The empty defaults are not a fallback.** `export let GENERATORS: Generator[] = []` exists so that a
+render arriving during the fetch cannot throw on `undefined.map` — a blank section with a stack trace
+instead of a spinner. Nothing renders against them; `isHydrated` gates the prototype.
+
+**A served document has more ways to be wrong than a bundled one**, so the page tells three states apart:
+unreachable, malformed (naming the file), and arrived. The prototype's own `validateDataset` was written
+to catch a typo in a JSON file and now guards a network payload, which is a promotion rather than a
+duplicate — the server's check stays shallow on purpose, because two deep validators in two languages is
+two answers to what a valid row is.
+
+**Its route had to be declared before `/reports/:id`.** That matcher is `/^\/reports\/[^/]+$/`, so
+`prototype` would have arrived as a report id and come back `no report "prototype"` — a 404 listing five
+ids, none of them what was asked for. Third instance of the same hazard in this repo, after
+`graph-studio/:useCaseId` and the dataset segment.
+
+**Rule** — **"where does this byte come from" is a question to ask of every surface, not the ones that look
+suspicious.** The bundled dataset survived several passes over this section because a bundled import is
+indistinguishable from a fetched one on screen. `grep -rn "from '.*\.json'" src` is the whole audit, and it
+takes a second.
+
+### And the self-documenting-file trap, a fourth time
+
+The claim asserting the import is gone searched the whole file for `from './data/dataset.json'` — and the
+comment explaining *what the move replaced* quotes exactly that string. It failed against correct code.
+`codeOnly` on every whole-file claim, positive or negative: this file has now been caught by a comment
+naming the thing it explains four times in one session.
+
+
+### And the filter chips had to actually filter
+
+**Reported from use.** The register's chips were rendered as labels, on the reasoning that
+`POST /reports/build` had no caller and a clickable chip would promise a slice nothing ran. That was the
+right call for a chip that could not work and the wrong shape to ship: the reference prototype's chips
+filter, and a reader looking at a chip bar expects it to do something.
+
+They re-ask the report now, and **on the server**, which is strictly better than the prototype: the
+prototype's `applyFilters` sets `tr.style.display='none'` and leaves its chart and its four KPIs
+describing all 36 generators, so with High selected the screen says "7 rows" in the table and "36 distinct
+generators" in a tile. Re-asking recomputes the table, the chart and the tiles from one frame, and
+`variant: 'generated'` makes the report say the figures are for the slice.
+
+**One server change made multi-select expressible.** `reportFrameRows` reduced over the filter list with
+`.filter` per entry, so two `risk` filters ANDed — "high and medium" is nothing. Grouping by key first
+gives OR within a facet and AND across, which is the only reading a reader could mean. One filter per key
+behaves identically, so saved frames and exports were unaffected.
+
+**Rule** — **before rendering a control as inert, check whether the API can already carry it.** The frame
+was built for exactly this ("so a chip can re-ask the report with the same scope, measure and window plus
+one filter" — CLAUDE.md, written before the chips existed), and the fetcher was typed and waiting. The
+honest-but-inert version was two turns of work away from the honest-and-working one.
+
+
+### Then the chips became dropdowns, because a chip row does not scale
+
+**Reported from use, immediately after.** The chip bar worked, and with four states it looked fine. The
+values are the roster's though — a register over twenty states would wrap the State facet onto three lines,
+which is the control deciding how much data is reasonable. Each facet is an antd multi-select now, one per
+row, and the OR-within/AND-across arithmetic is untouched: a multi-select reports its whole selection,
+which is exactly what the frame carries.
+
+Three things fell out of the change:
+
+**"All" stopped being a control.** With chips it was a fourth chip that had to be kept in step with the
+other three; an empty selection already means the same thing, so it is the placeholder and nothing more.
+
+**One store action replaced three.** `toggleFilter`/`clearFacet` were chip-shaped — they inferred an
+add/remove from a click. A dropdown reports its selection, so `setFacet(key, values)` takes it directly;
+reconstructing "what changed" from it would be inventing an event the control never sent.
+
+**`maxTagCount="responsive"` cannot be rendered without layout.** It measures the control, so under
+`renderToString` every selected tag collapsed into `+ 1 …` and the assertion that the selection shows on
+the control failed — correctly, since that is also what the first browser paint shows before measurement.
+A fixed `maxTagCount={2}` is the same information deterministically.
+
+**Rule** — **a control sized to today's data is a layout decision disguised as a design one.** Ask how many
+values the facet *can* have, not how many it has; the answer comes from the roster, not the screenshot.
+
+### And one assertion that would have passed over nothing
+
+`filteredHtml.includes('ID')` — with `state=[ID,NC]` selected, the two matching rows put "ID" and "NC" in
+the table, so the check passed whether or not the control showed anything. Sliced to the select's own
+selection markup first, it failed, which is how the `responsive` problem above was found at all. A
+substring assertion over a whole render is only as specific as the rarest string in it.

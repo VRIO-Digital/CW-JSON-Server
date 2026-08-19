@@ -1,4 +1,3 @@
-import dataset from './data/dataset.json';
 import { validateDataset } from './data/validate';
 import type {
   Assumptions,
@@ -17,17 +16,27 @@ import type {
 } from './types';
 
 /**
- * The demo dataset lives in `data/dataset.json` — edit the figures there. This
- * module is the typed boundary around it: the JSON import widens strings (a
- * `risk` of `"high"` arrives as `string`), so the assertion below pins it back
- * to the domain types.
+ * The demo dataset, **fetched** — `s3://contextweave.com/EPA/reports_prototype.json`, served by
+ * `GET /reports/prototype`. Edit the figures in the bucket; no rebuild.
  *
- * That assertion is NOT verified by TypeScript, so `validateDataset` walks the
- * loaded data at startup and throws on anything malformed. Keep them in step —
- * a new required field belongs in both the interface and the validator.
+ * It used to be `import dataset from './data/dataset.json'`, compiled into the bundle. That made it the
+ * one thing on screen that editing the bucket could not change: a figure on the Authoring tab needed a
+ * rebuild and a redeploy, and it could not follow the EPA/CAPEX switch either. The note this replaces
+ * said "in the real product these collections are resolved graph queries — same shapes, fetched rather
+ * than bundled". They are fetched now.
  *
- * In the real product these collections are resolved graph queries — same
- * shapes, fetched rather than bundled.
+ * **`let`, not `const`, and that is what makes it work.** ES module bindings are live: a consumer that
+ * imported `GENERATORS` sees the value this module last assigned, so `hydrate` reaches every reader
+ * without any of them changing. It holds because **no consumer reads these at module scope** — every one
+ * is inside a component or a function — which was checked before the change rather than after.
+ *
+ * `validateDataset` still walks the payload, and now it earns its keep twice over: the data arrives over
+ * the network, so "a typo in the file" is no longer the only way it can be wrong.
+ *
+ * The host must call `hydrate` before rendering the prototype, and `isHydrated` is how it knows. The
+ * empty defaults below are not a fallback — nothing renders against them; they exist so that a stray
+ * render during the fetch cannot throw on `undefined.map`, which would be a blank section with a stack
+ * trace in the console instead of a spinner.
  */
 export interface Dataset {
   meta: Meta;
@@ -45,18 +54,47 @@ export interface Dataset {
   slice_default: string[];
 }
 
-export const DATA = validateDataset(dataset as Dataset);
+export let DATA = null as unknown as Dataset;
 
-export const META = DATA.meta;
-export const AUDIENCES = DATA.audiences;
-export const LIBRARY = DATA.library;
-export const FIELDS = DATA.fields;
-export const ASSUMPTIONS = DATA.assumptions;
-export const OPTS = DATA.opts;
-export const GENERATORS = DATA.generators;
-export const FACILITIES = DATA.facilities;
-export const QUARTERS = DATA.quarters;
-export const TRACES = DATA.traces;
-export const STARTERS = DATA.starters;
-export const PRESETS = DATA.presets;
-export const SLICE_DEFAULT = DATA.slice_default;
+export let META = {} as Meta;
+export let AUDIENCES: Audience[] = [];
+export let LIBRARY: LibraryEntry[] = [];
+export let FIELDS: Field[] = [];
+export let ASSUMPTIONS = {} as Assumptions;
+export let OPTS = {} as Record<SlotKey, SlotOptions>;
+export let GENERATORS: Generator[] = [];
+export let FACILITIES: Facility[] = [];
+export let QUARTERS: Quarter[] = [];
+export let TRACES: Trace[] = [];
+export let STARTERS: Starter[] = [];
+export let PRESETS: Preset[] = [];
+export let SLICE_DEFAULT: string[] = [];
+
+/** Whether the dataset has arrived. The host renders the prototype only once this is true. */
+export let isHydrated = false;
+
+/**
+ * Take the served dataset, validate it, and publish it to every consumer.
+ *
+ * Throws on a malformed payload rather than rendering a partial one — a missing `generators` would
+ * otherwise be a register with no rows, which reads as "no generators ship here".
+ */
+export function hydrate(payload: unknown): void {
+  DATA = validateDataset(payload as Dataset);
+
+  META = DATA.meta;
+  AUDIENCES = DATA.audiences;
+  LIBRARY = DATA.library;
+  FIELDS = DATA.fields;
+  ASSUMPTIONS = DATA.assumptions;
+  OPTS = DATA.opts;
+  GENERATORS = DATA.generators;
+  FACILITIES = DATA.facilities;
+  QUARTERS = DATA.quarters;
+  TRACES = DATA.traces;
+  STARTERS = DATA.starters;
+  PRESETS = DATA.presets;
+  SLICE_DEFAULT = DATA.slice_default;
+
+  isHydrated = true;
+}
