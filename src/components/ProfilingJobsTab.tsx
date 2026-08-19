@@ -128,7 +128,7 @@ export default function ProfilingJobsTab({
   onChanged,
   onActiveCount,
 }: {
-  /** Profiling moves the source counters, so the Catalogue tab needs a nudge. */
+  /** Profiling moves the source counters, so the Catalog tab needs a nudge. */
   onChanged: () => void
   /** Lets the tab label read "Profiling jobs (1 running)". */
   onActiveCount: (count: number) => void

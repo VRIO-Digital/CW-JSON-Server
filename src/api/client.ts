@@ -304,7 +304,7 @@ interface RawSourceRow {
   kind: string
 }
 
-/* ---------------- Catalogue: browse & profile ---------------- */
+/* ---------------- Catalog: browse & profile ---------------- */
 
 export interface BrowseTable {
   table_id: string
@@ -331,7 +331,7 @@ export interface BrowseResult {
   object_count: number
 }
 
-/* ---------------- Catalogue: browse & profile documents ---------------- */
+/* ---------------- Catalog: browse & profile documents ---------------- */
 
 export interface BrowseDocument {
   document_id: string
@@ -1017,7 +1017,7 @@ export interface CanvasNode {
    * so relationships can point at it.
    */
   elementClass: 'thin_instance' | 'concept' | 'measure_element'
-  /** The catalogue object it was built from, e.g. `epa_hazwaste.e_manifest`. */
+  /** The Catalog object it was built from, e.g. `epa_hazwaste.e_manifest`. */
   source: string
   /** Relationships carried. The node's radius is this, not a decorative size. */
   degree: number

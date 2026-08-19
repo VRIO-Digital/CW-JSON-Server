@@ -185,11 +185,11 @@ testable.
 
 ## Profiled counts contradicted their own semantics
 
-**Symptom** — the catalogue showed real table and column counts for a freshly
+**Symptom** — the Catalog showed real table and column counts for a freshly
 registered source, while the UI copy said counts "stay 0 until the Metadata
 Profiler has run".
 
-**Root cause** — catalogue rows were populated from `db.json`'s table data at
+**Root cause** — Catalog rows were populated from `db.json`'s table data at
 registration time, which conflated registering with profiling.
 
 **Fix** — connected rows report `profiled_tables`/`profiled_columns` (0 until a
@@ -577,7 +577,7 @@ have to become *false* for it to fail, and match that.
 
 **Symptom** — the wizard's "Source name" field could be left blank and the source
 registered anyway, as `vrio-contextweave-demo` (BigQuery) or `Compliance Docs`
-(Drive). A one-character name passed too. The Sources table, the Catalogue tab and
+(Drive). A one-character name passed too. The Sources table, the Catalog tab and
 every profiling job row key off that string, so two sources from one project were
 indistinguishable and nothing downstream could fix it.
 
@@ -2130,8 +2130,8 @@ age before re-running the seed.
 **Cost** — none yet; caught while adding the warnings. Recorded because the shape recurs.
 
 **What happened.** Disconnect and Delete each confirmed with one line about the *record* — "the
-credential is revoked but the registration is kept", "registration and its catalogue entries are
-removed". Deleting the last connected source closes five pages (Data Catalogue, Profiling jobs,
+credential is revoked but the registration is kept", "registration and its Catalog entries are
+removed". Deleting the last connected source closes five pages (Data Catalog, Profiling jobs,
 Change signals, Traces, Validation) and empties New Graph's Sources step, and nothing said so; a
 reader who found out afterwards had no way to tell whether they had broken something.
 
@@ -2176,10 +2176,10 @@ when a guard reports MISSED, diff the file before rewriting the guard.
 
 ## Two controls for one piece of state, and only one of them showed it
 
-**Cost** — none directly; the catalogue's panels simply had a ✕ nobody needed and a pair of buttons
+**Cost** — none directly; the Catalog's panels simply had a ✕ nobody needed and a pair of buttons
 that misdescribed the two actions.
 
-**What happened.** The Data Catalogue's detail column opened four panels, each drawing its own
+**What happened.** The Data Catalog's detail column opened four panels, each drawing its own
 `✕ close` above its content, while the buttons that opened them showed nothing at all. So the panel
 state had two controls, and the one a reader looks at first — the button they just pressed — was the
 one that did not reflect it. The pair was also a primary and a secondary, which reads as a ranking:
@@ -2625,7 +2625,7 @@ to the app. That notice is now deleted. Both `Popconfirm`s are a title and nothi
   connecting it again starts from nothing profiled."* The only statement anywhere that the two
   acts differ in reversibility. `POST /sources/:id/reconnect` still restores the handle **in
   place** and `registered.delete` still takes every profiled table, column, document and note.
-- *"It is the only connected source: Data Catalogue, Profiling jobs, Traces and Validation
+- *"It is the only connected source: Data Catalog, Profiling jobs, Traces and Validation
   close. Ask, Reports, Graph Studio, the What-if lens and Audit & Governance keep working."*
   Deleting the last connected source still closes those four surfaces. Nothing says so now.
 - The `othersConnected` count, which existed so that line appeared **only** when it applied.

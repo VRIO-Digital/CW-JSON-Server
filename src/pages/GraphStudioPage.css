@@ -193,7 +193,7 @@
   color: #0f1729;
 }
 
-/* A catalogue path — "epa_hazwaste.RCRA_compliance · ENF_TYPE_DESC" — is long and
+/* A Catalog path — "epa_hazwaste.RCRA_compliance · ENF_TYPE_DESC" — is long and
    must wrap rather than push the grid wider than the panel. */
 .gs-inspector-source {
   font-size: 11.5px;

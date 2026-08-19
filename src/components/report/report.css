@@ -3,7 +3,7 @@
  *
  * **Ported from the standalone report app, and every rule is scoped under `.cw-report`.** The sheet it
  * came from set `h1`, `h2`, `table`, `th` and `td` as bare selectors; unscoped that restyles every antd
- * table on Sources, Ask, Catalogue and Graph Studio, silently, on pages nobody touched — the same trap
+ * table on Sources, Ask, Catalog and Graph Studio, silently, on pages nobody touched — the same trap
  * the vendored prototype's sheet had to be scoped under `.cw-reports` to contain.
  *
  * **Two things did not come across.** Its Google Fonts `@import` — a network fetch on every report open,

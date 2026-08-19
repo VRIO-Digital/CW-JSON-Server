@@ -1,5 +1,5 @@
 /*
- * Connector catalogue for the "Connect a source" wizard.
+ * Connector Catalog for the "Connect a source" wizard.
  *
  * `available` mirrors the product reality in the reference design: BigQuery
  * (structured) and Google Drive (unstructured) are the working connectors; the
@@ -48,7 +48,7 @@ const nameField: ConnectorField = {
   label: 'Source name',
   kind: 'text',
   placeholder: 'Orders warehouse',
-  help: `How this source appears in the catalogue and lineage graph. At least ${SOURCE_NAME_MIN} characters.`,
+  help: `How this source appears in the Catalog and lineage graph. At least ${SOURCE_NAME_MIN} characters.`,
   required: true,
   minLength: SOURCE_NAME_MIN,
 }

@@ -142,7 +142,7 @@ refuses a parent that is not a folder of the same drive, and refuses a cycle: ne
 throws — the first draws the child at the root, which reads as an allowlist covering
 more of the drive than it does, and the second leaves it off the tree entirely.
 
-Everything the seed adds is checked before it is written: a project's catalogue column
+Everything the seed adds is checked before it is written: a project's Catalog column
 count is *derived* from its profile rather than typed twice, every `class` must be one
 the client's union already declares, every `doc_type` must have a facet bucket, and
 every document it adds resolves into the graph through `document_extractions` — to the
@@ -159,7 +159,7 @@ semantic class, derivation, confidence, PII, null % and distinct count.
 `tableDictionary` serves that verbatim and only falls back to `synthesiseColumns`
 for a table with no entry — the fallback is a fallback, and `check-docs` asserts
 both that the branch exists and that every view's profiled count equals the count
-the catalogue advertises. The workbook is the source of truth; re-ingest rather
+the Catalog advertises. The workbook is the source of truth; re-ingest rather
 than hand-editing 206 entries. Its `null_pct` values carry float noise
 (`88.09999999999999`), rounded on the way in so the UI never prints an artefact of
 binary floating point as a statistic.
@@ -506,7 +506,7 @@ Consequences worth knowing before debugging:
   editor cannot save a document that would crash the app. There are 27 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
-  Graph — not just a catalogue page. `column_profiles` and
+  Graph — not just a Catalog page. `column_profiles` and
   `document_extractions` are required for a subtler reason: losing either does not
   throw. The first silently swaps the profiler's 206 real columns for synthesised
   ones; the second turns every document's "resolved to `FAC:…`, 28 linked
@@ -546,7 +546,7 @@ no source is connected, and each page renders `NoSourceConnected` instead of its
 cards. A *disconnected* source counts as not connected, but stays listed on
 Sources so it can still be reconnected or deleted.
 
-**`/change-signals` has no surface.** The Data Catalogue's third tab was removed on
+**`/change-signals` has no surface.** The Data Catalog's third tab was removed on
 request, so the endpoint, its `db.json` payload, `listChangeSignals` and
 `useSignalsStore` are all still there with nothing reading them — the same waiting-for
 -a-caller state the `/reports*` endpoints are in. Re-adding the tab is a `Tabs` entry
@@ -561,7 +561,7 @@ in `SourcesPage` that computed it. `src/data/sourceActions.ts` holds the sentenc
 
 **What that costs is recorded rather than glossed, because the acts did not change.**
 Nothing on screen now says that Disconnect is reversible and Delete is not, or that
-deleting the last connected source closes the Data Catalogue, Profiling jobs, Traces and
+deleting the last connected source closes the Data Catalog, Profiling jobs, Traces and
 Validation. All of it is still true: `POST /sources/:id/reconnect` re-issues the handle
 **in place** so every profiled object survives (which is why a disconnected row offers
 **Reconnect**), `POST /sources` is *not* that act and starts from nothing profiled, and
@@ -595,7 +595,7 @@ fails if the two numbers drift or an endpoint stops checking. **There is no id
 fallback** — `source_name || project.display_name || project_id` made the field
 optional in practice and produced rows named `vrio-contextweave-demo`, which reads
 as a name and is not one. Do not reintroduce one to "be lenient": the label is
-what the Sources table, the Catalogue tab and every job row key off, and nothing
+what the Sources table, the Catalog tab and every job row key off, and nothing
 downstream can make `db` readable.
 
 ### Two connectors, one shape
@@ -709,7 +709,7 @@ Four things the mirror deliberately does *not* make identical:
 **202 with a `queued` job** and drive it through `PIPELINE` or `DOC_PIPELINE`
 (5 stages each — kept equal so a job row reads the same either way) on timers,
 committing objects as they go. This is why `ProfilingJobsTab` polls (3s, only
-while `active_count > 0`) and why starting a run switches the Catalogue to the
+while `active_count > 0`) and why starting a run switches the Catalog to the
 jobs tab — a queued job is otherwise invisible. **And why queueing one re-reads
 the board**: that poll stops at `active_count: 0`, so a second run started with
 the tab already open is invisible to it. `handleQueued` loads the jobs list along
@@ -875,7 +875,7 @@ Two rules the copy on the page promises, and the code has to keep:
   so a table profiled later is included without editing the draft.
 - **Step 4 is the one step that cannot be skipped empty.** Nothing connected
   shows `NoSourceConnected`; connected-but-unprofiled shows an error linking to
-  the Data Catalogue; and `Next` refuses with the fix for whichever case applies,
+  the Data Catalog; and `Next` refuses with the fix for whichever case applies,
   because every later step derives from this selection.
 
 The user never types an entity name — that is the product premise, so do not add
@@ -1131,7 +1131,7 @@ because half a removal is the shape that fails silently.
   a retired type reappears on the canvas, and rq5 in the queue is the standing offer
   to promote them anyway — declined by default.
 
-  **`source` is the catalogue object** the node was built from
+  **`source` is the Catalog object** the node was built from
   (`epa_hazwaste.FRS_Facility_profile`, `Compliance Docs ·
   08_unstructured/chemours-cd.pdf`), and it reaches the viewer's inspector as
   `provenance`. A node whose provenance is not on it is a claim the reader has to take on
@@ -1573,7 +1573,7 @@ Four things were changed to make it a page instead of an app, and nothing else:
 - **Its stylesheet was scoped** to `.cw-reports`, with its `:root` tokens moved onto that class.
   **This is load-bearing, not tidiness**: the original sets `*{margin:0;padding:0}`, `body`,
   `button`, `h1,h2,h3`, `table`, `th` and `td` as bare selectors, so unscoped it resets every
-  antd component's margins and restyles every table on Sources, Ask, Catalogue, Graph Studio and
+  antd component's margins and restyles every table on Sources, Ask, Catalog, Graph Studio and
   What-if — silently, on pages nobody touched. `check-docs` asserts every selector stays scoped,
   that the tokens stay off `:root`, and that the page mounts it in a matching wrapper.
 
@@ -1823,7 +1823,7 @@ than recovering a scope from its printed label.
   written for, so the authored tiles still describe it; `generated` otherwise — and a generated
   report's tiles are recomputed from `summary_catalog` over the rows in view and carry "computed
   for this frame". The tenant's authored figures are never returned against a frame they do not
-  describe. On a spine the catalogue does not cover (facilities, quarters, traces) a generated
+  describe. On a spine the Catalog does not cover (facilities, quarters, traces) a generated
   report states no summary and says why.
 - **Facets are per spine**, and the frame validator asks the same `reportFacetsFor` the facets
   came from, so a filter a UI could offer cannot be one the API refuses. The register's are
@@ -2495,7 +2495,7 @@ were all placeholders until theirs landed.
 
 **The nine sit in three groups, and a group is a heading rather than a permission.** `NAV_GROUPS`
 in `nav.ts` declares them in order — **Explore** (Reports, Ask, What-if Lenses), **Build &
-Configure** (New Graph, Sources, Data Catalogue, Graph Studio), **Trust & Operations** (Audit &
+Configure** (New Graph, Sources, Data Catalog, Graph Studio), **Trust & Operations** (Audit &
 Governance, Settings) — and every item names one. `SidebarMenu` builds the headings from the list
 `visibleNavItems` returned and drops a group with nothing under it, because `EXPLORE` above empty
 space reads as a section that failed to load rather than as one the persona may not open. The

@@ -17,7 +17,7 @@ const DECISIONS: GapDecision[] = [
 ]
 
 /*
- * Step 7 of New Graph: what the AI derived, checked against the catalogue.
+ * Step 7 of New Graph: what the AI derived, checked against the Catalog.
  *
  * Every backed element names the profiled object it came from — an entity *is*
  * a profiled table or document, and its evidence line says which one, how big it
@@ -76,7 +76,7 @@ export default function CoverageStep({
       </Typography.Title>
 
       <Typography.Paragraph className="ng-cov-summary">
-        {`Derived ${data.entityCount} entities, ${data.relationshipCount} relationships from ${data.heroQuestionCount} hero questions · checked against the catalogue. `}
+        {`Derived ${data.entityCount} entities, ${data.relationshipCount} relationships from ${data.heroQuestionCount} hero questions · checked against the Catalog. `}
         {data.gapCount === 0
           ? 'Backed elements show their evidence, and nothing is missing.'
           : `Backed elements show their evidence; each of the ${data.gapCount} gaps needs a decision before you can build.`}

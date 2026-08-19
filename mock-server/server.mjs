@@ -528,7 +528,7 @@ const CONNECT_STEP_MS = 5000
  * is no longer accepted as a silent fallback. It used to be: registering with the
  * field blank produced a row called `vrio-contextweave-demo`, which reads as a
  * name until two sources from one project need telling apart. The floor exists so
- * "a", "x" and "db" cannot pass either — the Sources table and the Catalogue both
+ * "a", "x" and "db" cannot pass either — the Sources table and the Catalog both
  * key off this string, and neither can be made readable later.
  *
  * `check-docs` asserts the client's copy of this number matches.
@@ -769,7 +769,7 @@ const DB_SHAPE = {
   /*
    * The real profiled columns, `dataset.table` → columns[]. Required, and checked
    * inside: `tableDictionary` falls back to synthesis when a table has no entry,
-   * so losing this key would not throw — the catalogue would quietly serve 206
+   * so losing this key would not throw — the Catalog would quietly serve 206
    * invented columns in place of the profiler's, which is the worst kind of
    * wrong. A malformed entry is refused for the same reason.
    */
@@ -2539,7 +2539,7 @@ const DERIVATION_STAGES = [
   'Matching hero questions to profiled columns',
   'Deriving the entities you need',
   'Proposing relationships',
-  'Checking coverage against the catalogue',
+  'Checking coverage against the Catalog',
 ]
 
 /**
@@ -2910,7 +2910,7 @@ function normalizeSourcePicks(list) {
  * What step 4 offers: every connected source with the objects the profiler has
  * actually landed, in the unit the connector holds.
  *
- * This is the Data Catalogue's profiled state, not the registration — a source
+ * This is the Data Catalog's profiled state, not the registration — a source
  * can be connected with nothing profiled, and it is listed with `profiled: 0` so
  * the reason it cannot feed a graph is visible rather than inferred from an
  * absence.
@@ -3332,7 +3332,7 @@ function studioCanvas(useCaseId, answerPath = [], answerEdges = null) {
       sublabel: s.proposed ? `proposed · ${n.confidence.toFixed(2)}` : n.sublabel,
       /* What the node *is*, and where it came from. `group` is the origin class the
          colour encodes — a row, a column value, a document, a resolved alias — and
-         `source` is the catalogue object itself, so a node on the canvas can be
+         `source` is the Catalog object itself, so a node on the canvas can be
          traced back to the table or file it was built from without a second lookup.
          `type` is the ontology's own type, carried separately because "which source"
          and "which kind of thing" are different questions. */
@@ -5285,7 +5285,7 @@ function reportBuild(report, frame) {
         ),
     /*
      * A generated report has no authored tiles to show, and on a spine the summary
-     * catalogue does not describe (facilities, quarters, traces) it has no summary at
+     * Catalog does not describe (facilities, quarters, traces) it has no summary at
      * all — said plainly rather than left as an empty strip.
      */
     summary_note:
@@ -7833,7 +7833,7 @@ const routes = [
     },
   },
 
-  // Step 4. What the Data Catalogue has actually profiled, per connected source.
+  // Step 4. What the Data Catalog has actually profiled, per connected source.
   {
     method: 'GET',
     match: (p) => p === '/graph-sources',
@@ -8435,7 +8435,7 @@ const routes = [
           }
           if (source.object_count === 0) {
             return send(res, 400, {
-              error: `${pick.source_id} has nothing profiled yet — profile it in the Data Catalogue first`,
+              error: `${pick.source_id} has nothing profiled yet — profile it in the Data Catalog first`,
             })
           }
           if (pick.mode === 'subset') {
@@ -10150,9 +10150,17 @@ if (settingsProblems.length > 0) {
 
 server.listen(PORT, () => {
   console.log(`mock API listening on http://localhost:${PORT}`)
+  /*
+   * **Which store, said out loud on every start.** The default is the local file, and the committed
+   * copy is a real document — so a box that meant to read the bucket and did not set `S3_BUCKET`
+   * gets plausible, possibly stale figures rather than an error. This line is what makes that
+   * visible, so it names the ref and, on the file store, how to ask for the bucket instead.
+   */
   console.log(
     `  reading ${storeKind(DB_PATH)} ${DB_PATH}` +
-      (storeKind(DB_PATH) === 's3' ? ` (writes are conditional on ETag)` : ''),
+      (storeKind(DB_PATH) === 's3'
+        ? ` (writes are conditional on ETag)`
+        : ` — set S3_BUCKET to read the bucket instead`),
   )
   console.log(
     `  ${db.projects.length} GCP projects · ` +

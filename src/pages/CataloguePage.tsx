@@ -220,9 +220,9 @@ function BrowsePanel({
   )
 }
 
-/* ---------------- Catalogue tab ---------------- */
+/* ---------------- Catalog tab ---------------- */
 
-function CatalogueTab({
+function CatalogTab({
   sources,
   loading,
   onChanged,
@@ -443,7 +443,7 @@ function CatalogueTab({
 
 /* ---------------- Page ---------------- */
 
-export default function CataloguePage() {
+export default function CatalogPage() {
   const error = useSourcesStore((s) => s.error)
   const loading = useSourcesStore((s) => s.loading)
   const load = useSourcesStore((s) => s.load)
@@ -467,7 +467,7 @@ export default function CataloguePage() {
 
   /*
    * Starting a run switches to the jobs board — that is where the pipeline is visible, and a
-   * queued job is otherwise invisible from the Catalogue tab.
+   * queued job is otherwise invisible from the Catalog tab.
    *
    * **And the board is re-read here, not left to its own poll.** It loads on mount and then
    * polls only while `active_count > 0`, so the poll that sees 0 stops the loop — which is
@@ -486,7 +486,7 @@ export default function CataloguePage() {
   return (
     <>
       <PageHeader
-        title="Data Catalogue"
+        title="Data Catalog"
         subtitle="Browse and curate every source registered across the platform — BigQuery tables and fields, and Google Drive documents — describing, tagging, and keeping metadata accurate."
       />
 

@@ -8,7 +8,7 @@
  * and `check-docs` fails if the two numbers drift apart.
  *
  * The floor is not arbitrary politeness: `source_name` is the label in the
- * Sources table, the Data Catalogue's tab, and every profiling job row. Nothing
+ * Sources table, the Data Catalog's tab, and every profiling job row. Nothing
  * downstream can make "db" readable, and the old code fell back to the project id
  * when the field was blank — a row called `vrio-contextweave-demo` that reads as a
  * name and is not one.

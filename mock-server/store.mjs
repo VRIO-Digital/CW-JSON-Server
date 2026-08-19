@@ -55,13 +55,27 @@ export function parseS3Ref(ref) {
 }
 
 /**
- * The ref for one document.
+ * The ref for one document a **server** reads.
  *
- * S3 is the default now: the local documents were deleted once the bucket held them, so there is no
- * file to fall back to and a silent fallback would serve an empty app rather than say why.
- * `S3_BUCKET=off` is the deliberate way back to files, for tests and for a machine with no
- * credentials. There is **one** document per dataset — `settings.json` and `reports_prototype.json`
- * were folded into `db.json` as keys — so this is called once per dataset rather than three times.
+ * **The local file is the default, and `S3_BUCKET` is what asks for the bucket.** This was the other
+ * way round: S3 was the default because the local documents had been deleted once the bucket held
+ * them, so there was no file to fall back to and a silent fallback would have served an empty app
+ * rather than saying why. **That premise expired on 2026-08-19**, when the JSON documents were
+ * committed — the repo is how they reach a box with no bucket credentials, so every checkout now has
+ * a complete, valid `db.json` sitting beside this file. With a real document there, defaulting to a
+ * bucket means a fresh clone cannot start without AWS credentials it does not need, which is exactly
+ * the failure this flip removes: `node mock-server/server.mjs` reads `mock-server/db.json`.
+ *
+ * **What the flip costs, stated rather than glossed.** The fallback is no longer empty, so the old
+ * hazard is gone; the new one is *staleness* — a box that means to read the bucket and does not set
+ * `S3_BUCKET` will quietly serve the committed copy instead, which is a real document with real
+ * figures that may be months behind. Two things hold that: the deployed process sets `S3_BUCKET`
+ * explicitly in `ecosystem.config.js` rather than relying on any default, and the boot banner names
+ * the store and the ref it actually read on every start. A wrong-but-plausible document is only
+ * dangerous while nobody is told which one it is.
+ *
+ * `S3_BUCKET=off` still forces the files, and is now the same answer as leaving it unset. It is kept
+ * because it is *explicit*: a test or a script that must not touch the network says so.
  *
  * **The prefix is an argument, because a prefix is a dataset.** It used to be read from the
  * environment here and nowhere else, which made it a property of the *process* — so a second
@@ -71,9 +85,29 @@ export function parseS3Ref(ref) {
  * files would share one `db.json`.
  */
 export function docRef(name, localPath, prefix) {
-  const bucket = process.env.S3_BUCKET ?? DEFAULT_BUCKET
+  const bucket = process.env.S3_BUCKET
   const chosen = (prefix ?? process.env.S3_PREFIX ?? DEFAULT_PREFIX).replace(/^\/+|\/+$/g, '')
   if (!bucket || bucket === 'off') return localFor(localPath, chosen)
+  return `s3://${bucket}/${chosen ? `${chosen}/` : ''}${name}`
+}
+
+/**
+ * The ref for one document in the **bucket**, whatever the server would read.
+ *
+ * `npm run db:push` and `npm run db:pull` are the two commands whose entire job is the bucket, so
+ * they cannot go through `docRef`: with the default flipped, that would hand them a local path and a
+ * push would become a file copied onto itself — a command reporting success while uploading nothing,
+ * which is the worst possible failure for the one tool that moves data between the two stores.
+ *
+ * `DEFAULT_BUCKET` is the committed address, so these work with no environment set up; `S3_BUCKET`
+ * still overrides it, for a box pointed at a different bucket. `S3_BUCKET=off` is handled by the
+ * sync tool itself, which refuses rather than silently syncing a file with itself.
+ */
+export function s3Ref(name, prefix) {
+  const bucket = process.env.S3_BUCKET && process.env.S3_BUCKET !== 'off'
+    ? process.env.S3_BUCKET
+    : DEFAULT_BUCKET
+  const chosen = (prefix ?? process.env.S3_PREFIX ?? DEFAULT_PREFIX).replace(/^\/+|\/+$/g, '')
   return `s3://${bucket}/${chosen ? `${chosen}/` : ''}${name}`
 }
 

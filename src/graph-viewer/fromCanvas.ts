@@ -29,7 +29,7 @@ export function fromCanvas(canvas: CanvasPayload, graphName: string): RawGraph {
     element_class: n.elementClass === 'measure_element' ? 'measure' : n.elementClass,
     label: n.label,
     entity_type: n.type,
-    /* The viewer's inspect panel prints `provenance`. Ours is the catalogue object the
+    /* The viewer's inspect panel prints `provenance`. Ours is the Catalog object the
        node was built from, which is exactly what that field is for — a node whose
        provenance is not on it is a claim the reader has to take on trust. */
     provenance: n.source,

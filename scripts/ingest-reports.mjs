@@ -418,7 +418,7 @@ for (const r of reports.filter((x) => x.scope !== 'all')) {
   }
 }
 
-/* ---------------- 6. the summary catalogue, re-expressed as data ----------------
+/* ---------------- 6. the summary Catalog, re-expressed as data ----------------
  *
  * The authoring prototype holds its ten summary tiles as closures — a label, a tone
  * class and a function over the rows in view. A report *generated* under assumptions

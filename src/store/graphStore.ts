@@ -31,7 +31,7 @@ export type { Result }
 /** Step 1's domain options, ranked by what the connected data supports. */
 export const useGraphDomainsStore = createReadStore<GraphDomainsPayload>(listGraphDomains)
 
-/** Step 4's sources — what the Data Catalogue has actually profiled. */
+/** Step 4's sources — what the Data Catalog has actually profiled. */
 export const useGraphSourcesStore =
   createReadStore<GraphSourcesPayload>(listGraphSources)
 

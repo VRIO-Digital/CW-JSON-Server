@@ -66,7 +66,7 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
         return 'Connect a data source on Sources first — there is nothing to select here yet.'
       }
       if (!draft.graphSources.some((s) => s.objectCount > 0)) {
-        return 'Nothing is profiled yet — profile a source in the Data Catalogue before continuing.'
+        return 'Nothing is profiled yet — profile a source in the Data Catalog before continuing.'
       }
       if (draft.sourcePicks.length === 0) {
         return 'Select at least one source — the graph can only derive from data you point it at.'

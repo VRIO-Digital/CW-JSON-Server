@@ -7,7 +7,7 @@
  *
  * **The scoping is not tidiness.** The original owns its page: it sets `*{margin:0;padding:0}`,
  * `body`, `button`, `h1,h2,h3`, `table`, `th` and `td` as bare selectors. Unscoped, it
- * resets every antd component in the app and restyles every table on Sources, Ask, Catalogue,
+ * resets every antd component in the app and restyles every table on Sources, Ask, Catalog,
  * Graph Studio and What-if. `check-docs` asserts it stays scoped.
  *
  * **It is the one stylesheet exempt from the `--sp-*` spacing rule**, and only because it is

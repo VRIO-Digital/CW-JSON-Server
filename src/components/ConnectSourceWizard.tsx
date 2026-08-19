@@ -456,7 +456,7 @@ export default function ConnectSourceWizard({
       if (isGoogle && nameProblem) {
         setNameTouched(true)
         message.warning(
-          `Give this source a name of at least ${SOURCE_NAME_MIN} characters — it is how it appears in the Sources table and the Data Catalogue.`,
+          `Give this source a name of at least ${SOURCE_NAME_MIN} characters — it is how it appears in the Sources table and the Data Catalog.`,
         )
         return
       }
@@ -694,7 +694,7 @@ export default function ConnectSourceWizard({
               required
               validateStatus={nameTouched && nameProblem ? 'error' : undefined}
               help={nameTouched ? nameProblem : null}
-              extra={`How this source appears in the Sources table and the Data Catalogue. At least ${SOURCE_NAME_MIN} characters.`}
+              extra={`How this source appears in the Sources table and the Data Catalog. At least ${SOURCE_NAME_MIN} characters.`}
             >
               <Input
                 value={sourceName}
@@ -817,7 +817,7 @@ export default function ConnectSourceWizard({
           <Form layout="vertical" requiredMark={false}>
             <Form.Item
               label="Source name"
-              extra="How this source appears in the Sources table and the Data Catalogue."
+              extra="How this source appears in the Sources table and the Data Catalog."
             >
               <Input
                 value={sourceName}

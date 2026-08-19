@@ -346,7 +346,7 @@ Four actions, all through the store:
 
 | Action | Endpoint | Effect |
 |---|---|---|
-| Edit datasets *(BigQuery)* | `PUT /sources/:id/datasets` | narrows the allowlist; catalogue follows immediately. **Disabled while disconnected** |
+| Edit datasets *(BigQuery)* | `PUT /sources/:id/datasets` | narrows the allowlist; Catalog follows immediately. **Disabled while disconnected** |
 | Edit folders *(Drive)* | `PUT /sources/:id/folders` | the same, in folders. Same rule |
 | Disconnect | `POST /sources/:id/disconnect` | revokes the credential, **keeps** the registration and everything profiled |
 | Reconnect *(disconnected rows)* | `POST /sources/:id/reconnect` | re-issues the handle **in place** — the undo for Disconnect |
@@ -377,7 +377,7 @@ the entry. Two things follow, and both matter when reading this flow:
   silently.
 
 The per-page gate claims survive that removal and are now about the pages themselves:
-Data Catalogue, Traces and Validation render `NoSourceConnected`; Ask, Reports, the
+Data Catalog, Traces and Validation render `NoSourceConnected`; Ask, Reports, the
 What-if lens and Audit render `NoPublishedGraph`. Two different preconditions, and a page
 that swapped one for the other would look right and be wrong.
 
@@ -539,7 +539,7 @@ Two behaviours that look like bugs but are not:
 
 ### Watching it
 
-Starting a run **switches to the Profiling jobs tab** — from the Catalogue tab a
+Starting a run **switches to the Profiling jobs tab** — from the Catalog tab a
 queued job is invisible, which was the whole point of making it async.
 
 `ProfilingJobsTab` polls every 3s **only while `active_count > 0`**; the poll that
@@ -588,7 +588,7 @@ all **206** — ingested from ` _demo_data_package_2026-08-10/02_profiling/`
 `label`, `type`, `description`, semantic `class`, `derivation`, `confidence`,
 `pii`, `null_pct` and `distinct`. `tableDictionary()` serves that verbatim for any
 `dataset.table` it has an entry for, and `check-docs` asserts the count matches
-what the catalogue claims for each view, so the two cannot drift.
+what the Catalog claims for each view, so the two cannot drift.
 
 To re-ingest after the workbook changes, re-run the ingestion (a scratch script;
 the reader is ~100 lines of zip + XML rather than a dependency). Rounding
@@ -932,7 +932,7 @@ they already have three is useless advice, so the step distinguishes them:
 | State | What step 4 shows |
 |---|---|
 | nothing connected | `NoSourceConnected` — "Connect a source" → `/sources` |
-| connected, nothing profiled | an **error** alert — "No profiled data yet — you cannot select a source", with "Open the Data Catalogue to profile a source" → `/catalogue`, above the cards, each tagged `nothing profiled` and disabled |
+| connected, nothing profiled | an **error** alert — "No profiled data yet — you cannot select a source", with "Open the Data Catalog to profile a source" → `/catalogue`, above the cards, each tagged `nothing profiled` and disabled |
 | something profiled | the selection UI; the alert disappears |
 
 **`Next` refuses to leave step 4 empty** (its rule lives with every other step's,
@@ -946,7 +946,7 @@ Three refusals, all server-side too, because these answers must still be true at
 build time:
 
 - picking a source that is connected but has **nothing profiled** → 400 pointing
-  at the Data Catalogue. It is still *listed*, tagged `nothing profiled` and
+  at the Data Catalog. It is still *listed*, tagged `nothing profiled` and
   disabled — "not profiled yet" is a different problem from "not connected", and
   hiding it would make the two indistinguishable.
 - a `subset` selecting nothing → 400 (*"an empty selection can't derive"*)
@@ -1056,7 +1056,7 @@ shows no figure at all until a run has reported one.
 build gate in `data/coverage.ts`
 
 The only step the user does not fill in — it reports what the AI derived from
-everything above, **checked against the catalogue**.
+everything above, **checked against the Catalog**.
 
 **Every backed element names the profiled object it came from.** An entity *is* a
 profiled table or document, so its evidence line reads

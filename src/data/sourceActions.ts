@@ -6,7 +6,7 @@
  * connected source. All three consequence lines were removed on request — see
  * `docs/REGRESSIONS.md`. What that costs is recorded there and worth knowing before adding
  * anything back: nothing on screen now says Disconnect is reversible and Delete is not, and
- * nothing says that deleting the last connected source closes the Data Catalogue, Profiling jobs,
+ * nothing says that deleting the last connected source closes the Data Catalog, Profiling jobs,
  * Traces and Validation. The *acts* are unchanged — Reconnect still restores every profiled
  * object, Delete still takes them — so the app is quieter about consequences it still has.
  *

@@ -128,7 +128,7 @@ function originClass(n) {
   throw new Error(`no origin class for ${n.id} (${n.type} / ${n.element_class})`)
 }
 
-/* ---------------- 4. provenance: the catalogue object, named as the catalogue names it ----
+/* ---------------- 4. provenance: the Catalog object, named as the Catalog names it ----
  *
  * A node whose provenance is not on it is a claim the reader has to take on trust.
  * The document files come from `demo_display` rather than a map maintained here —
@@ -194,7 +194,7 @@ function sublabelFor(n) {
       return `enforcement · ${a.agency} · ${money(m.penalty_usd ?? 0)}`
     /* The roster labels a document by its *type*, and three of the seven are
        "Consent Decree" — three identical circles. The file is what the Drive
-       catalogue calls it, so that becomes the label and the type the sublabel. */
+       Catalog calls it, so that becomes the label and the type the sublabel. */
     case 'Document':
       return `${a.doc_type} · ${a.state}`
     case 'Alias':
@@ -208,7 +208,7 @@ function sublabelFor(n) {
   }
 }
 
-/** A document is labelled by its file, which is how the catalogue lists it. */
+/** A document is labelled by its file, which is how the Catalog lists it. */
 const labelFor = (n) =>
   n.type === 'Document' ? displayNode(n.id).attributes.file : n.label
 

@@ -289,14 +289,14 @@ for (const key of requiredKeys) {
 
 /*
  * The rule below makes a source name mandatory. That is only worth anything if
- * the name is then visible where a source is identified — the Catalogue card and
+ * the name is then visible where a source is identified — the Catalog card and
  * its detail header, which otherwise show `bigquery:<project>` and nothing a user
  * chose. Matched on the field being read, not on a class name, so a restyle does
  * not fail this and a deletion does.
  */
-const cataloguePage = read('src/pages/CataloguePage.tsx')
+const CatalogPage = read('src/pages/CataloguePage.tsx')
 expect(
-  'the Catalogue names each source, not just its id',
+  'the Catalog names each source, not just its id',
   (cataloguePage.match(/\{s\.sourceName\}|\{selected\.sourceName\}/g) ?? []).length >= 2,
   'the card and the detail header both render sourceName',
 )
@@ -677,10 +677,10 @@ expect(
   'a subfolder and the folder holding it are not peers',
 )
 
-/* ---------------- the catalogue's two actions are toggles, and the panels have no ✕ ---------------- */
+/* ---------------- the Catalog's two actions are toggles, and the panels have no ✕ ---------------- */
 
 /*
- * The four catalogue panels used to carry their own "✕ close", which meant two controls for one
+ * The four Catalog panels used to carry their own "✕ close", which meant two controls for one
  * piece of state and only one of them showed what the state was. The ✕ is gone and the button that
  * opened a panel closes it — which only works if the button *says* it is the open one.
  *
@@ -881,7 +881,7 @@ expect(
  * risk of a dialog naming the wrong pages. The page half is kept, because it guards something
  * independent and still live: **the two gates are different preconditions**, and a page that
  * swapped one for the other would be right-looking and wrong. Ask on `NoSourceConnected` would go
- * dark with the last source while still answering from published content; the Data Catalogue on
+ * dark with the last source while still answering from published content; the Data Catalog on
  * `NoPublishedGraph` would demand a publish before it would show a table to profile.
  */
 const publicationGated = [
@@ -899,7 +899,7 @@ for (const [label, path] of publicationGated) {
   )
 }
 const connectionGated = [
-  ['Data Catalogue', 'src/pages/CataloguePage.tsx'],
+  ['Data Catalog', 'src/pages/CataloguePage.tsx'],
   ['Traces', 'src/pages/TracePage.tsx'],
   ['Validation', 'src/pages/ValidationPage.tsx'],
 ]
@@ -938,7 +938,7 @@ expect(
 /*
  * `column_profiles` holds the 206 columns ingested from
  * `02_profiling/Metadata_Profiling.xlsx`. Losing the branch that reads it does
- * not throw — `tableDictionary` falls back to synthesis, and the catalogue serves
+ * not throw — `tableDictionary` falls back to synthesis, and the Catalog serves
  * invented columns that look exactly as plausible. So both halves are asserted:
  * the data is there, and the code prefers it.
  */
@@ -1155,10 +1155,10 @@ expect(
   canvas.nodes.every(
     (n) => n.type && n.source && typeof n.degree === 'number' && typeof n.r === 'number',
   ),
-  'source is the catalogue object; r is the degree, not a styling choice',
+  'source is the Catalog object; r is the degree, not a styling choice',
 )
 expect(
-  'the structured nodes name the profiled tables the catalogue lists',
+  'the structured nodes name the profiled tables the Catalog lists',
   ['FRS_Facility_profile', 'e_manifest', 'e_manifest_all', 'RCRA_compliance'].every((t) =>
     canvas.nodes.some((n) => n.source.includes(t)),
   ),
@@ -2363,7 +2363,7 @@ expect(
  *
  * It was written for a page it owned outright: `*{margin:0;padding:0}`, `body`, `button`,
  * `h1,h2,h3`, `table`, `th`, `td` and `:root` were all bare. Unscoped, it resets every antd
- * component's margins and restyles every table on Sources, Ask, Catalogue, Graph Studio and
+ * component's margins and restyles every table on Sources, Ask, Catalog, Graph Studio and
  * What-if — and it would do it silently, on pages nobody was editing.
  *
  * So: every selector in the file starts with the scope, its tokens sit on that class rather
@@ -3318,12 +3318,24 @@ expect(
   'nothing may be served before db.json is loaded',
 )
 /*
- * ---------------- the store is S3, and its address is committed ----------------
+ * ---------------- the store is the local file, and the bucket's address is committed ----------------
  *
- * This read "defaults to the local file" until the two documents were pushed to the bucket and the
- * local copies deleted. The default reversed deliberately: there is no file to fall back to, and a
- * silent fallback would serve an empty app rather than say why. `S3_BUCKET=off` is the one way back
- * to files, and it has to keep working — the tests and an offline machine both use it.
+ * **The default has been both ways round, and the reason changed under it.** It was the local file;
+ * it became S3 once the documents were pushed and the local copies deleted, because then there was
+ * no file to fall back to and a silent fallback would have served an *empty* app rather than saying
+ * why. Committing the JSON documents on 2026-08-19 retired that premise — every checkout now has a
+ * complete, valid `db.json` — so it is the local file again, and a fresh clone starts with no AWS
+ * credentials at all.
+ *
+ * **What the flip costs is a different hazard, not none.** The fallback is no longer empty, so a box
+ * that meant to read the bucket and left `S3_BUCKET` unset serves plausible but possibly stale
+ * figures. Two things are asserted against that: the deployed process names the bucket explicitly in
+ * `ecosystem.config.js` rather than relying on any default, and the boot banner prints the ref it
+ * actually read every time.
+ *
+ * **And the sync tool must never follow this default.** `npm run db:push` exists to move bytes to the
+ * bucket; resolved through `docRef` it would now get a path and copy the file onto itself, reporting
+ * success while uploading nothing. It calls `s3Ref` instead, which always names an object.
  *
  * **The bucket, the prefix and the region are committed; the credentials are not.** An address
  * appears in every log line and in `GET /db`'s reply, so hardcoding it costs nothing. An access key
@@ -3334,8 +3346,23 @@ expect(
   'the bucket and prefix are committed, and switchable, and no credential is',
   /const DEFAULT_BUCKET = 'contextweave\.com'/.test(store) &&
     /const DEFAULT_PREFIX = 'EPA'/.test(store) &&
-    /process\.env\.S3_BUCKET \?\? DEFAULT_BUCKET/.test(store) &&
+    /* Unset is the local file: no `?? DEFAULT_BUCKET` on the server's own resolver, or a clone with
+       no credentials cannot start. `off` stays as the *explicit* way to say the same thing. */
+    /const bucket = process\.env\.S3_BUCKET$/m.test(store) &&
+    !/process\.env\.S3_BUCKET \?\? DEFAULT_BUCKET/.test(store) &&
     /bucket === 'off'/.test(store) &&
+    /* The sync tool names an object directly, so a push cannot resolve to a local path. */
+    /export function s3Ref\(name, prefix\)/.test(store) &&
+    /const ref = s3Ref\(name, forDataset\)/.test(read('scripts/s3-sync.mjs')) &&
+    !/docRef/.test(codeOnly(read('scripts/s3-sync.mjs'))) &&
+    /* The deployed process asks for the bucket rather than inheriting a default.
+       **`codeOnly`, and it was needed**: the line above it was commented out for a long time, so a
+       plain search matched `// S3_BUCKET: "contextweave.com"` and the claim passed against a
+       deployment that would have read the local file. Sixth time this file has been caught by a
+       comment naming the thing it is not doing. */
+    /^\s*S3_BUCKET: "contextweave\.com",/m.test(codeOnly(read('ecosystem.config.js'))) &&
+    /* And every boot says which store it read, since the wrong one is now plausible rather than empty. */
+    /set S3_BUCKET to read the bucket instead/.test(server) &&
     /* The prefix is still environment-defaulted, but it is now an *argument*, because a prefix is a
        dataset and a dataset cannot be a property of the process — see mock-server/datasets.mjs. */
     /export function docRef\(name, localPath, prefix\)/.test(store) &&
@@ -4948,7 +4975,7 @@ expect(
 )
 
 /*
- * The summary catalogue is the prototype's ten tiles re-expressed as data, so the server
+ * The summary Catalog is the prototype's ten tiles re-expressed as data, so the server
  * has to implement every aggregation and format it names. One it does not would render as
  * a blank tile beside three figures, which reads as a zero.
  */

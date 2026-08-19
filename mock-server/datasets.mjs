@@ -148,7 +148,7 @@ export const MERGE_PLAN = {
 
   /*
    * Reports: the definitions and the rosters they are asked over are per dataset; the field
-   * dictionary, the assumptions and the summary catalogue are the section's own vocabulary.
+   * dictionary, the assumptions and the summary Catalog are the section's own vocabulary.
    */
   reports: {
     deep: {

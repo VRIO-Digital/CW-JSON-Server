@@ -6,7 +6,7 @@ import RequireAuth from './components/RequireAuth'
 import { LANDING } from './nav'
 import AskPage from './pages/AskPage'
 import AuditPage from './pages/AuditPage'
-import CataloguePage from './pages/CataloguePage'
+import CatalogPage from './pages/CatalogPage'
 import DbEditorPage from './pages/DbEditorPage'
 import GraphCanvasFullPage from './pages/GraphCanvasFullPage'
 import GraphStudioListPage from './pages/GraphStudioListPage'
@@ -118,7 +118,7 @@ export const routes: RouteObject[] = [
           { path: 'graph-studio/:useCaseId', element: <GraphStudioPage /> },
           // Ask queries a *published* graph, so it lists none until one is live.
           { path: 'ask', element: <AskPage /> },
-          { path: 'catalogue', element: <CataloguePage /> },
+          { path: 'catalog', element: <CatalogPage /> },
           /*
            * The report section — the authoring prototype from the demo package, vendored into
            * `src/reports/` and mounted by this page. **One route, not four**: the prototype

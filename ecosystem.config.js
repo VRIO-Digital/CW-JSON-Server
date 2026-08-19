@@ -36,12 +36,20 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         MOCK_PORT: 4000,
-        /* Unset means the local files, which is what a fresh checkout wants. Set S3_BUCKET (and
-           AWS_REGION, plus S3_PREFIX if the objects are not at the root) to read and write the
-           bucket instead; credentials come from the instance role. */
-        // S3_BUCKET: "vrio-contextweave-db",
-        // S3_PREFIX: "mock-server",
-        // AWS_REGION: "us-east-1",
+        /*
+         * **Set explicitly, because unset now means the local file.** `docRef` defaults to
+         * `mock-server/db.json` so a fresh clone starts with no AWS credentials — and the committed
+         * copy is a real, valid document, so a box that *meant* to read the bucket and left this
+         * unset would serve stale figures rather than failing. Naming the bucket here is what stops
+         * that: this file is how the deployed process is started, so the intent is recorded where it
+         * is acted on. The boot banner prints the ref it actually read, which is the second half.
+         *
+         * Credentials come from the instance role. Region matters — a wrong one signs against the
+         * wrong endpoint and answers 403, which reads as a policy problem.
+         */
+        S3_BUCKET: "contextweave.com",
+        S3_PREFIX: "EPA",
+        AWS_REGION: "us-east-1",
       }
     }
   ]

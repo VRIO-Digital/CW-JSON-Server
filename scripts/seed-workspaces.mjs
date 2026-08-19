@@ -5,7 +5,7 @@
  *     node scripts/seed-workspaces.mjs
  *
  * Why a script rather than a hand edit of `db.json`: every project it adds has to carry a full
- * `column_profiles` entry (the catalogue's column count and the profile's length are asserted
+ * `column_profiles` entry (the Catalog's column count and the profile's length are asserted
  * against each other) and every document it adds has to carry a `document_extractions` row that
  * names the same entity the browse tree does. Authoring those by hand is exactly the 206-entry
  * problem the profiling workbook already has, so the arithmetic is done here and re-done on every
@@ -35,7 +35,7 @@ const PACKAGE_DRIVE = 'compliance-docs'
 /* ---------------- the extra GCP projects ---------------- */
 
 /**
- * A column profile row, in the shape `column_profiles` already holds — the catalogue's dictionary
+ * A column profile row, in the shape `column_profiles` already holds — the Catalog's dictionary
  * reads these verbatim, so every field the panel prints is stated rather than defaulted.
  */
 const col = (column_id, type, klass, description, extra = {}) => ({
@@ -351,7 +351,7 @@ const EXTRA_DRIVES = [
 
 const problems = []
 
-/* The catalogue's column count and the profile's length are asserted against each other by
+/* The Catalog's column count and the profile's length are asserted against each other by
    `check-docs`; a table whose profile is short serves synthesised columns that look exactly as
    plausible as real ones. So the count is *derived* from the profile rather than typed twice. */
 for (const project of EXTRA_PROJECTS) {
@@ -360,7 +360,7 @@ for (const project of EXTRA_PROJECTS) {
       const key = `${dataset.dataset_id}.${table.table_id}`
       const columns = PROFILES[key]
       if (!columns) {
-        problems.push(`${key} has no column profile — the catalogue would serve synthesised columns`)
+        problems.push(`${key} has no column profile — the Catalog would serve synthesised columns`)
         continue
       }
       const ids = new Set(columns.map((c) => c.column_id))

@@ -23,7 +23,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
-import { docRef, localDocPath, readDoc, storeKind, writeDoc } from '../mock-server/store.mjs'
+import { localDocPath, readDoc, s3Ref, storeKind, writeDoc } from '../mock-server/store.mjs'
 import { DATASETS, PRIMARY } from '../mock-server/datasets.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -110,9 +110,17 @@ async function requiredDbKeys() {
 
 for (const key of documents) {
   const { name, local } = DOCS[key]
-  /* `docRef` suffixes the local path for a non-default prefix, so `db.CAPEX.json` is what a
-     CAPEX push reads and a CAPEX pull writes — never the primary's `db.json`. */
-  const ref = docRef(name, local, forDataset)
+  /*
+   * **`s3Ref`, not `docRef`** — this tool's whole job is the bucket, so it names one directly.
+   * `docRef` answers what a *server* reads, and that now defaults to the local file; routing a push
+   * through it would resolve to a path and copy the file onto itself, reporting success while
+   * uploading nothing. The guard below stays anyway: a ref that is not `s3://` must stop the run,
+   * never be synced.
+   *
+   * `localDocPath` still suffixes for a non-default prefix, so a secondary dataset's push reads its
+   * own `db.<PREFIX>.json` and never the primary's `db.json`.
+   */
+  const ref = s3Ref(name, forDataset)
   const localPath = localDocPath(local, forDataset)
   if (storeKind(ref) !== 's3') die(`${name} did not resolve to an S3 ref — got ${ref}`)
 
