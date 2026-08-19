@@ -217,14 +217,26 @@ Both are still **tenant-level rather than a dataset's**, and that is now express
 "who exists" rather than a second one. `npm run seed:settings` therefore reads the whole document and
 replaces one key — a script that owns a subtree and rewrites its parent is how a subtree gets deleted.
 
-### One dataset today, and the process holds however many there are
+### Two datasets — EPA and CAPEX
 
-**A dataset is a prefix, and there is one.** `EPA/` is the primary and holds everything described
-below. `CAPEX/` was the second — created, seeded, never populated — and **its document was removed on
-request**; what went with it is the document and the name in `DATASETS`, not the ability to hold a
-second one. Every dataset in that list is read at boot, so a name with no document behind it stops
-the boot: removing the file meant removing the name, and adding a dataset back is that array plus
-`npm run seed:dataset -- <NAME>`.
+**A dataset is a prefix, and there are two.** `EPA/` is the primary and holds everything described
+below; `CAPEX/` is the second and holds the capital-programme reports. Every dataset in `DATASETS` is
+read at boot, so a name with no document behind it stops the boot — which is why adding one is that
+array plus `npm run seed:dataset -- <NAME>`, in that order, and why the seed refuses a name the array
+does not declare.
+
+**EPA was called EPA.** The rename was the selector only: `DATASETS`, `PRIMARY`, `DEFAULT_PREFIX`,
+`DEFAULT_DATASET`, the URL letter and every claim and sentence about *which dataset a request is
+reading*. The **data kept its own names** — the BigQuery project is still display-name *EPA Hazwaste*
+with its `epa_hazwaste` views, and the seven EPA enforcement PDFs are still that — because those are
+what the tenant's data is called rather than what the dataset is. `check-docs` and CLAUDE.md therefore
+still say `EPA` in exactly two places, both of them about the data.
+
+**The bucket prefix moved with the name.** `s3://contextweave.com/EPA/db.json` is where the primary's
+document lives now, so a checkout reading the bucket needs the object moved before `npm run db:pull`
+resolves; a checkout reading local files — the default — is unaffected. And a browser that had `EPA`
+persisted recovers by itself: the server refuses it, and `resetDatasetIfRefused()` discards the value
+and retries on the primary, which is the exact failure that fix was written for.
 
 `mock-server/datasets.mjs` owns which one a request is reading — `store.mjs` still owns only how
 bytes move, and `server.mjs` still owns only what a document means.
@@ -232,12 +244,43 @@ bytes move, and `server.mjs` still owns only what a document means.
 | selector | what it reads | writes |
 |---|---|---|
 | `EPA` (default) | `s3://contextweave.com/EPA/db.json` | yes |
+| `CAPEX` | `s3://contextweave.com/CAPEX/db.json` | yes |
 | `both` | every dataset merged, per `MERGE_PLAN` | **refused** |
 
-**`both` currently merges one document with nothing, which is EPA.** It is left reachable rather than
-special-cased away: the merge is a pure function over `DATASETS`, so a second dataset restores its
-meaning without any of it being written again. The whole of this section describes machinery that is
-intact and under-exercised — which is the state it was deliberately left in.
+**`both` now merges two real documents**, which is what the machinery was built for and was
+under-exercised while there was one. Every key needs a `MERGE_PLAN` rule or the boot stops, and the
+two the CAPEX reports added are stated there: `reports.documents` unions on `document_id` because two
+datasets genuinely bring their own, and `reports.authoring_document` is `primary` — EPA has none, so
+`both` shows no authoring document rather than attributing CAPEX's exploration to the primary.
+
+**CAPEX is its own tenant, and its document is generated.** It arrived as `Northline Water Group` with
+five users at its own domain and four personas of its own (`business_user_exec`, `analyst`, `architect`,
+`admin`) — so selecting CAPEX changes who can sign in, which is coherent because switching dataset already
+signs you out. Its `_meta` says *"never hand-edit this file — change the generator and rebuild"*, which is
+why the three things it needed were added on **this** side: `_meta` and `_provenance` got `MERGE_PLAN`
+rules (both `primary`, so a merged view claims no single package's provenance), and its report scope
+(`sc_author_all`) and spine label (`projects` → `n`) were added to `REPORT_SCOPES` and `REPORT_LABEL_KEY`.
+
+**Which exposed a real bug: a document must be validated against its own keys.** `validateSettings` read
+`db.auth_roles`, and at boot there is no request in flight, so `activeDataset()` is the primary — CAPEX's
+users were checked against EPA's personas and the boot refused a document that was internally consistent.
+`DB_SHAPE`'s checks now receive the whole candidate. **Every cross-key check inside `validateDb` must read
+`candidate`, never `db`**, because it runs once per document.
+
+**And `npm run seed:settings -- CAPEX` fills what a generated document could not know.**
+`report_defaults` / `report_permissions` were added to `validateSettings` after CAPEX's document was
+built, so for a **secondary** dataset the seed writes only the missing blocks and leaves the users,
+navigation and locked row alone — re-authoring those from the primary's constants would replace one
+tenant's directory with another's. The values are *derived* from that document's own
+`governance.data_scope.may_author`, mapped person → persona through its own user list, so CAPEX's
+`analyst` and `architect` author while its `admin` ("No access yet") only reads. A persona whose people
+disagree is refused rather than silently reduced to one answer.
+
+**CAPEX's rows are the package's, not the primary's.** `npm run seed:dataset -- CAPEX` writes the
+primary's *structure* with the primary's *rows* removed, so it is servable without showing EPA's
+figures under CAPEX's name; `npm run ingest:capex` then adds the three rendered reports. Everything
+else about CAPEX — sources, the graph, What-if — is legitimately empty, which is why `validateDb`
+permits an empty collection in a secondary dataset and nowhere else.
 
 **Every dataset is loaded at boot and a request picks one**, by `?dataset=` or the `x-dataset`
 header, defaulting to the primary. The prefix used to be read from the environment once at module
@@ -1938,6 +1981,127 @@ exporter fails the build instead of exporting as nothing.
 **Nothing calls it yet.** Like the other `/reports*` endpoints, this one is waiting for a caller —
 the vendored prototype does not talk to the API. Wiring a button means editing vendored code, which
 is a separate decision.
+
+#### A dataset can ship rendered reports instead of computing them
+
+**CAPEX's reports are documents; EPA's are questions.** Everything above describes EPA: `db.reports`
+stores no result and every figure is computed in `reportView` per request, because a report there *is* a
+question re-asked of a published graph. CAPEX ships three finished HTML documents — `src/Capex/Report/`,
+2.5 MB each, standalone pages with their own `<head>`, theme and inline scripts — and no roster to
+compute from. So they are served as documents and every figure stays inside the file. Transcribing one
+into a component is the single change that would look right on screen and break this section's premise.
+
+**`npm run ingest:capex` reads the metadata out of the documents.** Each file embeds the prototype's own
+report registry, so the title in the Library is the title the report gives itself — *Variance Report*
+v13, *Project 360* v15, *Rate-Case Filing Calendar* v7 — along with the subtitle, category, author and
+refresh sentence. Nothing is typed into this repo, and `check-docs` asserts no ingested title appears as
+a literal in the component: a transcribed title is the small version of a transcribed figure, and it goes
+stale the first time a document is re-exported. The ingest **refuses to write** on a missing field or an
+unknown state rather than producing a row the Library renders as `undefined`.
+
+**The three files are 99.9% one document.** They differ only in a trailing script setting `REPORT_ID`
+(`rep_q_variance`, `rep_proj_360`, `rep_pis_calendar`), which is what the ingest reads to tell them apart
+and what it looks the registry entry up by. That is also why all three are carried rather than one
+parameterised copy: the id is baked into the file, and rewriting somebody's 2.5 MB export to inject a
+different one is a fragile dependency on its internals.
+
+**The publish gate does not apply to them, and that is not a loosening.** The gate exists because an EPA
+report is asked of the published graph — answering with nothing published would be answering from content
+nobody released. A CAPEX report asked nothing of a graph, so gating it would enforce a precondition it
+does not have and leave the section empty for a dataset that ships three reports. The documents therefore
+ride on **both** branches of `GET /reports`, and the page tests both counts (`publishedCount === 0 &&
+documents.length === 0`). The gate is untouched for computed reports.
+
+**They are framed, not inlined.** `DocumentViewer` puts each in an `iframe`. Injecting the body would
+drop the `<head>` the report *is* and put its selectors in the app's tree — the problem that forced
+`.cw-reports` on the vendored prototype's sheet, with live script on top. The frame is a real boundary,
+and what it costs is stated rather than glossed: **the app cannot see inside**, so a button *within* a
+document reaches nothing here, and the document fetches its own webfonts from the network. Printing is
+delegated to the frame (`contentWindow.print()`), so a document prints as its own page.
+
+**There is one copy of each file, and it stays in `src/Capex/Report/`.** `src/data/reportDocuments.ts`
+resolves a filename to a URL through `import.meta.glob('../*/Report/*.html', { query: '?url' })`. Copying
+them into `public/` is the obvious alternative and was rejected for one reason: a second copy of a 2.5 MB
+re-exported document is a whole report that can go stale silently. The glob is written per dataset folder
+rather than naming CAPEX, so a second dataset shipping documents is a folder drop plus an ingest run. A
+filename the bundle does not carry resolves to `null` and the viewer **says which files are here** — a
+guessed path would load the SPA's own `index.html` and render the app inside the report frame.
+
+**There is one Library UI, and CAPEX uses it.** A CAPEX-only grid of document cards existed briefly and
+was removed: two grids of the same definitions is two answers to "what reports exist", which this section
+refuses everywhere else. So CAPEX renders the **vendored prototype** exactly as EPA does — the lifecycle
+chip bar, the cards, the four acts, the *Author a report* wizard — over CAPEX's own governance rows, which
+its document ships complete with title, question, state, version, author, category and schedule.
+
+**Which needed the governance view served while the publish gate is closed.** It is `null` there
+normally, because nothing is governed until a graph is published; a dataset whose reports are documents
+has a library either way, so `GET /reports` includes it when `documents` is non-empty and only then. That
+is a wider audience for an already-computed view rather than a looser gate — EPA still gets `null`.
+
+**Open opens whichever kind of report the row is.** The prototype hands over an id; the host matches it
+against `documents` first and falls through to the computed report. Both collections carry `report_id`, so
+the match is exact rather than a guess on the title.
+
+**Edit loads the report into the authoring wizard, editable, with a Save — the same act it is for EPA.**
+That needs an authoring **starter** behind the row, which `npm run ingest:capex` now writes: one per
+report, keyed to its slug so `starterForTag` resolves, carrying **the dataset's own title and question**
+read from its report definitions. Two weaker answers were tried first and both were reported: withholding
+the button, and framing the static authoring page — a page with no editing and no Save is not Edit.
+
+**What a starter cannot borrow is the dataset's own spine.** CAPEX's definitions are written for the
+renderer that produced the HTML — `spine: "projects"`, `figRow` blocks, its own scope and measure ids —
+while this prototype's authoring engine is written against the generator roster (`selectRows` returns
+`Generator[]`, and every block renderer reads those columns). So the starter uses the spine and block
+vocabulary the prototype actually has, which means **the figures inside the editor are the prototype's
+bundled sample data** — exactly as they are when EPA's reports are edited, since the Authoring tab has
+always drawn its own dataset and says so. Nothing about a *published* CAPEX report changes: Open still
+frames the real rendered document. Re-basing the editor on CAPEX's project rosters would be a rewrite of
+the vendored engine's core rather than data added to it, and should be argued on its own terms.
+
+**Two things had to move with the starters, both found by a validator rather than guessed.** The
+dataset arrived carrying the primary's five starters *and* four demo shelf rows built on them, so
+swapping the starters left those rows naming ids that no longer existed — which the prototype's **own**
+validator refuses at hydration, so the section would not render at all. The shelf is emptied instead: it
+is the prototype's own fiction, and hosted it starts empty anyway because a governed Library is present.
+That in turn needed the server's `validatePrototype` to stop requiring `library` non-empty — the client's
+validator already permitted it empty in as many words, and **two validators disagreeing about one field
+is worth resolving rather than working around**, since the only way to satisfy both was to invent four
+demo reports.
+
+**A CAPEX row offers all four acts, and getting there took two corrections.** `GovernedCard` offered Open
+and Edit only where an authoring *starter* backed the row — right while every report was one of the
+prototype's own definitions, and wrong for a rendered document, which has none. `hostOpenable` is the host
+saying "I can render this id", and it enables **both**, because the host is what knows which surfaces it
+has; `App.openGoverned` hands such a row straight back rather than trying to load a starter that does not
+exist. **Edit then opens the dataset's authoring document** — a rendered report is a finished artefact, so
+"edit" cannot mean changing it in place, and what it can honestly mean is the dataset's own account of how
+a report is composed. Withholding the button instead was tried first and reported as a bug: a Library with
+two of its four acts missing reads as a broken card rather than as a permission.
+
+**The other correction was the permissions themselves.** CAPEX's report access was *derived* from its
+document's `may_author`, which looked principled and was wrong: that document marks its Platform Admin
+"No access yet", so the persona that administers the section arrived unable to edit or delete a report —
+Delete simply absent from every card. `may_author` is about **data scope**, and these three are about which
+*controls* a row offers; using one to decide the other conflated two gates this app is careful to keep
+apart. Every CAPEX persona now starts with all three, and narrowing is a decision made on
+**Settings → Report View**, which is what that tab is for.
+
+**Share and Delete are the governance routes, unchanged.** They act on the governance row, which is the
+single audience record for a report. A pair of document-specific routes was built and then removed for
+exactly that reason: two audience fields for one report is two homes for one record.
+
+**The documents' own mock-API pill is hidden by the frame, not by editing them.** Each carries a floating
+`.apiFab` badge toggling a log of its mock calls — a prototype affordance, noise inside an app with its
+own API. `DocumentViewer` injects one style rule on load, because the documents' `_meta` says *"never
+hand-edit this file — change the generator and rebuild"*: an edit would be lost at the next export and
+silently return, while a rule applied by the frame holds for whatever version is dropped in, and keeps the
+file byte-identical to what the generator produced. It is the one place the app reaches into the document,
+and it is a style only — nothing is removed from the DOM and no script is touched.
+
+**Report View permissions apply exactly as they do to a governed row**, through the same
+`reportActionsFor`, with a withheld act being an absent handler rather than a disabled button. **Share is
+not gated**, because it edits the *audience* — which Settings deliberately excludes from the three acts,
+since that record belongs to Audit & Governance.
 
 #### Publication is the only gate
 

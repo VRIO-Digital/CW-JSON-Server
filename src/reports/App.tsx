@@ -234,6 +234,7 @@ export default function App({
   shareRoles,
   actions,
   reportActions,
+  hostOpenableIds,
   onOpenPublished,
 }: {
   identity?: ReportsIdentity;
@@ -264,6 +265,14 @@ export default function App({
    */
   reportActions?: Record<string, boolean>;
   /**
+   * Report ids the host can render itself, with no starter in this folder behind them.
+   *
+   * A host may serve reports that are **rendered documents** — a finished file rather than an authoring
+   * definition. `Open` then works because the host can frame it; `Edit` still does not, because there is
+   * nothing here to author, and offering it would be a button that opens an empty authoring pane.
+   */
+  hostOpenableIds?: string[];
+  /**
    * Open a governed report as the host's *published* report — the rendered thing an audience reads.
    *
    * The fourth callback in the same shape as `actions`, and the vendored prototype's only knowledge of
@@ -272,6 +281,13 @@ export default function App({
    *
    * `Open` and `Edit` stop being the same act, which is what their labels already claimed: Open reads
    * the published report, Edit loads the authoring definition behind it.
+   */
+  /**
+   * Open a governed report as the host's own — the rendered thing an audience reads.
+   *
+   * **Reading only.** Editing loads the row's authoring starter in this pane, which is what editing means
+   * and what makes Save work; a host that serves rendered documents supplies a starter per report so that
+   * path resolves for its rows too.
    */
   onOpenPublished?: (reportId: string) => void;
 } = {}) {
@@ -888,6 +904,7 @@ export default function App({
                 actions ? (row) => setSharing({ kind: 'governed', id: row.reportId }) : undefined
               }
               onRemoveGoverned={actions && may('delete') ? removeGoverned : undefined}
+              hostOpenableIds={hostOpenableIds}
               onShareSaved={
                 shareRoles?.length ? (report) => setSharing({ kind: 'saved', id: report.id }) : undefined
               }

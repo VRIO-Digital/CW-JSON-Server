@@ -22,7 +22,38 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 
-const DB = new URL('../mock-server/db.json', import.meta.url)
+import { DATASETS, PRIMARY } from '../mock-server/datasets.mjs'
+
+/*
+ * Which dataset's settings to author — `npm run seed:settings` for the primary, or
+ * `npm run seed:settings -- CAPEX` for another.
+ *
+ * **A secondary dataset's settings are its own, and this only fills the gaps.** The primary's block is
+ * authored here in full, because this file is the source of it. A secondary dataset can arrive with a
+ * complete block of its own — CAPEX does: a different tenant, five users at its own domain, four personas
+ * of its own and its own locked row — and re-authoring that from the constants below would replace one
+ * tenant's directory with another's. So for a secondary dataset this writes **only the blocks that are
+ * missing**, and derives them from that document rather than from the constants here.
+ *
+ * This exists because `report_defaults` / `report_permissions` were added to `validateSettings` after
+ * CAPEX's document was generated: it was internally consistent and the server still refused it, naming
+ * this script as the fix. That refusal was right, and this is the fix it was naming.
+ */
+const dataset = (process.argv[2] ?? PRIMARY).trim()
+if (!DATASETS.includes(dataset)) {
+  console.error(
+    `
+seed-settings: "${dataset}" is not a declared dataset — this tenant has ${DATASETS.join(', ')}.
+`,
+  )
+  process.exit(1)
+}
+const secondary = dataset !== PRIMARY
+
+const DB = new URL(
+  secondary ? `../mock-server/db.${dataset}.json` : '../mock-server/db.json',
+  import.meta.url,
+)
 
 const db = JSON.parse(readFileSync(DB, 'utf8'))
 /* Whatever is already configured, so a re-run keeps it — see the note on `nav_permissions` below. */
@@ -127,6 +158,107 @@ const REPORT_DEFAULTS = {
 
 const problems = []
 const roleIds = db.auth_roles.map((r) => r.role_id)
+
+/*
+ * ---------------- a secondary dataset: derive the missing blocks from its own document ----------------
+ *
+ * Everything below the `if` is about the **primary's** authored constants and cannot apply to another
+ * tenant: `DEFAULTS` and `REPORT_DEFAULTS` are keyed by EPA's role ids, so checking CAPEX's four personas
+ * against them would report every one of them as missing a default.
+ *
+ * **And the report access is derived, not guessed.** CAPEX's own document states `may_author` per
+ * *person* in `reports.governance.data_scope`, which is the same fact EPA's `may_author` expresses: a
+ * persona that cannot see the underlying figures cannot define what a report asserts about them. So the
+ * two authoring acts follow it, mapped person → persona through the document's own user list, and
+ * everyone keeps `open` because the section is a reading surface.
+ *
+ * A persona whose people **disagree** about authoring is refused rather than resolved: the document's
+ * model is per person there, and silently reducing it to per persona would grant a right one of them
+ * lacks, or withhold one they have.
+ */
+if (secondary) {
+  const settingsBlock = existing
+  const byEmail = new Map(
+    (settingsBlock.users ?? []).map((u) => [String(u.email).toLowerCase(), u.role_id]),
+  )
+  const authorByRole = new Map()
+  for (const row of db.reports?.governance?.data_scope ?? []) {
+    const roleId = byEmail.get(String(row.email ?? '').toLowerCase())
+    if (!roleId) continue
+    const seen = authorByRole.get(roleId)
+    const mayAuthor = row.may_author === true
+    if (seen === undefined) authorByRole.set(roleId, mayAuthor)
+    else if (seen !== mayAuthor) authorByRole.set(roleId, 'split')
+  }
+
+  const derived = {}
+  for (const roleId of roleIds) {
+    const may = authorByRole.get(roleId)
+    if (may === 'split') {
+      problems.push(
+        `persona "${roleId}" has people who disagree about may_author — the document states it per ` +
+          'person, so it cannot be reduced to one report permission for the persona',
+      )
+      continue
+    }
+    /*
+     * **Every persona starts with all three acts, and `may_author` is not what decides it.**
+     *
+     * Deriving them from the document's `may_author` looked principled and was wrong in practice: this
+     * document marks its Platform Admin "No access yet", so the persona that administers the section
+     * arrived unable to edit or delete a report — a Library whose Delete button is simply absent, which
+     * reads as a broken card rather than as a permission.
+     *
+     * `may_author` is about **data scope** — whether a persona can see the figures a report asserts — and
+     * these three are about which *controls* a Library row offers. Using one to decide the other conflated
+     * two gates the rest of this app is careful to keep apart. So the authored start is permissive and the
+     * narrowing is a decision somebody makes on **Settings → Report View**, which is what that tab is for.
+     *
+     * `may_author` is still read, and still refuses a persona whose people disagree about it: that
+     * disagreement means the document's model is per person, which is worth stopping on whatever the
+     * defaults are.
+     */
+    derived[roleId] = reportAccess(REPORT_ACTIONS)
+  }
+
+  if (problems.length > 0) {
+    console.error('\nseed-settings: refusing to write —')
+    for (const pr of problems) console.error('  · ' + pr)
+    process.exit(1)
+  }
+
+  /*
+   * **Only the missing blocks are written.** The users, the nav defaults, the live nav set and the locked
+   * row are this dataset's own — a different tenant, its own people — and re-authoring them here would
+   * replace one directory with another's. `report_permissions` starts from the derived defaults and keeps
+   * whatever has already been configured, exactly as `nav_permissions` does for the primary.
+   */
+  const keptReports = Object.fromEntries(
+    roleIds.map((roleId) => {
+      const live = existing.report_permissions?.[roleId] ?? {}
+      const kept = Object.fromEntries(
+        REPORT_ACTIONS.filter((a) => typeof live[a] === 'boolean').map((a) => [a, live[a]]),
+      )
+      return [roleId, { ...derived[roleId], ...kept }]
+    }),
+  )
+
+  const next = {
+    ...existing,
+    report_defaults: existing.report_defaults ?? derived,
+    report_permissions: keptReports,
+  }
+
+  writeFileSync(DB, JSON.stringify({ ...db, settings: next }, null, 2) + '\n', 'utf8')
+  console.log(
+    `seed-settings (${dataset}): filled the missing report blocks for ${roleIds.length} personas — ` +
+      roleIds
+        .map((r) => `${r}=${REPORT_ACTIONS.filter((a) => keptReports[r][a]).join('/') || 'none'}`)
+        .join(', ') +
+      '\n  users, navigation and the locked row are this dataset’s own and were not touched.',
+  )
+  process.exit(0)
+}
 
 for (const u of USERS) {
   if (!roleIds.includes(u.role_id))

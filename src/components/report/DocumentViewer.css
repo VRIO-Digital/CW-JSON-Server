@@ -1,0 +1,49 @@
+/*
+ * The frame around one rendered report document. `--sp-*` throughout, like everything authored here.
+ */
+
+.dvw {
+  padding-top: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  /* The frame should fill what is left of the viewport rather than a guessed pixel height: a report is
+     a whole page, and a short frame turns it into a scrolling letterbox inside a scrolling page. */
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.dvw-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+}
+
+.dvw-name {
+  /* Pushed away from the buttons rather than given a fixed offset, so a long title wraps instead of
+     shoving the controls off the row. */
+  margin-left: auto;
+  min-width: 0;
+}
+
+.dvw-frame {
+  width: 100%;
+  /* 78vh rather than 100%: the frame sits under the app header and this bar, and a percentage of an
+     auto-height flex parent collapses to nothing. Tall enough to read a report, short enough that the
+     bar above it stays on screen. */
+  height: 78vh;
+  border: 1px solid var(--cw-line, #e3e5e9);
+  border-radius: var(--sp-2);
+  /* The document paints its own background; a transparent frame would show the app's through it while
+     the document loads, which reads as a flash of the wrong theme. */
+  background: #fff;
+  display: block;
+}
+
+/*
+ * Printing is delegated to the frame itself — `contentWindow.print()` — so the app's own print rules
+ * never apply to a document. Nothing here hides the app for print, deliberately: if a reader uses the
+ * browser's own Print on this page instead of the button, what they get is the app's page, and inventing
+ * a half-working print path for that case would be worse than the button being the answer.
+ */

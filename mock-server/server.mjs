@@ -487,7 +487,22 @@ function validatePrototype(candidate) {
   for (const key of PROTOTYPE_COLLECTIONS) {
     const value = candidate[key]
     if (!Array.isArray(value)) problems.push(`"${key}" must be an array`)
-    else if (value.length === 0) problems.push(`"${key}" is empty — the prototype would render nothing`)
+    /*
+     * **`library` is the one collection that may be empty, and the client's validator already said so.**
+     *
+     * Every other collection here is authored sample data: an empty `generators` is a document that lost
+     * its rows rather than a state anybody chose. The shelf is different — it is the prototype's own demo
+     * *fiction*, other people's saved reports, and `src/reports/data/validate.ts` permits it empty in as
+     * many words ("a fresh workspace has published nothing"). Hosted it is always empty anyway, because a
+     * governed Library is present and the prototype defers to it.
+     *
+     * Two validators disagreeing about one field is worth resolving rather than working around: a dataset
+     * whose shelf rows referred to starters it no longer had could only satisfy both by inventing four
+     * demo reports, which is fabricating data to pass a check.
+     */
+    else if (value.length === 0 && key !== 'library') {
+      problems.push(`"${key}" is empty — the prototype would render nothing`)
+    }
   }
   return problems
 }
@@ -1061,7 +1076,19 @@ const DB_SHAPE = {
    * data in any dataset, and `MERGE_PLAN` marks both `primary` precisely because they are not a
    * dataset's to vary.
    */
-  settings: (v) => validateSettings(v).length === 0,
+  /*
+   * **Validated against the document's *own* `auth_roles`, not the ambient dataset's.**
+   *
+   * `validateSettings` checks that every user names a real persona, and it read `db.auth_roles` to do
+   * it. At boot there is no request in flight, so `activeDataset()` is the primary — which meant CAPEX's
+   * settings were checked against **EPA's** roles. That was invisible while CAPEX was empty and carried
+   * the primary's block verbatim; the moment it arrived as its own tenant, with its own personas, the
+   * boot refused a document that is internally consistent and named the wrong reason.
+   *
+   * So the whole candidate is threaded through and the roles come from it. A document has to be valid
+   * on its own terms — that is what "one document per dataset" means.
+   */
+  settings: (v, _empty, doc) => validateSettings(v, doc).length === 0,
   reports_prototype: (v) => validatePrototype(v).length === 0,
 }
 
@@ -1150,7 +1177,7 @@ function validateDb(candidate) {
 
   for (const [key, check] of Object.entries(DB_SHAPE)) {
     if (!(key in candidate)) problems.push(`"${key}" is missing — ${DB_HINTS[key]}`)
-    else if (!check(candidate[key], empty))
+    else if (!check(candidate[key], empty, candidate))
       problems.push(`"${key}" is the wrong shape — expected ${DB_HINTS[key]}`)
   }
 
@@ -1597,11 +1624,19 @@ async function commitDb(next) {
  *
  * Checked **across files** where it has to be — the personas are `db.auth_roles`, not a list here.
  */
-function validateSettings(candidate) {
+function validateSettings(candidate, doc = null) {
   const problems = []
   if (!isObject(candidate)) return ['db.settings must be a JSON object']
 
-  const roleIds = db.auth_roles.map((r) => r.role_id)
+  /*
+   * The personas this settings block is allowed to name — the *document's* own where one was handed in,
+   * and the selected dataset's otherwise (which is what every request-time caller wants). See the note
+   * on `DB_SHAPE.settings`: reading the ambient `db` at boot checked one dataset's users against
+   * another's roles.
+   */
+  const roleIds = (isObject(doc) && Array.isArray(doc.auth_roles) ? doc.auth_roles : db.auth_roles).map(
+    (r) => r.role_id,
+  )
   const { users, defaults, read_only: readOnly, nav_permissions: perms } = candidate
 
   if (!Array.isArray(users) || users.length === 0) {
@@ -1668,7 +1703,9 @@ function validateSettings(candidate) {
    * drifted file rather than an intention. Neither throws; both change what a sidebar shows.
    */
   if (isObject(defaults) && isObject(perms)) {
-    for (const roleId of db.auth_roles.map((r) => r.role_id)) {
+    /* The same `roleIds` as above, so the parity check cannot be run against a different pool from
+       the one the entries were validated against. */
+    for (const roleId of roleIds) {
       const a = Object.keys(defaults[roleId] ?? {}).sort()
       const b = Object.keys(perms[roleId] ?? {}).sort()
       const missing = a.filter((k) => !b.includes(k))
@@ -4783,14 +4820,32 @@ const REPORT_SCOPES = {
   cd: (rows) => rows.filter((r) => r.cd === true),
   enf: (rows) => rows.filter((r) => r.enf > 0),
   oos: (rows) => rows.filter((r) => r.state !== 'TX'),
+  /*
+   * CAPEX's own scope id, and it really does mean every row: its three report definitions are written
+   * against the whole 60-project register, and the *masking* its personas differ by is a data-scope
+   * matter rather than a row filter. Named here rather than rewritten to `all` in the document, because
+   * the document is generated (`_meta` says so) and a value edited on this side would be overwritten by
+   * its next rebuild — so the server learns the name instead.
+   *
+   * A scope this map does not know **stops the boot** rather than silently selecting nothing, which is
+   * how CAPEX's arrival was caught: a report whose scope quietly returned no rows would have rendered
+   * as an empty register, which reads as a dataset with no projects.
+   */
+  sc_author_all: (rows) => rows,
 }
 
-/** Which column names a row on each spine — a bar with no label is not a bar. */
+/**
+ * Which column names a row on each spine — a bar with no label is not a bar.
+ *
+ * Every dataset's spines live in this one map. CAPEX's spine is `projects` and its label column is `n`,
+ * which is the project name; the abbreviation is the generated document's, not a choice made here.
+ */
 const REPORT_LABEL_KEY = {
   generators: 'generator',
   facilities: 'facility',
   quarters: 'quarter',
   traces: 'mtn',
+  projects: 'n',
 }
 
 /*
@@ -9608,6 +9663,23 @@ const routes = [
     handle: (_req, res, { query }) => {
       const connected = connectedSources().length
       const counts = reportGraphCounts()
+
+      /*
+       * **The rendered documents ride on both branches, because the publish gate is not about them.**
+       *
+       * That gate exists because an EPA report *is* a question asked of the published graph — serving
+       * one with nothing published would be answering from content nobody released. A CAPEX report is a
+       * finished document: nothing was asked of a graph to produce it, so withholding it until a graph is
+       * published would be enforcing a precondition it does not have, and the section would read as
+       * empty for a dataset that ships three reports.
+       *
+       * They are named `documents` rather than folded into `reports` for the same reason: a computed
+       * report and a rendered one are different things, and a reader has to be able to tell which they
+       * are looking at.
+       */
+      const documents = db.reports.documents ?? []
+      const authoringDocument = db.reports.authoring_document ?? null
+
       if (counts.published_count === 0) {
         return send(res, 200, {
           connected_sources: connected,
@@ -9617,12 +9689,33 @@ const routes = [
           reports: [],
           saved: [],
           authoring: null,
+          /*
+           * **The governance view rides along for a dataset that ships documents, and only for one.**
+           *
+           * It is `null` while the gate is closed because there is normally nothing to govern until a
+           * graph is published — a governance block full of empty lists reads as "nothing governed".
+           * A dataset whose reports are *documents* has a library either way, so withholding it would
+           * leave the Library with no chips and no rows for reports that plainly exist.
+           *
+           * `reportGovernanceView` reads `db.reports.governance` and nothing about a published graph,
+           * so this is a wider *audience* for an already-computed view rather than a looser gate. EPA
+           * still gets `null` here, which is what keeps its documented behaviour unchanged.
+           */
+          governance: documents.length > 0 ? reportGovernanceView(reportRoleFrom(query)) : null,
+          documents,
+          authoring_document: authoringDocument,
         })
       }
       /* The role the browser reports, read by `reportRoleFrom` — the same reader for this GET and
          for all three governance writes, so a write cannot answer with a view computed for
          somebody else. */
-      send(res, 200, { connected_sources: connected, ...counts, ...reportsList(reportRoleFrom(query)) })
+      send(res, 200, {
+        connected_sources: connected,
+        ...counts,
+        ...reportsList(reportRoleFrom(query)),
+        documents,
+        authoring_document: authoringDocument,
+      })
     },
   },
 
@@ -9642,7 +9735,8 @@ const routes = [
    * UI built on them has to say so in those words.
    */
 
-  /* Share — who may see that this report exists. `[]` is private, and is a decision. */
+  /*
+   * /* Share — who may see that this report exists. `[]` is private, and is a decision. */
   {
     method: 'PATCH',
     match: (p) => /^\/reports\/governance\/[^/]+\/audience$/.test(p),

@@ -39,6 +39,8 @@ interface Props {
   onEditGoverned?(row: GovernedRow): void;
   onShareGoverned?(row: GovernedRow): void;
   onRemoveGoverned?(row: GovernedRow): void | Promise<void>;
+  /** Report ids the host can render with no starter behind them — see `GovernedCard.hostOpenable`. */
+  hostOpenableIds?: string[];
   /** Share on a report saved in this session — the same dialog, over the row's local audience. */
   onShareSaved?(report: SavedReport): void;
   onAuthorNew(): void;
@@ -84,6 +86,7 @@ export function LibraryPane({
   onEditGoverned,
   onShareGoverned,
   onRemoveGoverned,
+  hostOpenableIds,
   onShareSaved,
   onAuthorNew,
   onEdit,
@@ -250,6 +253,7 @@ export function LibraryPane({
                       onEdit={onEditGoverned}
                       onShare={onShareGoverned}
                       onRemove={onRemoveGoverned}
+                      hostOpenable={hostOpenableIds?.includes(c.governed.reportId)}
                     />
                   ) : c.saved ? (
                     <SessionCard

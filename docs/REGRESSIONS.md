@@ -3544,3 +3544,87 @@ carry a curly apostrophe (`the report’s own print rules`), which a byte-wise `
 locale does not match. Comparing the *set* of failing claims before and after the mutation is the
 reliable form; matching a guessed label is not. This is the third session in which a break harness,
 rather than a guard, was the thing that was broken.
+
+## A rebuild-the-subtree ingest silently un-shared a report
+
+**Symptom.** Sharing a CAPEX report document with two personas worked, committed, and served correctly.
+Running `npm run ingest:capex` afterwards — which is the documented way to restore a deleted row —
+reverted it to never-shared, with nothing on screen or in the output to say so.
+
+**Cause.** The ingest rebuilds `reports.documents` wholesale, which is correct for every field on the
+row *except one*: each document's title, subtitle, category, version, author and refresh are read out of
+the HTML, but `audience` is a decision made in the app through `PATCH /reports/documents/:id/audience`.
+A rebuild is right for what the file authors and wrong for what it does not.
+
+**This is the third time this exact shape has bitten.** `ingest-reports.mjs` nearly deleted every report
+audience and data-scope row the same way, and the rule was already written down: *when a script owns a
+subtree, derive the carry-forward list rather than remembering it*. It was still missed here, because the
+new subtree looked entirely file-derived — the one non-derived field was added later, by a route, in a
+different session's work.
+
+**Fix.** Carry `audience` across, keyed by `document_id` rather than by position, so re-ordering the
+folder cannot move one report's audience onto another. A row that never had one keeps no key at all,
+because never-shared and deliberately-private are different facts and only the second is a decision.
+
+**Guard.** A `check-docs` claim asserts the carry-forward exists, is keyed by id, and tests
+`Array.isArray` — break-tested by removing it. The general rule to apply next time: **for every field on
+a row a script rebuilds, ask which layer authors it.** If any field is written by a route rather than by
+the source the script reads, that field needs carrying and the script should say so where it does it.
+
+## Two vendored folders were missing from the worktree, and the first symptom was one import
+
+**Symptom.** `[plugin:vite:import-analysis] Failed to resolve import "../reports/components/MenuProvider"
+from "src/pages/ReportsPage.tsx"`. One import named, so the obvious reading is one missing file.
+
+**Cause.** All of `src/reports/` (35 files) and `src/graph-viewer/` (12 files) were absent from the
+working tree while present in git — `git status` showed 47 ` D` entries. The vite error names whichever
+import it reached first, which makes a wholesale deletion look like a typo in one path.
+
+**Fix.** `git checkout -- src/reports src/graph-viewer`. Worth knowing *before* reaching for it: the
+index held the session's own uncommitted edit to `src/reports/App.tsx`, so the restore was lossless — but
+that had to be **checked** rather than assumed, by diffing the index blob against a copy of the modified
+file. A `git checkout` over a modified-but-uncommitted file is the one command in this repo that
+destroys work silently, and earlier in the same session it had already wiped a print stylesheet block
+that way.
+
+**The lesson.** `git status --short` before diagnosing an import error. A resolution failure names one
+path; the question to ask is how many files are missing, not what is wrong with that path. And a folder
+of *assets* under `src/` is not app code: `src/EPA` and `src/Capex` are now in `tsconfig.app.json`'s
+`exclude`, because `tsc -b` was failing on a reference copy nothing imports, and the stylesheet walker in
+`check-docs` reads that same exclude list rather than keeping a second one that could disagree with it.
+
+## A per-dataset document was validated against another dataset's personas
+
+**Symptom.** CAPEX's real document arrived — its own tenant (Northline Water Group), five users at its
+own domain, four personas of its own — and the server refused to boot: *`"settings" is the wrong shape
+— expected users[] of { email, name, role_id naming one of auth_roles }`*. The document was internally
+consistent: every user's `role_id` was one of **its own** `auth_roles`.
+
+**Cause.** `validateSettings` read `db.auth_roles`, and `db` is a Proxy over "the document this request
+selected". At boot there is no request in flight, so `activeDataset()` returns the primary — which meant
+CAPEX's users were checked against **EPA's** personas. It never showed while CAPEX was empty and carried
+the primary's block verbatim; the moment it became its own tenant, the check compared two unrelated
+identity models and blamed the shape.
+
+**Fix.** Thread the candidate document through `DB_SHAPE`'s checks (`check(value, empty, candidate)`) and
+have `validateSettings` take it, so the roles come from the document being validated. A document has to
+be valid on its own terms — that is what "one document per dataset" means.
+
+**The general shape.** Any validator that reads the ambient `db` while checking a *candidate* is asking
+one dataset about another. `validateDb` is called per document at boot, so **every cross-key check inside
+it must read `candidate`, never `db`.** Worth grepping for: the parity check further down the same
+function had the same bug and was fixed in the same pass.
+
+**Two things the same import needed, both additive rather than destructive.** The document brought
+`_meta` and `_provenance` — a top-level key with no `MERGE_PLAN` rule stops the boot, which is the guard
+working, so both are declared `primary`. And its report definitions use a scope (`sc_author_all`) and a
+spine (`projects`) this server did not know; both were added to the maps rather than edited in the
+document, because `_meta` says the file is generated and a value changed on this side would be lost at
+its next rebuild.
+
+**And `npm run seed:settings` now takes a dataset.** The blocks CAPEX was missing —
+`report_defaults` / `report_permissions`, added to `validateSettings` after its document was generated —
+are authored by `npm run seed:settings -- CAPEX`, which for a secondary dataset writes **only the missing
+blocks** and leaves the users, navigation and locked row alone. Their values are *derived* from the
+document's own `governance.data_scope.may_author` rather than guessed, mapped person → persona through
+its own user list, and a persona whose people disagree is refused rather than silently reduced.

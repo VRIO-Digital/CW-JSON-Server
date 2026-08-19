@@ -1,0 +1,63 @@
+/**
+ * Where a dataset's rendered report documents actually live, as URLs the browser can load.
+ *
+ * The server lists a document by **filename** — `R1_variance_report.html` — because that is what the
+ * ingest read off disk and because the server has no idea how the client bundles its assets. This module
+ * is the other half: it turns that filename into a URL.
+ *
+ * **`import.meta.glob` with `?url`, so there is exactly one copy of each file.** The obvious alternative
+ * is to copy them into `public/`, which serves them at a stable path with no bundler involvement — and
+ * that is how `/login/data` frames its document. It was rejected here for one reason: a copy in `public/`
+ * beside the original in `src/Capex/Report/` is two answers to what the report says, and the one nobody
+ * edits goes stale silently. These files are 2.5 MB each and are re-exported as a whole; a stale copy
+ * would be a whole report out of date, not a detail. So the files stay where they were authored and Vite
+ * emits them as assets.
+ *
+ * **The glob is written per-dataset-folder rather than naming CAPEX**, so a second dataset that ships
+ * rendered reports is a folder drop and an ingest run rather than an edit here. `eager` because the map
+ * is a lookup table of URLs, not the documents themselves — nothing 2.5 MB is pulled into the bundle
+ * graph by asking for its address.
+ */
+
+/*
+ * Vite rewrites this at build time into a map of module path -> emitted asset URL. Typed explicitly
+ * because `?url` on `.html` is not one of the extensions `vite/client` declares.
+ */
+const modules = import.meta.glob('../*/Report/*.html', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
+/**
+ * Filename -> URL, keyed on the basename because that is what the payload carries.
+ *
+ * A duplicate basename across two dataset folders would make one of them unreachable, so it is a
+ * **throw at module load** rather than a silent overwrite: the alternative is a Library row that opens
+ * the wrong dataset's report, which looks like a working page. Module load is the right moment — this is
+ * a build-time fact, so it cannot depend on which dataset a reader happens to select.
+ */
+const byName = new Map<string, string>()
+for (const [path, url] of Object.entries(modules)) {
+  const name = path.slice(path.lastIndexOf('/') + 1)
+  const seen = byName.get(name)
+  if (seen && seen !== url) {
+    throw new Error(
+      `two report documents are called "${name}" (${seen} and ${url}) — ` +
+        'a Library row would open whichever won, so rename one',
+    )
+  }
+  byName.set(name, url)
+}
+
+/**
+ * The URL for one document, or `null` when the bundle has no such file.
+ *
+ * `null` rather than a guessed path, because a guess produces an iframe that loads the SPA's own
+ * `index.html` — the router then renders the app inside the report frame, which reads as a broken report
+ * rather than as a missing file. The caller says so in words instead.
+ */
+export const reportDocumentUrl = (file: string): string | null => byName.get(file) ?? null
+
+/** Every document filename the bundle carries, for the "which files are here" half of a diagnosis. */
+export const reportDocumentFiles = (): string[] => [...byName.keys()].sort()

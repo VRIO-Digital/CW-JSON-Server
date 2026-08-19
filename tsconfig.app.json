@@ -22,5 +22,21 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+
+  /*
+   * `src/ESS` and `src/Capex` hold per-dataset assets rather than app code.
+   *
+   * `src/ESS` is a copy of the two vendored folders kept for reference; the *live* ones the app
+   * imports are still `src/reports` and `src/graph-viewer`. Compiled, its `graph-viewer/fromCanvas.ts`
+   * fails on `../api/client` — one level deeper that path does not exist — so `tsc -b`, and therefore
+   * `npm run build` and `npm run preflight`, break on a folder nothing imports.
+   *
+   * `src/Capex` holds the CAPEX dataset's three rendered report documents and its authoring
+   * exploration, all standalone HTML with their own <head> and theme. They are served to an iframe
+   * rather than compiled, so there is nothing here for the type-checker to do.
+   *
+   * Excluded rather than deleted: both are somebody's work, and neither is part of the bundle.
+   */
+  "exclude": ["src/ESS", "src/Capex"]
 }

@@ -2473,7 +2473,36 @@ expect('SP mirror in theme.ts', /export const SP = \{/.test(theme), 'JSX side of
  * inset cannot be expressed with it and is a border-ish detail rather than layout spacing.
  * Anything 4px or over must come from the scale.
  */
+/*
+ * **The walk skips what the build skips, and reads that from `tsconfig.app.json`.**
+ *
+ * Not every directory under `src/` is app code. `src/EPA` holds a reference copy of the two vendored
+ * folders and `src/Capex` holds the CAPEX dataset's rendered report documents — standalone HTML served
+ * to an iframe. Neither is compiled and neither reaches the bundle, so neither ships a stylesheet this
+ * rule is about; `src/EPA`'s copy of the viewer sheet would otherwise fail the check as a third and
+ * fourth copy of a sheet whose two originals are exempt.
+ *
+ * **Derived rather than listed again.** A second hand-kept list here could disagree with the one the
+ * compiler honours, and the failure would be quiet in both directions: a folder excluded from the build
+ * but walked here fails the check for code nobody ships, and a folder walked by the build but skipped
+ * here hides real raw px. `tsconfig.app.json` carries comments, so the array is read with a regex —
+ * the same technique the seed's `NAV_KEYS` is read with.
+ */
+const buildExcludes = (/"exclude"\s*:\s*\[([\s\S]*?)\]/.exec(read('tsconfig.app.json'))?.[1] ?? '')
+  .split(',')
+  .map((s) => s.trim().replace(/^"|"$/g, ''))
+  .filter(Boolean)
+expect(
+  'the stylesheet walk skips exactly the folders the build excludes',
+  buildExcludes.length > 0 &&
+    /* Each named folder really is outside the app: nothing under src/ that is compiled imports it. */
+    buildExcludes.every((dir) => existsSync(join(root, dir))),
+  buildExcludes.length === 0
+    ? 'tsconfig.app.json declares no exclude — this check cannot run'
+    : `skipping ${buildExcludes.join(', ')}`,
+)
 const cssFiles = (function walkCss(dir) {
+  if (buildExcludes.some((skip) => dir === skip || dir.startsWith(`${skip}/`))) return []
   return readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) =>
     entry.isDirectory()
       ? walkCss(`${dir}/${entry.name}`)
@@ -3590,7 +3619,7 @@ expect(
      request; a name in this list with no document behind it stops the boot, so removing the file
      meant removing the name. What is asserted is the shape, not the count — a boot that loads every
      dataset and a request that selects one is what makes a second dataset a two-line change. */
-  /export const DATASETS = \['EPA'\]/.test(datasets) &&
+  /export const DATASETS = \['EPA', 'CAPEX'\]/.test(datasets) &&
     /export const PRIMARY = 'EPA'/.test(datasets) &&
     /* The refs are built per dataset, so each reads its own prefix. */
     /DATASETS\.map\(\(name\) => \[name, docRef\('db\.json', join\(here, 'db\.json'\), name\)\]\)/.test(
@@ -3714,8 +3743,10 @@ expect(
 expect(
   'an empty collection is allowed only in a secondary dataset',
   /const empty = activeDataset\(\) !== PRIMARY/.test(server) &&
-    /* Passed to the shape checks, which is how the relaxation reaches them. */
-    /!check\(candidate\[key\], empty\)/.test(server) &&
+    /* Passed to the shape checks, which is how the relaxation reaches them — along with the whole
+       candidate, so a per-dataset check can validate a document against its own keys rather than the
+       ambient dataset's. */
+    /!check\(candidate\[key\], empty, candidate\)/.test(server) &&
     /* The primary still may not lose its rows: the flag is false for it, so `empty ||` cannot fire. */
     /\(empty \|\| v\.length > 0\)/.test(server) &&
     /* The boot refusal names the seed rather than the primary's restore command. */
@@ -4736,12 +4767,39 @@ expect(
      alone, which is what keeps the vendored folder honest. */
   /onOpenPublished\?: \(reportId: string\) => void;/.test(read('src/reports/App.tsx')) &&
     /if \(!forEdit && onOpenPublished\) \{/.test(read('src/reports/App.tsx')) &&
-    /onOpenPublished=\{\(reportId\) => void openReport\(reportId\)\}/.test(reportsPage) &&
-    /* One of the two is mounted, never both: the prototype's toast and popover hosts portal to
-       `document.body`, and a second copy is how Delete came to look like a dead button once already. */
-    /\{openReportId \? <PublishedReportPane \/> : null\}/.test(reportsPage) &&
-    /* The prototype branch also waits on its dataset now, so the condition names all four states. */
-    /openReportId \|\| !hydrated \|\| prototypeError \|\| hydrationError \? null : \(/.test(reportsPage) &&
+    /*
+     * **Open opens whichever kind of report this is, and that is why there is one Library UI.**
+     *
+     * A dataset can ship its reports as *rendered documents* instead of computing them — CAPEX does. The
+     * prototype still just hands over an id; the host matches it against `documents` first and falls
+     * through to the computed report. Both collections carry `report_id`, so the match is exact rather
+     * than a guess on the title. A CAPEX-only grid existed briefly and was removed: two grids of the same
+     * definitions is two answers to what reports exist.
+     */
+    /const doc = data\?\.documents\.find\(\(d\) => d\.reportId === reportId\)/.test(reportsPage) &&
+    /*
+     * **Edit never comes through this callback — it loads the row's authoring starter in the pane.**
+     *
+     * That is what makes a report editable and what makes Save work, and it is why a dataset whose
+     * reports are rendered documents ships a **starter per report** as well: without one, Edit had
+     * nothing to open. Two weaker answers were tried first and both were reported — withholding the
+     * button (a Library missing two of its four acts reads as a broken card) and framing the static
+     * authoring page (no editing, no Save, so not Edit).
+     */
+    /const built = fromGoverned\(row, assumptions\.graph\);/.test(read('src/reports/App.tsx')) &&
+    /setEditMode\(forEdit\)/.test(read('src/reports/App.tsx')) &&
+    /void openReport\(reportId\)/.test(reportsPage) &&
+    /* One view is mounted, never two: the prototype's toast and popover hosts portal to
+       `document.body`, and a second copy is how Delete came to look like a dead button once already.
+       A document wins over a computed report, so the two conditions are mutually exclusive. */
+    /\{openDoc \? <DocumentViewer document=\{openDoc\} onBack=\{\(\) => setOpenDoc\(null\)\} \/> : null\}/.test(
+      reportsPage,
+    ) &&
+    /\{!openDoc && openReportId \? <PublishedReportPane \/> : null\}/.test(reportsPage) &&
+    /* The prototype branch waits on its dataset and stands down for either kind of open report. */
+    /openDoc \|\| openReportId \|\| !hydrated \|\| prototypeError \|\| hydrationError \? null : \(/.test(
+      reportsPage,
+    ) &&
     /* No switch came back, and no route per report: `/reports` is one address. */
     !/Segmented/.test(codeOnly(reportsPage)) &&
     !/path: 'reports\//.test(read('src/routes.tsx')),
@@ -5788,8 +5846,16 @@ expect(
      just this page's. That covers the case the two files never did: a writer that rebuilds some other
      subtree wholesale and forgets to carry this one, which is how `db.reports.governance` was nearly
      lost. Asserted across all of it, because a half-move is what fails quietly. */
-  /settings: \(v\) => validateSettings\(v\)\.length === 0,/.test(server) &&
-    /function validateSettings\(candidate\)/.test(server) &&
+  /*
+   * The shape check threads the whole candidate document through, and `validateSettings` takes it —
+   * because a per-dataset document has to be valid **on its own terms**. It read the ambient
+   * `db.auth_roles`, and at boot there is no request in flight, so CAPEX's users were checked against
+   * EPA's personas: a document that is internally consistent, refused for the wrong reason.
+   */
+  /settings: \(v, _empty, doc\) => validateSettings\(v, doc\)\.length === 0,/.test(server) &&
+    /function validateSettings\(candidate, doc = null\)/.test(server) &&
+    /* The roles come from the document handed in, falling back to the selected dataset's. */
+    /doc\.auth_roles : db\.auth_roles/.test(server) &&
     /function commitSettings\(next\)/.test(server) &&
     /* Its own message still, naming the seed rather than "restart the server". */
     /refusing to start — db\.settings cannot be served/.test(server) &&
@@ -5856,6 +5922,88 @@ expect(
   seededNavKeys.length === 0
     ? 'the seed’s NAV_KEYS were not parsed — this check cannot run'
     : `${seededNavKeys.length} keys, matching nav.ts`,
+)
+
+/* ---------------- a dataset whose reports are rendered documents ---------------- */
+
+/*
+ * **CAPEX ships finished HTML documents; EPA computes its reports.** Two different kinds of thing, and
+ * the payload says which, so a reader can tell a current figure from a fixed one.
+ *
+ * The claim that matters most is the *negative* one: no title or version is typed into this repo.
+ * Everything on a CAPEX card is read out of the document by `npm run ingest:capex`, so the Library prints
+ * the name the report gives itself. A transcribed title is the small version of a transcribed figure — it
+ * looks right and goes stale the first time a document is re-exported.
+ */
+const capexIngest = read('scripts/ingest-capex-reports.mjs')
+const capexDb = readJson('mock-server/db.CAPEX.json')
+const capexDocs = capexDb.value?.reports?.documents ?? []
+/*
+ * The components a CAPEX row and a CAPEX report pass through. There is **one Library UI** for both
+ * datasets — the vendored prototype's `GovernedCard` renders EPA's governed definitions and CAPEX's
+ * alike — so the "no transcribed title" check reads the card that actually draws the row plus the
+ * viewer that frames the document. A separate CAPEX-only grid existed briefly and was removed: two
+ * grids of the same definitions is two answers to what reports exist.
+ */
+const capexRowSrc =
+  read('src/reports/panes/GovernedCard.tsx') + read('src/components/report/DocumentViewer.tsx')
+expect(
+  'the CAPEX documents are ingested from the documents, never typed here',
+  capexDocs.length > 0 &&
+    /* Keyed by the id baked into each file, which is the one thing distinguishing three near-identical
+       2.5 MB exports from one another. */
+    /REPORT_ID/.test(capexIngest) &&
+    capexIngest.includes('"slug"') &&
+    /* Every row carries what a card needs, and the ingest refuses rather than writing a blank. */
+    capexDocs.every((d) => d.title && d.version && d.status && d.category && d.file) &&
+    /refusing to write/.test(capexIngest) &&
+    /* And no ingested title reaches a component as a literal. */
+    !capexDocs.some((d) => capexRowSrc.includes(d.title)) &&
+    /* One Library UI: the CAPEX-only grid is gone, and the prototype's card draws both datasets. */
+    !existsSync(join(root, 'src/components/report/DocumentLibrary.tsx')),
+  capexDocs.length === 0
+    ? 'db.CAPEX.json carries no documents — run npm run ingest:capex'
+    : `${capexDocs.length} documents · ${capexDocs.map((d) => `${d.document_id} ${d.version}`).join(', ')}`,
+)
+
+/*
+ * **The publish gate is about questions, so a rendered document is not behind it.**
+ *
+ * An EPA report is asked of the published graph — serving one with nothing published would answer from
+ * content nobody released. A CAPEX report asked nothing of a graph, so gating it would enforce a
+ * precondition it does not have and leave the section empty for a dataset that ships three reports. So
+ * the documents ride on **both** branches of `GET /reports`, and the page's gate tests both counts.
+ */
+expect(
+  'a dataset that ships rendered documents is not gated on a published graph',
+  /publishedCount === 0 && data\.documents\.length === 0/.test(read('src/pages/ReportsPage.tsx')) &&
+    /* Served whether or not the gate is closed — two branches, both carrying them. */
+    (server.match(/authoring_document: authoringDocument,/g) ?? []).length === 2,
+  'the gate still holds for computed reports; documents are not behind it',
+)
+
+/*
+ * **The documents are framed, not inlined, and there is one copy of each file.**
+ *
+ * Each is a standalone 2.5 MB page with its own `<head>`, theme and inline scripts: injecting the body
+ * would drop the `<head>` the report *is* and put its selectors in the app's tree — the problem that
+ * forced `.cw-reports` on the vendored sheet, with live script on top. And the files stay in
+ * `src/<dataset>/Report` rather than being copied into `public/`, because a second copy of a 2.5 MB
+ * re-exported document is a whole report that can go stale silently.
+ */
+const viewerSrc = read('src/components/report/DocumentViewer.tsx')
+expect(
+  'a report document is framed in an iframe, from a single copy resolved at build time',
+  /<iframe/.test(viewerSrc) &&
+    /* Resolved through the glob, never a hand-built path — a guess loads the SPA's own index.html. */
+    /reportDocumentUrl\(doc\.file\)/.test(viewerSrc) &&
+    /import\.meta\.glob\('\.\.\/\*\/Report\/\*\.html'/.test(read('src/data/reportDocuments.ts')) &&
+    /* One copy: nothing was duplicated into public/. */
+    !existsSync(join(root, 'public/capex')) &&
+    /* A file that is not in the bundle is a stated diagnosis rather than an empty frame. */
+    /not in this build/.test(viewerSrc) &&
+    /reportDocumentFiles\(\)/.test(viewerSrc),
+  'framed, single-copy, and a missing file names itself',
 )
 
 /*

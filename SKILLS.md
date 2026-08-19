@@ -2103,6 +2103,17 @@ seed because a script cannot import the server, so `check-docs` compares them; a
 a card that tested one is the shape of the access gate this section removed, which rendered rows with no
 actions at all.
 
+**A dataset whose reports are documents:** switch to CAPEX in Settings → Dataset → Reports lists the
+three rendered HTML reports. `src/Capex/Report/*.html` → `npm run ingest:capex` (reads each file's own
+report registry, refuses on a missing field, carries `audience` forward) → `db.CAPEX.json`
+`reports.documents` → `GET /reports` on **both** branches, because the publish gate is about questions and
+a rendered document asked nothing of a graph → `src/data/reportDocuments.ts` resolves the filename to a
+bundled URL through `import.meta.glob` → `DocumentLibrary` (four acts, Report View permissions honoured)
+→ `DocumentViewer` frames it in an iframe. Two things to hold on to: the files stay in
+`src/Capex/Report` with **one copy** — a duplicate in `public/` is a whole 2.5 MB report that can go
+stale — and **Edit opens the authoring exploration**, which is what editing a finished document can
+honestly mean.
+
 **Where a report leaves the app:** open one from the Library → `Export PDF` → the browser's print
 dialog. `window.print()` over the `@media print` rules in `PublishedReportPane.css`, which hide `body *`
 and reveal `.prp` — there is no PDF renderer here, by dependency decision, and the hint sits in

@@ -5784,6 +5784,36 @@ export interface ReportSummary {
   tiles: ReportTile[]
 }
 
+/**
+ * A **rendered** report a dataset ships as a finished document rather than as a question.
+ *
+ * EPA has none: its five reports are computed per request from the rosters, which is what makes a
+ * figure there current rather than stored. CAPEX ships three standalone HTML documents and no roster to
+ * compute from, so they are listed as documents and every figure stays inside the file — transcribing
+ * one into a component is the change that would look right on screen and break the section's premise.
+ *
+ * Every field here is read out of the document itself by `npm run ingest:capex`, including the title, so
+ * the Library prints the name the report gives itself.
+ */
+export interface ReportDocument {
+  documentId: string
+  /** The id baked into the document, which is what selects the report inside it. */
+  reportId: string
+  /** The file, relative to the dataset's report folder. Resolved to a URL by the page, not here. */
+  file: string
+  title: string
+  subtitle: string
+  category: string
+  /** One of the governance state pool's keys, so a card and a chip cannot disagree about it. */
+  status: string
+  version: string
+  slug: string
+  author: string
+  /** The document's own refresh sentence — "Daily 07:00 UTC" — rather than its cron. */
+  refresh: string
+  updatedAt: string
+}
+
 export interface ReportsIndex {
   connectedSources: number
   /**
@@ -5794,6 +5824,14 @@ export interface ReportsIndex {
   publishedCount: number
   builtCount: number
   draftCount: number
+  /**
+   * The rendered documents this dataset ships, and its authoring exploration.
+   *
+   * Both ride on the payload whether or not a graph is published, because the publish gate is about
+   * questions asked of a graph and a rendered document asked nothing of one.
+   */
+  documents: ReportDocument[]
+  authoringDocument: string | null
   /** Every published graph a question may be asked of, newest build first. */
   graphs: ReportGraph[]
   /** The default — the newest published — for a report opened straight off the section. */
@@ -6608,6 +6646,23 @@ const REPORTS_INDEX = shape({
   graphs: REPORT_GRAPHS,
   saved: REPORT_SAVED,
   authoring: REPORT_AUTHORING,
+  documents: arrayOf(
+    shape({
+      document_id: str,
+      report_id: str,
+      file: str,
+      title: str,
+      subtitle: str,
+      category: str,
+      status: str,
+      version: str,
+      slug: str,
+      author: str,
+      refresh: str,
+      updated_at: str,
+    }),
+  ),
+  authoring_document: nullable(str),
   reports: arrayOf(
     shape({
       report_id: str,
@@ -6769,6 +6824,21 @@ export async function getReports(asRole?: string | null): Promise<ReportsIndex> 
     graphs: RawReportGraph[]
     saved: RawSavedReport[]
     authoring: RawReportAuthoring | null
+    documents: {
+      document_id: string
+      report_id: string
+      file: string
+      title: string
+      subtitle: string
+      category: string
+      status: string
+      version: string
+      slug: string
+      author: string
+      refresh: string
+      updated_at: string
+    }[]
+    authoring_document: string | null
     reports: RawReportSummary[]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     governance: any
@@ -6789,6 +6859,21 @@ export async function getReports(asRole?: string | null): Promise<ReportsIndex> 
     graphs: raw.graphs.map((g) => toReportGraph(g)).filter((g): g is ReportGraph => g !== null),
     saved: raw.saved.map(toSaved),
     authoring: raw.authoring ? toAuthoring(raw.authoring) : null,
+    documents: raw.documents.map((d) => ({
+      documentId: d.document_id,
+      reportId: d.report_id,
+      file: d.file,
+      title: d.title,
+      subtitle: d.subtitle,
+      category: d.category,
+      status: d.status,
+      version: d.version,
+      slug: d.slug,
+      author: d.author,
+      refresh: d.refresh,
+      updatedAt: d.updated_at,
+    })),
+    authoringDocument: raw.authoring_document,
     governance: raw.governance ? toGovernance(raw.governance) : null,
     reports: raw.reports.map((r) => ({
       reportId: r.report_id,

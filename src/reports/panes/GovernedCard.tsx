@@ -15,6 +15,15 @@ interface Props {
   onEdit?(row: GovernedRow): void;
   onShare?(row: GovernedRow): void;
   onRemove?(row: GovernedRow): void | Promise<void>;
+  /**
+   * The host can render this report even though no starter in this folder backs it — a **rendered
+   * document** rather than an authoring definition. It enables `Open` *and* `Edit`, because the host is
+   * what knows which surfaces it has; `App.openGoverned` hands such a row back rather than trying to load
+   * a starter that does not exist.
+   *
+   * Absent means the original rule, so the prototype standing alone behaves exactly as it did.
+   */
+  hostOpenable?: boolean;
 }
 
 /**
@@ -37,10 +46,23 @@ const PILL_FOR_TONE: Record<string, string> = {
    place a tone could be translated. */
 const pillClass = (tone: string) => 'pill ' + (PILL_FOR_TONE[tone] ?? 'rp-neutral');
 
-export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Props) {
+export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove, hostOpenable }: Props) {
   const { open } = useMenu();
-  /* Open and Edit need an authoring starter behind the row; without one they are not offered. */
-  const openable = !!starterForTag(r.reportTag, r.reportId);
+  /*
+   * **Open and Edit need something behind the row, and a starter is only one of the two things it can
+   * be.**
+   *
+   * The rule was "no authoring starter, no buttons", which was right while every report in the Library
+   * was one of this prototype's own definitions. A host can also serve reports that are *rendered
+   * documents*: a finished file, with no starter here at all. Applying the starter test to those hid
+   * both buttons on rows that the host can render perfectly well.
+   *
+   * `hostOpenable` is the host saying "I can render this id" — for reading *and* for authoring, because
+   * it is the host that knows what surfaces it has. It makes no claim that a starter exists, which is why
+   * `App.openGoverned` hands such a row straight back instead of trying to load one. Absent the prop this
+   * is exactly the rule it always was, so the folder standing alone is unchanged.
+   */
+  const openable = !!starterForTag(r.reportTag, r.reportId) || hostOpenable === true;
 
   return (
     <div className="rcard">

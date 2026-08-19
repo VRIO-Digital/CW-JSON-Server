@@ -10,6 +10,7 @@ import {
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
+import DocumentViewer from '../components/report/DocumentViewer'
 import PublishedReportPane from '../components/report/PublishedReportPane'
 import ReportsApp from '../reports/App'
 import { hydrate as hydratePrototype, isHydrated } from '../reports/data'
@@ -18,6 +19,7 @@ import { ToastProvider } from '../reports/components/Toast'
 import { useAuthStore } from '../store/authStore'
 import { useReportsStore } from '../store/reportsStore'
 import { reportActionsFor, useSettingsStore } from '../store/settingsStore'
+import type { ReportDocument } from '../api/client'
 import { createReadStore, toMessage } from '../store/asyncState'
 import '../reports/reports-prototype.css'
 import './ReportsPage.css'
@@ -257,6 +259,15 @@ export default function ReportsPage() {
   )
 
   /*
+   * ---------------- a dataset whose reports are rendered documents ----------------
+   *
+   * Which document is open, and which tab. Local state rather than `reportsStore`, because a document is
+   * a *file*: there is nothing to fetch, nothing to race, and no id whose reply could arrive under
+   * another's heading — which is the whole reason that store keeps `openId` beside the report.
+   */
+  const [openDoc, setOpenDoc] = useState<ReportDocument | null>(null)
+
+  /*
    * Three clauses, in the shape every other section header uses: what the page lists, the
    * guarantee behind it, and what an action here sets off. Sources states its own the same way.
    *
@@ -294,7 +305,15 @@ export default function ReportsPage() {
    * something to build from. `NoPublishedGraph` names the fix that applies from the two
    * counts, because "publish the build you have" and "finish a draft" are different actions.
    */
-  if (data && data.publishedCount === 0) {
+  /*
+   * **A dataset that ships rendered documents is not gated on a published graph.**
+   *
+   * The gate is about questions: an EPA report is asked of the published graph, so serving one with
+   * nothing published would answer from content nobody released. A CAPEX report is a finished document —
+   * nothing was asked of a graph to make it — so applying the gate would enforce a precondition it does
+   * not have and leave the section empty for a dataset that ships three reports.
+   */
+  if (data && data.publishedCount === 0 && data.documents.length === 0) {
     return (
       <>
         {header}
@@ -324,7 +343,16 @@ export default function ReportsPage() {
         * that portal to `document.body`; a second copy behind a hidden panel would leave a menu opening
         * against the wrong one — which is how Delete came to look like a dead button once already.
         */}
-      {openReportId ? <PublishedReportPane /> : null}
+      {/*
+        * One report on screen at a time, and which component draws it depends on what the report *is*.
+        * A computed report is `PublishedReportPane`; a rendered document is `DocumentViewer`. Both
+        * replace the prototype rather than sitting beside it, because the prototype installs a toast
+        * host and a popover host that portal to `document.body` — a second copy behind a hidden panel
+        * leaves a menu opening against the wrong one, which is how Delete came to look like a dead
+        * button once already.
+        */}
+      {openDoc ? <DocumentViewer document={openDoc} onBack={() => setOpenDoc(null)} /> : null}
+      {!openDoc && openReportId ? <PublishedReportPane /> : null}
 
       {/*
         * The prototype renders only once its dataset has arrived and been validated.
@@ -335,20 +363,20 @@ export default function ReportsPage() {
         * a spinner that never ends. Mounting first would draw a register with no rows, which reads as
         * "nothing ships here".
         */}
-      {openReportId || prototypeError || hydrationError ? null : hydrated ? null : <Spin />}
+      {openDoc || openReportId || prototypeError || hydrationError ? null : hydrated ? null : <Spin />}
 
-      {prototypeError && !openReportId ? (
+      {prototypeError && !openReportId && !openDoc ? (
         <ApiErrorAlert error={prototypeError} onRetry={() => void loadPrototype()} />
       ) : null}
 
-      {hydrationError && !openReportId ? (
+      {hydrationError && !openReportId && !openDoc ? (
         <ApiErrorAlert
           error={`db.reports_prototype is malformed, so the authoring tab cannot render: ${hydrationError}`}
           onRetry={() => void loadPrototype()}
         />
       ) : null}
 
-      {openReportId || !hydrated || prototypeError || hydrationError ? null : (
+      {openDoc || openReportId || !hydrated || prototypeError || hydrationError ? null : (
       <div className="rp-host">
         <div className="cw-reports">
           <ToastProvider>
@@ -381,12 +409,44 @@ export default function ReportsPage() {
                  */
                 reportActions={reportActions}
                 /*
+                 * The reports this host can render with no starter behind them — its rendered documents.
+                 * Without this the Library lists them and withholds Open, because the prototype's only
+                 * test for "can this be opened" is its own authoring starters.
+                 */
+                hostOpenableIds={data?.documents.map((d) => d.reportId)}
+                /*
                  * **Open report** reads the published report; **Edit report** still loads the authoring
                  * definition. Two buttons that did the same thing now do what their labels say, and the
                  * one a governed row needs is the one showing the tenant's own figures rather than the
                  * prototype's sample data under a card marked "Published".
                  */
-                onOpenPublished={(reportId) => void openReport(reportId)}
+                /*
+                 * **Open report opens whichever kind of report this is.**
+                 *
+                 * The prototype hands over an id and the host decides what to render — so a dataset whose
+                 * reports are rendered documents needs no Library of its own: the id is matched against
+                 * `documents` first, and only falls through to the computed report when nothing matches.
+                 * The two collections share `report_id`, which is what makes the match exact rather than
+                 * a guess on the title.
+                 *
+                 * This is why there is one Library UI for both datasets. A second grid of the same
+                 * definitions was two answers to "what reports exist", which this section refuses
+                 * everywhere else.
+                 */
+                onOpenPublished={(reportId) => {
+                  /*
+                   * **Open frames the rendered document where the dataset ships one; Edit never comes
+                   * here.** Editing loads the row's authoring starter inside the prototype — that is what
+                   * makes it editable and what makes Save work — so this callback is the reading path
+                   * only, for both kinds of report.
+                   */
+                  const doc = data?.documents.find((d) => d.reportId === reportId)
+                  if (doc) {
+                    setOpenDoc(doc)
+                    return
+                  }
+                  void openReport(reportId)
+                }}
               />
             </MenuProvider>
           </ToastProvider>

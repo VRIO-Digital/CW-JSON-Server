@@ -25,17 +25,14 @@ import { AsyncLocalStorage } from 'node:async_hooks'
  * primary, so it is what `both` resolves a single-valued key to and what a caller naming no
  * dataset gets.
  *
- * **There is one today, and the machinery is still here on purpose.** `CAPEX` was seeded and then
- * removed on request; what went with it is the *document*, not the ability to hold a second one.
- * Every dataset in this list is read at boot and a request picks one, so a name here with no
- * document behind it stops the boot — which is why removing the file means removing the name, and
- * why adding a dataset back is this array plus `npm run seed:dataset -- <NAME>`.
+ * **There are two, and every one of them is read at boot.** A name here with no document behind it
+ * stops the boot, which is why adding a dataset is this array *and then* `npm run seed:dataset --
+ * <NAME>`, in that order — the seed refuses a name this array does not declare.
  *
- * `both` therefore currently merges one document with nothing, which is EPA. It is left reachable
- * rather than special-cased away: the merge is a pure function over this list, and a second
- * dataset restores its meaning without any of it having to be written again.
+ * `both` therefore merges two real documents, which is what the merge plan below was written for and
+ * was under-exercised while there was one.
  */
-export const DATASETS = ['EPA']
+export const DATASETS = ['EPA', 'CAPEX']
 export const PRIMARY = 'EPA'
 export const BOTH = 'both'
 
@@ -80,6 +77,23 @@ export const SELECTORS = [...DATASETS, BOTH]
  * facet map.
  */
 export const MERGE_PLAN = {
+  /*
+   * **The document's own account of itself, where its generator wrote one.** CAPEX's document carries
+   * `_meta` (the package that built it, the tenant, the as-of date, and its own "never hand-edit this,
+   * change the generator" note) and `_provenance` (per key, which artifact the values were read out of).
+   * EPA's document carries neither.
+   *
+   * `primary` rather than a union or a merge, and the consequence is deliberate: under `both` these come
+   * from EPA, which has none, so the merged view carries no provenance at all. That is the honest answer
+   * — a merged document is not any one package's output, so claiming one package's provenance for it
+   * would be the most misleading thing this key could do.
+   *
+   * They are here because a top-level key with no rule **stops the boot**, which is the guard working:
+   * dropping a document's provenance silently is exactly the kind of loss that reads as an answer.
+   */
+  _meta: 'primary',
+  _provenance: 'primary',
+
   /* Identity and the account — one tenant, one set of people, whichever dataset is in view. */
   google_account: 'primary',
   auth_roles: 'primary',
@@ -169,6 +183,21 @@ export const MERGE_PLAN = {
       },
       reports: { union: 'report_id' },
       saved: { union: 'saved_id' },
+      /*
+       * The **rendered** reports a dataset ships as documents rather than as questions.
+       *
+       * EPA has none: its five reports are computed per request from the rosters above, which is what
+       * makes a figure there current rather than stored. CAPEX ships three finished HTML documents and
+       * no roster to compute from, so they are listed as documents and their figures stay inside them.
+       * A union, because two datasets genuinely bring their own — the same reasoning as `projects`.
+       */
+      documents: { union: 'document_id' },
+      /*
+       * The authoring exploration, one per dataset, so `primary` — EPA has none, which is why `both`
+       * shows no authoring document rather than CAPEX's. A merged view claiming CAPEX's exploration
+       * belonged to the tenant's primary dataset would be attributing a design study to the wrong one.
+       */
+      authoring_document: 'primary',
       governance: {
         deep: {
           statuses: 'primary',
