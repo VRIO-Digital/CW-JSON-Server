@@ -96,6 +96,33 @@ const DEFAULTS = {
  */
 const READ_ONLY = { platform_admin: ['settings'] }
 
+/**
+ * The three acts a Library row offers, and each persona's authored starting access to them.
+ *
+ * **Written here because `server.mjs` cannot be imported by a seed**, the same reason `NAV_KEYS` is
+ * written here — and `check-docs` compares this list to `REPORT_ACTIONS` for the same reason it
+ * compares `NAV_KEYS` to `nav.ts`: an action here the server does not have is a permission `PATCH`
+ * refuses, and one the server has that is missing here is a key `validateSettings` refuses to boot on.
+ *
+ * **The starting split follows the personas' own data scope rather than a guess.** Everyone may open a
+ * report — the section is a reading surface, and a persona that cannot open one has no reason to be
+ * offered the page at all. Editing a definition and deleting its governance row are the two acts that
+ * change what a report *asserts*, so they start with the two personas whose scope already lets them
+ * author: Domain Architect and Platform Admin. That is the same reasoning `may_author` in the
+ * governance view applies, and it is a starting point rather than a restriction — every one of these is
+ * an ordinary toggle.
+ */
+const REPORT_ACTIONS = ['open', 'edit', 'delete']
+const reportAccess = (allowed) =>
+  Object.fromEntries(REPORT_ACTIONS.map((a) => [a, allowed.includes(a)]))
+
+const REPORT_DEFAULTS = {
+  business_user_executive: reportAccess(['open']),
+  domain_architect: reportAccess(['open', 'edit', 'delete']),
+  business_user_project: reportAccess(['open']),
+  platform_admin: reportAccess(['open', 'edit', 'delete']),
+}
+
 /* ------------------------------------------------------------------ checks */
 
 const problems = []
@@ -116,6 +143,30 @@ for (const roleId of roleIds) {
   if (!DEFAULTS[roleId])
     problems.push(`persona "${roleId}" has no default access — its sidebar would be undefined`)
 }
+/*
+ * The report block, checked exactly as the navigation one is. A persona with no entry would resolve to
+ * `{}` through `reportPermissionsFor`, and a row offering no actions at all is the symptom that got the
+ * old access gate removed — so it is refused here rather than discovered on a card.
+ */
+for (const roleId of Object.keys(REPORT_DEFAULTS)) {
+  if (!roleIds.includes(roleId)) problems.push(`report defaults name persona "${roleId}", which is not one`)
+}
+for (const roleId of roleIds) {
+  if (!REPORT_DEFAULTS[roleId]) {
+    problems.push(`persona "${roleId}" has no default report access — every row would offer it nothing`)
+    continue
+  }
+  const keys = Object.keys(REPORT_DEFAULTS[roleId]).sort()
+  if (keys.join(',') !== [...REPORT_ACTIONS].sort().join(',')) {
+    problems.push(`"${roleId}" must carry exactly ${REPORT_ACTIONS.join(', ')} — it has ${keys.join(', ')}`)
+  }
+}
+/* Nobody may be left unable to open a report: the page is a reading surface, so a persona with `open`
+   off everywhere is one for whom the whole section is an empty list with no explanation. */
+if (!Object.values(REPORT_DEFAULTS).some((r) => r.open)) {
+  problems.push('no persona starts able to open a report — the Library would be unreadable for everyone')
+}
+
 for (const [roleId, keys] of Object.entries(READ_ONLY)) {
   if (!DEFAULTS[roleId]) problems.push(`read-only names persona "${roleId}", which has no defaults`)
   for (const key of keys) {
@@ -163,6 +214,25 @@ const settings = {
       return [roleId, { ...DEFAULTS[roleId], ...kept }]
     }),
   ),
+
+  /* Authored every run, like `defaults` — this file is the source of both. */
+  report_defaults: REPORT_DEFAULTS,
+
+  /*
+   * The live report access, carried forward exactly as `nav_permissions` is and narrowed to
+   * `REPORT_ACTIONS` for the identical reason: a blind spread would keep a retired action in the live
+   * set while `report_defaults` lost it, and `validateSettings` refuses that pair — so the seed would
+   * write a file the server then refuses to boot on, naming this script as the fix.
+   */
+  report_permissions: Object.fromEntries(
+    Object.keys(REPORT_DEFAULTS).map((roleId) => {
+      const live = existing.report_permissions?.[roleId] ?? {}
+      const kept = Object.fromEntries(
+        REPORT_ACTIONS.filter((a) => typeof live[a] === 'boolean').map((a) => [a, live[a]]),
+      )
+      return [roleId, { ...REPORT_DEFAULTS[roleId], ...kept }]
+    }),
+  ),
 }
 
 /* One key replaced, every other carried through — the document is spread rather than rebuilt. A
@@ -170,6 +240,6 @@ const settings = {
 writeFileSync(DB, JSON.stringify({ ...db, settings }, null, 2) + '\n', 'utf8')
 console.log(
   `seed-settings: ${USERS.length} users, ${Object.keys(DEFAULTS).length} personas, ` +
-    `${NAV_KEYS.length} navigation items, ` +
+    `${NAV_KEYS.length} navigation items, ${REPORT_ACTIONS.length} report actions, ` +
     `${Object.values(READ_ONLY).flat().length} read-only rule(s).`,
 )

@@ -1,5 +1,5 @@
 import { CheckCircleFilled, WarningFilled } from '@ant-design/icons'
-import type { AnswerBlock } from '../api/client'
+import type { AnswerBlock } from '../../api/client'
 import AnswerChart from './AnswerChart'
 import './AnswerBlocks.css'
 

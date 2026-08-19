@@ -1,4 +1,4 @@
-import type { WhatIfFrame, WhatIfGenerator, WhatIfScenario } from '../api/client'
+import type { WhatIfFrame, WhatIfGenerator, WhatIfScenario } from '../../api/client'
 import './WhatIfGraph.css'
 
 /*

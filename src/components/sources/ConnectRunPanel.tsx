@@ -4,7 +4,7 @@ import {
   CONNECT_ACT_COPY,
   type ConnectAct,
   type ConnectStepKind,
-} from '../data/connectSteps'
+} from '../../data/connectSteps'
 import './ConnectRunPanel.css'
 
 /**

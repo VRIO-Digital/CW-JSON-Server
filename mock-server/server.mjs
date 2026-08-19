@@ -435,6 +435,21 @@ const settings = {
   get nav_permissions() {
     return db.settings.nav_permissions
   },
+  /*
+   * What each persona may do to a report in the Library, and the authored set Reset restores.
+   *
+   * **A getter per key, so a new key has to be declared here to be visible at all.** That is a real
+   * trap and it caught this pair: the seed wrote both blocks, `validateSettings` accepted them and
+   * `GET /settings` still served `reports: {}` for every persona, because a façade of named getters
+   * does not forward what it was not told about. The symptom is a page whose switches are all off with
+   * the file plainly holding `true` — which reads as a broken toggle rather than a missing accessor.
+   */
+  get report_permissions() {
+    return db.settings.report_permissions
+  },
+  get report_defaults() {
+    return db.settings.report_defaults
+  },
 }
 
 /**
@@ -1610,9 +1625,19 @@ function validateSettings(candidate) {
     }
   }
 
+  const reportPerms = candidate.report_permissions
+  const reportDefaults = candidate.report_defaults
+
   for (const [label, block] of [
     ['defaults', defaults],
     ['nav_permissions', perms],
+    /*
+     * The report blocks are checked by the same loop rather than a second copy of it: both are
+     * "an object keyed by role_id whose entries hold booleans", and writing that twice is how the
+     * two come to disagree about whether an unknown persona is an error.
+     */
+    ['report_defaults', reportDefaults],
+    ['report_permissions', reportPerms],
   ]) {
     if (!isObject(block)) {
       problems.push(`"${label}" must be an object keyed by role_id`)
@@ -1653,6 +1678,38 @@ function validateSettings(candidate) {
           `"${roleId}" has different navigation keys in defaults and nav_permissions` +
             (missing.length > 0 ? ` (missing: ${missing.join(', ')})` : '') +
             (extra.length > 0 ? ` (unknown: ${extra.join(', ')})` : ''),
+        )
+      }
+    }
+  }
+
+  /*
+   * **The report blocks carry exactly `REPORT_ACTIONS`, and both of them do.**
+   *
+   * Two failures this catches, neither of which throws. A key that is not one of the three is a
+   * permission no button reads — stored forever, and it reads as configured. And a *missing* one
+   * resolves through `reportPermissionsFor` to the authored default, so `defaults` losing `delete`
+   * silently hands every persona whatever the live set happens to say and Reset stops restoring it —
+   * the same hazard as the navigation parity check above, which a break test found there first.
+   *
+   * Checked per persona rather than on the block, because that is the granularity the page writes at.
+   */
+  for (const [label, block] of [
+    ['report_defaults', reportDefaults],
+    ['report_permissions', reportPerms],
+  ]) {
+    if (!isObject(block)) continue
+    for (const roleId of roleIds) {
+      const entry = block[roleId]
+      if (!isObject(entry)) continue
+      const keys = Object.keys(entry).sort()
+      const missing = REPORT_ACTIONS.filter((a) => !keys.includes(a))
+      const unknown = keys.filter((k) => !REPORT_ACTIONS.includes(k))
+      if (missing.length > 0 || unknown.length > 0) {
+        problems.push(
+          `"${label}.${roleId}" must carry exactly ${REPORT_ACTIONS.join(', ')}` +
+            (missing.length > 0 ? ` (missing: ${missing.join(', ')})` : '') +
+            (unknown.length > 0 ? ` (unknown: ${unknown.join(', ')})` : ''),
         )
       }
     }
@@ -1728,6 +1785,33 @@ const navPermissionsFor = (roleId) => ({
   ...(settings.nav_permissions[roleId] ?? {}),
 })
 
+/**
+ * What a persona may do to a report in the Library: open it, edit its definition, delete its
+ * governance row.
+ *
+ * **Declared once, here, because three layers count them.** `validateSettings` refuses a key that is
+ * not one of these, the PATCH route refuses the same, and the seed authors exactly these — a fourth
+ * action added to a component would be a permission nobody can store, and a key stored that no button
+ * reads is a decision with no effect. Same rule as `NAV_KEYS` against `nav.ts`.
+ *
+ * **These are the row's own three acts, and Share is deliberately not among them.** Sharing edits the
+ * *audience* — who is told a report exists — which Audit & Governance owns and which is a different
+ * question from what this persona may do. Adding it here would give one record two homes.
+ */
+const REPORT_ACTIONS = ['open', 'edit', 'delete']
+
+/**
+ * One persona's live report access, falling back to its authored defaults — the twin of
+ * `navPermissionsFor`, and the same fallback for the same reason: an absent key means "not
+ * configured", which resolves to the authored default rather than to a denial. A missing key that
+ * read as `false` would turn a drifted file into a persona locked out of every report, which reads as
+ * a broken page rather than as a setting.
+ */
+const reportPermissionsFor = (roleId) => ({
+  ...(settings.report_defaults?.[roleId] ?? {}),
+  ...(settings.report_permissions?.[roleId] ?? {}),
+})
+
 /** Whether a persona's toggle for one navigation key is fixed. */
 const navReadOnly = (roleId, key) => (settings.read_only[roleId] ?? []).includes(key)
 
@@ -1754,7 +1838,21 @@ const settingsView = () => ({
     read_only: settings.read_only[role.role_id] ?? [],
     /* So the page can offer Reset without keeping its own copy of what "default" means. */
     defaults: settings.defaults[role.role_id] ?? {},
+    /*
+     * What this persona may do to a report, and what it would reset to. Served beside `nav` rather
+     * than on a payload of its own: they are two answers to "what may this persona reach", the page
+     * configures them one persona at a time, and a second endpoint would mean two fetches that can
+     * disagree about which personas exist.
+     */
+    reports: reportPermissionsFor(role.role_id),
+    report_defaults: settings.report_defaults?.[role.role_id] ?? {},
   })),
+  /*
+   * The actions, served rather than written into the panel — the rule the consent screen's scopes
+   * follow. A column the component invented could offer a permission `PATCH` refuses, and a column it
+   * omitted would hide one the server stores and the card reads.
+   */
+  report_actions: REPORT_ACTIONS,
 })
 
 /** FNV-1a — stable across requests so profiled stats never shift under the UI. */
@@ -6651,8 +6749,71 @@ const routes = [
     },
   },
 
+  /*
+   * One persona's report access — which of the Library row's three acts it is offered.
+   *
+   * **The twin of the nav route, and deliberately built as one.** Whole set per write so the payload
+   * says what the answer *is*; the reply is the whole view so the page renders something validated
+   * rather than patching its own copy; an unknown persona is a 404 naming the ones that exist and an
+   * unknown action a 400 naming the three. Adding an endpoint for one of these pairs means adding the
+   * same guard to the other.
+   *
+   * **And it is not access control, which is why there is no lock here.** The navigation route fixes
+   * `settings` for Platform Admin because turning it off would strand the persona that grants every
+   * other permission — there is no way back. Nothing here can strand anybody: a persona that loses
+   * `edit` still reaches this page and can hand it back, and the API still serves every report to a
+   * caller that names no role. So the rule stays "record the decision, hide the control, say plainly
+   * that hiding is not authorising" rather than a fixed key nobody could explain.
+   */
+  {
+    method: 'PATCH',
+    match: (p) => /^\/settings\/personas\/[^/]+\/reports$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const roleId = decodeURIComponent(
+        pathname.slice('/settings/personas/'.length, -'/reports'.length),
+      )
+      const role = db.auth_roles.find((r) => r.role_id === roleId)
+      if (!role) {
+        return send(res, 404, {
+          error:
+            `no persona "${roleId}" — this tenant has ` +
+            db.auth_roles.map((r) => r.role_id).join(', '),
+        })
+      }
+
+      const body = await readJson(req)
+      if (!isObject(body.reports)) {
+        return send(res, 400, {
+          error: `send reports as an object of { ${REPORT_ACTIONS.join(' | ')}: true | false }`,
+        })
+      }
+
+      const next = { ...reportPermissionsFor(roleId) }
+      for (const [key, value] of Object.entries(body.reports)) {
+        /* An action no row has is a permission nobody can exercise — refused rather than stored, the
+           same reasoning as an unknown navigation key. */
+        if (!REPORT_ACTIONS.includes(key)) {
+          return send(res, 400, {
+            error: `no report action "${key}" — a row has ${REPORT_ACTIONS.join(', ')}`,
+          })
+        }
+        if (typeof value !== 'boolean') {
+          return send(res, 400, { error: `"${key}" must be true or false` })
+        }
+        next[key] = value
+      }
+
+      await commitSettings({
+        ...settings,
+        report_permissions: { ...settings.report_permissions, [roleId]: next },
+      })
+      send(res, 200, settingsView())
+    },
+  },
+
   /* Back to the authored defaults for one persona — which live in the same file, so this copies rather
-     than reconstructs. */
+     than reconstructs. Both blocks at once: the button says "Reset to defaults" for the persona, and
+     restoring its navigation while leaving its report access edited would answer half of that. */
   {
     method: 'POST',
     match: (p) => /^\/settings\/personas\/[^/]+\/reset$/.test(p),
@@ -6672,6 +6833,10 @@ const routes = [
         nav_permissions: {
           ...settings.nav_permissions,
           [roleId]: { ...(settings.defaults[roleId] ?? {}) },
+        },
+        report_permissions: {
+          ...settings.report_permissions,
+          [roleId]: { ...(settings.report_defaults?.[roleId] ?? {}) },
         },
       })
       send(res, 200, settingsView())

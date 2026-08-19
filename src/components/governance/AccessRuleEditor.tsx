@@ -1,7 +1,7 @@
 import { Button, Select, Space, Switch, Tag } from 'antd'
 import { useState } from 'react'
-import type { GovernanceBasis, GovernancePerson } from '../api/client'
-import { SP } from '../theme'
+import type { GovernanceBasis, GovernancePerson } from '../../api/client'
+import { SP } from '../../theme'
 
 /*
  * One persona's access rule: the field a restriction runs on, and the values it admits.

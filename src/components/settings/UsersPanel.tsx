@@ -1,6 +1,6 @@
 import { Card, Table, Tag, Typography } from 'antd'
-import type { SettingsUser } from '../api/client'
-import { SP } from '../theme'
+import type { SettingsUser } from '../../api/client'
+import { SP } from '../../theme'
 
 /**
  * The Add User tab: who exists, and which persona each one is.

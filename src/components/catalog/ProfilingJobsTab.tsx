@@ -13,11 +13,11 @@ import {
   type TableColumnsType,
 } from 'antd'
 import { useEffect, useState } from 'react'
-import type { ProfilingJob } from '../api/client'
-import { useJobsStore } from '../store/catalogStore'
-import { SP } from '../theme'
-import ApiErrorAlert from '../components/ApiErrorAlert'
-import StatusTag from './StatusTag'
+import type { ProfilingJob } from '../../api/client'
+import { useJobsStore } from '../../store/catalogStore'
+import { SP } from '../../theme'
+import ApiErrorAlert from '../common/ApiErrorAlert'
+import StatusTag from '../common/StatusTag'
 import './ProfilingJobsTab.css'
 
 const POLL_MS = 3000

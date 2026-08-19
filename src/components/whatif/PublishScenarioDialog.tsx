@@ -1,8 +1,8 @@
 import { Alert, Button, InputNumber, Modal, Select, Space, Tag } from 'antd'
 import { useState } from 'react'
-import type { WhatIfFreshness, WhatIfPublishing, WhatIfSaved } from '../api/client'
-import type { WhatIfFrame } from '../api/client'
-import { SP } from '../theme'
+import type { WhatIfFreshness, WhatIfPublishing, WhatIfSaved } from '../../api/client'
+import type { WhatIfFrame } from '../../api/client'
+import { SP } from '../../theme'
 import './PublishScenarioDialog.css'
 
 /*

@@ -1,14 +1,14 @@
 import { CheckOutlined } from '@ant-design/icons'
 import { Alert, Button, Checkbox, Spin, Tag } from 'antd'
 import { Link } from 'react-router-dom'
-import type { GraphSource, SourcePick } from '../api/client'
-import NoSourceConnected from './NoSourceConnected'
-import StatusTag from './StatusTag'
-import ConnectorIcon from './ConnectorIcon'
-import { SP } from '../theme'
-import '../pages/NewGraphPage.css'
+import type { GraphSource, SourcePick } from '../../api/client'
+import NoSourceConnected from '../common/NoSourceConnected'
+import StatusTag from '../common/StatusTag'
+import ConnectorIcon from '../common/ConnectorIcon'
+import { SP } from '../../theme'
+import '../../pages/NewGraphPage.css'
 
-import { appPath } from '../api/dataset'
+import { appPath } from '../../api/dataset'
 
 /*
  * Step 4 of New Graph: which connected sources feed the graph, and how much of

@@ -1,5 +1,5 @@
 import { Button, Modal, Tag } from 'antd'
-import type { WhatIfFrame, WhatIfSaved } from '../api/client'
+import type { WhatIfFrame, WhatIfSaved } from '../../api/client'
 import './PublishedScenarios.css'
 
 /*

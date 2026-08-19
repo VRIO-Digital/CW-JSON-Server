@@ -29,15 +29,15 @@ import type {
   HeroQuestion,
   SourcePick,
 } from '../api/client'
-import ApiErrorAlert from '../components/ApiErrorAlert'
-import CoverageStep from '../components/CoverageStep'
-import { LlmRunPanel } from '../components/LlmRun'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import CoverageStep from '../components/graph/CoverageStep'
+import { LlmRunPanel } from '../components/graph/LlmRun'
 import { useGraphBuildStore } from '../store/graphStudioStore'
-import DraftedStep from '../components/DraftedStep'
-import HeroQuestionsStep from '../components/HeroQuestionsStep'
-import SourcesStep from '../components/SourcesStep'
-import PageHeader from '../components/PageHeader'
-import StatusTag from '../components/StatusTag'
+import DraftedStep from '../components/graph/DraftedStep'
+import HeroQuestionsStep from '../components/graph/HeroQuestionsStep'
+import SourcesStep from '../components/graph/SourcesStep'
+import PageHeader from '../components/common/PageHeader'
+import StatusTag from '../components/common/StatusTag'
 import {
   selectUseCases,
   useCoverageStore,

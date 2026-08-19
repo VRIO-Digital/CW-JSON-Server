@@ -10,7 +10,7 @@
 
 import { Navigate } from 'react-router-dom'
 
-import { appPath } from '../api/dataset'
+import { appPath } from '../../api/dataset'
 
 export default function DatasetRedirect({ to }: { to: string }) {
   return <Navigate to={appPath(to)} replace />

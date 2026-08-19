@@ -19,7 +19,7 @@
  */
 
 import type { ReportBlock, ReportCell, ReportColumn, ReportRow } from '../../api/client'
-import AnswerChart from '../AnswerChart'
+import AnswerChart from '../ask/AnswerChart'
 import { Card, Chain, DocRef, DataTable, FlagPill, Tag, type Column, type TagKind } from './ui'
 
 /** The compliance tiers the register carries, so an unexpected value renders as text rather than a tier. */

@@ -233,6 +233,7 @@ export default function App({
   governance,
   shareRoles,
   actions,
+  reportActions,
   onOpenPublished,
 }: {
   identity?: ReportsIdentity;
@@ -241,6 +242,27 @@ export default function App({
   /** The role pool, served — never a list this component keeps. */
   shareRoles?: ShareRole[];
   actions?: GovernanceActions;
+  /**
+   * Which of a governed row's three acts this reader is offered — `{ open, edit, delete }`.
+   *
+   * **Declared as a plain record rather than imported from the host's client**, exactly as `Governance`
+   * and `GraphOption` are: absent the prop this folder is the standalone prototype it was, offering every
+   * act it can carry out.
+   *
+   * **It withholds a handler rather than adding a gate to the card.** `GovernedCard` already shows a
+   * button only where there is a handler to run — "each action is offered only where it can be carried
+   * out" — so a withheld permission is simply no callback. That is deliberate: a card that tested a
+   * permission field of its own would be the shape of the access gate this section removed, where a row
+   * whose payload stopped carrying the field rendered with no actions at all.
+   *
+   * **And it is not access control.** The persona is client-held and the API serves every report to a
+   * caller that names no role; the Settings tab that sets this says so in those words.
+   *
+   * Session reports are deliberately *not* gated by it — those are the reader's own drafts, held in this
+   * browser and submitted to nobody, so withholding "edit" on one would stop somebody editing work they
+   * just made. What this governs is the tenant's governed definitions.
+   */
+  reportActions?: Record<string, boolean>;
   /**
    * Open a governed report as the host's *published* report — the rendered thing an audience reads.
    *
@@ -254,6 +276,14 @@ export default function App({
   onOpenPublished?: (reportId: string) => void;
 } = {}) {
   const toast = useToast();
+
+  /*
+   * Whether this reader is offered one act. **Absent means allowed**, which is the rule the sidebar's
+   * own permissions follow: an unconfigured key means "not configured", never "denied", and a Library
+   * whose buttons appeared a moment after its cards would read as a broken page rather than as a
+   * permission model. With no prop at all — the prototype standing alone — every act is offered.
+   */
+  const may = (action: string) => reportActions?.[action] !== false;
 
   const [tab, setTab] = useState<ReportTab>('library');
   /*
@@ -849,13 +879,15 @@ export default function App({
               ungoverned={governance?.ungoverned}
               restore={governance?.restore}
               /* Absent with no host, and the pane then offers no action it cannot carry out. */
-              onOpenGoverned={actions ? (row) => openGoverned(row, false) : undefined}
-              onEditGoverned={actions ? (row) => openGoverned(row, true) : undefined}
+              onOpenGoverned={
+                actions && may('open') ? (row) => openGoverned(row, false) : undefined
+              }
+              onEditGoverned={actions && may('edit') ? (row) => openGoverned(row, true) : undefined}
               /* Share only *opens* the dialog — see the note on `sharing` above for why it is here. */
               onShareGoverned={
                 actions ? (row) => setSharing({ kind: 'governed', id: row.reportId }) : undefined
               }
-              onRemoveGoverned={actions ? removeGoverned : undefined}
+              onRemoveGoverned={actions && may('delete') ? removeGoverned : undefined}
               onShareSaved={
                 shareRoles?.length ? (report) => setSharing({ kind: 'saved', id: report.id }) : undefined
               }

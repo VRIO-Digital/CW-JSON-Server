@@ -1,8 +1,8 @@
 import { BarChartOutlined } from '@ant-design/icons'
 import { Button, Input, Space, Tag } from 'antd'
 import { useState } from 'react'
-import type { ReviewChoice, ReviewItem } from '../api/client'
-import { SP } from '../theme'
+import type { ReviewChoice, ReviewItem } from '../../api/client'
+import { SP } from '../../theme'
 import './ReviewQueueItem.css'
 
 /*

@@ -1,8 +1,8 @@
 import { App, Checkbox, Modal, Spin, Typography } from 'antd'
 import { useEffect, useState } from 'react'
-import { listProjectDatasets, type SourceRow } from '../api/client'
-import { useSourcesStore } from '../store/sourcesStore'
-import { toMessage } from '../store/asyncState'
+import { listProjectDatasets, type SourceRow } from '../../api/client'
+import { useSourcesStore } from '../../store/sourcesStore'
+import { toMessage } from '../../store/asyncState'
 
 /** Narrows or widens the dataset allowlist of an already-registered source. */
 export default function EditDatasetsModal({

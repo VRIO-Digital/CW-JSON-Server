@@ -1,10 +1,11 @@
 import { App, Spin, Tabs } from 'antd'
 import { useEffect, useState } from 'react'
-import ApiErrorAlert from '../components/ApiErrorAlert'
-import PageHeader from '../components/PageHeader'
-import DatasetPanel from '../components/DatasetPanel'
-import PersonaPermissionsPanel from '../components/PersonaPermissionsPanel'
-import UsersPanel from '../components/UsersPanel'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import PageHeader from '../components/common/PageHeader'
+import DatasetPanel from '../components/settings/DatasetPanel'
+import PersonaPermissionsPanel from '../components/settings/PersonaPermissionsPanel'
+import ReportPermissionsPanel from '../components/settings/ReportPermissionsPanel'
+import UsersPanel from '../components/settings/UsersPanel'
 import { useAuthStore } from '../store/authStore'
 import { personaFor, useSettingsStore } from '../store/settingsStore'
 import './SettingsPage.css'
@@ -44,6 +45,7 @@ export default function SettingsPage() {
   const activePersonaId = useSettingsStore((s) => s.activePersonaId)
   const setActivePersona = useSettingsStore((s) => s.setActivePersona)
   const setPermission = useSettingsStore((s) => s.setPermission)
+  const setReportPermission = useSettingsStore((s) => s.setReportPermission)
   const resetPersona = useSettingsStore((s) => s.resetPersona)
 
   const identity = useAuthStore((s) => s.identity)
@@ -129,6 +131,44 @@ export default function SettingsPage() {
                   if (activePersonaId !== selectedId) setActivePersona(selectedId)
                   const result = await setPermission(selectedId, key, next)
                   /* The server's own sentence — it is the one that knows why, including the fixed key. */
+                  if (!result.ok) message.warning(result.error)
+                }}
+                onReset={async () => {
+                  if (!selectedId) return
+                  const result = await resetPersona(selectedId)
+                  if (!result.ok) message.warning(result.error)
+                }}
+              />
+            ),
+          },
+          {
+            /*
+             * What each persona may do to a report — open it, edit its definition, delete its governance
+             * row. Beside Persona Configuration rather than folded into it: that tab answers "which pages
+             * does this persona see", and this one "what may it do once it is on one of them". One table
+             * mixing nine navigation items with three report acts would be two questions in one list.
+             *
+             * **The audience is not here.** Who is *told* a report exists is the governance row's own
+             * audience, managed in Audit & Governance, and this tab does not restate it — two surfaces
+             * reporting one record is how they come to disagree.
+             */
+            key: 'report-view',
+            label: 'Report View',
+            children: (
+              <ReportPermissionsPanel
+                personas={personas}
+                /* The served list, so a column here cannot be one the PATCH route refuses. */
+                actions={data?.reportActions ?? []}
+                activePersonaId={selectedId}
+                permissions={persona?.reports ?? {}}
+                onPickPersona={setActivePersona}
+                onToggle={async (action, next) => {
+                  if (!selectedId) return
+                  /* Same as the navigation tab: selecting is what makes a persona the one being shown,
+                     so a toggle before that would edit a persona nobody has picked. */
+                  if (activePersonaId !== selectedId) setActivePersona(selectedId)
+                  const result = await setReportPermission(selectedId, action, next)
+                  /* The server's own sentence — it is the one that knows which actions exist. */
                   if (!result.ok) message.warning(result.error)
                 }}
                 onReset={async () => {

@@ -1,15 +1,15 @@
 import { Alert, App, Button, Col, Input, Row, Space, Spin, Tabs, Tag } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { WhatIfFrame, WhatIfSaved } from '../api/client'
-import ApiErrorAlert from '../components/ApiErrorAlert'
-import NoPublishedGraph from '../components/NoPublishedGraph'
-import PageHeader from '../components/PageHeader'
-import PublishScenarioDialog from '../components/PublishScenarioDialog'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import NoPublishedGraph from '../components/common/NoPublishedGraph'
+import PageHeader from '../components/common/PageHeader'
+import PublishScenarioDialog from '../components/whatif/PublishScenarioDialog'
 import PublishedScenarios, {
   PublishedScenarioModal,
-} from '../components/PublishedScenarios'
-import ScenarioColumn from '../components/ScenarioColumn'
-import { PoolFrame } from '../components/WhatIfGraph'
+} from '../components/whatif/PublishedScenarios'
+import ScenarioColumn from '../components/whatif/ScenarioColumn'
+import { PoolFrame } from '../components/whatif/WhatIfGraph'
 import { useAuthStore } from '../store/authStore'
 import {
   headroomFor,

@@ -6,6 +6,53 @@
   padding-top: var(--sp-2);
 }
 
-.prp-back {
+.prp-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
   margin-bottom: var(--sp-4);
+}
+
+/*
+ * **Export is how a report leaves the app, and printing is how it becomes a PDF.**
+ *
+ * There is no PDF renderer here and that is a dependency decision rather than an omission: server-side
+ * PDF means a headless browser — some forty transitive packages and a Chromium download — through a gate
+ * that fails on any advisory at `low`. The browser already has one, so the button hands the report to it
+ * and these rules make what it prints the report rather than the application.
+ *
+ * **`visibility`, not `display`, and that is the whole trick.** Hiding the app's chrome by name would
+ * mean naming the sidebar, the header, the tab bar and every future addition — a list that is wrong the
+ * first time a wrapper is added, silently, on a page nobody re-printed. Hiding *everything* and revealing
+ * the one subtree needs no such list: `visibility: hidden` still lays its element out, so the report's
+ * ancestors keep their boxes and only the ink disappears, which is what makes the selective `visible`
+ * below possible at all. `display: none` on a body child would take the report down with it.
+ *
+ * The subtree is then lifted to the page origin, because it is still sitting wherever the app's layout
+ * put it — indented by a sidebar that is no longer inked, which would print as a wide left margin on
+ * every page.
+ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .prp,
+  .prp * {
+    visibility: visible;
+  }
+
+  .prp {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding-top: 0;
+  }
+
+  /* The way back and the export control itself are the app, not the report. */
+  .prp-bar {
+    display: none;
+  }
 }

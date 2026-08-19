@@ -6,9 +6,9 @@ import {
   RightOutlined,
 } from '@ant-design/icons'
 import { App, Button, Popconfirm } from 'antd'
-import type { AskChat } from '../data/askChats'
-import { CHATS_KEPT } from '../data/askChats'
-import '../pages/AskPage.css'
+import type { AskChat } from '../../data/askChats'
+import { CHATS_KEPT } from '../../data/askChats'
+import '../../pages/AskPage.css'
 
 const day = (iso: string) => {
   const d = new Date(iso)

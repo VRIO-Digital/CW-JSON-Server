@@ -16,15 +16,15 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { ReviewChoice } from '../api/client'
-import ApiErrorAlert from '../components/ApiErrorAlert'
-import BuildTab from '../components/BuildTab'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import BuildTab from '../components/studio/BuildTab'
 import GraphViewer from '../graph-viewer/App'
 import { answerPath, fromCanvas } from '../graph-viewer/fromCanvas'
-import PageHeader from '../components/PageHeader'
-import ReviewQueueItem from '../components/ReviewQueueItem'
-import StatCards from '../components/StatCards'
-import StatusTag from '../components/StatusTag'
-import VersionsTab from '../components/VersionsTab'
+import PageHeader from '../components/common/PageHeader'
+import ReviewQueueItem from '../components/studio/ReviewQueueItem'
+import StatCards from '../components/common/StatCards'
+import StatusTag from '../components/common/StatusTag'
+import VersionsTab from '../components/studio/VersionsTab'
 import {
   selectMustReview,
   useGraphBuildStore,

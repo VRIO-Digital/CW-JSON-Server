@@ -2,11 +2,11 @@ import { Button, Menu, Typography } from 'antd'
 
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { appPath, splitDatasetPath } from '../api/dataset'
-import type { SessionIdentity } from '../api/client'
-import { NAV_GROUPS, type NavItem } from '../nav'
-import { useAuthStore } from '../store/authStore'
-import { useSettingsStore, visibleNavItems } from '../store/settingsStore'
+import { appPath, splitDatasetPath } from '../../api/dataset'
+import type { SessionIdentity } from '../../api/client'
+import { NAV_GROUPS, type NavItem } from '../../nav'
+import { useAuthStore } from '../../store/authStore'
+import { useSettingsStore, visibleNavItems } from '../../store/settingsStore'
 import './Sidebar.css'
 
 /**

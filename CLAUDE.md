@@ -314,6 +314,27 @@ an unpopulated dataset reads as empty rather than as a page that failed. That "n
 dropdown alone it was visible only after opening the control, leaving a reader to infer an empty
 dataset from a line of zeros.
 
+**A persisted selection can outlive the dataset it names, so a refused one is discarded and the call
+is remade.** This is not hypothetical and it bricked the app once: `CAPEX` was removed from
+`DATASETS` while browsers still had it selected, and since the value survives a reload and a
+sign-out, every request carried `x-dataset: CAPEX` and the server refused every one. Both sides
+correct — the refusal is exactly what a wrong dataset should get — and nothing in between cleared
+the value, so every page failed identically and the only cure was editing `localStorage` by hand.
+`resetDatasetIfRefused()` in `dataset.ts` forgets it, and `request()` calls that **only** on a 400
+naming `is not a dataset`, retrying once.
+
+**It recovers from the server's answer rather than pre-empting it, and that is the whole
+distinction.** Validating the stored value against a list held in the client is the obvious fix and
+the wrong one, for the reason the consent screen's client-side scope list was wrong: a pool in the
+browser can refuse a dataset the server has, and it would go stale the same way one release later.
+Nothing here decides whether `CAPEX` is a dataset — the server decides, refuses, and the client
+discards the value *because* it was refused. The retry is gated on the reset reporting it had
+something to clear, so a genuine 400 throws on the second pass instead of looping.
+
+**Every persisted reference needs an answer to "what if the thing is gone".** The identity in
+`localStorage` carries `roleId`, which is a `db.auth_roles` id, and removing a role would strand a
+signed-in browser the same way.
+
 **Changing the dataset is administered in Settings, confirmed in words, and ends the session.** It is
 not a view toggle, and the three parts are one act:
 
@@ -1877,6 +1898,28 @@ any advisory at `low`. The HTML carries a print stylesheet instead, with `page-b
 on every block, so *Print → Save as PDF* produces the same document. If a real PDF pipeline is
 wanted it should be argued on its own terms, the way d3 was.
 
+**And an opened report has an `Export PDF` button, which is that decision made usable.** It sits on
+`PublishedReportPane`'s bar beside *Back to Library* and calls `window.print()` — the browser is the
+renderer, and `check-docs` asserts no headless-browser package has arrived by the back door. Offered
+only once the report is on screen: printing mid-fetch hands the reader a page of chrome with a spinner
+where the figures go. The hint lives in `src/data/reportExport.ts` because a `Tooltip` portals out of
+`renderToString`, so inline it could not be asserted on — the same reason `sourceActions.ts` exists.
+
+**What prints is the report, and the mechanism is `visibility` rather than `display`.**
+`PublishedReportPane.css` hides `body *` and reveals `.prp, .prp *`, then lifts the subtree to the page
+origin. Hiding the app's chrome *by name* would need a list of every wrapper — the sidebar, the header,
+the tab bar, and whatever is added next — which is wrong the first time one appears, silently, on a page
+nobody re-printed. Hiding everything and revealing one subtree needs no list, and it only works because
+a hidden element still takes its space: `display: none` on a body child would take the report down with
+it. The report's own paper rules are in `report.css`, still every-selector-scoped under `.cw-report`,
+because a bare `.card` or `table` rule inside a print block would restyle every antd table in the app
+the moment anybody printed any page.
+
+**This is the client-side twin of `POST /reports/export`, not a replacement for it.** That endpoint
+still renders HTML and CSV, still writes to the bucket, and still has no caller — and it **requires
+S3**, so on a server reading local files (`S3_BUCKET=off`) it answers a 400 saying so. Printing works in
+both configurations, which is why the PDF path is the one that got a button first.
+
 Three rules the renderers keep, each guarding a failure that is silent:
 
 - **Every tabular block is emitted, not just the first.** A report holds several; exporting one
@@ -2169,8 +2212,9 @@ names at least one, so the refusal points at unpublish instead.
 
 ### Settings (`/settings`)
 
-Three tabs — **Add User**, **Dataset** and **Persona Configuration** — over `SettingsPage` → `settingsStore` →
-`GET /settings`, served from **`db.settings`** — a key of `db.json`, not a file of its own.
+Four tabs — **Add User**, **Dataset**, **Persona Configuration** and **Report View** — over `SettingsPage`
+→ `settingsStore` → `GET /settings`, served from **`db.settings`** — a key of `db.json`, not a file of its
+own.
 
 **The Dataset tab is the one that is not about `db.settings`.** It administers which dataset 
 the whole console reads — see *Two datasets* above — and it is here because confirming it signs the 
@@ -2228,6 +2272,43 @@ unconditionally, so a persona whose sidebar no longer lists it can still reach t
 stops a reader turning Settings off for a configurable persona and losing the way back. The page warns
 when that state is reached and names the URL. Do not build anything on these permissions that assumes
 they gate access; they are the same client-held preference `viewer_roles` is.
+
+**The Report View tab records what a persona may *do* to a report, and the split from Persona
+Configuration is the point.** That tab answers "which pages does this persona see"; this one answers
+"what may it do once it is on one of them" — the three acts a Library row offers, `open` · `edit` ·
+`delete`. One table mixing nine navigation items with three report acts would be two questions in one
+list. `report_permissions` and `report_defaults` sit beside `nav_permissions` and `defaults` in
+`db.settings`, `PATCH /settings/personas/:roleId/reports` is the twin of the `nav` route, and Reset
+restores **both** blocks — the button says "Reset to defaults" for the persona, and restoring its
+navigation while leaving its report access edited would answer half of that.
+
+**The actions are declared once, in `REPORT_ACTIONS`, and three layers are checked against it.** The
+PATCH route validates against it, `validateSettings` refuses a stored block that does not carry exactly
+those keys, and the seed writes its own copy because a script cannot import the server — so `check-docs`
+compares the two, exactly as it compares `NAV_KEYS` to `nav.ts`. Each drift fails in a different silent
+direction: a fourth action in a component is a permission the API refuses, a missing one stops the boot,
+and a key the server holds that the panel never renders is a decision with no way to see it. The panel
+renders the **served** list for the same reason the consent screen renders the scopes the endpoint
+returned. **Share is deliberately not one of them** — that edits the *audience*, which Audit &
+Governance owns, and putting it here would give one record two homes.
+
+**It gates by withholding a handler, never by a permission field on the card.** `GovernedCard` already
+shows a button only where there is a handler to run, so a withheld act is simply no callback passed —
+`actions && may('edit')` in `src/reports/App.tsx`. That is not a style preference: a card that tested a
+permission field of its own is the exact shape of the access gate this section removed, where a payload
+that stopped carrying the field rendered a row with **no actions at all**. `reportActionsFor` in
+`settingsStore` is the one place the rule lives, the twin of `visibleNavItems`, and **absent means
+allowed** — before the fetch returns, or with no persona active, every act is offered, because a Library
+whose buttons appeared a moment after its cards would read as a broken page. Session reports are not
+gated: those are the reader's own drafts, held in this browser and submitted to nobody.
+
+**And there is no lock here, unlike Navigation access.** Settings is fixed on Platform Admin because a
+persona able to hide its own way back in would be stranded with no route to recovery. Nothing on this
+tab can strand anybody — a persona that loses `edit` still reaches this page and can hand it back, and
+the API still serves every report to a caller that names no role. A fixed row nobody could explain is
+worse than none. **Which is also why the tab states, in those words, that it controls what is offered
+and not what is permitted**: it switches off a *Delete* button, the most authoritative-looking control
+in the section, so staying quiet would imply an enforcement that does not exist.
 
 ### Identity (`/login`)
 
@@ -2303,6 +2384,66 @@ true of a live version. A malformed `as` is a 400, not a quiet fallback. The aud
 `triggered_by` and Graph Studio's `approved_by` are **still** `db.google_account` and are
 not wired to the session; wire them the same way or leave them, but do not read them as the
 current user.
+
+### Components (`src/components/`)
+
+**Grouped by feature, one folder per area, and nothing sits flat at the top.** The folder held 47
+components in a single flat list, which is readable at a dozen and is a scroll at forty-seven: the
+name was the only thing saying which page a component belonged to, so `SourcesStep` (the New Graph
+wizard's step 4) sorted next to `Sidebar` and nothing grouped the four What-if drawings that only
+ever render together. Eleven folders now, and a component's path states its area:
+
+| folder | what is in it |
+|---|---|
+| `common/` | reached for from outside by three files or more — `PageHeader`, `ApiErrorAlert`, `StatusTag`, `StatCards`, `EmptyState`, `NoSourceConnected`, `NoPublishedGraph`, `ConnectorIcon` |
+| `shell/` | the app frame and the routing guards — `Sidebar`, `RequireAuth`, `DatasetPathGate`, `DatasetRedirect` |
+| `sources/` | the connect wizard, its consent windows and `StageList` |
+| `catalog/` | the four profiling and dictionary panels |
+| `graph/` | the New Graph wizard's steps, plus `LlmRun` |
+| `studio/` | Graph Studio's tabs — `BuildTab`, `VersionsTab`, `ReviewQueueItem` |
+| `ask/` | the answer view, its blocks and `AnswerChart` |
+| `whatif/` | the lens's columns, drawings and publish dialog |
+| `governance/` | Audit & Governance's card and rule editor |
+| `settings/` | the three Settings tabs |
+| `report/` | the rendered-report chrome — **already a folder, and untouched by the grouping** |
+
+**A cross-group import is expected, not a smell.** `report/ReportBlocks` imports
+`../ask/AnswerChart` on purpose — one component draws an answer's chart and a report's, which is why
+the two cannot come to disagree about what a bar means. The grouping is about where a file *lives*,
+and it does not claim the groups are independent.
+
+**`common/` is earned by use, not by looking generic.** Membership is "three or more files import it
+from outside its own folder", and both halves of that were learned by writing the check rather than
+assumed:
+
+- **Pages are the wrong denominator.** Only `CatalogPage` imports `ConnectorIcon` *directly*, so
+  counted by pages it looked like Catalog's private mark — but the New Graph wizard's step 4 and the
+  connect wizard import it too, from two other groups. Filed under `catalog/` on that reading it
+  became a component two other areas reach across for, which is the arrangement `common/` exists to
+  avoid. A sibling importer counts.
+- **A total is the wrong number.** `LlmRun` has three importers and all three are `graph/` — two
+  wizard steps and the wizard's page. Three uses inside one area is what a feature folder is *for*,
+  so it stays in `graph/` despite the neutral name. `StageList` went the other way for the same
+  reason: one importer, `sources/GoogleConsentPanel`, so it lives beside it.
+
+`EmptyState` is in `common/` on the other half of the rule — three importers, one of them a page
+outside `common/` — and it is the primitive `NoSourceConnected` and `NoPublishedGraph` wrap. `shell/`
+is exempt: no page imports `Sidebar` or the routing guards, because `App` and the route table do, and
+they are the app frame rather than something a page reuses. A component promoted to `common/` on a
+hunch is a component whose folder no longer says anything.
+
+**The two vendored folders are not part of this and must not be folded in.** `src/reports/` and
+`src/graph-viewer/` were imported whole, each with its own components, lib and scoped stylesheet, and
+`check-docs` asserts their paths and their CSS scoping — see the Reports and Canvas sections. Merging
+either into this tree would break those claims and lose the one thing vendoring bought: a folder that
+can be diffed against where it came from.
+
+**An absence claim about a component searches the tree, never one path.** `absentUnderComponents` in
+`check-docs.mjs` is why: the five deleted components it guards (`SourceImpactNotice`, `NodeInspector`,
+`GraphCanvas`, `DatasetPicker`, `AnswerRequirementsStep`) were each checked against one flat path,
+which was exact while the folder was flat and fails open now — a revival landing in its feature folder
+would satisfy a check pointed at the old location. `check-docs` also asserts the top level holds no
+`.tsx` at all, so the folder cannot drift back to flat one convenient file at a time.
 
 ### State (`src/store/`)
 

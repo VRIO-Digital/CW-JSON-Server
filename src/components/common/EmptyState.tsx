@@ -1,6 +1,6 @@
 import { Col, Row, Typography } from 'antd'
 import type { ReactNode } from 'react'
-import { SP } from '../theme'
+import { SP } from '../../theme'
 import './EmptyState.css'
 
 export interface EmptyStateStep {

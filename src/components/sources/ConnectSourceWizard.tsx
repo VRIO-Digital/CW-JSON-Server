@@ -44,21 +44,21 @@ import {
   type PreviewResult,
   type RegisteredDriveSource,
   type RegisteredSource,
-} from '../api/client'
+} from '../../api/client'
 import {
   AVAILABLE_CONNECTORS,
   VISION_CONNECTORS,
   type Connector,
   type ConnectorField,
-} from '../data/connectors'
-import { SOURCE_NAME_MIN, sourceNameProblem } from '../data/sourceName'
+} from '../../data/connectors'
+import { SOURCE_NAME_MIN, sourceNameProblem } from '../../data/sourceName'
 import ConnectRunPanel from './ConnectRunPanel'
-import ConnectorIcon from './ConnectorIcon'
+import ConnectorIcon from '../common/ConnectorIcon'
 import FolderTreePicker from './FolderTreePicker'
 import GoogleSignInWindow, { type SignInPhase } from './GoogleSignInWindow'
-import { toMessage } from '../store/asyncState'
-import { useAuthStore } from '../store/authStore'
-import { BRAND, BRAND_SOFT, SP } from '../theme'
+import { toMessage } from '../../store/asyncState'
+import { useAuthStore } from '../../store/authStore'
+import { BRAND, BRAND_SOFT, SP } from '../../theme'
 import './ConnectSourceModal.css'
 
 type TestState = 'idle' | 'running' | 'passed'

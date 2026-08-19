@@ -22,7 +22,7 @@
 
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
-import { datasetPathFix } from '../api/dataset'
+import { datasetPathFix } from '../../api/dataset'
 
 export default function DatasetPathGate() {
   const location = useLocation()

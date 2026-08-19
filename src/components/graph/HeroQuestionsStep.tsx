@@ -1,10 +1,10 @@
 import { CheckOutlined, CloseOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { Button, Checkbox, Input } from 'antd'
 import { useState } from 'react'
-import type { HeroQuestion, Suggestion } from '../api/client'
+import type { HeroQuestion, Suggestion } from '../../api/client'
 import { LlmRunInline } from './LlmRun'
-import { SP } from '../theme'
-import '../pages/NewGraphPage.css'
+import { SP } from '../../theme'
+import '../../pages/NewGraphPage.css'
 
 /*
  * Step 5 of New Graph: the questions this graph exists to answer.

@@ -2084,12 +2084,29 @@ directory; unpublishing a report -> 400 naming its equivalent; removing a scenar
 **Files:** `db.settings` (its own subtree of `mock-server/db.json`) + `scripts/seed-settings.mjs` ->
 `GET /settings` / `PATCH /settings/personas/:roleId/nav` / `POST …/reset` ->
 `src/api/client.ts` -> `src/store/settingsStore.ts` (the one place visibility is decided) ->
-`src/pages/SettingsPage.tsx` -> `src/components/UsersPanel.tsx` and
-`src/components/PersonaPermissionsPanel.tsx` (both pure, so both assertable) ->
-`src/nav.ts` + `src/components/Sidebar.tsx` for the effect.
+`src/pages/SettingsPage.tsx` -> `src/components/settings/UsersPanel.tsx` and
+`src/components/settings/PersonaPermissionsPanel.tsx` +
+`src/components/settings/ReportPermissionsPanel.tsx` (all pure, so all assertable) ->
+`src/nav.ts` + `src/components/shell/Sidebar.tsx` for the effect.
 
 **The flow:** Settings → Persona Configuration → pick a persona → toggle a navigation item → the
 sidebar changes on the next render, and the change is saved.
+
+**And its twin:** Settings → Report View → pick a persona → toggle `open` / `edit` / `delete` → that
+persona's Library rows offer those buttons and no others. Same shape throughout —
+`PATCH /settings/personas/:roleId/reports`, `report_permissions` + `report_defaults` beside the
+navigation pair, `reportActionsFor` as the one place the rule lives (the twin of `visibleNavItems`), and
+`src/components/settings/ReportPermissionsPanel.tsx` pure and assertable. Two things to keep in mind
+when touching it: the acts are declared once as `REPORT_ACTIONS` in `server.mjs` and re-declared in the
+seed because a script cannot import the server, so `check-docs` compares them; and the gating is done by
+**withholding a handler** in `src/reports/App.tsx`, never by a permission field on `GovernedCard` —
+a card that tested one is the shape of the access gate this section removed, which rendered rows with no
+actions at all.
+
+**Where a report leaves the app:** open one from the Library → `Export PDF` → the browser's print
+dialog. `window.print()` over the `@media print` rules in `PublishedReportPane.css`, which hide `body *`
+and reveal `.prp` — there is no PDF renderer here, by dependency decision, and the hint sits in
+`src/data/reportExport.ts` because a `Tooltip` portals out of `renderToString`.
 
 ### Its own key
 

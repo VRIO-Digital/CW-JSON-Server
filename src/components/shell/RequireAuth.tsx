@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useAuthStore } from '../store/authStore'
+import { useAuthStore } from '../../store/authStore'
 
 /**
  * Gates the whole app shell behind sign-in. Wraps the `/` route tree in

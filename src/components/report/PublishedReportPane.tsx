@@ -11,9 +11,10 @@
  * nothing.
  */
 
-import { ArrowLeftOutlined } from '@ant-design/icons'
-import { Alert, Button, Spin } from 'antd'
+import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons'
+import { Alert, Button, Spin, Tooltip } from 'antd'
 
+import { REPORT_EXPORT_HINT } from '../../data/reportExport'
 import { useReportsStore } from '../../store/reportsStore'
 import PublishedReport from './PublishedReport'
 import './PublishedReportPane.css'
@@ -30,9 +31,43 @@ export default function PublishedReportPane() {
 
   return (
     <div className="prp">
-      <Button className="prp-back" icon={<ArrowLeftOutlined />} onClick={close} size="small">
-        Back to Library
-      </Button>
+      <div className="prp-bar">
+        <Button icon={<ArrowLeftOutlined />} onClick={close} size="small">
+          Back to Library
+        </Button>
+
+        {/*
+          * **Export as PDF, and the browser is the renderer.**
+          *
+          * There is no PDF pipeline in this repo, by decision rather than omission: rendering one
+          * server-side means a headless browser — some forty transitive packages and a Chromium
+          * download — through an audit gate that fails on any advisory at `low`. Every browser already
+          * has a renderer, and `PublishedReportPane.css` carries the `@media print` rules that make what
+          * it produces the report rather than the application around it.
+          *
+          * **Offered only once a report is on screen.** Printing while the fetch is in flight would hand
+          * the reader a page of chrome with a spinner where the figures go, so the control lives inside
+          * the `report` branch rather than beside Back — the same reason a report's own actions are
+          * offered only where they can be carried out.
+          *
+          * The tooltip says what the button does rather than what it is called: "Export PDF" that opens
+          * a print dialog is a surprise worth one sentence, and the file the reader saves is the
+          * browser's, so nothing here can promise a filename. The sentence lives in `src/data/` because
+          * a `Tooltip` portals out of `renderToString` — inline it could not be asserted on.
+          */}
+        {report ? (
+          <Tooltip title={REPORT_EXPORT_HINT}>
+            <Button
+              className="prp-export"
+              icon={<PrinterOutlined />}
+              onClick={() => window.print()}
+              size="small"
+            >
+              Export PDF
+            </Button>
+          </Tooltip>
+        ) : null}
+      </div>
 
       {error ? (
         <Alert

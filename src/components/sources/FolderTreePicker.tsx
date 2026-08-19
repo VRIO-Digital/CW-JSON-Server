@@ -1,8 +1,8 @@
 import { FolderOpenOutlined, FolderOutlined } from '@ant-design/icons'
 import { Button, Flex, Tree, Typography } from 'antd'
 import { useMemo, type ReactNode } from 'react'
-import type { PreviewFolder } from '../api/client'
-import { SP } from '../theme'
+import type { PreviewFolder } from '../../api/client'
+import { SP } from '../../theme'
 
 /**
  * The folder allowlist, drawn as the tree the drive actually is.

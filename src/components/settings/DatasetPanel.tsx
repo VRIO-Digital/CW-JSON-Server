@@ -24,18 +24,18 @@
 import { Alert, Card, Modal, Select, Space, Table, Tag, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 
-import { SP } from '../theme'
+import { SP } from '../../theme'
 
 import {
   datasetSwitchBody,
   datasetSwitchOk,
   datasetSwitchTitle,
-} from '../data/datasetSwitch'
+} from '../../data/datasetSwitch'
 import {
   selectDatasetRows,
   selectIsBoth,
   useDatasetStore,
-} from '../store/datasetStore'
+} from '../../store/datasetStore'
 import './DatasetPanel.css'
 
 export default function DatasetPanel() {

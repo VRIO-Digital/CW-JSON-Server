@@ -7,9 +7,9 @@ import {
   listAuthRoles,
   setReportAudience,
 } from '../api/client'
-import ApiErrorAlert from '../components/ApiErrorAlert'
-import NoPublishedGraph from '../components/NoPublishedGraph'
-import PageHeader from '../components/PageHeader'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import NoPublishedGraph from '../components/common/NoPublishedGraph'
+import PageHeader from '../components/common/PageHeader'
 import PublishedReportPane from '../components/report/PublishedReportPane'
 import ReportsApp from '../reports/App'
 import { hydrate as hydratePrototype, isHydrated } from '../reports/data'
@@ -17,6 +17,7 @@ import { MenuProvider } from '../reports/components/MenuProvider'
 import { ToastProvider } from '../reports/components/Toast'
 import { useAuthStore } from '../store/authStore'
 import { useReportsStore } from '../store/reportsStore'
+import { reportActionsFor, useSettingsStore } from '../store/settingsStore'
 import { createReadStore, toMessage } from '../store/asyncState'
 import '../reports/reports-prototype.css'
 import './ReportsPage.css'
@@ -230,6 +231,21 @@ export default function ReportsPage() {
 
   const actions = useMemo(() => ({ share, remove }), [share, remove])
 
+  /*
+   * Which of a governed row's acts this persona is offered.
+   *
+   * **Read from the same store the sidebar reads**, which is already loaded app-wide — the Sidebar
+   * fetches `GET /settings` on mount — so this page adds no fetch of its own and cannot show a stale
+   * answer beside a fresh sidebar. `reportActionsFor` is the one place the rule lives; memoised because
+   * it builds a fresh object and a new one every render would defeat the prototype's own memos.
+   */
+  const settings = useSettingsStore((s) => s.data)
+  const activePersonaId = useSettingsStore((s) => s.activePersonaId)
+  const reportActions = useMemo(
+    () => reportActionsFor(settings, activePersonaId),
+    [settings, activePersonaId],
+  )
+
   const shareRoles = useMemo(
     () =>
       (roles?.roles ?? []).map((r) => ({
@@ -354,6 +370,16 @@ export default function ReportsPage() {
                 governance={data?.governance}
                 shareRoles={shareRoles}
                 actions={actions}
+                /*
+                 * Which of a governed row's three acts this persona is offered, from the one place that
+                 * decides it — `reportActionsFor`, the twin of `visibleNavItems`. A second computation
+                 * here would be a second answer to whether an Executive may delete.
+                 *
+                 * Configured on **Settings → Report View**, and it is not access control: the persona is
+                 * client-held and the API serves every report to a caller that names no role, which the
+                 * tab states in those words.
+                 */
+                reportActions={reportActions}
                 /*
                  * **Open report** reads the published report; **Edit report** still loads the authoring
                  * definition. Two buttons that did the same thing now do what their labels say, and the

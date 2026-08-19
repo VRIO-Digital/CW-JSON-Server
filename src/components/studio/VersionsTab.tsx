@@ -1,6 +1,6 @@
 import { Button, Tooltip } from 'antd'
-import type { GraphVersion } from '../api/client'
-import StatusTag from './StatusTag'
+import type { GraphVersion } from '../../api/client'
+import StatusTag from '../common/StatusTag'
 import './VersionsTab.css'
 
 /*

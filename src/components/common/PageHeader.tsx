@@ -1,6 +1,6 @@
 import { Flex, Space, Typography } from 'antd'
 import type { ReactNode } from 'react'
-import { SP } from '../theme'
+import { SP } from '../../theme'
 
 export default function PageHeader({
   title,

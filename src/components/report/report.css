@@ -316,3 +316,43 @@
   color: var(--mut);
   font-size: 12px;
 }
+
+/*
+ * ---------------- print ----------------
+ *
+ * What the browser produces when the reader chooses "Export PDF". `PublishedReportPane.css` decides
+ * *what* prints — the report subtree and none of the application; these rules decide how the report
+ * itself sits on paper.
+ *
+ * **Every selector still begins with `.cw-report`**, which the scoping claim requires and which is not
+ * a formality here: bare `.card` or `table` rules inside a print block would restyle every antd table
+ * in the app the moment anybody printed any page.
+ *
+ * Three things paper needs that a screen does not. A card must not be split down the middle by a page
+ * break, which is the one rule the HTML exporter also carries. A shadow and a rounded border are screen
+ * affordances that print as grey mush, so they become a hairline the reader can actually see. And the
+ * facet bar is a *control* — it selects what the table shows — so on paper it would be a row of dropdowns
+ * nobody can operate; the note beside it stays, because that sentence is what says which slice this is.
+ */
+@media print {
+  .cw-report {
+    background: #fff;
+    color: #000;
+  }
+
+  .cw-report .card,
+  .cw-report .kpi,
+  .cw-report .chain,
+  .cw-report table tr {
+    page-break-inside: avoid;
+  }
+
+  .cw-report .card {
+    box-shadow: none;
+    border: 1px solid #bbb;
+  }
+
+  .cw-report .facet-select {
+    display: none;
+  }
+}

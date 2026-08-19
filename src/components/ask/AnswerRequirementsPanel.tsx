@@ -1,7 +1,7 @@
 import { Checkbox, Col, Row } from 'antd'
-import type { AnswerRequirementOptions, Citations } from '../api/client'
-import { SP } from '../theme'
-import '../pages/AskPage.css'
+import type { AnswerRequirementOptions, Citations } from '../../api/client'
+import { SP } from '../../theme'
+import '../../pages/AskPage.css'
 
 /**
  * Ask's **Answer requirements** tab: what a reader wants an answer to carry.

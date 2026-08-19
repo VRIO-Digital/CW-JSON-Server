@@ -1,10 +1,10 @@
 import { CheckOutlined, PlusOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { Button, Input } from 'antd'
 import { useState, type ReactNode } from 'react'
-import type { DraftedItem, Suggestion } from '../api/client'
+import type { DraftedItem, Suggestion } from '../../api/client'
 import { LlmRunInline } from './LlmRun'
-import { SP } from '../theme'
-import '../pages/NewGraphPage.css'
+import { SP } from '../../theme'
+import '../../pages/NewGraphPage.css'
 
 /*
  * The shape steps 2 and 3 of New Graph share: let the AI draft a list, add the

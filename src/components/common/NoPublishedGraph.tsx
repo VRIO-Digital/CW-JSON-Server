@@ -2,7 +2,7 @@ import { DeploymentUnitOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
 import { Link } from 'react-router-dom'
 import EmptyState from './EmptyState'
-import { appPath } from '../api/dataset'
+import { appPath } from '../../api/dataset'
 
 /** The path from a built graph to a live one — where the publish button actually is. */
 const STEPS = [

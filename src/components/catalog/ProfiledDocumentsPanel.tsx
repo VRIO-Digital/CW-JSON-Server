@@ -13,9 +13,9 @@ import {
   type TableColumnsType,
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
-import type { ProfiledDocument, ProfiledEntity, SourceRow } from '../api/client'
-import { fileKind } from '../data/mimeTypes'
-import { useDocumentsStore } from '../store/catalogStore'
+import type { ProfiledDocument, ProfiledEntity, SourceRow } from '../../api/client'
+import { fileKind } from '../../data/mimeTypes'
+import { useDocumentsStore } from '../../store/catalogStore'
 import './ProfiledColumnsPanel.css'
 
 type FacetKey =

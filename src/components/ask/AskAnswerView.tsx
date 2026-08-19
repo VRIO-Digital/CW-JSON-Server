@@ -1,9 +1,9 @@
 import { Alert } from 'antd'
-import type { AskAnswer } from '../api/client'
+import type { AskAnswer } from '../../api/client'
 import AnswerBlocks from './AnswerBlocks'
-import StatusTag from './StatusTag'
-import { SP } from '../theme'
-import '../pages/AskPage.css'
+import StatusTag from '../common/StatusTag'
+import { SP } from '../../theme'
+import '../../pages/AskPage.css'
 
 /**
  * One settled answer, as the thread renders it.

@@ -1,4 +1,4 @@
-import type { AnswerBlock } from '../api/client'
+import type { AnswerBlock } from '../../api/client'
 import './AnswerBlocks.css'
 
 /*

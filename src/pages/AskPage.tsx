@@ -1,14 +1,14 @@
 import { ArrowUpOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { Button, Input, Select, Spin, Tabs, Typography, message } from 'antd'
 import { useEffect, useState } from 'react'
-import AnswerBlocks from '../components/AnswerBlocks'
+import AnswerBlocks from '../components/ask/AnswerBlocks'
 // Commented with the tab it renders — see the note beside the hooks below.
-// import AnswerRequirementsPanel from '../components/AnswerRequirementsPanel'
-import ApiErrorAlert from '../components/ApiErrorAlert'
-import AskAnswerView from '../components/AskAnswerView'
-import AskChatRail from '../components/AskChatRail'
-import NoPublishedGraph from '../components/NoPublishedGraph'
-import PageHeader from '../components/PageHeader'
+// import AnswerRequirementsPanel from '../components/ask/AnswerRequirementsPanel'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import AskAnswerView from '../components/ask/AskAnswerView'
+import AskChatRail from '../components/ask/AskChatRail'
+import NoPublishedGraph from '../components/common/NoPublishedGraph'
+import PageHeader from '../components/common/PageHeader'
 import {
   selectActiveChat,
   selectAskGraphs,

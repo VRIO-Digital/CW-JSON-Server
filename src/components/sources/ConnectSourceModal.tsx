@@ -1,5 +1,5 @@
 import { Modal, Typography } from 'antd'
-import type { RegisteredDriveSource, RegisteredSource } from '../api/client'
+import type { RegisteredDriveSource, RegisteredSource } from '../../api/client'
 import ConnectSourceWizard from './ConnectSourceWizard'
 
 /** Dialog chrome only — the flow itself lives in ConnectSourceWizard. */

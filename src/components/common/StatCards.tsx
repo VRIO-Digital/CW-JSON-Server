@@ -1,6 +1,6 @@
 import { Card, Col, Row, Statistic, Typography } from 'antd'
-import type { Stat } from '../types'
-import { SP, STATUS } from '../theme'
+import type { Stat } from '../../types'
+import { SP, STATUS } from '../../theme'
 
 const TONE_COLOR = {
   good: STATUS.good,

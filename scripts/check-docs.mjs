@@ -14,10 +14,42 @@
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(root, p), 'utf8')
+
+/**
+ * **`src/components` is grouped by feature, so an absence claim has to search the tree.**
+ *
+ * Several claims below assert a deleted component is still deleted — `SourceImpactNotice`,
+ * `NodeInspector`, `GraphCanvas`, `DatasetPicker`, `AnswerRequirementsStep`. Each was an
+ * `existsSync` against one flat path, which was exact while every component sat in one
+ * directory and is a hole now that they sit in `common/`, `sources/`, `studio/` and the
+ * rest: a revival landing in its feature folder satisfies a check pointed at the old flat
+ * path, which is the fail-open shape this file has already been bitten by — a guard whose
+ * good answer is its own inability to look.
+ *
+ * So the name is searched for anywhere under `src/components`, and the claim asserts the
+ * fact ("this component is not in the tree") rather than a path it happens to have had.
+ *
+ * Defined here beside `read` rather than beside its first user: it is a `const`, so a claim
+ * earlier in the file would die in the temporal dead zone, and a check-docs that crashes is
+ * one whose claim total silently stops moving.
+ */
+const absentUnderComponents = (name) => {
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.isDirectory()) {
+        if (walk(join(dir, e.name))) return true
+      } else if (e.name === `${name}.tsx` || e.name === `${name}.css`) {
+        return true
+      }
+    }
+    return false
+  }
+  return !walk(join(root, 'src/components'))
+}
 
 /**
  * The two JSON databases live in S3 now, so neither is necessarily on disk.
@@ -109,9 +141,9 @@ const connectors = read('src/data/connectors.ts')
 const indexCss = read('src/index.css')
 const theme = read('src/theme.ts')
 const nav = read('src/nav.ts')
-const jobsTab = read('src/components/ProfilingJobsTab.tsx')
+const jobsTab = read('src/components/catalog/ProfilingJobsTab.tsx')
 const client = read('src/api/client.ts')
-const wizard = read('src/components/ConnectSourceWizard.tsx')
+const wizard = read('src/components/sources/ConnectSourceWizard.tsx')
 
 /* ---------------- connectors ---------------- */
 
@@ -174,7 +206,7 @@ expect(
  * now, but a missing mark would still be a grey cylinder where a logo belongs, so
  * adding a connector fails this until it has one.
  */
-const iconSource = read('src/components/ConnectorIcon.tsx')
+const iconSource = read('src/components/common/ConnectorIcon.tsx')
 /* Found in two steps, not one pattern: the declaration's type annotation is
    `Record<string, (props: { size?: number }) => JSX.Element>`, which carries both
    an `=` and a `{`, so `[^=]*= \{` stopped inside it and reported zero marks —
@@ -381,7 +413,7 @@ for (const scope of serverScopes) {
  */
 expect(
   'the consent panel lists the reported scopes',
-  /scopes\?: string\[\]/.test(read('src/components/GoogleConsentPanel.tsx')) &&
+  /scopes\?: string\[\]/.test(read('src/components/sources/GoogleConsentPanel.tsx')) &&
     /scopes=\{oauthScopes\}/.test(wizard),
   'the wizard holds start.scopes and the panel renders them',
 )
@@ -396,7 +428,7 @@ expect(
  * `codeOnly`, and keyed on the rendered form rather than the bare identifier: this file's own
  * comments name the constant it must not read from.
  */
-const signInWindow = read('src/components/GoogleSignInWindow.tsx')
+const signInWindow = read('src/components/sources/GoogleSignInWindow.tsx')
 const signInCode = codeOnly(signInWindow)
 expect(
   'the sign-in window renders the scopes the endpoint returned',
@@ -492,7 +524,7 @@ for (const fn of ['runPreview', 'finishBigQuery', 'runDrivePreview', 'finishDriv
  * the reason is the failure the first version had: a panel listing both acts said
  * "registering the source" while nothing was being registered.
  */
-const runPanel = read('src/components/ConnectRunPanel.tsx')
+const runPanel = read('src/components/sources/ConnectRunPanel.tsx')
 const runPanelCode = codeOnly(runPanel)
 const connectSteps = read('src/data/connectSteps.ts')
 
@@ -585,13 +617,13 @@ for (const [kind, unit, notThis] of [
 expect(
   'the consent panel draws its rows through StageList',
   /<StageList stages=\{stages\} stage=\{stage\} \/>/.test(
-    read('src/components/GoogleConsentPanel.tsx'),
-  ) && /\.cs-stage\.is-active/.test(read('src/components/StageList.css')),
+    read('src/components/sources/GoogleConsentPanel.tsx'),
+  ) && /\.cs-stage\.is-active/.test(read('src/components/sources/StageList.css')),
   'one interaction, one component',
 )
 expect(
   'and no second sheet styles those rows',
-  !/\.cs-consent-stage/.test(read('src/components/GoogleConsentPanel.css')),
+  !/\.cs-consent-stage/.test(read('src/components/sources/GoogleConsentPanel.css')),
   'the classes live with the component that renders them',
 )
 
@@ -693,9 +725,9 @@ expect(
 /* `catalogPage` is already read at the top of this file — one binding, reused. */
 const panelFiles = [
   'src/pages/CatalogPage.tsx',
-  'src/components/ProfiledColumnsPanel.tsx',
-  'src/components/ProfiledDocumentsPanel.tsx',
-  'src/components/DocumentBrowsePanel.tsx',
+  'src/components/catalog/ProfiledColumnsPanel.tsx',
+  'src/components/catalog/ProfiledDocumentsPanel.tsx',
+  'src/components/catalog/DocumentBrowsePanel.tsx',
 ]
 for (const path of panelFiles) {
   const src = codeOnly(read(path))
@@ -781,7 +813,7 @@ expect(
  */
 for (const [label, path] of [
   ['BrowsePanel', 'src/pages/CatalogPage.tsx'],
-  ['DocumentBrowsePanel', 'src/components/DocumentBrowsePanel.tsx'],
+  ['DocumentBrowsePanel', 'src/components/catalog/DocumentBrowsePanel.tsx'],
 ]) {
   const src = codeOnly(read(path))
   expect(
@@ -844,8 +876,7 @@ expect(
       .length === 2 &&
     !/description=/.test(sourcesCode) &&
     !/SourceImpactNotice/.test(sourcesCode) &&
-    !existsSync(join(root, 'src/components/SourceImpactNotice.tsx')) &&
-    !existsSync(join(root, 'src/components/SourceImpactNotice.css')),
+    absentUnderComponents('SourceImpactNotice'),
   'one sentence, from one place, on both acts — and the consequence copy gone from every layer',
 )
 /*
@@ -986,7 +1017,7 @@ for (const project of db.projects ?? []) {
  * server's arithmetic and the panel's filter have to agree on which classes go in
  * which chip — otherwise a chip counts 69 and lists 41.
  */
-const columnsPanel = read('src/components/ProfiledColumnsPanel.tsx')
+const columnsPanel = read('src/components/catalog/ProfiledColumnsPanel.tsx')
 const profiledClasses = [
   ...new Set(Object.values(profiles).flatMap((cs) => cs.map((c) => c.class))),
 ].sort()
@@ -1230,8 +1261,8 @@ expect(
 )
 expect(
   'and the retired drawing is gone from disk, not left unrendered',
-  !existsSync(join(root, 'src/components/GraphCanvas.tsx')) &&
-    !existsSync(join(root, 'src/components/NodeInspector.tsx')) &&
+  absentUnderComponents('GraphCanvas') &&
+    absentUnderComponents('NodeInspector') &&
     !existsSync(join(root, 'src/data/canvasLegend.ts')),
   'an unreachable second canvas is the second truth waiting to be re-imported',
 )
@@ -1392,7 +1423,7 @@ expect(
 )
 expect(
   'and the page reads the row’s actions rather than a list of its own',
-  /item\.actions\.length > 0 \? item\.actions/.test(read('src/components/ReviewQueueItem.tsx')),
+  /item\.actions\.length > 0 \? item\.actions/.test(read('src/components/studio/ReviewQueueItem.tsx')),
   'a page that kept its own list could offer a button the API refuses',
 )
 
@@ -1725,7 +1756,7 @@ expect(
 /* Comments stripped first: the `dur()` doc comment shows "5m 10s" as an example of
    its own output, and a claim that read that as a hardcoded pace would cry wolf —
    which is how a real red claim gets ignored. */
-const buildTabCode = read('src/components/BuildTab.tsx')
+const buildTabCode = read('src/components/studio/BuildTab.tsx')
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/\/\/.*/g, '')
 expect(
@@ -1738,8 +1769,8 @@ expect(
 )
 expect(
   'and the panel renders the substeps under their stage',
-  /className="bt-steps"/.test(read('src/components/BuildTab.tsx')) &&
-    /stage\.steps\.map/.test(read('src/components/BuildTab.tsx')),
+  /className="bt-steps"/.test(read('src/components/studio/BuildTab.tsx')) &&
+    /stage\.steps\.map/.test(read('src/components/studio/BuildTab.tsx')),
   'BuildTab nests them rather than flattening the pipeline',
 )
 expect(
@@ -1848,7 +1879,7 @@ expect(
  */
 const answers = db.ask_answers ?? []
 const blockKinds = [...new Set(answers.flatMap((a) => a.blocks.map((b) => b.type)))].sort()
-const answerBlocks = read('src/components/AnswerBlocks.tsx')
+const answerBlocks = read('src/components/ask/AnswerBlocks.tsx')
 expect(
   'every recorded block kind has a renderer',
   blockKinds.length > 0 &&
@@ -1969,7 +2000,7 @@ const facetBlock = server.match(/const FACET_FOR_TYPE = \{([\s\S]*?)\n {6}\}/)
 const serverFacetPairs = facetBlock
   ? [...facetBlock[1].matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[1], m[2]])
   : []
-const docsPanel = read('src/components/ProfiledDocumentsPanel.tsx')
+const docsPanel = read('src/components/catalog/ProfiledDocumentsPanel.tsx')
 const panelBlock = docsPanel.match(/const TYPE_FOR_FACET[^=]*= \{([\s\S]*?)\n\}/)
 const panelPairs = panelBlock
   ? [...panelBlock[1].matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[2], m[1]])
@@ -2285,6 +2316,145 @@ expect(
   'connectedAs prefers the auth store, so a stale server cannot name a stranger',
 )
 
+/* ---------------- src/components is grouped by feature ---------------- */
+
+/*
+ * **The folder is eleven feature folders and no flat files, and both halves are the claim.**
+ *
+ * It was 47 components in one flat list, where the name was the only thing saying which page a
+ * component served. The grouping is only worth having if it holds: the way it comes undone is not
+ * a deliberate reversal but one convenient file dropped at the top level, then another, and a
+ * folder that is half grouped tells a reader less than one that is flat, because now the location
+ * is a hint that is sometimes wrong.
+ *
+ * So the *absence* of top-level `.tsx` is asserted alongside the presence of the folders CLAUDE.md
+ * tabulates — the pairing this repo's own rule asks for, since "no flat files" is satisfied just as
+ * well by a folder that has lost its contents, and every absence claim here needs a presence claim
+ * over the same region to prove it looked at something.
+ */
+const componentDirs = readdirSync(join(root, 'src/components'), { withFileTypes: true })
+const componentGroups = componentDirs.filter((e) => e.isDirectory()).map((e) => e.name).sort()
+const flatComponents = componentDirs.filter((e) => e.isFile()).map((e) => e.name)
+const documentedGroups = [
+  'ask',
+  'catalog',
+  'common',
+  'governance',
+  'graph',
+  'report',
+  'settings',
+  'shell',
+  'sources',
+  'studio',
+  'whatif',
+]
+expect(
+  'src/components is grouped by feature, with nothing left flat at the top',
+  flatComponents.length === 0 &&
+    componentGroups.join(',') === documentedGroups.join(',') &&
+    componentGroups.every(
+      (g) => readdirSync(join(root, `src/components/${g}`)).some((f) => f.endsWith('.tsx')),
+    ),
+  `${componentGroups.length} folders · ${componentGroups.join(', ')} · ${flatComponents.length} flat files`,
+)
+
+/*
+ * **`common/` is earned by use, and the count is importing files anywhere in `src`.**
+ *
+ * Left unchecked that becomes a habit rather than a rule — a component lands in `common/` because
+ * the name sounds generic, and the folder stops meaning anything.
+ *
+ * **Pages alone is the wrong denominator, and writing this claim proved it.** Counted that way
+ * `ConnectorIcon` looked like Catalog's private mark, because only `CatalogPage` imports it
+ * *directly* — the wizard's step 4 and the connect wizard import it too, from two other groups.
+ * Moved to `catalog/` on that reading it became a component two other areas reach across for, which
+ * is the arrangement `common/` exists to avoid. So a sibling importer counts: what matters is how
+ * many places depend on it, not how many of them happen to be routed pages.
+ *
+ * `shell/` is exempt rather than special-cased away: `Sidebar` and the routing guards are imported
+ * by `App` and the route table, so no page imports them at all, and they are the app frame rather
+ * than something a page reuses.
+ */
+const srcFiles = []
+const walkSrc = (d) => {
+  for (const e of readdirSync(d, { withFileTypes: true })) {
+    const p = join(d, e.name)
+    if (e.isDirectory()) walkSrc(p)
+    else if (/\.tsx?$/.test(e.name)) srcFiles.push(p.split(sep).join('/'))
+  }
+}
+walkSrc(join(root, 'src'))
+/*
+ * Every relative specifier is *resolved* rather than matched as a substring. A sibling inside the
+ * same folder imports `'./EmptyState'`, which carries neither the group name nor `components/`, so
+ * a substring match undercounts exactly the primitives `common/` exists to hold — and reported
+ * `EmptyState` as used once when three files use it.
+ */
+const importersOf = (group, name) => {
+  const target = `src/components/${group}/${name}`
+  return srcFiles
+    .map((f) => f.slice(f.indexOf('/src/') + 1))
+    .filter((rel) => {
+      if (rel === `${target}.tsx`) return false
+      const dir = rel.split('/').slice(0, -1).join('/')
+      return [...readFileSync(join(root, rel), 'utf8').matchAll(/from\s+'(\.[^']+)'/g)].some((m) => {
+        const out = []
+        for (const seg of `${dir}/${m[1]}`.split('/')) {
+          if (seg === '.' || seg === '') continue
+          if (seg === '..') out.pop()
+          else out.push(seg)
+        }
+        return out.join('/') === target
+      })
+    })
+}
+const appShell = ['Sidebar', 'RequireAuth', 'DatasetPathGate', 'DatasetRedirect']
+const overSharedOutsideCommon = []
+const underUsedInsideCommon = []
+for (const g of componentGroups) {
+  if (g === 'report') continue
+  for (const f of readdirSync(join(root, `src/components/${g}`))) {
+    if (!f.endsWith('.tsx')) continue
+    const name = f.replace('.tsx', '')
+    if (appShell.includes(name)) continue
+    const users = importersOf(g, name)
+    const external = users.filter((rel) => !rel.startsWith(`src/components/${g}/`))
+    /*
+     * **The promotion test counts importers from *outside* the component's own folder.**
+     *
+     * A total would promote `LlmRun`, which three files import — its two sibling wizard steps and
+     * the wizard's page, all of them `graph/`. Three uses inside one area is what a feature folder
+     * is *for*; what earns `common/` is being reached for from elsewhere. `EmptyState` stays by the
+     * other half of the rule: three importers, one of them a page outside `common/`.
+     */
+    if (g === 'common' && users.length < 3) underUsedInsideCommon.push(`${name} (${users.length})`)
+    if (g !== 'common' && external.length >= 3) overSharedOutsideCommon.push(`${name} (${external.length})`)
+  }
+}
+expect(
+  'common/ holds what three or more files import from outside, and only that',
+  overSharedOutsideCommon.length === 0 && underUsedInsideCommon.length === 0,
+  overSharedOutsideCommon.length || underUsedInsideCommon.length
+    ? `belongs in common/: ${overSharedOutsideCommon.join(', ') || 'none'} · too narrow for common/: ${underUsedInsideCommon.join(', ') || 'none'}`
+    : 'membership is use, not a generic-sounding name',
+)
+
+/*
+ * **The two vendored folders stayed out of the grouping.**
+ *
+ * `src/reports/` and `src/graph-viewer/` were imported whole and are diffable against where they
+ * came from; folding either into `src/components/<feature>/` would lose that and break the CSS
+ * scoping claims besides. The tell that it happened would be one of them ceasing to exist.
+ */
+expect(
+  'the two vendored folders were not folded into the feature grouping',
+  existsSync(join(root, 'src/reports/App.tsx')) &&
+    existsSync(join(root, 'src/graph-viewer/App.tsx')) &&
+    !existsSync(join(root, 'src/components/reports')) &&
+    !existsSync(join(root, 'src/components/graph-viewer')),
+  'vendored code stays where it can be diffed against its origin',
+)
+
 /* ---------------- spacing scale ---------------- */
 
 const tokens = [...indexCss.matchAll(/--sp-(\d):/g)].map((m) => Number(m[1]))
@@ -2597,7 +2767,7 @@ expect(
 )
 /* The count reaches the page from the store, and the page subtracts what has landed — so a
    shimmer stands for a specific paragraph rather than for a hope. */
-const blocksComponent = read('src/components/AnswerBlocks.tsx')
+const blocksComponent = read('src/components/ask/AnswerBlocks.tsx')
 expect(
   'the shimmers are the promised paragraphs minus the landed ones',
   /streamedBlockCount: event\.blockCount/.test(read('src/store/askStore.ts')) &&
@@ -2608,7 +2778,7 @@ expect(
 expect(
   'and the shimmer is decoration, so it yields to reduced motion',
   /@media \(prefers-reduced-motion: reduce\)[\s\S]*?animation: none/.test(
-    read('src/components/AnswerBlocks.css'),
+    read('src/components/ask/AnswerBlocks.css'),
   ) && /aria-hidden="true"/.test(blocksComponent),
   'the page states the same fact in words — a screen reader has it already',
 )
@@ -2633,7 +2803,7 @@ const askPageSrc = read('src/pages/AskPage.tsx')
 const askChats = read('src/data/askChats.ts')
 const askChatsCode = codeOnly(askChats)
 const askStoreSrc = read('src/store/askStore.ts')
-const chatRail = read('src/components/AskChatRail.tsx')
+const chatRail = read('src/components/ask/AskChatRail.tsx')
 
 expect(
   'the chat key names the signed-in address, and the store reads it at call time',
@@ -2761,7 +2931,7 @@ expect(
  */
 const askPage = read('src/pages/AskPage.tsx')
 const askPageCode = codeOnly(askPage)
-const reqPanel = read('src/components/AnswerRequirementsPanel.tsx')
+const reqPanel = read('src/components/ask/AnswerRequirementsPanel.tsx')
 const wizardRules = read('src/data/wizardSteps.ts')
 const newGraphPage = read('src/pages/NewGraphPage.tsx')
 const graphStore = read('src/store/graphStore.ts')
@@ -2838,7 +3008,7 @@ expect(
 /* The step's own component was deleted rather than left unrendered. */
 expect(
   'and its wizard step component with it',
-  !existsSync(join(root, 'src/components/AnswerRequirementsStep.tsx')),
+  absentUnderComponents('AnswerRequirementsStep'),
   'AnswerRequirementsStep.tsx is still on disk, unreachable',
 )
 
@@ -2865,7 +3035,7 @@ expect(
 )
 expect(
   'and what it fed is untouched, so turning it back on is two uncomments',
-  existsSync(join(root, 'src/components/AnswerRequirementsPanel.tsx')) &&
+  existsSync(join(root, 'src/components/ask/AnswerRequirementsPanel.tsx')) &&
     /export const selectCitations/.test(read('src/store/askStore.ts')) &&
     /answer_requirements: \{/.test(server) &&
     /citations: requested\.citations/.test(server),
@@ -2922,7 +3092,7 @@ expect(
 /* The rendering half moved into `AskAnswerView` when Ask became a conversation: the page
    draws a turn per question, and a copy of the markup per turn would drift. The claim follows
    the markup rather than the filename it used to be in. */
-const answerView = read('src/components/AskAnswerView.tsx')
+const answerView = read('src/components/ask/AskAnswerView.tsx')
 expect(
   'and a render format says it was stated, not applied',
   /stated, not applied/.test(requirementsFn) &&
@@ -3081,7 +3251,7 @@ expect(
  * the consent screen made when its scope list described one permission out of two.
  * Asserted on both halves: served by the server, and *not* written into the dialog.
  */
-const publishSrc = read('src/components/PublishScenarioDialog.tsx')
+const publishSrc = read('src/components/whatif/PublishScenarioDialog.tsx')
 expect(
   'the publish dialog renders the served reader directory rather than a copy',
   /const whatifReaders = \(\) =>/.test(server) &&
@@ -3411,7 +3581,7 @@ expect(
  * silently out of the merge, and one dataset's in-memory state showing under another's name.
  */
 const datasets = read('mock-server/datasets.mjs')
-const dsPanel = read('src/components/DatasetPanel.tsx')
+const dsPanel = read('src/components/settings/DatasetPanel.tsx')
 const dsSwitch = read('src/data/datasetSwitch.ts')
 
 expect(
@@ -3658,8 +3828,8 @@ expect(
   'the dataset control is a Settings tab, and is gone from the sidebar',
   /key: 'dataset',/.test(read('src/pages/SettingsPage.tsx')) &&
     /children: <DatasetPanel \/>/.test(read('src/pages/SettingsPage.tsx')) &&
-    !/DatasetP(icker|anel)/.test(read('src/components/Sidebar.tsx')) &&
-    !existsSync(join(root, 'src/components/DatasetPicker.tsx')) &&
+    !/DatasetP(icker|anel)/.test(read('src/components/shell/Sidebar.tsx')) &&
+    absentUnderComponents('DatasetPicker') &&
     /* The login says which dataset it lands in, since a switch drops the reader there. */
     /Signing in to the <strong>\{dataset\}<\/strong> dataset/.test(read('src/pages/LoginPage.tsx')),
   'a switcher in the nav is one mis-click from ending the session',
@@ -3694,7 +3864,7 @@ expect(
  * letter is *corrected*, never obeyed.
  */
 const dsApi = read('src/api/dataset.ts')
-const dsGate = read('src/components/DatasetPathGate.tsx')
+const dsGate = read('src/components/shell/DatasetPathGate.tsx')
 
 expect(
   'the dataset segment is derived from the selection, and the URL never sets it',
@@ -3759,10 +3929,10 @@ expect(
     'src/pages/NewGraphPage.tsx',
     'src/pages/GraphCanvasFullPage.tsx',
     'src/pages/NotFoundPage.tsx',
-    'src/components/NoPublishedGraph.tsx',
-    'src/components/NoSourceConnected.tsx',
-    'src/components/SourcesStep.tsx',
-    'src/components/Sidebar.tsx',
+    'src/components/common/NoPublishedGraph.tsx',
+    'src/components/common/NoSourceConnected.tsx',
+    'src/components/graph/SourcesStep.tsx',
+    'src/components/shell/Sidebar.tsx',
   ].every((file) => {
     const src = codeOnly(read(file))
     /* Every literal in-app target is wrapped: no bare `navigate('/x')` or `to="/x"` survives, except
@@ -3908,7 +4078,7 @@ expect(
 )
 /* The action is the point of the request that prompted this: a gated page has to say where the
    publish button is, and only Graph Studio has one. */
-const gateSrc = codeOnly(read('src/components/NoPublishedGraph.tsx'))
+const gateSrc = codeOnly(read('src/components/common/NoPublishedGraph.tsx'))
 expect(
   'the gate sends a reader to Graph Studio when there is something to publish',
   /hasBuilt \? '\/graph-studio' : '\/new-graph'/.test(gateSrc) &&
@@ -3936,8 +4106,8 @@ expect(
  * presence claim — a token in a comment proves nothing about what renders.
  */
 const auditPage = codeOnly(read('src/pages/AuditPage.tsx'))
-const ruleEditor = read('src/components/AccessRuleEditor.tsx')
-const artifactCard = read('src/components/GovernedArtifactCard.tsx')
+const ruleEditor = read('src/components/governance/AccessRuleEditor.tsx')
+const artifactCard = read('src/components/governance/GovernedArtifactCard.tsx')
 const auditCopy = db.reports.governance.audit.copy
 
 expect(
@@ -4418,7 +4588,7 @@ expect(
   'no chart library came across from the rendered HTML',
   /* The files load Chart.js from a CDN. Charts here are `AnswerChart`, which is why an answer and a
      report cannot disagree about what a bar means — and why the audit gate is not widened by a port. */
-  /import AnswerChart from '\.\.\/AnswerChart'/.test(prBlocks) &&
+  /import AnswerChart from '\.\.\/ask\/AnswerChart'/.test(prBlocks) &&
     !/canvas|chart\.js|Chart\.js|cdn\.jsdelivr/i.test(codeOnly(prBlocks)) &&
     !/"chart\.js"/.test(read('package.json')),
   'transcribing a script tag is a dependency decision made by accident',
@@ -4994,7 +5164,7 @@ expect(
  * The What-if lens is gated on publication too, and shares the empty state. Two components
  * describing one precondition drift; one cannot.
  */
-const noPublished = 'src/components/NoPublishedGraph.tsx'
+const noPublished = 'src/components/common/NoPublishedGraph.tsx'
 expect(
   'the publish gate is one component, and the lens still uses it',
   existsSync(join(root, noPublished)) &&
@@ -5217,7 +5387,7 @@ expect(
  * inventing a legend, and an edge named in a component would claim a relationship the graph
  * may not have.
  */
-const whatIfGraphSrc = read('src/components/WhatIfGraph.tsx')
+const whatIfGraphSrc = read('src/components/whatif/WhatIfGraph.tsx')
 const declaredRelationships = new Set(db.whatif.graph_reference.relationships)
 const subgraphFn = /function whatifSubgraph\(generator\)[\s\S]*?\n\}/.exec(server)?.[0] ?? ''
 const edgeLabels = [...subgraphFn.matchAll(/rel\('([A-Z_]+)'\)/g)].map((m) => m[1])
@@ -5323,7 +5493,7 @@ expect(
  * a series that reads left to right — and the guard is that the *form* is still chosen by the
  * data: a long label falls back to bars however the payload asks.
  */
-const answerChartSrc = read('src/components/AnswerChart.tsx')
+const answerChartSrc = read('src/components/ask/AnswerChart.tsx')
 expect(
   'a column chart falls back to bars when there are too many of them',
   /* The rule moved from label length to row count: a name is elided to fit under four
@@ -5423,7 +5593,7 @@ expect(
   'and a two-to-four slice donut is drawn as a ring, not a meter',
   /function Ring\(\{ block \}/.test(answerChartSrc) &&
     !/function Meter\(/.test(answerChartSrc) &&
-    !read('src/components/AnswerBlocks.css').includes('ab-meter') &&
+    !read('src/components/ask/AnswerBlocks.css').includes('ab-meter') &&
     answerChartSrc.includes("block.chart === 'donut' && data.length >= 2 && data.length <= 4"),
   'every slice named in the legend, so the ring is never colour-alone',
 )
@@ -5543,8 +5713,8 @@ expect(
  */
 const settingsSeed = read('scripts/seed-settings.mjs')
 const settingsStore = read('src/store/settingsStore.ts')
-const personaPanel = read('src/components/PersonaPermissionsPanel.tsx')
-const sidebarSrc = read('src/components/Sidebar.tsx')
+const personaPanel = read('src/components/settings/PersonaPermissionsPanel.tsx')
+const sidebarSrc = read('src/components/shell/Sidebar.tsx')
 
 /*
  * **Every sidebar entry sits under a heading, and the headings are built from what a persona can
@@ -5686,6 +5856,154 @@ expect(
   seededNavKeys.length === 0
     ? 'the seed’s NAV_KEYS were not parsed — this check cannot run'
     : `${seededNavKeys.length} keys, matching nav.ts`,
+)
+
+/*
+ * ---------------- Report View: which acts a persona is offered ----------------
+ *
+ * The Settings tab that records what each persona may do to a Library row — open it, edit its
+ * definition, delete its governance row.
+ *
+ * **The three-layer agreement is the whole claim.** `REPORT_ACTIONS` in `server.mjs` is what the PATCH
+ * route validates against and what `validateSettings` refuses a document for missing; the seed writes
+ * its own copy because it cannot import the server; and the panel renders the *served* list. An action
+ * in one place and not another fails silently in a different direction each way — a column the API
+ * refuses, a key that stops the boot, or a permission the server stores that no reader can see.
+ */
+const seededReportActions = (/const REPORT_ACTIONS = \[([\s\S]*?)\]/.exec(settingsSeed)?.[1] ?? '')
+  .split(',')
+  .map((s) => s.trim().replace(/^'|'$/g, ''))
+  .filter(Boolean)
+const serverReportActions = (/const REPORT_ACTIONS = \[([\s\S]*?)\]/.exec(server)?.[1] ?? '')
+  .split(',')
+  .map((s) => s.trim().replace(/^'|'$/g, ''))
+  .filter(Boolean)
+expect(
+  'the report actions agree across the server, the seed and both settings blocks',
+  serverReportActions.length > 0 &&
+    seededReportActions.join(',') === serverReportActions.join(',') &&
+    /* Every persona carries every action in **both** blocks, for the reason the navigation claim
+       above checks `defaults` as hard as the live set: Reset copies one over the other. */
+    [settingsFile.report_permissions, settingsFile.report_defaults].every(
+      (block) =>
+        !!block &&
+        typeof block === 'object' &&
+        Object.values(block).every((perms) =>
+          serverReportActions.every((a) => typeof perms?.[a] === 'boolean'),
+        ),
+    ) &&
+    /* Served, so the panel cannot offer a column the route refuses. */
+    /report_actions: REPORT_ACTIONS/.test(server) &&
+    /reportActions: raw\.report_actions/.test(client),
+  serverReportActions.length === 0
+    ? 'REPORT_ACTIONS was not parsed — this check cannot run'
+    : `${serverReportActions.length} actions · ${serverReportActions.join(', ')}`,
+)
+
+/*
+ * **One place decides what a persona is offered, and the card is not it.**
+ *
+ * `reportActionsFor` is the twin of `visibleNavItems`, and the reason it exists is the same: a second
+ * computation would be a second answer to whether an Executive may delete. The prototype then withholds
+ * a *handler* rather than reading a permission — `GovernedCard` already shows a button only where there
+ * is something to run, so a withheld act needs no new branch in the card.
+ *
+ * **That last part is not a style preference.** A card that tested a permission field of its own is the
+ * exact shape of the access gate this section removed: when the payload stopped carrying the field, the
+ * row rendered with no actions at all. So this asserts the gating happens where the handlers are passed
+ * and that the card gained no permission test of its own.
+ */
+const governedCardSrc = codeOnly(read('src/reports/panes/GovernedCard.tsx'))
+expect(
+  'report actions are decided in one place and gate by withholding a handler',
+  /export const reportActionsFor/.test(read('src/store/settingsStore.ts')) &&
+    /* The page reads that one function rather than deriving its own answer. */
+    /reportActionsFor\(settings, activePersonaId\)/.test(read('src/pages/ReportsPage.tsx')) &&
+    /* And gates at the prop, where the pattern already lived (`actions ? handler : undefined`). */
+    /actions && may\('open'\)/.test(read('src/reports/App.tsx')) &&
+    /actions && may\('edit'\)/.test(read('src/reports/App.tsx')) &&
+    /actions && may\('delete'\)/.test(read('src/reports/App.tsx')) &&
+    /* The card still tests only for a handler — no permission field of its own. */
+    /\{onOpen && openable &&/.test(governedCardSrc) &&
+    !/reportActions|permission|may\(/.test(governedCardSrc) &&
+    /* Absent means allowed, in the one place that decides — never a denial by default. */
+    /!== false/.test(read('src/store/settingsStore.ts')),
+  'one rule, gating by absent handler; the card grew no permission branch',
+)
+
+/*
+ * **And the tab says that hiding is not permitting.**
+ *
+ * The requirement CLAUDE.md puts on every UI built over a client-held role, and this one earns it twice
+ * over: it switches off a *Delete* button, which is the most authoritative-looking control in the
+ * section. The persona travels from the browser, the login authenticates by shape, and the API serves
+ * every report to a caller that names no role — so a tab that stayed quiet would be implying an
+ * enforcement that does not exist.
+ */
+const reportPermsPanel = read('src/components/settings/ReportPermissionsPanel.tsx')
+expect(
+  'the Report View tab states that it controls what is offered, not what is permitted',
+  /not what they are permitted/.test(reportPermsPanel) &&
+    /serves\s*\{?'?\s*\n?\s*every report to a caller that names no role/.test(reportPermsPanel) &&
+    /* The action list is the payload's, never a literal in the panel. */
+    /actions\.map\(\(action\)/.test(reportPermsPanel) &&
+    /actions=\{data\?\.reportActions \?\? \[\]\}/.test(read('src/pages/SettingsPage.tsx')) &&
+    /* And the tab exists, keyed and labelled. */
+    /key: 'report-view'/.test(read('src/pages/SettingsPage.tsx')) &&
+    /label: 'Report View'/.test(read('src/pages/SettingsPage.tsx')),
+  'the caveat is on the tab, and the columns are the served list',
+)
+
+/*
+ * ---------------- exporting a report as PDF ----------------
+ *
+ * **The browser renders it, and the print stylesheet is what makes that honest.**
+ *
+ * There is no server-side PDF, by decision: a headless browser is some forty transitive packages and a
+ * Chromium download through a gate that fails on any advisory at `low`. So the control calls
+ * `window.print()` and `PublishedReportPane.css` narrows what prints to the report subtree.
+ *
+ * **`visibility` rather than `display`, and that is the assertion.** Hiding the app's chrome by name
+ * would need a list of every wrapper — wrong the first time one is added, silently, on a page nobody
+ * re-printed. Hiding everything and revealing one subtree needs no list, and only works because a
+ * hidden element still takes its space: `display: none` on a body child would take the report with it.
+ */
+const paneSrc = read('src/components/report/PublishedReportPane.tsx')
+const paneCss = read('src/components/report/PublishedReportPane.css')
+expect(
+  'a report exports as PDF through the browser, printing the report and not the app',
+  /window\.print\(\)/.test(codeOnly(paneSrc)) &&
+    /* Offered only with a report on screen — printing a spinner is not an export. */
+    /\{report \? \([\s\S]{0,400}Export PDF/.test(paneSrc) &&
+    /* The copy lives in `src/data/` because a Tooltip portals out of `renderToString`. */
+    /title=\{REPORT_EXPORT_HINT\}/.test(paneSrc) &&
+    /Save as PDF/.test(read('src/data/reportExport.ts')) &&
+    /* The print block hides everything and reveals the one subtree. */
+    /@media print/.test(paneCss) &&
+    /body \*\s*\{\s*visibility:\s*hidden/.test(paneCss) &&
+    /\.prp,\s*\n\s*\.prp \*\s*\{\s*visibility:\s*visible/.test(paneCss) &&
+    /* The way back and the export button are the app, not the report. */
+    /\.prp-bar\s*\{\s*\n?\s*display:\s*none/.test(paneCss) &&
+    /* No PDF dependency came in by the back door. */
+    !/puppeteer|playwright|html-pdf|jspdf/i.test(read('package.json')),
+  'browser-rendered, subtree-scoped, and no headless browser added',
+)
+
+/*
+ * A card must not be split down the middle by a page break — the one rule the HTML exporter also
+ * carries, so the printed report and the exported file break the same way. And the facet bar is a
+ * *control*: on paper it is a row of dropdowns nobody can operate.
+ */
+expect(
+  'the report’s own print rules survive the page break, still scoped',
+  /@media print/.test(read('src/components/report/report.css')) &&
+    /page-break-inside: avoid/.test(read('src/components/report/report.css')) &&
+    /\.cw-report \.facet-select\s*\{\s*\n?\s*display:\s*none/.test(
+      read('src/components/report/report.css'),
+    ) &&
+    /* The exporter keeps the same rule, so neither route splits a block. */
+    /page-break-inside:avoid/.test(read('mock-server/reportExport.mjs')),
+  'blocks stay whole on paper, and the scoping claim above still holds',
 )
 
 /*

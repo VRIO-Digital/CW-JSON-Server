@@ -3,6 +3,7 @@ import {
   getSettings,
   resetPersonaNav,
   setPersonaNav,
+  setPersonaReports,
   type SettingsPayload,
   type SettingsPersona,
 } from '../api/client'
@@ -48,6 +49,11 @@ interface SettingsState {
   syncActivePersona: (roleId: string | null) => void
   /** Saves one key for one persona. The server refuses a fixed key, and its sentence comes back here. */
   setPermission: (roleId: string, key: string, next: boolean) => Promise<Result>
+  /**
+   * Saves one report action for one persona — the twin of `setPermission`, with the same one-key-per-
+   * call, whole-view-back contract and the same re-read on a failed write.
+   */
+  setReportPermission: (roleId: string, action: string, next: boolean) => Promise<Result>
   resetPersona: (roleId: string) => Promise<Result>
 }
 
@@ -95,6 +101,19 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     }
   },
 
+  setReportPermission: async (roleId, action, next) => {
+    try {
+      const data = await setPersonaReports(roleId, { [action]: next })
+      set({ data, error: null })
+      return { ok: true }
+    } catch (error) {
+      /* Same reasoning as `setPermission`: a lost response is not a failed write, so ask the server
+         what is true rather than reporting a failure for something that may have saved. */
+      await get().load()
+      return { ok: false, error: toMessage(error) }
+    }
+  },
+
   resetPersona: async (roleId) => {
     try {
       set({ data: await resetPersonaNav(roleId), error: null })
@@ -127,4 +146,30 @@ export const visibleNavItems = (
   const persona = personaFor(data, activePersonaId)
   if (!persona) return NAV_ITEMS
   return NAV_ITEMS.filter((item) => persona.nav[item.key] !== false)
+}
+
+/**
+ * What the active persona may do to a report in the Library.
+ *
+ * **One place decides it, exactly as `visibleNavItems` is the one place deciding the sidebar.** The
+ * Library card, the page that passes the props and anything added later all read this, so they cannot
+ * come to disagree about whether an Executive may delete.
+ *
+ * **Everything is offered until the answer is known**, the same rule the sidebar follows: before the
+ * fetch returns, or with no persona active, every action is allowed. An absent key means "not
+ * configured" and never "denied" — a Library whose buttons appeared a moment after the cards would
+ * read as a broken page, and a row with no actions at all is the precise symptom that got the old
+ * access gate removed.
+ *
+ * **And it is not access control.** It decides which controls a reader is *offered*; the API still
+ * serves every report to a caller that names no role, and the panel that sets it says so in words.
+ */
+export const reportActionsFor = (
+  data: SettingsPayload | null,
+  activePersonaId: string | null,
+): Record<string, boolean> => {
+  const persona = personaFor(data, activePersonaId)
+  const actions = data?.reportActions ?? []
+  if (!persona) return Object.fromEntries(actions.map((a) => [a, true]))
+  return Object.fromEntries(actions.map((a) => [a, persona.reports[a] !== false]))
 }

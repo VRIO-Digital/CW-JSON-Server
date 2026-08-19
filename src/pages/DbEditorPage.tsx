@@ -18,8 +18,8 @@ import {
   Typography,
 } from 'antd'
 import { useEffect, useMemo } from 'react'
-import ApiErrorAlert from '../components/ApiErrorAlert'
-import PageHeader from '../components/PageHeader'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import PageHeader from '../components/common/PageHeader'
 import {
   WHOLE_FILE,
   formatJson,

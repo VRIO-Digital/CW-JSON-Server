@@ -31,7 +31,7 @@ import {
   type Check as FieldCheck,
 } from './validate'
 
-import { currentDataset } from './dataset'
+import { currentDataset, resetDatasetIfRefused } from './dataset'
 
 // The trailing slash is stripped because every path below starts with one, and
 // `${BASE}${path}` would otherwise ask for //sources.
@@ -2541,6 +2541,28 @@ async function request<T>(
       typeof payload === 'object' && payload && 'error' in payload
         ? String((payload as { error: unknown }).error)
         : `request failed (${res.status})`
+    /*
+     * **A refused dataset is retried once on the primary, and only that refusal is.**
+     *
+     * A selection persisted to `localStorage` outlives the dataset it names — `CAPEX` was removed
+     * while browsers still had it selected — and the server then refuses *every* request with
+     * `"CAPEX" is not a dataset`. Both sides behaving correctly and the app dead in the middle: with
+     * nothing clearing the value, every page failed identically and the cure was editing
+     * `localStorage` by hand.
+     *
+     * So the stale value is discarded and the call is remade on the primary, which succeeds. It is
+     * deliberately narrow: keyed on the server's own refusal for this one cause, after the reset
+     * reports it actually had something to clear, and it retries **once** — `resetDatasetIfRefused`
+     * returns false the second time, so a genuine 400 cannot become a loop. Everything else, a 400
+     * included, still throws untouched.
+     *
+     * Not pre-validated on the way out, because the pool is the server's: a list held in the client
+     * could refuse a dataset the server has, which is the mistake the consent screen's client-side
+     * scope list was.
+     */
+    if (res.status === 400 && /is not a dataset/.test(detail) && resetDatasetIfRefused()) {
+      return request<T>(path, init)
+    }
     throw new ApiError(detail, res.status)
   }
   return payload as T
@@ -2629,11 +2651,23 @@ export interface SettingsPersona {
   readOnly: string[]
   /** What Reset returns to, so the page keeps no copy of what "default" means. */
   defaults: Record<string, boolean>
+  /** What this persona may do to a report in the Library: open, edit, delete. */
+  reports: Record<string, boolean>
+  /** The authored report access Reset restores — the twin of `defaults`. */
+  reportDefaults: Record<string, boolean>
 }
 
 export interface SettingsPayload {
   users: SettingsUser[]
   personas: SettingsPersona[]
+  /**
+   * The report actions a row offers, served rather than written into the panel.
+   *
+   * The rule the consent screen's scopes follow: a column the component invented could offer a
+   * permission `PATCH` refuses, and one it omitted would hide a permission the server stores and the
+   * card reads.
+   */
+  reportActions: string[]
 }
 
 /*
@@ -2668,8 +2702,11 @@ const SETTINGS_PAYLOAD = shape({
       nav: boolMap,
       read_only: arrayOf(str),
       defaults: boolMap,
+      reports: boolMap,
+      report_defaults: boolMap,
     }),
   ),
+  report_actions: arrayOf(str),
 })
 
 const toSettings = (raw: {
@@ -2681,7 +2718,10 @@ const toSettings = (raw: {
     nav: Record<string, boolean>
     read_only: string[]
     defaults: Record<string, boolean>
+    reports: Record<string, boolean>
+    report_defaults: Record<string, boolean>
   }[]
+  report_actions: string[]
 }): SettingsPayload => ({
   users: raw.users.map((u) => ({
     id: u.id,
@@ -2697,7 +2737,10 @@ const toSettings = (raw: {
     nav: p.nav,
     readOnly: p.read_only,
     defaults: p.defaults,
+    reports: p.reports,
+    reportDefaults: p.report_defaults,
   })),
+  reportActions: raw.report_actions,
 })
 
 export async function getSettings(): Promise<SettingsPayload> {
@@ -2730,7 +2773,34 @@ export async function setPersonaNav(
   )
 }
 
-/** Back to the persona's authored defaults, which live in the same store. */
+/**
+ * Saves one persona's report access — which of a Library row's three acts it is offered.
+ *
+ * The twin of `setPersonaNav`, and the same contract for the same reasons: the whole set per write, the
+ * whole view back, and an unknown action or a non-boolean refused by the server with a sentence rather
+ * than dropped.
+ *
+ * **It is not access control, and any UI on top has to say so in those words.** The persona is
+ * client-held, the login authenticates by shape, and the API still serves every report to a caller that
+ * names no role — so what this changes is which controls a reader is offered, not what they may reach.
+ */
+export async function setPersonaReports(
+  roleId: string,
+  reports: Record<string, boolean>,
+): Promise<SettingsPayload> {
+  return toSettings(
+    validate(
+      'The persona’s report access',
+      await request<unknown>(`/settings/personas/${encodeURIComponent(roleId)}/reports`, {
+        method: 'PATCH',
+        body: { reports },
+      }),
+      SETTINGS_PAYLOAD,
+    ),
+  )
+}
+
+/** Back to the persona's authored defaults — both blocks, which live in the same store. */
 export async function resetPersonaNav(roleId: string): Promise<SettingsPayload> {
   return toSettings(
     validate(

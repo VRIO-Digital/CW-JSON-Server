@@ -6290,6 +6290,20 @@
   },
   "graph_use_cases": [
     {
+      "use_case_id": "uc-waste-management-mt0eil8q0",
+      "name": "Waste Management",
+      "status": "draft",
+      "domain_id": "industries",
+      "business_need": "hhhhhhhhh",
+      "personas": [],
+      "kpis": [],
+      "sources": [],
+      "hero_questions": [],
+      "gap_decisions": [],
+      "step": 2,
+      "updated_at": "2026-08-19T18:04:39.818Z"
+    },
+    {
       "use_case_id": "uc-waste-management-mswz9wbi4",
       "name": "Waste Management",
       "status": "committed",
@@ -15487,11 +15501,11 @@
       "business_user_executive": {
         "reports": true,
         "ask": true,
-        "what-if": false,
+        "what-if": true,
         "new-graph": true,
         "sources": true,
         "catalog": true,
-        "graph-studio": false,
+        "graph-studio": true,
         "audit": true,
         "settings": false
       },
@@ -15523,10 +15537,54 @@
         "what-if": true,
         "new-graph": true,
         "sources": true,
-        "catalog": false,
+        "catalog": true,
         "graph-studio": true,
         "audit": true,
         "settings": true
+      }
+    },
+    "report_defaults": {
+      "business_user_executive": {
+        "open": true,
+        "edit": false,
+        "delete": false
+      },
+      "domain_architect": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "business_user_project": {
+        "open": true,
+        "edit": false,
+        "delete": false
+      },
+      "platform_admin": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      }
+    },
+    "report_permissions": {
+      "business_user_executive": {
+        "open": true,
+        "edit": false,
+        "delete": false
+      },
+      "domain_architect": {
+        "open": true,
+        "edit": true,
+        "delete": true
+      },
+      "business_user_project": {
+        "open": true,
+        "edit": false,
+        "delete": false
+      },
+      "platform_admin": {
+        "open": true,
+        "edit": true,
+        "delete": true
       }
     }
   },

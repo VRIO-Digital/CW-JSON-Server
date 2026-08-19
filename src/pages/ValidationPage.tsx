@@ -10,11 +10,11 @@ import {
 import { useEffect } from 'react'
 import { type Check, type EvalRun } from '../api/client'
 import { useEvalsStore } from '../store/telemetryStore'
-import ApiErrorAlert from '../components/ApiErrorAlert'
-import NoSourceConnected from '../components/NoSourceConnected'
-import PageHeader from '../components/PageHeader'
-import StatCards from '../components/StatCards'
-import StatusTag from '../components/StatusTag'
+import ApiErrorAlert from '../components/common/ApiErrorAlert'
+import NoSourceConnected from '../components/common/NoSourceConnected'
+import PageHeader from '../components/common/PageHeader'
+import StatCards from '../components/common/StatCards'
+import StatusTag from '../components/common/StatusTag'
 import { SP, STATUS } from '../theme'
 
 const rateColor = (r: number) =>

@@ -3453,3 +3453,94 @@ precisely when the next dataset gets added. Its denominator is the declared list
 it re-acquires teeth automatically rather than needing to be remembered.
 
 
+
+## A persisted view preference outlived the thing it named, and bricked every page
+
+**Symptom.** Every page empty, with two messages that between them named neither cause: *"No
+data — the JSON server is not responding"* and *`"CAPEX" is not a dataset — this tenant has EPA,
+both.`* The server was running the whole time, answering `200` on `curl` and `200` in the browser
+for anything that did not carry the header. The suggested fix on screen — `npm run mock`, in a
+second terminal — was for a process already up, so following it changed nothing and confirmed the
+wrong diagnosis.
+
+**Cause.** `CAPEX` was seeded, then removed from `DATASETS` on request. The selection is
+client-held and persisted to `localStorage` under `contextweave.dataset`, deliberately, so that a
+refresh cannot silently move a reader from one dataset's figures to another's. A browser that had
+selected `CAPEX` therefore kept sending `x-dataset: CAPEX` on **every** request, and the server
+refused every one — correctly, since serving EPA's figures under CAPEX's name is the single
+failure that split exists to prevent.
+
+**So both halves were behaving as designed and the app was unusable between them.** Nothing
+cleared the value: `read()` returned whatever was stored and no path reset it, so the failure was
+total, identical on every page, and survived reload, sign-out and restart. The only cure was
+editing `localStorage` by hand — which requires knowing the key, which requires reading the source.
+
+**The near-miss.** The obvious fix is to validate the stored value against a list of datasets in
+the client, and that is wrong for the reason the consent screen's client-side scope list was
+wrong: a pool held in the browser can refuse something the server has, and it is a second answer
+to "what datasets exist". It would also have gone stale in exactly the same way, one release later.
+
+**Fix.** Recover from the server's answer instead of pre-empting it. `resetDatasetIfRefused()`
+discards the persisted value and reports whether there was one; `request()` calls it only on a 400
+whose body matches `is not a dataset`, and retries once. The pool stays entirely the server's —
+nothing in the client decides whether `CAPEX` is a dataset, only what to do once told it is not.
+
+**Why it cannot loop.** The retry is gated on the reset returning `true`, and the reset returns
+`false` once the selection is already the primary. A genuine refusal therefore throws on the
+second pass rather than recursing, and every other status — 400s included — is untouched.
+
+**Guard.** A scratch SSR smoke test (the documented method: stub `fetch`, and stub `window`
+*before* the dynamic import, because `dataset.ts` reads `localStorage` at module scope) asserted
+all of it: two requests go out carrying `CAPEX` then `EPA`, the retry's payload is returned rather
+than thrown, storage is cleared, and a second reset reports nothing to clear. Two of its nine
+assertions failed on the first run against correct code — the stub's success payload did not
+satisfy the real validator, which is the "suspect the assertion and the environment first" rule
+paying out again.
+
+**The lesson worth carrying.** A persisted preference is a reference to something that can be
+deleted, so every one of them needs an answer to "what happens when the thing is gone". The
+identity in `localStorage` has the same shape of risk: `roleId` is a `db.auth_roles` id, and
+removing a role would strand a signed-in browser the same way. And when a stored value can wedge
+every request, the error copy has to be able to say so — "the server is not responding" was read
+as the truth for as long as it took to run `netstat`.
+
+## A façade of named getters served an empty permission set for a file that plainly held one
+
+**Symptom.** `db.settings` held `report_permissions` with four personas and twelve booleans, the seed
+had written it, `validateSettings` accepted it and the server booted clean — and `GET /settings`
+answered `reports: {}` for every persona. Every switch on the new tab would have rendered off with
+the file on disk plainly saying `true`, which reads as a broken toggle rather than as a missing
+accessor, and the first instinct is to go and debug the switch.
+
+**Cause.** `settings` in `server.mjs` is not `db.settings`. It is a small object of **named getters** —
+`get users()`, `get defaults()`, `get read_only()`, `get nav_permissions()` — each forwarding to
+`db.settings`, so that the block is read through `db` and therefore belongs to the selected dataset.
+A façade of named getters forwards exactly what it was told about and nothing else, so two new keys
+were invisible to every reader of `settings.*` while being perfectly present one layer down.
+
+**Why nothing caught it.** Each layer was individually right. The seed wrote the keys, so the *file*
+was correct. `validateSettings` reads its `candidate` argument — the whole document's `settings` value,
+not the façade — so it validated the real keys and passed. `reportPermissionsFor` used `?.` on both
+blocks, which is correct defensive code for "not configured yet" and is precisely what turned a missing
+accessor into a silent empty object rather than a crash. The optional chaining was load-bearing in one
+direction and a muffler in the other.
+
+**Fix.** Declare the two getters. The lesson is the general one: **when a namespace is a hand-written
+façade rather than the object itself, adding a key to the underlying store is not enough** — grep for
+how the namespace is constructed before assuming a new key is readable. `settings`, `db` (a Proxy) and
+the twelve live containers (`liveContainer`) are all indirections over storage in this server, and only
+the Proxy forwards unknown keys automatically.
+
+**Guard.** The `check-docs` claim asserting the three-layer agreement of `REPORT_ACTIONS` checks that
+every persona carries every action in **both** stored blocks, which fails if the seed stops writing
+them — but it reads `db.json`, so it would not have caught this. What catches it is the smoke test
+asserting `reportActionsFor` against a served payload, plus the fact that the panel renders the served
+`report_actions`: an empty served block now shows up as a tab with no columns rather than as a tab with
+columns all switched off.
+
+**And a break test that cannot fail says nothing.** Three of the five new claims first reported MISSED,
+and all three were breaking correctly — the harness grepped for the claim's label, and those labels
+carry a curly apostrophe (`the report’s own print rules`), which a byte-wise `grep .` in this shell's
+locale does not match. Comparing the *set* of failing claims before and after the mutation is the
+reliable form; matching a guessed label is not. This is the third session in which a break harness,
+rather than a guard, was the thing that was broken.

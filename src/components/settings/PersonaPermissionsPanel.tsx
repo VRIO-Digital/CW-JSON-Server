@@ -1,7 +1,7 @@
 import { Alert, Button, Card, Flex, Segmented, Switch, Table, Tag, Typography } from 'antd'
-import type { SettingsPersona } from '../api/client'
-import { NAV_ITEMS, type NavItem, type NavKey } from '../nav'
-import { SP } from '../theme'
+import type { SettingsPersona } from '../../api/client'
+import { NAV_ITEMS, type NavItem, type NavKey } from '../../nav'
+import { SP } from '../../theme'
 
 /**
  * The Persona Configuration tab: pick a persona, see every navigation item, switch access on or off.

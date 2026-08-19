@@ -3,7 +3,7 @@ import { Button } from 'antd'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import EmptyState from './EmptyState'
-import { appPath } from '../api/dataset'
+import { appPath } from '../../api/dataset'
 
 /** The path from nothing to data — the same three steps wherever this appears. */
 const STEPS = [

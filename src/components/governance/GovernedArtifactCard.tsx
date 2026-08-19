@@ -1,8 +1,8 @@
 import { Button, Popconfirm, Select, Space, Tag } from 'antd'
 import { useState } from 'react'
-import type { GovernanceArtifact, GovernanceBasis, GovernancePerson } from '../api/client'
+import type { GovernanceArtifact, GovernanceBasis, GovernancePerson } from '../../api/client'
 import AccessRuleEditor from './AccessRuleEditor'
-import { SP } from '../theme'
+import { SP } from '../../theme'
 
 /*
  * One published artifact, and who can open it.

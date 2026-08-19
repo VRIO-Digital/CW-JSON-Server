@@ -42,6 +42,36 @@ function read(): string {
 export const currentDataset = (): string => current
 
 /**
+ * Forget a persisted selection the server does not recognise, and say whether there was one.
+ *
+ * **A persisted selection can outlive the dataset it names, and that bricked the app.** `CAPEX` was
+ * seeded and then removed; a browser that had selected it kept sending `x-dataset: CAPEX` on every
+ * request, and the server — correctly — refused each one with *"CAPEX" is not a dataset*. Correct on
+ * both sides and unusable in the middle: the refusal is what a wrong dataset *should* get, but
+ * nothing ever cleared the value, so every page failed identically forever and the only cure was
+ * editing `localStorage` by hand. A stale view preference must not be a dead end.
+ *
+ * **This is still not a second answer to "what datasets exist".** The pool stays the server's, and
+ * that is the point: nothing here decides whether `CAPEX` is a dataset. The server decides, refuses,
+ * and this discards the value *because it was refused* — recovery from an answer, not a check that
+ * pre-empts it. The distinction matters, because a list held here could refuse a dataset the server
+ * has, which is the failure the consent screen's client-side scope list was.
+ *
+ * It resets to `DEFAULT_DATASET` rather than to nothing: the primary is what a caller naming no
+ * dataset gets anyway, so the next request succeeds instead of repeating the refusal.
+ */
+export function resetDatasetIfRefused(): boolean {
+  if (current === DEFAULT_DATASET) return false
+  current = DEFAULT_DATASET
+  try {
+    window.localStorage.removeItem(KEY)
+  } catch {
+    /* Same as `read()`: an in-memory reset still un-sticks this session. */
+  }
+  return true
+}
+
+/**
  * Change it, and persist it.
  *
  * Returns nothing and validates nothing: the pool is the server's, served on `GET /datasets`, so a

@@ -1,6 +1,6 @@
 import { CheckCircleFilled, LoadingOutlined, ReloadOutlined } from '@ant-design/icons'
 import { Button, Select, Spin, Typography } from 'antd'
-import type { GraphBuild } from '../api/client'
+import type { GraphBuild } from '../../api/client'
 import './BuildTab.css'
 
 /*

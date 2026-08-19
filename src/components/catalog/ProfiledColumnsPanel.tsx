@@ -18,8 +18,8 @@ import type {
   ProfiledColumn,
   ProfiledTable,
   SourceRow,
-} from '../api/client'
-import { useColumnsStore } from '../store/catalogStore'
+} from '../../api/client'
+import { useColumnsStore } from '../../store/catalogStore'
 import './ProfiledColumnsPanel.css'
 
 type FacetKey =

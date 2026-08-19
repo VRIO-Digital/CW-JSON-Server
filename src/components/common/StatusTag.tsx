@@ -7,7 +7,7 @@ import {
 } from '@ant-design/icons'
 import { Tag } from 'antd'
 import type { ReactNode } from 'react'
-import type { Tone } from '../types'
+import type { Tone } from '../../types'
 
 /*
  * antd Tag, keyed off the reserved tone vocabulary. Every tag carries an icon

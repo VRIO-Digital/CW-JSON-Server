@@ -4,7 +4,7 @@ import {
   CONSENT_GRANT_COPY,
   CONSENT_SCOPE_LABEL,
   type ConsentProvider,
-} from '../data/consentStages'
+} from '../../data/consentStages'
 import './GoogleSignInWindow.css'
 
 /**

@@ -4,7 +4,7 @@ import {
   CONSENT_SCOPES,
   CONSENT_STAGES,
   type ConsentProvider,
-} from '../data/consentStages'
+} from '../../data/consentStages'
 import StageList from './StageList'
 import './GoogleConsentPanel.css'
 

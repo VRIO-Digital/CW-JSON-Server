@@ -5,9 +5,9 @@ import type {
   CoveragePayload,
   GapChoice,
   GapDecision,
-} from '../api/client'
-import { SP } from '../theme'
-import '../pages/NewGraphPage.css'
+} from '../../api/client'
+import { SP } from '../../theme'
+import '../../pages/NewGraphPage.css'
 
 const DECISIONS: GapDecision[] = [
   'accept permanent',

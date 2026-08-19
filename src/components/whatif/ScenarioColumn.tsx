@@ -1,8 +1,8 @@
 import { Input, Select, Spin } from 'antd'
 import { useState } from 'react'
-import type { WhatIfFrame, WhatIfGenerator, WhatIfScenario } from '../api/client'
-import type { ScenarioColumn as Column } from '../store/whatifStore'
-import StatusTag from './StatusTag'
+import type { WhatIfFrame, WhatIfGenerator, WhatIfScenario } from '../../api/client'
+import type { ScenarioColumn as Column } from '../../store/whatifStore'
+import StatusTag from '../common/StatusTag'
 import { ScenarioSubgraph } from './WhatIfGraph'
 import './ScenarioColumn.css'
 

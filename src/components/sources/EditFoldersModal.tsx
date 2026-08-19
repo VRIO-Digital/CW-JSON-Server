@@ -1,8 +1,8 @@
 import { App, Checkbox, Modal, Spin, Typography } from 'antd'
 import { useEffect, useState } from 'react'
-import { listDriveFolders, type SourceRow } from '../api/client'
-import { useSourcesStore } from '../store/sourcesStore'
-import { toMessage } from '../store/asyncState'
+import { listDriveFolders, type SourceRow } from '../../api/client'
+import { useSourcesStore } from '../../store/sourcesStore'
+import { toMessage } from '../../store/asyncState'
 
 /** The Drive twin of EditDatasetsModal: narrows a source's folder allowlist. */
 export default function EditFoldersModal({

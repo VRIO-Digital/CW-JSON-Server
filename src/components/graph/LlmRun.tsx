@@ -1,7 +1,7 @@
 import { LoadingOutlined } from '@ant-design/icons'
 import { Progress, Spin } from 'antd'
-import type { DerivationRun } from '../api/client'
-import '../pages/NewGraphPage.css'
+import type { DerivationRun } from '../../api/client'
+import '../../pages/NewGraphPage.css'
 
 const money = (usd: number) => `$${usd.toFixed(2)}`
 
