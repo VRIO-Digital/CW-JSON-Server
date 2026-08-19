@@ -6,14 +6,13 @@ import NoSourceConnected from './NoSourceConnected'
 import StatusTag from './StatusTag'
 import ConnectorIcon from './ConnectorIcon'
 import { SP } from '../theme'
-import '../pages/NewGraphPage.css'
-
+import '../pages/NewGraphPage.css'
 import { appPath } from '../api/dataset'
 
 /*
  * Step 4 of New Graph: which connected sources feed the graph, and how much of
  * each.
- * Catalog
+ *
  * The list is the Data Catalogue's *profiled* state, not the registration — a
  * connected source with nothing profiled is shown and disabled, because "you
  * have not profiled it yet" is a different problem from "you have not connected
@@ -70,7 +69,7 @@ export default function SourcesStep({
       // `bare` — the wizard step is already a bordered card, and a dashed frame
       // inside it reads as a rendering fault rather than as an empty slot.
       <NoSourceConnected
-        bare Catalog
+        bare
         detail="A graph can only draw on data that has been profiled. Connect a BigQuery project or a Google Drive, then profile it in the Data Catalogue — its tables and documents become selectable here."
       />
     )
@@ -95,7 +94,7 @@ export default function SourcesStep({
                 use case at yet.
               </div>
               <Link to={appPath('/catalogue')}>
-                <Button type="p Catalogze="small">
+                <Button type="primary" size="small">
                   Open the Data Catalogue to profile a source
                 </Button>
               </Link>
@@ -158,7 +157,7 @@ export default function SourcesStep({
 
             {empty ? (
               <div className="ng-source-warn">
-                Conn Catalog the profiler has not run here yet — profile it in the
+                Connected, but the profiler has not run here yet — profile it in the
                 Data Catalogue and it becomes selectable.
               </div>
             ) : (
@@ -241,7 +240,7 @@ export default function SourcesStep({
         <span aria-hidden="true">✦</span>
         <span>
           Only profiled objects are listed. Profiling is what produces the columns
-          and entities the graph reason Catalog an unprofiled source has nothing
+          and entities the graph reasons over, so an unprofiled source has nothing
           to contribute yet — <Tag>Data Catalogue</Tag> is where that runs.
         </span>
       </div>

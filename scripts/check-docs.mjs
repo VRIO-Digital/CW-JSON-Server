@@ -294,7 +294,9 @@ for (const key of requiredKeys) {
  * chose. Matched on the field being read, not on a class name, so a restyle does
  * not fail this and a deletion does.
  */
-const CatalogPage = read('src/pages/CataloguePage.tsx')
+/* A local binding, not the component: three claims below read it as `cataloguePage`, and a
+   whole-file rename of the component caught this declaration and left them behind. */
+const cataloguePage = read('src/pages/CataloguePage.tsx')
 expect(
   'the Catalog names each source, not just its id',
   (cataloguePage.match(/\{s\.sourceName\}|\{selected\.sourceName\}/g) ?? []).length >= 2,
