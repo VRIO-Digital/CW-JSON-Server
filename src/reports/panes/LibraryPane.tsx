@@ -37,6 +37,8 @@ interface Props {
    */
   onOpenGoverned?(row: GovernedRow): void;
   onEditGoverned?(row: GovernedRow): void;
+  /** Whether a host is present to render a published report — see `GovernedCard`. */
+  hostRenders?: boolean;
   onShareGoverned?(row: GovernedRow): void;
   onRemoveGoverned?(row: GovernedRow): void | Promise<void>;
   /** Share on a report saved in this session — the same dialog, over the row's local audience. */
@@ -82,6 +84,7 @@ export function LibraryPane({
   restore,
   onOpenGoverned,
   onEditGoverned,
+  hostRenders,
   onShareGoverned,
   onRemoveGoverned,
   onShareSaved,
@@ -248,6 +251,7 @@ export function LibraryPane({
                       row={c.governed}
                       onOpen={onOpenGoverned}
                       onEdit={onEditGoverned}
+                      hostRenders={hostRenders}
                       onShare={onShareGoverned}
                       onRemove={onRemoveGoverned}
                     />

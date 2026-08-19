@@ -173,7 +173,11 @@ export default function ProfiledColumnsPanel({
         width: 190,
         render: (_, col) => (
           <span className="pc-class">
-            <Tag className={`pc-class-tag is-${col.class}`}>{col.class}</Tag>
+            {/* The dataset's own class where it is finer than the platform's, else the platform's.
+                CAPEX classes a column `period_accumulation`; it folds to `measure` so the Measures
+                facet counts it, and prints as itself so the reader sees what the package said. The
+                tint stays keyed to the folded class — there are nine tints, not sixteen. */}
+            <Tag className={`pc-class-tag is-${col.class}`}>{col.class_detail ?? col.class}</Tag>
             {/* The derivation is reported, not assumed: today every profiled
                 column says `llm`, and a rule-derived one would say so here. */}
             <span className="pc-conf">
@@ -205,7 +209,14 @@ export default function ProfiledColumnsPanel({
         title: 'distinct',
         dataIndex: 'distinct',
         width: 100,
-        render: (v: number) => <span className="pc-num">{v.toLocaleString()}</span>,
+        /* Null where it is derived from a row count the catalogue does not hold — a dash, not a
+           number. Every CAPEX column read "1 distinct value" while that was `Math.max(1, 0/7)`. */
+        render: (v: number | null) =>
+          v === null ? (
+            <span className="pc-dash">—</span>
+          ) : (
+            <span className="pc-num">{v.toLocaleString()}</span>
+          ),
       },
     ],
     [data],
@@ -302,7 +313,10 @@ export default function ProfiledColumnsPanel({
                         </span>
                       </span>
                       <span className="pc-table-meta">
-                        {t.column_count} cols · ~{t.rows.toLocaleString()} rows
+                        {t.column_count} cols ·{' '}
+                        {/* A catalogue that holds no row count says so, rather than reporting zero — an empty
+                            table is the one reading that makes profiling look like it did nothing. */}
+                        {t.rows === null ? 'row count not catalogued' : `~${t.rows.toLocaleString()} rows`}
                       </span>
                     </button>
 

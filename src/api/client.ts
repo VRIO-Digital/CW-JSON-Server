@@ -17,7 +17,8 @@
 
 import type { Stat, Tone } from '../types'
 import {
-  arrayOf,
+  
+  anyObject,arrayOf,
   bool,
   nullable,
   num,
@@ -433,13 +434,21 @@ export interface ProfiledColumn {
   label: string
   type: string
   class: ColumnClass
+  /**
+   * The dataset's own class where it is finer than `class` above, else null.
+   *
+   * A package may classify more finely than the platform: CAPEX distinguishes a recorded measure
+   * from a committed one from a period accumulation, and all three fold to `measure` so the facet
+   * chips can count them. This is what the chip *prints*, so the fold costs the reader nothing.
+   */
+  class_detail: string | null
   /** LLM classification confidence, shown beside the class chip. */
   confidence: number
   /** How the classification was reached — `llm` for every profiled column today. */
   derivation: string
   pii: boolean
   null_pct: number
-  distinct: number
+  distinct: number | null
   description: string | null
   /**
    * `needs review` means the profiler was below the High band (0.85) and no
@@ -454,7 +463,14 @@ export interface ProfiledTable {
   label: string
   type: string
   grain: string
-  rows: number
+  /**
+   * Null where the catalogue holds no row count for this table.
+   *
+   * CAPEX's package states the absence explicitly (`rows_basis: "catalogued only"`), and it used to
+   * arrive as `0` — every table reading empty, which is the one reading that makes profiling look
+   * like it did nothing.
+   */
+  rows: number | null
   column_count: number
   columns: ProfiledColumn[]
 }
@@ -492,6 +508,14 @@ export interface ProfiledEntity {
   entity_id: string
   type: string
   class: ColumnClass
+  /**
+   * The dataset's own class where it is finer than `class` above, else null.
+   *
+   * A package may classify more finely than the platform: CAPEX distinguishes a recorded measure
+   * from a committed one from a period accumulation, and all three fold to `measure` so the facet
+   * chips can count them. This is what the chip *prints*, so the fold costs the reader nothing.
+   */
+  class_detail: string | null
   confidence: number
   pii: boolean
   /** How many times the extractor found it in this document. */
@@ -1632,7 +1656,7 @@ const COLUMNS_PAYLOAD = shape({
           label: str,
           type: str,
           grain: str,
-          rows: num,
+          rows: nullable(num),
           column_count: num,
           columns: arrayOf(
             shape({
@@ -1650,11 +1674,16 @@ const COLUMNS_PAYLOAD = shape({
                 'flag',
                 'text',
               ]),
+              /* The dataset's own class where it is finer than the union above. CAPEX's package classes a
+                 column `period_accumulation`, which folds to `measure` for the facets and prints as
+                 itself on the chip — the fold is what makes the union hold, and this is what keeps the
+                 package's own answer visible rather than discarding it to fit. */
+              class_detail: nullable(str),
               confidence: num,
               derivation: str,
               pii: bool,
               null_pct: num,
-              distinct: num,
+              distinct: nullable(num),
               description: nullable(str),
               description_status: oneOf(['needs review', 'described']),
             }),
@@ -1729,6 +1758,11 @@ const DOCUMENTS_PAYLOAD = shape({
                 'date',
                 'text',
               ]),
+              /* The dataset's own class where it is finer than the union above. CAPEX's package classes a
+                 column `period_accumulation`, which folds to `measure` for the facets and prints as
+                 itself on the chip — the fold is what makes the union hold, and this is what keeps the
+                 package's own answer visible rather than discarding it to fit. */
+              class_detail: nullable(str),
               confidence: num,
               pii: bool,
               occurrences: num,
@@ -5734,6 +5768,15 @@ export interface ReportsIndex {
   authoring: ReportAuthoring | null
   /** The three tabs' payload. Null while the publish gate is closed, like `authoring`. */
   governance: ReportGovernance | null
+  /**
+   * Why this section cannot draw the selected dataset's reports, or null when it can.
+   *
+   * **A different fact from the publish gate, and the outer one.** Publishing a graph would not make
+   * these definitions drawable, so it is reported separately and the page states it first — telling a
+   * reader to publish a graph when the section could not draw their reports either way sends them to
+   * the wrong screen. The sentence is the server's, naming the dataset and what it implements.
+   */
+  formatGap: string | null
 }
 
 export interface Report {
@@ -6528,6 +6571,9 @@ const toGovernance = (g: any): ReportGovernance => ({
 
 const REPORTS_INDEX = shape({
   connected_sources: num,
+  /* Null on every dataset this section draws; a sentence on one it does not. `nullable` accepts an
+     absent key too, so a server predating the gate still validates. */
+  format_gap: nullable(str),
   /* Null while the publish gate is closed: the section has no library to govern until a graph
      is published, and a governance block full of empty lists would read as "nothing governed". */
   governance: nullable(REPORT_GOVERNANCE),
@@ -6591,6 +6637,20 @@ const REPORT_PAYLOAD = shape({
   built_count: num,
   draft_count: num,
   report: nullable(shape(REPORT_FIELDS)),
+  /*
+   * A report its own package resolved, and the specs its renderers read for labels.
+   *
+   * **Validated as an envelope, not field by field.** A resolved run is a resolver's output with ~40
+   * top-level keys that only the vendored renderers read; enumerating them here would be a second
+   * declaration of somebody else's contract, stale the moment that package regenerates — and the
+   * schema exists to stop a *stale server* reaching a render, which the presence of `id` and `blocks`
+   * already catches. Same call as `PROTOTYPE_PAYLOAD`'s `dataset: unknown`, one layer tighter.
+   *
+   * `nullable` on both, because a computed report carries neither, and `nullable` accepts an absent
+   * key as well as null — so a server predating this still validates.
+   */
+  resolved: nullable(shape({ id: str, name: str, blocks: arrayOf(anyObject) })),
+  specs: nullable(arrayOf(anyObject)),
 })
 
 interface RawReportSummary {
@@ -6700,6 +6760,7 @@ export async function getReports(asRole?: string | null): Promise<ReportsIndex> 
     saved: RawSavedReport[]
     authoring: RawReportAuthoring | null
     reports: RawReportSummary[]
+    format_gap?: string | null
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     governance: any
   }>(
@@ -6720,6 +6781,7 @@ export async function getReports(asRole?: string | null): Promise<ReportsIndex> 
     saved: raw.saved.map(toSaved),
     authoring: raw.authoring ? toAuthoring(raw.authoring) : null,
     governance: raw.governance ? toGovernance(raw.governance) : null,
+    formatGap: raw.format_gap ?? null,
     reports: raw.reports.map((r) => ({
       reportId: r.report_id,
       reportTag: r.report_tag,
@@ -6766,6 +6828,13 @@ export async function getReport(reportId: string): Promise<{
   builtCount: number
   draftCount: number
   report: Report | null
+  /**
+   * The resolved run, when this report is one its own package answered rather than one this server
+   * computes. Exactly one of `report` and `resolved` is ever non-null.
+   */
+  resolved: unknown | null
+  /** The specs the vendored renderers look a label up in. Empty for a computed report. */
+  specs: unknown[]
 }> {
   const raw = validate<{
     connected_sources: number
@@ -6773,6 +6842,8 @@ export async function getReport(reportId: string): Promise<{
     built_count: number
     draft_count: number
     report: RawReport | null
+    resolved?: unknown | null
+    specs?: unknown[] | null
   }>(
     'The report',
     await request<unknown>(`/reports/${encodeURIComponent(reportId)}`),
@@ -6785,6 +6856,10 @@ export async function getReport(reportId: string): Promise<{
     builtCount: raw.built_count,
     draftCount: raw.draft_count,
     report: raw.report ? toReport(raw.report) : null,
+    /* Passed through unmapped: no field of a resolved run is renamed, because the vendored renderers
+       read the resolver's own names and a camelCase copy would be a second vocabulary for one payload. */
+    resolved: raw.resolved ?? null,
+    specs: raw.specs ?? [],
   }
 }
 

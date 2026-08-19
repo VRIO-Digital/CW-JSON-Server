@@ -34,6 +34,17 @@ type ReportsState = {
   /** Which report is open, set the moment it is asked for. `null` is the list. */
   openId: string | null
   report: Report | BuiltReport | null
+  /**
+   * The resolved run, for a report its own package answered rather than one the server computes.
+   *
+   * Kept beside `report` rather than in place of it, and **exactly one is ever set** — the server says
+   * which kind it served. A single field holding either would make every reader sniff the shape, which
+   * is how two formats come to be conflated; the whole point of the discriminator is that nothing has
+   * to guess. `close()` and `open()` clear both, so one kind cannot linger under the other.
+   */
+  resolved: unknown | null
+  /** The specs the vendored CAPEX renderers read for labels. Empty for a computed report. */
+  specs: unknown[]
   reportLoading: boolean
   reportError: string | null
 
@@ -74,6 +85,8 @@ export const useReportsStore = create<ReportsState>()((set, get) => ({
 
   openId: null,
   report: null,
+  resolved: null,
+  specs: [],
   reportLoading: false,
   reportError: null,
   filters: [],
@@ -97,15 +110,17 @@ export const useReportsStore = create<ReportsState>()((set, get) => ({
     set({
       openId: reportId,
       report: null,
+      resolved: null,
+      specs: [],
       reportError: null,
       reportLoading: true,
       filters: [],
     })
     try {
-      const { report } = await getReport(reportId)
+      const { report, resolved, specs } = await getReport(reportId)
       /* Still the report being asked for? If not, this reply belongs to a heading nobody is reading. */
       if (get().openId !== reportId) return
-      set({ report, reportLoading: false })
+      set({ report, resolved, specs, reportLoading: false })
     } catch (error) {
       if (get().openId !== reportId) return
       set({ reportError: toMessage(error), reportLoading: false })
@@ -153,6 +168,9 @@ export const useReportsStore = create<ReportsState>()((set, get) => ({
     set({
       openId: null,
       report: null,
+      /* Both kinds cleared, or a resolved run lingers under the next report the reader opens. */
+      resolved: null,
+      specs: [],
       reportError: null,
       reportLoading: false,
       filters: [],

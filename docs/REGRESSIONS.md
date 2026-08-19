@@ -3453,3 +3453,536 @@ precisely when the next dataset gets added. Its denominator is the declared list
 it re-acquires teeth automatically rather than needing to be remembered.
 
 
+
+## A facet keyed to a column the roster does not have — and the crash that followed it
+
+**Symptom.** Clicking a **year** chip on the *Quarterly Inbound Waste Profile* report replaced the
+report with **"Could not open that report — Cannot convert undefined or null to object"**. The report
+opened fine; only filtering it failed, and the message named neither the report, the filter, nor a
+field.
+
+**Two faults, chained, and neither errored on its own.**
+
+1. `reportFacetsFor` derives the quarterly facet from `quarter.slice(0, 4)`, so the chips read 2023,
+   2024, 2025, 2026 with a correct count behind each. But `reportFrameRows` filtered by **equality on
+   the facet's own key** — `values.includes(String(r[key]))` — and the quarters roster carries
+   `quarter` (`"2023 Q1"`), `manifests`, `tons`, `rej`, `res`. There is no `year`. So `String(undefined)`
+   was `"undefined"` for all fourteen rows and the filter selected **none of them**. Not an error: a
+   report with no rows, which is a legitimate state.
+2. Three blocks then read their column headers off the rows in view — `Object.keys(rows[0])` in the
+   scorecard, the quarterly profile and the traces. With no rows that is `Object.keys(undefined)`, which
+   throws, and the throw surfaced as a 500 the store turned into the pane’s "Could not open" alert.
+
+**The chip counts were right, which is why it read as a data problem.** The count ran
+`quarter.startsWith(value)` — the correct test — while the filter beside it ran equality on a missing
+column. One facet, two different rules, and the honest half was the one on screen.
+
+**A third fault the fix uncovered.** Once the filter selected rows, a generated quarters report came
+back with the *generator register’s* four tiles computed over quarters: **"4 inbound generators in
+view · 0 under EPA enforcement · $0 total penalty exposure · 0 under a consent decree"**. Every one is
+read off a column the quarters roster does not have. `summary_note` on the same payload already said
+*"This summary is only defined for the inbound generators register, so a re-asked quarters report
+states none"* — so the payload contradicted itself, and the tiles are the half a reader believes. The
+note was never the fix; not computing them is.
+
+**Fix.**
+
+- `REPORT_DERIVED_FACETS` declares a non-column facet as a row test **once**, and both sides read it:
+  `reportFrameRows` to select the rows, `reportFacetsFor` to count them. A chip whose count and whose
+  filter disagree is the two-answers failure this section refuses everywhere else. `flag` keeps its own
+  branch — it is one control over three real columns, not one derived value.
+- `reportSpineKeys` takes a block’s columns from the **roster**, falling back to it when the rows in
+  view are empty, so a selection that legitimately matches nothing renders an empty table with its
+  headers.
+- `reportBuild` computes no summary off the generator register for another spine; `summary_note` still
+  says why, so the absent strip reads as undefined rather than as a failure.
+
+**Guard.** Two `check-docs` claims, both break-tested against four mutations (all CAUGHT).
+
+- *every facet key is a column of its roster, a declared derived test, or the flag control* — asserted
+  as the **fact**, against `db.json`: each spine’s offered facet keys are resolved against that
+  roster's own columns, so a facet added tomorrow whose key is not a column fails the build rather
+  than a request. It also pins the ordering (the derived branch is consulted before the equality
+  fallback, or a declared test is declared and never reached), that the chip count runs the same test,
+  and — **sliced to `reportBlock`** — that no block reads `rows[0]`.
+- *a re-asked report off the generator register states no summary rather than the register’s.*
+
+**Two things about writing those guards, both already on this list and both hit again.**
+
+- The absence half started as a whole-file `!/Object.keys(rows[0])/` and **failed against correct
+  code**: `validateDb` has its own, properly guarded by a length test. A new `sliceFn(src, signature)`
+  helper counts braces to slice one function body, and it sits **above every claim** — a `const` used
+  600 lines before its declaration is a temporal-dead-zone crash, which is the "claim total stops
+  moving" failure where every break test reports MISSED and correct guards look broken. It returns
+  `null` rather than `''` so a claim can fail on an absent signature instead of asserting over nothing.
+- The claim is paired: the same `expect` asserts `reportSpineKeys` is *present* at four call sites
+  inside that slice as well as that `rows[0]` is *absent* from it. "X is gone" and "Y is still here"
+  are cheap together and worthless apart — a slice that failed to match satisfies every absence claim
+  in it.
+
+## Registering a second dataset whose report format this server does not draw
+
+**What happened.** `CAPEX` came back as a real dataset — Northline Water Group, generated by its own
+demo package against this repo’s schema. Registering it was expected to be `DATASETS` plus a document.
+It took six refusals, and **every one of them was a check working**: the boot named the exact key, the
+exact id and the command to fix it, in order, until the document served. Worth recording because the
+refusals are the design, and because two of them were faults in *this* repo’s reasoning rather than in
+the package.
+
+**The six, in the order the boot found them.**
+
+1. `reports` wrong shape — `reports.data.authoring_fixture` is an object, and the rule was "every value
+   in `data` is a non-empty array". Right about EPA, wrong as a general rule: a package may put
+   something in `data` that is not a spine. Replaced with the **cross-key** rule that actually matters —
+   every spine a report *names* must resolve to a non-empty roster — which leaves EPA exactly as
+   strictly checked, since its four reports name all four of its spines.
+2. `settings` wrong shape — carried from the primary (a package cannot know the tenant’s users) while
+   the document kept the package’s own `auth_roles`, so every user named a role that was not there.
+   **The tenant’s directory has to travel as one unit.** Fixed in `adopt-dataset.mjs` with
+   `TENANT_IDENTITY = [auth_roles, settings, google_account]`, and the package’s own set is **named** on
+   the way out rather than silently replaced.
+3. Four recorded sanity checks walk edges `t1`–`t4`, which are the package’s traversal-step labels, not
+   canvas edge ids (`E0001`…). Nothing can map one to the other without inventing the evidence the check
+   cites, so the unresolvable ones are dropped **and each is named**. An empty `sanity_checks` is a state
+   the Query tab already handles by abstaining.
+4. `_meta` / `_provenance` have no `MERGE_PLAN` rule. `primary`, on the reasoning that a **merged
+   document has no single producer** — so `both` carries none and claims none. Nothing reads them; what
+   the rule buys is a decision on record instead of a key that fell out of the merge unnoticed.
+5. CAPEX’s reports are scoped `sc_author_all` over a `projects` spine — see below.
+6. `/governance` crashed on `db.reports.data.generators.length` after boot, because that whole page
+   resolves against the generator register.
+
+**The one that mattered: refusing a boot over a format this server does not draw.**
+
+`validateDb` refuses a report whose references are broken, and it is right to — every broken one
+*renders*: a missing spine gives authored tiles above an empty table, a column the rows lack gives blank
+cells under a header. But a **scope filter this server has no implementation of is not a defect in the
+document**. CAPEX’s definitions are exactly what its package generated; what is missing is nineteen block
+renderers sitting un-vendored in `src/report/`. Refusing the boot over that took the entire dataset down —
+Sources, Data Catalog, the graph, the What-if lens — because one section cannot draw one format.
+
+**"This document is broken" and "this server does not draw this format" are different facts, and only the
+first is a reason to refuse a boot.** The second is a precondition, and this app already has a shape for
+those: `NoSourceConnected`, `NoPublishedGraph`.
+
+**Then the fix was wrong once more, in the other direction.** Gating the *section* cost `dataset=both` its
+reports: the merged list is EPA’s five drawable definitions plus CAPEX’s three undrawable ones, so three
+took five with them — a surface that worked before the change. Caught by sweeping all three selectors
+rather than the one being added. **Gate per definition, never per document**; `reportDrawable` decides one
+report, `drawableReports()` is what every surface serves, and the sentence names the count
+("3 of 8 definitions") rather than condemning the dataset.
+
+**Guard.** Four `check-docs` claims, all break-tested (12 mutations, all CAUGHT):
+
+- *a package-generated dataset is adopted, and only the tenant directory is carried* — the identity trio
+  is declared, carried whether or not the package brought its own, a substitution is named, a missing
+  collection is refused, and the script writes a file only.
+- *an undrawable report definition is gated per report, not refused at boot* — both helpers are pure over
+  one document; the validator skips rather than refuses; the frame validator checks drawability **after**
+  the lookup (so it can name the report) and **before** anything applies a scope filter; the count is
+  named; and the field is typed, mapped and read on both page branches.
+- *every dataset is loaded at boot and a request selects one* — **re-keyed**: it pinned
+  `DATASETS = ['EPA']` literally while its own comment said "the shape, not the count", so a second
+  dataset made it stale with every fact it guarded still true. It now asserts the list is non-empty and
+  the primary is **first**, which is the load-bearing part: `both` resolves single-valued keys to whatever
+  that order says is primary.
+- *and none of them hand-rolls a second one for the same branch* — **re-keyed**: it asserted no
+  `<EmptyState>` anywhere in a gated page, which was right while publication was each page’s only
+  precondition and wrong the moment Reports grew a second. Both branches are now sliced with `sliceFn`
+  and checked apart, including that the format gap is offered **above** the publish gate — publishing a
+  graph would not make an undrawable format drawable.
+
+**Three things about writing those guards, all of them already on this list.**
+
+- **A break test that cannot land is worse than none.** Two mutations reported SKIP because a multi-line
+  anchor was joined with `\n` against a CRLF file, and one reported MISSED because
+  `const gaps = reportFormatGap(db)` appears in four routes and the mutation patched the first — a route
+  the claim does not read. Both were the *test* being wrong while the guard was right. Line-index the
+  edits, and retarget rather than rewriting a working guard.
+- **A shell heredoc ate every backslash on the way into a `check-docs` claim.** `/const TENANT_IDENTITY =
+  \[/` landed as `[`, turning nine assertions into character classes that matched nothing — and `\b`
+  landed as a literal **backspace byte** (`0x08`), so `/<EmptyState\b/` matched nothing while
+  `!/<EmptyState\b/` passed vacuously on three pages. Exactly the vacuous-assertion trap this file warns
+  about, arrived by a new route. Write claim files with the editor, not through a shell heredoc, and
+  **read back the bytes** (`cat -A`) after any scripted edit that carries a regex.
+- **An indentation-blind line match will find the wrong route.** Three separate edits landed inside the
+  `if (!report)` block, inside the publish-gate branch, and in `GET /reports` instead of
+  `GET /reports/:id`, each producing a syntax error or a correctly-typed component in the wrong branch.
+  `node --check` after every scripted edit to a `.mjs`, and read the region back.
+
+## An unstated confidence read as certainty — and the crash that hid it
+
+**Symptom.** Building the CAPEX graph killed the mock server outright:
+
+```
+TypeError: Cannot read properties of null (reading 'toFixed')
+    at studioCanvas (server.mjs:3362)
+    at recordVersion (server.mjs:2747)
+    at Timeout.step [as _onTimeout] (server.mjs:2831)
+```
+
+**Why it took the process down rather than one request.** It threw inside a **build-step timer**, not
+inside a route, so there was no request to fail — the exception was unhandled and the process exited.
+A build is 31 substeps on timers, and `recordVersion` runs at the end of one, so every CAPEX build
+died at the same point and took EPA down with it.
+
+**The data.** `confidence` is nullable on a canvas node, and a whole graph can state none: **all 442**
+CAPEX nodes do, and 14 of them carry a review item, so `state()` marked them proposed and
+`n.confidence.toFixed(2)` ran on `null`. EPA's 189 all state one — 178 of them exactly `1` — which is
+why this sat unreachable until a second dataset arrived.
+
+**Fixing the crash uncovered a worse bug two lines of reasoning away.** `confidenceOf` fell back to
+`?? 1` — *completely certain* — so an Ask answer over that same graph reported:
+
+> Confidence 1.00 — the weakest entity on the route.
+
+A fabricated figure on the one line whose entire job is to say how much to trust the answer. That is
+worse than the crash: a crash is visible, and this reads as a verified result. It is the same failure
+the abstention path already refuses by reporting `null` rather than inventing a number to fill the
+field, and the same rule the What-if baselines keep — a measure with no baseline reports `null`, never
+`0`, because `0` would be a claim.
+
+**And a third, found by grepping for the same assumption.** `n.confidence < 0.85` counted an unstated
+confidence as low, because `null < 0.85` is `true` — so the Canvas facet would have read **442
+low-confidence nodes** on a graph that states no confidence at all.
+
+**Fix — one rule in three places: an absence has no number.**
+
+- A proposed node with no stated confidence renders `proposed`, not `proposed · 0.00`. A stated
+  certainty of zero is a claim the graph never made.
+- `confidenceOf` returns `null`, and one `weakest(ids)` helper serves the answer *and* its citations so
+  the two cannot disagree about what the weakest link was. **A single unstated node makes the weakest
+  link unknowable** — so it is `null`, and deliberately not the minimum of the stated rest, which would
+  claim a floor the unstated node could sit below.
+- The reasoning step says *"Confidence is not stated — this graph’s nodes carry none, so the weakest
+  entity on the route cannot be named"* rather than printing a figure it does not have.
+- The facet counts only what is **known** to be low.
+
+Nothing downstream had to change: `confidence` is already `number | null` on the answer envelope and on
+every citation, because abstentions and recorded answers already needed to say "no figure here".
+
+**Verified end to end rather than by unit.** Both graphs were taken all the way through — settle the
+review queue, settle the pivot, run the 31-substep build, publish, ask. CAPEX answers with
+`confidence: null` and the sentence saying why; EPA answers `1.00`, which is a **stated** value (178 of
+its nodes carry exactly `1`), so its behaviour is byte-identical to before. Checking the distribution
+was the step that proved that — `1` was also the old fallback, so the two are indistinguishable from
+the answer alone.
+
+**Guard.** One `check-docs` claim, *an unstated confidence is reported as unstated, never as certain or
+as low*, break-tested against all four faults (all CAUGHT): the `?? 1` fallback, citations computing
+their own minimum, the facet counting unstated as low, and inventing `proposed · 0.00`.
+
+**The lesson worth carrying.** `?? 1` and `?? 0` on a *measure* are not defaults, they are assertions —
+and the compiler cannot tell them apart from a real value. When a nullable field feeds a figure a reader
+will act on, the honest fallback is to report that there is none. A crash at least announces itself; a
+fabricated certainty does not. **When a nullable field turns out to be null across a whole dataset,
+grep every reader of it** — three of the four faults here were the same `??`/comparison assumption in
+different places, and only one of them threw.
+
+## A dataset's own column classes made the Data Catalog unreadable
+
+**Symptom, as reported.** "Not able to profile tables in CAPEX." Profiling worked perfectly — the
+consent flow, the register, the browse tree, the job board and the commit all did exactly what they do
+for EPA, and the source row read `2 tables · 31 columns`. What did not work was **seeing** any of it.
+
+**Cause.** `client.ts` declares the classes it can render — nine for a column, six for a document
+entity — and a class outside that union does not render short, it refuses the **whole payload**:
+
+```
+ValidationError: The column dictionary could not be read …
+  datasets[0].tables[0].columns[0].class should be one of identifier | dimension | … got "organisation"
+```
+
+CAPEX's package classifies more finely than the platform: sixteen classes (`organisation`,
+`period_accumulation`, `measure_record`, `measure_commitment`, `measure_projection`, `derived_ratio`,
+`lifecycle_state`, `classification`, `label`, `person`, `geography`, `risk_score`, `scratch`, …) against
+the platform's nine. Every one of them is a reasonable class; none of them is one this app renders.
+
+**And the error sent the reader to the wrong place.** `ValidationError` says "Restarting the mock server
+usually fixes it", which is true of the fault that message was written for (a stale process serving an
+old shape) and false here — restarting changes nothing, because the document is what it is.
+
+**Fix: fold, do not admit.** `classFor(klass, allowed)` maps a package class onto the platform class it
+specialises. Folded rather than widening the union, for the reason `FACET_FOR_TYPE` folds a `doc_type`
+onto four buckets: **the facet chips count the platform classes**, so a sixteenth class renders as a
+chip nothing counts. Before the fold CAPEX's Measures chip read 0 against twenty measure columns, and
+Location read 0 against two geography columns — a facet stuck at 0 reads as "none of these in this
+corpus" rather than as a broken map.
+
+**The package's own class is kept and is what the chip prints.** `class_detail` carries it, so the
+reader sees `period_accumulation` while Measures counts it and the tint stays keyed to the folded class
+(nine tints, not sixteen). Nothing is discarded to make the union hold.
+
+**Two unions, not one — and folding to the platform nine alone would not have caught it.** A column may
+be `address`, `geo` or `flag`; a document entity may not, and `client.ts` declares that narrower six
+separately. CAPEX's document vocabulary classes an entity `flag`, which is a perfectly good *column*
+class. So the fold takes the target vocabulary, and `NARROWED_CLASS` folds again where it must.
+
+**Refused at boot, not at render.** `classFor` returns `null` for a class nothing maps, and the call
+sites fall back to `text` — which would classify a measure as prose, a wrong answer rather than a
+missing one. `validateDb` now names the class and the map to add it to, for the reason a canvas edge
+with an unresolved endpoint is refused there: the fix belongs in a terminal, not a browser console.
+
+## …and every table in it reported 0 rows
+
+Found while verifying the above, and it is the same rule a third and fourth time.
+
+CAPEX's tables state the absence in the document itself — `rows: null`, with
+`rows_basis: "catalogued only -- the package does not hold a row count for this table"`. The columns
+route read `meta?.rows ?? 0`, so **every table reported 0 rows**: an empty table is precisely the
+reading that makes profiling look like it did nothing, and it is very likely half of what was reported.
+
+Then `synthesiseColumns` derives `distinct` from the row count for four of the classes, so
+`Math.max(1, Math.round(0 / 7))` gave **every column a distinct count of 1**. Fixing the branches to
+return `null` was not enough, because a cap sat below them:
+
+```js
+distinct: Math.min(distinct, Math.max(tableRows, 1))   // Math.min(null, 1) === 0
+```
+
+`Math.min(null, 1)` is **0**, so the cap overwrote the honest `null` with a fabricated zero — which is
+why the first fix appeared not to work and cost a round of debugging. The cap expresses a fact about the
+rows ("a column cannot hold more distinct values than there are rows"); with no rows catalogued there is
+no fact to express, so it applies only to a known count.
+
+**The lesson, now recorded four times in one session.** `?? 0`, `?? 1` and a `Math.min`/`Math.max`
+against a nullable number are not defaults — they are assertions, and the compiler cannot tell them from
+a real value. Grep every reader when a nullable field turns out to be null across a whole dataset: here
+the *first* three fixes were correct and a fourth line silently undid one of them.
+
+**Guard.** Two `check-docs` claims, break-tested against seven mutations (all CAUGHT):
+
+- *a dataset's own column class folds onto one this app renders, or the boot refuses* — both
+  vocabularies declared, the fold applied on all three paths a class reaches the client by (counted, so
+  a fourth path added without it fails), the entity path folding against the narrower union, the boot
+  refusal present, the finer class carried on the client and printed by the panel — **and every class
+  either document actually ships asserted to fold**, so a seventeenth class in a package fails the build
+  rather than a browser.
+- *an uncatalogued row count is served as unknown, and so is anything derived from it* — including that
+  the cap only applies to a known count, that both fields are nullable end to end, and that the panel
+  says "row count not catalogued" rather than printing a figure.
+
+`db.CAPEX.json` is read **optionally** by `check-docs` (`capexDoc`), and that is not a fallback that
+hides a fault: `DATASETS` is what decides a dataset exists, and a name there with no document stops the
+boot. Here the document is only an extra source of rows to check a rule against, so a checkout without
+it loses coverage rather than gaining a false pass — every claim reading it still asserts over EPA.
+
+## Making CAPEX reports open — a second report format, and five things that were wrong on the way
+
+**The ask.** CAPEX reports would not open. The section gated with a stated reason, which was honest but
+not what was wanted: the three definitions are drawn by nineteen block renderers sitting un-vendored in
+`src/report/`, and no amount of publishing would change that.
+
+**The shape of the fix.** A report is now either **computed here** (`reportView` derives every figure
+per request from a roster — EPA's five) or **resolved by its own package** (`reports.resolved[reportId]`
+in the document, every number already a `display` string — CAPEX's three). `GET /reports/:id` serves one
+or the other and **names which**; the client forks on that discriminator rather than sniffing the shape.
+Recomputing a resolved figure would be a second implementation of somebody else's aggregation rules,
+which agrees with the first exactly until one is edited.
+
+### Five things that were wrong, each caught by a check rather than by looking
+
+**1. The CSS scoper corrupted the stylesheet twice, and the integrity check is why that is known.**
+The sheet is 2,322 lines with `*{box-sizing:border-box; margin:0; padding:0}` and bare `body`, `a`,
+`h1,h2,h3` — unscoped it resets every antd component in the app, silently, which is the regression
+`src/reports/reports-prototype.css` had to be scoped to stop. The transform therefore asserts that
+**every rule body is byte-identical before and after**, and it failed twice:
+
+- a ` N ` comment placeholder collided with plain numbers in declarations and spliced a comment's prose
+  into the middle of a rule;
+- a comment sitting between `}` and the next selector was folded into the prelude, emitting
+  `.cw-capex-report <the whole comment> .srcTag.BQ` — which scoped nothing.
+
+Both were reported as success by the first version of the check, which compared *declaration counts*.
+Comparing **leaf rule bodies** is what caught them; comparing depth-1 blocks reported every media query
+as corrupt, because a rule inside `@media` has its selector at depth 1 and the selector is the one thing
+the transform is allowed to change. Final state: 1,455 bodies identical, 1,439 preludes, 0 unscoped.
+
+**2. `validateDb` refused the whole document once the reports became drawable.** The reference block
+checks what `reportView` needs — a scope filter, a label column, a charted measure the rows carry — and
+none of that describes a report its own resolver answered. Skipped **per report**, not per document, so
+a computed definition in the same document is still checked in full.
+
+**3. `resolvedRun` read the ambient `db` instead of the document being validated.** Correct at boot,
+where `withDataset` wraps each validate, and wrong in `commitDb`, which validates a document that has
+**not been installed yet** — so a write would have been judged against the *previous* document's
+resolved runs. That is the stale-server failure this repo guards everywhere, arrived at from the inside.
+The document is passed explicitly wherever the validator asks: `resolvedRunIn(doc, id)`.
+
+**4. The section list 400d with `REPORT_SCOPES[report.scope] is not a function`.** `reportRows` applies
+the definition's scope filter, and a resolved report's scope names one this server does not implement.
+Reads as a stale server; is not one. `reportCounts` returns the run's own `rowsScoped`/`rowsTotal` —
+the same rule its figures follow, applied to its row count. Deriving it from the roster would have been
+a second answer to how big the report is.
+
+**5. A vendored `<Link>` navigated to a route this app does not have.** `Calendar.jsx` drills from a
+filing month into Project 360 with `<Link to="/reports/project-360?project=…">`; the standalone app
+routes `/reports/:slug`, this one has a single `/reports` address and keeps `openId` in a store. **It
+crashed `renderToString` outright** for want of a router, which is how it was found — otherwise it would
+have shipped as a control that did nothing, which is worse than a disabled one.
+
+`host.tsx` injects the act instead: `openReport` goes through the store's own `open()`, the same path
+the Library's button takes, so a drill cannot land somewhere the Library could not. **The coordinate
+travels and is not applied** — one resolved run per report is carried, so `ReportView`'s `seedMismatch`
+names the run's own coordinate rather than answering under a project the reader did not click.
+
+### The fidelity check, and why it took three attempts to write honestly
+
+Upstream's own assertion is that **every `display` string in a run appears in the rendered HTML** — the
+check that catches a renderer reading a field the resolver renamed, which is how a whole block once
+shipped as a masking notice for a masking that was not happening. It rendered, so nothing failed.
+
+Reimplementing it against the served payload was wrong twice, and **both times the render was fine and
+the test was not**:
+
+- demanding `display` reported 66 drawn figures missing, because `Bar` puts a segment value in a
+  `title` attribute and prefers the fuller `exact` there. A figure counts as present if **either**
+  string appears — both are the resolver's.
+- omitting upstream's `COLLAPSED` list reported 62 more missing: six keys (`expansions`, `orders`,
+  `loose`, `items`, `history`, `drilldown`) hold content behind an interaction, which is the design
+  rather than a gap.
+
+Both lists are **copied from upstream rather than re-derived**, so the two cannot come to disagree about
+what "on the page" means. Final: 414/414, 72/72 and 156/156 figures across the three reports, 26 blocks,
+17 of the 19 block types exercised — and the block-type list is printed, because "33 checks OK" could
+otherwise hide a renderer nothing touched.
+
+### Two smaller decisions worth finding again
+
+**The spacing exemption is three now, and `src/report/` is *excluded* rather than exempted.** Those are
+different facts: the exemption list names the vendored sheets the app **loads**, and `src/report/` is the
+vendor *source* — nothing imports it, it has its own `package.json` and router. Sweeping it flagged a
+sheet the app never loads; exempting it would have put that sheet on a list that exists to name the ones
+it does. Net effect: `check-docs` went from 14 stale to 13, one better than the baseline.
+
+**A `.d.ts` over vendored code is a claim the compiler trusts.** The first draft declared `Toasts` and
+`ProvPopover` as exports of `ReportState.jsx`; `tsc` accepted it and the **bundler** failed with
+`"Toasts" is not exported`. They live in `Primitives.jsx`. A declaration file written against what you
+assume rather than what you read moves an error from the type checker to the build — read the exports.
+
+**Guard.** Three `check-docs` claims, break-tested against nine mutations (all CAUGHT): the two report
+kinds and their discriminator; the vendored folder staying scoped and server-fed; and the drill-through
+going through the host with a stated coordinate. Two of the three needed `codeOnly` — the comments that
+*explain* the removals name `react-router` and `src/report/`, which is the self-documenting-file trap
+this file has now recorded six times. It is for every whole-file absence claim, not only the obvious ones.
+
+## …and the Open button was not drawn, so none of that was reachable
+
+**Reported as "not able to open the report" — after the renderers were vendored, the payload served and
+every figure verified.** Every endpoint answered 200. The report was unopenable from the only list that
+offers it, and nothing on the server side could see the fault.
+
+**Cause.** `GovernedCard` computed one flag over both buttons:
+
+```ts
+const openable = !!starterForTag(r.reportTag, r.reportId)   // gated Open *and* Edit
+```
+
+That was correct for as long as every governed row resolved to one of the prototype's five starters —
+the definitions and the starters were the same five reports out of the same file, so "has a definition"
+and "can be shown" were the same question.
+
+They stopped being the same question the moment a dataset arrived whose reports the **host** renders.
+CAPEX's rows carry `R1`–`R3`; the starters are the **primary's**, because `reports_prototype` is
+`primary` in `MERGE_PLAN` and a secondary dataset carries the tenant's sample data rather than inventing
+its own. Nothing matched, so no Open button was drawn.
+
+**The handler was already right, which is what made this hard to see.** `openGoverned` returns early
+through `onOpenPublished` *before* `fromGoverned` is ever called — reading a published report has needed
+no authoring definition since Open and Edit were separated. Only the card still believed they were one
+act, and a button that is never rendered leaves no trace: no error, no toast, no failed request.
+
+**Fix.** Two names for two questions — `hasStarter` ("is there a definition to load?") gates Edit,
+`canOpen = hostRenders || hasStarter` ("can anything render this?") gates Open. `hostRenders` is threaded
+App → LibraryPane → card, because only `App` knows whether a host is present; absent it the card behaves
+exactly as it did, so the folder standing alone is still the prototype it was.
+
+**The lesson, and it is the shape of the whole session.** *A precondition shared by two acts is a
+coincidence until something proves otherwise.* Here the two were genuinely identical for five reports and
+diverged on the sixth, and the divergence was invisible from every layer that could be tested in
+isolation: the server served, the client validated, the renderer drew all 414 figures. **What was not
+exercised was the click.** Verifying a payload is not verifying a path.
+
+**Guard.** *Open and Edit are gated on their own preconditions, not on one flag* — break-tested against
+five mutations (all CAUGHT), including re-merging the two gates in either direction. It also asserts the
+`openable` name is **gone**, because two flags that can be re-collapsed into one is the state this came
+from. Verified on the card directly rather than through the page: a whole-page render puts the Library
+behind the prototype's own tab state, and the check would pass over nothing.
+
+**And the smoke had to hydrate the prototype dataset to mean anything.** `STARTERS` comes from the served
+document, so without hydrating it every row looks unopenable and both EPA assertions "fail" for the wrong
+reason — which is exactly the "prove the render had its data" rule, applied to a fixture instead of a
+store.
+
+## The CAPEX report rendered dark, and the resolver turned out not to be separable
+
+### The theme: a scoped palette that could never win
+
+**Symptom.** The CAPEX report rendered **dark inside a light app**.
+
+**Two causes, and the second is the one worth remembering.** The vendored sheet declares its palette as
+`:root, [data-theme="dark"]{…}` with `[data-theme="light"]{…}` below it; the standalone app shipped
+`data-theme="light"` on `<html>` and its `Shell` toggled it. `Shell` was dropped on the way in — this app
+draws its own chrome — so nothing set the attribute and the sheet fell to its dark default.
+
+**And the scoping had made it unfixable.** A bare `[data-theme="light"]` qualified the *page*. Prefixed
+like any other selector it became `.cw-capex-report [data-theme="light"]` — a **descendant** rule, which
+can only match an element inside the report carrying that attribute. Nothing does. So the light palette
+could not win however the wrapper was marked, and marking the wrapper was the obvious first fix.
+
+**Fix.** A leading attribute selector attaches to the wrapper (`.cw-capex-report[data-theme="light"]`);
+`[hidden] .foo` is a real descendant rule and is still prefixed normally. The wrapper then states
+`data-theme="light"` rather than relying on token order.
+
+**The general rule for scoping a vendored sheet:** a selector that qualified the *root* has to qualify
+the *wrapper*, not become a descendant of it. `body`, `html` and `:root` were already handled; a bare
+`[attr]` is the same thing wearing different syntax. Same family as the graph viewer being vendored dark,
+with the opposite remedy — there the palette had to be rebuilt, here it already existed and only needed
+asking for.
+
+### The filters: the resolver is not a separable module
+
+**Asked for:** the R1/R2/R3 filters working, "exact same html". Making a filter work on these reports
+means **re-aggregating every figure** — the filter bar's params are coordinates, not row hides — and the
+React port ships one resolved run per report and refuses re-aggregation with a stated toast.
+
+**A number to correct, because it was quoted in a decision.** I first said the resolver was ~55,000
+lines. That is the whole HTML app: its UI, its graph viewer, its lineage drawer. The resolver's own entry
+points come to **~1,000 lines**, which is a completely different proposition, and the decision was taken
+on the wrong figure before I corrected it.
+
+**Then the extraction showed why neither number matters.** A transitive-closure extractor over the
+bundle's top-level declarations, seeded from `resolveReport`, `resolveBlock`, `applyFilter`, pulled:
+
+- **268 `innerHTML` sites**, 39 `querySelector`, 25 `document.*`;
+- `renderReports`, `renderNav`, `renderRepView`, `openDrawer`, `paintPersona`.
+
+**The resolver is woven into the prototype's DOM layer.** `resolveReport` reaches rendering helpers,
+which reach the rest of the app — 901 declarations and 10,689 lines before the closure settled, a third
+of the bundle, with the aggregation logic inseparable from the markup that displays it. There is no
+module boundary to lift.
+
+**So mechanical extraction is off the table, and a hand-port is exactly the "second implementation of the
+aggregation rules" this design refuses by name** — the failure being that it agrees with the package
+until one side is edited, and a divergence shows up as wrong money on a governed report.
+
+**Two things the extractor got wrong first, both worth keeping.**
+
+- **Spans were measured to the signature's closing paren**, not the body's brace, so every function came
+  out one line long: *62 declarations totalling 68 lines*. That is the shape of a silently empty
+  extraction, and it would have compiled. The extractor refused to write below 400 lines for that reason.
+- **The closure scanned comment prose.** This bundle's comments are dense with capitalised words, and
+  every one matching a declaration name pulled that declaration in, and its references with it — 1,185
+  declarations, 17,150 lines. The tell was the "refers to and does not define" report coming back as
+  `THE, AND, WHICH, RATHER`. **Third form of the same trap in one session**, after `codeOnly` for
+  check-docs claims and for the CSS scoper: prose that explains code names the code it explains.
+
+**The dead artifact was deleted rather than left checked in.** A 10,689-line file that is a third of
+another app and resolves nothing is worse than its absence — it reads as a working port.
+
+**Guard.** The theme fix is guarded by *the CAPEX report renders in the light palette the sheet already
+carries*, break-tested three ways (drop the attribute, make the rule a descendant again, remove the
+scoper's leading-attribute branch). Its first version passed with the JSX attribute deleted, because this
+file's own comment names `data-theme="light"` — `codeOnly`, keyed on the rendered form. And a conjunct
+that counted `return SCOPE + sel` had to *count* rather than match, because the `body|html|:root` rule
+contains the same substring: a bare `includes` passed with the branch removed.

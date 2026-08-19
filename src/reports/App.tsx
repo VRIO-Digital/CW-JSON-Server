@@ -851,6 +851,12 @@ export default function App({
               /* Absent with no host, and the pane then offers no action it cannot carry out. */
               onOpenGoverned={actions ? (row) => openGoverned(row, false) : undefined}
               onEditGoverned={actions ? (row) => openGoverned(row, true) : undefined}
+              /*
+               * Whether Open can render at all. A host renders a published report from the server, so a
+               * definition this prototype has never heard of still opens; with no host, Open falls back to
+               * loading the authoring definition and the card gates on the starter as it always did.
+               */
+              hostRenders={!!onOpenPublished}
               /* Share only *opens* the dialog — see the note on `sharing` above for why it is here. */
               onShareGoverned={
                 actions ? (row) => setSharing({ kind: 'governed', id: row.reportId }) : undefined

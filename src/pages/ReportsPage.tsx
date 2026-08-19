@@ -1,5 +1,7 @@
-import { Spin } from 'antd'
+import { Alert, Button, Spin } from 'antd'
+import { FileTextOutlined } from '@ant-design/icons'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   deleteGovernedReport,
   getReports,
@@ -8,6 +10,7 @@ import {
   setReportAudience,
 } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
+import EmptyState from '../components/EmptyState'
 import NoPublishedGraph from '../components/NoPublishedGraph'
 import PageHeader from '../components/PageHeader'
 import PublishedReportPane from '../components/report/PublishedReportPane'
@@ -15,6 +18,7 @@ import ReportsApp from '../reports/App'
 import { hydrate as hydratePrototype, isHydrated } from '../reports/data'
 import { MenuProvider } from '../reports/components/MenuProvider'
 import { ToastProvider } from '../reports/components/Toast'
+import { appPath } from '../api/dataset'
 import { useAuthStore } from '../store/authStore'
 import { useReportsStore } from '../store/reportsStore'
 import { createReadStore, toMessage } from '../store/asyncState'
@@ -273,7 +277,46 @@ export default function ReportsPage() {
   }
 
   /*
-   * The gate, and it is the only precondition. A report is asked of the published graph, so a
+   * **The outer gate: a dataset whose report format this section does not draw.**
+   *
+   * Stated above the publish gate, and that order is the point. Publishing a graph would not make
+   * these definitions drawable, so `NoPublishedGraph` here would send the reader to Graph Studio to
+   * do something that changes nothing — the same wrong-fix mistake `NoPublishedGraph` itself exists
+   * to avoid between "publish the build you have" and "finish a draft".
+   *
+   * `EmptyState` rather than an error alert, because nothing failed: the CAPEX document is exactly
+   * what its package generated, and this section is built for EPA's four spines. The **sentence is
+   * the server's** — it names the dataset, the scopes this server implements and the spine with no
+   * label column — for the reason the consent screen renders the scopes the endpoint returned: a
+   * copy held here could describe a gap that had already been closed.
+   *
+   * The action goes to Settings → Dataset, because that is where the switch is, and it is the one
+   * act that puts a drawable dataset on screen.
+   */
+  if (data?.formatGap && data.reports.length === 0) {
+    return (
+      <>
+        {header}
+        <EmptyState
+          icon={<FileTextOutlined />}
+          title="This section does not draw this dataset's reports yet"
+          detail={data.formatGap}
+          action={
+            <Link to={appPath('/settings')}>
+              <Button type="primary">Open Settings → Dataset</Button>
+            </Link>
+          }
+          footnote={
+            'Every other section reads this dataset normally — Sources, Data Catalog, the graph and ' +
+            'the What-if lens. Only the report renderers are per format.'
+          }
+        />
+      </>
+    )
+  }
+
+  /*
+   * The publish gate. A report is asked of the published graph, so a
    * connected source is not a second one — publishing is already downstream of having
    * something to build from. `NoPublishedGraph` names the fix that applies from the two
    * counts, because "publish the build you have" and "finish a draft" are different actions.
@@ -302,6 +345,22 @@ export default function ReportsPage() {
   return (
     <>
       {header}
+
+      {/*
+      * Some definitions drawable and some not — so the section renders, and says what is missing.
+      * A list that is merely shorter is not a message: three cards fewer reads as a package that
+      * shipped three fewer, which is the mistake `governance.ungoverned` exists to prevent one
+      * layer up. The sentence is the server's, naming the count and the scopes it implements.
+      */}
+      {data?.formatGap ? (
+      <Alert
+        type="info"
+        showIcon
+        className="rp-format-gap"
+        title="Some report definitions are not drawn here"
+        description={data.formatGap}
+      />
+      ) : null}
 
       {/*
         * One or the other, never both mounted. The prototype installs a toast host and a popover host

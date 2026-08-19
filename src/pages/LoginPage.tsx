@@ -1,5 +1,5 @@
 import { App, Button, Form, Input, Typography } from 'antd'
-import { Navigate, useLocation, useNavigate, type Location } from 'react-router-dom'
+import { Navigate, useLocation, type Location } from 'react-router-dom'
 import { appPath, currentDataset } from '../api/dataset'
 import { useAuthStore } from '../store/authStore'
 import './LoginPage.css'
@@ -43,7 +43,6 @@ interface LoginFields {
  */
 export default function LoginPage() {
   const { message } = App.useApp()
-  const navigate = useNavigate()
   const location = useLocation()
   const [form] = Form.useForm<LoginFields>()
 
@@ -79,7 +78,14 @@ export default function LoginPage() {
       message.error(result.error)
       return
     }
-    navigate(destination(), { replace: true })
+    /*
+     * **A full document reload, not a client-side navigate.** The identity has just been written to
+     * localStorage by the persist middleware, so the reload comes back signed in — and it is what
+     * guarantees the landing page is built from nothing: the module-level zustand stores are
+     * singletons, so a signed-out session's rows (or a previous persona's) would otherwise still be in
+     * them when the first page renders. Same reasoning, and the same mechanism, as the dataset switch.
+     */
+    window.location.assign(destination())
   }
 
   return (

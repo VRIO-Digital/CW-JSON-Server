@@ -129,3 +129,26 @@ export function validate<T>(what: string, value: unknown, check: Check): T {
   if (issues.length > 0) throw new ValidationError(what, issues)
   return value as T
 }
+
+/**
+ * An object, with nothing said about its fields.
+ *
+ * **For a payload whose shape belongs to somebody else.** A CAPEX report's resolved run is a resolver's
+ * output with ~40 top-level keys that only the vendored renderers in `src/capex-report/` read, and every
+ * block inside it has a shape per block type. Enumerating that here would be a second declaration of
+ * another package's contract — stale the moment it regenerates, and wrong in the direction that matters,
+ * because the validator would start refusing payloads the renderers handle perfectly well.
+ *
+ * What the boundary is actually for is catching a **stale server**: a payload that is not an object at
+ * all, or is missing the handful of fields this app names. So the envelope around it stays strict
+ * (`shape({ id: str, name: str, blocks: arrayOf(anyObject) })`) and the interior is left to the code that
+ * owns it. Same call as `PROTOTYPE_PAYLOAD`'s `dataset: unknown`, one layer tighter.
+ *
+ * Not a licence to skip a schema: use it only where the shape is genuinely another package's, never for
+ * a payload this repo defines.
+ */
+export const anyObject: Check = (v, path, issues) => {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+    issues.push(`${path} should be an object, got ${typeName(v)}`)
+  }
+}

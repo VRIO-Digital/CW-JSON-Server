@@ -930,7 +930,30 @@ const DB_SHAPE = {
     Array.isArray(v.summary_default) &&
     Array.isArray(v.saved) &&
     isObject(v.data) &&
-    Object.values(v.data).every((rows) => Array.isArray(rows) && (empty || rows.length > 0)) &&
+    /*
+     * **The rosters, checked through the spines that name them.** This used to require every value
+     * in `data` to be a non-empty array, which is right about EPA and wrong as a general rule: a
+     * dataset's package may put something in `data` that is not a spine at all — CAPEX ships an
+     * `authoring_fixture` object beside its six rosters — and the check refused a document whose
+     * rosters were all present and correct.
+     *
+     * The cross-key rule is stronger where it counts. `reportRows` reads `data[report.spine]`, so a
+     * spine with no roster behind it is the failure that matters, and it does not throw: the report
+     * renders its authored tiles above an empty table, which reads as "nothing to report" rather
+     * than as a roster that went missing. Every spine any report names must resolve, and must be
+     * non-empty unless this is a deliberately empty secondary dataset.
+     *
+     * EPA is no less strictly checked than before: its four reports name all four of its spines.
+     * An array that *is* in `data` is still required non-empty, so a roster emptied by a bad write
+     * is still a refusal whether or not a report names it.
+     */
+    Object.values(v.data).every(
+      (rows) => !Array.isArray(rows) || empty || rows.length > 0,
+    ) &&
+    (Array.isArray(v.reports) ? v.reports : []).every((r) => {
+      const roster = v.data[r?.spine]
+      return Array.isArray(roster) && (empty || roster.length > 0)
+    }) &&
     /*
      * The governance block. Nested rather than top-level, and required for the reason
      * `graph_studio.sanity_checks` is: losing it does not throw, it answers. The Library would
@@ -1192,6 +1215,45 @@ function validateDb(candidate) {
             `graph_studio.sanity_checks "${check.check_id}" walks edge "${id}", which is ` +
               'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
           )
+
+    /*
+     * **Every column and entity class has to fold onto one this app serves.**
+     *
+     * A dataset's package may classify more finely than the platform — CAPEX ships sixteen classes
+     * against the platform's nine — and `classFor` folds them. One it cannot fold is not a wrong
+     * figure but a section that will not render: `client.ts` declares the union, so
+     * `getProfiledColumns` refuses the whole payload and the Data Catalog shows
+     * `class should be one of … got "organisation"` with advice to restart the mock server, which is
+     * not the problem. Refused here instead, naming the class, for the reason a canvas edge with an
+     * unresolved endpoint is: the fix belongs in a terminal rather than in a browser console.
+     *
+     * Both vocabularies, because their unions differ — a column may be `flag`, a document entity may
+     * not, and folding to the platform's nine alone would have let that through.
+     */
+    for (const [vocabKey, allowed, label] of [
+      ['column_vocabulary', COLUMN_CLASSES, 'a column'],
+      ['document_vocabulary', ENTITY_CLASSES, 'a document entity'],
+    ]) {
+      for (const klass of new Set((candidate[vocabKey] ?? []).map((v) => v.class))) {
+        if (classFor(klass, allowed) === null) {
+          problems.push(
+            `${vocabKey} classes ${label} as "${klass}", which nothing folds onto a class this app ` +
+              `serves (${allowed.join(
+)}) — add it to PLATFORM_CLASS_FOR in server.mjs`,
+          )
+        }
+      }
+    }
+    for (const [key, profiled] of Object.entries(candidate.column_profiles ?? {})) {
+      for (const klass of new Set((profiled ?? []).map((c) => c.class))) {
+        if (classFor(klass) === null) {
+          problems.push(
+            `column_profiles["${key}"] classes a column as "${klass}", which nothing folds onto a ` +
+              `class this app serves — add it to PLATFORM_CLASS_FOR in server.mjs`,
+          )
+        }
+      }
+    }
         }
       }
     }
@@ -1340,7 +1402,14 @@ function validateDb(candidate) {
    * statements about the data. `npm run ingest:reports` checks the same references
    * against the package; this checks the document being served.
    */
-  if (problems.length === 0) {
+  /*
+   * Skipped where this server does not draw the document's report format at all — see
+   * `reportFormatGap`. Every check below is written against EPA's five block types and its scope
+   * filters, so on a CAPEX document it reports one unactionable problem per block while the
+   * document itself is exactly what its package generated. The section gates instead, and refuses
+   * every report route with the gap's own sentences, so nothing renders half-computed.
+   */
+  if (problems.length === 0 && reportFormatGap(candidate).length === 0) {
     const rep = candidate.reports
     const fieldKeys = new Set(rep.fields.map((f) => f.key))
     for (const r of rep.reports) {
@@ -1361,6 +1430,21 @@ function validateDb(candidate) {
        * before the definition. The spine's *existence* and its label column are still checked, since
        * neither needs a row; `null` here means "no row to check against", not "no keys".
        */
+      /*
+       * **A report its own resolver answered is not checked against this server's vocabulary.**
+       *
+       * Every check below describes something `reportView` would do: apply a scope filter, label a
+       * bar from a spine column, chart a measure the rows carry. A resolved report does none of it —
+       * its figures arrive as `display` strings in the payload — so `sc_author_all` and a `projects`
+       * spine are not defects, they are simply not this server's business. Per report rather than
+       * per document: a computed definition in the same document is still checked in full.
+       *
+       * What is still checked above and applies to both kinds: the spine resolves to a non-empty
+       * roster. `adopt-dataset` additionally refuses a definition with no run and a run with no
+       * definition, so neither kind can be half-present.
+       */
+      if (resolvedRunIn(candidate, r.report_id) !== null) continue
+
       const rowKeys = rows.length > 0 ? new Set(Object.keys(rows[0])) : null
       if (!(r.scope in REPORT_SCOPES)) {
         problems.push(
@@ -1792,6 +1876,101 @@ const HIGH_CONFIDENCE = 0.85
  * A curator's note (`column_notes`) overrides the description on either path —
  * that is the one field a human owns.
  */
+/**
+ * The platform's column classes — the nine the client's union declares and the facet chips count.
+ *
+ * Declared here because two things are written against it and neither can be allowed to drift: the
+ * `class` facets in the columns route, and `oneOf([...])` in `client.ts`. `check-docs` compares the
+ * two, so a tenth class added on one side fails the build rather than a render.
+ */
+const COLUMN_CLASSES = [
+  'identifier',
+  'dimension',
+  'entity',
+  'measure',
+  'date',
+  'address',
+  'geo',
+  'flag',
+  'text',
+]
+
+/**
+ * A dataset's own column class, folded onto one of those nine.
+ *
+ * **A package may classify more finely than the platform, and CAPEX does** — sixteen classes against
+ * nine, distinguishing a recorded measure from a committed one from a projected one. The platform's
+ * nine are what the facet chips count and what the client validates, so an unfolded class does not
+ * render at all: `getProfiledColumns` refuses the whole payload and the Data Catalog shows a
+ * validation error telling the reader to restart the mock server, which is not the problem.
+ *
+ * Same shape as `FACET_FOR_TYPE` folding a `doc_type` onto four buckets, and for the same reason: a
+ * class the chips cannot count is a chip stuck at 0, which reads as "none of these in this corpus".
+ *
+ * The finer class is **not discarded** — it rides on `class_detail` and is what the chip prints, so
+ * the reader sees what the package actually said while the facet counts it correctly. Each fold is
+ * the platform class the finer one specialises; none of them crosses a boundary (no measure becomes
+ * a dimension). A class with no entry is refused at boot by `validateDb`, naming it — the alternative
+ * is a silent fall-through to `text`, which would classify a measure as prose.
+ */
+const PLATFORM_CLASS_FOR = {
+  /* Money and quantities, however the package qualifies them. */
+  measure_record: 'measure',
+  measure_commitment: 'measure',
+  measure_projection: 'measure',
+  period_accumulation: 'measure',
+  derived_ratio: 'measure',
+  risk_score: 'measure',
+  /* Things with an identity of their own. */
+  organisation: 'entity',
+  person: 'entity',
+  /* Where. */
+  geography: 'geo',
+  /* The axes a figure is cut by. */
+  classification: 'dimension',
+  label: 'dimension',
+  lifecycle_state: 'dimension',
+  /* A working column the package marks as not for reporting. */
+  scratch: 'text',
+}
+
+/**
+ * The classes a **document entity** may carry, which is a narrower list than a column's.
+ *
+ * Six rather than nine: an extracted entity is never `address`, `geo` or `flag`, and `client.ts`
+ * declares that narrower union separately. So the fold has to know which vocabulary it feeds —
+ * CAPEX's document vocabulary classes an entity `flag`, which is a perfectly good *column* class and
+ * is refused here, and folding to the platform nine alone would not have caught it.
+ */
+const ENTITY_CLASSES = ['identifier', 'dimension', 'entity', 'measure', 'date', 'text']
+
+/**
+ * A platform class narrowed again for a vocabulary that does not carry it.
+ *
+ * A flag is a boolean axis, so it reads as a dimension; a place is a thing with an identity, so it
+ * reads as an entity. Both stay on `class_detail`, which is what the chip prints, so the narrowing
+ * costs the facet count rather than the reader.
+ */
+const NARROWED_CLASS = { flag: 'dimension', geo: 'entity', address: 'entity' }
+
+/**
+ * One class as the platform names it for a given vocabulary, or null when nothing maps it.
+ *
+ * `null` rather than a fall-through to `text`, and that matters: falling through would classify a
+ * measure as prose, which is a wrong answer rather than a missing one. `validateDb` refuses an
+ * unmapped class at boot and names it, so this never has to guess.
+ */
+const classFor = (klass, allowed = COLUMN_CLASSES) => {
+  const platform = COLUMN_CLASSES.includes(klass) ? klass : (PLATFORM_CLASS_FOR[klass] ?? null)
+  if (platform === null) return null
+  return allowed.includes(platform) ? platform : (NARROWED_CLASS[platform] ?? null)
+}
+
+/** What the chip prints: the package's own class wherever it is finer than the one served. */
+const classDetailFor = (klass, allowed = COLUMN_CLASSES) =>
+  klass && classFor(klass, allowed) !== klass ? klass : null
+
+
 function tableDictionary(source, datasetId, tableId, columnCount, tableRows) {
   const profiled = db.column_profiles?.[`${datasetId}.${tableId}`]
   if (Array.isArray(profiled) && profiled.length > 0) {
@@ -1802,7 +1981,9 @@ function tableDictionary(source, datasetId, tableId, columnCount, tableRows) {
         column_id: c.column_id,
         label: c.label,
         type: c.type,
-        class: c.class,
+        /* Folded onto the platform's nine, with the package's own kept beside it. */
+        class: classFor(c.class) ?? 'text',
+        class_detail: classDetailFor(c.class),
         confidence: c.confidence,
         derivation: c.derivation,
         pii: Boolean(c.pii),
@@ -1856,13 +2037,21 @@ function synthesiseColumns(source, datasetId, tableId, columnCount, tableRows) {
     const nullPct =
       v.class === 'identifier' ? 0 : Number(((seed % 430) / 100).toFixed(1))
 
+    /*
+     * Four of these classes derive `distinct` from the row count, so an uncatalogued count makes
+     * them unknown rather than 1: `Math.max(1, round(0 / 7))` gave every CAPEX column a distinct
+     * count of 1, which reads as a broken column and is a figure the catalogue never held. The two
+     * hash-derived branches stand on their own and are unaffected.
+     */
     let distinct
-    if (v.class === 'identifier') distinct = tableRows
+    if (v.class === 'entity') distinct = Math.max(1, (seed % 2600) + 40)
+    else if (!['identifier', 'date', 'measure', 'text'].includes(v.class)) {
+      distinct = Math.max(1, (seed % 1180) + 18)
+    } else if (typeof tableRows !== 'number') distinct = null
+    else if (v.class === 'identifier') distinct = tableRows
     else if (v.class === 'date') distinct = Math.max(1, Math.round(tableRows / 90))
     else if (v.class === 'measure') distinct = Math.max(1, Math.round(tableRows / 7))
-    else if (v.class === 'text') distinct = Math.max(1, Math.round(tableRows * 0.86))
-    else if (v.class === 'entity') distinct = Math.max(1, (seed % 2600) + 40)
-    else distinct = Math.max(1, (seed % 1180) + 18)
+    else distinct = Math.max(1, Math.round(tableRows * 0.86))
 
     const key = `${datasetId}.${tableId}.${columnId}`
     const description = notes[key] ?? null
@@ -1873,12 +2062,23 @@ function synthesiseColumns(source, datasetId, tableId, columnCount, tableRows) {
       // its id, and the panel renders whichever it is given.
       label: columnId.replace(/_/g, ' ').toUpperCase(),
       type: v.type,
-      class: v.class,
+      class: classFor(v.class) ?? 'text',
+      class_detail: classDetailFor(v.class),
       confidence: v.confidence,
       derivation: 'llm',
       pii: Boolean(v.pii),
       null_pct: nullPct,
-      distinct: Math.min(distinct, Math.max(tableRows, 1)),
+      /*
+       * Capped at the row count, because a column cannot hold more distinct values than there are
+       * rows — and **only where the row count is known**. `Math.min(null, 1)` is 0, so with an
+       * uncatalogued count this cap turned every distinct into 0, including the ones the branches
+       * above had already resolved to null. The cap expresses a fact about the rows; with no rows
+       * catalogued there is no fact to express.
+       */
+      distinct:
+        typeof tableRows === 'number' && distinct !== null
+          ? Math.min(distinct, Math.max(tableRows, 1))
+          : distinct,
       description,
       description_status: description ? 'described' : 'needs review',
     }
@@ -1938,7 +2138,8 @@ function documentDictionary(source, folderId, doc) {
     return {
       entity_id: entityId,
       type: v.type,
-      class: v.class,
+      class: classFor(v.class, ENTITY_CLASSES) ?? 'text',
+      class_detail: classDetailFor(v.class, ENTITY_CLASSES),
       confidence: v.confidence,
       pii: Boolean(v.pii),
       occurrences,
@@ -3329,7 +3530,19 @@ function studioCanvas(useCaseId, answerPath = [], answerEdges = null) {
       node_id: n.node_id,
       label: n.label,
       // A proposed node says so, and says how sure the deriver was.
-      sublabel: s.proposed ? `proposed · ${n.confidence.toFixed(2)}` : n.sublabel,
+      /*
+       * A proposed node says so, and says how sure the deriver was **where the deriver said**.
+       * `confidence` is nullable and a whole graph can state none — every one of CAPEX's 442
+       * nodes does — so this read `null.toFixed(2)` and threw inside a build-step timer, taking
+       * the process down instead of one request. `proposed · 0.00` would have been the worse fix:
+       * a stated certainty of zero is a claim, and the graph made none. Same rule as a What-if
+       * measure with no baseline reporting `null` rather than `0`.
+       */
+      sublabel: s.proposed
+        ? n.confidence === null || n.confidence === undefined
+          ? 'proposed'
+          : `proposed · ${n.confidence.toFixed(2)}`
+        : n.sublabel,
       /* What the node *is*, and where it came from. `group` is the origin class the
          colour encodes — a row, a column value, a document, a resolved alias — and
          `source` is the Catalog object itself, so a node on the canvas can be
@@ -3395,7 +3608,11 @@ function studioCanvas(useCaseId, answerPath = [], answerEdges = null) {
     // not a broken chip.
     facets: {
       all: nodes.length,
-      low_confidence: nodes.filter((n) => n.confidence < 0.85).length,
+      /* Only nodes that **state** a confidence below the floor. `null < 0.85` is true, so an
+         unstated one counted as low and a graph stating none reported every node as low-confidence
+         — 442 of them on CAPEX. Unstated is not low, and the chip is a count of what's known. */
+      low_confidence: nodes.filter((n) => typeof n.confidence === 'number' && n.confidence < 0.85)
+        .length,
       needs_review: nodes.filter((n) => n.needs_review).length,
       studio_authored: nodes.filter((n) => n.origin === 'studio-authored').length,
       /* Per origin class, so the legend can double as the filter: one control for
@@ -4113,15 +4330,33 @@ function askAnswer(useCase, question, requested = { citations: DEFAULT_CITATIONS
 
   const labels = walk.path_labels
   const nodeOf = (nodeId) => canvas.nodes.find((n) => n.node_id === nodeId)
-  const confidenceOf = (nodeId) => nodeOf(nodeId)?.confidence ?? 1
-  // The weakest link, because a chain is no surer than that.
-  const confidence = Number(Math.min(...walk.path.map(confidenceOf)).toFixed(2))
+  /*
+   * **An unstated confidence is unknown, never certain.** This fell back to `?? 1`, so a graph
+   * whose nodes carry no confidence at all — CAPEX's do not, all 442 of them — answered
+   * `Confidence 1.00 — the weakest entity on the route`. A fabricated figure on the one line whose
+   * job is to say how much to trust the answer, which is the failure the abstention path already
+   * refuses by reporting `null` rather than inventing a number to fill the field.
+   *
+   * So the route is only as sure as its weakest **stated** link, and a single unstated node makes
+   * the weakest link unknowable — not 1, and not the minimum of the rest, which would claim a
+   * floor the unstated node could sit below. `confidence` is already `number | null` on the
+   * envelope and on every citation, so nothing downstream had to change to carry the honest answer.
+   */
+  const confidenceOf = (nodeId) => nodeOf(nodeId)?.confidence ?? null
+  const weakest = (ids) => {
+    const stated = ids.map(confidenceOf)
+    return stated.some((c) => c === null || c === undefined)
+      ? null
+      : Number(Math.min(...stated).toFixed(2))
+  }
+  // The weakest link, because a chain is no surer than that — or null where one is unstated.
+  const confidence = weakest(walk.path)
 
   const labelFor = (nodeId) => nodeOf(nodeId)?.label ?? nodeId
   const citations = walk.edges_used.map((e) => ({
     label: `${labelFor(e.from)} → ${e.label} → ${labelFor(e.to)}`,
     detail: `relationship in ${graph.version}, settled in review before publish`,
-    confidence: Number(Math.min(confidenceOf(e.from), confidenceOf(e.to)).toFixed(2)),
+    confidence: weakest([e.from, e.to]),
   }))
 
   /*
@@ -4159,7 +4394,9 @@ function askAnswer(useCase, question, requested = { citations: DEFAULT_CITATIONS
       {
         step: 'Composed the answer',
         detail:
-          `Confidence ${confidence.toFixed(2)} — the weakest entity on the route. ` +
+          (confidence === null
+            ? 'Confidence is not stated — this graph\u2019s nodes carry none, so the weakest entity on the route cannot be named. '
+            : `Confidence ${confidence.toFixed(2)} — the weakest entity on the route. `) +
           /* The reader's own requirement for *this* question, not a promise the brief
              made about every answer: step 6 no longer exists and the use case declares
              nothing here. */
@@ -4695,6 +4932,136 @@ const REPORT_LABEL_KEY = {
   traces: 'mtn',
 }
 
+/**
+ * Why this server cannot compute a document's reports — empty when it can.
+ *
+ * **"This document is broken" and "this server does not draw this format" are different facts,
+ * and only the first is a reason to refuse a boot.** `validateDb` checks a report's references the
+ * way it checks a canvas edge's endpoints, because every broken one *renders*: a missing spine
+ * gives authored tiles above an empty table, a column the rows lack gives blank cells under a
+ * header. Those are defects in the document.
+ *
+ * A scope this server has no filter for is not. The CAPEX dataset's reports are scoped
+ * `sc_author_all` over a `projects` spine, drawn by nineteen block renderers that live in
+ * `src/report/` and have not been vendored in — the document is exactly what its package
+ * generated, and nothing about it is wrong. Refusing the boot over it took the whole dataset down
+ * (Sources, Catalog, the graph, the lens) because one section cannot draw one format.
+ *
+ * So this reports the gap and the section gates on it, the way every other precondition in this
+ * app is handled — `NoSourceConnected`, `NoPublishedGraph`. Two consequences that have to hold
+ * together: while the gap is non-empty the section serves **no** report and every report route
+ * refuses with these sentences, so nothing can render a half-computed report; and `validateDb`
+ * skips the reference block, whose remaining checks are written against EPA's five block types and
+ * would report one unactionable problem per CAPEX block.
+ *
+ * Pure, and over one document rather than the ambient `db`, so it can be asserted without a boot.
+ */
+/**
+ * Whether this server can compute one report definition.
+ *
+ * Two references decide it, and both are this server's vocabulary rather than the document's: the
+ * scope has to name a filter `REPORT_SCOPES` implements, and the spine has to have a label column
+ * in `REPORT_LABEL_KEY` or every bar and every row would be unnamed.
+ */
+/**
+ * A report whose figures its own package resolved, carried verbatim in the document.
+ *
+ * **The second way a report is drawable, and the one this server does not compute.** `reportView`
+ * derives every figure from a roster per request, which is right for a report defined as a question
+ * over rows this app holds. CAPEX's three are not that: they are a resolver's output — every number
+ * already a `display` or `exact` string — and recomputing them here would be a second implementation
+ * of the aggregation rules that agrees with the first exactly until one is edited.
+ *
+ * So the document carries `reports.resolved[reportId]` and this reports whether one is there. The
+ * payload names which kind it is rather than the client guessing from the shape.
+ */
+const resolvedRunIn = (doc, reportId) => doc?.reports?.resolved?.[reportId] ?? null
+
+/*
+ * The ambient form, for the routes. The document-explicit one above is what `validateDb` uses:
+ * `commitDb` validates a document that has not been installed yet, so reading `db` there would judge
+ * a write against the *previous* document's resolved runs — which is the stale-server failure this
+ * file guards everywhere else, arrived at from the inside.
+ */
+const resolvedRun = (reportId) => resolvedRunIn(db, reportId)
+
+/**
+ * Whether this server can compute one report definition.
+ *
+ * Two references decide it, and both are this server's vocabulary rather than the document's: the
+ * scope has to name a filter `REPORT_SCOPES` implements, and the spine has to have a label column
+ * in `REPORT_LABEL_KEY` or every bar and every row would be unnamed.
+ */
+const reportComputable = (report) =>
+  report?.scope in REPORT_SCOPES && Boolean(REPORT_LABEL_KEY[report?.spine])
+
+/**
+ * Whether a report can be opened at all — computed here, or resolved by its package.
+ *
+ * The format gap is about the first kind only, so a resolved report is drawable however alien its
+ * scope and spine are to this server: nothing here has to understand `sc_author_all` to hand back a
+ * payload its own renderers already know how to draw.
+ */
+const reportDrawableIn = (doc, report) =>
+  reportComputable(report) || resolvedRunIn(doc, report?.report_id) !== null
+
+const reportDrawable = (report) => reportDrawableIn(db, report)
+
+/** The definitions this server can compute, which is what every report surface serves. */
+const drawableReports = () => (db.reports.reports ?? []).filter(reportDrawable)
+
+/**
+ * Why some of a document's report definitions are not drawn here — empty when all of them are.
+ *
+ * **"This document is broken" and "this server does not draw this format" are different facts, and
+ * only the first is a reason to refuse a boot.** `validateDb` checks a report's references the way
+ * it checks a canvas edge's endpoints, because every broken one *renders*: a missing spine gives
+ * authored tiles above an empty table, a column the rows lack gives blank cells under a header.
+ * Those are defects in the document.
+ *
+ * A scope this server has no filter for is not. The CAPEX dataset's reports are scoped
+ * `sc_author_all` over a `projects` spine, drawn by nineteen block renderers that live in
+ * `src/report/` and have not been vendored in — the document is exactly what its package generated,
+ * and nothing about it is wrong. Refusing the boot over it took the whole dataset down (Sources,
+ * Catalog, the graph, the lens) because one section cannot draw one format.
+ *
+ * **Per report, not per document, and that distinction is load-bearing.** Gating the whole section
+ * cost `dataset=both` its reports: the merged list is EPA's five plus CAPEX's three, so three
+ * undrawable definitions took five drawable ones with them — a surface that worked before. So the
+ * drawable ones are served and this names the rest, which is also the more precise sentence: a
+ * definition is not drawn here, rather than a dataset being unusable.
+ *
+ * **No silent cap.** A section that is merely three cards shorter reads as a package that shipped
+ * three fewer, which is the mistake `governance.ungoverned` exists to prevent one layer up.
+ *
+ * Pure, and over one document rather than the ambient `db`, so it can be asserted without a boot.
+ */
+const reportFormatGap = (doc) => {
+  const reports = doc?.reports?.reports
+  if (!Array.isArray(reports) || reports.length === 0) return []
+  /* Only the ones with no resolved run behind them: a report its package resolved is drawable, so
+     naming it here would gate a section that can open it perfectly well. */
+  const undrawable = reports.filter((r) => !reportDrawableIn(doc, r))
+  if (undrawable.length === 0) return []
+  const gaps = []
+  const scopes = [...new Set(undrawable.map((r) => r.scope).filter((v) => !(v in REPORT_SCOPES)))]
+  const spines = [...new Set(undrawable.map((r) => r.spine).filter((v) => !REPORT_LABEL_KEY[v]))]
+  if (scopes.length > 0) {
+    gaps.push(
+      `${undrawable.length} of ${reports.length} definitions are scoped ` +
+        `${scopes.map((v) => `"${v}"`).join(", ")}, and this server implements ` +
+        `${Object.keys(REPORT_SCOPES).join(", ")}`,
+    )
+  }
+  if (spines.length > 0) {
+    gaps.push(
+      `they are asked over the ${spines.map((v) => `"${v}"`).join(", ")} spine, which has no label ` +
+        'column declared — every bar and every row would be unnamed',
+    )
+  }
+  return gaps
+}
+
 /*
  * Headers for the three rosters the package's field dictionary does not describe.
  *
@@ -4816,8 +5183,46 @@ const reportColumns = (keys, rows) =>
  * block, chart and count below derives from one row list rather than each recomputing a
  * filter and risking a different answer to "how many are in view".
  */
+/**
+ * How many rows a report is about, and how many its roster holds — for either kind of report.
+ *
+ * **A resolved run states its own, and they are read rather than recomputed.** `reportRows` applies
+ * the definition's scope filter, and a resolved report's scope names a filter this server does not
+ * implement: `REPORT_SCOPES[report.scope]` is `undefined`, so the section answered
+ * `REPORT_SCOPES[report.scope] is not a function` — which reads as a stale server and is not one.
+ *
+ * Same rule its figures follow, applied to its row count: the resolver said 50 of 50, so 50 of 50 is
+ * what this reports. Deriving it from the roster would be a second answer to how big the report is.
+ */
+const reportCounts = (report) => {
+  const run = resolvedRun(report?.report_id)
+  if (run !== null && !reportComputable(report)) {
+    return { rows: run.rowsScoped ?? null, total: run.rowsTotal ?? null }
+  }
+  return {
+    rows: reportRows(report).length,
+    total: (db.reports.data[report.spine] ?? []).length,
+  }
+}
+
 const reportRows = (report) =>
   report.rows ?? REPORT_SCOPES[report.scope](db.reports.data[report.spine])
+
+/**
+ * The columns a spine's rows carry — read from the **roster**, not from the rows in view.
+ *
+ * A frame may legitimately select nothing, and a table with no rows still has headers: taking
+ * the keys off `rows[0]` turned an empty selection into
+ * `Cannot convert undefined or null to object`, which reaches the reader as "Could not open
+ * that report" and names neither the report nor the filter. Three blocks read their columns this
+ * way (the scorecard, the quarterly profile and the traces), so the fallback is declared once
+ * rather than three times.
+ *
+ * The roster is checked non-empty at boot for the primary dataset, so this is only ever empty
+ * where a secondary dataset is deliberately so — and there `{}` is the honest answer.
+ */
+const reportSpineKeys = (report) =>
+  Object.keys(reportRows(report)[0] ?? db.reports.data[report.spine][0] ?? {})
 
 /**
  * A part-to-whole share over the register, as a ring.
@@ -5003,7 +5408,7 @@ function reportBlock(report, block) {
      * the rule the chart component keeps and a grouped form would be a second encoding
      * it does not have. The comparison survives — same rows, same order.
      */
-    const keys = Object.keys(rows[0])
+    const keys = reportSpineKeys(report)
     return {
       type: 'facilities',
       title: block.title,
@@ -5029,7 +5434,7 @@ function reportBlock(report, block) {
     return {
       type: 'quarterly',
       title: block.title,
-      columns: reportColumns(Object.keys(rows[0]), rows),
+      columns: reportColumns(reportSpineKeys(report), rows),
       rows,
       /*
        * Two charts, as the package's quarterly report draws them: the metric the block names,
@@ -5039,7 +5444,7 @@ function reportBlock(report, block) {
        */
       charts: [
         reportChart(report, block.metric, `${reportLabel(block.metric)} by quarter`, 'line'),
-        ...(block.metric !== 'manifests' && 'manifests' in (rows[0] ?? {})
+        ...(block.metric !== 'manifests' && reportSpineKeys(report).includes('manifests')
           ? [reportChart(report, 'manifests', `${reportLabel('manifests')} by quarter`, 'column')]
           : []),
       ],
@@ -5051,7 +5456,7 @@ function reportBlock(report, block) {
   return {
     type: 'traces',
     title: block.title,
-    columns: reportColumns(Object.keys(rows[0]), rows),
+    columns: reportColumns(reportSpineKeys(report), rows),
     rows,
   }
 }
@@ -5126,6 +5531,18 @@ const reportFrameProblem = (frame) => {
     return `no report "${frame.report_id}" — this section has ${db.reports.reports
       .map((r) => r.report_id)
       .join(', ')}`
+  }
+  /*
+   * **Before anything applies a scope filter**, because that is what would throw. A frame is
+   * checked against `db.reports.opts` and then applied by `REPORT_SCOPES[frame.scope]`, so on a
+   * definition this server does not draw the honest-looking answers are a 400 about scope options
+   * (which reads as a mistyped request) or `REPORT_SCOPES[frame.scope] is not a function` (which
+   * reads as a stale server). Neither names the reason. Per report rather than per dataset, so a
+   * drawable definition in the same document is unaffected.
+   */
+  if (!reportDrawable(report)) {
+    const gaps = reportFormatGap(db)
+    return datasetGapSentence(`Report "${report.report_id}"`, gaps)
   }
   /*
    * A question is asked *of a published graph*, so the frame names one and it has to be
@@ -5213,6 +5630,13 @@ function reportFrameRows(report, frame) {
       if (tests.length > 0) rows = rows.filter((r) => tests.some((test) => test(r)))
       continue
     }
+    /* A facet the roster carries no column for — see REPORT_DERIVED_FACETS. Equality on its
+       key would select nothing, which is not what an offered chip means. */
+    const derived = REPORT_DERIVED_FACETS[key]
+    if (derived) {
+      rows = rows.filter((r) => values.some((value) => derived(r, value)))
+      continue
+    }
     rows = rows.filter((r) => values.includes(String(r[key])))
   }
   return rows
@@ -5277,17 +5701,25 @@ function reportBuild(report, frame) {
       value: String(f.value),
       value_label: reportFacetLabel(f.key, f.value),
     })),
+    /*
+     * A generated report has no authored tiles to show, and on a spine the summary Catalog
+     * does not describe it has **none** — not the register's, computed over these rows.
+     *
+     * `summary_catalog` aggregates the generator register's own fields, so running it over
+     * quarters or traces reads every one of them off a column that is not there: a year of
+     * quarterly volume came back "4 inbound generators in view · $0 total penalty exposure",
+     * four confident figures about a roster the report is not about. `summary_note` beside
+     * them already said the summary was undefined here, so the payload contradicted itself
+     * and the tiles were the half a reader believes.
+     */
     tiles: written
       ? report.tiles
-      : reportSummary(
-          report.summary_keys.length > 0 ? report.summary_keys : db.reports.summary_default,
-          asked.rows,
-        ),
-    /*
-     * A generated report has no authored tiles to show, and on a spine the summary
-     * Catalog does not describe (facilities, quarters, traces) it has no summary at
-     * all — said plainly rather than left as an empty strip.
-     */
+      : report.spine === 'generators'
+        ? reportSummary(
+            report.summary_keys.length > 0 ? report.summary_keys : db.reports.summary_default,
+            asked.rows,
+          )
+        : [],
     summary_note:
       written || report.spine === 'generators'
         ? null
@@ -5322,7 +5754,7 @@ function reportBuild(report, frame) {
  */
 function reportMatch(question) {
   const asked = askTokens(question)
-  const fallback = db.reports.reports[0]
+  const fallback = drawableReports()[0]
   if (asked.length === 0) {
     return { report: fallback, matched: false, why: 'No words to match — start from a standard report or say more.' }
   }
@@ -5419,7 +5851,9 @@ const reportFacetsFor = (spine) => {
         distinct((q) => q.quarter.slice(0, 4)).map((value) => ({
           value,
           label: value,
-          count: rows.filter((q) => q.quarter.startsWith(value)).length,
+          /* The same test the filter runs, so a chip's count cannot describe a different
+             set than clicking it selects. */
+          count: rows.filter((q) => REPORT_DERIVED_FACETS.year(q, value)).length,
         })),
       ),
     ].filter((f) => f.values.length > 1)
@@ -5448,11 +5882,31 @@ const reportFacetsFor = (spine) => {
 /** The wizard's own facet set: the register's, because that is the spine it narrows. */
 const reportFacets = () => reportFacetsFor('generators')
 
-/** The flag filters, as row tests — the one facet whose value is not a column. */
+/** The flag filters, as row tests — three columns behind one control. */
 const REPORT_FLAG_TESTS = {
   rejected: (t) => t.rejected === 'Y',
   residue: (t) => t.residue === 'Y',
   out_of_state: (t) => t.gen_state !== 'TX',
+}
+
+/*
+ * The facets whose value is **not a column of the roster**, as row tests.
+ *
+ * `reportFrameRows` otherwise filters by equality on the facet's own key, which selects
+ * nothing at all when no such column exists — not an error, a report with no rows, and the
+ * blocks below then read their column headers off `rows[0]`. That is how a `year` chip on the
+ * quarterly report answered `Cannot convert undefined or null to object`: the roster carries
+ * `quarter` (`"2023 Q1"`) and nothing named `year`, so `String(r.year)` was `"undefined"` for
+ * all fourteen rows.
+ *
+ * So a derived facet is declared **once** and both sides read it: `reportFacetsFor` counts the
+ * rows behind each chip with the same test that will select them. A chip whose count and whose
+ * filter disagree is the one failure this section refuses everywhere else — the count would say
+ * four quarters and the filter would return none.
+ */
+const REPORT_DERIVED_FACETS = {
+  /* A quarter's year is the first four characters of its label. */
+  year: (row, value) => String(row.quarter ?? '').startsWith(value),
 }
 
 /** The reading sentence, with each slot filled by the assumption behind it. */
@@ -5649,8 +6103,8 @@ const reportEntitlementCell = (governanceRow, roleId) => {
  * "4 of 36" is the difference between a scoped report and a register.
  */
 const reportFloorLine = (report) => {
-  const rows = reportRows(report).length
-  const total = db.reports.data[report.spine].length
+  /* Either kind: a resolved run states its own counts. */
+  const { rows, total } = reportCounts(report)
   const roster = REPORT_SCOPES[report.spine]?.label ?? report.spine
   return rows === total
     ? `floor set by the ${roster} of ${total} rows`
@@ -5670,6 +6124,18 @@ const reportRoleFrom = (query) => {
 }
 
 /** A report definition, as the Library card and the Operations tables read it. */
+/**
+ * Whether a governance row has a definition this server can draw.
+ *
+ * The row's floor line and row count both call `reportRows`, which applies the definition's scope
+ * filter — so an undrawable definition throws here rather than rendering short. Filtered out and
+ * named in `format_gap`, never dropped quietly.
+ */
+const governedRowDrawable = (governanceRow) => {
+  const report = db.reports.reports.find((r) => r.report_id === governanceRow.report_id)
+  return report ? reportDrawable(report) : false
+}
+
 const reportGovernanceRow = (governanceRow) => {
   const report = db.reports.reports.find((r) => r.report_id === governanceRow.report_id)
   return {
@@ -5694,8 +6160,8 @@ const reportGovernanceRow = (governanceRow) => {
     floor: reportFloorLine(report),
     /* Derived: a report is parameterized exactly when its spine offers facets to slice by. */
     parameterized: reportFacetsFor(report.spine).length > 0,
-    row_count: reportRows(report).length,
-    spine_total: db.reports.data[report.spine].length,
+    row_count: reportCounts(report).rows,
+    spine_total: reportCounts(report).total,
     /* Private is an empty audience and says so as a fact, so the card need not infer it from a
        zero — "shared with nobody" and "we could not resolve anybody" are different things. */
     private: governanceRow.audience.length === 0,
@@ -6045,6 +6511,55 @@ const logGovernance = (category, actor, text, detail) => {
  * absent for exactly that reason: the dictionary does not declare it filterable.
  */
 const GOVERNANCE_IDENTITY = 'generator'
+/**
+ * Why the Audit & Governance page cannot be computed for a document — empty when it can.
+ *
+ * **The page is written against one roster: the generator register.** An access rule is a
+ * restriction *basis* plus the values it admits, and both are resolved against
+ * `reports.data.generators` — the basis list is that roster's identity column plus every field the
+ * dictionary declares `filterable`, and the resolution names the rows a rule would admit. There is
+ * nothing to resolve against in a dataset that has no such register: CAPEX's rosters are projects,
+ * contracts and change orders.
+ *
+ * A separate helper from `reportFormatGap`, deliberately. They gate two different surfaces on two
+ * different facts — one asks whether a report *definition* can be computed, this asks whether the
+ * *register* a rule resolves against exists — and one function for both would claim they are the
+ * same precondition, which is how the wrong page comes to explain itself with the wrong sentence.
+ *
+ * Pure and over one document, so it can be asserted without a boot.
+ */
+/**
+ * A gap as one sentence, naming the dataset and what to do about it.
+ *
+ * Written once so the two GETs, the four write routes and the page all say the same thing: a
+ * refusal that words the same fact differently on each surface reads as several different problems.
+ * The same reasoning as `sourceActions` interpolating the act, and `NoPublishedGraph` being one
+ * component rather than four.
+ */
+const datasetGapSentence = (what, gaps) => {
+  /* `both` is a reading view over every dataset rather than a tenant of its own, so it is named as
+     one — "the both dataset" reads as a third tenant nobody configured. */
+  const selected = activeDataset()
+  const where = selected === BOTH ? 'the merged (both) view' : `the ${selected} dataset`
+  return (
+    `${what} is not drawn for ${where} yet: ${gaps.join('; ')}. ` +
+    `Its renderers are built for the ${PRIMARY} dataset — switch dataset in Settings → Dataset, ` +
+    'or wire this format in.'
+  )
+}
+
+const registerGap = (doc) => {
+  const rows = doc?.reports?.data?.generators
+  if (Array.isArray(rows) && rows.length > 0) return []
+  const rosters = Object.entries(doc?.reports?.data ?? {})
+    .filter(([, v]) => Array.isArray(v) && v.length > 0)
+    .map(([k]) => k)
+  return [
+    'its access rules resolve against the generator register, which this dataset does not have' +
+      (rosters.length > 0 ? ` — it holds ${rosters.join(', ')}` : ''),
+  ]
+}
+
 const governanceBases = () => {
   const rows = db.reports.data.generators
   const keys = [
@@ -6322,7 +6837,9 @@ const reportsList = (asRole) => ({
       Object.entries(db.reports.assumptions).map(([slot, chosen]) => [slot, chosen.value]),
     ),
   },
-  reports: db.reports.reports.map((r) => ({
+  /* The drawable ones. An undrawable definition is named in `format_gap` instead — serving it
+     would put a card on screen whose Open button the API refuses. */
+  reports: drawableReports().map((r) => ({
     report_id: r.report_id,
     report_tag: r.report_tag,
     heading: r.heading,
@@ -6331,8 +6848,9 @@ const reportsList = (asRole) => ({
     spine: r.spine,
     /* Both counts, because "5 traces" and "36 generators" are the difference between a
        sample and a register, and a card that showed neither would look identical. */
-    row_count: reportRows(r).length,
-    spine_total: db.reports.data[r.spine].length,
+    /* Read from the run where the resolver stated them — see `reportCounts`. */
+    row_count: reportCounts(r).rows,
+    spine_total: reportCounts(r).total,
     block_kinds: r.blocks.map((b) => b.type),
     tiles: r.tiles,
   })),
@@ -7378,7 +7896,9 @@ const routes = [
         const meta = project?.datasets
           .find((d) => d.dataset_id === entry.dataset_id)
           ?.tables.find((t) => t.table_id === entry.table_id)
-        const rows = meta?.rows ?? 0
+        /* Null where the catalogue holds no count. `?? 0` reported every CAPEX table as empty,
+           which is the one reading that makes profiling look like it did nothing. */
+        const rows = meta?.rows ?? null
 
         const columns = tableDictionary(
           source,
@@ -9211,7 +9731,19 @@ const routes = [
   {
     method: 'GET',
     match: (p) => p === '/governance',
-    handle: (_req, res) => send(res, 200, governanceView()),
+    /*
+     * Refused rather than half-computed where this dataset has no generator register — see
+     * `registerGap`. Every basis, every resolution and the roster total are read off that one
+     * roster, so the alternative is a page of empty controls that reads as a tenant with no rules
+     * rather than as a page that does not apply here.
+     */
+    handle: (_req, res) => {
+      const gaps = registerGap(db)
+      if (gaps.length > 0) {
+        return send(res, 400, { error: datasetGapSentence('Audit & Governance', gaps) })
+      }
+      send(res, 200, governanceView())
+    },
   },
 
   /*
@@ -9443,6 +9975,32 @@ const routes = [
     handle: (_req, res, { query }) => {
       const connected = connectedSources().length
       const counts = reportGraphCounts()
+      /*
+       * **The format gap rides on every reply, and it is per definition rather than per dataset.**
+       *
+       * Gating the whole section would cost `dataset=both` its reports: the merged list is EPA's five
+       * drawable definitions plus CAPEX's three undrawable ones, and an early return takes the five
+       * with them. So the drawable ones are served and this names the rest — which is also the more
+       * precise sentence, since a definition is not drawn here rather than a dataset being unusable.
+       *
+       * The **only** early return is when nothing at all is drawable, and it is above the publish
+       * gate deliberately: publishing a graph would not make an undrawable format drawable, so
+       * "publish one in Graph Studio" is the wrong instruction to offer first.
+       */
+      const gaps = reportFormatGap(db)
+      const formatGap = gaps.length > 0 ? datasetGapSentence('The report section', gaps) : null
+      if (formatGap !== null && drawableReports().length === 0) {
+        return send(res, 200, {
+          connected_sources: connected,
+          ...counts,
+          graph: null,
+          graphs: [],
+          reports: [],
+          saved: [],
+          authoring: null,
+          format_gap: formatGap,
+        })
+      }
       if (counts.published_count === 0) {
         return send(res, 200, {
           connected_sources: connected,
@@ -9452,12 +10010,18 @@ const routes = [
           reports: [],
           saved: [],
           authoring: null,
+          format_gap: formatGap,
         })
       }
       /* The role the browser reports, read by `reportRoleFrom` — the same reader for this GET and
          for all three governance writes, so a write cannot answer with a view computed for
          somebody else. */
-      send(res, 200, { connected_sources: connected, ...counts, ...reportsList(reportRoleFrom(query)) })
+      send(res, 200, {
+        connected_sources: connected,
+        ...counts,
+        ...reportsList(reportRoleFrom(query)),
+        format_gap: formatGap,
+      })
     },
   },
 
@@ -9615,6 +10179,10 @@ const routes = [
     method: 'GET',
     match: (p) => /^\/reports\/[^/]+$/.test(p),
     handle: (_req, res, { pathname }) => {
+      const gaps = reportFormatGap(db)
+      if (gaps.length > 0) {
+        return send(res, 400, { error: datasetGapSentence('The report section', gaps) })
+      }
       const id = decodeURIComponent(pathname.slice('/reports/'.length))
       const report = db.reports.reports.find((r) => r.report_id === id)
       if (!report) {
@@ -9624,10 +10192,34 @@ const routes = [
             `${db.reports.reports.map((r) => r.report_id).join(', ')}`,
         })
       }
+      /* A definition this server does not draw is refused naming itself, after the 404 that
+         covers an unknown id — the two are different problems with different fixes. */
+      if (!reportDrawable(report)) {
+        return send(res, 400, {
+          error: datasetGapSentence(`Report "${report.report_id}"`, reportFormatGap(db)),
+        })
+      }
       const connected = connectedSources().length
       const counts = reportGraphCounts()
       if (counts.published_count === 0) {
         return send(res, 200, { connected_sources: connected, ...counts, report: null })
+      }
+      /*
+       * One route, two formats, and the payload says which. A computed report arrives as `report`;
+       * one its package resolved arrives as `resolved` beside the specs its renderers read for
+       * labels. Mirrors `variant: written | generated` on a built report: the client is told what it
+       * is holding rather than sniffing the shape, which is how two formats come to be conflated.
+       */
+      const resolved = resolvedRun(report.report_id)
+      if (resolved !== null && !reportComputable(report)) {
+        return send(res, 200, {
+          connected_sources: connected,
+          ...counts,
+          report: null,
+          resolved,
+          /* The specs the renderers look a label up in — served, so a label is never a second copy. */
+          specs: db.reports.specs ?? [],
+        })
       }
       send(res, 200, { connected_sources: connected, ...counts, report: reportView(report) })
     },
@@ -9650,6 +10242,14 @@ const routes = [
     method: 'POST',
     match: (p) => p === '/reports/read',
     handle: async (req, res) => {
+      /* Ahead of the body: reading a question back matches it against the definitions and then
+         builds a frame, so with nothing drawable there is nothing to match and the scope filter
+         would throw. `reportFrameProblem` is never reached on this path. */
+      if (drawableReports().length === 0) {
+        return send(res, 400, {
+          error: datasetGapSentence('The report section', reportFormatGap(db)),
+        })
+      }
       const { question, report_id, use_case_id } = await readJson(req)
       const asked = String(question ?? '').trim()
       /* The graph is chosen before the question, so it is validated before the question

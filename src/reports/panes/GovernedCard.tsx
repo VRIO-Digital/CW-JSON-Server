@@ -15,6 +15,18 @@ interface Props {
   onEdit?(row: GovernedRow): void;
   onShare?(row: GovernedRow): void;
   onRemove?(row: GovernedRow): void | Promise<void>;
+  /**
+   * Whether a host is present to render a published report.
+   *
+   * **Open and Edit have different preconditions**, and one flag used to gate both: `openable`, from
+   * `starterForTag`. That held while every governed row resolved to one of the five starters. It fails
+   * for a dataset whose reports the host renders — CAPEX's rows name `R1`–`R3` and the starters are the
+   * primary's — and it failed *silently*, by drawing no Open button at all.
+   *
+   * So Open asks "can anything render this?" and Edit asks "is there a definition to load?". Absent
+   * this prop the card behaves exactly as it did, which keeps the folder standing alone unchanged.
+   */
+  hostRenders?: boolean;
 }
 
 /**
@@ -37,10 +49,12 @@ const PILL_FOR_TONE: Record<string, string> = {
    place a tone could be translated. */
 const pillClass = (tone: string) => 'pill ' + (PILL_FOR_TONE[tone] ?? 'rp-neutral');
 
-export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Props) {
+export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove, hostRenders }: Props) {
   const { open } = useMenu();
-  /* Open and Edit need an authoring starter behind the row; without one they are not offered. */
-  const openable = !!starterForTag(r.reportTag, r.reportId);
+  /* Edit loads the authoring definition, so it needs one. Open reads the published report, which the
+     host renders from the server — see `hostRenders`. */
+  const hasStarter = !!starterForTag(r.reportTag, r.reportId);
+  const canOpen = hostRenders || hasStarter;
 
   return (
     <div className="rcard">
@@ -105,12 +119,12 @@ export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Prop
        * forced the row to wrap and broke every label across two lines.
        */}
       <div className="racts2">
-        {onOpen && openable && (
+        {onOpen && canOpen && (
           <button className="btn sm" onClick={() => onOpen(r)}>
             Open report
           </button>
         )}
-        {onEdit && openable && (
+        {onEdit && hasStarter && (
           <button className="btn sm" onClick={() => onEdit(r)}>
             ✎ Edit report
           </button>
