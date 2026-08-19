@@ -33,7 +33,7 @@ dist-ssr
 # One db.json per dataset (db.CAPEX.json, ...) - same reason, same place: S3 holds them.
 # mock-server/db.*.json
 # The report prototype's dataset, which now lives in the bucket beside the two databases.
-mock-server/reports_prototype.json
+# mock-server/reports_prototype.json
 
 # Local credentials - never commit. Covered by *.local above; named here so a
 # stray copy (.backup) cannot slip past it.

@@ -1,0 +1,1228 @@
+{
+  "meta": {
+    "persona_name": "Ana Delgado",
+    "persona_role": "EHS Compliance Lead · VLS Deer Park",
+    "persona_initials": "AD",
+    "entity_plural": "inbound generators",
+    "scope_line": "the VLS Deer Park inbound network",
+    "source_trace": "Traces to: EPA RCRAInfo + e-Manifest + facility intake ledger, refreshed today."
+  },
+  "fields": [
+    {
+      "key": "generator",
+      "label": "Generator",
+      "kind": "cat",
+      "filterable": false
+    },
+    {
+      "key": "state",
+      "label": "State",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "risk",
+      "label": "Compliance risk",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "cd",
+      "label": "Consent decree",
+      "kind": "cat",
+      "filterable": true
+    },
+    {
+      "key": "evals",
+      "label": "RCRA evaluations",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "viols",
+      "label": "Open violations",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "enf",
+      "label": "Enforcement actions",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "penalty",
+      "label": "Penalty exposure",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "tons",
+      "label": "Tons shipped to VLS",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "manifests",
+      "label": "Manifests",
+      "kind": "num",
+      "filterable": false
+    },
+    {
+      "key": "last_enf",
+      "label": "Last enforcement",
+      "kind": "cat",
+      "filterable": false
+    },
+    {
+      "key": "wastecode",
+      "label": "Waste code",
+      "kind": "cat",
+      "filterable": false,
+      "avail": false,
+      "note": "Waste codes live on individual manifests, not the generator profile. Add a manifest-trace block to see them."
+    },
+    {
+      "key": "transporter",
+      "label": "Transporter",
+      "kind": "cat",
+      "filterable": false,
+      "avail": false,
+      "note": "Transporter is a manifest-level field. Add a manifest-trace block to follow custody chains."
+    },
+    {
+      "key": "daily",
+      "label": "Daily volume",
+      "kind": "num",
+      "filterable": false,
+      "avail": false,
+      "note": "Only quarterly aggregates are modeled here — daily receipts aren't in this dataset."
+    }
+  ],
+  "assumptions": {
+    "graph": {
+      "value": "vls_compliance",
+      "label": "the VLS Compliance graph"
+    },
+    "scope": {
+      "value": "all",
+      "label": "all inbound generators"
+    },
+    "measure": {
+      "value": "penalty",
+      "label": "penalty exposure"
+    },
+    "horizon": {
+      "value": "h24",
+      "label": "over the trailing 24 months"
+    }
+  },
+  "opts": {
+    "graph": {
+      "q": "Which published graph should this run against?",
+      "options": [
+        {
+          "value": "vls_compliance",
+          "label": "the VLS Compliance graph",
+          "short": "VLS Compliance",
+          "d": "Published · RCRAInfo + e-Manifest + intake ledger · refreshed today"
+        },
+        {
+          "value": "deer_park_site",
+          "label": "the Deer Park site graph",
+          "short": "Deer Park site",
+          "d": "Published · Deer Park intake, storage and outbound only"
+        },
+        {
+          "value": "vls_enterprise",
+          "label": "the VLS Enterprise graph",
+          "short": "VLS Enterprise",
+          "d": "Published · every VLS facility · refreshed weekly"
+        },
+        {
+          "value": "epa_national",
+          "label": "the EPA RCRAInfo national graph",
+          "short": "EPA RCRAInfo national",
+          "d": "Published · public EPA data only, no VLS manifests"
+        }
+      ]
+    },
+    "scope": {
+      "q": "Which generators should I include?",
+      "options": [
+        {
+          "value": "all",
+          "label": "all inbound generators",
+          "d": "Every generator shipping to VLS Deer Park (36)"
+        },
+        {
+          "value": "enf",
+          "label": "generators under enforcement",
+          "d": "Only those with an enforcement action on record"
+        },
+        {
+          "value": "oos",
+          "label": "out-of-state generators",
+          "d": "Generators outside Texas"
+        },
+        {
+          "value": "cd",
+          "label": "generators under a consent decree",
+          "d": "Only generators bound by a decree or CAFO"
+        }
+      ]
+    },
+    "measure": {
+      "q": "Rank them by what?",
+      "options": [
+        {
+          "value": "penalty",
+          "label": "penalty exposure",
+          "d": "Assessed EPA penalties"
+        },
+        {
+          "value": "tons",
+          "label": "tonnage shipped to VLS",
+          "d": "Hazardous tonnage received at Deer Park"
+        },
+        {
+          "value": "viols",
+          "label": "open violations",
+          "d": "Unresolved RCRA violations"
+        },
+        {
+          "value": "enf",
+          "label": "enforcement actions",
+          "d": "Count of enforcement actions"
+        }
+      ]
+    },
+    "horizon": {
+      "q": "Over what time window?",
+      "options": [
+        {
+          "value": "h24",
+          "label": "over the trailing 24 months",
+          "d": "Rolling 24-month window"
+        },
+        {
+          "value": "h12",
+          "label": "over the last 12 months",
+          "d": "Rolling 12-month window"
+        },
+        {
+          "value": "ytd",
+          "label": "year to date, 2026",
+          "d": "Jan 1, 2026 to today"
+        },
+        {
+          "value": "all",
+          "label": "across all history on file",
+          "d": "Everything since 2023"
+        }
+      ]
+    }
+  },
+  "generators": [
+    {
+      "generator": "Arkema Inc. Crosby",
+      "state": "TX",
+      "risk": "high",
+      "evals": 14,
+      "viols": 4,
+      "enf": 4,
+      "penalty": 397500,
+      "tons": 1355,
+      "manifests": 60,
+      "cd": false,
+      "last_enf": "03/25/2026"
+    },
+    {
+      "generator": "ExxonMobil Baytown Complex",
+      "state": "TX",
+      "risk": "med",
+      "evals": 12,
+      "viols": 3,
+      "enf": 2,
+      "penalty": 318000,
+      "tons": 1061.8,
+      "manifests": 46,
+      "cd": false,
+      "last_enf": "03/02/2026"
+    },
+    {
+      "generator": "J.R. Simplot Company Don Plant",
+      "state": "ID",
+      "risk": "high",
+      "evals": 16,
+      "viols": 9,
+      "enf": 4,
+      "penalty": 293500,
+      "tons": 350.4,
+      "manifests": 15,
+      "cd": true,
+      "last_enf": "01/08/2026"
+    },
+    {
+      "generator": "Ascend Performance Materials Pasadena",
+      "state": "TX",
+      "risk": "med",
+      "evals": 12,
+      "viols": 3,
+      "enf": 2,
+      "penalty": 252000,
+      "tons": 741.7,
+      "manifests": 35,
+      "cd": false,
+      "last_enf": "07/31/2021"
+    },
+    {
+      "generator": "PCS Nitrogen Fertilizer LP",
+      "state": "LA",
+      "risk": "high",
+      "evals": 17,
+      "viols": 6,
+      "enf": 3,
+      "penalty": 164000,
+      "tons": 472.7,
+      "manifests": 21,
+      "cd": true,
+      "last_enf": "10/04/2022"
+    },
+    {
+      "generator": "Intercontinental Terminals Company Deer Park",
+      "state": "TX",
+      "risk": "high",
+      "evals": 20,
+      "viols": 6,
+      "enf": 1,
+      "penalty": 78000,
+      "tons": 1061.4,
+      "manifests": 52,
+      "cd": false,
+      "last_enf": "03/07/2022"
+    },
+    {
+      "generator": "Dow Chemical La Porte Operations",
+      "state": "TX",
+      "risk": "med",
+      "evals": 11,
+      "viols": 1,
+      "enf": 1,
+      "penalty": 78000,
+      "tons": 841.8,
+      "manifests": 33,
+      "cd": false,
+      "last_enf": "07/24/2021"
+    },
+    {
+      "generator": "Denka Performance Elastomer LLC",
+      "state": "LA",
+      "risk": "high",
+      "evals": 22,
+      "viols": 9,
+      "enf": 3,
+      "penalty": 70500,
+      "tons": 579.1,
+      "manifests": 28,
+      "cd": true,
+      "last_enf": "06/13/2026"
+    },
+    {
+      "generator": "Vopak Terminal Deer Park",
+      "state": "TX",
+      "risk": "med",
+      "evals": 6,
+      "viols": 3,
+      "enf": 1,
+      "penalty": 34000,
+      "tons": 909.5,
+      "manifests": 40,
+      "cd": false,
+      "last_enf": "09/28/2019"
+    },
+    {
+      "generator": "TPC Group Houston Plant",
+      "state": "TX",
+      "risk": "med",
+      "evals": 11,
+      "viols": 3,
+      "enf": 1,
+      "penalty": 34000,
+      "tons": 1175.3,
+      "manifests": 46,
+      "cd": false,
+      "last_enf": "05/07/2024"
+    },
+    {
+      "generator": "Marathon Galveston Bay Refinery",
+      "state": "TX",
+      "risk": "med",
+      "evals": 10,
+      "viols": 3,
+      "enf": 2,
+      "penalty": 32500,
+      "tons": 988,
+      "manifests": 40,
+      "cd": false,
+      "last_enf": "08/01/2025"
+    },
+    {
+      "generator": "Pemex Deer Park",
+      "state": "TX",
+      "risk": "med",
+      "evals": 7,
+      "viols": 4,
+      "enf": 2,
+      "penalty": 25000,
+      "tons": 1085.4,
+      "manifests": 46,
+      "cd": false,
+      "last_enf": "07/13/2022"
+    },
+    {
+      "generator": "The Chemours Company Fayetteville Works",
+      "state": "NC",
+      "risk": "high",
+      "evals": 15,
+      "viols": 4,
+      "enf": 1,
+      "penalty": 12000,
+      "tons": 473.4,
+      "manifests": 19,
+      "cd": true,
+      "last_enf": "05/10/2025"
+    },
+    {
+      "generator": "LyondellBasell Channelview Complex",
+      "state": "TX",
+      "risk": "high",
+      "evals": 21,
+      "viols": 5,
+      "enf": 1,
+      "penalty": 7500,
+      "tons": 1502.7,
+      "manifests": 61,
+      "cd": false,
+      "last_enf": "03/19/2024"
+    },
+    {
+      "generator": "Chevron Phillips Chemical Cedar Bayou Plant",
+      "state": "TX",
+      "risk": "low",
+      "evals": 3,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 402.9,
+      "manifests": 20,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "LyondellBasell Houston Refinery",
+      "state": "TX",
+      "risk": "med",
+      "evals": 13,
+      "viols": 1,
+      "enf": 1,
+      "penalty": 0,
+      "tons": 847.5,
+      "manifests": 36,
+      "cd": false,
+      "last_enf": "09/19/2025"
+    },
+    {
+      "generator": "INEOS Olefins & Polymers USA La Porte",
+      "state": "TX",
+      "risk": "low",
+      "evals": 5,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 662.5,
+      "manifests": 27,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Covestro LLC Baytown",
+      "state": "TX",
+      "risk": "low",
+      "evals": 5,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 678.3,
+      "manifests": 27,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Occidental Chemical Deer Park",
+      "state": "TX",
+      "risk": "med",
+      "evals": 11,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 905.9,
+      "manifests": 40,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Occidental Chemical La Porte",
+      "state": "TX",
+      "risk": "low",
+      "evals": 4,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 423.5,
+      "manifests": 25,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Lubrizol Deer Park",
+      "state": "TX",
+      "risk": "low",
+      "evals": 5,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 686.3,
+      "manifests": 29,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Kuraray America Pasadena",
+      "state": "TX",
+      "risk": "low",
+      "evals": 4,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 579.6,
+      "manifests": 29,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Celanese Clear Lake Plant",
+      "state": "TX",
+      "risk": "med",
+      "evals": 12,
+      "viols": 4,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 1110.4,
+      "manifests": 51,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "BASF Corporation Pasadena",
+      "state": "TX",
+      "risk": "low",
+      "evals": 4,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 662.6,
+      "manifests": 29,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Air Liquide Bayport",
+      "state": "TX",
+      "risk": "low",
+      "evals": 2,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 667.5,
+      "manifests": 31,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Kaneka North America La Porte",
+      "state": "TX",
+      "risk": "low",
+      "evals": 2,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 673.3,
+      "manifests": 30,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Goodyear Chemical Bayport",
+      "state": "TX",
+      "risk": "med",
+      "evals": 7,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 774.3,
+      "manifests": 36,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Evonik Corporation Houston",
+      "state": "TX",
+      "risk": "low",
+      "evals": 3,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 567.7,
+      "manifests": 24,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Huntsman Corporation Bayport",
+      "state": "TX",
+      "risk": "low",
+      "evals": 5,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 438.4,
+      "manifests": 21,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Braskem America La Porte",
+      "state": "TX",
+      "risk": "low",
+      "evals": 2,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 731.1,
+      "manifests": 33,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Phillips 66 Pasadena Terminal",
+      "state": "TX",
+      "risk": "low",
+      "evals": 2,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 631.4,
+      "manifests": 23,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Valero Houston Refinery",
+      "state": "TX",
+      "risk": "med",
+      "evals": 14,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 1084.7,
+      "manifests": 47,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Enterprise Products Mont Belvieu",
+      "state": "TX",
+      "risk": "low",
+      "evals": 3,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 617,
+      "manifests": 29,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Kinder Morgan Pasadena Terminal",
+      "state": "TX",
+      "risk": "low",
+      "evals": 5,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 361.9,
+      "manifests": 20,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Shell Chemical LP Deer Park",
+      "state": "TX",
+      "risk": "low",
+      "evals": 3,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 503.4,
+      "manifests": 25,
+      "cd": false,
+      "last_enf": ""
+    },
+    {
+      "generator": "Kraton Polymers Houston",
+      "state": "TX",
+      "risk": "low",
+      "evals": 5,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "tons": 702.2,
+      "manifests": 26,
+      "cd": false,
+      "last_enf": ""
+    }
+  ],
+  "facilities": [
+    {
+      "facility": "VLS Texas Molecular",
+      "role": "VLS (operator)",
+      "state": "TX",
+      "evals": 3,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "last_eval": "2025-06-30"
+    },
+    {
+      "facility": "Clean Harbors Deer Park LLC",
+      "role": "Comparator TSDF",
+      "state": "TX",
+      "evals": 10,
+      "viols": 4,
+      "enf": 0,
+      "penalty": 0,
+      "last_eval": "2025-05-14"
+    },
+    {
+      "facility": "US Ecology Texas Robstown",
+      "role": "Comparator TSDF",
+      "state": "TX",
+      "evals": 6,
+      "viols": 0,
+      "enf": 0,
+      "penalty": 0,
+      "last_eval": "2025-07-21"
+    },
+    {
+      "facility": "Veolia Port Arthur",
+      "role": "Comparator TSDF",
+      "state": "TX",
+      "evals": 7,
+      "viols": 3,
+      "enf": 0,
+      "penalty": 0,
+      "last_eval": "2025-07-22"
+    },
+    {
+      "facility": "WM Disposal Services of Texas",
+      "role": "Comparator TSDF",
+      "state": "TX",
+      "evals": 5,
+      "viols": 1,
+      "enf": 0,
+      "penalty": 0,
+      "last_eval": "2026-06-13"
+    }
+  ],
+  "quarters": [
+    {
+      "quarter": "2023 Q1",
+      "manifests": 69,
+      "tons": 1701.5,
+      "rej": 3,
+      "res": 4
+    },
+    {
+      "quarter": "2023 Q2",
+      "manifests": 99,
+      "tons": 2224.5,
+      "rej": 1,
+      "res": 4
+    },
+    {
+      "quarter": "2023 Q3",
+      "manifests": 87,
+      "tons": 1784.8,
+      "rej": 2,
+      "res": 4
+    },
+    {
+      "quarter": "2023 Q4",
+      "manifests": 91,
+      "tons": 2054.1,
+      "rej": 4,
+      "res": 3
+    },
+    {
+      "quarter": "2024 Q1",
+      "manifests": 97,
+      "tons": 2336.9,
+      "rej": 1,
+      "res": 2
+    },
+    {
+      "quarter": "2024 Q2",
+      "manifests": 76,
+      "tons": 1671.3,
+      "rej": 1,
+      "res": 3
+    },
+    {
+      "quarter": "2024 Q3",
+      "manifests": 81,
+      "tons": 1848.3,
+      "rej": 1,
+      "res": 6
+    },
+    {
+      "quarter": "2024 Q4",
+      "manifests": 78,
+      "tons": 1712.7,
+      "rej": 1,
+      "res": 2
+    },
+    {
+      "quarter": "2025 Q1",
+      "manifests": 77,
+      "tons": 1648.2,
+      "rej": 1,
+      "res": 2
+    },
+    {
+      "quarter": "2025 Q2",
+      "manifests": 84,
+      "tons": 2010.6,
+      "rej": 2,
+      "res": 3
+    },
+    {
+      "quarter": "2025 Q3",
+      "manifests": 76,
+      "tons": 1933.5,
+      "rej": 2,
+      "res": 4
+    },
+    {
+      "quarter": "2025 Q4",
+      "manifests": 85,
+      "tons": 1961.6,
+      "rej": 1,
+      "res": 3
+    },
+    {
+      "quarter": "2026 Q1",
+      "manifests": 95,
+      "tons": 2031.9,
+      "rej": 5,
+      "res": 3
+    },
+    {
+      "quarter": "2026 Q2",
+      "manifests": 105,
+      "tons": 2390.7,
+      "rej": 1,
+      "res": 3
+    }
+  ],
+  "traces": [
+    {
+      "mtn": "346581037ELC",
+      "generator": "Arkema Inc. Crosby",
+      "gen_state": "TX",
+      "shipped": "2024-01-26",
+      "received": "2024-01-31",
+      "days": 5,
+      "transporters": [
+        "Sprint Waste Services LP"
+      ],
+      "tons": "24.614",
+      "residue": "N",
+      "rejected": "N",
+      "status": "Received"
+    },
+    {
+      "mtn": "510680225HMV",
+      "generator": "Phillips 66 Pasadena Terminal",
+      "gen_state": "TX",
+      "shipped": "2025-10-01",
+      "received": "2025-10-06",
+      "days": 5,
+      "transporters": [
+        "Veolia ES Technical Solutions LLC",
+        "US Ecology Texas Inc.",
+        "Cyn Environmental Services"
+      ],
+      "tons": "41.636",
+      "residue": "N",
+      "rejected": "N",
+      "status": "Received"
+    },
+    {
+      "mtn": "150105586FLE",
+      "generator": "Covestro LLC Baytown",
+      "gen_state": "TX",
+      "shipped": "2023-10-22",
+      "received": "2023-10-25",
+      "days": 3,
+      "transporters": [
+        "US Ecology Texas Inc."
+      ],
+      "tons": "35.248",
+      "residue": "N",
+      "rejected": "Y",
+      "status": "Received"
+    },
+    {
+      "mtn": "915040780HMV",
+      "generator": "Dow Chemical La Porte Operations",
+      "gen_state": "TX",
+      "shipped": "2024-02-26",
+      "received": "2024-03-02",
+      "days": 5,
+      "transporters": [
+        "US Ecology Texas Inc."
+      ],
+      "tons": "5.796",
+      "residue": "Y",
+      "rejected": "N",
+      "status": "Received"
+    },
+    {
+      "mtn": "583052521HMV",
+      "generator": "Denka Performance Elastomer LLC",
+      "gen_state": "LA",
+      "shipped": "2024-02-15",
+      "received": "2024-02-17",
+      "days": 2,
+      "transporters": [
+        "Sprint Waste Services LP"
+      ],
+      "tons": "19.164",
+      "residue": "N",
+      "rejected": "N",
+      "status": "Received"
+    }
+  ],
+  "starters": [
+    {
+      "id": "risk",
+      "label": "Inbound generators by compliance risk",
+      "report_tag": "Report 2",
+      "q": "Which inbound generators carry the most compliance risk?",
+      "spine": "generators",
+      "title": "Inbound generators by compliance risk",
+      "reading": {
+        "template": "Using {graph}, rank {scope} by {measure}, {horizon}, so I can see which generators carry the most compliance risk.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "count",
+            "enf",
+            "penalty",
+            "cd"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Penalty exposure by generator",
+          "chartType": "bar",
+          "measure": "penalty"
+        },
+        {
+          "type": "table",
+          "title": "Generator risk detail",
+          "cols": [
+            "generator",
+            "state",
+            "risk",
+            "viols",
+            "penalty",
+            "cd"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cd",
+      "label": "Consent-decree / CAFO exposure",
+      "report_tag": "Report 5",
+      "q": "How much of our inbound waste comes from generators under a consent decree?",
+      "spine": "generators",
+      "scope": "cd",
+      "title": "Consent-decree generators — exposure",
+      "reading": {
+        "template": "Using {graph}, show {scope} by {measure}, {horizon}, and how much of our inbound tonnage they represent.",
+        "slots": [
+          "graph",
+          "scope",
+          "measure",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "kpis",
+          "title": "Summary",
+          "kpis": [
+            "cd",
+            "tons",
+            "penalty",
+            "manifests"
+          ]
+        },
+        {
+          "type": "chart",
+          "title": "Tonnage from decree-bound generators",
+          "chartType": "bar",
+          "measure": "tons"
+        },
+        {
+          "type": "table",
+          "title": "Decree detail",
+          "cols": [
+            "generator",
+            "state",
+            "penalty",
+            "tons",
+            "cd"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "facility",
+      "label": "Facility compliance scorecard",
+      "report_tag": "Report 1",
+      "q": "How does VLS Deer Park's compliance record compare to other Texas TSDFs?",
+      "spine": "facilities",
+      "title": "VLS Deer Park vs Texas comparator TSDFs",
+      "reading": {
+        "template": "Using {graph}, compare VLS Deer Park's evaluations and violations against its Texas comparator TSDFs, {horizon}.",
+        "slots": [
+          "graph",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "facilities",
+          "title": "Facility compliance scorecard"
+        }
+      ]
+    },
+    {
+      "id": "quarterly",
+      "label": "Quarterly inbound waste profile",
+      "report_tag": "Report 4",
+      "q": "How has our inbound hazardous-waste volume trended by quarter?",
+      "spine": "quarters",
+      "title": "Inbound waste volume by quarter",
+      "reading": {
+        "template": "Using {graph}, trend inbound tonnage and manifest counts by quarter, {horizon}, and flag quarters with load-rejection spikes.",
+        "slots": [
+          "graph",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "quarterly",
+          "title": "Quarterly inbound waste profile",
+          "metric": "tons"
+        }
+      ]
+    },
+    {
+      "id": "trace",
+      "label": "Cradle-to-grave manifest traces",
+      "report_tag": "Report 3",
+      "q": "Trace recent shipments from generator to final disposition at VLS.",
+      "spine": "traces",
+      "title": "Cradle-to-grave manifest traces",
+      "reading": {
+        "template": "Using {graph}, follow recent manifests from generator through the transporter chain to VLS receipt, {horizon}, so I can prove chain of custody.",
+        "slots": [
+          "graph",
+          "horizon"
+        ]
+      },
+      "blocks": [
+        {
+          "type": "traces",
+          "title": "Cradle-to-grave manifest traces"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "label": "Summary tiles",
+      "d": "Generators, enforcement, penalty, decrees",
+      "block": {
+        "type": "kpis",
+        "title": "Summary",
+        "kpis": [
+          "count",
+          "enf",
+          "penalty",
+          "cd"
+        ]
+      }
+    },
+    {
+      "label": "Risk chart",
+      "d": "Generators ranked by penalty exposure",
+      "block": {
+        "type": "chart",
+        "title": "Penalty exposure by generator",
+        "chartType": "bar",
+        "measure": "penalty"
+      }
+    },
+    {
+      "label": "Tonnage chart",
+      "d": "Tons shipped to VLS per generator",
+      "block": {
+        "type": "chart",
+        "title": "Tonnage by generator",
+        "chartType": "column",
+        "measure": "tons"
+      }
+    },
+    {
+      "label": "Generator table",
+      "d": "Ranked table with risk, penalty, decree",
+      "block": {
+        "type": "table",
+        "title": "Generator detail",
+        "cols": [
+          "generator",
+          "state",
+          "risk",
+          "viols",
+          "penalty",
+          "cd"
+        ]
+      }
+    },
+    {
+      "label": "Facility scorecard",
+      "d": "VLS Deer Park vs Texas comparator TSDFs",
+      "block": {
+        "type": "facilities",
+        "title": "Facility compliance scorecard"
+      }
+    },
+    {
+      "label": "Quarterly trend",
+      "d": "Inbound tonnage and manifests by quarter",
+      "block": {
+        "type": "quarterly",
+        "title": "Quarterly inbound waste profile",
+        "metric": "tons"
+      }
+    },
+    {
+      "label": "Manifest traces",
+      "d": "Cradle-to-grave custody chains",
+      "block": {
+        "type": "traces",
+        "title": "Cradle-to-grave manifest traces"
+      }
+    }
+  ],
+  "slice_default": [
+    "state",
+    "risk",
+    "cd"
+  ],
+  "audiences": [
+    {
+      "key": "operations",
+      "label": "Operations",
+      "d": "Deer Park plant and logistics leads · 34 people"
+    },
+    {
+      "key": "compliance",
+      "label": "Compliance",
+      "d": "EHS and regulatory affairs · 12 people"
+    },
+    {
+      "key": "executive",
+      "label": "Executive",
+      "d": "VLS leadership · 6 people"
+    }
+  ],
+  "library": [
+    {
+      "id": "lib-facility-q2",
+      "name": "Deer Park vs Texas TSDFs — Q2 2026",
+      "status": "published",
+      "starter": "facility",
+      "published_by": "Marcus Reed",
+      "published_role": "Domain Architect · VLS",
+      "saved_at": "02 Jul 2026, 09:14",
+      "audience": "operations"
+    },
+    {
+      "id": "lib-decree",
+      "name": "Consent-decree exposure — inbound",
+      "status": "published",
+      "starter": "cd",
+      "published_by": "Ana Delgado",
+      "published_role": "EHS Compliance Lead · VLS Deer Park",
+      "saved_at": "28 Jul 2026, 16:40",
+      "audience": "compliance"
+    },
+    {
+      "id": "lib-quarterly",
+      "name": "Inbound volume trend — rolling",
+      "status": "published",
+      "starter": "quarterly",
+      "published_by": "Marcus Reed",
+      "published_role": "Domain Architect · VLS",
+      "saved_at": "05 Aug 2026, 11:02",
+      "audience": "operations"
+    },
+    {
+      "id": "lib-trace-draft",
+      "name": "Custody chain spot-check",
+      "status": "draft",
+      "starter": "trace",
+      "published_by": "Ana Delgado",
+      "published_role": "EHS Compliance Lead · VLS Deer Park",
+      "saved_at": "11 Aug 2026, 08:05",
+      "audience": "operations"
+    }
+  ]
+}
