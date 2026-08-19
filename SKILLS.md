@@ -1321,12 +1321,14 @@ the shipment. The events those columns described are nodes instead. `check-docs`
 fails if a retired type reappears, and rq5 in the queue is the standing offer to
 promote them anyway, declined by default.
 
-**Colour is the ontology type now, on the viewer's dark ground.** Nine hues rather than
-four, which the light page could not have carried — a categorical palette stops being
-reliably distinguishable past four when any two nodes can end up adjacent, and this one
-is read against `#0d1117` instead. `check-docs` asserts every type the canvas draws has a
-hue (`colorFor` otherwise falls through to grey, honestly but silently) and recomputes
-each against that ground at 3:1. Size is the viewer's own rule: `radiusFor` by element
+**Colour is the ontology type now.** Nine hues rather than four — a categorical palette stops
+being reliably distinguishable past four when any two nodes can end up adjacent. The ground is
+**white**, matching every other surface in the app; the viewer arrived dark and was turned over,
+which meant retoning all nine (the dark set measured 1.95:1–3.36:1 on white) to their ~5:1 shades
+in one luminance band, so they separate by hue and not by lightness. `check-docs` asserts every
+type the canvas draws has a hue (`colorFor` otherwise falls through to grey, honestly but
+silently) and recomputes each against `--bg` as the stylesheet declares it, at 3:1 — so the ground
+is stated once and the guard follows it. Size is the viewer's own rule: `radiusFor` by element
 class, then degree, so the hub is biggest because 61 edges land on it.
 
 **Reading it:** drag a node, scroll to zoom, drag the background to pan, **Reset view**

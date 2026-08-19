@@ -850,7 +850,8 @@ because half a removal is the shape that fails silently.
   **Four changes were made to the folder on the way in, and no others.** It takes its graph
   as a prop instead of importing the demo dataset that shipped with it; its root carries
   `cw-graph`, the class its stylesheet is now scoped under (its selectors are as generic as
-  `.link`, `.tab` and `.dot`, and its tokens are *dark* — unscoped it repaints the app);
+  `.link`, `.tab` and `.dot`, and it carries a whole palette on that class — unscoped it repaints
+  the app);
   `useForceGraph` gained a `highlight` prop, because the Query tab promises an answer's
   evidence lights up here and that mechanism already existed for the clicked neighbourhood;
   and **it fills a container instead of a document**.
@@ -872,9 +873,20 @@ because half a removal is the shape that fails silently.
   becomes its L2 note — *only where there is something to say*, because an absence has no
   note. `r` is deliberately **not** passed: the viewer sizes a node by class and degree, and
   two radius rules disagree silently. `check-docs` asserts every type the canvas draws has a
-  hue and that each hue clears 3:1 on the viewer's own dark ground — the old palette was
-  measured against a white page, and reusing either set on the other ground is how the ring
-  hues failed twelve ways the first time.
+  hue and that each hue clears 3:1 on the viewer's own ground — **read off `--bg`, never written
+  down twice**, which is what let the ground be turned over without the hues quietly going with it.
+
+  **The ground is white, and it was not when the folder arrived.** The viewer was vendored dark, so
+  the Canvas tab read as a hole cut in a studio whose every other surface is white; turning it over
+  was the whole palette rather than one token, because a palette is a set of relationships. The nine
+  node hues went from GitHub's dark set — **1.95:1 to 3.36:1 on a white page**, which is a legend
+  nobody can read — to their ~5:1 shades, all nine in *one* luminance band so they are told apart by
+  hue rather than by lightness. Two consequences worth stating: Enforcement is orange rather than a
+  second red, because `#f85149` and `#ff7b72` were separated by being light and lighter and neither
+  can stay light here; and the halo cut around every disc and label is the *ground's* colour, so it
+  inverted with it. `docs/REGRESSIONS.md` holds the rest — the earlier failure was reusing one
+  ground's hues on the other, in the opposite direction, and the guard that catches both is the same
+  one.
 
   **The ingest's positions still do work.** `x`/`y` are handed to d3 as each node's starting
   position, so a run settles from the arrangement `npm run ingest:graph` wrote rather than
@@ -882,8 +894,8 @@ because half a removal is the shape that fails silently.
   and why re-running the ingest is still how the layout changes.
 
   **What the retirement cost, stated plainly**: the origin-class fill and the ontology ring
-  (the viewer colours by type instead — nine hues on a dark ground, which is what a light
-  page could not carry), labels gated on `LABEL_AT_ZOOM`, the hand-written `getScreenCTM`
+  (the viewer colours by type instead — nine hues, which the four-hue origin-class fill could not
+  carry), labels gated on `LABEL_AT_ZOOM`, the hand-written `getScreenCTM`
   pan/zoom with its non-passive wheel listener, and `src/data/canvasLegend.ts`. `group` is
   still on the payload and still checked at boot — it is the graph's own account of how an
   element was built — but the drawing no longer encodes it.

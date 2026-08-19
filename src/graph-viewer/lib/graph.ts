@@ -8,20 +8,35 @@ import type {
   RawLink,
 } from "../types";
 
-/** Colour per concept `type`. Unknown types fall through to the grey default. */
+/**
+ * Colour per concept `type`. Unknown types fall through to the grey default.
+ *
+ * **These are measured against the viewer's ground, and the ground is white.** The nine it was
+ * vendored with were GitHub's dark-mode hues — right on `#0d1117`, and every one of them between
+ * 1.95:1 and 3.36:1 on a white page, which is a legend nobody can read and a node that dissolves
+ * into the paper. So each hue was taken down to its ~5:1 shade on white, and `check-docs` re-measures
+ * all nine against whatever `--bg` in `styles.css` actually says: change the ground and the run tells
+ * you which marks stopped reading rather than leaving it to be noticed.
+ *
+ * **They sit in one luminance band on purpose.** Nine categories separated by lightness would collapse
+ * the moment a reader has to tell two apart at 4.5px, so all nine land near 5:1 and are separated by
+ * *hue* instead. That is also why Enforcement is orange rather than the second red it was: on a dark
+ * ground `#f85149` and `#ff7b72` were told apart by being light and lighter, and neither can stay
+ * light here.
+ */
 export const TYPE_COLORS: Record<string, string> = {
-  Concept: "#3fb950",
-  Facility: "#58a6ff",
-  Document: "#a371f7",
-  Manifest: "#e3b341",
-  Evaluation: "#39c5cf",
-  Violation: "#f85149",
-  Enforcement: "#ff7b72",
-  Alias: "#8b949e",
-  Measure: "#db61a2",
+  Concept: "#1a7f37",
+  Facility: "#0969da",
+  Document: "#8250df",
+  Manifest: "#a16207",
+  Evaluation: "#0e7490",
+  Violation: "#cf222e",
+  Enforcement: "#c2410c",
+  Alias: "#6b7280",
+  Measure: "#be185d",
 };
 
-export const DEFAULT_COLOR = "#6e7681";
+export const DEFAULT_COLOR = "#57606a";
 
 export const colorFor = (type: string): string => TYPE_COLORS[type] ?? DEFAULT_COLOR;
 

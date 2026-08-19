@@ -2882,3 +2882,56 @@ in column 0. Same family as the claims that reported "0 of 0".
 one needs a guard on the read path, not the write path.** Writing the file is the requested feature
 and is harmless; reading it back is the thing that silently reverses the invariant, and it is the
 change that will look like an optimisation to whoever makes it. Assert the absence of the reader.
+
+## Turning the graph viewer's ground over is the whole palette, not one token — 2026-08-19
+
+**Context** — the vendored viewer arrived dark (`--bg: #0d1117`, GitHub's dark hues) and the Canvas
+tab read as a hole cut in a studio whose every other surface is white. The ask was "make the canvas
+background white".
+
+**What one token would have produced** — a white page with the nine dark-mode node hues still on it,
+measuring **1.95:1 to 3.36:1**: a legend nobody can read, and the small instance discs dissolving
+into the paper. Nothing throws, and the drawing still looks like a drawing, which is why this is the
+shape that ships.
+
+**Four things inverted that are not obviously colours at all**, each found by asking what a value was
+*for* rather than what it was:
+
+- **The halo is the ground.** `.node circle`'s stroke and the `paint-order: stroke` behind every
+  label were `#0d1117` — not a dark accent but a cut-out of the page, which is what keeps two
+  overlapping nodes readable as two. Left alone they become dark rings on white: the exact opposite
+  of their job.
+- **`--panel2` had to become *lighter* than `--panel`.** On a dark ground a raised surface gains
+  light; on a light one it gains white. Keeping the old relationship put the active tab visually
+  behind the rail it sits on.
+- **The badge's ink flips with the hue under it.** `InspectPanel` sets the pill's background to the
+  node's type hue inline; the hues went from light to ~5:1 dark, so `color: #0d1117` on it became
+  dark on dark — the same unreadable mark, one level in.
+- **The dim floors move.** `opacity: .12` sinks a mark towards black from a hue that was already
+  light; from a dark hue towards white it leaves a legible grey smudge, and clicking a node stops
+  meaning "everything else recedes".
+
+**The palette rule that came out of it** — the nine hues now sit in **one luminance band** (4.83:1 to
+6.04:1 on white), separated by hue rather than lightness, minimum ΔE76 of 21. That is why Enforcement
+is orange and no longer a second red: on the dark ground `#f85149` and `#ff7b72` were told apart by
+being *light and lighter*, and on white neither can stay light, so the distinction had to move into
+hue or be lost.
+
+**What made this safe to do at all** — `check-docs` already read the ground off `--bg` in the
+stylesheet rather than having it written down a second time, and re-measured every hue against
+whatever it found. So the guard followed the change instead of having to be rewritten with it, and a
+break test (`Manifest: "#ffe066"`) reports the failure by name and ratio: *the Manifest hue reads on
+the viewer's ground (#ffe066 on #ffffff): 1.30:1*.
+
+**A break test that misses is not always a broken harness.** Setting `--bg` back to `#0d1117` did
+*not* fail the hue claims — because mid-tone hues chosen for white still clear 3:1 on near-black
+(3.13–3.84). That is the claim being right about what it guards: it asserts the marks are *readable*
+on the declared ground, not that the ground is any particular colour. Two different facts; only one
+of them was ever asserted.
+
+**Rule** — **a colour token is a relationship, not a value.** Before inverting a ground, list every
+declaration that exists to *match* it (halos, paint-order strokes, cut-outs), every pair whose
+ordering encodes depth, every ink sitting on a colour that is itself changing, and every opacity that
+assumed which direction "fainter" runs. `docs`-side, the earlier failure here was the same mistake in
+the opposite direction — reusing one ground's hues on the other — and the guard that catches both is
+the one that reads the ground from the source instead of restating it.

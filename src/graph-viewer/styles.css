@@ -47,14 +47,27 @@
   box-sizing: border-box;
 }
 
+/*
+ * **The ground is white, and every mark in this file is measured against it.**
+ *
+ * The viewer was vendored dark — `#0d1117` ground, GitHub's dark hues — and dropped into an app whose
+ * every other page is white, so the canvas tab read as a hole cut in the studio. Turning it over is not
+ * a one-token edit: a palette is a set of *relationships*, and the tokens below are the whole of it.
+ * `--bg` is the one `check-docs` reads, and it re-measures all nine node hues against it, so this token
+ * and `TYPE_COLORS` in `lib/graph.ts` cannot drift apart without the build saying which mark failed.
+ *
+ * `--panel2` is now *lighter* than `--panel` rather than darker: on a dark ground a raised surface
+ * gains light, on a light one it gains white. That inversion is why the active tab still reads as
+ * being in front of the rail it sits on.
+ */
 .cw-graph {
-  --bg: #0d1117;
-  --panel: #161b22;
-  --panel2: #1c2330;
-  --line: #30363d;
-  --ink: #e6edf3;
-  --mut: #8b949e;
-  --acc: #58a6ff;
+  --bg: #ffffff;
+  --panel: #f8fafc;
+  --panel2: #ffffff;
+  --line: #e2e8f0;
+  --ink: #111827;
+  --mut: #6b7280;
+  --acc: #0969da;
 }
 
 
@@ -79,7 +92,7 @@
 }
 
 .cw-graph .link {
-  stroke: #3d4653;
+  stroke: #94a3b8;
   stroke-opacity: 0.55;
 }
 
@@ -89,33 +102,41 @@
 }
 
 .cw-graph .link.agg {
-  stroke: #db61a2;
+  stroke: #be185d;
   stroke-dasharray: 4 3;
   stroke-opacity: 0.8;
 }
 
+/* The disc's stroke is a halo cut out of the ground, so it is the ground's colour — it is what
+   keeps two overlapping nodes readable as two, and it inverts with `--bg`. */
 .cw-graph .node circle {
-  stroke: #0d1117;
+  stroke: #ffffff;
   stroke-width: 1.5px;
   cursor: pointer;
 }
 
 .cw-graph .node.concept circle {
-  stroke: #3fb950;
+  stroke: #1a7f37;
   stroke-width: 2px;
 }
 
 .cw-graph .node.measure circle {
-  stroke: #db61a2;
+  stroke: #be185d;
   stroke-width: 2px;
 }
 
+/*
+ * **Dimming is the one thing that does not invert.** On black, `opacity: .12` sinks a mark towards the
+ * ground; on white it does too, but from a hue that started far darker — so the same numbers left the
+ * out-of-neighbourhood nodes as legible grey smudges and the whole point of clicking a node (everything
+ * else recedes) was lost. Raised, because on this ground a faded mark needs to be fainter, not louder.
+ */
 .cw-graph .node.dim {
-  opacity: 0.12;
+  opacity: 0.09;
 }
 
 .cw-graph .link.dim {
-  opacity: 0.04;
+  opacity: 0.03;
 }
 
 .cw-graph .node text {
@@ -123,7 +144,7 @@
   fill: var(--mut);
   pointer-events: none;
   paint-order: stroke;
-  stroke: #0d1117;
+  stroke: #ffffff;
   stroke-width: 3px;
 }
 
@@ -135,23 +156,23 @@
 
 .cw-graph .elabel {
   font-size: 6.5px;
-  fill: #7d8794;
+  fill: #64748b;
   text-anchor: middle;
   pointer-events: none;
   paint-order: stroke;
-  stroke: #0d1117;
+  stroke: #ffffff;
   stroke-width: 2.5px;
   letter-spacing: 0.02em;
 }
 
 .cw-graph .elabel.hi {
-  fill: #9fd0ff;
+  fill: #0969da;
   font-size: 9px;
   font-weight: 600;
 }
 
 .cw-graph .elabel.dim {
-  opacity: 0.05;
+  opacity: 0.04;
 }
 
 /* ── graph overlays ────────────────────────────────────── */
@@ -160,7 +181,7 @@
   position: absolute;
   top: 12px;
   left: 12px;
-  background: rgba(22, 27, 34, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px 12px;
@@ -170,7 +191,7 @@
 
 .cw-graph .ctrl input {
   width: 100%;
-  background: #0d1117;
+  background: #ffffff;
   border: 1px solid var(--line);
   color: var(--ink);
   border-radius: 6px;
@@ -218,7 +239,7 @@
   left: 12px;
   font-size: 10.5px;
   color: var(--mut);
-  background: rgba(22, 27, 34, 0.85);
+  background: rgba(255, 255, 255, 0.88);
   padding: 6px 10px;
   border-radius: 8px;
 }
@@ -274,15 +295,15 @@
 }
 
 .cw-graph .banner.demo {
-  background: #3d2c07;
-  border: 1px solid #7a5c14;
-  color: #f0d488;
+  background: #fffbeb;
+  border: 1px solid #f0c674;
+  color: #8a5a00;
 }
 
 .cw-graph .banner.faithful {
-  background: #0b2d1a;
-  border: 1px solid #1f6b3f;
-  color: #7ee7a8;
+  background: #ecfdf5;
+  border: 1px solid #86d5ab;
+  color: #12683c;
 }
 
 .cw-graph .tabs {
@@ -328,7 +349,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 4px 0;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid #eef2f7;
 }
 
 .cw-graph .kv .k {
@@ -340,13 +361,16 @@
   word-break: break-word;
 }
 
+/* Its background is the node's own type hue, set inline by `InspectPanel`. Those hues were light
+   and are now ~5:1 dark, so the text on them flips with them — dark ink on a dark pill is the same
+   unreadable mark, one level in. */
 .cw-graph .badge {
   display: inline-block;
   font-size: 10px;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 20px;
-  color: #0d1117;
+  color: #ffffff;
   margin-bottom: 8px;
 }
 
@@ -359,12 +383,12 @@
 }
 
 .cw-graph .sect.l2 {
-  color: #f0a35e;
+  color: #b45309;
 }
 
 .cw-graph .l2box {
-  background: #241a10;
-  border: 1px dashed #7a5418;
+  background: #fffbeb;
+  border: 1px dashed #d9a441;
   border-radius: 8px;
   padding: 8px 10px;
   margin-top: 6px;
@@ -372,8 +396,8 @@
 
 .cw-graph .l2tag {
   font-size: 9px;
-  color: #f0a35e;
-  border: 1px solid #7a5418;
+  color: #b45309;
+  border: 1px solid #d9a441;
   border-radius: 10px;
   padding: 0 6px;
   margin-left: 6px;
@@ -389,7 +413,7 @@
 
 .cw-graph .rel {
   padding: 5px 0;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid #eef2f7;
   font-size: 11.5px;
 }
 
@@ -418,6 +442,6 @@
 }
 
 .cw-graph .strike {
-  color: #f43f5e;
+  color: #be123c;
   font-weight: 600;
 }
