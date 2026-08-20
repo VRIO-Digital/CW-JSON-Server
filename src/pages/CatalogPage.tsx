@@ -123,7 +123,11 @@ function BrowsePanel({
             <span className="cat-tree-grain">{t.grain}</span>
           </span>
           <span className="cat-tree-count">
-            {t.columns} col(s) · {t.rows.toLocaleString()} rows
+            {/* "rows not counted" rather than 0 — 62 of Northline's 64 tables are catalogued
+                without a row count and say so in `rows_basis`, and "0 rows" beside a real
+                column count reads as an empty table. */}
+            {t.columns} col(s) ·{' '}
+            {t.rows === null ? 'rows not counted' : `${t.rows.toLocaleString()} rows`}
             {t.profiled ? ' · profiled' : ''}
           </span>
         </span>

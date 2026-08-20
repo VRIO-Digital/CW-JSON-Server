@@ -15,6 +15,15 @@ interface Props {
   onEdit?(row: GovernedRow): void;
   onShare?(row: GovernedRow): void;
   onRemove?(row: GovernedRow): void | Promise<void>;
+  /**
+   * The lifecycle states this tenant declares, served on `governance.statuses`.
+   *
+   * The menu is built from them and from nothing else: a list of states written into this file could
+   * offer one the API refuses, and a state the tenant added would never appear — the same reason the
+   * Share picker renders the served role pool.
+   */
+  states?: { key: string; label: string; tone: string; computed?: boolean }[];
+  onAuthorize?(row: GovernedRow, status: string): void | Promise<void>;
 }
 
 /**
@@ -37,10 +46,33 @@ const PILL_FOR_TONE: Record<string, string> = {
    place a tone could be translated. */
 const pillClass = (tone: string) => 'pill ' + (PILL_FOR_TONE[tone] ?? 'rp-neutral');
 
-export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Props) {
+export function GovernedCard({
+  row: r,
+  onOpen,
+  onEdit,
+  onShare,
+  onRemove,
+  states,
+  onAuthorize,
+}: Props) {
   const { open } = useMenu();
-  /* Open and Edit need an authoring starter behind the row; without one they are not offered. */
-  const openable = !!starterForTag(r.reportTag, r.reportId);
+  /*
+   * **Open and Edit need different things, and treating them as one hid Open entirely.**
+   *
+   * They were both gated on `starterForTag` — true while the governed definitions and the prototype's
+   * starters were the same five reports out of the same file. They are not any more: Northline's rows
+   * are tagged `variance-report`, `project-360`, `rate-case-filing-calendar` and its starters are the
+   * prototype's own EPA sample, so nothing matched and **all three reports lost both buttons** — a
+   * Library with three cards in it and no way to open one.
+   *
+   * The split is what the two acts actually are. **Open** hands an id to the host, which renders the
+   * published report from the tenant's own figures (`onOpenPublished`); it never touches a starter, so
+   * requiring one was always wrong and only looked right while one always existed. **Edit** loads the
+   * authoring definition into this prototype, which is exactly a starter — so it stays gated, and a row
+   * with no definition behind it offers Open and not Edit. That is the honest pair: the report can be
+   * read, and it cannot be edited here, which is true.
+   */
+  const editable = !!starterForTag(r.reportTag, r.reportId);
 
   return (
     <div className="rcard">
@@ -83,6 +115,14 @@ export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Prop
           * here, where "Approval: self-approved" sat between two facts a reader of this list needs.
           */}
         <div>{r.schedule}</div>
+        {/* Who last moved it between states. Absent until somebody has — an unattributed state
+            change is worse than none, and inventing an actor is the thing this app refuses. */}
+        {r.authorizedBy && (
+          <div>
+            Authorized by <b>{r.authorizedBy}</b>
+            {r.authorizedAt ? ` · ${r.authorizedAt.slice(0, 10)}` : ''}
+          </div>
+        )}
         {r.floor && <div>{r.floor}</div>}
       </div>
 
@@ -105,14 +145,52 @@ export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Prop
        * forced the row to wrap and broke every label across two lines.
        */}
       <div className="racts2">
-        {onOpen && openable && (
-          <button className="btn sm" onClick={() => onOpen(r)}>
+        {/* No arrow: this renders the report in place, and the arrow is this app's mark for a
+            control that leaves the page. */}
+        {onOpen && (
+          <button className="btn sm" onClick={() => onOpen(r)} title="Opens the report in this console">
             Open report
           </button>
         )}
-        {onEdit && openable && (
+        {onEdit && editable && (
           <button className="btn sm" onClick={() => onEdit(r)}>
             ✎ Edit report
+          </button>
+        )}
+        {onAuthorize && r.kind === 'written' && !!states?.length && (
+          <button
+            className="btn sm"
+            title="Move this report to another lifecycle state"
+            onClick={(e) =>
+              open(
+                e,
+                <OptionList
+                  title={`Authorize “${r.title}”`}
+                  /*
+                   * **The computed chip is not a state a report can be moved to.** `All current` is
+                   * everything not archived — it filters the list and it is not somewhere a report
+                   * goes, so offering it would be a menu item that always fails. Excluded by the
+                   * served flag rather than by testing for the key, so a second computed chip is
+                   * handled without this file learning its name.
+                   */
+                  items={states
+                    .filter((st) => !st.computed)
+                    .map((st) => ({
+                      label: st.label,
+                      /* The state it is already in is named as such rather than offered as a change. */
+                      d:
+                        st.key === r.status
+                          ? 'Its current state'
+                          : `Move it to ${st.label.toLowerCase()}`,
+                      onPick: () => {
+                        if (st.key !== r.status) void onAuthorize(r, st.key);
+                      },
+                    }))}
+                />,
+              )
+            }
+          >
+            ⚖ Authorize
           </button>
         )}
         {onShare && r.kind === 'written' && (

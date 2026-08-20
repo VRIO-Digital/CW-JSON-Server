@@ -38,6 +38,8 @@ interface Props {
   onOpenGoverned?(row: GovernedRow): void;
   onEditGoverned?(row: GovernedRow): void;
   onShareGoverned?(row: GovernedRow): void;
+  /** The served lifecycle pool and the act that moves a row between its states. */
+  onAuthorizeGoverned?(row: GovernedRow, status: string): void | Promise<void>;
   onRemoveGoverned?(row: GovernedRow): void | Promise<void>;
   /** Share on a report saved in this session — the same dialog, over the row's local audience. */
   onShareSaved?(report: SavedReport): void;
@@ -83,6 +85,7 @@ export function LibraryPane({
   onOpenGoverned,
   onEditGoverned,
   onShareGoverned,
+  onAuthorizeGoverned,
   onRemoveGoverned,
   onShareSaved,
   onAuthorNew,
@@ -250,6 +253,8 @@ export function LibraryPane({
                       onEdit={onEditGoverned}
                       onShare={onShareGoverned}
                       onRemove={onRemoveGoverned}
+                      states={states}
+                      onAuthorize={onAuthorizeGoverned}
                     />
                   ) : c.saved ? (
                     <SessionCard

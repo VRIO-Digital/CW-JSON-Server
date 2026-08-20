@@ -86,6 +86,16 @@ export interface GovernanceState {
   label: string;
   /** `good` · `warn` · `crit` · `neutral` — a state colour, so the chip may not choose its own. */
   tone: string;
+  /**
+   * True for a chip the server *computes* rather than one the tenant declares — `All current` is
+   * everything not archived.
+   *
+   * The two readers of this list want opposite things: the chip bar wants it **in**, because it is
+   * the default filter, and the Authorize menu must leave it **out** — a report cannot be moved "to
+   * All current", so offering it would be a menu item that always fails. Marked on the payload rather
+   * than recognised by key, so neither reader keeps a second copy of the vocabulary.
+   */
+  computed: boolean;
   count: number;
 }
 
@@ -94,6 +104,16 @@ export interface GovernedRow {
   kind: 'written' | 'saved';
   reportTag: string;
   title: string;
+  /**
+   * The tenant's own rendered report page, or `null` where there is none.
+   *
+   * The host serves it; this prototype only opens it. A row without one falls back to the host's
+   * in-app render, so **Open report** is offered either way and never links to nothing.
+   */
+  renderedHref: string | null;
+  /** Who last moved this report between lifecycle states, and when. `null` until somebody has. */
+  authorizedBy: string | null;
+  authorizedAt: string | null;
   question: string;
   status: string;
   statusLabel: string;
@@ -182,6 +202,13 @@ export interface Governance {
 export interface GovernanceActions {
   share(reportId: string, audience: string[]): Promise<{ ok: boolean; error?: string }>;
   remove(reportId: string): Promise<{ ok: boolean; error?: string }>;
+  /**
+   * Move a report to one of the lifecycle states the tenant declares.
+   *
+   * The states come down on `governance.statuses` and the menu is built from them, so this cannot
+   * offer one the API refuses — the rule the Share picker keeps with its role pool.
+   */
+  authorize(reportId: string, status: string): Promise<{ ok: boolean; error?: string }>;
 }
 
 /** The chip that leads the bar. Not a stored state — the server counts it as everything not archived. */
@@ -251,7 +278,7 @@ export default function App({
    * `Open` and `Edit` stop being the same act, which is what their labels already claimed: Open reads
    * the published report, Edit loads the authoring definition behind it.
    */
-  onOpenPublished?: (reportId: string) => void;
+  onOpenPublished?: (reportId: string, renderedHref: string | null) => void;
 } = {}) {
   const toast = useToast();
 
@@ -424,7 +451,21 @@ export default function App({
   const audienceReports = library.filter((r) => r.status === 'published' && r.audience === AUDIENCE_KEY);
 
   const REPORT_TABS: TabDef<ReportTab>[] = [
-    { key: 'library', label: 'Library', count: library.length },
+    /*
+     * **The badge counts the list, which is not the same as the shelf.**
+     *
+     * It was `library.length` — the reports saved in this session — and that was the whole list until
+     * the governed definitions were merged into the same grid. Hosted, the shelf is deliberately empty
+     * (the prototype's seeded rows are its own fiction), so the tab read **Library 0** above three real
+     * report cards. Exactly the failure `docs/REGRESSIONS.md` records as "when a list changes what it
+     * contains, re-derive every number about it" — met a second time, on the number that tells a reader
+     * whether there is anything in there to open.
+     */
+    {
+      key: 'library',
+      label: 'Library',
+      count: library.length + (governance?.reports.length ?? 0),
+    },
     { key: 'author', label: 'Author a report' },
     { key: 'audience', label: AUDIENCE_TAB_LABEL, badge: 'Soon' },
   ];
@@ -560,7 +601,8 @@ export default function App({
      * governed row must not do. Editing still loads the definition, because that is what editing is.
      */
     if (!forEdit && onOpenPublished) {
-      onOpenPublished(row.reportId);
+      /* The row's own rendered page where it has one; the host decides what to do with it. */
+      onOpenPublished(row.reportId, row.renderedHref ?? null);
       return;
     }
 
@@ -744,6 +786,8 @@ export default function App({
             onRead={readQuestion}
             reading={working === 'read'}
             onPickStarter={pickStarter}
+            /* A host with governance has a tenant of its own — see the note on `hosted` in AskPane. */
+            hosted={!!governance}
           />
         )}
 
@@ -854,6 +898,20 @@ export default function App({
               /* Share only *opens* the dialog — see the note on `sharing` above for why it is here. */
               onShareGoverned={
                 actions ? (row) => setSharing({ kind: 'governed', id: row.reportId }) : undefined
+              }
+              onAuthorizeGoverned={
+                actions
+                  ? async (row, status) => {
+                      const label =
+                        governance?.statuses.find((st) => st.key === status)?.label ?? status;
+                      const res = await actions.authorize(row.reportId, status);
+                      toast(
+                        res.ok
+                          ? `“${row.title}” is now ${label}.`
+                          : (res.error ?? `“${row.title}” could not be moved to ${label}.`),
+                      );
+                    }
+                  : undefined
               }
               onRemoveGoverned={actions ? removeGoverned : undefined}
               onShareSaved={

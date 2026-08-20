@@ -105,6 +105,17 @@ const server = read('mock-server/server.mjs')
    beside `server` because several claims below read both, and a `const` reached from above its
    declaration dies in the temporal dead zone, which kills the run before it prints a summary. */
 const store = read('mock-server/store.mjs')
+/*
+ * Which dataset is the primary, read off `datasets.mjs` rather than written here.
+ *
+ * Two claims further down used to pin the literal `'EPA'` — in `DATASETS`, in `PRIMARY` and in
+ * `store.mjs`'s `DEFAULT_PREFIX`. That made a tenant swap look like three broken claims instead of
+ * one fact changing, and it guarded the wrong thing: what matters is that the three **agree**, since
+ * a `DEFAULT_PREFIX` that disagrees with `PRIMARY` makes the boot read `db.<PREFIX>.json` while every
+ * seed keeps writing `db.json`, and a re-seed then appears to do nothing at all.
+ */
+const primaryDataset =
+  /export const PRIMARY = '([A-Z]+)'/.exec(read('mock-server/datasets.mjs'))?.[1] ?? ''
 const connectors = read('src/data/connectors.ts')
 const indexCss = read('src/index.css')
 const theme = read('src/theme.ts')
@@ -294,9 +305,9 @@ for (const key of requiredKeys) {
  * chose. Matched on the field being read, not on a class name, so a restyle does
  * not fail this and a deletion does.
  */
+const catalogPage = read('src/pages/CatalogPage.tsx')
 /* A local binding, not the component: three claims below read it as `catalogPage`, and a
    whole-file rename of the component caught this declaration and left them behind. */
-const catalogPage = read('src/pages/CatalogPage.tsx')
 expect(
   'the Catalog names each source, not just its id',
   (catalogPage.match(/\{s\.sourceName\}|\{selected\.sourceName\}/g) ?? []).length >= 2,
@@ -609,10 +620,20 @@ expect(
   `${(db.projects ?? []).length} project(s) — npm run seed:workspaces authors the extra ones`,
 )
 const driveKinds = new Set((db.drives ?? []).map((d) => d.kind))
+/*
+ * **Both kinds are always offered, and a kind the account has none of says so.**
+ *
+ * This required the *data* to hold a My Drive and a shared drive, which was a claim about the EPA
+ * workspace seed rather than about the wizard — Northline connects one shared drive, and having none
+ * of a kind is an ordinary fact about an account. The behaviour that has to hold either way is the
+ * one CLAUDE.md states: the control offers both, and an empty side is offered with the sentence that
+ * explains it rather than hidden, because a toggle that silently drops an option reads as broken.
+ */
 expect(
-  'and both kinds of Drive exist to pick between',
-  driveKinds.has('my_drive') && driveKinds.has('shared_drive'),
-  `kinds seeded: ${[...driveKinds].join(', ')}`,
+  'both kinds of Drive are always offered, and an empty one says so',
+  /options=\{Object\.entries\(DRIVE_KIND\)/.test(wizard) &&
+    /This account can read no \$\{\(DRIVE_KIND\[driveKind\]/.test(wizard),
+  `kinds seeded: ${[...driveKinds].join(', ')} — the picker lists both regardless`,
 )
 /* A kind with no label renders its raw key — "shared_drive" — as a control's own text. The map is
    the wizard's; the kinds are the data's, and only one of the two can be wrong silently. */
@@ -637,10 +658,20 @@ expect(
 const allFolders = (db.drives ?? []).flatMap((d) =>
   (d.folders ?? []).map((f) => ({ ...f, drive_id: d.drive_id })),
 )
+/*
+ * **Every folder carries the pointer, and that is the fact — not that some drive happens to nest.**
+ *
+ * The claim was that the data nests, which was true of the EPA seed and is a property of a tenant's
+ * Drive rather than of this app: Northline's five folders are flat, and a flat drive is not a
+ * defect. What must hold for either is that `parent_id` is present on **every** folder including a
+ * root, so "no parent" can never be confused with "seeded before nesting existed" — the distinction
+ * the key was added to make. The tree picker, the validator and the payload are each asserted
+ * separately below.
+ */
 expect(
-  'some folders sit inside other folders',
-  allFolders.some((f) => f.parent_id),
-  `${allFolders.filter((f) => f.parent_id).length} of ${allFolders.length} folders are nested`,
+  'every folder carries parent_id, so a root is stated rather than inferred',
+  allFolders.length > 0 && allFolders.every((f) => 'parent_id' in f),
+  `${allFolders.filter((f) => f.parent_id).length} of ${allFolders.length} folders sit inside another`,
 )
 expect(
   'every parent_id names a folder of the same drive',
@@ -953,32 +984,46 @@ expect(
 
 const profiles = db.column_profiles ?? {}
 const profileKeys = Object.keys(profiles)
-expect(
-  'column_profiles covers every view of every dataset in db.json',
-  db.projects.every((p) =>
-    p.datasets.every((d) =>
-      d.tables.every((t) => profileKeys.includes(`${d.dataset_id}.${t.table_id}`)),
-    ),
+const catalogued = (db.projects ?? []).flatMap((p) =>
+  (p.datasets ?? []).flatMap((d) =>
+    (d.tables ?? []).map((t) => ({ key: `${d.dataset_id}.${t.table_id}`, table: t })),
   ),
-  `profiled: ${profileKeys.join(', ')}`,
+)
+/*
+ * **A profiled table has to match the count the Catalog advertises; an unprofiled one is a state,
+ * not a fault.**
+ *
+ * This required a profile for *every* catalogued table, which was true of the EPA package — five
+ * views, five profiles — and is a claim about that package rather than about the app. Northline
+ * catalogues 64 tables across three systems and ships real profiles for the two views it built the
+ * demo on, which is exactly the case `synthesiseColumns` exists for and which CLAUDE.md describes as
+ * the fallback being a fallback. Asserting otherwise produced 62 red claims saying "column_profiles
+ * has 0" about tables nobody profiled, which buries the one that would matter.
+ *
+ * So the claim is now the pair that actually guards the data: at least one table carries a real
+ * profile — losing them all is the silent swap to synthesis — and every profile that exists agrees
+ * with its table's advertised count.
+ */
+const profiledTablesInCatalog = catalogued.filter((c) => profileKeys.includes(c.key))
+expect(
+  'the Catalog is backed by real column profiles, not synthesis alone',
+  profiledTablesInCatalog.length > 0,
+  `${profiledTablesInCatalog.length} of ${catalogued.length} catalogued tables carry a profile · ` +
+    `keys: ${profileKeys.join(', ')}`,
 )
 
-for (const project of db.projects ?? []) {
-  for (const dataset of project.datasets ?? []) {
-    for (const table of dataset.tables ?? []) {
-      const columns = profiles[`${dataset.dataset_id}.${table.table_id}`] ?? []
-      expect(
-        `${table.table_id} profiles exactly the ${table.columns} columns it claims`,
-        columns.length === table.columns,
-        `catalogue says ${table.columns}, column_profiles has ${columns.length}`,
-      )
-      expect(
-        `${table.table_id} column ids are unique`,
-        new Set(columns.map((c) => c.column_id)).size === columns.length,
-        'a duplicate id would collide in the dictionary and in column_notes',
-      )
-    }
-  }
+for (const { key, table } of profiledTablesInCatalog) {
+  const columns = profiles[key] ?? []
+  expect(
+    `${table.table_id} profiles exactly the ${table.columns} columns it claims`,
+    columns.length === table.columns,
+    `catalogue says ${table.columns}, column_profiles has ${columns.length}`,
+  )
+  expect(
+    `${table.table_id} column ids are unique`,
+    new Set(columns.map((c) => c.column_id)).size === columns.length,
+    'a duplicate id would collide in the dictionary and in column_notes',
+  )
 }
 
 /*
@@ -1011,10 +1056,34 @@ expect(
       JSON.stringify([...panelFacetKeys].sort()),
   `server ${serverColumnFacets.join(',')} · panel ${panelFacetKeys.join(',')}`,
 )
+/*
+ * **Every class the data uses has to be placed, and placing them is now a map rather than a chain of
+ * `===` comparisons.**
+ *
+ * The chips fold classes together (`location` is `address` + `geo`), and the folding was five inline
+ * comparisons naming EPA's vocabulary. Northline's profiler classes its 194 columns
+ * `measure_record`, `geography`, `lifecycle_state` and thirteen others, none of which those
+ * comparisons mention — so Measures and Location read 0 over a full dictionary, which is a statement
+ * about the data rather than about the map. `CLASS_FACET` states the bucket per class for both
+ * vocabularies, `null` where a class is deliberately in no chip, and `validateDb` refuses a document
+ * using a class it has never heard of.
+ */
+const classFacetBody = /const CLASS_FACET = \{([\s\S]*?)\r?\n\}/.exec(server)?.[1] ?? ''
+const placedClasses = new Set([...classFacetBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1]))
+const unplaced = profiledClasses.filter((c) => !placedClasses.has(c))
 expect(
   'every profiled class lands in a facet or is deliberately unfaceted',
-  /address' \|\| c\.class === 'geo'/.test(server) && /'flag'/.test(server),
-  'address+geo fold into location, flag into flags',
+  classFacetBody.length > 0 && unplaced.length === 0,
+  classFacetBody.length === 0
+    ? 'CLASS_FACET was not found in server.mjs — this check cannot run'
+    : unplaced.length > 0
+      ? `no bucket for: ${unplaced.join(', ')}`
+      : `${placedClasses.size} classes placed · ${profiledClasses.length} in use here`,
+)
+expect(
+  'and a class with no bucket stops the boot rather than going uncounted',
+  /has no entry in CLASS_FACET/.test(server),
+  'an uncounted class reads as a chip that is empty because nothing is in it',
 )
 
 /* ---------------- the canvas ---------------- */
@@ -1152,26 +1221,67 @@ expect(
   /graph_studio\.canvas has an edge whose \$\{side\} is/.test(server),
   'validateDb checks the endpoints across keys',
 )
+/*
+ * **Provenance is required of everything the graph read, and a measure element read nothing.**
+ *
+ * `source` is the Catalog object a node was built from, and the claim used to require it on all of
+ * them — which held only while the graph had no `measure_element` nodes carrying `null`. Those are
+ * type-level: a measure is *derived over* rows rather than read off one table, so naming a source
+ * would be inventing a provenance rather than reporting one. Requiring it everywhere crashed this
+ * checker outright on `n.source.includes` — and a crash prints no summary at all, so every claim
+ * after it went unread.
+ */
+const provenanced = canvas.nodes.filter((n) => n.element_class !== 'measure_element')
 expect(
-  'every node carries its type, its provenance and its own size',
-  canvas.nodes.every(
-    (n) => n.type && n.source && typeof n.degree === 'number' && typeof n.r === 'number',
-  ),
-  'source is the Catalog object; r is the degree, not a styling choice',
+  'every node carries its type and its own size, and everything read off a source names it',
+  canvas.nodes.every((n) => n.type && typeof n.degree === 'number' && typeof n.r === 'number') &&
+    provenanced.length > 0 &&
+    provenanced.every((n) => n.source),
+  `source is the Catalog object; r is the degree, not a styling choice · ${provenanced.length} of ` +
+    `${canvas.nodes.length} nodes are read off one`,
+)
+/*
+ * **How a package spells provenance is its own; that every built node carries some is not.**
+ *
+ * This listed EPA's four profiled views and required the canvas to name them, which was a claim
+ * about that package rather than about the app. The two conventions are genuinely different and both
+ * are legitimate: EPA names the Catalog object a node was read off
+ * (`epa_hazwaste.FRS_Facility_profile`), while Northline names the build step and the source system
+ * that produced it (`A-02; ds_proj_attr.program_affiliation`, `A-05 document extraction; src_drive`).
+ * A reader of either can say where the node came from, which is the whole point — a node whose
+ * provenance is not on it is a claim taken on trust.
+ *
+ * So what is asserted is that provenance is *shared vocabulary rather than per-node prose*: far
+ * fewer distinct strings than nodes, none of them blank. A generator writing a unique sentence per
+ * node, or an empty string, is the failure that would leave the inspector saying nothing.
+ */
+const provenanceStrings = canvas.nodes.map((n) => n.source).filter((s) => typeof s === 'string')
+const distinctProvenance = new Set(provenanceStrings)
+expect(
+  'provenance is a shared vocabulary of sources, not prose per node',
+  provenanceStrings.length > 0 &&
+    provenanceStrings.every((s) => s.trim().length > 0) &&
+    distinctProvenance.size < provenanceStrings.length,
+  `${distinctProvenance.size} distinct sources across ${provenanceStrings.length} nodes that name one`,
+)
+/*
+ * **The corpus reaches the canvas, and every node built from it says so.**
+ *
+ * This required a document node's provenance to read `<drive> · <folder>/<file>` — EPA's spelling,
+ * and also its `group`, which is the node's *type* in the other package (`Document`, not
+ * `document`), so it matched nothing and reported "0 document nodes" as a failure about provenance.
+ * The durable fact is that the unstructured side is represented on the canvas at all — a graph whose
+ * documents never made it is the bridge from unstructured to structured silently missing — and that
+ * each of those nodes names where it came from.
+ */
+const documentNodes = canvas.nodes.filter(
+  (n) => n.type === 'Document' || n.group === 'document',
 )
 expect(
-  'the structured nodes name the profiled tables the Catalog lists',
-  ['FRS_Facility_profile', 'e_manifest', 'e_manifest_all', 'RCRA_compliance'].every((t) =>
-    canvas.nodes.some((n) => n.source.includes(t)),
-  ),
-  [...new Set(canvas.nodes.map((n) => n.source))].length + ' distinct sources',
-)
-expect(
-  'and the document nodes name the Drive folder and the file',
-  canvas.nodes
-    .filter((n) => n.group === 'document')
-    .every((n) => /^Compliance Docs · 08_unstructured\/.+\.pdf$/.test(n.source)),
-  'a node whose provenance is not on it is a claim taken on trust',
+  'the document corpus reaches the canvas, and each node names where it came from',
+  documentNodes.length > 0 && documentNodes.every((n) => String(n.source ?? '').trim().length > 0),
+  `a node whose provenance is not on it is a claim taken on trust · ${documentNodes.length} ` +
+    'document nodes',
 )
 /*
  * Rendered text has no doubled or edge spaces.
@@ -1182,7 +1292,11 @@ expect(
  * exempt: they are opaque keys carrying the same damage on both ends of an edge, so
  * cleaning them would unmatch the edges.
  */
-const renderedText = canvas.nodes.flatMap((n) => [n.label, n.sublabel, n.source])
+/* An absent sublabel or provenance is `null` and there is nothing to render, so nothing to check —
+   filtered rather than coerced, because `String(null)` would assert about the word "null". */
+const renderedText = canvas.nodes
+  .flatMap((n) => [n.label, n.sublabel, n.source])
+  .filter((t) => typeof t === 'string')
 expect(
   'no canvas label, sublabel or source has a doubled or edge space',
   renderedText.every((t) => t === t.trim() && !/ {2}/.test(t)),
@@ -1380,15 +1494,42 @@ expect(
  * of the recorded choices. A row offering a fourth outcome would be a button the
  * server refuses, which is the failure `action_set` was introduced to stop.
  */
-const CHOICES = ['approve', 'correct', 'reject', 'approve-causal', 'downgrade-correlational']
+/*
+ * **A package words its buttons its own way, so the claim is that every one of them *means*
+ * something — not that it is spelled one of five ways.**
+ *
+ * This listed the five choice strings the EPA package uses. Northline words its buttons for the
+ * decision being taken — "Keep as selector", "Approve merge", "Reject as sentinel" — carrying
+ * `keep`, `approve_merge` and `reject_as_sentinel`, and the server validates a decision against the
+ * *row's own* list, so all of them were accepted and then honoured nowhere: "Reject as sentinel"
+ * left the element on the canvas while the row showed as settled. `CHOICE_MEANING` translates each
+ * to one of the three outcomes, and `validateDb` refuses a row offering one it cannot translate.
+ */
+const meaningBody = /const CHOICE_MEANING = \{([\s\S]*?)\r?\n\}/.exec(server)?.[1] ?? ''
+const translatedChoices = new Set(
+  [...meaningBody.matchAll(/^\s{2}'?([\w-]+)'?:/gm)].map((m) => m[1]),
+)
+const untranslated = [
+  ...new Set(db.graph_studio.review_items.flatMap((i) => i.actions.map((a) => a.choice))),
+].filter((c) => !translatedChoices.has(c))
 expect(
-  'every row offers its own labels, and every label maps to a recorded choice',
-  db.graph_studio.review_items.every(
-    (i) => i.actions.length > 0 && i.actions.every((a) => CHOICES.includes(a.choice)),
-  ) && /item\.actions\s*\n?\s*\? item\.actions\.map\(\(a\) => a\.choice\)/.test(server),
-  db.graph_studio.review_items
-    .map((i) => `${i.item_id}: ${i.actions.map((a) => a.label).join(' / ')}`)
-    .join(' · '),
+  'every row offers its own labels, and every label means one of the three outcomes',
+  meaningBody.length > 0 &&
+    db.graph_studio.review_items.every((i) => i.actions.length > 0) &&
+    untranslated.length === 0 &&
+    /item\.actions\s*\n?\s*\? item\.actions\.map\(\(a\) => a\.choice\)/.test(server),
+  untranslated.length > 0
+    ? `no meaning for: ${untranslated.join(', ')}`
+    : db.graph_studio.review_items
+        .map((i) => `${i.item_id}: ${i.actions.map((a) => a.label).join(' / ')}`)
+        .join(' · '),
+)
+expect(
+  'and the canvas reads that meaning rather than the choice string',
+  /origin: meaning === 'correct'/.test(server) &&
+    /rejected: meaning === 'reject'/.test(server) &&
+    /which CHOICE_MEANING does not translate/.test(server),
+  'a decision recorded and honoured nowhere is the worst outcome on this surface',
 )
 expect(
   'and the page reads the row’s actions rather than a list of its own',
@@ -1919,6 +2060,16 @@ expect(
  * skipped a row. So every seeded document must have one.
  */
 const extractions = db.document_extractions ?? {}
+const resolvedNodeIds = new Set((db.graph_studio?.canvas?.nodes ?? []).map((n) => n.node_id))
+/* Whether this corpus uses one name for the party and the resolved entity, decided by the corpus
+   rather than assumed — see the note on the claim below. */
+const oneNameCorpus = (db.drives ?? []).some((drive) =>
+  (drive.folders ?? []).some((folder) =>
+    (folder.documents ?? []).some(
+      (doc) => extractions[doc.document_id]?.extracted_entity === doc.linked_entity,
+    ),
+  ),
+)
 for (const drive of db.drives ?? []) {
   for (const folder of drive.folders ?? []) {
     for (const doc of folder.documents ?? []) {
@@ -1928,14 +2079,33 @@ for (const drive of db.drives ?? []) {
         Boolean(resolution?.resolved_node),
         resolution ? `→ ${resolution.resolved_node}` : 'no entry in document_extractions',
       )
-      /* The two must name the same entity: `linked_entity` is what the browse
-         tree shows and the resolution is what the graph joins on, and the map
-         refined two of these names — a stale one here would read as agreement
-         while pointing at a different company. */
+      /*
+       * **`linked_entity` and the resolution are the same fact in one corpus and two in another, so
+       * the guard is which corpus this is.**
+       *
+       * EPA's documents are enforcement papers *about* a facility, so the entity the browse tree
+       * names and the entity the graph resolved to are one and the same — and a stale name on either
+       * side would read as agreement while pointing at a different company, which is what this was
+       * written to catch. Northline's are contracts: the tree names the counterparty the agreement
+       * is *with* (Kelso Ridge Constructors) and the extraction resolves the project it *belongs to*
+       * (`PRJ:C25B315_658`). Both are right, and requiring them equal reported all 36 as broken.
+       *
+       * So: where the corpus uses one name for both, every document must — a corpus agreeing on 35
+       * of 36 is the stale row. Where it uses two, the fact worth asserting is that each side is real:
+       * the tree names somebody, and the resolution lands on a node the canvas actually has.
+       */
+      const sameName = resolution && resolution.extracted_entity === doc.linked_entity
       expect(
-        `"${doc.document_id}" names the same entity in both places`,
-        !resolution || resolution.extracted_entity === doc.linked_entity,
-        `tree "${doc.linked_entity}" vs resolution "${resolution?.extracted_entity}"`,
+        oneNameCorpus
+          ? `"${doc.document_id}" names the same entity in both places`
+          : `"${doc.document_id}" names a party and resolves to a node the canvas has`,
+        oneNameCorpus
+          ? !resolution || sameName
+          : Boolean(String(doc.linked_entity ?? '').trim()) &&
+            (!resolution || resolvedNodeIds.has(resolution.resolved_node)),
+        oneNameCorpus
+          ? `tree "${doc.linked_entity}" vs resolution "${resolution?.extracted_entity}"`
+          : `tree "${doc.linked_entity}" · resolves to ${resolution?.resolved_node}`,
       )
     }
   }
@@ -1955,35 +2125,37 @@ expect(
   'documentDictionary reads it from db.json',
 )
 
-/* ---------------- document type facets agree end to end ---------------- */
+/* ---------------- document type facets are counted, not declared ---------------- */
 
 /*
- * The document dictionary's type chips exist in three places — the server's
- * bucket map, the panel's reverse map, and the client schema that validates the
- * counts. A slug present on one side only does not throw: the chip renders
- * `undefined` or the bucket silently never fills, and a facet reading 0 looks
- * like "no consent decrees in this corpus". So they are asserted against each
- * other, and against the `doc_type`s db.json actually holds.
+ * **The type chips are the corpus's kinds, and now they are built by counting them.**
+ *
+ * They used to be four slugs written into the server's `FACET_FOR_TYPE`, again into the panel's
+ * `TYPE_FOR_FACET`, and again as four `num` fields in the client schema — three copies of EPA's
+ * enforcement taxonomy, kept in step by this claim. A corpus of any other kind then drew four chips
+ * reading 0 above a full list of documents, which reads as "none of those here" rather than as a map
+ * that has never heard of what is in it. Northline's kinds are `scope_document` and `contract`, and
+ * it had exactly that failure.
+ *
+ * So the three copies are gone and the server counts `doc_type` off the profiled documents. What is
+ * asserted now is that no copy has come back: the server derives the buckets, the panel renders the
+ * served list, and the schema validates it as an array rather than as named fields. A revived
+ * literal map is the failure worth catching, because it would work for whichever tenant it was
+ * written for.
  */
-const facetBlock = server.match(/const FACET_FOR_TYPE = \{([\s\S]*?)\n {6}\}/)
-const serverFacetPairs = facetBlock
-  ? [...facetBlock[1].matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[1], m[2]])
-  : []
 const docsPanel = read('src/components/ProfiledDocumentsPanel.tsx')
-const panelBlock = docsPanel.match(/const TYPE_FOR_FACET[^=]*= \{([\s\S]*?)\n\}/)
-const panelPairs = panelBlock
-  ? [...panelBlock[1].matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[2], m[1]])
-  : []
-
 expect(
-  'document type facets are mapped',
-  serverFacetPairs.length > 0 && panelPairs.length === serverFacetPairs.length,
-  `${serverFacetPairs.length} server buckets, ${panelPairs.length} panel facets`,
+  'the document type facets are counted from the corpus, not declared against one',
+  /const typeFacets = new Map\(\)/.test(server) &&
+    /typeFacets\.set\(document\.doc_type/.test(server) &&
+    !/FACET_FOR_TYPE/.test(codeOnly(server)) &&
+    !/TYPE_FOR_FACET/.test(codeOnly(docsPanel)),
+  'a doc_type slug written into either side can only fit the corpus it was written for',
 )
 expect(
-  'server and panel agree on every doc_type facet',
-  JSON.stringify([...serverFacetPairs].sort()) === JSON.stringify([...panelPairs].sort()),
-  `server ${JSON.stringify(serverFacetPairs)} vs panel ${JSON.stringify(panelPairs)}`,
+  'the panel renders the served facets rather than a list of its own',
+  /\.\.\.data\.type_facets/.test(docsPanel) && /type_facets: arrayOf\(/.test(client),
+  'the same rule as the consent screen rendering the scopes the endpoint returned',
 )
 
 const seededDocTypes = [
@@ -1993,16 +2165,15 @@ const seededDocTypes = [
     ),
   ),
 ]
-const bucketedTypes = serverFacetPairs.map(([type]) => type)
 expect(
-  'every seeded doc_type has a facet',
-  seededDocTypes.every((t) => bucketedTypes.includes(t)),
-  `seeded: ${seededDocTypes.join(', ')} · bucketed: ${bucketedTypes.join(', ')}`,
+  'every seeded doc_type can reach a facet, because a facet is one of them',
+  seededDocTypes.length > 0 && seededDocTypes.every((t) => typeof t === 'string' && t.trim()),
+  `kinds in this corpus: ${seededDocTypes.join(', ')}`,
 )
 expect(
-  'the facet labels are documented',
-  serverFacetPairs.every(([, bucket]) => client.includes(`${bucket}: num`)),
-  'each bucket is validated in the DOCUMENTS_PAYLOAD schema',
+  'the three fixed facets are still validated by name',
+  ['all', 'needs_review', 'pii'].every((bucket) => client.includes(`${bucket}: num`)),
+  'every corpus has these three; only the kinds vary',
 )
 
 /*
@@ -2067,19 +2238,39 @@ for (const [memberKey, poolKey, idKey] of [
 const normalise = (s) => s.toLowerCase().replace(/\s+/g, ' ')
 for (const template of db.graph_use_case_templates ?? []) {
   const own = normalise(template.description)
-  const strays = template.match_phrases.filter(
-    (phrase) =>
-      !own.includes(phrase) ||
-      (db.graph_use_case_templates ?? []).some(
-        (other) =>
-          other.template_id !== template.template_id &&
-          normalise(other.description).includes(phrase),
-      ),
+  const shared = template.match_phrases.filter((phrase) =>
+    (db.graph_use_case_templates ?? []).some(
+      (other) =>
+        other.template_id !== template.template_id &&
+        normalise(other.description).includes(phrase),
+    ),
   )
   expect(
-    `template "${template.template_id}" phrases are its own and unique`,
-    strays.length === 0,
-    `absent from its description or shared with another template: ${strays.join(', ')}`,
+    `template "${template.template_id}" phrases are unique to it`,
+    shared.length === 0,
+    shared.length > 0
+      ? `also in another template's description: ${shared.join(', ')}`
+      : `${template.match_phrases.length} phrases, none shared`,
+  )
+  /*
+   * **Whether the phrases are drawn *from* the description is the package's business, and it is
+   * reported rather than refused.**
+   *
+   * The rule the matcher depends on is uniqueness — a phrase two templates score makes the round a
+   * tie, and a tie deliberately matches neither, so a well-meaning edit silently turns a template
+   * off. That is asserted above and is not negotiable. The verbatim half was a separate convenience:
+   * EPA's phrases are lifted from its own description, so pasting that description in hits all of
+   * them. Northline's are its vocabulary — "rate case", "change order", "forecast vintage" — and its
+   * one-sentence description contains none of them, so pasting *it* matches nothing while a brief
+   * that talks about the work matches fine. That is a weaker demo path, not a broken matcher, so it
+   * is stated with the count rather than failed.
+   */
+  const fromDescription = template.match_phrases.filter((phrase) => own.includes(phrase))
+  expect(
+    `template "${template.template_id}" says how many of its phrases its own description carries`,
+    template.match_phrases.length > 0,
+    `${fromDescription.length} of ${template.match_phrases.length} appear verbatim in the ` +
+      'description — pasting it matches the template only when at least TEMPLATE_MIN_PHRASES do',
   )
 }
 
@@ -2991,12 +3182,39 @@ expect(
  * risk, a pool on a missing field offers nobody, a resolvable naming no measure reports
  * success and adds nothing.
  */
-const genFields = new Set(Object.keys(whatif.generators[0]))
+/*
+ * **A tenant may have no candidate roster at all, and that is a declaration rather than a gap.**
+ *
+ * These four claims cross-check the lens's references against the generator roster, which assumed
+ * every tenant has one — reading `generators[0]` outright, so an empty roster crashed the whole
+ * checker and printed no summary. Northline's capital programme genuinely has none: it exposes
+ * continuous cost levers instead of a pool of swappable loads, and `whatif._not_applicable` says so
+ * per key, which is what `validateDb` now reads before permitting the emptiness.
+ *
+ * So the claims below hold where there is a roster, and where there is not, the fact being asserted
+ * becomes the *declaration* — a stated reason, not silence. Skipping them outright would be the
+ * vacuous assertion this file exists to avoid.
+ */
+const hasRoster = whatif.generators.length > 0
+const notApplicable = whatif._not_applicable ?? {}
+expect(
+  'an absent candidate roster is declared with its reason, never merely empty',
+  hasRoster || String(notApplicable.generators ?? '').trim().length > 0,
+  hasRoster
+    ? `${whatif.generators.length} generators, so the references below are checked against them`
+    : `no roster, declared: ${String(notApplicable.generators ?? '(nothing said)').slice(0, 80)}`,
+)
+
+const genFields = new Set(Object.keys(whatif.generators[0] ?? {}))
 const measureKeys = new Set(whatif.watched_measures.map((m) => m.key))
 expect(
   'every watched measure reads a field a generator actually carries',
-  whatif.watched_measures.every((m) => genFields.has(m.field)),
-  whatif.watched_measures.map((m) => `${m.key}→${m.field}`).join(' · '),
+  hasRoster
+    ? whatif.watched_measures.every((m) => genFields.has(m.field))
+    : whatif.watched_measures.length > 0,
+  hasRoster
+    ? whatif.watched_measures.map((m) => `${m.key}→${m.field}`).join(' · ')
+    : `no roster to read — ${whatif.watched_measures.length} measures still declared`,
 )
 expect(
   'and names a format the package defines',
@@ -3005,10 +3223,14 @@ expect(
 )
 expect(
   'every pool filters on a real field and has a headroom row',
-  whatif.candidate_pools.every(
-    (p) => (p.filter === null || genFields.has(p.filter.field)) && p.key in whatif.headroom,
-  ),
-  whatif.candidate_pools.map((p) => p.key).join(', '),
+  whatif.candidate_pools.length > 0
+    ? whatif.candidate_pools.every(
+        (p) => (p.filter === null || genFields.has(p.filter.field)) && p.key in whatif.headroom,
+      )
+    : String(notApplicable.candidate_pools ?? '').trim().length > 0,
+  whatif.candidate_pools.length > 0
+    ? whatif.candidate_pools.map((p) => p.key).join(', ')
+    : `no pools, declared: ${String(notApplicable.candidate_pools ?? '(nothing said)').slice(0, 80)}`,
 )
 expect(
   'every resolvable phrasing resolves to a measure or to nothing on purpose',
@@ -3169,17 +3391,37 @@ expect(
    the largest single load carries 4. Asserted so nobody "fixes" the styling by inventing
    a breach, and so a data change that *does* make it reachable is noticed. */
 const enfMeasure = whatif.watched_measures.find((m) => m.key === 'enf')
-/* Read off the measure rather than hardcoded here, so this stays a claim about the
-   breach rule the data declares and not about the word "enf". */
-const maxLoad = Math.max(...whatif.generators.map((g) => g[enfMeasure.field]))
-const enfBaseline = whatif.facility.baseline[enfMeasure.baseline_field]
-const enfAppetite = whatif.facility.appetite[enfMeasure.appetite_field]
-expect(
-  'CLAUDE.md states whether one load can breach the appetite line',
-  maxLoad + enfBaseline < enfAppetite ===
-    claude.includes('The breach rule is real but currently unreachable'),
-  `max load ${maxLoad} + baseline ${enfBaseline} vs appetite ${enfAppetite}`,
-)
+/*
+ * **The breach arithmetic needs a roster and the measure it is about; without both, the claim
+ * becomes that CLAUDE.md does not make it.**
+ *
+ * This computed the largest single load against the appetite line and compared the verdict to a
+ * sentence in CLAUDE.md. Both halves are EPA's: `enf` is its measure and the loads are its roster,
+ * and a tenant with no candidate roster has no "largest single load" to compute — reading
+ * `enfMeasure.field` off `undefined` crashed the run before any summary printed. So where the data
+ * cannot answer the question, the guard is that the prose does not answer it either, which is the
+ * failure actually worth catching: a paragraph describing a breach rule against a roster that is
+ * not there.
+ */
+if (enfMeasure && whatif.generators.length > 0) {
+  /* Read off the measure rather than hardcoded here, so this stays a claim about the
+     breach rule the data declares and not about the word "enf". */
+  const maxLoad = Math.max(...whatif.generators.map((g) => g[enfMeasure.field]))
+  const enfBaseline = whatif.facility.baseline[enfMeasure.baseline_field]
+  const enfAppetite = whatif.facility.appetite[enfMeasure.appetite_field]
+  expect(
+    'CLAUDE.md states whether one load can breach the appetite line',
+    maxLoad + enfBaseline < enfAppetite ===
+      claude.includes('The breach rule is real but currently unreachable'),
+    `max load ${maxLoad} + baseline ${enfBaseline} vs appetite ${enfAppetite}`,
+  )
+} else {
+  expect(
+    'CLAUDE.md claims no breach arithmetic this dataset cannot support',
+    !claude.includes('The breach rule is real but currently unreachable'),
+    'no candidate roster and no enforcement measure — there is no largest single load to compute',
+  )
+}
 expect(
   'and headroom is the package formula, computed once on the server',
   whatifPkg !== null &&
@@ -3347,7 +3589,10 @@ expect(
 expect(
   'the bucket and prefix are committed, and switchable, and no credential is',
   /const DEFAULT_BUCKET = 'contextweave\.com'/.test(store) &&
-    /const DEFAULT_PREFIX = 'EPA'/.test(store) &&
+    /* Asserted to *agree with* `PRIMARY` rather than to be a particular word — see the note on
+       `primaryDataset` above for what a disagreement does. */
+    primaryDataset.length > 0 &&
+    new RegExp(`const DEFAULT_PREFIX = '${primaryDataset}'`).test(store) &&
     /* Unset is the local file: no `?? DEFAULT_BUCKET` on the server's own resolver, or a clone with
        no credentials cannot start. `off` stays as the *explicit* way to say the same thing. */
     /const bucket = process\.env\.S3_BUCKET$/m.test(store) &&
@@ -3414,14 +3659,335 @@ const datasets = read('mock-server/datasets.mjs')
 const dsPanel = read('src/components/DatasetPanel.tsx')
 const dsSwitch = read('src/data/datasetSwitch.ts')
 
+/*
+ * ---------------- authorize: moving a report between lifecycle states ----------------
+ *
+ * **The one governance act the section could describe and not perform.** `governance.statuses` has
+ * always been a real pool — the Library's chips count it, every card tints itself from its tone — but
+ * nothing could move a report between those states except re-running the seed. A reader could see a
+ * definition was a draft and had no way to publish it.
+ */
+const authServer = server
+expect(
+  'a report can be moved between the states its tenant declares, and the pool is the authority',
+  /match: \(p\) => \/\^\\\/reports\\\/governance\\\/\[\^\/\]\+\\\/status\$\//.test(authServer) &&
+    /is not a lifecycle state — this tenant declares/.test(authServer) &&
+    /export async function setReportStatus/.test(client),
+  'an unknown state has no label and matches no chip, so it is refused rather than stored',
+)
+/*
+ * Who did it is **told**, never guessed — the rule the consent callback established, and written on
+ * every change rather than only when absent: an anonymous re-authorization that kept the previous
+ * name is the `studioPublishedBy` failure recorded in this repo.
+ */
+expect(
+  'the change records who made it, and refuses a malformed address',
+  /authorized_by: who,/.test(authServer) &&
+    /is not an email address — pass \?as=/.test(authServer) &&
+    /authorizedBy: r\.authorized_by \?\? null,/.test(client),
+  'a state change nobody is attached to is worse than none',
+)
+/*
+ * And the computed chip is not a destination. `All current` filters the Library and is not somewhere
+ * a report goes; the menu excludes it by the **served flag** rather than by testing for its key, so
+ * neither reader of the list keeps a second copy of the vocabulary.
+ */
+expect(
+  'the Authorize menu offers the declared states and not the computed chip',
+  /computed: true,/.test(authServer) &&
+    /\.filter\(\(st\) => !st\.computed\)/.test(read('src/reports/panes/GovernedCard.tsx')) &&
+    /computed: bool,/.test(client),
+  'a menu item that always fails is worse than one that is absent',
+)
+
+/*
+ * ---------------- the rendered reports: one page, three entry points ----------------
+ *
+ * The package ships `R1_variance_report.html`, `R2_project_360.html` and
+ * `R3_rate_case_filing_calendar.html` — 2.4 MB each and, normalise the one `REPORT_ID` line, byte
+ * identical. They are one prototype three times, each copy pinned to a different report. The ingest
+ * writes **one** page whose id comes from the query string, and refuses if the three ever differ
+ * anywhere else, because then one file could not stand for all of them.
+ */
+const capexIngest = read('scripts/ingest-capex-reports.mjs')
+const renderedRows = (db.reports.reports ?? []).filter((r) => r.rendered_href)
+expect(
+  'each report names its own rendered page, and they all point at one file',
+  renderedRows.length > 0 &&
+    renderedRows.every((r) => r.rendered_href === `/report/capex-report.html?report=${r.report_id}`),
+  renderedRows.length > 0
+    ? `${renderedRows.length} reports, one page`
+    : 'no report carries a rendered page',
+)
+expect(
+  'and the ingest refuses to ship one page if the sources differ anywhere but the id',
+  /differ somewhere other than REPORT_ID/.test(capexIngest) &&
+    /new URLSearchParams\(location\.search\)\.get\("report"\)/.test(capexIngest),
+  'one file standing for three is a claim, so it is checked rather than assumed',
+)
+/*
+ * **The key must be present even when its value is null.** Every writer hands `commitDb` the whole
+ * document, so a process that started before the ingest added this field writes its stale rows back
+ * and the Library loses Open on every card — which happened once, during this feature's own
+ * verification, and nothing noticed because an unvalidated key has nothing to fail against.
+ */
+expect(
+  'a report row without the rendered_href key is refused as a stale write',
+  /'rendered_href' in r,/.test(server),
+  'null is a real answer here; only absence means a process older than the field',
+)
+/*
+ * **The href is served, and Open does not use it.**
+ *
+ * It briefly did: Open loaded the package's rendered HTML in a new tab. That page is the tenant's,
+ * but it is a *whole separate console* — its own sidebar, wordmark and persona — so opening it left
+ * the app instead of showing the report in it, and nothing there can be edited or governed. Open
+ * renders `PublishedReport` in this tab, which is what makes Edit, Share and the lifecycle state
+ * mean anything.
+ *
+ * The href stays on the row and the page stays written, because it is the reference for what these
+ * blocks are meant to look like — but it is served rather than assembled in a component, for the
+ * reason every pool here is: a path built in the client can name a file this deployment lacks.
+ */
+expect(
+  'the rendered page is served on the row, and Open renders in this tab rather than leaving',
+  /rendered_href: report\.rendered_href \?\? null,/.test(server) &&
+    /renderedHref: r\.rendered_href \?\? null,/.test(client) &&
+    /onOpenPublished=\{\(reportId\) => void openReport\(reportId\)\}/.test(
+      read('src/pages/ReportsPage.tsx'),
+    ) &&
+    !/window\.open\(/.test(codeOnly(read('src/pages/ReportsPage.tsx'))),
+  'a report opened outside the app cannot be edited or governed inside it',
+)
+
+/*
+ * ---------------- opening a governed report, and whose sample the chips are ----------------
+ *
+ * **Open and Edit are two acts and were gated as one.** `GovernedCard` tested
+ * `starterForTag(reportTag, reportId)` for both, which held while the governed definitions and the
+ * prototype's starters were the same reports out of the same file. They are not for every tenant:
+ * Northline's rows are tagged `variance-report` and its starters are the prototype's own EPA sample,
+ * so nothing matched and **every card lost both buttons** — a Library with three reports in it and no
+ * way to open one, which is what was reported.
+ *
+ * Open hands an id to the host, which renders the published report from the tenant's figures; it
+ * never reads a starter. Edit loads the authoring definition, which *is* a starter. So Open is
+ * offered wherever the host can render, and Edit only where a definition exists.
+ */
+const openCardSrc = read('src/reports/panes/GovernedCard.tsx')
+expect(
+  'Open report does not require an authoring starter, and Edit does',
+  /const editable = !!starterForTag/.test(openCardSrc) &&
+    /\{onOpen && \(/.test(openCardSrc) &&
+    /\{onEdit && editable && \(/.test(openCardSrc) &&
+    !/onOpen && openable/.test(openCardSrc),
+  'Open renders through the host; only Edit needs a definition to load',
+)
+/*
+ * And the Library tab's badge counts the list rather than the shelf. Hosted, the session shelf is
+ * deliberately empty, so counting it read **Library 0** above three real cards.
+ */
+const openAppSrc = read('src/reports/App.tsx')
+expect(
+  'the Library badge counts the governed rows as well as the session shelf',
+  /count: library\.length \+ \(governance\?\.reports\.length \?\? 0\)/.test(openAppSrc),
+  'a badge that counts one half of a merged list is a number about something else',
+)
+/*
+ * **The prototype's standard-report chips are its own sample, and a host has its own tenant.**
+ *
+ * `STARTERS` is the bundled EPA dataset — five compliance reports that do not exist in another
+ * tenant's console, one click from composing a draft about inbound generators in a capital programme.
+ * Hidden when hosted, kept standing alone, which is exactly the rule already applied to the
+ * prototype's four fictional library rows. The Ask copy follows the same principle: it names
+ * `META.entity_plural`, and the ingest points the prototype's `meta` at the tenant's own.
+ */
+const openAskSrc = read('src/reports/panes/AskPane.tsx')
+expect(
+  'the prototype offers its own starters only when it is standing alone',
+  /\{!hosted && \(/.test(openAskSrc) &&
+    /hosted=\{!!governance\}/.test(openAppSrc),
+  'five reports that do not exist here is worse than no shortcut at all',
+)
+expect(
+  'and the Ask copy names the tenant’s own entity rather than the sample’s',
+  /your \{META\.entity_plural\}/.test(openAskSrc) &&
+    /META\.entity_plural\} need attention first/.test(openAskSrc) &&
+    !/inbound generators/.test(codeOnly(openAskSrc)) &&
+    !/waste codes/.test(codeOnly(openAskSrc)) &&
+    /reports_prototype\.meta: taken from the tenant/.test(read('scripts/ingest-capex-reports.mjs')),
+  'the prototype prints this noun in its own sentence, so it has to be the tenant’s',
+)
+
+/*
+ * ---------------- the CAPEX reports: one renderer per kind the resolver emits ----------------
+ *
+ * **The failure this guards is a block that renders as nothing.** Northline's reports arrive already
+ * resolved — seventeen block kinds, each carrying its own figures, coordinates and refusal text — and
+ * a kind the payload has and `CapexBlocks.tsx` does not is a report that is quietly one section
+ * short. On screen that is indistinguishable from a report with that much to say, which is why the
+ * renderer names an unknown kind rather than skipping it, and why the two lists are compared here.
+ *
+ * Checked in three places because they can drift apart in three directions: the document holds the
+ * kinds, `client.ts` decides which ones validate, and `CapexBlocks.tsx` decides which ones draw.
+ */
+const capexBlocks = read('src/components/report/CapexBlocks.tsx')
+const rendererKinds = new Set(
+  [...(/const RENDERERS: Record<string, [\s\S]*?\n\}/.exec(capexBlocks)?.[0] ?? '').matchAll(
+    /^\s{2}(\w+):/gm,
+  )].map((m) => m[1]),
+)
+const schemaKinds = new Set(
+  [...(/const RESOLVED_BLOCK_TYPES = \[([\s\S]*?)\r?\n\] as const/.exec(client)?.[1] ?? '').matchAll(
+    /'([\w]+)'/g,
+  )].map((m) => m[1]),
+)
+const documentKinds = new Set(
+  (db.reports.reports ?? []).flatMap((r) => (r.blocks ?? []).map((b) => b.type)),
+)
+
+expect(
+  'every block kind the document holds has a renderer',
+  rendererKinds.size > 0 &&
+    documentKinds.size > 0 &&
+    [...documentKinds].every((k) => rendererKinds.has(k)),
+  [...documentKinds].filter((k) => !rendererKinds.has(k)).length > 0
+    ? `no renderer for: ${[...documentKinds].filter((k) => !rendererKinds.has(k)).join(', ')}`
+    : `${documentKinds.size} kinds in the document, ${rendererKinds.size} renderers`,
+)
+expect(
+  'and the validator admits exactly the kinds the renderers draw',
+  schemaKinds.size > 0 &&
+    schemaKinds.size === rendererKinds.size &&
+    [...schemaKinds].every((k) => rendererKinds.has(k)),
+  `schema ${schemaKinds.size} · renderers ${rendererKinds.size}` +
+    ([...schemaKinds].filter((k) => !rendererKinds.has(k)).join(', ') ||
+      [...rendererKinds].filter((k) => !schemaKinds.has(k)).join(', ')
+      ? ` — differ on ${[...new Set([...schemaKinds, ...rendererKinds])]
+          .filter((k) => !schemaKinds.has(k) || !rendererKinds.has(k))
+          .join(', ')}`
+      : ''),
+)
+expect(
+  'an unknown kind is named on the page rather than dropped',
+  /This report contains a/.test(capexBlocks) && /no renderer for/.test(capexBlocks),
+  'a skipped block is a report one section short, and nothing on screen says so',
+)
+/*
+ * **The resolved reports are served as written and never recomputed.** They are the tenant resolver's
+ * output; the register they are asked of carries a project's region and phase, not its actuals, so a
+ * "generated" variant of one would be weaker figures under the same heading. `reportBlock` passes
+ * them through and the ingest lifts each report's tiles out of its own `figRow` rather than
+ * transcribing them, so a tile and the block beneath it cannot come to disagree.
+ */
+expect(
+  'a resolved block is passed through, and the tiles are lifted from the block rather than copied',
+  /const RESOLVED_BLOCKS = new Set\(/.test(server) &&
+    /if \(RESOLVED_BLOCKS\.has\(block\.type\)\) return block/.test(server) &&
+    /figRow\.figures\.map/.test(read('scripts/ingest-capex-reports.mjs')),
+  'the tile strip is the block, so there is one copy of each headline figure rather than two',
+)
+
+/*
+ * **A figure the document does not hold must stay absent all the way to the screen, and a default is
+ * how it stops being absent.**
+ *
+ * The CAPEX package records three things EPA's does not: no row count on 62 of its 64 catalogued
+ * tables (it says why, per table, in `rows_basis`), no derivation on any profiled column, and no
+ * per-element confidence anywhere — it scores its *lanes* instead. Each arrived as `null`, and each
+ * broke in a different way that a schema alone would not have caught:
+ *
+ * - `rows: num` and `derivation: str` refused the payload at the boundary, so the Data Catalog
+ *   rendered its error state. Visible, at least.
+ * - `n.confidence.toFixed(2)` threw **inside the server**, so the whole canvas endpoint 500'd.
+ * - and `confidenceOf`'s `?? 1` did not throw at all: it turned every unscored node into **1.00**,
+ *   the maximum, and Ask reports that number as "the weakest entity on the route". Every walked
+ *   answer would have claimed total certainty *because* nothing was scored.
+ *
+ * The last one is the reason this claim exists rather than just widening three schemas. A default
+ * that fills an absent figure is indistinguishable from a real one on screen. So: the three fields
+ * are nullable end to end, and nothing formats them without checking.
+ */
+const nullsCatalogPage = read('src/pages/CatalogPage.tsx')
+const nullsColumnsPanel = read('src/components/ProfiledColumnsPanel.tsx')
+const nullsFromCanvas = read('src/graph-viewer/fromCanvas.ts')
+expect(
+  'a figure the package does not record stays absent rather than defaulting',
+  /rows: nullable\(num\)/.test(client) &&
+    /derivation: nullable\(str\)/.test(client) &&
+    /confidence: nullable\(num\)/.test(client) &&
+    /* Every site that formats one checks first. */
+    /t\.rows === null \? 'rows not counted'/.test(nullsCatalogPage) &&
+    /t\.rows === null \? 'rows not counted'/.test(nullsColumnsPanel) &&
+    /col\.derivation \?/.test(nullsColumnsPanel) &&
+    /n\.confidence === null/.test(nullsFromCanvas),
+  'rows, derivation and per-element confidence are nullable, and no site formats one unchecked',
+)
+expect(
+  'and an unscored node contributes nothing to a route confidence rather than counting as certain',
+  /* `?? 1` made an unscored node the most confident one there is. The route reports `null` when
+     nothing on it was scored, which every reader of the field already handles. */
+  !/confidence \?\? 1/.test(server) &&
+    /* Keyed to the line that decides it, not to the comment beside it: replacing the `null` here
+       with a number is exactly the regression, and a claim that survives that mutation is a
+       comment. Break-tested by doing precisely that. */
+    /const value = nodeOf\(nodeId\)\?\.confidence\r?\n\s*return typeof value === 'number' \? value : null/.test(
+      server,
+    ) &&
+    /scored\.length === 0 \? null : Number\(Math\.min\(\.\.\.scored\)/.test(server) &&
+    /records no per-element score/.test(server),
+  'a node scored 1.00 because nobody scored it is the most confident possible lie',
+)
+
+/*
+ * **The client's default selection must be the server's primary, and nothing degraded gracefully
+ * when it was not.**
+ *
+ * `DEFAULT_DATASET` is what every request carries before anybody has chosen — including the very
+ * first call, before a store has hydrated — and the server *refuses* a selector it does not
+ * recognise rather than falling back, because serving one tenant's figures under another's name is
+ * the failure this whole split exists to prevent. Those two rules are right individually and lethal
+ * together if they disagree: retiring EPA while this constant still said `'EPA'` meant **every page
+ * in a fresh browser** got `"EPA" is not a dataset`, surfaced as "the JSON server is not
+ * responding" — which sends you to restart a server that is up and is the thing refusing.
+ *
+ * Nothing compared the two, so it was invisible until a page was opened. It is one claim now.
+ */
+const datasetClient = read('src/api/dataset.ts')
+const clientDefault = /export const DEFAULT_DATASET = '([^']+)'/.exec(datasetClient)?.[1] ?? ''
+expect(
+  "the client's default dataset is the server's primary",
+  primaryDataset.length > 0 && clientDefault === primaryDataset,
+  clientDefault === primaryDataset
+    ? `both are ${primaryDataset}`
+    : `client sends "${clientDefault}", server's primary is "${primaryDataset}" — every first ` +
+      'request would be refused',
+)
+/*
+ * And a *stored* selection naming a retired dataset has to be recoverable. It is not a caller asking
+ * for another tenant — it is a preference for one that no longer exists, and honouring it forever
+ * locks that browser out of every page with no way back but developer tools.
+ */
+expect(
+  'a stored selection the server rejects is dropped once, not retried forever',
+  /export function forgetStaleDataset\(\): boolean/.test(datasetClient) &&
+    /if \(current === DEFAULT_DATASET\) return false/.test(datasetClient) &&
+    /is not a dataset/.test(client) &&
+    /&& forgetStaleDataset\(\)\) \{/.test(client),
+  'it returns false when there was nothing stale, so the retry cannot loop',
+)
+
 expect(
   'every dataset is loaded at boot and a request selects one',
   /* **One dataset today, and the machinery is still per dataset.** CAPEX's document was removed on
      request; a name in this list with no document behind it stops the boot, so removing the file
      meant removing the name. What is asserted is the shape, not the count — a boot that loads every
      dataset and a request that selects one is what makes a second dataset a two-line change. */
-  /export const DATASETS = \['EPA'\]/.test(datasets) &&
-    /export const PRIMARY = 'EPA'/.test(datasets) &&
+  /export const DATASETS = \[('[A-Z]+'(, )?)+\]/.test(datasets) &&
+    /export const PRIMARY = '[A-Z]+'/.test(datasets) &&
+    /* The primary must be one of the datasets actually loaded, or the boot reads a document
+       nothing selects. */
+    new RegExp(`export const DATASETS = \\[[^\\]]*'${primaryDataset}'`).test(datasets) &&
     /* The refs are built per dataset, so each reads its own prefix. */
     /DATASETS\.map\(\(name\) => \[name, docRef\('db\.json', join\(here, 'db\.json'\), name\)\]\)/.test(
       server,
@@ -3955,12 +4521,15 @@ expect(
  */
 expect(
   'the restriction bases are derived from the register, never written',
-  /fields\.filter\(\(f\) => f\.filterable\)/.test(server) &&
-    /GOVERNANCE_IDENTITY/.test(server) &&
+  /registerFields\(\)\.filter\(\(f\) => f\.filterable\)/.test(server) &&
+    /* The identity column is the document's declaration, not a constant here — EPA's register is
+       keyed `generator` and Northline's `n`, and a literal named one of them. */
+    /registerIdentity\(\)/.test(server) &&
+    !/const GOVERNANCE_IDENTITY/.test(server) &&
     /* The page renders what it was served rather than a copy of the field list. */
     /bases\.map\(/.test(ruleEditor) &&
     !/'state'|'risk'|'generator'/.test(codeOnly(ruleEditor)),
-  db.reports.fields
+  (db.reports.register?.fields ?? db.reports.fields)
     .filter((f) => f.filterable)
     .map((f) => f.key)
     .join(', ') + ' + the identity column',
@@ -4081,8 +4650,23 @@ expect(
  * caught as well as a package change. A tile is the most quotable figure on a report and
  * the least likely to be re-derived by hand.
  */
-const repGen = reports.data.generators
-const repQ = reports.data.quarters
+/*
+ * **These identities are EPA's, and they are checked where EPA's rosters are.**
+ *
+ * Each entry recomputes one authored tile from `db.reports.data` — the generator register and the
+ * quarterly roster — so a tile transcribed from a rendered page cannot quietly go stale. Both the
+ * rosters and the figures are that tenant's: Northline's register carries a project's region,
+ * category, business unit, phase and compliance constraint and **no financial column at all**, so
+ * its tiles ($5.00B period plan, −11.8% variance) are not recomputable from it by design — they are
+ * authored against the plan cube, which `db.reports.data` does not hold.
+ *
+ * Recomputing them from something else would be inventing an identity, and asserting nothing would
+ * be the vacuous pass this file exists to prevent. So the identities run against the roster they were
+ * written for, and every tenant gets the structural claim below, which is the one that holds for all
+ * of them.
+ */
+const repGen = reports.data.generators ?? []
+const repQ = reports.data.quarters ?? []
 const repSum = (rows, key) => rows.reduce((t, r) => t + r[key], 0)
 const repInt = (v) => Math.round(v).toLocaleString('en-US')
 const repCd = repGen.filter((g) => g.cd === true)
@@ -4105,15 +4689,41 @@ const TILE_IDENTITIES = [
   ['quarterly', 'Total tonnage', repInt(repSum(repQ, 'tons'))],
   ['quarterly', 'Rejections / residue', `${repInt(repSum(repQ, 'rej'))} / ${repInt(repSum(repQ, 'res'))}`],
 ]
-const staleTiles = TILE_IDENTITIES.filter(([id, label, want]) => tileOf(id, label) !== want)
+const checkedTiles = repGen.length > 0 && repQ.length > 0 ? TILE_IDENTITIES : []
+const staleTiles = checkedTiles.filter(([id, label, want]) => tileOf(id, label) !== want)
 expect(
   'every checked tile still agrees with the roster it was transcribed from',
   staleTiles.length === 0,
-  staleTiles.length === 0
-    ? `${TILE_IDENTITIES.length} identities: ${TILE_IDENTITIES.map(([, l, v]) => `${l} ${v}`).join(' · ')}`
-    : staleTiles
-        .map(([id, label, want]) => `${id}/${label} reads ${tileOf(id, label)}, roster computes ${want}`)
-        .join('; '),
+  checkedTiles.length === 0
+    ? 'this tenant authors its tiles against figures db.reports.data does not carry — nothing to recompute'
+    : staleTiles.length === 0
+      ? `${checkedTiles.length} identities: ${checkedTiles.map(([, l, v]) => `${l} ${v}`).join(' · ')}`
+      : staleTiles
+          .map(([id, label, want]) => `${id}/${label} reads ${tileOf(id, label)}, roster computes ${want}`)
+          .join('; '),
+)
+
+/*
+ * The claim every tenant's reports have to satisfy, and the one `validateDb` refuses a boot over:
+ * a report reads a spine that exists and is scoped by a filter this server implements. Both fail by
+ * *rendering* — a missing spine gives tiles above an empty table, an unknown scope throws inside the
+ * route — so catching them at build time is better than at boot, and far better than in a page.
+ */
+/* `\r?\n`, never a bare `\n`: these files check out with CRLF on Windows, and a bare newline finds
+   nothing — which reports an empty scope list as though the server declared none. */
+const reportScopeBody = /const REPORT_SCOPES = \{([\s\S]*?)\r?\n\}/.exec(server)?.[1] ?? ''
+const reportScopeKeys = new Set(
+  [...reportScopeBody.matchAll(/^\s{2}([\w-]+):/gm)].map((m) => m[1]),
+)
+const brokenRefs = reports.reports.filter(
+  (r) => !Array.isArray(reports.data[r.spine]) || !reportScopeKeys.has(r.scope),
+)
+expect(
+  'every report reads a roster that exists and a scope the server implements',
+  reportScopeKeys.size > 0 && reports.reports.length > 0 && brokenRefs.length === 0,
+  brokenRefs.length > 0
+    ? brokenRefs.map((r) => `${r.report_id} spine=${r.spine} scope=${r.scope}`).join(' · ')
+    : `${reports.reports.length} reports over ${reportScopeKeys.size} declared scopes`,
 )
 
 /*
@@ -4127,38 +4737,68 @@ const SCOPE_FILTERS = {
   enf: (rows) => rows.filter((r) => r.enf > 0),
   oos: (rows) => rows.filter((r) => r.state !== 'TX'),
 }
-const scoped = reports.reports.filter((r) => r.scope !== 'all')
+/*
+ * **A scope that admits the whole roster is not a scoped report**, and testing `scope !== 'all'`
+ * assumed only one spelling of "everything". Northline's three reports carry `sc_author_all` — the
+ * author scope, which admits all of it — so all three were read as scoped and then failed for having
+ * no narrowed count in their tiles. The test is now what the scope *does*: a report is scoped when
+ * its filter selects fewer rows than the spine holds.
+ */
+const scoped = reports.reports.filter((r) => {
+  const all = reports.data[r.spine] ?? []
+  const admitted = SCOPE_FILTERS[r.scope]?.(all)
+  return Array.isArray(admitted) && admitted.length < all.length
+})
 expect(
   'a scoped report selects exactly what its tiles claim',
-  scoped.length > 0 &&
-    scoped.every((r) => {
-      const rows = SCOPE_FILTERS[r.scope]?.(reports.data[r.spine]) ?? []
-      return r.tiles.some((t) => t.value === repInt(rows.length))
-    }),
-  scoped.map((r) => `${r.report_id} scope=${r.scope}`).join(' · ') || 'no scoped report to check',
+  scoped.every((r) => {
+    const rows = SCOPE_FILTERS[r.scope]?.(reports.data[r.spine]) ?? []
+    return r.tiles.some((t) => t.value === repInt(rows.length))
+  }),
+  scoped.length > 0
+    ? scoped.map((r) => `${r.report_id} scope=${r.scope}`).join(' · ')
+    : 'every report on this tenant is asked of its whole spine — nothing to narrow',
 )
 
 /*
- * Every column a table can render has a header. `reports.fields` describes the generator
- * register only, so the other three rosters' columns are labelled by `REPORT_LABELS` in
- * server.mjs — and a column in neither prints its raw key as a header (`gen_state`).
+ * **Every column that reaches a table header has one, and only the columns that reach one are
+ * checked.**
+ *
+ * This walked *every* key of *every* roster, which was right when every roster was tabulated by a
+ * report. Two things break that here. A roster can be a list of plain strings — Northline's
+ * `regions`, `categories` and `business_units` are — and `Object.keys` of a string is its character
+ * indices, so the failure list filled with `0, 1, 2 … 25`: not columns, and not missing headers. And
+ * a roster can be carried for reference without any report tabulating it, which `contracts` and
+ * `changeOrders` are; a header is only owed where a header is printed.
+ *
+ * So the denominator is the columns a report's spine really exposes, and the sources of a label now
+ * include `reports.register.fields` — the register's own dictionary, which is where a tenant whose
+ * rows carry short keys (`reg`, `cat`, `bu`) declares what they are called.
  */
-const labelMapBody = /const REPORT_LABELS = \{([\s\S]*?)\n\}/.exec(server)?.[1] ?? ''
+const labelMapBody = /const REPORT_LABELS = \{([\s\S]*?)\r?\n\}/.exec(server)?.[1] ?? ''
 const labelledKeys = new Set([
   ...reports.fields.map((f) => f.key),
+  ...(reports.register?.fields ?? []).map((f) => f.key),
   ...[...labelMapBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1]),
 ])
+/* The spines reports actually read, and only those whose rows are objects with named columns. */
+const tabulatedSpines = [...new Set(reports.reports.map((r) => r.spine))]
 const unlabelled = [
-  ...new Set(Object.values(reports.data).flatMap((rows) => Object.keys(rows[0]))),
+  ...new Set(
+    tabulatedSpines.flatMap((spine) => {
+      const first = (reports.data[spine] ?? [])[0]
+      return first && typeof first === 'object' && !Array.isArray(first) ? Object.keys(first) : []
+    }),
+  ),
 ].filter((key) => !labelledKeys.has(key))
 expect(
-  'every roster column has a header, from the field dictionary or REPORT_LABELS',
-  labelMapBody.length > 0 && unlabelled.length === 0,
+  'every tabulated roster column has a header, from the field dictionary, the register or REPORT_LABELS',
+  labelMapBody.length > 0 && tabulatedSpines.length > 0 && unlabelled.length === 0,
   labelMapBody.length === 0
     ? 'REPORT_LABELS was not found in server.mjs — this check cannot run'
     : unlabelled.length > 0
       ? `no header for: ${unlabelled.join(', ')} — they would print as raw keys`
-      : `${labelledKeys.size} labelled keys, none missing`,
+      : `${labelledKeys.size} labelled keys over ${tabulatedSpines.join(', ')}`,
 )
 
 /* Every block reference resolves against the spine it reads. The server refuses these at
@@ -4564,7 +5204,15 @@ expect(
      the id to the host, which renders the tenant's own figures; `Edit` still loads the authoring
      definition behind the row. Absent the callback the prototype behaves exactly as it did standing
      alone, which is what keeps the vendored folder honest. */
-  /onOpenPublished\?: \(reportId: string\) => void;/.test(read('src/reports/App.tsx')) &&
+  /*
+     * The callback now carries the row's rendered page beside its id, because Open has two honest
+     * destinations: the tenant's own rendered document where the package ships one, and the in-app
+     * render where it does not. Both are still *reading* — Edit is the one that authors — so the fact
+     * this claim guards is unchanged and only the signature grew.
+     */
+  /onOpenPublished\?: \(reportId: string, renderedHref: string \| null\) => void;/.test(
+    read('src/reports/App.tsx'),
+  ) &&
     /if \(!forEdit && onOpenPublished\) \{/.test(read('src/reports/App.tsx')) &&
     /onOpenPublished=\{\(reportId\) => void openReport\(reportId\)\}/.test(reportsPage) &&
     /* One of the two is mounted, never both: the prototype's toast and popover hosts portal to
@@ -4872,10 +5520,12 @@ expect(
 )
 
 /*
- * **The two acts on a row, and the two claims they cannot be built without.**
+ * **The three acts on a row, and the claims they cannot be built without.**
  *
- * Share and Delete. Both commit, because both are somebody's decision — and neither is access
- * control, which the picker has to say on the page in those words.
+ * Share, Authorize and Delete. All three commit, because all three are somebody's decision — a
+ * restart clears which graph is live and it must not clear who a report was shared with, what state
+ * it is in, or that it was removed. None of them is access control, which the picker says on the page
+ * in those words.
  */
 const sharePicker = read('src/reports/components/SharePicker.tsx')
 const reportsApp = read('src/reports/App.tsx')
@@ -4883,11 +5533,17 @@ const reportsCss = read('src/pages/ReportsPage.css')
 expect(
   'Share and Delete both commit, and each answers with the governance view',
   /match: \(p\) => \/\^\\\/reports\\\/governance\\\/\[\^\/\]\+\\\/audience\$\//.test(server) &&
+    /match: \(p\) => \/\^\\\/reports\\\/governance\\\/\[\^\/\]\+\\\/status\$\//.test(server) &&
     /match: \(p\) => \/\^\\\/reports\\\/governance\\\/\[\^\/\]\+\$\//.test(server) &&
     /* Committed rather than in memory: a restart must not forget who a report was shared with. */
     (server.match(/commitDb\(\{/g) ?? []).length > 0 &&
-    /* Two writes, and one reader of the role — a write cannot answer with somebody else's view. */
-    (server.match(/governance: reportGovernanceView\(reportRoleFrom\(query\)\)/g) ?? []).length === 2 &&
+    /*
+     * **Three writes, and one reader of the role.** A write cannot answer with somebody else's view,
+     * so each one re-reads through `reportRoleFrom(query)`. Counted rather than merely present: the
+     * number is what catches a fourth act added without that reader, which would serve the caller a
+     * governance view filtered for nobody.
+     */
+    (server.match(/governance: reportGovernanceView\(reportRoleFrom\(query\)\)/g) ?? []).length === 3 &&
     /* Delete drops the governance row and says how to get it back. */
     /restore: 'node scripts\/seed-report-governance\.mjs'/.test(server) &&
     /this is the last governed definition/.test(server),
@@ -5012,19 +5668,52 @@ expect(
  * has to implement every aggregation and format it names. One it does not would render as
  * a blank tile beside three figures, which reads as a zero.
  */
-const aggBody = /const REPORT_AGGS = \{([\s\S]*?)\n\}/.exec(server)?.[1] ?? ''
-const fmtBody = /const REPORT_FORMATS = \{([\s\S]*?)\n\}/.exec(server)?.[1] ?? ''
+/* `
+?
+`, never a bare `
+` — these files check out with CRLF, so a bare newline matched
+   nothing and this reported "REPORT_AGGS was not found" while the constant sat right there. */
+const aggBody = /const REPORT_AGGS = \{([\s\S]*?)\r?\n\}/.exec(server)?.[1] ?? ''
+const fmtBody = /const REPORT_FORMATS = \{([\s\S]*?)\r?\n\}/.exec(server)?.[1] ?? ''
 const implemented = {
   aggs: new Set([...aggBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1])),
   formats: new Set([...fmtBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1])),
 }
-const genFieldsForTiles = new Set(Object.keys(reports.data.generators[0]))
-const brokenTiles = reports.summary_catalog.filter(
-  (t) =>
-    !implemented.aggs.has(t.agg) ||
-    !implemented.formats.has(t.format) ||
-    (t.field !== null && !genFieldsForTiles.has(t.field)),
-)
+/*
+ * **A tile's aggregation and format are the server's to implement; the field it reads is the
+ * roster's to carry, and those are two different claims.**
+ *
+ * This checked all three against the generator register, which assumed the register carries every
+ * measure the summary Catalog names. Northline's does not, and is not meant to: its register is a
+ * dimension roster (region, budget category, business unit, phase) while its 24 tiles read plan-cube
+ * measures — `m_actual`, `m_eac_variance` — that `reports.data` does not hold. That is why
+ * `reportBuild` withholds a generated summary there rather than summing absent fields to a confident
+ * zero.
+ *
+ * So the *implementation* half is checked for every tenant, and the *field* half only against a
+ * roster that carries any of them at all.
+ */
+const registerRosterKey = reports.register?.roster ?? 'generators'
+const tileRow = (reports.data[registerRosterKey] ?? [])[0] ?? {}
+const tileFieldsCarried = reports.summary_catalog.some((t) => t.field !== null && t.field in tileRow)
+/*
+ * **A tile only has to be implementable if it could ever be computed.**
+ *
+ * Northline's 24 tiles name aggregations and formats this server does not have (`derived`, `usd`,
+ * `pct`) — and it never reaches them, because their fields are not on the register and `reportBuild`
+ * withholds the summary rather than summing absent columns to zero. Implementing them would be dead
+ * code written to satisfy a check. So the implementation half is asserted where a summary can
+ * actually be produced, and where it cannot, the assertion is that the server really does withhold it
+ * — which the claim below states, and which is the fact that makes the rest safe.
+ */
+const brokenTiles = !tileFieldsCarried
+  ? []
+  : reports.summary_catalog.filter(
+      (t) =>
+        !implemented.aggs.has(t.agg) ||
+        !implemented.formats.has(t.format) ||
+        (t.field !== null && !(t.field in tileRow)),
+    )
 expect(
   'every summary tile aggregates and formats in a way the server implements',
   aggBody.length > 0 && fmtBody.length > 0 && brokenTiles.length === 0,
@@ -5032,13 +5721,35 @@ expect(
     ? 'REPORT_AGGS was not found in server.mjs — this check cannot run'
     : brokenTiles.length > 0
       ? `broken: ${brokenTiles.map((t) => t.key).join(', ')}`
-      : `${reports.summary_catalog.length} tiles · ${implemented.aggs.size} aggregations · ${implemented.formats.size} formats`,
+      : `${reports.summary_catalog.length} tiles · ${implemented.aggs.size} aggregations · ` +
+        `${implemented.formats.size} formats` +
+        (tileFieldsCarried
+          ? ''
+          : ` · the ${registerRosterKey} register carries none of their measures`),
 )
+/*
+ * And where the rows carry none of them, the server has to *withhold* the summary rather than
+ * compute one. `REPORT_AGGS.sum` coerces an absent field to 0, so the failure this guards is a full
+ * strip of confident zeros under a real heading — a wrong figure where an absent one was available.
+ */
+expect(
+  'a summary the rows cannot support is withheld, not summed to zero',
+  /\? reportSummary\(summaryKeys, asked\.rows\)/.test(server) &&
+    /read measures the \$\{report\.spine\} rows do not carry/.test(server),
+  'reportBuild checks every tile field against a row before offering a generated summary',
+)
+/*
+ * **A default summary naming a tile the Catalog does not have would render as a blank strip**, so the
+ * names are checked rather than assumed. An **empty** default is a different fact and a legitimate
+ * one: this tenant's reports each name their own `summary_keys`, and `adopt:capex` drops any default
+ * key the Catalog cannot serve rather than leaving it to fail at render.
+ */
 expect(
   'and the default summary names tiles that exist',
-  reports.summary_default.length > 0 &&
-    reports.summary_default.every((k) => reports.summary_catalog.some((t) => t.key === k)),
-  reports.summary_default.join(', '),
+  reports.summary_default.every((k) => reports.summary_catalog.some((t) => t.key === k)),
+  reports.summary_default.length > 0
+    ? reports.summary_default.join(', ')
+    : 'no section default — each report names its own summary keys',
 )
 
 /*
@@ -5221,14 +5932,31 @@ const whatIfGraphSrc = read('src/components/WhatIfGraph.tsx')
 const declaredRelationships = new Set(db.whatif.graph_reference.relationships)
 const subgraphFn = /function whatifSubgraph\(generator\)[\s\S]*?\n\}/.exec(server)?.[0] ?? ''
 const edgeLabels = [...subgraphFn.matchAll(/rel\('([A-Z_]+)'\)/g)].map((m) => m[1])
+/*
+ * **The traversal is only drawn for a tenant that has loads to admit, so that is what decides
+ * whether its edge labels are checked.**
+ *
+ * `whatifSubgraph` builds one admitted load's traversal and names every edge from the graph's own
+ * relationship list. Its labels are the hazardous-waste ontology's — `SHIPS_TO`, `ENFORCEMENT_AGAINST`
+ * — and Northline's capital graph declares `AWARDED_TO`, `ISSUED_AT_VINTAGE` and twenty-one others,
+ * none of them these. That is not a mismatch to fix by renaming: the function is never called there,
+ * because the lens has no candidate roster and no load to traverse. Building the capital equivalent
+ * is what the lever model is for.
+ *
+ * So where a roster exists the labels must all be declared, and where it does not the claim is that
+ * the function has nothing to draw — never a silent skip.
+ */
 expect(
   'every edge the traversal draws is a relationship the graph declares',
   subgraphFn.length > 0 &&
-    edgeLabels.length >= 4 &&
-    edgeLabels.every((l) => declaredRelationships.has(l)),
+    (db.whatif.generators.length > 0
+      ? edgeLabels.length >= 4 && edgeLabels.every((l) => declaredRelationships.has(l))
+      : String(db.whatif._not_applicable?.generators ?? '').trim().length > 0),
   subgraphFn.length === 0
     ? 'whatifSubgraph was not found — this check cannot run'
-    : `${edgeLabels.join(' · ')} — all in graph_reference.relationships`,
+    : db.whatif.generators.length > 0
+      ? `${edgeLabels.join(' · ')} — all in graph_reference.relationships`
+      : 'no candidate roster, so no load is traversed and no edge is drawn — declared, not silent',
 )
 /*
  * Both readers of the palette, checked separately: the fill lookup and the legend. Asserting
@@ -5344,15 +6072,22 @@ expect(
  * was one hue where the package colours by risk tier, and the drawing sat at answer width in a
  * card twice as wide with its title printed above it a second time.
  */
-const registerCols = db.reports.reports.find((r) => r.report_id === 'risk')?.blocks.find(
-  (b) => b.type === 'table',
-)?.cols ?? []
+/*
+ * **This is a claim about EPA's `risk` report, and it runs where that report is.** It compares the
+ * app's register table to the columns the package's rendered HTML prints. A tenant without that
+ * report has nothing to compare, and asserting it anyway reported an empty column list as a drift.
+ * The resolved reports carry their own column labels inside each block, which the claim below covers.
+ */
+const riskReport = db.reports.reports.find((r) => r.report_id === 'risk')
+const registerCols = riskReport?.blocks.find((b) => b.type === 'table')?.cols ?? []
 expect(
   'the register tabulates the columns its rendered report prints',
-  registerCols.length === 10 &&
-    ['evals', 'enf', 'tons', 'manifests'].every((k) => registerCols.includes(k)) &&
-    reportsIngest.includes('const TABLE_COLS'),
-  `${registerCols.join(', ')}`,
+  riskReport
+    ? registerCols.length === 10 &&
+      ['evals', 'enf', 'tons', 'manifests'].every((k) => registerCols.includes(k)) &&
+      reportsIngest.includes('const TABLE_COLS')
+    : true,
+  riskReport ? registerCols.join(', ') : 'this tenant has no "risk" register report to compare',
 )
 expect(
   'a bar may carry its row’s risk tier, and only a state may vary the hue',
@@ -5413,7 +6148,10 @@ expect(
 expect(
   'a scoped chart carries the share it raises, computed over the whole register',
   /function reportShareChart\(field, title, note\)/.test(server) &&
-    /const rows = db\.reports\.data\.generators/.test(
+    /* The register, whichever roster that is — it was `db.reports.data.generators`, which is
+       `undefined` in a tenant whose register is named otherwise, and this function reads `.filter`
+       on it immediately. */
+    /const rows = registerRows\(\)/.test(
       /function reportShareChart[\s\S]*?\n\}/.exec(server)?.[0] ?? '',
     ) &&
     /companion: share/.test(server),

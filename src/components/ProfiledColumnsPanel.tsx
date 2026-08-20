@@ -174,10 +174,13 @@ export default function ProfiledColumnsPanel({
         render: (_, col) => (
           <span className="pc-class">
             <Tag className={`pc-class-tag is-${col.class}`}>{col.class}</Tag>
-            {/* The derivation is reported, not assumed: today every profiled
-                column says `llm`, and a rule-derived one would say so here. */}
+            {/* The derivation is reported, not assumed: EPA's profile says `llm` on every
+                column and a rule-derived one would say so here. A profile recording **no**
+                derivation — Northline's does not — prints the confidence alone rather than a
+                method nobody stated. */}
             <span className="pc-conf">
-              {col.derivation} {col.confidence.toFixed(2)}
+              {col.derivation ? `${col.derivation} ` : ''}
+              {col.confidence.toFixed(2)}
             </span>
           </span>
         ),
@@ -302,7 +305,10 @@ export default function ProfiledColumnsPanel({
                         </span>
                       </span>
                       <span className="pc-table-meta">
-                        {t.column_count} cols · ~{t.rows.toLocaleString()} rows
+                        {/* "rows not counted" rather than 0: 62 of Northline's 64 tables are
+                            catalogued without a count, and "~0 rows" reads as an empty table. */}
+                        {t.column_count} cols ·{' '}
+                        {t.rows === null ? 'rows not counted' : `~${t.rows.toLocaleString()} rows`}
                       </span>
                     </button>
 

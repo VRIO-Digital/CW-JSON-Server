@@ -72,7 +72,16 @@ function reviewNote(n: CanvasPayload['nodes'][number]): string | undefined {
   if (n.proposed) parts.push('Proposed — its review row is still open, so it may not survive')
   if (n.origin === 'studio-authored') parts.push('Studio-authored — corrected by a reviewer')
   if (n.rejected) parts.push('Rejected in review')
-  if (n.needsReview) parts.push(`Needs review at confidence ${n.confidence.toFixed(2)}`)
+  /* Stated only where the package recorded one — Northline scores its lanes rather than its
+     elements, so every node arrives `null` and this threw on `.toFixed`, taking the whole Canvas
+     tab down over one absent line of an inspector. */
+  if (n.needsReview) {
+    parts.push(
+      n.confidence === null
+        ? 'Needs review — this package records no per-element confidence'
+        : `Needs review at confidence ${n.confidence.toFixed(2)}`,
+    )
+  }
   return parts.length > 0 ? `${parts.join('. ')}.` : undefined
 }
 

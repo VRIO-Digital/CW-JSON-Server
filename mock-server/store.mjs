@@ -42,7 +42,14 @@ const hmac = (key, data) => createHmac('sha256', key).update(data, 'utf8').diges
  * files — which is how the test suite and an offline machine still run.
  */
 const DEFAULT_BUCKET = 'contextweave.com'
-const DEFAULT_PREFIX = 'EPA'
+/*
+ * **The primary dataset's prefix, and it must be `PRIMARY` in `datasets.mjs`.** It names the object
+ * (`s3://contextweave.com/CAPEX/db.json`) *and*, through `localDocPath` below, decides which dataset
+ * keeps the plain `mock-server/db.json` local path — the one every command, seed and ingest in this
+ * repo names. The two disagreeing is not an error anywhere: the boot would read `db.CAPEX.json`, the
+ * seeds would keep writing `db.json`, and a re-seed would appear to do nothing at all.
+ */
+const DEFAULT_PREFIX = 'CAPEX'
 const DEFAULT_REGION = 'us-east-1'
 
 export const region = () =>

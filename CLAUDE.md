@@ -14,6 +14,8 @@ npm run check-docs  # asserts this file's factual claims against the code
 npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db.json)
 npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
 npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
+npm run adopt:capex # rebuilds mock-server/db.json from capex/db.json — the served tenant
+npm run ingest:capex-reports # rebuilds db.reports.reports from src/report/ — the resolved reports
 npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
 npm run seed:settings   # re-authors db.settings — users and persona navigation
 npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secondary dataset
@@ -217,24 +219,96 @@ Both are still **tenant-level rather than a dataset's**, and that is now express
 "who exists" rather than a second one. `npm run seed:settings` therefore reads the whole document and
 replaces one key — a script that owns a subtree and rewrites its parent is how a subtree gets deleted.
 
+### The tenant is CAPEX, and EPA is the retired document this file still mostly describes
+
+**Read this before trusting a figure anywhere below.** The served document is the **Northline Water
+Group capital programme** — `capex/db.json`, adopted into `mock-server/db.json` by
+`npm run adopt:capex` — and it replaced the EPA Hazwaste document on request. EPA's is kept, unlisted,
+at `mock-server/db.EPA.json`: putting it back is its name in `DATASETS` plus that file, and nothing
+else.
+
+**What that means for the rest of this file.** The architecture, the flows and the rules below are
+unchanged and still true. The **figures** are not: paragraphs naming 206 profiled columns, 189 canvas
+nodes, 36 inbound generators, five report definitions or seven EPA enforcement PDFs describe the
+retired document. The tenant now catalogues **64 tables across 4 datasets in 3 GCP projects**, profiles
+**194 + 6 real columns** on two views, holds **36 documents in 5 folders of one shared drive**, draws a
+canvas of **442 nodes and 908 edges**, ships **40 recorded Ask answers**, **7 must-review rows plus a
+pivot**, **5 recorded sanity checks** and **3 report definitions** over a **60-project register**. Where a
+figure matters, `check-docs` reads it off the document rather than off this prose — which is why a
+tenant swap surfaced as a few dozen red claims rather than silently.
+
+**Three sections describe work that is not done.** *Reports* below still describes EPA's five block
+kinds and its rosters; the CAPEX package defines eighteen block kinds over `projects`, `contracts` and
+`changeOrders`, and none of those renderers exist yet. *The What-if lens* describes a candidate-load
+model this tenant does not have. Both are named again where they appear.
+
+#### What the adoption had to repair, and why each was silent
+
+`capex/db.json` is generated and is not hand-edited; `scripts/adopt-capex.mjs` holds the repairs so
+they can be re-run and read. Four of them fixed failures that **answer rather than throw**:
+
+- `column_profiles` arrived keyed `ds_epbcs_plan.vw_project_plan_capex` where the Catalog looks up
+  `<dataset_id>.<table_id>` — every key missed, so all 194 real columns would have been silently
+  replaced by `synthesiseColumns` output that looks just as plausible.
+- `document_extractions` arrived keyed `ex_0001…ex_0423` where the dictionary looks up `document_id`
+  — every document would have reported "nothing resolved yet", a read fact rendered as an absence.
+- Four recorded sanity checks named edges `t1`…`t4`, which are not edges. Resolved from the canvas by
+  the sub-graph each check walks.
+- `reports.governance.audit.copy.not_enforced` arrived `null`, which is the one sentence that stops
+  the Audit page implying a filter runs.
+
+And it **adds `reports.register`**: which roster is the register, its identity column and the
+dictionary for its own short keys. Both the report section and the Audit page had EPA's `generators` /
+`generator` spelled into them, so the register is now declared by the document and read by the server
+— neither tenant is the one the code is written for.
+
+#### Four defects the second tenant exposed in the app itself
+
+Each worked for EPA and only for EPA, and none of them threw:
+
+- **The client's column-class union** was nine EPA literals validated with `oneOf`, so the Catalog
+  payload was refused *at the boundary* — `curl` fine, browser broken. It is `COLUMN_CLASSES`, declared
+  once, covering both vocabularies.
+- **The Catalog's class facets** were five inline `===` comparisons on EPA's classes, so Measures and
+  Location read 0 over a full dictionary. `CLASS_FACET` places every class, and a class it cannot place
+  stops the boot.
+- **The document type facets** were EPA's four kinds written down twice. They are counted off the
+  corpus now, so a kind cannot appear empty because nobody wrote it down.
+- **A review row's choice** was read for its spelling, so Northline's "Reject as sentinel"
+  (`reject_as_sentinel`) did not reject — a decision recorded and honoured nowhere, on the one surface
+  whose whole job is deciding what the graph asserts. `CHOICE_MEANING` translates every row's own words
+  into the three outcomes, and `validateDb` refuses a choice it cannot translate. A **`draft`
+  entitlement cell** was missing for the same reason: the chain ends by *returning* the archived cell,
+  so a state nobody declared before told its audience it could open something never published.
+
+**And fifteen `graph_studio`, `whatif` and `reports` claims in `check-docs` compare the document
+against `vls_demo_data_package_2026-08-10/`, which is not in this checkout.** They were red before this
+work and are red now; they need the package folder, not a code change. Do not "fix" them by deleting
+the assertion.
+
 ### One dataset today, and the process holds however many there are
 
-**A dataset is a prefix, and there is one.** `EPA/` is the primary and holds everything described
-below. `CAPEX/` was the second — created, seeded, never populated — and **its document was removed on
-request**; what went with it is the document and the name in `DATASETS`, not the ability to hold a
-second one. Every dataset in that list is read at boot, so a name with no document behind it stops
-the boot: removing the file meant removing the name, and adding a dataset back is that array plus
-`npm run seed:dataset -- <NAME>`.
+**A dataset is a prefix, and there is one.** `CAPEX/` is the primary and holds everything described
+below. `EPA/` was the tenant before it and its document is still on disk, unlisted — what went with it
+is the name in `DATASETS`, not the ability to hold a second one. Every dataset in that list is read at
+boot, so a name with no document behind it stops the boot: removing a name is how a document is
+retired, and adding one back is that array plus a document at its prefix.
+
+**`DEFAULT_PREFIX` in `store.mjs` must be `PRIMARY`.** It names the object *and*, through
+`localDocPath`, decides which dataset keeps the plain `mock-server/db.json` path that every command,
+seed and ingest here names. The two disagreeing is silent in both directions: the boot reads
+`db.<PREFIX>.json` while the seeds keep writing `db.json`, so a re-seed appears to do nothing at all.
+`check-docs` asserts they agree rather than pinning either word.
 
 `mock-server/datasets.mjs` owns which one a request is reading — `store.mjs` still owns only how
 bytes move, and `server.mjs` still owns only what a document means.
 
 | selector | what it reads | writes |
 |---|---|---|
-| `EPA` (default) | `s3://contextweave.com/EPA/db.json` | yes |
+| `CAPEX` (default) | `s3://contextweave.com/CAPEX/db.json` | yes |
 | `both` | every dataset merged, per `MERGE_PLAN` | **refused** |
 
-**`both` currently merges one document with nothing, which is EPA.** It is left reachable rather than
+**`both` currently merges one document with nothing, which is CAPEX.** It is left reachable rather than
 special-cased away: the merge is a pure function over `DATASETS`, so a second dataset restores its
 meaning without any of it being written again. The whole of this section describes machinery that is
 intact and under-exercised — which is the state it was deliberately left in.
@@ -1358,6 +1432,18 @@ the cap a wide column rendered 11px labels at 28px.
 
 ### The What-if lens (`/what-if`)
 
+> **What-if under CAPEX: the lens is intact and this tenant has nothing to put in it.** Everything
+> below describes the candidate-load model — swap a generator into the frame, re-traverse to its
+> federal record. Northline's capital programme has no such pool: it exposes **continuous levers**
+> (`whatif.slices` and `whatif.levers` — move a commodity index, a labour rate or contingency by a
+> percentage and watch the envelope) and its document says so per key in `whatif._not_applicable`,
+> with a sentence explaining each. That declaration is what `validateDb` reads before permitting the
+> emptiness, what `GET /whatif` serves as `not_applicable`, and what the pool step prints instead of
+> an empty chip row — an empty control reads as one that failed to load, which is the distinction
+> the declaration exists to draw. **The lever model is not built.** Building it means a second
+> interaction in `WhatIfPage`, a server endpoint that recomputes an envelope from a lever position,
+> and the drawing to go with it; none of the machinery below has to be removed for it.
+
 Where a load is judged **before** it is accepted. Ingested from
 `09_What if lens/whatif_vls_data.json` by `npm run ingest:whatif` into `db.whatif` —
 24 candidate generators with their federal records, 4 watchable measures, 4 candidate
@@ -1516,11 +1602,15 @@ no baseline — a consent decree is not something a facility keeps a running cou
 reports `null` rather than `0`, because 0 would be a claim. A load that moves nothing
 says so instead of printing "+0".
 
-**The breach rule is real but currently unreachable, and that is the data's answer.**
-`enf` breaches at the facility's 10-action appetite; the baseline is 0 and the largest
-single load carries 4, so one load cannot cross it. Headroom is the measure that answers
-"how close am I" — the package's own formula, computed per pool at ingest — and it says
-5 more enforcement-carrying loads. Do not manufacture a breach to exercise the styling.
+**There is no breach arithmetic under CAPEX, because there is no load to compute it over.**
+The rule and the headroom formula are intact and unexercised: Northline's capital programme
+exposes continuous cost levers rather than a pool of swappable candidate loads, so
+`whatif.generators` and `whatif.candidate_pools` are empty **by declaration** — see the
+*What-if under CAPEX* note below — and there is no "largest single load" to add to a
+baseline. Do not manufacture one to exercise the styling, and do not restore the paragraph
+that used to be here: it described EPA's roster (`enf` breaching at a 10-action appetite,
+a largest load of 4, headroom of 5), and `check-docs` fails on that sentence being present
+while the data cannot support it.
 
 **Both graph references are drawn, and the drawing is the payload's.** The pool step opens
 a **frame** — every candidate in the pool, fanned into the facility they ship to — and a
@@ -1556,6 +1646,64 @@ arrives as an empty 400 — the route sends those verbatim.
 write.
 
 ### Reports (`/reports`)
+
+> **Reports under CAPEX: the three reports render from the tenant's own resolved output.**
+> `src/report/` is the CAPEX reports package — `report_specs.json` (the definitions, which hold no
+> figures), `report_data.json` (the rosters, measures and the tenant), `report_resolved.json` (what
+> the product's own resolver returned when it ran those specs) and the three rendered HTML reports.
+> `npm run ingest:capex-reports` writes the resolved reports into `db.reports.reports`;
+> `src/components/report/CapexBlocks.tsx` draws them.
+>
+> **These reports are `written` and cannot be re-asked, and that is the honest handling.** EPA's
+> blocks are *definitions* this server resolves per request from `db.reports.data`, which is what
+> lets a facet chip re-ask the report and move the chart, the table and the tiles together.
+> Northline's arrive resolved: each figure carries its coordinate (basis × period frame × vintage),
+> its `display` and `exact` forms, a coverage seam and a provenance id. Re-deriving them would be
+> reimplementing that resolver from its own output — and the register they are asked of carries a
+> project's region, category and phase, **not its actuals**, so the recomputation would be weaker
+> figures under the same headings. `RESOLVED_BLOCKS` in `server.mjs` passes such a block through
+> untouched; `reportBuild` marks the report `written`; and `reportBuild` already withholds a
+> generated summary rather than summing absent fields to a confident zero.
+>
+> **Seventeen block kinds, and an unknown one is named rather than dropped** — `figRow`, `bar`,
+> `heatmap`, `bubble`, `varianceRows`, `reasonMix`, `narrative`, `ask`, `header`, `chain`,
+> `progressSplit`, `schedule`, `vendors`, `lineItems`, `annotations`, `filingCalendar`, `calendar`.
+> A kind the payload holds and the renderers do not is a report quietly one section short, which on
+> screen looks exactly like a report with that much to say; `check-docs` compares the document, the
+> validator's list and the renderer map, and `CapexBlockView` prints the kind it cannot draw.
+>
+> **What these renderers must not drop, because it is the package's whole point:**
+>
+> - **A coordinate.** `$4.41B` on record basis this period and `$5.00B` on commitment basis this
+>   period are different questions. `coordStated` is rendered wherever it exists — a figure shown
+>   without it invites a subtraction the report never licensed. The `bar` block draws its baseline as
+>   a *line over the bar* rather than a second bar for exactly this reason.
+> - **A coverage seam.** The 60 projects are a proportional sample of a declared 4,500-project
+>   programme: the tables foot to the sample, the headline cards foot to the programme, and the seam
+>   is labelled per block.
+> - **A refusal.** `whyNoTotal`, `unbackedNote`, `maskNote`, `floorNote` and `noPackagesNote` each
+>   say why something a reader expects is absent. The calendar has no window total *on purpose* —
+>   the window spans two bases — and the reason stands where the total would have gone.
+>
+> **The tiles are lifted from each report's own `figRow`, never transcribed.** EPA's ingest guards
+> that seam by recomputing 17 identities against the roster; here there is no roster to recompute
+> against, so the stronger guarantee is used instead — there is one copy, and the tile strip *is* the
+> block.
+>
+> **Open report opens the tenant’s own rendered page, in a new tab.** The package ships one rendered
+> HTML per definition, and they are one file: normalise the single `REPORT_ID` line and all three hash
+> identically. `npm run ingest:capex-reports` writes **one** page to `public/report/capex-report.html`
+> whose id comes from the query string, and refuses if the sources ever differ anywhere else. Each
+> report carries its own `rendered_href`, served rather than built in the client; a report without one
+> falls back to the in-app render, so Open is offered either way. It is a new tab because the page has
+> its own sidebar and wordmark — framing it would put two consoles on one screen, which is why the
+> vendored prototype’s own `Sidebar` was dropped on the way in. **`rendered_href` must be *present* on
+> every report row**, `null` included: a process older than the field writes rows without it and the
+> Library silently loses Open on every card.
+>
+> **Still not wired:** the authoring prototype (`src/reports/`) continues to show its own bundled
+> sample rather than `src/report/report_authoring_data.json`, and the facet chips do not re-ask
+> these reports — there is nothing to re-ask them with.
 
 **The section is the demo package's authoring prototype, vendored whole.** `src/reports/` is a
 port of `vls_demo_data_package_2026-08-10/repor code` — its own types, panes, block renderers,

@@ -27,8 +27,9 @@
 
 import { Alert, Select } from 'antd'
 
-import type { BuiltReport, Report } from '../../api/client'
+import type { BuiltReport, ComputedReportBlock, Report } from '../../api/client'
 import { useReportsStore } from '../../store/reportsStore'
+import CapexBlockView, { CAPEX_BLOCK_KINDS, type CapexBlock } from './CapexBlocks'
 import ReportBlockView from './ReportBlocks'
 import { Footnote, KpiRow, Note, ReportShell, type KpiItem, type KpiTone } from './ui'
 
@@ -210,10 +211,28 @@ export default function PublishedReport({ report }: { report: Report | BuiltRepo
         </ul>
       ) : null}
 
-      {/* A card per block, in the order the report defines them. */}
-      {report.blocks.map((block, i) => (
-        <ReportBlockView key={`${block.type}-${i}`} block={block} />
-      ))}
+{/*
+        * A card per block, in the order the report defines them — drawn by whichever family the block
+        * belongs to.
+        *
+        * **Two families, because the two tenants' reports are two different things.** EPA's blocks are
+        * definitions the server resolves per request (`chart`, `table`, `facilities`, `quarterly`,
+        * `traces`), so a facet chip re-asks the report and every figure moves together. Northline's
+        * arrive already resolved from its own resolver, each figure carrying its coordinate, its exact
+        * form and its provenance — seventeen kinds, none of which the five renderers know.
+        *
+        * Dispatching on the kind rather than on the report keeps both working and keeps the choice in
+        * one place: a block is drawn by the family that has a renderer for it, and `CapexBlockView`
+        * names an unknown kind rather than dropping it.
+        */}
+      {report.blocks.map((block, i) => {
+        const key = `${block.type}-${i}`
+        return CAPEX_BLOCK_KINDS.includes(block.type) ? (
+          <CapexBlockView key={key} block={block as unknown as CapexBlock} />
+        ) : (
+          <ReportBlockView key={key} block={block as ComputedReportBlock} />
+        )
+      })}
 
       <Footnote>
         {report.footer.map((note) => (

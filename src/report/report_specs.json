@@ -1,0 +1,1704 @@
+{
+ "generatedAt": "2026-08-18",
+ "source": "latest_html_prototype/build/11_db_reports.js",
+ "note": "Verbatim. These are the report specs the prototype ships. A spec holds no figures -- it names measures, coordinates, grains and filters. Every number in this package comes from resolved.json, which is what the product's own resolver returned when it ran these specs.",
+ "reportCount": 3,
+ "reports": [
+  {
+   "binding": {
+    "graph": "g_capital_programs",
+    "graphVersion": "v1",
+    "pack": "capital-projects",
+    "packVersion": "1.3.0",
+    "overlay": "water-wastewater",
+    "overlayVersion": "0.9.1"
+   },
+   "exportFormats": [
+    "PDF",
+    "XLSX",
+    "CSV"
+   ],
+   "id": "rep_q_variance",
+   "slug": "variance-report",
+   "name": "Variance Report",
+   "subtitle": "Where spend is running against the calendarised plan, down to the contract line item and the message that explains it",
+   "category": "Controls",
+   "thumb": "variance",
+   "status": "published",
+   "version": 13,
+   "author": "pp_lindqvist",
+   "approvedBy": "pp_whitfield",
+   "approvedAt": "2026-03-12T10:40:00Z",
+   "createdAt": "2025-11-18T13:05:00Z",
+   "lastEditedAt": "2026-03-11T16:55:00Z",
+   "audience": [
+    "persona_architect",
+    "persona_analyst",
+    "persona_exec",
+    "persona_project"
+   ],
+   "refresh": {
+    "mode": "scheduled",
+    "cron": "0 7 * * *",
+    "label": "Daily 07:00 UTC",
+    "onDemand": true
+   },
+   "refreshNote": "The schedule covers the ledger blocks only. The line-item explanations and the two correspondence blocks are runtime: they are read under the asking session's own mailbox entitlement at the moment the report is opened, and nothing from them is cached. Two people opening this report an hour apart can legitimately see different messages, and neither inherits the other's access. Caching them nightly would produce an extract owned by whoever ran it, which is the permission leak the runtime class exists to avoid.",
+   "lastRefresh": "2026-03-31T07:00:00Z",
+   "nextRefresh": "2026-04-01T07:00:00Z",
+   "grain": "region \u00d7 execCategory",
+   "embeddedAsk": true,
+   "spec": {
+    "objective": "Show where spend is running behind the calendarised plan, and refuse to let underspend read as good news.",
+    "filters": [
+     {
+      "field": "inFlight",
+      "op": "=",
+      "value": true,
+      "why": "A project that has not started cannot vary from a period plan."
+     }
+    ],
+    "viewParams": [
+     "region",
+     "execCat",
+     "period",
+     "phase"
+    ],
+    "viewTypes": [
+     "Region",
+     "Category",
+     "Jurisdiction",
+     "Manager"
+    ],
+    "blocks": [
+     {
+      "id": "b1",
+      "type": "figRow",
+      "label": "Q1 2026",
+      "grain": "portfolio",
+      "source": "portfolio",
+      "figures": [
+       {
+        "key": "periodPlan",
+        "measure": "m_plan_period",
+        "coord": {
+         "basis": "commitment",
+         "period_frame": "single"
+        },
+        "label": "Period plan"
+       },
+       {
+        "key": "periodActual",
+        "measure": "m_actual",
+        "coord": {
+         "basis": "record",
+         "period_frame": "single"
+        },
+        "label": "Actual spend"
+       },
+       {
+        "key": "periodVariance",
+        "measure": "m_variance_period",
+        "coord": {
+         "basis": "record",
+         "period_frame": "single"
+        },
+        "signed": true,
+        "label": "Variance"
+       },
+       {
+        "key": "periodVariancePct",
+        "measure": "m_variance_pct",
+        "coord": {
+         "basis": "record",
+         "period_frame": "single"
+        },
+        "label": "Variance %"
+       }
+      ],
+      "basisNote": "Plan is commitment basis, actual is record basis. The comparison between them is declared on m_variance_period \u2014 it is the one operation defined across these two bases, and the report states it rather than leaving a reader to assume."
+     },
+     {
+      "id": "b1a",
+      "type": "bar",
+      "label": "Actual spend against the calendarised plan, by category",
+      "chartType": "column",
+      "grain": "execCategory",
+      "source": "portfolio.variancePeriodByCategory",
+      "groupBy": "execCategory",
+      "series": [
+       {
+        "key": "actual",
+        "label": "Actual spend"
+       }
+      ],
+      "baseline": {
+       "key": "plan",
+       "label": "Calendarised plan",
+       "coord": {
+        "basis": "commitment",
+        "period_frame": "single"
+       }
+      },
+      "measure": "m_actual",
+      "coord": {
+       "basis": "record",
+       "period_frame": "single"
+      },
+      "axisLabel": "USD \u00b7 period",
+      "note": "One bar per category and the plan as a line over it, rather than two bars side by side. Plan is commitment basis and actual is record basis; drawing them as equal siblings invites the reader to add them, and the only licensed operation between these two bases is the subtraction declared on m_variance_period. The gap between the bar and the line is that subtraction, and it is the shape the whole report is about."
+     },
+     {
+      "id": "b2",
+      "type": "heatmap",
+      "label": "Variance by region and category",
+      "grain": "region \u00d7 execCategory",
+      "source": "portfolio.varianceHeatmap",
+      "rowsKey": "regions",
+      "colsKey": "categories",
+      "zKey": "z",
+      "measure": "m_variance_period",
+      "coord": {
+       "basis": "record",
+       "period_frame": "single"
+      },
+      "unit": "USD",
+      "signed": true,
+      "scale": {
+       "kind": "diverging",
+       "midpoint": 0,
+       "negLabel": "under plan",
+       "posLabel": "over plan"
+      },
+      "note": "Cells are signed dollars, not percentages. A percentage heatmap over cells of wildly different size makes a $40k blanket overrun look like a $40M treatment overrun."
+     },
+     {
+      "id": "b2a",
+      "type": "bubble",
+      "label": "Period variance against physical progress",
+      "grain": "project",
+      "source": "projects",
+      "x": {
+       "key": "pctComplete",
+       "measure": "m_pct_complete",
+       "coord": {
+        "basis": "record",
+        "period_frame": "single"
+       },
+       "label": "Physical % complete"
+      },
+      "y": {
+       "key": "periodVariance",
+       "measure": "m_variance_period",
+       "coord": {
+        "basis": "record",
+        "period_frame": "single"
+       },
+       "signed": true,
+       "label": "Period variance \u00b7 USD"
+      },
+      "r": {
+       "key": "budget",
+       "measure": "m_budget",
+       "coord": {
+        "basis": "commitment",
+        "period_frame": "full_span"
+       },
+       "label": "Approved budget"
+      },
+      "colorBy": "execCategory",
+      "labelKey": "code",
+      "quadrant": {
+       "xAt": 50,
+       "yAt": 0,
+       "labels": {
+        "tl": "Overspending early",
+        "tr": "Overspending late",
+        "bl": "Behind plan, early",
+        "br": "Behind plan, late"
+       },
+       "why": "The horizontal line is zero variance, not a target. Both halves are problems and they are different problems: above it, money is going out faster than the plan allowed; below it, capital is not going into the ground on schedule, which defers the in-service date and therefore the recovery. The vertical line at 50% complete separates the projects where a decision still changes the outcome from the ones where it does not."
+      },
+      "note": "A project's period variance is plotted against how far through it is, so a large number on a nearly-finished project is read differently from the same number on one that has barely started. Sixty projects, so the plot is a shape rather than a list \u2014 the table below names the ones at the edges."
+     },
+     {
+      "id": "b3",
+      "type": "varianceRows",
+      "label": "Period variance by project",
+      "grain": "project",
+      "source": "projects",
+      "sort": {
+       "key": "periodVariance",
+       "dir": "asc"
+      },
+      "rank": {
+       "policy": "by_absolute_variance",
+       "why": "Ranked by absolute period variance so a large underspend and a large overspend both surface. Ranking by signed value would hide every underspend below the fold."
+      },
+      "columns": [
+       {
+        "key": "code",
+        "label": "Code"
+       },
+       {
+        "key": "name",
+        "label": "Project"
+       },
+       {
+        "key": "regionCode",
+        "label": "Region"
+       },
+       {
+        "key": "execCategory",
+        "label": "Category"
+       },
+       {
+        "key": "managerName",
+        "label": "Manager",
+        "sensitive": true
+       },
+       {
+        "key": "planPeriod",
+        "measure": "m_plan_period",
+        "coord": {
+         "basis": "commitment",
+         "period_frame": "single"
+        },
+        "label": "Plan"
+       },
+       {
+        "key": "actualPeriod",
+        "measure": "m_actual",
+        "coord": {
+         "basis": "record",
+         "period_frame": "single"
+        },
+        "label": "Actual"
+       },
+       {
+        "key": "periodVariance",
+        "measure": "m_variance_period",
+        "coord": {
+         "basis": "record",
+         "period_frame": "single"
+        },
+        "signed": true,
+        "label": "Variance"
+       },
+       {
+        "key": "pctComplete",
+        "measure": "m_pct_complete",
+        "coord": {
+         "basis": "record",
+         "period_frame": "single"
+        },
+        "label": "% complete"
+       }
+      ],
+      "expand": {
+       "of": "changeOrders",
+       "policy": {
+        "confidenceFloor": 0.7,
+        "pctOfBudget": 0.005,
+        "floorUSD": 5000
+       },
+       "note": "Every project the scope admits is listed \u2014 not a top twelve \u2014 because a table that shows the worst twelve answers who is worst, and the question this report is asked is where the period went. Opening a row shows the change orders raised against that project with the amount each moved, and against each one the message that explains it: the sender, the date, the subject and the text it was read out of. There is no package layer here. A package number is a fact about a contract document, and this report is a fact about the ledger \u2014 putting packages on a variance row would present a structure the spreadsheet does not carry.",
+       "absentNote": "A project with no contract in the corpus has no change order to open. It says so rather than opening empty, and where a message references the project without a change order behind it, the message is shown at project level and labelled as such."
+      }
+     },
+     {
+      "id": "b3b",
+      "type": "reasonMix",
+      "label": "What the variance was for, across the portfolio",
+      "grain": "portfolio",
+      "source": "projects",
+      "policy": {
+       "confidenceFloor": 0.7,
+       "pctOfBudget": 0.005,
+       "floorUSD": 5000
+      },
+      "policyNote": "Two floors, and they are different tests. Confidence asks whether the extraction can be trusted; materiality asks whether anybody should be told even if it can. Both are Pack policy read off this spec, so changing either re-derives the roll-up rather than needing a rebuild.",
+      "note": "One reason class per row, counted and totalled across every project the scope admits. The individual messages are not repeated here \u2014 each one sits on the project it explains, in the row above. What this block adds is the thing no single row can show: that the portfolio's movement is concentrated in two or three reasons, and which ones.",
+      "coverageNote": "The coverage bar is the honest denominator: money that moved materially, against money a message accounts for. The gap is not an extraction failure, it is projects nobody wrote about."
+     },
+     {
+      "id": "b3c",
+      "type": "discoveryMisses",
+      "label": "What was not found",
+      "grain": "portfolio",
+      "source": "portfolio",
+      "compact": true,
+      "silentLimit": 12,
+      "policy": {
+       "confidenceFloor": 0.7,
+       "pctOfBudget": 0.005,
+       "floorUSD": 5000
+      },
+      "compactNote": "One line, not a register. The full breakdown by failure class was cut on 2026-08-09: on a controls report it read as five ways the product does not work, in front of a reader who had come to find out where the quarter went. The number stays on the face of the report because a coverage figure with no denominator is worse than none \u2014 what went is the count, not the anatomy."
+     },
+     {
+      "id": "b4",
+      "type": "narrative",
+      "label": "Reading this",
+      "body": "Actual spend of $PERIODACTUAL against a period plan of $PERIODPLAN leaves the portfolio $PERIODVARIANCE against plan, $PERIODVARIANCEPCT [[1]]. The concentration is regional rather than categorical: three of five regions are within 4% of plan and the variance is carried by the rest [[2]].",
+      "cites": [
+       {
+        "n": 1,
+        "ref": "EPBCS plan \u00b7 calendarised Q1 plan \u00b7 GL postings periods 1\u20133"
+       },
+       {
+        "n": 2,
+        "ref": "Variance by region \u00d7 category"
+       }
+      ]
+     },
+     {
+      "id": "b5",
+      "type": "narrative",
+      "label": "Why underspend is not good news",
+      "role": "exclusion",
+      "body": "A negative variance here means capital did not go into the ground on schedule. Because return is earned on rate base and rate base begins at in-service, deferred spend is deferred recovery. This report deliberately does not colour underspend green."
+     },
+     {
+      "id": "b6",
+      "type": "ask",
+      "label": "Ask about this report",
+      "suggestions": [
+       "What is the estimate at completion for Elkhart Granular Media Retrofit?",
+       "What did correspondence say about Elkhart Granular Media Retrofit?",
+       "How did FY2023 commitments compare with FY2023 budget?"
+      ],
+      "suggestionNote": "The starters follow the report downwards rather than sideways: the figure, then the message that explains it, then a question the system declines. The third is kept deliberately \u2014 it is the FY2023 comparison, which abstains and offers the FY2024 rephrasing instead, and a starter set with no honest miss in it teaches the reader that every question lands. The retired starter pointed at a report that has since been archived; archiving removes a report from discovery, and a suggested question is discovery."
+     }
+    ]
+   },
+   "caveats": [
+    {
+     "kind": "asof",
+     "body": "GL postings sync daily; the approval extract syncs weekly. The as-of shown is the older of the two. Correspondence has no cadence and no as-of of its own \u2014 the as-of of the explanation blocks belongs to the read, and re-running the report will move it."
+    },
+    {
+     "kind": "definition",
+     "body": "Variance % is non-additive and is recomputed at the displayed grain. The portfolio figure is not the average of the rows."
+    },
+    {
+     "kind": "extraction",
+     "body": "Every reason on this report is an inference from a document, not a field anybody filled in. The confidence on each row is the extractor's, the binding to a project is the extractor's, and one of the rows below was bound wrongly at a confidence that looked decisive until a person who knew the contract moved it."
+    },
+    {
+     "kind": "coverage",
+     "body": "The corpus is one mailbox class over one month. It is not the whole of what was written, and the projects listed as having no stated reason may have one in a system this connector does not read. The count is honest about what was searched, not about what exists."
+    }
+   ]
+  },
+  {
+   "binding": {
+    "graph": "g_capital_programs",
+    "graphVersion": "v1",
+    "pack": "capital-projects",
+    "packVersion": "1.3.0",
+    "overlay": "water-wastewater",
+    "overlayVersion": "0.9.1"
+   },
+   "exportFormats": [
+    "PDF",
+    "XLSX",
+    "CSV"
+   ],
+   "id": "rep_proj_360",
+   "slug": "project-360",
+   "name": "Project 360",
+   "subtitle": "One project, from approved budget through to rate base, with the contract packages and the correspondence that moved them",
+   "category": "Delivery",
+   "thumb": "card",
+   "status": "published",
+   "version": 15,
+   "author": "pp_whitfield",
+   "approvedBy": "pp_whitfield",
+   "approvedAt": "2026-03-18T13:00:00Z",
+   "selfApproval": true,
+   "selfApprovalNote": "Author and approver are the same person. That is allowed for a Domain Architect and is recorded as a self-approval in the audit log rather than being hidden.",
+   "createdAt": "2025-09-04T10:00:00Z",
+   "lastEditedAt": "2026-03-18T12:40:00Z",
+   "audience": [
+    "persona_architect",
+    "persona_analyst",
+    "persona_exec",
+    "persona_project"
+   ],
+   "refresh": {
+    "mode": "onDemand",
+    "cron": null,
+    "label": "On demand",
+    "onDemand": true
+   },
+   "lastRefresh": "2026-03-31T09:12:00Z",
+   "nextRefresh": null,
+   "grain": "project",
+   "embeddedAsk": true,
+   "spec": {
+    "objective": "Give one project's full financial position with the provenance attached, so a review meeting argues about the project rather than about the numbers.",
+    "filters": [],
+    "viewParams": [
+     "project"
+    ],
+    "viewTypes": [
+     "Project"
+    ],
+    "blocks": [
+     {
+      "id": "b1",
+      "type": "header",
+      "label": "Project 360",
+      "sub": "$PROJECTNAME \u00b7 $PROJECTCODE",
+      "dynamic": true
+     },
+     {
+      "id": "b2",
+      "type": "chain",
+      "label": "Where the money sits",
+      "grain": "project",
+      "source": "project",
+      "stages": [
+       "vc_budget",
+       "vc_authorized",
+       "vc_committed",
+       "vc_actual",
+       "vc_cwip",
+       "vc_capitalized",
+       "vc_ratebase"
+      ],
+      "note": "Each stage is a different measure at a different coordinate. The chain is a sequence, not a sum \u2014 nothing here adds across stages."
+     },
+     {
+      "id": "b3",
+      "type": "figRow",
+      "label": "Position",
+      "grain": "project",
+      "source": "project",
+      "figures": [
+       {
+        "key": "budget",
+        "measure": "m_budget",
+        "coord": {
+         "basis": "commitment",
+         "period_frame": "full_span"
+        },
+        "label": "Approved budget"
+       },
+       {
+        "key": "eac",
+        "measure": "m_eac",
+        "coord": {
+         "basis": "projection",
+         "period_frame": "full_span"
+        },
+        "label": "Estimate at completion"
+       },
+       {
+        "key": "eacVariance",
+        "measure": "m_eac_variance",
+        "coord": {
+         "basis": "projection",
+         "period_frame": "full_span"
+        },
+        "signed": true,
+        "label": "EAC variance"
+       },
+       {
+        "key": "actual",
+        "measure": "m_actual",
+        "coord": {
+         "basis": "record",
+         "period_frame": "to_date",
+         "origin": "project_inception"
+        },
+        "label": "Actual to date"
+       },
+       {
+        "key": "committed",
+        "measure": "m_committed",
+        "coord": {
+         "basis": "commitment",
+         "period_frame": "single"
+        },
+        "label": "Open commitments",
+        "note": "Commitment basis, not projection. A PM reading a position row without this figure cannot tell how much of the remaining estimate is already spent in everything but name."
+       },
+       {
+        "key": "cwip",
+        "measure": "m_cwip",
+        "coord": {
+         "basis": "record",
+         "period_frame": "single"
+        },
+        "label": "CWIP balance"
+       },
+       {
+        "key": "cwipAgeDays",
+        "measure": "m_cwip_age",
+        "coord": {
+         "basis": "record",
+         "period_frame": "single"
+        },
+        "label": "CWIP age"
+       }
+      ]
+     },
+     {
+      "id": "b3a",
+      "type": "bar",
+      "label": "Spend by month against the calendarised plan",
+      "grain": "project",
+      "source": "project.monthly",
+      "axisKey": "months",
+      "axisLabel": "FY2026 by month",
+      "unit": "USD",
+      "coord": {
+       "basis": "record",
+       "period_frame": "monthly"
+      },
+      "series": [
+       {
+        "key": "actual",
+        "measure": "m_actual",
+        "label": "Actual spend"
+       },
+       {
+        "key": "workingForecast",
+        "measure": "m_forecast",
+        "label": "Working forecast"
+       }
+      ],
+      "baseline": {
+       "key": "plan",
+       "label": "Calendarised plan",
+       "coord": {
+        "basis": "commitment",
+        "period_frame": "monthly"
+       }
+      },
+      "note": "Actual is posted only through the closed months; the working forecast carries the rest of the year. The plan is the January calendarisation and is drawn as a line rather than folded into the bars, because a commitment-basis plan and a projection-basis forecast do not add."
+     },
+     {
+      "id": "b3b",
+      "type": "bar",
+      "label": "Spend profile across the plan horizon, and how it moved between adoptions",
+      "grain": "project",
+      "source": "project.yearPlan",
+      "axis": [
+       "FY26",
+       "FY27",
+       "FY28",
+       "FY29",
+       "FY30",
+       "FY31",
+       "FY32"
+      ],
+      "axisLabel": "Fiscal year",
+      "unit": "USD",
+      "chartType": "group",
+      "coord": {
+       "basis": "commitment",
+       "period_frame": "annual"
+      },
+      "series": [
+       {
+        "key": "working",
+        "measure": "m_budget",
+        "label": "Working plan"
+       },
+       {
+        "key": "mtp",
+        "measure": "m_budget",
+        "label": "Mid-term plan"
+       }
+      ],
+      "note": "Two adoptions of the same plan, side by side rather than stacked \u2014 they are two views of one horizon, not two amounts to be added. Where the working plan sits above the mid-term plan the money moved earlier; where it sits below, later. A year of deferral here is a year of deferred rate-base recovery, which is why this chart is on the project card and not only in the plan-movement report."
+     },
+     {
+      "id": "b4",
+      "type": "progressSplit",
+      "label": "Cost against physical progress",
+      "grain": "project",
+      "source": "project",
+      "left": {
+       "key": "pctComplete",
+       "measure": "m_pct_complete",
+       "coord": {
+        "basis": "record",
+        "period_frame": "single"
+       },
+       "label": "Physical"
+      },
+      "right": {
+       "key": "engPctComplete",
+       "measure": "m_pct_complete",
+       "coord": {
+        "basis": "record",
+        "period_frame": "single"
+       },
+       "label": "Engineering"
+      },
+      "costPct": {
+       "expr": "actual / eac * 100",
+       "label": "Cost"
+      },
+      "note": "Cost progress ahead of physical progress is the earliest signal of an EAC problem, and it appears before any change order is raised."
+     },
+     {
+      "id": "b5",
+      "type": "schedule",
+      "label": "In-service",
+      "grain": "project",
+      "source": "project",
+      "planned": "plannedInService",
+      "forecast": "forecastInService",
+      "variance": {
+       "key": "scheduleVarianceMonths",
+       "measure": "m_schedule_variance",
+       "coord": {
+        "basis": "projection",
+        "period_frame": "full_span"
+       },
+       "signed": true,
+       "label": "Slip"
+      },
+      "note": "Every month of slip is a month of deferred rate-base recovery."
+     },
+     {
+      "id": "b6",
+      "type": "vendors",
+      "label": "Commitment exposure by contractor",
+      "grain": "project",
+      "source": "project",
+      "sensitive": true,
+      "sensitiveNote": "Vendor identity is masked for scope classes without allowVendors. The masking happens server-side; a masked viewer never receives the name.",
+      "columns": [
+       "vendor",
+       "packages",
+       "awarded",
+       "changeOrders",
+       "committed"
+      ],
+      "note": "Rolled up from the contract agreements bound to this project, not divided out of the project commitment total. Awarded and contractor name are extracted from the conformed agreement.",
+      "openPOsWithdrawn": "The open-purchase-order and PO-count columns were removed on 2026-08-09. The CAPEX extract carries no purchase-order columns, so both were empty on all sixty projects and their only content was an explanation of the emptiness."
+     },
+     {
+      "id": "b6a",
+      "type": "lineItems",
+      "label": "Contract packages \u2014 what was let, what moved, and the message that explains it",
+      "grain": "project",
+      "source": "project",
+      "limit": 12,
+      "policy": {
+       "confidenceFloor": 0.7,
+       "pctOfBudget": 0.005,
+       "floorUSD": 5000
+      },
+      "note": "The figures above are this project's totals; this is the project opened up. Each package carries its award, its approved change orders and its revised value, and against each change order the correspondence that explains it \u2014 who sent it, which side they are on, when it was sent, the subject and the sentence the extractor read. The explanation is labelled as a claim with the extractor's confidence on it, never as a field somebody filled in. A package that moved with no message behind it says so, because that is the line a rate case is exposed on."
+     },
+     {
+      "id": "b7",
+      "type": "annotations",
+      "label": "Notes on this project",
+      "grain": "figure",
+      "bindingNote": "Annotations bind to a figure coordinate \u2014 report, block, measure at a coordinate, dimension members, period. Never to a rendered cell, a run id or an as-of, because those change on every refresh and the note would follow the wrong number.",
+      "allowFrom": "scope.allowAnnotate",
+      "allowNote": "Authorisation comes from the viewer's scope class, delegated entirely to component 12. The fallback when 12 has not resolved is read-only \u2014 never 'the report's audience may annotate', because entitlement to see is not entitlement to write."
+     },
+     {
+      "id": "b9",
+      "type": "ask",
+      "label": "Ask about this project",
+      "suggestions": [
+       "What is the estimate at completion for Elkhart Granular Media Retrofit?",
+       "What did correspondence say about Elkhart Granular Media Retrofit?",
+       "How much have we spent?"
+      ]
+     }
+    ]
+   },
+   "caveats": [
+    {
+     "kind": "asof",
+     "body": "Authorised amount resolves from the plan-version chain in the weekly approval extract. It is the oldest contributing source and it sets the as-of for the whole card."
+    }
+   ]
+  },
+  {
+   "binding": {
+    "graph": "g_capital_programs",
+    "graphVersion": "v1",
+    "pack": "capital-projects",
+    "packVersion": "1.3.0",
+    "overlay": "water-wastewater",
+    "overlayVersion": "0.9.1"
+   },
+   "exportFormats": [
+    "PDF",
+    "XLSX",
+    "CSV"
+   ],
+   "id": "rep_pis_calendar",
+   "slug": "placed-in-service-calendar",
+   "name": "Rate-Case Filing Calendar",
+   "subtitle": "Which in-service capital makes its jurisdiction's next filing \u2014 and which waits for the case after",
+   "category": "Regulatory",
+   "thumb": "calendar",
+   "status": "published",
+   "version": 7,
+   "author": "pp_lindqvist",
+   "approvedBy": "pp_whitfield",
+   "approvedAt": "2026-03-22T11:30:00Z",
+   "createdAt": "2026-01-14T14:20:00Z",
+   "lastEditedAt": "2026-03-22T10:05:00Z",
+   "audience": [
+    "persona_architect",
+    "persona_analyst",
+    "persona_exec",
+    "persona_project"
+   ],
+   "refresh": {
+    "mode": "scheduled",
+    "cron": "0 6 1 * *",
+    "label": "1st of the month, 06:00 UTC",
+    "onDemand": true
+   },
+   "lastRefresh": "2026-03-01T06:00:00Z",
+   "nextRefresh": "2026-04-01T06:00:00Z",
+   "grain": "month",
+   "embeddedAsk": false,
+   "spec": {
+    "objective": "Show which in-service capital can be certified before its jurisdiction's filing date and which cannot, per jurisdiction and against that jurisdiction's own lead time \u2014 and separately, when capital is expected to reach rate base at all.",
+    "filters": [
+     {
+      "field": "status",
+      "op": "!=",
+      "value": "On Hold",
+      "why": "A project on hold has no credible in-service date. Completed projects are kept \u2014 they are the ones with a recorded in-service date, which is what the record-basis half of this window is made of."
+     }
+    ],
+    "viewParams": [
+     "pisWindow",
+     "region",
+     "juris"
+    ],
+    "viewTypes": [
+     "Jurisdiction",
+     "Month",
+     "Region"
+    ],
+    "blocks": [
+     {
+      "id": "b1",
+      "type": "figRow",
+      "label": "Exposure to the next filings",
+      "grain": "portfolio",
+      "source": "portfolio",
+      "figures": [
+       {
+        "key": "rcSampleAtRiskCount",
+        "measure": "m_budget",
+        "coord": {
+         "basis": "commitment",
+         "period_frame": "full_span"
+        },
+        "expr": "count",
+        "label": "Projects that miss their case",
+        "note": "In service inside the test year, certified too late to file. Not the same as late \u2014 see the overdue list further down, which is a different set."
+       },
+       {
+        "key": "rcSampleDeferredCapital",
+        "measure": "m_budget",
+        "coord": {
+         "basis": "commitment",
+         "period_frame": "full_span"
+        },
+        "label": "Capital deferred to the next case",
+        "note": "Approved budget of those projects. CAPITAL, not the cost of deferring it \u2014 the carrying-rate question is open, see the gap note at the foot of this report."
+       },
+       {
+        "key": "rcNextFilingDays",
+        "measure": "m_budget",
+        "coord": {
+         "basis": "commitment",
+         "period_frame": "full_span"
+        },
+        "expr": "count",
+        "label": "Days to the nearest filing deadline",
+        "note": "ICC. It files third of the five and is due first, because its 60-day lead is the shortest. Ordering by filing date would put it in the middle."
+       }
+      ],
+      "populationNote": "The first two figures are computed over the 60 projects in this fixture, not declared at programme scale like the rate-base card below. A filing verdict needs a forecast in-service date per project and only the sample carries one.",
+      "basisNote": "Deferred capital is approved budget at commitment basis. It is not added to any projection-basis figure on this page."
+     },
+     {
+      "id": "b2",
+      "type": "filingCalendar",
+      "label": "By jurisdiction",
+      "grain": "jurisdiction",
+      "source": "portfolio",
+      "key": "rateCaseExposure",
+      "measure": "m_budget",
+      "coord": {
+       "basis": "commitment",
+       "period_frame": "full_span"
+      },
+      "derivedField": {
+       "key": "filingBy",
+       "from": [
+        "filingDate",
+        "leadDays"
+       ],
+       "rule": "filing-by = filing date minus the jurisdiction's certification lead",
+       "whyKey": "leadWhy",
+       "note": "Derived here, not read from a source. No system holds this date; the filing date comes from the commission's docket and the lead time is tenant configuration on the calendar entry."
+      },
+      "windowKey": "squeezeWindow",
+      "emptyWindowNote": "No window. This jurisdiction's certification lead fits inside the gap between its test-year end and its filing date, so nothing in service inside the test year can be too late to certify. That is a result, not a blank \u2014 the check ran and found the structure benign.",
+      "columns": [
+       {
+        "key": "jurisdiction",
+        "label": "Jurisdiction"
+       },
+       {
+        "key": "filingDate",
+        "label": "Files",
+        "kind": "date"
+       },
+       {
+        "key": "leadDays",
+        "label": "Certification lead",
+        "kind": "days",
+        "whyKey": "leadWhy",
+        "note": "Tenant configuration per Pack DP-CP-Q12, not a platform constant. Five entries, five different values, each with its reason attached."
+       },
+       {
+        "key": "filingBy",
+        "label": "In service by",
+        "kind": "date",
+        "derived": true
+       },
+       {
+        "key": "testYearEnd",
+        "label": "Test year ends",
+        "kind": "date"
+       },
+       {
+        "key": "eligibleCount",
+        "label": "Eligible",
+        "kind": "count",
+        "note": "In service inside the test year, so the capital belongs to THIS case on the merits. Everything else belongs to a later one and is not at risk here."
+       },
+       {
+        "key": "atRiskCount",
+        "label": "Miss the case",
+        "kind": "count",
+        "highlight": "risk"
+       },
+       {
+        "key": "deferredCapital",
+        "measure": "m_budget",
+        "coord": {
+         "basis": "commitment",
+         "period_frame": "full_span"
+        },
+        "label": "Deferred"
+       },
+       {
+        "key": "tightestSlackDays",
+        "label": "Tightest slack",
+        "kind": "days",
+        "signed": true,
+        "note": "Days between the tightest eligible project's in-service date and the filing-by date. Negative means it is already inside the window."
+       }
+      ],
+      "note": "Sorted by deadline, not by filing date. Ordered the other way the jurisdiction with the least time left sits third."
+     },
+     {
+      "id": "b2a",
+      "type": "bar",
+      "label": "Capital by filing verdict",
+      "grain": "rcStatus",
+      "source": "projects",
+      "groupBy": "rcStatus",
+      "axisLabels": {
+       "later_case": "Belongs to a later case",
+       "in_case": "Makes this filing",
+       "misses_case": "In service, misses the filing",
+       "no_date": "No forecast in-service date"
+      },
+      "unit": "USD",
+      "coord": {
+       "basis": "commitment",
+       "period_frame": "full_span"
+      },
+      "series": [
+       {
+        "key": "budget",
+        "measure": "m_budget",
+        "label": "Approved budget"
+       }
+      ],
+      "note": "Four verdicts, and only one of them is exposure. Later case is most of the portfolio and is not a problem \u2014 it reaches service after its test year ends, so it was never eligible for this filing. The bar to read is the one that is in service inside the test year and still misses the date."
+     },
+     {
+      "id": "b2b",
+      "type": "bubble",
+      "label": "Slack against the filing deadline",
+      "grain": "project",
+      "source": "projects",
+      "x": {
+       "key": "rcDaysOfSlack",
+       "measure": "m_schedule_variance",
+       "coord": {
+        "basis": "projection",
+        "period_frame": "full_span"
+       },
+       "signed": true,
+       "label": "Days of slack to the in-service-by date"
+      },
+      "y": {
+       "key": "budget",
+       "measure": "m_budget",
+       "coord": {
+        "basis": "commitment",
+        "period_frame": "full_span"
+       },
+       "label": "Approved budget \u00b7 USD"
+      },
+      "r": {
+       "key": "budget",
+       "measure": "m_budget",
+       "coord": {
+        "basis": "commitment",
+        "period_frame": "full_span"
+       },
+       "label": "Approved budget"
+      },
+      "colorBy": "jurisdiction",
+      "labelKey": "code",
+      "quadrant": {
+       "xAt": 0,
+       "yAt": 0,
+       "labels": {
+        "tl": "Large, already past the date",
+        "tr": "Large, still has time",
+        "bl": "Small, already past the date",
+        "br": "Small, still has time"
+       },
+       "why": "The vertical line is the in-service-by date, not a target \u2014 left of it the certification window has already closed and the capital waits for the next case. Height is how much capital rides on that. A project near the line with a large budget is the one where a few weeks of slip moves the most money into a later case."
+      },
+      "note": "Slack is derived \u2014 filing date minus the jurisdiction's certification lead, minus the forecast in-service date \u2014 and no source system holds it. Colour is jurisdiction because the deadline is a property of the commission, not of the project."
+     },
+     {
+      "id": "b3",
+      "type": "narrative",
+      "label": "Reading this",
+      "body": "$RCATRISK projects worth $RCDEFERRED are in service inside their test year and still miss their filing: the asset works, the capital earns nothing until the next case [[1]]. They are on plan \u2014 late only against a calendar that belongs to a commission and that no project schedule contains [[2]]. The nearest deadline is $RCNEXTJURIS at $RCNEXTFILINGBY, $RCNEXTDAYS days out, first because its certification lead is the shortest rather than because it files first [[3]]. $RCNOWINDOWJURIS show no exposure at all, and structurally cannot: their lead fits inside the gap between test-year end and filing date, so the squeeze window has zero width. $RCSQUEEZED of five jurisdictions have a window.",
+      "cites": [
+       {
+        "n": 1,
+        "ref": "EPBCS plan \u00b7 forecast in-service dates"
+       },
+       {
+        "n": 2,
+        "ref": "Jurisdiction filing calendar \u00b7 tenant configuration"
+       },
+       {
+        "n": 3,
+        "ref": "Capital Projects Pack \u00b7 DP-CP-Q12 per-entry lead time"
+       }
+      ]
+     },
+     {
+      "id": "b5",
+      "type": "narrative",
+      "label": "What we have not asked",
+      "role": "gap",
+      "body": "Deferred capital is stated as capital. What a year of deferral COSTS depends on the carrying rate on unrecovered plant, which nobody has supplied [[1]]. Multiplying $RCDEFERRED by a plausible percentage would produce the most quotable number on this page and the only one with nothing behind it.",
+      "cites": [
+       {
+        "n": 1,
+        "ref": "Open \u2014 carrying rate on unrecovered plant not supplied"
+       }
+      ]
+     },
+     {
+      "id": "b6",
+      "type": "header",
+      "label": "When capital reaches rate base",
+      "body": "Above is the commission's deadline. This is your own schedule. A project can miss either without missing the other, and the two failures have different owners."
+     },
+     {
+      "id": "b7",
+      "type": "figRow",
+      "label": "Next twelve months",
+      "grain": "portfolio",
+      "source": "portfolio",
+      "figures": [
+       {
+        "key": "pisNext12moCount",
+        "measure": "m_pis_value",
+        "coord": {
+         "basis": "projection",
+         "period_frame": "full_span"
+        },
+        "expr": "count",
+        "label": "Projects"
+       },
+       {
+        "key": "pisNext12moValue",
+        "measure": "m_pis_value",
+        "coord": {
+         "basis": "projection",
+         "period_frame": "full_span"
+        },
+        "label": "Value to rate base"
+       },
+       {
+        "key": "rateBase",
+        "measure": "m_rate_base",
+        "coord": {
+         "basis": "record",
+         "period_frame": "full_span"
+        },
+        "label": "Already in rate base"
+       }
+      ],
+      "populationNote": "Declared at 4,500-project scale, unlike the two sample figures in the first card. The two populations sit on one page and are labelled rather than reconciled, because reconciling them would mean inventing filing verdicts for 4,440 projects the fixture does not carry.",
+      "basisNote": "The twelve-month window spans two bases. Elapsed months are record basis; forward months are projection. The total is labelled mixed rather than presented as one clean number."
+     },
+     {
+      "id": "b8",
+      "type": "calendar",
+      "label": "In-service by month",
+      "grain": "month",
+      "source": "projects",
+      "dateKey": "forecastInService",
+      "valueKey": "budget",
+      "recordDateKey": "actualInService",
+      "recordValueKey": "inServiceValue",
+      "measure": "m_pis_value",
+      "months": 12,
+      "from": "2026-01",
+      "basisPerMonth": {
+       "rule": "months at or before the portfolio as-of are record basis and read the recorded in-service date and capitalised value; later months are projection basis and read the forecast date and approved budget",
+       "recordThrough": "2026-03"
+      },
+      "overdueKey": "pisOverdue",
+      "peakKey": "pisPeakMonth",
+      "categoryKey": "execCategory",
+      "topPerMonth": 4,
+      "placeholderDate": "2026-12-31",
+      "estimateKey": "plannedInService",
+      "placeholderNote": "The source extract's logical in-service column carries 2026-12-31 on every one of its 3,770 rows. It is the fiscal-year-end capitalisation default, not a per-project commissioning estimate, and reading it as a date puts most of the programme into one December tile. Projects sitting exactly on it are diverted out of the grid and listed with the estimated date they actually carry.",
+      "topPerMonth_note": "Four rows fit the tile without it scrolling; the rest are rendered hidden and revealed in place.",
+      "categoryNote": "execCategory is a real column in the CAPEX extract \u2014 Projects, PFAS, Lead, Blankets, Overhead \u2014 not a bucketing invented on this surface. It is what a reader means when they ask what kind of capital a heavy month is made of.",
+      "note": "Each month tile states its own basis, and the two bases read different fields \u2014 a recorded in-service date with its capitalised value, or a forecast date with its approved budget. A single total across the window would silently add a recorded quantity to a projected one, which is the failure this report exists to avoid."
+     },
+     {
+      "id": "b9",
+      "type": "narrative",
+      "label": "Reading the schedule",
+      "body": "$PISCOUNT projects worth $PISVALUE enter service inside twelve months, concentrated in $PISPEAK [[1]]. That concentration is the link back to the first half: a heavy month is a month where a few weeks of slip pushes several projects across a filing-by date at once, and the deadlines do not move [[2]].",
+      "cites": [
+       {
+        "n": 1,
+        "ref": "EPBCS plan \u00b7 forecast in-service dates"
+       },
+       {
+        "n": 2,
+        "ref": "Jurisdiction filing calendar \u00b7 tenant configuration"
+       }
+      ]
+     },
+     {
+      "id": "b10",
+      "type": "narrative",
+      "label": "What this excludes",
+      "role": "exclusion",
+      "body": "Projects with no forecast in-service date are excluded, not defaulted to the end of the window \u2014 a defaulted date puts value in a month nobody planned it for. Projects already past their forecast date with nothing recorded are listed under the calendar rather than dropped; an empty cell hides exactly the project a reader most needs. Projects already in service carry no filing verdict, because they certified against a date in the past. Projects reaching service after their test-year end are marked later case rather than at risk \u2014 that is most of the portfolio, and counting it as exposure is the error that turned three quarters of the list red the first time this ran."
+     }
+    ]
+   },
+   "caveats": [
+    {
+     "kind": "definition",
+     "body": "Value shown per month is approved budget, not estimate at completion. The regulatory question is what was authorised to enter rate base."
+    },
+    {
+     "kind": "definition",
+     "body": "\u201cIn service by\u201d is derived \u2014 filing date minus the jurisdiction's certification lead \u2014 and appears in no source system. The filing date comes from the commission docket; the lead days are tenant configuration on the calendar entry and are shown with their reason on every row so they can be disputed."
+    },
+    {
+     "kind": "asof",
+     "body": "Filing verdicts read forecast in-service dates from the current plan adoption. A re-forecast at the next cut moves dates and therefore moves verdicts; the at-risk set is a statement about this vintage, not a standing property of the projects."
+    }
+   ]
+  }
+ ],
+ "removedReports": [
+  {
+   "binding": {
+    "graph": "g_capital_programs",
+    "graphVersion": "v1",
+    "pack": "capital-projects",
+    "packVersion": "1.3.0",
+    "overlay": "water-wastewater",
+    "overlayVersion": "0.9.1"
+   },
+   "exportFormats": [
+    "PDF",
+    "XLSX",
+    "CSV"
+   ],
+   "id": "rep_variance_reasons",
+   "slug": "why-the-plan-moved",
+   "name": "Why the Plan Moved",
+   "subtitle": "Variance reasons read out of correspondence \u2014 and every project where none was found",
+   "category": "Controls",
+   "thumb": "reasonLedger",
+   "status": "published",
+   "version": 1,
+   "author": "pp_whitfield",
+   "approvedBy": "pp_hargrove",
+   "approvedAt": "2026-04-01T09:30:00Z",
+   "createdAt": "2026-03-31T16:10:00Z",
+   "lastEditedAt": "2026-04-01T08:05:00Z",
+   "submittedAt": "2026-04-01T08:10:00Z",
+   "submittedBy": "pp_whitfield",
+   "approvalNote": "Approved with the coverage figure on the face of the report rather than in a footnote. The approver's condition was that the unexplained count is never smaller than the explained one on screen.",
+   "audience": [
+    "persona_architect",
+    "persona_analyst",
+    "persona_exec",
+    "persona_project"
+   ],
+   "refresh": {
+    "mode": "onDemand",
+    "cron": null,
+    "label": "On demand \u2014 the corpus is read at question time",
+    "onDemand": true
+   },
+   "refreshNote": "There is no schedule because there is nothing to cache. Correspondence is a runtime source: it is read under the asking session's own mailbox entitlement at the moment the question is asked, and two people running this report an hour apart can legitimately see different messages. A nightly refresh would produce a cached extract owned by whoever ran it, which is exactly the permission leak the runtime class exists to avoid.",
+   "lastRefresh": "2026-03-31T14:20:24Z",
+   "nextRefresh": null,
+   "grain": "portfolio",
+   "grainNote": "Portfolio, not project, even though every row names a project. The grain of a report is the grain of the question it answers, and the question here is what share of the portfolio's movement has an explanation at all. Declaring it project-grain makes the resolver pick a default project the report never uses, and a coverage fraction recomputed inside a project filter is a coverage fraction about the filter.",
+   "embeddedAsk": true,
+   "spec": {
+    "objective": "Explain the movement in the forecast of record using the only place the explanation exists \u2014 what people wrote to each other \u2014 and state plainly how much of the movement remains unexplained.",
+    "filters": [],
+    "viewParams": [
+     "region",
+     "execCat",
+     "assetCls",
+     "manager"
+    ],
+    "viewTypes": [
+     "Project",
+     "Region",
+     "Category"
+    ],
+    "blocks": [
+     {
+      "id": "b1",
+      "type": "narrative",
+      "label": "What this report is",
+      "grain": "portfolio",
+      "source": "portfolio",
+      "text": "The planning system holds the number and not the reason. EPBCS carries the forecast and its adoption chain; it does not carry the sentence explaining why the forecast moved. That sentence \u2014 unmarked utilities in the second reach, a fabricator's delivery slipping twelve weeks, a regulator asking for one more demonstration \u2014 exists in a message from a contractor to a project controls manager, and it is the sentence a rate case is asked to defend.\n\nSo this report reads correspondence at question time, infers a reason where it can, binds it to a project the graph already knows, and shows the confidence and the source message on every row. Nothing here is stored. No message becomes a node. A reason is what an extractor claims a message says, which is a claim and not a fact, and it is presented as one.\n\nThe second half of the report is the part that matters more. Four classes of miss are listed with the same weight as the hits: messages bound to nothing, reasons inferred and withheld below the confidence floor, signals read confidently and held as immaterial, and \u2014 the largest by a distance \u2014 projects whose forecast moved materially and about which nobody wrote anything at all. That last class is not a limitation of the extractor. It is the gap in the record, and it is the one the filing is exposed to."
+     },
+     {
+      "id": "b2",
+      "type": "reasonLedger",
+      "label": "Reasons found in correspondence",
+      "grain": "project",
+      "source": "projects",
+      "policy": {
+       "confidenceFloor": 0.7,
+       "pctOfBudget": 0.005,
+       "floorUSD": 5000
+      },
+      "policyNote": "Two floors, and they are different tests. Confidence asks whether the extraction can be trusted; materiality asks whether anybody should be told even if it can. Both are Pack policy read off this spec, so changing either re-derives the list rather than needing a rebuild."
+     },
+     {
+      "id": "b3",
+      "type": "discoveryMisses",
+      "label": "What was not found, and why",
+      "grain": "portfolio",
+      "source": "portfolio",
+      "silentLimit": 12,
+      "policy": {
+       "confidenceFloor": 0.7,
+       "pctOfBudget": 0.005,
+       "floorUSD": 5000
+      }
+     },
+     {
+      "id": "b4",
+      "type": "ask",
+      "label": "Ask about a reason",
+      "suggestions": [
+       "What did correspondence say about Elkhart Granular Media Retrofit?",
+       "Which projects are in the danger zone?",
+       "How has the plan moved across adoptions?"
+      ]
+     }
+    ]
+   },
+   "caveats": [
+    {
+     "kind": "extraction",
+     "body": "Every reason on this report is an inference from a document, not a field anybody filled in. The confidence on each row is the extractor's, the binding to a project is the extractor's, and one of the rows below was bound wrongly at a confidence that looked decisive until a person who knew the contract moved it."
+    },
+    {
+     "kind": "coverage",
+     "body": "The corpus is one mailbox class over one month. It is not the whole of what was written, and the projects listed as having no stated reason may have one in a system this connector does not read. The count is honest about what was searched, not about what exists."
+    },
+    {
+     "kind": "asof",
+     "body": "Correspondence has no cadence and no as-of of its own \u2014 the as-of belongs to the read. The stamp on this report is the moment the connector last fetched, and re-running it will move."
+    }
+   ]
+  }
+ ],
+ "reportDrafts": [
+  {
+   "id": "rd_001",
+   "name": "Contingency Draw-down by Region",
+   "author": "pp_lindqvist",
+   "createdAt": "2026-03-27T09:30:00Z",
+   "lastEditedAt": "2026-03-30T14:10:00Z",
+   "basedOn": null,
+   "blocks": 3,
+   "note": "Two blocks resolve; the third needs contingency at a to-date coordinate the plan extract does not carry per period. Blocked on a data question, not a design one."
+  },
+  {
+   "id": "rd_002",
+   "name": "Jurisdiction Filing Pack",
+   "author": "pp_lindqvist",
+   "createdAt": "2026-03-20T11:00:00Z",
+   "lastEditedAt": "2026-03-28T16:45:00Z",
+   "basedOn": "rep_pis_calendar",
+   "blocks": 5,
+   "state": "superseded",
+   "supersededBy": "rep_pis_calendar",
+   "supersededAt": "2026-03-31T10:00:00Z",
+   "note": "Cloned from the in-service calendar and re-grained to jurisdiction. Its open question \u2014 whether the filing calendar belongs in the Pack or in the report spec \u2014 was settled as both: the Pack ships the entry class and the structure, the tenant configures the dates and lead times, and the report reads them. The jurisdiction grain went into the parent report at v7 rather than shipping as a second report over the same data."
+  }
+ ],
+ "blockTypes": {
+  "existing": [
+   "header",
+   "figRow",
+   "table",
+   "narrative",
+   "chain",
+   "ask",
+   "bar",
+   "pivot",
+   "progressSplit",
+   "schedule",
+   "vendors",
+   "evidence"
+  ],
+  "new": [
+   {
+    "type": "waterfall",
+    "for": "rep_forecast_walk",
+    "contract": "startKey, endKey, bridgeBy[], coord. Bars are deltas and must close on the end value; the renderer asserts closure and shows a defect band if it does not."
+   },
+   {
+    "type": "heatmap",
+    "for": "rep_q_variance",
+    "contract": "rowsKey, colsKey, zKey, diverging scale with an explicit midpoint. Signed dollars, never percentages of unequal denominators."
+   },
+   {
+    "type": "coordCompare",
+    "for": "rep_forecast_walk",
+    "contract": "one measure, N coords, optional reference at a different basis. Renders the coordinate label on every bar \u2014 this block exists to make the coordinate visible."
+   },
+   {
+    "type": "bubble",
+    "for": "rep_large_projects",
+    "contract": "x, y, r each a figure with its own coord; axes labelled with their basis; quadrant lines with stated meaning."
+   },
+   {
+    "type": "calendar",
+    "for": "rep_pis_calendar",
+    "contract": "dateKey, months, from, basisPerMonth. Each month is a tile, not a cell: it carries its own basis label, its ranked projects with the money on each, and a mix bar over categoryKey. Four obligations. (1) There is no single window total, and the reason stands in the place the total would have gone \u2014 the window spans two bases and adding a recorded quantity to a projected one is the failure this report exists to avoid. (2) The mix palette is assigned across the WHOLE window in descending value, never per tile; a category that changes colour between January and February makes the stacked bar a lie. (3) An empty tile states which kind of nothing it is \u2014 nothing recorded, or nothing forecast. They are different findings and a shared dash collapses them. (4) Every project row opens that project 360 at its own coordinate; topPerMonth rows are shown and the rest are rendered hidden so the more control reveals rows that already exist."
+   },
+   {
+    "type": "filingCalendar",
+    "for": "rep_pis_calendar",
+    "contract": "key names a portfolio array of per-jurisdiction rows; columns[] mixes plain columns with fig() figures. Three obligations the renderer must not skip. (1) derivedField marks a column computed on this surface and absent from every source \u2014 it renders with the rule visible, not as an ordinary date. (2) any column carrying whyKey renders its reason inline or on hover; a tenant-configured number with its justification hidden is a number nobody can dispute, and per Pack DP-CP-Q12 lead time is per entry and never platform-wide. (3) a null windowKey renders emptyWindowNote as text in the row \u2014 NOT an empty cell and NOT a zero. Absence of a squeeze window is a structural result; a blank reads as missing data and a zero reads as a search that found nothing, and both are different claims from the one the row is making."
+   },
+   {
+    "type": "annotations",
+    "for": "rep_proj_360",
+    "contract": "reads db.annotations filtered to this report; provenance authored|extracted visually and structurally distinct; orphans render with original binding; below-floor items absent entirely."
+   },
+   {
+    "type": "blocked",
+    "for": "rep_mixed_coord",
+    "contract": "failure{kind,severity,summary,detail,offending[],remedies[]}. Remedies are typed actions with real outcomes, not descriptions. The failing sibling block is withheld."
+   },
+   {
+    "type": "lineItems",
+    "for": "rep_q_variance",
+    "contract": "Reads a ROW SET, not a project, so the same block serves the report unfiltered and filtered to one project. Groups by project; each group lists the contract packages in db.contracts, each package its change orders, each change order the correspondence message that explains it. Four obligations. (1) Award and change orders are REAL and actual is ALLOCATED, and the allocated column is marked derived in the column header \u2014 not in a footnote, because the reader who never reaches the footnote is the one the mark exists for. (2) Every change order renders either its message or a stated sentence saying no message references it, at the same size and in the same place; a missing explanation is a finding, not a blank. (3) Approved change orders move the committed total, pending ones are listed and excluded, and the row says which it is. (4) Where the message's amount and the change order log disagree, both are shown and neither is adjusted. Packages sum to less than project budget by construction \u2014 the block states the gap rather than leaving it to be found as a reconciliation break."
+   },
+   {
+    "type": "reasonLedger",
+    "for": "rep_q_variance",
+    "contract": "policy{confidenceFloor, signalPctOfBudget, signalFloorUSD, projectPctOfBudget, projectFloorUSD}. Every row is a CLAIM read out of one named message and must render four things together or none: the statement, the confidence band, the source document, and the alternatives the extractor did not pick. A row without its source is an assertion the reader cannot check. coverage.headline is server-composed and renders at the head of the block, not in a footnote \u2014 the approver's condition was that the unexplained count is never smaller than the explained one on screen. shareOfVariance may exceed 100% on a project whose message overstates the movement; that is a real disagreement between the mailbox and the ledger and is shown, not clamped."
+   },
+   {
+    "type": "discoveryMisses",
+    "for": "rep_q_variance",
+    "contract": "silentLimit plus the same policy object as reasonLedger \u2014 the two blocks MUST be given identical policy or they will disagree about which message went where. Five classes: unbound, withheld, immaterial, silent, overridden. Every class renders even at count zero, because a class that disappears when empty cannot be distinguished from a class that was never checked. `silent` is the largest and leads. `counted:false` on the override class means it is listed and not added to total. truncated>0 renders truncatedNote \u2014 a list capped without saying so is a count the reader will take as the population. `compact:true` collapses the whole register to one line carrying the silent count and nothing else; the count is still stated and is never suppressed at zero. Compact is for a report whose subject is the variance itself, where the full register competes with the ledger for the reader."
+   },
+   {
+    "type": "varianceRows",
+    "for": "rep_q_variance",
+    "contract": "Wraps `table` and adds an in-place expansion per row. EVERY project the scope admits is listed \u2014 the block takes no limit, because a ranked top-N answers who is worst and this report is asked where the period went. Clicking a row opens the change orders raised against that project: each with its reference, status, the money it moved, the days it added, and the one message that explains it, drawn at the same size whether it is present or absent. Three obligations. (1) THERE IS NO PACKAGE LAYER. A package number is a fact about a contract document; the variance ledger has no package column, so grouping rows under one would present a structure the source spreadsheet does not carry. Packages belong on rep_proj_360, where the contract is the subject. (2) Every row belongs to exactly one of three populations \u2014 contract-backed, row-backed, silent \u2014 and the three are visually distinct on the row itself, because a project nobody wrote about must not read the same as one that is fully evidenced. (3) A project with no change order does not open empty: it states why, and shows any project-level correspondence labelled as checkable against a field rather than against a document."
+   },
+   {
+    "type": "reasonMix",
+    "for": "rep_q_variance",
+    "contract": "The by-reason roll-up alone, with no per-message ledger under it. Same policy object as reasonLedger and discoveryMisses. It carries the coverage bar and its denominator: bars are proportional to the largest class rather than to 100%, because the classes do not sum to the portfolio and a bar that implies they do is the misread this block exists to prevent. Every message it counts is already drawn once inside the project row it explains, so it prints no message twice on one screen."
+   }
+  ],
+  "rendererRules": [
+   "No number is formatted in the browser. The API supplies .display.",
+   "No filtering happens in the browser. Scope is a server-side predicate.",
+   "Blocks render by block.type, never by report id."
+  ]
+ },
+ "narrativeTokens": {
+  "tokens": {
+   "$BUDGET5YR": {
+    "source": "portfolio",
+    "key": "budget5yr",
+    "measure": "m_budget",
+    "coord": {
+     "basis": "commitment",
+     "period_frame": "full_span"
+    }
+   },
+   "$FORECAST5YR": {
+    "source": "portfolio",
+    "key": "forecast5yr",
+    "measure": "m_forecast",
+    "coord": {
+     "basis": "projection",
+     "period_frame": "full_span"
+    }
+   },
+   "$GAP5YR": {
+    "source": "portfolio",
+    "key": "gap5yr",
+    "measure": "m_gap",
+    "coord": {
+     "basis": "projection",
+     "period_frame": "full_span"
+    },
+    "signed": false
+   },
+   "$GAPPCT": {
+    "source": "portfolio",
+    "key": "gapPct",
+    "measure": "m_gap_pct",
+    "coord": {
+     "basis": "projection",
+     "period_frame": "full_span"
+    }
+   },
+   "$PFASFC": {
+    "source": "portfolio",
+    "key": "pfasForecast5yr",
+    "measure": "m_forecast",
+    "coord": {
+     "basis": "projection",
+     "period_frame": "full_span"
+    }
+   },
+   "$PFASBUD": {
+    "source": "portfolio",
+    "key": "pfasBudget5yr",
+    "measure": "m_budget",
+    "coord": {
+     "basis": "commitment",
+     "period_frame": "full_span"
+    }
+   },
+   "$PFASGAP": {
+    "source": "portfolio",
+    "key": "pfasGap5yr",
+    "measure": "m_gap",
+    "coord": {
+     "basis": "projection",
+     "period_frame": "full_span"
+    },
+    "signed": false
+   },
+   "$PFASSHARE": {
+    "source": "portfolio",
+    "key": "pfasShareOfGap",
+    "measure": null,
+    "coord": null,
+    "note": "A share of the gap, not a gap percentage. No glossary measure describes it, so it is bound as a field and takes its unit from the non-measure unit table."
+   },
+   "$PERIODPLAN": {
+    "source": "portfolio",
+    "key": "periodPlan",
+    "measure": "m_plan_period",
+    "coord": {
+     "basis": "commitment",
+     "period_frame": "single"
+    }
+   },
+   "$PERIODACTUAL": {
+    "source": "portfolio",
+    "key": "periodActual",
+    "measure": "m_actual",
+    "coord": {
+     "basis": "record",
+     "period_frame": "single"
+    }
+   },
+   "$PERIODVARIANCE": {
+    "source": "portfolio",
+    "key": "periodVariance",
+    "measure": "m_variance_period",
+    "coord": {
+     "basis": "record",
+     "period_frame": "single"
+    },
+    "signed": true
+   },
+   "$PERIODVARIANCEPCT": {
+    "source": "portfolio",
+    "key": "periodVariancePct",
+    "measure": "m_variance_pct",
+    "coord": {
+     "basis": "record",
+     "period_frame": "single"
+    }
+   },
+   "$DANGERCOUNT": {
+    "source": "portfolio",
+    "key": "dangerZoneCount",
+    "measure": null,
+    "coord": null,
+    "note": "A count of projects, not a variance percentage."
+   },
+   "$PISCOUNT": {
+    "source": "portfolio",
+    "key": "pisNext12moCount",
+    "measure": null,
+    "coord": null,
+    "note": "A count of projects, not a value."
+   },
+   "$PISVALUE": {
+    "source": "portfolio",
+    "key": "pisNext12moValue",
+    "measure": "m_pis_value",
+    "coord": {
+     "basis": "projection",
+     "period_frame": "full_span"
+    }
+   },
+   "$PISPEAK": {
+    "source": "portfolio",
+    "key": "pisPeakMonth",
+    "measure": null,
+    "coord": null,
+    "kind": "label",
+    "note": "A month, not a quantity. Formatting it as a number would render 2026-11 as a dollar figure."
+   },
+   "$PLANMOVE": {
+    "source": "portfolio",
+    "key": "planMovement",
+    "measure": "m_mtp",
+    "coord": {
+     "basis": "projection",
+     "period_frame": "full_span",
+     "vintage": "working"
+    },
+    "signed": true
+   },
+   "$PLANMOVEPFAS": {
+    "source": "portfolio",
+    "key": "planMovementPfas",
+    "measure": "m_mtp",
+    "coord": {
+     "basis": "projection",
+     "period_frame": "full_span",
+     "vintage": "working"
+    },
+    "signed": true
+   },
+   "$PLANMOVEPFASSHARE": {
+    "source": "portfolio",
+    "key": "planMovementPfasShare",
+    "measure": null,
+    "coord": null,
+    "note": "A share of the movement, not a plan percentage. No glossary measure describes it, so it binds as a field and takes its unit from the non-measure unit table."
+   },
+   "$RCATRISK": {
+    "source": "portfolio",
+    "key": "rcSampleAtRiskCount",
+    "measure": null,
+    "coord": null,
+    "note": "A count of projects over the 60-project sample, not a value and not a programme figure."
+   },
+   "$RCDEFERRED": {
+    "source": "portfolio",
+    "key": "rcSampleDeferredCapital",
+    "measure": "m_budget",
+    "coord": {
+     "basis": "commitment",
+     "period_frame": "full_span"
+    },
+    "note": "Approved budget of the at-risk projects. Capital, not the cost of deferring it -- there is no token for that because there is no carrying rate."
+   },
+   "$RCSQUEEZED": {
+    "source": "portfolio",
+    "key": "rcSqueezedJurisdictionCount",
+    "measure": null,
+    "coord": null,
+    "note": "A count of jurisdictions."
+   },
+   "$RCNOWINDOWJURIS": {
+    "source": "portfolio",
+    "key": "rcNoWindowJurisdictions",
+    "measure": null,
+    "coord": null,
+    "kind": "label",
+    "note": "A joined list of jurisdiction codes. Derived from the exposure rows rather than typed, so it cannot name a jurisdiction whose row shows a window."
+   },
+   "$RCNEXTJURIS": {
+    "source": "portfolio",
+    "key": "rcNextFilingJuris",
+    "measure": null,
+    "coord": null,
+    "kind": "label"
+   },
+   "$RCNEXTFILINGBY": {
+    "source": "portfolio",
+    "key": "rcNextFilingBy",
+    "measure": null,
+    "coord": null,
+    "kind": "label",
+    "note": "A date. Formatting it as a number would render 2026-08-01 as arithmetic."
+   },
+   "$RCNEXTDAYS": {
+    "source": "portfolio",
+    "key": "rcNextFilingDays",
+    "measure": null,
+    "coord": null,
+    "note": "Days from the portfolio as-of to the nearest filing-by date."
+   },
+   "$PROJECTNAME": {
+    "source": "project",
+    "key": "name",
+    "measure": null,
+    "coord": null,
+    "kind": "label"
+   },
+   "$PROJECTCODE": {
+    "source": "project",
+    "key": "code",
+    "measure": null,
+    "coord": null,
+    "kind": "label"
+   },
+   "$SPENTITD": {
+    "source": "portfolio",
+    "key": "spentToDateInception",
+    "measure": "m_actual",
+    "coord": {
+     "basis": "record",
+     "period_frame": "to_date",
+     "origin": "project_inception"
+    },
+    "note": "The uncoordinated answer's whole point is that this figure is one of four defensible readings of \"spent\". The coordinate is spelled out here rather than defaulted so the sentence and the scalar block cannot resolve to different members of the family."
+   },
+   "$FY24BUDGET": {
+    "source": "portfolio",
+    "key": "fy2024Budget",
+    "measure": "m_budget",
+    "coord": {
+     "basis": "commitment",
+     "period_frame": "single"
+    }
+   },
+   "$FY24COMMITTED": {
+    "source": "portfolio",
+    "key": "fy2024Committed",
+    "measure": "m_committed",
+    "coord": {
+     "basis": "commitment",
+     "period_frame": "to_date",
+     "origin": "fy_start"
+    }
+   },
+   "$FY24UNDER": {
+    "source": "portfolio",
+    "key": "fy2024Underspend",
+    "measure": null,
+    "coord": null,
+    "note": "Approved budget less commitments, both at commitment basis. The period frames differ (single vs to-date from fiscal-year start) and coordinateMix permits that at one basis, but no glossary measure names the difference -- m_gap is projection-vs-commitment and would attach the wrong definition. Bound as a field, with fy2024Underspend added to FIELD_UNIT so it renders as money rather than as a bare comma-grouped number."
+   },
+   "$ACTUAL": {
+    "source": "project",
+    "key": "actual",
+    "measure": "m_actual",
+    "coord": {
+     "basis": "record",
+     "period_frame": "to_date",
+     "origin": "project_inception"
+    }
+   },
+   "$AUTH": {
+    "source": "project",
+    "key": "authorized",
+    "measure": "m_authorized",
+    "coord": {
+     "basis": "commitment",
+     "period_frame": "single",
+     "vintage": "active"
+    }
+   },
+   "$COMMITTED": {
+    "source": "project",
+    "key": "committed",
+    "measure": "m_committed",
+    "coord": {
+     "basis": "commitment",
+     "period_frame": "single"
+    }
+   },
+   "$POCOUNT": {
+    "source": "project",
+    "key": "poCount",
+    "measure": null,
+    "coord": null,
+    "note": "A count of purchase orders, not their value."
+   },
+   "$PCT": {
+    "source": "project",
+    "key": "pctComplete",
+    "measure": "m_pct_complete",
+    "coord": {
+     "basis": "record",
+     "period_frame": "single"
+    }
+   }
+  }
+ }
+}

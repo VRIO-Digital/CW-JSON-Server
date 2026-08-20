@@ -18,45 +18,38 @@ import { fileKind } from '../data/mimeTypes'
 import { useDocumentsStore } from '../store/catalogStore'
 import './ProfiledColumnsPanel.css'
 
-type FacetKey =
-  | 'all'
-  | 'needs_review'
-  | 'pii'
-  | 'consent_decrees'
-  | 'complaints'
-  | 'settlements'
-  | 'cafos'
+/**
+ * The three facets every corpus has, plus one per `doc_type` in it.
+ *
+ * **The type facets are the served ones, never a list held here.** Four of them used to be written
+ * into this file as EPA's enforcement papers — Consent decrees, Complaints, Settlements, CAFOs —
+ * with the server holding a second copy under `FACET_FOR_TYPE`. A corpus of any other kind then drew
+ * four chips reading 0 above a full list of documents, which reads as "none of those in this corpus"
+ * rather than as a map that has never heard of what is in it. Same rule as the consent screen
+ * rendering the scopes the endpoint returned: a client-held list can only describe the corpus it was
+ * written for.
+ */
+type FacetKey = string
 
-const FACETS: { key: FacetKey; label: string }[] = [
+const BASE_FACETS: { key: FacetKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'needs_review', label: 'Needs review' },
   { key: 'pii', label: 'PII' },
-  { key: 'consent_decrees', label: 'Consent decrees' },
-  { key: 'complaints', label: 'Complaints' },
-  { key: 'settlements', label: 'Settlements' },
-  { key: 'cafos', label: 'CAFOs' },
 ]
-
-/**
- * Facets filter documents here, not entities — a file is the reviewed unit.
- * They match `doc_type`, the slug, not `doc_type_label`: a consent-decree
- * modification belongs under Consent decrees, and only the label says it is one.
- */
-const TYPE_FOR_FACET: Partial<Record<FacetKey, string>> = {
-  consent_decrees: 'consent_decree',
-  complaints: 'complaint',
-  settlements: 'settlement',
-  cafos: 'cafo',
-}
 
 /** snake_case → "SIGNATORY EMAIL", matching the column dictionary. */
 const displayName = (id: string) => id.replace(/_/g, ' ').toUpperCase()
 
+/*
+ * Anything that is not one of the three is a `doc_type` slug, which is what a document is filtered
+ * on — never `doc_type_label`. A consent-decree *modification* belongs under its kind, and only the
+ * label says it is a modification.
+ */
 function matches(document: ProfiledDocument, facet: FacetKey) {
   if (facet === 'all') return true
   if (facet === 'needs_review') return document.summary_status === 'needs review'
   if (facet === 'pii') return document.pii_count > 0
-  return document.doc_type === TYPE_FOR_FACET[facet]
+  return document.doc_type === facet
 }
 
 export default function ProfiledDocumentsPanel({
@@ -190,14 +183,17 @@ export default function ProfiledDocumentsPanel({
       ) : (
         <>
         <div className="pc-facets">
-          {FACETS.map((f) => (
+          {[
+            ...BASE_FACETS.map((f) => ({ ...f, count: data.facets[f.key as keyof typeof data.facets] })),
+            ...data.type_facets,
+          ].map((f) => (
             <button
               type="button"
               key={f.key}
               className={`pc-chip${facet === f.key ? ' is-active' : ''}`}
               onClick={() => setFacet(f.key)}
             >
-              {f.label} <span className="pc-chip-count">{data.facets[f.key]}</span>
+              {f.label} <span className="pc-chip-count">{f.count}</span>
             </button>
           ))}
         </div>

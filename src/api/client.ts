@@ -31,7 +31,7 @@ import {
   type Check as FieldCheck,
 } from './validate'
 
-import { currentDataset } from './dataset'
+import { currentDataset, forgetStaleDataset } from './dataset'
 
 // The trailing slash is stripped because every path below starts with one, and
 // `${BASE}${path}` would otherwise ask for //sources.
@@ -314,7 +314,8 @@ export interface BrowseTable {
   /** What one row is. A Gold view is only readable if its grain is stated. */
   grain: string
   columns: number
-  rows: number
+  /** `null` where the package catalogues a table without counting it — see the schema note. */
+  rows: number | null
   profiled: boolean
 }
 
@@ -412,20 +413,50 @@ export interface ProfilingJobsPayload {
 }
 
 /*
- * The semantic classes the profiler assigns. Eight of these come from the real
- * `Metadata_Profiling` workbook; `text` is only produced by the synthesised
- * fallback, and is kept so that path still validates.
+ * The semantic classes the profiler assigns.
+ *
+ * **A tenant's vocabulary, not a fixed taxonomy — and declared once because it is a validator
+ * contract.** These were nine literals written into two `oneOf` lists further down, drawn from EPA's
+ * `Metadata_Profiling` workbook. A profile using anything else was then refused *at the boundary*:
+ * CAPEX's 194 real columns are classed `measure_record`, `geography`, `organisation`,
+ * `lifecycle_state` and eleven more, so the Data Catalog came back
+ * `columns[0].class should be one of identifier, dimension, …` — which reads as a stale mock server
+ * and is not one. `curl` was fine throughout, because a validator is the browser's alone.
+ *
+ * So it is the union of what the served documents actually declare, in one place that both the type
+ * and the two schemas read. `text` is only produced by the synthesised fallback and is kept so that
+ * path still validates. `check-docs` asserts every class in `db.json` appears here, which is what
+ * stops the two drifting again.
  */
-export type ColumnClass =
-  | 'identifier'
-  | 'dimension'
-  | 'entity'
-  | 'measure'
-  | 'date'
-  | 'address'
-  | 'geo'
-  | 'flag'
-  | 'text'
+export const COLUMN_CLASSES = [
+  /* EPA's, from its profiling workbook. */
+  'identifier',
+  'dimension',
+  'entity',
+  'measure',
+  'date',
+  'address',
+  'geo',
+  'flag',
+  /* CAPEX's, from the Northline capital-planning profile. */
+  'classification',
+  'derived_ratio',
+  'geography',
+  'label',
+  'lifecycle_state',
+  'measure_commitment',
+  'measure_projection',
+  'measure_record',
+  'organisation',
+  'period_accumulation',
+  'person',
+  'risk_score',
+  'scratch',
+  /* Only the synthesised fallback produces this one. */
+  'text',
+] as const
+
+export type ColumnClass = (typeof COLUMN_CLASSES)[number]
 
 export interface ProfiledColumn {
   column_id: string
@@ -454,7 +485,8 @@ export interface ProfiledTable {
   label: string
   type: string
   grain: string
-  rows: number
+  /** `null` where the package catalogues a table without counting it — see the schema note. */
+  rows: number | null
   column_count: number
   columns: ProfiledColumn[]
 }
@@ -555,10 +587,21 @@ export interface DocumentFacets {
   all: number
   needs_review: number
   pii: number
-  consent_decrees: number
-  complaints: number
-  settlements: number
-  cafos: number
+}
+
+/**
+ * One document *kind* the corpus holds, with how many are in it.
+ *
+ * **Served rather than declared, for the reason the consent screen renders the scopes the endpoint
+ * returned.** These were four fixed keys naming EPA's enforcement papers, written here and again in
+ * `ProfiledDocumentsPanel` — so a corpus of anything else showed four chips reading 0 over a full
+ * list of documents, which reads as "none in this corpus" rather than as a map that does not fit.
+ * `key` is the `doc_type` slug a document is filtered on; `label` names the kind.
+ */
+export interface DocumentTypeFacet {
+  key: string
+  label: string
+  count: number
 }
 
 export interface ProfiledDocumentsPayload {
@@ -567,6 +610,7 @@ export interface ProfiledDocumentsPayload {
   folder_count: number
   entity_count: number
   facets: DocumentFacets
+  type_facets: DocumentTypeFacet[]
   folders: ProfiledFolder[]
 }
 
@@ -1533,7 +1577,16 @@ const BROWSE_PAYLOAD = shape({
           type: str,
           grain: str,
           columns: num,
-          rows: num,
+          /*
+           * **Nullable because "not counted" is a real state, and 0 would be a lie.**
+           *
+           * EPA's package states a row count for all five of its views. Northline catalogues 64
+           * tables, profiles two, and says so per table in `rows_basis`: *"catalogued only — the
+           * package does not hold a row count for this table"*. Filling those with 0 renders
+           * "~0 rows" against a table nobody counted, which reads as an empty table — a wrong figure
+           * where an absent one was available. The panels print "rows not counted" instead.
+           */
+          rows: nullable(num),
           profiled: bool,
         }),
       ),
@@ -1632,26 +1685,16 @@ const COLUMNS_PAYLOAD = shape({
           label: str,
           type: str,
           grain: str,
-          rows: num,
+          rows: nullable(num),
           column_count: num,
           columns: arrayOf(
             shape({
               column_id: str,
               label: str,
               type: str,
-              class: oneOf([
-                'identifier',
-                'dimension',
-                'entity',
-                'measure',
-                'date',
-                'address',
-                'geo',
-                'flag',
-                'text',
-              ]),
+              class: oneOf([...COLUMN_CLASSES]),
               confidence: num,
-              derivation: str,
+              derivation: nullable(str),
               pii: bool,
               null_pct: num,
               distinct: num,
@@ -1674,11 +1717,8 @@ const DOCUMENTS_PAYLOAD = shape({
     all: num,
     needs_review: num,
     pii: num,
-    consent_decrees: num,
-    complaints: num,
-    settlements: num,
-    cafos: num,
   }),
+  type_facets: arrayOf(shape({ key: str, label: str, count: num })),
   folders: arrayOf(
     shape({
       folder_id: str,
@@ -1721,14 +1761,9 @@ const DOCUMENTS_PAYLOAD = shape({
             shape({
               entity_id: str,
               type: str,
-              class: oneOf([
-                'identifier',
-                'dimension',
-                'entity',
-                'measure',
-                'date',
-                'text',
-              ]),
+              /* The document dictionary slices the same vocabulary, so it reads the same list —
+                 two copies is how one of them comes to refuse a class the other serves. */
+              class: oneOf([...COLUMN_CLASSES]),
               confidence: num,
               pii: bool,
               occurrences: num,
@@ -2199,11 +2234,30 @@ const CANVAS_NODE = shape({
      `concept` and `measure_element` into one hue, so this is where the distinction
      survives — and it is the distinction the graph rebuild was about. */
   element_class: oneOf(['thin_instance', 'concept', 'measure_element']),
-  source: str,
+  /* `null` on an element derived over rows rather than read off one Catalog object — every
+     `measure_element` in the Northline graph. An absent provenance is stated, never invented. */
+  source: nullable(str),
   degree: num,
   r: num,
-  group: oneOf(['row', 'schema', 'document', 'alias']),
-  confidence: num,
+  /*
+   * **The origin class, and it is the package's vocabulary rather than a fixed four.**
+   *
+   * EPA's graph groups a node as `row`, `schema`, `document` or `alias`; Northline's groups by
+   * ontology type (`Project`, `Contract`, `Vendor`, …). A closed union here refused the second
+   * outright, and widening it to the sum of two tenants' vocabularies would only defer that to the
+   * third. Nothing in the app switches on the value — the viewer colours by `type` — so it is
+   * carried as the string it is.
+   */
+  group: str,
+  /*
+   * **Nullable: a per-element confidence is one thing a package may not record.**
+   *
+   * Northline states its confidence as lane totals — how many auto-approved, were confirmed, need
+   * review — and records nothing per node, so all 442 arrive `null`. Both this and the route
+   * confidence it feeds must stay absent rather than defaulting: a node scored 1.00 because nobody
+   * scored it is the most confident possible lie.
+   */
+  confidence: nullable(num),
   proposed: bool,
   origin: oneOf(['derived', 'studio-authored']),
   rejected: bool,
@@ -2541,6 +2595,23 @@ async function request<T>(
       typeof payload === 'object' && payload && 'error' in payload
         ? String((payload as { error: unknown }).error)
         : `request failed (${res.status})`
+    /*
+     * **A refusal naming the selection itself is the one error this layer can act on.**
+     *
+     * The dataset travels in a header on every call, so a stored selection naming a dataset that has
+     * since been retired refuses *every* request — every page, every reload, until somebody clears
+     * `localStorage` by hand. That is unfindable, and it is not the failure the refusal was written
+     * for: the server refuses an unknown selector so one tenant's figures are never served under
+     * another's name, and dropping a stale preference does not do that. The next call carries the
+     * default and the app labels it as what it is.
+     *
+     * Once only, and only when something was actually discarded — `forgetStaleDataset` returns false
+     * if the selection was already the default, so a refusal that survives the reset is shown rather
+     * than retried into a loop.
+     */
+    if (res.status === 400 && /is not a dataset/.test(detail) && forgetStaleDataset()) {
+      return request<T>(path, init)
+    }
     throw new ApiError(detail, res.status)
   }
   return payload as T
@@ -4756,6 +4827,16 @@ export interface WhatIfFrame {
   generators: WhatIfGenerator[]
   measures: WhatIfMeasure[]
   pools: WhatIfPool[]
+  /**
+   * Why a collection this lens is built on is empty, in the tenant's own words, keyed by the
+   * collection — or `null` where the document claims nothing.
+   *
+   * An empty pool and a pool this tenant's model does not have are different facts, and only the
+   * first is a fault. Northline's capital programme exposes continuous cost levers rather than
+   * swappable candidate loads, so its pools are empty by design and the document says so; the lens
+   * states that instead of drawing a control with nothing in it.
+   */
+  notApplicable: Record<string, string> | null
   headroom: WhatIfHeadroom[]
   saved: WhatIfSaved[]
   /**
@@ -4960,6 +5041,13 @@ const WHATIF_FRAME = shape({
     }),
   ),
   saved: arrayOf(WHATIF_SAVED),
+  /*
+   * Why a collection this lens is built on is empty, in the tenant's own words — keyed by the
+   * collection, or `null` where the document claims nothing. An empty pool and a pool this tenant's
+   * model does not have are different facts, and only the first is a fault; without this the page can
+   * only draw the empty control, which reads as one that failed to load.
+   */
+  not_applicable: nullable(objectOnly),
   /* Both empty before a graph is published, and the gate branch sends them so anyway —
      the shape is checked on every branch, not only the one with data. */
   readers: arrayOf(WHATIF_READER),
@@ -5191,6 +5279,7 @@ interface RawWhatIfFrame {
   candidate_pools: WhatIfPool[]
   headroom: WhatIfHeadroom[]
   saved: RawWhatIfSaved[]
+  not_applicable: Record<string, string> | null
   readers: {
     email: string
     name: string
@@ -5309,6 +5398,7 @@ export async function getWhatIfFrame(): Promise<WhatIfFrame> {
     generators: raw.generators.map(toWhatIfGenerator),
     measures: raw.watched_measures,
     pools: raw.candidate_pools,
+    notApplicable: raw.not_applicable ?? null,
     headroom: raw.headroom,
     saved: raw.saved.map(toWhatIfSaved),
     readers: raw.readers.map((r) => ({
@@ -5671,7 +5761,16 @@ export type ReportChart = Extract<AnswerBlock, { type: 'chart' }> & {
   companion?: Extract<AnswerBlock, { type: 'chart' }> | null
 }
 
-export type ReportBlock =
+/**
+ * The blocks **this server** resolves, per request, from `db.reports.data`.
+ *
+ * Named apart from the resolved ones because narrowing depends on it: `ResolvedReportBlock` carries an
+ * index signature (its interior is the tenant resolver's, not ours), and a union member with one
+ * defeats discriminated narrowing for every other member — `block.columns` becomes `unknown` inside a
+ * branch that has already established the block is a table. `ReportBlocks.tsx` takes this type, so it
+ * narrows exactly as it did before the second family existed.
+ */
+export type ComputedReportBlock =
   | ReportChart
   | {
       type: 'table'
@@ -5698,6 +5797,45 @@ export type ReportBlock =
       charts: ReportChart[]
     }
   | { type: 'traces'; title: string; columns: ReportColumn[]; rows: ReportRow[] }
+
+/**
+ * Every block a report can carry: the five this server computes, plus the seventeen a tenant's own
+ * resolver produced.
+ *
+ * The second family arrives with its figures already in it — each carrying `display`, `exact`, its
+ * coordinate and a provenance id — and is typed by its envelope rather than field by field, for the
+ * reason the schema is checked that way; see `RESOLVED_REPORT_BLOCK` below. `PublishedReport`
+ * dispatches on the kind and `CapexBlocks.tsx` narrows what it reads at the point of use.
+ */
+export type ReportBlock = ComputedReportBlock | ResolvedReportBlock
+
+/** The kinds `src/report/report_resolved.json` emits, and `CapexBlocks.tsx` draws. */
+export type ResolvedBlockType =
+  | 'figRow'
+  | 'bar'
+  | 'heatmap'
+  | 'bubble'
+  | 'varianceRows'
+  | 'reasonMix'
+  | 'narrative'
+  | 'ask'
+  | 'header'
+  | 'chain'
+  | 'progressSplit'
+  | 'schedule'
+  | 'vendors'
+  | 'lineItems'
+  | 'annotations'
+  | 'filingCalendar'
+  | 'calendar'
+
+export type ResolvedReportBlock = {
+  type: ResolvedBlockType
+  id: string
+  label: string | null
+  grain: string | null
+  [key: string]: unknown
+}
 
 /** One card in the section list. */
 export interface ReportSummary {
@@ -5829,6 +5967,54 @@ const REPORT_CHART_WITH_COMPANION = shape({
   companion: nullable(shape(REPORT_CHART_FIELDS)),
 })
 
+/**
+ * A resolved block, checked on the envelope every one of them shares rather than field by field.
+ *
+ * **Shallow on purpose, and the depth is chosen rather than skipped.** What this validator exists to
+ * catch is a *stale server* — a payload whose shape no longer matches what the app reads, which
+ * otherwise surfaces as `Cannot read properties of undefined` deep inside a render. For the five
+ * computed kinds the whole block is this server's own output, so checking all of it is checking our
+ * own contract. These seventeen are the tenant resolver's, and their interiors legitimately differ per
+ * kind: a `calendar` carries months with per-month bases, a `heatmap` carries a closure assertion, a
+ * `varianceRows` carries expansions keyed by project id. Restating all of that here would be a second,
+ * necessarily lagging, copy of a schema this app does not own — and the first thing a package revision
+ * would break is the validator rather than the render.
+ *
+ * So the envelope is enforced (a block has an id, a kind this app can draw, and a label), and
+ * `CapexBlocks.tsx` narrows what it reads at the point of use — where an absent field renders as an
+ * absent field rather than throwing. `check-docs` asserts this list and the renderer map hold the same
+ * kinds, which is the drift that would actually hurt: a block the resolver emits and nothing draws.
+ */
+const RESOLVED_BLOCK_TYPES = [
+  'figRow',
+  'bar',
+  'heatmap',
+  'bubble',
+  'varianceRows',
+  'reasonMix',
+  'narrative',
+  'ask',
+  'header',
+  'chain',
+  'progressSplit',
+  'schedule',
+  'vendors',
+  'lineItems',
+  'annotations',
+  'filingCalendar',
+  'calendar',
+] as const
+
+const RESOLVED_REPORT_BLOCK = shape({
+  id: str,
+  label: nullable(str),
+  grain: nullable(str),
+})
+
+const RESOLVED_REPORT_BLOCKS = Object.fromEntries(
+  RESOLVED_BLOCK_TYPES.map((kind) => [kind, RESOLVED_REPORT_BLOCK]),
+)
+
 const REPORT_BLOCK = variant('type', {
   chart: REPORT_CHART_WITH_COMPANION,
   table: shape({
@@ -5851,6 +6037,7 @@ const REPORT_BLOCK = variant('type', {
     charts: arrayOf(REPORT_CHART),
   }),
   traces: shape({ title: str, columns: REPORT_COLUMNS, rows: REPORT_ROWS }),
+  ...RESOLVED_REPORT_BLOCKS,
 })
 
 /* Nullable because it is null until a graph is published, which is the gate itself. */
@@ -6073,6 +6260,19 @@ export interface GovernedReport {
   savedId: string | null
   reportTag: string
   title: string
+  /**
+   * The tenant's own **rendered** report page, or `null` where the package ships none.
+   *
+   * Served, never built here — a component that assembled the path itself could link to a file this
+   * deployment does not have, and the only symptom would be a 404 in a new tab. The Library opens it
+   * in a new tab because it is a whole self-contained page with its own sidebar and wordmark; framing
+   * it would put two consoles on one screen, which is why the vendored prototype's own `Sidebar` was
+   * dropped when it was brought in. A row without one falls back to the in-app render.
+   */
+  renderedHref: string | null
+  /** Who last moved this report between lifecycle states, and when. `null` until somebody has. */
+  authorizedBy: string | null
+  authorizedAt: string | null
   /** The report's own question, quoted on the card rather than paraphrased. */
   question: string
   lead: string
@@ -6111,6 +6311,17 @@ export interface GovernanceStatus {
   key: string
   label: string
   tone: Tone
+  /**
+   * True for a chip the server *computes* rather than one the tenant declares — `All current` is
+   * everything not archived.
+   *
+   * The flag is on the payload rather than inferred from the key, because the two readers of this
+   * list want opposite things: the chip bar wants it **in** (it is the default filter) and the
+   * Authorize menu must leave it **out** — a report cannot be moved "to All current", and offering it
+   * would be a menu item that always fails. A consumer testing for the literal `'current'` would be
+   * a second place the vocabulary lives.
+   */
+  computed: boolean
   count: number
 }
 
@@ -6251,6 +6462,9 @@ const GOVERNED_REPORT = shape({
   saved_id: nullable(str),
   report_tag: str,
   title: str,
+  rendered_href: nullable(str),
+  authorized_by: nullable(str),
+  authorized_at: nullable(str),
   question: str,
   lead: str,
   status: str,
@@ -6327,7 +6541,7 @@ const REPORT_GOVERNANCE = shape({
     foot: str,
     buttons: shape({ publish: str, republish: str, cancel: str }),
   }),
-  statuses: arrayOf(shape({ key: str, label: str, tone: TONE, count: num })),
+  statuses: arrayOf(shape({ key: str, label: str, tone: TONE, computed: bool, count: num })),
   categories: arrayOf(str),
   viewer: shape({
     role_id: nullable(str),
@@ -6412,6 +6626,9 @@ const toGovernance = (g: any): ReportGovernance => ({
     savedId: r.saved_id ?? null,
     reportTag: r.report_tag,
     title: r.title,
+    renderedHref: r.rendered_href ?? null,
+    authorizedBy: r.authorized_by ?? null,
+    authorizedAt: r.authorized_at ?? null,
     question: r.question,
     lead: r.lead,
     status: r.status,
@@ -7072,6 +7289,33 @@ export async function setReportAudience(
       `/reports/governance/${encodeURIComponent(reportId)}/audience${asRoleQuery(asRole)}`,
       { method: 'PATCH', body: { audience } },
     ),
+    GOVERNANCE_REPLY,
+  )
+  return toGovernance(raw.governance)
+}
+
+/**
+ * Moves a governed report between the lifecycle states the tenant declares.
+ *
+ * **The states are the server's pool**, served on `governance.statuses` — a list written into a
+ * component could offer one the API refuses, which is the mistake the consent screen made with its
+ * scopes. `as` is the signed-in address: the identity is client-held, so a route that records who did
+ * something has to be told, and the server refuses a malformed one rather than crediting the seeded
+ * account.
+ */
+export async function setReportStatus(
+  reportId: string,
+  status: string,
+  as?: string | null,
+  asRole?: string | null,
+): Promise<ReportGovernance> {
+  const path = `/reports/governance/${encodeURIComponent(reportId)}/status`
+  const query = as
+    ? `?as=${encodeURIComponent(as)}${asRoleQuery(asRole).replace('?', '&')}`
+    : asRoleQuery(asRole)
+  const raw = validate<{ governance: any }>(
+    'The report status',
+    await request<unknown>(`${path}${query}`, { method: 'PATCH', body: { status } }),
     GOVERNANCE_REPLY,
   )
   return toGovernance(raw.governance)

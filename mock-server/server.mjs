@@ -684,6 +684,30 @@ const connectedSources = () =>
 const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v)
 
 /**
+ * Whether a subtree *declares* one of its collections not applicable to this tenant.
+ *
+ * **An empty collection is three different facts, and only two of them were expressible.** A
+ * required roster that came back empty in the primary dataset is lost data, which is what the
+ * non-empty rules below refuse; an empty roster in a *secondary* dataset is a dataset nobody has
+ * populated yet, which is what `empty` permits. The third is a tenant whose model has no such
+ * collection at all — CAPEX exposes continuous cost levers rather than a pool of swappable
+ * candidate loads, so `whatif.generators` and `whatif.candidate_pools` are empty **by design**, and
+ * the document says so in `whatif._not_applicable` with a sentence per key explaining why.
+ *
+ * Reading that declaration is what keeps the guard honest in both directions: a roster that is
+ * simply missing still stops the boot, and one the document has explained is permitted **and has
+ * something to render** — the page prints the tenant's own sentence rather than an empty control,
+ * which is the difference between "this model has no candidates" and "the pool failed to load".
+ *
+ * A blank or absent sentence does not count. The whole point is that the reason is on record, and an
+ * empty string would be the relaxation with none of the explanation.
+ */
+const notApplicable = (subtree, key) => {
+  const stated = subtree?._not_applicable?.[key]
+  return typeof stated === 'string' && stated.trim().length > 0
+}
+
+/**
  * The shape the rest of this server reads. Editing db.json through the UI must
  * not be able to remove a key the app then crashes on, so a candidate document
  * is checked before anything touches disk.
@@ -898,7 +922,7 @@ const DB_SHAPE = {
     isObject(v) &&
     isObject(v.facility) &&
     Array.isArray(v.generators) &&
-    (empty || v.generators.length > 0) &&
+    (empty || v.generators.length > 0 || notApplicable(v, 'generators')) &&
     Array.isArray(v.watched_measures) &&
     (empty || v.watched_measures.length > 0) &&
     Array.isArray(v.candidate_pools) &&
@@ -1024,7 +1048,23 @@ const DB_SHAPE = {
         Array.isArray(r.tiles) &&
         r.tiles.length > 0 &&
         Array.isArray(r.footer) &&
-        r.footer.length > 0,
+        r.footer.length > 0 &&
+        /*
+         * **The key has to be *present*, and it is allowed to be null.**
+         *
+         * `rendered_href` is where a report's own rendered page lives, or `null` where the package
+         * ships none — so its value carries no requirement. Its **presence** does: a process that
+         * started before the ingest added it holds report rows without the field, and every writer
+         * hands `commitDb` the whole document, so that stale copy would be written back and the
+         * Library would quietly lose Open on every row. That is not hypothetical — it happened once
+         * during this feature's own verification, and nothing noticed because an unvalidated key has
+         * nothing to fail against.
+         *
+         * This is the same guard the note above describes for `db.json` at large ("it has already
+         * eaten a key once"), applied one level down. `in` rather than a truthiness test, because
+         * `null` is a real answer here and only *absence* means a stale writer.
+         */
+        'rendered_href' in r,
     ),
 
   /*
@@ -1088,12 +1128,15 @@ const DB_HINTS = {
     'sanity_checks[] — the recorded Query & sanity-check set, each { check_id, question, path[], edges_used[] }',
   whatif:
     'object with facility{}, generators[], watched_measures[], candidate_pools[], formats{}, ' +
-    'resolvable[], headroom{} — the What-if lens, from "npm run ingest:whatif"',
+    'resolvable[], headroom{} — the What-if lens, from "npm run ingest:whatif". A tenant whose ' +
+    'model has no candidate pool states why per key in _not_applicable{} and may leave those ' +
+    'collections empty',
   reports:
     'object with meta{}, fields[], assumptions{}, opts{}, slice_default[], ' +
     'summary_catalog[], summary_default[], saved[], data{ generators[], facilities[], ' +
     'quarters[], traces[] }, reports[] of { report_id, heading, spine, blocks[], ' +
-    'tiles[], footer[] } and ' +
+    'tiles[], footer[], rendered_href (may be null, but must be present — a row without the key ' +
+    'is a stale process writing back) } and ' +
     'governance{ statuses[] of { key, label, tone }, reports[] of ' +
     '{ report_id, status naming one of those states, version, author, category, audience[] }, ' +
     'data_scope[], gate_notes{}, publishing{ lead, name{}, readers{ caveat saying ' +
@@ -1176,6 +1219,53 @@ function validateDb(candidate) {
      * the canvas highlights one hop less than the answer claims. Same class of bug,
      * same refusal.
      */
+    /*
+     * **Every semantic class the document uses must have a facet bucket.**
+     *
+     * A class `CLASS_FACET` has never heard of is silently uncounted: the Data Catalog's chip bar
+     * reads 0 for Measures over a dictionary full of them, which is a statement about the data
+     * rather than about the map. Same failure and same refusal as the document type facets, and it
+     * is checked here because that is where a document's whole vocabulary is in hand. A class mapped
+     * to `null` is placed — deliberately in no bucket — and passes; only an absent key fails.
+     */
+    const classSources = [
+      ...Object.values(candidate.column_profiles).flat(),
+      ...candidate.column_vocabulary,
+      ...candidate.document_vocabulary,
+    ]
+    const unplacedClasses = [...new Set(classSources.map((c) => c.class))].filter(
+      (name) => !(name in CLASS_FACET),
+    )
+    for (const name of unplacedClasses) {
+      problems.push(
+        `the semantic class "${name}" has no entry in CLASS_FACET, so every column of that class ` +
+          'would go uncounted by the Data Catalog chips — add it there, mapped to a facet or to null',
+      )
+    }
+
+    /*
+     * **Every choice a review row offers has to mean something to the canvas.**
+     *
+     * A row words its buttons in its own terms and the server validates a decision against that
+     * row's own list — so an unrecognised choice is *accepted*, recorded, and then honoured nowhere:
+     * `CHOICE_MEANING` returns nothing, the element is neither corrected nor rejected, and the row
+     * shows as settled. A decision that does nothing is the worst outcome on the one surface whose
+     * job is deciding what the graph asserts, and nothing throws.
+     */
+    const meaningless = [
+      ...new Set(
+        candidate.graph_studio.review_items.flatMap((i) =>
+          (i.actions ?? []).map((a) => a.choice).filter((c) => !(c in CHOICE_MEANING)),
+        ),
+      ),
+    ]
+    for (const choice of meaningless) {
+      problems.push(
+        `a review row offers the choice "${choice}", which CHOICE_MEANING does not translate — ` +
+          'the decision would be recorded and then honoured nowhere; map it to approve, correct or reject',
+      )
+    }
+
     const edgeIds = new Set(candidate.graph_studio.canvas.edges.map((e) => e.edge_id))
     for (const check of candidate.graph_studio.sanity_checks) {
       for (const id of check.path ?? []) {
@@ -1368,15 +1458,17 @@ function validateDb(candidate) {
             `known scopes: ${Object.keys(REPORT_SCOPES).join(', ')}`,
         )
       }
-      if (!REPORT_LABEL_KEY[r.spine]) {
+      const labelColumn = reportLabelKey(r.spine, rep)
+      if (!labelColumn) {
         problems.push(
-          `reports.data."${r.spine}" has no label column declared in REPORT_LABEL_KEY, so every ` +
-            'chart bar and table row on that spine would be unnamed',
+          `reports.data."${r.spine}" has no label column — declare it as reports.register.identity if ` +
+            'that spine is the register, or in REPORT_LABEL_KEY_BY_SPINE if it is not, or every chart ' +
+            'bar and table row on it would be unnamed',
         )
-      } else if (rowKeys && !rowKeys.has(REPORT_LABEL_KEY[r.spine])) {
+      } else if (rowKeys && !rowKeys.has(labelColumn)) {
         problems.push(
-          `reports.data."${r.spine}" rows do not carry "${REPORT_LABEL_KEY[r.spine]}", the column ` +
-            'their labels come from',
+          `reports.data."${r.spine}" rows do not carry "${labelColumn}", the column their labels ` +
+            'come from',
         )
       }
       for (const block of r.blocks) {
@@ -3315,11 +3407,13 @@ function studioCanvas(useCaseId, answerPath = [], answerEdges = null) {
     if (!reviewItemId) return { proposed: false, origin: 'derived' }
     const decision = decisionFor(reviewItemId)
     if (!decision) return { proposed: true, origin: 'derived' }
+    /* The row's own word for the button, translated to what it does — see CHOICE_MEANING. */
+    const meaning = choiceMeaning(decision.choice)
     return {
       proposed: false,
       // A corrected element is the studio's, not the deriver's.
-      origin: decision.choice === 'correct' ? 'studio-authored' : 'derived',
-      rejected: decision.choice === 'reject',
+      origin: meaning === 'correct' ? 'studio-authored' : 'derived',
+      rejected: meaning === 'reject',
     }
   }
 
@@ -3328,8 +3422,17 @@ function studioCanvas(useCaseId, answerPath = [], answerEdges = null) {
     return {
       node_id: n.node_id,
       label: n.label,
-      // A proposed node says so, and says how sure the deriver was.
-      sublabel: s.proposed ? `proposed · ${n.confidence.toFixed(2)}` : n.sublabel,
+      /*
+       * A proposed node says so, and says how sure the deriver was **where the package scored it**.
+       *
+       * EPA's extraction run scores every node; Northline's states its confidence as lane totals and
+       * records nothing per element, so every node arrives `null` and this threw `Cannot read
+       * properties of null` — a 500 on the whole canvas endpoint, which the Canvas tab reports as the
+       * graph failing to load. The score is appended only when there is one.
+       */
+      sublabel: s.proposed
+        ? `proposed${n.confidence === null ? '' : ` · ${n.confidence.toFixed(2)}`}`
+        : n.sublabel,
       /* What the node *is*, and where it came from. `group` is the origin class the
          colour encodes — a row, a column value, a document, a resolved alias — and
          `source` is the Catalog object itself, so a node on the canvas can be
@@ -4113,15 +4216,35 @@ function askAnswer(useCase, question, requested = { citations: DEFAULT_CITATIONS
 
   const labels = walk.path_labels
   const nodeOf = (nodeId) => canvas.nodes.find((n) => n.node_id === nodeId)
-  const confidenceOf = (nodeId) => nodeOf(nodeId)?.confidence ?? 1
-  // The weakest link, because a chain is no surer than that.
-  const confidence = Number(Math.min(...walk.path.map(confidenceOf)).toFixed(2))
+  /*
+   * **An unscored node is not a certain one, and `?? 1` said it was.**
+   *
+   * The fallback existed for a node id that resolves to nothing. It also caught a node whose package
+   * records no per-element confidence — Northline's records none at all — and turned every one of
+   * them into **1.00**, the maximum. Ask reports this number as "the weakest entity on the route", so
+   * every answer it walked would have claimed total certainty *because* nothing was scored. That is
+   * the invented-figure failure this repo refuses everywhere, arriving through a default.
+   *
+   * So an unscored node contributes nothing to the minimum, and a route with nothing scored on it has
+   * **no** confidence rather than a perfect one. `null` is already what an abstention reports, so
+   * every reader of this field handles it.
+   */
+  const confidenceOf = (nodeId) => {
+    const value = nodeOf(nodeId)?.confidence
+    return typeof value === 'number' ? value : null
+  }
+  /** The weakest link, because a chain is no surer than that — over the links that state one. */
+  const weakest = (ids) => {
+    const scored = ids.map(confidenceOf).filter((v) => v !== null)
+    return scored.length === 0 ? null : Number(Math.min(...scored).toFixed(2))
+  }
+  const confidence = weakest(walk.path)
 
   const labelFor = (nodeId) => nodeOf(nodeId)?.label ?? nodeId
   const citations = walk.edges_used.map((e) => ({
     label: `${labelFor(e.from)} → ${e.label} → ${labelFor(e.to)}`,
     detail: `relationship in ${graph.version}, settled in review before publish`,
-    confidence: Number(Math.min(confidenceOf(e.from), confidenceOf(e.to)).toFixed(2)),
+    confidence: weakest([e.from, e.to]),
   }))
 
   /*
@@ -4159,7 +4282,14 @@ function askAnswer(useCase, question, requested = { citations: DEFAULT_CITATIONS
       {
         step: 'Composed the answer',
         detail:
-          `Confidence ${confidence.toFixed(2)} — the weakest entity on the route. ` +
+          /* Stated where the graph scores its elements, and said plainly where it does not — the
+             number is the weakest node on the route, so a route of unscored nodes has no number to
+             report. Printing one anyway is how "nothing was scored" becomes "we are certain". */
+          `${
+            confidence === null
+              ? 'No confidence — this graph records no per-element score, so the weakest entity on the route cannot be named. '
+              : `Confidence ${confidence.toFixed(2)} — the weakest entity on the route. `
+          }` +
           /* The reader's own requirement for *this* question, not a promise the brief
              made about every answer: step 6 no longer exists and the use case declares
              nothing here. */
@@ -4486,6 +4616,18 @@ const whatifFrame = () => ({
     ...db.whatif.headroom[p.key],
   })),
   copy: db.whatif.copy,
+  /*
+   * Why a collection this lens is built on is empty, in the tenant's own words, or `null` where the
+   * document claims nothing.
+   *
+   * **An empty pool and an inapplicable one are different facts, and only one of them is a fault.**
+   * Northline's capital programme has no pool of swappable candidate loads at all — it exposes
+   * continuous cost levers instead, and the document says so per key. Without this on the payload
+   * the page can only draw the empty control, which reads as a pool that failed to load; with it,
+   * the lens states the reason. It is served rather than written into the component for the reason
+   * the consent screen renders the scopes the endpoint returned.
+   */
+  not_applicable: db.whatif._not_applicable ?? null,
   state_defaults: db.whatif.state_defaults,
   authoring: db.whatif.authoring,
   runtime: db.whatif.runtime,
@@ -4680,19 +4822,201 @@ function whatifSubgraph(generator) {
  * scope is applied here rather than baked into a copy of the roster — so the report and
  * the register it draws from cannot drift.
  */
+/**
+ * What a review row's choice **means** to the canvas.
+ *
+ * **A row states its buttons in its own terms, and only three outcomes exist.** That was always the
+ * design — `approve` keeps the element, `correct` marks it studio-authored, `reject` drops it — but
+ * the meaning was read straight off the choice string, which works only while a package words its
+ * buttons in those three words. The EPA package did. The Northline one words them for the decision
+ * being taken: "Keep as selector", "Approve merge", "Reject as sentinel", carrying `keep`,
+ * `approve_merge` and `reject_as_sentinel`.
+ *
+ * **So "Reject as sentinel" did not reject.** `choice === 'reject'` was false, the element stayed on
+ * the canvas, and the row still showed as settled — a decision recorded, honoured nowhere, and
+ * nothing anywhere reporting a problem. That is the failure this file guards against everywhere else,
+ * and it reached the one surface whose entire job is deciding what the graph asserts.
+ *
+ * Two of these are worth stating rather than inferring:
+ *
+ * - **A refusal to merge is a rejection**, not an approval. `keep_distinct`, `keep_codes_distinct`
+ *   and `keep` (against "create the node?") all decline the element the row proposed, so the element
+ *   must not be asserted. Reading them as approvals — which any "does it start with keep" rule would
+ *   — publishes a merge nobody agreed to.
+ * - **An escalation withholds; it does not accept.** `escalate` and `escalate_to_dr` mean the
+ *   reviewer declined to decide, and the queue still counts the row as settled so the graph can be
+ *   published. Between asserting an element nobody approved and withholding one somebody may later
+ *   want, only the second is recoverable — so an escalation drops the element and the reviewer can
+ *   re-decide.
+ *
+ * A choice with no entry stops the boot, for the reason `CLASS_FACET` does: the alternative is a
+ * decision that quietly means "approve" because nothing said otherwise.
+ */
+const CHOICE_MEANING = {
+  /* The three canonical outcomes, and the causal pair the EPA package words its own way. */
+  approve: 'approve',
+  correct: 'correct',
+  reject: 'reject',
+  'approve-causal': 'approve',
+  'downgrade-correlational': 'correct',
+
+  /* The Northline capital-programme package. */
+  create: 'approve',
+  create_state_node: 'approve',
+  approve_merge: 'approve',
+  approve_rule: 'approve',
+  merge: 'approve',
+  correct_name: 'correct',
+  correct_alias: 'correct',
+  use_active_instead: 'correct',
+  keep: 'reject',
+  keep_distinct: 'reject',
+  keep_codes_distinct: 'reject',
+  reject_as_sentinel: 'reject',
+  escalate: 'reject',
+  escalate_to_dr: 'reject',
+}
+
+/** What one recorded decision does to the element it is about. */
+const choiceMeaning = (choice) => CHOICE_MEANING[choice] ?? null
+
+/**
+ * Which chip on the Data Catalog counts a column of each semantic class.
+ *
+ * **Stated per class, for the reason the document type facets are counted rather than declared.** A
+ * chip reading 0 means one of two opposite things — nothing in this data is a measure, or this map
+ * has never heard of the word the profiler used — and only the first is news. Both tenants'
+ * vocabularies are placed here, and `check-docs` plus the boot guard refuse a class that lands
+ * nowhere, so a 0 is always the first meaning.
+ *
+ * A class may legitimately sit in **no** bucket: the five chips are the reader's questions, not a
+ * partition. `dimension`, `entity`, `label`, `classification`, `organisation`, `person` and `scratch`
+ * are columns the dictionary lists in full and no chip narrows to, which is why they map to `null`
+ * rather than being absent — absent is what the guard is looking for.
+ */
+const CLASS_FACET = {
+  /* EPA's, from its profiling workbook. */
+  identifier: 'ids',
+  measure: 'measures',
+  date: 'dates',
+  address: 'location',
+  geo: 'location',
+  flag: 'flags',
+  dimension: null,
+  entity: null,
+  text: null,
+
+  /* CAPEX's. Its four measure classes differ by *basis* — what was committed, recorded, projected or
+     accumulated over a period — which is a distinction the report section draws and the chip does
+     not: all four answer "is this a number". `derived_ratio` and `risk_score` are measures too. */
+  measure_commitment: 'measures',
+  measure_record: 'measures',
+  measure_projection: 'measures',
+  period_accumulation: 'measures',
+  derived_ratio: 'measures',
+  risk_score: 'measures',
+  geography: 'location',
+  lifecycle_state: 'flags',
+  label: null,
+  classification: null,
+  organisation: null,
+  person: null,
+  scratch: null,
+}
+
 const REPORT_SCOPES = {
   all: (rows) => rows,
+  /*
+   * The CAPEX package's own name for the identity scope, and its `scope_label` is the evidence:
+   * *"Author -- all data"*. All three of its report definitions carry it.
+   *
+   * **Aliased rather than renamed in the document**, because a report's `scope` is the package's word
+   * for its own question and rewriting it would put this server's vocabulary in the tenant's mouth.
+   * And **a predicate stays code**: `cd`, `enf` and `oos` below filter on columns, so a document
+   * declaring an arbitrary scope would be declaring a filter nothing implements — which is worse than
+   * the boot refusal that sent us here, because it would return unfiltered rows under a scoped name.
+   */
+  sc_author_all: (rows) => rows,
   cd: (rows) => rows.filter((r) => r.cd === true),
   enf: (rows) => rows.filter((r) => r.enf > 0),
   oos: (rows) => rows.filter((r) => r.state !== 'TX'),
 }
 
-/** Which column names a row on each spine — a bar with no label is not a bar. */
-const REPORT_LABEL_KEY = {
+/**
+ * Which column names a row on each spine — a bar with no label is not a bar.
+ *
+ * **The register's own key comes from the document, not from here.** A tenant's register is named
+ * differently per tenant and so is the column naming its rows: CAPEX's is `projects` keyed `n`, EPA's
+ * was `generators` keyed `generator`. `reports.register.identity` declares it, so the roster and the
+ * column that names it are one answer rather than two that can drift. The map below covers the
+ * secondary rosters, which have no such declaration; both EPA's four and CAPEX's are listed, and a
+ * spine with an entry in neither is refused at boot rather than drawn unlabelled.
+ */
+const REPORT_LABEL_KEY_BY_SPINE = {
   generators: 'generator',
   facilities: 'facility',
   quarters: 'quarter',
   traces: 'mtn',
+  contracts: 'projectName',
+  changeOrders: 'ref',
+}
+
+/*
+ * `reports` is passed in rather than read off `db`, because `validateDb` runs against a **candidate**
+ * document: resolving the register from the live one would check the incoming register's spine against
+ * the outgoing register's identity column, and pass on a document whose own declaration is broken.
+ */
+const reportLabelKey = (spine, reports = db.reports) =>
+  (reports?.register?.roster === spine ? reports?.register?.identity : null) ??
+  REPORT_LABEL_KEY_BY_SPINE[spine]
+
+/*
+ * ---------------- the register, read from the document rather than named here ----------------
+ *
+ * **The register is the roster this section ranks and the Audit page resolves a rule against**, and
+ * every tenant names it something different: CAPEX's is `projects` keyed `n`, EPA's was `generators`
+ * keyed `generator`. Both were spelled into this file as literals, which made one tenant the one the
+ * code was written for — the other's Audit page read `db.reports.data.generators.length` and threw on
+ * `undefined`, and its basis list came back empty, which reads as "no field can be restricted on".
+ *
+ * `reports.register` declares all three facts — the roster, its identity column and the dictionary for
+ * its own short keys — so there is one answer to each. The fallbacks are EPA's literals, so a document
+ * predating the declaration still serves: absent a register, this is exactly the code that was here.
+ */
+const registerRoster = () => db.reports.register?.roster ?? 'generators'
+const registerRows = () => db.reports.data[registerRoster()] ?? []
+const registerIdentity = () => db.reports.register?.identity ?? 'generator'
+
+/**
+ * The register's field dictionary.
+ *
+ * `reports.fields` describes the register **when the document has no register block** — that is what it
+ * was for EPA. CAPEX's `reports.fields` describes the *authoring* fixture instead (its keys are
+ * `portfolio`/`owner`/`partner`, while the register rows carry `reg`/`cat`/`bu`), so a basis list built
+ * from it would offer six fields the register does not have and admit nothing. The register's own
+ * declared dictionary wins where there is one.
+ */
+const registerFields = () => db.reports.register?.fields ?? db.reports.fields
+
+/**
+ * The scope row that describes what one user sees.
+ *
+ * **Authored per persona in one tenant and per person in the other, and both are legitimate.** EPA's
+ * `data_scope` rows are keyed `role_id` (`domain_architect`); CAPEX's are keyed by person and carry an
+ * `email`, because two of its people share a persona and do *not* share a scope — Rei Nakamura sees 8
+ * of 60 where Ellis Hargrove sees all 60, and collapsing them onto their shared persona would report
+ * one of those two figures for both. So the person's own row wins and the persona's is the fallback;
+ * matching only one way left every CAPEX row unscoped, which renders as "No rule authored yet" — a
+ * statement about the tenant rather than about the lookup.
+ */
+const dataScopeFor = (user) => {
+  const rows = db.reports.governance.data_scope
+  const email = String(user.email ?? '').toLowerCase()
+  return (
+    rows.find((s) => s.email && String(s.email).toLowerCase() === email) ??
+    rows.find((s) => s.role_id === user.role_id) ??
+    {}
+  )
 }
 
 /*
@@ -4833,7 +5157,14 @@ const reportRows = (report) =>
  * draw, and a full ring is not a comparison.
  */
 function reportShareChart(field, title, note) {
-  const rows = db.reports.data.generators
+  /*
+   * The register, whichever roster that is. It was `db.reports.data.generators`, which is `undefined`
+   * in a tenant whose register is named otherwise — and this reads `.filter` on it immediately, so the
+   * companion ring took the whole report down with a `TypeError` rather than declining to draw. The
+   * split it needs (`viols`) is EPA's column, so on a register without it both sides come back empty
+   * and the guard below returns `null`, which is the honest answer: there is no share to draw.
+   */
+  const rows = registerRows()
   const carrying = rows.filter((r) => Number(r.viols) > 0)
   const clean = rows.filter((r) => Number(r.viols) === 0)
   const sum = (set) => set.reduce((t, r) => t + Number(r[field] ?? 0), 0)
@@ -4868,7 +5199,7 @@ function reportShareChart(field, title, note) {
  */
 function reportGroupedChart(report, keys, title) {
   const rows = reportRows(report)
-  const labelKey = REPORT_LABEL_KEY[report.spine]
+  const labelKey = reportLabelKey(report.spine)
   return {
     type: 'chart',
     chart: 'grouped',
@@ -4900,7 +5231,7 @@ function reportGroupedChart(report, keys, title) {
  */
 function reportChart(report, measure, title, form = 'bar') {
   const rows = reportRows(report)
-  const labelKey = REPORT_LABEL_KEY[report.spine]
+  const labelKey = reportLabelKey(report.spine)
   const carrying = rows.filter((r) => Number(r[measure]) > 0)
   const ordered =
     form === 'line'
@@ -4944,7 +5275,49 @@ function reportChart(report, measure, title, form = 'bar') {
 }
 
 /** A block's definition plus everything it displays, computed now. */
+/**
+ * The block kinds whose figures the tenant's own resolver produced, rather than this server.
+ *
+ * **A resolved block is passed through untouched, and that is the honest handling — not a shortcut.**
+ * EPA's blocks are *definitions*: `{ type: 'chart', measure: 'penalty' }`, and `reportBlock` computes
+ * every series from `db.reports.data` on each request, which is what lets a facet chip re-ask the
+ * report and move the chart, the table and the tiles together. Northline's arrive from
+ * `report_resolved.json` with the figures already in them — each carrying its coordinate (basis ×
+ * period frame × vintage), its closure assertion, its coverage seam and a provenance id per figure.
+ *
+ * Recomputing those from the register would mean reimplementing a resolver from its own output, and
+ * the register does not carry the measures to do it with: it holds a project's region, category,
+ * business unit and phase, not its actuals. So the choice is between passing the tenant's figures
+ * through and inventing weaker ones under the same headings. This passes them through, and
+ * `reportBuild` marks the report `written` so nothing claims it was re-asked.
+ */
+const RESOLVED_BLOCKS = new Set([
+  'figRow',
+  'bar',
+  'heatmap',
+  'bubble',
+  'varianceRows',
+  'reasonMix',
+  'narrative',
+  'ask',
+  'header',
+  'chain',
+  'progressSplit',
+  'schedule',
+  'vendors',
+  'lineItems',
+  'annotations',
+  'filingCalendar',
+  'calendar',
+])
+
 function reportBlock(report, block) {
+  /*
+   * Verbatim, and **before** `reportRows` — a resolved block does not read the spine at all, and
+   * calling it first would make a report whose spine is empty fail on a block that never needed it.
+   */
+  if (RESOLVED_BLOCKS.has(block.type)) return block
+
   const rows = reportRows(report)
 
   if (block.type === 'chart') {
@@ -5157,6 +5530,30 @@ const reportFrameProblem = (frame) => {
     }
   }
   /*
+   * **The scope has to be a filter this server implements as well as an option the document offers,
+   * and those are two lists that only looked like one.**
+   *
+   * `opts.scope.options` is what the authoring step asks a reader to pick; `REPORT_SCOPES` is what
+   * actually selects rows. EPA's agreed by coincidence — both were `all`, `cd`, `enf`, `oos` — so a
+   * frame that passed the first check always passed the second, and nothing checked the second at
+   * all. Northline's disagree: its options are `active` and `major` (which nothing implements) while
+   * its report definitions carry `sc_author_all` (which is not an option). Every frame therefore
+   * failed, and the one that got past the options check failed **inside** `reportFrameRows` with
+   * `REPORT_SCOPES[frame.scope] is not a function` — a TypeError arriving as a 400 on a report that
+   * plainly exists, which is precisely the failure `validateDb`'s scope check exists to prevent and
+   * which it cannot see, because it validates a report's *own* scope rather than a frame's.
+   *
+   * Named as a sentence rather than left to throw, because a 400 here is read by a person. That the
+   * two lists disagree at all is the CAPEX report work's to resolve — see the Reports note in
+   * CLAUDE.md.
+   */
+  if (!(frame.scope in REPORT_SCOPES)) {
+    return (
+      `"${frame.scope}" is offered as a scope but this server has no filter for it — it can apply ` +
+      `${Object.keys(REPORT_SCOPES).join(', ')}. The scope options and the filters have drifted apart.`
+    )
+  }
+  /*
    * A filter has to be one of the facets *this report's spine* offers. Checking only the
    * generator dictionary refused a facility's role and a quarter's year — facets the report
    * itself renders as chips — so this asks the same function the chips came from.
@@ -5266,6 +5663,24 @@ function reportBuild(report, frame) {
     (frame.filters ?? []).length === 0
   const asked = { ...reportFrameAsked(report, frame), applied_filters: frame.filters ?? [] }
 
+  /*
+   * The summary tiles this frame can honestly compute: the report's own keys, or the section
+   * default, kept only where **every** measure they read is carried by the rows in view.
+   *
+   * `REPORT_AGGS.sum` coerces an absent field to 0, so a tile naming a measure the roster does not
+   * have does not fail — it reports zero, which on a capital programme reads as "nothing was spent".
+   * All-or-nothing rather than tile-by-tile, because a strip mixing real figures with dropped ones
+   * is a summary that silently describes something narrower than it appears to.
+   */
+  const summaryKeys = (() => {
+    const wanted = report.summary_keys.length > 0 ? report.summary_keys : db.reports.summary_default
+    const row = asked.rows[0]
+    if (!row) return []
+    const tiles = wanted.map((key) => db.reports.summary_catalog.find((t) => t.key === key)).filter(Boolean)
+    const computable = tiles.every((t) => t.field === null || t.field in row)
+    return computable ? wanted : []
+  })()
+
   return {
     ...reportView(asked),
     variant: written ? 'written' : 'generated',
@@ -5279,19 +5694,28 @@ function reportBuild(report, frame) {
     })),
     tiles: written
       ? report.tiles
-      : reportSummary(
-          report.summary_keys.length > 0 ? report.summary_keys : db.reports.summary_default,
-          asked.rows,
-        ),
+      : summaryKeys.length > 0
+        ? reportSummary(summaryKeys, asked.rows)
+        : [],
     /*
-     * A generated report has no authored tiles to show, and on a spine the summary
-     * Catalog does not describe (facilities, quarters, traces) it has no summary at
-     * all — said plainly rather than left as an empty strip.
+     * A generated report has no authored tiles to show, and where the summary cannot be computed
+     * over the rows in view it has no summary at all — said plainly rather than left as an empty
+     * strip.
+     *
+     * **The test is whether the rows carry the measures, not which spine it is.** It used to be
+     * `spine === 'generators'`, which named EPA's register: correct there and wrong twice over
+     * elsewhere. Northline's register spine *is* `projects`, so the literal said "no summary" for
+     * the one roster that is its register — and had the name matched, it would have been worse,
+     * because that roster carries a project's region, category and phase and none of the plan-cube
+     * measures the tiles name, so every tile would have summed absent fields to **0** and printed a
+     * confident row of zeros. A wrong figure is worse than an absent one, which is the whole reason
+     * this note exists.
      */
     summary_note:
-      written || report.spine === 'generators'
+      written || summaryKeys.length > 0
         ? null
-        : `This summary is only defined for the ${db.reports.meta.entity_plural} register, so a re-asked ${report.spine} report states none.`,
+        : `The summary tiles read measures the ${report.spine} rows do not carry, so a re-asked ` +
+          `${report.spine} report states none.`,
     caveats: [
       REPORT_HORIZON_CAVEAT,
       /* A saved report whose graph is no longer published still computes — the figures
@@ -5623,6 +6047,24 @@ const reportEntitlementCell = (governanceRow, roleId) => {
     }
   }
   /*
+   * **Draft needs its own cell for the same reason blocked does, and it was missing.**
+   *
+   * The chain ends by *returning the archived cell* rather than falling through to something
+   * neutral, so any state without a branch tells its audience "entitled - archived, opens by link
+   * only" — a claim that a link exists. A draft has never been published and there is no link; the
+   * EPA pool simply never declared the state, so the gap was unreachable there and arrived with the
+   * first tenant that did. This is the failure `docs/REGRESSIONS.md` already records for `blocked`,
+   * met a second time: when a pool in db.json gains a member, every `=== 'member'` chain has to be
+   * read again. `check-docs` asserts a branch per declared state for exactly this.
+   */
+  if (governanceRow.status === 'draft') {
+    return {
+      state: 'entitled_draft',
+      label: 'entitled once published - still a draft',
+      tone: 'warn',
+    }
+  }
+  /*
    * Blocked needs its own cell, or it falls to the archived one below and reads "entitled -
    * archived, opens by link only" — which says the audience can open it. They cannot: it was never
    * published. The audience is decided and the report is going nowhere until the block clears.
@@ -5677,6 +6119,20 @@ const reportGovernanceRow = (governanceRow) => {
     kind: 'written',
     report_tag: report.report_tag,
     title: report.heading,
+    /*
+     * Where this report's own **rendered** page is, or `null` where the package ships none.
+     *
+     * Served rather than assembled in the client for the reason every pool here is served: a
+     * component that built the path itself could link to a file this deployment does not have, and
+     * the only symptom would be a 404 in a new tab nobody sees. `npm run ingest:capex-reports` writes
+     * the page and this href in one act, so a row carries a link exactly when there is something
+     * behind it — and a row without one falls back to the in-app render rather than losing Open.
+     */
+    rendered_href: report.rendered_href ?? null,
+    /* Who last moved this report between states, and when — `null` until somebody has. Stated on the
+       card so a lifecycle change is attributable rather than just visible. */
+    authorized_by: governanceRow.authorized_by ?? null,
+    authorized_at: governanceRow.authorized_at ?? null,
     /* The question in the report's own words, and the paragraph the tenant wrote under it. Both
        are the report's own copy — the card quotes, it does not paraphrase. */
     question: report.question,
@@ -5840,10 +6296,24 @@ const reportGovernanceView = (asRole) => {
         masked: scope?.masked ?? null,
       }
     }),
-    /* `current` leads and is not a stored state: published + pending is what a reader means. */
+    /*
+     * `current` leads and is **not a stored state**: it is everything not archived, which is what a
+     * reader means by "current". It is marked `computed` rather than left for a consumer to
+     * recognise by key, because the two uses of this list pull in opposite directions — the chip bar
+     * wants it *in* (it is the default filter) and the Authorize menu must leave it *out* (moving a
+     * report "to All current" is not a thing the API can do, and offering it would be a menu item
+     * that always fails). A consumer testing for the literal `'current'` would be a second place the
+     * vocabulary lives, which is the mistake this section keeps finding.
+     */
     statuses: [
-      { key: 'current', label: 'All current', tone: 'neutral', count: count('current') },
-      ...db.reports.governance.statuses.map((s) => ({ ...s, count: count(s.key) })),
+      {
+        key: 'current',
+        label: 'All current',
+        tone: 'neutral',
+        computed: true,
+        count: count('current'),
+      },
+      ...db.reports.governance.statuses.map((s) => ({ ...s, computed: false, count: count(s.key) })),
     ],
     categories: [...new Set(rows.map((r) => r.category))].sort(),
     /*
@@ -6044,16 +6514,15 @@ const logGovernance = (category, actor, text, detail) => {
  * and a field the dictionary stops declaring disappears from both at once. `enf` is deliberately
  * absent for exactly that reason: the dictionary does not declare it filterable.
  */
-const GOVERNANCE_IDENTITY = 'generator'
 const governanceBases = () => {
-  const rows = db.reports.data.generators
+  const rows = registerRows()
   const keys = [
-    GOVERNANCE_IDENTITY,
-    ...db.reports.fields.filter((f) => f.filterable).map((f) => f.key),
+    registerIdentity(),
+    ...registerFields().filter((f) => f.filterable).map((f) => f.key),
   ].filter((k, i, all) => all.indexOf(k) === i && k in (rows[0] ?? {}))
 
   return keys.map((key) => {
-    const field = db.reports.fields.find((f) => f.key === key)
+    const field = registerFields().find((f) => f.key === key)
     /* The values are the roster's own distinct values, each carrying how many rows it admits —
        so an empty basis reads as "nothing qualifies" rather than as a control that failed. */
     const seen = new Map()
@@ -6065,7 +6534,7 @@ const governanceBases = () => {
     return {
       basis: key,
       label: field?.label ?? REPORT_LABELS[key] ?? key,
-      identity: key === GOVERNANCE_IDENTITY,
+      identity: key === registerIdentity(),
       values: [...seen.entries()]
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([value, count]) => ({
@@ -6087,7 +6556,7 @@ const governanceBases = () => {
 /** The rows one rule admits, against today's roster. */
 const governanceRows = (rule) => {
   if (!rule || !rule.basis || !Array.isArray(rule.values) || rule.values.length === 0) return []
-  return db.reports.data.generators.filter((row) =>
+  return registerRows().filter((row) =>
     rule.values.some((v) => String(row[rule.basis] ?? '') === String(v)),
   )
 }
@@ -6100,13 +6569,21 @@ const governanceRows = (rule) => {
  * means, and it is stated rather than defaulted to "everything".
  */
 const governanceResolution = (scope) => {
-  const total = db.reports.data.generators.length
+  const total = registerRows().length
   const basis = scope.rule ? governanceBases().find((b) => b.basis === scope.rule.basis) : null
   if (scope.full && scope.mask) {
     return { kind: 'mask', count: total, total, summary: 'Totals only — row figures masked', sample: [] }
   }
   if (scope.full) {
-    return { kind: 'full', count: total, total, summary: `All ${total} generators`, sample: [] }
+    return {
+      kind: 'full',
+      count: total,
+      total,
+      /* Named by the tenant's own word for its rows — "All 60 generators" would be this file
+         describing a capital programme in the previous tenant's vocabulary. */
+      summary: `All ${total} ${db.reports.meta.entity_plural}`,
+      sample: [],
+    }
   }
   if (!scope.rule || !basis) {
     /* "No rule yet", not "opens empty": nothing here is enforced, so describing what a reader
@@ -6130,7 +6607,7 @@ const governanceResolution = (scope) => {
     total,
     summary: `${basis.label}: ${scope.rule.values.map(labelFor).join(', ')}`,
     /* Named, because "32 of 36" is not checkable and a list of names is. */
-    sample: rows.map((r) => String(r[GOVERNANCE_IDENTITY])),
+    sample: rows.map((r) => String(r[registerIdentity()])),
   }
 }
 
@@ -6138,7 +6615,7 @@ const governanceResolution = (scope) => {
 const governancePeople = () =>
   settings.users.map((u) => {
     const role = db.auth_roles.find((r) => r.role_id === u.role_id)
-    const scope = db.reports.governance.data_scope.find((s) => s.role_id === u.role_id) ?? {}
+    const scope = dataScopeFor(u)
     return {
       email: u.email,
       name: u.name,
@@ -6293,7 +6770,7 @@ const governanceRemoveReader = async (artifact, email) => {
 const governanceView = () => ({
   connected_sources: connectedSources().length,
   ...reportGraphCounts(),
-  roster_total: db.reports.data.generators.length,
+  roster_total: registerRows().length,
   bases: governanceBases(),
   people: governancePeople(),
   artifacts: governanceArtifacts(),
@@ -7356,12 +7833,20 @@ const routes = [
       const project = findProject(source.project_id)
       const byDataset = new Map()
       /*
-       * The class facets are the classes this data actually has. The real
-       * profile uses eight (`identifier date dimension entity address geo flag
-       * measure`) and none of them is `text`, so a Text chip would have sat at 0
-       * for all 206 columns — which reads as "no text columns here" rather than
-       * as a chip nothing can fill. `location` folds `address` and `geo`
-       * together: both answer "where", and 69 of the 206 are one or the other.
+       * The class facets are the classes this data actually has. The real profile uses eight
+       * (`identifier date dimension entity address geo flag measure`) and none of them is `text`, so
+       * a Text chip would have sat at 0 for all 206 columns — which reads as "no text columns here"
+       * rather than as a chip nothing can fill. `location` folds `address` and `geo` together: both
+       * answer "where", and 69 of the 206 are one or the other.
+       *
+       * **Which is exactly why the buckets could not stay written as EPA's classes.** The five chips
+       * are a reader's question — is this an id, a number, a date, a place, a flag — and the answer
+       * has to be given in whatever vocabulary the tenant's profiler used. CAPEX's 194 columns are
+       * classed `measure_record`, `geography`, `lifecycle_state` and thirteen more, none of which is
+       * `measure`, `geo` or `flag`, so Measures and Location read 0 over a full dictionary. That is
+       * the broken map, not the honest empty. `CLASS_FACET` states the grouping per class for both
+       * vocabularies, and the boot guard below refuses a class it does not place — a chip is allowed
+       * to be empty, but only because nothing is in it.
        */
       const facets = {
         all: 0,
@@ -7392,11 +7877,8 @@ const routes = [
           facets.all += 1
           if (c.description_status === 'needs review') facets.needs_review += 1
           if (c.pii) facets.pii += 1
-          if (c.class === 'identifier') facets.ids += 1
-          if (c.class === 'measure') facets.measures += 1
-          if (c.class === 'date') facets.dates += 1
-          if (c.class === 'address' || c.class === 'geo') facets.location += 1
-          if (c.class === 'flag') facets.flags += 1
+          const bucket = CLASS_FACET[c.class]
+          if (bucket) facets[bucket] += 1
         }
 
         if (!byDataset.has(entry.dataset_id)) {
@@ -7477,26 +7959,26 @@ const routes = [
       const drive = findDrive(source.drive_id)
       const byFolder = new Map()
       /*
-       * The type facets are the document kinds this corpus actually holds —
-       * federal RCRA enforcement papers. A consent-decree *modification* files
-       * under `consent_decree` because that is what it is; what makes it a
-       * modification is `doc_type_label`, which is what the reader sees.
+       * The type facets are the document kinds this corpus actually holds — and now they are
+       * **counted from the corpus rather than declared against one**.
+       *
+       * CLAUDE.md has always said these are "the corpus's kinds, not a taxonomy", but they were
+       * written down twice as EPA's four (`consent_decree`, `complaint`, `settlement`, `cafo`) — here
+       * and again as `TYPE_FOR_FACET` in `ProfiledDocumentsPanel`, with a `check-docs` claim keeping
+       * the two copies in step. A corpus of anything else got four facets reading 0 over a full list
+       * of documents, which is the *broken map* the note beside that claim warns about rather than the
+       * honest "none in this corpus". CAPEX's kinds are `scope_document` and `contract`; it had
+       * exactly that failure.
+       *
+       * So the buckets are the `doc_type`s present, labelled with the `doc_type_label` the tenant
+       * wrote, and a kind with nothing in it cannot appear because it is built by counting. The
+       * label/slug split is unchanged and still load-bearing: a consent-decree *modification* files
+       * under `consent_decree` because that is what it is, and only the label says it is a
+       * modification — so the bucket is keyed on the slug and named by the label of the first document
+       * to land in it.
        */
-      const facets = {
-        all: 0,
-        needs_review: 0,
-        pii: 0,
-        consent_decrees: 0,
-        complaints: 0,
-        settlements: 0,
-        cafos: 0,
-      }
-      const FACET_FOR_TYPE = {
-        consent_decree: 'consent_decrees',
-        complaint: 'complaints',
-        settlement: 'settlements',
-        cafo: 'cafos',
-      }
+      const facets = { all: 0, needs_review: 0, pii: 0 }
+      const typeFacets = new Map()
 
       for (const entry of source.profiled_docs ?? []) {
         const meta = findDocument(drive, entry.folder_id, entry.document_id)
@@ -7506,8 +7988,21 @@ const routes = [
         facets.all += 1
         if (document.summary_status === 'needs review') facets.needs_review += 1
         if (document.pii_count > 0) facets.pii += 1
-        const bucket = FACET_FOR_TYPE[document.doc_type]
-        if (bucket) facets[bucket] += 1
+        if (document.doc_type) {
+          const held = typeFacets.get(document.doc_type)
+          if (held) held.count += 1
+          else typeFacets.set(document.doc_type, {
+            key: document.doc_type,
+            /*
+             * A *kind*, so the plainest label the corpus gives it. `doc_type_label` describes the
+             * individual paper ("Consent decree — modification"), which would name the bucket after
+             * whichever document happened to be profiled first; the slug is the one thing every
+             * document of a kind shares, so it is title-cased when the corpus offers nothing better.
+             */
+            label: document.doc_type.replace(/[_-]+/g, ' ').replace(/^./, (c) => c.toUpperCase()),
+            count: 1,
+          })
+        }
 
         if (!byFolder.has(entry.folder_id)) {
           const folder = findFolder(drive, entry.folder_id)
@@ -7533,6 +8028,8 @@ const routes = [
         folder_count: folders.length,
         entity_count: folders.reduce((s, f) => s + f.entity_count, 0),
         facets,
+        /* Ordered by the slug so the chip bar does not reshuffle between two reads of one corpus. */
+        type_facets: [...typeFacets.values()].sort((a, b) => a.key.localeCompare(b.key)),
         folders,
       })
     },
@@ -9520,6 +10017,88 @@ const routes = [
             ...db.reports.governance,
             reports: db.reports.governance.reports.map((r) =>
               r.report_id === id ? { ...r, audience: ids } : r,
+            ),
+          },
+        },
+      })
+      send(res, 200, { governance: reportGovernanceView(reportRoleFrom(query)) })
+    },
+  },
+
+  /*
+   * Authorize — moves a governed report between the lifecycle states the tenant declares.
+   *
+   * **This is the one governance act the section could describe but not perform.** `governance.statuses`
+   * has always been a real pool — the Library's chips count it and every card tints itself from its
+   * tone — but the only way a report changed state was re-running the seed. So a reader could see that
+   * a definition was a draft and had no way to publish it.
+   *
+   * **The state is validated against the pool, never a list written here.** An unknown state does not
+   * throw: it has no label, so the card prints the raw key, and it matches no chip, so the row becomes
+   * reachable only under "All current" while every other chip under-counts by one. `validateDb` refuses
+   * a document in that shape at boot, and this refuses one at the seam that writes it — the same pair
+   * the audience rules keep.
+   *
+   * **Who did it is told, never guessed** — `?as=<email>`, the rule the consent callback established:
+   * the identity is client-held and this server has nothing to look it up from. It is written on every
+   * change rather than only when absent, or an anonymous re-authorization keeps crediting whoever went
+   * last, which is the `studioPublishedBy` failure recorded in `docs/REGRESSIONS.md`.
+   *
+   * **It commits**, like the audience does and unlike a publication: a restart clears which graph is
+   * live, and it must not clear somebody's decision about what a report *is*.
+   */
+  {
+    method: 'PATCH',
+    match: (p) => /^\/reports\/governance\/[^/]+\/status$/.test(p),
+    handle: async (req, res, { pathname, query }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/reports/governance/'.length, -'/status'.length),
+      )
+      const row = db.reports.governance.reports.find((r) => r.report_id === id)
+      if (!row) {
+        return send(res, 404, {
+          error:
+            `no governed report "${id}" — this tenant governs ` +
+            `${db.reports.governance.reports.map((r) => r.report_id).join(', ')}`,
+        })
+      }
+
+      const body = await readJson(req)
+      const next = String(body.status ?? '')
+      const states = db.reports.governance.statuses
+      if (!states.some((st) => st.key === next)) {
+        return send(res, 400, {
+          error:
+            `"${next}" is not a lifecycle state — this tenant declares ` +
+            `${states.map((st) => st.key).join(', ')}`,
+        })
+      }
+
+      /* Named, not guessed. A malformed address is a refusal rather than a quiet fall back to the
+         seeded account, for the reason the publish route refuses one. */
+      const who = query?.get?.('as') ?? null
+      if (who !== null && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(who)) {
+        return send(res, 400, {
+          error: `"${who}" is not an email address — pass ?as= the signed-in address, or nothing`,
+        })
+      }
+
+      await commitDb({
+        ...db,
+        reports: {
+          ...db.reports,
+          governance: {
+            ...db.reports.governance,
+            reports: db.reports.governance.reports.map((r) =>
+              r.report_id === id
+                ? {
+                    ...r,
+                    status: next,
+                    /* Written or cleared on every change — see the note above. */
+                    authorized_by: who,
+                    authorized_at: who ? new Date().toISOString() : null,
+                  }
+                : r,
             ),
           },
         },

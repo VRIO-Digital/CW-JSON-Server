@@ -18,8 +18,21 @@
  * and an unknown value is refused rather than honoured.
  */
 
-/** The value sent when nothing has been chosen — the server's primary, and its own default. */
-export const DEFAULT_DATASET = 'EPA'
+/**
+ * The value sent when nothing has been chosen.
+ *
+ * **It must be the server's `PRIMARY`, and "must" is not a style note.** Every request carries this
+ * header from the first call onward, and the server refuses a selector it does not recognise rather
+ * than falling back — deliberately, because serving one tenant's figures under another's name is the
+ * single failure the dataset split exists to prevent. So a client default naming a retired dataset
+ * does not degrade gracefully: **every page in a fresh browser** answers
+ * `"EPA" is not a dataset — this tenant has CAPEX, both`, which the error surface reports as the mock
+ * server not responding, when the server is up and is the thing doing the refusing.
+ *
+ * That is exactly what happened when EPA was retired and this constant was left behind.
+ * `check-docs` now asserts it equals `PRIMARY` in `mock-server/datasets.mjs`.
+ */
+export const DEFAULT_DATASET = 'CAPEX'
 
 /** The merged reading view. Named here because the UI has to know it is read-only. */
 export const BOTH_DATASET = 'both'
@@ -40,6 +53,32 @@ function read(): string {
 
 /** The dataset every request carries. Read by `client.ts`, never by a component. */
 export const currentDataset = (): string => current
+
+/**
+ * Forget a stored selection the server says is not a dataset, and report whether there was one.
+ *
+ * **A retired dataset and a wrong one are different facts, and only the first is recoverable here.**
+ * The server refuses an unknown selector rather than falling back, and that rule is right: a caller
+ * asking for another tenant must not be quietly handed this one's figures under that name. But a
+ * *stored* selection is not a caller asking for anything — it is a preference for a tenant that has
+ * since been retired, and honouring it forever means a browser that once saw EPA can never open the
+ * app again, on any page, with no way out but developer tools. Nobody would find that.
+ *
+ * So the stale preference is dropped and the next call carries the default, which the app then
+ * labels honestly as the dataset it actually is — no figure is shown under the wrong name at any
+ * point. It returns `true` only when something was really discarded, so the caller can retry once
+ * rather than loop: a refusal that survives the reset is a different fault and must be shown.
+ */
+export function forgetStaleDataset(): boolean {
+  if (current === DEFAULT_DATASET) return false
+  current = DEFAULT_DATASET
+  try {
+    window.localStorage.removeItem(KEY)
+  } catch {
+    /* In-memory reset is enough for this session; the next load re-reads and finds nothing. */
+  }
+  return true
+}
 
 /**
  * Change it, and persist it.

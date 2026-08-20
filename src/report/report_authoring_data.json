@@ -1,0 +1,575 @@
+{
+ "generatedAt": "2026-08-18",
+ "source": "latest_html_prototype/drafts/report_authoring_simplified_v3.html",
+ "note": "Extracted from the authoring screen's own script, not written alongside it. The screen asks the author for a question in their own words, restates it as three editable assumptions -- which projects, measured against what, over what period -- and only then draws blocks. Nothing here is a report: this is the vocabulary an author composes one from.",
+ "assumptions": {
+  "_note": "The three slots in the restated question. Each is a click-to-change dropdown on the confirm screen; the sentence is the product's way of showing what it understood before it spends a query on it.",
+  "current": {
+   "scope": {
+    "value": "active",
+    "label": "all 42 active capital projects"
+   },
+   "measure": {
+    "value": "envelope",
+    "label": "authorized envelope"
+   },
+   "horizon": {
+    "value": "thisyear",
+    "label": "this financial year"
+   }
+  },
+  "options": {
+   "scope": {
+    "q": "Which projects to include?",
+    "options": [
+     {
+      "value": "active",
+      "label": "all 42 active capital projects",
+      "d": "Everything in flight"
+     },
+     {
+      "value": "major",
+      "label": "major projects over $5M",
+      "d": "The largest by envelope"
+     }
+    ]
+   },
+   "measure": {
+    "q": "\"Over budget\" measured against?",
+    "options": [
+     {
+      "value": "envelope",
+      "label": "authorized envelope",
+      "d": "The amount the board signed off"
+     },
+     {
+      "value": "working",
+      "label": "the working forecast",
+      "d": "Latest re-forecast"
+     },
+     {
+      "value": "mtp",
+      "label": "the medium-term plan",
+      "d": "The MTP baseline"
+     }
+    ]
+   },
+   "horizon": {
+    "q": "Over what period?",
+    "options": [
+     {
+      "value": "thisyear",
+      "label": "this financial year",
+      "d": "To 31 March"
+     },
+     {
+      "value": "itd",
+      "label": "inception to date",
+      "d": "Whole project life"
+     },
+     {
+      "value": "fiveyr",
+      "label": "the next five years",
+      "d": "Full programme"
+     }
+    ]
+   }
+  }
+ },
+ "fieldCatalog": {
+  "_note": "Every field a column, filter or chart measure can be built from. Three carry avail=false: they exist in the model but not at project grain. The picker SURFACES them with the reason rather than hiding them -- an author who cannot see a field concludes the product does not hold it, and asks for it to be added.",
+  "fields": [
+   {
+    "key": "name",
+    "label": "Project",
+    "kind": "text",
+    "avail": true,
+    "filterable": false
+   },
+   {
+    "key": "portfolio",
+    "label": "Portfolio",
+    "kind": "cat",
+    "avail": true,
+    "filterable": true
+   },
+   {
+    "key": "region",
+    "label": "Region",
+    "kind": "cat",
+    "avail": true,
+    "filterable": true
+   },
+   {
+    "key": "phase",
+    "label": "Phase",
+    "kind": "cat",
+    "avail": true,
+    "filterable": true
+   },
+   {
+    "key": "status",
+    "label": "Delivery status",
+    "kind": "cat",
+    "avail": true,
+    "filterable": true
+   },
+   {
+    "key": "owner",
+    "label": "Project owner",
+    "kind": "cat",
+    "avail": true,
+    "filterable": true
+   },
+   {
+    "key": "funding",
+    "label": "Funding source",
+    "kind": "cat",
+    "avail": true,
+    "filterable": true
+   },
+   {
+    "key": "partner",
+    "label": "Delivery partner",
+    "kind": "cat",
+    "avail": true,
+    "filterable": true
+   },
+   {
+    "key": "contract",
+    "label": "Contract type",
+    "kind": "cat",
+    "avail": true,
+    "filterable": true
+   },
+   {
+    "key": "auth",
+    "label": "Authorized",
+    "kind": "num",
+    "avail": true,
+    "filterable": false
+   },
+   {
+    "key": "comm",
+    "label": "Committed",
+    "kind": "num",
+    "avail": true,
+    "filterable": false
+   },
+   {
+    "key": "proj",
+    "label": "Projected",
+    "kind": "num",
+    "avail": true,
+    "filterable": false
+   },
+   {
+    "key": "fac",
+    "label": "Forecast at completion",
+    "kind": "num",
+    "avail": true,
+    "filterable": false
+   },
+   {
+    "key": "varD",
+    "label": "Variance ($)",
+    "kind": "num",
+    "avail": true,
+    "filterable": false
+   },
+   {
+    "key": "varP",
+    "label": "Variance (%)",
+    "kind": "num",
+    "avail": true,
+    "filterable": false
+   },
+   {
+    "key": "pct",
+    "label": "% of envelope spent",
+    "kind": "num",
+    "avail": true,
+    "filterable": false
+   },
+   {
+    "key": "reason",
+    "label": "Reason for variance",
+    "kind": "text",
+    "avail": true,
+    "filterable": false
+   },
+   {
+    "key": "daily",
+    "label": "Daily spend rate",
+    "kind": "num",
+    "avail": false,
+    "filterable": false,
+    "note": "Held monthly, not at project-to-date granularity"
+   },
+   {
+    "key": "invoice",
+    "label": "Invoice line detail",
+    "kind": "num",
+    "avail": false,
+    "filterable": false,
+    "note": "Lives at transaction level \u2014 cannot roll up to a project column"
+   },
+   {
+    "key": "complaint",
+    "label": "Customer complaints",
+    "kind": "cat",
+    "avail": false,
+    "filterable": true,
+    "note": "Modelled at asset level, not project \u2014 not available as a project filter"
+   }
+  ],
+  "unavailable": [
+   {
+    "key": "daily",
+    "label": "Daily spend rate",
+    "kind": "num",
+    "avail": false,
+    "filterable": false,
+    "note": "Held monthly, not at project-to-date granularity"
+   },
+   {
+    "key": "invoice",
+    "label": "Invoice line detail",
+    "kind": "num",
+    "avail": false,
+    "filterable": false,
+    "note": "Lives at transaction level \u2014 cannot roll up to a project column"
+   },
+   {
+    "key": "complaint",
+    "label": "Customer complaints",
+    "kind": "cat",
+    "avail": false,
+    "filterable": true,
+    "note": "Modelled at asset level, not project \u2014 not available as a project filter"
+   }
+  ],
+  "filterValues": {
+   "portfolio": [
+    "Clean Water",
+    "Networks",
+    "Water & Wastewater"
+   ],
+   "region": [
+    "Coastal",
+    "North",
+    "South"
+   ],
+   "phase": [
+    "Commissioning",
+    "Construction",
+    "Design"
+   ],
+   "status": [
+    "At risk",
+    "Delayed",
+    "On track"
+   ],
+   "owner": [
+    "A. Kaur",
+    "J. Obi",
+    "M. Lin",
+    "R. Diaz"
+   ],
+   "funding": [
+    "Developer-funded",
+    "Grant-funded",
+    "RCV programme"
+   ],
+   "partner": [
+    "Balfour",
+    "Costain",
+    "MWH"
+   ],
+   "contract": [
+    "Design & Build",
+    "Framework",
+    "NEC4 Option C"
+   ],
+   "complaint": null
+  }
+ },
+ "blocks": {
+  "_note": "What the author can add, and what the screen opens with.",
+  "presets": [
+   {
+    "label": "Summary tiles",
+    "description": "Key numbers across the top",
+    "block": {
+     "type": "kpis"
+    }
+   },
+   {
+    "label": "Chart \u00b7 Projected vs authorized",
+    "description": "Bar chart, overruns in red",
+    "block": {
+     "type": "chart",
+     "chartType": "bar",
+     "measure": "proj",
+     "title": "Projects tracking over their authorized envelope"
+    }
+   },
+   {
+    "label": "Chart \u00b7 Committed to date",
+    "description": "Column chart of committed spend",
+    "block": {
+     "type": "chart",
+     "chartType": "column",
+     "measure": "comm",
+     "title": "Committed to date by project"
+    }
+   },
+   {
+    "label": "Chart \u00b7 % of envelope spent",
+    "description": "How much of each budget is used",
+    "block": {
+     "type": "chart",
+     "chartType": "bar",
+     "measure": "pct",
+     "title": "Percent of envelope spent"
+    }
+   },
+   {
+    "label": "Table \u00b7 Project detail",
+    "description": "Cost columns, one row per project",
+    "block": {
+     "type": "table",
+     "cols": [
+      "name",
+      "auth",
+      "comm",
+      "proj",
+      "varD",
+      "status"
+     ],
+     "title": "The detail"
+    }
+   },
+   {
+    "label": "Table \u00b7 Ownership & delivery",
+    "description": "Owner, partner, contract",
+    "block": {
+     "type": "table",
+     "cols": [
+      "name",
+      "owner",
+      "partner",
+      "contract",
+      "status"
+     ],
+     "title": "Ownership & delivery"
+    }
+   }
+  ],
+  "default": [
+   {
+    "type": "kpis"
+   },
+   {
+    "type": "chart",
+    "chartType": "bar",
+    "measure": "proj",
+    "title": "Projects tracking over their authorized envelope"
+   },
+   {
+    "type": "table",
+    "cols": [
+     "name",
+     "auth",
+     "comm",
+     "proj",
+     "varD",
+     "status"
+    ],
+    "title": "The detail"
+   }
+  ],
+  "defaultFilters": [
+   {
+    "key": "portfolio",
+    "val": "All"
+   },
+   {
+    "key": "region",
+    "val": "All"
+   },
+   {
+    "key": "phase",
+    "val": "All"
+   }
+  ],
+  "sliceChips": [
+   "portfolio",
+   "region",
+   "phase",
+   "status"
+  ]
+ },
+ "fixture": {
+  "_note": "The seven-project fixture the screen previews against. It is the authoring screen's own sample and is deliberately NOT the CAPEX portfolio: an author composing a report should see a preview small enough to check by eye. The same screen bound to the real graph resolves against all 4,500.",
+  "projects": [
+   {
+    "name": "Riverside WWTP Upgrade",
+    "auth": 42,
+    "comm": 44.8,
+    "proj": 47.2,
+    "portfolio": "Water & Wastewater",
+    "region": "North",
+    "phase": "Construction",
+    "owner": "A. Kaur",
+    "funding": "RCV programme",
+    "partner": "Balfour",
+    "contract": "NEC4 Option C",
+    "reason": "Contractor claims + ground conditions"
+   },
+   {
+    "name": "North Trunk Main Renewal",
+    "auth": 31.5,
+    "comm": 30.2,
+    "proj": 35.1,
+    "portfolio": "Networks",
+    "region": "North",
+    "phase": "Construction",
+    "owner": "J. Obi",
+    "funding": "RCV programme",
+    "partner": "Costain",
+    "contract": "Design & Build",
+    "reason": "Scope growth on tie-ins"
+   },
+   {
+    "name": "Eastgate Pumping Station",
+    "auth": 18,
+    "comm": 17.1,
+    "proj": 19.4,
+    "portfolio": "Water & Wastewater",
+    "region": "South",
+    "phase": "Commissioning",
+    "owner": "R. Diaz",
+    "funding": "Grant-funded",
+    "partner": "MWH",
+    "contract": "Framework",
+    "reason": "Electrical package inflation"
+   },
+   {
+    "name": "Membrane Plant Phase 2",
+    "auth": 27.4,
+    "comm": 24,
+    "proj": 28.9,
+    "portfolio": "Clean Water",
+    "region": "Coastal",
+    "phase": "Construction",
+    "owner": "A. Kaur",
+    "funding": "RCV programme",
+    "partner": "Balfour",
+    "contract": "NEC4 Option C",
+    "reason": "FX on imported membranes"
+   },
+   {
+    "name": "Sludge Digestion Retrofit",
+    "auth": 12.6,
+    "comm": 11,
+    "proj": 12.4,
+    "portfolio": "Water & Wastewater",
+    "region": "North",
+    "phase": "Design",
+    "owner": "M. Lin",
+    "funding": "Developer-funded",
+    "partner": "Costain",
+    "contract": "Design & Build",
+    "reason": "On track"
+   },
+   {
+    "name": "Coastal Outfall Rehab",
+    "auth": 22,
+    "comm": 14.2,
+    "proj": 21.3,
+    "portfolio": "Water & Wastewater",
+    "region": "Coastal",
+    "phase": "Construction",
+    "owner": "R. Diaz",
+    "funding": "Grant-funded",
+    "partner": "MWH",
+    "contract": "Framework",
+    "reason": "On track"
+   },
+   {
+    "name": "SCADA Modernisation",
+    "auth": 8.4,
+    "comm": 5.1,
+    "proj": 8,
+    "portfolio": "Networks",
+    "region": "South",
+    "phase": "Design",
+    "owner": "J. Obi",
+    "funding": "RCV programme",
+    "partner": "Balfour",
+    "contract": "NEC4 Option C",
+    "reason": "On track"
+   }
+  ],
+  "derived": {
+   "Riverside WWTP Upgrade": {
+    "status": "Delayed",
+    "varianceDollarsM": 5.2,
+    "variancePct": 12.4,
+    "pctOfEnvelopeSpent": 106.7
+   },
+   "North Trunk Main Renewal": {
+    "status": "Delayed",
+    "varianceDollarsM": 3.6,
+    "variancePct": 11.4,
+    "pctOfEnvelopeSpent": 95.9
+   },
+   "Eastgate Pumping Station": {
+    "status": "At risk",
+    "varianceDollarsM": 1.4,
+    "variancePct": 7.8,
+    "pctOfEnvelopeSpent": 95
+   },
+   "Membrane Plant Phase 2": {
+    "status": "At risk",
+    "varianceDollarsM": 1.5,
+    "variancePct": 5.5,
+    "pctOfEnvelopeSpent": 87.6
+   },
+   "Sludge Digestion Retrofit": {
+    "status": "On track",
+    "varianceDollarsM": -0.2,
+    "variancePct": -1.6,
+    "pctOfEnvelopeSpent": 87.3
+   },
+   "Coastal Outfall Rehab": {
+    "status": "On track",
+    "varianceDollarsM": -0.7,
+    "variancePct": -3.2,
+    "pctOfEnvelopeSpent": 64.5
+   },
+   "SCADA Modernisation": {
+    "status": "On track",
+    "varianceDollarsM": -0.4,
+    "variancePct": -4.8,
+    "pctOfEnvelopeSpent": 60.7
+   }
+  },
+  "unit": "USD millions",
+  "derivationRules": {
+   "varianceDollarsM": "projected - authorized",
+   "variancePct": "(projected - authorized) / authorized * 100",
+   "pctOfEnvelopeSpent": "committed / authorized * 100",
+   "status": "variancePct > 8 -> Delayed; > 0 -> At risk; else On track",
+   "forecastAtCompletion": "equals projected in this fixture"
+  }
+ },
+ "publish": {
+  "_note": "The screen stops at a draft. Publish is a single action that hands the draft to a Domain Architect; this surface deliberately carries no audience editor and no scope editor. Component 12 is a stub, and a convincing editor would settle an unreviewed design by accident.",
+  "draftIsPrivate": true,
+  "publishRequiresApproval": true,
+  "approverRole": "Domain Architect",
+  "resolvesUnder": "the author's own access, stated on screen before anything is saved"
+ }
+}

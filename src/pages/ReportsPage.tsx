@@ -6,6 +6,7 @@ import {
   getReportsPrototypeDataset,
   listAuthRoles,
   setReportAudience,
+  setReportStatus,
 } from '../api/client'
 import ApiErrorAlert from '../components/ApiErrorAlert'
 import NoPublishedGraph from '../components/NoPublishedGraph'
@@ -228,7 +229,30 @@ export default function ReportsPage() {
     [asRole, load],
   )
 
-  const actions = useMemo(() => ({ share, remove }), [share, remove])
+  /**
+   * Move a report between the lifecycle states the tenant declares.
+   *
+   * The signed-in address goes with it, because the server records who authorised a change and has
+   * nothing to look an identity up from — the rule the consent callback established. Re-reads the
+   * section afterwards like the other two, so there is one path into the state on screen.
+   */
+  const authorize = useCallback(
+    async (reportId: string, status: string) => {
+      try {
+        await setReportStatus(reportId, status, identity?.email ?? null, asRole)
+        await load(asRole)
+        return { ok: true }
+      } catch (e) {
+        return { ok: false, error: toMessage(e) }
+      }
+    },
+    [asRole, identity?.email, load],
+  )
+
+  const actions = useMemo(
+    () => ({ share, remove, authorize }),
+    [share, remove, authorize],
+  )
 
   const shareRoles = useMemo(
     () =>
@@ -359,6 +383,20 @@ export default function ReportsPage() {
                  * definition. Two buttons that did the same thing now do what their labels say, and the
                  * one a governed row needs is the one showing the tenant's own figures rather than the
                  * prototype's sample data under a card marked "Published".
+                 */
+                /*
+                 * **Open report renders the report here, in this tab.**
+                 *
+                 * It briefly opened the package's own rendered HTML in a new tab instead. That page is
+                 * the tenant's, but it is a *whole separate console* — its own sidebar, wordmark and
+                 * persona — so opening it left the app rather than showing the report in it, and
+                 * nothing there is editable or governable. `PublishedReport` draws the same report
+                 * from `db.reports` through this app's own components, which is what makes Edit,
+                 * Share and the governance state mean anything.
+                 *
+                 * The rendered page is still written by the ingest and still named on every row
+                 * (`rendered_href`); it is simply not what Open does. Keeping it costs nothing and it
+                 * is the reference for what these blocks are supposed to look like.
                  */
                 onOpenPublished={(reportId) => void openReport(reportId)}
               />

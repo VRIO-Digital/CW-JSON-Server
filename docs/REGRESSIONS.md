@@ -3453,3 +3453,301 @@ precisely when the next dataset gets added. Its denominator is the declared list
 it re-acquires teeth automatically rather than needing to be remembered.
 
 
+
+
+## A second tenant is what proves which code was written for the first — 2026-08-19
+
+**What happened.** The served document was replaced: EPA Hazwaste out, the Northline Water Group
+capital programme (`capex/db.json`) in. The two packages are built to the *same schema* — 27 keys,
+identical shapes for sources, catalogue, canvas, review queue and Ask — so the swap booted after four
+data repairs. Then four defects surfaced that had been latent for as long as there had been one
+tenant, and **none of them threw**. Every one worked perfectly for EPA and only for EPA.
+
+**1. A validator union is a claim about the data, not about the shape.** `client.ts` validated a
+profiled column's `class` with `oneOf` over nine literals from EPA's profiling workbook. Northline's
+194 real columns are classed `measure_record`, `geography`, `organisation`, `lifecycle_state` and
+twelve more, so the Data Catalog payload was refused **at the boundary** with
+`columns[0].class should be one of identifier, dimension, …` — which reads as a stale mock server and
+was not one. `curl` returned 200 throughout, because a validator is the browser's alone. *Guard:*
+`COLUMN_CLASSES` is declared once and read by the type and both schemas, and `check-docs` asserts
+every class in `db.json` appears in it.
+
+**2. A facet map that does not know a word counts zero, and zero is an answer.** Two of these, and
+they fail identically. The Catalog's class chips were five inline `c.class === 'measure'`
+comparisons, so Measures and Location read **0 over 194 columns**. The document dictionary's type
+chips were EPA's four kinds written into the server *and* into `ProfiledDocumentsPanel`, so a corpus
+of contracts and scope documents drew four chips at 0 above a full list. In both cases a reader
+concludes "none of those here" rather than "this map has never heard of what is in it". *Guard:* the
+type facets are **counted off the corpus** — no taxonomy on either side — and the class facets are
+`CLASS_FACET`, which places every class (`null` for deliberately unfaceted) with `validateDb`
+refusing a class it cannot place.
+
+**3. A decision read for its spelling is a decision honoured nowhere.** A studio review row states
+its buttons in its own terms and the server validates a choice against *that row's own list* — so any
+wording is accepted. What it then *means* to the canvas was read as `decision.choice === 'reject'`.
+Northline's rq7 offers "Reject as sentinel", carrying `reject_as_sentinel`: the row recorded as
+settled, the queue cleared, the graph published, and the element stayed on the canvas. A decision
+recorded and honoured nowhere, on the one surface whose whole job is deciding what the graph asserts.
+*Guard:* `CHOICE_MEANING` translates every choice to one of the three outcomes, `validateDb` refuses a
+row offering one it cannot translate, and `check-docs` asserts the canvas reads the meaning rather
+than the string. Two mappings are stated rather than inferred: **a refusal to merge is a rejection**
+(`keep_distinct` declines the element the row proposed — any "starts with keep" rule would have
+approved it), and **an escalation withholds rather than accepts**, because between asserting an
+element nobody approved and withholding one somebody may want, only the second is recoverable.
+
+**4. When a pool in db.json gains a member, every `=== 'member'` chain has to be re-read — again.**
+`reportEntitlementCell` ends by *returning* the archived cell, so a status with no branch tells its
+audience "entitled - archived, opens by link only". EPA's pool never declared `draft`; Northline's
+does. This is the same fault `blocked` had, recorded above, arriving a second time by the same route.
+*Guard:* the existing claim — a branch per declared state but `archived` — caught it, which is the
+claim doing exactly its job.
+
+**Four repairs the document itself needed, all silent.** `column_profiles` keyed
+`ds_epbcs_plan.vw_project_plan_capex` where the Catalog looks up `<dataset>.<table>` (every key
+missed → 194 real columns silently replaced by synthesis); `document_extractions` keyed
+`ex_0001…ex_0423` where the dictionary looks up `document_id` (every document → "nothing resolved
+yet"); four sanity checks naming edges `t1`…`t4` that are not edges; and
+`governance.audit.copy.not_enforced` arriving `null`, which is the one sentence stopping the Audit
+page implying a filter runs. They live in `scripts/adopt-capex.mjs` so they are re-runnable and
+readable rather than baked into a 1.1 MB file nobody can diff.
+
+**And the general lesson for `check-docs`.** Roughly forty claims were red, and **almost none of them
+were wrong** — they were claims about the EPA *package* wearing the clothes of claims about the app.
+"every catalogued table is profiled" (true of five views, false of 64 tables with a documented
+synthesis fallback), "the canvas names these four tables", "a document's `linked_entity` equals its
+resolved entity" (true when the papers are *about* a facility, false when they are contracts *with* a
+counterparty), "both kinds of Drive exist", "some folders nest". Each was rewritten to assert the
+**invariant** rather than the instance, and where the data genuinely cannot answer — no candidate
+roster, tiles reading measures the register does not carry — the claim becomes that the *document
+declares* the absence and the *code withholds* rather than computing. Three of them ran off the end of
+a null and killed the whole run before any summary printed, which is the "a partial fallback moves a
+crash rather than removing it" failure already recorded here.
+
+**One number is worth keeping.** `REPORT_AGGS.sum` coerces an absent field to 0, and Northline's 24
+summary tiles read plan-cube measures its register does not hold — so a generated report was one step
+from printing a full strip of confident zeros under a real heading. `reportBuild` now checks every
+tile's field against a row before offering a summary at all. **A wrong figure is worse than an absent
+one** is the rule; `sum` over a missing column is the most ordinary way to break it.
+
+### Postscript: retiring a dataset breaks the client that still names it
+
+Reported from use the same day, and it is the sharpest version of the lesson above.
+`DEFAULT_DATASET` in `src/api/dataset.ts` still said `EPA` after EPA was retired, and that constant
+is what **every** request carries before anybody chooses — including the first call, before a store
+has hydrated. The server refuses an unknown selector rather than falling back, which is right and is
+the whole point of the split. The two together meant a **fresh browser could not open a single
+page**: every call answered `"EPA" is not a dataset — this tenant has CAPEX, both`, which the error
+surface reported as *"No data — the JSON server is not responding"*. The server was up and was the
+thing doing the refusing, so the message sent the reader to restart the one component that was
+healthy.
+
+Two fixes, because there were two faults. The default is the primary now, and `check-docs` compares
+it to `PRIMARY` in `datasets.mjs` — break-tested by flipping it back and watching the claim fail.
+And a **stored** selection naming a retired dataset is dropped once and the call retried: that is not
+a caller asking for another tenant, which must still be refused, it is a preference for one that no
+longer exists, and honouring it forever locks that browser out of every page with no way back but
+developer tools. `forgetStaleDataset` returns false when there was nothing stale, so the retry
+cannot loop.
+
+**The general shape: a value the client sends on every request and the server validates strictly is
+a contract with two ends, and retiring the thing it names breaks the end nobody edited.** Grep the
+retired name in `src/` as well as in `mock-server/` — a boot that passes proves only the server side,
+and every server-side check here passed throughout.
+
+### Postscript 2: the values a package does *not* record, and the default that filled them
+
+Reported from use — "The browsable objects could not be read … `rows` should be a number, got null".
+Chasing it field by field would have taken all day, so the two documents were diffed path by path
+instead (collapsing map keys, so tenant names did not swamp the shapes) and every read fetcher in
+`client.ts` was then run against a live server from an SSR build. That turned "a page is broken" into
+a list of four, and then of one.
+
+**Three fields, one cause: EPA's package records something Northline's does not.**
+
+| field | EPA | Northline | how it failed |
+|---|---|---|---|
+| `tables[].rows` | a count on all 5 views | `null` on 62 of 64, with `rows_basis` saying why | payload refused at the boundary |
+| `column_profiles[].derivation` | `llm` on every column | `null` on all 224 | payload refused at the boundary |
+| `canvas.nodes[].confidence` | scored per node | `null` on all 442 — it scores *lanes* | `.toFixed` threw **server-side**, 500 on the canvas |
+
+The first two are visible failures. The third took the whole Canvas tab down. **The fourth was the
+dangerous one and nothing reported it at all**: `confidenceOf` ended `?? 1`, a fallback written for a
+node id that resolves to nothing, which also caught every unscored node and turned it into **1.00 —
+the maximum**. Ask prints that number as *"the weakest entity on the route"*, so every walked answer
+would have claimed total certainty *because* nothing had been scored. A default that fills an absent
+figure is indistinguishable from a real one on screen.
+
+**What was fixed where, and the rule that decided it.** Only one of these was a spelling difference:
+a persona with no access rule is `rule: null` in EPA's document and `rule: {basis: null, values: []}`
+in Northline's, which mean the same thing — so *that* one is conformed in `adopt-capex.mjs`, no value
+invented and none lost. The other three are values that do not exist, so they are nullable end to end
+and every site that formats one checks first: "rows not counted" rather than `~0 rows`, the confidence
+alone rather than a derivation nobody stated, and a route confidence of `null` rather than 1.00.
+**Filling them with 0 or 1 would have been the wrong-figure-worse-than-an-absent-one failure**, which
+is the rule this file keeps returning to.
+
+**Guard.** Two `check-docs` claims, both break-tested. The first asserts the three fields are
+`nullable` in the schema *and* that all four render sites check before formatting. The second asserts
+`confidenceOf` returns `null` — and it took two attempts: the first version keyed on the comment and
+the surrounding expression, survived the mutation that reintroduced the bug, and was therefore a
+comment. **A claim that cannot fail is worse than no claim**, and the only way to know is to break it.
+
+**And the method is worth keeping.** A shape diff of two documents plus every fetcher run through its
+own validator found in ten minutes what a page-at-a-time hunt would have found in a day — and found
+the `?? 1` bug, which no page would ever have reported.
+
+## The CAPEX reports: a package that ships its answers, and a check that passed over the render
+
+The Northline reports package (`src/report/`) is not shaped like EPA's. EPA ships definitions this
+server resolves per request; this one ships **`report_resolved.json`**, whose own note says it is
+*"the JSON a React frontend renders directly"* — seventeen block kinds, each figure carrying its
+coordinate, its `display` and `exact` forms, a coverage seam and a provenance id.
+
+**The architectural decision, written down because it looks like a rule being broken.** CLAUDE.md's
+report section opens *"a report is a question re-asked, not a stored table"*, and these reports are
+stored results. Re-deriving them was considered and is not possible honestly: the register they are
+asked of carries a project's region, category, business unit and phase — **not its actuals** — so a
+recomputation would be weaker figures under the same headings, which is worse than serving the
+tenant's own. They are served as `written`, the variant this section already had for exactly this,
+with no `generated` counterpart. `RESOLVED_BLOCKS` in `server.mjs` passes such a block through
+untouched, and it is checked **before** `reportRows` — a resolved block reads no spine, and calling
+it first made a block fail on a roster it never needed.
+
+**Two ingest bugs, both from assuming a shape instead of reading it.** `reading` is
+`{ template, slots }` and was written as a plain string, so `reportReading` threw
+`Cannot read properties of undefined (reading 'map')` — a 500 on every report, which the client
+reported as the report failing to load. And a resolved report's `measures` is a list of **ids**, not
+objects, so `measures[0].id` was `undefined` and the frame carried a null measure the validator
+refused at the boundary. Both were found in a minute by rendering; neither was visible in the file.
+
+**And the check that mattered: a render smoke that asserts the label appeared is not a render
+smoke.** The first version rendered each report and checked the block's *heading* was in the HTML.
+All three passed — while `Calendar` was reading `m.key`, `m.top` and `m.emptyLabel`, none of which
+exist in the payload (they are `m.month`, `m.projects` and `m.emptyNote`). The block drew its frame,
+its title and nothing else, and the only symptom was a React duplicate-key warning, which is easy to
+read as noise. The second version pulls a **sample of each block's own data** out of the payload and
+asserts it is on the page — the month's short label, its display value, its first project's code and
+money, the empty tile's stated reason, the legend's first category. That failed immediately, and
+fixing `Calendar` and `FilingCalendar` against the real field names took the report from 32,302 to
+34,961 characters of HTML: **2,659 characters of the tenant's data that had been silently absent.**
+
+The general form: **a renderer test must assert the data reached the page, not the chrome around
+it.** A component that renders its heading and drops its body passes every check written against its
+heading, and looks on screen like a block that had little to say.
+
+**Guard.** Four `check-docs` claims, break-tested by deleting a renderer: every kind in the document
+has one, the validator's list and the renderer map hold the same kinds, an unknown kind is *named* on
+the page rather than skipped, and the tiles are lifted from each report's own `figRow` rather than
+transcribed — so a tile and the block beneath it cannot come to disagree.
+
+### Postscript 3: one gate for two acts, and a badge counting half a list
+
+Reported from use — *"in the report there is no open report that need to open"*. The Library held
+three governed CAPEX reports and offered no way into any of them, and its tab read **Library 0**.
+
+**Two independent faults, both from a merge that happened earlier.**
+
+`GovernedCard` computed one flag, `openable = !!starterForTag(reportTag, reportId)`, and gated both
+**Open report** and **Edit report** on it. That was correct while the governed definitions and the
+prototype’s starters were the same five reports out of the same file — so the flag was never wrong,
+it was never *exercised*. A tenant whose rows are tagged `variance-report` against a prototype whose
+starters are EPA’s matched nothing, and both buttons vanished together. The acts are not the same:
+**Open** hands an id to the host, which renders the published report from the tenant’s own figures and
+never reads a starter; **Edit** loads the authoring definition, which *is* a starter. Splitting them
+gives the honest pair — the report can be read, and it cannot be edited here.
+
+And the tab badge was `library.length` — the session shelf — which was the whole list until the
+governed definitions were merged into the same grid. Hosted, the shelf is deliberately empty, so the
+badge said 0 above three real cards. **This is the second time this exact merge has produced a number
+about something other than the list it labels**; the first was the Library’s chip counts, already
+recorded above as *"when a list changes what it contains, re-derive every number about it"*. The
+lesson did not generalise the first time because only the chips were fixed.
+
+**And the starters themselves.** The chips under the Ask box offered five EPA compliance reports —
+one click from composing a draft about inbound generators in a capital-programme console — and the
+copy around them said "your compliance data" and "no waste codes to set up". They are the vendored
+prototype’s own sample, so they are now hidden when it is hosted and kept when it stands alone, which
+is exactly the rule already applied to its four fictional library rows. The prose reads
+`META.entity_plural`, and the ingest points `reports_prototype.meta` at the tenant’s own
+`reports.meta` — one place the tenant’s noun lives.
+
+**The general form: a flag that has never been false is not a tested flag.** `openable` was right for
+as long as there was one tenant, and the second tenant is what asked it the question. The same
+sentence covers the client’s dataset default, the facet maps, the choice vocabulary and the class
+union — four earlier entries in this file, all the same shape.
+
+**Guard.** Four `check-docs` claims, break-tested by restoring the old gate: Open does not require a
+starter and Edit does, the badge counts both halves of the list, the starters are offered only
+standing alone, and the Ask copy names the tenant’s entity rather than the sample’s.
+
+### Postscript 4: three rendered reports that were one file, and a stale process that ate the link
+
+**Open report now opens the tenant's own rendered page.** The package ships one HTML report per
+definition — and they are not three reports. Normalise the single `REPORT_ID` line in each and all
+three hash identically: it is one 2.4 MB prototype, three times, each copy pinned to a different id.
+So the ingest writes **one** page whose id comes from the query string, and it *proves* the
+equivalence before doing so — the three sources are compared with the id normalised away, and a
+difference anywhere else refuses the write, because then one file would not stand for three and
+whatever else they disagreed about would be dropped in silence.
+
+It opens in a new tab rather than in a frame. Each page carries its own sidebar, wordmark and persona
+box, so framing it would put two consoles on one screen — the same reason the vendored prototype's
+own `Sidebar` was dropped when it was brought in. The button reads `Open report ↗` only where it
+leaves the page, matching Graph Studio's **Full view ↗**.
+
+**Three faults on the way, and two are ones this file already names.**
+
+`renderToString` splits `text {expr}` into separate nodes, so `Open report{href ? ' ↗' : ''}` never
+matched a search for the finished label — already recorded here as *"make interpolated copy one
+expression rather than loosening the assertion around it"*, and caught this time only because the
+check was written before the fix was believed.
+
+A patch script that was written and then superseded **was never run**, so the *server* half of the
+change silently did not exist while the client half did. The payload validated (the field is
+nullable), the page rendered, and every href came back `null`. A schema that permits absence cannot
+tell "not applicable" from "never wired" — which is an argument for asserting the *presence* of a
+field whose absence is only ever a mistake, not for making it non-nullable.
+
+And the one worth the guard: **a server started before the ingest wrote its stale rows back over it.**
+Every writer hands `commitDb` the whole document, so a process holding pre-ingest report rows
+reserialised them without `rendered_href` and the Library lost Open on every card — the exact "stale
+process eats a key" failure recorded above for `db.json` at large, one level down, and invisible
+because an unvalidated key has nothing to fail against. `validateDb` now requires the key to be
+**present** on every report row while allowing `null` as its value: `null` is a real answer (a report
+with no rendered page), and only *absence* means a writer older than the field.
+
+**Guard.** Four `check-docs` claims, break-tested by pointing every href at one report: each report
+names its own page, the ingest refuses to ship one file if the sources ever diverge, a row missing the
+key is refused as a stale write, and the href is served rather than assembled in a component.
+
+### Postscript 5: Open belongs in the app, and Authorize was a pool with no verb
+
+**Open renders in this tab again.** It briefly opened the package's rendered HTML in a new tab, which
+was a wrong reading of "open the report": that page is the tenant's, but it is a *whole separate
+console* — its own sidebar, wordmark and persona — so it left the app rather than showing the report
+in it, and nothing over there can be edited, shared or governed. `PublishedReport` draws the same
+report from `db.reports` through this app's own components, which is what makes the other three
+actions on the card mean anything. The rendered page is still written and still named on every row;
+it is simply not what Open does.
+
+**And Authorize.** `governance.statuses` was a real pool — the Library's chips counted it, every card
+tinted itself from its tone — but nothing could move a report between those states except re-running
+the seed. A reader could see that a definition was a draft and had no way to publish it: a vocabulary
+with no verb attached. `PATCH /reports/governance/:id/status` is that verb. It validates against the
+pool rather than a list in code, records who from `?as=` (written on *every* change, or an anonymous
+re-authorization keeps crediting whoever went last — the `studioPublishedBy` failure), and commits,
+because a restart clears which graph is live and must not clear what a report *is*.
+
+**The interesting bug: a computed chip is not a destination.** `governance.statuses` leads with
+`All current`, which the server computes as everything not archived. It belongs in the chip bar — it
+is the default filter — and it must **not** be in the Authorize menu, because a report cannot be moved
+"to All current"; offering it is a menu item that always fails, and the first run of the check picked
+exactly that and got a clean refusal from the server. Marked `computed` on the payload rather than
+recognised by key, because the two readers of one list want opposite things and neither should keep a
+second copy of the vocabulary — the same reasoning as `CLASS_FACET` and `CHOICE_MEANING` above.
+
+**Guard.** Three `check-docs` claims, break-tested by removing the `computed` filter: the state is
+validated against the tenant's pool, the change records who made it and refuses a malformed address,
+and the menu offers the declared states and not the computed chip. The existing "two writes, one
+reader of the role" claim is now **three** — counted rather than loosened, because the number is what
+catches a fourth act added without re-reading through `reportRoleFrom(query)`.

@@ -25,15 +25,46 @@ import type {
  * light here.
  */
 export const TYPE_COLORS: Record<string, string> = {
+  /* Shared by every ontology drawn here: a type-level node, a document, a measure. */
   Concept: "#1a7f37",
-  Facility: "#0969da",
   Document: "#8250df",
+  Measure: "#be185d",
+
+  /* The EPA hazardous-waste ontology. */
+  Facility: "#0969da",
   Manifest: "#a16207",
   Evaluation: "#0e7490",
   Violation: "#cf222e",
   Enforcement: "#c2410c",
   Alias: "#6b7280",
-  Measure: "#be185d",
+
+  /*
+   * The Northline capital-programme ontology — fifteen types, and every one of them was drawing in
+   * `DEFAULT_COLOR` grey before this. That is the worst failure this palette can have: the drawing
+   * still renders and the legend still lists every type, so 442 nodes in one grey read as a graph
+   * whose categories genuinely do not differ, rather than as a palette that has never heard of them.
+   *
+   * **The band is wider than it was, and that is the cost of doubling the roster.** Nine categories
+   * fit near 5:1 and were told apart by hue alone; twenty-four do not, so these run 3.6:1 to 7.1:1
+   * and the guarantee that survives is the one `check-docs` measures — every hue clears 3:1 against
+   * `--bg` in `styles.css`, read off the token rather than written down twice. Lightness is still
+   * never the *only* thing separating two types: each takes its own hue family.
+   */
+  Programme: "#0f766e",
+  Region: "#047857",
+  State: "#4d7c0f",
+  BusinessUnit: "#0891b2",
+  RateJurisdiction: "#0369a1",
+  Classification: "#64748b",
+  PlanVintage: "#b45309",
+  RegulatoryDriver: "#be123c",
+  Project: "#4f46e5",
+  Person: "#c026d3",
+  BudgetPlanVersion: "#9333ea",
+  Contract: "#92400e",
+  ChangeOrder: "#ea580c",
+  Vendor: "#db2777",
+  InServiceAsset: "#15803d",
 };
 
 export const DEFAULT_COLOR = "#57606a";

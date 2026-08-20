@@ -21,22 +21,27 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 /**
- * The datasets, in order, and EPA is first because that ordering is load-bearing: it is the
- * primary, so it is what `both` resolves a single-valued key to and what a caller naming no
- * dataset gets.
+ * The datasets, in order, and the first is load-bearing: it is the primary, so it is what `both`
+ * resolves a single-valued key to and what a caller naming no dataset gets.
  *
- * **There is one today, and the machinery is still here on purpose.** `CAPEX` was seeded and then
- * removed on request; what went with it is the *document*, not the ability to hold a second one.
- * Every dataset in this list is read at boot and a request picks one, so a name here with no
- * document behind it stops the boot — which is why removing the file means removing the name, and
- * why adding a dataset back is this array plus `npm run seed:dataset -- <NAME>`.
+ * **There is one, and it is CAPEX — the Northline Water Group capital programme.** It replaced EPA
+ * on request: `capex/db.json` is the served document now, adopted by `npm run adopt:capex`, and
+ * EPA's is kept **unlisted** at `mock-server/db.EPA.json` rather than deleted. Unlisted is the whole
+ * of the difference — every dataset in this list is read at boot, so a name here with no document
+ * behind it stops the boot, and a document with no name here is simply never read. Putting EPA back
+ * is this array plus that file, and nothing else.
  *
- * `both` therefore currently merges one document with nothing, which is EPA. It is left reachable
- * rather than special-cased away: the merge is a pure function over this list, and a second
- * dataset restores its meaning without any of it having to be written again.
+ * **`DEFAULT_PREFIX` in `store.mjs` moved with it**, so the primary's local document keeps the plain
+ * `mock-server/db.json` path every command, seed and ingest in this repo names, and its object is
+ * `s3://contextweave.com/CAPEX/db.json`. The two have to agree: the prefix is what names the object,
+ * and this list is what decides which prefixes are read.
+ *
+ * `both` therefore currently merges one document with nothing, which is CAPEX. It is left reachable
+ * rather than special-cased away: the merge is a pure function over this list, and a second dataset
+ * restores its meaning without any of it having to be written again.
  */
-export const DATASETS = ['EPA']
-export const PRIMARY = 'EPA'
+export const DATASETS = ['CAPEX']
+export const PRIMARY = 'CAPEX'
 export const BOTH = 'both'
 
 /**
@@ -83,6 +88,19 @@ export const MERGE_PLAN = {
   /* Identity and the account — one tenant, one set of people, whichever dataset is in view. */
   google_account: 'primary',
   auth_roles: 'primary',
+
+  /*
+   * The package's own record of where each key came from, and what generated the document.
+   *
+   * `primary` rather than a union because neither is tenant data: `_provenance` states which artifact
+   * of the demo package each key was read out of, and `_meta` names the package, the tenant and the
+   * build that produced it. Two datasets merged have no single answer to "which package built this",
+   * and inventing one would put a provenance claim in the document that no generator made. They are
+   * here at all because a key with no rule stops the boot — see the note above — and dropping them to
+   * avoid writing a rule would throw away the only record of how the document was built.
+   */
+  _provenance: 'primary',
+  _meta: 'primary',
 
   /* Sources: a dataset genuinely brings its own projects and drives. */
   credentials: { union: 'project_id' },
@@ -159,8 +177,32 @@ export const MERGE_PLAN = {
       slice_default: 'primary',
       summary_catalog: 'primary',
       summary_default: 'primary',
+      /*
+       * Which roster is the register, its identity column and the dictionary for its own short keys.
+       * `primary` because it describes the *shape* of a register rather than holding rows: two
+       * datasets whose registers are keyed differently have no merged identity column, and a union of
+       * two field dictionaries would offer a basis half the rows do not carry.
+       */
+      register: 'primary',
+      /*
+       * The authoring screen's seven-project preview. `primary` for the reason
+       * `reports_prototype` is: it is one authored sample, not a dataset's rows.
+       */
+      authoring_fixture: 'primary',
       data: {
         deep: {
+          /*
+           * The register is per dataset, and it is named differently per tenant — CAPEX's is
+           * `projects` keyed `n`, EPA's was `generators` keyed `generator`. Both are listed: a rule
+           * for a roster the document does not carry costs nothing, and `mergeValue` skips a key
+           * neither side has.
+           */
+          projects: { union: 'n' },
+          contracts: { union: 'id' },
+          changeOrders: { union: 'id' },
+          business_units: { union: null },
+          regions: { union: null },
+          categories: { union: null },
           generators: { union: 'generator' },
           facilities: { union: 'facility' },
           quarters: { union: 'quarter' },

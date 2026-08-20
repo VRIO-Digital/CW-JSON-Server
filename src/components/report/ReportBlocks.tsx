@@ -18,7 +18,7 @@
  * on every report that carries it — sniffing the value would render any three-letter string as one.
  */
 
-import type { ReportBlock, ReportCell, ReportColumn, ReportRow } from '../../api/client'
+import type { ComputedReportBlock, ReportCell, ReportColumn, ReportRow } from '../../api/client'
 import AnswerChart from '../AnswerChart'
 import { Card, Chain, DocRef, DataTable, FlagPill, Tag, type Column, type TagKind } from './ui'
 
@@ -123,17 +123,17 @@ function BlockTable({
  * by exposure and shows the whole register's compliance split next to it — so it is drawn beside rather
  * than folded in, and it is the server's chart, not a second reading of the first.
  */
-function Charts({ charts }: { charts: readonly ReportBlock[] }) {
+function Charts({ charts }: { charts: readonly ComputedReportBlock[] }) {
   return (
     <div className={charts.length > 1 ? 'charts pair' : 'charts'}>
       {charts.map((c, i) => (
-        <AnswerChart key={i} block={c as Extract<ReportBlock, { type: 'chart' }>} />
+        <AnswerChart key={i} block={c as Extract<ComputedReportBlock, { type: 'chart' }>} />
       ))}
     </div>
   )
 }
 
-export default function ReportBlockView({ block }: { block: ReportBlock }) {
+export default function ReportBlockView({ block }: { block: ComputedReportBlock }) {
   if (block.type === 'chart') {
     const { companion, ...chart } = block
     return (

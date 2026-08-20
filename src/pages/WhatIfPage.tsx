@@ -532,22 +532,41 @@ function Authoring({
           <h3>{authoring.steps[1].heading}</h3>
           <p className="wi-help">{authoring.steps[1].help}</p>
 
-          <div className="wi-chips">
-            {frame.pools.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                className={`wi-chip${pool === p.key ? ' is-on' : ''}`}
-                onClick={() => setPool(p.key)}
-                aria-pressed={pool === p.key}
-              >
-                {p.label}
-                {/* The count is on the chip, so an empty pool reads as "nobody
-                    qualifies" rather than as a dropdown that failed to fill. */}
-                <span className="wi-count">{p.count}</span>
-              </button>
-            ))}
-          </div>
+          {/*
+            **A tenant whose model has no candidate pool says so, in its own words.**
+
+            An empty chip row and a model with no pools are different facts, and the chips can only
+            express the first — a row with nothing in it reads as a control that failed to load. The
+            document states the reason per collection in `_not_applicable` and the server serves it,
+            so this prints the tenant's sentence rather than a sentence written here about a tenant
+            this file cannot know. Northline's capital programme exposes continuous cost levers
+            instead of swappable loads; the EPA corpus has pools and never reaches this branch.
+          */}
+          {frame.pools.length === 0 && frame.notApplicable?.candidate_pools ? (
+            <Alert
+              type="info"
+              showIcon
+              title="No candidate pool in this dataset"
+              description={frame.notApplicable.candidate_pools}
+            />
+          ) : (
+            <div className="wi-chips">
+              {frame.pools.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  className={`wi-chip${pool === p.key ? ' is-on' : ''}`}
+                  onClick={() => setPool(p.key)}
+                  aria-pressed={pool === p.key}
+                >
+                  {p.label}
+                  {/* The count is on the chip, so an empty pool reads as "nobody
+                      qualifies" rather than as a dropdown that failed to fill. */}
+                  <span className="wi-count">{p.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="wi-divider" />
 
