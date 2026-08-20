@@ -9,6 +9,7 @@ import {
   fromGoverned,
   nameProblem,
   newReportId,
+  PUBLISHED,
   seedLibrary,
   stamp,
   upsert,
@@ -679,6 +680,31 @@ export default function App({
     );
   }
 
+  /**
+   * Return a governed definition to the state its audience can open.
+   *
+   * **The one caller of `actions.authorize`, and the reason that layer was kept.** The Authorize tab
+   * was removed on request and took every state change with it — which left `blocked` reachable and
+   * unleavable, a report stuck where somebody put it with a re-seed as the only way back. This is
+   * the one direction out, so it is the only state this performs: there is no Block and no Archive,
+   * because that menu is what was rejected.
+   *
+   * The label is the tenant's, read off the served pool by key rather than written here, so the
+   * toast cannot name a state the API does not declare. The host re-reads the section afterwards,
+   * which is what moves the pill.
+   */
+  async function publishGoverned(row: GovernedRow) {
+    if (!actions) return;
+    const label = governance?.statuses.find((s) => s.key === PUBLISHED)?.label ?? PUBLISHED;
+    const result = await actions.authorize(row.reportId, PUBLISHED);
+    /* The server's refusal verbatim — it is the one that knows why. */
+    toast(
+      result.ok
+        ? `“${row.title}” is now ${label}.`
+        : (result.error ?? `“${row.title}” could not be moved to ${label}.`),
+    );
+  }
+
   function deleteReport(id: string) {
     const gone = library.find((r) => r.id === id);
     setLibrary((prev) => prev.filter((r) => r.id !== id));
@@ -910,6 +936,8 @@ export default function App({
                 actions ? (row) => setSharing({ kind: 'governed', id: row.reportId }) : undefined
               }
               onRemoveGoverned={actions ? removeGoverned : undefined}
+              /* Absent with no host. The pane decides *which* rows offer it — see the card. */
+              onPublishGoverned={actions ? publishGoverned : undefined}
               onShareSaved={
                 shareRoles?.length ? (report) => setSharing({ kind: 'saved', id: report.id }) : undefined
               }

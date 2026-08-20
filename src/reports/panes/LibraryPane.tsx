@@ -1,4 +1,5 @@
 import { GovernedCard } from './GovernedCard';
+import { PUBLISHED } from '../lib/library';
 import { SessionCard } from './SessionCard';
 import type { ShareRole } from '../components/SharePicker';
 import type { GovernanceState, GovernedRow } from '../App';
@@ -39,6 +40,14 @@ interface Props {
   onEditGoverned?(row: GovernedRow): void;
   onShareGoverned?(row: GovernedRow): void;
   onRemoveGoverned?(row: GovernedRow): void | Promise<void>;
+  /**
+   * Return a governed definition to the state its audience can open.
+   *
+   * Passed down to a card **only where that is the thing missing** — the pane owns that decision
+   * because the pane is where the state pool is, and `PUBLISHED` is read off it rather than tested
+   * for by key in the card.
+   */
+  onPublishGoverned?(row: GovernedRow): void | Promise<void>;
   /** Share on a report saved in this session — the same dialog, over the row's local audience. */
   onShareSaved?(report: SavedReport): void;
   onAuthorNew(): void;
@@ -65,6 +74,10 @@ export const SESSION = 'session';
  * here, because a session report is as current as anything gets. The rule lives once so a chip cannot
  * say five and the grid show six.
  */
+/* The served state a Publish button targets, or nothing — see the note at the card. */
+const publishedStateOf = (states?: GovernanceState[]) =>
+  states?.find((s) => s.key === PUBLISHED) ?? null;
+
 const inState = <T extends { stateKey: string }>(rows: T[], key: string) =>
   key === 'current' ? rows.filter((r) => r.stateKey !== 'archived') : rows.filter((r) => r.stateKey === key);
 
@@ -84,6 +97,7 @@ export function LibraryPane({
   onEditGoverned,
   onShareGoverned,
   onRemoveGoverned,
+  onPublishGoverned,
   onShareSaved,
   onAuthorNew,
   onEdit,
@@ -138,6 +152,8 @@ export function LibraryPane({
       ? [{ key: SESSION, label: 'Saved here', tone: 'neutral', count: 0 }]
       : []),
   ].map((s) => ({ ...s, count: inState(cards, s.key).length }));
+
+  const publishedState = publishedStateOf(states);
 
   const inView = showStates ? inState(cards, activeState) : [];
   const activeLabel = chips.find((s) => s.key === activeState)?.label ?? 'All current';
@@ -250,6 +266,16 @@ export function LibraryPane({
                       onEdit={onEditGoverned}
                       onShare={onShareGoverned}
                       onRemove={onRemoveGoverned}
+                      /*
+                       * Offered only where the report is not already there, so a published row has no
+                       * state control — and `publishLabel` absent takes the button with it, which is
+                       * what makes a tenant whose pool does not declare the state offer nothing
+                       * rather than a button its API would refuse.
+                       */
+                      onPublish={
+                        c.governed.status === PUBLISHED ? undefined : onPublishGoverned
+                      }
+                      publishLabel={publishedState?.label}
                     />
                   ) : c.saved ? (
                     <SessionCard

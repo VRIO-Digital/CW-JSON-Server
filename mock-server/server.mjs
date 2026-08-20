@@ -984,6 +984,19 @@ const DB_SHAPE = {
     /* A state needs all three: the chip reads the label and tints itself from the tone, so a
        state missing either renders as a chip with no name or no state colour. */
     v.governance.statuses.every((s) => isObject(s) && s.key && s.label && s.tone) &&
+    /*
+     * **And the pool has to declare `published`**, because this file branches on that exact key in
+     * several places that answer rather than throw: `reportEntitlementCell` returns the archived
+     * cell for any state it does not recognise, the published counts and the report gate read it,
+     * and the Library's Publish control targets it by key. A tenant spelling the state differently
+     * would boot fine and then tell an audience it can open an archived report, while the one
+     * control that returns a report to its readers would simply be absent — read as the control
+     * having been removed rather than as a document that cannot express the state.
+     *
+     * The `CLASS_FACET` rule, applied to one more vocabulary: a member the code needs and the
+     * document omits stops the boot instead of going quiet.
+     */
+    v.governance.statuses.some((s) => s.key === 'published') &&
     Array.isArray(v.governance.reports) &&
     /* Governed rows are a dataset's own definitions, so a dataset with no reports has none — the
        state pool, the data scopes and the publishing copy above are the tenant's and stay required. */
@@ -1154,7 +1167,7 @@ const DB_HINTS = {
     'quarters[], traces[] }, reports[] of { report_id, heading, spine, blocks[], ' +
     'tiles[], footer[], rendered_href (may be null, but must be present — a row without the key ' +
     'is a stale process writing back) } and ' +
-    'governance{ statuses[] of { key, label, tone }, reports[] of ' +
+    'governance{ statuses[] of { key, label, tone } including "published", reports[] of ' +
     '{ report_id, status naming one of those states, version, author, category, audience[] }, ' +
     'data_scope[], gate_notes{}, publishing{ lead, name{}, readers{ caveat saying ' +
     '"not access control" }, freshness{ presets[] of { id, label, sentence }, default naming ' +

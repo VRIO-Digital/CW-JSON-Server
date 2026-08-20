@@ -3779,7 +3779,7 @@ expect(
  * declared — and the endpoint refuses it whether or not a menu ever offers it.
  */
 expect(
-  'no surface offers a state change, and the act underneath it is intact',
+  'there is no Authorize tab, and the act underneath it is intact',
   !existsSync(join(root, 'src/reports/panes/AuthorizePane.tsx')) &&
     !/Authorize/.test(codeOnly(read('src/reports/panes/GovernedCard.tsx'))) &&
     !/'authorize'/.test(codeOnly(read('src/reports/types.ts'))) &&
@@ -3789,6 +3789,57 @@ expect(
     /export async function setReportStatus/.test(client) &&
     /computed: bool,/.test(client),
   'a removed tab is not a reason to delete the endpoint it called',
+)
+/*
+ * **One state change survived the tab, because removing it stranded a report.** `blocked` was
+ * reachable and unleavable: the state pool declares it, a card tints itself from it, and the only
+ * thing that could move a report out of it was the tab. So the Library offers exactly the direction
+ * that unsticks a row — back to `published` — and nothing else. **No Block and no Archive**, which
+ * is the four-state menu that was rejected, and nothing at all on a row already there.
+ *
+ * Asserted as a pair, because either half alone is the shape that fails: a button with no gate is
+ * the menu coming back, and a gate with no button is the report stuck again.
+ */
+const govCard = read('src/reports/panes/GovernedCard.tsx')
+const libPane = read('src/reports/panes/LibraryPane.tsx')
+expect(
+  'a governed row offers the one state change that returns it to its readers, and only that',
+  /↻ Publish/.test(govCard) &&
+    /onPublish\?\(row: GovernedRow\)/.test(govCard) &&
+    /* Offered only where the row is not already there — the gate is the pane's, where the pool is. */
+    /c\.governed\.status === PUBLISHED \? undefined : onPublishGoverned/.test(libPane) &&
+    /* And the rejected menu did not come back with it. */
+    !/Block|Archive/.test(codeOnly(govCard)) &&
+    /* The host performs it through the layer the tab used to. */
+    /actions\.authorize\(row\.reportId, PUBLISHED\)/.test(read('src/reports/App.tsx')),
+  'a state a reader can enter and not leave is a report stuck where somebody put it',
+)
+/*
+ * And the state is named by **key**, with its word read off `governance.statuses`. A label written
+ * into the button would be this app's word for the tenant's state; a key written in two places is how
+ * a control comes to target one the API refuses.
+ */
+expect(
+  'the control targets the state by served key and prints the tenant\'s label',
+  /export const PUBLISHED = 'published';/.test(read('src/reports/lib/library.ts')) &&
+    /publishLabel\?: string/.test(govCard) &&
+    /* The word comes from the pool, and the button goes with it when the pool has no such state. */
+    /states\?\.find\(\(s\) => s\.key === PUBLISHED\)/.test(libPane) &&
+    /onPublish && publishLabel &&/.test(govCard) &&
+    !/Published/.test(codeOnly(govCard)),
+  'a button naming a state the document does not declare is one the API refuses',
+)
+/*
+ * **And the server guarantees the pool declares it.** `reportEntitlementCell` returns the archived
+ * cell for a state it does not recognise, so a tenant spelling this one differently would tell an
+ * audience it can open an archived report *and* silently lose the control that publishes it. The
+ * `CLASS_FACET` rule: a member the code needs and the document omits stops the boot.
+ */
+expect(
+  'a document whose state pool omits published does not boot',
+  /v\.governance\.statuses\.some\(\(s\) => s\.key === 'published'\) &&/.test(authServer) &&
+    /including "published"/.test(authServer),
+  'the branch that answers instead of throwing is the one that needs a boot guard',
 )
 
 /*

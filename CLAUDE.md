@@ -1701,21 +1701,33 @@ write.
 > every report row**, `null` included: a process older than the field writes rows without it and the
 > Library silently loses Open on every card.
 >
-> **Authorizing has no surface, and the act underneath it is deliberately still here.** Moving a
-> report between the states `governance.statuses` declares had a tab of its own — and briefly a
-> button on each card before that — both removed on request. What stays is every layer below:
-> `PATCH /reports/governance/:id/status` (validated against the tenant's pool, attributed to `?as=`,
-> committed), `setReportStatus` in `client.ts`, `authorize` on `GovernanceActions`, and
-> `authorized_by` / `authorized_at` on every governed row. **This is the `/change-signals` state, and
-> the same rule applies**: re-adding the tab is a `Tabs` entry plus a pane, so do not delete the
-> layers below it to "finish" the removal, and do not name authorizing in copy that lists what the
-> section does. `check-docs` asserts both halves on one cross-layer claim — the pane is off disk, the
-> card names it nowhere and `ReportTab` has lost the member, while the endpoint, the fetcher and the
-> two fields are intact — because a partial revival is the shape that fails silently.
+> **There is no Authorize tab, and exactly one state change.** Moving a report freely between the
+> states `governance.statuses` declares had a tab of its own — and briefly a button on each card
+> before that — both removed on request. Removing it stranded a report: `blocked` was a state a
+> reader could enter and not leave, and re-seeding was the only way out. So the Library offers the one
+> direction that unsticks a row — **↻ Publish**, back to `published` — and nothing else. **No Block
+> and no Archive**, which is the menu that was rejected, and no control at all on a row already there.
+>
+> **The state is targeted by key and named by the pool.** `PUBLISHED` is declared once in
+> `src/reports/lib/library.ts` (in `lib/` because `LibraryPane` needs the *value* and only imports
+> types from `App`, so a value import there would be a real module cycle); the word on the button's
+> tooltip and in the toast is `governance.statuses`' own label, read by that key. A pool with no such
+> state therefore offers no button rather than one the API refuses — and because
+> `reportEntitlementCell` branches on the same literal and *answers* for a state it cannot place,
+> `validateDb` refuses a document whose pool omits `published`. That is the `CLASS_FACET` rule applied
+> to one more vocabulary.
+>
+> **Everything below the removed tab is deliberately intact**, and this is the `/change-signals`
+> state: `PATCH /reports/governance/:id/status` (validated against the tenant's pool, attributed to
+> `?as=`, committed), `setReportStatus` in `client.ts`, `authorize` on `GovernanceActions`, and
+> `authorized_by` / `authorized_at` on every governed row — the last two written by the endpoint and
+> **rendered nowhere**, since the tab was what stated them. Re-adding a general state menu is a
+> `Tabs` entry plus a pane; do not delete the layers below it to "finish" the removal, and do not
+> read the one-direction control as licence to grow the other three back onto the card.
 >
 > The served `computed` flag stays for the same reason. `All current` is counted rather than
-> declared, so it filters the Library and is **not somewhere a report goes**; the endpoint refuses it
-> whether or not anything offers a menu.
+> declared, so it filters the Library and is **not somewhere a report goes**; the endpoint refuses it,
+> and the Publish control cannot offer it because it targets `published` by key.
 >
 > **And the Author tab composes over capital projects.** It was EPA's flow field by field — a
 > `Generator` row type, six named measures, seven KPI closures, a table defaulting to

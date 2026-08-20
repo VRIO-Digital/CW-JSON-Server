@@ -3829,3 +3829,58 @@ ways (restore the pane, mention it on the card, restore the union member, un-exp
 failing on its own. One claim rather than one per file, for the reason already recorded twice in this
 document: a partial revival is the shape that fails silently, and the worst version of it here is a
 tab re-added against an endpoint somebody deleted in the meantime.
+
+### Postscript 8: removing the tab made `blocked` a state with no exit
+
+Reported from use, one line: *"there is no option to republish the blocked report"*. Correct, and it
+was my doing one turn earlier — the Authorize tab was the only caller of
+`PATCH /reports/governance/:id/status`, so removing it removed every state change at once, in both
+directions. `rep_proj_360` was sitting in `blocked` with `authorized_by` naming the person who put it
+there through the tab that no longer existed. The only way out was `npm run seed:governance`, which is
+a terminal command and not an option in a console.
+
+**The general shape: a removal is not symmetric when the states are not.** The tab performed four
+transitions and reading it as one feature meant reading them as interchangeable. They are not.
+Three of them (publish → blocked, → archived, → draft) *take* a report away from its readers, and
+the fourth is the only one that gives it back. Removing the surface removed all four, so what was
+left was a set of states a reader could enter and none they could leave — and the one that mattered
+was the one nobody asked to keep. **Before deleting a control, list the transitions it performed and
+ask which of them nothing else can perform.** A state pool with no path back to its start state is a
+trap whether or not any row is currently in it; here a row already was.
+
+**The fix is not the tab again.** The reason it wanted a tab still stands — "what is waiting on me"
+is a question about the whole set, which a grid of cards cannot answer — so what went back is one act
+on the row that needs it: `↻ Publish`, offered only where the row is not already published, with no
+Block and no Archive. That is a different control from the one that was rejected, and the distinction
+is worth keeping in words because the next reader will otherwise see a state change on a card and
+conclude the removal was reverted.
+
+**Two things this needed that were not obvious.**
+
+`PUBLISHED` had to live in `src/reports/lib/library.ts`, not in `App.tsx` beside `ALL_CURRENT`.
+`LibraryPane` needs the **value** — it decides which rows offer the button — and it currently imports
+only *types* from `App`, which is an erased cycle. Importing a value would have made it a real one.
+
+And the key is load-bearing in the server in a way nothing checked. `reportEntitlementCell` tests
+`status === 'published'` and its chain **ends by returning the archived cell**, so a tenant spelling
+the state differently would tell an audience it can open an archived report *and* silently offer no
+Publish control — read as the control having been removed a second time. That is the failure this
+document already records twice for that same function (`blocked`, then `draft`), met from a third
+direction, so `validateDb` now refuses a document whose state pool omits `published` and the shape
+sentence names it.
+
+**Tooling, twice, both already recorded here.** A scripted edit failed to find a block that was
+plainly in the file, because `LibraryPane.tsx` held 306 CRLF endings and **2 bare LFs** left by an
+earlier scripted edit of mine — one of them in the middle of the very element being matched. The
+`edit` helper now compiles every `from` to a regex with `\r?\n`, and the touched files were
+normalised. Then three of four new `check-docs` regexes reached disk with every backslash stripped:
+they were written inside a JS template literal, where `\?` is just `?`. `/onPublish?(row:
+GovernedRow)/` is a valid regex that matches nothing, so two correct claims failed and the obvious
+next move was to rewrite working code. **A regex built by a code generator needs `String.raw`, and a
+claim that fails on first run deserves the same suspicion as one that cannot fail at all.**
+
+**Guard.** Three `check-docs` claims, break-tested eight ways — remove the button, remove the
+per-row gate, grow an Archive control back, inline the key at the call site, rename the constant,
+stop requiring the served label, write "Published" into the card, delete the boot guard. Each failed
+on its own. Plus an SSR render against the **running server's own payload** (through `client.ts`'s
+mapper, not a fixture): one Publish button, on the blocked row, none on the two published ones.

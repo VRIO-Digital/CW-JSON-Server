@@ -21,6 +21,22 @@ export function initials(name: string): string {
     .join('');
 }
 
+/**
+ * The lifecycle state a report goes back to, by key.
+ *
+ * **A key and not a label**, because `governance.statuses` owns the wording and this is only the
+ * pool member to look it up by. It is written down once for the same reason `ALL_CURRENT` is: the
+ * pane decides which rows may be published and `App` performs it, and two copies of the word is how
+ * a button comes to offer a state the API refuses.
+ *
+ * **The server guarantees the pool declares it.** `reportEntitlementCell`, the published counts and
+ * the publish gate all branch on this exact key, so `validateDb` refuses a document whose statuses
+ * omit it — the `CLASS_FACET` rule applied to one more vocabulary. Without that guard a tenant
+ * spelling the state differently would simply show no Publish button anywhere, which reads as the
+ * control having been removed again rather than as a document that cannot express it.
+ */
+export const PUBLISHED = 'published';
+
 export function audienceLabel(key: string): string {
   return AUDIENCES.find((a) => a.key === key)?.label ?? key;
 }

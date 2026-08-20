@@ -15,6 +15,21 @@ interface Props {
   onEdit?(row: GovernedRow): void;
   onShare?(row: GovernedRow): void;
   onRemove?(row: GovernedRow): void | Promise<void>;
+  /**
+   * Return this report to the state its audience can open.
+   *
+   * **One act, not a state menu.** Moving a report between all four of the tenant's lifecycle states
+   * was a tab, and the tab was removed on request — but removing it left a `blocked` definition with
+   * no way back, which is a report stuck where a reader put it. This is the one direction that
+   * unsticks it, so it is offered on the row that needs it and nowhere else: a published row has no
+   * state control at all, and there is still no Block or Archive here. Absent with no host.
+   */
+  onPublish?(row: GovernedRow): void | Promise<void>;
+  /**
+   * The served label of that state — `governance.statuses`' own word for it, never "Published"
+   * written down here. Absent when the prototype stands alone, which is also when `onPublish` is.
+   */
+  publishLabel?: string;
 }
 
 /**
@@ -37,7 +52,15 @@ const PILL_FOR_TONE: Record<string, string> = {
    place a tone could be translated. */
 const pillClass = (tone: string) => 'pill ' + (PILL_FOR_TONE[tone] ?? 'rp-neutral');
 
-export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Props) {
+export function GovernedCard({
+  row: r,
+  onOpen,
+  onEdit,
+  onShare,
+  onRemove,
+  onPublish,
+  publishLabel,
+}: Props) {
   const { open } = useMenu();
   /*
    * **Open and Edit need different things, and treating them as one hid Open entirely.**
@@ -99,11 +122,12 @@ export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Prop
           */}
         <div>{r.schedule}</div>
         {/*
-          * **Who authorized it is not restated here.** The Authorize tab holds that record and states
-          * it per row, and two surfaces reporting one record is how they come to disagree — the rule
-          * that took the `Published · N readers` tag off the What-if library row when the Published
-          * tab began stating it in full. The card keeps what this report *is*; the tab keeps what has
-          * been done to it.
+          * **Who authorized it is on the row and rendered nowhere.** `authorizedBy` / `authorizedAt`
+          * came down for the Authorize tab, which stated them per row; the tab is gone and nothing
+          * took the record over. That is deliberate rather than an oversight — this card says what
+          * the report *is*, and the state pill above already says where it stands. The fields stay
+          * because the endpoint still writes them; a surface for them is a decision, not a gap to be
+          * filled by adding a line here.
           */}
         {r.floor && <div>{r.floor}</div>}
       </div>
@@ -140,15 +164,47 @@ export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Prop
           </button>
         )}
         {/*
-          * **No Authorize here, and no tab either.** Moving a report between the lifecycle states
-          * `governance.statuses` declares had a button on this card, then a tab of its own; both were
-          * removed on request. The act underneath is deliberately still there —
-          * `PATCH /reports/governance/:id/status`, `setReportStatus`, `authorize` on
-          * `GovernanceActions` — in the same waiting-for-a-caller state as `/change-signals`. So do
-          * not read the unused fetcher as dead, and do not re-add a control here without re-adding
-          * the reason it was a tab: the question is "what is waiting on me", which a grid of cards
-          * cannot answer because the states are scattered through it.
+          * **One state change, and it is the only one.** The four-state Authorize menu was a button
+          * here, then a tab, and both were removed on request — the reason it wanted a tab still
+          * stands, because "what is waiting on me" is a question about the whole set and a grid of
+          * cards cannot answer it. What removing it also did was leave a `blocked` definition with
+          * nothing that could publish it again: the state was reachable and the way out of it was
+          * not. So this is the way out, and only that. **No Block and no Archive**, which is the menu
+          * that was rejected; a published row shows nothing here at all.
+          *
+          * The verb is *Publish* rather than *Republish* because this row does not know its own
+          * history — `authorizedAt` dates the last change and not the states before it — and a draft
+          * that has never been live would be told it was being re-anything.
           */}
+        {onPublish && publishLabel && (
+          <button
+            className="btn sm"
+            title={`Moves this report to ${publishLabel}`}
+            onClick={(e) =>
+              open(
+                e,
+                <OptionList
+                  title={`Publish “${r.title}”?`}
+                  items={[
+                    {
+                      label: `Yes, move it to ${publishLabel}`,
+                      /* What publishing means for a reader, and the private case stated rather than
+                         left to be inferred from an empty audience — the rule "Shared with" above
+                         keeps. */
+                      d: r.private
+                        ? 'Its audience is nobody, so this makes it openable and tells no one. Share it to name readers.'
+                        : `${r.entitledRoles.map((role) => role.label).join(', ')} can open it.`,
+                      onPick: () => void onPublish(r),
+                    },
+                    { label: 'Leave it as it is', onPick: () => {} },
+                  ]}
+                />,
+              )
+            }
+          >
+            ↻ Publish
+          </button>
+        )}
         {onShare && r.kind === 'written' && (
           <button className="btn sm" onClick={() => onShare(r)}>
             ↗ Share
