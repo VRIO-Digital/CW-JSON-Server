@@ -1,53 +1,34 @@
 {
-  "name": "context-weave-latest",
+  "name": "contextweave",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "Two deployable packages plus the docs that describe them. backend/ is the mock API and its seeds; frontend/ is the console. This root installs nothing and orchestrates both.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "vite",
-    "mock": "node mock-server/server.mjs",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "audit": "node scripts/audit-gate.mjs low",
+    "dev": "npm --prefix frontend run dev",
+    "mock": "npm --prefix backend run mock",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "lint": "npm --prefix frontend run lint",
+    "audit": "node scripts/audit-gate.mjs low frontend",
+    "audit:fix": "npm --prefix frontend run audit:fix",
     "check-docs": "node scripts/check-docs.mjs",
-    "ingest:graph": "node scripts/ingest-knowledge-graph.mjs",
-    "ingest:whatif": "node scripts/ingest-whatif.mjs",
-    "ingest:reports": "node scripts/ingest-reports.mjs",
-    "seed:governance": "node scripts/seed-report-governance.mjs",
-    "seed:settings": "node scripts/seed-settings.mjs",
-    "seed:dataset": "node scripts/seed-dataset.mjs",
-    "seed:workspaces": "node scripts/seed-workspaces.mjs",
-    "preflight": "npm run lint && npm run build && npm run audit && npm run verify:sigv4 && npm run verify:export && npm run check-docs",
-    "preview": "vite preview",
-    "audit:fix": "npm audit fix",
-    "postinstall": "node scripts/audit-gate.mjs low",
-    "db:push": "node scripts/s3-sync.mjs push",
-    "db:pull": "node scripts/s3-sync.mjs pull",
-    "verify:sigv4": "node scripts/verify-sigv4.mjs",
-    "verify:export": "node scripts/verify-report-export.mjs",
-    "ingest:capex": "node scripts/ingest-capex-reports.mjs"
+    "seed:governance": "npm --prefix backend run seed:governance",
+    "seed:settings": "npm --prefix backend run seed:settings",
+    "seed:dataset": "npm --prefix backend run seed:dataset",
+    "seed:workspaces": "npm --prefix backend run seed:workspaces",
+    "ingest:graph": "npm --prefix backend run ingest:graph",
+    "ingest:whatif": "npm --prefix backend run ingest:whatif",
+    "ingest:reports": "npm --prefix backend run ingest:reports",
+    "ingest:capex": "npm --prefix backend run ingest:capex",
+    "db:push": "npm --prefix backend run db:push",
+    "db:pull": "npm --prefix backend run db:pull",
+    "verify:sigv4": "npm --prefix backend run verify:sigv4",
+    "verify:export": "npm --prefix backend run verify:export",
+    "preflight": "npm run lint && npm run build && npm run audit && npm run verify:sigv4 && npm run verify:export && npm run check-docs"
   },
-  "dependencies": {
-    "@ant-design/icons": "^6.3.2",
-    "antd": "^6.5.3",
-    "d3": "^7.9.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.2",
-    "zustand": "^5.0.14"
-  },
-  "//overrides": "nanoid reaches us only as vite -> postcss -> nanoid, a build-time dependency, and GHSA-2v37-7h3g-55p8 needs a custom generator called with size 0 \u2014 which postcss never does. Pinned rather than allowlisted because a patched release exists: an override costs nothing and a waiver would sit in audit-gate admitting the next high finding on the same package.",
-  "overrides": {
-    "nanoid": "^3.3.17"
-  },
-  "devDependencies": {
-    "@types/d3": "^7.4.3",
-    "@types/node": "^24.13.3",
-    "@types/react": "^18.3.27",
-    "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^6.0.4",
-    "oxlint": "^1.75.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.2.0"
-  }
+  "//independent": "No npm workspaces on purpose. Workspaces hoist one lockfile and one node_modules to the root, which is the opposite of what these two packages are for: each installs, builds and deploys on its own, and the backend must be shippable without pulling react. The cost is that this root cannot 'npm i' for both \u2014 install in each package \u2014 and the scripts below delegate with --prefix rather than run tools the root does not have."
 }

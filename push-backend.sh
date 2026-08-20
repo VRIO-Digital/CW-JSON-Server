@@ -2,7 +2,7 @@
 #
 # push-backend.sh - commit and push only the mock server and its S3 backend.
 #
-# The frontend (src/, index.html, vite.config.ts, the tsconfigs) is left alone:
+# The frontend (frontend/ — src, index.html, vite.config.ts, the tsconfigs) is left alone:
 # nothing outside BACKEND_PATHS is staged, so a half-finished page cannot ride
 # along with a server fix.
 #
@@ -19,9 +19,9 @@ cd "$(dirname "$0")"
 # the bucket. db.json / settings.json are gitignored on purpose - they are the
 # tenant's data and travel by `npm run db:push`, not by git.
 BACKEND_PATHS=(
-  mock-server/server.mjs
-  mock-server/store.mjs
-  mock-server/reportExport.mjs
+  backend/server.mjs
+  backend/store.mjs
+  backend/reportExport.mjs
   scripts/s3-sync.mjs
   scripts/verify-sigv4.mjs
   scripts/verify-report-export.mjs
@@ -81,13 +81,13 @@ echo
 # push after a commit means rewriting history. Catch it here instead.
 DIFF=$(git diff --cached)
 if printf '%s' "$DIFF" | grep -Eq 'AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}'; then
-  die "an AWS access key id is in the staged diff. Remove it - keys belong in mock-server/.env.local"
+  die "an AWS access key id is in the staged diff. Remove it - keys belong in backend/.env.local"
 fi
 if printf '%s' "$DIFF" | grep -Eq 'AWS_SECRET_ACCESS_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9/+=]{40}'; then
-  die "an AWS secret access key is in the staged diff. Remove it - keys belong in mock-server/.env.local"
+  die "an AWS secret access key is in the staged diff. Remove it - keys belong in backend/.env.local"
 fi
 if printf '%s' "$DIFF" | grep -Eq 'OPENAI_API_KEY[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{12}'; then
-  die "an OpenAI API key is in the staged diff. Remove it - keys belong in mock-server/.env.local"
+  die "an OpenAI API key is in the staged diff. Remove it - keys belong in backend/.env.local"
 fi
 if printf '%s\n' "$CHANGED" | grep -Eq '(^|/)\.env'; then
   die "an .env file is staged. Those hold credentials and are gitignored for that reason"

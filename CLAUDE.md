@@ -2,6 +2,47 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Two packages, one repo
+
+**`backend/` and `frontend/` are separate npm packages, and each deploys on its own.** That is the
+whole reason for the split: the backend is a zero-dependency Node process and must be shippable
+without pulling React, antd and d3 with it.
+
+```
+backend/     package.json (0 runtime deps) · server.mjs · store.mjs · datasets.mjs
+             reportExport.mjs · db.json · db.CAPEX.json · .env.local (ignored)
+             scripts/ (the seeds, the ingests, s3-sync, the two verifiers)
+             ecosystem.config.js
+frontend/    package.json (react, antd, d3, zustand, router, icons + dev deps)
+             src/ · public/ · index.html · vite.config.ts · tsconfig*.json
+             .env · .npmrc · .oxlintrc.json · node_modules/
+root/        package.json — orchestration only, installs nothing
+             scripts/check-docs.mjs · scripts/audit-gate.mjs
+             CLAUDE.md · SKILLS.md · docs/
+```
+
+**There are no npm workspaces, deliberately.** Workspaces hoist one lockfile and one `node_modules`
+to the root, which is the opposite of two independently deployable packages. The cost is stated
+rather than hidden: the root cannot `npm i` for both — **install in each package** — and every root
+script delegates with `--prefix` rather than running a tool the root does not have.
+
+**Every command still works from the root**, so nothing below changed its name; `npm run dev` is
+`npm --prefix frontend run dev`, `npm run mock` is `npm --prefix backend run mock`, and the seeds and
+ingests delegate to the backend. Run them inside a package too if you prefer — both are complete.
+
+**Two things had to be told where to look, and both would have failed quietly.** The audit gate reports
+on the package in its working directory, so run from a root that installs nothing it would have audited
+an empty tree and passed — it takes the directory as an argument now (`node scripts/audit-gate.mjs low
+frontend`), and `frontend`'s own `postinstall` calls it with `.`, which is what makes it fire on every
+install of the package that actually has the dependencies. And `check-docs` reads ~320 paths: the whole
+gate is keyed to file locations, so the move re-pointed every one and is verified by the failing-claim
+set being **identical before and after**.
+
+**The one place the split is crossed is `npm run ingest:capex`.** It is a backend script — it writes
+`backend/db.CAPEX.json` — and it reads the CAPEX report documents out of `frontend/src/Capex/Report/`,
+because those are frontend assets that Vite bundles. A dev-time seed reaching across is the honest
+arrangement; the alternative is a second copy of three 2.5 MB documents.
+
 ## Commands
 
 ```bash
@@ -37,13 +78,13 @@ rather than in code — `check-docs` fails on a hardcoded origin in `client.ts`.
 
 | | `VITE_API_BASE` | How the call gets there |
 |---|---|---|
-| `npm run dev` (`.env.development`) | `/api` | the Vite proxy strips `/api` → `MOCK_ORIGIN`, default `localhost:4000` |
-| `npm run build` (`.env.production`) | `http://18.205.228.143:4000` | called directly, cross-origin |
+| `npm run dev` (`frontend/.env.development`) | `/api` | the Vite proxy strips `/api` → `MOCK_ORIGIN`, default `localhost:4000` |
+| `npm run build` (`frontend/.env.production`) | `http://18.205.228.143:4000` | called directly, cross-origin |
 | behind nginx (`deploy/`) | `/api` | `proxy_pass` strips it → `MOCK_ORIGIN` |
 
 **Local is the default at every layer**, so a fresh clone needs no environment
 set up. Unset `VITE_API_BASE` falls back to `/api`, which is why the deployed
-origin lives in `.env.production` only and why deleting that file breaks the
+origin lives in `frontend/.env.production` only and why deleting that file breaks the
 production build without breaking development.
 
 Two things the direct cross-origin call depends on, both already true: the mock
@@ -64,8 +105,8 @@ rebuild, not a restart, and none of them can ever hold a secret.
 
 `docker compose up --build` runs both in containers instead — nginx serves the
 built SPA on `:8080` and takes over the two jobs the dev server did for free,
-proxying `/api` (prefix stripped, exactly as `vite.config.ts` rewrites it) and
-serving `index.html` for client routes. See `deploy/README.md`.
+proxying `/api` (prefix stripped, exactly as `frontend/vite.config.ts` rewrites it) and
+serving `frontend/index.html` for client routes. See `deploy/README.md`.
 
 There is no test runner. Verification is done by building an SSR bundle of a
 throwaway script and running it under node:
@@ -96,13 +137,13 @@ A single-tenant data-governance console. Six feature pages plus a dev-only
 `db.json` editor, all reading from a zero-dependency mock API.
 
 ```
-mock-server/db.json ──► mock-server/server.mjs ──► /api proxy ──► src/api/client.ts
+backend/db.json ──► backend/server.mjs ──► /api proxy ──► frontend/src/api/client.ts
                                                                        │ validate
                                                                        ▼
-                                                                  src/store/*
+                                                                  frontend/src/store/*
                                                                        │
                                                                        ▼
-                                                              src/pages, src/components
+                                                              frontend/src/pages, frontend/src/components
 ```
 
 **Data flows one way and every layer has one job.** `db.json` is the only source
@@ -112,7 +153,7 @@ the stores and render. Never call `client.ts` straight from a component unless i
 is a one-shot read with a local `try/catch` (see `EditDatasetsModal` and
 `EditFoldersModal`).
 
-### The mock server (`mock-server/`)
+### The mock server (`backend/`)
 
 Zero dependencies on purpose — the audit gate makes every added package
 expensive, and a mock backend is not worth widening the dependency surface.
@@ -184,14 +225,14 @@ boot.
 
 ### Where the data lives
 
-**The document lives in S3, and the local copy is gone.** `mock-server/store.mjs` is the whole
+**The document lives in S3, and the local copy is gone.** `backend/store.mjs` is the whole
 storage layer: a document is named by a **ref**, and the ref says where it is — an absolute path is
 a file, `s3://bucket/key` is an object.
 
 | | ref | how the bytes move |
 |---|---|---|
 | default, and the deployed box | `s3://contextweave.com/EPA/db.json` | signed `GetObject` / `PutObject` |
-| `S3_BUCKET=off` | `mock-server/db.json` | `readFile`, and temp-file + rename on write |
+| `S3_BUCKET=off` | `backend/db.json` | `readFile`, and temp-file + rename on write |
 
 **There is one document per dataset, and there used to be three in total.** `settings.json` held the
 users and each persona's navigation; `reports_prototype.json` held the report prototype's own sample
@@ -238,7 +279,7 @@ resolves; a checkout reading local files — the default — is unaffected. And 
 persisted recovers by itself: the server refuses it, and `resetDatasetIfRefused()` discards the value
 and retries on the primary, which is the exact failure that fix was written for.
 
-`mock-server/datasets.mjs` owns which one a request is reading — `store.mjs` still owns only how
+`backend/datasets.mjs` owns which one a request is reading — `store.mjs` still owns only how
 bytes move, and `server.mjs` still owns only what a document means.
 
 | selector | what it reads | writes |
@@ -439,7 +480,7 @@ carry.
 `DEFAULT_PREFIX` and `DEFAULT_REGION` are hardcoded in `store.mjs` because a bucket name and a key
 prefix are *addresses* — they appear in every log line and in `GET /db`'s reply, so committing them
 costs nothing and saves setting up an environment. The access key and secret are in
-**`mock-server/.env.local`**, which `.gitignore` covers via `*.local` and `process.loadEnvFile`
+**`backend/.env.local`**, which `.gitignore` covers via `*.local` and `process.loadEnvFile`
 reads at boot. `check-docs` asserts both halves: the addresses are present, and no tracked file
 matches `AKIA[0-9A-Z]{16}` or a 40-character secret. A key in a tracked file is scraped off GitHub
 by bots within minutes of a push, and that is not a hypothetical.
@@ -467,7 +508,7 @@ precisely the shape that has already crash-looped a deployed box on `<<<<<<< Upd
 inside the JSON. `readJsonDb` checks for conflict markers before parsing for that reason; after a pull that
 touches them, `npm run db:pull` is what makes the checkout agree with the bucket again.
 
-**The credential files are a different matter and are not a preference.** `mock-server/.env.local` and its
+**The credential files are a different matter and are not a preference.** `backend/.env.local` and its
 `.backup` copy stay ignored, all three rules are asserted by `check-docs` — see below — and they have now
 been committed twice, both times stopped by GitHub push protection rather than by us. A key in a tracked
 file is scraped off GitHub within minutes of a push.
@@ -1914,7 +1955,7 @@ than recovering a scope from its printed label.
 
 `POST /reports/export` builds a report and writes it to S3 as a **file somebody can be sent**:
 `html` or `csv`, under `s3://contextweave.com/EPA/exports/<report_id>-<timestamp>.<ext>`. The
-renderers are `mock-server/reportExport.mjs`.
+renderers are `backend/reportExport.mjs`.
 
 **It is a snapshot, and never a cache — the distinction is the whole design.** Everything else in
 this section re-asks: `db.reports` stores no result, and `GET /reports/saved/:id` rebuilds from the
@@ -2025,7 +2066,7 @@ them into `public/` is the obvious alternative and was rejected for one reason: 
 re-exported document is a whole report that can go stale silently. The glob is written per dataset folder
 rather than naming CAPEX, so a second dataset shipping documents is a folder drop plus an ingest run. A
 filename the bundle does not carry resolves to `null` and the viewer **says which files are here** — a
-guessed path would load the SPA's own `index.html` and render the app inside the report frame.
+guessed path would load the SPA's own `frontend/index.html` and render the app inside the report frame.
 
 **There is one Library UI, and CAPEX uses it.** A CAPEX-only grid of document cards existed briefly and
 was removed: two grids of the same definitions is two answers to "what reports exist", which this section
@@ -2138,7 +2179,7 @@ so in those words.
 
 #### Governance is authored; everything about it is computed
 
-`db.reports.governance` — seeded by `node scripts/seed-report-governance.mjs` — holds only the
+`db.reports.governance` — seeded by `node backend/scripts/seed-report-governance.mjs` — holds only the
 decisions: state (`published` · `pending_approval` · `blocked` · `archived`), version, author,
 category, as-of, schedule, approval, and which personas each definition's audience names. Every
 number and every cell is computed in `reportGovernanceView` per request: the chip counts, the floor
@@ -2905,7 +2946,7 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   port stays bound while the process stops answering. Check
   `Get-NetTCPConnection -LocalPort 4000` and kill the pid before restarting.
 - **Before blaming the mock server, check which API the app is calling.** The
-  origin belongs in `.env.development` (`/api`) and `.env.production` only — in a
+  origin belongs in `frontend/.env.development` (`/api`) and `frontend/.env.production` only — in a
   plain `.env` it applies to *every* mode and silently points `npm run dev` at
   the deployed box, where local `db.json` edits and `server.mjs` changes have no
   effect and nothing errors. `check-docs` now fails on it. Symptom to recognise:

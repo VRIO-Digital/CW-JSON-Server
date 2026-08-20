@@ -1,7 +1,7 @@
 # Keeps the build context small and stops host artefacts leaking into an image.
 #
-# Note what is NOT here: scripts/ and .npmrc are needed by `npm ci` (postinstall
-# runs the audit gate), mock-server/db.json is the only data the app has, and
+# Note what is NOT here: scripts/ and frontend/.npmrc are needed by `npm ci` (postinstall
+# runs the audit gate), backend/db.json is the only data the app has, and
 # deploy/ holds the nginx template Dockerfile.web copies in.
 
 .git
@@ -15,7 +15,7 @@ docs
 *.local
 
 # Transient file from the db.json editor's atomic write.
-mock-server/db.json.tmp
+backend/db.json.tmp
 
 # Throwaway SSR verification scripts.
 smoke.tsx

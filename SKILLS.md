@@ -2081,7 +2081,7 @@ directory; unpublishing a report -> 400 naming its equivalent; removing a scenar
 ---
 ## Flow 13 — Settings: users, personas and what each one sees
 
-**Files:** `db.settings` (its own subtree of `mock-server/db.json`) + `scripts/seed-settings.mjs` ->
+**Files:** `db.settings` (its own subtree of `backend/db.json`) + `backend/scripts/seed-settings.mjs` ->
 `GET /settings` / `PATCH /settings/personas/:roleId/nav` / `POST …/reset` ->
 `src/api/client.ts` -> `src/store/settingsStore.ts` (the one place visibility is decided) ->
 `src/pages/SettingsPage.tsx` -> `src/components/settings/UsersPanel.tsx` and
@@ -2124,7 +2124,7 @@ and reveal `.prp` — there is no PDF renderer here, by dependency decision, and
 `db.settings` holds only what this page administers — users, each persona's navigation access, and the
 authored `defaults` those reset to.
 
-**It was `mock-server/settings.json`, a file of its own**, on the reasoning that two stores with one job
+**It was `backend/settings.json`, a file of its own**, on the reasoning that two stores with one job
 each cannot damage one another: a settings write could not touch a report, and an ingest rebuilding
 `db.reports` could not drop a permission. It was folded into `db.json` on request, so the separation is
 now by key — and the guarantee moved to a stronger place rather than being lost. `settings` is a

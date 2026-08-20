@@ -13,7 +13,7 @@ dist-ssr
 *.local
 
 # Transient file from the db.json editor's atomic write
-# mock-server/db.json.tmp
+# backend/db.json.tmp
 
 # Editor directories and files
 .vscode/*
@@ -26,14 +26,14 @@ dist-ssr
 *.sln
 *.sw?
 
-# The two JSON databases live in S3 (see mock-server/store.mjs). npm run db:pull
+# The two JSON databases live in S3 (see backend/store.mjs). npm run db:pull
 # brings them back locally when a seed or ingest needs to rewrite them.
-# mock-server/db.json
-# mock-server/settings.json
+# backend/db.json
+# backend/settings.json
 # One db.json per dataset (db.CAPEX.json, ...) - same reason, same place: S3 holds them.
-# mock-server/db.*.json
+# backend/db.*.json
 # The report prototype's dataset, which now lives in the bucket beside the two databases.
-# mock-server/reports_prototype.json
+# backend/reports_prototype.json
 
 # Local credentials - never commit. Covered by *.local above; named here so a
 # stray copy (.backup) cannot slip past it.
@@ -42,5 +42,5 @@ dist-ssr
 # blocked by GitHub push protection. They are not a preference. A key in a tracked file is scraped off
 # GitHub by bots within minutes of a push, and `check-docs` asserts no tracked file matches AKIA[0-9A-Z]{16}
 # for the same reason. If a credential needs to travel, it goes in the deploy environment, never here.
-mock-server/.env.local
-mock-server/.env.local.backup
+backend/.env.local
+backend/.env.local.backup

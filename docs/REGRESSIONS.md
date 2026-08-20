@@ -3628,3 +3628,49 @@ are authored by `npm run seed:settings -- CAPEX`, which for a secondary dataset 
 blocks** and leaves the users, navigation and locked row alone. Their values are *derived* from the
 document's own `governance.data_scope.may_author` rather than guessed, mapped person → persona through
 its own user list, and a persona whose people disagree is refused rather than silently reduced.
+
+## Splitting the repo into two packages: what would have failed silently
+
+**The change.** `mock-server/` became `backend/` with its own zero-dependency `package.json`, the app
+moved to `frontend/` with every runtime dependency, and the root kept only the docs, `check-docs` and
+the audit gate. Two deployable packages, no npm workspaces.
+
+**Four things broke in ways a build would not have told us about, and all four were caught by running
+the gates rather than by reading the diff.**
+
+**1. The audit gate would have passed by looking at nothing.** `npm audit` reports on the package in its
+working directory. Run from a root that installs nothing, it finds no lockfile and `audit-gate` treats
+that as "registry unreachable — skipping", exits 0, and the gate is green while auditing an empty tree.
+A gate whose good answer is its own inability to see is exactly what that file exists to prevent, so the
+directory is an argument now. The first attempt read it from `process.argv[4]` when the invocation puts
+it at `argv[3]`, and the symptom was the same silent skip — which is worth noting: **the failure mode of
+this bug looks identical to the bug it was fixing.**
+
+**2. `check-docs` reads ~320 paths, and three of them were not string-rewritable.** A bulk rewrite of
+quoted `'src/'` → `'frontend/src/'` handled most, but the directory *walks* used bare `'src'`, and
+`importersOf` derived a repo-relative path with `f.slice(f.indexOf('/src/') + 1)` — which silently
+returned `src/...` under the new layout and killed the run before any summary. That is the
+"claim total stops moving" failure: the gate crashed, and a crashed gate reports nothing rather than
+reporting a problem. It derives from `root` now instead of hunting for a path segment.
+
+**3. The stylesheet walk compared paths from two different roots.** Its skip list is read out of
+`frontend/tsconfig.app.json`, whose `exclude` is relative to that package (`src/ESS`), while every path
+in `check-docs` is relative to the repo root. Unprefixed, the walker skipped nothing and the claim
+asserted that `src/ESS` exists at the root, which it has not since the move.
+
+**4. A user-facing sentence named a path that no longer existed.** `ApiErrorAlert` tells a reader
+*"Every page reads from `mock-server/db.json` through that server"*, and `DbEditorPage`'s subtitle says
+the same. Those are **copy**, not comments: they send somebody to a directory that is gone. Grepping for
+the old name across `src/` — not just fixing imports — is what found them.
+
+**What was deliberately not rewritten.** This file. A regression log records what happened *at the time*,
+and the entries above this one describe a repo where the backend really was `mock-server/`; rewriting the
+history to match the present would make every one of them a slightly false record.
+
+**How the move was verified.** The set of failing `check-docs` claims was captured before the move and
+compared by label after every stage. "Same 13 failures" is the only evidence that a 320-path rewrite
+changed no meaning — a passing build proves the imports resolve and says nothing about the claims.
+
+**The trap left behind.** `frontend/package-lock.json` still carries `"name": "context-weave-latest"`
+from the pre-split manifest. npm rewrites it on the next install and nothing reads it meanwhile, but
+`npm ci` against a renamed package is the kind of thing that fails once, in CI, with a confusing message.
