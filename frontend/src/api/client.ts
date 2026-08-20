@@ -413,20 +413,25 @@ export interface ProfilingJobsPayload {
 }
 
 /*
- * The semantic classes the profiler assigns. Eight of these come from the real
- * `Metadata_Profiling` workbook; `text` is only produced by the synthesised
- * fallback, and is kept so that path still validates.
+ * The semantic class the profiler assigned, and it is **the dataset's vocabulary rather than a
+ * closed set of ours**.
+ *
+ * This was a nine-member union, which was true of EPA and a claim about every dataset — the same
+ * mistake as `rows: num` before CAPEX arrived with `rows: null`. CAPEX's generator emits sixteen
+ * classes (`measure_record`, `period_accumulation`, `lifecycle_state` …), so the validator refused
+ * the whole payload and **both dictionaries rendered nothing at all** behind "the data did not look
+ * the way this app expects" — a page-level failure to protect a chip's wording.
+ *
+ * Widening is safe because nothing keys behaviour off the value any more. The tag is neutral by
+ * construction (only `is-identifier` and `is-measure` carry a rule; anything else takes the base
+ * style, which is what the class-chips-stay-neutral convention wants anyway), and the facet a column
+ * answers to now arrives **on the column** as `facet`, computed server-side from `CLASS_FACET`.
+ *
+ * What replaced the runtime guard is a build-time one, which is the stronger trade: `check-docs`
+ * asserts every class in **every** dataset is either in a facet or listed as deliberately unfaceted,
+ * so a seventeenth class fails `npm run preflight` instead of a page.
  */
-export type ColumnClass =
-  | 'identifier'
-  | 'dimension'
-  | 'entity'
-  | 'measure'
-  | 'date'
-  | 'address'
-  | 'geo'
-  | 'flag'
-  | 'text'
+export type ColumnClass = string
 
 export interface ProfiledColumn {
   column_id: string
@@ -434,6 +439,13 @@ export interface ProfiledColumn {
   label: string
   type: string
   class: ColumnClass
+  /**
+   * The class chip this column answers to, or `null` for a class with no chip.
+   *
+   * Server-side, from `CLASS_FACET`, because the panel used to hold its own copy of the fold and two
+   * copies can disagree — a chip counting 69 and listing 41 reads as a broken filter.
+   */
+  facet: string | null
   /** LLM classification confidence, shown beside the class chip. */
   confidence: number
   /** How the classification was reached — `llm` for every profiled column today. */
@@ -1649,17 +1661,9 @@ const COLUMNS_PAYLOAD = shape({
               column_id: str,
               label: str,
               type: str,
-              class: oneOf([
-                'identifier',
-                'dimension',
-                'entity',
-                'measure',
-                'date',
-                'address',
-                'geo',
-                'flag',
-                'text',
-              ]),
+              /* The dataset's vocabulary, not ours — see ColumnClass. */
+              class: str,
+              facet: nullable(str),
               confidence: num,
               derivation: str,
               pii: bool,
@@ -1731,14 +1735,9 @@ const DOCUMENTS_PAYLOAD = shape({
             shape({
               entity_id: str,
               type: str,
-              class: oneOf([
-                'identifier',
-                'dimension',
-                'entity',
-                'measure',
-                'date',
-                'text',
-              ]),
+              /* Same reasoning as a column's: CAPEX's documents carry `measure_commitment`,
+                 `person` and `label`, and refusing them blanked the whole document dictionary. */
+              class: str,
               confidence: num,
               pii: bool,
               occurrences: num,

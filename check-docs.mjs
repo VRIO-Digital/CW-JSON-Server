@@ -323,6 +323,33 @@ if (!dbDoc.here) {
   process.exit(1)
 }
 const db = dbDoc.value
+/*
+ * **And every *other* dataset's document, because a claim about one is not a claim about the app.**
+ *
+ * Several checks below are about a *vocabulary* — the semantic classes a profiler emits, the
+ * `doc_type`s a corpus holds — and each is the dataset's own. Read from the primary alone they were
+ * claims about EPA wearing the name of a claim about the code, and they passed while CAPEX's sixteen
+ * column classes made the Catalog's validator refuse an entire payload. Both documents are committed,
+ * so this can be required rather than skipped when absent — a guard whose good answer is its own
+ * inability to look is the fail-open shape this file has been bitten by more than once.
+ *
+ * The list comes from `DATASETS` in `datasets.js`, so a third dataset is covered by adding it there.
+ */
+const datasetNames = [...(read('backend/datasets.js').match(/export const DATASETS = \[([^\]]*)\]/)?.[1] ?? '')
+  .matchAll(/'([^']+)'/g)].map((m) => m[1])
+const datasetDocs = new Map()
+for (const name of datasetNames) {
+  const file = name === (read('backend/datasets.js').match(/export const PRIMARY = '([^']+)'/)?.[1] ?? 'EPA')
+    ? 'backend/db.json'
+    : `backend/db.${name}.json`
+  const doc = readJson(file)
+  if (!doc.here) {
+    console.error(`\ncheck-docs: cannot run — ${file} is not in this checkout.`)
+    console.error('\n  Fetch it:  npm run db:pull' + (file.includes('.json') && file !== 'backend/db.json' ? ` -- ${name}` : '') + '\n')
+    process.exit(1)
+  }
+  datasetDocs.set(name, doc.value)
+}
 const dbKeys = Object.keys(db)
 for (const key of requiredKeys) {
   expect(`db.json has "${key}"`, dbKeys.includes(key), 'DB_SHAPE requires it')
@@ -1029,13 +1056,49 @@ for (const project of db.projects ?? []) {
  * which chip — otherwise a chip counts 69 and lists 41.
  */
 const columnsPanel = read('frontend/src/components/catalog/ProfiledColumnsPanel.tsx')
-const profiledClasses = [
-  ...new Set(Object.values(profiles).flatMap((cs) => cs.map((c) => c.class))),
-].sort()
+/*
+ * **Every class every dataset emits is either in a chip or listed as deliberately unfaceted.**
+ *
+ * This asserted the classes were in a nine-member union in `client.ts`, which was EPA's vocabulary
+ * and read as a claim about the code. CAPEX's generator emits sixteen, so the validator refused the
+ * whole payload and **both dictionaries rendered nothing** behind "the data did not look the way this
+ * app expects". The union is gone — the class is the dataset's to name — and what replaced it is this,
+ * which is the stronger guard because it runs against the real documents: a seventeenth class fails
+ * `npm run preflight` and names itself, instead of failing a page in front of a reader.
+ *
+ * Unfaceted has to be *listed* rather than inferred from "matches no chip", or the two failures
+ * become one: a class nobody has assigned a chip yet looks exactly like a class that deliberately
+ * has none, and only the first is a bug.
+ */
+const classFacetBlock = server.match(/const CLASS_FACET = \{([\s\S]*?)\n\}/)?.[1] ?? ''
+const unfacetedBlock = server.match(/const CLASS_UNFACETED = \[([\s\S]*?)\n\]/)?.[1] ?? ''
+const placedClasses = new Set([...classFacetBlock.matchAll(/'([^']+)'/g), ...unfacetedBlock.matchAll(/'([^']+)'/g)].map((m) => m[1]))
+const classesByDataset = new Map()
+for (const [name, doc] of datasetDocs) {
+  const used = new Set()
+  for (const cols of Object.values(doc.column_profiles ?? {})) {
+    for (const c of cols) if (c?.class) used.add(c.class)
+  }
+  for (const v of doc.document_vocabulary ?? []) if (v?.class) used.add(v.class)
+  for (const v of doc.column_vocabulary ?? []) if (v?.class) used.add(v.class)
+  classesByDataset.set(name, [...used].sort())
+}
+const unplacedClasses = [...classesByDataset].flatMap(([name, cs]) =>
+  cs.filter((c) => !placedClasses.has(c)).map((c) => `${name}:${c}`),
+)
 expect(
-  'every class in the data is in the client union',
-  profiledClasses.every((c) => new RegExp(`\\| '${c}'|'${c}',`).test(client)),
-  `classes in use: ${profiledClasses.join(', ')}`,
+  'every class every dataset emits is in a chip or listed as unfaceted',
+  placedClasses.size > 0 && unplacedClasses.length === 0,
+  unplacedClasses.length > 0
+    ? `unplaced: ${unplacedClasses.join(', ')}`
+    : [...classesByDataset].map(([n, cs]) => `${n} ${cs.length}`).join(' · ') + ` over ${placedClasses.size} placed`,
+)
+/* And the class is no longer a closed union anywhere on the client, which is what made it a page
+   failure rather than a chip failure. */
+expect(
+  'the client does not gate rendering on a closed class vocabulary',
+  /export type ColumnClass = string/.test(client) && !/\| 'geo'/.test(client),
+  'a dataset the union had not met blanked the whole dictionary',
 )
 const facetBlockCols = server.match(/const facets = \{([\s\S]*?)\n {6}\}/)
 const serverColumnFacets = facetBlockCols
@@ -1053,10 +1116,20 @@ expect(
       JSON.stringify([...panelFacetKeys].sort()),
   `server ${serverColumnFacets.join(',')} · panel ${panelFacetKeys.join(',')}`,
 )
+/*
+ * The fold lives in one place and reaches the panel **on the column**. It was an if-chain here and a
+ * `CLASSES_FOR_FACET` table there — two copies of one decision, which disagree by counting 69 and
+ * listing 41. CAPEX made that concrete: Measures counted 0 while 293 of its columns were measures.
+ */
 expect(
-  'every profiled class lands in a facet or is deliberately unfaceted',
-  /address' \|\| c\.class === 'geo'/.test(server) && /'flag'/.test(server),
-  'address+geo fold into location, flag into flags',
+  'the class fold is the server’s, and rides on the column',
+  /const classFacet = \(cls\) =>/.test(server) &&
+    /\.map\(\(c\) => \(\{ \.\.\.c, facet: classFacet\(c\.class\) \}\)\)/.test(server) &&
+    /if \(c\.facet\) facets\[c\.facet\] \+= 1/.test(server) &&
+    /return column\.facet === facet/.test(columnsPanel) &&
+    /* codeOnly: the comment above `matches` explains why the table is gone, so it names it. */
+    !/CLASSES_FOR_FACET/.test(codeOnly(columnsPanel)),
+  'two copies of a fold disagree; the count and the rows must come from one field',
 )
 
 /* ---------------- the canvas ---------------- */

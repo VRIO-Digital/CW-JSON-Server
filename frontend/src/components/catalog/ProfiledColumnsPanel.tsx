@@ -14,7 +14,6 @@ import {
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import type {
-  ColumnClass,
   ProfiledColumn,
   ProfiledTable,
   SourceRow,
@@ -44,27 +43,23 @@ const FACETS: { key: FacetKey; label: string }[] = [
   { key: 'flags', label: 'Flags' },
 ]
 
-/**
- * One facet can cover more than one class: `address` and `geo` both answer
- * "where", and splitting them would give two chips nobody picks between. The
- * server folds them the same way — `check-docs` asserts the two agree.
- */
-const CLASSES_FOR_FACET: Partial<Record<FacetKey, ColumnClass[]>> = {
-  ids: ['identifier'],
-  measures: ['measure'],
-  dates: ['date'],
-  location: ['address', 'geo'],
-  flags: ['flag'],
-}
 
 /** snake_case → "FOREIGN GENERATOR PROVINCE", for a column with no stated label. */
 const displayName = (id: string) => id.replace(/_/g, ' ').toUpperCase()
 
+/**
+ * **The class fold is the server's, and arrives on the column.**
+ *
+ * This held its own `CLASSES_FOR_FACET` copy of it, which was EPA's eight classes written a second
+ * time — so CAPEX's sixteen matched nothing and Measures listed none of its 293 measure columns.
+ * Reading `column.facet` means the chip's count and the rows under it come from one place; two
+ * copies of a fold disagree by counting 69 and listing 41.
+ */
 function matches(column: ProfiledColumn, facet: FacetKey) {
   if (facet === 'all') return true
   if (facet === 'needs_review') return column.description_status === 'needs review'
   if (facet === 'pii') return column.pii
-  return (CLASSES_FOR_FACET[facet] ?? []).includes(column.class)
+  return column.facet === facet
 }
 
 export default function ProfiledColumnsPanel({

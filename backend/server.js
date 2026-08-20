@@ -5863,6 +5863,65 @@ const reportRegister = () => ({
 const registerRows = () => db.reports.data[reportRegister().roster] ?? []
 
 /**
+ * **Which class chip a column answers to — declared once, for every dataset's vocabulary.**
+ *
+ * The fold used to be an if-chain over EPA's eight classes, written here *and* again as
+ * `CLASSES_FOR_FACET` in the panel. Both were a claim about every dataset and true of one: CAPEX's
+ * generator emits sixteen classes, so **Measures counted 0 while 271 of its 380 columns were
+ * `measure_record`, `measure_projection`, `measure_commitment`, `period_accumulation`, `risk_score`
+ * or `derived_ratio`**, and Location counted 0 against five `geography` columns. A chip at 0 reads as
+ * "none in this corpus" rather than as a broken map — the exact failure `FACET_FOR_TYPE` is guarded
+ * against for `doc_type`, which is why this is a map beside it rather than a chain.
+ *
+ * **A class in no facet is deliberately unfaceted, and that has to be stated rather than implied.**
+ * EPA's `dimension` and `entity` were always unfaceted — there is no chip for them — so CAPEX's
+ * `classification`, `label`, `organisation`, `lifecycle_state` and `person` are the same decision for
+ * the same reason. Listing them is what lets `check-docs` tell "no chip for this, on purpose" apart
+ * from "nobody has classified this yet", and fail the build on a seventeenth class rather than
+ * leaving a chip quietly under-counting.
+ */
+const CLASS_FACET = {
+  ids: ['identifier'],
+  measures: [
+    'measure',
+    'measure_record',
+    'measure_projection',
+    'measure_commitment',
+    'period_accumulation',
+    'derived_ratio',
+    'risk_score',
+  ],
+  dates: ['date'],
+  /* Both answer "where", and splitting them would give two chips nobody picks between. */
+  location: ['address', 'geo', 'geography'],
+  flags: ['flag'],
+}
+
+/** Classes with no chip, on purpose — see the note above. */
+const CLASS_UNFACETED = [
+  'dimension',
+  'entity',
+  'text',
+  'classification',
+  'label',
+  'organisation',
+  'lifecycle_state',
+  'person',
+  'scratch',
+]
+
+/**
+ * The chip one class answers to, or null.
+ *
+ * Sent **per column** rather than as a map the client folds for itself. The panel filtered by its own
+ * copy of the fold, so the two could disagree about which classes go in which chip — and the symptom
+ * of that is a chip counting 69 and listing 41, which reads as a broken filter rather than as two
+ * lists. One authority, and the fold is invisible to the client.
+ */
+const classFacet = (cls) =>
+  Object.keys(CLASS_FACET).find((facet) => CLASS_FACET[facet].includes(cls)) ?? null
+
+/**
  * The floor under a report: the roster it reads and how much of it there is.
  *
  * Derived from the report's own spine rather than authored, so a report cannot claim a floor it
@@ -7679,12 +7738,10 @@ const routes = [
       const project = findProject(source.project_id)
       const byDataset = new Map()
       /*
-       * The class facets are the classes this data actually has. The real
-       * profile uses eight (`identifier date dimension entity address geo flag
-       * measure`) and none of them is `text`, so a Text chip would have sat at 0
-       * for all 206 columns — which reads as "no text columns here" rather than
-       * as a chip nothing can fill. `location` folds `address` and `geo`
-       * together: both answer "where", and 69 of the 206 are one or the other.
+       * The chips are the ones this app has, and which classes fill them is `CLASS_FACET`'s to say —
+       * see the note there. There is deliberately no Text chip: no real profile emits `text` (it is the
+       * synthesised fallback's class), so it would sit at 0 for every column of every dataset, which
+       * reads as "no text columns here" rather than as a chip nothing can fill.
        */
       const facets = {
         all: 0,
@@ -7706,23 +7763,22 @@ const routes = [
            claim about the table; nothing here renders it. */
         const rows = meta?.rows ?? 0
 
+        /* `facet` rides on the column so the panel filters by what the server counted. */
         const columns = tableDictionary(
           source,
           entry.dataset_id,
           entry.table_id,
           entry.columns,
           rows,
-        )
+        ).map((c) => ({ ...c, facet: classFacet(c.class) }))
 
         for (const c of columns) {
           facets.all += 1
           if (c.description_status === 'needs review') facets.needs_review += 1
           if (c.pii) facets.pii += 1
-          if (c.class === 'identifier') facets.ids += 1
-          if (c.class === 'measure') facets.measures += 1
-          if (c.class === 'date') facets.dates += 1
-          if (c.class === 'address' || c.class === 'geo') facets.location += 1
-          if (c.class === 'flag') facets.flags += 1
+          /* The class chips come off the same field the panel filters by, so a count and a list
+             cannot disagree. `needs_review` and `pii` are not class facets and stay as they were. */
+          if (c.facet) facets[c.facet] += 1
         }
 
         if (!byDataset.has(entry.dataset_id)) {
