@@ -384,6 +384,139 @@ db.whatif = {
   copy: { ...db.whatif.copy, tabs: lensDocument.tabs },
 }
 
+/*
+ * ---------------- a committed brief, so the shipped graph is reachable in Graph Studio ----------------
+ *
+ * **The dataset ships a whole graph and nothing that names it.** `graph_studio` carries 442 canvas
+ * nodes, 908 edges, seven must-review rows, a pivot and five recorded sanity checks — and
+ * `graph_use_cases` was empty. The studio lists *use cases committed on the last step*, so it listed
+ * nothing: the canvas was unreachable, no build could be started, no version could be published.
+ *
+ * **Which made the publish gate unsatisfiable, and that is why this exists.** Reports and the What-if
+ * lens open once a graph is published, on request. For a dataset with no brief to build, "publish first"
+ * had no path at all — the sections could never open, so the gate would have read as a broken page
+ * rather than as a precondition. This writes the missing row; it does not touch the gate.
+ *
+ * **It is derived from the dataset's own use-case template, never typed here.** That template *is* the
+ * tenant's account of what this graph is for: it states the id, the name, the description, and the
+ * personas, KPIs and hero questions by id. So the brief is the template resolved — the same members the
+ * wizard's suggesters would have drafted from it, which is why each is recorded `source: 'ai'`. A name
+ * or a business need written in this script would be a second answer to a question the package answers.
+ */
+const template = db.graph_use_case_templates ?? []
+if (template.length !== 1) {
+  /* One template is the dataset's own use case; two would make "which one is the brief" a guess, and
+     zero leaves nothing to derive from — either way this must not invent one. */
+  problems.push(
+    `db.CAPEX.json declares ${template.length} use-case templates — the committed brief is derived from ` +
+      'exactly one, so it cannot be built from this',
+  )
+}
+
+let brief = null
+if (template.length === 1) {
+  const t = template[0]
+  const byId = (list, key) => new Map((list ?? []).map((row) => [row[key], row]))
+  const personaById = byId(db.graph_personas, 'persona_id')
+  const kpiById = byId(db.graph_kpis, 'kpi_id')
+  const questionById = byId(db.graph_hero_questions, 'question_id')
+
+  /* An id that does not resolve would drop a member silently, and the brief would then claim fewer
+     personas than the use case names — the same failure `validateDb` refuses for the template itself. */
+  const resolve = (ids, map, what) =>
+    (ids ?? []).map((id) => {
+      const row = map.get(id)
+      if (!row) problems.push(`use-case template names ${what} "${id}", which this dataset has no row for`)
+      return row
+    })
+
+  const personas = resolve(t.personas, personaById, 'persona')
+  const kpis = resolve(t.kpis, kpiById, 'KPI')
+  const questions = resolve(t.hero_questions, questionById, 'hero question')
+
+  /*
+   * **The domain is derived from what the members themselves say, not chosen here.** Every persona, KPI
+   * and hero question carries a `domains` array, so the brief's domain is the one its own members name
+   * most — and a tie is refused rather than resolved by picking the first, for the reason a tie between
+   * two use-case templates matches nothing: an even split means the data does not say.
+   */
+  const tally = new Map()
+  for (const row of [...personas, ...kpis, ...questions]) {
+    for (const d of row?.domains ?? []) tally.set(d, (tally.get(d) ?? 0) + 1)
+  }
+  const ranked = [...tally.entries()].sort((a, b) => b[1] - a[1])
+  const domainId = ranked.length > 0 ? ranked[0][0] : null
+  if (ranked.length > 1 && ranked[0][1] === ranked[1][1]) {
+    problems.push(
+      `the use case's members name "${ranked[0][0]}" and "${ranked[1][0]}" equally often, so which ` +
+        'domain the brief is on is not derivable — the tie has to be broken in the package',
+    )
+  }
+  if (domainId && !(db.graph_domains ?? []).some((d) => d.domain_id === domainId)) {
+    problems.push(`the derived domain "${domainId}" is not one of this dataset's graph_domains`)
+  }
+
+  brief = {
+    /* The id the package gives its own use case, so re-running this replaces the row rather than adding
+       a second one, and a build's decisions — keyed `useCaseId:itemId` — keep pointing at the same brief. */
+    use_case_id: t.use_case_id,
+    name: t.name,
+    /* Committed, which is what puts it in Graph Studio: the studio lists briefs finished on the last
+       step, and a draft is deliberately absent from that list. */
+    status: 'committed',
+    domain_id: domainId,
+    /* The package's own description of the use case, which is exactly what the business-need field is. */
+    business_need: t.description,
+    personas: personas
+      .filter(Boolean)
+      .map((p) => ({ name: p.name, description: p.focus, source: 'ai' })),
+    kpis: kpis.filter(Boolean).map((k) => ({ name: k.name, description: k.definition, source: 'ai' })),
+    /*
+     * **No sources, and that is the honest value rather than a placeholder.** Step 4 picks from
+     * *profiled* sources, and a registration lives in the server's memory and dies with the process —
+     * so any source id written here would name something that does not exist until somebody connects it,
+     * and `/graph-sources` would refuse it. Empty says "nothing picked yet", which is true of a brief
+     * nobody has connected a source for.
+     */
+    sources: [],
+    hero_questions: questions
+      .filter(Boolean)
+      .map((q) => ({ text: q.text, priority: q.priority ?? 'normal', source: 'ai' })),
+    /* Nothing derived, so nothing to decide. The build gate reads the review queue and the pivot. */
+    gap_decisions: [],
+    /* The last step of the wizard. Written rather than imported — a script cannot load the server — so
+       `check-docs` compares it to `WIZARD_STEPS.length`, the way it compares NAV_KEYS to nav.ts. */
+    step: 6,
+    /* The package's as-of date rather than "now", so re-running the ingest does not churn the file. */
+    updated_at: `${db._meta?.as_of ?? '1970-01-01'}T00:00:00.000Z`,
+  }
+
+  if (!brief.name || !brief.business_need || !brief.domain_id) {
+    problems.push('the derived brief has no name, business need or domain — Graph Studio would list a blank row')
+  }
+  if (brief.personas.length === 0 || brief.kpis.length === 0 || brief.hero_questions.length === 0) {
+    problems.push('the derived brief resolved no personas, KPIs or hero questions — its members did not resolve')
+  }
+}
+
+if (problems.length > 0) {
+  console.error('\ningest-capex-reports: refusing to write —')
+  for (const p of problems) console.error('  · ' + p)
+  console.error('\n  Nothing was written. Fix the use-case template or its member ids.\n')
+  process.exit(1)
+}
+
+/*
+ * **Upserted, so a re-run replaces this row and leaves every other one alone.** Anything else in
+ * `graph_use_cases` is somebody's own draft — this repo keeps a saved brief through a restart precisely
+ * because it is the user's work — and a seed that rewrote the collection would delete it. Matched on the
+ * id, which is the package's own and therefore stable across runs.
+ */
+db.graph_use_cases = [
+  brief,
+  ...(db.graph_use_cases ?? []).filter((u) => u.use_case_id !== brief.use_case_id),
+]
+
 db.reports = {
   ...db.reports,
   documents,

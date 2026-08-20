@@ -1734,9 +1734,13 @@ Three things to keep when touching this:
 - **`publishedCount` is tested before `frame.document`**, and the server agrees rather than
   being second-guessed: it sends `document: null` while the gate is closed. The ordering
   was the other way round for one turn and was reversed on request — publish the graph,
-  then Reports and What-if open. `check-docs` compares the indices. Publication is in
-  memory, so **a restart closes both sections again**, and CAPEX ships no saved use case:
-  getting there is New Graph → build → clear the queue and pivot → publish.
+  then Reports and What-if open. `check-docs` compares the indices.
+- **The gate is satisfiable because the dataset ships the brief that names its graph.**
+  `graph_use_cases` was empty while `graph_studio` held a whole canvas, so Studio listed
+  nothing and neither section could ever open. `npm run ingest:capex` writes one committed
+  brief derived from the dataset's own use-case template — never typed — and upserts it, so a
+  draft of yours is not deleted. Building, reviewing and publishing stay in memory, so after
+  a restart it is: Studio → Build (≈1m 33s) → settle 7 rows + the pivot → publish.
 - **The row is read out of the document by `npm run ingest:capex`**, which owns
   `db.CAPEX.json` for the reports too — one writer per document. It reads the `<title>`
   stamp for the name, stage and version and the tab buttons for the tabs, and refuses to

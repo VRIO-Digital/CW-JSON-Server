@@ -2181,11 +2181,24 @@ them: it was served while the gate was closed *because* the documents were, so t
 remaining purpose. One gate, one branch, one number — for a dataset whose reports are computed and one
 whose reports are documents alike.
 
-**What it costs is worth knowing before a demo.** Publication lives in memory, so **every restart closes
-both sections again** until a graph is published, and CAPEX ships **no saved graph use case** — so the
-path is New Graph → build in Studio → clear the review queue and the pivot → publish a version. Its
-pools support that (4 domains, 7 personas, 23 KPIs, 13 hero questions, 3 projects), and building it is
-what found the crash recorded in `docs/REGRESSIONS.md` under a null canvas confidence.
+**A gate has to be satisfiable, so CAPEX ships the brief that names its own graph.** It shipped 442
+canvas nodes, 908 edges, seven must-review rows, a pivot and five sanity checks — and an empty
+`graph_use_cases`, so Graph Studio listed nothing, no build could start and no version could exist:
+the two sections could *never* open, which reads as a broken page rather than as a precondition.
+`npm run ingest:capex` writes one **committed** brief, `uc_capital_programs`, and every field of it is
+derived from the dataset's own use-case template — the id, the name, the description as the business
+need, and the 7 personas, 23 KPIs and 13 hero questions it names by id, each recorded `source: 'ai'`
+because that is the provenance the wizard's suggesters record when they draft from a template. **Its
+domain is derived too**, from the domains its own members name (`capital-projects`), because a domain
+picked in the script would be a claim the package never made. It names **no source**: a registration
+lives in the server's memory, so any id written here would dangle until somebody connects it. And the
+seed is an **upsert** — a saved brief survives a restart precisely because it is the user's work, so
+replacing the collection would delete every draft in it.
+
+**What remains manual, and it is the product's own flow.** Building, reviewing and publishing all live
+in memory, so after each restart: open the graph in Studio, **Build** (31 substeps ≈ 1m 33s), settle the
+seven review rows and the pivot, then publish the version — and both sections open. Doing exactly that
+is what found the crash recorded in `docs/REGRESSIONS.md` under a null canvas confidence.
 
 **They are framed, not inlined.** `DocumentViewer` puts each in an `iframe`. Injecting the body would
 drop the `<head>` the report *is* and put its selectors in the app's tree — the problem that forced

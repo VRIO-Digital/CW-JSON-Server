@@ -6321,6 +6321,69 @@ expect(
 )
 
 /*
+ * ---------------- a dataset that ships a graph also ships the brief that names it ----------------
+ *
+ * **The publish gate has to be satisfiable, or it is a broken page rather than a precondition.** Reports
+ * and the What-if lens open once a graph is published. CAPEX shipped 442 canvas nodes, 908 edges, seven
+ * must-review rows, a pivot and five sanity checks — and an empty `graph_use_cases`, so Graph Studio
+ * listed nothing, no build could start, no version existed, and neither section could ever open. The
+ * gate was unsatisfiable for the dataset it was asked for.
+ *
+ * **So the brief is seeded, and every field of it is derived from the dataset's own use-case template.**
+ * That template is the tenant's account of what the graph is for: its id, its name, its description and
+ * its members by id. The brief is that template resolved — which is why each member records
+ * `source: 'ai'`, the same provenance the wizard's suggesters would have recorded drafting from it.
+ * **Its domain is derived too**, from the domains its own members name, because a domain chosen in the
+ * script would be a claim the package never made.
+ *
+ * **And the seed is an upsert, not a rewrite.** A saved brief survives a restart precisely because it is
+ * the user's work, so a seed that replaced the collection would delete every draft in it.
+ */
+const capexBrief = (capexDb.value?.graph_use_cases ?? []).find(
+  (u) => u.use_case_id === (capexDb.value?.graph_use_case_templates ?? [])[0]?.use_case_id,
+)
+const capexTemplate = (capexDb.value?.graph_use_case_templates ?? [])[0] ?? null
+/* The wizard's own step count, so the seeded `step` cannot drift from the last step the API accepts —
+   the script cannot import the server, the same reason NAV_KEYS is compared to nav.ts. Read off the
+   `wizardSteps` slice already parsed above rather than re-parsing it: two readings of one constant is
+   the drift this file exists to catch. */
+/* `WIZARD_STEPS` is an array of plain strings, so the count is `stepLabels`' length — already derived
+   above from the same slice. The first attempt matched `{ n:` against it, found nothing, and failed a
+   claim whose subject was entirely correct: a guard reporting "0" is usually describing itself. */
+const wizardStepCount = stepLabels.length
+expect(
+  'a dataset shipping a graph ships the committed brief that makes it publishable',
+  capexBrief !== undefined &&
+    capexTemplate !== null &&
+    /* Committed, which is what puts it in Graph Studio — a draft is deliberately absent from that list. */
+    capexBrief.status === 'committed' &&
+    /* On the wizard's last step, read off the server rather than restated here. */
+    wizardStepCount > 0 &&
+    capexBrief.step === wizardStepCount &&
+    /* Derived from the template: the same id, name and description, and every member resolved. */
+    capexBrief.name === capexTemplate.name &&
+    capexBrief.business_need === capexTemplate.description &&
+    capexBrief.personas.length === (capexTemplate.personas ?? []).length &&
+    capexBrief.kpis.length === (capexTemplate.kpis ?? []).length &&
+    capexBrief.hero_questions.length === (capexTemplate.hero_questions ?? []).length &&
+    /* The domain is one the dataset declares, and the members named it. */
+    (capexDb.value?.graph_domains ?? []).some((d) => d.domain_id === capexBrief.domain_id) &&
+    /* No source is named: a registration lives in the server's memory, so any id here would dangle. */
+    capexBrief.sources.length === 0 &&
+    /* The ingest derives all of it rather than typing it, and upserts so a draft is not deleted. */
+    /graph_use_case_templates/.test(capexIngest) &&
+    /filter\(\(u\) => u\.use_case_id !== brief\.use_case_id\)/.test(capexIngest) &&
+    /* And no name or business need reaches the script as a literal — the template is the one answer. */
+    !capexIngest.includes(capexTemplate.name) &&
+    !capexIngest.includes((capexTemplate.description ?? '').slice(0, 40)),
+  capexBrief === undefined
+    ? 'db.CAPEX.json has no committed brief — Graph Studio lists nothing, so nothing can be published ' +
+      'and Reports and What-if can never open. Run npm run ingest:capex'
+    : `${capexBrief.use_case_id} · ${capexBrief.domain_id} · ${capexBrief.personas.length} personas, ` +
+      `${capexBrief.kpis.length} KPIs, ${capexBrief.hero_questions.length} hero questions, step ${capexBrief.step}`,
+)
+
+/*
  * ---------------- the framed lens is the page, not a file on display ----------------
  *
  * **A framed lens carries no viewer furniture, and its ground is the app's.** Asked for directly: the

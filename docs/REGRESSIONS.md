@@ -4041,3 +4041,51 @@ a "simulation" that never installed its DNS override and so tested the happy pat
 extraction that read `/tmp` on Windows and silently printed nothing for every case. A check that
 cannot fail is a comment; that applies to the checks written while debugging, not just the ones
 committed.
+
+## CAPEX shipped a whole knowledge graph and nothing that named it, so its publish gate could never open
+
+**Symptom.** With Reports and the What-if lens gated on publication, both were permanently empty for
+CAPEX. The What-if menu framed no document; the Library listed no reports. Nothing errored, every
+payload was well-formed, and `db.CAPEX.json` plainly held the content — 442 canvas nodes, 908 edges,
+seven must-review rows, a pivot, five recorded sanity checks, three rendered reports and a rendered lens.
+Reported as "use that html for the capex what if lens menu", which is what it looks like from the screen:
+the wiring appears not to have been done.
+
+**Cause.** `graph_use_cases` was `[]`. Graph Studio lists briefs **committed on the last step**, so it
+listed nothing; with nothing listed there was no graph to build, so no version, so nothing to publish —
+and the gate reads `published_count`. Every layer was correct and the sequence had no entry point. The
+dataset shipped the *graph* and not the *brief that names it*, and nothing anywhere checked that a
+dataset with a canvas had one.
+
+**Why it stayed hidden until now.** While the documents rode both branches of their endpoints, neither
+section needed a published graph, so an empty `graph_use_cases` cost nothing visible. Gating them turned
+a dormant data gap into a dead end — the second time in two turns that closing this gate exposed
+something the open one had been hiding, the first being the `.toFixed()` crash above.
+
+**Fix.** `npm run ingest:capex` seeds one committed brief, and **every field is derived from the
+dataset's own use-case template** rather than typed: its id (so a re-run replaces the row and a build's
+decisions keep pointing at the same brief), its name, its description as the business need, and its 7
+personas / 23 KPIs / 13 hero questions resolved from the pools by id, each `source: 'ai'` — the
+provenance the wizard records when a suggester drafts from a template. The **domain is derived from the
+domains its own members name**, and a tie is refused rather than broken here. It names **no source**,
+because a registration lives in the server's memory and any id written to disk would dangle. The write
+is an **upsert**: a saved brief survives a restart because it is the user's work, so a seed that rewrote
+the collection would delete every draft — including the one that was in the file at the time.
+
+**Guard.** One `check-docs` claim over nine facts: the brief exists and is `committed`, sits on the
+wizard's last step (read off `WIZARD_STEPS`, not restated), matches the template's id, name and
+description, resolves every member, is on a declared domain, names no source, is upserted rather than
+rewritten, and no name or description reaches the ingest as a literal. Broken nine times, all caught.
+
+**The general shape.** *A precondition that cannot be met is a broken page, not a policy.* Before gating
+a surface, check that the path through the gate exists **for every dataset** — the gate was asked for in
+terms of one dataset ("after publishing the graph studio for the capex data") and that is exactly the
+dataset it locked shut. And when a seed writes into a collection the app also writes to, upsert: the
+distinction between "the package's row" and "the user's row" is the whole reason a saved brief persists.
+
+**A harness note.** Two of this turn's guard failures were the guard, not the code: a redeclared
+`wizardSteps` (a hard `SyntaxError` that stopped the whole run — the loudest form of "the claim total
+stops moving"), and a step count matching `{ n:` against `WIZARD_STEPS`, which is an array of plain
+strings, so it counted 0 and failed a claim whose subject was entirely correct. Both are the same rule:
+**a guard reporting zero is usually describing itself.** Reuse the slice the file already parsed rather
+than parsing a constant twice.
