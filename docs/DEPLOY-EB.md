@@ -33,18 +33,34 @@ caused the deployment to fail"*, which names the bundle and says nothing about t
 fine and you lose an hour on it. A single-instance environment has no Auto Scaling group to pin, which is
 what the Elastic IP in the create log is telling you.
 
-### The credentials, which are not in the repo
+### The credentials, which are in the bundle but not in the repo
+
+`backend/.ebextensions/02-credentials.config` sets all five environment properties the S3 store needs —
+`S3_BUCKET=contextweave.com`, `S3_PREFIX=EPA`, `AWS_REGION=us-east-1` and the access key and secret. So
+there is no `eb setenv` step: the values are hardcoded and travel in the zip.
+
+**That file is gitignored and still ships, and the two facts are independent.** `.ebignore` *replaces*
+`.gitignore` for bundling the moment it exists — which is why its first two lines have to restate
+`.env.local` and `.env.local.backup` by hand — and it says nothing about `.ebextensions`, so a file git
+never sees is put in the bundle anyway. `check-docs` asserts both halves, because each fails silently in
+its own direction: drop the ignore rule and an `AKIA…` key lands on GitHub, where it is scraped within
+minutes; name the file in `.ebignore` and it is stripped from the bundle instead, and the box then boots
+on the committed documents with every figure on screen still looking plausible.
+
+**Which is what `GET /health`’s `store` field is for.** `"s3"` means these values arrived; `"file"` means
+they did not.
+
+**A fresh checkout does not have this file, and that is correct** — it holds a live key. Copy it from a
+machine that has one, or fall back to the manual equivalent:
 
 ```bash
-eb setenv AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=... 
+eb setenv S3_BUCKET=contextweave.com AWS_ACCESS_KEY_ID=AKIA... AWS_SECRET_ACCESS_KEY=...
 ```
 
-`S3_BUCKET`, `AWS_REGION` and `NODE_ENV` are already set by `.ebextensions`. The two secrets are
-deliberately not, so they live in the environment's configuration rather than in a tracked file.
-
-**`.ebignore` is what keeps them out of the bundle, and it needs saying:** the moment that file exists
-the EB CLI stops reading `.gitignore`, so every rule that protected a secret had to be restated. Its
-first two lines are `.env.local` and `.env.local.backup` for exactly that reason.
+**The bucket must already hold both datasets’ documents.** Every dataset is read and validated *above*
+`server.listen`, so a missing `s3://contextweave.com/EPA/db.json` or `.../CAPEX/db.json` stops the boot and
+EB reports only *"Engine execution has encountered an error"*. `npm run db:push` and
+`npm run db:push -- CAPEX` are what put them there.
 
 ### If you upload a zip instead of using the CLI
 

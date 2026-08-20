@@ -62,6 +62,25 @@ const FILES = [
   'db.json',
   'db.CAPEX.json',
   '.ebextensions/01-app.config',
+  /*
+   * **The S3 configuration, credentials and all, and it is in the bundle on purpose.**
+   *
+   * This is the one entry that makes the note above read oddly, so it says why: the explicit list
+   * exists so a secret cannot ship *by accident*, not so none ever ships. `01-app.config` deliberately
+   * sets nothing about S3 — with a bucket configured and no credentials the boot read 403s above
+   * `server.listen` and EB reports only "Engine execution has encountered an error" — so bucket and key
+   * travel **together, in one file**, which makes that failure unreachable: a bundle carries both or
+   * neither.
+   *
+   * It is gitignored, so it is a secret git never sees that AWS does. That is the same arrangement
+   * `.ebignore` gives the `eb deploy` path; this list is the other path to the same zip, and the two
+   * must not disagree about what ships.
+   *
+   * **Which is why the zip itself is now a credential.** It is written to the repo root, where
+   * `backend-eb.zip` is gitignored — do not mail it, attach it to a ticket, or drop it in a bucket
+   * anybody else can read.
+   */
+  '.ebextensions/02-credentials.config',
 ]
 
 /* Built from a character class so no editor or heredoc can turn the escapes into real newlines —
@@ -76,6 +95,22 @@ for (const f of FILES) {
    rather than the missing file. */
 for (const f of ['server.js', 'package.json', 'Procfile']) {
   if (!FILES.includes(f)) problems.push(`${f} must be in the bundle root`)
+}
+/*
+ * The credential file, named in its own refusal.
+ *
+ * The generic "is missing" above is true and unhelpful: absent this file the zip still builds a box
+ * that boots — on the documents frozen in at bundle time, every figure plausible and as old as the
+ * bundle, with only `GET /health`'s `store` field saying so. That is the failure worth a sentence
+ * rather than a filename, so it gets one.
+ */
+if (!existsSync(join(pkgDir, '.ebextensions/02-credentials.config'))) {
+  problems.push(
+    '.ebextensions/02-credentials.config is missing, so the bundle would carry no bucket and no ' +
+      'credentials — the box would boot on the documents frozen into this zip and GET /health would ' +
+      'report store:"file". Copy it from a machine that has one, or use: eb setenv S3_BUCKET=... ' +
+      'AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=...',
+  )
 }
 /* Belt and braces on the thing that must never happen. */
 for (const f of FILES) {
@@ -143,4 +178,7 @@ writeFileSync(outPath, zip)
 console.log(`bundle-eb: wrote backend-eb.zip (${zip.length.toLocaleString()} bytes)`)
 for (const f of FILES) console.log('  ' + f)
 console.log('\n  root layout: server.js · package.json · Procfile')
-console.log('  no environment file, POSIX separators, scripts/ excluded')
+console.log('  POSIX separators, scripts/ excluded, no .env file')
+console.log('')
+console.log('  This zip carries the AWS access key (.ebextensions/02-credentials.config).')
+console.log('  Treat it as a credential: do not mail it or put it anywhere readable by others.')

@@ -44,3 +44,17 @@ dist-ssr
 # for the same reason. If a credential needs to travel, it goes in the deploy environment, never here.
 backend/.env.local
 backend/.env.local.backup
+# The deployed box's S3 configuration and its signing credentials.
+#
+# Ignored for the same reason .env.local is, and it still reaches AWS: .ebignore replaces
+# .gitignore for bundling, so a file git never sees is put in the eb deploy zip anyway. That is
+# the whole mechanism - the values are hardcoded so the deployed process needs no eb setenv, and
+# the access key still never lands on GitHub. Do not add it to backend/.ebignore.
+backend/.ebextensions/02-credentials.config
+
+# The Elastic Beanstalk source bundle, which is itself a credential.
+#
+# npm run bundle:eb ships .ebextensions/02-credentials.config, so the zip carries the AWS access key.
+# It is a build artefact either way, but this is the reason it must never be committed - and the reason
+# not to mail it, attach it to a ticket, or drop it in a bucket other people can read.
+backend-eb.zip

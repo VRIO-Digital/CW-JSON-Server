@@ -385,6 +385,26 @@ export async function presignGet(ref, expiresIn = 3600) {
  * Read one document. Returns its text and its version — an S3 ETag, or `null` for a file, which has
  * no cheap equivalent and does not need one while a single process owns it.
  */
+/**
+ * The command that would create a missing object, **naming its dataset**.
+ *
+ * `npm run db:push` with no argument pushes the **primary only** — so a bare suggestion is wrong for
+ * every secondary dataset: you run it, EPA is re-uploaded, the 404 you were chasing is unchanged, and
+ * nothing says why. A remedy that does not remedy the thing it was printed for is worse than no
+ * remedy, because it spends the one guess the reader had.
+ *
+ * The prefix is read off the key rather than from `datasets.js`: this file owns how bytes move and
+ * knows nothing about which datasets exist, and the ref it was handed already carries the answer.
+ *
+ * The trap it was written for is the neighbouring one, and worth stating because the object *was*
+ * uploaded: a hand-upload naming the **local** file. `localDocPath` suffixes a secondary dataset to
+ * `db.CAPEX.json` so two documents can share one directory — in the bucket the prefix already
+ * separates them, so the key is `CAPEX/db.json` and `CAPEX/db.CAPEX.json` is an object nothing reads.
+ */
+function pushCommand(key) {
+  const prefix = key.includes('/') ? key.slice(0, key.indexOf('/')) : ''
+  return prefix && prefix !== DEFAULT_PREFIX ? `npm run db:push -- ${prefix}` : 'npm run db:push'
+}
 export async function readDoc(ref) {
   const s3 = parseS3Ref(ref)
   if (!s3) return { text: await readFile(ref, 'utf8'), etag: null }
@@ -393,7 +413,7 @@ export async function readDoc(ref) {
   if (!res.ok) {
     throw new Error(
       res.status === 404
-        ? `no object at ${ref} — upload one with: npm run db:push`
+        ? `no object at ${ref} — upload one with: ${pushCommand(s3.key)}`
         : `S3 answered ${res.status} for ${ref} — ${(await res.text()).slice(0, 300)}`,
     )
   }

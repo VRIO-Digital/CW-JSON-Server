@@ -3620,6 +3620,55 @@ expect(
   'backend/.env.local holds the access key and secret',
 )
 /*
+ * **And the deploy-time credential file, which is the same rule reached by a different route.**
+ *
+ * `backend/.ebextensions/02-credentials.config` hardcodes the bucket, the region and the signing key
+ * so the deployed process needs no `eb setenv`. It works because those two files are read by
+ * different tools: `.gitignore` keeps it out of git, and `.ebignore` — which *replaces* `.gitignore`
+ * for bundling the moment it exists — says nothing about it, so `eb deploy` puts it in the zip anyway.
+ *
+ * Both halves are asserted, because each fails silently in its own direction. Dropping the ignore rule
+ * puts an `AKIA…` key on GitHub, where it is scraped within minutes. Naming the file in `.ebignore`
+ * strips it from the bundle instead, and the box then boots on the committed documents while every
+ * figure on screen still looks plausible — the staleness `GET /health`’s `store` field exists to
+ * report. The file itself is not required to be present: a checkout with no deploy credentials is a
+ * valid checkout.
+ */
+expect(
+  'the deploy credential file is gitignored',
+  read('.gitignore').includes('backend/.ebextensions/02-credentials.config'),
+  'it hardcodes the AWS key so the eb zip carries it — git must never see it',
+)
+expect(
+  'and .ebignore does not strip it from the bundle',
+  !/02-credentials/.test(read('backend/.ebignore')),
+  'excluded there, the deployed box serves the committed documents and says so only in GET /health',
+)
+/*
+ * **And the other path into the same zip must agree with it.**
+ *
+ * There are two, by design: `eb deploy` bundles by `.ebignore`, and `npm run bundle:eb` bundles by an
+ * explicit `FILES` list — deliberately a list rather than a walk-with-exclusions, so a secret dropped
+ * into `backend/` tomorrow cannot ship by accident. The cost of that choice is that a file which *must*
+ * ship has to be named in both places, and the two failures are opposite: the CLI path leaks a key if
+ * the ignore rule goes, and the script path silently omits the bucket if this entry goes — a box that
+ * boots on documents frozen in at bundle time, every figure plausible.
+ *
+ * The zip is itself a credential once it carries this, so it is asserted gitignored too. It was tracked
+ * when the entry was added — the committed copy held nine entries and no credential, so nothing leaked,
+ * but one more `npm run bundle:eb && git commit -a` would have pushed the key.
+ */
+expect(
+  'npm run bundle:eb ships the credential config too',
+  codeOnly(read('backend/scripts/bundle-eb.js')).includes("'.ebextensions/02-credentials.config',"),
+  'the eb CLI bundles by .ebignore and this script by an explicit list — both are paths to one zip',
+)
+expect(
+  'and the bundle it writes is gitignored',
+  read('.gitignore').includes('backend-eb.zip'),
+  'the zip carries the AWS key now, so a committed one publishes it',
+)
+/*
  * ---------------- one process, every dataset, one selected per request ----------------
  *
  * A prefix is a dataset, and the prefix used to be read once at module load — so a second dataset

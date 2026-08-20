@@ -3755,3 +3755,35 @@ is a summary written for a dashboard; the log is the thing that knows.
 **And a deploy that never changed.** Four of those attempts re-sent `app-260820_113110` — the console's
 *Deploy* on an existing application version re-uploads that same bundle, so none of the first three fixes
 was ever on the instance. A new bundle needs a new **version label**.
+
+## A secondary dataset's document was uploaded under its local filename, and the 404's remedy pointed elsewhere
+
+**Symptom.** A deployed box could not boot against the bucket: `no object at
+s3://contextweave.com/CAPEX/db.json`. The object had in fact been uploaded, by hand, minutes earlier — a
+listing of the bucket showed `CAPEX/db.CAPEX.json`, 2,043,666 bytes, ETag matching the local file's MD5
+exactly. The bytes were right; only the name was wrong, and nothing on either side said so.
+
+**Cause.** `localDocPath` suffixes a secondary dataset's *local* file — `backend/db.json` for EPA,
+`backend/db.CAPEX.json` for CAPEX — because two documents share one directory and the plain name is what
+every command and every seed already names. **In the bucket the prefix does that job**, so the key is
+`CAPEX/db.json`. The suffix is an artefact of the filesystem, and carrying it into the key is the obvious
+thing to do when uploading by hand, because the file in front of you is called `db.CAPEX.json`.
+
+**What made it expensive** was the remedy the 404 printed: `upload one with: npm run db:push`. That command
+takes the dataset as a **named argument** and defaults to the primary, so running it re-uploads EPA,
+changes nothing about the missing object, and reports success. A reader following the message watches the
+same 404 survive the fix it named — and spends the one guess they had.
+
+**Fix.** `readDoc`'s 404 derives the dataset from the ref it was handed and names it:
+`npm run db:push -- CAPEX`. The prefix is read off the key's first segment rather than imported from
+`datasets.js`, because `store.js` owns only how bytes move and the ref already carries the answer.
+
+**Guard.** None in `check-docs` — it cannot see a bucket, and a claim whose good answer is its own
+inability to look is the fail-open shape this repo has already been bitten by. The remedy string is the
+guard: it is now correct for every dataset by construction rather than for the primary by accident.
+
+**The general shape, which has now cost time twice.** *A remedy that does not remedy the thing it was
+printed for is worse than no remedy.* The same reasoning is why `validateDb` names the missing key and the
+restore command, and why the boot banner prints the ref it actually read. An error message is a branch of
+the program, and a branch that is right for the default case and quietly wrong for every other one is a
+bug with better manners.

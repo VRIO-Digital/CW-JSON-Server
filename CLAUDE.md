@@ -81,6 +81,18 @@ invisible rather than loud:
   `.gitignore` — so without its first two lines, `backend/.env.local` would be ignored by git and
   *shipped to AWS inside the bundle*. `backend/scripts/` is excluded too: the seeds and ingests read a
   demo package that is not on the instance.
+- **And the S3 configuration is hardcoded in a file git never sees.**
+  `backend/.ebextensions/02-credentials.config` sets `S3_BUCKET=contextweave.com`, `S3_PREFIX=EPA`,
+  `AWS_REGION=us-east-1` and the access key and secret as environment properties, so a deploy needs no
+  `eb setenv` — which is what `01-app.config` used to prescribe, and why it deliberately set nothing
+  about S3 itself. **Gitignored and shipped are independent here**, which is the whole mechanism:
+  `.ebignore` replaces `.gitignore` for bundling and says nothing about `.ebextensions`, so the file
+  travels in the zip while an `AKIA…` key never reaches GitHub. Both halves are asserted, because both
+  fail quietly — dropping the ignore rule publishes the key, and naming the file in `.ebignore` strips it
+  from the bundle and leaves the box booting on the documents frozen in at deploy time, every figure on
+  screen plausible and months stale. `GET /health`’s `store` is how you tell (`"s3"` or `"file"`).
+  Locally none of it applies: `S3_BUCKET` is unset, so the server reads `backend/db.json` and
+  `backend/db.CAPEX.json` — one file per dataset, named by `localDocPath`.
 
 **The mixed-content trap is worth knowing before the first demo.** EB hands you `http://` and CloudFront
 serves `https://`, and an https page cannot call an http API — the browser blocks it with no server-side
