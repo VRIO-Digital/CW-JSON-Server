@@ -4089,3 +4089,76 @@ stops moving"), and a step count matching `{ n:` against `WIZARD_STEPS`, which i
 strings, so it counted 0 and failed a claim whose subject was entirely correct. Both are the same rule:
 **a guard reporting zero is usually describing itself.** Reuse the slice the file already parsed rather
 than parsing a constant twice.
+
+## A framed document gave two vertical scrollbars, and the publish dialog greyed the page it opened over
+
+**Symptom.** Two vertical scrollbars side by side at the right edge of the What-if lens, and dragging the
+outer one moved the whole frame instead of the report. Separately, opening *Publish this scenario* washed
+everything behind the dialog a flat grey — on a page that had just been made white on purpose.
+
+**Cause, first half.** `.dvw-frame--seamless` was `height: 82vh`. Add the page header and the shell's
+`--sp-7`/`--sp-9` padding and the content is taller than the viewport, so the **app** scrolled as well as
+the **document**. A guessed viewport fraction cannot know what sits above it, and the number was chosen
+when the frame still had a bar above it — it was already stale by the time the bar was removed.
+
+**Cause, second half.** The document's own `.shOv` overlay is `rgba(20, 25, 35, .44)`. It is the dialog's
+scrim, so it is *supposed* to dim — but on a lens deliberately turned white it read as the page reverting.
+And the overlay carries `overflow: auto` while the body behind it still scrolled, which is the **second**
+source of two bars: they came back the moment the dialog opened, whatever the frame's height.
+
+**Fix.** The frame is fitted to exactly the viewport left below it, so the app has nothing to scroll; the
+scrim is repainted white; and `body:has(.shOv.on) { overflow: hidden }` stops the page behind the dialog
+scrolling, which is the modal behaviour the document is missing. All three are **injected rules**, never
+edits — `_meta` forbids editing the file, and a rule holds for whatever version is dropped in.
+
+**What it does *not* do is size the frame to its content**, which is the obvious way to remove an inner
+scrollbar and is wrong here for the reason recorded in the entry above: the document positions its
+overlay and its toast with `position: fixed`, which resolves against the *iframe's* viewport, so a
+content-height frame opens the dialog off screen for anyone scrolled down. Fitting the viewport keeps that
+property exactly — it is the same fixed-height frame, sized correctly.
+
+**Three things the fit got wrong on the first pass**, each of which puts the outer scrollbar back or
+flickers:
+
+- **Measuring `rect.top` instead of `rect.top + scrollY`.** Viewport-relative is short by the scroll
+  offset, so a resize arriving while the page is scrolled fits the frame too tall.
+- **Naming the shell's padding.** Reading `.app-content`'s `padding-bottom` would tie this component to
+  the app frame it happens to sit inside, and be wrong the first time that padding changed. The space
+  *below* the frame is derived from the document instead.
+- **Measuring after paint.** A plain effect paints the fallback height and then jumps. It runs before
+  paint now, aliased to `useEffect` where there is no layout — otherwise every `renderToString` test of
+  this component warns "useLayoutEffect does nothing on the server", and noise like that is what hides a
+  real warning later.
+
+**Guard.** Ten facts on the existing seamless claim, asserted as *mechanism* rather than numbers: the
+scroll offset, the derived space below, the layout effect, the inline height reaching the iframe, the
+listener being removed, the three injected rules, the seamless gate on them, and the stylesheet's
+fallback. Broken ten times, all caught.
+
+**And one of those ten first reported MISSED, for the sixth time in this file.** The probe was
+`/rect\.top \+ window\.scrollY/` — which also appears in the *next* line's formula, so reverting the
+assignment changed nothing the probe could see. Keyed to `const top = rect.top + window.scrollY` now.
+**Assert at the site, not the spelling** — and a break test is the only thing that finds these, because a
+guard that passes for the wrong reason looks exactly like one that passes.
+
+## A translucent white scrim still reads as grey
+
+**Symptom.** The publish dialog's backdrop was reported grey a second time, after being changed from the
+document's own dark wash to `rgba(255, 255, 255, 0.82)`.
+
+**Cause, and it was not a bug in the rule.** The rule was applied and working. At 82% the page behind it
+reads through — the sliders, the figures, the card edges — and a white haze over content is not a white
+page. "Nearly opaque" is a compromise between two goals, and the one being asked for was the colour.
+
+**Fix.** Flat `#fff`. The dialog card carries its own border and a `0 14px 40px` shadow, which is what
+separates it from the ground; the scrim was never doing that work, so making it opaque costs nothing.
+
+**Guard.** The claim's regex pinned `rgba(255, 255, 255, 0.d+)`, which would have gone on passing for any
+translucency — it pins `#fff` now, so a wash cannot satisfy it. The break test's mutation had to be
+re-pointed too: it searched for the old value, so it would have reported "did not land" rather than
+checking anything.
+
+**The general shape.** *A translucency is a decision about two things, and a request about colour only
+constrains one of them.* When a colour change is asked for and the result is still described in the old
+colour's terms, suspect the alpha before suspecting the rule — and prefer the literal reading of the ask
+over a compromise nobody requested.

@@ -6414,8 +6414,11 @@ expect(
        flag gates, so moving the button out of the bar cannot quietly restore it. */
     /\{seamless \? null : \(\r?\n\s*<div className="dvw-bar">/.test(viewerSrc) &&
     /Export PDF/.test(viewerSrc.slice(viewerSrc.indexOf('{seamless ? null : ('))) &&
-    /* The ground is painted by a rule injected into the frame, and only in this mode. */
-    /seamless \? ' html, body \{ background: #fff \}' : ''/.test(viewerSrc) &&
+    /* The ground is painted by a rule injected into the frame, and only in this mode. The rules moved
+       into a named constant when there were three of them, so both halves are asserted: the gate that
+       applies them only to a seamless frame, and the ground rule itself. */
+    /\(seamless \? SEAMLESS_CSS : ''\)/.test(viewerSrc) &&
+    /html, body \{ background: #fff \}/.test(viewerSrc) &&
     /* Style only: the injected text is a stylesheet, and nothing removes a node or touches a script. */
     !/\.remove\(\)|removeChild|contentDocument\.querySelector[\s\S]{0,40}\.remove/.test(
       codeOnly(viewerSrc),
@@ -6425,6 +6428,39 @@ expect(
     /\.dvw-frame--seamless \{[^}]*height: \d+vh/.test(lensCss) &&
     /* The reason it keeps a height is written where somebody would remove it. */
     /position: fixed/.test(lensCss) &&
+    /*
+     * **And the height is measured, because a guessed one gave two scrollbars.** `82vh` plus the page
+     * header plus the shell's padding exceeds the viewport, so the app scrolled as well as the document
+     * — two bars at the same edge, the outer one moving the frame instead of the report. The frame is
+     * fitted to what is left of the viewport instead, so the app has nothing to scroll.
+     *
+     * Asserted as the *mechanism*, not the number: the measurement adds the scroll offset (or a resize
+     * arriving mid-scroll fits it too tall and the outer bar returns), subtracts the space below the
+     * frame rather than naming the shell's padding, and lands in a layout effect so the first painted
+     * frame is already right. The stylesheet's `vh` above stays as the no-layout fallback.
+     */
+    /* Keyed to the assignment, not the expression: `rect.top + window.scrollY` also appears in the
+       `below` formula on the next line, so a whole-file probe passed straight over this being
+       reverted — caught by the break test. The sixth time that trap has been recorded here: assert
+       at the site, not the spelling. */
+    /const top = rect\.top \+ window\.scrollY/.test(viewerSrc) &&
+    /root\.scrollHeight - \(rect\.top \+ window\.scrollY \+ el\.offsetHeight\)/.test(viewerSrc) &&
+    /useLayoutEffect/.test(codeOnly(viewerSrc)) &&
+    /style=\{seamless && fitted !== null \? \{ height: fitted \} : undefined\}/.test(viewerSrc) &&
+    /* Re-measured on resize, and the listener is removed — a viewer that outlived its listener would
+       fit a frame that is no longer mounted. */
+    /addEventListener\('resize', measure\)/.test(viewerSrc) &&
+    /removeEventListener\('resize', measure\)/.test(viewerSrc) &&
+    /*
+     * **The publish dialog's scrim is white, and the page behind it does not scroll.** Both asked for:
+     * opening *Publish this scenario* washed the whole lens grey, and the overlay's own `overflow: auto`
+     * beside a still-scrolling body put the second scrollbar back the moment the dialog opened.
+     * Injected as rules, never edited into the document, which `_meta` forbids.
+     */
+    /* Opaque, not a wash: a translucent white was tried and reported as grey again, because the page
+       behind it read through. The regex pins white *and* opacity — `rgba(...)` no longer satisfies it. */
+    /\.shOv \{ background: #fff \}/.test(viewerSrc) &&
+    /body:has\(\.shOv\.on\) \{ overflow: hidden \}/.test(viewerSrc) &&
     /* A report is untouched: it still has its bar, its Back and its export. */
     /\{openDoc \? <DocumentViewer document=\{openDoc\} onBack=\{\(\) => setOpenDoc\(null\)\} \/> : null\}/.test(
       read('frontend/src/pages/ReportsPage.tsx'),

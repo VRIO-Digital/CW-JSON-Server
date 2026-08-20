@@ -1562,10 +1562,26 @@ is the print button**, and that is stated rather than glossed: nothing else offe
 lens, and the browser's own Print gives the app around it, because `DocumentViewer.css` deliberately
 narrows nothing for print. A report keeps all of it — bar, Back and export.
 
-**The white ground is a rule, never an edit**, exactly as the mock-API pill's is: the document's
+**Three rules are injected, never edited in**, exactly as the mock-API pill's is: the document's
 `_meta` says *"never hand-edit this file — change the generator and rebuild"*, so an edit would be lost
-at the next export and silently return. It overrides `body` rather than the document's `--bg0` token,
-because a token name is one file's private vocabulary and `background` on `body` is the fact.
+at the next export and silently return. They are `SEAMLESS_CSS`, applied only to a seamless frame:
+
+- **the page ground**, overriding `body` rather than the document's `--bg0` token, because a token name
+  is one file's private vocabulary while `background` on `body` is the fact;
+- **the publish dialog's scrim**, which washed the whole lens with `rgba(20,25,35,.44)` — so opening
+  *Publish this scenario* greyed everything behind it. Flat `#fff` now. A translucent white was tried
+  first and reported as grey again, correctly: at 82% the sliders and figures behind it read through,
+  and a page seen through a haze is not a white page. The card keeps its own border and
+  `0 14px 40px` shadow, which is what separates it from the ground — the scrim never did that;
+- **and a lock on the page behind that dialog** (`body:has(.shOv.on)`), because `.shOv` is
+  `position: fixed` with its own `overflow: auto`, so a tall dialog scrolled itself *while the document
+  behind still scrolled too* — the second scrollbar back again the moment Publish opened. `:has()` is
+  what lets a rule say that from outside; where it is unsupported the rule is inert and the old
+  behaviour returns, which is a visible fallback rather than a broken page.
+
+These name the document's own class names, which is a real coupling and the same one `.apiFab` already
+is. It is the price of not editing a generated file, and it fails visibly rather than silently — a
+renamed class leaves the rule inert and the grey comes back.
 
 **And the frame keeps a fixed height, which looks like an oversight and is not.** Sizing the iframe to
 its content would put the document in the app's own scroll and remove the last cue that a frame is
@@ -1574,6 +1590,18 @@ which resolves against the **iframe's** viewport. Make that viewport as tall as 
 reader scrolled past the top clicks Publish and sees nothing happen, the dialog having opened a thousand
 pixels above them. `check-docs` pins the height for that reason: "make it seamless" is exactly the
 request that would remove it next.
+
+**But the height is measured rather than guessed, because a guessed one gave two scrollbars.** `82vh`
+plus the page header plus the shell's padding is taller than the viewport, so the *app* scrolled as well
+as the document — two bars at the same edge, and dragging the outer one moved the frame instead of the
+report. The frame is fitted to exactly what is left of the viewport, so the app has nothing to scroll
+and the document's own bar is the only one. Three things make that fit right, and each was a bug in the
+first attempt: it is measured from the frame's **document-relative** top (`rect.top + scrollY`, or a
+resize arriving mid-scroll fits it too tall and the outer bar returns), it **subtracts the space below**
+the frame rather than naming the shell's padding — which would tie this component to the app frame it
+happens to sit in — and it runs **before paint**, aliased to `useEffect` where there is no layout so a
+`renderToString` test does not warn on every render. The stylesheet's `82vh` stays as the no-layout
+fallback, which is what an SSR render and the first paint get.
 
 **The fixture behind the page was already in `db.CAPEX.json` and is untouched.** `whatif.slices`,
 `levers`, `locked_slices` and `program` are a verbatim extract of that file's own `SLICES`/`PROGRAM`
