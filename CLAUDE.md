@@ -16,8 +16,9 @@ backend/     package.json (0 runtime deps) · server.mjs · store.mjs · dataset
 frontend/    package.json (react, antd, d3, zustand, router, icons + dev deps)
              src/ · public/ · index.html · vite.config.ts · tsconfig*.json
              .env · .npmrc · .oxlintrc.json · node_modules/
+             scripts/audit-gate.mjs — the deps it audits are this package's
 root/        package.json — orchestration only, installs nothing
-             scripts/check-docs.mjs · scripts/audit-gate.mjs
+             check-docs.mjs — the one gate that belongs to neither package
              CLAUDE.md · SKILLS.md · docs/
 ```
 
@@ -30,13 +31,23 @@ script delegates with `--prefix` rather than running a tool the root does not ha
 `npm --prefix frontend run dev`, `npm run mock` is `npm --prefix backend run mock`, and the seeds and
 ingests delegate to the backend. Run them inside a package too if you prefer — both are complete.
 
-**Two things had to be told where to look, and both would have failed quietly.** The audit gate reports
-on the package in its working directory, so run from a root that installs nothing it would have audited
-an empty tree and passed — it takes the directory as an argument now (`node scripts/audit-gate.mjs low
-frontend`), and `frontend`'s own `postinstall` calls it with `.`, which is what makes it fire on every
-install of the package that actually has the dependencies. And `check-docs` reads ~320 paths: the whole
-gate is keyed to file locations, so the move re-pointed every one and is verified by the failing-claim
-set being **identical before and after**.
+**Only `check-docs.mjs` is at the root, flat beside the shell scripts, and that is not a leftover.** It reads 198 paths under `frontend/`,
+34 under `backend/` and the root documents it validates — so it cannot live inside either package
+without making that package undeployable on its own. It reads ~320 paths in total: the whole gate is
+keyed to file locations, so the split re-pointed every one, verified by the failing-claim set being
+**identical before and after**.
+
+**The audit gate lives in `frontend/`, because the dependencies do.** `backend/` has none by design, so
+there is nothing there to audit. Moving it also removed the last cross-package reach: `frontend`'s
+`postinstall` used to call `../scripts/audit-gate.mjs`, which meant the frontend could not `npm ci`
+without a file outside itself.
+
+**And it finds its own package rather than being told which one.** `npm audit` reports on its working
+directory, so a wrong directory is a *silent* pass: no lockfile, "registry unreachable", exit 0, green
+while auditing an empty tree. That happened twice while the directory was a parameter — once run from
+the root, once from reading the wrong `argv` slot, whose symptom was identical to the bug it was fixing.
+It derives the package root from `import.meta.url` now, so every call site gets the same answer and there
+is nothing to pass wrongly.
 
 **The one place the split is crossed is `npm run ingest:capex`.** It is a backend script — it writes
 `backend/db.CAPEX.json` — and it reads the CAPEX report documents out of `frontend/src/Capex/Report/`,
@@ -2882,7 +2893,7 @@ failure rather than as a paragraph nobody re-read.
 
 ## The audit gate
 
-`scripts/audit-gate.mjs` fails on **any** advisory at or above `low`
+`frontend/scripts/audit-gate.mjs` fails on **any** advisory at or above `low`
 (`.npmrc` sets `audit-level=low` to match). It runs on `postinstall`, so it fires
 on every `npm i`. A registry failure warns and exits 0 rather than breaking
 offline installs.

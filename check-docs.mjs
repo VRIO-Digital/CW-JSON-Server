@@ -10,13 +10,24 @@
  * This asserts the claims against the source. When it fails, the code and the
  * docs disagree: fix whichever is wrong. Do not delete the assertion to pass.
  *
- *   node scripts/check-docs.mjs
+ *   node check-docs.mjs
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, sep } from 'node:path'
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+/*
+ * The repo root, which is **this file's own directory** — it sits at the top level rather than in a
+ * `scripts/` folder, because it is the one gate that belongs to neither package: it reads 198 paths under
+ * `frontend/`, 34 under `backend/`, and the two documents at the root that it exists to keep honest.
+ *
+ * This was `join(dirname(...), '..')` while it lived in `scripts/`. Moving the file without changing this
+ * line would have pointed `root` at the *parent of the repo*, and the failure is not a crash: `read()`
+ * would throw `ENOENT` on the first claim and the run would die before printing a summary — the
+ * "claim total stops moving" failure, where every break test reports MISSED and correct guards look
+ * broken. Anything that relocates this file has to move this line with it.
+ */
+const root = dirname(fileURLToPath(import.meta.url))
 const read = (p) => readFileSync(join(root, p), 'utf8')
 
 /**
@@ -6423,7 +6434,7 @@ expect(
 
 /* ---------------- audit allowlist ---------------- */
 
-const gate = read('scripts/audit-gate.mjs')
+const gate = read('frontend/scripts/audit-gate.mjs')
 const waivers = [...gate.matchAll(/id: '(GHSA-[\w-]+)'/g)].map((m) => m[1])
 for (const id of waivers) {
   expect(

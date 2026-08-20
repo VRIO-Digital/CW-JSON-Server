@@ -10,9 +10,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "oxlint",
-    "audit": "node ../scripts/audit-gate.mjs low .",
+    "audit": "node scripts/audit-gate.mjs low",
     "audit:fix": "npm audit fix",
-    "postinstall": "node ../scripts/audit-gate.mjs low ."
+    "postinstall": "node scripts/audit-gate.mjs low"
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",

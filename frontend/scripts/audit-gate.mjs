@@ -7,7 +7,7 @@
  * reported as a warning instead of a hard failure, so offline installs and CI
  * runners without registry access don't break for the wrong reason.
  *
- *   node scripts/audit-gate.mjs [low|moderate|high|critical]
+ *   node scripts/audit-gate.mjs [low|moderate|high|critical]   (from frontend/)
  *
  * Threshold defaults to `low` (i.e. fail on anything).
  *
@@ -17,6 +17,7 @@
  * Every entry needs a reason, and the gate nags when an entry goes stale.
  */
 import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
 /**
  * @type {{id: string, package: string, reason: string}[]}
@@ -38,23 +39,25 @@ if (!LEVELS.includes(threshold)) {
 }
 
 /*
- * **Which package to audit, because the dependencies are not at the root any more.**
+ * **Which package to audit — this one, derived from where this file sits.**
  *
- * The repo is two deployable packages: `frontend/` holds every runtime dependency and `backend/` holds
- * none by design. `npm audit` reports on the package in its working directory, so run from the root — which
- * installs nothing — it would find nothing to audit and this gate would pass by looking at an empty tree.
- * A gate whose good answer is its own inability to see is the failure this file exists to prevent.
+ * `npm audit` reports on the package in its working directory. That is a trap in a two-package repo:
+ * run from the root, which installs nothing, it finds no lockfile, this script reports "registry
+ * unreachable" and exits 0 — green while auditing an empty tree. A gate whose good answer is its own
+ * inability to see is exactly what this file exists to prevent, and it happened twice while the
+ * directory was a *parameter*: once from the root, and once from passing it in the wrong argv slot,
+ * whose symptom was identical to the bug being fixed.
  *
- * So the directory is an argument: `node scripts/audit-gate.mjs low frontend` from the root, and
- * `node ../scripts/audit-gate.mjs low .` from the package's own `postinstall`, which is what makes the
- * gate fire on every `npm i` in the package that actually has the dependencies.
+ * So it is no longer passed. This file lives inside the package that has the dependencies, and the
+ * package root is `..` from here — so wherever it is invoked from, it audits the same tree. There is
+ * nothing to get wrong at a call site.
  */
-const dir = process.argv[3] ?? '.'
+const pkgDir = fileURLToPath(new URL('..', import.meta.url))
 
 const result = spawnSync('npm', ['audit', '--json', '--audit-level=none'], {
   encoding: 'utf8',
   shell: process.platform === 'win32',
-  cwd: dir,
+  cwd: pkgDir,
 })
 
 let report

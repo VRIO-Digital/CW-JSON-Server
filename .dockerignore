@@ -1,6 +1,6 @@
 # Keeps the build context small and stops host artefacts leaking into an image.
 #
-# Note what is NOT here: scripts/ and frontend/.npmrc are needed by `npm ci` (postinstall
+# Note what is NOT here: frontend/scripts/ and frontend/.npmrc are needed by `npm ci` (postinstall
 # runs the audit gate), backend/db.json is the only data the app has, and
 # deploy/ holds the nginx template Dockerfile.web copies in.
 
