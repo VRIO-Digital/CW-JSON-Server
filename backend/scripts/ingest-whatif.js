@@ -201,7 +201,7 @@ if (!nodeTypes.has(pkg.graph_reference.frame.center_node)) {
  * It lives *in the ingest* rather than beside it in a seed script for one reason: this
  * script rebuilds `db.whatif` wholesale (`db.whatif = { ...rest }`), so a block seeded
  * elsewhere would be deleted the next time anybody re-ingests. That is exactly how
- * `ingest-reports.mjs` nearly dropped every report audience — `x = { … }` on a shared
+ * `ingest-reports.js` nearly dropped every report audience — `x = { … }` on a shared
  * key deletes what it does not list. Authoring it here makes a re-ingest reproduce it.
  *
  * What is deliberately **not** here: the readers and the graph versions. The prototype
@@ -367,7 +367,7 @@ const V2_SUBTITLE =
  *
  * Authored here rather than hand-edited into db.json, so a re-ingest of the
  * untouched package still produces the tab list the page actually renders — the
- * mistake `ingest-reports.mjs` nearly made with the report audiences.
+ * mistake `ingest-reports.js` nearly made with the report audiences.
  */
 const PUBLISHED_TAB = { key: 'published', label: 'Published scenarios' }
 

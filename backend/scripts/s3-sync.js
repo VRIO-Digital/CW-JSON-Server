@@ -1,9 +1,9 @@
 /**
  * Move the two JSON databases between this checkout and the bucket.
  *
- *     node scripts/s3-sync.mjs push        both documents, local -> S3
- *     node scripts/s3-sync.mjs pull        both documents, S3 -> local
- *     node scripts/s3-sync.mjs push db     just db.json
+ *     node scripts/s3-sync.js push        both documents, local -> S3
+ *     node scripts/s3-sync.js pull        both documents, S3 -> local
+ *     node scripts/s3-sync.js push db     just db.json
  *
  * **This exists because the seeds and ingests write files, and only files.** `npm run ingest:graph`,
  * `seed:governance`, `seed:settings` and the rest all rebuild `backend/db.json` on disk — that
@@ -14,22 +14,22 @@
  *
  * **Push validates before it writes, for the same reason `commitDb` does.** The server refuses to
  * boot on a document missing a required key; pushing one would move that failure to the next
- * restart, on the box, where the only symptom is a crash loop. `validateDb` lives in `server.mjs`
+ * restart, on the box, where the only symptom is a crash loop. `validateDb` lives in `server.js`
  * and importing it would boot a server, so the check here is the shallow one — the required
- * top-level keys, read off `server.mjs` itself so the two lists cannot drift.
+ * top-level keys, read off `server.js` itself so the two lists cannot drift.
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
-import { localDocPath, readDoc, s3Ref, storeKind, writeDoc } from '../store.mjs'
-import { DATASETS, PRIMARY } from '../datasets.mjs'
+import { localDocPath, readDoc, s3Ref, storeKind, writeDoc } from '../store.js'
+import { DATASETS, PRIMARY } from '../datasets.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 
-/* The same credentials the server signs with, from the same gitignored file — see server.mjs. */
+/* The same credentials the server signs with, from the same gitignored file — see server.js. */
 try {
   process.loadEnvFile(join(root, '.env.local'))
 } catch {
@@ -60,8 +60,8 @@ function die(message) {
  * ---------------- which dataset, and which document ----------------
  *
  * A dataset is a prefix, so syncing one is the same two calls under a different key — but the
- * argument has to be *named* rather than positional, because `s3-sync.mjs push db` and
- * `s3-sync.mjs push EPA` would otherwise be told apart by nothing. It is matched against the
+ * argument has to be *named* rather than positional, because `s3-sync.js push db` and
+ * `s3-sync.js push EPA` would otherwise be told apart by nothing. It is matched against the
  * declared datasets, and an unknown one is a refusal naming them: the alternative is a push that
  * quietly writes one dataset's document over another's.
  *
@@ -76,7 +76,7 @@ const dataset = args.find((a) => DATASETS.some((d) => d.toLowerCase() === a?.toL
 const named = args.filter((a) => a !== dataset)
 const only = named[0]
 
-const USAGE = `usage: s3-sync.mjs <push|pull> [${Object.keys(DOCS).join('|')}] [${DATASETS.join('|')}]`
+const USAGE = `usage: s3-sync.js <push|pull> [${Object.keys(DOCS).join('|')}] [${DATASETS.join('|')}]`
 
 if (!['push', 'pull'].includes(direction)) die(USAGE)
 if (only && !DOCS[only]) {
@@ -90,21 +90,21 @@ if (named.length > 1) die(`too many arguments: ${named.join(' ')}\n  ${USAGE}`)
 const forDataset = DATASETS.find((d) => d.toLowerCase() === dataset?.toLowerCase()) ?? PRIMARY
 
 const documents = only ? [only] : Object.keys(DOCS)
-/* The bucket is hardcoded in `store.mjs`, so the only way to have no bucket is to have turned it
+/* The bucket is hardcoded in `store.js`, so the only way to have no bucket is to have turned it
    off deliberately — which is a different mistake from not having configured one. */
 if (process.env.S3_BUCKET === 'off') {
   die('S3_BUCKET=off selects the local files, so there is no bucket to sync with. Unset it.')
 }
 
 /*
- * The required keys, read from `server.mjs` rather than listed again here. A copy would go stale
+ * The required keys, read from `server.js` rather than listed again here. A copy would go stale
  * the first time a key was added, and a push that skipped the check would put the boot failure on
  * the deployed box instead of on this terminal.
  */
 async function requiredDbKeys() {
-  const src = await readFile(join(root, 'server.mjs'), 'utf8')
+  const src = await readFile(join(root, 'server.js'), 'utf8')
   const block = /const DB_SHAPE = \{([\s\S]*?)\n\}/.exec(src)
-  if (!block) die('could not read DB_SHAPE from server.mjs — has it been renamed?')
+  if (!block) die('could not read DB_SHAPE from server.js — has it been renamed?')
   return [...block[1].matchAll(/^\s{2}([a-z_]+):/gm)].map((m) => m[1])
 }
 

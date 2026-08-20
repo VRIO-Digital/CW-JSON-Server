@@ -5,7 +5,7 @@
  * Run it whenever the server refuses to boot naming `governance`, which is what a stale server
  * writing `db.json` back from memory does to a nested key it has never heard of:
  *
- *     node scripts/seed-report-governance.mjs
+ *     node scripts/seed-report-governance.js
  *
  * Idempotent. The cross-references (a report id, a role id) are checked here and the write is
  * refused if one does not resolve, so a governance row naming a report that does not exist cannot
@@ -14,7 +14,7 @@
  * **What is authored here and what is not.** Authored: a report's lifecycle state, its definition
  * version, its author, its category, the as-of date of the data it reads, its refresh schedule,
  * its approval, and which personas its audience names — governance decisions, none of which the
- * package implies. Derived at request time in `server.mjs` and never stored: every count, the
+ * package implies. Derived at request time in `server.js` and never stored: every count, the
  * floor line, whether a report is parameterized, each entitlement cell, the publish checks and
  * the audit rows. A figure a component could compute is a second source for it.
  */
@@ -196,7 +196,7 @@ const SCOPE = {
  * performs is the one thing this section exists to avoid, so the sentence is replaced rather than
  * kept: publishing is immediate, and the readers are changeable afterwards.
  *
- * `ingest-reports.mjs` rebuilds `db.reports` and carries `governance` forward whole, so this
+ * `ingest-reports.js` rebuilds `db.reports` and carries `governance` forward whole, so this
  * survives a re-ingest; re-running this seed re-authors it.
  */
 const PUBLISHING_DEF = {
@@ -441,7 +441,7 @@ db.auth_roles = PERSONAS
 db.reports.governance = {
   /*
    * The lifecycle states, in the order the chips show them, and the one place their labels and
-   * tones are written — `server.mjs` reads the tone from here rather than keeping a second map,
+   * tones are written — `server.js` reads the tone from here rather than keeping a second map,
    * because a state tinted `warn` on a card and `neutral` on a chip is two answers to what it is.
    *
    * `current` is not one of them: it is everything not archived, computed, because that is what a

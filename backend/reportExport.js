@@ -3,7 +3,7 @@
  *
  * **Pure functions over a built report, for the reason `buildStages()` is pure.** These take the
  * object `reportBuild` returns and give back a string; they open no file, read no `db`, and know
- * nothing about S3. That is what lets `scripts/verify-report-export.mjs` assert what a report
+ * nothing about S3. That is what lets `scripts/verify-report-export.js` assert what a report
  * renders to without a bucket, a network or a published graph — and an exporter that can only be
  * checked by exporting is an exporter nobody checks.
  *

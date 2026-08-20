@@ -314,7 +314,8 @@ export interface BrowseTable {
   /** What one row is. A Gold view is only readable if its grain is stated. */
   grain: string
   columns: number
-  rows: number
+  /** `null` when the table is catalogued but has never been profiled — not zero, which would be a claim. */
+  rows: number | null
   profiled: boolean
 }
 
@@ -454,7 +455,8 @@ export interface ProfiledTable {
   label: string
   type: string
   grain: string
-  rows: number
+  /** `null` when nobody has counted — see the browse type above. */
+  rows: number | null
   column_count: number
   columns: ProfiledColumn[]
 }
@@ -1533,7 +1535,14 @@ const BROWSE_PAYLOAD = shape({
           type: str,
           grain: str,
           columns: num,
-          rows: num,
+          /*
+           * **Nullable, because a catalogued table need not have been profiled.** CAPEX's own provenance
+           * says it: "rows is null for the 60 tables the package catalogued but did not profile — that is
+           * the honest value, not zero." 62 of its 64 tables arrive that way, and declaring `num` here
+           * made every browse of a CAPEX source fail validation with "rows should be a number, got null" —
+           * a real payload refused by a schema written when one dataset had profiled everything.
+           */
+          rows: nullable(num),
           profiled: bool,
         }),
       ),
@@ -1632,7 +1641,8 @@ const COLUMNS_PAYLOAD = shape({
           label: str,
           type: str,
           grain: str,
-          rows: num,
+          /* Nullable for the same reason as the browse payload above — see the note there. */
+          rows: nullable(num),
           column_count: num,
           columns: arrayOf(
             shape({

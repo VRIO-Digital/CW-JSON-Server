@@ -5,7 +5,7 @@
  * Zero dependencies on purpose: the project's audit gate fails on any advisory,
  * and a mock backend is not worth widening the dependency surface for.
  *
- *   node backend/server.mjs [port]     # defaults to 4000
+ *   node backend/server.js [port]     # defaults to 4000
  *
  * This is the ONLY data source for the UI — there is no static fallback in the
  * app, so every page is empty until this server is running.
@@ -78,7 +78,7 @@
  *   GET    /evals                          { stats, runs, checks }
  */
 import { createServer } from 'node:http'
-import { docRef, presignGet, readDoc, storeKind, writeDoc } from './store.mjs'
+import { docRef, presignGet, readDoc, storeKind, writeDoc } from './store.js'
 import {
   activeDataset,
   BOTH,
@@ -92,8 +92,8 @@ import {
   selectorFrom,
   unplannedKeys,
   withDataset,
-} from './datasets.mjs'
-import { exportKey, FORMATS } from './reportExport.mjs'
+} from './datasets.js'
+import { exportKey, FORMATS } from './reportExport.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -102,7 +102,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 /*
  * `backend/.env.local` holds the AWS credentials the S3 store signs with. It is loaded here
  * rather than required in the shell so that `npm run mock` needs no setup — and it is a *file*
- * rather than three constants in `store.mjs` because `.gitignore` covers `*.local`: a bucket name
+ * rather than three constants in `store.js` because `.gitignore` covers `*.local`: a bucket name
  * is an address and can be committed, an access key is scraped off GitHub by bots within minutes.
  *
  * Absent is fine and silent. A machine running `S3_BUCKET=off` has nothing to sign, and the store
@@ -206,7 +206,7 @@ async function readJsonDb(ref, label, restore) {
  * `reports_prototype` on request, so that guarantee is now carried differently: both are keys in
  * `DB_SHAPE`, so `commitDb` validates them **before every write** rather than only the writer that
  * owns them, and `validateDb` refuses a document missing either. That is a stronger check than the
- * old one applied at a narrower moment, and it has to stay — `ingest-reports.mjs` rebuilding
+ * old one applied at a narrower moment, and it has to stay — `ingest-reports.js` rebuilding
  * `db.reports` wholesale is precisely how `governance` was nearly deleted once, and there are two
  * more subtrees in that file's blast radius now.
  *
@@ -280,7 +280,7 @@ function currentDoc() {
  * The document this request selected.
  *
  * Every one of the ~280 `db.<key>` reads below is unchanged and means what it always meant — see
- * the note at the top of `datasets.mjs` for why this is a Proxy rather than a parameter threaded
+ * the note at the top of `datasets.js` for why this is a Proxy rather than a parameter threaded
  * through every helper.
  */
 const db = documentProxy(currentDoc)
@@ -411,7 +411,7 @@ function liveContainer(name) {
  * writer that rebuilds another subtree wholesale cannot land a document without it.
  *
  * That last part is the hazard the two files existed to prevent, and it is not hypothetical: the reports
- * ingest silently dropped `governance` for exactly that reason. `ingest-reports.mjs` still rebuilds
+ * ingest silently dropped `governance` for exactly that reason. `ingest-reports.js` still rebuilds
  * `db.reports` wholesale and now has two more subtrees to step around; what stops it is that
  * `commitDb` and `validateDb` both refuse a document with either key missing.
  *
@@ -511,7 +511,21 @@ function validatePrototype(candidate) {
    back — so a writer would go through `commitDb` the way `commitSettings` now does. */
 const prototypeData = () => db.reports_prototype
 
-const PORT = Number(process.argv[2] ?? process.env.MOCK_PORT ?? 4000)
+/**
+ * The port, in the order a caller means it.
+ *
+ * `process.argv[2]` first, because that is somebody typing `npm run mock -- 4001` while looking at the
+ * terminal — an explicit instruction beats an inherited environment.
+ *
+ * **`PORT` next, and that entry is what makes this deployable.** Elastic Beanstalk's Node platform sets
+ * `PORT` (8080) and puts nginx in front proxying `:80` to it. A server that ignores `PORT` listens on
+ * 4000, nginx finds nothing on 8080, and every health check fails — so the environment goes red while the
+ * application is perfectly healthy, which is the least diagnosable kind of deployment failure. The same
+ * convention covers Heroku, Fly, App Runner and Cloud Run.
+ *
+ * `MOCK_PORT` stays for the boxes that already set it.
+ */
+const PORT = Number(process.argv[2] ?? process.env.PORT ?? process.env.MOCK_PORT ?? 4000)
 
 /** Registered sources, keyed by source_id. Resets on restart. */
 const registered = liveContainer('registered')
@@ -1065,7 +1079,7 @@ const DB_SHAPE = {
    * in moved the check here, which is *stronger* rather than merely different: every writer hands
    * `commitDb` the whole document, so a writer that rebuilds one subtree and forgets to carry these
    * forward is now a refused write naming the key, rather than a file that silently lost the tenant's
-   * users. `ingest-reports.mjs` rebuilding `db.reports` wholesale is how `governance` was nearly
+   * users. `ingest-reports.js` rebuilding `db.reports` wholesale is how `governance` was nearly
    * dropped once, and this is the same hazard with two more subtrees in range.
    *
    * Both delegate to the validators that already existed, rather than restating their rules — the
@@ -1142,7 +1156,7 @@ const DB_HINTS = {
     '"not access control" }, freshness{ presets[] of { id, label, sentence }, default naming ' +
     'one }, foot, buttons{} } } ' +
     '— the report section, from "npm run ingest:reports" and ' +
-    '"node scripts/seed-report-governance.mjs"',
+    '"node scripts/seed-report-governance.js"',
   settings:
     'object with users[] of { email, name, role_id naming one of auth_roles }, ' +
     'nav_permissions{}, defaults{} carrying the same keys, and read_only{} — what the Settings ' +
@@ -2526,12 +2540,33 @@ function selectedProfiledObjects(picks) {
       const meta = project?.datasets
         .find((d) => d.dataset_id === p.dataset_id)
         ?.tables.find((t) => t.table_id === p.table_id)
-      const rows = meta?.rows ?? 0
+      /*
+       * **Two different obligations on one field, and they need separating.**
+       *
+       * `rowCount` is what the catalogue knows: a number, or `null` for a table it listed but never
+       * profiled. CAPEX's own provenance insists on that distinction — *"rows is null for the 60 tables
+       * the package catalogued but did not profile — that is the honest value, not zero"* — and 62 of its
+       * 64 tables are in that state.
+       *
+       * `rows` below is a **synthesis input**: `tableDictionary` scales its distinct counts and null
+       * percentages by it, so it has to be a number and 0 is a serviceable floor for a table nobody has
+       * measured. That is arithmetic nobody reads.
+       *
+       * `size` is a **figure a reader sees**, so it may not borrow that 0. `${0} rows` states that the
+       * table is empty when the truth is that nobody has counted it — the same mistake the What-if lens
+       * avoids by reporting `null` rather than `0` for a facility with no baseline.
+       *
+       * The wording matches `frontend/src/data/rowCount.ts`. It is stated twice on purpose: the two
+       * packages deploy separately and must not import each other, so a shared constant would couple
+       * them. If one changes, change the other.
+       */
+      const rowCount = meta?.rows ?? null
+      const rows = rowCount ?? 0
       out.push({
         objectId,
         sourceName: source.source_name,
         label: p.table_id,
-        size: `${rows.toLocaleString('en-US')} rows`,
+        size: rowCount === null ? 'row count not profiled' : `${rowCount.toLocaleString('en-US')} rows`,
         evidenceKind: 'match',
         columns: tableDictionary(source, p.dataset_id, p.table_id, p.columns, rows).map(
           (c) => ({ id: c.column_id, class: c.class }),
@@ -6556,6 +6591,37 @@ const routes = [
    * it holds anything, because "empty" and "not configured" are different answers — and `both` is
    * reported as a reading view so the UI does not have to know that writes are refused under it.
    */
+  /*
+   * ---------------- liveness, for whatever is in front of this process ----------------
+   *
+   * **A load balancer needs one route that answers, and `/` is not it.** The dispatcher answers an
+   * unknown path with a 404 that says the server may be stale — useful to a developer, and read by
+   * Elastic Beanstalk's default health check as a failing application. The environment then goes red
+   * while every real endpoint is healthy, which is the least diagnosable deployment failure there is.
+   *
+   * **It reports readiness rather than a bare `ok`, and the distinction is real.** Every dataset's
+   * document is read and validated *above* `server.listen`, so a process that is listening has already
+   * parsed and accepted all of them — which is exactly what a checker wants to know. Naming the datasets
+   * and the store makes the reply a diagnosis rather than a heartbeat: "listening, but reading the wrong
+   * store" is a state a heartbeat cannot express and this one can.
+   *
+   * Deliberately outside the dataset scope in spirit: it names them all rather than the selected one, so
+   * a health check needs no header and cannot fail on a wrong `x-dataset`.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/health',
+    handle: (_req, res) =>
+      send(res, 200, {
+        ok: true,
+        /* Listening at all means every document below was parsed and validated. */
+        datasets: DATASETS,
+        store: storeKind(DB_PATH),
+        port: PORT,
+        uptime_s: Math.round(process.uptime()),
+      }),
+  },
+
   {
     method: 'GET',
     match: (p) => p === '/datasets',
@@ -7598,6 +7664,9 @@ const routes = [
         const meta = project?.datasets
           .find((d) => d.dataset_id === entry.dataset_id)
           ?.tables.find((t) => t.table_id === entry.table_id)
+        /* A synthesis input, not a displayed figure — see the note at the other call site. `null` means
+           the table was catalogued and never profiled, and 0 is a floor for the hashing rather than a
+           claim about the table; nothing here renders it. */
         const rows = meta?.rows ?? 0
 
         const columns = tableDictionary(
@@ -9791,7 +9860,7 @@ const routes = [
    * Delete — drops the **governance row**, which is what makes a report a governed definition.
    *
    * The definition itself is the package's and stays in `db.reports.reports`, so this is
-   * recoverable: `node scripts/seed-report-governance.mjs` re-authors every row. The refusal below
+   * recoverable: `node scripts/seed-report-governance.js` re-authors every row. The refusal below
    * and the message on success both say so, because "deleted" that cannot be undone and "deleted"
    * that a seed restores are different promises to make to somebody clicking Delete.
    */
@@ -9813,7 +9882,7 @@ const routes = [
           error:
             'this is the last governed definition — removing it would leave the section with ' +
             'nothing to govern, which reads as a broken page rather than an empty one. Re-seed ' +
-            'with "node scripts/seed-report-governance.mjs" if that is really what you want.',
+            'with "node scripts/seed-report-governance.js" if that is really what you want.',
         })
       }
 
@@ -9829,7 +9898,7 @@ const routes = [
       })
       send(res, 200, {
         removed: id,
-        restore: 'node scripts/seed-report-governance.mjs',
+        restore: 'node scripts/seed-report-governance.js',
         governance: reportGovernanceView(reportRoleFrom(query)),
       })
     },
@@ -10371,7 +10440,7 @@ for (const name of DATASETS) {
     )
     for (const key of unplanned) console.error(`  · ${key}`)
     console.error(
-      '\n  Add each one to MERGE_PLAN in backend/datasets.mjs, saying whether it is the' +
+      '\n  Add each one to MERGE_PLAN in backend/datasets.js, saying whether it is the' +
         "\n  primary's alone or a collection the datasets union.\n",
     )
     process.exit(1)

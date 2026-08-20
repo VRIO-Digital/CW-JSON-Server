@@ -1,7 +1,7 @@
 /**
  * Where the two JSON databases actually live — the local filesystem, or an S3 bucket.
  *
- * `server.mjs` owns what a document *means*: the conflict-marker check, the line-and-column parse
+ * `server.js` owns what a document *means*: the conflict-marker check, the line-and-column parse
  * error, `validateDb`, the in-memory swap and its rollback. This file owns only how the bytes get
  * in and out, so the storage can change without any of that reasoning being rewritten.
  *
@@ -64,7 +64,7 @@ export function parseS3Ref(ref) {
  * committed — the repo is how they reach a box with no bucket credentials, so every checkout now has
  * a complete, valid `db.json` sitting beside this file. With a real document there, defaulting to a
  * bucket means a fresh clone cannot start without AWS credentials it does not need, which is exactly
- * the failure this flip removes: `node backend/server.mjs` reads `backend/db.json`.
+ * the failure this flip removes: `node backend/server.js` reads `backend/db.json`.
  *
  * **What the flip costs, stated rather than glossed.** The fallback is no longer empty, so the old
  * hazard is gone; the new one is *staleness* — a box that means to read the bucket and does not set
@@ -80,7 +80,7 @@ export function parseS3Ref(ref) {
  * **The prefix is an argument, because a prefix is a dataset.** It used to be read from the
  * environment here and nowhere else, which made it a property of the *process* — so a second
  * dataset meant a second server, and `dataset=both` was not expressible at all. `S3_PREFIX` is
- * still the default, so a box that set it keeps behaving exactly as it did; `datasets.mjs` passes
+ * still the default, so a box that set it keeps behaving exactly as it did; `datasets.js` passes
  * one explicitly per document instead. `localPath` is suffixed to match, or two datasets reading
  * files would share one `db.json`.
  */
@@ -207,7 +207,7 @@ async function credentials() {
  *
  * **Pure, and exported, because a signature is arithmetic.** Signing inside the fetch would make
  * this unverifiable without a bucket and a network, so it takes its clock and its credentials as
- * arguments instead — which is what lets `scripts/verify-sigv4.mjs` check it against AWS's own
+ * arguments instead — which is what lets `scripts/verify-sigv4.js` check it against AWS's own
  * published test vector. A signing bug is otherwise a 403, and a 403 reads as a permissions
  * problem: you would go and edit the bucket policy, which is not where the fault is.
  *

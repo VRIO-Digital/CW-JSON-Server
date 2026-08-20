@@ -26,7 +26,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DATASETS, MERGE_PLAN, PRIMARY } from '../datasets.mjs'
+import { DATASETS, MERGE_PLAN, PRIMARY } from '../datasets.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
@@ -40,13 +40,13 @@ const target = process.argv[2]
 if (!target) {
   die(
     'name the dataset to seed, e.g.\n      npm run seed:dataset -- CAPEX\n\n' +
-      `  This tenant declares ${DATASETS.join(', ')} in backend/datasets.mjs.`,
+      `  This tenant declares ${DATASETS.join(', ')} in backend/datasets.js.`,
   )
 }
 if (!DATASETS.includes(target)) {
   die(
     `"${target}" is not a declared dataset — this tenant has ${DATASETS.join(', ')}.\n` +
-      '  Add it to DATASETS in backend/datasets.mjs first, with its MERGE_PLAN entries.',
+      '  Add it to DATASETS in backend/datasets.js first, with its MERGE_PLAN entries.',
   )
 }
 if (target === PRIMARY) {
@@ -182,7 +182,7 @@ seeded.graph_studio = {
 /*
  * The same rule every seed here follows: check before writing, so the failure lands in this terminal
  * rather than on the box that boots it. This cannot import `validateDb` — it lives inside
- * `server.mjs`, which starts a server on import — so it checks the one thing this script decides:
+ * `server.js`, which starts a server on import — so it checks the one thing this script decides:
  * that every declared key is present and is still the container the plan says it is. `validateDb`
  * itself runs on the next boot and is the real gate.
  */

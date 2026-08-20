@@ -1,0 +1,23 @@
+# What NOT to ship to Elastic Beanstalk.
+#
+# **This file replaces .gitignore for bundling.** The moment .ebignore exists, the EB CLI stops consulting
+# .gitignore entirely — so every rule that protected a secret has to be restated here. That is the whole
+# reason this file leads with the credentials: the AWS keys live in backend/.env.local, they are ignored by
+# git, and without the line below they would be ignored by git and *shipped to AWS in the bundle*.
+#
+# On EB the credentials come from environment properties instead (S3_BUCKET, AWS_ACCESS_KEY_ID,
+# AWS_SECRET_ACCESS_KEY, AWS_REGION), which is why the file is not needed in the bundle at all.
+.env.local
+.env.local.backup
+
+# Nothing to install: this package has no runtime dependencies.
+node_modules
+
+# The seeds and ingests author documents from a demo package that is not deployed. They are development
+# tools; the server reads the finished documents out of S3.
+scripts/
+
+# Local scratch
+*.log
+*.tmp
+db.json.tmp

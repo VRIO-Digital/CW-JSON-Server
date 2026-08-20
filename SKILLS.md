@@ -26,7 +26,7 @@ fighting the premise.
 
 ## Signing in
 
-**Files:** `LoginPage.tsx` → `authStore.ts` → `client.ts` → `server.mjs`
+**Files:** `LoginPage.tsx` → `authStore.ts` → `client.ts` → `server.js`
 (`GET /auth/roles`, `POST /auth/login`) · route gate in `RequireAuth.tsx`
 
 Every page below is gated behind this one. `routes.tsx` wraps the whole `/`
@@ -82,7 +82,7 @@ is no server-side session to revoke.
 ## Flow 1 — Connecting a source (BigQuery or Google Drive)
 
 **Files:** `ConnectSourceModal.tsx` → `ConnectSourceWizard.tsx` → `client.ts` →
-`server.mjs` · connector list in `data/connectors.ts`
+`server.js` · connector list in `data/connectors.ts`
 
 Three steps, driven by local state in the wizard (not a store — it is one
 self-contained transaction).
@@ -178,7 +178,7 @@ has not returned yet — before that, listing two would be a guess.
 
 **The source name is required, and at least `SOURCE_NAME_MIN` (6) characters.**
 One rule, in two halves that `check-docs` keeps equal: `sourceNameProblem` in
-`data/sourceName.ts` refuses before the round trip, and its twin in `server.mjs`
+`data/sourceName.ts` refuses before the round trip, and its twin in `server.js`
 refuses the write on all three register endpoints. **No id fallback** —
 `source_name || project.display_name || project_id` used to make the field
 optional in practice, and produced rows named `vrio-contextweave-demo`, which
@@ -409,7 +409,7 @@ their empty state. There is no Reconnect yet; delete and re-register.
 This is the most involved flow and the one most likely to be misunderstood.
 
 **Files:** `CatalogPage.tsx` (`BrowsePanel`) → `catalogStore.ts`
-(`useBrowseStore`, `useJobsStore`) → `ProfilingJobsTab.tsx` → `server.mjs`
+(`useBrowseStore`, `useJobsStore`) → `ProfilingJobsTab.tsx` → `server.js`
 (`runJob`, `PIPELINE`)
 
 **Drive files:** `CatalogPage.tsx` (`DocumentBrowsePanel`) →
@@ -567,7 +567,7 @@ Re-profile / Force on a finished row re-queue the same table set — `Force` sen
 ## Flow 4 — The column dictionary
 
 **Files:** `ProfiledColumnsPanel.tsx` → `useColumnsStore` →
-`GET /sources/:id/columns` → `tableDictionary()` in `server.mjs`
+`GET /sources/:id/columns` → `tableDictionary()` in `server.js`
 
 Facet chips (All / Needs review / PII / IDs / Measures / Dates / Location / Flags)
 filter client-side; the counts come from the server's `facets`. **They are the
@@ -629,7 +629,7 @@ To give another table real columns, add a `column_profiles` entry keyed
 ### The document dictionary — the same idea, one level up
 
 **Files:** `ProfiledDocumentsPanel.tsx` → `useDocumentsStore` →
-`GET /sources/:id/documents` → `documentDictionary()` in `server.mjs`
+`GET /sources/:id/documents` → `documentDictionary()` in `server.js`
 
 Facet chips (All / Needs review / PII / Consent decrees / Complaints /
 Settlements / CAFOs), then folders → collapsible document cards → the entity
@@ -639,7 +639,7 @@ neutral tints — what a document is and who it is about are categories, not sta
 
 **The four type facets are the corpus's own kinds, not a fixed taxonomy.** They
 match `doc_type`, the slug, and the map lives in one place per side
-(`FACET_FOR_TYPE` in `server.mjs`, `TYPE_FOR_FACET` in the panel) —
+(`FACET_FOR_TYPE` in `server.js`, `TYPE_FOR_FACET` in the panel) —
 `check-docs` asserts the two agree. A consent-decree *modification* files under
 Consent decrees because that is what it is; only `doc_type_label` says it is a
 modification. Reseed `drives` with different kinds and both maps move together.
@@ -721,7 +721,7 @@ component
                  └─ request()            adds x-dataset: EPA | CAPEX | both
                       └─ validate(schema)  rejects at the boundary, names the path
                            └─ /api proxy   Vite strips /api
-                                └─ server.mjs
+                                └─ server.js
                                      └─ withDataset(...)   picks the document
                                           └─ db.<key>      a Proxy over that one
 ```
@@ -771,7 +771,7 @@ name — do not add a field that asks for one.
         → 6 Entities & relationships
 ```
 
-Labels come from `WIZARD_STEPS` in `server.mjs` via the `/graph-use-cases`
+Labels come from `WIZARD_STEPS` in `server.js` via the `/graph-use-cases`
 payload, so the stepper and the server's `step` validation are the same list.
 **All six steps are built.**
 
@@ -2081,7 +2081,7 @@ directory; unpublishing a report -> 400 naming its equivalent; removing a scenar
 ---
 ## Flow 13 — Settings: users, personas and what each one sees
 
-**Files:** `db.settings` (its own subtree of `backend/db.json`) + `backend/scripts/seed-settings.mjs` ->
+**Files:** `db.settings` (its own subtree of `backend/db.json`) + `backend/scripts/seed-settings.js` ->
 `GET /settings` / `PATCH /settings/personas/:roleId/nav` / `POST …/reset` ->
 `src/api/client.ts` -> `src/store/settingsStore.ts` (the one place visibility is decided) ->
 `src/pages/SettingsPage.tsx` -> `src/components/settings/UsersPanel.tsx` and
@@ -2097,7 +2097,7 @@ persona's Library rows offer those buttons and no others. Same shape throughout 
 `PATCH /settings/personas/:roleId/reports`, `report_permissions` + `report_defaults` beside the
 navigation pair, `reportActionsFor` as the one place the rule lives (the twin of `visibleNavItems`), and
 `src/components/settings/ReportPermissionsPanel.tsx` pure and assertable. Two things to keep in mind
-when touching it: the acts are declared once as `REPORT_ACTIONS` in `server.mjs` and re-declared in the
+when touching it: the acts are declared once as `REPORT_ACTIONS` in `server.js` and re-declared in the
 seed because a script cannot import the server, so `check-docs` compares them; and the gating is done by
 **withholding a handler** in `src/reports/App.tsx`, never by a permission field on `GovernedCard` —
 a card that tested one is the shape of the access gate this section removed, which rendered rows with no
@@ -2204,7 +2204,7 @@ naming the real keys.
 
 **A new endpoint**
 
-1. Route in `server.mjs` (and its line in the header comment).
+1. Route in `server.js` (and its line in the header comment).
 2. Response schema in `client.ts` — not optional; the boundary check is what
    turns a malformed payload into a readable message.
 3. Fetcher in `client.ts`, mapping snake_case for any field the UI touches.

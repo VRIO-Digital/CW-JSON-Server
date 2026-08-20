@@ -22,7 +22,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 
-import { DATASETS, PRIMARY } from '../datasets.mjs'
+import { DATASETS, PRIMARY } from '../datasets.js'
 
 /*
  * Which dataset's settings to author — `npm run seed:settings` for the primary, or
@@ -130,7 +130,7 @@ const READ_ONLY = { platform_admin: ['settings'] }
 /**
  * The three acts a Library row offers, and each persona's authored starting access to them.
  *
- * **Written here because `server.mjs` cannot be imported by a seed**, the same reason `NAV_KEYS` is
+ * **Written here because `server.js` cannot be imported by a seed**, the same reason `NAV_KEYS` is
  * written here — and `check-docs` compares this list to `REPORT_ACTIONS` for the same reason it
  * compares `NAV_KEYS` to `nav.ts`: an action here the server does not have is a permission `PATCH`
  * refuses, and one the server has that is missing here is a key `validateSettings` refuses to boot on.

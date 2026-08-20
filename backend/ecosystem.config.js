@@ -10,7 +10,7 @@
  * registered on one worker was absent from the other two, and publishing a graph — which is what
  * gates Ask, Reports, What-if and Audit — took effect for roughly one request in three.
  *
- * And every writer hands `commitDb` the *whole* document. The per-path write chain in `server.mjs`
+ * And every writer hands `commitDb` the *whole* document. The per-path write chain in `server.js`
  * serializes writes within one process and knows nothing about the others, so two workers writing
  * the full 492 KB meant the last one won and silently discarded the other's edit. There are 14
  * commit call sites.
@@ -24,7 +24,7 @@ module.exports = {
   apps: [
     {
       name: "mock-server",
-      script: "./server.mjs",
+      script: "./server.js",
       args: "4000",
       /* One writer. See the note above before changing this. */
       instances: 1,

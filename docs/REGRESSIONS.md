@@ -3674,3 +3674,84 @@ changed no meaning — a passing build proves the imports resolve and says nothi
 **The trap left behind.** `frontend/package-lock.json` still carries `"name": "context-weave-latest"`
 from the pre-split manifest. npm rewrites it on the next install and nothing reads it meanwhile, but
 `npm ci` against a renamed package is the kind of thing that fails once, in CI, with a confusing message.
+
+## A schema written when one dataset had profiled everything refused the second dataset's real data
+
+**Symptom.** Browsing a CAPEX source: *"The browsable objects could not be read — the data did not look
+the way this app expects. Restarting the mock server (npm run mock) usually fixes it. Details:
+datasets[0].tables[0].rows should be a number, got null (+8 more)"*.
+
+**The message sends you the wrong way, and that is worth noting on its own.** "Restarting the mock server
+usually fixes it" is the right first guess for a validation failure — a stale process answering with an
+old shape is the common cause — and here it was not the cause at all. The server was current; the
+*schema* was narrower than the data. A validator can only say "this is not what I expected"; which side
+is wrong is a judgement it cannot make.
+
+**Cause.** `rows: num` in `BROWSE_PAYLOAD`, and again in the profiled-tables payload. EPA has 8 tables and
+all 8 are profiled, so `rows` was always a number and the declaration was true by accident. CAPEX ships a
+64-table Table Catalog of which **62 have `rows: null`**, and its own provenance says why: *"rows is null
+for the 60 tables the package catalogued but did not profile — that is the honest value, not zero."* A
+catalogue lists what exists; profiling is what counts rows.
+
+**Fix.** `nullable(num)` at both schema sites, `number | null` at both type sites, and — the part that
+actually matters — **the renderers had to learn to say something other than a number**. `t.rows ?? 0`
+would have made this compile and print **"0 rows"**, which is a *claim*: it says the table is empty when
+the truth is nobody has looked. `rowCountLabel` / `profiledRowCountLabel` in `frontend/src/data/` print
+"row count not profiled" instead, and `0` stays distinguishable because a profiled empty table really is
+0 rows.
+
+**Two server-side sites had the same `?? 0` and only one of them was a bug.** Both feed
+`tableDictionary`, which scales synthesised statistics by the row count and genuinely needs a number — 0
+is a serviceable floor for arithmetic nobody reads. One of them *also* built a displayed string,
+`size: "0 rows"`, on the graph wizard's coverage evidence. Same expression, two obligations: the fix was
+to separate `rowCount` (may be null, is shown) from `rows` (must be a number, is hashed).
+
+**The general rule.** **A field's declared type is a claim about every dataset, not the one in front of
+you.** `rows: num` was never verified — it was inferred from a dataset where the null case did not occur.
+When a second tenant, dataset or customer arrives, the fields most likely to break are the ones that were
+*optional in the domain and mandatory in the schema by coincidence*. And when widening one, check every
+consumer for `?? 0`: the compiler is satisfied by a default that lies.
+
+**Wording duplicated on purpose.** The phrase exists in `frontend/src/data/rowCount.ts` and in
+`backend/server.mjs`. The two packages deploy independently and must not import each other, so a shared
+constant would couple them; the comment at each site names the other.
+
+## A Procfile comment failed an Elastic Beanstalk deploy after npm install had succeeded
+
+**Symptom.** `eb-engine.log`: `An error occurred during application deployment: failed to generate rsyslog
+file with error Procfile could not be parsed`. Everything before it succeeded — `.ebextensions` ran,
+`npm install` completed, `npm rebuild` completed — and the error names **rsyslog**, which has nothing to do
+with the cause.
+
+**Cause.** The `Procfile` opened with a six-line `#` comment explaining why it existed. EB's parser treats
+every non-empty line as `name: command` and **does not support comments**. This repo's house style is to
+explain every file in a header comment; that habit is what broke the deploy.
+
+**Fix.** The file is one line — `web: node server.js` — and the explanation moved into
+`backend/scripts/bundle-eb.js` beside the entry that ships it.
+
+**Guard.** `bundle-eb.js` now refuses to write a bundle whose Procfile has a comment or a line that is not
+`name: command`, break-tested both ways. The point is *where* the check runs: EB validates the Procfile
+**after** installing dependencies, so the feedback arrives a minute later attached to the wrong subsystem.
+Checking it at bundle time turns a confusing remote failure into a local refusal that names the line.
+
+**Four attempts, four different causes, and only the last one was legible.** In order: a zip whose root
+was a folder (EB: "failed to generate a 'Procfile'... provide package.json, server.js or app.js");
+load-balancer-only namespaces in `.ebextensions` on a single-instance environment (EB: "Your source bundle
+has issues"); `S3_BUCKET` set with no credentials on the instance, so the boot read 403'd and the server
+refused to start by design (EB: "Engine execution has encountered an error"); and this one. **Three of the
+four EB messages named the wrong thing.** `eb-engine.log` named the right thing on the first read.
+
+**The lesson about process, not code.** I inferred the first three causes from the event stream and was
+right twice, wrong once — and "wrong once" cost a deploy cycle each time. The log was one command away
+throughout:
+
+    aws elasticbeanstalk request-environment-info  --environment-name <env> --info-type tail
+    aws elasticbeanstalk retrieve-environment-info --environment-name <env> --info-type tail
+
+When a platform reports a failure in its own vocabulary, get its log before theorising. The event stream
+is a summary written for a dashboard; the log is the thing that knows.
+
+**And a deploy that never changed.** Four of those attempts re-sent `app-260820_113110` — the console's
+*Deploy* on an existing application version re-uploads that same bundle, so none of the first three fixes
+was ever on the instance. A new bundle needs a new **version label**.

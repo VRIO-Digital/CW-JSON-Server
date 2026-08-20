@@ -1,7 +1,7 @@
 /**
  * Check `sigv4()` against AWS's own published test vector.
  *
- *     node scripts/verify-sigv4.mjs
+ *     node scripts/verify-sigv4.js
  *
  * **A signature is the one part of the S3 store that cannot be tested by using it.** Everything
  * else fails visibly — a missing bucket 404s, a missing key 404s, a stale ETag 412s and says so.
@@ -15,7 +15,7 @@
  * It runs in `preflight`, and needs no network and no bucket.
  */
 
-import { sigv4 } from '../store.mjs'
+import { sigv4 } from '../store.js'
 
 /* AWS's published example — https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html */
 const VECTOR = {
@@ -64,7 +64,7 @@ if (failures.length > 0) {
   console.error('\nverify-sigv4: FAILED')
   for (const f of failures) console.error(`  · ${f}`)
   console.error('\n  S3 will answer 403 SignatureDoesNotMatch, which reads as a bucket-policy')
-  console.error('  problem and is not one. Fix the signing in backend/store.mjs.\n')
+  console.error('  problem and is not one. Fix the signing in backend/store.js.\n')
   process.exit(1)
 }
 

@@ -524,7 +524,7 @@ if (!db.reports.governance) {
   console.error(
     'ingest-reports: refusing to write — db.reports.governance is missing, so this ingest would\n' +
       '  leave the section ungoverned and the server unable to boot. Seed it first:\n' +
-      '      node scripts/seed-report-governance.mjs',
+      '      node scripts/seed-report-governance.js',
   )
   process.exit(1)
 }

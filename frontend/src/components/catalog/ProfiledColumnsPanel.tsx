@@ -21,6 +21,7 @@ import type {
 } from '../../api/client'
 import { useColumnsStore } from '../../store/catalogStore'
 import './ProfiledColumnsPanel.css'
+import { profiledRowCountLabel } from '../../data/rowCount'
 
 type FacetKey =
   | 'all'
@@ -302,7 +303,7 @@ export default function ProfiledColumnsPanel({
                         </span>
                       </span>
                       <span className="pc-table-meta">
-                        {t.column_count} cols · ~{t.rows.toLocaleString()} rows
+                        {t.column_count} cols · {profiledRowCountLabel(t.rows)}
                       </span>
                     </button>
 

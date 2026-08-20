@@ -2,7 +2,7 @@
  * Seeds the *extra* Google workspaces the connect wizard offers — the GCP projects beyond the
  * demo one, and the Drives beyond the single shared one:
  *
- *     node scripts/seed-workspaces.mjs
+ *     node scripts/seed-workspaces.js
  *
  * Why a script rather than a hand edit of `db.json`: every project it adds has to carry a full
  * `column_profiles` entry (the Catalog's column count and the profile's length are asserted

@@ -1,7 +1,7 @@
 /**
  * Check the report exporters, without a bucket, a network or a published graph.
  *
- *     node scripts/verify-report-export.mjs
+ *     node scripts/verify-report-export.js
  *
  * `toHtml` and `toCsv` are pure, which is what makes this possible — and what makes it worth
  * doing. Their failure modes are all silent: a comma inside a facility name splits a CSV row and
@@ -9,7 +9,7 @@
  * block kind nobody handled simply does not appear. None of the three throws, and all three
  * produce a file that opens.
  *
- * The block **kinds** are read out of `server.mjs` rather than listed here, so a kind added there
+ * The block **kinds** are read out of `server.js` rather than listed here, so a kind added there
  * and not handled in the exporter fails this rather than exporting as nothing.
  *
  * Runs in `preflight`.
@@ -19,7 +19,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
-import { exportKey, toCsv, toHtml } from '../reportExport.mjs'
+import { exportKey, toCsv, toHtml } from '../reportExport.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(root, p), 'utf8')
@@ -154,7 +154,7 @@ check(
  * there and not handled here renders as nothing at all, which is the failure this whole file exists
  * to catch — and listing the kinds here instead would go stale the moment one was added.
  */
-const server = read('server.mjs')
+const server = read('server.js')
 const fnStart = server.indexOf('function reportBlock(')
 /* To the closing brace in column 0, which is where a top-level function ends. Slicing to "the next
    function declaration" broke the moment one was declared above rather than below: it cut the body
@@ -162,7 +162,7 @@ const fnStart = server.indexOf('function reportBlock(')
 const fnEnd = server.indexOf('\n}', fnStart)
 const blockFn = fnStart >= 0 && fnEnd > fnStart ? server.slice(fnStart, fnEnd) : ''
 const kinds = [...blockFn.matchAll(/^\s+type: '([a-z]+)',$/gm)].map((m) => m[1])
-const exporter = read('reportExport.mjs')
+const exporter = read('reportExport.js')
 
 check(
   'the exporter handles every block kind the server emits',

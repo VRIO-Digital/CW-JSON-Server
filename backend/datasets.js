@@ -1,7 +1,7 @@
 /**
  * Which tenant dataset a request is reading — EPA, CAPEX, or both at once.
  *
- * `store.mjs` owns how bytes get in and out of one document; `server.mjs` owns what a document
+ * `store.js` owns how bytes get in and out of one document; `server.js` owns what a document
  * *means*. This file owns only **which** document a request is talking about, so neither of those
  * had to learn about a second dataset.
  *
@@ -11,7 +11,7 @@
  * arrives per request — `?dataset=` or the `x-dataset` header — which is what makes switching
  * instant and `both` something that can be computed rather than stitched together in the browser.
  *
- * **The 282 `db.<key>` reads in `server.mjs` were left alone.** Threading a request through
+ * **The 282 `db.<key>` reads in `server.js` were left alone.** Threading a request through
  * `reportView`, `studioItems`, `whatifView` and every other helper would have touched most of the
  * file to say one thing; `db` is a Proxy over "the document this request selected" instead, so the
  * reads mean what they always meant. The selection travels in an `AsyncLocalStorage` scope entered

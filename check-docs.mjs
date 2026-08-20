@@ -143,11 +143,11 @@ if (problems.length > 0) {
 
 const claude = read('CLAUDE.md')
 const skills = read('SKILLS.md')
-const server = read('backend/server.mjs')
+const server = read('backend/server.js')
 /* Where the two JSON documents are read from and written to — the filesystem, or S3. Declared here
    beside `server` because several claims below read both, and a `const` reached from above its
    declaration dies in the temporal dead zone, which kills the run before it prints a summary. */
-const store = read('backend/store.mjs')
+const store = read('backend/store.js')
 const connectors = read('frontend/src/data/connectors.ts')
 const indexCss = read('frontend/src/index.css')
 const theme = read('frontend/src/theme.ts')
@@ -249,7 +249,7 @@ const stages = pipelineBlock
   ? [...pipelineBlock[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
   : []
 
-expect('pipeline stage count', stages.length === 5, `${stages.length} stages in server.mjs`)
+expect('pipeline stage count', stages.length === 5, `${stages.length} stages in server.js`)
 
 for (const stage of stages) {
   expect(
@@ -349,7 +349,7 @@ expect(
 /* ---------------- the source-name rule is one rule ---------------- */
 
 /*
- * The floor is written twice — once in `server.mjs`, which refuses the write, and
+ * The floor is written twice — once in `server.js`, which refuses the write, and
  * once in `frontend/src/data/sourceName.ts`, which refuses before the round trip. Drift
  * between them is invisible in the worst direction: a client that allows 4 turns
  * a typed name into a 400 the user cannot act on, and a client stricter than the
@@ -407,7 +407,7 @@ const consentData = read('frontend/src/data/consentStages.ts')
 expect(
   'the server issues scopes the dialog can describe',
   serverScopes.length > 0,
-  `${serverScopes.length} scope(s) found in server.mjs`,
+  `${serverScopes.length} scope(s) found in server.js`,
 )
 for (const scope of serverScopes) {
   expect(
@@ -1087,7 +1087,7 @@ expect(
 )
 expect(
   'and the ingest reads exactly those two paths',
-  [kgPath, studioPkgPath].every((p) => read('backend/scripts/ingest-knowledge-graph.mjs').includes(p)),
+  [kgPath, studioPkgPath].every((p) => read('backend/scripts/ingest-knowledge-graph.js').includes(p)),
   'a path this check does not share is a path this check cannot verify',
 )
 /*
@@ -1175,7 +1175,7 @@ expect(
 expect(
   'and no node carries a value Layer 1 does not hold',
   kg.nodes.every((n) => !('properties' in n)) &&
-    /demo_display/.test(read('backend/scripts/ingest-knowledge-graph.mjs')),
+    /demo_display/.test(read('backend/scripts/ingest-knowledge-graph.js')),
   'a thin instance is identity + provenance; the figures come from demo_display',
 )
 /*
@@ -1548,8 +1548,8 @@ expect(
 )
 expect(
   'the canvas has an ingest to re-run, and the docs name it',
-  existsSync(join(root, 'backend/scripts/ingest-knowledge-graph.mjs')) &&
-    /"ingest:graph": "node scripts\/ingest-knowledge-graph\.mjs"/.test(read('backend/package.json')) &&
+  existsSync(join(root, 'backend/scripts/ingest-knowledge-graph.js')) &&
+    /"ingest:graph": "node scripts\/ingest-knowledge-graph\.js"/.test(read('backend/package.json')) &&
     claude.includes('npm run ingest:graph'),
   `hand-editing ${canvas.nodes.length} laid-out nodes is not a maintenance path`,
 )
@@ -2195,7 +2195,7 @@ expect(
  *   · the two are collapsed into one plain `frontend/.env`, which Vite loads in *every*
  *     mode. That is the worst of the three, because it fails in the opposite
  *     direction: `npm run dev` starts calling the deployed box, the local mock
- *     server is bypassed, and every db.json edit and server.mjs change appears
+ *     server is bypassed, and every db.json edit and server.js change appears
  *     to do nothing. Nothing errors — the page just serves production's answers.
  *     This one has actually happened; see docs/REGRESSIONS.md.
  */
@@ -3192,7 +3192,7 @@ const whatifPkgPath = 'vls_demo_data_package_2026-08-10/09_What if lens/whatif_v
 const whatifPkgHere = existsSync(join(root, whatifPkgPath))
 expect(
   'the What-if package is where its ingest reads it from',
-  whatifPkgHere && read('backend/scripts/ingest-whatif.mjs').includes(whatifPkgPath),
+  whatifPkgHere && read('backend/scripts/ingest-whatif.js').includes(whatifPkgPath),
   whatifPkgHere ? whatifPkgPath : `${whatifPkgPath} is not in this checkout`,
 )
 /* Read only once its presence is a claim of its own, so a wrong path is a red claim
@@ -3404,7 +3404,7 @@ expect(
   'and headroom is the package formula, computed once on the server',
   whatifPkg !== null &&
     whatifPkg.runtime.headroom.formula.includes('floor((appetite.enf - baseline.enf)') &&
-    /Math\.floor\(\(appetite - pkg\.facility\.baseline/.test(read('backend/scripts/ingest-whatif.mjs')) &&
+    /Math\.floor\(\(appetite - pkg\.facility\.baseline/.test(read('backend/scripts/ingest-whatif.js')) &&
     !/Math\.floor/.test(read('frontend/src/pages/WhatIfPage.tsx')),
   'a break point computed in the page would be arithmetic on a measure',
 )
@@ -3575,8 +3575,8 @@ expect(
     /bucket === 'off'/.test(store) &&
     /* The sync tool names an object directly, so a push cannot resolve to a local path. */
     /export function s3Ref\(name, prefix\)/.test(store) &&
-    /const ref = s3Ref\(name, forDataset\)/.test(read('backend/scripts/s3-sync.mjs')) &&
-    !/docRef/.test(codeOnly(read('backend/scripts/s3-sync.mjs'))) &&
+    /const ref = s3Ref\(name, forDataset\)/.test(read('backend/scripts/s3-sync.js')) &&
+    !/docRef/.test(codeOnly(read('backend/scripts/s3-sync.js'))) &&
     /* The deployed process asks for the bucket rather than inheriting a default.
        **`codeOnly`, and it was needed**: the line above it was commented out for a long time, so a
        plain search matched `// S3_BUCKET: "contextweave.com"` and the claim passed against a
@@ -3586,7 +3586,7 @@ expect(
     /* And every boot says which store it read, since the wrong one is now plausible rather than empty. */
     /set S3_BUCKET to read the bucket instead/.test(server) &&
     /* The prefix is still environment-defaulted, but it is now an *argument*, because a prefix is a
-       dataset and a dataset cannot be a property of the process — see mock-server/datasets.mjs. */
+       dataset and a dataset cannot be a property of the process — see mock-server/datasets.js. */
     /export function docRef\(name, localPath, prefix\)/.test(store) &&
     /prefix \?\? process\.env\.S3_PREFIX \?\? DEFAULT_PREFIX/.test(store) &&
     /* One `docRef` call, because a dataset has one document. */
@@ -3599,9 +3599,9 @@ expect(
  * every file the repo tracks that could plausibly carry one, not just the store.
  */
 for (const path of [
-  'backend/store.mjs',
-  'backend/server.mjs',
-  'backend/scripts/s3-sync.mjs',
+  'backend/store.js',
+  'backend/server.js',
+  'backend/scripts/s3-sync.js',
   'backend/ecosystem.config.js',
   'frontend/package.json',
 ]) {
@@ -3630,7 +3630,7 @@ expect(
  * names nothing getting somebody else's data, a write under the merged view vanishing, a key dropping
  * silently out of the merge, and one dataset's in-memory state showing under another's name.
  */
-const datasets = read('backend/datasets.mjs')
+const datasets = read('backend/datasets.js')
 const dsPanel = read('frontend/src/components/settings/DatasetPanel.tsx')
 const dsSwitch = read('frontend/src/data/datasetSwitch.ts')
 
@@ -3729,7 +3729,7 @@ expect(
     requiredKeys.length > 20 &&
     /export function unplannedKeys\(/.test(datasets) &&
     /would silently drop/.test(server) &&
-    /Add each one to MERGE_PLAN in backend\/datasets\.mjs/.test(server),
+    /Add each one to MERGE_PLAN in backend\/datasets\.js/.test(server),
   'a key with no rule drops out of the merged document, which reads as an empty dataset',
 )
 
@@ -3889,17 +3889,17 @@ expect(
 
 expect(
   'a secondary dataset can be seeded, and the seed reads the merge plan',
-  /"seed:dataset": "node scripts\/seed-dataset\.mjs"/.test(read('backend/package.json')) &&
+  /"seed:dataset": "node scripts\/seed-dataset\.js"/.test(read('backend/package.json')) &&
     /* Derived from MERGE_PLAN rather than a second list, so the seed cannot disagree with `both`.
        Keyed on the assignment that builds the document, not on the loop header: that header appears
        twice in the file (the build and the pre-write check), so a whole-file match for it passed a
        break test that emptied the build — the self-documenting-file trap, one more time. */
-    /seeded\[key\] = seedValue\(rule, source\[key\]\)/.test(read('backend/scripts/seed-dataset.mjs')) &&
-    /import \{ DATASETS, MERGE_PLAN, PRIMARY \} from '\.\.\/datasets\.mjs'/.test(
-      read('backend/scripts/seed-dataset.mjs'),
+    /seeded\[key\] = seedValue\(rule, source\[key\]\)/.test(read('backend/scripts/seed-dataset.js')) &&
+    /import \{ DATASETS, MERGE_PLAN, PRIMARY \} from '\.\.\/datasets\.js'/.test(
+      read('backend/scripts/seed-dataset.js'),
     ) &&
     /* And it refuses to empty the primary, which holds the tenant's real data. */
-    /is the primary dataset and holds the tenant/.test(read('backend/scripts/seed-dataset.mjs')),
+    /is the primary dataset and holds the tenant/.test(read('backend/scripts/seed-dataset.js')),
   'a seed with its own idea of what is shared double-counts a key under both',
 )
 
@@ -4010,7 +4010,7 @@ expect(
  * Asserted as the absence of a reader, and as the presence of the three things that make a written
  * figure honest — when it was generated, under what frame, and which graph answered it.
  */
-const exporter = read('backend/reportExport.mjs')
+const exporter = read('backend/reportExport.js')
 expect(
   'an export is written and never read back',
   /POST/.test(server) &&
@@ -4037,7 +4037,7 @@ expect(
   'the renderers are pure, so they can be checked without a bucket',
   !/\bdb\./.test(codeOnly(exporter)) &&
     !/readDoc|writeDoc|fetch\(/.test(codeOnly(exporter)) &&
-    /"verify:export": "node scripts\/verify-report-export\.mjs"/.test(read('backend/package.json')) &&
+    /"verify:export": "node scripts\/verify-report-export\.js"/.test(read('backend/package.json')) &&
     /verify:export/.test(read('package.json').match(/"preflight": "[^"]+"/)?.[0] ?? ''),
   'an exporter that can only be checked by exporting is one nobody checks',
 )
@@ -4260,7 +4260,7 @@ expect(
 const reportsDir = 'vls_demo_data_package_2026-08-10/07_reports'
 const reportsPkgPath = `${reportsDir}/report_authoring_data.json`
 const reportsPkgHere = existsSync(join(root, reportsPkgPath))
-const reportsIngest = read('backend/scripts/ingest-reports.mjs')
+const reportsIngest = read('backend/scripts/ingest-reports.js')
 expect(
   'the reports package is where its ingest reads it from',
   reportsPkgHere && reportsIngest.includes(reportsDir),
@@ -4363,7 +4363,7 @@ expect(
 /*
  * Every column a table can render has a header. `reports.fields` describes the generator
  * register only, so the other three rosters' columns are labelled by `REPORT_LABELS` in
- * server.mjs — and a column in neither prints its raw key as a header (`gen_state`).
+ * server.js — and a column in neither prints its raw key as a header (`gen_state`).
  */
 const labelMapBody = /const REPORT_LABELS = \{([\s\S]*?)\n\}/.exec(server)?.[1] ?? ''
 const labelledKeys = new Set([
@@ -4377,7 +4377,7 @@ expect(
   'every roster column has a header, from the field dictionary or REPORT_LABELS',
   labelMapBody.length > 0 && unlabelled.length === 0,
   labelMapBody.length === 0
-    ? 'REPORT_LABELS was not found in server.mjs — this check cannot run'
+    ? 'REPORT_LABELS was not found in server.js — this check cannot run'
     : unlabelled.length > 0
       ? `no header for: ${unlabelled.join(', ')} — they would print as raw keys`
       : `${labelledKeys.size} labelled keys, none missing`,
@@ -4514,7 +4514,7 @@ expect(
  * endpoint exists is two copies that drift.
  */
 const protoDoc = read('frontend/src/reports/data.ts')
-const s3sync = read('backend/scripts/s3-sync.mjs')
+const s3sync = read('backend/scripts/s3-sync.js')
 
 expect(
   'the prototype dataset is fetched, not bundled',
@@ -4902,8 +4902,8 @@ expect(
   'the governance block is required at boot, and the seed refuses to write a broken one',
   /isObject\(v\.governance\) &&/.test(server) &&
     /Array\.isArray\(v\.governance\.data_scope\)/.test(server) &&
-    /seed-report-governance: refusing to write/.test(read('backend/scripts/seed-report-governance.mjs')) &&
-    /has no data scope row/.test(read('backend/scripts/seed-report-governance.mjs')),
+    /seed-report-governance: refusing to write/.test(read('backend/scripts/seed-report-governance.js')) &&
+    /has no data scope row/.test(read('backend/scripts/seed-report-governance.js')),
   'refused at boot, and refused at the seam that writes it',
 )
 
@@ -4914,7 +4914,7 @@ expect(
  * `current` the server computes as everything not archived. Three ways this goes quietly wrong,
  * so three claims.
  */
-const seed = read('backend/scripts/seed-report-governance.mjs')
+const seed = read('backend/scripts/seed-report-governance.js')
 const stateKeys = db.reports.governance.statuses.map((s) => s.key)
 expect(
   'every governed report sits in a declared lifecycle state',
@@ -5065,7 +5065,7 @@ expect(
  * audience and data-scope row. The list is read off the validator rather than remembered, so a key
  * required later is covered without editing this claim.
  */
-const ingestReports = read('backend/scripts/ingest-reports.mjs')
+const ingestReports = read('backend/scripts/ingest-reports.js')
 const ingestLiteral = /db\.reports = \{[\s\S]*?\n\}/.exec(ingestReports)?.[0] ?? ''
 /*
  * The keys `validateDb` demands under `reports` — read from that branch of `DB_SHAPE` and nowhere
@@ -5138,7 +5138,7 @@ expect(
     /* Two writes, and one reader of the role — a write cannot answer with somebody else's view. */
     (server.match(/governance: reportGovernanceView\(reportRoleFrom\(query\)\)/g) ?? []).length === 2 &&
     /* Delete drops the governance row and says how to get it back. */
-    /restore: 'node scripts\/seed-report-governance\.mjs'/.test(server) &&
+    /restore: 'node scripts\/seed-report-governance\.js'/.test(server) &&
     /this is the last governed definition/.test(server),
   'two writes, one reader of the role, and a delete that admits it is reversible',
 )
@@ -5226,9 +5226,9 @@ expect(
   /npm run seed:governance/.test(governedCardCode) &&
     !/gone for good/.test(governedCardCode) &&
     /* And the script it names exists. */
-    /"seed:governance": "node scripts\/seed-report-governance\.mjs"/.test(read('backend/package.json')) &&
+    /"seed:governance": "node scripts\/seed-report-governance\.js"/.test(read('backend/package.json')) &&
     /* The server says the same thing in its reply. */
-    /restore: 'node scripts\/seed-report-governance\.mjs'/.test(server),
+    /restore: 'node scripts\/seed-report-governance\.js'/.test(server),
   'the confirmation, the script and the server’s reply all name one command',
 )
 
@@ -5278,7 +5278,7 @@ expect(
   'every summary tile aggregates and formats in a way the server implements',
   aggBody.length > 0 && fmtBody.length > 0 && brokenTiles.length === 0,
   aggBody.length === 0
-    ? 'REPORT_AGGS was not found in server.mjs — this check cannot run'
+    ? 'REPORT_AGGS was not found in server.js — this check cannot run'
     : brokenTiles.length > 0
       ? `broken: ${brokenTiles.map((t) => t.key).join(', ')}`
       : `${reports.summary_catalog.length} tiles · ${implemented.aggs.size} aggregations · ${implemented.formats.size} formats`,
@@ -5790,7 +5790,7 @@ expect(
  *
  * Five claims, each guarding a rule that fails by *answering* rather than by throwing.
  */
-const settingsSeed = read('backend/scripts/seed-settings.mjs')
+const settingsSeed = read('backend/scripts/seed-settings.js')
 const settingsStore = read('frontend/src/store/settingsStore.ts')
 const personaPanel = read('frontend/src/components/settings/PersonaPermissionsPanel.tsx')
 const sidebarSrc = read('frontend/src/components/shell/Sidebar.tsx')
@@ -5881,10 +5881,10 @@ expect(
     /* Its own message still, naming the seed rather than "restart the server". */
     /refusing to start — db\.settings cannot be served/.test(server) &&
     /npm run seed:settings/.test(server) &&
-    /"seed:settings": "node scripts\/seed-settings\.mjs"/.test(read('backend/package.json')) &&
+    /"seed:settings": "node scripts\/seed-settings\.js"/.test(read('backend/package.json')) &&
     /* And the seed replaces one key rather than rewriting the document — the failure above, again. */
     /writeFileSync\(DB, JSON\.stringify\(\{ \.\.\.db, settings \}, null, 2\)/.test(
-      read('backend/scripts/seed-settings.mjs'),
+      read('backend/scripts/seed-settings.js'),
     ) &&
     /* The file itself is gone, so nothing can read a stale copy of it. */
     !existsSync(join(root, 'backend/settings.json')),
@@ -5956,7 +5956,7 @@ expect(
  * the name the report gives itself. A transcribed title is the small version of a transcribed figure — it
  * looks right and goes stale the first time a document is re-exported.
  */
-const capexIngest = read('backend/scripts/ingest-capex-reports.mjs')
+const capexIngest = read('backend/scripts/ingest-capex-reports.js')
 const capexDb = readJson('backend/db.CAPEX.json')
 const capexDocs = capexDb.value?.reports?.documents ?? []
 /*
@@ -6033,7 +6033,7 @@ expect(
  * The Settings tab that records what each persona may do to a Library row — open it, edit its
  * definition, delete its governance row.
  *
- * **The three-layer agreement is the whole claim.** `REPORT_ACTIONS` in `server.mjs` is what the PATCH
+ * **The three-layer agreement is the whole claim.** `REPORT_ACTIONS` in `server.js` is what the PATCH
  * route validates against and what `validateSettings` refuses a document for missing; the seed writes
  * its own copy because it cannot import the server; and the panel renders the *served* list. An action
  * in one place and not another fails silently in a different direction each way — a column the API
@@ -6171,7 +6171,7 @@ expect(
       read('frontend/src/components/report/report.css'),
     ) &&
     /* The exporter keeps the same rule, so neither route splits a block. */
-    /page-break-inside:avoid/.test(read('backend/reportExport.mjs')),
+    /page-break-inside:avoid/.test(read('backend/reportExport.js')),
   'blocks stay whole on paper, and the scoping claim above still holds',
 )
 

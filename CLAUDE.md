@@ -9,8 +9,8 @@ whole reason for the split: the backend is a zero-dependency Node process and mu
 without pulling React, antd and d3 with it.
 
 ```
-backend/     package.json (0 runtime deps) · server.mjs · store.mjs · datasets.mjs
-             reportExport.mjs · db.json · db.CAPEX.json · .env.local (ignored)
+backend/     package.json (0 runtime deps) · server.js · store.js · datasets.js
+             reportExport.js · db.json · db.CAPEX.json · .env.local (ignored)
              scripts/ (the seeds, the ingests, s3-sync, the two verifiers)
              ecosystem.config.js
 frontend/    package.json (react, antd, d3, zustand, router, icons + dev deps)
@@ -53,6 +53,39 @@ is nothing to pass wrongly.
 `backend/db.CAPEX.json` — and it reads the CAPEX report documents out of `frontend/src/Capex/Report/`,
 because those are frontend assets that Vite bundles. A dev-time seed reaching across is the honest
 arrangement; the alternative is a second copy of three 2.5 MB documents.
+
+## Deploying
+
+**Backend on Elastic Beanstalk, frontend on S3 + CloudFront** — the full runbook is
+`docs/DEPLOY-EB.md`. Four things in the code exist for it, and each one closes a failure that is
+invisible rather than loud:
+
+- **The server reads `PORT`.** EB sets it to 8080 and proxies `:80` to it with nginx; a server that
+  listens on 4000 instead makes every health check fail while the application is perfectly healthy. An
+  explicit `npm run mock -- 4001` still wins over it, because a typed argument beats an inherited
+  environment.
+- **`GET /health` exists.** EB's default check hits `/`, which the dispatcher 404s with a "this server
+  may be stale" message — a load balancer reads that as a failed application. It reports the datasets and
+  **which store it actually read**, so `"file"` after a deploy tells you `S3_BUCKET` never reached the
+  process and the box is serving a copy frozen at bundle time.
+- **The environment must be single-instance**, which is the same correctness requirement
+  `ecosystem.config.js` records for PM2: the write chain is per process and the live state never reaches
+  storage, so a second instance means silently lost writes and a publish that takes effect half the time.
+  `eb create --single` is what enforces it — a single-instance environment *is* one instance, which is why
+  AWS gives it an Elastic IP rather than a load balancer. **`.ebextensions` deliberately does not pin the
+  Auto Scaling group**: `aws:autoscaling:asg` and `aws:elasticbeanstalk:environment:process:default` are
+  load-balancer namespaces, and on a single-instance environment EB rejects them and fails the deploy with
+  *"Your source bundle has issues"* — an error that names the zip and sends you nowhere near the setting.
+  If the environment is ever recreated as load-balanced, the pin has to come back.
+- **`.ebignore` restates the credential rules.** The moment that file exists the EB CLI stops reading
+  `.gitignore` — so without its first two lines, `backend/.env.local` would be ignored by git and
+  *shipped to AWS inside the bundle*. `backend/scripts/` is excluded too: the seeds and ingests read a
+  demo package that is not on the instance.
+
+**The mixed-content trap is worth knowing before the first demo.** EB hands you `http://` and CloudFront
+serves `https://`, and an https page cannot call an http API — the browser blocks it with no server-side
+symptom at all. Routing `/api/*` through CloudFront to the EB origin is the tidy fix: one origin, no
+CORS, and `VITE_API_BASE=/api`.
 
 ## Commands
 
@@ -106,7 +139,7 @@ four request headers are CORS-safelisted, so any other one makes the request *pr
 browser blocks it unless the `OPTIONS` reply lists it. Adding a header in `client.ts` without adding
 it to `access-control-allow-headers` breaks **every** call in the browser with `Failed to fetch`,
 while `curl` keeps answering 200 because it does not enforce CORS. `DATASET_HEADER` in
-`datasets.mjs` is the one declaration, both reply paths interpolate it, and `check-docs` asserts the
+`datasets.js` is the one declaration, both reply paths interpolate it, and `check-docs` asserts the
 client's literal and the server's allow-list are the same string. It is
 also plain HTTP — an `https://` page cannot call it at all, so serving the SPA
 over TLS means putting a proxy in front and setting `VITE_API_BASE=/api`.
@@ -148,7 +181,7 @@ A single-tenant data-governance console. Six feature pages plus a dev-only
 `db.json` editor, all reading from a zero-dependency mock API.
 
 ```
-backend/db.json ──► backend/server.mjs ──► /api proxy ──► frontend/src/api/client.ts
+backend/db.json ──► backend/server.js ──► /api proxy ──► frontend/src/api/client.ts
                                                                        │ validate
                                                                        ▼
                                                                   frontend/src/store/*
@@ -158,7 +191,7 @@ backend/db.json ──► backend/server.mjs ──► /api proxy ──► fron
 ```
 
 **Data flows one way and every layer has one job.** `db.json` is the only source
-of data; `server.mjs` shapes it and holds mutable run state; `client.ts` fetches
+of data; `server.js` shapes it and holds mutable run state; `client.ts` fetches
 and validates; the stores hold state and own all error handling; components read
 the stores and render. Never call `client.ts` straight from a component unless it
 is a one-shot read with a local `try/catch` (see `EditDatasetsModal` and
@@ -236,7 +269,7 @@ boot.
 
 ### Where the data lives
 
-**The document lives in S3, and the local copy is gone.** `backend/store.mjs` is the whole
+**The document lives in S3, and the local copy is gone.** `backend/store.js` is the whole
 storage layer: a document is named by a **ref**, and the ref says where it is — an absolute path is
 a file, `s3://bucket/key` is an object.
 
@@ -254,7 +287,7 @@ boot read is still a `Promise.all` above `server.listen`, now one entry per data
 
 **The separation those two files bought was real, and it moved rather than went away.** Two stores
 with one job each meant a settings write could not touch a report, and an ingest rebuilding
-`db.reports` could not drop a permission — which is not hypothetical, since `ingest-reports.mjs`
+`db.reports` could not drop a permission — which is not hypothetical, since `ingest-reports.js`
 nearly deleted `governance` that exact way. The guarantee is now carried by `DB_SHAPE`: `settings`
 and `reports_prototype` are **required keys**, so `validateDb` refuses a document missing either and
 `commitDb` validates them before **every** write rather than only the writer that owns them. That is
@@ -290,8 +323,8 @@ resolves; a checkout reading local files — the default — is unaffected. And 
 persisted recovers by itself: the server refuses it, and `resetDatasetIfRefused()` discards the value
 and retries on the primary, which is the exact failure that fix was written for.
 
-`backend/datasets.mjs` owns which one a request is reading — `store.mjs` still owns only how
-bytes move, and `server.mjs` still owns only what a document means.
+`backend/datasets.js` owns which one a request is reading — `store.js` still owns only how
+bytes move, and `server.js` still owns only what a document means.
 
 | selector | what it reads | writes |
 |---|---|---|
@@ -339,7 +372,7 @@ header, defaulting to the primary. The prefix used to be read from the environme
 load, which made a dataset a property of the *process*: a second one meant a second server, and
 `both` was not expressible at all. The selection now travels in an `AsyncLocalStorage` scope entered
 by the dispatcher — the one place a request begins — and `db` is a **Proxy** over "the document this
-request selected". That is why the ~280 `db.<key>` reads in `server.mjs` are untouched and still mean
+request selected". That is why the ~280 `db.<key>` reads in `server.js` are untouched and still mean
 what they always meant; threading a request through `reportView`, `studioItems` and `whatifView`
 would have edited most of the file to say one thing.
 
@@ -488,7 +521,7 @@ from the client-held selection rather than the server, because that is what the 
 carry.
 
 **The address is committed; the credentials are not, and that split is the rule.** `DEFAULT_BUCKET`,
-`DEFAULT_PREFIX` and `DEFAULT_REGION` are hardcoded in `store.mjs` because a bucket name and a key
+`DEFAULT_PREFIX` and `DEFAULT_REGION` are hardcoded in `store.js` because a bucket name and a key
 prefix are *addresses* — they appear in every log line and in `GET /db`'s reply, so committing them
 costs nothing and saves setting up an environment. The access key and secret are in
 **`backend/.env.local`**, which `.gitignore` covers via `*.local` and `process.loadEnvFile`
@@ -578,7 +611,7 @@ asserts both the number and the note.
 **The seeds and ingests write files, and only files.** That is correct — they read a demo package
 off disk and must run without credentials — so the flow when the server reads S3 is: re-seed
 locally, check the diff, `npm run db:push`. A push validates the required top-level keys first,
-reading them from `DB_SHAPE` in `server.mjs` rather than listing them again, because otherwise the
+reading them from `DB_SHAPE` in `server.js` rather than listing them again, because otherwise the
 boot failure lands on the deployed box instead of in your terminal. `npm run db:pull` is the other
 direction.
 
@@ -595,7 +628,7 @@ over. Two kinds of state live here:
 
 Consequences worth knowing before debugging:
 
-- **Editing `server.mjs` requires a restart**, and that clears every registered
+- **Editing `server.js` requires a restart**, and that clears every registered
   source. A server started before a shape change keeps answering with the old
   fields — `listSources` has a targeted check for exactly this that tells you to
   restart, because the symptom is otherwise blank ids and `Invalid Date`.
@@ -618,7 +651,7 @@ Consequences worth knowing before debugging:
   Every call site awaits, or a rejected write becomes an unhandled rejection behind a
   200. The boot read stays synchronous on purpose: nothing may be served before
   `db.json` is loaded.
-- `validateDb` in `server.mjs` guards the required top-level keys, so the `/db`
+- `validateDb` in `server.js` guards the required top-level keys, so the `/db`
   editor cannot save a document that would crash the app. There are 27 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
@@ -922,7 +955,7 @@ same pattern should reuse it rather than add a third copy.
 
 Two rules the copy on the page promises, and the code has to keep:
 
-- **The step labels live in `server.mjs` (`WIZARD_STEPS`) and reach the page in
+- **The step labels live in `server.js` (`WIZARD_STEPS`) and reach the page in
   the `/graph-use-cases` payload.** The stepper renders that list and the server
   validates `step` against the same one, so a step cannot exist in the UI that the
   API would reject.
@@ -1529,7 +1562,7 @@ ran. Same two-gate rule the report section states.
 **The publishing copy is authored by the ingest, not shipped by the package.**
 `whatif_vls_data.json` predates v2 and carries no publishing block, and
 `npm run ingest:whatif` rebuilds `db.whatif` wholesale — so a block seeded from a
-separate script would be deleted on the next re-ingest, which is how `ingest-reports.mjs`
+separate script would be deleted on the next re-ingest, which is how `ingest-reports.js`
 nearly dropped every report audience. It is authored inside the ingest instead, checked
 there and again by `validateDb`. The subtitle is overridden there for the same reason:
 the package's ends "save the ones worth keeping", which described a library that no
@@ -1916,7 +1949,7 @@ A **scoped** chart on the register also carries a `companion` — the split of t
 by compliance status, whose 79.3% is the figure the tile beside it states, drawn as a ring.
 
 Column headers for the three rosters the field dictionary does not describe live in
-`REPORT_LABELS` in `server.mjs`. They are headers and nothing else, and `check-docs` fails if a
+`REPORT_LABELS` in `server.js`. They are headers and nothing else, and `check-docs` fails if a
 column reaches a table with neither a field label nor an entry there, because the alternative is
 a header reading `gen_state`.
 
@@ -1959,14 +1992,14 @@ than recovering a scope from its printed label.
   recognised** rather than presenting a guess as an understanding.
 - **`POST /reports/build` is not paced**: it is a read over the rosters, like a What-if scenario.
 - **`summary_catalog` is ten tiles expressed as data** — a label, a tone, the field it reads and
-  how it aggregates — because a closure cannot be served. `server.mjs` implements the six
+  how it aggregates — because a closure cannot be served. `server.js` implements the six
   aggregations and three formats it names, and the ingest refuses one it does not.
 
 #### Exporting a report — the one place a figure is written down
 
 `POST /reports/export` builds a report and writes it to S3 as a **file somebody can be sent**:
 `html` or `csv`, under `s3://contextweave.com/EPA/exports/<report_id>-<timestamp>.<ext>`. The
-renderers are `backend/reportExport.mjs`.
+renderers are `backend/reportExport.js`.
 
 **It is a snapshot, and never a cache — the distinction is the whole design.** Everything else in
 this section re-asks: `db.reports` stores no result, and `GET /reports/saved/:id` rebuilds from the
@@ -2027,7 +2060,7 @@ Three rules the renderers keep, each guarding a failure that is silent:
 
 `npm run verify:export` checks all of this offline — the renderers are **pure**, which is what makes
 them assertable without a bucket, a network or a published graph. It reads the block kinds out of
-`reportBlock` in `server.mjs` rather than listing them, so a kind added there and not handled in the
+`reportBlock` in `server.js` rather than listing them, so a kind added there and not handled in the
 exporter fails the build instead of exporting as nothing.
 
 **Nothing calls it yet.** Like the other `/reports*` endpoints, this one is waiting for a caller —
@@ -2190,7 +2223,7 @@ so in those words.
 
 #### Governance is authored; everything about it is computed
 
-`db.reports.governance` — seeded by `node backend/scripts/seed-report-governance.mjs` — holds only the
+`db.reports.governance` — seeded by `node backend/scripts/seed-report-governance.js` — holds only the
 decisions: state (`published` · `pending_approval` · `blocked` · `archived`), version, author,
 category, as-of, schedule, approval, and which personas each definition's audience names. Every
 number and every cell is computed in `reportGovernanceView` per request: the chip counts, the floor
@@ -2209,7 +2242,7 @@ not exist fails a boot for no reason a user could act on. An older `db.json` may
 extra key is harmless, and `npm run seed:governance` drops it.
 
 **A state is declared once, in `governance.statuses`, and everything reads it from there** — its
-key, the label a chip and a card print, and the `tone` both tint themselves with. `server.mjs` used
+key, the label a chip and a card print, and the `tone` both tint themselves with. `server.js` used
 to keep a second tone map beside it, which is how a state ends up `warn` on a card and `neutral` on
 the chip counting it; `reportStatusTone` reads the pool instead and `check-docs` fails if a second
 copy comes back. `blocked` is not `pending_approval` with worse manners — pending waits on a
@@ -2959,13 +2992,13 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **Before blaming the mock server, check which API the app is calling.** The
   origin belongs in `frontend/.env.development` (`/api`) and `frontend/.env.production` only — in a
   plain `.env` it applies to *every* mode and silently points `npm run dev` at
-  the deployed box, where local `db.json` edits and `server.mjs` changes have no
+  the deployed box, where local `db.json` edits and `server.js` changes have no
   effect and nothing errors. `check-docs` now fails on it. Symptom to recognise:
   `curl localhost:4000` is right and the browser is wrong.
 - **A failing `check-docs` claim is a live fault, not background noise.** The
   `.env` bug above sat in a red claim for a whole session while it was dismissed
   as unrelated. Read the red claims before diagnosing anything else.
-- **A stale mock server answers with the old shape.** Editing `server.mjs` or a
+- **A stale mock server answers with the old shape.** Editing `server.js` or a
   payload shape needs a restart, which also clears every registered source. When
   output looks impossibly wrong, check the server's age before your own code —
   several fields `undefined` at once means the process, not the schema.
@@ -2988,6 +3021,12 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **A fallback for a required field makes it optional.** `source_name ||
   project_id` let a blank name register a source called `vrio-contextweave-demo`.
   If the form asks, the code must not answer for the user.
+- **A declared field type is a claim about every dataset, not the one in front of you.** `rows: num` in
+  the browse schema was true by accident: EPA has 8 tables and profiles all 8. CAPEX ships 64 of which 62
+  carry `rows: null` — *"the honest value, not zero"*, in its own provenance — and every browse of a CAPEX
+  source was refused with `rows should be a number, got null`, under a message blaming a stale server. When
+  widening such a field, check every consumer for `?? 0`: the compiler is satisfied by a default that
+  lies, and "0 rows" says a table is empty when nobody has counted it.
 - **A payload field name is a contract the compiler cannot check.** A raw type is a
   *claim* about what the server sends, so renaming a server field compiles cleanly
   and fails at the validator — `draft_version should be a string, got undefined`,
@@ -3111,7 +3150,7 @@ Each has a full entry in `docs/REGRESSIONS.md`.
   the server's counts, which was one source while the list held only server rows; merging the session
   reports in would have shown "Published 5" over six cards. "The server computes it" is a single source
   only while the server can see everything being counted.
-- **`x = { … }` on a shared key deletes everything not listed.** `ingest-reports.mjs` rebuilds
+- **`x = { … }` on a shared key deletes everything not listed.** `ingest-reports.js` rebuilds
   `db.reports` wholesale and carried `saved` forward by hand; `governance` was added later by another
   script and was not carried, so a re-ingest would have deleted every audience and data-scope row.
   When a script owns a subtree, derive the carry-forward list from `validateDb` rather than
@@ -3124,7 +3163,7 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **An `else` that returns a specific answer is not a fallback.** `reportEntitlementCell` tested
   published, then pending, then *returned the archived cell* — so a `blocked` definition told its
   audience it could open a report nobody published. Its tone came from a literal map in
-  `server.mjs` while the chip counting the same state read `governance.statuses`, so one state read
+  `server.js` while the chip counting the same state read `governance.statuses`, so one state read
   `neutral` on the card and `crit` on the chip. When a pool in `db.json` gains a member, grep every
   `=== 'member'` chain and every literal map keyed by the same vocabulary; the compiler sees
   neither, and both fail by answering.
