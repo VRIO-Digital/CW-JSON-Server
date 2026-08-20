@@ -15,15 +15,6 @@ interface Props {
   onEdit?(row: GovernedRow): void;
   onShare?(row: GovernedRow): void;
   onRemove?(row: GovernedRow): void | Promise<void>;
-  /**
-   * The lifecycle states this tenant declares, served on `governance.statuses`.
-   *
-   * The menu is built from them and from nothing else: a list of states written into this file could
-   * offer one the API refuses, and a state the tenant added would never appear — the same reason the
-   * Share picker renders the served role pool.
-   */
-  states?: { key: string; label: string; tone: string; computed?: boolean }[];
-  onAuthorize?(row: GovernedRow, status: string): void | Promise<void>;
 }
 
 /**
@@ -46,15 +37,7 @@ const PILL_FOR_TONE: Record<string, string> = {
    place a tone could be translated. */
 const pillClass = (tone: string) => 'pill ' + (PILL_FOR_TONE[tone] ?? 'rp-neutral');
 
-export function GovernedCard({
-  row: r,
-  onOpen,
-  onEdit,
-  onShare,
-  onRemove,
-  states,
-  onAuthorize,
-}: Props) {
+export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Props) {
   const { open } = useMenu();
   /*
    * **Open and Edit need different things, and treating them as one hid Open entirely.**
@@ -115,14 +98,13 @@ export function GovernedCard({
           * here, where "Approval: self-approved" sat between two facts a reader of this list needs.
           */}
         <div>{r.schedule}</div>
-        {/* Who last moved it between states. Absent until somebody has — an unattributed state
-            change is worse than none, and inventing an actor is the thing this app refuses. */}
-        {r.authorizedBy && (
-          <div>
-            Authorized by <b>{r.authorizedBy}</b>
-            {r.authorizedAt ? ` · ${r.authorizedAt.slice(0, 10)}` : ''}
-          </div>
-        )}
+        {/*
+          * **Who authorized it is not restated here.** The Authorize tab holds that record and states
+          * it per row, and two surfaces reporting one record is how they come to disagree — the rule
+          * that took the `Published · N readers` tag off the What-if library row when the Published
+          * tab began stating it in full. The card keeps what this report *is*; the tab keeps what has
+          * been done to it.
+          */}
         {r.floor && <div>{r.floor}</div>}
       </div>
 
@@ -157,42 +139,12 @@ export function GovernedCard({
             ✎ Edit report
           </button>
         )}
-        {onAuthorize && r.kind === 'written' && !!states?.length && (
-          <button
-            className="btn sm"
-            title="Move this report to another lifecycle state"
-            onClick={(e) =>
-              open(
-                e,
-                <OptionList
-                  title={`Authorize “${r.title}”`}
-                  /*
-                   * **The computed chip is not a state a report can be moved to.** `All current` is
-                   * everything not archived — it filters the list and it is not somewhere a report
-                   * goes, so offering it would be a menu item that always fails. Excluded by the
-                   * served flag rather than by testing for the key, so a second computed chip is
-                   * handled without this file learning its name.
-                   */
-                  items={states
-                    .filter((st) => !st.computed)
-                    .map((st) => ({
-                      label: st.label,
-                      /* The state it is already in is named as such rather than offered as a change. */
-                      d:
-                        st.key === r.status
-                          ? 'Its current state'
-                          : `Move it to ${st.label.toLowerCase()}`,
-                      onPick: () => {
-                        if (st.key !== r.status) void onAuthorize(r, st.key);
-                      },
-                    }))}
-                />,
-              )
-            }
-          >
-            ⚖ Authorize
-          </button>
-        )}
+        {/*
+          * **No Authorize here.** Moving a report between lifecycle states is done across the whole
+          * set rather than one card at a time — the question is "what is waiting on me", which a grid
+          * of cards cannot answer because the states are scattered through it. It has its own tab,
+          * where the state is a column. The card keeps the acts that belong to *this* report.
+          */}
         {onShare && r.kind === 'written' && (
           <button className="btn sm" onClick={() => onShare(r)}>
             ↗ Share

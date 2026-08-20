@@ -335,6 +335,182 @@ let renderedHref = {}
   }
 }
 
+/* ------------------------------------------------------------------ the authoring dataset */
+
+/*
+ * **The authoring flow's own dataset, built from the package's authoring screen.**
+ *
+ * `report_authoring_simplified_v3.html` is the CAPEX counterpart of the vendored EPA prototype — the
+ * same three steps (Ask → Confirm → Report), the same three block kinds (`kpis`, `chart`, `table`),
+ * and a different vocabulary: `auth`/`comm`/`proj`/`varD` where EPA has `penalty`/`tons`/`viols`.
+ * `report_authoring_data.json` is that screen's data, and this turns it into the dataset the flow
+ * hydrates from — so the Author tab composes a report about **capital projects** instead of about
+ * inbound generators, which is what it was doing while the dataset was EPA's.
+ *
+ * **Nothing is derived here at runtime, because the package already derived it.** `fixture.derived`
+ * holds each project's variance, variance %, percent-of-envelope and delivery status, and
+ * `fixture.derivationRules` states how each was reached. The rows are *materialised* — every field in
+ * the catalogue becomes a real key — so the flow reads fields and computes nothing, which is the rule
+ * this repo keeps everywhere: a component that recomputed a figure would be a second answer to it.
+ *
+ * **What is authored here, and why it has to be.** The screen's own `fmt()` decides that `auth` prints
+ * as money and `varP` as a signed percent; the field catalogue records `kind: 'num'` for both and
+ * cannot tell them apart. So `formats` states it per field, transcribed from that function, and
+ * `kpis` states the four tiles its `kpisHTML()` builds. Both are declarations *of the screen's own
+ * behaviour* rather than inventions — and putting them in the dataset is what lets one flow serve
+ * either tenant instead of one tenant's vocabulary being compiled in.
+ */
+{
+  const a = authoring
+  const fixture = a.fixture ?? {}
+  const catalog = a.fieldCatalog ?? {}
+  const unit = fixture.unit ?? ''
+
+  /*
+   * One row per sample project, with the derived columns folded in.
+   *
+   * `fac` is `proj` because the package says so in as many words ("equals projected in this
+   * fixture"); it is read from the rule rather than assumed, so a fixture that starts carrying a real
+   * forecast refuses instead of quietly showing the projection under its name.
+   */
+  const facRule = String(fixture.derivationRules?.forecastAtCompletion ?? '')
+  if (!/equals projected/i.test(facRule)) {
+    problems.push(
+      `report_authoring_data.json no longer says forecastAtCompletion equals projected ` +
+        `("${facRule}") — the fixture now derives it some other way and this mapping must follow`,
+    )
+  }
+
+  const rows = (fixture.projects ?? []).map((proj) => {
+    const derived = fixture.derived?.[proj.name] ?? {}
+    return {
+      ...proj,
+      fac: proj.proj,
+      varD: derived.varianceDollarsM,
+      varP: derived.variancePct,
+      pct: derived.pctOfEnvelopeSpent,
+      status: derived.status,
+    }
+  })
+
+  /* Every available field must be a real key on every row, or a column renders blank. */
+  const available = (catalog.fields ?? []).filter((f) => f.avail !== false)
+  for (const f of available) {
+    const missing = rows.filter((r) => r[f.key] === undefined)
+    if (missing.length > 0) {
+      problems.push(
+        `the authoring fixture carries no "${f.key}" on ${missing.length} of ${rows.length} rows, ` +
+          'so that column would render blank',
+      )
+    }
+  }
+
+  /* Transcribed from the screen's own `fmt()`; `kind` cannot distinguish money from a percentage. */
+  const FORMATS = {
+    auth: 'moneyM',
+    comm: 'moneyM',
+    proj: 'moneyM',
+    fac: 'moneyM',
+    varD: 'signedMoneyM',
+    varP: 'signedPercent',
+    pct: 'percent',
+  }
+
+  /* The four tiles its `kpisHTML()` builds, expressed as data rather than as a closure. */
+  const KPIS = [
+    {
+      key: 'over',
+      label: 'projects over envelope',
+      agg: 'count_over',
+      field: 'proj',
+      against: 'auth',
+      format: 'int',
+      tone: 'bad',
+    },
+    {
+      key: 'overrun',
+      label: 'total projected overrun',
+      agg: 'sum_over',
+      field: 'proj',
+      against: 'auth',
+      format: 'moneyM',
+      tone: 'bad',
+    },
+    {
+      key: 'largest',
+      label: 'largest single overrun',
+      agg: 'max_over',
+      field: 'proj',
+      against: 'auth',
+      format: 'moneyM',
+      tone: 'warn',
+    },
+    { key: 'count', label: 'projects in view', agg: 'rows', field: null, format: 'int', tone: null },
+  ]
+
+  /* A starter per governed report: its own question and the screen's own default blocks. */
+  const starters = built.map((r) => ({
+    id: r.report_id,
+    label: r.heading,
+    report_tag: r.report_tag,
+    q: r.question ?? r.heading,
+    spine: 'register',
+    title: r.heading,
+    reading: r.reading,
+    blocks: a.blocks?.default ?? [],
+  }))
+
+  /* The audiences are the categories the tenant's own definitions carry. */
+  const audiences = [...new Set(built.map((r) => r.badge).filter(Boolean))].map((c) => ({
+    key: String(c).toLowerCase(),
+    label: String(c),
+    d: `${built.filter((r) => r.badge === c).length} definition(s) in this category`,
+  }))
+
+  const graphSlot = {
+    value: 'g_capital_programs',
+    label: 'the Capital Programme Intelligence graph',
+  }
+
+  db.reports_prototype = {
+    meta: db.reports?.meta ?? {},
+    assumptions: { graph: graphSlot, ...(a.assumptions?.current ?? {}) },
+    opts: {
+      graph: { q: 'Which published graph?', options: [{ ...graphSlot, d: 'The tenant\'s built graph' }] },
+      ...(a.assumptions?.options ?? {}),
+    },
+    fields: catalog.fields ?? [],
+    /* Which field names a row — the label on a bar, the first column of a table. */
+    label_field: 'name',
+    unit,
+    formats: FORMATS,
+    kpis: KPIS,
+    /* A chart may plot any available numeric field. Derived from the catalogue, not listed twice. */
+    measures: available.filter((f) => f.kind === 'num').map((f) => f.key),
+    filter_values: catalog.filterValues ?? {},
+    register: rows,
+    starters,
+    presets: (a.blocks?.presets ?? []).map((pr) => ({
+      label: pr.label,
+      d: pr.description ?? pr.d ?? '',
+      block: pr.block,
+    })),
+    slice_default: a.blocks?.sliceChips ?? [],
+    audiences,
+    /*
+     * Empty, and that is a decision. The prototype's four seeded rows are its own fiction — other
+     * people's reports with bylines nobody here has — and hosted the shelf already starts empty for
+     * exactly that reason. Inventing Northline bylines to fill it would be worse.
+     */
+    library: [],
+  }
+
+  notes.push(
+    `reports_prototype: rebuilt from report_authoring_data.json — ${rows.length} sample projects, ` +
+      `${(catalog.fields ?? []).length} fields, ${starters.length} starters, ${KPIS.length} tiles`,
+  )
+}
+
 /* ------------------------------------------------------------------ the prototype's persona */
 
 /*

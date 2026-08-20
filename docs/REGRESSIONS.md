@@ -3751,3 +3751,45 @@ validated against the tenant's pool, the change records who made it and refuses 
 and the menu offers the declared states and not the computed chip. The existing "two writes, one
 reader of the role" claim is now **three** — counted rather than loosened, because the number is what
 catches a fourth act added without re-reading through `reportRoleFrom(query)`.
+
+### Postscript 6: the authoring flow was one tenant's, field by field
+
+Reported from use with a screenshot that says it exactly: the report step, headed *"Inbound
+generators by compliance risk"*, listing Arkema and ExxonMobil — under a banner reading *"Resolved
+just now from **Capital Programme Intelligence v1** — 36 of 36 **capital projects**"*. The graph name
+was the tenant's and everything under it was the other one's.
+
+**Nothing was broken; the flow simply *was* EPA.** Its register row was `Generator`, declared field by
+field. Its measures were the union `penalty|tons|viols|enf|evals|manifests`. Its summary tiles were
+seven closures over those fields. `TableBlock` defaulted to `generator/state/risk/cd` and
+special-cased three columns by name; `ChartBlock` tinted every bar by `p.risk` and captioned it "bar
+colour is compliance risk"; `fmt()` decided `penalty` was money and `tons` carried a unit; `scopeSet`
+filtered on `enf`, `state !== 'TX'` and `cd`. Every one of those is a correct statement about one
+package, and none of them is a statement about the app.
+
+**The fix is that the dataset declares what the renderers need to know**, and the renderers read
+nothing else: `label_field` (which field names a row), `formats` (how each is written — `kind: 'num'`
+cannot tell money from a percentage), `measures` (what a chart may plot), `kpis` (the tiles, as
+`{ agg, field, against, format }` rather than closures, because a closure cannot be served) and
+`tone_field` (which field, if any, carries a state). `npm run ingest:capex-reports` builds that
+dataset from the package's own authoring screen and **materialises the rows** — `fixture.derived`
+already holds every project's variance, percentage and status, and `derivationRules` states how each
+was reached, so nothing is computed at render time.
+
+**Two things deliberately do not fall back to a guess.** A field with no declared format prints as a
+plain number rather than as invented currency. And a register whose tenant nominates no state field
+draws its bars in **one colour** — a hue that encodes a state the data does not carry is the same
+claim-in-colour this repo refuses on facet chips and graph nodes.
+
+**And the trap that cost the most time here was not the code.** Twice, a verification run reported the
+old EPA dataset while `db.json` plainly held the new one — because a **stale server was still holding
+port 4000** and the new process had exited with *"port is already in use"* into a log nobody read. The
+banner is right there in the first two lines of the log; the fix is to read them. This is the fourth
+appearance of the stale-process failure in this file.
+
+**Guard.** Four `check-docs` claims, break-tested by putting `p.risk` back into `ChartBlock`: the
+register and its label field and measures come from the dataset, no renderer reads a field by name,
+the tiles are data rather than closures, and a row is tinted only where a state field is nominated.
+The "no field name" claim needed two attempts — the first searched for the string `'tons'` and failed
+on `ValueFormat`'s own `tons` case, which is a *format* name and entirely tenant-neutral. Assert the
+fact, not the spelling.

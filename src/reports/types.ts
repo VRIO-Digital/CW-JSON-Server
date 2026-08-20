@@ -3,7 +3,7 @@
 export type RiskLevel = 'high' | 'med' | 'low';
 
 /** Drives the coloured dot in the field picker. */
-export type FieldKind = 'cat' | 'num' | 'cta';
+export type FieldKind = 'cat' | 'num' | 'cta' | 'text';
 
 export interface Field {
   key: string;
@@ -16,18 +16,45 @@ export interface Field {
   note?: string;
 }
 
-export interface Generator {
-  generator: string;
-  state: string;
-  risk: RiskLevel;
-  evals: number;
-  viols: number;
-  enf: number;
-  penalty: number;
-  tons: number;
-  manifests: number;
-  cd: boolean;
-  last_enf: string;
+/**
+ * One row of the register the authoring flow composes a report over.
+ *
+ * **It used to be EPA's generator, field by field**, and every block renderer read those names —
+ * `p.generator`, `p.risk`, `penalty`. That made the flow one tenant's: pointed at Northline's capital
+ * projects it kept drawing "Penalty exposure by generator" over rows that have neither, which is what
+ * was reported. The register is now whatever the served dataset holds, and what a renderer needs to
+ * know about it — which field names a row, which are numeric, how each one formats — is **declared by
+ * the dataset** rather than compiled in. `Generator` is kept as the name because it is what the
+ * vendored folder calls this everywhere; the shape is generic.
+ */
+export type Row = { [key: string]: string | number | boolean | undefined };
+export type Generator = Row;
+
+/** How a field's value is written for a reader. Declared per field by the dataset — see `FORMATS`. */
+export type ValueFormat =
+  | 'money'
+  | 'moneyM'
+  | 'signedMoneyM'
+  | 'percent'
+  | 'signedPercent'
+  | 'tons'
+  | 'int'
+  | 'yesno'
+  | 'text';
+
+/** One summary tile, expressed as data because a closure cannot be served. */
+export interface KpiSpec {
+  key: string;
+  label: string;
+  /**
+   * `rows` counts the slice. The `*_over` three compare `field` against `against` — the shape both
+   * tenants' tiles actually take ("projects over envelope", "generators with enforcement").
+   */
+  agg: 'rows' | 'sum' | 'count_true' | 'count_positive' | 'count_over' | 'sum_over' | 'max_over';
+  field: string | null;
+  against?: string | null;
+  format: ValueFormat;
+  tone?: 'bad' | 'warn' | null;
 }
 
 export interface Facility {
@@ -91,8 +118,16 @@ export interface SlotOptions {
 
 /* ----------------------------------------------------------------- blocks */
 
-export type MeasureKey = 'penalty' | 'tons' | 'viols' | 'enf' | 'evals' | 'manifests';
-export type KpiKey = 'count' | 'enf' | 'penalty' | 'cd' | 'tons' | 'manifests' | 'viols';
+/**
+ * A numeric field a chart may plot.
+ *
+ * A string rather than a union of EPA's six: the pool is `dataset.measures`, derived from the field
+ * catalogue, so a tenant whose measures are `auth`/`comm`/`proj` is not describing them in a
+ * vocabulary that cannot hold them. `isMeasure` still checks membership — against the served list.
+ */
+export type MeasureKey = string;
+/** A tile's key. The tiles are `dataset.kpis`, so this is a string rather than EPA's seven. */
+export type KpiKey = string;
 export type ChartType = 'bar' | 'column' | 'line';
 export type QuarterMetric = 'tons' | 'manifests';
 
@@ -154,7 +189,7 @@ export interface Filter {
 /* ------------------------------------------------------- library + publish */
 
 /** The three tabs inside the Reports section. */
-export type ReportTab = 'library' | 'author' | 'audience';
+export type ReportTab = 'library' | 'author' | 'authorize' | 'audience';
 
 export type ReportStatus = 'draft' | 'published';
 

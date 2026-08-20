@@ -1,16 +1,29 @@
 import { GENERATORS } from '../data';
 import { catVal, numVal } from './format';
-import type { Assumptions, Filter, Generator, MeasureKey } from '../types';
+import type { Assumptions, Filter, Generator, MeasureKey, Row } from '../types';
 
-/** The population the report is about, before any slicing filters. */
-export function scopeSet(scope: string): Generator[] {
+/**
+ * The population the report is about, before any slicing filters.
+ *
+ * **The three narrowing scopes were EPA's predicates** — enforcement history, out of state, under
+ * decree — reading fields another tenant's register does not carry, so under CAPEX each one silently
+ * returned nothing. They are kept for the dataset that declares them and each now checks that the
+ * field is actually there: a scope whose field is absent returns the whole register rather than an
+ * empty one, because "no rows" is a statement about the data and this would have been a statement
+ * about the code.
+ *
+ * A scope this function has never heard of is likewise the whole register. The set a scope *should*
+ * narrow to is the dataset's to declare, and neither package declares one yet.
+ */
+export function scopeSet(scope: string): Row[] {
+  const has = (key: string) => GENERATORS.length > 0 && GENERATORS[0][key] !== undefined;
   switch (scope) {
     case 'enf':
-      return GENERATORS.filter((p) => p.enf > 0);
+      return has('enf') ? GENERATORS.filter((p) => numVal(p, 'enf') > 0) : GENERATORS;
     case 'oos':
-      return GENERATORS.filter((p) => p.state !== 'TX');
+      return has('state') ? GENERATORS.filter((p) => p.state !== 'TX') : GENERATORS;
     case 'cd':
-      return GENERATORS.filter((p) => p.cd);
+      return has('cd') ? GENERATORS.filter((p) => p.cd === true) : GENERATORS;
     default:
       return GENERATORS;
   }

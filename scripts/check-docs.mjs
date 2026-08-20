@@ -3660,6 +3660,76 @@ const dsPanel = read('src/components/DatasetPanel.tsx')
 const dsSwitch = read('src/data/datasetSwitch.ts')
 
 /*
+ * ---------------- the authoring flow speaks the tenant's vocabulary ----------------
+ *
+ * **The flow was one tenant's, field by field.** Its register row was EPA's generator, its measures
+ * were `penalty|tons|viols|enf|evals|manifests`, its tiles were four closures over those fields, its
+ * table defaulted to `generator/state/risk/cd` and its bars were tinted by `p.risk`. Pointed at
+ * Northline it kept composing "Penalty exposure by generator" over rows that have neither — reported
+ * from use, and visible in the report step as EPA's register under a CAPEX graph name.
+ *
+ * What a renderer needs to know about the register is **declared by the dataset** now: which field
+ * names a row, how each one is written, which are plottable, and what the summary tiles are. None of
+ * it is derivable — `kind: 'num'` cannot tell money from a percentage — so it is served, and the
+ * prototype's own dataset carries it.
+ */
+const protoData = read('src/reports/data.ts')
+const protoFormat = read('src/reports/lib/format.ts')
+const protoBlocks = read('src/reports/lib/blocks.ts')
+const chartBlock = read('src/reports/components/blocks/ChartBlock.tsx')
+const tableBlock = read('src/reports/components/blocks/TableBlock.tsx')
+const proto = db.reports_prototype ?? {}
+
+expect(
+  'the authoring register, its label field and its measures are the served dataset’s',
+  /LABEL_FIELD = DATA\.label_field/.test(protoData) &&
+    /GENERATORS = DATA\.register \?\? DATA\.generators/.test(protoData) &&
+    /MEASURE_KEYS =/.test(protoData) &&
+    Array.isArray(proto.register) &&
+    proto.register.length > 0 &&
+    typeof proto.label_field === 'string',
+  proto.label_field
+    ? `${proto.register.length} rows, named by "${proto.label_field}", ${(proto.measures ?? []).length} measures`
+    : 'the dataset declares no register',
+)
+expect(
+  'and no EPA field name decides how a value is written or a row is drawn',
+  /*
+   * **Keyed on field *access*, not on any quoted string.** `tons` is still a word in `format.ts` — as
+   * the name of a `ValueFormat`, which is a tenant-neutral way to write a number and exactly what the
+   * dataset is meant to declare. What must be gone is a renderer *reading a field by name*: `p.risk`,
+   * `p.generator`, `key === 'penalty'`. The first version searched for the strings and failed on the
+   * format name, which is this file's own "assert the fact, not the spelling" trap.
+   */
+  !/key === '(penalty|tons|viols|enf|cd|risk|last_enf)'/.test(codeOnly(protoFormat)) &&
+    !/\bp\.(risk|generator|cd|penalty|tons|viols)\b/.test(codeOnly(protoFormat)) &&
+    !/\bp\.(risk|generator|cd|penalty|tons)\b|riskTone|riskPill/.test(codeOnly(chartBlock)) &&
+    !/col === 'generator'|\bp\.(risk|generator|cd|penalty|tons|evals|last_enf)\b/.test(
+      codeOnly(tableBlock),
+    ),
+  'a renderer that reads a field by name is a renderer that serves one tenant',
+)
+expect(
+  'the summary tiles are data rather than closures over one tenant’s fields',
+  /export function kpiDef\(spec: KpiSpec\)/.test(protoBlocks) &&
+    !/KPI_DEFS/.test(codeOnly(protoBlocks)) &&
+    Array.isArray(proto.kpis) &&
+    proto.kpis.length > 0 &&
+    proto.kpis.every((k) => k.key && k.label && k.agg),
+  `${(proto.kpis ?? []).length} tiles, each an { agg, field, format } the dataset states`,
+)
+/*
+ * And a tone is only drawn where the tenant nominates a field to carry one. A bar tinted by a state
+ * the data does not hold is the same mistake as a facet chip stuck at zero — a claim made in colour.
+ */
+expect(
+  'a row is tinted only where the dataset nominates a state field',
+  /export function rowTone/.test(protoFormat) &&
+    /if \(!TONE_FIELD\) return null/.test(protoFormat),
+  'one colour is honest where the register carries no state; a hue is not',
+)
+
+/*
  * ---------------- authorize: moving a report between lifecycle states ----------------
  *
  * **The one governance act the section could describe and not perform.** `governance.statuses` has
@@ -3695,7 +3765,11 @@ expect(
 expect(
   'the Authorize menu offers the declared states and not the computed chip',
   /computed: true,/.test(authServer) &&
-    /\.filter\(\(st\) => !st\.computed\)/.test(read('src/reports/panes/GovernedCard.tsx')) &&
+    /* **On its own tab, not on the card.** Authorizing is done across the set — the question is
+       "what is waiting on me", which a grid of cards cannot answer because the states are scattered
+       through it. The card keeps the acts that belong to one report. */
+    /\.filter\(\(s\) => !s\.computed\)/.test(read('src/reports/panes/AuthorizePane.tsx')) &&
+    !/Authorize/.test(codeOnly(read('src/reports/panes/GovernedCard.tsx'))) &&
     /computed: bool,/.test(client),
   'a menu item that always fails is worse than one that is absent',
 )

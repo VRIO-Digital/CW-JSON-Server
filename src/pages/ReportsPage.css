@@ -704,3 +704,51 @@
 .rp-view {
   margin-bottom: var(--sp-4);
 }
+
+/*
+ * The Authorize tab's table.
+ *
+ * Authored here rather than in the vendored sheet, which carries a do-not-hand-edit rule — so it is on
+ * the `--sp-*` scale like everything else in this repo. A table rather than a grid of cards: the
+ * question this tab answers is "what is waiting on me", which is a column read down, not a pill hunted
+ * for across a dozen cards.
+ */
+.rp-authTable {
+  border: 1px solid var(--cw-line, #e3e5e9);
+  border-radius: var(--sp-2);
+  overflow: hidden;
+}
+
+.rp-authHead,
+.rp-authRow {
+  display: grid;
+  grid-template-columns: minmax(200px, 2fr) 120px minmax(160px, 1fr) minmax(160px, 1fr) auto;
+  gap: var(--sp-4);
+  align-items: center;
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.rp-authHead {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9aa0a8;
+  background: var(--cw-inset, #f7f8f9);
+  border-bottom: 1px solid var(--cw-line, #e3e5e9);
+}
+
+.rp-authRow + .rp-authRow { border-top: 1px solid var(--cw-line, #e3e5e9); }
+
+.rp-authName { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.rp-authName em { font-style: normal; font-size: 11px; color: #9aa0a8; }
+
+.rp-authWho,
+.rp-authAud { font-size: 12px; color: #5c636b; overflow-wrap: anywhere; }
+.rp-authWho em,
+.rp-authAud em { font-style: italic; color: #9aa0a8; }
+
+/* Below the head's grid width the columns stack rather than shrinking their labels to nothing. */
+@media (max-width: 900px) {
+  .rp-authHead { display: none; }
+  .rp-authRow { grid-template-columns: 1fr; gap: var(--sp-2); }
+}

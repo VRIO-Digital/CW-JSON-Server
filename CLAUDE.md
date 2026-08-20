@@ -1701,6 +1701,25 @@ write.
 > every report row**, `null` included: a process older than the field writes rows without it and the
 > Library silently loses Open on every card.
 >
+> **Authorize is its own tab, and the authoring flow speaks the tenant's vocabulary.** Moving a
+> report between the states `governance.statuses` declares is done across the set — the question is
+> "what is waiting on me", which a grid of cards cannot answer because the states are scattered
+> through it — so it is a tab rather than a button on a card, over
+> `PATCH /reports/governance/:id/status`. The state is validated against the tenant's pool, records
+> who from `?as=`, and commits. The computed `All current` chip is excluded from the menu by its
+> served `computed` flag: it filters the Library and is not somewhere a report goes.
+>
+> **And the Author tab composes over capital projects.** It was EPA's flow field by field — a
+> `Generator` row type, six named measures, seven KPI closures, a table defaulting to
+> `generator/state/risk/cd` and bars tinted by `p.risk` — so it drew "Penalty exposure by generator"
+> whatever tenant was loaded. The dataset declares what the renderers need now: `label_field`,
+> `formats` (`kind: 'num'` cannot tell money from a percentage), `measures`, `kpis` as data rather
+> than closures, and `tone_field`. `npm run ingest:capex-reports` builds it from the package's own
+> authoring screen and **materialises the rows** — `fixture.derived` already holds every variance and
+> status — so nothing is derived at render time. Two things deliberately do not fall back to a guess:
+> a field with no declared format prints as a plain number, and a register whose tenant nominates no
+> state field draws one colour, because a hue encoding a state the data does not carry is a claim.
+>
 > **Still not wired:** the authoring prototype (`src/reports/`) continues to show its own bundled
 > sample rather than `src/report/report_authoring_data.json`, and the facet chips do not re-ask
 > these reports — there is nothing to re-ask them with.

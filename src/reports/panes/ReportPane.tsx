@@ -1,5 +1,5 @@
 import { FIELDS, META, PRESETS } from '../data';
-import { BLOCK_TAG, KPI_DEFS, KPI_ORDER, blockSig, instantiate, isMeasure } from '../lib/blocks';
+import { BLOCK_TAG, blockSig, instantiate, isMeasure, kpiDefs, kpiOrder } from '../lib/blocks';
 import { fieldLabel } from '../lib/format';
 import { FieldPicker } from '../components/FieldPicker';
 import { OptionList, useMenu } from '../components/MenuProvider';
@@ -148,7 +148,8 @@ export function ReportPane({
                   e,
                   <TogglePicker<KpiKey>
                     title="Which tiles?"
-                    options={KPI_ORDER.map((k) => ({ key: k, label: KPI_DEFS[k].label }))}
+                    /* The tiles the dataset declares, in its order — not a list written here. */
+                    options={kpiOrder().map((k: string) => ({ key: k, label: kpiDefs()[k].label }))}
                     selected={b.kpis ?? []}
                     onChange={(next) => patch(b.id, { kpis: next })}
                   />,

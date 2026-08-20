@@ -1490,20 +1490,33 @@ const DATASET_ROW = shape({
 const PROTOTYPE_ROW = (value: unknown, path: string) =>
   value !== null && typeof value === 'object' ? [] : [`${path} should be an object`]
 
+/*
+ * **The register under either name, and the secondary spines only where a dataset has them.**
+ *
+ * This required EPA's four spines. A dataset with one register — which is what a tenant whose
+ * authoring flow composes over projects has — was refused at the boundary for carrying no facilities,
+ * quarters or manifest traces, none of which it has any business carrying. The prototype's own
+ * `validateDataset` walks the rows in detail; this checks the envelope it is handed, so the register
+ * is required and everything EPA-specific is optional.
+ */
 const PROTOTYPE_DATASET = shape({
   meta: shape({}),
   assumptions: shape({}),
   opts: shape({}),
   fields: arrayOf(PROTOTYPE_ROW),
-  generators: arrayOf(PROTOTYPE_ROW),
-  facilities: arrayOf(PROTOTYPE_ROW),
-  quarters: arrayOf(PROTOTYPE_ROW),
-  traces: arrayOf(PROTOTYPE_ROW),
   starters: arrayOf(PROTOTYPE_ROW),
   presets: arrayOf(PROTOTYPE_ROW),
   audiences: arrayOf(PROTOTYPE_ROW),
-  library: arrayOf(PROTOTYPE_ROW),
   slice_default: arrayOf(str),
+  /* The rows the flow composes over. `register` is the tenant-agnostic name; `generators` is EPA's,
+     and a dataset carries one or the other — the prototype's own validator refuses neither. */
+  register: nullable(arrayOf(PROTOTYPE_ROW)),
+  generators: nullable(arrayOf(PROTOTYPE_ROW)),
+  /* EPA's secondary spines, and the prototype's own seeded shelf — all absent in a hosted dataset. */
+  facilities: nullable(arrayOf(PROTOTYPE_ROW)),
+  quarters: nullable(arrayOf(PROTOTYPE_ROW)),
+  traces: nullable(arrayOf(PROTOTYPE_ROW)),
+  library: nullable(arrayOf(PROTOTYPE_ROW)),
 })
 
 const PROTOTYPE_PAYLOAD = shape({

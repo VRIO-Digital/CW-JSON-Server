@@ -8,40 +8,37 @@ import type { Dataset } from '../data';
  * `undefined` somewhere deep in a block.
  */
 
-const RISKS = ['high', 'med', 'low'];
-const KINDS = ['cat', 'num', 'cta'];
-const SPINES = ['generators', 'facilities', 'quarters', 'traces'];
+/* 'text' is a free-text column — a project name or a reason for variance. The catalogue this was
+   written against had none, so it was not in the list; a tenant that has them is not malformed. */
+const KINDS = ['cat', 'num', 'cta', 'text'];
+const SPINES = ['register', 'generators', 'facilities', 'quarters', 'traces'];
 const BLOCK_TYPES = ['kpis', 'chart', 'table', 'facilities', 'quarterly', 'traces'];
 const SLOTS = ['graph', 'scope', 'measure', 'horizon'];
 
 const STATUSES = ['draft', 'published'];
 
+/*
+ * The keys a dataset must carry at all.
+ *
+ * EPA's four spines were on this list — `generators`, `facilities`, `quarters`, `traces` — so a
+ * dataset with one register was refused for not having three rosters it has no business having. The
+ * register is required below under whichever name the dataset uses, and `library` is optional: the
+ * prototype's seeded shelf is its own fiction and a hosted dataset ships none.
+ */
 const TOP_LEVEL: (keyof Dataset)[] = [
   'meta',
   'audiences',
-  'library',
   'fields',
   'assumptions',
   'opts',
-  'generators',
-  'facilities',
-  'quarters',
-  'traces',
   'starters',
   'presets',
   'slice_default',
 ];
 
-const COLLECTIONS: (keyof Dataset)[] = [
-  'audiences',
-  'fields',
-  'generators',
-  'facilities',
-  'quarters',
-  'traces',
-  'starters',
-  'presets',
-];
+/* Of those, the ones that must not be empty — a dataset with no fields or no starters renders
+   nothing at all, which is a lost dataset rather than a small one. */
+const COLLECTIONS: (keyof Dataset)[] = ['audiences', 'fields', 'starters', 'presets'];
 
 export function validateDataset(d: Dataset): Dataset {
   const bad: string[] = [];
@@ -81,23 +78,67 @@ export function validateDataset(d: Dataset): Dataset {
 
   const fieldKeys = new Set(d.fields.map((f) => f.key));
 
-  d.generators.forEach((g, i) => {
-    if (!g.generator) bad.push(`generators[${i}] has no name`);
-    oneOf(`generators[${i}].risk`, g.risk, RISKS);
-    if (typeof g.cd !== 'boolean') bad.push(`generators[${i}].cd must be a boolean`);
-    for (const n of ['evals', 'viols', 'enf', 'penalty', 'tons', 'manifests'] as const) {
-      if (typeof g[n] !== 'number' || Number.isNaN(g[n])) bad.push(`generators[${i}].${n} must be a number`);
+  /*
+   * **The register, checked against the field catalogue rather than against EPA's field names.**
+   *
+   * This used to require `generator`, a `risk` from three literals, a boolean `cd` and six named
+   * numbers — which is a description of one tenant's rows, so another tenant's register could not be
+   * valid however well-formed it was. What is checked now is the thing that actually breaks a render:
+   * a row missing a field the catalogue says is available renders as a blank cell, and a field the
+   * catalogue calls numeric holding a string sorts and totals as `NaN`.
+   */
+  const register = d.register ?? d.generators ?? [];
+  if (register.length === 0) bad.push('the register is empty — the flow would compose over nothing');
+
+  const labelField = d.label_field ?? d.fields.find((f) => f.kind !== 'num')?.key;
+  if (!labelField) {
+    bad.push('no label_field, and no non-numeric field to fall back to — no row could be named');
+  } else if (!fieldKeys.has(labelField)) {
+    bad.push(`label_field "${labelField}" is not one of the fields`);
+  }
+
+  const available = d.fields.filter((f) => f.avail !== false);
+  register.forEach((row, i) => {
+    if (labelField && !row[labelField]) bad.push(`register[${i}] has no ${labelField}`);
+    for (const f of available) {
+      const v = row[f.key];
+      if (v === undefined) {
+        bad.push(`register[${i}] has no "${f.key}", which the catalogue lists as available`);
+      } else if (f.kind === 'num' && (typeof v !== 'number' || Number.isNaN(v))) {
+        bad.push(`register[${i}].${f.key} must be a number`);
+      }
     }
   });
 
-  d.quarters.forEach((q, i) => {
+  /* A tile reads a field, so a tile naming one the register does not carry is a blank figure. */
+  (d.kpis ?? []).forEach((k, i) => {
+    const at = `kpis[${i}] (${k.key || '?'})`;
+    if (!k.key || !k.label) bad.push(`${at} needs a key and a label`);
+    for (const ref of [k.field, k.against]) {
+      if (ref && !fieldKeys.has(ref)) bad.push(`${at} reads "${ref}", which is not a field`);
+    }
+  });
+
+  /* A chart may only plot a field that exists and is numeric. */
+  (d.measures ?? []).forEach((m) => {
+    const f = d.fields.find((x) => x.key === m);
+    if (!f) bad.push(`measures names "${m}", which is not a field`);
+    else if (f.kind !== 'num') bad.push(`measures names "${m}", which the catalogue calls ${f.kind}`);
+  });
+
+  /*
+   * EPA's three secondary spines, checked only where the dataset carries them. A tenant whose
+   * authoring flow has one register does not, and requiring them would mean inventing three rosters
+   * to satisfy a validator.
+   */
+  (d.quarters ?? []).forEach((q, i) => {
     if (!q.quarter) bad.push(`quarters[${i}] has no label`);
     for (const n of ['manifests', 'tons', 'rej', 'res'] as const) {
       if (typeof q[n] !== 'number') bad.push(`quarters[${i}].${n} must be a number`);
     }
   });
 
-  d.traces.forEach((t, i) => {
+  (d.traces ?? []).forEach((t, i) => {
     if (!t.mtn) bad.push(`traces[${i}] has no manifest tracking number`);
     if (!Array.isArray(t.transporters) || t.transporters.length === 0) {
       bad.push(`traces[${i}] (${t.mtn}) has no transporters`);

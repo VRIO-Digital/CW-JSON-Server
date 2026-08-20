@@ -21,6 +21,7 @@ import { Tabs, type TabDef } from './components/Tabs';
 import { useToast } from './components/Toast';
 import { AskPane } from './panes/AskPane';
 import { ConfirmPane } from './panes/ConfirmPane';
+import { AuthorizePane } from './panes/AuthorizePane';
 import { LibraryPane } from './panes/LibraryPane';
 import { ReportPane } from './panes/ReportPane';
 import { UnderDevelopmentPane } from './panes/UnderDevelopmentPane';
@@ -467,6 +468,15 @@ export default function App({
       count: library.length + (governance?.reports.length ?? 0),
     },
     { key: 'author', label: 'Author a report' },
+    /*
+     * **Authorize is a tab and not a button on a card.** Moving reports between lifecycle states is
+     * done across the set — the question is "what is waiting on me", which a grid of cards cannot
+     * answer because the states are scattered through it. Present only with a host: the states are
+     * the tenant's own, served on governance.statuses, so the prototype standing alone has none.
+     */
+    ...(governance
+      ? [{ key: 'authorize' as ReportTab, label: 'Authorize', count: governance.reports.length }]
+      : []),
     { key: 'audience', label: AUDIENCE_TAB_LABEL, badge: 'Soon' },
   ];
 
@@ -880,6 +890,26 @@ export default function App({
         </div>
 
         <div className={'wrap' + (narrow ? ' narrow' : '')} onClick={() => setSelected(null)}>
+          {tab === 'authorize' && (
+            <AuthorizePane
+              governed={governance?.reports}
+              states={governance?.statuses}
+              onAuthorize={
+                actions
+                  ? async (row, status) => {
+                      const label =
+                        governance?.statuses.find((st) => st.key === status)?.label ?? status;
+                      const res = await actions.authorize(row.reportId, status);
+                      toast(
+                        res.ok
+                          ? `“${row.title}” is now ${label}.`
+                          : (res.error ?? `“${row.title}” could not be moved to ${label}.`),
+                      );
+                    }
+                  : undefined
+              }
+            />
+          )}
           {tab === 'library' && (
             <LibraryPane
               mode="library"
@@ -899,20 +929,7 @@ export default function App({
               onShareGoverned={
                 actions ? (row) => setSharing({ kind: 'governed', id: row.reportId }) : undefined
               }
-              onAuthorizeGoverned={
-                actions
-                  ? async (row, status) => {
-                      const label =
-                        governance?.statuses.find((st) => st.key === status)?.label ?? status;
-                      const res = await actions.authorize(row.reportId, status);
-                      toast(
-                        res.ok
-                          ? `“${row.title}” is now ${label}.`
-                          : (res.error ?? `“${row.title}” could not be moved to ${label}.`),
-                      );
-                    }
-                  : undefined
-              }
+              /* No authorize wiring here — the Authorize tab owns that act across the whole set. */
               onRemoveGoverned={actions ? removeGoverned : undefined}
               onShareSaved={
                 shareRoles?.length ? (report) => setSharing({ kind: 'saved', id: report.id }) : undefined

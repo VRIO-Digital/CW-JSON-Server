@@ -449,18 +449,22 @@ const settings = {
  * sample dataset, and an empty `generators` is a document that lost its data rather than a state anybody
  * chose. `meta`, `assumptions` and `opts` are objects the panes read fields off directly.
  */
-const PROTOTYPE_COLLECTIONS = [
-  'fields',
-  'generators',
-  'facilities',
-  'quarters',
-  'traces',
-  'starters',
-  'presets',
-  'slice_default',
-  'audiences',
-  'library',
-]
+/*
+ * **The register under either name, and the collections every dataset must have.**
+ *
+ * This listed EPA's four spines — `generators`, `facilities`, `quarters`, `traces` — each required
+ * non-empty, which made a one-register dataset invalid by construction rather than by anything wrong
+ * with it. Northline's authoring flow composes over capital projects and has no facilities, quarters
+ * or manifest traces; requiring them would have meant inventing three rosters to satisfy a check.
+ *
+ * So the register is required under whichever name the dataset uses, the secondary spines are checked
+ * only where present, and `library` is allowed empty: the prototype's four seeded rows are its own
+ * fiction, and a hosted dataset that ships none is stating a fact rather than missing data.
+ */
+const PROTOTYPE_COLLECTIONS = ['fields', 'starters', 'presets', 'slice_default', 'audiences']
+
+/** The rows the flow composes over — `register` in a tenant-agnostic dataset, `generators` in EPA's. */
+const prototypeRegister = (v) => v?.register ?? v?.generators ?? null
 const PROTOTYPE_OBJECTS = ['meta', 'assumptions', 'opts']
 
 function validatePrototype(candidate) {
@@ -474,6 +478,19 @@ function validatePrototype(candidate) {
     if (!Array.isArray(value)) problems.push(`"${key}" must be an array`)
     else if (value.length === 0) problems.push(`"${key}" is empty — the prototype would render nothing`)
   }
+
+  const register = prototypeRegister(candidate)
+  if (!Array.isArray(register)) {
+    problems.push('"register" (or "generators") must be an array — it is the rows the flow composes over')
+  } else if (register.length === 0) {
+    problems.push('the register is empty — the authoring flow would compose a report over nothing')
+  }
+
+  /* `library` may be absent or empty; the seeded rows are the prototype's own fiction. */
+  if (candidate.library !== undefined && !Array.isArray(candidate.library)) {
+    problems.push('"library" must be an array where it is present')
+  }
+
   return problems
 }
 
@@ -1149,9 +1166,11 @@ const DB_HINTS = {
     'nav_permissions{}, defaults{} carrying the same keys, and read_only{} — what the Settings ' +
     'page administers, from "npm run seed:settings"',
   reports_prototype:
-    'object with meta{}, assumptions{}, opts{} and non-empty fields[], generators[], ' +
-    'facilities[], quarters[], traces[], starters[], presets[], slice_default[], audiences[], ' +
-    'library[] — the authoring prototype’s own sample data, from "npm run db:pull"',
+    'object with meta{}, assumptions{}, opts{}, a non-empty register[] (or generators[]), and ' +
+    'non-empty fields[], starters[], presets[], slice_default[], audiences[] — the authoring flow’s ' +
+    'own dataset. It may also declare label_field, unit, formats{}, kpis[] and measures[], which is ' +
+    'how the flow renders a tenant’s own vocabulary rather than a compiled-in one. ' +
+    'From "npm run ingest:capex-reports", or "npm run db:pull"',
 }
 
 function validateDb(candidate) {
