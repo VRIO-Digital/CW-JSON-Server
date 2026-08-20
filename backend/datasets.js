@@ -175,14 +175,48 @@ export const MERGE_PLAN = {
       summary_default: 'primary',
       data: {
         deep: {
+          /* EPA's four rosters. */
           generators: { union: 'generator' },
           facilities: { union: 'facility' },
           quarters: { union: 'quarter' },
           traces: { union: 'manifest' },
+          /*
+           * **CAPEX's six, and their absence was a live 400 rather than a missing row.**
+           *
+           * `reports.reports` unions, so CAPEX's report definitions reach the merged document — and they
+           * declare `spine: "projects"`. With no rule here that roster dropped out, so
+           * `reportFloorLine` read `db.reports.data.projects.length` on `undefined` and **every**
+           * `/reports` call under `both` answered *"Cannot read properties of undefined (reading
+           * 'length')"*. Which is this plan's own documented hazard, one level below where the boot guard
+           * was looking: `unplannedKeys` checked the top level only and never descended into a `deep`
+           * plan. It descends now, so a seventh roster stops the boot instead of emptying a page.
+           *
+           * The three keyed on an id union on it. The last three are lists of **strings** — business unit,
+           * region and category names — so there is no field to dedup by and `{ union: null }` is the
+           * honest rule. `primary` would have been wrong for all six in the way that is hardest to see:
+           * EPA carries none of them, so it resolves to `undefined` and reproduces the crash it was
+           * supposed to prevent. A rule naming the primary is only safe where the primary has the key.
+           */
+          projects: { union: 'n' },
+          contracts: { union: 'id' },
+          changeOrders: { union: 'id' },
+          business_units: { union: null },
+          regions: { union: null },
+          categories: { union: null },
         },
       },
       reports: { union: 'report_id' },
       saved: { union: 'saved_id' },
+      /*
+       * CAPEX-only descriptions of its own rosters — the register's roster/identity/fields, and the
+       * authoring fixture the generator wrote. `primary` rather than a union: they describe **one**
+       * package's data, so merging two would produce a field dictionary belonging to neither. EPA has
+       * neither, so `both` carries none — the same deliberate answer `authoring_document` gives, and
+       * safe here for the reason it is safe there: nothing reads them, so resolving to `undefined`
+       * costs a description rather than a page.
+       */
+      register: 'primary',
+      authoring_fixture: 'primary',
       /*
        * The **rendered** reports a dataset ships as documents rather than as questions.
        *
@@ -220,9 +254,36 @@ export const MERGE_PLAN = {
   },
 }
 
-/** A key in a document that `MERGE_PLAN` says nothing about — the boot guard reports these. */
-export function unplannedKeys(doc, plan = MERGE_PLAN) {
-  return Object.keys(doc ?? {}).filter((k) => !(k in plan))
+/**
+ * Every key in a document that `MERGE_PLAN` says nothing about, as a dotted path.
+ *
+ * **It descends, and it did not.** The rule this guard exists for is stated above — a key with no
+ * entry is dropped from the merged document, `validateDb` never sees it because it validates the two
+ * real documents rather than the view built from them, and the symptom is a page that works under the
+ * primary and is broken under `both`. All of that is as true of a nested key as a top-level one, and the
+ * check covered only the top level: CAPEX's six `reports.data` rosters had no rule, dropped silently,
+ * and turned every `/reports` call under `both` into a 400 — while the boot reported nothing, because
+ * `reports` itself was planned.
+ *
+ * Only a `deep` rule is descended into, which is exactly the set of rules that recurse in
+ * `mergeValue`. `primary` takes the whole value, `keyed` merges key sets and a union works on rows —
+ * none of them can drop a key the caller did not name, so none of them needs checking below itself.
+ */
+export function unplannedKeys(doc, plan = MERGE_PLAN, trail = "") {
+  const unplanned = []
+  for (const key of Object.keys(doc ?? {})) {
+    const path = trail ? trail + "." + key : key
+    if (!(key in plan)) {
+      unplanned.push(path)
+      continue
+    }
+    const rule = plan[key]
+    const value = doc[key]
+    const nested =
+      rule && typeof rule === "object" && rule.deep && value && typeof value === "object" && !Array.isArray(value)
+    if (nested) unplanned.push(...unplannedKeys(value, rule.deep, path))
+  }
+  return unplanned
 }
 
 function unionRows(primary, secondary, field) {

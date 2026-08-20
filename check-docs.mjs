@@ -4227,7 +4227,11 @@ expect(
 expect(
   'the restriction bases are derived from the register, never written',
   /fields\.filter\(\(f\) => f\.filterable\)/.test(server) &&
-    /GOVERNANCE_IDENTITY/.test(server) &&
+    /* The identity column is derived too. This asserted a `GOVERNANCE_IDENTITY` constant until CAPEX
+       arrived with a register whose identity is not `'generator'`: the fact was always "derived, never
+       written", and that constant was the written half of it. */
+    /const \{ identity, fields \} = reportRegister\(\)/.test(server) &&
+    !/GOVERNANCE_IDENTITY/.test(server) &&
     /* The page renders what it was served rather than a copy of the field list. */
     /bases\.map\(/.test(ruleEditor) &&
     !/'state'|'risk'|'generator'/.test(codeOnly(ruleEditor)),
@@ -4235,6 +4239,28 @@ expect(
     .filter((f) => f.filterable)
     .map((f) => f.key)
     .join(', ') + ' + the identity column',
+)
+/*
+ * **And the governed roster is the dataset's own, not EPA's spine spelled out five times.**
+ *
+ * Five sites read `db.reports.data.generators` directly. EPA has that roster and CAPEX does not, so
+ * `GET /governance` was a flat 400 for the second dataset — and a page that 400s reads as a broken
+ * server rather than as a dataset it has nothing to say about. `reportRegister()` reads the
+ * `reports.register` block CAPEX already ships (its roster, its identity column, its own dictionary)
+ * and defaults to EPA's spine, so EPA's answer is unchanged to the byte.
+ *
+ * The absence is the half worth guarding: a sixth site added tomorrow reading the roster directly
+ * brings the 400 back for that dataset alone, which nothing exercised under EPA would ever see. Paired
+ * with presence claims over the same region, because "X is absent" passes just as happily over a file
+ * whose middle has been deleted.
+ */
+expect(
+  'the governed roster is read from the dataset’s own register, never EPA’s spine',
+  /const reportRegister = \(\) => \(\{/.test(server) &&
+    /roster: db\.reports\.register\?\.roster \?\? 'generators'/.test(server) &&
+    /const registerRows = \(\) => db\.reports\.data\[reportRegister\(\)\.roster\] \?\? \[\]/.test(server) &&
+    !/db\.reports\.data\.generators/.test(codeOnly(server)),
+  'CAPEX has no generators roster, so a direct read is a 400 for that dataset and no other',
 )
 /*
  * The two audience models stay apart. A report keeps persona ids and a scenario keeps addresses;
@@ -5711,7 +5737,7 @@ expect(
 expect(
   'a scoped chart carries the share it raises, computed over the whole register',
   /function reportShareChart\(field, title, note\)/.test(server) &&
-    /const rows = db\.reports\.data\.generators/.test(
+    /const rows = registerRows\(\)/.test(
       /function reportShareChart[\s\S]*?\n\}/.exec(server)?.[0] ?? '',
     ) &&
     /companion: share/.test(server),

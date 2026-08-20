@@ -2445,7 +2445,12 @@ One page for **who sees what**, over `AuditPage` → `governanceStore` → `GET 
   names a *person*, and the server writes to whichever pool that artifact actually keeps
   (`governanceAddReader`). Each row states which it is, so one is not read as the other.
 - **What they see inside** — an access rule per persona: a restriction **basis** plus the values it
-  admits, resolved against the live 36-generator register. **The basis list is derived, never
+  admits, resolved against **that dataset's own register** — EPA's 36 inbound generators, CAPEX's 60
+projects. `reportRegister()` reads the `reports.register` block a document ships (its roster, its
+identity column, its own field dictionary) and defaults to EPA's spine, so EPA is unchanged; five
+sites read `db.reports.data.generators` directly before that, which made `GET /governance` a flat 400
+under CAPEX — a page that 400s reads as a broken server rather than as a dataset it has nothing to say
+about. `check-docs` asserts no direct read comes back. **The basis list is derived, never
   written**: the register's identity column plus every field the dictionary declares `filterable`.
   `enf` is deliberately absent because the dictionary does not declare it — a basis nobody could
   slice a report by is not one.

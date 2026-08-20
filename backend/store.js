@@ -20,6 +20,28 @@
 import { createHash, createHmac } from 'node:crypto'
 import { readFile, rename, writeFile } from 'node:fs/promises'
 
+/**
+ * How long one S3 request may take before it is abandoned.
+ *
+ * **A boot read with no deadline is a deploy that hangs rather than a deploy that fails.** The two
+ * documents are read *above* `server.listen`, so an S3 call that never returns is a server that never
+ * listens — and on Elastic Beanstalk that surfaces as *"The following instances have not responded in
+ * the allowed command timeout time"* fourteen minutes later, which names the instance and says nothing
+ * about S3. The IMDS calls below have always had `AbortSignal.timeout(2000)` for exactly this reason;
+ * the object reads did not — which is the half that matters, because the object reads are the ones on
+ * the boot path.
+ *
+ * **The failure it was written for is an instance with no egress**, and it is not hypothetical: this
+ * environment ran with no public IP on its instance, no NAT and no S3 VPC endpoint, so the connection
+ * to `s3.us-east-1.amazonaws.com` had nowhere to go and nothing to report. A refusal naming the ref
+ * turns an unattributable platform timeout into one line in the application log.
+ *
+ * Generous rather than tight: 2 MB across a continent is seconds, not milliseconds — `db.CAPEX.json`
+ * measured ~2.9s from India — and this is a deadline for a stuck call, not a latency budget. Anything
+ * short enough to be interesting is short enough to fail a legitimate slow write.
+ */
+const S3_TIMEOUT_MS = 30_000
+
 /** The separator SigV4 joins its canonical form with. Named so no editor can reflow it to CRLF. */
 const LF = '\n'
 
@@ -316,7 +338,23 @@ async function signedFetch({ method, bucket, key, body, extra = {} }) {
     extra,
   })
 
-  return fetch(`https://${host}${path}`, { method, headers, body })
+  const url = `https://${host}${path}`
+  try {
+    return await fetch(url, { method, headers, body, signal: AbortSignal.timeout(S3_TIMEOUT_MS) })
+  } catch (error) {
+    /* A timeout and a dead route are one fact to a reader — the bucket is not reachable from here —
+       and neither says so alone: an aborted signal throws a bare "The operation was aborted", and an
+       unroutable host throws "fetch failed" with the cause buried a level down. */
+    const why =
+      error?.name === 'TimeoutError' || error?.name === 'AbortError'
+        ? `did not answer within ${S3_TIMEOUT_MS / 1000}s`
+        : `could not be reached (${error?.cause?.code ?? error?.cause?.message ?? error?.message})`
+    throw new Error(
+      `${method} s3://${bucket}/${key} — ${host} ${why}. Check that this box has egress to S3 ` +
+        '(a public IP, a NAT gateway or an S3 VPC endpoint), or set S3_BUCKET=off to read the ' +
+        'documents shipped in this bundle instead.',
+    )
+  }
 }
 
 /**

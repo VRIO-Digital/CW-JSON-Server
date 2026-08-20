@@ -3787,3 +3787,56 @@ printed for is worse than no remedy.* The same reasoning is why `validateDb` nam
 restore command, and why the boot banner prints the ref it actually read. An error message is a branch of
 the program, and a branch that is right for the default case and quietly wrong for every other one is a
 bug with better manners.
+
+## A second real document exposed two crashes that a one-document tenant could never reach
+
+**Context.** `CAPEX/db.json` reached the bucket for the first time, so `dataset=both` merged two real
+documents rather than one and a placeholder. Both bugs below were already in the tree; neither was
+reachable while EPA was effectively the only populated dataset.
+
+### `both` answered every `/reports` call with a 400
+
+**Symptom.** `Cannot read properties of undefined (reading 'length')` from `reportFloorLine`, on every
+request under `both`. EPA and CAPEX each answered 200.
+
+**Cause.** `MERGE_PLAN.reports.deep.data.deep` named EPA's four rosters and none of CAPEX's six, so
+those six dropped out of the merged document — while `reports.reports` *unions*, so CAPEX's report
+definitions arrived declaring `spine: "projects"`. `db.reports.data.projects` was then `undefined`.
+This is the hazard `MERGE_PLAN`'s own comment describes, and the boot guard written for it
+(`unplannedKeys`) **checked the top level only** and never descended into a `deep` plan — so the boot
+was silent, because `reports` itself was planned.
+
+**Fix.** The six rules, plus `unplannedKeys` now recursing into `deep` plans and reporting dotted
+paths. Only `deep` is descended into, which is exactly the set of rules that recurse in `mergeValue`.
+
+**The trap inside the fix.** `primary` looks like the safe rule and is wrong for all six in the least
+visible way: EPA carries none of those keys, so it resolves to `undefined` and reproduces the crash it
+was supposed to prevent. **A rule naming the primary is only safe where the primary has the key.**
+`authoring_document` gets away with it because nothing reads it.
+
+### `GET /governance` was a flat 400 under CAPEX
+
+**Cause.** Five sites read `db.reports.data.generators` — EPA's spine — directly. CAPEX has no such
+roster. Independent of the merge bug: it failed identically with `datasets.js` reverted.
+
+**Fix.** `reportRegister()` reads the `reports.register` block CAPEX already ships — roster, identity
+column and its own field dictionary — defaulting to EPA's spine, so EPA's output is unchanged to the
+byte (36 generators, bases `generator*/state/risk/cd`). CAPEX now reports 60 projects with identity
+`n`. The label lookup moved to the register's dictionary too: keys come from that list, so reading
+labels from `db.reports.fields` left a register it does not describe printing raw keys — the
+`gen_state` failure `REPORT_LABELS` exists to prevent one layer up.
+
+**Guard.** A claim that no direct read of the roster comes back, paired with presence claims on the
+helper. Two existing claims went red and **both were keyed to the spelling rather than the fact** —
+one on the `GOVERNANCE_IDENTITY` constant, one on `const rows = db.reports.data.generators`. The facts
+they guard ("derived, never written"; "the share is of the register") were still true. Updated, not
+deleted, and all three break-tested.
+
+**The process lesson, which is the reusable one.** The event stream said *"Failed to deploy
+application"* and the zip was blameless; the real cause was an instance with no egress, and the
+read-only AWS calls that proved it (`describe-instances-health`, `describe-instances`,
+`describe-route-tables`) took a minute. **Two of my own verification steps were themselves vacuous** —
+a "simulation" that never installed its DNS override and so tested the happy path, and an error-
+extraction that read `/tmp` on Windows and silently printed nothing for every case. A check that
+cannot fail is a comment; that applies to the checks written while debugging, not just the ones
+committed.

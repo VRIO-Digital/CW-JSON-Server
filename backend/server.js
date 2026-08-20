@@ -5021,7 +5021,7 @@ const reportRows = (report) =>
  * draw, and a full ring is not a comparison.
  */
 function reportShareChart(field, title, note) {
-  const rows = db.reports.data.generators
+  const rows = registerRows()
   const carrying = rows.filter((r) => Number(r.viols) > 0)
   const clean = rows.filter((r) => Number(r.viols) === 0)
   const sum = (set) => set.reduce((t, r) => t + Number(r[field] ?? 0), 0)
@@ -5830,6 +5830,39 @@ const reportEntitlementCell = (governanceRow, roleId) => {
 }
 
 /**
+ * **The register this dataset governs, described by the dataset rather than assumed.**
+ *
+ * Five places read `db.reports.data.generators` directly, which is EPA's spine — and CAPEX has no such
+ * roster, so every one of them threw `Cannot read properties of undefined (reading 'length')` and
+ * `GET /governance` was a flat 400 for that dataset. A page that 400s reads as a broken server rather
+ * than as a dataset the page has nothing to say about, which is the failure this repo refuses
+ * everywhere else.
+ *
+ * **CAPEX already answers the question**: its document ships `reports.register` — the roster's key, its
+ * identity column and its own field dictionary — which is exactly what these sites need and is why it
+ * is read here rather than a second table being written. EPA ships none, so the defaults *are* EPA's
+ * spine and its behaviour is unchanged to the byte.
+ *
+ * Under `both` the merged `register` is `primary`, so this resolves to the defaults — correct, because
+ * every single-valued key under `both` comes from EPA, and the governed roster is one of them.
+ */
+const reportRegister = () => ({
+  roster: db.reports.register?.roster ?? 'generators',
+  identity: db.reports.register?.identity ?? 'generator',
+  fields: db.reports.register?.fields ?? db.reports.fields,
+})
+
+/**
+ * The register's rows, or an empty list.
+ *
+ * Empty rather than `undefined`: a dataset whose register this document does not carry has nothing to
+ * govern, which every caller here already renders as "no rows" — where `undefined` is a crash. The
+ * distinction matters because `?? 0`-style defaults are how "nobody has counted" becomes "zero", and an
+ * empty roster genuinely is the answer for a dataset with no register.
+ */
+const registerRows = () => db.reports.data[reportRegister().roster] ?? []
+
+/**
  * The floor under a report: the roster it reads and how much of it there is.
  *
  * Derived from the report's own spine rather than authored, so a report cannot claim a floor it
@@ -6232,16 +6265,20 @@ const logGovernance = (category, actor, text, detail) => {
  * and a field the dictionary stops declaring disappears from both at once. `enf` is deliberately
  * absent for exactly that reason: the dictionary does not declare it filterable.
  */
-const GOVERNANCE_IDENTITY = 'generator'
 const governanceBases = () => {
-  const rows = db.reports.data.generators
+  const rows = registerRows()
+  const { identity, fields } = reportRegister()
   const keys = [
-    GOVERNANCE_IDENTITY,
-    ...db.reports.fields.filter((f) => f.filterable).map((f) => f.key),
+    identity,
+    ...fields.filter((f) => f.filterable).map((f) => f.key),
   ].filter((k, i, all) => all.indexOf(k) === i && k in (rows[0] ?? {}))
 
   return keys.map((key) => {
-    const field = db.reports.fields.find((f) => f.key === key)
+    /* The **register's** dictionary, not the section's: it is the list `keys` came from, so every
+       basis is guaranteed a label. Read off `db.reports.fields` instead, a register whose columns that
+       dictionary does not describe falls through to the raw key — a chip reading `gen_state`, which is
+       the same failure REPORT_LABELS exists to prevent one layer up. */
+    const field = fields.find((f) => f.key === key)
     /* The values are the roster's own distinct values, each carrying how many rows it admits —
        so an empty basis reads as "nothing qualifies" rather than as a control that failed. */
     const seen = new Map()
@@ -6253,7 +6290,7 @@ const governanceBases = () => {
     return {
       basis: key,
       label: field?.label ?? REPORT_LABELS[key] ?? key,
-      identity: key === GOVERNANCE_IDENTITY,
+      identity: key === identity,
       values: [...seen.entries()]
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([value, count]) => ({
@@ -6275,7 +6312,7 @@ const governanceBases = () => {
 /** The rows one rule admits, against today's roster. */
 const governanceRows = (rule) => {
   if (!rule || !rule.basis || !Array.isArray(rule.values) || rule.values.length === 0) return []
-  return db.reports.data.generators.filter((row) =>
+  return registerRows().filter((row) =>
     rule.values.some((v) => String(row[rule.basis] ?? '') === String(v)),
   )
 }
@@ -6288,7 +6325,7 @@ const governanceRows = (rule) => {
  * means, and it is stated rather than defaulted to "everything".
  */
 const governanceResolution = (scope) => {
-  const total = db.reports.data.generators.length
+  const total = registerRows().length
   const basis = scope.rule ? governanceBases().find((b) => b.basis === scope.rule.basis) : null
   if (scope.full && scope.mask) {
     return { kind: 'mask', count: total, total, summary: 'Totals only — row figures masked', sample: [] }
@@ -6318,7 +6355,7 @@ const governanceResolution = (scope) => {
     total,
     summary: `${basis.label}: ${scope.rule.values.map(labelFor).join(', ')}`,
     /* Named, because "32 of 36" is not checkable and a list of names is. */
-    sample: rows.map((r) => String(r[GOVERNANCE_IDENTITY])),
+    sample: rows.map((r) => String(r[reportRegister().identity])),
   }
 }
 
@@ -6481,7 +6518,7 @@ const governanceRemoveReader = async (artifact, email) => {
 const governanceView = () => ({
   connected_sources: connectedSources().length,
   ...reportGraphCounts(),
-  roster_total: db.reports.data.generators.length,
+  roster_total: registerRows().length,
   bases: governanceBases(),
   people: governancePeople(),
   artifacts: governanceArtifacts(),
