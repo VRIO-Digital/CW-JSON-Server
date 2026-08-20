@@ -72,7 +72,15 @@ function reviewNote(n: CanvasPayload['nodes'][number]): string | undefined {
   if (n.proposed) parts.push('Proposed — its review row is still open, so it may not survive')
   if (n.origin === 'studio-authored') parts.push('Studio-authored — corrected by a reviewer')
   if (n.rejected) parts.push('Rejected in review')
-  if (n.needsReview) parts.push(`Needs review at confidence ${n.confidence.toFixed(2)}`)
+  /* The score is stated only where the package derived one: CAPEX scores none of its 442 nodes, and
+     "at confidence 0.00" would put the deriver's lowest possible verdict on a node it never scored —
+     the same claim "0 rows" makes about a table nobody counted. The fact a reviewer needs is that it
+     needs review, and that is said either way. */
+  if (n.needsReview) {
+    parts.push(
+      n.confidence === null ? 'Needs review' : `Needs review at confidence ${n.confidence.toFixed(2)}`,
+    )
+  }
   return parts.length > 0 ? `${parts.join('. ')}.` : undefined
 }
 

@@ -6037,19 +6037,38 @@ expect(
 )
 
 /*
- * **The publish gate is about questions, so a rendered document is not behind it.**
+ * **Publication is the only gate, and a rendered document is behind it like everything else.**
  *
- * An EPA report is asked of the published graph — serving one with nothing published would answer from
- * content nobody released. A CAPEX report asked nothing of a graph, so gating it would enforce a
- * precondition it does not have and leave the section empty for a dataset that ships three reports. So
- * the documents ride on **both** branches of `GET /reports`, and the page's gate tests both counts.
+ * It was not, briefly: the argument was that a gate about *questions* should not apply to a finished
+ * artefact, since nothing was asked of a graph to produce one. Reversed on request — *"report and
+ * whatif lens should be activated after publishing the graph studio for the capex data"* — because what
+ * that argument produced was a **section** where what was wanted is a **sequence**: the graph is
+ * released first, and the surfaces that read the tenant's data open after it.
+ *
+ * **So the shape is one gate, one branch that carries anything, one number tested.** Both halves are
+ * asserted, because either alone fails silently in a different direction: a page that tests two counts
+ * against a server that sends documents on one branch shows an empty prototype instead of the gate, and
+ * a page that tests one count against a server that sends them on both leaves the documents unreachable
+ * with nothing saying why.
  */
+const reportsPageSrc = read('frontend/src/pages/ReportsPage.tsx')
 expect(
-  'a dataset that ships rendered documents is not gated on a published graph',
-  /publishedCount === 0 && data\.documents\.length === 0/.test(read('frontend/src/pages/ReportsPage.tsx')) &&
-    /* Served whether or not the gate is closed — two branches, both carrying them. */
-    (server.match(/authoring_document: authoringDocument,/g) ?? []).length === 2,
-  'the gate still holds for computed reports; documents are not behind it',
+  'a rendered document is behind the publish gate, like every other surface that reads tenant data',
+  /* One number decides it — and the old two-count form is gone rather than merely unused. */
+  /if \(data && data\.publishedCount === 0\) \{/.test(codeOnly(reportsPageSrc)) &&
+    !/publishedCount === 0 && data\.documents\.length === 0/.test(codeOnly(reportsPageSrc)) &&
+    /* One branch carries them: the gated branch sends the empty literal, the open one the real thing. */
+    (server.match(/authoring_document: authoringDocument,/g) ?? []).length === 1 &&
+    /*
+     * Asserted as the gated branch's own **block**, not as three tokens anywhere in the file:
+     * `documents: []` also appears in a Drive folder shape two thousand lines away, so a whole-file
+     * probe for it passed straight over the gate being reopened. Found by breaking the claim, and it is
+     * the same trap this file already records for absence claims — assert at the site, not the spelling.
+     */
+    /governance: null,[\s\S]{0,600}?documents: \[\],\r?\n\s*authoring_document: null,/.test(server) &&
+    /* And the governance exception that existed only to support the ungated documents is gone with them. */
+    !/documents\.length > 0 \? reportGovernanceView/.test(server),
+  'one gate, one branch, one number — for computed reports and rendered documents alike',
 )
 
 /*
@@ -6118,16 +6137,17 @@ expect(
     !lensRowSrc.includes(lensDoc.title) &&
     !lensRowSrc.includes(lensDoc.subtitle) &&
     !lensDoc.tabs.some((t) => lensRowSrc.includes(`'${t.label}'`)) &&
-    /* Served on **both** branches, because a rendered lens is not behind the publish gate: it asked
-       nothing of a graph. Counted, the way the report documents' two branches are. */
-    (server.match(/document: whatifDocument\(\)/g) ?? []).length === 2 &&
-    /* The page frames it *before* the gate and before the lens, so a dataset that ships one never
-       renders either — and it renders the served row rather than a path built here. */
-    /\{frame\.document \? \(\r?\n\s*<DocumentViewer document=\{frame\.document\} seamless \/>/.test(
-      whatIfPageCode,
-    ) &&
-    whatIfPageCode.indexOf('frame.document ?') <
-      whatIfPageCode.indexOf('frame.publishedCount === 0 ?') &&
+    /* Served on the **open branch only**: a rendered lens is behind the publish gate too, reversed on
+       request along with the report documents. One occurrence, and the gated branch sends null. */
+    (server.match(/document: whatifDocument\(\)/g) ?? []).length === 1 &&
+    /document: null,/.test(server) &&
+    /* The page tests the gate **first** and frames the document after it, so a dataset that ships one
+       still shows the gate until something is published — and it renders the served row rather than a
+       path built here. */
+    /\{frame\.publishedCount === 0 \? \(/.test(whatIfPageCode) &&
+    /<DocumentViewer document=\{frame\.document\} seamless \/>/.test(whatIfPageCode) &&
+    whatIfPageCode.indexOf('frame.publishedCount === 0 ?') <
+      whatIfPageCode.indexOf('frame.document ?') &&
     /* Resolved through its own glob into the one lookup the reports use — a second module would be a
        second copy of the single-file guarantee. */
     /import\.meta\.glob\('\.\.\/\*\/what-if-lens\/\*\.html'/.test(

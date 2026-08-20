@@ -150,11 +150,12 @@ export default function WhatIfPage() {
        * frame with nothing in it and a pool reading "nobody qualifies", which is an answer, and the
        * wrong one.
        *
-       * **Checked before the gate, because the gate is about questions.** A computed lens overlays
-       * the published graph, so with nothing published its figures would be attributed to content
-       * nobody released. A rendered document asked nothing of a graph, so gating it would enforce a
-       * precondition it does not have and leave the page empty for a dataset that ships one — the
-       * same reasoning, and the same ordering, as the report section's documents.
+       * **Checked *after* the gate, because publication is the one precondition.** A rendered lens
+       * briefly sat outside it — it asked nothing of a graph, so there was nothing for the gate to be
+       * about. Reversed on request: the graph is released first and the surfaces that read the
+       * tenant's data open after it. So the gate is tested first for every dataset, and the document
+       * is what fills the page once something is published. The server agrees rather than being
+       * second-guessed here: it sends `document: null` while the gate is closed.
        *
        * **`seamless`, because the frame is the whole page.** There is no Back — the Library frames a
        * report instead of its list, and this frames the only thing here — no Export button and no bar
@@ -162,10 +163,8 @@ export default function WhatIfPage() {
        * read as a panel dropped onto the app. What that costs is the print button, which is stated in
        * the viewer rather than glossed.
        */}
-      {frame.document ? (
-        <DocumentViewer document={frame.document} seamless />
-      ) : frame.publishedCount === 0 ? (
-        /* The second precondition. The copy calls this a read-only overlay *on the
+      {frame.publishedCount === 0 ? (
+        /* The one precondition. The copy calls this a read-only overlay *on the
            knowledge graph*: with nothing published there is no graph to overlay, and
            figures shown anyway would be attributed to content nobody has published. */
         <NoPublishedGraph
@@ -173,6 +172,8 @@ export default function WhatIfPage() {
           builtCount={frame.builtCount}
           draftCount={frame.draftCount}
         />
+      ) : frame.document ? (
+        <DocumentViewer document={frame.document} seamless />
       ) : (
         <WhatIfLens frame={frame} onMessage={message.error} />
       )}

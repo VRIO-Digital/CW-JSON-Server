@@ -1026,7 +1026,8 @@ export interface CanvasNode {
   /** Radius in canvas units, from the server so a reload draws one picture. */
   r: number
   group: CanvasGroup
-  confidence: number
+  /** Null where the package scored no node — CAPEX scores none of its 442. Never defaulted to 0. */
+  confidence: number | null
   /** True while the review item behind it is undecided. */
   proposed: boolean
   origin: 'derived' | 'studio-authored'
@@ -2213,7 +2214,15 @@ const CANVAS_NODE = shape({
   degree: num,
   r: num,
   group: oneOf(['row', 'schema', 'document', 'alias']),
-  confidence: num,
+  /*
+   * **Nullable, because a package may score no node at all.** CAPEX scores none of its 442 — the
+   * package states no per-node confidence — while EPA scores all 189, so `num` here was true of one
+   * dataset by accident. It would have refused the other's entire canvas with "confidence should be a
+   * number, got null", which reads as a stale server and is not one. The same shape as `rows` on a
+   * browsed table, and the same rule: check every consumer for a `?? 0`, because a default that
+   * lies satisfies the compiler and states a score nobody derived.
+   */
+  confidence: nullable(num),
   proposed: bool,
   origin: oneOf(['derived', 'studio-authored']),
   rejected: bool,
@@ -3846,7 +3855,7 @@ interface RawCanvasNode {
   degree: number
   r: number
   group: CanvasGroup
-  confidence: number
+  confidence: number | null
   proposed: boolean
   origin: 'derived' | 'studio-authored'
   rejected: boolean

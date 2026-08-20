@@ -3510,8 +3510,23 @@ function studioCanvas(useCaseId, answerPath = [], answerEdges = null) {
     return {
       node_id: n.node_id,
       label: n.label,
-      // A proposed node says so, and says how sure the deriver was.
-      sublabel: s.proposed ? `proposed · ${n.confidence.toFixed(2)}` : n.sublabel,
+      /*
+       * A proposed node says so, and says how sure the deriver was **where the deriver said**.
+       *
+       * `confidence` is nullable on a canvas node and this crashed the whole process on the first
+       * CAPEX build: all 442 of its nodes carry `null` — the package states no per-node score — and
+       * 14 of them carry an undecided `review_item_id`, so `proposed` was true and `.toFixed` was
+       * called on null. Inside a build's `setTimeout`, which makes it an uncaught exception rather
+       * than a failed request: the server exits and every other dataset goes down with it.
+       *
+       * **Absent is not 0.00.** Printing a zero would state the deriver's lowest possible confidence
+       * in a node it never scored, which is the same lie as "0 rows" for a table nobody counted.
+       * So the number is appended only when there is one, and the word "proposed" — which is the
+       * fact the reviewer needs — is said either way.
+       */
+      sublabel: s.proposed
+        ? `proposed${n.confidence === null || n.confidence === undefined ? '' : ` · ${n.confidence.toFixed(2)}`}`
+        : n.sublabel,
       /* What the node *is*, and where it came from. `group` is the origin class the
          colour encodes — a row, a column value, a document, a resolved alias — and
          `source` is the Catalog object itself, so a node on the canvas can be
@@ -4655,11 +4670,12 @@ function whatifFormat(value, format) {
  * decomposition moved by sliders. So the pointer to that page rides on the frame and the client frames
  * it, which is the same arrangement `reports.documents` already has.
  *
- * **Served on both branches, because the publish gate is about questions.** The lens overlays the
- * published graph, so a *computed* lens with nothing published would report figures traversed from
- * content nobody released. A rendered document asked nothing of a graph, so gating it would enforce a
- * precondition it does not have and leave the page empty for a dataset that ships one. Identical
- * reasoning to `GET /reports`, which carries its documents through its own gate.
+ * **Behind the publish gate, so it is served on the open branch only.** A computed lens with nothing
+ * published would report figures traversed from content nobody released; a rendered one asked nothing of
+ * a graph, which is why it rode both branches at first. That was reversed on request — the graph is
+ * released first and the surfaces that read the tenant's data open after it — so this is reached only
+ * once `published_count` is non-zero, and the gated branch sends `null`. Identical reasoning, and
+ * identical shape, to `GET /reports`.
  */
 const whatifDocument = () => db.whatif.document ?? null
 
@@ -9150,9 +9166,12 @@ const routes = [
           runtime: db.whatif.runtime,
           publishing: db.whatif.publishing,
           graph_reference: db.whatif.graph_reference,
-          /* The one thing on this branch that is not empty. A rendered lens is not behind the publish
-             gate — it asked nothing of a graph — so the page frames it instead of showing the gate. */
-          document: whatifDocument(),
+          /*
+           * `null` on this branch: a rendered lens is behind the publish gate too, reversed on request
+           * along with the report documents. The page shows the gate here and frames the document only
+           * once something is published — one rule for both kinds of lens, and for both datasets.
+           */
+          document: null,
         })
       }
       send(res, 200, {
@@ -9767,17 +9786,25 @@ const routes = [
       const counts = reportGraphCounts()
 
       /*
-       * **The rendered documents ride on both branches, because the publish gate is not about them.**
+       * **The rendered documents are behind the publish gate, exactly like the computed ones.**
        *
-       * That gate exists because an EPA report *is* a question asked of the published graph — serving
-       * one with nothing published would be answering from content nobody released. A CAPEX report is a
-       * finished document: nothing was asked of a graph to produce it, so withholding it until a graph is
-       * published would be enforcing a precondition it does not have, and the section would read as
-       * empty for a dataset that ships three reports.
+       * They were not, and that was reversed on request: *"report and whatif lens should be activated
+       * after publishing the graph studio for the capex data"*. The earlier reasoning was that a gate
+       * about questions should not apply to a finished document — nothing was asked of a graph to
+       * produce one, so withholding it enforced a precondition it did not have. What that argued for is
+       * a **section**, and what was actually wanted is a **sequence**: the graph is released first, and
+       * the surfaces that read the tenant's data open after it. Publication is that release, for a
+       * dataset whose reports are computed and one whose reports are documents alike.
        *
-       * They are named `documents` rather than folded into `reports` for the same reason: a computed
-       * report and a rendered one are different things, and a reader has to be able to tell which they
-       * are looking at.
+       * So there is **one gate and one branch that carries anything**, which is the shape this file had
+       * before documents existed: nothing published means empty collections and `published_count: 0`,
+       * with `built_count` and `draft_count` beside it because "publish the build you have" and
+       * "finish a draft" are different fixes. The page renders `NoPublishedGraph` on that branch and
+       * tests one number to decide, so the two datasets cannot come to disagree about what opens the
+       * section.
+       *
+       * They are still named `documents` rather than folded into `reports`: a computed report and a
+       * rendered one are different things, and a reader has to be able to tell which they are looking at.
        */
       const documents = db.reports.documents ?? []
       const authoringDocument = db.reports.authoring_document ?? null
@@ -9792,20 +9819,19 @@ const routes = [
           saved: [],
           authoring: null,
           /*
-           * **The governance view rides along for a dataset that ships documents, and only for one.**
-           *
-           * It is `null` while the gate is closed because there is normally nothing to govern until a
-           * graph is published — a governance block full of empty lists reads as "nothing governed".
-           * A dataset whose reports are *documents* has a library either way, so withholding it would
-           * leave the Library with no chips and no rows for reports that plainly exist.
-           *
-           * `reportGovernanceView` reads `db.reports.governance` and nothing about a published graph,
-           * so this is a wider *audience* for an already-computed view rather than a looser gate. EPA
-           * still gets `null` here, which is what keeps its documented behaviour unchanged.
+           * `null`, for both datasets now. It was served here when `documents` was non-empty, so that a
+           * dataset whose reports are documents had a Library while the gate was closed — that exception
+           * existed only to support the ungated documents above, and it goes with them. A governance
+           * block full of empty lists reads as "nothing governed", and there *is* nothing to govern
+           * until a graph is published.
            */
-          governance: documents.length > 0 ? reportGovernanceView(reportRoleFrom(query)) : null,
-          documents,
-          authoring_document: authoringDocument,
+          governance: null,
+          /*
+           * Empty on this branch, and the key is still sent because the client validates its shape on
+           * every branch — the same reason `graphs` and `saved` are sent empty rather than omitted.
+           */
+          documents: [],
+          authoring_document: null,
         })
       }
       /* The role the browser reports, read by `reportRoleFrom` — the same reader for this GET and

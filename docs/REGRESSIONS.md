@@ -3907,3 +3907,84 @@ when a sibling rule legitimately has one. Both are the failure docs/REGRESSIONS.
 the other side: a break test that cannot mutate reports a working guard as unbreakable. The harness now
 takes a regex over `\r?\n` and a *specific* probe for the edit having landed, and reports "did not
 land" distinctly from "missed" — the distinction is what stopped two correct guards from being rewritten.
+
+## Building a CAPEX graph killed the server: `.toFixed()` on a null canvas confidence
+
+**Symptom.** The mock server **exited** partway through the first CAPEX graph build. Not a failed
+request — the whole process, taking every other dataset with it, and the next poll got an empty reply
+that reads as "the server is not running" with no clue why it stopped. The log had it:
+
+    TypeError: Cannot read properties of null (reading 'toFixed')
+      at studioCanvas (backend/server.js:3514)
+      at recordVersion (backend/server.js:2899)
+      at Timeout.step (backend/server.js:2983)
+
+**Cause.** `studioCanvas` labelled a proposed node `proposed · ${n.confidence.toFixed(2)}`.
+`confidence` is `null` on **all 442** CAPEX canvas nodes — the package states no per-node score — and
+14 of them carry an undecided `review_item_id`, which is what makes a node *proposed*. EPA scores all
+189 of its nodes, so the expression was true of one dataset by accident. It is the pitfall this file
+already records for `rows: num` versus CAPEX's `rows: null`, in a place where the consequence is worse:
+it ran inside a build step's `setTimeout`, so it was an **uncaught exception** rather than a 500.
+
+**Why it had never fired.** Nothing had ever built a graph under CAPEX. `graph_use_cases` is empty for
+that dataset, the studio lists nothing, and no other surface reads a *proposed* canvas node. It took
+gating Reports and What-if on publication — which makes building a CAPEX graph the only way to open
+either — to reach the line at all. **A gate that forces a path is a test of that path.**
+
+**Fix, in three places, because one type was wrong in three declarations.** The server appends the score
+only where there is one; `confidence` is `nullable(num)` in the schema and `number | null` in both the
+raw and exported types; and `fromCanvas` says "Needs review" without a figure. Making the type honest is
+what found the second site — `fromCanvas.ts:75` had the identical `.toFixed()` and would have crashed
+the Canvas tab in the browser; the compiler reported it the moment the null was declared.
+
+**Absent is not 0.00**, which is the whole of why the number is dropped rather than defaulted. Printing
+`proposed · 0.00` states the deriver's lowest possible confidence in a node it never scored — the same
+false claim "0 rows" makes about a table nobody counted, and the reason CAPEX's own provenance calls
+`rows: null` *"the honest value, not zero"*. The word a reviewer needs is "proposed", and that is said
+either way.
+
+**Guard.** The compiler, which is the strongest one available here: a `number | null` cannot reach
+`.toFixed()` without a check, so a third site cannot be added silently. Verified end to end by driving
+the flow the gate now requires — commit a use case, build 31 substeps, resolve 7 review rows and the
+pivot, publish v1 — and confirming the server stayed up and both sections opened.
+
+**The general shape, now recorded three times.** *A field's declared type is a claim about every dataset,
+not the one in front of you.* `rows`, `confidence`, and next time something else: when a second dataset
+arrives, the fields to check are the ones the first dataset happened to populate everywhere. And a
+throw inside a timer is not a failed request — it is the process.
+
+## The publish gate was reversed for rendered documents, one turn after being argued against
+
+**What changed.** CAPEX's rendered reports, and then its rendered What-if lens, were served whether or
+not a graph was published, on the reasoning that the gate is about *questions*: nothing was asked of a
+graph to produce a finished document, so withholding it enforced a precondition it did not have. That
+was reversed on request — *"report and whatif lens should be activated after publishing the graph studio
+for the capex data"*.
+
+**Why the first reading was wrong.** It answered a question about **sections** ("does this section have
+content to show?") when the product question was about **sequence** ("what has the tenant released?").
+Publication is the release, and the surfaces that read the tenant's data open after it — whether the
+figures are computed on request or already inside a file. Read that way, gating a document is not a
+precondition it lacks; it is the same precondition every other surface has.
+
+**What the reversal touched, and the shape it restored.** `GET /reports` and `GET /whatif` each carry
+their documents on the **open branch only**; both pages test one number; and the governance view that
+was served while the gate was closed went back to `null`, because that exception existed only to give
+the ungated documents a Library. One gate, one branch, one number — which is what this file had before
+documents existed.
+
+**Two things to know before demoing it.** Publication is in memory, so **a restart closes both sections
+again**. And CAPEX ships no saved graph use case, so the path is New Graph → build → clear the review
+queue and the pivot → publish — which is what surfaced the crash recorded above.
+
+**Guard.** The claim that asserted the old rule was **rewritten to assert the new one** rather than
+deleted, and both halves are checked, because either alone fails silently in a different direction: a
+page testing two counts against a server that sends documents on one branch shows an empty prototype
+instead of the gate, and a page testing one count against a server that sends them on both leaves the
+documents unreachable with nothing saying why.
+
+**And one of its assertions was too loose, found by breaking it.** `documents: []` also appears in a
+Drive folder shape two thousand lines away, so a whole-file probe for it passed straight over the gated
+branch being reopened. It now matches the branch's own block — `governance: null` … `documents: []` …
+`authoring_document: null` together. Assert at the site, not the spelling: the fifth time that rule has
+earned an entry here.

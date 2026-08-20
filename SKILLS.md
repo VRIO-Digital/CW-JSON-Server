@@ -1727,13 +1727,16 @@ CAPEX report.
 | what a lens *is* | a traversal, computed per request | a finished document |
 | where the figures live | `whatifScenario` on the server | inside the file, never transcribed |
 | `whatif.document` | `null` | `{file, title, version, stage, heading, subtitle, tabs}` |
-| the publish gate | applies — the lens overlays the published graph | does not: it asked nothing of a graph |
+| the publish gate | applies — the lens overlays the published graph | applies too, on request: publish first, then the lens opens |
 
 Three things to keep when touching this:
 
-- **`frame.document` is tested before `publishedCount`.** A framed lens is not behind the
-  gate, and reversing the two leaves a dataset that ships a lens looking at
-  `NoPublishedGraph`. `check-docs` compares the indices.
+- **`publishedCount` is tested before `frame.document`**, and the server agrees rather than
+  being second-guessed: it sends `document: null` while the gate is closed. The ordering
+  was the other way round for one turn and was reversed on request — publish the graph,
+  then Reports and What-if open. `check-docs` compares the indices. Publication is in
+  memory, so **a restart closes both sections again**, and CAPEX ships no saved use case:
+  getting there is New Graph → build → clear the queue and pivot → publish.
 - **The row is read out of the document by `npm run ingest:capex`**, which owns
   `db.CAPEX.json` for the reports too — one writer per document. It reads the `<title>`
   stamp for the name, stage and version and the tab buttons for the tabs, and refuses to

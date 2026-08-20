@@ -1538,12 +1538,13 @@ standfirst carry what the page says it is for, and the tab buttons carry its own
 checked against `governance.statuses` — those are the lifecycle states of a governed Library row, and
 the lens is not one.
 
-**Served on both branches of `GET /whatif`, because the publish gate is about questions.** A computed
-lens overlays the published graph, so with nothing published its figures would be attributed to content
-nobody released. A rendered document asked nothing of a graph, so gating it would enforce a
-precondition it does not have and leave the page empty for a dataset that ships one — the same
-reasoning, and the same ordering, as the report section's documents. The page therefore tests
-`frame.document` **before** `publishedCount`, and `check-docs` compares the two indices.
+**Behind the publish gate, so it is served on the open branch only.** A computed lens overlays the
+published graph, so with nothing published its figures would be attributed to content nobody released; a
+rendered one asked nothing of a graph, which is why it rode both branches at first. **Reversed on
+request**, together with the report documents — the graph is released first and the surfaces that read
+the tenant's data open after it. So `GET /whatif` sends `document: null` while the gate is closed, the
+page tests `publishedCount` **before** `frame.document`, and `check-docs` compares the two indices in
+that order. A restart closes it again, because publication is in memory.
 
 **One viewer, two callers.** `DocumentViewer` frames a Library report and this lens both: the single
 copy of the file resolved at build time, the real boundary around it and the missing-file diagnosis are
@@ -2164,12 +2165,27 @@ and what it looks the registry entry up by. That is also why all three are carri
 parameterised copy: the id is baked into the file, and rewriting somebody's 2.5 MB export to inject a
 different one is a fragile dependency on its internals.
 
-**The publish gate does not apply to them, and that is not a loosening.** The gate exists because an EPA
-report is asked of the published graph — answering with nothing published would be answering from content
-nobody released. A CAPEX report asked nothing of a graph, so gating it would enforce a precondition it
-does not have and leave the section empty for a dataset that ships three reports. The documents therefore
-ride on **both** branches of `GET /reports`, and the page tests both counts (`publishedCount === 0 &&
-documents.length === 0`). The gate is untouched for computed reports.
+**The publish gate applies to them, and it did not always.** The documents rode on both branches at
+first, on the reasoning that a gate about *questions* should not apply to a finished artefact: a CAPEX
+report asked nothing of a graph, so withholding it enforced a precondition it did not have and left the
+section empty for a dataset that ships three reports. **Reversed on request** — *"report and whatif lens
+should be activated after publishing the graph studio for the capex data"* — because that argument
+produced a **section** where what was wanted is a **sequence**: the graph is released first, and the
+surfaces that read the tenant's data open after it.
+
+So the shape is the one this file had before documents existed. Nothing published means empty
+collections and `published_count: 0`, with `built_count` and `draft_count` beside it because "publish
+the build you have" and "finish a draft" are different fixes; the documents ride the **open branch
+only**, and `ReportsPage` tests one number (`publishedCount === 0`). The governance view went back with
+them: it was served while the gate was closed *because* the documents were, so that exception had no
+remaining purpose. One gate, one branch, one number — for a dataset whose reports are computed and one
+whose reports are documents alike.
+
+**What it costs is worth knowing before a demo.** Publication lives in memory, so **every restart closes
+both sections again** until a graph is published, and CAPEX ships **no saved graph use case** — so the
+path is New Graph → build in Studio → clear the review queue and the pivot → publish a version. Its
+pools support that (4 domains, 7 personas, 23 KPIs, 13 hero questions, 3 projects), and building it is
+what found the crash recorded in `docs/REGRESSIONS.md` under a null canvas confidence.
 
 **They are framed, not inlined.** `DocumentViewer` puts each in an `iframe`. Injecting the body would
 drop the `<head>` the report *is* and put its selectors in the app's tree — the problem that forced
