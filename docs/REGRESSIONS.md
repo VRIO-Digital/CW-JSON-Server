@@ -3793,3 +3793,39 @@ the tiles are data rather than closures, and a row is tinted only where a state 
 The "no field name" claim needed two attempts — the first searched for the string `'tons'` and failed
 on `ValueFormat`'s own `tons` case, which is a *format* name and entirely tenant-neutral. Assert the
 fact, not the spelling.
+
+### Postscript 7: the Authorize tab was removed, and the verb under it was not
+
+Reported from use, one line: *"remove this authorize tab for report"*. The tab had been asked for two
+turns earlier — it was a button on each card first, and moving it onto a tab of its own was itself the
+previous request — so this is a UI decision reversed, not a defect.
+
+**What made it a decision rather than a delete is the layer underneath.** The tab was the only caller
+of `PATCH /reports/governance/:id/status`, and the reflex on a removal is to take the endpoint with
+it: nothing calls it, so it reads as dead. It is not. `governance.statuses` is still a real pool, the
+Library's chips still count it, every card still tints itself from its tone, and the endpoint is the
+one thing in this section that can move a report between those states — validated against the pool,
+attributed to `?as=`, committed. This repo already has a name for that state: `/change-signals`, whose
+tab was removed on request and whose endpoint, payload, fetcher and store are all still there with
+nothing reading them, under a written rule not to "finish" the removal by deleting them. So the same
+rule was applied here — the pane, the `Tabs` entry, the `'authorize'` member of `ReportTab` and the
+`.rp-auth*` stylesheet went; `setReportStatus`, `authorize` on `GovernanceActions` and
+`authorized_by` / `authorized_at` stayed.
+
+**The interesting part is what the removal did to a comment.** Three places explained `computed` by
+naming the two readers of the state pool — "the chip bar wants it in, the Authorize menu must leave it
+out". One of those readers no longer exists, so all three were arguments for a distinction from a
+surface that had been deleted, which is exactly how a maintainer comes to conclude the flag is
+vestigial and drop it. It is not: `All current` is counted rather than declared, and the endpoint
+refuses it whether or not anything offers a menu. Rewritten to state the fact about the payload and
+name the removed tab as history. **When a feature is removed, re-read the comments that justified
+themselves by pointing at it** — a rationale whose subject is gone reads as a rationale that expired.
+
+**Guard.** The three authorize claims became two plus one rewritten cross-layer claim, asserting the
+absence and the survival together: `AuthorizePane.tsx` is off disk, `GovernedCard` names Authorize
+nowhere in code, `ReportTab` has lost the member — *and* the server still refuses the computed state,
+`setReportStatus` is still exported, and `computed: bool` is still in the schema. Break-tested four
+ways (restore the pane, mention it on the card, restore the union member, un-export the fetcher), each
+failing on its own. One claim rather than one per file, for the reason already recorded twice in this
+document: a partial revival is the shape that fails silently, and the worst version of it here is a
+tab re-added against an endpoint somebody deleted in the meantime.

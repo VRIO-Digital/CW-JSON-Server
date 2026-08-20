@@ -3732,10 +3732,13 @@ expect(
 /*
  * ---------------- authorize: moving a report between lifecycle states ----------------
  *
- * **The one governance act the section could describe and not perform.** `governance.statuses` has
- * always been a real pool — the Library's chips count it, every card tints itself from its tone — but
- * nothing could move a report between those states except re-running the seed. A reader could see a
- * definition was a draft and had no way to publish it.
+ * **The act exists and nothing currently calls it**, which is a state this repo already keeps
+ * deliberately — see `/change-signals`. `governance.statuses` is a real pool: the Library's chips
+ * count it and every card tints itself from its tone. `PATCH /reports/governance/:id/status` moves a
+ * report between those states, validated against that pool and attributed to `?as=`. The tab that
+ * drove it was removed on request; the endpoint, its fetcher and the two fields it writes stay,
+ * because deleting a working API to "finish" a UI removal is how the next caller finds a half-built
+ * one. The claims below hold it to the same rules it was written under.
  */
 const authServer = server
 expect(
@@ -3762,16 +3765,30 @@ expect(
  * a report goes; the menu excludes it by the **served flag** rather than by testing for its key, so
  * neither reader of the list keeps a second copy of the vocabulary.
  */
+/*
+ * **There is no Authorize surface, and the layers under it are deliberately still here.**
+ *
+ * A tab listed the governed definitions and moved each between states; it was removed on request,
+ * along with the button that briefly sat on each card before it. What stays is everything below:
+ * `PATCH /reports/governance/:id/status`, `setReportStatus`, `authorize` on `GovernanceActions` and
+ * `authorized_by` / `authorized_at` on every row — the same waiting-for-a-caller state
+ * `/change-signals` is in, and for the same reason: half a removal is the shape that fails silently,
+ * and so is deleting a working API because nothing currently calls it.
+ *
+ * The `computed` flag stays too. It is a fact about the payload — `All current` is counted, not
+ * declared — and the endpoint refuses it whether or not a menu ever offers it.
+ */
 expect(
-  'the Authorize menu offers the declared states and not the computed chip',
-  /computed: true,/.test(authServer) &&
-    /* **On its own tab, not on the card.** Authorizing is done across the set — the question is
-       "what is waiting on me", which a grid of cards cannot answer because the states are scattered
-       through it. The card keeps the acts that belong to one report. */
-    /\.filter\(\(s\) => !s\.computed\)/.test(read('src/reports/panes/AuthorizePane.tsx')) &&
+  'no surface offers a state change, and the act underneath it is intact',
+  !existsSync(join(root, 'src/reports/panes/AuthorizePane.tsx')) &&
     !/Authorize/.test(codeOnly(read('src/reports/panes/GovernedCard.tsx'))) &&
+    !/'authorize'/.test(codeOnly(read('src/reports/types.ts'))) &&
+    /* Still there, still refusing the computed chip. */
+    /computed: true,/.test(authServer) &&
+    /is not a lifecycle state — this tenant declares/.test(authServer) &&
+    /export async function setReportStatus/.test(client) &&
     /computed: bool,/.test(client),
-  'a menu item that always fails is worse than one that is absent',
+  'a removed tab is not a reason to delete the endpoint it called',
 )
 
 /*

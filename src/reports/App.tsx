@@ -21,7 +21,6 @@ import { Tabs, type TabDef } from './components/Tabs';
 import { useToast } from './components/Toast';
 import { AskPane } from './panes/AskPane';
 import { ConfirmPane } from './panes/ConfirmPane';
-import { AuthorizePane } from './panes/AuthorizePane';
 import { LibraryPane } from './panes/LibraryPane';
 import { ReportPane } from './panes/ReportPane';
 import { UnderDevelopmentPane } from './panes/UnderDevelopmentPane';
@@ -91,10 +90,10 @@ export interface GovernanceState {
    * True for a chip the server *computes* rather than one the tenant declares — `All current` is
    * everything not archived.
    *
-   * The two readers of this list want opposite things: the chip bar wants it **in**, because it is
-   * the default filter, and the Authorize menu must leave it **out** — a report cannot be moved "to
-   * All current", so offering it would be a menu item that always fails. Marked on the payload rather
-   * than recognised by key, so neither reader keeps a second copy of the vocabulary.
+   * It filters the Library like any other chip, and it is **not a state a report can be moved to**:
+   * an Authorize surface built on this list has to leave it out, or it offers a menu item that always
+   * fails. The tab that did was removed on request; the flag stays because the distinction is a fact
+   * about the payload rather than about that surface, and because `PATCH …/status` still refuses it.
    */
   computed: boolean;
   count: number;
@@ -469,14 +468,15 @@ export default function App({
     },
     { key: 'author', label: 'Author a report' },
     /*
-     * **Authorize is a tab and not a button on a card.** Moving reports between lifecycle states is
-     * done across the set — the question is "what is waiting on me", which a grid of cards cannot
-     * answer because the states are scattered through it. Present only with a host: the states are
-     * the tenant's own, served on governance.statuses, so the prototype standing alone has none.
+     * **There was an Authorize tab here and it was removed on request.** It listed the governed
+     * definitions and moved each between the states `governance.statuses` declares.
+     *
+     * **What is underneath it is deliberately still there**, in the same waiting-for-a-caller state
+     * as `/change-signals`: `PATCH /reports/governance/:id/status`, `setReportStatus` in
+     * `client.ts`, `authorize` on `GovernanceActions`, and `authorized_by` / `authorized_at` on every
+     * governed row. Re-adding the tab is an entry here plus a pane — do not delete the layers below
+     * it to "finish" the removal, and do not treat the unused fetcher as dead.
      */
-    ...(governance
-      ? [{ key: 'authorize' as ReportTab, label: 'Authorize', count: governance.reports.length }]
-      : []),
     { key: 'audience', label: AUDIENCE_TAB_LABEL, badge: 'Soon' },
   ];
 
@@ -890,26 +890,6 @@ export default function App({
         </div>
 
         <div className={'wrap' + (narrow ? ' narrow' : '')} onClick={() => setSelected(null)}>
-          {tab === 'authorize' && (
-            <AuthorizePane
-              governed={governance?.reports}
-              states={governance?.statuses}
-              onAuthorize={
-                actions
-                  ? async (row, status) => {
-                      const label =
-                        governance?.statuses.find((st) => st.key === status)?.label ?? status;
-                      const res = await actions.authorize(row.reportId, status);
-                      toast(
-                        res.ok
-                          ? `“${row.title}” is now ${label}.`
-                          : (res.error ?? `“${row.title}” could not be moved to ${label}.`),
-                      );
-                    }
-                  : undefined
-              }
-            />
-          )}
           {tab === 'library' && (
             <LibraryPane
               mode="library"
@@ -929,7 +909,6 @@ export default function App({
               onShareGoverned={
                 actions ? (row) => setSharing({ kind: 'governed', id: row.reportId }) : undefined
               }
-              /* No authorize wiring here — the Authorize tab owns that act across the whole set. */
               onRemoveGoverned={actions ? removeGoverned : undefined}
               onShareSaved={
                 shareRoles?.length ? (report) => setSharing({ kind: 'saved', id: report.id }) : undefined

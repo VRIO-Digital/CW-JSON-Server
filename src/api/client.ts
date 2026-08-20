@@ -6328,11 +6328,10 @@ export interface GovernanceStatus {
    * True for a chip the server *computes* rather than one the tenant declares — `All current` is
    * everything not archived.
    *
-   * The flag is on the payload rather than inferred from the key, because the two readers of this
-   * list want opposite things: the chip bar wants it **in** (it is the default filter) and the
-   * Authorize menu must leave it **out** — a report cannot be moved "to All current", and offering it
-   * would be a menu item that always fails. A consumer testing for the literal `'current'` would be
-   * a second place the vocabulary lives.
+   * It filters the Library like any other chip and is **not a state a report can be moved to**, which
+   * is why the flag is on the payload rather than left to be recognised by key: any surface offering
+   * a state change has to exclude it, and `PATCH …/status` refuses it. The tab that offered one was
+   * removed on request; the distinction is a fact about the payload either way.
    */
   computed: boolean
   count: number

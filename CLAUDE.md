@@ -1701,13 +1701,21 @@ write.
 > every report row**, `null` included: a process older than the field writes rows without it and the
 > Library silently loses Open on every card.
 >
-> **Authorize is its own tab, and the authoring flow speaks the tenant's vocabulary.** Moving a
-> report between the states `governance.statuses` declares is done across the set — the question is
-> "what is waiting on me", which a grid of cards cannot answer because the states are scattered
-> through it — so it is a tab rather than a button on a card, over
-> `PATCH /reports/governance/:id/status`. The state is validated against the tenant's pool, records
-> who from `?as=`, and commits. The computed `All current` chip is excluded from the menu by its
-> served `computed` flag: it filters the Library and is not somewhere a report goes.
+> **Authorizing has no surface, and the act underneath it is deliberately still here.** Moving a
+> report between the states `governance.statuses` declares had a tab of its own — and briefly a
+> button on each card before that — both removed on request. What stays is every layer below:
+> `PATCH /reports/governance/:id/status` (validated against the tenant's pool, attributed to `?as=`,
+> committed), `setReportStatus` in `client.ts`, `authorize` on `GovernanceActions`, and
+> `authorized_by` / `authorized_at` on every governed row. **This is the `/change-signals` state, and
+> the same rule applies**: re-adding the tab is a `Tabs` entry plus a pane, so do not delete the
+> layers below it to "finish" the removal, and do not name authorizing in copy that lists what the
+> section does. `check-docs` asserts both halves on one cross-layer claim — the pane is off disk, the
+> card names it nowhere and `ReportTab` has lost the member, while the endpoint, the fetcher and the
+> two fields are intact — because a partial revival is the shape that fails silently.
+>
+> The served `computed` flag stays for the same reason. `All current` is counted rather than
+> declared, so it filters the Library and is **not somewhere a report goes**; the endpoint refuses it
+> whether or not anything offers a menu.
 >
 > **And the Author tab composes over capital projects.** It was EPA's flow field by field — a
 > `Generator` row type, six named measures, seven KPI closures, a table defaulting to

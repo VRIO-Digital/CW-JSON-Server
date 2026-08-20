@@ -189,7 +189,7 @@ export interface Filter {
 /* ------------------------------------------------------- library + publish */
 
 /** The three tabs inside the Reports section. */
-export type ReportTab = 'library' | 'author' | 'authorize' | 'audience';
+export type ReportTab = 'library' | 'author' | 'audience';
 
 export type ReportStatus = 'draft' | 'published';
 

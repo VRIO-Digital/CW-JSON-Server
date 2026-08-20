@@ -140,10 +140,14 @@ export function GovernedCard({ row: r, onOpen, onEdit, onShare, onRemove }: Prop
           </button>
         )}
         {/*
-          * **No Authorize here.** Moving a report between lifecycle states is done across the whole
-          * set rather than one card at a time — the question is "what is waiting on me", which a grid
-          * of cards cannot answer because the states are scattered through it. It has its own tab,
-          * where the state is a column. The card keeps the acts that belong to *this* report.
+          * **No Authorize here, and no tab either.** Moving a report between the lifecycle states
+          * `governance.statuses` declares had a button on this card, then a tab of its own; both were
+          * removed on request. The act underneath is deliberately still there —
+          * `PATCH /reports/governance/:id/status`, `setReportStatus`, `authorize` on
+          * `GovernanceActions` — in the same waiting-for-a-caller state as `/change-signals`. So do
+          * not read the unused fetcher as dead, and do not re-add a control here without re-adding
+          * the reason it was a tab: the question is "what is waiting on me", which a grid of cards
+          * cannot answer because the states are scattered through it.
           */}
         {onShare && r.kind === 'written' && (
           <button className="btn sm" onClick={() => onShare(r)}>
