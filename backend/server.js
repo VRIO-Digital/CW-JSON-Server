@@ -941,6 +941,17 @@ const DB_SHAPE = {
   whatif: (v, empty) =>
     isObject(v) &&
     isObject(v.facility) &&
+    /*
+     * A rendered lens is optional — EPA computes its own and has none — but a *present* one has to carry
+     * the two fields the page cannot do without. Neither absence throws: with no `file` the frame
+     * resolves to no URL and the page reports a missing document, and with no `title` the bar labels it
+     * `undefined`, which reads as a broken export rather than as a key that half-describes one.
+     */
+    (v.document === null ||
+      v.document === undefined ||
+      (isObject(v.document) &&
+        typeof v.document.file === 'string' &&
+        typeof v.document.title === 'string')) &&
     Array.isArray(v.generators) &&
     (empty || v.generators.length > 0) &&
     Array.isArray(v.watched_measures) &&
@@ -1144,7 +1155,8 @@ const DB_HINTS = {
     'sanity_checks[] — the recorded Query & sanity-check set, each { check_id, question, path[], edges_used[] }',
   whatif:
     'object with facility{}, generators[], watched_measures[], candidate_pools[], formats{}, ' +
-    'resolvable[], headroom{} — the What-if lens, from "npm run ingest:whatif"',
+    'resolvable[], headroom{} — the What-if lens, from "npm run ingest:whatif". A dataset whose ' +
+    'lens is a rendered document carries it as document{file,title}, from "npm run ingest:capex"',
   reports:
     'object with meta{}, fields[], assumptions{}, opts{}, slice_default[], ' +
     'summary_catalog[], summary_default[], saved[], data{ generators[], facilities[], ' +
@@ -4634,6 +4646,23 @@ function whatifFormat(value, format) {
 }
 
 /** The frame every scenario is judged inside. */
+/**
+ * The rendered What-if document this dataset ships, or `null`.
+ *
+ * **A dataset's lens can be a document instead of a traversal**, exactly as its reports can. EPA's lens
+ * admits a candidate load into the published graph and computes every figure per request; CAPEX has no
+ * pool of candidates to swap — its own document says so — and ships a finished page whose model is a cost
+ * decomposition moved by sliders. So the pointer to that page rides on the frame and the client frames
+ * it, which is the same arrangement `reports.documents` already has.
+ *
+ * **Served on both branches, because the publish gate is about questions.** The lens overlays the
+ * published graph, so a *computed* lens with nothing published would report figures traversed from
+ * content nobody released. A rendered document asked nothing of a graph, so gating it would enforce a
+ * precondition it does not have and leave the page empty for a dataset that ships one. Identical
+ * reasoning to `GET /reports`, which carries its documents through its own gate.
+ */
+const whatifDocument = () => db.whatif.document ?? null
+
 const whatifFrame = () => ({
   facility: db.whatif.facility,
   generators: db.whatif.generators,
@@ -4661,6 +4690,7 @@ const whatifFrame = () => ({
   runtime: db.whatif.runtime,
   graph_reference: db.whatif.graph_reference,
   publishing: db.whatif.publishing,
+  document: whatifDocument(),
   /* The two pools the publish dialog picks from, both the app's own. Readers are the
      tenant's users; the graphs are the ones actually published — the lens already only
      opens when one is, so this list is never empty on this branch. */
@@ -9120,6 +9150,9 @@ const routes = [
           runtime: db.whatif.runtime,
           publishing: db.whatif.publishing,
           graph_reference: db.whatif.graph_reference,
+          /* The one thing on this branch that is not empty. A rendered lens is not behind the publish
+             gate — it asked nothing of a graph — so the page frames it instead of showing the gate. */
+          document: whatifDocument(),
         })
       }
       send(res, 200, {

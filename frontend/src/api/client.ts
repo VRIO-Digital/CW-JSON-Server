@@ -4820,6 +4820,27 @@ export interface WhatIfPublishing {
   unpublishedNote: string
 }
 
+/**
+ * A rendered What-if lens: a finished page this dataset ships instead of a traversal to compute.
+ *
+ * Every field is read out of the document by `npm run ingest:capex` — its `<title>` carries the name, the
+ * stage and the version, its `<h1>` and standfirst carry what it says it is for, and its tab buttons carry
+ * its own two tabs. None of it is typed in this repo, for the reason a report's figures are not: a
+ * transcription is right until the file is next exported, and then it is wrong and looks fine.
+ */
+export interface WhatIfDocument {
+  documentId: string
+  /** The file, relative to the dataset's lens folder. Resolved to a URL by the page, not here. */
+  file: string
+  title: string
+  version: string
+  /** The document's own word for how finished it is — "draft". Not a governance state. */
+  stage: string
+  heading: string
+  subtitle: string
+  tabs: { key: string; label: string }[]
+}
+
 export interface WhatIfFrame {
   connectedSources: number
   /** 0 while no graph is published — the lens overlays the published graph. */
@@ -4848,6 +4869,14 @@ export interface WhatIfFrame {
   readers: WhatIfReader[]
   graphs: WhatIfGraphOption[]
   copy: WhatIfCopy
+  /**
+   * The rendered lens this dataset ships, or `null` where the lens is computed.
+   *
+   * Present for a dataset whose What-if is a document rather than a traversal, and served on **both**
+   * branches of `GET /whatif` — the publish gate is about questions, and a finished page asked nothing
+   * of a graph. The page frames it in place of the lens.
+   */
+  document: WhatIfDocument | null
   publishing: WhatIfPublishing
   defaults: { tab: string; step: number; count: number; watch: string[]; pool: string }
   authoring: {
@@ -5045,6 +5074,21 @@ const WHATIF_FRAME = shape({
   readers: arrayOf(WHATIF_READER),
   graphs: arrayOf(WHATIF_GRAPH_OPTION),
   publishing: WHATIF_PUBLISHING,
+  /* `nullable` accepts an absent key as well as null, which is what a dataset with a computed lens
+     sends. A *present* one is checked in full — this object is what the page frames instead of the
+     lens, so a missing `file` is a blank frame and a missing `title` is a bar labelled `undefined`. */
+  document: nullable(
+    shape({
+      document_id: str,
+      file: str,
+      title: str,
+      version: str,
+      stage: str,
+      heading: str,
+      subtitle: str,
+      tabs: arrayOf(shape({ key: str, label: str })),
+    }),
+  ),
   copy: shape({
     page_title: str,
     banner: str,
@@ -5279,6 +5323,16 @@ interface RawWhatIfFrame {
     access_note: string
   }[]
   graphs: { use_case_id: string; name: string; version: string | null; sha256: string | null }[]
+  document: {
+    document_id: string
+    file: string
+    title: string
+    version: string
+    stage: string
+    heading: string
+    subtitle: string
+    tabs: { key: string; label: string }[]
+  } | null
   publishing: {
     publish_title: string
     manage_title: string
@@ -5429,6 +5483,19 @@ export async function getWhatIfFrame(): Promise<WhatIfFrame> {
       buttons: raw.publishing.buttons,
       unpublishedNote: raw.publishing.unpublished_note,
     },
+    document:
+      raw.document === null || raw.document === undefined
+        ? null
+        : {
+            documentId: raw.document.document_id,
+            file: raw.document.file,
+            title: raw.document.title,
+            version: raw.document.version,
+            stage: raw.document.stage,
+            heading: raw.document.heading,
+            subtitle: raw.document.subtitle,
+            tabs: raw.document.tabs,
+          },
     copy: {
       pageTitle: raw.copy.page_title,
       banner: raw.copy.banner,

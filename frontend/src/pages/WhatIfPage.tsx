@@ -4,6 +4,7 @@ import type { WhatIfFrame, WhatIfSaved } from '../api/client'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
+import DocumentViewer from '../components/report/DocumentViewer'
 import PublishScenarioDialog from '../components/whatif/PublishScenarioDialog'
 import PublishedScenarios, {
   PublishedScenarioModal,
@@ -138,14 +139,32 @@ export default function WhatIfPage() {
       ) : null}
 
       {/*
-       * The gate replaces the lens, it does not sit under it. Everything below the
-       * header is a claim about connected data — the banner names 36 inbound
-       * generators and the note names the package the figures came from — and printing
-       * either above "No data source is connected" describes a graph the page has
-       * just said is not there. The whole lens, chrome included, lives in
-       * `WhatIfLens`, so the ungated branch has no copy to leak.
+       * ---------------- a dataset whose lens is a rendered document ----------------
+       *
+       * **Some datasets ship the lens instead of computing it, and then the document is the page.**
+       * The lens below admits a candidate load into the published graph and traverses to that
+       * generator's federal record, so every figure on it is computed per request from a pool of
+       * candidates. CAPEX has no such pool — its own document says so, which is why its `generators`
+       * and `candidate_pools` are empty — and ships a finished page whose model is a cost
+       * decomposition moved by sliders. Rendering the traversal lens over that data would draw a
+       * frame with nothing in it and a pool reading "nobody qualifies", which is an answer, and the
+       * wrong one.
+       *
+       * **Checked before the gate, because the gate is about questions.** A computed lens overlays
+       * the published graph, so with nothing published its figures would be attributed to content
+       * nobody released. A rendered document asked nothing of a graph, so gating it would enforce a
+       * precondition it does not have and leave the page empty for a dataset that ships one — the
+       * same reasoning, and the same ordering, as the report section's documents.
+       *
+       * **`seamless`, because the frame is the whole page.** There is no Back — the Library frames a
+       * report instead of its list, and this frames the only thing here — no Export button and no bar
+       * restating a title the document prints itself, and no border or grey ground making the document
+       * read as a panel dropped onto the app. What that costs is the print button, which is stated in
+       * the viewer rather than glossed.
        */}
-      {frame.publishedCount === 0 ? (
+      {frame.document ? (
+        <DocumentViewer document={frame.document} seamless />
+      ) : frame.publishedCount === 0 ? (
         /* The second precondition. The copy calls this a read-only overlay *on the
            knowledge graph*: with nothing published there is no graph to overlay, and
            figures shown anyway would be attributed to content nobody has published. */

@@ -17,6 +17,14 @@
  * rendered reports is a folder drop and an ingest run rather than an edit here. `eager` because the map
  * is a lookup table of URLs, not the documents themselves — nothing 2.5 MB is pulled into the bundle
  * graph by asking for its address.
+ *
+ * **A rendered What-if lens resolves through here too, and through the same map.** A dataset can ship its
+ * What-if as a finished page rather than a traversal to compute — CAPEX does — and that page needs exactly
+ * what a report needs: a filename turned into a URL, from one copy, with a missing file named rather than
+ * guessed. Two modules would be two copies of that machinery and two places for the duplicate-basename
+ * throw below to live. **A second glob rather than a widened one**, because the folder is what says which
+ * kind of document a file is: `Report/` holds reports and `what-if-lens/` holds a lens, and a pattern
+ * loose enough to catch both would also catch the next folder somebody drops beside them.
  */
 
 /*
@@ -24,6 +32,13 @@
  * because `?url` on `.html` is not one of the extensions `vite/client` declares.
  */
 const modules = import.meta.glob('../*/Report/*.html', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
+/* The same, for a dataset that ships its What-if lens as a rendered page. Both maps feed one lookup. */
+const lensModules = import.meta.glob('../*/what-if-lens/*.html', {
   query: '?url',
   import: 'default',
   eager: true,
@@ -38,13 +53,13 @@ const modules = import.meta.glob('../*/Report/*.html', {
  * a build-time fact, so it cannot depend on which dataset a reader happens to select.
  */
 const byName = new Map<string, string>()
-for (const [path, url] of Object.entries(modules)) {
+for (const [path, url] of Object.entries({ ...modules, ...lensModules })) {
   const name = path.slice(path.lastIndexOf('/') + 1)
   const seen = byName.get(name)
   if (seen && seen !== url) {
     throw new Error(
-      `two report documents are called "${name}" (${seen} and ${url}) — ` +
-        'a Library row would open whichever won, so rename one',
+      `two documents are called "${name}" (${seen} and ${url}) — ` +
+        'a Library row or a framed lens would open whichever won, so rename one',
     )
   }
   byName.set(name, url)

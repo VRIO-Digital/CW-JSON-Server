@@ -3787,3 +3787,123 @@ printed for is worse than no remedy.* The same reasoning is why `validateDb` nam
 restore command, and why the boot banner prints the ref it actually read. An error message is a branch of
 the program, and a branch that is right for the default case and quietly wrong for every other one is a
 bug with better manners.
+
+## CAPEX's What-if page rendered the traversal lens over data that has no candidates
+
+**Symptom.** Selecting CAPEX and opening What-if Lenses gave nothing usable. On a fresh boot it was
+`NoPublishedGraph` — publication lives in memory, so `published_count` is 0 until somebody publishes —
+and past that gate the lens itself had nothing to draw: the pool dropdowns were empty, the pool frame
+drew one centre node and no fan, and every column had no load to admit. Nothing errored, and no payload
+was malformed. `db.CAPEX.json` meanwhile held a complete `whatif` block — 5 slices, 3 levers, 4 watched
+measures, its own publishing copy — so the page looked broken against data that was plainly present.
+
+**Cause.** Two different lenses, one component. EPA's What-if is a **traversal**: it admits a candidate
+generator hypothetically and recomputes each watched measure by walking to that generator's federal
+record, so `generators` and `candidate_pools` are the whole interaction. CAPEX's is a **decomposition**:
+its own `whatif._not_applicable` says it in as many words — *"CAPEX exposes continuous levers, not a pool
+of swappable candidates"* — so those two arrays are empty on purpose, and its model is a $120M forecast
+split into attributable slices moved by sliders. The React lens reads the arrays that are empty and never
+touches `slices` or `levers`, so it rendered the correct components over the correct data and produced a
+page about nothing.
+
+**What made it invisible** is that *both* halves were honest. An empty pool renders "nobody qualifies",
+which is a true sentence about an empty array and a false one about this dataset; a validator has nothing
+to refuse, because the document is internally consistent; and `validateDb` already permits an empty
+collection in a secondary dataset, which is the rule that let the document boot at all. Every layer was
+right and the screen was wrong.
+
+**Fix.** CAPEX ships a rendered What-if page — `frontend/src/Capex/what-if-lens/W1_what_if_lens.html` —
+and it is served as a **document**, exactly as its three reports are: `whatif.document` carries the
+pointer, `GET /whatif` sends it on both branches, and `WhatIfPage` frames it through the same
+`DocumentViewer` the Library uses. Every field of the row is read out of the file by
+`npm run ingest:capex` — the `<title>` stamp for the name, stage and version, the tab buttons for the
+tabs — and the script refuses to write rather than storing a row the page could not label.
+
+**Three things that had to be arranged rather than assumed:**
+
+- **`frame.document` is tested *before* `publishedCount`.** The publish gate is about questions: a
+  computed lens overlays the published graph, and a rendered page asked nothing of one. Ordered the other
+  way, a dataset that ships a lens shows the gate — which is the original symptom with a different
+  explanation, and it would have looked like a fix.
+- **`copy.tabs` was stale and could not have been noticed.** It was extracted from an earlier three-tab
+  build (Author · Run & compare · Library) while the page has two, Authoring and Runtime. That list is
+  what the *React* lens renders, so on a framed dataset nothing prints it — a wrong value with no
+  surface is not a bug anybody can see. The ingest re-reads it from the page's own buttons.
+- **The fixture was already correct and is not the ingest's to rewrite.** `slices`, `levers`,
+  `locked_slices` and `program` are a verbatim extract of the same file — all five slice traces match
+  character for character — so `whatif` is **spread**, not replaced, and only `document` and `copy.tabs`
+  are written. A script that owns a subtree and rewrites its parent is how a subtree gets deleted, which
+  this repo has been bitten by twice.
+
+**Guard.** One cross-layer `check-docs` claim, because half of this is the shape that fails silently: a
+served document the page ignores is the empty lens again, and a page framing a document nothing serves is
+the gate again. It asserts the row's fields and that the file is really on disk, that the ingest reads
+the title and tabs and refuses to write, that no title, subtitle or tab label is a literal in the page or
+the viewer, that **two** branches send it, that the document is tested before the gate, that the lens glob
+exists, and that the *primary* still has no `whatif.document` — an ingest that wrote that key into
+`db.json` would replace a traversal with a frame. Broken once per layer before being trusted; all five
+mutations were caught.
+
+**The general shape.** *A component reading the fields that are empty is not a broken component, and an
+empty collection is not always missing data.* CLAUDE.md's rule for the document dictionary's type facets
+is the same distinction from the other side — there a facet at 0 means the map is wrong, while a
+lifecycle chip at 0 is news. When a second dataset arrives, the question is not only "is every key
+present" but "does this dataset answer the question this page asks".
+
+## Piping a script through stdin mangled every em dash in it
+
+**Symptom.** A `python - <<'PY'` heredoc that spliced a comment block into a source file reported
+`AssertionError: anchor not found` against an anchor that was demonstrably in the file — `grep` found it,
+and the same script run from a *file* found it too.
+
+**Cause.** The anchor contained `—` and `·`. Read as **source from stdin**, the interpreter decoded the
+script through the console codepage rather than UTF-8, so the literals in the script were mojibake and
+could not match the file's correct UTF-8. Had the anchor matched, the *replacement* would have written
+that mojibake into the repo — which is the same corruption CLAUDE.md already records for PowerShell
+`Get-Content`/`Set-Content`, arriving by a different door.
+
+**Fix.** Write the script to a file and run the file; a shell heredoc redirected to a file is byte-exact,
+and an interpreter reading a file applies UTF-8 to source. Where the content is long or quote-heavy, write
+it with the editor tool instead of a heredoc at all.
+
+**The general shape, now recorded twice.** *Non-ASCII in this repo does not survive a text pipeline whose
+encoding nobody stated.* This codebase's prose is full of em dashes and `·`; any tool that carries source
+through a shell, a console or a codepage-sensitive API has to be assumed to corrupt them until proven
+otherwise. And a scripted edit should **assert its anchor matched** rather than replacing nothing and
+reporting success — a silent no-op is indistinguishable from a clean run.
+
+## Making a framed document seamless would have opened its dialogs off screen
+
+**The ask.** A framed What-if lens should not look like an embedded HTML file: white ground, no Export
+PDF. Straightforward — until the obvious fourth step, which is to size the iframe to its content so the
+inner scrollbar disappears and the document flows in the app's own scroll. That is the change that makes
+a frame genuinely invisible, and it is the one that had to be refused.
+
+**Why.** The document places two things with `position: fixed` — its publish overlay (`.shOv`,
+`inset: 0`) and its toast (`.shToast`, `bottom: 26px`). Inside an iframe, `fixed` resolves against the
+**iframe's** viewport, not the browser window. A frame sized to a 3,000px document has a 3,000px
+viewport, so the overlay centres against the whole document and the toast sits 26px from its bottom: a
+reader scrolled halfway down clicks **Publish**, the dialog opens a thousand pixels above them, and the
+screen does not change. A dead button, and the failure is in the *host*, so nothing in the document is
+wrong to find.
+
+**What was done instead.** The frame keeps a stated height and loses its border, its bar and its ground
+— which is most of the way there without touching the viewport the document was authored against. The
+inner scrollbar is the honest remainder.
+
+**Guard.** The `check-docs` claim pins `height: <n>vh` on the seamless rule and requires
+`position: fixed` to appear in the stylesheet's own comment, so the reason sits where somebody would
+delete the height. Broken once per fact: six mutations, all caught.
+
+**The general shape.** *An iframe is a viewport, not just a clipping box.* Anything the framed document
+positions against the viewport — `fixed`, `vh`, `100vh`, a scroll listener, `IntersectionObserver` —
+takes its meaning from the frame's size, so resizing the frame silently changes the document's
+behaviour. Read the document's CSS for viewport-relative units before changing the geometry of the thing
+that hosts it.
+
+**And a harness note, from the same session.** Two of those six mutations first reported *MUTATION DID
+NOT LAND* — one searched for a literal `\n` in a CRLF file, the other probed for "any `vh` height"
+when a sibling rule legitimately has one. Both are the failure docs/REGRESSIONS.md already records from
+the other side: a break test that cannot mutate reports a working guard as unbreakable. The harness now
+takes a regex over `\r?\n` and a *specific* probe for the edit having landed, and reports "did not
+land" distinctly from "missed" — the distinction is what stopped two correct guards from being rewritten.

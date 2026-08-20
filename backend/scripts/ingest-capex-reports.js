@@ -1,5 +1,6 @@
 /*
- * Seeds `db.CAPEX.json`'s `reports.documents` from the CAPEX dataset's own rendered reports.
+ * Seeds `db.CAPEX.json` from the CAPEX dataset's own rendered documents — its three reports and its
+ * What-if lens.
  *
  *     npm run ingest:capex
  *
@@ -21,11 +22,25 @@
  * would be a second answer to what a report is called, and it would go stale the first time one of these
  * files was re-exported. The script **refuses to write** when a file's `REPORT_ID` has no registry entry
  * or an entry is missing a field, because a row titled `undefined` reads as a broken Library.
+ *
+ * **The What-if lens is seeded here too, because it is the same kind of thing.** CAPEX ships a rendered
+ * What-if page rather than a pool of candidate loads to traverse, so it is framed as a document exactly as
+ * the reports are — and it is seeded by this script rather than a second one because both write
+ * `db.CAPEX.json`, and two writers of one document is how a subtree gets dropped. The section below states
+ * the rest of the reasoning.
  */
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 
 const DB = new URL('../db.CAPEX.json', import.meta.url)
 const DIR = new URL('../../frontend/src/Capex/Report/', import.meta.url)
+/*
+ * The What-if lens is a document too, and it lives in its own folder beside the reports.
+ *
+ * **The folder is what says which kind of document a file is.** `Report/` holds reports and
+ * `what-if-lens/` holds the lens, so a second lens is a file drop rather than an edit here — the same
+ * reasoning `reportDocuments.ts` gives for globbing per dataset folder rather than naming CAPEX.
+ */
+const LENS_DIR = new URL('../../frontend/src/Capex/what-if-lens/', import.meta.url)
 
 /*
  * The folder holds the three rendered reports plus the authoring exploration. The reports are matched
@@ -230,6 +245,145 @@ if (problems.length > 0) {
   process.exit(1)
 }
 
+/*
+ * ---------------- the What-if lens, which is a document for the same reason the reports are ----------------
+ *
+ * **CAPEX's What-if is a rendered page, not a traversal.** EPA's lens admits a candidate load into the
+ * published graph and traverses to that generator's federal record, so every figure on it is computed by
+ * `whatifScenario` per request. CAPEX has no such pool, and its own `_not_applicable` block says why in as
+ * many words: *"CAPEX exposes continuous levers, not a pool of swappable candidates"* — which is why its
+ * `generators` and `candidate_pools` are legitimately empty. What it ships instead is a finished page whose
+ * model is a cost decomposition moved by sliders, so the honest thing is to serve it as a document exactly
+ * as its three reports are served — rather than bend the traversal lens into a shape its data cannot fill,
+ * or transcribe the page's figures into components.
+ *
+ * **The fixture behind the page is already in this document, and stays untouched.** `whatif.slices`,
+ * `levers`, `locked_slices` and `program` are a verbatim extract of this file's own `SLICES`/`PROGRAM` —
+ * all five slice traces match character for character — so nothing here re-derives them. What was missing
+ * is the pointer to the file, which is the only thing the app needs in order to frame it.
+ */
+const lensFiles = readdirSync(LENS_DIR).filter((f) => /^W\d+_.*\.html$/i.test(f)).sort()
+if (lensFiles.length === 0) {
+  problems.push(`no What-if lens document found in ${LENS_DIR.pathname} (expected W<n>_*.html)`)
+} else if (lensFiles.length > 1) {
+  /* One lens per dataset, because the What-if page frames one document — a second would be unreachable,
+     which is the silent half of the duplicate-basename throw in `reportDocuments.ts`. */
+  problems.push(
+    `${LENS_DIR.pathname} holds ${lensFiles.length} lens documents (${lensFiles.join(', ')}) — ` +
+      'the What-if page frames one, so the rest would be unreachable',
+  )
+}
+
+/* Tags out, entities decoded, whitespace collapsed. The copy is authored as markup — the banner carries a
+   `<b>` — and a heading printing a literal `<b>` reads as a broken export rather than as one this script
+   failed to read. */
+const text = (html) =>
+  html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+
+let lensDocument = null
+if (lensFiles.length === 1) {
+  const file = lensFiles[0]
+  const html = readFileSync(new URL(file, LENS_DIR), 'utf8')
+  const grab = (re) => {
+    const m = re.exec(html)
+    return m ? text(m[1]) : null
+  }
+
+  /*
+   * The `<title>` carries two facts in one string — `What-if — Veolia CapEx (draft v2)` — so it is split
+   * rather than stored whole: the name is what the bar beside the frame prints, and the stage and the
+   * version are what say how finished the thing is. A page stating no version keeps a null and the check
+   * below refuses, because a bar reading `· v` with nothing after it looks like a failed load.
+   */
+  const titleTag = grab(/<title>([\s\S]*?)<\/title>/)
+  const stamped = /^(.*?)\s*\(\s*(?:([A-Za-z]+)\s+)?v(\d+)\s*\)\s*$/.exec(titleTag ?? '')
+
+  lensDocument = {
+    document_id: file.slice(0, file.indexOf('_')).toUpperCase(),
+    file,
+    /* The name the `<title>` gives, without the parenthetical the next two fields carry. */
+    title: stamped ? stamped[1] : titleTag,
+    version: stamped ? `v${stamped[3]}` : null,
+    /*
+     * "draft" — the document's own word for how finished it is, and deliberately **not** checked against
+     * `governance.statuses`. Those are the lifecycle states of a governed Library row, and this is not
+     * one: it is not listed in the Library, and nothing here publishes, approves or archives it.
+     * Borrowing that vocabulary would claim a governance record that does not exist.
+     */
+    stage: stamped && stamped[2] ? stamped[2].toLowerCase() : null,
+    /*
+     * **No `category`, deliberately.** A report carries one because its own registry states one
+     * ("Executive"), and this page states none. The two candidates were both worse than nothing: the
+     * folder name yields "what if lens", which loses the hyphen the product name has, and typing
+     * "What-if lens" would be this script putting a label in the document's mouth — the same
+     * transcription the figures are kept out of components to avoid. The bar beside the frame prints
+     * what the page does state: its name, its version and its stage.
+     */
+    /* The page's own heading and standfirst. The frame prints them itself, so nothing above it restates
+       them; they are carried so a bar can label the frame and so the document can be listed at all. */
+    heading: grab(/<h1>([\s\S]*?)<\/h1>/),
+    subtitle: grab(/<div class="sub">([\s\S]*?)<\/div>/),
+    /*
+     * **The tab list is re-read, because it is the one thing in `whatif.copy` this page contradicted.**
+     *
+     * That block was extracted from an earlier build with three tabs — Author, Run & compare, Library —
+     * and this page has two, Authoring and Runtime. `copy.tabs` is what the *React* lens renders, so for a
+     * dataset whose lens is a framed document nothing prints them at all: a stale list is invisible rather
+     * than visibly wrong, which is exactly how it would stay stale. Read from the page's own buttons — the
+     * key from the `showTab(...)` call each one makes, the label from what it says.
+     */
+    tabs: [
+      ...html.matchAll(
+        /<button class="tab[^"]*"[^>]*onclick="showTab\('([^']+)'\)"[^>]*>([^<]*)<\/button>/g,
+      ),
+    ].map((m) => ({ key: m[1], label: text(m[2]) })),
+  }
+
+  for (const [key, value] of Object.entries(lensDocument)) {
+    if (!value || (Array.isArray(value) && value.length === 0)) {
+      problems.push(`${file} states no "${key}" — the What-if page would frame a document it cannot label`)
+    }
+  }
+
+  /* The stored default has to name a tab the page actually has, or the state opens on one that is not
+     there. Checked here rather than trusted, because the tab list is what just changed. */
+  const defaultTab = db.whatif?.state_defaults?.tab
+  if (lensDocument.tabs.length > 0 && defaultTab && !lensDocument.tabs.some((t) => t.key === defaultTab)) {
+    problems.push(
+      `whatif.state_defaults.tab is "${defaultTab}", which ${file} does not declare ` +
+        `(${lensDocument.tabs.map((t) => t.key).join(', ')})`,
+    )
+  }
+}
+
+if (problems.length > 0) {
+  console.error('\ningest-capex-reports: refusing to write —')
+  for (const p of problems) console.error('  · ' + p)
+  console.error('\n  Nothing was written. Fix the lens document or its title stamp.\n')
+  process.exit(1)
+}
+
+/*
+ * `whatif` is spread, not replaced: the slices, levers, measures, publishing block and graph reference are
+ * the package's own extract and none of it is this script's to rewrite. Only the pointer to the document
+ * and the tab list it just read are set — a script that owns a subtree and rewrites its parent is how a
+ * subtree gets deleted, which this repo has been bitten by twice.
+ */
+db.whatif = {
+  ...db.whatif,
+  document: lensDocument,
+  copy: { ...db.whatif.copy, tabs: lensDocument.tabs },
+}
+
 db.reports = {
   ...db.reports,
   documents,
@@ -264,5 +418,7 @@ writeFileSync(DB, JSON.stringify(db, null, 2) + '\n', 'utf8')
 console.log(
   `ingest-capex-reports: ${documents.length} documents -> db.CAPEX.json\n` +
     documents.map((d) => `  ${d.document_id}  ${d.status.padEnd(9)} ${d.version.padEnd(4)} ${d.title}`).join('\n') +
-    (authoring ? `\n  authoring: ${authoring}` : '\n  authoring: none found'),
+    (authoring ? `\n  authoring: ${authoring}` : '\n  authoring: none found') +
+    `\n  what-if:   ${lensDocument.stage.padEnd(9)} ${lensDocument.version.padEnd(4)} ${lensDocument.title} (${lensDocument.file})` +
+    `\n  tabs:      ${lensDocument.tabs.map((t) => t.label).join(' · ')}`,
 )

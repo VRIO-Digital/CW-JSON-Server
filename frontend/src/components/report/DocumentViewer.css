@@ -42,6 +42,26 @@
 }
 
 /*
+ * ---------------- seamless: the document *is* the page ----------------
+ *
+ * The What-if lens has no bar and no border, so nothing draws a boundary the reader has to interpret.
+ * The frame keeps its height: it is the viewport the document's `position: fixed` overlay and toast are
+ * placed against, and stretching it to the content's height strands both. See the component's note.
+ */
+
+.dvw--seamless {
+  /* No bar above it, so the frame starts where the page's own header left off. */
+  padding-top: 0;
+}
+
+.dvw-frame--seamless {
+  border: none;
+  border-radius: 0;
+  /* Taller than the framed case, because there is no bar taking a row above it. */
+  height: 82vh;
+}
+
+/*
  * Printing is delegated to the frame itself — `contentWindow.print()` — so the app's own print rules
  * never apply to a document. Nothing here hides the app for print, deliberately: if a reader uses the
  * browser's own Print on this page instead of the button, what they get is the app's page, and inventing

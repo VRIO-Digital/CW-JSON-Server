@@ -24427,15 +24427,11 @@
       "tabs": [
         {
           "key": "author",
-          "label": "Author"
+          "label": "Authoring"
         },
         {
-          "key": "run",
-          "label": "Run & compare"
-        },
-        {
-          "key": "library",
-          "label": "Library"
+          "key": "runtime",
+          "label": "Runtime"
         }
       ],
       "data_note": "Extracted from the built page at runtime by _build/extract_whatif.js. Nothing here is hand-typed; if the page changes, re-run the extractor rather than editing this file."
@@ -25446,6 +25442,25 @@
       ],
       "link_pattern": "contextweave.northlinewater.com/w/<scenario-name-slugified>",
       "governance_link": "../10_access_publishing/governance_audit_capex.html"
+    },
+    "document": {
+      "document_id": "W1",
+      "file": "W1_what_if_lens.html",
+      "title": "What-if — Veolia CapEx",
+      "version": "v2",
+      "stage": "draft",
+      "heading": "What-if",
+      "subtitle": "Stress the remaining forecast to complete without pretending to predict it. A what-if moves one attributable driver at a time — index-linked materials, labor, contingency — and recomputes only the slice the graph can tie to that driver. What it can't attribute is shown as a locked residual, not smeared across the answer. Nothing is forecast; every slice opens to its source. Authoring sets the scenario — which measures you watch, which drivers a case may move and how far, and its name. Runtime is where you move the sliders across cases, publish the complete scenario when it is worth sharing, and open any figure to the contract, timesheet or index feed it came from.",
+      "tabs": [
+        {
+          "key": "author",
+          "label": "Authoring"
+        },
+        {
+          "key": "runtime",
+          "label": "Runtime"
+        }
+      ]
     }
   },
   "reports": {

@@ -1519,7 +1519,69 @@ the cap a wide column rendered 11px labels at 28px.
 
 ### The What-if lens (`/what-if`)
 
-Where a load is judged **before** it is accepted. Ingested from
+**A dataset's lens is either computed or shipped, and CAPEX ships one.** Everything below describes EPA:
+a candidate load is admitted hypothetically and every figure is traversed to that generator's federal
+record, per request. CAPEX has no pool of candidates to admit — its own document says so, which is why
+its `generators` and `candidate_pools` are legitimately empty — and its model is a cost decomposition
+moved by sliders instead. So it ships a finished page, `frontend/src/Capex/what-if-lens/`, and the
+What-if page frames it in an `iframe` exactly as the Library frames a CAPEX report. Rendering the
+traversal lens over that data would draw an empty frame above a pool reading "nobody qualifies", which
+is an answer and the wrong one; transcribing the page's figures into components is the other way to get
+it wrong, and it looks right on screen.
+
+**The pointer is `whatif.document` and every field of it is read out of the file.** `npm run
+ingest:capex` writes it — the same script that ingests the reports, because both write
+`db.CAPEX.json` and two writers of one document is how a subtree gets dropped. The `<title>` stamp
+carries the name, the stage and the version (*What-if — Veolia CapEx (draft v2)*), the `<h1>` and
+standfirst carry what the page says it is for, and the tab buttons carry its own two tabs; the script
+**refuses to write** rather than storing a row the page could not label. `stage` is deliberately *not*
+checked against `governance.statuses` — those are the lifecycle states of a governed Library row, and
+the lens is not one.
+
+**Served on both branches of `GET /whatif`, because the publish gate is about questions.** A computed
+lens overlays the published graph, so with nothing published its figures would be attributed to content
+nobody released. A rendered document asked nothing of a graph, so gating it would enforce a
+precondition it does not have and leave the page empty for a dataset that ships one — the same
+reasoning, and the same ordering, as the report section's documents. The page therefore tests
+`frame.document` **before** `publishedCount`, and `check-docs` compares the two indices.
+
+**One viewer, two callers.** `DocumentViewer` frames a Library report and this lens both: the single
+copy of the file resolved at build time, the real boundary around it and the missing-file diagnosis are
+wanted identically by each, and a second viewer would be a second place for the `.apiFab` rule to hold.
+`reportDocuments.ts` grows a **second glob** rather than a widened one — `Report/` holds reports and
+`what-if-lens/` holds a lens, and the folder is what says which kind a file is — feeding the one lookup,
+so the duplicate-basename throw still covers both.
+
+**The lens is rendered `seamless`, which means it is the page rather than a file on display.** Asked
+for directly, and it is four things: no bar — so no **Back** to somewhere it never came from, no
+**Export PDF**, and no label restating a title the document prints itself — no border or radius on the
+frame, and the document's own `body` background painted **white** by a rule injected into the frame.
+Together they are the difference between a page of this app and an embedded HTML file. **What it costs
+is the print button**, and that is stated rather than glossed: nothing else offers to print a framed
+lens, and the browser's own Print gives the app around it, because `DocumentViewer.css` deliberately
+narrows nothing for print. A report keeps all of it — bar, Back and export.
+
+**The white ground is a rule, never an edit**, exactly as the mock-API pill's is: the document's
+`_meta` says *"never hand-edit this file — change the generator and rebuild"*, so an edit would be lost
+at the next export and silently return. It overrides `body` rather than the document's `--bg0` token,
+because a token name is one file's private vocabulary and `background` on `body` is the fact.
+
+**And the frame keeps a fixed height, which looks like an oversight and is not.** Sizing the iframe to
+its content would put the document in the app's own scroll and remove the last cue that a frame is
+there — but this lens places its publish overlay (`inset: 0`) and its toast with `position: fixed`,
+which resolves against the **iframe's** viewport. Make that viewport as tall as the document and a
+reader scrolled past the top clicks Publish and sees nothing happen, the dialog having opened a thousand
+pixels above them. `check-docs` pins the height for that reason: "make it seamless" is exactly the
+request that would remove it next.
+
+**The fixture behind the page was already in `db.CAPEX.json` and is untouched.** `whatif.slices`,
+`levers`, `locked_slices` and `program` are a verbatim extract of that file's own `SLICES`/`PROGRAM`
+— all five slice traces match character for character — so the ingest re-derives none of it. The one
+thing it does correct is `copy.tabs`, which was extracted from an earlier three-tab build (Author ·
+Run & compare · Library) and now reads the page's own two. That list is what the *React* lens renders,
+so for a framed dataset nothing prints it — which is exactly how it stayed stale.
+
+Everything from here down is the computed lens. Ingested from
 `09_What if lens/whatif_vls_data.json` by `npm run ingest:whatif` into `db.whatif` —
 24 candidate generators with their federal records, 4 watchable measures, 4 candidate
 pools, and every string the page prints.
