@@ -448,8 +448,19 @@ export interface ProfiledColumn {
   facet: string | null
   /** LLM classification confidence, shown beside the class chip. */
   confidence: number
-  /** How the classification was reached — `llm` for every profiled column today. */
-  derivation: string
+  /**
+   * How the classification was reached, or `null` where the profiler did not record it.
+   *
+   * **Nullable because it is the dataset's to state.** EPA's workbook records `llm` for all 237
+   * columns; CAPEX's generator records nothing for any of its 224, and a schema saying `str` refused
+   * the payload and blanked the whole dictionary. Third field in this family after `rows` and
+   * `class` — a declared type is a claim about every dataset, not the one it was written against.
+   *
+   * Rendered only when present. There is no default, deliberately: `llm` would attribute a method to
+   * a classification nobody described, which is the same lie as printing confidence 0.00 for a node
+   * that was never scored.
+   */
+  derivation: string | null
   pii: boolean
   null_pct: number
   distinct: number
@@ -1678,7 +1689,8 @@ const COLUMNS_PAYLOAD = shape({
               class: str,
               facet: nullable(str),
               confidence: num,
-              derivation: str,
+              /* Null wherever the profiler recorded no method — see the interface. */
+              derivation: nullable(str),
               pii: bool,
               null_pct: num,
               distinct: num,

@@ -170,10 +170,13 @@ export default function ProfiledColumnsPanel({
         render: (_, col) => (
           <span className="pc-class">
             <Tag className={`pc-class-tag is-${col.class}`}>{col.class}</Tag>
-            {/* The derivation is reported, not assumed: today every profiled
-                column says `llm`, and a rule-derived one would say so here. */}
+            {/* The derivation is reported, not assumed: EPA's profiler says `llm` on every column
+                and a rule-derived one would say so here — but CAPEX's records no method at all, and
+                printing `llm` there would attribute one it never claimed. So it is omitted when
+                absent, and the confidence still shows: the score is real either way. */}
             <span className="pc-conf">
-              {col.derivation} {col.confidence.toFixed(2)}
+              {col.derivation ? `${col.derivation} ` : ''}
+              {col.confidence.toFixed(2)}
             </span>
           </span>
         ),

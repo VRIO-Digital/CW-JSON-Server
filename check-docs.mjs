@@ -1131,6 +1131,61 @@ expect(
     !/CLASSES_FOR_FACET/.test(codeOnly(columnsPanel)),
   'two copies of a fold disagree; the count and the rows must come from one field',
 )
+/*
+ * **A field the profiler leaves empty must be declared nullable, and this is the third time.**
+ *
+ * `rows: num` was true of EPA and refused every CAPEX browse. `class` was a nine-member union and
+ * refused both dictionaries. `derivation: str` was true of all 237 EPA columns and null on all 224
+ * CAPEX ones, and refused the column dictionary. Same shape every time: **a declared type is a claim
+ * about every dataset, not the one it was written against**, and the symptom is always a whole page
+ * reading "the data did not look the way this app expects".
+ *
+ * So this stops guarding the field and guards the family: read every dataset's `column_profiles`,
+ * collect the fields that are ever null, and require each to be `nullable(...)` in the column schema.
+ * A fourth one fails `npm run preflight` and names itself.
+ *
+ * The schema block is extracted by brace matching rather than grepped: several payloads have a
+ * `confidence` and a `note`, so a whole-file search for `derivation: nullable` answers about whichever
+ * one it finds first. That imprecision produced a false "at risk" list while this was being written.
+ */
+function braceBlock(src, anchorText) {
+  const from = src.indexOf(anchorText)
+  if (from < 0) return ''
+  let depth = 0
+  for (let i = from; i < src.length; i++) {
+    if (src[i] === '{') depth += 1
+    else if (src[i] === '}') {
+      depth -= 1
+      if (depth === 0) return src.slice(from, i + 1)
+    }
+  }
+  return ''
+}
+const columnSchema = braceBlock(client, 'columns: arrayOf(')
+const nullableColumnFields = new Map()
+for (const [name, doc] of datasetDocs) {
+  for (const cols of Object.values(doc.column_profiles ?? {})) {
+    for (const c of cols ?? []) {
+      for (const [field, value] of Object.entries(c ?? {})) {
+        if (value !== null) continue
+        if (!nullableColumnFields.has(field)) nullableColumnFields.set(field, new Set())
+        nullableColumnFields.get(field).add(name)
+      }
+    }
+  }
+}
+const notDeclaredNullable = [...nullableColumnFields].filter(
+  ([field]) => !new RegExp(`\\b${field}: nullable\\(`).test(columnSchema),
+)
+expect(
+  'every column field a dataset leaves empty is declared nullable',
+  columnSchema.length > 0 && notDeclaredNullable.length === 0,
+  notDeclaredNullable.length > 0
+    ? `null in the data, non-nullable in the schema: ${notDeclaredNullable
+        .map(([f, ds]) => `${f} (${[...ds].join(',')})`)
+        .join(', ')}`
+    : `${nullableColumnFields.size} nullable field(s) across ${datasetDocs.size} dataset(s), all declared`,
+)
 
 /* ---------------- the canvas ---------------- */
 
