@@ -569,10 +569,21 @@ export interface DocumentFacets {
   all: number
   needs_review: number
   pii: number
-  consent_decrees: number
-  complaints: number
-  settlements: number
-  cafos: number
+}
+
+/**
+ * One document-kind chip: the `doc_type` slug it filters by, its label, and its count.
+ *
+ * **Served, because the kinds are the corpus's and not this app's.** These were four fixed keys on
+ * `DocumentFacets` and a matching `TYPE_FOR_FACET` table in the panel — EPA's enforcement papers,
+ * which left all four chips reading 0 against CAPEX's 36 scope documents and contracts. The `key` is
+ * the slug the document carries, so the panel filters on it directly and there is no second map to
+ * fall out of step.
+ */
+export interface DocumentTypeFacet {
+  key: string
+  label: string
+  count: number
 }
 
 export interface ProfiledDocumentsPayload {
@@ -581,6 +592,7 @@ export interface ProfiledDocumentsPayload {
   folder_count: number
   entity_count: number
   facets: DocumentFacets
+  type_facets: DocumentTypeFacet[]
   folders: ProfiledFolder[]
 }
 
@@ -1688,11 +1700,8 @@ const DOCUMENTS_PAYLOAD = shape({
     all: num,
     needs_review: num,
     pii: num,
-    consent_decrees: num,
-    complaints: num,
-    settlements: num,
-    cafos: num,
   }),
+  type_facets: arrayOf(shape({ key: str, label: str, count: num })),
   folders: arrayOf(
     shape({
       folder_id: str,

@@ -5897,6 +5897,23 @@ const CLASS_FACET = {
   flags: ['flag'],
 }
 
+/**
+ * The chip label for one document kind, plural, as a reader reads it.
+ *
+ * Authored rather than derived: `doc_type_label` belongs to the *document* ("consent decree
+ * modification"), and humanising the slug gives "Cafos". `check-docs` asserts every `doc_type` in
+ * every dataset appears here, because a kind with no entry is a kind with no chip — and a corpus with
+ * no chips reads as a broken panel.
+ */
+const DOC_TYPE_LABEL = {
+  consent_decree: 'Consent decrees',
+  complaint: 'Complaints',
+  settlement: 'Settlements',
+  cafo: 'CAFOs',
+  scope_document: 'Scope documents',
+  contract: 'Contracts',
+}
+
 /** Classes with no chip, on purpose — see the note above. */
 const CLASS_UNFACETED = [
   'dimension',
@@ -7859,26 +7876,35 @@ const routes = [
       const drive = findDrive(source.drive_id)
       const byFolder = new Map()
       /*
-       * The type facets are the document kinds this corpus actually holds —
-       * federal RCRA enforcement papers. A consent-decree *modification* files
-       * under `consent_decree` because that is what it is; what makes it a
-       * modification is `doc_type_label`, which is what the reader sees.
+       * **The type chips are this corpus's kinds, so the list is served rather than written down in
+       * the panel.**
+       *
+       * There were four, fixed — Consent decrees, Complaints, Settlements, CAFOs — declared here as
+       * `FACET_FOR_TYPE` and again as `TYPE_FOR_FACET` in the panel. That is EPA's corpus: federal RCRA
+       * enforcement papers. CAPEX's drive holds `scope_document` and `contract`, so **all four chips read
+       * 0 against its 36 documents** — a chip at 0 reads as "none in this corpus" rather than as a
+       * broken map, which is the whole reason this map is guarded at all.
+       *
+       * A slug cannot supply its own chip label: `doc_type_label` is the *document's* ("consent decree
+       * modification"), not the group's, and pluralising a slug turns `cafo` into "Cafos". So the
+       * label is authored in `DOC_TYPE_LABEL` and `check-docs` asserts every dataset's types are in it.
+       *
+       * The keys come from **the drive's own corpus**, not from the profiled subset, so the chips do
+       * not appear and disappear as profiling progresses — a type present but not yet profiled reads
+       * as 0 of something real, which is a fact rather than a broken map.
        */
       const facets = {
         all: 0,
         needs_review: 0,
         pii: 0,
-        consent_decrees: 0,
-        complaints: 0,
-        settlements: 0,
-        cafos: 0,
       }
-      const FACET_FOR_TYPE = {
-        consent_decree: 'consent_decrees',
-        complaint: 'complaints',
-        settlement: 'settlements',
-        cafo: 'cafos',
-      }
+      const corpusTypes = new Set(
+        (drive?.folders ?? []).flatMap((f) => (f.documents ?? []).map((d) => d.doc_type)),
+      )
+      const typeFacets = Object.keys(DOC_TYPE_LABEL)
+        .filter((type) => corpusTypes.has(type))
+        .map((type) => ({ key: type, label: DOC_TYPE_LABEL[type], count: 0 }))
+      const typeFacetFor = new Map(typeFacets.map((f) => [f.key, f]))
 
       for (const entry of source.profiled_docs ?? []) {
         const meta = findDocument(drive, entry.folder_id, entry.document_id)
@@ -7888,8 +7914,10 @@ const routes = [
         facets.all += 1
         if (document.summary_status === 'needs review') facets.needs_review += 1
         if (document.pii_count > 0) facets.pii += 1
-        const bucket = FACET_FOR_TYPE[document.doc_type]
-        if (bucket) facets[bucket] += 1
+        /* The chip the panel filters by *is* the doc_type slug, so there is no map on either side to
+           disagree with the other — the column dictionary's `facet` field by a shorter route. */
+        const bucket = typeFacetFor.get(document.doc_type)
+        if (bucket) bucket.count += 1
 
         if (!byFolder.has(entry.folder_id)) {
           const folder = findFolder(drive, entry.folder_id)
@@ -7915,6 +7943,7 @@ const routes = [
         folder_count: folders.length,
         entity_count: folders.reduce((s, f) => s + f.entity_count, 0),
         facets,
+        type_facets: typeFacets,
         folders,
       })
     },

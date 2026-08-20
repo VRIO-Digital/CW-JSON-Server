@@ -18,45 +18,36 @@ import { fileKind } from '../../data/mimeTypes'
 import { useDocumentsStore } from '../../store/catalogStore'
 import './ProfiledColumnsPanel.css'
 
-type FacetKey =
-  | 'all'
-  | 'needs_review'
-  | 'pii'
-  | 'consent_decrees'
-  | 'complaints'
-  | 'settlements'
-  | 'cafos'
+/*
+ * Three chips are this app's — every corpus has documents, some needing review and some holding PII.
+ * The rest are the corpus's own kinds and arrive on the payload as `type_facets`; a fixed list here
+ * was EPA's four, which read 0 for every document CAPEX holds.
+ */
+type FixedFacet = 'all' | 'needs_review' | 'pii'
+type FacetKey = FixedFacet | string
 
-const FACETS: { key: FacetKey; label: string }[] = [
+const FIXED_FACETS: { key: FixedFacet; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'needs_review', label: 'Needs review' },
   { key: 'pii', label: 'PII' },
-  { key: 'consent_decrees', label: 'Consent decrees' },
-  { key: 'complaints', label: 'Complaints' },
-  { key: 'settlements', label: 'Settlements' },
-  { key: 'cafos', label: 'CAFOs' },
 ]
 
-/**
- * Facets filter documents here, not entities — a file is the reviewed unit.
- * They match `doc_type`, the slug, not `doc_type_label`: a consent-decree
- * modification belongs under Consent decrees, and only the label says it is one.
- */
-const TYPE_FOR_FACET: Partial<Record<FacetKey, string>> = {
-  consent_decrees: 'consent_decree',
-  complaints: 'complaint',
-  settlements: 'settlement',
-  cafos: 'cafo',
-}
 
 /** snake_case → "SIGNATORY EMAIL", matching the column dictionary. */
 const displayName = (id: string) => id.replace(/_/g, ' ').toUpperCase()
 
+/**
+ * Facets filter documents here, not entities — a file is the reviewed unit.
+ *
+ * A type chip's key **is** the `doc_type` slug, so this is a comparison rather than a lookup through
+ * a table the panel keeps. It still matches the slug and not `doc_type_label`: a consent-decree
+ * modification belongs under Consent decrees, and only the label says it is one.
+ */
 function matches(document: ProfiledDocument, facet: FacetKey) {
   if (facet === 'all') return true
   if (facet === 'needs_review') return document.summary_status === 'needs review'
   if (facet === 'pii') return document.pii_count > 0
-  return document.doc_type === TYPE_FOR_FACET[facet]
+  return document.doc_type === facet
 }
 
 export default function ProfiledDocumentsPanel({
@@ -189,15 +180,23 @@ export default function ProfiledDocumentsPanel({
         />
       ) : (
         <>
+        {/*
+          * The three fixed chips carry their count from `facets`; each type chip carries its own, since
+          * the served row *is* {key, label, count}. Indexing one object by both kinds of key is what
+          * made this a fixed list in the first place.
+          */}
         <div className="pc-facets">
-          {FACETS.map((f) => (
+          {[
+            ...FIXED_FACETS.map((f) => ({ key: f.key as string, label: f.label, count: data.facets[f.key] })),
+            ...data.type_facets,
+          ].map((f) => (
             <button
               type="button"
               key={f.key}
               className={`pc-chip${facet === f.key ? ' is-active' : ''}`}
               onClick={() => setFacet(f.key)}
             >
-              {f.label} <span className="pc-chip-count">{data.facets[f.key]}</span>
+              {f.label} <span className="pc-chip-count">{f.count}</span>
             </button>
           ))}
         </div>

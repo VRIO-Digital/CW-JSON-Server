@@ -2075,49 +2075,53 @@ expect(
 /*
  * The document dictionary's type chips exist in three places — the server's
  * bucket map, the panel's reverse map, and the client schema that validates the
- * counts. A slug present on one side only does not throw: the chip renders
- * `undefined` or the bucket silently never fills, and a facet reading 0 looks
- * like "no consent decrees in this corpus". So they are asserted against each
- * other, and against the `doc_type`s db.json actually holds.
+ * counts. The two maps are gone: the chips are **served**, because the kinds are the corpus's and
+ * not this app's. There were four fixed ones — EPA's enforcement papers — declared as
+ * `FACET_FOR_TYPE` on the server and again as `TYPE_FOR_FACET` in the panel, so **all four read 0
+ * against CAPEX's 36 scope documents and contracts**. A facet at 0 looks like "none in this corpus",
+ * which is why this map was guarded in the first place; guarding two copies of the wrong list kept
+ * them agreeing with each other and wrong about the data.
+ *
+ * So what is asserted now is: every dataset's kinds have a label, the label map is the only place
+ * they are written, and the panel keeps no copy of the fold — a chip's key *is* the `doc_type` slug.
  */
-const facetBlock = server.match(/const FACET_FOR_TYPE = \{([\s\S]*?)\n {6}\}/)
-const serverFacetPairs = facetBlock
-  ? [...facetBlock[1].matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[1], m[2]])
-  : []
 const docsPanel = read('frontend/src/components/catalog/ProfiledDocumentsPanel.tsx')
-const panelBlock = docsPanel.match(/const TYPE_FOR_FACET[^=]*= \{([\s\S]*?)\n\}/)
-const panelPairs = panelBlock
-  ? [...panelBlock[1].matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[2], m[1]])
-  : []
-
-expect(
-  'document type facets are mapped',
-  serverFacetPairs.length > 0 && panelPairs.length === serverFacetPairs.length,
-  `${serverFacetPairs.length} server buckets, ${panelPairs.length} panel facets`,
-)
-expect(
-  'server and panel agree on every doc_type facet',
-  JSON.stringify([...serverFacetPairs].sort()) === JSON.stringify([...panelPairs].sort()),
-  `server ${JSON.stringify(serverFacetPairs)} vs panel ${JSON.stringify(panelPairs)}`,
-)
-
-const seededDocTypes = [
-  ...new Set(
-    (db.drives ?? []).flatMap((d) =>
-      (d.folders ?? []).flatMap((f) => (f.documents ?? []).map((doc) => doc.doc_type)),
+const labelBlock = server.match(/const DOC_TYPE_LABEL = \{([\s\S]*?)\n\}/)?.[1] ?? ''
+const labelledTypes = [...labelBlock.matchAll(/(\w+):\s*'/g)].map((m) => m[1])
+const typesByDataset = new Map()
+for (const [name, doc] of datasetDocs) {
+  typesByDataset.set(name, [
+    ...new Set(
+      (doc.drives ?? []).flatMap((d) =>
+        (d.folders ?? []).flatMap((f) => (f.documents ?? []).map((dd) => dd.doc_type)),
+      ),
     ),
-  ),
-]
-const bucketedTypes = serverFacetPairs.map(([type]) => type)
-expect(
-  'every seeded doc_type has a facet',
-  seededDocTypes.every((t) => bucketedTypes.includes(t)),
-  `seeded: ${seededDocTypes.join(', ')} · bucketed: ${bucketedTypes.join(', ')}`,
+  ])
+}
+const unlabelledDocTypes = [...typesByDataset].flatMap(([name, types]) =>
+  types.filter((t) => !labelledTypes.includes(t)).map((t) => `${name}:${t}`),
 )
 expect(
-  'the facet labels are documented',
-  serverFacetPairs.every(([, bucket]) => client.includes(`${bucket}: num`)),
-  'each bucket is validated in the DOCUMENTS_PAYLOAD schema',
+  'every dataset’s doc_types have a chip label',
+  labelledTypes.length > 0 && unlabelledDocTypes.length === 0,
+  unlabelledDocTypes.length > 0
+    ? `no label for ${unlabelledDocTypes.join(', ')}`
+    : [...typesByDataset].map(([n, t]) => `${n} ${t.join('/')}`).join(' · '),
+)
+/*
+ * And the fold is written once. The panel filtering by its own table is what let the two agree while
+ * both were wrong; a served `{key, label, count}` row leaves nothing to disagree with.
+ */
+expect(
+  'the document type chips are served, not written in the panel',
+  /type_facets: typeFacets,/.test(server) &&
+    /const typeFacets = Object\.keys\(DOC_TYPE_LABEL\)/.test(server) &&
+    /type_facets: arrayOf\(shape\(\{ key: str, label: str, count: num \}\)\)/.test(client) &&
+    /return document\.doc_type === facet/.test(docsPanel) &&
+    /* codeOnly: the notes in both files explain the removal, so they name what was removed. */
+    !/TYPE_FOR_FACET/.test(codeOnly(docsPanel)) &&
+    !/FACET_FOR_TYPE/.test(codeOnly(server)),
+  'four chips fixed to EPA’s corpus read 0 for every document CAPEX holds',
 )
 
 /*
