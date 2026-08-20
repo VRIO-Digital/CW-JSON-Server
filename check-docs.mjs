@@ -148,6 +148,9 @@ const server = read('backend/server.js')
    beside `server` because several claims below read both, and a `const` reached from above its
    declaration dies in the temporal dead zone, which kills the run before it prints a summary. */
 const store = read('backend/store.js')
+/* The secondary dataset's document, for the same reason: the palette claims a thousand lines below read
+   its canvas, and it used to be declared four thousand lines *further* down again. One read, one name. */
+const capexDoc = readJson('backend/db.CAPEX.json')
 const connectors = read('frontend/src/data/connectors.ts')
 const indexCss = read('frontend/src/index.css')
 const theme = read('frontend/src/theme.ts')
@@ -1422,17 +1425,82 @@ expect(
  * This is the fill claim's replacement, keyed to the palette that now draws.
  */
 const viewerLib = read('frontend/src/graph-viewer/lib/graph.ts')
+const clientSrcForCanvas = read('frontend/src/api/client.ts')
 const typeColors = new Map(
   [...viewerLib.matchAll(/^\s{2}(\w+): "(#[0-9a-f]{6})",$/gm)].map((m) => [m[1], m[2]]),
 )
-const canvasTypes = [...new Set(canvas.nodes.map((n) => n.type))]
+/*
+ * **Every dataset's canvas, not just the primary's.** One palette draws them all, so a type either has a
+ * hue or renders as "some grey thing" with a legend row that says the same — and this claim read only
+ * `db.json`, so CAPEX's fifteen unhued types went unnoticed until its canvas was looked at. The union
+ * across both documents is what the palette actually has to cover.
+ */
+const capexCanvasNodes = capexDoc.value?.graph_studio?.canvas?.nodes ?? []
+const canvasTypes = [
+  ...new Set([...canvas.nodes.map((n) => n.type), ...capexCanvasNodes.map((n) => n.type)]),
+]
 expect(
-  'every type the canvas draws has a hue in the viewer’s palette',
+  'every type any dataset’s canvas draws has a hue in the viewer’s palette',
   typeColors.size > 0 && canvasTypes.every((t) => typeColors.has(t)),
   canvasTypes.filter((t) => !typeColors.has(t)).length > 0
     ? `no hue for: ${canvasTypes.filter((t) => !typeColors.has(t)).join(', ')}`
-    : `${canvasTypes.length} types, all coloured`,
+    : `${canvasTypes.length} types across both datasets, all coloured`,
 )
+
+/*
+ * **And two types on one canvas may not share a colour.** A distinct hue is the whole mechanism by which
+ * a reader tells one type from another — the discs carry no other mark — so a duplicate is a legend that
+ * says the same thing twice. Per canvas rather than across both: the two ontologies never appear
+ * together, so an EPA hue landing near a CAPEX one costs nothing.
+ */
+for (const [label, nodes] of [
+  ['the primary', canvas.nodes],
+  ['CAPEX', capexCanvasNodes],
+]) {
+  const types = [...new Set(nodes.map((n) => n.type))].filter((t) => typeColors.has(t))
+  if (types.length === 0) continue
+  const used = new Map()
+  for (const t of types) used.set(typeColors.get(t), [...(used.get(typeColors.get(t)) ?? []), t])
+  const shared = [...used.entries()].filter(([, ts]) => ts.length > 1)
+  expect(
+    `no two types on ${label} canvas share a hue`,
+    shared.length === 0,
+    shared.length > 0
+      ? shared.map(([hex, ts]) => `${hex}: ${ts.join(' + ')}`).join('; ')
+      : `${types.length} types, ${used.size} distinct hues`,
+  )
+}
+/*
+ * **A canvas field's declared type is a claim about every dataset that ships a canvas.**
+ *
+ * Two of them were claims about the primary only, and together they refused **all 442** of CAPEX's nodes:
+ * `group` was `oneOf(['row', 'schema', 'document', 'alias'])` — the primary's account of how an element
+ * was built, where CAPEX names its node types instead — and `source` was `str`, where CAPEX states none
+ * for 11 nodes. The Canvas tab failed with "group should be one of row | schema | document | alias",
+ * under a message telling the reader to restart the mock server. The same shape as `rows: num` against
+ * CAPEX's `rows: null`, and the third time this file has had to record it.
+ *
+ * Both halves are asserted, because each fails in its own silent direction: a re-narrowed union refuses a
+ * canvas again, and a `source` that stops being nullable does the same over eleven nodes.
+ */
+expect(
+  'the canvas schema is dataset-agnostic where the datasets legitimately differ',
+  /* `group` is a string: it is each package's own vocabulary, and nothing decides an appearance from it. */
+  /\n  group: str,/.test(clientSrcForCanvas) &&
+    !/group: oneOf\(\['row'/.test(clientSrcForCanvas) &&
+    /* `source` is nullable, and the viewer draws no provenance line rather than the string "null". */
+    /\n  source: nullable\(str\),/.test(clientSrcForCanvas) &&
+    /provenance: n\.source \?\? undefined/.test(read('frontend/src/graph-viewer/fromCanvas.ts')) &&
+    /* And both documents really satisfy it — asserted against the data, not only the declarations. */
+    capexCanvasNodes.every(
+      (n) => typeof n.group === 'string' && (n.source === null || typeof n.source === 'string'),
+    ) &&
+    canvas.nodes.every(
+      (n) => typeof n.group === 'string' && (n.source === null || typeof n.source === 'string'),
+    ),
+  `group is a plain string, source is nullable, and ${canvas.nodes.length + capexCanvasNodes.length} nodes across both documents satisfy it`,
+)
+
 /* And each of those hues has to read on the viewer's own ground, which is dark — the
    earlier palette was measured against a white page, and reusing either set on the other
    ground is exactly how the ring hues failed twelve ways the first time. */
@@ -6164,7 +6232,7 @@ expect(
  * looks right and goes stale the first time a document is re-exported.
  */
 const capexIngest = read('backend/scripts/ingest-capex-reports.js')
-const capexDb = readJson('backend/db.CAPEX.json')
+const capexDb = capexDoc
 const capexDocs = capexDb.value?.reports?.documents ?? []
 /*
  * The components a CAPEX row and a CAPEX report pass through. There is **one Library UI** for both

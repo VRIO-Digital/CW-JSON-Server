@@ -32,7 +32,10 @@ export function fromCanvas(canvas: CanvasPayload, graphName: string): RawGraph {
     /* The viewer's inspect panel prints `provenance`. Ours is the Catalog object the
        node was built from, which is exactly what that field is for — a node whose
        provenance is not on it is a claim the reader has to take on trust. */
-    provenance: n.source,
+    /* `?? undefined` rather than `?? ''`: the panel renders `provenance` only when it is truthy, so
+       an absent source draws no provenance line — which is the rule the canvas already follows for a
+       node it cannot draw. An empty string would print the heading with nothing under it. */
+    provenance: n.source ?? undefined,
     /* Its detail box reads `subtype`; the payload's `sublabel` is the node's own figure
        line (`46 manifests · 1,061.8 tons`), cached from what Layer 2 would federate. */
     subtype: n.sublabel || undefined,

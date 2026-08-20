@@ -1237,6 +1237,28 @@ because half a removal is the shape that fails silently.
   hue and that each hue clears 3:1 on the viewer's own ground — **read off `--bg`, never written
   down twice**, which is what let the ground be turned over without the hues quietly going with it.
 
+  **Two fields on a canvas node are each dataset's own, and declaring them narrowly refused a whole
+  canvas.** `group` is the package's account of how an element was built — EPA states four origin
+  classes (`row`/`schema`/`document`/`alias`), CAPEX names its node types — and `source` is the
+  Catalog object behind the node, which CAPEX does not state for 11 of its 442. Declared
+  `oneOf([…four…])` and `str`, they refused **every** CAPEX node with *"group should be one of row |
+  schema | document | alias"*, under the message that tells you to restart the mock server. `group` is
+  a plain string now — nothing decides an appearance from it, since the viewer colours by ontology
+  `type` — and `source` is nullable, with the inspector drawing no provenance line rather than the
+  word "null". The third instance of the `rows: num` pitfall, and `check-docs` now checks both
+  documents against the schema rather than trusting the declaration.
+
+  **And the palette is per-ontology, so it carries both.** The nine hues above are EPA's; CAPEX draws
+  **18** types of which three overlap, so fifteen fell through to the grey default and its legend was
+  fifteen identical rows — the "honest but silent" failure the palette claim exists to catch, reached
+  for the dataset the claim did not read. Fifteen hues were generated (each type's rank stepped by the
+  golden angle, then its lightness walked down until it clears 3.2:1 on white) and **written into
+  `TYPE_COLORS` as literals**, so a designer can move one; a per-name hash was tried first and put two
+  types 0.2° apart. `check-docs` measures the union of both canvases' types and asserts no two types on
+  *one* canvas share a hue. What that cannot fix is stated in the file: eighteen categories do not
+  separate reliably by hue at a 4.5px disc, so the legend's counts and its filter rows are how a reader
+  isolates a type.
+
   **The ground is white, and it was not when the folder arrived.** The viewer was vendored dark, so
   the Canvas tab read as a hole cut in a studio whose every other surface is white; turning it over
   was the whole palette rather than one token, because a palette is a set of relationships. The nine

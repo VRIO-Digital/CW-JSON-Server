@@ -34,6 +34,45 @@ export const TYPE_COLORS: Record<string, string> = {
   Enforcement: "#c2410c",
   Alias: "#6b7280",
   Measure: "#be185d",
+
+  /*
+   * ---------------- the second dataset's ontology ----------------
+   *
+   * **A palette keyed by type name is per-ontology, and there are two.** The nine above are the primary
+   * package's. CAPEX draws **18** types, of which only Concept, Document and Measure overlap — so
+   * fifteen of them fell through to `DEFAULT_COLOR` and the legend was fifteen rows of one grey. That is
+   * the "honest but silent" failure the palette claim exists to catch, reached for the dataset the claim
+   * did not look at; `check-docs` now measures **both** canvases, so a third ontology fails the build
+   * rather than drawing grey.
+   *
+   * **Generated, then written down.** Each hue is its type's rank in this list stepped by the golden
+   * angle (137.5°), which is what guarantees separation — a per-name hash was tried first and put
+   * `Contract` and `RateJurisdiction` 0.2° apart — and each lightness was then walked down until the
+   * colour clears **3.2:1** on the viewer's white ground. They are literals rather than a runtime
+   * derivation so a designer can move one, which is what this table is for; the alternative needed the
+   * whole type set at every call site, and that meant editing two more files inside a vendored folder.
+   *
+   * **What this cannot fix, stated rather than glossed.** Eighteen categories do not reliably separate by
+   * hue at a 4.5px disc, whatever the values — the note above says nine is already the practical limit.
+   * Six of these land in the yellow-green-teal arc because that is what fifteen evenly-spaced hues does.
+   * The legend's per-type counts and its filter rows are how a reader isolates one type, and that is the
+   * honest answer to a graph with this many; a palette cannot be it.
+   */
+  BudgetPlanVersion: "#be2d2d",
+  BusinessUnit: "#26a14a",
+  ChangeOrder: "#812dbe",
+  Classification: "#9d8e25",
+  Contract: "#2a9bb2",
+  InServiceAsset: "#be2d7b",
+  Person: "#45a126",
+  PlanVintage: "#332dbe",
+  Programme: "#be5d2d",
+  Project: "#26a173",
+  RateJurisdiction: "#b22dbe",
+  Region: "#809924",
+  RegulatoryDriver: "#2d75be",
+  State: "#be2d4b",
+  Vendor: "#27a532",
 };
 
 export const DEFAULT_COLOR = "#57606a";

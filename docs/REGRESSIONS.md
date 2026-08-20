@@ -4162,3 +4162,59 @@ checking anything.
 constrains one of them.* When a colour change is asked for and the result is still described in the old
 colour's terms, suspect the alpha before suspecting the rule — and prefer the literal reading of the ask
 over a compromise nobody requested.
+
+## CAPEX's canvas refused to load: two schema fields were claims about the primary dataset
+
+**Symptom.** Graph Studio's Canvas tab was empty for CAPEX while `db.CAPEX.json` plainly held 442 nodes
+and 908 edges. The error, when read, said:
+
+    nodes[0].group should be one of row | schema | document | alias, got "Concept"  (+449 more)
+
+prefixed by *"Restarting the mock server (npm run mock) usually fixes it"* — which it does not, because
+the server was fine.
+
+**Cause.** Two fields in the canvas schema were true of EPA by accident.
+
+- **`group`** was `oneOf(['row', 'schema', 'document', 'alias'])`. That is EPA's account of how an
+  element was built; CAPEX writes its node *type* there (`Concept`, `Programme`, `Region`…). So all 442
+  nodes failed.
+- **`source`** was `str`. CAPEX states no source for 11 nodes — the remaining 8 of the "+449".
+
+Neither is a data error: `group` is the graph's own account of itself, in its own vocabulary, and a node
+whose provenance nobody recorded has none. The **schema** was wrong, and it had been right for one
+dataset for as long as there was only one. This is the third recorded instance of the same shape, after
+`rows: num` versus CAPEX's `rows: null` and `confidence: num` versus its 442 nulls.
+
+**Fix.** `group: str` — nothing decides an appearance from it, since the vendored viewer colours by
+ontology `type` — and `source: nullable(str)`, with `fromCanvas` mapping an absent source to
+`undefined` so the inspector draws no provenance line rather than printing "null". `check-docs` now
+validates **both documents' nodes** against those rules rather than only checking the declaration.
+
+**And then the canvas loaded looking broken, which was the second half.** The palette is keyed by type
+name and holds EPA's nine. CAPEX draws eighteen types, three of which overlap, so fifteen took
+`DEFAULT_COLOR` and the legend was fifteen identical grey rows — precisely the "honest but silent"
+outcome the palette claim was written to prevent, reached because that claim read `db.json` only.
+
+**Fifteen hues, generated and then written down.** Each type's rank stepped by the golden angle (which is
+what guarantees separation: a per-name hash was tried first and put `Contract` and `RateJurisdiction`
+0.2° apart), then each lightness walked down until the colour clears 3.2:1 on the viewer's white ground —
+yellow-greens need to go much darker than blues for the same ratio, which is why it is measured and not
+chosen. They are literals in `TYPE_COLORS`, not a runtime derivation, because a runtime one needed the
+whole type set at all three call sites and that meant editing two more files inside a vendored folder.
+
+**What the fix cannot do, stated rather than glossed.** Eighteen categories do not separate reliably by
+hue at a 4.5px disc — the palette's own note puts the practical limit around nine, and six of these land
+in the yellow-green-teal arc because that is what fifteen evenly-spaced hues does. The legend's per-type
+counts and its filter rows are the honest answer to a graph with this many types; a palette is not.
+
+**Guard.** The two palette claims now read the **union of both canvases' types**, a new claim asserts no
+two types on *one* canvas share a hue, the per-type contrast loop measures all 24, and a further claim
+asserts `group`/`source` are dataset-agnostic *and* that both documents satisfy them. Six mutations,
+all caught — after one first reported "did not land" because its probe matched the explanatory comment
+beside the line it was mutating, which is the self-documenting-file trap this file has now recorded
+seven times.
+
+**The general shape.** *When a second dataset arrives, the fields to audit are the ones the first dataset
+happened to populate uniformly* — and a palette, a union and a required field are all the same kind of
+claim. A validator that refuses valid data is worse than a missing one: it fails confidently, and its
+message sends the reader to restart a process that was never at fault.

@@ -19963,6 +19963,44 @@
   ],
   "graph_use_cases": [
     {
+      "use_case_id": "uc-fdgfdg-mt1myjln2",
+      "name": "fdgfdg",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "",
+      "personas": [
+        {
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
+          "source": "ai"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Capitalized",
+          "description": "Cost transferred from CWIP to fixed assets.",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "How far has the approved baseline moved since original approval, and who approved each move?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 6,
+      "updated_at": "2026-08-20T14:49:23.425Z"
+    },
+    {
       "use_case_id": "uc_capital_programs",
       "name": "Capital Programme Intelligence",
       "status": "committed",

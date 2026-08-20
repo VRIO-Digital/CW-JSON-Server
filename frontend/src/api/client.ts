@@ -1025,21 +1025,21 @@ export interface GraphVersion {
 /* ---------------- Canvas ---------------- */
 
 /**
- * Which legend colour a node takes — its **origin class**, not its type.
+ * How a package accounts for the way an element was built — **its own vocabulary, not a fixed one.**
  *
- * A source row becomes an entity or event node, an uploaded document becomes a
- * document node, a raw name resolves through an alias, and `schema` is the pair of
- * element classes that are not instances: the type-level concepts and the measure
- * elements. Four categories, because a categorical palette stops being reliably
- * distinguishable past four when any two marks can end up adjacent; the ontology
- * type rides on `type` and `elementClass` instead.
+ * EPA states four origin classes: a source row becomes an entity or event node, an uploaded document
+ * becomes a document node, a raw name resolves through an alias, and `schema` is the pair of element
+ * classes that are not instances. CAPEX states its node's *type* here instead. Both are the graph's
+ * account of itself, and neither is wrong — so this is a string, and the union that used to be here
+ * refused every one of CAPEX's 442 nodes with a message about a stale server.
  *
- * `dimension` was here until the graph was rebuilt. Column values are no longer
- * promoted to nodes — a waste code is an attribute of a shipment — so the class has
- * no members by decision, and a legend row for it would advertise a claim the graph
- * denies.
+ * **Nothing reads it to decide an appearance.** It was the legend's fill until the viewer was vendored
+ * in; that draws by ontology `type` now, which is why widening this costs nothing. `dimension` was a
+ * fifth EPA value until the graph was rebuilt — column values are no longer promoted to nodes, a waste
+ * code being an attribute of a shipment — and it is gone rather than empty, because a legend row for it
+ * would advertise a claim the graph denies.
  */
-export type CanvasGroup = 'row' | 'schema' | 'document' | 'alias'
+export type CanvasGroup = string
 
 export interface CanvasNode {
   nodeId: string
@@ -1054,8 +1054,14 @@ export interface CanvasNode {
    * so relationships can point at it.
    */
   elementClass: 'thin_instance' | 'concept' | 'measure_element'
-  /** The Catalog object it was built from, e.g. `epa_hazwaste.e_manifest`. */
-  source: string
+  /**
+   * The Catalog object it was built from, e.g. `epa_hazwaste.e_manifest`.
+   *
+   * `null` where the package states none — CAPEX states none for 11 of its 442 nodes. The inspector
+   * prints provenance only when there is some, so an absence stays an absence rather than becoming the
+   * string "null" under a heading that claims to say where a figure came from.
+   */
+  source: string | null
   /** Relationships carried. The node's radius is this, not a decorative size. */
   degree: number
   /** Radius in canvas units, from the server so a reload draws one picture. */
@@ -2230,10 +2236,28 @@ const CANVAS_NODE = shape({
      `concept` and `measure_element` into one hue, so this is where the distinction
      survives — and it is the distinction the graph rebuild was about. */
   element_class: oneOf(['thin_instance', 'concept', 'measure_element']),
-  source: str,
+  /*
+   * **Nullable, because a package may not know where a node came from.** CAPEX states no source for 11
+   * of its 442 nodes, and `str` refused the whole canvas over them. The viewer already prints
+   * provenance only when there is some — an absence has no note — so null is the honest value and 0
+   * consumers wanted a placeholder.
+   */
+  source: nullable(str),
   degree: num,
   r: num,
-  group: oneOf(['row', 'schema', 'document', 'alias']),
+  /*
+   * **A plain string, because `group` is each package's own vocabulary.** It was
+   * `oneOf(['row', 'schema', 'document', 'alias'])`, which is EPA's account of how an element was
+   * built — and CAPEX names its node types there instead (`Concept`, `Programme`, `Region`…), so
+   * every one of its 442 nodes was refused with "group should be one of row | schema | document |
+   * alias", under a message blaming a stale server. The union was true of one dataset by accident.
+   *
+   * Nothing is lost by widening it: the drawing stopped encoding `group` when the viewer was vendored
+   * in — it colours by ontology `type` — so this is carried as the graph's own account of itself and
+   * read by nobody who could be misled by an unfamiliar word. A union that is right for one dataset
+   * and refuses another is not a validator, it is a bug with a good error message.
+   */
+  group: str,
   /*
    * **Nullable, because a package may score no node at all.** CAPEX scores none of its 442 — the
    * package states no per-node confidence — while EPA scores all 189, so `num` here was true of one
@@ -3871,10 +3895,10 @@ interface RawCanvasNode {
   sublabel: string
   type: string
   element_class: 'thin_instance' | 'concept' | 'measure_element'
-  source: string
+  source: string | null
   degree: number
   r: number
-  group: CanvasGroup
+  group: string
   confidence: number | null
   proposed: boolean
   origin: 'derived' | 'studio-authored'
