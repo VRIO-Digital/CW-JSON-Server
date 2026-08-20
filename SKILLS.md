@@ -1714,6 +1714,45 @@ recompute by traversal to its federal record: RCRAInfo evaluations and violation
 ECHO enforcement and penalties, an extracted consent decree. Nothing is predicted, and
 nothing is written.
 
+### A dataset can ship the lens instead of computing it
+
+**CAPEX does.** It has no pool of candidates to admit — `generators` and
+`candidate_pools` are empty, and its own `_not_applicable` block says why — so it ships
+a rendered page, `frontend/src/Capex/what-if-lens/W1_what_if_lens.html`, and the What-if
+page frames it in an `iframe` through the same `DocumentViewer` the Library uses for a
+CAPEX report.
+
+| | EPA | CAPEX |
+|---|---|---|
+| what a lens *is* | a traversal, computed per request | a finished document |
+| where the figures live | `whatifScenario` on the server | inside the file, never transcribed |
+| `whatif.document` | `null` | `{file, title, version, stage, heading, subtitle, tabs}` |
+| the publish gate | applies — the lens overlays the published graph | applies too, on request: publish first, then the lens opens |
+
+Three things to keep when touching this:
+
+- **`publishedCount` is tested before `frame.document`**, and the server agrees rather than
+  being second-guessed: it sends `document: null` while the gate is closed. The ordering
+  was the other way round for one turn and was reversed on request — publish the graph,
+  then Reports and What-if open. `check-docs` compares the indices. Publication is in
+  memory, so **a restart closes both sections again**, and CAPEX ships no saved use case:
+  getting there is New Graph → build → clear the queue and pivot → publish.
+- **The row is read out of the document by `npm run ingest:capex`**, which owns
+  `db.CAPEX.json` for the reports too — one writer per document. It reads the `<title>`
+  stamp for the name, stage and version and the tab buttons for the tabs, and refuses to
+  write rather than storing a row nothing can label. No title, subtitle or tab label may
+  appear as a literal in the page or the viewer.
+- **The fixture is already there and is not this script's to rewrite.** `slices`,
+  `levers`, `locked_slices` and `program` are a verbatim extract of the same file; only
+  `document` and `copy.tabs` are written, and `whatif` is spread rather than replaced.
+- **It renders `seamless`: the document is the page, not a file on display.** No bar —
+  so no Back, no **Export PDF** and no label restating the document's own title — no
+  border on the frame, and `body` painted white by a rule injected into the frame rather
+  than an edit to it. The frame nevertheless **keeps a fixed height**: this document
+  positions its publish overlay and its toast with `position: fixed`, which resolves
+  against the iframe's viewport, so a content-height frame would open the dialog off
+  screen for anyone scrolled down. Losing the print button is the stated cost.
+
 ### It never writes back
 
 The copy promises this three times, so the code keeps it: `POST /whatif/scenario`

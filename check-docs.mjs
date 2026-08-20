@@ -6140,19 +6140,38 @@ expect(
 )
 
 /*
- * **The publish gate is about questions, so a rendered document is not behind it.**
+ * **Publication is the only gate, and a rendered document is behind it like everything else.**
  *
- * An EPA report is asked of the published graph — serving one with nothing published would answer from
- * content nobody released. A CAPEX report asked nothing of a graph, so gating it would enforce a
- * precondition it does not have and leave the section empty for a dataset that ships three reports. So
- * the documents ride on **both** branches of `GET /reports`, and the page's gate tests both counts.
+ * It was not, briefly: the argument was that a gate about *questions* should not apply to a finished
+ * artefact, since nothing was asked of a graph to produce one. Reversed on request — *"report and
+ * whatif lens should be activated after publishing the graph studio for the capex data"* — because what
+ * that argument produced was a **section** where what was wanted is a **sequence**: the graph is
+ * released first, and the surfaces that read the tenant's data open after it.
+ *
+ * **So the shape is one gate, one branch that carries anything, one number tested.** Both halves are
+ * asserted, because either alone fails silently in a different direction: a page that tests two counts
+ * against a server that sends documents on one branch shows an empty prototype instead of the gate, and
+ * a page that tests one count against a server that sends them on both leaves the documents unreachable
+ * with nothing saying why.
  */
+const reportsPageSrc = read('frontend/src/pages/ReportsPage.tsx')
 expect(
-  'a dataset that ships rendered documents is not gated on a published graph',
-  /publishedCount === 0 && data\.documents\.length === 0/.test(read('frontend/src/pages/ReportsPage.tsx')) &&
-    /* Served whether or not the gate is closed — two branches, both carrying them. */
-    (server.match(/authoring_document: authoringDocument,/g) ?? []).length === 2,
-  'the gate still holds for computed reports; documents are not behind it',
+  'a rendered document is behind the publish gate, like every other surface that reads tenant data',
+  /* One number decides it — and the old two-count form is gone rather than merely unused. */
+  /if \(data && data\.publishedCount === 0\) \{/.test(codeOnly(reportsPageSrc)) &&
+    !/publishedCount === 0 && data\.documents\.length === 0/.test(codeOnly(reportsPageSrc)) &&
+    /* One branch carries them: the gated branch sends the empty literal, the open one the real thing. */
+    (server.match(/authoring_document: authoringDocument,/g) ?? []).length === 1 &&
+    /*
+     * Asserted as the gated branch's own **block**, not as three tokens anywhere in the file:
+     * `documents: []` also appears in a Drive folder shape two thousand lines away, so a whole-file
+     * probe for it passed straight over the gate being reopened. Found by breaking the claim, and it is
+     * the same trap this file already records for absence claims — assert at the site, not the spelling.
+     */
+    /governance: null,[\s\S]{0,600}?documents: \[\],\r?\n\s*authoring_document: null,/.test(server) &&
+    /* And the governance exception that existed only to support the ungated documents is gone with them. */
+    !/documents\.length > 0 \? reportGovernanceView/.test(server),
+  'one gate, one branch, one number — for computed reports and rendered documents alike',
 )
 
 /*
@@ -6177,6 +6196,122 @@ expect(
     /not in this build/.test(viewerSrc) &&
     /reportDocumentFiles\(\)/.test(viewerSrc),
   'framed, single-copy, and a missing file names itself',
+)
+
+/*
+ * ---------------- a dataset can ship its What-if lens as a document too ----------------
+ *
+ * **CAPEX's What-if is a rendered page, not a traversal**, for the same reason its reports are
+ * documents: it has no pool of candidate loads to admit and traverse — its own `_not_applicable`
+ * block says *"CAPEX exposes continuous levers, not a pool of swappable candidates"* — so its
+ * `generators` and `candidate_pools` are legitimately empty and the traversal lens would render a
+ * frame with nothing in it above a pool reading "nobody qualifies", which is an answer and the wrong
+ * one. It is framed instead, through the same viewer the reports use.
+ *
+ * **One cross-layer claim, because half of this is the shape that fails silently.** The pointer lives
+ * in `db.CAPEX.json`, is read out of the document by the ingest, is served on both branches of
+ * `GET /whatif`, is resolved to a URL by a second glob, and is what the page renders in place of both
+ * the lens and the gate. A layer missing on its own looks like a working page: a served document the
+ * page ignores is the traversal lens over empty data, and a page that frames a document nothing serves
+ * is the gate for a dataset that ships a lens.
+ */
+const lensDoc = capexDb.value?.whatif?.document ?? null
+const lensDir = 'frontend/src/Capex/what-if-lens'
+const whatIfPageSrc = read('frontend/src/pages/WhatIfPage.tsx')
+const whatIfPageCode = codeOnly(whatIfPageSrc)
+/* What the page and the viewer would have to *say* for any of this to be transcribed. Both, because
+   one component labels the frame and the other decides whether to draw it. */
+const lensRowSrc = whatIfPageCode + codeOnly(viewerSrc)
+expect(
+  "a dataset's What-if lens can be a rendered document, framed rather than transcribed",
+  lensDoc !== null &&
+    /* Every field the page needs to frame and label it, and the file really in the lens folder — a row
+       naming a file the bundle does not carry is a diagnosis on screen rather than a lens. */
+    Boolean(lensDoc.file && lensDoc.title && lensDoc.version && lensDoc.stage) &&
+    existsSync(join(root, lensDir, lensDoc.file)) &&
+    Array.isArray(lensDoc.tabs) &&
+    lensDoc.tabs.length > 0 &&
+    /* Read out of the document, never typed: the ingest reads the `<title>` stamp and the tab buttons,
+       and refuses to write rather than storing a row it could not label. */
+    /<title>/.test(capexIngest) &&
+    /showTab/.test(capexIngest) &&
+    /refusing to write/.test(capexIngest) &&
+    /* And nothing it read reaches a component as a literal — the same rule the report titles keep. */
+    !lensRowSrc.includes(lensDoc.title) &&
+    !lensRowSrc.includes(lensDoc.subtitle) &&
+    !lensDoc.tabs.some((t) => lensRowSrc.includes(`'${t.label}'`)) &&
+    /* Served on the **open branch only**: a rendered lens is behind the publish gate too, reversed on
+       request along with the report documents. One occurrence, and the gated branch sends null. */
+    (server.match(/document: whatifDocument\(\)/g) ?? []).length === 1 &&
+    /document: null,/.test(server) &&
+    /* The page tests the gate **first** and frames the document after it, so a dataset that ships one
+       still shows the gate until something is published — and it renders the served row rather than a
+       path built here. */
+    /\{frame\.publishedCount === 0 \? \(/.test(whatIfPageCode) &&
+    /<DocumentViewer document=\{frame\.document\} seamless \/>/.test(whatIfPageCode) &&
+    whatIfPageCode.indexOf('frame.publishedCount === 0 ?') <
+      whatIfPageCode.indexOf('frame.document ?') &&
+    /* Resolved through its own glob into the one lookup the reports use — a second module would be a
+       second copy of the single-file guarantee. */
+    /import\.meta\.glob\('\.\.\/\*\/what-if-lens\/\*\.html'/.test(
+      read('frontend/src/data/reportDocuments.ts'),
+    ) &&
+    /* The primary's lens is computed and must stay that way: an ingest that wrote this key into
+       db.json would replace a traversal with a document and every figure with a frame. */
+    (readJson('backend/db.json').value?.whatif?.document ?? null) === null,
+  lensDoc === null
+    ? 'db.CAPEX.json carries no whatif.document — run npm run ingest:capex'
+    : `${lensDoc.file} · ${lensDoc.title} ${lensDoc.version} (${lensDoc.stage}) · ` +
+      `tabs ${lensDoc.tabs.map((t) => t.label).join(' · ')}`,
+)
+
+/*
+ * ---------------- the framed lens is the page, not a file on display ----------------
+ *
+ * **A framed lens carries no viewer furniture, and its ground is the app's.** Asked for directly: the
+ * document is the whole of that page, so a Back to somewhere it did not come from, an Export button and a
+ * bar restating a title the document prints itself all announce an embedded HTML file rather than a page
+ * of this app — and the document's own `body` background (#f3f4f6) inside a borderless frame reads as a
+ * grey panel with nothing explaining its edges.
+ *
+ * **The background is a rule injected into the frame, never an edit to the file.** The document's `_meta`
+ * says *"never hand-edit this file — change the generator and rebuild"*, so an edit would be lost at the
+ * next export and silently return; the same mechanism already hides its mock-API pill, and both are
+ * style-only — nothing is removed from the DOM and no script is touched.
+ *
+ * **And the frame keeps a fixed height, which is the half that looks like an oversight and is not.**
+ * Sizing the iframe to its content would put the document in the app's own scroll and remove the last
+ * cue that a frame is there — but this lens places its publish overlay (`inset: 0`) and its toast with
+ * `position: fixed`, which resolves against the *iframe's* viewport. Make that viewport as tall as the
+ * document and a reader scrolled past the top clicks Publish and sees nothing happen. So the height stays
+ * and the claim pins it, because "make it seamless" is exactly the request that would remove it next.
+ */
+const lensCss = read('frontend/src/components/report/DocumentViewer.css')
+expect(
+  'a framed What-if lens renders as the page: no export, no bar, white ground, and a viewport that stays',
+  /* The page asks for it by name rather than the viewer guessing from the absence of `onBack`. */
+  /seamless\?: boolean/.test(viewerSrc) &&
+    /<DocumentViewer document=\{frame\.document\} seamless \/>/.test(whatIfPageCode) &&
+    /* The whole bar goes, which is what takes Export PDF with it — asserted as the bar being what the
+       flag gates, so moving the button out of the bar cannot quietly restore it. */
+    /\{seamless \? null : \(\r?\n\s*<div className="dvw-bar">/.test(viewerSrc) &&
+    /Export PDF/.test(viewerSrc.slice(viewerSrc.indexOf('{seamless ? null : ('))) &&
+    /* The ground is painted by a rule injected into the frame, and only in this mode. */
+    /seamless \? ' html, body \{ background: #fff \}' : ''/.test(viewerSrc) &&
+    /* Style only: the injected text is a stylesheet, and nothing removes a node or touches a script. */
+    !/\.remove\(\)|removeChild|contentDocument\.querySelector[\s\S]{0,40}\.remove/.test(
+      codeOnly(viewerSrc),
+    ) &&
+    /* Borderless, and the height is *stated* rather than left to the framed default. */
+    /\.dvw-frame--seamless \{[^}]*border: none/.test(lensCss) &&
+    /\.dvw-frame--seamless \{[^}]*height: \d+vh/.test(lensCss) &&
+    /* The reason it keeps a height is written where somebody would remove it. */
+    /position: fixed/.test(lensCss) &&
+    /* A report is untouched: it still has its bar, its Back and its export. */
+    /\{openDoc \? <DocumentViewer document=\{openDoc\} onBack=\{\(\) => setOpenDoc\(null\)\} \/> : null\}/.test(
+      read('frontend/src/pages/ReportsPage.tsx'),
+    ),
+  'no bar and no export in seamless, white ground injected, fixed viewport kept for the document’s fixed positioning',
 )
 
 /*

@@ -306,14 +306,15 @@ export default function ReportsPage() {
    * counts, because "publish the build you have" and "finish a draft" are different actions.
    */
   /*
-   * **A dataset that ships rendered documents is not gated on a published graph.**
+   * **Publication is the only gate, for a dataset whose reports are documents as much as one whose
+   * reports are questions.**
    *
-   * The gate is about questions: an EPA report is asked of the published graph, so serving one with
-   * nothing published would answer from content nobody released. A CAPEX report is a finished document —
-   * nothing was asked of a graph to make it — so applying the gate would enforce a precondition it does
-   * not have and leave the section empty for a dataset that ships three reports.
+   * A rendered document briefly sat outside it, on the reasoning that a gate about questions should not
+   * apply to a finished artefact. Reversed on request: the graph is released first and the surfaces that
+   * read the tenant's data open after it. So this tests one number, the server sends the documents on
+   * one branch only, and the two datasets cannot come to disagree about what opens the section.
    */
-  if (data && data.publishedCount === 0 && data.documents.length === 0) {
+  if (data && data.publishedCount === 0) {
     return (
       <>
         {header}

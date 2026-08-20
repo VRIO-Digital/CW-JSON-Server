@@ -1,5 +1,5 @@
 /**
- * One rendered report document, framed.
+ * One rendered document, framed — a report from the Library, or a dataset’s own What-if lens.
  *
  * **An iframe, because the document is a whole page.** Each of these files is a standalone 2.5 MB
  * document with its own `<!DOCTYPE>`, its own `<head>`, its own `data-theme` on `<html>` and its own
@@ -16,69 +16,134 @@
  * app's — but it means a report renders unstyled text offline, and that is the frame's doing, not a
  * broken report.
  *
+ * **Two callers, one component.** The Library frames a rendered report, and the What-if page frames a
+ * rendered lens for a dataset that ships one instead of a traversal to compute. They need the same four
+ * things — one copy of the file resolved to a URL, a real boundary around it, the document's own print
+ * path, and a missing file named rather than guessed — so a second viewer would be a second copy of all
+ * of that, and the `.apiFab` rule below would then hold for whichever of the two somebody remembered.
+ * What differs is only what sits around the frame, which is why the back action is a prop.
+ *
+ * **`seamless` renders the document *as the page* rather than as a file being viewed**, which is what the
+ * What-if lens is: the frame is the whole of that page, so viewer furniture around it — a Back to
+ * somewhere it did not come from, an Export button, a bar restating a title the document prints itself —
+ * announces an embedded HTML file instead of a page of this app. It drops all three, drops the frame's
+ * border and radius, and paints the document's own page background white so it does not read as a panel
+ * floating on the app's. **What it costs is the print button**, stated rather than glossed: nothing else
+ * offers to print a framed lens, and the browser's own Print on this page prints the app around it,
+ * because this stylesheet deliberately narrows nothing for print.
+ *
+ * **The frame is not auto-sized to its content, and that is a decision.** Matching the iframe's height to
+ * `scrollHeight` would put the document in the app's own scroll and remove the inner scrollbar — the last
+ * cue that this is a frame. It would also break the document: this lens positions its publish overlay
+ * (`.shOv`, `inset: 0`) and its toast (`.shToast`, `bottom: 26px`) with `position: fixed`, which is
+ * relative to the **iframe's** viewport. Make that viewport as tall as the document and a reader scrolled
+ * past the top clicks Publish and sees nothing happen, because the dialog opened a thousand pixels above
+ * them. A fixed-height frame keeps the viewport the document was authored against.
+ *
  * **Its own component, so it can be asserted on** — the same reason `PublishedReportPane` is one.
  */
 
 import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons'
 import { Alert, Button, Tooltip, Typography } from 'antd'
 
-import type { ReportDocument } from '../../api/client'
 import { REPORT_EXPORT_HINT } from '../../data/reportExport'
 import { reportDocumentFiles, reportDocumentUrl } from '../../data/reportDocuments'
 import './DocumentViewer.css'
 
+/**
+ * What this component needs of a document, which is less than either payload carries.
+ *
+ * Declared **structurally** rather than as a union of `ReportDocument | WhatIfDocument`: both satisfy it
+ * as they are, so neither call site has to reshape its row on the way in, and a third kind of framed
+ * document needs no edit here. The three label fields are optional because they are what the two kinds
+ * disagree about — a report states a `category` and a lens states a `stage` — and the bar prints
+ * whichever are present rather than an empty separator for one that is not.
+ */
+export interface FramedDocument {
+  file: string
+  title: string
+  version?: string
+  category?: string
+  stage?: string
+}
+
 export default function DocumentViewer({
   document: doc,
   onBack,
+  backLabel = 'Back to Library',
+  seamless = false,
 }: {
-  document: ReportDocument
-  onBack: () => void
+  document: FramedDocument
+  /** Absent where the frame *is* the page — the What-if lens has nothing to go back to. */
+  onBack?: () => void
+  backLabel?: string
+  /** Render the document as the page rather than as a framed file. See the note above. */
+  seamless?: boolean
 }) {
   const url = reportDocumentUrl(doc.file)
 
   return (
-    <div className="dvw">
-      <div className="dvw-bar">
-        <Button icon={<ArrowLeftOutlined />} onClick={onBack} size="small">
-          Back to Library
-        </Button>
-
-        {/*
-          * Export is the browser's, exactly as it is for an EPA report — and here it is the *document's*
-          * own print path, since an iframe prints as its own page. Offered only where there is a document
-          * to print: printing a "file is missing" alert is not an export.
-          */}
-        {url ? (
-          <Tooltip title={REPORT_EXPORT_HINT}>
-            <Button
-              icon={<PrinterOutlined />}
-              size="small"
-              onClick={() => {
-                /* The frame prints itself, so the app's own print rules never come into it. A frame
-                   that has not loaded has no `contentWindow` to ask, which is why this is guarded. */
-                const frame = window.document.getElementById(FRAME_ID) as HTMLIFrameElement | null
-                frame?.contentWindow?.focus()
-                frame?.contentWindow?.print()
-              }}
-            >
-              Export PDF
+    <div className={seamless ? 'dvw dvw--seamless' : 'dvw'}>
+      {/*
+        * The bar holds a way back, an export and a label — seamless has none of the three, and an empty
+        * flex row with a bottom margin is a gap nobody can account for. So it is not rendered at all
+        * rather than rendered empty.
+        */}
+      {seamless ? null : (
+        <div className="dvw-bar">
+          {/* Offered only where there is somewhere to go. A framed lens is the page itself, and a Back
+              that returned to the same screen would be a control that does nothing. */}
+          {onBack ? (
+            <Button icon={<ArrowLeftOutlined />} onClick={onBack} size="small">
+              {backLabel}
             </Button>
-          </Tooltip>
-        ) : null}
+          ) : null}
 
-        {/* Which report this is, in its own words, so the frame is labelled by the app around it. */}
-        <div className="dvw-name">
-          <Typography.Text strong>{doc.title}</Typography.Text>
-          <Typography.Text type="secondary"> · {doc.version} · {doc.category}</Typography.Text>
+          {/*
+            * Export is the browser's, exactly as it is for an EPA report — and here it is the *document's*
+            * own print path, since an iframe prints as its own page. Offered only where there is a document
+            * to print: printing a "file is missing" alert is not an export.
+            */}
+          {url ? (
+            <Tooltip title={REPORT_EXPORT_HINT}>
+              <Button
+                icon={<PrinterOutlined />}
+                size="small"
+                onClick={() => {
+                  /* The frame prints itself, so the app's own print rules never come into it. A frame
+                     that has not loaded has no `contentWindow` to ask, which is why this is guarded. */
+                  const frame = window.document.getElementById(FRAME_ID) as HTMLIFrameElement | null
+                  frame?.contentWindow?.focus()
+                  frame?.contentWindow?.print()
+                }}
+              >
+                Export PDF
+              </Button>
+            </Tooltip>
+          ) : null}
+
+          {/*
+            * Which document this is, in its own words, so the frame is labelled by the app around it.
+            *
+            * Built from the fields that are actually present rather than interpolated in a fixed order: a
+            * lens states a stage where a report states a category, and `· ${undefined}` renders a
+            * separator followed by nothing, which reads as a field that failed to load.
+            */}
+          <div className="dvw-name">
+            <Typography.Text strong>{doc.title}</Typography.Text>
+            <Typography.Text type="secondary">
+              {[doc.version, doc.category, doc.stage].filter(Boolean).map((fact) => ` · ${fact}`).join('')}
+            </Typography.Text>
+          </div>
         </div>
-      </div>
+      )}
 
       {url ? (
         <iframe
           id={FRAME_ID}
-          className="dvw-frame"
+          className={seamless ? 'dvw-frame dvw-frame--seamless' : 'dvw-frame'}
           src={url}
-          title={`${doc.title} — rendered report`}
+          title={`${doc.title} — rendered document`}
           /*
            * `same-origin` so the document's own scripts run and so `contentWindow.print()` is reachable;
            * these files are part of this build rather than third-party content. `allow-modals` because
@@ -109,7 +174,21 @@ export default function DocumentViewer({
                — so an absent one is not an error, it is a document this rule cannot apply to. */
             if (!inner) return
             const style = inner.createElement('style')
-            style.textContent = '.apiFab, .apiLog { display: none !important }'
+            /*
+             * **And the page background, in seamless mode only.** This document paints `body` with its
+             * own `--bg0` (#f3f4f6), which inside a borderless frame on a white page reads as a grey
+             * panel with nothing explaining its edges. Overriding `body` rather than the token, because
+             * a token name is this document's private vocabulary and the next export may not have it —
+             * `background` on `body` is the fact, `--bg0` is one file's way of spelling it.
+             *
+             * Injected here for the same reason the pill above is: the document's `_meta` says *"never
+             * hand-edit this file — change the generator and rebuild"*, so an edit would be lost at the
+             * next export and would silently come back, while a rule applied by the frame holds for
+             * whatever version is dropped in and keeps the file byte-identical to what produced it.
+             */
+            style.textContent =
+              '.apiFab, .apiLog { display: none !important }' +
+              (seamless ? ' html, body { background: #fff }' : '')
             inner.head?.appendChild(style)
           }}
         />
@@ -122,10 +201,11 @@ export default function DocumentViewer({
         <Alert
           type="error"
           showIcon
-          title="That report document is not in this build"
+          title="That document is not in this build"
           description={
-            `The section lists "${doc.file}", which is not among the documents bundled from ` +
-            `src/<dataset>/Report: ${reportDocumentFiles().join(', ') || 'none'}. ` +
+            `The page asks for "${doc.file}", which is not among the documents bundled from ` +
+            `src/<dataset>/Report and src/<dataset>/what-if-lens: ` +
+            `${reportDocumentFiles().join(', ') || 'none'}. ` +
             'Re-run npm run ingest:capex if the file was renamed.'
           }
         />

@@ -1519,7 +1519,70 @@ the cap a wide column rendered 11px labels at 28px.
 
 ### The What-if lens (`/what-if`)
 
-Where a load is judged **before** it is accepted. Ingested from
+**A dataset's lens is either computed or shipped, and CAPEX ships one.** Everything below describes EPA:
+a candidate load is admitted hypothetically and every figure is traversed to that generator's federal
+record, per request. CAPEX has no pool of candidates to admit — its own document says so, which is why
+its `generators` and `candidate_pools` are legitimately empty — and its model is a cost decomposition
+moved by sliders instead. So it ships a finished page, `frontend/src/Capex/what-if-lens/`, and the
+What-if page frames it in an `iframe` exactly as the Library frames a CAPEX report. Rendering the
+traversal lens over that data would draw an empty frame above a pool reading "nobody qualifies", which
+is an answer and the wrong one; transcribing the page's figures into components is the other way to get
+it wrong, and it looks right on screen.
+
+**The pointer is `whatif.document` and every field of it is read out of the file.** `npm run
+ingest:capex` writes it — the same script that ingests the reports, because both write
+`db.CAPEX.json` and two writers of one document is how a subtree gets dropped. The `<title>` stamp
+carries the name, the stage and the version (*What-if — Veolia CapEx (draft v2)*), the `<h1>` and
+standfirst carry what the page says it is for, and the tab buttons carry its own two tabs; the script
+**refuses to write** rather than storing a row the page could not label. `stage` is deliberately *not*
+checked against `governance.statuses` — those are the lifecycle states of a governed Library row, and
+the lens is not one.
+
+**Behind the publish gate, so it is served on the open branch only.** A computed lens overlays the
+published graph, so with nothing published its figures would be attributed to content nobody released; a
+rendered one asked nothing of a graph, which is why it rode both branches at first. **Reversed on
+request**, together with the report documents — the graph is released first and the surfaces that read
+the tenant's data open after it. So `GET /whatif` sends `document: null` while the gate is closed, the
+page tests `publishedCount` **before** `frame.document`, and `check-docs` compares the two indices in
+that order. A restart closes it again, because publication is in memory.
+
+**One viewer, two callers.** `DocumentViewer` frames a Library report and this lens both: the single
+copy of the file resolved at build time, the real boundary around it and the missing-file diagnosis are
+wanted identically by each, and a second viewer would be a second place for the `.apiFab` rule to hold.
+`reportDocuments.ts` grows a **second glob** rather than a widened one — `Report/` holds reports and
+`what-if-lens/` holds a lens, and the folder is what says which kind a file is — feeding the one lookup,
+so the duplicate-basename throw still covers both.
+
+**The lens is rendered `seamless`, which means it is the page rather than a file on display.** Asked
+for directly, and it is four things: no bar — so no **Back** to somewhere it never came from, no
+**Export PDF**, and no label restating a title the document prints itself — no border or radius on the
+frame, and the document's own `body` background painted **white** by a rule injected into the frame.
+Together they are the difference between a page of this app and an embedded HTML file. **What it costs
+is the print button**, and that is stated rather than glossed: nothing else offers to print a framed
+lens, and the browser's own Print gives the app around it, because `DocumentViewer.css` deliberately
+narrows nothing for print. A report keeps all of it — bar, Back and export.
+
+**The white ground is a rule, never an edit**, exactly as the mock-API pill's is: the document's
+`_meta` says *"never hand-edit this file — change the generator and rebuild"*, so an edit would be lost
+at the next export and silently return. It overrides `body` rather than the document's `--bg0` token,
+because a token name is one file's private vocabulary and `background` on `body` is the fact.
+
+**And the frame keeps a fixed height, which looks like an oversight and is not.** Sizing the iframe to
+its content would put the document in the app's own scroll and remove the last cue that a frame is
+there — but this lens places its publish overlay (`inset: 0`) and its toast with `position: fixed`,
+which resolves against the **iframe's** viewport. Make that viewport as tall as the document and a
+reader scrolled past the top clicks Publish and sees nothing happen, the dialog having opened a thousand
+pixels above them. `check-docs` pins the height for that reason: "make it seamless" is exactly the
+request that would remove it next.
+
+**The fixture behind the page was already in `db.CAPEX.json` and is untouched.** `whatif.slices`,
+`levers`, `locked_slices` and `program` are a verbatim extract of that file's own `SLICES`/`PROGRAM`
+— all five slice traces match character for character — so the ingest re-derives none of it. The one
+thing it does correct is `copy.tabs`, which was extracted from an earlier three-tab build (Author ·
+Run & compare · Library) and now reads the page's own two. That list is what the *React* lens renders,
+so for a framed dataset nothing prints it — which is exactly how it stayed stale.
+
+Everything from here down is the computed lens. Ingested from
 `09_What if lens/whatif_vls_data.json` by `npm run ingest:whatif` into `db.whatif` —
 24 candidate generators with their federal records, 4 watchable measures, 4 candidate
 pools, and every string the page prints.
@@ -2102,12 +2165,27 @@ and what it looks the registry entry up by. That is also why all three are carri
 parameterised copy: the id is baked into the file, and rewriting somebody's 2.5 MB export to inject a
 different one is a fragile dependency on its internals.
 
-**The publish gate does not apply to them, and that is not a loosening.** The gate exists because an EPA
-report is asked of the published graph — answering with nothing published would be answering from content
-nobody released. A CAPEX report asked nothing of a graph, so gating it would enforce a precondition it
-does not have and leave the section empty for a dataset that ships three reports. The documents therefore
-ride on **both** branches of `GET /reports`, and the page tests both counts (`publishedCount === 0 &&
-documents.length === 0`). The gate is untouched for computed reports.
+**The publish gate applies to them, and it did not always.** The documents rode on both branches at
+first, on the reasoning that a gate about *questions* should not apply to a finished artefact: a CAPEX
+report asked nothing of a graph, so withholding it enforced a precondition it did not have and left the
+section empty for a dataset that ships three reports. **Reversed on request** — *"report and whatif lens
+should be activated after publishing the graph studio for the capex data"* — because that argument
+produced a **section** where what was wanted is a **sequence**: the graph is released first, and the
+surfaces that read the tenant's data open after it.
+
+So the shape is the one this file had before documents existed. Nothing published means empty
+collections and `published_count: 0`, with `built_count` and `draft_count` beside it because "publish
+the build you have" and "finish a draft" are different fixes; the documents ride the **open branch
+only**, and `ReportsPage` tests one number (`publishedCount === 0`). The governance view went back with
+them: it was served while the gate was closed *because* the documents were, so that exception had no
+remaining purpose. One gate, one branch, one number — for a dataset whose reports are computed and one
+whose reports are documents alike.
+
+**What it costs is worth knowing before a demo.** Publication lives in memory, so **every restart closes
+both sections again** until a graph is published, and CAPEX ships **no saved graph use case** — so the
+path is New Graph → build in Studio → clear the review queue and the pivot → publish a version. Its
+pools support that (4 domains, 7 personas, 23 KPIs, 13 hero questions, 3 projects), and building it is
+what found the crash recorded in `docs/REGRESSIONS.md` under a null canvas confidence.
 
 **They are framed, not inlined.** `DocumentViewer` puts each in an `iframe`. Injecting the body would
 drop the `<head>` the report *is* and put its selectors in the app's tree — the problem that forced

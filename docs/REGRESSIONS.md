@@ -3788,6 +3788,207 @@ restore command, and why the boot banner prints the ref it actually read. An err
 the program, and a branch that is right for the default case and quietly wrong for every other one is a
 bug with better manners.
 
+## CAPEX's What-if page rendered the traversal lens over data that has no candidates
+
+**Symptom.** Selecting CAPEX and opening What-if Lenses gave nothing usable. On a fresh boot it was
+`NoPublishedGraph` — publication lives in memory, so `published_count` is 0 until somebody publishes —
+and past that gate the lens itself had nothing to draw: the pool dropdowns were empty, the pool frame
+drew one centre node and no fan, and every column had no load to admit. Nothing errored, and no payload
+was malformed. `db.CAPEX.json` meanwhile held a complete `whatif` block — 5 slices, 3 levers, 4 watched
+measures, its own publishing copy — so the page looked broken against data that was plainly present.
+
+**Cause.** Two different lenses, one component. EPA's What-if is a **traversal**: it admits a candidate
+generator hypothetically and recomputes each watched measure by walking to that generator's federal
+record, so `generators` and `candidate_pools` are the whole interaction. CAPEX's is a **decomposition**:
+its own `whatif._not_applicable` says it in as many words — *"CAPEX exposes continuous levers, not a pool
+of swappable candidates"* — so those two arrays are empty on purpose, and its model is a $120M forecast
+split into attributable slices moved by sliders. The React lens reads the arrays that are empty and never
+touches `slices` or `levers`, so it rendered the correct components over the correct data and produced a
+page about nothing.
+
+**What made it invisible** is that *both* halves were honest. An empty pool renders "nobody qualifies",
+which is a true sentence about an empty array and a false one about this dataset; a validator has nothing
+to refuse, because the document is internally consistent; and `validateDb` already permits an empty
+collection in a secondary dataset, which is the rule that let the document boot at all. Every layer was
+right and the screen was wrong.
+
+**Fix.** CAPEX ships a rendered What-if page — `frontend/src/Capex/what-if-lens/W1_what_if_lens.html` —
+and it is served as a **document**, exactly as its three reports are: `whatif.document` carries the
+pointer, `GET /whatif` sends it on both branches, and `WhatIfPage` frames it through the same
+`DocumentViewer` the Library uses. Every field of the row is read out of the file by
+`npm run ingest:capex` — the `<title>` stamp for the name, stage and version, the tab buttons for the
+tabs — and the script refuses to write rather than storing a row the page could not label.
+
+**Three things that had to be arranged rather than assumed:**
+
+- **`frame.document` is tested *before* `publishedCount`.** The publish gate is about questions: a
+  computed lens overlays the published graph, and a rendered page asked nothing of one. Ordered the other
+  way, a dataset that ships a lens shows the gate — which is the original symptom with a different
+  explanation, and it would have looked like a fix.
+- **`copy.tabs` was stale and could not have been noticed.** It was extracted from an earlier three-tab
+  build (Author · Run & compare · Library) while the page has two, Authoring and Runtime. That list is
+  what the *React* lens renders, so on a framed dataset nothing prints it — a wrong value with no
+  surface is not a bug anybody can see. The ingest re-reads it from the page's own buttons.
+- **The fixture was already correct and is not the ingest's to rewrite.** `slices`, `levers`,
+  `locked_slices` and `program` are a verbatim extract of the same file — all five slice traces match
+  character for character — so `whatif` is **spread**, not replaced, and only `document` and `copy.tabs`
+  are written. A script that owns a subtree and rewrites its parent is how a subtree gets deleted, which
+  this repo has been bitten by twice.
+
+**Guard.** One cross-layer `check-docs` claim, because half of this is the shape that fails silently: a
+served document the page ignores is the empty lens again, and a page framing a document nothing serves is
+the gate again. It asserts the row's fields and that the file is really on disk, that the ingest reads
+the title and tabs and refuses to write, that no title, subtitle or tab label is a literal in the page or
+the viewer, that **two** branches send it, that the document is tested before the gate, that the lens glob
+exists, and that the *primary* still has no `whatif.document` — an ingest that wrote that key into
+`db.json` would replace a traversal with a frame. Broken once per layer before being trusted; all five
+mutations were caught.
+
+**The general shape.** *A component reading the fields that are empty is not a broken component, and an
+empty collection is not always missing data.* CLAUDE.md's rule for the document dictionary's type facets
+is the same distinction from the other side — there a facet at 0 means the map is wrong, while a
+lifecycle chip at 0 is news. When a second dataset arrives, the question is not only "is every key
+present" but "does this dataset answer the question this page asks".
+
+## Piping a script through stdin mangled every em dash in it
+
+**Symptom.** A `python - <<'PY'` heredoc that spliced a comment block into a source file reported
+`AssertionError: anchor not found` against an anchor that was demonstrably in the file — `grep` found it,
+and the same script run from a *file* found it too.
+
+**Cause.** The anchor contained `—` and `·`. Read as **source from stdin**, the interpreter decoded the
+script through the console codepage rather than UTF-8, so the literals in the script were mojibake and
+could not match the file's correct UTF-8. Had the anchor matched, the *replacement* would have written
+that mojibake into the repo — which is the same corruption CLAUDE.md already records for PowerShell
+`Get-Content`/`Set-Content`, arriving by a different door.
+
+**Fix.** Write the script to a file and run the file; a shell heredoc redirected to a file is byte-exact,
+and an interpreter reading a file applies UTF-8 to source. Where the content is long or quote-heavy, write
+it with the editor tool instead of a heredoc at all.
+
+**The general shape, now recorded twice.** *Non-ASCII in this repo does not survive a text pipeline whose
+encoding nobody stated.* This codebase's prose is full of em dashes and `·`; any tool that carries source
+through a shell, a console or a codepage-sensitive API has to be assumed to corrupt them until proven
+otherwise. And a scripted edit should **assert its anchor matched** rather than replacing nothing and
+reporting success — a silent no-op is indistinguishable from a clean run.
+
+## Making a framed document seamless would have opened its dialogs off screen
+
+**The ask.** A framed What-if lens should not look like an embedded HTML file: white ground, no Export
+PDF. Straightforward — until the obvious fourth step, which is to size the iframe to its content so the
+inner scrollbar disappears and the document flows in the app's own scroll. That is the change that makes
+a frame genuinely invisible, and it is the one that had to be refused.
+
+**Why.** The document places two things with `position: fixed` — its publish overlay (`.shOv`,
+`inset: 0`) and its toast (`.shToast`, `bottom: 26px`). Inside an iframe, `fixed` resolves against the
+**iframe's** viewport, not the browser window. A frame sized to a 3,000px document has a 3,000px
+viewport, so the overlay centres against the whole document and the toast sits 26px from its bottom: a
+reader scrolled halfway down clicks **Publish**, the dialog opens a thousand pixels above them, and the
+screen does not change. A dead button, and the failure is in the *host*, so nothing in the document is
+wrong to find.
+
+**What was done instead.** The frame keeps a stated height and loses its border, its bar and its ground
+— which is most of the way there without touching the viewport the document was authored against. The
+inner scrollbar is the honest remainder.
+
+**Guard.** The `check-docs` claim pins `height: <n>vh` on the seamless rule and requires
+`position: fixed` to appear in the stylesheet's own comment, so the reason sits where somebody would
+delete the height. Broken once per fact: six mutations, all caught.
+
+**The general shape.** *An iframe is a viewport, not just a clipping box.* Anything the framed document
+positions against the viewport — `fixed`, `vh`, `100vh`, a scroll listener, `IntersectionObserver` —
+takes its meaning from the frame's size, so resizing the frame silently changes the document's
+behaviour. Read the document's CSS for viewport-relative units before changing the geometry of the thing
+that hosts it.
+
+**And a harness note, from the same session.** Two of those six mutations first reported *MUTATION DID
+NOT LAND* — one searched for a literal `\n` in a CRLF file, the other probed for "any `vh` height"
+when a sibling rule legitimately has one. Both are the failure docs/REGRESSIONS.md already records from
+the other side: a break test that cannot mutate reports a working guard as unbreakable. The harness now
+takes a regex over `\r?\n` and a *specific* probe for the edit having landed, and reports "did not
+land" distinctly from "missed" — the distinction is what stopped two correct guards from being rewritten.
+
+## Building a CAPEX graph killed the server: `.toFixed()` on a null canvas confidence
+
+**Symptom.** The mock server **exited** partway through the first CAPEX graph build. Not a failed
+request — the whole process, taking every other dataset with it, and the next poll got an empty reply
+that reads as "the server is not running" with no clue why it stopped. The log had it:
+
+    TypeError: Cannot read properties of null (reading 'toFixed')
+      at studioCanvas (backend/server.js:3514)
+      at recordVersion (backend/server.js:2899)
+      at Timeout.step (backend/server.js:2983)
+
+**Cause.** `studioCanvas` labelled a proposed node `proposed · ${n.confidence.toFixed(2)}`.
+`confidence` is `null` on **all 442** CAPEX canvas nodes — the package states no per-node score — and
+14 of them carry an undecided `review_item_id`, which is what makes a node *proposed*. EPA scores all
+189 of its nodes, so the expression was true of one dataset by accident. It is the pitfall this file
+already records for `rows: num` versus CAPEX's `rows: null`, in a place where the consequence is worse:
+it ran inside a build step's `setTimeout`, so it was an **uncaught exception** rather than a 500.
+
+**Why it had never fired.** Nothing had ever built a graph under CAPEX. `graph_use_cases` is empty for
+that dataset, the studio lists nothing, and no other surface reads a *proposed* canvas node. It took
+gating Reports and What-if on publication — which makes building a CAPEX graph the only way to open
+either — to reach the line at all. **A gate that forces a path is a test of that path.**
+
+**Fix, in three places, because one type was wrong in three declarations.** The server appends the score
+only where there is one; `confidence` is `nullable(num)` in the schema and `number | null` in both the
+raw and exported types; and `fromCanvas` says "Needs review" without a figure. Making the type honest is
+what found the second site — `fromCanvas.ts:75` had the identical `.toFixed()` and would have crashed
+the Canvas tab in the browser; the compiler reported it the moment the null was declared.
+
+**Absent is not 0.00**, which is the whole of why the number is dropped rather than defaulted. Printing
+`proposed · 0.00` states the deriver's lowest possible confidence in a node it never scored — the same
+false claim "0 rows" makes about a table nobody counted, and the reason CAPEX's own provenance calls
+`rows: null` *"the honest value, not zero"*. The word a reviewer needs is "proposed", and that is said
+either way.
+
+**Guard.** The compiler, which is the strongest one available here: a `number | null` cannot reach
+`.toFixed()` without a check, so a third site cannot be added silently. Verified end to end by driving
+the flow the gate now requires — commit a use case, build 31 substeps, resolve 7 review rows and the
+pivot, publish v1 — and confirming the server stayed up and both sections opened.
+
+**The general shape, now recorded three times.** *A field's declared type is a claim about every dataset,
+not the one in front of you.* `rows`, `confidence`, and next time something else: when a second dataset
+arrives, the fields to check are the ones the first dataset happened to populate everywhere. And a
+throw inside a timer is not a failed request — it is the process.
+
+## The publish gate was reversed for rendered documents, one turn after being argued against
+
+**What changed.** CAPEX's rendered reports, and then its rendered What-if lens, were served whether or
+not a graph was published, on the reasoning that the gate is about *questions*: nothing was asked of a
+graph to produce a finished document, so withholding it enforced a precondition it did not have. That
+was reversed on request — *"report and whatif lens should be activated after publishing the graph studio
+for the capex data"*.
+
+**Why the first reading was wrong.** It answered a question about **sections** ("does this section have
+content to show?") when the product question was about **sequence** ("what has the tenant released?").
+Publication is the release, and the surfaces that read the tenant's data open after it — whether the
+figures are computed on request or already inside a file. Read that way, gating a document is not a
+precondition it lacks; it is the same precondition every other surface has.
+
+**What the reversal touched, and the shape it restored.** `GET /reports` and `GET /whatif` each carry
+their documents on the **open branch only**; both pages test one number; and the governance view that
+was served while the gate was closed went back to `null`, because that exception existed only to give
+the ungated documents a Library. One gate, one branch, one number — which is what this file had before
+documents existed.
+
+**Two things to know before demoing it.** Publication is in memory, so **a restart closes both sections
+again**. And CAPEX ships no saved graph use case, so the path is New Graph → build → clear the review
+queue and the pivot → publish — which is what surfaced the crash recorded above.
+
+**Guard.** The claim that asserted the old rule was **rewritten to assert the new one** rather than
+deleted, and both halves are checked, because either alone fails silently in a different direction: a
+page testing two counts against a server that sends documents on one branch shows an empty prototype
+instead of the gate, and a page testing one count against a server that sends them on both leaves the
+documents unreachable with nothing saying why.
+
+**And one of its assertions was too loose, found by breaking it.** `documents: []` also appears in a
+Drive folder shape two thousand lines away, so a whole-file probe for it passed straight over the gated
+branch being reopened. It now matches the branch's own block — `governance: null` … `documents: []` …
+`authoring_document: null` together. Assert at the site, not the spelling: the fifth time that rule has
+earned an entry here.
+
 ## A second real document exposed two crashes that a one-document tenant could never reach
 
 **Context.** `CAPEX/db.json` reached the bucket for the first time, so `dataset=both` merged two real
