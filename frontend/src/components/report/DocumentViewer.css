@@ -57,7 +57,15 @@
 .dvw-frame--seamless {
   border: none;
   border-radius: 0;
-  /* Taller than the framed case, because there is no bar taking a row above it. */
+  /*
+   * The **fallback** height, and only that: the component measures the viewport left below the frame and
+   * sets the real height inline, because a page header's height is not a number this stylesheet may
+   * assume. This value is what a render with no layout gets — server-side, or before the first paint.
+   *
+   * It stays a fixed height rather than the content's, and that is load-bearing: the document positions
+   * its publish overlay and its toast with position: fixed, which resolves against the *iframe's*
+   * viewport, so a content-height frame opens the dialog off screen for anyone scrolled down.
+   */
   height: 82vh;
 }
 

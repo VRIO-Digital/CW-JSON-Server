@@ -4041,3 +4041,180 @@ a "simulation" that never installed its DNS override and so tested the happy pat
 extraction that read `/tmp` on Windows and silently printed nothing for every case. A check that
 cannot fail is a comment; that applies to the checks written while debugging, not just the ones
 committed.
+
+## CAPEX shipped a whole knowledge graph and nothing that named it, so its publish gate could never open
+
+**Symptom.** With Reports and the What-if lens gated on publication, both were permanently empty for
+CAPEX. The What-if menu framed no document; the Library listed no reports. Nothing errored, every
+payload was well-formed, and `db.CAPEX.json` plainly held the content — 442 canvas nodes, 908 edges,
+seven must-review rows, a pivot, five recorded sanity checks, three rendered reports and a rendered lens.
+Reported as "use that html for the capex what if lens menu", which is what it looks like from the screen:
+the wiring appears not to have been done.
+
+**Cause.** `graph_use_cases` was `[]`. Graph Studio lists briefs **committed on the last step**, so it
+listed nothing; with nothing listed there was no graph to build, so no version, so nothing to publish —
+and the gate reads `published_count`. Every layer was correct and the sequence had no entry point. The
+dataset shipped the *graph* and not the *brief that names it*, and nothing anywhere checked that a
+dataset with a canvas had one.
+
+**Why it stayed hidden until now.** While the documents rode both branches of their endpoints, neither
+section needed a published graph, so an empty `graph_use_cases` cost nothing visible. Gating them turned
+a dormant data gap into a dead end — the second time in two turns that closing this gate exposed
+something the open one had been hiding, the first being the `.toFixed()` crash above.
+
+**Fix.** `npm run ingest:capex` seeds one committed brief, and **every field is derived from the
+dataset's own use-case template** rather than typed: its id (so a re-run replaces the row and a build's
+decisions keep pointing at the same brief), its name, its description as the business need, and its 7
+personas / 23 KPIs / 13 hero questions resolved from the pools by id, each `source: 'ai'` — the
+provenance the wizard records when a suggester drafts from a template. The **domain is derived from the
+domains its own members name**, and a tie is refused rather than broken here. It names **no source**,
+because a registration lives in the server's memory and any id written to disk would dangle. The write
+is an **upsert**: a saved brief survives a restart because it is the user's work, so a seed that rewrote
+the collection would delete every draft — including the one that was in the file at the time.
+
+**Guard.** One `check-docs` claim over nine facts: the brief exists and is `committed`, sits on the
+wizard's last step (read off `WIZARD_STEPS`, not restated), matches the template's id, name and
+description, resolves every member, is on a declared domain, names no source, is upserted rather than
+rewritten, and no name or description reaches the ingest as a literal. Broken nine times, all caught.
+
+**The general shape.** *A precondition that cannot be met is a broken page, not a policy.* Before gating
+a surface, check that the path through the gate exists **for every dataset** — the gate was asked for in
+terms of one dataset ("after publishing the graph studio for the capex data") and that is exactly the
+dataset it locked shut. And when a seed writes into a collection the app also writes to, upsert: the
+distinction between "the package's row" and "the user's row" is the whole reason a saved brief persists.
+
+**A harness note.** Two of this turn's guard failures were the guard, not the code: a redeclared
+`wizardSteps` (a hard `SyntaxError` that stopped the whole run — the loudest form of "the claim total
+stops moving"), and a step count matching `{ n:` against `WIZARD_STEPS`, which is an array of plain
+strings, so it counted 0 and failed a claim whose subject was entirely correct. Both are the same rule:
+**a guard reporting zero is usually describing itself.** Reuse the slice the file already parsed rather
+than parsing a constant twice.
+
+## A framed document gave two vertical scrollbars, and the publish dialog greyed the page it opened over
+
+**Symptom.** Two vertical scrollbars side by side at the right edge of the What-if lens, and dragging the
+outer one moved the whole frame instead of the report. Separately, opening *Publish this scenario* washed
+everything behind the dialog a flat grey — on a page that had just been made white on purpose.
+
+**Cause, first half.** `.dvw-frame--seamless` was `height: 82vh`. Add the page header and the shell's
+`--sp-7`/`--sp-9` padding and the content is taller than the viewport, so the **app** scrolled as well as
+the **document**. A guessed viewport fraction cannot know what sits above it, and the number was chosen
+when the frame still had a bar above it — it was already stale by the time the bar was removed.
+
+**Cause, second half.** The document's own `.shOv` overlay is `rgba(20, 25, 35, .44)`. It is the dialog's
+scrim, so it is *supposed* to dim — but on a lens deliberately turned white it read as the page reverting.
+And the overlay carries `overflow: auto` while the body behind it still scrolled, which is the **second**
+source of two bars: they came back the moment the dialog opened, whatever the frame's height.
+
+**Fix.** The frame is fitted to exactly the viewport left below it, so the app has nothing to scroll; the
+scrim is repainted white; and `body:has(.shOv.on) { overflow: hidden }` stops the page behind the dialog
+scrolling, which is the modal behaviour the document is missing. All three are **injected rules**, never
+edits — `_meta` forbids editing the file, and a rule holds for whatever version is dropped in.
+
+**What it does *not* do is size the frame to its content**, which is the obvious way to remove an inner
+scrollbar and is wrong here for the reason recorded in the entry above: the document positions its
+overlay and its toast with `position: fixed`, which resolves against the *iframe's* viewport, so a
+content-height frame opens the dialog off screen for anyone scrolled down. Fitting the viewport keeps that
+property exactly — it is the same fixed-height frame, sized correctly.
+
+**Three things the fit got wrong on the first pass**, each of which puts the outer scrollbar back or
+flickers:
+
+- **Measuring `rect.top` instead of `rect.top + scrollY`.** Viewport-relative is short by the scroll
+  offset, so a resize arriving while the page is scrolled fits the frame too tall.
+- **Naming the shell's padding.** Reading `.app-content`'s `padding-bottom` would tie this component to
+  the app frame it happens to sit inside, and be wrong the first time that padding changed. The space
+  *below* the frame is derived from the document instead.
+- **Measuring after paint.** A plain effect paints the fallback height and then jumps. It runs before
+  paint now, aliased to `useEffect` where there is no layout — otherwise every `renderToString` test of
+  this component warns "useLayoutEffect does nothing on the server", and noise like that is what hides a
+  real warning later.
+
+**Guard.** Ten facts on the existing seamless claim, asserted as *mechanism* rather than numbers: the
+scroll offset, the derived space below, the layout effect, the inline height reaching the iframe, the
+listener being removed, the three injected rules, the seamless gate on them, and the stylesheet's
+fallback. Broken ten times, all caught.
+
+**And one of those ten first reported MISSED, for the sixth time in this file.** The probe was
+`/rect\.top \+ window\.scrollY/` — which also appears in the *next* line's formula, so reverting the
+assignment changed nothing the probe could see. Keyed to `const top = rect.top + window.scrollY` now.
+**Assert at the site, not the spelling** — and a break test is the only thing that finds these, because a
+guard that passes for the wrong reason looks exactly like one that passes.
+
+## A translucent white scrim still reads as grey
+
+**Symptom.** The publish dialog's backdrop was reported grey a second time, after being changed from the
+document's own dark wash to `rgba(255, 255, 255, 0.82)`.
+
+**Cause, and it was not a bug in the rule.** The rule was applied and working. At 82% the page behind it
+reads through — the sliders, the figures, the card edges — and a white haze over content is not a white
+page. "Nearly opaque" is a compromise between two goals, and the one being asked for was the colour.
+
+**Fix.** Flat `#fff`. The dialog card carries its own border and a `0 14px 40px` shadow, which is what
+separates it from the ground; the scrim was never doing that work, so making it opaque costs nothing.
+
+**Guard.** The claim's regex pinned `rgba(255, 255, 255, 0.d+)`, which would have gone on passing for any
+translucency — it pins `#fff` now, so a wash cannot satisfy it. The break test's mutation had to be
+re-pointed too: it searched for the old value, so it would have reported "did not land" rather than
+checking anything.
+
+**The general shape.** *A translucency is a decision about two things, and a request about colour only
+constrains one of them.* When a colour change is asked for and the result is still described in the old
+colour's terms, suspect the alpha before suspecting the rule — and prefer the literal reading of the ask
+over a compromise nobody requested.
+
+## CAPEX's canvas refused to load: two schema fields were claims about the primary dataset
+
+**Symptom.** Graph Studio's Canvas tab was empty for CAPEX while `db.CAPEX.json` plainly held 442 nodes
+and 908 edges. The error, when read, said:
+
+    nodes[0].group should be one of row | schema | document | alias, got "Concept"  (+449 more)
+
+prefixed by *"Restarting the mock server (npm run mock) usually fixes it"* — which it does not, because
+the server was fine.
+
+**Cause.** Two fields in the canvas schema were true of EPA by accident.
+
+- **`group`** was `oneOf(['row', 'schema', 'document', 'alias'])`. That is EPA's account of how an
+  element was built; CAPEX writes its node *type* there (`Concept`, `Programme`, `Region`…). So all 442
+  nodes failed.
+- **`source`** was `str`. CAPEX states no source for 11 nodes — the remaining 8 of the "+449".
+
+Neither is a data error: `group` is the graph's own account of itself, in its own vocabulary, and a node
+whose provenance nobody recorded has none. The **schema** was wrong, and it had been right for one
+dataset for as long as there was only one. This is the third recorded instance of the same shape, after
+`rows: num` versus CAPEX's `rows: null` and `confidence: num` versus its 442 nulls.
+
+**Fix.** `group: str` — nothing decides an appearance from it, since the vendored viewer colours by
+ontology `type` — and `source: nullable(str)`, with `fromCanvas` mapping an absent source to
+`undefined` so the inspector draws no provenance line rather than printing "null". `check-docs` now
+validates **both documents' nodes** against those rules rather than only checking the declaration.
+
+**And then the canvas loaded looking broken, which was the second half.** The palette is keyed by type
+name and holds EPA's nine. CAPEX draws eighteen types, three of which overlap, so fifteen took
+`DEFAULT_COLOR` and the legend was fifteen identical grey rows — precisely the "honest but silent"
+outcome the palette claim was written to prevent, reached because that claim read `db.json` only.
+
+**Fifteen hues, generated and then written down.** Each type's rank stepped by the golden angle (which is
+what guarantees separation: a per-name hash was tried first and put `Contract` and `RateJurisdiction`
+0.2° apart), then each lightness walked down until the colour clears 3.2:1 on the viewer's white ground —
+yellow-greens need to go much darker than blues for the same ratio, which is why it is measured and not
+chosen. They are literals in `TYPE_COLORS`, not a runtime derivation, because a runtime one needed the
+whole type set at all three call sites and that meant editing two more files inside a vendored folder.
+
+**What the fix cannot do, stated rather than glossed.** Eighteen categories do not separate reliably by
+hue at a 4.5px disc — the palette's own note puts the practical limit around nine, and six of these land
+in the yellow-green-teal arc because that is what fifteen evenly-spaced hues does. The legend's per-type
+counts and its filter rows are the honest answer to a graph with this many types; a palette is not.
+
+**Guard.** The two palette claims now read the **union of both canvases' types**, a new claim asserts no
+two types on *one* canvas share a hue, the per-type contrast loop measures all 24, and a further claim
+asserts `group`/`source` are dataset-agnostic *and* that both documents satisfy them. Six mutations,
+all caught — after one first reported "did not land" because its probe matched the explanatory comment
+beside the line it was mutating, which is the self-documenting-file trap this file has now recorded
+seven times.
+
+**The general shape.** *When a second dataset arrives, the fields to audit are the ones the first dataset
+happened to populate uniformly* — and a palette, a union and a required field are all the same kind of
+claim. A validator that refuses valid data is worse than a missing one: it fails confidently, and its
+message sends the reader to restart a process that was never at fault.

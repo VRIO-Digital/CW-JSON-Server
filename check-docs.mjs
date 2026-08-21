@@ -148,6 +148,9 @@ const server = read('backend/server.js')
    beside `server` because several claims below read both, and a `const` reached from above its
    declaration dies in the temporal dead zone, which kills the run before it prints a summary. */
 const store = read('backend/store.js')
+/* The secondary dataset's document, for the same reason: the palette claims a thousand lines below read
+   its canvas, and it used to be declared four thousand lines *further* down again. One read, one name. */
+const capexDoc = readJson('backend/db.CAPEX.json')
 const connectors = read('frontend/src/data/connectors.ts')
 const indexCss = read('frontend/src/index.css')
 const theme = read('frontend/src/theme.ts')
@@ -1422,17 +1425,82 @@ expect(
  * This is the fill claim's replacement, keyed to the palette that now draws.
  */
 const viewerLib = read('frontend/src/graph-viewer/lib/graph.ts')
+const clientSrcForCanvas = read('frontend/src/api/client.ts')
 const typeColors = new Map(
   [...viewerLib.matchAll(/^\s{2}(\w+): "(#[0-9a-f]{6})",$/gm)].map((m) => [m[1], m[2]]),
 )
-const canvasTypes = [...new Set(canvas.nodes.map((n) => n.type))]
+/*
+ * **Every dataset's canvas, not just the primary's.** One palette draws them all, so a type either has a
+ * hue or renders as "some grey thing" with a legend row that says the same — and this claim read only
+ * `db.json`, so CAPEX's fifteen unhued types went unnoticed until its canvas was looked at. The union
+ * across both documents is what the palette actually has to cover.
+ */
+const capexCanvasNodes = capexDoc.value?.graph_studio?.canvas?.nodes ?? []
+const canvasTypes = [
+  ...new Set([...canvas.nodes.map((n) => n.type), ...capexCanvasNodes.map((n) => n.type)]),
+]
 expect(
-  'every type the canvas draws has a hue in the viewer’s palette',
+  'every type any dataset’s canvas draws has a hue in the viewer’s palette',
   typeColors.size > 0 && canvasTypes.every((t) => typeColors.has(t)),
   canvasTypes.filter((t) => !typeColors.has(t)).length > 0
     ? `no hue for: ${canvasTypes.filter((t) => !typeColors.has(t)).join(', ')}`
-    : `${canvasTypes.length} types, all coloured`,
+    : `${canvasTypes.length} types across both datasets, all coloured`,
 )
+
+/*
+ * **And two types on one canvas may not share a colour.** A distinct hue is the whole mechanism by which
+ * a reader tells one type from another — the discs carry no other mark — so a duplicate is a legend that
+ * says the same thing twice. Per canvas rather than across both: the two ontologies never appear
+ * together, so an EPA hue landing near a CAPEX one costs nothing.
+ */
+for (const [label, nodes] of [
+  ['the primary', canvas.nodes],
+  ['CAPEX', capexCanvasNodes],
+]) {
+  const types = [...new Set(nodes.map((n) => n.type))].filter((t) => typeColors.has(t))
+  if (types.length === 0) continue
+  const used = new Map()
+  for (const t of types) used.set(typeColors.get(t), [...(used.get(typeColors.get(t)) ?? []), t])
+  const shared = [...used.entries()].filter(([, ts]) => ts.length > 1)
+  expect(
+    `no two types on ${label} canvas share a hue`,
+    shared.length === 0,
+    shared.length > 0
+      ? shared.map(([hex, ts]) => `${hex}: ${ts.join(' + ')}`).join('; ')
+      : `${types.length} types, ${used.size} distinct hues`,
+  )
+}
+/*
+ * **A canvas field's declared type is a claim about every dataset that ships a canvas.**
+ *
+ * Two of them were claims about the primary only, and together they refused **all 442** of CAPEX's nodes:
+ * `group` was `oneOf(['row', 'schema', 'document', 'alias'])` — the primary's account of how an element
+ * was built, where CAPEX names its node types instead — and `source` was `str`, where CAPEX states none
+ * for 11 nodes. The Canvas tab failed with "group should be one of row | schema | document | alias",
+ * under a message telling the reader to restart the mock server. The same shape as `rows: num` against
+ * CAPEX's `rows: null`, and the third time this file has had to record it.
+ *
+ * Both halves are asserted, because each fails in its own silent direction: a re-narrowed union refuses a
+ * canvas again, and a `source` that stops being nullable does the same over eleven nodes.
+ */
+expect(
+  'the canvas schema is dataset-agnostic where the datasets legitimately differ',
+  /* `group` is a string: it is each package's own vocabulary, and nothing decides an appearance from it. */
+  /\n  group: str,/.test(clientSrcForCanvas) &&
+    !/group: oneOf\(\['row'/.test(clientSrcForCanvas) &&
+    /* `source` is nullable, and the viewer draws no provenance line rather than the string "null". */
+    /\n  source: nullable\(str\),/.test(clientSrcForCanvas) &&
+    /provenance: n\.source \?\? undefined/.test(read('frontend/src/graph-viewer/fromCanvas.ts')) &&
+    /* And both documents really satisfy it — asserted against the data, not only the declarations. */
+    capexCanvasNodes.every(
+      (n) => typeof n.group === 'string' && (n.source === null || typeof n.source === 'string'),
+    ) &&
+    canvas.nodes.every(
+      (n) => typeof n.group === 'string' && (n.source === null || typeof n.source === 'string'),
+    ),
+  `group is a plain string, source is nullable, and ${canvas.nodes.length + capexCanvasNodes.length} nodes across both documents satisfy it`,
+)
+
 /* And each of those hues has to read on the viewer's own ground, which is dark — the
    earlier palette was measured against a white page, and reusing either set on the other
    ground is exactly how the ring hues failed twelve ways the first time. */
@@ -6224,7 +6292,7 @@ expect(
  * looks right and goes stale the first time a document is re-exported.
  */
 const capexIngest = read('backend/scripts/ingest-capex-reports.js')
-const capexDb = readJson('backend/db.CAPEX.json')
+const capexDb = capexDoc
 const capexDocs = capexDb.value?.reports?.documents ?? []
 /*
  * The components a CAPEX row and a CAPEX report pass through. There is **one Library UI** for both
@@ -6381,6 +6449,69 @@ expect(
 )
 
 /*
+ * ---------------- a dataset that ships a graph also ships the brief that names it ----------------
+ *
+ * **The publish gate has to be satisfiable, or it is a broken page rather than a precondition.** Reports
+ * and the What-if lens open once a graph is published. CAPEX shipped 442 canvas nodes, 908 edges, seven
+ * must-review rows, a pivot and five sanity checks — and an empty `graph_use_cases`, so Graph Studio
+ * listed nothing, no build could start, no version existed, and neither section could ever open. The
+ * gate was unsatisfiable for the dataset it was asked for.
+ *
+ * **So the brief is seeded, and every field of it is derived from the dataset's own use-case template.**
+ * That template is the tenant's account of what the graph is for: its id, its name, its description and
+ * its members by id. The brief is that template resolved — which is why each member records
+ * `source: 'ai'`, the same provenance the wizard's suggesters would have recorded drafting from it.
+ * **Its domain is derived too**, from the domains its own members name, because a domain chosen in the
+ * script would be a claim the package never made.
+ *
+ * **And the seed is an upsert, not a rewrite.** A saved brief survives a restart precisely because it is
+ * the user's work, so a seed that replaced the collection would delete every draft in it.
+ */
+const capexBrief = (capexDb.value?.graph_use_cases ?? []).find(
+  (u) => u.use_case_id === (capexDb.value?.graph_use_case_templates ?? [])[0]?.use_case_id,
+)
+const capexTemplate = (capexDb.value?.graph_use_case_templates ?? [])[0] ?? null
+/* The wizard's own step count, so the seeded `step` cannot drift from the last step the API accepts —
+   the script cannot import the server, the same reason NAV_KEYS is compared to nav.ts. Read off the
+   `wizardSteps` slice already parsed above rather than re-parsing it: two readings of one constant is
+   the drift this file exists to catch. */
+/* `WIZARD_STEPS` is an array of plain strings, so the count is `stepLabels`' length — already derived
+   above from the same slice. The first attempt matched `{ n:` against it, found nothing, and failed a
+   claim whose subject was entirely correct: a guard reporting "0" is usually describing itself. */
+const wizardStepCount = stepLabels.length
+expect(
+  'a dataset shipping a graph ships the committed brief that makes it publishable',
+  capexBrief !== undefined &&
+    capexTemplate !== null &&
+    /* Committed, which is what puts it in Graph Studio — a draft is deliberately absent from that list. */
+    capexBrief.status === 'committed' &&
+    /* On the wizard's last step, read off the server rather than restated here. */
+    wizardStepCount > 0 &&
+    capexBrief.step === wizardStepCount &&
+    /* Derived from the template: the same id, name and description, and every member resolved. */
+    capexBrief.name === capexTemplate.name &&
+    capexBrief.business_need === capexTemplate.description &&
+    capexBrief.personas.length === (capexTemplate.personas ?? []).length &&
+    capexBrief.kpis.length === (capexTemplate.kpis ?? []).length &&
+    capexBrief.hero_questions.length === (capexTemplate.hero_questions ?? []).length &&
+    /* The domain is one the dataset declares, and the members named it. */
+    (capexDb.value?.graph_domains ?? []).some((d) => d.domain_id === capexBrief.domain_id) &&
+    /* No source is named: a registration lives in the server's memory, so any id here would dangle. */
+    capexBrief.sources.length === 0 &&
+    /* The ingest derives all of it rather than typing it, and upserts so a draft is not deleted. */
+    /graph_use_case_templates/.test(capexIngest) &&
+    /filter\(\(u\) => u\.use_case_id !== brief\.use_case_id\)/.test(capexIngest) &&
+    /* And no name or business need reaches the script as a literal — the template is the one answer. */
+    !capexIngest.includes(capexTemplate.name) &&
+    !capexIngest.includes((capexTemplate.description ?? '').slice(0, 40)),
+  capexBrief === undefined
+    ? 'db.CAPEX.json has no committed brief — Graph Studio lists nothing, so nothing can be published ' +
+      'and Reports and What-if can never open. Run npm run ingest:capex'
+    : `${capexBrief.use_case_id} · ${capexBrief.domain_id} · ${capexBrief.personas.length} personas, ` +
+      `${capexBrief.kpis.length} KPIs, ${capexBrief.hero_questions.length} hero questions, step ${capexBrief.step}`,
+)
+
+/*
  * ---------------- the framed lens is the page, not a file on display ----------------
  *
  * **A framed lens carries no viewer furniture, and its ground is the app's.** Asked for directly: the
@@ -6411,8 +6542,11 @@ expect(
        flag gates, so moving the button out of the bar cannot quietly restore it. */
     /\{seamless \? null : \(\r?\n\s*<div className="dvw-bar">/.test(viewerSrc) &&
     /Export PDF/.test(viewerSrc.slice(viewerSrc.indexOf('{seamless ? null : ('))) &&
-    /* The ground is painted by a rule injected into the frame, and only in this mode. */
-    /seamless \? ' html, body \{ background: #fff \}' : ''/.test(viewerSrc) &&
+    /* The ground is painted by a rule injected into the frame, and only in this mode. The rules moved
+       into a named constant when there were three of them, so both halves are asserted: the gate that
+       applies them only to a seamless frame, and the ground rule itself. */
+    /\(seamless \? SEAMLESS_CSS : ''\)/.test(viewerSrc) &&
+    /html, body \{ background: #fff \}/.test(viewerSrc) &&
     /* Style only: the injected text is a stylesheet, and nothing removes a node or touches a script. */
     !/\.remove\(\)|removeChild|contentDocument\.querySelector[\s\S]{0,40}\.remove/.test(
       codeOnly(viewerSrc),
@@ -6422,6 +6556,39 @@ expect(
     /\.dvw-frame--seamless \{[^}]*height: \d+vh/.test(lensCss) &&
     /* The reason it keeps a height is written where somebody would remove it. */
     /position: fixed/.test(lensCss) &&
+    /*
+     * **And the height is measured, because a guessed one gave two scrollbars.** `82vh` plus the page
+     * header plus the shell's padding exceeds the viewport, so the app scrolled as well as the document
+     * — two bars at the same edge, the outer one moving the frame instead of the report. The frame is
+     * fitted to what is left of the viewport instead, so the app has nothing to scroll.
+     *
+     * Asserted as the *mechanism*, not the number: the measurement adds the scroll offset (or a resize
+     * arriving mid-scroll fits it too tall and the outer bar returns), subtracts the space below the
+     * frame rather than naming the shell's padding, and lands in a layout effect so the first painted
+     * frame is already right. The stylesheet's `vh` above stays as the no-layout fallback.
+     */
+    /* Keyed to the assignment, not the expression: `rect.top + window.scrollY` also appears in the
+       `below` formula on the next line, so a whole-file probe passed straight over this being
+       reverted — caught by the break test. The sixth time that trap has been recorded here: assert
+       at the site, not the spelling. */
+    /const top = rect\.top \+ window\.scrollY/.test(viewerSrc) &&
+    /root\.scrollHeight - \(rect\.top \+ window\.scrollY \+ el\.offsetHeight\)/.test(viewerSrc) &&
+    /useLayoutEffect/.test(codeOnly(viewerSrc)) &&
+    /style=\{seamless && fitted !== null \? \{ height: fitted \} : undefined\}/.test(viewerSrc) &&
+    /* Re-measured on resize, and the listener is removed — a viewer that outlived its listener would
+       fit a frame that is no longer mounted. */
+    /addEventListener\('resize', measure\)/.test(viewerSrc) &&
+    /removeEventListener\('resize', measure\)/.test(viewerSrc) &&
+    /*
+     * **The publish dialog's scrim is white, and the page behind it does not scroll.** Both asked for:
+     * opening *Publish this scenario* washed the whole lens grey, and the overlay's own `overflow: auto`
+     * beside a still-scrolling body put the second scrollbar back the moment the dialog opened.
+     * Injected as rules, never edited into the document, which `_meta` forbids.
+     */
+    /* Opaque, not a wash: a translucent white was tried and reported as grey again, because the page
+       behind it read through. The regex pins white *and* opacity — `rgba(...)` no longer satisfies it. */
+    /\.shOv \{ background: #fff \}/.test(viewerSrc) &&
+    /body:has\(\.shOv\.on\) \{ overflow: hidden \}/.test(viewerSrc) &&
     /* A report is untouched: it still has its bar, its Back and its export. */
     /\{openDoc \? <DocumentViewer document=\{openDoc\} onBack=\{\(\) => setOpenDoc\(null\)\} \/> : null\}/.test(
       read('frontend/src/pages/ReportsPage.tsx'),

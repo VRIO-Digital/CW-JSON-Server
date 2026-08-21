@@ -1734,9 +1734,13 @@ Three things to keep when touching this:
 - **`publishedCount` is tested before `frame.document`**, and the server agrees rather than
   being second-guessed: it sends `document: null` while the gate is closed. The ordering
   was the other way round for one turn and was reversed on request — publish the graph,
-  then Reports and What-if open. `check-docs` compares the indices. Publication is in
-  memory, so **a restart closes both sections again**, and CAPEX ships no saved use case:
-  getting there is New Graph → build → clear the queue and pivot → publish.
+  then Reports and What-if open. `check-docs` compares the indices.
+- **The gate is satisfiable because the dataset ships the brief that names its graph.**
+  `graph_use_cases` was empty while `graph_studio` held a whole canvas, so Studio listed
+  nothing and neither section could ever open. `npm run ingest:capex` writes one committed
+  brief derived from the dataset's own use-case template — never typed — and upserts it, so a
+  draft of yours is not deleted. Building, reviewing and publishing stay in memory, so after
+  a restart it is: Studio → Build (≈1m 33s) → settle 7 rows + the pivot → publish.
 - **The row is read out of the document by `npm run ingest:capex`**, which owns
   `db.CAPEX.json` for the reports too — one writer per document. It reads the `<title>`
   stamp for the name, stage and version and the tab buttons for the tabs, and refuses to
@@ -1747,11 +1751,18 @@ Three things to keep when touching this:
   `document` and `copy.tabs` are written, and `whatif` is spread rather than replaced.
 - **It renders `seamless`: the document is the page, not a file on display.** No bar —
   so no Back, no **Export PDF** and no label restating the document's own title — no
-  border on the frame, and `body` painted white by a rule injected into the frame rather
-  than an edit to it. The frame nevertheless **keeps a fixed height**: this document
-  positions its publish overlay and its toast with `position: fixed`, which resolves
-  against the iframe's viewport, so a content-height frame would open the dialog off
-  screen for anyone scrolled down. Losing the print button is the stated cost.
+  border on the frame, and three rules injected into it rather than edited in: `body`
+  painted white, the publish dialog's scrim painted white (it washed the lens grey), and
+  the page behind that dialog locked from scrolling. Losing the print button is the
+  stated cost.
+- **One scrollbar, and that took measuring the frame.** `82vh` plus the header plus the
+  shell's padding overflowed the viewport, so the app scrolled *and* the document did —
+  two bars at one edge. The frame is fitted to the viewport left below it: measured from
+  its document-relative top, minus the space below it (never the shell's padding by
+  name), before paint. It still **keeps a fixed height** rather than the content's,
+  because the document positions its overlay and toast with `position: fixed` against
+  the iframe's viewport — a content-height frame opens the dialog off screen for anyone
+  scrolled down.
 
 ### It never writes back
 

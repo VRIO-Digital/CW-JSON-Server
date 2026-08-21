@@ -1237,6 +1237,28 @@ because half a removal is the shape that fails silently.
   hue and that each hue clears 3:1 on the viewer's own ground — **read off `--bg`, never written
   down twice**, which is what let the ground be turned over without the hues quietly going with it.
 
+  **Two fields on a canvas node are each dataset's own, and declaring them narrowly refused a whole
+  canvas.** `group` is the package's account of how an element was built — EPA states four origin
+  classes (`row`/`schema`/`document`/`alias`), CAPEX names its node types — and `source` is the
+  Catalog object behind the node, which CAPEX does not state for 11 of its 442. Declared
+  `oneOf([…four…])` and `str`, they refused **every** CAPEX node with *"group should be one of row |
+  schema | document | alias"*, under the message that tells you to restart the mock server. `group` is
+  a plain string now — nothing decides an appearance from it, since the viewer colours by ontology
+  `type` — and `source` is nullable, with the inspector drawing no provenance line rather than the
+  word "null". The third instance of the `rows: num` pitfall, and `check-docs` now checks both
+  documents against the schema rather than trusting the declaration.
+
+  **And the palette is per-ontology, so it carries both.** The nine hues above are EPA's; CAPEX draws
+  **18** types of which three overlap, so fifteen fell through to the grey default and its legend was
+  fifteen identical rows — the "honest but silent" failure the palette claim exists to catch, reached
+  for the dataset the claim did not read. Fifteen hues were generated (each type's rank stepped by the
+  golden angle, then its lightness walked down until it clears 3.2:1 on white) and **written into
+  `TYPE_COLORS` as literals**, so a designer can move one; a per-name hash was tried first and put two
+  types 0.2° apart. `check-docs` measures the union of both canvases' types and asserts no two types on
+  *one* canvas share a hue. What that cannot fix is stated in the file: eighteen categories do not
+  separate reliably by hue at a 4.5px disc, so the legend's counts and its filter rows are how a reader
+  isolates a type.
+
   **The ground is white, and it was not when the folder arrived.** The viewer was vendored dark, so
   the Canvas tab read as a hole cut in a studio whose every other surface is white; turning it over
   was the whole palette rather than one token, because a palette is a set of relationships. The nine
@@ -1562,10 +1584,26 @@ is the print button**, and that is stated rather than glossed: nothing else offe
 lens, and the browser's own Print gives the app around it, because `DocumentViewer.css` deliberately
 narrows nothing for print. A report keeps all of it — bar, Back and export.
 
-**The white ground is a rule, never an edit**, exactly as the mock-API pill's is: the document's
+**Three rules are injected, never edited in**, exactly as the mock-API pill's is: the document's
 `_meta` says *"never hand-edit this file — change the generator and rebuild"*, so an edit would be lost
-at the next export and silently return. It overrides `body` rather than the document's `--bg0` token,
-because a token name is one file's private vocabulary and `background` on `body` is the fact.
+at the next export and silently return. They are `SEAMLESS_CSS`, applied only to a seamless frame:
+
+- **the page ground**, overriding `body` rather than the document's `--bg0` token, because a token name
+  is one file's private vocabulary while `background` on `body` is the fact;
+- **the publish dialog's scrim**, which washed the whole lens with `rgba(20,25,35,.44)` — so opening
+  *Publish this scenario* greyed everything behind it. Flat `#fff` now. A translucent white was tried
+  first and reported as grey again, correctly: at 82% the sliders and figures behind it read through,
+  and a page seen through a haze is not a white page. The card keeps its own border and
+  `0 14px 40px` shadow, which is what separates it from the ground — the scrim never did that;
+- **and a lock on the page behind that dialog** (`body:has(.shOv.on)`), because `.shOv` is
+  `position: fixed` with its own `overflow: auto`, so a tall dialog scrolled itself *while the document
+  behind still scrolled too* — the second scrollbar back again the moment Publish opened. `:has()` is
+  what lets a rule say that from outside; where it is unsupported the rule is inert and the old
+  behaviour returns, which is a visible fallback rather than a broken page.
+
+These name the document's own class names, which is a real coupling and the same one `.apiFab` already
+is. It is the price of not editing a generated file, and it fails visibly rather than silently — a
+renamed class leaves the rule inert and the grey comes back.
 
 **And the frame keeps a fixed height, which looks like an oversight and is not.** Sizing the iframe to
 its content would put the document in the app's own scroll and remove the last cue that a frame is
@@ -1574,6 +1612,18 @@ which resolves against the **iframe's** viewport. Make that viewport as tall as 
 reader scrolled past the top clicks Publish and sees nothing happen, the dialog having opened a thousand
 pixels above them. `check-docs` pins the height for that reason: "make it seamless" is exactly the
 request that would remove it next.
+
+**But the height is measured rather than guessed, because a guessed one gave two scrollbars.** `82vh`
+plus the page header plus the shell's padding is taller than the viewport, so the *app* scrolled as well
+as the document — two bars at the same edge, and dragging the outer one moved the frame instead of the
+report. The frame is fitted to exactly what is left of the viewport, so the app has nothing to scroll
+and the document's own bar is the only one. Three things make that fit right, and each was a bug in the
+first attempt: it is measured from the frame's **document-relative** top (`rect.top + scrollY`, or a
+resize arriving mid-scroll fits it too tall and the outer bar returns), it **subtracts the space below**
+the frame rather than naming the shell's padding — which would tie this component to the app frame it
+happens to sit in — and it runs **before paint**, aliased to `useEffect` where there is no layout so a
+`renderToString` test does not warn on every render. The stylesheet's `82vh` stays as the no-layout
+fallback, which is what an SSR render and the first paint get.
 
 **The fixture behind the page was already in `db.CAPEX.json` and is untouched.** `whatif.slices`,
 `levers`, `locked_slices` and `program` are a verbatim extract of that file's own `SLICES`/`PROGRAM`
@@ -2202,11 +2252,24 @@ them: it was served while the gate was closed *because* the documents were, so t
 remaining purpose. One gate, one branch, one number — for a dataset whose reports are computed and one
 whose reports are documents alike.
 
-**What it costs is worth knowing before a demo.** Publication lives in memory, so **every restart closes
-both sections again** until a graph is published, and CAPEX ships **no saved graph use case** — so the
-path is New Graph → build in Studio → clear the review queue and the pivot → publish a version. Its
-pools support that (4 domains, 7 personas, 23 KPIs, 13 hero questions, 3 projects), and building it is
-what found the crash recorded in `docs/REGRESSIONS.md` under a null canvas confidence.
+**A gate has to be satisfiable, so CAPEX ships the brief that names its own graph.** It shipped 442
+canvas nodes, 908 edges, seven must-review rows, a pivot and five sanity checks — and an empty
+`graph_use_cases`, so Graph Studio listed nothing, no build could start and no version could exist:
+the two sections could *never* open, which reads as a broken page rather than as a precondition.
+`npm run ingest:capex` writes one **committed** brief, `uc_capital_programs`, and every field of it is
+derived from the dataset's own use-case template — the id, the name, the description as the business
+need, and the 7 personas, 23 KPIs and 13 hero questions it names by id, each recorded `source: 'ai'`
+because that is the provenance the wizard's suggesters record when they draft from a template. **Its
+domain is derived too**, from the domains its own members name (`capital-projects`), because a domain
+picked in the script would be a claim the package never made. It names **no source**: a registration
+lives in the server's memory, so any id written here would dangle until somebody connects it. And the
+seed is an **upsert** — a saved brief survives a restart precisely because it is the user's work, so
+replacing the collection would delete every draft in it.
+
+**What remains manual, and it is the product's own flow.** Building, reviewing and publishing all live
+in memory, so after each restart: open the graph in Studio, **Build** (31 substeps ≈ 1m 33s), settle the
+seven review rows and the pivot, then publish the version — and both sections open. Doing exactly that
+is what found the crash recorded in `docs/REGRESSIONS.md` under a null canvas confidence.
 
 **They are framed, not inlined.** `DocumentViewer` puts each in an `iframe`. Injecting the body would
 drop the `<head>` the report *is* and put its selectors in the app's tree — the problem that forced

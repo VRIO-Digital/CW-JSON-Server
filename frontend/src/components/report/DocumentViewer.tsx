@@ -40,11 +40,25 @@
  * past the top clicks Publish and sees nothing happen, because the dialog opened a thousand pixels above
  * them. A fixed-height frame keeps the viewport the document was authored against.
  *
+ * **But it is measured rather than guessed, because a guess gave two scrollbars.** `82vh` plus the page
+ * header plus the shell's padding is taller than the viewport, so the *app* scrolled as well as the
+ * document — two vertical scrollbars side by side, and a reader who drags the outer one moves the frame
+ * instead of the report. Reported, and the fix is to make the frame exactly fill what is left of the
+ * viewport: then the app has nothing to scroll and the document's own bar is the only one. It is
+ * **measured** — the page header's height is not a number this component may assume, and a `calc()` with
+ * a hardcoded offset is that assumption with extra steps. The space *below* the frame is measured too, so
+ * the shell's bottom padding is accounted for without naming the shell.
+ *
+ * This also puts the fixed-position overlay exactly over the visible frame, which is a second reason to
+ * fit rather than overflow: with a 82vh frame in a scrolled page, `inset: 0` covered a region partly off
+ * screen.
+ *
  * **Its own component, so it can be asserted on** — the same reason `PublishedReportPane` is one.
  */
 
 import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons'
 import { Alert, Button, Tooltip, Typography } from 'antd'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { REPORT_EXPORT_HINT } from '../../data/reportExport'
 import { reportDocumentFiles, reportDocumentUrl } from '../../data/reportDocuments'
@@ -59,6 +73,17 @@ import './DocumentViewer.css'
  * disagree about — a report states a `category` and a lens states a `stage` — and the bar prints
  * whichever are present rather than an empty separator for one that is not.
  */
+/**
+ * `useLayoutEffect` in the browser, `useEffect` where there is no layout.
+ *
+ * The measurement below has to land **before paint** — in a plain effect the first frame is the
+ * stylesheet's fallback height and then jumps, which reads as the page settling. But this repo tests
+ * components through `renderToString`, and a layout effect there warns on every render ("does nothing
+ * on the server"), which is noise that would eventually hide a real warning. The standard alias keeps
+ * the pre-paint measurement where it matters and stays quiet where it cannot run.
+ */
+const useMeasureEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
+
 export interface FramedDocument {
   file: string
   title: string
@@ -81,6 +106,54 @@ export default function DocumentViewer({
   seamless?: boolean
 }) {
   const url = reportDocumentUrl(doc.file)
+
+  /*
+   * How tall the frame is, in seamless mode: exactly the viewport left below it.
+   *
+   * `null` until measured, which falls back to the stylesheet's height — so a render with no layout
+   * (`renderToString`, or the first paint) shows a sensible frame rather than a collapsed one.
+   */
+  const frameRef = useRef<HTMLIFrameElement>(null)
+  const [fitted, setFitted] = useState<number | null>(null)
+
+  /*
+   * Before paint, so the first painted frame is already the right size — measuring after it shows one
+   * frame at the stylesheet's height and then resizes, which reads as the page settling. Nothing runs
+   * under `renderToString`, which is why the stylesheet's fallback exists.
+   */
+  useMeasureEffect(() => {
+    if (!seamless) return
+    const el = frameRef.current
+    if (!el) return
+
+    const measure = () => {
+      const root = window.document.documentElement
+      const rect = el.getBoundingClientRect()
+      /*
+       * What sits *after* the frame in the document — the shell's bottom padding, and anything else a
+       * page puts below it. Derived rather than named: reading `.app-content`'s padding would tie this
+       * component to the app frame it is rendered inside, and the number would be wrong the first time
+       * that padding changed.
+       */
+      const below = Math.max(
+        0,
+        root.scrollHeight - (rect.top + window.scrollY + el.offsetHeight),
+      )
+      /*
+       * The frame's top **in the document**, so the fit does not depend on where the page happens to be
+       * scrolled when a resize arrives: `rect.top` alone is short by the scroll offset, which fits the
+       * frame too tall and puts the outer scrollbar straight back. Once fitted the page cannot scroll,
+       * so `scrollY` is 0 from then on — this matters for the one measurement taken before that.
+       */
+      const top = rect.top + window.scrollY
+      /* A floor, so a very short viewport leaves a usable frame and scrolls the page instead. */
+      setFitted(Math.max(MIN_FRAME_PX, Math.round(root.clientHeight - top - below)))
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [seamless, url])
 
   return (
     <div className={seamless ? 'dvw dvw--seamless' : 'dvw'}>
@@ -141,7 +214,10 @@ export default function DocumentViewer({
       {url ? (
         <iframe
           id={FRAME_ID}
+          ref={frameRef}
           className={seamless ? 'dvw-frame dvw-frame--seamless' : 'dvw-frame'}
+          /* The stylesheet's height stands until the measurement lands, and for a framed report always. */
+          style={seamless && fitted !== null ? { height: fitted } : undefined}
           src={url}
           title={`${doc.title} — rendered document`}
           /*
@@ -188,7 +264,7 @@ export default function DocumentViewer({
              */
             style.textContent =
               '.apiFab, .apiLog { display: none !important }' +
-              (seamless ? ' html, body { background: #fff }' : '')
+              (seamless ? SEAMLESS_CSS : '')
             inner.head?.appendChild(style)
           }}
         />
@@ -216,3 +292,47 @@ export default function DocumentViewer({
 
 /* One frame on screen at a time — the viewer replaces the Library rather than sitting beside it. */
 const FRAME_ID = 'cw-report-document-frame'
+
+/**
+ * The least a fitted frame may be, so a short window leaves a readable document.
+ *
+ * Below this the page is allowed to scroll again — one scrollbar too few is worse than two: a frame
+ * squeezed to nothing shows no document at all.
+ */
+const MIN_FRAME_PX = 420
+
+/**
+ * What the app paints into a seamless document, and it is a stylesheet and nothing else.
+ *
+ * Two rules, both asked for, and both applied from here for the reason the mock-API pill's is: the
+ * document's `_meta` says *"never hand-edit this file — change the generator and rebuild"*, so an edit
+ * would be lost at the next export and would silently come back. A rule holds for whatever version is
+ * dropped in and keeps the file byte-identical to what produced it.
+ *
+ * - **The page ground.** The document paints `body` with its own `--bg0` (#f3f4f6), which inside a
+ *   borderless frame on a white page reads as a grey panel with unexplained edges. `body` is overridden
+ *   rather than the token, because a token name is one file's private vocabulary while `background` on
+ *   `body` is the fact.
+ * - **The publish dialog's scrim, opaque.** `.shOv` washes the page with `rgba(20,25,35,.44)` while
+ *   the dialog is open, so opening *Publish this scenario* greyed the whole lens. Asked for white, and
+ *   a translucent white was tried first — which was still reported as grey, correctly: at 82% the
+ *   sliders, cards and figures behind it read through, and a page seen through a haze is not a white
+ *   page. It is flat `#fff` now, so what surrounds the dialog is the colour asked for and nothing
+ *   else. The card keeps its own border and `0 14px 40px` shadow, which is what separates it from the
+ *   ground — the scrim was never what did that.
+ * - **And the page behind that dialog does not scroll.** `.shOv` is `position: fixed` with its own
+ *   `overflow: auto`, so a tall dialog scrolls itself *while the document behind still scrolls too* —
+ *   two bars again, at the same edge, the moment Publish is opened. Locking the body while the overlay
+ *   is on is the modal behaviour the document is missing, and `:has()` is what lets a rule say it from
+ *   outside: a parent cannot otherwise be styled by a descendant's class. Where `:has()` is not
+ *   supported the rule is inert and the old behaviour returns, which is a visible fallback rather than
+ *   a broken page.
+ *
+ * These name the document's own classes, which is a real coupling and the same one `.apiFab` already is:
+ * it is the price of not editing a generated file, and it fails visibly rather than silently — a renamed
+ * class leaves the rule inert and the grey comes back.
+ */
+const SEAMLESS_CSS =
+  ' html, body { background: #fff }' +
+  ' .shOv { background: #fff }' +
+  ' body:has(.shOv.on) { overflow: hidden }'
