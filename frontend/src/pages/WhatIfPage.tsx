@@ -5,6 +5,7 @@ import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
 import DocumentViewer from '../components/report/DocumentViewer'
+import PublishedConfirmDialog from '../components/whatif/PublishedConfirm'
 import PublishScenarioDialog from '../components/whatif/PublishScenarioDialog'
 import PublishedScenarios, {
   PublishedScenarioModal,
@@ -238,6 +239,23 @@ function WhatIfTabs({
   const [publishing, setPublishing] = useState<string | null>(null)
   const target = publishing === null ? null : (saved.find((s) => s.savedId === publishing) ?? null)
 
+  /**
+   * Which scenario the publish confirmation is open on, or null.
+   *
+   * **Opened by a publish that succeeded, and only a first one.** The receipt reports
+   * what the publication recorded — the readers, the bound graph, the freshness — and
+   * its title is "Scenario published", so showing it after *Update publication* would
+   * announce an act that had already happened. An update closes the editor with nothing
+   * further to say, which is what it always did.
+   *
+   * It reads the entry back out of the store rather than the reply it was given: the
+   * publish response is what refreshed the library, so the record on screen is the one
+   * that was stored rather than a copy of the input that produced it.
+   */
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const confirmed =
+    confirming === null ? null : (saved.find((s) => s.savedId === confirming) ?? null)
+
   const openSaved = useWhatIfStore((s) => s.openSaved)
 
   /**
@@ -301,12 +319,19 @@ function WhatIfTabs({
       frame={frame}
       saving={pending === target?.savedId}
       onCancel={() => setPublishing(null)}
-      onPublish={(input) =>
-        void publish({ savedId: target!.savedId, ...input, as: signedInAs }).then((r) => {
+      onPublish={(input) => {
+        const savedId = target!.savedId
+        /* Read before the write: after it lands the entry carries a publication either
+           way, and the receipt is for the publish rather than for every edit of one. */
+        const first = target!.published === null
+        void publish({ savedId, ...input, as: signedInAs }).then((r) => {
           if (!r.ok) onMessage(r.error)
-          else setPublishing(null)
+          else {
+            setPublishing(null)
+            if (first) setConfirming(savedId)
+          }
         })
-      }
+      }}
       onUnpublish={() =>
         void unpublish(target!.savedId).then((r) => {
           if (!r.ok) onMessage(r.error)
@@ -316,6 +341,24 @@ function WhatIfTabs({
           }
         })
       }
+    />
+
+    {/*
+     * The receipt, beside the editor rather than inside it: the dialog it confirms is
+     * closed by the time this opens, and a panel that swapped its own body would leave
+     * the reader unsure whether the publish had happened or was still being edited.
+     */}
+    <PublishedConfirmDialog
+      open={confirmed !== null}
+      scenario={confirmed}
+      frame={frame}
+      onClose={() => setConfirming(null)}
+      onAgain={() => {
+        /* Authoring is where a scenario starts — the frame is picked before anything is
+           admitted — so "start a new one" goes there rather than to a blank Runtime. */
+        setConfirming(null)
+        setTab('author')
+      }}
     />
     </>
   )

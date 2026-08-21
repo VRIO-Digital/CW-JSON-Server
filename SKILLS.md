@@ -1870,6 +1870,13 @@ the role is client-held, and the API serves every scenario to a caller that name
 Each reader's persona scope is **stated**, never applied — no roster here is filtered per
 persona.
 
+**A successful publish opens a receipt** — `PublishedConfirm`, over `publishing.done`.
+It reads the stored publication back (cases and readers by name, the bound graph with its
+build date, the freshness preset's own sentence) and states no figure, because the record
+holds none. It opens on a **first** publish only, decided before the write; the link on it
+is `published.link`, composed on the server. Its panel is exported apart from its `Modal`
+for the same portal reason as the one below it.
+
 `PublishScenarioPanel` is exported separately from the `Modal` that wraps it, for the
 reason `ConnectSourceWizard` is: `renderToString` does not traverse a portal, so a check
 about the dialog's contents would otherwise pass over nothing.

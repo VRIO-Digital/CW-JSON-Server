@@ -278,14 +278,44 @@ const PUBLISHING = {
     default: { preset: 'open', every: 1, unit: 'week', days: ['Mon'], time: '6:00 AM' },
     no_day_error: 'Pick at least one day of the week.',
   },
+  /*
+   * The confirmation, shown *after* a publish succeeds.
+   *
+   * It is a receipt rather than a second dialog: every line restates a decision the
+   * publication actually stored — the readers, the graph it is bound to, the freshness
+   * preset — so the reader can check what was recorded without re-opening the editor.
+   * **It states, and never counts**: the same rule the Published tab keeps, because a
+   * publication holds the frame and each case's admitted load and no figures at all.
+   *
+   * `{name}`, `{n}` and `{when}` are filled where the sentence is printed, the way
+   * `runtime.headroom.sentence` fills `{room}` — a reader count or a date written into
+   * the component would be a second source for a number the record already holds.
+   */
   done: {
     title: 'Scenario published',
-    /* {name} and {n} are filled where the sentence is printed. A reader count written
-       into the component would be a second source for the same number. */
     body:
-      '{name} is now readable by {n}. They open the complete scenario — the frame and ' +
-      'every case — never a single case on its own.',
+      '“{name}” is live for {n}. Each opens it under their own access — same scenario, ' +
+      'their scope. It stays in your library — come back any time to change readers or freshness.',
     stored: 'the frame and each case’s admitted load — never the numbers',
+    /* The address the readers are given. `base` is authored here for the reason
+       `DEFAULT_BUCKET` is hardcoded in `store.js`: an address costs nothing to commit.
+       The slug is the server's, written onto the publication, so one place decides it. */
+    link: { label: 'Copy link', copied: 'Link copied.' },
+    labels: {
+      cases: 'Cases',
+      readers: 'Readers',
+      graph: 'Graph',
+      numbers: 'Numbers',
+      access: 'Access rules',
+    },
+    /* The bound graph is the one that is live now — said in the tenant's words rather
+       than assembled from three fragments in the component. */
+    graph_note: 'current, published {when}',
+    /* Reader-level scope is declared, never applied, and this names where it is
+       administered instead of implying this dialog applies it. */
+    access_note: 'per-reader scope is managed in Audit & Governance.',
+    audit_link: 'Open Audit & Governance →',
+    buttons: { again: '+ Start a new scenario', close: 'Done' },
   },
   buttons: {
     publish: 'Publish scenario',
@@ -316,6 +346,29 @@ for (const d of PUBLISHING.freshness.default.days) {
 if (!PUBLISHING.freshness.times.includes(PUBLISHING.freshness.default.time)) {
   fail(`freshness default names time "${PUBLISHING.freshness.default.time}", which is not offered`)
 }
+/* The confirmation is a receipt, so a missing line is a decision it silently stops
+   reporting — an empty label reads as a row that has nothing in it rather than as copy
+   that never arrived. */
+const doneCopy = PUBLISHING.done
+for (const key of ['title', 'body', 'stored', 'graph_note', 'access_note', 'audit_link']) {
+  if (!doneCopy[key]) fail(`publishing.done states no ${key} — the confirmation would print a blank line`)
+}
+for (const key of ['cases', 'readers', 'graph', 'numbers', 'access']) {
+  if (!doneCopy.labels[key]) fail(`publishing.done.labels states no ${key} — the row would read as unlabelled`)
+}
+if (!doneCopy.body.includes('{name}') || !doneCopy.body.includes('{n}')) {
+  fail('publishing.done.body interpolates neither {name} nor {n} — it would name no scenario and no audience')
+}
+if (!doneCopy.graph_note.includes('{when}')) {
+  fail('publishing.done.graph_note does not interpolate {when} — the graph line would date nothing')
+}
+if (!doneCopy.link.label || !doneCopy.link.copied) {
+  fail('publishing.done.link states no label or no copied note — the copy button would be unlabelled and silent')
+}
+if (!doneCopy.buttons.again || !doneCopy.buttons.close) {
+  fail('publishing.done.buttons states no again/close label — the confirmation could not be dismissed in words')
+}
+
 note(`publishing: ${presetIds.size} freshness presets · ${PUBLISHING.freshness.times.length} times`)
 
 /* ---------------- 8. refuse, or write ---------------- */

@@ -25358,8 +25358,26 @@
       },
       "done": {
         "title": "Scenario published",
-        "body": "{name} is now readable by {n}. They open the complete scenario under their own data access.",
-        "stored": "Lever positions and the frame, never the computed figures. Re-opening recomputes."
+        "body": "“{name}” is live for {n}. Each opens it under their own access — same scenario, their scope. It stays in your library — come back any time to change readers or freshness.",
+        "stored": "Lever positions and the frame, never the computed figures. Re-opening recomputes.",
+        "link": {
+          "label": "Copy link",
+          "copied": "Link copied."
+        },
+        "labels": {
+          "cases": "Cases",
+          "readers": "Readers",
+          "graph": "Graph",
+          "numbers": "Numbers",
+          "access": "Access rules"
+        },
+        "graph_note": "current, published {when}",
+        "access_note": "per-reader scope is managed in Audit & Governance.",
+        "audit_link": "Open Audit & Governance →",
+        "buttons": {
+          "again": "+ Start a new scenario",
+          "close": "Done"
+        }
       },
       "buttons": {
         "publish": "Publish scenario",

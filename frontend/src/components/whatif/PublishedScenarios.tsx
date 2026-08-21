@@ -1,5 +1,6 @@
 import { Button, Modal, Tag } from 'antd'
 import type { WhatIfFrame, WhatIfSaved } from '../../api/client'
+import { readerNames } from '../../data/whatifReaders'
 import './PublishedScenarios.css'
 
 /*
@@ -36,9 +37,6 @@ function when(iso: string | null | undefined): string {
     minute: '2-digit',
   })
 }
-
-const readerNames = (frame: WhatIfFrame, emails: string[]): string[] =>
-  emails.map((email) => frame.readers.find((r) => r.email === email)?.name ?? email)
 
 /**
  * The details of one published scenario.

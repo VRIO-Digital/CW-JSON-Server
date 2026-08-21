@@ -1634,6 +1634,27 @@ names nobody; what publishing records is who is *told*. Reader-level scope is li
 roster here is filtered per persona, so a filtered count would claim a filter that never
 ran. Same two-gate rule the report section states.
 
+**A publish that succeeds shows a receipt, and a receipt states rather than counts.**
+`PublishedConfirm` opens on the publication the write just stored and reads it back — the
+cases by name, the readers by name, the graph it is bound to with the build date the live
+list carries, and the freshness preset's own label and sentence. No figure appears on it,
+because a publication holds each case's admitted load and no numbers; the rule is the
+Published tab's, applied at the moment the decision is made. Its words are the tenant's
+(`publishing.done`, authored by the ingest and required by `validateDb`) with `{name}`,
+`{n}` and `{when}` interpolated where they are printed, so a label or a count typed into
+the component would be a second answer to something the record already states. **It opens
+on a first publish only** — its title is *Scenario published*, so showing it after
+*Update publication* would announce an act that had already happened, and `first` is read
+*before* the write because afterwards the entry carries a publication either way. The
+address on it is **`published.link`, composed by the server** from `WHATIF_LINK_BASE` and
+the scenario's slug, for the reason `DEFAULT_BUCKET` is committed in `store.js`: an
+address costs nothing to commit, and composing it in the dialog too would make a copied
+link and a stored link two answers to where a reader should go. The panel is exported
+apart from its `Modal`, and the one act it offers beyond *Done* is *Start a new scenario*,
+which returns to Authoring — where a scenario starts, because the frame is picked before
+anything is admitted. Scope is named, not applied: the last row points at Audit &
+Governance rather than implying this dialog filters anything.
+
 **The publishing copy is authored by the ingest, not shipped by the package.**
 `whatif_vls_data.json` predates v2 and carries no publishing block, and
 `npm run ingest:whatif` rebuilds `db.whatif` wholesale — so a block seeded from a

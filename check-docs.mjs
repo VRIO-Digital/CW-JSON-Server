@@ -3505,6 +3505,66 @@ expect(
   'the Modal/Drawer rule, applied to the newest dialog',
 )
 /*
+ * The receipt a successful publish leaves behind. It reports the decisions the
+ * publication stored — the cases, the readers, the bound graph, the freshness — so every
+ * one of its lines is either the tenant's copy or the record's own value. A label typed
+ * into the component would be this app writing in the tenant's voice, and a figure would
+ * be reporting something the publication does not hold.
+ */
+const confirmSrc = read('frontend/src/components/whatif/PublishedConfirm.tsx')
+const confirmCode = codeOnly(confirmSrc)
+const whatifPageCode = codeOnly(read('frontend/src/pages/WhatIfPage.tsx'))
+expect(
+  'the publish confirmation prints the served labels and no copy of its own',
+  ['cases', 'readers', 'graph', 'numbers', 'access'].every((k) =>
+    confirmCode.includes(`done.labels.${k}`),
+  ) &&
+    /\{done\.title\}/.test(confirmCode) &&
+    /done\.body\.replace\('\{name\}'/.test(confirmCode) &&
+    /done\.graphNote\.replace\('\{when\}'/.test(confirmCode) &&
+    /\{done\.accessNote\}/.test(confirmCode) &&
+    /\{done\.buttons\.again\}/.test(confirmCode) &&
+    !/Scenario published|Copy link|Start a new scenario/.test(confirmCode),
+  'publishing.done is the one answer to what the confirmation says',
+)
+expect(
+  'and it states the record rather than a figure',
+  /scenario\.cases\.map\(\(c\) => c\.name\)/.test(confirmCode) &&
+    /readerNames\(frame, pub\.readers\)/.test(confirmCode) &&
+    /preset\.label\} — \$\{preset\.sentence/.test(confirmCode) &&
+    !/computed|inherited|baseline|value_text|Math\./.test(confirmCode),
+  'a publication holds each case’s admitted load and no numbers at all',
+)
+/* The address is composed where the publication is written. Composed in the component
+   instead, a link copied out of this dialog and a link stored on the record would be two
+   answers to where a reader should go. */
+expect(
+  'the published link is the server’s, never assembled in the dialog',
+  /const WHATIF_LINK_BASE = '/.test(server) &&
+    /link: `\$\{WHATIF_LINK_BASE\}\$\{slugify\(entry\.name\)\}`/.test(server) &&
+    /pub\.link/.test(confirmCode) &&
+    !/https?:\/\/|\.com\//.test(confirmCode),
+  'one place decides the address of a publication',
+)
+/* Same Modal/portal rule as the publish dialog: a body inside a Modal renders nowhere
+   under renderToString, so every claim above would pass over an empty string. */
+expect(
+  'the confirmation panel is extracted from its Modal',
+  /export function PublishedConfirmPanel\(/.test(confirmSrc) &&
+    confirmSrc.indexOf('export function PublishedConfirmPanel(') < confirmSrc.indexOf('<Modal'),
+  'the Modal/Drawer rule, applied to the receipt',
+)
+/* Its title is "Scenario published", so it may not open after *Update publication* — an
+   update announces an act that already happened. Read before the write, because after it
+   the entry carries a publication either way. */
+expect(
+  'and it opens on a first publish only, decided before the write',
+  /const first = target!\.published === null/.test(whatifPageCode) &&
+    /if \(first\) setConfirming\(savedId\)/.test(whatifPageCode),
+  'an update closes the editor with nothing further to say',
+)
+
+/*
  * The pool filters exist twice — as data on the server, and as a switch in the store so
  * the dropdown can list membership rather than only count it. The two must agree, or a
  * pool offers loads the frame excluded.

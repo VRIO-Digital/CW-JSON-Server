@@ -4654,6 +4654,14 @@ export interface WhatIfGraphOption {
   name: string
   version: string | null
   sha256: string | null
+  /**
+   * When the build behind the live content was made.
+   *
+   * Publishing mints no date of its own, so this is the build's — which is what the
+   * confirmation's graph line dates. Null for a version built before the field existed,
+   * and then the line says which graph without claiming a day.
+   */
+  builtAt: string | null
 }
 
 /** How often a reader's figures re-traverse. Declared, never a promise this mock keeps. */
@@ -4675,6 +4683,8 @@ export interface WhatIfPublication {
   freshness: WhatIfFreshness
   publishedBy: string
   publishedAt: string
+  /** Where the readers go. Composed by the server, never assembled in a component. */
+  link: string
 }
 
 /**
@@ -4838,7 +4848,25 @@ export interface WhatIfPublishing {
     default: WhatIfFreshness
     noDayError: string
   }
-  done: { title: string; body: string; stored: string }
+  /**
+   * The confirmation shown once a publish has succeeded.
+   *
+   * Every line of it restates something the publication *stored*, which is why the copy
+   * is the tenant's and the values are the record's: `body` interpolates `{name}` and
+   * `{n}`, `graphNote` interpolates `{when}`. It states and never counts a figure — a
+   * publication holds each case's admitted load and no numbers at all.
+   */
+  done: {
+    title: string
+    body: string
+    stored: string
+    link: { label: string; copied: string }
+    labels: { cases: string; readers: string; graph: string; numbers: string; access: string }
+    graphNote: string
+    accessNote: string
+    auditLink: string
+    buttons: { again: string; close: string }
+  }
   buttons: {
     publish: string
     update: string
@@ -5023,6 +5051,9 @@ const WHATIF_SAVED = shape({
       freshness: WHATIF_FRESHNESS,
       published_by: str,
       published_at: str,
+      /* Not nullable: a publication a reader can be sent has an address, and a blank one
+         would print an empty box beside a Copy link button that copies nothing. */
+      link: str,
     }),
   ),
 })
@@ -5040,6 +5071,7 @@ const WHATIF_GRAPH_OPTION = shape({
   name: str,
   version: nullable(str),
   sha256: nullable(str),
+  built_at: nullable(str),
 })
 
 const WHATIF_PUBLISHING = shape({
@@ -5063,7 +5095,17 @@ const WHATIF_PUBLISHING = shape({
     default: WHATIF_FRESHNESS,
     no_day_error: str,
   }),
-  done: shape({ title: str, body: str, stored: str }),
+  done: shape({
+    title: str,
+    body: str,
+    stored: str,
+    link: shape({ label: str, copied: str }),
+    labels: shape({ cases: str, readers: str, graph: str, numbers: str, access: str }),
+    graph_note: str,
+    access_note: str,
+    audit_link: str,
+    buttons: shape({ again: str, close: str }),
+  }),
   buttons: shape({
     publish: str,
     update: str,
@@ -5280,6 +5322,7 @@ interface RawWhatIfSaved {
     freshness: RawWhatIfFreshness
     published_by: string
     published_at: string
+    link: string
   } | null
 }
 
@@ -5317,6 +5360,7 @@ const toWhatIfSaved = (s: RawWhatIfSaved): WhatIfSaved => ({
         freshness: s.published.freshness,
         publishedBy: s.published.published_by,
         publishedAt: s.published.published_at,
+        link: s.published.link,
       }
     : null,
 })
@@ -5351,7 +5395,13 @@ interface RawWhatIfFrame {
     role_label: string
     access_note: string
   }[]
-  graphs: { use_case_id: string; name: string; version: string | null; sha256: string | null }[]
+  graphs: {
+    use_case_id: string
+    name: string
+    version: string | null
+    sha256: string | null
+    built_at: string | null
+  }[]
   document: {
     document_id: string
     file: string
@@ -5383,7 +5433,17 @@ interface RawWhatIfFrame {
       default: RawWhatIfFreshness
       no_day_error: string
     }
-    done: { title: string; body: string; stored: string }
+    done: {
+      title: string
+      body: string
+      stored: string
+      link: { label: string; copied: string }
+      labels: { cases: string; readers: string; graph: string; numbers: string; access: string }
+      graph_note: string
+      access_note: string
+      audit_link: string
+      buttons: { again: string; close: string }
+    }
     buttons: {
       publish: string
       update: string
@@ -5486,6 +5546,7 @@ export async function getWhatIfFrame(): Promise<WhatIfFrame> {
       name: g.name,
       version: g.version,
       sha256: g.sha256,
+      builtAt: g.built_at,
     })),
     publishing: {
       publishTitle: raw.publishing.publish_title,
@@ -5508,7 +5569,17 @@ export async function getWhatIfFrame(): Promise<WhatIfFrame> {
         default: raw.publishing.freshness.default,
         noDayError: raw.publishing.freshness.no_day_error,
       },
-      done: raw.publishing.done,
+      done: {
+        title: raw.publishing.done.title,
+        body: raw.publishing.done.body,
+        stored: raw.publishing.done.stored,
+        link: raw.publishing.done.link,
+        labels: raw.publishing.done.labels,
+        graphNote: raw.publishing.done.graph_note,
+        accessNote: raw.publishing.done.access_note,
+        auditLink: raw.publishing.done.audit_link,
+        buttons: raw.publishing.done.buttons,
+      },
       buttons: raw.publishing.buttons,
       unpublishedNote: raw.publishing.unpublished_note,
     },

@@ -1388,6 +1388,40 @@ function validateDb(candidate) {
             'which is not offered — the dialog would open on nothing',
         )
       }
+      /*
+       * And the confirmation, which fails by *reporting less*. It is a receipt for a
+       * publication — the readers, the bound graph, the freshness — so a missing label
+       * prints a row that reads as having nothing in it, and a body that interpolates
+       * neither {name} nor {n} names no scenario and no audience while still looking
+       * like a sentence somebody wrote.
+       */
+      const done = pub.done ?? {}
+      const doneMissing = [
+        !done.title && 'title',
+        !done.body && 'body',
+        !done.graph_note && 'graph_note',
+        !done.access_note && 'access_note',
+        !done.audit_link && 'audit_link',
+        !done.link?.label && 'link.label',
+        !done.buttons?.again && 'buttons.again',
+        !done.buttons?.close && 'buttons.close',
+        ...['cases', 'readers', 'graph', 'numbers', 'access'].map(
+          (k) => !done.labels?.[k] && `labels.${k}`,
+        ),
+      ].filter(Boolean)
+      if (doneMissing.length > 0) {
+        problems.push(
+          `whatif.publishing.done is missing ${doneMissing.join(', ')} — the confirmation shown ` +
+            'after a publish would print blank rows where it reports what was recorded. ' +
+            'Re-run "npm run ingest:whatif"',
+        )
+      }
+      if (done.body && (!done.body.includes('{name}') || !done.body.includes('{n}'))) {
+        problems.push(
+          'whatif.publishing.done.body interpolates neither {name} nor {n} — the confirmation ' +
+            'would name no scenario and no audience',
+        )
+      }
       if (!pub.readers?.empty_error || !pub.freshness.no_day_error) {
         problems.push(
           'whatif.publishing is missing a refusal sentence (readers.empty_error / ' +
@@ -2821,6 +2855,19 @@ const REPORT_EXPORT_LINK_MS = 60 * 60 * 1000
  * generator the pool excludes reads as a hang.
  */
 const WHATIF_STEP_MS = 4000
+
+/**
+ * Where a published scenario is read.
+ *
+ * **An address, so it is committed** — the same decision `store.js` records for
+ * `DEFAULT_BUCKET`: it appears in every publication this server writes and in the
+ * confirmation a publisher is shown, so committing it costs nothing and saves setting up
+ * an environment. It is composed **here** rather than in the client for the reason the
+ * scenario's readers are ordered here: one place decides what the address of a
+ * publication is, or a link copied out of the dialog and a link stored on the record are
+ * two answers to where a reader should go.
+ */
+const WHATIF_LINK_BASE = 'contextweave.vls.com/w/'
 
 /** Public shape of a derivation; the coverage only lands when it completes. */
 const derivationView = (run) => ({
@@ -9648,6 +9695,10 @@ const routes = [
              when absent: an anonymous re-publish must stop crediting whoever went last. */
           published_by: as ?? db.google_account.email,
           published_at: new Date().toISOString(),
+          /* The address the readers are given, composed once, here. Stored on the record
+             rather than derived where it is shown, so the confirmation's Copy link and
+             anything that later lists a publication cannot disagree about it. */
+          link: `${WHATIF_LINK_BASE}${slugify(entry.name)}`,
         },
       })
       send(res, 200, { saved: [...whatifSaved.values()], saved_id: id })

@@ -1,0 +1,108 @@
+/*
+ * The publish confirmation. Spacing from the --sp-* scale only.
+ *
+ * One tint, and it is the success hue on the tick — that is a *state* (the publish
+ * happened), which is the only thing a status colour is for here. It is drawn beside the
+ * word "published" rather than standing in for it, so the state is never colour alone.
+ * Every row below is neutral: a reader's persona, a graph version and a schedule are
+ * categories, not states.
+ */
+
+.pc {
+  text-align: center;
+}
+
+.pc-tick {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto var(--sp-4);
+  border: 1px solid #b7e4c7;
+  border-radius: 50%;
+  background: #f0fbf4;
+  color: #2f9e5f;
+  font-size: 20px;
+  line-height: 42px;
+}
+
+.pc-title {
+  margin: 0 0 var(--sp-3);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pc-body {
+  margin: 0 auto var(--sp-5);
+  max-width: 42em;
+  color: #5b6577;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/*
+ * The address, and the button that copies it.
+ *
+ * `min-width: 0` plus the ellipsis on the span, never on the flex row: a flex container
+ * cannot truncate its own text, which is the trap `docs/REGRESSIONS.md` records for antd
+ * buttons.
+ */
+.pc-link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  background: #f7f8fa;
+}
+
+.pc-url {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #47505f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One row per decision the publication stored. Left-aligned, because these are read
+   rather than announced. */
+.pc-rows {
+  margin: 0 0 var(--sp-4);
+  text-align: left;
+}
+
+.pc-row {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.pc-row dt {
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
+.pc-row dd {
+  margin: 0;
+  color: #5b6577;
+}
+
+.pc-audit {
+  display: block;
+  margin-bottom: var(--sp-5);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pc-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  justify-content: center;
+}
