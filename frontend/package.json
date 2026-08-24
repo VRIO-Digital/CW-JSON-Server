@@ -12,6 +12,7 @@
     "lint": "oxlint",
     "audit": "node scripts/audit-gate.mjs low",
     "audit:fix": "npm audit fix",
+    "bundle:web": "node scripts/bundle-web.mjs",
     "postinstall": "node scripts/audit-gate.mjs low"
   },
   "dependencies": {

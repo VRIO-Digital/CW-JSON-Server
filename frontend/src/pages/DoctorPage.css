@@ -1,0 +1,96 @@
+/*
+ * The diagnostics page. Spacing from the --sp-* scale only.
+ *
+ * **The left edge carries the verdict and the tag repeats it in words.** A status colour is reserved
+ * for state here, and a check's verdict is exactly that — but colour is never the only carrier, so
+ * every row states its tone in its `StatusTag` too. That is the same rule the profiling board and the
+ * report chips keep.
+ *
+ * It sits outside `App`, so there is no sidebar beside it: the page gives itself the padding the shell
+ * would otherwise supply, and caps its width, because a fix sentence set across a 2560px monitor is a
+ * line nobody can follow back to its start.
+ */
+
+.doc {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--sp-7) var(--sp-6);
+}
+
+.doc-lead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+
+.doc-at {
+  color: #8994a8;
+  font-size: 12px;
+}
+
+.doc-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doc-row {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid #e9ecf1;
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.doc-row.is-good {
+  border-left-color: #52c41a;
+}
+
+.doc-row.is-warn {
+  border-left-color: #faad14;
+}
+
+.doc-row.is-crit {
+  border-left-color: #ff4d4f;
+}
+
+.doc-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  justify-content: space-between;
+}
+
+.doc-label {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+/* The evidence. Monospace, because most of these values are an address, a port or an identifier and
+   a proportional font makes two similar ones hard to tell apart — which is the whole job here. */
+.doc-value {
+  margin-top: var(--sp-2);
+  color: #47505f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.doc-fix {
+  margin: var(--sp-2) 0 0;
+  color: #6b7688;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.doc-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-5);
+  margin-top: var(--sp-6);
+  font-size: 13px;
+}

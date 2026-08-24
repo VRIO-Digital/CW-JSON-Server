@@ -58,3 +58,17 @@ backend/.ebextensions/02-credentials.config
 # It is a build artefact either way, but this is the reason it must never be committed - and the reason
 # not to mail it, attach it to a ticket, or drop it in a bucket other people can read.
 backend-eb.zip
+
+# The built SPA, zipped for hand-off to S3 + CloudFront.
+#
+# A build artefact and nothing else - it holds no credential, because every VITE_* value is inlined
+# at build time and none of them can hold a secret. Ignored so a 2.4 MB copy of dist/ cannot be
+# committed beside the source that produced it; rebuild it rather than keeping one around.
+frontend-dist.zip
+
+# The console's Elastic Beanstalk source bundle - web.js, its generated manifest, the Procfile and dist/.
+#
+# A build artefact like the two above, and like frontend-dist.zip it holds no credential: VITE_* values
+# are inlined at build time and none of them can hold one. Rebuild it rather than keeping one around -
+# a stale bundle is a stale API origin, baked in and invisible.
+frontend-eb.zip

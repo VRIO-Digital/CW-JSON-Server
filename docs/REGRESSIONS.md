@@ -4218,3 +4218,26 @@ seven times.
 happened to populate uniformly* — and a palette, a union and a required field are all the same kind of
 claim. A validator that refuses valid data is worse than a missing one: it fails confidently, and its
 message sends the reader to restart a process that was never at fault.
+
+## A second `/health` route that could never answer — 2026-08-24
+
+**Two handlers matched `/health`.** The readiness one at the top of the liveness section
+(`{ ok, datasets, store, port, uptime_s }`) and, ~90 lines further down, an older
+`{ ok, projects, registered_sources }`. The dispatcher is `routes.find(…)`, so the first match wins:
+the second had been unreachable for as long as both existed.
+
+**Why that is worse than either one alone.** Nothing is broken, so nothing says anything — and the two
+failure modes are both silent. Editing the wrong copy has *no effect*, which reads as a stale process
+and sends you to restart a server that is answering perfectly; and reordering the route list for an
+unrelated reason would swap which shape `/health` returns, changing a payload nobody thought they had
+touched. Found while building `/doctor`, which consumes that route, and only because the two shapes
+disagreed about what a health check reports.
+
+**Guard.** `check-docs` counts the matchers: exactly one, and it is the one naming `DATASETS` and
+`storeKind(DB_PATH)`. `getHealth()` in `client.ts` validates the payload like every other, so a server
+answering with the old shape now names the field rather than rendering `undefined`.
+
+**The general shape.** *A duplicate route is not redundancy, it is a second definition that cannot be
+observed.* Where a dispatcher takes the first match, the count of matchers per path is a fact worth
+asserting — the same reasoning as the declaration-order claim for `graph-studio/:useCaseId/canvas`,
+which is the other way one path quietly resolves to the wrong handler.

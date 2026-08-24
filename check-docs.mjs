@@ -6961,6 +6961,86 @@ expect(
     routesSrc.indexOf("path: '/:ds'") < routesSrc.indexOf(canvasRoute),
   'a prefix pattern declared first would match it and win',
 )
+/*
+ * ---------------- /doctor, the frontend's own health check ----------------
+ *
+ * It reports which API this bundle calls, whether that API answers, which store answered, whether the
+ * `x-dataset` header arrives and which preconditions are unmet — every one of which currently looks
+ * like the same blank page. Three things have to hold or the page becomes another surface that fails
+ * quietly: it must be reachable when the app is not, its verdicts must live where they can be
+ * asserted, and it must state the base rather than re-deriving it.
+ */
+const doctorSrc = read('frontend/src/pages/DoctorPage.tsx')
+const doctorCode = codeOnly(doctorSrc)
+const doctorRule = read('frontend/src/data/doctor.ts')
+const doctorRuleCode = codeOnly(doctorRule)
+expect(
+  'the diagnostics page is reachable without a sign-in and without a dataset segment',
+  /\{ path: '\/doctor', element: <DoctorPage \/> \}/.test(routesSrc) &&
+    /* Declared above the RequireAuth layout route, so it is not one of its children — an
+       unreachable API breaks the sign-in first, and a page behind it could not report that. */
+    routesSrc.indexOf("path: '/doctor'") < routesSrc.indexOf('<RequireAuth />') &&
+    !navPaths.includes('/doctor'),
+  'a diagnostics page that needs the app working diagnoses nothing',
+)
+/* The verdicts are a pure function for the reason `datasetPathFix` is: a rule inside a component
+   cannot be asserted without rendering that component's own state. */
+expect(
+  'and its verdicts are decided in src/data, not in the component',
+  /export function diagnose\(input: DoctorInput\): DoctorCheck\[\]/.test(doctorRule) &&
+    /diagnose\(\{/.test(doctorCode) &&
+    !/tone: '(good|warn|crit)'/.test(doctorCode),
+  'the page renders what diagnose returned and decides nothing',
+)
+/* Every row is evidence plus a fix, and a value is what makes a verdict checkable rather than
+   asserted. The page prints both, and the pasted report is rendered from the same checks. */
+expect(
+  'every row states what it read, and the pasted report says the same',
+  /\{c\.value\}/.test(doctorCode) &&
+    /c\.fix \? <p className="doc-fix">\{c\.fix\}<\/p> : null/.test(doctorCode) &&
+    /doctorReport\(checks, at\)/.test(doctorCode) &&
+    /export function doctorReport\(checks: DoctorCheck\[\], at: string\)/.test(doctorRule),
+  'a check with no value is a claim with no evidence',
+)
+/*
+ * The base is read from `client.ts`, which owns it. A page that read `import.meta.env.VITE_API_BASE`
+ * itself would be a second answer to the one question it exists to answer — and CLAUDE.md's rule that
+ * the origin lives in the .env files only is what makes `apiBase()` the single source.
+ */
+expect(
+  'and it reports the base client.ts actually calls rather than re-reading the environment',
+  /export const apiBase = \(\): string => BASE/.test(client) &&
+    /apiBase: apiBase\(\)/.test(doctorCode) &&
+    !/VITE_API_BASE/.test(doctorCode) &&
+    /* Keyed on the *read*, not the name. Both files legitimately name the variable — one in a
+       comment, one in the fix sentence a reader is shown ("rebuild with VITE_API_BASE=/api") — so a
+       search for the bare token failed against correct code, which is the trap recorded six times
+       over. `import.meta.env.VITE_API_BASE` is the narrowest form that carries the fact. `MODE` is
+       read here and that is not the base. */
+    !/import\.meta\.env\.VITE_API_BASE/.test(doctorCode) &&
+    !/import\.meta\.env/.test(doctorRuleCode),
+  'one answer to which API this bundle talks to',
+)
+/*
+ * One `/health` matcher on the server, and it is the one that reports readiness.
+ *
+ * There were two: this one, and a legacy `{ ok, projects, registered_sources }` further down that
+ * `routes.find` could never reach. A dead duplicate of a route is worse than none — an edit to the
+ * wrong copy changes nothing, silently, and there is no error to read.
+ */
+const healthMatchers = (server.match(/p === '\/health'/g) ?? []).length
+expect(
+  'the server has exactly one /health, and it reports the store it read',
+  healthMatchers === 1 &&
+    /store: storeKind\(DB_PATH\)/.test(server) &&
+    /datasets: DATASETS/.test(server) &&
+    /* Validated on the way in like every other payload: a stale server answering with the old shape
+       is the failure this whole page is meant to name, so it must not be the one call that trusts it. */
+    /export async function getHealth\(\)/.test(client) &&
+    /const SERVER_HEALTH = shape\(\{/.test(client),
+  `${healthMatchers} matcher, naming the datasets and the store`,
+)
+
 /* The button moved out of the retired canvas component and onto the tab: the vendored
    viewer knows nothing about this app's routes, so app chrome stays outside it. It is
    still the only way in besides typing the URL, which is why its absence would strand the
