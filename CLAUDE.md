@@ -2278,6 +2278,35 @@ and what it costs is stated rather than glossed: **the app cannot see inside**, 
 document reaches nothing here, and the document fetches its own webfonts from the network. Printing is
 delegated to the frame (`contentWindow.print()`), so a document prints as its own page.
 
+**And a framed document is held until it has opened its report.** Each file is the whole prototype app
+with one report on top, and the parts that make it *a report* are the **last** lines of a 2.6 MB file: the
+style that hides the app's own sidebar and topbar, then the script that signs in and calls `repOpen`. A
+browser paints as it parses, so that shell — and the Knowledge-graphs screen the document opens on — is on
+screen for as long as the rest of the file takes to arrive. Reported from use: **Open report** showed
+somebody else's app for a beat first, which reads as the wrong report having opened. It cannot be fixed in
+the document, whose `_meta` forbids hand-edits, so `DocumentViewer` hides the frame and says which document
+is opening and why the frame is empty. **Hidden with `visibility`, never `display: none`** — a frame that is
+not in the document is not loading, so there would be nothing to wait for and nothing for the seamless fit
+to measure.
+
+**The reveal is observed, not timed**, which is the rule the rest of the app keeps: `go('reports')` puts
+`on` on the document's own `#v-reports`, so that class *is* the report having been opened. A document with
+no such shell — the What-if lens is one page, not an app — is ready once it has loaded, and a frame this app
+cannot read is ready at once, because a frame it cannot read is one it cannot wait on. `REVEAL_CAP_MS` (15s)
+is the other half: a re-export that renamed that view would otherwise hold a spinner over a report sitting
+there fully drawn, so the failure is a **slow open and never an empty frame**. `check-docs` asserts both
+halves — the watcher reads that id, and the document really carries it and really starts on another view.
+
+**A frame's own `about:blank` is a *complete* document, and that is the trap this hold fell into first.** A
+frame carries that placeholder from the moment it is mounted until the first byte lands, and it reports
+`readyState: 'complete'` — so the "no shell, so ready when loaded" fallback fired on the first tick and
+revealed the frame just in time for the real document to paint its shell into it. **It showed on the first
+open only**, because a second one is served from cache and the real document is already parsing before the
+first tick: a cache is not a hold, and "works the second time" is the signature of this class of bug.
+Arrival is therefore checked (`inner.URL !== 'about:blank'`) and the fallback is gated on it — and the cap
+is counted **from arrival**, so a slow download cannot spend an allowance that exists to cover a renamed
+view. A document that never arrives keeps the wait, which is the true thing to say about it.
+
 **There is one copy of each file, and it stays in `src/Capex/Report/`.** `src/data/reportDocuments.ts`
 resolves a filename to a URL through `import.meta.glob('../*/Report/*.html', { query: '?url' })`. Copying
 them into `public/` is the obvious alternative and was rejected for one reason: a second copy of a 2.5 MB

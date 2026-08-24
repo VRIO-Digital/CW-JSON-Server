@@ -2171,6 +2171,13 @@ bundled URL through `import.meta.glob` → `DocumentLibrary` (four acts, Report 
 stale — and **Edit opens the authoring exploration**, which is what editing a finished document can
 honestly mean.
 
+A third: **the frame is held until the document opens its report.** These files paint the prototype's own
+sidebar, topbar and Knowledge-graphs screen while the 2.6 MB parses, because the style that hides them and
+the script that opens the report are the file's last lines. `DocumentViewer` hides the frame
+(`visibility`, so it keeps loading and stays measurable), names what it is waiting for, and reveals it when
+the document's own `#v-reports` carries `on` — observed, not timed — or at `REVEAL_CAP_MS` if it never says
+so, because a renamed view must cost a slow open rather than an empty frame.
+
 **Where a report leaves the app:** open one from the Library → `Export PDF` → the browser's print
 dialog. `window.print()` over the `@media print` rules in `PublishedReportPane.css`, which hide `body *`
 and reveal `.prp` — there is no PDF renderer here, by dependency decision, and the hint sits in

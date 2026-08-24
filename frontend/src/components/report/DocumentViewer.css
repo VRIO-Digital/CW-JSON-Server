@@ -27,6 +27,51 @@
   min-width: 0;
 }
 
+/*
+ * The frame and the panel that covers it while the document boots.
+ *
+ * A plain positioned block, contributing no height of its own: the seamless fit measures the frame
+ * against the page it sits in, so a wrapper that grew would put the outer scrollbar straight back.
+ */
+.dvw-stage {
+  position: relative;
+}
+
+/*
+ * Held, not unmounted — the frame has to be loading for there to be anything to wait for, and the
+ * measurement needs a box to measure. `visibility` rather than `display: none` for exactly that:
+ * a hidden element still takes its space, which is what keeps the panel over it the frame's size.
+ */
+.dvw-frame--pending {
+  visibility: hidden;
+}
+
+/*
+ * It repeats the frame's border and radius rather than letting them show through, because
+ * `visibility: hidden` hides an element's border too — without them the wait is a borderless white
+ * rectangle where the framed document is about to be.
+ */
+.dvw-pending {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-5);
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--cw-line, #e3e5e9);
+  border-radius: var(--sp-2);
+}
+
+/* Seamless is the page rather than a file on display, so the wait has no frame either. */
+.dvw-pending--seamless {
+  border: none;
+  border-radius: 0;
+}
+
 .dvw-frame {
   width: 100%;
   /* 78vh rather than 100%: the frame sits under the app header and this bar, and a percentage of an

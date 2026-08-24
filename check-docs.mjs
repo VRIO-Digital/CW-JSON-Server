@@ -6382,6 +6382,74 @@ expect(
 )
 
 /*
+ * ---------------- a framed document is held until it has opened its report ----------------
+ *
+ * **These files are the whole prototype app with one report on top, and that is visible.** The parts
+ * that make one *a report* are the last lines of a 2.6 MB file: a style that hides the app’s own
+ * sidebar and topbar, then a script that signs in and calls `repOpen`. A browser parses top-down, so
+ * it paints that shell — and the Knowledge-graphs screen the document opens on — for as long as the
+ * rest of the file takes to arrive. Reported from use: clicking **Open report** showed somebody
+ * else’s app for a beat before the report appeared, which reads as the wrong report having opened.
+ *
+ * **It cannot be fixed in the document**, whose `_meta` says *“never hand-edit this file — change the
+ * generator and rebuild”* — the same rule that puts the `.apiFab` and seamless rules in a stylesheet
+ * the frame injects. So the frame is held and the app says what it is waiting for.
+ *
+ * **The reveal is observed, not timed**, which is the rule the rest of this app keeps: `go('reports')`
+ * puts `on` on the document’s own `#v-reports`, so that class *is* the report having been opened. The
+ * claim asserts both halves — the watcher reads it, and the document really does start on another
+ * view and carry that id — because a signal that has been renamed by a re-export fails silently: the
+ * cap reveals the frame anyway and the flash comes back with nothing saying so.
+ *
+ * **And the cap is the other half of the honesty.** The alternative to a wrong picture must not be no
+ * picture, so a document that never reports itself open is shown regardless — a slow open rather than
+ * an empty frame. The frame stays mounted throughout (`visibility`, never `display: none`), because a
+ * frame that is not in the document is not loading and the seamless fit has nothing to measure.
+ */
+/* Read here rather than beside the seamless claim below: both claims read it, and a `const` is not
+   hoisted — one above its declaration dies in the temporal dead zone, which is the "claim total
+   stops moving" failure. */
+const lensCss = read('frontend/src/components/report/DocumentViewer.css')
+const heldDoc = capexDocs[0]?.file ? `frontend/src/Capex/Report/${capexDocs[0].file}` : null
+const heldDocSrc = heldDoc && existsSync(join(root, heldDoc)) ? read(heldDoc) : null
+expect(
+  'a framed document is held until it opens its report, on a signal read from the document itself',
+  /* Held: the frame is mounted and loading, and hidden while it is. */
+  /\(ready \? '' : ' dvw-frame--pending'\)/.test(viewerSrc) &&
+    /\.dvw-frame--pending \{[^}]*visibility: hidden/.test(lensCss) &&
+    !/\.dvw-frame--pending \{[^}]*display: none/.test(lensCss) &&
+    /* The signal is the document’s own view class, read out of the frame rather than assumed. */
+    /const REPORT_VIEW_ID = 'v-reports'/.test(viewerSrc) &&
+    /shell\.classList\.contains\(REPORT_VIEW_OPEN\)/.test(viewerSrc) &&
+    /* And the document is really built that way: it carries that view, and starts on another one, so
+       there is something to hold. A re-export that renames either fails here rather than in a flash
+       nobody can reproduce. */
+    heldDocSrc !== null &&
+    heldDocSrc.includes('id="v-reports"') &&
+    /class="view on" id="v-(?!reports)/.test(heldDocSrc) &&
+    /* The frame's own `about:blank` is a *complete* document, and taking that for the real one is what
+       made the hold miss the first, uncached open — the only one that needed it. Arrival is checked, and
+       the fallback is gated on it. */
+    /const arrived = !inner \|\| inner\.URL !== 'about:blank'/.test(viewerSrc) &&
+    /: arrived && \(!inner \|\| inner\.readyState === 'complete'\)/.test(viewerSrc) &&
+    /* Capped, so the failure is a slow open and never an empty frame — and counted from the document
+       arriving, or a slow download spends the allowance that exists to cover a renamed view. */
+    /Date\.now\(\) - arrivedAt > REVEAL_CAP_MS/.test(viewerSrc) &&
+    /if \(arrived && !arrivedAt\) arrivedAt = Date\.now\(\)/.test(viewerSrc) &&
+    /* The wait names the document and says why the frame is empty — one sentence, in one place. */
+    /\{`Opening \$\{doc\.title\}…`\}/.test(viewerSrc) &&
+    /const PENDING_NOTE =/.test(viewerSrc) &&
+    /\{PENDING_NOTE\}/.test(viewerSrc) &&
+    /* Over the frame, inside the one positioned box, contributing no height of its own. */
+    /\.dvw-stage \{[^}]*position: relative/.test(lensCss) &&
+    /\.dvw-pending \{[^}]*position: absolute/.test(lensCss) &&
+    /<div className="dvw-stage">/.test(viewerSrc),
+  heldDoc === null
+    ? 'no CAPEX document is served, so there is nothing to hold'
+    : `held on #v-reports, capped, verified against ${heldDoc.split('/').pop()}`,
+)
+
+/*
  * ---------------- a dataset can ship its What-if lens as a document too ----------------
  *
  * **CAPEX's What-if is a rendered page, not a traversal**, for the same reason its reports are
@@ -6532,7 +6600,6 @@ expect(
  * document and a reader scrolled past the top clicks Publish and sees nothing happen. So the height stays
  * and the claim pins it, because "make it seamless" is exactly the request that would remove it next.
  */
-const lensCss = read('frontend/src/components/report/DocumentViewer.css')
 expect(
   'a framed What-if lens renders as the page: no export, no bar, white ground, and a viewport that stays',
   /* The page asks for it by name rather than the viewer guessing from the absence of `onBack`. */

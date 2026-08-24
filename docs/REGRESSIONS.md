@@ -4241,3 +4241,61 @@ answering with the old shape now names the field rather than rendering `undefine
 observed.* Where a dispatcher takes the first match, the count of matchers per path is a fact worth
 asserting — the same reasoning as the declaration-order claim for `graph-studio/:useCaseId/canvas`,
 which is the other way one path quietly resolves to the wrong handler.
+
+## A framed document painting its own app before painting the report — 2026-08-24
+
+**Clicking Open report in the CAPEX Library showed another app first.** A sidebar, a topbar, a "Knowledge
+graphs" heading and a `+ New Graph` button, then the report. Nothing errored, and the report that arrived
+was the right one — which is what makes it worse than a fault: the reader has just clicked a report's name
+and been shown a screen belonging to something else, so the natural reading is that the wrong thing opened.
+
+**The cause is where the document keeps the parts that make it a report.** `R1_variance_report.html` is
+`context_weave_prototype_v2.html` byte for byte with a block appended: a `<style>` hiding `.side` and
+`.topbar`, and a script that signs in and calls `repOpen(REPORT_ID)`. Both are at line ~58,530 of 58,600. A
+browser paints as it parses, so the shell markup at line 2,336 and the `view on` screen at 2,377 are on
+screen for as long as the remaining 2.6 MB takes — and the boot script then waits on the document's own mock
+API before it routes. The document already anticipated a *login* flash and hid its gate; it could not
+anticipate its own paint order.
+
+**Why the obvious fixes are wrong.** Editing the document is forbidden by its own `_meta` ("never hand-edit
+this file — change the generator and rebuild"), and an edit would silently return at the next export — the
+reason the `.apiFab` and seamless rules are injected by the frame rather than removed from the file.
+Injecting a style earlier does not help either: the flash is not styling, it is the document genuinely
+being on another view.
+
+**The fix.** `DocumentViewer` holds the frame — `visibility: hidden`, so it keeps loading and the seamless
+fit still has a box to measure — and draws a named waiting panel over it. It reveals on the document's
+**own** signal: `go('reports')` adds `on` to `#v-reports`, which *is* the report having been opened, polled
+at 120ms. A document with no such shell is ready at `readyState === 'complete'`, and a frame this app cannot
+read is ready at once. `REVEAL_CAP_MS` (15s) reveals it regardless.
+
+**And the first version of that hold missed the only open that needed it, which is the more useful half of
+this entry.** Reported back as "it still glitches the first time". A frame carries its own `about:blank` from
+the moment it is mounted until the first byte of the response lands, and **that placeholder reports
+`readyState: 'complete'`** — so the "no shell, so ready when loaded" fallback fired on the first 120ms tick,
+revealed the frame, and the real document then painted its shell into it: the exact flash, now with a
+mechanism holding the door open. It showed on the **first** open only, because a second is served from cache
+and the real document is already parsing before the first tick, with `#v-reports` there to be waited on. So
+arrival is checked (`inner.URL !== 'about:blank'`) and the fallback gated on it, and the cap is counted from
+arrival rather than from mount — otherwise a slow 2.6 MB download spends the allowance that exists to cover
+a renamed view, which would have reintroduced the same flash on exactly the same open.
+
+**Guard.** One cross-layer claim: the pending class is applied, the CSS hides with `visibility` and not
+`display`, the watcher reads `REPORT_VIEW_ID`/`REPORT_VIEW_OPEN`, the arrival gate and the cap-from-arrival
+are both present, the panel names the document and its note lives in one place — **and the served document
+itself is asserted to carry `id="v-reports"` while starting on another `view on`**, so a re-export that
+renames the view fails the build instead of quietly falling back to the cap. Five mutations, all caught,
+including the two that restore the `about:blank` bug. Writing it also re-taught the temporal-dead-zone rule:
+the claim read `lensCss`, declared 150 lines below it, so it failed on its own subject until that `const` was
+moved above both claims.
+
+**The general shape.** *A signal read out of somebody else's document is a coupling, so assert it against
+that document.* A guard that checks only this side of the contract has a good answer indistinguishable from
+the fallback — the same failure as the `kgPath` claim that passed for a session while comparing against
+`null`. And the cap is the pattern to copy: where a hold depends on an observation, a failed observation
+must degrade to a worse-looking success, never to a blank screen.
+
+**And a second general shape, from the follow-up: *"works the second time" is a cache, not a fix.*** Any
+readiness check that can pass against a placeholder — an empty document, a default value, a zero-row
+response — will pass on the slow path and only on the slow path, which is the one path the check was written
+for. State what has to have *arrived* before asking whether it is *done*.

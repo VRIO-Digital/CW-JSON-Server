@@ -57,7 +57,7 @@
  */
 
 import { ArrowLeftOutlined, PrinterOutlined } from '@ant-design/icons'
-import { Alert, Button, Tooltip, Typography } from 'antd'
+import { Alert, Button, Spin, Tooltip, Typography } from 'antd'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import { REPORT_EXPORT_HINT } from '../../data/reportExport'
@@ -155,6 +155,80 @@ export default function DocumentViewer({
     return () => window.removeEventListener('resize', measure)
   }, [seamless, url])
 
+  /*
+   * Whether the framed document has reached the thing it was opened for.
+   *
+   * Kept as the URL it is true *of* rather than a boolean, because opening a second report would
+   * otherwise be ready for one render on the strength of the first one's load: a `setReady(false)`
+   * inside an effect runs after that render, which is one painted frame of the previous document
+   * under the new document's name.
+   */
+  const [openedUrl, setOpenedUrl] = useState<string | null>(null)
+  const ready = url !== null && openedUrl === url
+
+  /*
+   * **The frame is held until the document has opened its report, and this watches for it.**
+   *
+   * These documents are the whole prototype app with one report on top, and the parts that make them
+   * *a report* are the last lines of a 2.6 MB file: the style that hides the app's own sidebar and
+   * topbar, then the script that signs in and calls `repOpen`. So a browser parsing top-down paints
+   * that shell and its Knowledge-graphs screen first, for as long as the rest of the file takes —
+   * somebody else's app flashing past under this Library's Open button, which reads as the wrong
+   * report having opened.
+   *
+   * It cannot be fixed in the file: its `_meta` says *"never hand-edit this file — change the
+   * generator and rebuild"*, the same rule that puts the `.apiFab` and seamless rules in a stylesheet
+   * this frame injects. So the frame is held and this app says what it is waiting for instead.
+   *
+   * **The reveal is observed, not timed.** `go('reports')` puts `on` on the document's own
+   * `#v-reports`, so that class *is* the report having been opened — the rule the rest of this app
+   * keeps, where a stage advances when its call returns rather than on a timer the client holds. A
+   * document that has no such shell — the What-if lens is one page, not an app — is ready once it has
+   * finished loading, and a frame this app cannot see into is ready immediately, because a frame it
+   * cannot read is one it cannot wait on either.
+   *
+   * **And the wait is capped, because the alternative to a wrong picture must not be no picture.** A
+   * regenerated document that renamed that id would otherwise hold a spinner over a report sitting
+   * there fully drawn. Past `REVEAL_CAP_MS` the frame is shown whatever it says — counted from the
+   * document *arriving*, not from the frame mounting, so a slow 2.6 MB download does not spend the
+   * allowance it exists to cover. A document that never arrives is still opening, and "Opening…" is the
+   * true thing to say about it; there would be nothing to reveal in any case.
+   */
+  useEffect(() => {
+    if (!url) return
+    const el = frameRef.current
+    if (!el) return
+
+    let arrivedAt = 0
+    const timer = window.setInterval(() => {
+      const inner = el.contentDocument
+      /*
+       * **`about:blank` is a complete document, and that was this hold's one real bug.** A frame carries
+       * its own blank document from the moment it is mounted until the first byte of the response lands,
+       * and that placeholder reports `readyState: 'complete'` — so the fallback below fired on the first
+       * tick, revealed the frame, and the real document then painted its shell into it, which is the
+       * flash this whole effect exists to prevent.
+       *
+       * It showed on the **first** open only, which is what made it read as a glitch rather than a bug:
+       * on a second open the 2.6 MB is in the browser's cache, so the real document is already parsing
+       * before the first tick and its `#v-reports` is there to be waited on. A cache is not a hold. So
+       * arrival is checked rather than assumed, and only a document that has actually arrived can be
+       * complete.
+       */
+      const arrived = !inner || inner.URL !== 'about:blank'
+      if (arrived && !arrivedAt) arrivedAt = Date.now()
+      const shell = inner ? inner.getElementById(REPORT_VIEW_ID) : null
+      const opened = shell
+        ? shell.classList.contains(REPORT_VIEW_OPEN)
+        : arrived && (!inner || inner.readyState === 'complete')
+      if (opened || (arrivedAt > 0 && Date.now() - arrivedAt > REVEAL_CAP_MS)) {
+        window.clearInterval(timer)
+        setOpenedUrl(url)
+      }
+    }, POLL_MS)
+    return () => window.clearInterval(timer)
+  }, [url])
+
   return (
     <div className={seamless ? 'dvw dvw--seamless' : 'dvw'}>
       {/*
@@ -211,84 +285,155 @@ export default function DocumentViewer({
         </div>
       )}
 
-      {url ? (
-        <iframe
-          id={FRAME_ID}
-          ref={frameRef}
-          className={seamless ? 'dvw-frame dvw-frame--seamless' : 'dvw-frame'}
-          /* The stylesheet's height stands until the measurement lands, and for a framed report always. */
-          style={seamless && fitted !== null ? { height: fitted } : undefined}
-          src={url}
-          title={`${doc.title} — rendered document`}
-          /*
-           * `same-origin` so the document's own scripts run and so `contentWindow.print()` is reachable;
-           * these files are part of this build rather than third-party content. `allow-modals` because
-           * the print dialog is one.
-           */
-          sandbox="allow-same-origin allow-scripts allow-modals allow-popups"
-          /*
-           * **The document's own mock-API pill is hidden, and hidden rather than deleted.**
-           *
-           * Each of these files carries a floating `.apiFab` — an `API <count>` badge that toggles a log
-           * of the mock calls behind the screen. It is a prototype affordance: useful in the standalone
-           * document, noise inside an app that has its own API. Asked to be removed.
-           *
-           * **Done from here rather than by editing the HTML**, because the document's own `_meta` says
-           * *"never hand-edit this file — change the generator and rebuild"*. An edit would be lost at the
-           * next export and would silently come back; a rule applied by the frame holds for whatever
-           * version of the document is dropped in. It also keeps the file byte-identical to what the
-           * generator produced, which is what makes it diffable against its source.
-           *
-           * The trade is that this is the app reaching into the document — the one place it does. It is a
-           * *style* only: nothing is removed from the DOM and no script is touched, so the document still
-           * works exactly as it did, and its log is still reachable by anyone who opens the file directly.
-           */
-          onLoad={(event) => {
-            const frame = event.currentTarget
-            const inner = frame.contentDocument
-            /* Same-origin is a precondition, and a cross-origin document simply has no `contentDocument`
-               — so an absent one is not an error, it is a document this rule cannot apply to. */
-            if (!inner) return
-            const style = inner.createElement('style')
+      {/*
+        * The frame and what covers it while it boots, in one positioned box.
+        *
+        * A plain block wrapper on purpose: the seamless fit measures the frame against the document
+        * it is in, so a wrapper that grew or added space of its own would put the outer scrollbar
+        * back. It contributes no height beyond the frame's and exists only to be what the waiting
+        * panel is positioned against.
+        */}
+      <div className="dvw-stage">
+        {url ? (
+          <iframe
+            id={FRAME_ID}
+            ref={frameRef}
+            className={
+              (seamless ? 'dvw-frame dvw-frame--seamless' : 'dvw-frame') +
+              /* Hidden rather than unmounted: a frame that is not in the document is not loading, so
+                 there would be nothing to wait for and nothing to measure. */
+              (ready ? '' : ' dvw-frame--pending')
+            }
+            /* The stylesheet's height stands until the measurement lands, and for a framed report always. */
+            style={seamless && fitted !== null ? { height: fitted } : undefined}
+            src={url}
+            title={`${doc.title} — rendered document`}
             /*
-             * **And the page background, in seamless mode only.** This document paints `body` with its
-             * own `--bg0` (#f3f4f6), which inside a borderless frame on a white page reads as a grey
-             * panel with nothing explaining its edges. Overriding `body` rather than the token, because
-             * a token name is this document's private vocabulary and the next export may not have it —
-             * `background` on `body` is the fact, `--bg0` is one file's way of spelling it.
-             *
-             * Injected here for the same reason the pill above is: the document's `_meta` says *"never
-             * hand-edit this file — change the generator and rebuild"*, so an edit would be lost at the
-             * next export and would silently come back, while a rule applied by the frame holds for
-             * whatever version is dropped in and keeps the file byte-identical to what produced it.
+             * `same-origin` so the document's own scripts run and so `contentWindow.print()` is reachable;
+             * these files are part of this build rather than third-party content. `allow-modals` because
+             * the print dialog is one.
              */
-            style.textContent =
-              '.apiFab, .apiLog { display: none !important }' +
-              (seamless ? SEAMLESS_CSS : '')
-            inner.head?.appendChild(style)
-          }}
-        />
-      ) : (
-        /*
-         * The file the payload names is not in the bundle. Said with both halves — what was asked for
-         * and what is actually here — because "report failed to load" sends somebody debugging the
-         * report, and the fault is a filename.
-         */
-        <Alert
-          type="error"
-          showIcon
-          title="That document is not in this build"
-          description={
-            `The page asks for "${doc.file}", which is not among the documents bundled from ` +
-            `src/<dataset>/Report and src/<dataset>/what-if-lens: ` +
-            `${reportDocumentFiles().join(', ') || 'none'}. ` +
-            'Re-run npm run ingest:capex if the file was renamed.'
-          }
-        />
-      )}
+            sandbox="allow-same-origin allow-scripts allow-modals allow-popups"
+            /*
+             * **The document's own mock-API pill is hidden, and hidden rather than deleted.**
+             *
+             * Each of these files carries a floating `.apiFab` — an `API <count>` badge that toggles a log
+             * of the mock calls behind the screen. It is a prototype affordance: useful in the standalone
+             * document, noise inside an app that has its own API. Asked to be removed.
+             *
+             * **Done from here rather than by editing the HTML**, because the document's own `_meta` says
+             * *"never hand-edit this file — change the generator and rebuild"*. An edit would be lost at the
+             * next export and would silently come back; a rule applied by the frame holds for whatever
+             * version of the document is dropped in. It also keeps the file byte-identical to what the
+             * generator produced, which is what makes it diffable against its source.
+             *
+             * The trade is that this is the app reaching into the document — the one place it does. It is a
+             * *style* only: nothing is removed from the DOM and no script is touched, so the document still
+             * works exactly as it did, and its log is still reachable by anyone who opens the file directly.
+             */
+            onLoad={(event) => {
+              const frame = event.currentTarget
+              const inner = frame.contentDocument
+              /* Same-origin is a precondition, and a cross-origin document simply has no `contentDocument`
+                 — so an absent one is not an error, it is a document this rule cannot apply to. */
+              if (!inner) return
+              const style = inner.createElement('style')
+              /*
+               * **And the page background, in seamless mode only.** This document paints `body` with its
+               * own `--bg0` (#f3f4f6), which inside a borderless frame on a white page reads as a grey
+               * panel with nothing explaining its edges. Overriding `body` rather than the token, because
+               * a token name is this document's private vocabulary and the next export may not have it —
+               * `background` on `body` is the fact, `--bg0` is one file's way of spelling it.
+               *
+               * Injected here for the same reason the pill above is: the document's `_meta` says *"never
+               * hand-edit this file — change the generator and rebuild"*, so an edit would be lost at the
+               * next export and would silently come back, while a rule applied by the frame holds for
+               * whatever version is dropped in and keeps the file byte-identical to what produced it.
+               */
+              style.textContent =
+                '.apiFab, .apiLog { display: none !important }' +
+                (seamless ? SEAMLESS_CSS : '')
+              inner.head?.appendChild(style)
+            }}
+          />
+        ) : (
+          /*
+           * The file the payload names is not in the bundle. Said with both halves — what was asked for
+           * and what is actually here — because "report failed to load" sends somebody debugging the
+           * report, and the fault is a filename.
+           */
+          <Alert
+            type="error"
+            showIcon
+            title="That document is not in this build"
+            description={
+              `The page asks for "${doc.file}", which is not among the documents bundled from ` +
+              `src/<dataset>/Report and src/<dataset>/what-if-lens: ` +
+              `${reportDocumentFiles().join(', ') || 'none'}. ` +
+              'Re-run npm run ingest:capex if the file was renamed.'
+            }
+          />
+        )}
+
+        {/*
+          * What the reader waits in front of, named.
+          *
+          * A spinner over a blank frame is indistinguishable from a report that never arrived, so it
+          * says which document is opening and why the frame is empty. Drawn *over* the frame rather
+          * than in place of it: the frame has to be mounted and loading for there to be anything to
+          * wait for, and for the measurement above to have something to measure.
+          */}
+        {url && !ready ? (
+          <div
+            className={seamless ? 'dvw-pending dvw-pending--seamless' : 'dvw-pending'}
+            role="status"
+            aria-live="polite"
+          >
+            <Spin />
+            <Typography.Text strong>{`Opening ${doc.title}…`}</Typography.Text>
+            <Typography.Text type="secondary">{PENDING_NOTE}</Typography.Text>
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }
+
+/**
+ * The document's own report view, and the class it carries once that view is the one on screen.
+ *
+ * Read rather than timed — see the watcher above. Named here because they are the document's
+ * vocabulary and not this app's: the same real coupling as `.apiFab` and the seamless rules, and it
+ * fails the same visible way. A regenerated document that renames either leaves the frame revealed
+ * by the cap instead of by the signal, which is a slower open rather than a blank page.
+ */
+const REPORT_VIEW_ID = 'v-reports'
+const REPORT_VIEW_OPEN = 'on'
+
+/** How often the frame is asked whether it has got there. Cheap: one `getElementById` on a document
+ *  this app already reads to inject a stylesheet. */
+const POLL_MS = 120
+
+/**
+ * The longest the frame is held.
+ *
+ * Signing in and running the report inside a 2.6 MB document takes a second or two on a warm cache,
+ * and the whole point of the hold is that the shell underneath must not be seen — so this is well
+ * past the honest case and exists only so a renamed id cannot hide a report that has already
+ * arrived. What it buys is that the failure is a slow open, never an empty one.
+ */
+const REVEAL_CAP_MS = 15_000
+
+/**
+ * Why the frame is empty, in the reader's terms.
+ *
+ * Not "loading…": what is happening is that the document boots itself and opens the report, and a
+ * reader who is told that reads a five-second wait as the document working rather than as this app
+ * having stalled. Copy in one place for the reason `reportExport.ts` holds its hint — it is the
+ * sentence a test asserts.
+ */
+const PENDING_NOTE =
+  'The document signs in and opens the report itself. Held until it does, so its own app shell does not flash past first.'
 
 /* One frame on screen at a time — the viewer replaces the Library rather than sitting beside it. */
 const FRAME_ID = 'cw-report-document-frame'
