@@ -2633,6 +2633,61 @@ async function request<T>(
 
 /* ---------------- Endpoints ---------------- */
 
+/* ---------------- Liveness ---------------- */
+
+/**
+ * Where this bundle calls the API, as it was built.
+ *
+ * **Read from here rather than from `import.meta.env` a second time.** `VITE_API_BASE` is inlined at
+ * build time, so a page that read the variable itself would be a second answer to the same question —
+ * and the one thing the diagnostics page exists to report is which API the app is *actually* talking
+ * to. `BASE` is that answer, trailing slash already stripped.
+ */
+export const apiBase = (): string => BASE
+
+/** What `GET /health` reports: that the documents parsed, and which store they were read from. */
+export interface ServerHealth {
+  ok: boolean
+  /** Every dataset read at boot — a process that is listening has validated all of them. */
+  datasets: string[]
+  /** `s3` or `file`. After a deploy, `file` means `S3_BUCKET` never reached the process. */
+  store: string
+  port: number
+  uptimeS: number
+}
+
+const SERVER_HEALTH = shape({
+  ok: bool,
+  datasets: arrayOf(str),
+  store: str,
+  port: num,
+  uptime_s: num,
+})
+
+/**
+ * The one endpoint that answers before any dataset is chosen.
+ *
+ * It names every dataset rather than the selected one, so it cannot fail on a wrong `x-dataset` — which
+ * is exactly what makes it the first thing to ask when nothing else works.
+ */
+export async function getHealth(): Promise<ServerHealth> {
+  const raw = validate<{
+    ok: boolean
+    datasets: string[]
+    store: string
+    port: number
+    uptime_s: number
+  }>('The server health', await request<unknown>('/health'), SERVER_HEALTH)
+
+  return {
+    ok: raw.ok,
+    datasets: raw.datasets,
+    store: raw.store,
+    port: raw.port,
+    uptimeS: raw.uptime_s,
+  }
+}
+
 /* ---------------- Identity ---------------- */
 
 export async function listAuthRoles(): Promise<AuthRolesPayload> {

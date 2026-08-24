@@ -6902,17 +6902,6 @@ const routes = [
     },
   },
 
-  {
-    method: 'GET',
-    match: (p) => p === '/health',
-    handle: (_req, res) =>
-      send(res, 200, {
-        ok: true,
-        projects: db.projects.length,
-        registered_sources: registered.size,
-      }),
-  },
-
   /*
    * Identity. This is a persona demo, not a user directory: there is no account
    * store to check a password against, so login authenticates by *shape* —

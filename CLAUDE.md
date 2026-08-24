@@ -3087,9 +3087,41 @@ been commented out of `NAV_ITEMS` rather than deleted: `/trace`,
 the settings/users/connectors description from `public/` — a document, so it sits outside `App` *and*
 outside `RequireAuth`, because behind the gate a typed URL would bounce to the login and never show it.
 Nothing on it is tenant data. `check-docs` asserts the file it names is really in `public/`, since a rename
-would leave the path answering with a blank frame and no error. The other is —
+would leave the path answering with a blank frame and no error. The others are
 `/graph-studio/:useCaseId/canvas`, the full-window canvas, which the **Full view**
-button on the Canvas tab opens in a new tab.
+button on the Canvas tab opens in a new tab, and **`/doctor`** — see below.
+
+**`/doctor` is the frontend's `GET /health`, and it sits outside the gate for the same kind of
+reason that route exists at all.** Four different faults produce one blank console — the API is
+unreachable, the bundle is calling a different API, the `x-dataset` header is not arriving, or the
+tenant simply has not published a graph — and nothing on screen tells them apart. So one page
+reports, in rows, each with the fix for the state it found: which API this bundle calls and in which
+mode, whether it answers (port, uptime, the datasets validated at boot), **which store answered**,
+the dataset this browser sends *against* the one the server says it answered from, whether that
+selection is one the server still has, who the browser is signed in as and whether that persona still
+exists, and the two preconditions — connected sources and published graphs, with `built`/`draft`
+beside the latter because "publish what you have" and "build one" are different fixes.
+
+- **Outside `RequireAuth`, and outside `/:ds`.** An unreachable API breaks the sign-in *first*, so a
+  page behind the sign-in cannot report it; and `DatasetPathGate` would rewrite the address of a page
+  whose job includes explaining that redirect. It is URL-only, with no `NAV_ITEMS` entry, by the rule
+  `/db` follows. It reads only endpoints this API already serves without a session, and changes
+  nothing.
+- **The verdicts are a pure function** — `diagnose` in `src/data/doctor.ts` — for the reason
+  `datasetPathFix` is: a rule inside a component cannot be asserted without rendering the component's
+  own state. The page renders what it returns and decides nothing; `check-docs` fails on a tone
+  literal in the component.
+- **Every row states what it read**, and the *Copy report* button renders the same checks as text, so
+  a pasted report cannot say something the screen does not. A check whose call failed says so in
+  place: the four calls are `Promise.allSettled`, never `all`, because the dataset check is exactly
+  what a reader needs while `/reports` is refusing.
+- **The base is `apiBase()` from `client.ts`**, never `import.meta.env` read a second time — the one
+  question this page exists to answer must have one answer. Local files behind a *relative* base is
+  normal and says so; local files behind an absolute origin is a deployed box serving the documents
+  frozen into its bundle, which is `warn` and names `S3_BUCKET`.
+- **And `GET /health` has exactly one matcher again.** There were two — this one and a legacy
+  `{ ok, projects, registered_sources }` further down that `routes.find` could never reach. A dead
+  duplicate is worse than none: an edit to the wrong copy changes nothing, silently.
 
 Graph Studio is therefore three routes: `/graph-studio` lists the built graphs,
 `/graph-studio/:useCaseId` opens one, and `…/canvas` draws that one's graph with the

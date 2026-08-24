@@ -8,6 +8,7 @@ import AskPage from './pages/AskPage'
 import AuditPage from './pages/AuditPage'
 import CatalogPage from './pages/CatalogPage'
 import DbEditorPage from './pages/DbEditorPage'
+import DoctorPage from './pages/DoctorPage'
 import GraphCanvasFullPage from './pages/GraphCanvasFullPage'
 import GraphStudioListPage from './pages/GraphStudioListPage'
 import GraphStudioPage from './pages/GraphStudioPage'
@@ -56,6 +57,22 @@ export const routes: RouteObject[] = [
       />
     ),
   },
+
+  /*
+   * The diagnostics page — the frontend's `GET /health`.
+   *
+   * **Outside `RequireAuth`, and that is the whole point.** It reports which API this bundle calls,
+   * whether that API answers, which store answered, whether the dataset header arrives, and which
+   * preconditions are unmet — and an unreachable API breaks the sign-in first, so a page behind the
+   * sign-in could not report it. A diagnostics screen that needs the app to be working is a
+   * diagnostics screen for a state nobody needs diagnosed.
+   *
+   * **Outside `/:ds` too**, so `DatasetPathGate` does not rewrite its address: the page reports the
+   * selected dataset as a *fact*, and being redirected on the way in is precisely the behaviour it may
+   * have to explain. It signs nobody in and changes nothing, so it exposes no tenant data beyond the
+   * counts it prints — and it is URL-only, with no `NAV_ITEMS` entry, by the same rule as `/db`.
+   */
+  { path: '/doctor', element: <DoctorPage /> },
 
   {
     element: <RequireAuth />,

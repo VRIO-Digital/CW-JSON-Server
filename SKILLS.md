@@ -2257,6 +2257,36 @@ rather than serving an undefined sidebar. An unknown navigation key or a non-boo
 naming the real keys.
 
 
+## When a page is blank: `/doctor`
+
+**Start here rather than reading code.** `/doctor` is the frontend's `GET /health` and it exists
+because four unrelated faults look identical from the app: the API is unreachable, this bundle is
+calling a *different* API, the `x-dataset` header is not arriving, or the tenant has published no
+graph. Each row states the fact it read and the fix for the state it found.
+
+| row | what it settles |
+|---|---|
+| Where this bundle calls the API | `apiBase()` and the mode — and `crit` when an https page names an http API, which the browser blocks with no server-side symptom |
+| The API answers | port, uptime and the datasets validated at boot; `crit` names `npm run mock` |
+| Which store the server read | `s3`, or `file` — `warn` behind an absolute base, because a remote box on local files is serving documents frozen at deploy time |
+| The dataset sent vs answered from | `crit` on a mismatch, naming `access-control-allow-headers` — the preflight failure `curl` cannot see |
+| The selected dataset exists | the persisted-selection failure that bricked the app once |
+| Who this browser is signed in as | `crit` when the persona is one the tenant no longer has |
+| Connected sources · Published graphs | the two preconditions, with `built`/`draft` so the fix names the right screen |
+
+**Reachable when the app is not** — outside `RequireAuth` and outside `/:ds`, URL-only, changes
+nothing. **Its verdicts are `diagnose()` in `src/data/doctor.ts`**, a pure function, so they are
+asserted without rendering the page; the page renders what it returns and decides nothing. *Copy
+report* renders the same checks as text. Add a check by adding it there — a `tone:` literal in the
+component fails `check-docs`.
+
+**Where it fails.** A row that inferred something the payload does not carry: a wrong diagnosis costs
+more than a missing one, which is why the store row is *absent* rather than guessed when `/health`
+did not answer, and why an unreadable persona pool strands nobody. The four calls are
+`Promise.allSettled` — with `all`, one refusal would leave this page as blank as the page it is
+diagnosing.
+
+
 ## Adding things
 
 **A new endpoint**
