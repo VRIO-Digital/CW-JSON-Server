@@ -19963,58 +19963,15 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-fdgfdg-mt1myjln2",
-      "name": "fdgfdg",
-      "status": "draft",
-      "domain_id": "capital-projects",
-      "business_need": "",
-      "personas": [
-        {
-          "name": "Rate-Case Lead",
-          "description": "Asks which assets will be in service in time for the next filing.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Capitalized",
-          "description": "Cost transferred from CWIP to fixed assets.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "bigquery:northline_epbcs",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "How far has the approved baseline moved since original approval, and who approved each move?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 6,
-      "updated_at": "2026-08-20T14:49:23.425Z"
-    },
-    {
-      "use_case_id": "uc_capital_programs",
-      "name": "Capital Programme Intelligence",
+      "use_case_id": "uc-capex-test-analysis-mt6xkaqz9",
+      "name": "Capex _ Test_Analysis",
       "status": "committed",
       "domain_id": "capital-projects",
-      "business_need": "One model over the budget cube, the ledger, the approval chain and the project attribute registry, so a capital question resolves once and states which vintage, which basis and which scope it was answered at.",
+      "business_need": "We need to analyze capital projects across their financial performance, contracts, vendors, forecasts, and project documentation. The goal is to identify projects that are exceeding or at risk of exceeding approved budgets, understand the contracts and vendors associated with those projects, and trace project and contract information back to the underlying source documents. The analysis should combine structured project data with unstructured contract and project documents to provide reliable, traceable answers.",
       "personas": [
         {
           "name": "Finance Executive",
           "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
-          "source": "ai"
-        },
-        {
-          "name": "Programme Director",
-          "description": "Asks which projects are slipping and what that does to the programme envelope.",
           "source": "ai"
         },
         {
@@ -20023,27 +19980,22 @@
           "source": "ai"
         },
         {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai"
-        },
-        {
           "name": "Project Manager",
           "description": "Asks where a single project stands against its own plan.",
           "source": "ai"
         },
         {
-          "name": "Rate-Case Lead",
-          "description": "Asks which assets will be in service in time for the next filing.",
-          "source": "ai"
-        },
-        {
-          "name": "Compliance Lead",
-          "description": "Asks what the regulatory drivers oblige and what they cost.",
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
           "source": "ai"
         }
       ],
       "kpis": [
+        {
+          "name": "Budget-to-Forecast Gap",
+          "description": "Forecast less approved budget over the five-year plan horizon.",
+          "source": "ai"
+        },
         {
           "name": "Approved Budget",
           "description": "Board-approved plan amount for the period.",
@@ -20055,202 +20007,68 @@
           "source": "ai"
         },
         {
-          "name": "Forward Plan (Mid-Term)",
-          "description": "The adopted mid-term plan for a declared forward horizon, by planning round.",
-          "source": "ai"
-        },
-        {
-          "name": "Authorized Amount",
-          "description": "Currently approved amount from the plan-version chain.",
-          "source": "ai"
-        },
-        {
           "name": "Open Commitments",
           "description": "Open purchase-order value not yet invoiced.",
           "source": "ai"
-        },
-        {
-          "name": "Actual Spend",
-          "description": "Posted general-ledger spend.",
-          "source": "ai"
-        },
-        {
-          "name": "CWIP Balance",
-          "description": "Construction work in progress at period end.",
-          "source": "ai"
-        },
-        {
-          "name": "Capitalized",
-          "description": "Cost transferred from CWIP to fixed assets.",
-          "source": "ai"
-        },
-        {
-          "name": "Rate Base Additions",
-          "description": "Capitalised cost admitted to rate base.",
-          "source": "ai"
-        },
-        {
-          "name": "Estimate at Completion",
-          "description": "Total expected cost at project completion.",
-          "source": "ai"
-        },
-        {
-          "name": "EAC Variance",
-          "description": "EAC less approved budget, at project completion.",
-          "source": "ai"
-        },
-        {
-          "name": "EAC Variance %",
-          "description": "EAC variance as a percentage of approved budget.",
-          "source": "ai"
-        },
-        {
-          "name": "Budget-to-Forecast Gap",
-          "description": "Forecast less approved budget over the five-year plan horizon.",
-          "source": "ai"
-        },
-        {
-          "name": "Gap %",
-          "description": "Gap as a percentage of approved budget.",
-          "source": "ai"
-        },
-        {
-          "name": "Period Plan",
-          "description": "Calendarised plan for a single period.",
-          "source": "ai"
-        },
-        {
-          "name": "Plan-to-Actual Variance",
-          "description": "Actual less period plan.",
-          "source": "ai"
-        },
-        {
-          "name": "Variance %",
-          "description": "Plan-to-actual variance as a percentage of plan.",
-          "source": "ai"
-        },
-        {
-          "name": "Contingency Allocated",
-          "description": "Contingency held against a project at authorisation.",
-          "source": "ai"
-        },
-        {
-          "name": "Contingency Drawn",
-          "description": "Contingency consumed to date.",
-          "source": "ai"
-        },
-        {
-          "name": "Percent Complete",
-          "description": "Physical completion. Weighted by budget when aggregated.",
-          "source": "ai"
-        },
-        {
-          "name": "Schedule Variance",
-          "description": "Forecast in-service date less planned in-service date.",
-          "source": "ai"
-        },
-        {
-          "name": "CWIP Age",
-          "description": "Days a CWIP balance has been held without transfer to assets.",
-          "source": "ai"
-        },
-        {
-          "name": "Capex Placed in Service",
-          "description": "Capex scheduled or recorded as placed in service in the window.",
-          "source": "ai"
         }
       ],
-      "sources": [],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "bigquery:northline_psoft",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "bigquery:northline_pmo",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "gdrive:capital-delivery-docs",
+          "mode": "all",
+          "objects": []
+        }
+      ],
       "hero_questions": [
         {
-          "text": "Are we going to spend the authorized capital this fiscal year?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
           "text": "What is the burn rate against current approved, by programme?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Where is forecast diverging from budget, by programme and category?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "How far has the approved baseline moved since original approval, and who approved each move?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Which projects show no variance against current approved but material variance against original?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "How does the forward plan compare with the sum of project-life forecasts?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Which projects are trending to overrun, and by how much?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What in-service value lands inside the current test year?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What capital is at risk of missing the filing window, and what is it worth?",
-          "priority": "normal",
+          "priority": "high",
           "source": "ai"
         },
         {
           "text": "For every figure on this page, tell me where it came from and how old it is.",
-          "priority": "normal",
+          "priority": "high",
           "source": "ai"
         },
         {
-          "text": "What happens to FY26 if we defer the second half of the programme by two quarters?",
-          "priority": "normal",
+          "text": "How does the forward plan compare with the sum of project-life forecasts?",
+          "priority": "high",
           "source": "ai"
         },
         {
-          "text": "Is our PFAS spend on track against the compliance deadline?",
-          "priority": "normal",
+          "text": "Are we going to spend the authorized capital this fiscal year?",
+          "priority": "high",
           "source": "ai"
         },
         {
-          "text": "Are we replacing lead service lines fast enough to meet the mandated rate?",
-          "priority": "normal",
+          "text": "Where is forecast diverging from budget, by programme and category?",
+          "priority": "high",
           "source": "ai"
         }
       ],
-      "gap_decisions": [],
+      "gap_decisions": [
+        {
+          "element_id": "gap:for-every-figure-on-this-page-tell-me-where-it-c",
+          "decision": "drop question"
+        }
+      ],
       "step": 6,
-      "updated_at": "2026-03-31T00:00:00.000Z"
-    },
-    {
-      "use_case_id": "uc-testdata-mt1do3em0",
-      "name": "testdata",
-      "status": "draft",
-      "domain_id": "schedule-delivery",
-      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
-      "personas": [
-        {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [],
-      "sources": [],
-      "hero_questions": [],
-      "gap_decisions": [],
-      "step": 3,
-      "updated_at": "2026-08-20T10:28:52.265Z"
+      "updated_at": "2026-08-24T07:48:21.565Z"
     }
   ],
   "graph_use_case_templates": [
@@ -24718,11 +24536,15 @@
       "tabs": [
         {
           "key": "author",
-          "label": "Authoring"
+          "label": "Author"
         },
         {
-          "key": "runtime",
-          "label": "Runtime"
+          "key": "run",
+          "label": "Run & compare"
+        },
+        {
+          "key": "library",
+          "label": "Library"
         }
       ],
       "data_note": "Extracted from the built page at runtime by _build/extract_whatif.js. Nothing here is hand-typed; if the page changes, re-run the extractor rather than editing this file."
@@ -25751,25 +25573,6 @@
       ],
       "link_pattern": "contextweave.northlinewater.com/w/<scenario-name-slugified>",
       "governance_link": "../10_access_publishing/governance_audit_capex.html"
-    },
-    "document": {
-      "document_id": "W1",
-      "file": "W1_what_if_lens.html",
-      "title": "What-if — Veolia CapEx",
-      "version": "v2",
-      "stage": "draft",
-      "heading": "What-if",
-      "subtitle": "Stress the remaining forecast to complete without pretending to predict it. A what-if moves one attributable driver at a time — index-linked materials, labor, contingency — and recomputes only the slice the graph can tie to that driver. What it can't attribute is shown as a locked residual, not smeared across the answer. Nothing is forecast; every slice opens to its source. Authoring sets the scenario — which measures you watch, which drivers a case may move and how far, and its name. Runtime is where you move the sliders across cases, publish the complete scenario when it is worth sharing, and open any figure to the contract, timesheet or index feed it came from.",
-      "tabs": [
-        {
-          "key": "author",
-          "label": "Authoring"
-        },
-        {
-          "key": "runtime",
-          "label": "Runtime"
-        }
-      ]
     }
   },
   "reports": {
@@ -54285,7 +54088,8 @@
           "schedule": "Refreshes daily · 07:00 UTC",
           "approval": "none",
           "audience": [
-            "architect"
+            "architect",
+            "admin"
           ],
           "note": "The schedule covers the ledger blocks only. The line-item explanations and the two correspondence blocks are runtime: they are read under the asking session's own mailbox entitlement at the moment the report is opened, and nothing from them is cached. Two people opening this report an hour apart can legitimately see different messages, and neither inherits the other's access. Caching them nightly would produce an extract owned by whoever ran it, which is the permission leak the runtime class exists to avoid.",
           "link": "contextweave.northlinewater.com/r/variance-report",
@@ -54334,7 +54138,8 @@
           "audience": [
             "sofia.lindqvist@vriodigital.com",
             "ellis.hargrove@vriodigital.com",
-            "rei.nakamura@vriodigital.com"
+            "rei.nakamura@vriodigital.com",
+            "admin"
           ],
           "note": null,
           "link": "contextweave.northlinewater.com/r/project-360",
@@ -54383,7 +54188,8 @@
           "audience": [
             "dana.whitfield@vriodigital.com",
             "ellis.hargrove@vriodigital.com",
-            "rei.nakamura@vriodigital.com"
+            "rei.nakamura@vriodigital.com",
+            "admin"
           ],
           "note": null,
           "link": "contextweave.northlinewater.com/r/rate-case-filing-calendar",

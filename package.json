@@ -29,7 +29,8 @@
     "verify:sigv4": "npm --prefix backend run verify:sigv4",
     "verify:export": "npm --prefix backend run verify:export",
     "preflight": "npm run lint && npm run build && npm run audit && npm run verify:sigv4 && npm run verify:export && npm run check-docs",
-    "bundle:eb": "npm --prefix backend run bundle:eb"
+    "bundle:eb": "npm --prefix backend run bundle:eb",
+    "bundle:web": "npm --prefix frontend run bundle:web"
   },
   "//independent": "No npm workspaces on purpose. Workspaces hoist one lockfile and one node_modules to the root, which is the opposite of what these two packages are for: each installs, builds and deploys on its own, and the backend must be shippable without pulling react. The cost is that this root cannot 'npm i' for both \u2014 install in each package \u2014 and the scripts below delegate with --prefix rather than run tools the root does not have."
 }

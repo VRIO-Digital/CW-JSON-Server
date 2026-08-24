@@ -886,7 +886,7 @@
       "folders": [
         {
           "folder_id": "f_08_unstructured",
-          "name": "08_unstructured",
+          "name": "Compliance Manager",
           "path": "/Compliance Docs/08_unstructured",
           "description": "EPA enforcement documents — consent decrees, complaints, settlements and CAFOs, mapped into the graph by entity extraction",
           "documents": [
@@ -6290,34 +6290,25 @@
   },
   "graph_use_cases": [
     {
-      "use_case_id": "uc-waste-management-mt0eil8q0",
-      "name": "Waste Management",
-      "status": "draft",
-      "domain_id": "industries",
-      "business_need": "hhhhhhhhh",
-      "personas": [],
-      "kpis": [],
-      "sources": [],
-      "hero_questions": [],
-      "gap_decisions": [],
-      "step": 2,
-      "updated_at": "2026-08-19T18:04:39.818Z"
-    },
-    {
-      "use_case_id": "uc-waste-management-mswz9wbi4",
-      "name": "Waste Management",
+      "use_case_id": "uc-hazardous-waste-compliance-mt364xage",
+      "name": "Hazardous waste compliance",
       "status": "committed",
       "domain_id": "hazardous-waste",
-      "business_need": "roshan222",
+      "business_need": "Cradle-to-Grave Compliance & Liability Intelligence — VLS Texas Molecular (Deer Park)\nFraming. VLS-as-operator. VLS runs a RCRA-permitted Class I injection TSDF in Deer Park. Every load it accepts carries the generator’s liability with it. This use case unifies the inbound manifest stream, each generator’s and transporter’s federal compliance record, and public enforcement documents into one queryable model so VLS can see the risk it is taking on — before it accepts the next load.\nScope. Deer Park facility only. VLS Texas Molecular is always the receiving facility.\nProblem. Manifest data, generator compliance history, and enforcement documents live in three disconnected places (BigQuery e-Manifest views, RCRAInfo, and PDF consent decrees). No one can answer ‘which of the generators shipping to us is under active enforcement, and how much waste did we take from them last quarter?’ without a manual, multi-day cross-reference.\n",
       "personas": [
+        {
+          "name": "Chief Sustainability Officer",
+          "description": "Prove the facility’s compliance posture to regulators and customers; quantify liability carried in from generators.",
+          "source": "ai"
+        },
         {
           "name": "Chief Information Officer",
           "description": "Unify fragmented compliance data without ripping out existing systems; trust the answers (evidence + confidence).",
           "source": "ai"
         },
         {
-          "name": "Chief Sustainability Officer",
-          "description": "Prove the facility’s compliance posture to regulators and customers; quantify liability carried in from generators.",
+          "name": "Environmental Compliance Manager",
+          "description": "Screen inbound generators before accepting loads; track open violations and return-to-compliance dates.",
           "source": "ai"
         },
         {
@@ -6328,6 +6319,11 @@
       ],
       "kpis": [
         {
+          "name": "Inbound hazardous waste accepted",
+          "description": "Measured in tons, from e_manifest rollup.",
+          "source": "ai"
+        },
+        {
           "name": "Inbound manifests processed",
           "description": "Measured in manifests, from e_manifest row count.",
           "source": "ai"
@@ -6336,6 +6332,11 @@
           "name": "Distinct generators shipping to Deer Park",
           "description": "Measured in generators, from entity_roster.",
           "source": "ai"
+        },
+        {
+          "name": "Generators with RCRA enforcement history",
+          "description": "Measured in generators, from RCRA_Compliance_Summary.",
+          "source": "ai"
         }
       ],
       "sources": [
@@ -6343,13 +6344,59 @@
           "source_id": "bigquery:vrio-contextweave-demo",
           "mode": "subset",
           "objects": [
-            "epa_hazwaste.e_manifest"
+            "epa_hazwaste.e_manifest",
+            "epa_hazwaste.e_manifest_all",
+            "epa_hazwaste.RCRA_compliance",
+            "epa_hazwaste.RCRA_Compliance_Summary",
+            "epa_hazwaste.FRS_Facility_profile"
+          ]
+        },
+        {
+          "source_id": "gdrive:compliance-docs",
+          "mode": "subset",
+          "objects": [
+            "f_08_unstructured.d_denka_cafo",
+            "f_08_unstructured.d_chemours_cd",
+            "f_08_unstructured.d_chemours_cp",
+            "f_08_unstructured.d_pcs_nitrogen_cd",
+            "f_08_unstructured.d_simplot_don_cd_mod",
+            "f_08_unstructured.d_stericycle_complaint",
+            "f_08_unstructured.d_stericycle_settlement",
+            "f_08_decrees.d_chemours_cd_appendix",
+            "f_08_decrees.d_pcs_nitrogen_cd_exhibit",
+            "f_08_decrees_2025.d_simplot_don_cd_mod_signed",
+            "f_08_settlements.d_stericycle_settlement_exhibit"
           ]
         }
       ],
       "hero_questions": [
         {
-          "text": "What share of our inbound tonnage in the last 12 months came from generators carrying an open violation?",
+          "text": "Which generators shipping to Deer Park are under active RCRA enforcement, and how much waste did we accept from them?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Trace manifest [MTN] cradle-to-grave: who generated it, who hauled it, when did we receive it, and how long was it in transit?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Show every generator with an open (unreturned-to-compliance) RCRA violation that shipped to us in the last 12 months.",
+          "priority": "high",
+          "source": "ai"
+        },
+        {
+          "text": "What does the Chemours consent decree say, and are we accepting waste from that facility?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Summarize our own facility’s compliance standing: evaluations, violations, penalties.",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Which of our inbound generators are named in a federal consent decree or CAFO, and what is our tonnage exposure to them?",
           "priority": "normal",
           "source": "ai"
         },
@@ -6361,23 +6408,7 @@
       ],
       "gap_decisions": [],
       "step": 6,
-      "updated_at": "2026-08-19T04:39:15.676Z"
-    },
-    {
-      "use_case_id": "uc-waste-management-mswz5ium3",
-      "name": "Waste Management",
-      "status": "draft",
-      "domain_id": "hazardous-waste",
-      "business_need": "tst",
-      "personas": [],
-      "kpis": [],
-      "sources": [],
-      "hero_questions": [],
-      "citations": "required",
-      "answer_formats": [],
-      "gap_decisions": [],
-      "step": 2,
-      "updated_at": "2026-08-17T08:31:17.422Z"
+      "updated_at": "2026-08-21T16:36:07.430Z"
     }
   ],
   "graph_personas": [
@@ -15221,7 +15252,6 @@
           "approval": "two-person",
           "audience": [
             "domain_architect",
-            "business_user_executive",
             "business_user_project"
           ],
           "note": null
@@ -15236,9 +15266,10 @@
           "schedule": "Weekly Mon 06:00 UTC",
           "approval": "two-person",
           "audience": [
-            "domain_architect",
             "business_user_executive",
-            "business_user_project"
+            "domain_architect",
+            "business_user_project",
+            "platform_admin"
           ],
           "note": null
         },
@@ -15307,9 +15338,12 @@
           "grain": "generator",
           "masked": "derivation, lineage, cost",
           "may_author": false,
-          "full": true,
+          "full": false,
           "mask": false,
-          "rule": null
+          "rule": {
+            "basis": "generator",
+            "values": []
+          }
         },
         {
           "role_id": "business_user_project",
@@ -15561,7 +15595,7 @@
         "settings": true
       }
     },
-    "report_defaults": {
+    "report_permissions": {
       "business_user_executive": {
         "open": true,
         "edit": false,
@@ -15583,7 +15617,7 @@
         "delete": true
       }
     },
-    "report_permissions": {
+    "report_defaults": {
       "business_user_executive": {
         "open": true,
         "edit": false,

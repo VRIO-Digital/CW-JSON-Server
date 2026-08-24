@@ -65,3 +65,10 @@ backend-eb.zip
 # at build time and none of them can hold a secret. Ignored so a 2.4 MB copy of dist/ cannot be
 # committed beside the source that produced it; rebuild it rather than keeping one around.
 frontend-dist.zip
+
+# The console's Elastic Beanstalk source bundle - web.js, its generated manifest, the Procfile and dist/.
+#
+# A build artefact like the two above, and like frontend-dist.zip it holds no credential: VITE_* values
+# are inlined at build time and none of them can hold one. Rebuild it rather than keeping one around -
+# a stale bundle is a stale API origin, baked in and invisible.
+frontend-eb.zip
