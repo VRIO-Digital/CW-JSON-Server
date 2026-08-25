@@ -4114,6 +4114,47 @@ expect(
   'curl ignores CORS, so a missing allow-list header passes every server-side test and blocks the app',
 )
 
+/*
+ * ---------------- every endpoint lives under the API's own prefix ----------------
+ *
+ * `http://localhost:4000/backend/reports`, never `…:4000/reports`. The prefix is the API's own address
+ * space rather than a deployment's, which is why it is not in `VITE_API_BASE` — where the server lives
+ * differs per environment, what it calls its endpoints does not.
+ *
+ * So it is written exactly twice, and the two literals are a contract the compiler cannot see: the same
+ * shape as `x-dataset` above, and the same failure. A client appending `/backend` to a server that does
+ * not strip it 404s every call; a server stripping a prefix no client sends refuses every call. Both
+ * halves are asserted here, against each other rather than against a string written down a third time.
+ */
+const serverPrefix = /export const API_PREFIX = '(\/[a-z0-9-]+)'/.exec(server)?.[1] ?? ''
+const clientPrefix = /const API_PREFIX = '(\/[a-z0-9-]+)'/.exec(client)?.[1] ?? ''
+expect(
+  `the API is served under one prefix and the client sends it: ${serverPrefix || '—'}`,
+  serverPrefix.length > 0 &&
+    serverPrefix === clientPrefix &&
+    /* The client folds it into BASE once, so the ~200 paths below it stay spelled as the server
+       declares them — and so `apiBase()`, which the doctor page prints, reports where calls really go. */
+    /const BASE =[\s\S]{0,160}\+ API_PREFIX/.test(client) &&
+    /* The server strips it once, in the dispatcher, before anything matches on the path. A route table
+       spelling the prefix in every predicate is the arrangement this claim exists to prevent. */
+    /const prefixed = asked === API_PREFIX \|\| asked\.startsWith\(`\$\{API_PREFIX\}\/`\)/.test(
+      server,
+    ) &&
+    /const pathname = prefixed \? asked\.slice\(API_PREFIX\.length\) \|\| '\/' : asked/.test(server) &&
+    !new RegExp(`match: \(p\) => p === '${serverPrefix}/`).test(server) &&
+    /* An un-prefixed request that would otherwise have matched is refused *naming the address that
+       works*, rather than served — two addresses for one endpoint is a half-migrated caller that
+       nothing reports. Asserted as the refusal, since a compatibility path would be a silent pass. */
+    /if \(!prefixed && routes\.some\(\(r\) => r\.match\(asked\)\)\)/.test(server) &&
+    /this API is served under \$\{API_PREFIX\}/.test(server) &&
+    /* Which means nothing answers at the root, so the EB health check carries the prefix too — left on
+       `/health` it collects the 404 a load balancer reads as a dead application. */
+    new RegExp(`Application Healthcheck URL: ${serverPrefix}/health`).test(
+      read('backend/.ebextensions/01-app.config'),
+    ),
+  'a prefix on one side only 404s every call; two addresses for one endpoint hide a half-migrated caller',
+)
+
 expect(
   'the dataset pool is served, and the selection is sent from one place',
   /* Served, never a list in the component — the rule the consent scopes and the role picker follow. */

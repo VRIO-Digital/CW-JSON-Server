@@ -13,7 +13,11 @@
  * Sources registered through the wizard live in memory and reset when the
  * process restarts. Everything else is read from db.json at startup.
  *
- * Routes (Vite proxies /api/* here with the /api prefix stripped):
+ * Every route below is served under `/backend` — `GET /reports` is `GET /backend/reports` on the wire.
+ * The prefix is stripped once in the dispatcher (see `API_PREFIX`), which is why the names here and the
+ * `match` predicates further down do not carry it.
+ *
+ * Routes (Vite proxies /api/* here, stripping /api, so the browser asks for /api/backend/...):
  *   GET    /db                             the document + a section summary
  *   PUT    /db                             replace it all   { db }  or the object itself
  *   PUT    /db/:section                    replace one key  { value }
@@ -526,6 +530,27 @@ const prototypeData = () => db.reports_prototype
  * `MOCK_PORT` stays for the boxes that already set it.
  */
 const PORT = Number(process.argv[2] ?? process.env.PORT ?? process.env.MOCK_PORT ?? 4000)
+
+/**
+ * ---------------- the prefix every endpoint is served under ----------------
+ *
+ * `http://localhost:4000/backend/reports`, not `http://localhost:4000/reports`. Asked for so the API
+ * occupies a named space rather than the root of whatever host it is put behind — which is what lets a
+ * single origin carry the API and something else (a static bundle, another service) without the two
+ * competing for `/reports`.
+ *
+ * **It is stripped once, here, and the route table below never mentions it.** ~200 `match` predicates
+ * spelling `/backend/...` would be 200 places for it to be wrong, and every claim, every error message
+ * and every path in this file's own header would have to move with it. The dispatcher takes the prefix
+ * off before matching, so a route is still declared by the name it has always had.
+ *
+ * **An un-prefixed request is refused rather than answered**, and the refusal names the address that
+ * would have worked. Serving both is the tempting thing and is exactly what this repo refuses elsewhere:
+ * two addresses for one endpoint means a caller can be half-migrated and nothing says so — the bundle
+ * calling the old address keeps working until the day the compatibility path is removed. A 404 that
+ * names `/backend/reports` is a fix somebody can act on in one edit.
+ */
+export const API_PREFIX = '/backend'
 
 /** Registered sources, keyed by source_id. Resets on restart. */
 const registered = liveContainer('registered')
@@ -10532,9 +10557,32 @@ const server = createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204, {})
 
   const url = new URL(req.url ?? '/', `http://localhost:${PORT}`)
-  const pathname = url.pathname.replace(/\/+$/, '') || '/'
+  const asked = url.pathname.replace(/\/+$/, '') || '/'
 
-  const route = routes.find((r) => r.method === req.method && r.match(pathname))
+  /*
+   * The prefix comes off before anything else looks at the path, so `route.match`, the `pathname`
+   * every handler is given and every id sliced out of it are exactly what they were when the API was
+   * served at the root. `/backend` alone becomes `/`, which no route matches — the API has no index.
+   */
+  const prefixed = asked === API_PREFIX || asked.startsWith(`${API_PREFIX}/`)
+  const pathname = prefixed ? asked.slice(API_PREFIX.length) || '/' : asked
+
+  const route = prefixed
+    ? routes.find((r) => r.method === req.method && r.match(pathname))
+    : undefined
+
+  /*
+   * An address that would have worked with the prefix is the one 404 worth telling apart from every
+   * other, because the caller is not wrong about the endpoint — only about where this API lives.
+   */
+  if (!prefixed && routes.some((r) => r.match(asked))) {
+    return send(res, 404, {
+      error:
+        `no route for ${req.method} ${asked} — this API is served under ${API_PREFIX}. ` +
+        `Ask for ${API_PREFIX}${asked} instead.`,
+    })
+  }
+
   if (!route) {
     /*
      * A 404 on an endpoint the code plainly implements is the stale-server
@@ -10544,7 +10592,7 @@ const server = createServer(async (req, res) => {
      */
     return send(res, 404, {
       error:
-        `no route for ${req.method} ${pathname} — if this endpoint is new, ` +
+        `no route for ${req.method} ${asked} — if this endpoint is new, ` +
         'this server started before it existed. Restart it: stop `npm run mock` and start it again.',
     })
   }
@@ -10595,7 +10643,7 @@ server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(`\nmock-server: port ${PORT} is already in use.\n`)
     console.error('  A copy is probably already running. Check it:')
-    console.error(`      curl http://localhost:${PORT}/health`)
+    console.error(`      curl http://localhost:${PORT}${API_PREFIX}/health`)
     console.error('  If that answers, you do not need a second one — leave it be.\n')
     console.error('  Otherwise find and stop whatever holds the port:')
     console.error(`      Windows:  netstat -ano | findstr :${PORT}   then  taskkill /PID <pid> /F`)
@@ -10698,7 +10746,7 @@ if (settingsProblems.length > 0) {
 }
 
 server.listen(PORT, () => {
-  console.log(`mock API listening on http://localhost:${PORT}`)
+  console.log(`mock API listening on http://localhost:${PORT}${API_PREFIX}`)
   /*
    * **Which store, said out loud on every start.** The default is the local file, and the committed
    * copy is a real document — so a box that meant to read the bucket and did not set `S3_BUCKET`

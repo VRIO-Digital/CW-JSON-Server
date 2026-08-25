@@ -82,12 +82,14 @@ Three things go wrong with a hand-made bundle, and two of them are silent:
 
 ```bash
 eb deploy
-eb open           # or: curl https://<env>.elasticbeanstalk.com/health
+eb open           # or: curl https://<env>.elasticbeanstalk.com/backend/health
 ```
 
-`/health` answers `{ ok, datasets, store, port, uptime_s }`. It exists because EB's default check hits
-`/`, which the dispatcher 404s with a "this server may be stale" message — read by a load balancer as a
-failing application, so the environment goes red while every endpoint is fine.
+`/backend/health` answers `{ ok, datasets, store, port, uptime_s }`. **Every endpoint carries that
+`/backend` prefix** — the server strips it once in its dispatcher and serves nothing at the root — so
+`.ebextensions/01-app.config` sets the health-check URL to the prefixed path. It exists because EB's
+default check hits `/`, which the dispatcher 404s with a "this server may be stale" message — read by a
+load balancer as a failing application, so the environment goes red while every endpoint is fine.
 
 **`store` in that reply is the line to read after a deploy.** `"s3"` means it is reading the bucket;
 `"file"` means `S3_BUCKET` did not reach the process and it is serving the copy frozen into the bundle

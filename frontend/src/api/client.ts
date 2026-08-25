@@ -10,6 +10,9 @@
  *   development  /api                      → the Vite proxy → localhost:4000
  *   production   http://<host>:4000        → the deployed mock server, directly
  *
+ * Every request then goes under `/backend`, the prefix the server serves its endpoints at, appended
+ * here rather than written into each of the ~200 paths below or into each .env file.
+ *
  * Relative `/api` is the default when the variable is unset, so a build served
  * behind a proxy that already strips /api (deploy/nginx.conf.template) keeps
  * working untouched. Do not hardcode an origin below — check-docs fails on one.
@@ -33,9 +36,24 @@ import {
 
 import { currentDataset, resetDatasetIfRefused } from './dataset'
 
+/**
+ * The prefix the server serves every endpoint under — `backend/server.js`'s own `API_PREFIX`, which it
+ * strips once in its dispatcher.
+ *
+ * It is a **path**, not an origin, which is why it is written here rather than in a `.env` file: where
+ * the API lives differs per environment and belongs in `VITE_API_BASE`; *what the API calls its own
+ * endpoints* is the same in every environment and is the server's fact, not the deployment's. Folding
+ * it into `BASE` is what keeps the ~200 paths below spelled the way the server declares them.
+ *
+ * The two literals are a contract the compiler cannot see, exactly as `x-dataset` is, so `check-docs`
+ * asserts this string and the server's are the same one.
+ */
+const API_PREFIX = '/backend'
+
 // The trailing slash is stripped because every path below starts with one, and
 // `${BASE}${path}` would otherwise ask for //sources.
-const BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/$/, '')
+const BASE =
+  (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/$/, '') + API_PREFIX
 
 /* ---------------- Datasets ---------------- */
 

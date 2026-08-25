@@ -64,7 +64,7 @@ invisible rather than loud:
   listens on 4000 instead makes every health check fail while the application is perfectly healthy. An
   explicit `npm run mock -- 4001` still wins over it, because a typed argument beats an inherited
   environment.
-- **`GET /health` exists.** EB's default check hits `/`, which the dispatcher 404s with a "this server
+- **`GET /backend/health` exists.** EB's default check hits `/`, which the dispatcher 404s with a "this server
   may be stale" message — a load balancer reads that as a failed application. It reports the datasets and
   **which store it actually read**, so `"file"` after a deploy tells you `S3_BUCKET` never reached the
   process and the box is serving a copy frozen at bundle time.
@@ -132,9 +132,26 @@ On a different port, `npm run mock -- 4001` also needs the proxy target —
 One variable decides it, `VITE_API_BASE`, and it is set in the `.env` files
 rather than in code — `check-docs` fails on a hardcoded origin in `client.ts`.
 
+**And every endpoint sits under `/backend`** — `http://localhost:4000/backend/reports`, never
+`…:4000/reports`. That is the *API's own* address space rather than a deployment's, which is why it is
+**not** in `VITE_API_BASE`: where the server lives differs per environment, what it calls its endpoints
+does not. So it is written twice and only twice — `API_PREFIX` in `backend/server.js`, `API_PREFIX` in
+`frontend/src/api/client.ts` — and `check-docs` asserts the two literals are the same string, exactly as
+it does for `x-dataset`. The client appends it to `BASE`; the server **strips it once in the
+dispatcher**, so the ~200 `match` predicates, every path in `server.js`'s header and every claim about a
+route are still spelled `/reports`. The prefix survives the Vite proxy untouched: the browser asks for
+`/api/backend/reports`, the proxy strips `/api`, and the server receives `/backend/reports`.
+
+**An un-prefixed request is refused, and the refusal names the address that would have worked.** Serving
+both is what would make this migration invisible: a bundle calling the old address would keep working
+until the compatibility path was removed, which is the same objection that keeps one dataset selector
+from quietly falling back to the primary. It also means the API answers nothing at the root — so the EB
+health check is `/backend/health`, set in `.ebextensions/01-app.config`, and a checker left on `/health`
+gets a 404 a load balancer reads as a dead application.
+
 | | `VITE_API_BASE` | How the call gets there |
 |---|---|---|
-| `npm run dev` (`frontend/.env.development`) | `/api` | the Vite proxy strips `/api` → `MOCK_ORIGIN`, default `localhost:4000` |
+| `npm run dev` (`frontend/.env.development`) | `/api` | the Vite proxy strips `/api` → `MOCK_ORIGIN`, default `localhost:4000`; the call is `/api/backend/…` |
 | `npm run build` (`frontend/.env.production`) | `http://18.205.228.143:4000` | called directly, cross-origin |
 | behind nginx (`deploy/`) | `/api` | `proxy_pass` strips it → `MOCK_ORIGIN` |
 
