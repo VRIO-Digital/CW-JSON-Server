@@ -115,6 +115,7 @@ npm run seed:governance # re-authors db.reports.governance — the fix when a de
 npm run seed:settings   # re-authors db.settings — users and persona navigation
 npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secondary dataset
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
+npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
 npm run db:push     # upload the three documents to S3 (-- db|settings|prototype, -- CAPEX per dataset)
 npm run db:pull     # the other direction — overwrite the local copies from the bucket
 npm run verify:sigv4 # checks the S3 signing against AWS's published vector; no network needed
@@ -247,6 +248,19 @@ indistinguishable from a Select that failed to load its others), and `drives` ho
 Drive*. Both kinds exist deliberately — the wizard picks between My Drive and the
 shared drives, and a control with nothing on one side reads as broken rather than as
 an account with no shared drives.
+
+**And that is a rule about every dataset, which CAPEX broke by shipping one drive.** Its package has
+the shared *Capital Delivery Docs* and nothing else, so its wizard offered *My Drive (0)* beside
+*Shared drive (1)* — the control with nothing on one side, in the one document the claim above did
+not read. `npm run seed:capex-drive` authors it: three folders, one of them nested, holding **working
+copies of documents that dataset already ships** — the first contract in each project folder, keeping
+its entity, project code, contract number and page count, and resolving through `document_extractions`
+to the very node its original resolves to. **Nothing about the drive is invented**, because a personal
+drive holding five contractors nobody has heard of would put five entities into the Data Catalog that
+the canvas has never seen. It is a script rather than an edit for the reason every CAPEX change is:
+the document's `_meta` forbids hand-editing, and a transcribed page count is a figure that goes stale
+at the next rebuild. `check-docs` asserts both halves per dataset — both kinds of drive exist, and
+every document in the seeded one resolves to a node its own canvas has.
 
 **A drive nests, and the nesting is a `parent_id` on a flat list.** Folders stay one
 array per drive, so every existing walk over `drive.folders` is unchanged; a root

@@ -20,6 +20,7 @@
     "seed:settings": "npm --prefix backend run seed:settings",
     "seed:dataset": "npm --prefix backend run seed:dataset",
     "seed:workspaces": "npm --prefix backend run seed:workspaces",
+    "seed:capex-drive": "npm --prefix backend run seed:capex-drive",
     "ingest:graph": "npm --prefix backend run ingest:graph",
     "ingest:whatif": "npm --prefix backend run ingest:whatif",
     "ingest:reports": "npm --prefix backend run ingest:reports",
@@ -32,5 +33,5 @@
     "bundle:eb": "npm --prefix backend run bundle:eb",
     "bundle:web": "npm --prefix frontend run bundle:web"
   },
-  "//independent": "No npm workspaces on purpose. Workspaces hoist one lockfile and one node_modules to the root, which is the opposite of what these two packages are for: each installs, builds and deploys on its own, and the backend must be shippable without pulling react. The cost is that this root cannot 'npm i' for both \u2014 install in each package \u2014 and the scripts below delegate with --prefix rather than run tools the root does not have."
+  "//independent": "No npm workspaces on purpose. Workspaces hoist one lockfile and one node_modules to the root, which is the opposite of what these two packages are for: each installs, builds and deploys on its own, and the backend must be shippable without pulling react. The cost is that this root cannot 'npm i' for both — install in each package — and the scripts below delegate with --prefix rather than run tools the root does not have."
 }

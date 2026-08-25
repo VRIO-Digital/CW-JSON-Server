@@ -5383,12 +5383,120 @@
           "parent_id": null
         }
       ]
+    },
+    {
+      "drive_id": "my-drive-capital-delivery",
+      "display_name": "My Drive",
+      "kind": "my_drive",
+      "folders": [
+        {
+          "folder_id": "f_my_capex_markups",
+          "parent_id": null,
+          "name": "Contract markups",
+          "path": "/My Drive/Contract markups",
+          "description": "Working copies of each capital project's lead agreement.",
+          "documents": [
+            {
+              "document_id": "DOC:my-qdn-2025-c01-markup",
+              "name": "QDN-2025-C01_Construction_Agreement_Kelso_Ridge_markup.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "contract",
+              "doc_type_label": "Contract / Agreement (working copy)",
+              "linked_entity": "Kelso Ridge Constructors, Inc.",
+              "project_code": "C25B315_658",
+              "pages": 14,
+              "size_mb": 1.19,
+              "entities": 4,
+              "contract_no": "QDN-2025-C01",
+              "modified": "2026-06-12"
+            },
+            {
+              "document_id": "DOC:my-rwf-2025-c01-markup",
+              "name": "RWF-2025-C01_Well_Drilling_Agreement_Thorne_Dain_markup.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "contract",
+              "doc_type_label": "Contract / Agreement (working copy)",
+              "linked_entity": "Thorne & Dain Drilling Company, Inc.",
+              "project_code": "C25B175_675",
+              "pages": 14,
+              "size_mb": 1.19,
+              "entities": 4,
+              "contract_no": "RWF-2025-C01",
+              "modified": "2026-06-12"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_my_capex_markups_q1",
+          "parent_id": "f_my_capex_markups",
+          "name": "Q1 2026 review",
+          "path": "/My Drive/Contract markups/Q1 2026 review",
+          "description": "The markups carried into the quarterly delivery review.",
+          "documents": [
+            {
+              "document_id": "DOC:my-def-2023-c01-markup",
+              "name": "DEF-2023-C01_Construction_Agreement_Phase1_Vasquez_markup.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "contract",
+              "doc_type_label": "Contract / Agreement (working copy)",
+              "linked_entity": "Vasquez Heritage Builders, Inc.",
+              "project_code": "C23B225_690",
+              "pages": 15,
+              "size_mb": 1.28,
+              "entities": 4,
+              "contract_no": "DEF-2023-C01",
+              "modified": "2026-06-12"
+            },
+            {
+              "document_id": "DOC:my-wlr-2023-p01-markup",
+              "name": "WLR-2023-P01_Programme_Management_Agreement_Trelawney_markup.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "contract",
+              "doc_type_label": "Contract / Agreement (working copy)",
+              "linked_entity": "Trelawney Infrastructure Advisors, LLC",
+              "project_code": "CZZF50229_623",
+              "pages": 9,
+              "size_mb": 0.77,
+              "entities": 4,
+              "contract_no": "WLR-2023-P01",
+              "modified": "2026-06-12"
+            }
+          ]
+        },
+        {
+          "folder_id": "f_my_capex_to_file",
+          "parent_id": null,
+          "name": "To file",
+          "path": "/My Drive/To file",
+          "description": "Copies still to be filed back to the shared drive.",
+          "documents": [
+            {
+              "document_id": "DOC:my-spm-2023-e01-markup",
+              "name": "SPM-2023-E01_Owner-Engineer_Agreement_Cordray_Nesbitt_markup.pdf",
+              "mime_type": "application/pdf",
+              "doc_type": "contract",
+              "doc_type_label": "Contract / Agreement (working copy)",
+              "linked_entity": "Cordray Nesbitt Engineering, Inc.",
+              "project_code": "CZZF5034_698",
+              "pages": 11,
+              "size_mb": 0.94,
+              "entities": 4,
+              "contract_no": "SPM-2023-E01",
+              "modified": "2026-06-12"
+            }
+          ]
+        }
+      ]
     }
   ],
   "drive_credentials": [
     {
       "drive_id": "capital-delivery-docs",
       "credential_handle": "drive-handle-20d62f4d"
+    },
+    {
+      "drive_id": "my-drive-capital-delivery",
+      "credential_handle": "drive-handle-7f31c9a2"
     }
   ],
   "document_extractions": {
@@ -5963,6 +6071,86 @@
       "confidence": 0.99,
       "document_id": "DOC:wm-26-b",
       "source_file": "WM-26-B_Water_Main_Replacement_Agreement_Delmar_Sinclair.pdf",
+      "project_code": "CZZF5034_698",
+      "normalized_value": "Selby Point Water Main Replacement Programme",
+      "method": "cover-sheet field",
+      "page": 1
+    },
+    "DOC:my-qdn-2025-c01-markup": {
+      "extraction_id": "ex_my_doc_my_qdn_2025_c01_markup",
+      "extracted_entity": "C25B315_658",
+      "entity_type": "Project",
+      "resolved_node": "PRJ:C25B315_658",
+      "resolved_facility": "Draycott",
+      "state": "Belmara",
+      "linked_manifests": 6,
+      "confidence": 0.99,
+      "document_id": "DOC:my-qdn-2025-c01-markup",
+      "source_file": "QDN-2025-C01_Construction_Agreement_Kelso_Ridge_markup.pdf",
+      "project_code": "C25B315_658",
+      "normalized_value": "PFAS Treatment Facility — Quarrydown Water Treatment Plant",
+      "method": "cover-sheet field",
+      "page": 1
+    },
+    "DOC:my-rwf-2025-c01-markup": {
+      "extraction_id": "ex_my_doc_my_rwf_2025_c01_markup",
+      "extracted_entity": "C25B175_675",
+      "entity_type": "Project",
+      "resolved_node": "PRJ:C25B175_675",
+      "resolved_facility": "Redmont",
+      "state": "Corvale",
+      "linked_manifests": 7,
+      "confidence": 0.99,
+      "document_id": "DOC:my-rwf-2025-c01-markup",
+      "source_file": "RWF-2025-C01_Well_Drilling_Agreement_Thorne_Dain_markup.pdf",
+      "project_code": "C25B175_675",
+      "normalized_value": "Redmont Well Field Expansion and Raw Water Transmission",
+      "method": "cover-sheet field",
+      "page": 1
+    },
+    "DOC:my-def-2023-c01-markup": {
+      "extraction_id": "ex_my_doc_my_def_2023_c01_markup",
+      "extracted_entity": "C23B225_690",
+      "entity_type": "Project",
+      "resolved_node": "PRJ:C23B225_690",
+      "resolved_facility": "Dunmoor East",
+      "state": "Dunmoor",
+      "linked_manifests": 8,
+      "confidence": 0.99,
+      "document_id": "DOC:my-def-2023-c01-markup",
+      "source_file": "DEF-2023-C01_Construction_Agreement_Phase1_Vasquez_markup.pdf",
+      "project_code": "C23B225_690",
+      "normalized_value": "Dunmoor East Filter Rehabilitation and Media Renewal Programme",
+      "method": "cover-sheet field",
+      "page": 1
+    },
+    "DOC:my-wlr-2023-p01-markup": {
+      "extraction_id": "ex_my_doc_my_wlr_2023_p01_markup",
+      "extracted_entity": "CZZF50229_623",
+      "entity_type": "Project",
+      "resolved_node": "PRJ:CZZF50229_623",
+      "resolved_facility": "Marlow Creek",
+      "state": "Ardenia",
+      "linked_manifests": 8,
+      "confidence": 0.99,
+      "document_id": "DOC:my-wlr-2023-p01-markup",
+      "source_file": "WLR-2023-P01_Programme_Management_Agreement_Trelawney_markup.pdf",
+      "project_code": "CZZF50229_623",
+      "normalized_value": "Westbrook Lead Service Line Replacement Programme",
+      "method": "cover-sheet field",
+      "page": 1
+    },
+    "DOC:my-spm-2023-e01-markup": {
+      "extraction_id": "ex_my_doc_my_spm_2023_e01_markup",
+      "extracted_entity": "CZZF5034_698",
+      "entity_type": "Project",
+      "resolved_node": "PRJ:CZZF5034_698",
+      "resolved_facility": "Selby Point",
+      "state": "Dunmoor",
+      "linked_manifests": 7,
+      "confidence": 0.99,
+      "document_id": "DOC:my-spm-2023-e01-markup",
+      "source_file": "SPM-2023-E01_Owner-Engineer_Agreement_Cordray_Nesbitt_markup.pdf",
       "project_code": "CZZF5034_698",
       "normalized_value": "Selby Point Water Main Replacement Programme",
       "method": "cover-sheet field",
@@ -19962,6 +20150,68 @@
     }
   ],
   "graph_use_cases": [
+    {
+      "use_case_id": "uc-e-waste-mt8n2qvt2",
+      "name": "E-Waste",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai"
+        },
+        {
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
+          "source": "ai"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Plan-to-Actual Variance",
+          "description": "Actual less period plan.",
+          "source": "ai"
+        },
+        {
+          "name": "Actual Spend",
+          "description": "Posted general-ledger spend.",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "subset",
+          "objects": [
+            "plan.plan_project_budget",
+            "plan.plan_project_forecast",
+            "plan.plan_monthly_spread",
+            "plan.plan_version_master",
+            "plan.plan_scenario_dim",
+            "plan.plan_account_dim",
+            "plan.plan_period_dim",
+            "plan.plan_phase_dim",
+            "plan.plan_resource_dim",
+            "plan.plan_mtp_multiyear",
+            "plan.plan_calendarization",
+            "plan.plan_optimization_profile",
+            "plan.vw_project_plan_capex"
+          ]
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Where is forecast diverging from budget, by programme and category?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 6,
+      "updated_at": "2026-08-25T12:27:25.825Z"
+    },
     {
       "use_case_id": "uc-hardzous-mt70kw535",
       "name": "hardzous",
@@ -54147,7 +54397,8 @@
           "approval": "none",
           "audience": [
             "architect",
-            "admin"
+            "admin",
+            "business_user_exec"
           ],
           "note": "The schedule covers the ledger blocks only. The line-item explanations and the two correspondence blocks are runtime: they are read under the asking session's own mailbox entitlement at the moment the report is opened, and nothing from them is cached. Two people opening this report an hour apart can legitimately see different messages, and neither inherits the other's access. Caching them nightly would produce an extract owned by whoever ran it, which is the permission leak the runtime class exists to avoid.",
           "link": "contextweave.northlinewater.com/r/variance-report",
@@ -54197,7 +54448,8 @@
             "sofia.lindqvist@vriodigital.com",
             "ellis.hargrove@vriodigital.com",
             "rei.nakamura@vriodigital.com",
-            "admin"
+            "admin",
+            "architect"
           ],
           "note": null,
           "link": "contextweave.northlinewater.com/r/project-360",

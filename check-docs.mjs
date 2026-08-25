@@ -687,6 +687,43 @@ expect(
   driveKinds.has('my_drive') && driveKinds.has('shared_drive'),
   `kinds seeded: ${[...driveKinds].join(', ')}`,
 )
+/*
+ * **And that is a claim about every dataset, not about the one in front of you.** EPA has had both
+ * kinds since `npm run seed:workspaces`; CAPEX shipped one shared drive and nothing else, so step 2 of
+ * its wizard offered *My Drive (0)* against *Shared drive (1)* — a control with nothing on one side,
+ * which is the exact thing the claim above exists to prevent, reached for the document the claim did
+ * not read. The same shape as `rows: num` and the canvas's `group`: a rule checked against one
+ * document is a rule that holds for one document.
+ *
+ * `npm run seed:capex-drive` authors CAPEX's My Drive, and it authors it as **working copies of
+ * documents that dataset already ships** — same entity, same project code, same resolved graph node —
+ * so a personal drive cannot introduce an entity the canvas has never heard of. Both halves are
+ * asserted: the drive exists with something in it, and every document in it resolves.
+ */
+const capexDriveKinds = new Set((capexDoc.value?.drives ?? []).map((d) => d.kind))
+const capexMyDrive = (capexDoc.value?.drives ?? []).find((d) => d.kind === 'my_drive')
+const capexMyDriveDocs = (capexMyDrive?.folders ?? []).flatMap((f) => f.documents ?? [])
+expect(
+  'every dataset offers both kinds of Drive, CAPEX included',
+  capexDriveKinds.has('my_drive') &&
+    capexDriveKinds.has('shared_drive') &&
+    capexMyDriveDocs.length > 0 &&
+    /* Nested, because a flat personal drive does not exercise the tree the wizard draws from
+       `parent_id` — which is the control this dataset would otherwise never render. */
+    (capexMyDrive?.folders ?? []).some((f) => f.parent_id) &&
+    /* Nothing invented: every document resolves, and to a node this canvas has. */
+    capexMyDriveDocs.every((d) => {
+      const row = capexDoc.value?.document_extractions?.[d.document_id]
+      return (
+        row &&
+        (capexDoc.value?.graph_studio?.canvas?.nodes ?? []).some((n) => n.node_id === row.resolved_node)
+      )
+    }),
+  capexDriveKinds.has('my_drive')
+    ? `CAPEX My Drive: ${capexMyDriveDocs.length} document(s) — one of them resolves to no canvas node`
+    : 'CAPEX has no My Drive — the wizard offers "My Drive (0)". Run npm run seed:capex-drive',
+)
+
 /* A kind with no label renders its raw key — "shared_drive" — as a control's own text. The map is
    the wizard's; the kinds are the data's, and only one of the two can be wrong silently. */
 const driveKindBlock = wizard.match(/const DRIVE_KIND[^=]*= \{([\s\S]*?)\n\}/)

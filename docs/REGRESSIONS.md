@@ -4299,3 +4299,39 @@ must degrade to a worse-looking success, never to a blank screen.
 readiness check that can pass against a placeholder — an empty document, a default value, a zero-row
 response — will pass on the slow path and only on the slow path, which is the one path the check was written
 for. State what has to have *arrived* before asking whether it is *done*.
+
+---
+
+## A picker's "both sides are populated" rule was checked against one dataset
+
+**Symptom.** CAPEX's connect wizard, step 2: **My Drive (0)** beside **Shared drive (1)**. Reported as a
+missing dataset rather than as a broken control, which is the charitable reading and the wrong one — the
+tenant plainly keeps working papers, so a permanent 0 reads as a connector that cannot see personal
+drives.
+
+**Cause.** `check-docs` already had the claim — *"both kinds of Drive exist to pick between"*, written
+because a control with nothing on one side reads as broken rather than as an account with no shared
+drives. It read `db.json`. EPA has had both kinds since `npm run seed:workspaces`; CAPEX shipped one
+shared drive, and the claim never looked. **The third instance of the same shape**, after `rows: num` in
+the browse schema (true by accident of EPA's 8 profiled tables, false for CAPEX's 62 uncounted ones) and
+the canvas's `group` (declared `oneOf` EPA's four origin classes, which refused every CAPEX node). A rule
+checked against one document is a rule that holds for one document.
+
+**Fix.** `npm run seed:capex-drive` authors CAPEX's My Drive — three folders, one nested, five documents
+— and authors them as **working copies of documents the dataset already ships**: the first contract in
+each project folder, keeping its entity, project code, contract number and page count, and resolving
+through `document_extractions` to the node its original resolves to. Inventing five contractors would
+have filled the control and put five entities into the Data Catalog that the canvas has never heard of,
+which is the failure the EPA workspace seed already states in those words. The seed refuses to write on
+a copy that resolves nowhere, a `doc_type` no chip counts, a `parent_id` outside its own drive, an id
+already in another drive, or a folder that is empty with nothing beneath it.
+
+**Guard.** A second claim beside the original, reading `db.CAPEX.json`: both kinds of drive exist, the
+personal one holds documents, at least one folder is nested (a flat drive never exercises the
+`parent_id` tree the wizard draws), and **every document in it resolves to a node that canvas has**.
+Break-tested both ways — dropping the drive, and dropping one extraction row.
+
+**The general shape.** *When a claim about "the data" reads one dataset's document, it is a claim about
+that dataset.* Every such guard here now has a per-dataset twin or a loop over the documents; the tell
+is a claim whose subject is a `db.*` key rather than a file of source, and whose reason is about what a
+control or a renderer does with the values.
