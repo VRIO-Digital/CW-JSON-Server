@@ -1,330 +1,1205 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>What-if — Veolia CapEx (draft v2)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root,[data-theme="light"]{
-  --bg0:#f3f4f6; --bg1:#ffffff; --card:#ffffff; --card2:#f4f5f7; --inset:#f7f8f9;
-  --line:#e3e5e9; --line2:#d3d6db; --text:#1b1e22; --mut:#5c636b; --dim:#9aa0a8;
-  --orange:#f2691d; --orange-hi:#ff7d33; --orange-soft:rgba(242,105,29,.09); --orange-line:rgba(242,105,29,.38);
-  --green:#0d9f6e; --green-soft:rgba(16,150,110,.10);
-  --amber:#b47d0a; --amber-soft:rgba(180,120,10,.12); --amber-line:rgba(180,120,10,.34);
-  --red:#dc4444; --red-soft:rgba(220,60,60,.09);
-  --cyan:#0284c7; --cyan-soft:rgba(2,132,199,.09);
-  --purple:#7c3aed; --purple-soft:rgba(124,58,237,.08); --blue:#2563eb;
-  --shadow:0 8px 28px rgba(20,25,35,.10); --r-s:7px; --r-m:11px; --r-l:16px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg0);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
-h1,h2,h3{font-family:'Space Grotesk','Inter',sans-serif;letter-spacing:-.01em}
-.mono{font-family:'JetBrains Mono',monospace}
-.wrap{max-width:1180px;margin:0 auto;padding:26px 30px 80px}
-.pageHead{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
-.pageHead h1{font-size:26px;font-weight:700}
-.pageHead .sub{color:var(--mut);font-size:12.5px;margin-top:4px;max-width:800px}
-.pageHead .acts{margin-left:auto;flex:none}
-.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:8px;cursor:pointer;font-family:'Inter';font-size:12.5px;font-weight:600;border:1px solid transparent;transition:filter .15s;background:none}
-.btn.pri{background:var(--orange);color:#fff}.btn.pri:hover{background:var(--orange-hi)}
-.btn.sec{background:var(--card2);color:var(--text);border-color:var(--line2)}.btn.sec:hover{border-color:var(--dim)}
-.btn.ghost{background:transparent;color:var(--mut);border-color:var(--line)}.btn.ghost:hover{color:var(--text)}
-.btn.sm{padding:5px 11px;font-size:11.5px;border-radius:7px}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-l);padding:20px}
-.card.pad-s{padding:14px 16px}
-.pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;border-radius:20px;padding:2px 9px;white-space:nowrap}
-.pill.hi{background:var(--green-soft);color:var(--green)}
-.pill.md{background:var(--amber-soft);color:var(--amber)}
-.pill.lo{background:var(--red-soft);color:var(--red)}
-.pill.info{background:var(--cyan-soft);color:var(--cyan)}
-.pill.neu{background:var(--card2);color:var(--mut);border:1px solid var(--line)}
-.pill.seal{background:var(--orange-soft);color:var(--orange-hi);border:1px solid var(--orange-line)}
-.pill.lock{background:var(--card2);color:var(--dim);border:1px solid var(--line2)}
-.srcTag{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;border-radius:4px;padding:1px 7px;white-space:nowrap}
-.srcTag::before{content:"";width:6px;height:6px;border-radius:2px;background:currentColor}
-.srcTag.ERP{color:var(--green);background:var(--green-soft)}
-.srcTag.CTR{color:var(--blue);background:rgba(37,99,235,.10)}
-.srcTag.IDX{color:var(--amber);background:var(--amber-soft)}
-.srcTag.DEF{color:var(--dim);background:var(--card2)}
-.hr{border:none;border-top:1px solid var(--line);margin:16px 0}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px;flex-wrap:wrap}
-.tab{padding:9px 16px;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;border-top:0;border-left:0;border-right:0}
-.tab:hover{color:var(--text)}
-.tab.on{color:var(--orange-hi);border-bottom-color:var(--orange)}
-.inp,textarea.inp,select.inp{width:100%;background:var(--inset);border:1px solid var(--line2);border-radius:8px;color:var(--text);font-family:'Inter';font-size:13px;padding:9px 12px;outline:none}
-.inp:focus{border-color:var(--orange-line);box-shadow:0 0 0 3px var(--orange-soft)}
-.inp.tiny{width:88px;padding:6px 9px;font-size:12px;font-family:'JetBrains Mono'}
-label.flabel{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin:0 0 6px}
-.help{font-size:11px;color:var(--dim);margin-top:5px}
-.note{display:flex;gap:10px;align-items:flex-start;border-radius:var(--r-m);padding:12px 14px;font-size:12.5px}
-.note.warn{background:var(--amber-soft);color:var(--amber)}
-.note.info{background:var(--cyan-soft);color:var(--cyan)}
-.note.ok{background:var(--green-soft);color:var(--green)}
-.note.bad{background:var(--red-soft);color:var(--red)}
-.note.plain{background:var(--card2);color:var(--mut);border:1px solid var(--line)}
-.note .body{color:var(--text);opacity:.92}.note .body b{display:block;margin-bottom:2px}
-.steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:20px}
-.step{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--dim);padding:5px 11px;border:1px solid var(--line);border-radius:20px}
-.step.on{color:var(--orange-hi);border-color:var(--orange-line);background:var(--orange-soft)}
-.step.done{color:var(--green);border-color:transparent;background:var(--green-soft)}
-.step .idx{width:16px;height:16px;border-radius:50%;background:var(--card2);display:grid;place-items:center;font-size:9.5px}
-.step.on .idx{background:var(--orange);color:#fff}.step.done .idx{background:var(--green);color:#08251a}
-.stepDash{width:16px;height:1px;background:var(--line2)}
-.seg{display:inline-flex;border:1px solid var(--line2);border-radius:9px;overflow:hidden}
-.seg button{background:var(--card);border:0;border-right:1px solid var(--line2);font:inherit;font-weight:600;padding:8px 20px;cursor:pointer;color:var(--mut)}
-.seg button:last-child{border-right:0}.seg button.on{background:var(--orange);color:#fff}
-.rtGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
-.scen{border:1px solid var(--line);border-radius:var(--r-m);padding:16px;background:var(--card)}
-.scen .tag{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--orange);color:#fff;font-weight:700;font-size:12px;font-family:'Space Grotesk'}
-.lever{padding:11px 0;border-top:1px solid var(--line)}
-.lever:first-child{border-top:0}
-.lever .lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
-.lever .lh .lk{font-size:12px;color:var(--text);font-weight:600}
-.lever .lh .lv{font-family:'JetBrains Mono';font-size:12.5px;font-weight:600;color:var(--orange-hi)}
-input[type=range]{width:100%;accent-color:var(--orange);cursor:pointer}
-.slabel{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:2px}
-.decomp{margin-top:6px}
-.drow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;font-size:12px;border-top:1px dashed var(--line)}
-.drow:first-child{border-top:0}
-.drow .dk{color:var(--mut);display:flex;align-items:center;gap:7px}
-.drow .dv{font-family:'JetBrains Mono';font-weight:600}
-.drow.moved .dv{color:var(--orange-hi)}
-.drow.locked .dk,.drow.locked .dv{color:var(--dim)}
-.totalRow{display:flex;justify-content:space-between;align-items:baseline;margin-top:9px;padding-top:9px;border-top:1px solid var(--line2)}
-.totalRow .tk{font-size:12px;color:var(--mut);font-weight:600}
-.totalRow .tv{font-family:'Space Grotesk';font-size:22px;font-weight:700}
-.bar{height:8px;border-radius:6px;background:var(--card2);overflow:hidden;margin-top:9px;position:relative;border:1px solid var(--line)}
-.bar .fill{height:100%;background:var(--green)}
-.bar .env{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--red)}
-.lnk{color:var(--orange-hi);cursor:pointer;font-weight:600;font-size:11px}
-.reveal{margin-top:8px;border:1px solid var(--line);border-radius:8px;background:var(--inset);padding:0;overflow:hidden;display:none}
-.reveal.open{display:block}
-.reveal .rh{padding:8px 11px;font-size:11px;color:var(--dim);border-bottom:1px solid var(--line);background:var(--card2)}
-.reveal .ri{padding:8px 11px;font-size:11.5px;border-bottom:1px solid var(--line);display:flex;gap:9px;align-items:flex-start}
-.reveal .ri:last-child{border-bottom:0}
-.big{font-family:'Space Grotesk';font-size:30px;font-weight:700;letter-spacing:-.02em}
-.foot{display:flex;justify-content:space-between;gap:12px;margin-top:18px}
-.sm-lbl{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700}
-.banner{background:var(--amber-soft);border:1px solid var(--amber-line);color:var(--amber);border-radius:10px;padding:9px 13px;font-size:12px;margin-bottom:18px}
-.miniList{display:flex;flex-direction:column;gap:4px;margin-top:8px}
-.miniList div{font-size:11.5px;color:var(--mut);display:flex;gap:8px;align-items:center}
-.cmp{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin-bottom:16px}
-.cmpCard{flex:1;min-width:150px;border:1px solid var(--line);border-radius:var(--r-m);padding:12px 14px;background:var(--card)}
-.cmpCard .cn{font-size:11px;color:var(--mut);font-weight:600;display:flex;align-items:center;gap:6px}
-.cmpCard .cv{font-family:'Space Grotesk';font-size:22px;font-weight:700;margin-top:2px}
-.leverRow{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
-.leverRow:first-child{border-top:0}
-.leverRow .lgrow{flex:1}
-.lockRow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
-.trayCard{border:1px solid var(--line);border-radius:var(--r-m);padding:12px 14px;background:var(--card);display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
-.gref{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:var(--inset);overflow:hidden;display:none}
-.gref.open{display:block}
-.gref .gh{padding:8px 12px;background:var(--card2);border-bottom:1px solid var(--line);font-size:11px;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
-.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--mut);padding:8px 12px}
-.legend span{display:inline-flex;align-items:center;gap:5px}
-.dot{width:9px;height:9px;border-radius:2px;display:inline-block}
-.chipRow{display:flex;flex-wrap:wrap;gap:8px}
-.mchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--mut);cursor:pointer;background:var(--card)}
-.mchip:hover{border-color:var(--dim)}
-.mchip.on{border-color:var(--orange-line);background:var(--orange-soft);color:var(--text)}
-.mchip .x{color:var(--green);font-weight:700}
-.measure{padding:9px 0;border-top:1px solid var(--line)}
-.measure:first-child{border-top:0}
-.mrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.mrow .k{font-size:12px;color:var(--mut);font-weight:600;display:flex;align-items:center;gap:7px}
-.mrow .v{font-family:'JetBrains Mono';font-size:15px;font-weight:700}
-.colHead{display:flex;align-items:center;gap:9px;margin-bottom:10px}
-.colHead .rm{margin-left:auto;flex:none;color:var(--dim);cursor:pointer;font-size:14px;line-height:1;padding:2px 6px;border-radius:6px;border:1px solid var(--line)}
-.colHead .rm:hover{color:var(--red);border-color:var(--red)}
-.savedFlag{font-size:10px;font-weight:700;color:var(--green);display:inline-flex;align-items:center;gap:3px}
-.rtWrap{display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start}
-@media(max-width:900px){.rtWrap{grid-template-columns:1fr}}
-.libRow{border:1px solid var(--line2);border-radius:10px;padding:10px 12px;margin-top:8px;cursor:pointer;background:var(--card);transition:all .12s;position:relative}
-.libRow:hover{border-color:var(--orange-line)}
-.libRow.on{border-color:var(--orange);background:var(--orange-soft)}
-.libRow .ln{font-size:12.5px;font-weight:600;line-height:1.35;padding-right:16px}
-.libRow .lm{font-size:11px;color:var(--mut);margin-top:3px;line-height:1.5}
-.libRow .lb{display:flex;gap:6px;margin-top:8px}
-.libRow .lx{position:absolute;top:8px;right:9px;background:none;border:0;color:var(--dim);cursor:pointer;font-size:13px;padding:1px 3px}
-.libRow .lx:hover{color:#dc4444}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What-if — Veolia CapEx (draft v2)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root,
+    [data-theme="light"] {
+      --bg0: #f3f4f6;
+      --bg1: #ffffff;
+      --card: #ffffff;
+      --card2: #f4f5f7;
+      --inset: #f7f8f9;
+      --line: #e3e5e9;
+      --line2: #d3d6db;
+      --text: #1b1e22;
+      --mut: #5c636b;
+      --dim: #9aa0a8;
+      --orange: #f2691d;
+      --orange-hi: #ff7d33;
+      --orange-soft: rgba(242, 105, 29, .09);
+      --orange-line: rgba(242, 105, 29, .38);
+      --green: #0d9f6e;
+      --green-soft: rgba(16, 150, 110, .10);
+      --amber: #b47d0a;
+      --amber-soft: rgba(180, 120, 10, .12);
+      --amber-line: rgba(180, 120, 10, .34);
+      --red: #dc4444;
+      --red-soft: rgba(220, 60, 60, .09);
+      --cyan: #0284c7;
+      --cyan-soft: rgba(2, 132, 199, .09);
+      --purple: #7c3aed;
+      --purple-soft: rgba(124, 58, 237, .08);
+      --blue: #2563eb;
+      --shadow: 0 8px 28px rgba(20, 25, 35, .10);
+      --r-s: 7px;
+      --r-m: 11px;
+      --r-l: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      background: var(--bg0);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      letter-spacing: -.01em
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 26px 30px 80px
+    }
+
+    .pageHead {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px
+    }
+
+    .pageHead h1 {
+      font-size: 26px;
+      font-weight: 700
+    }
+
+    .pageHead .sub {
+      color: var(--mut);
+      font-size: 12.5px;
+      margin-top: 4px;
+      max-width: 800px
+    }
+
+    .pageHead .acts {
+      margin-left: auto;
+      flex: none
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Inter';
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      transition: filter .15s;
+      background: none
+    }
+
+    .btn.pri {
+      background: var(--orange);
+      color: #fff
+    }
+
+    .btn.pri:hover {
+      background: var(--orange-hi)
+    }
+
+    .btn.sec {
+      background: var(--card2);
+      color: var(--text);
+      border-color: var(--line2)
+    }
+
+    .btn.sec:hover {
+      border-color: var(--dim)
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--mut);
+      border-color: var(--line)
+    }
+
+    .btn.ghost:hover {
+      color: var(--text)
+    }
+
+    .btn.sm {
+      padding: 5px 11px;
+      font-size: 11.5px;
+      border-radius: 7px
+    }
+
+    .btn:disabled {
+      opacity: .45;
+      cursor: not-allowed
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--r-l);
+      padding: 20px
+    }
+
+    .card.pad-s {
+      padding: 14px 16px
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10.5px;
+      font-weight: 600;
+      border-radius: 20px;
+      padding: 2px 9px;
+      white-space: nowrap
+    }
+
+    .pill.hi {
+      background: var(--green-soft);
+      color: var(--green)
+    }
+
+    .pill.md {
+      background: var(--amber-soft);
+      color: var(--amber)
+    }
+
+    .pill.lo {
+      background: var(--red-soft);
+      color: var(--red)
+    }
+
+    .pill.info {
+      background: var(--cyan-soft);
+      color: var(--cyan)
+    }
+
+    .pill.neu {
+      background: var(--card2);
+      color: var(--mut);
+      border: 1px solid var(--line)
+    }
+
+    .pill.seal {
+      background: var(--orange-soft);
+      color: var(--orange-hi);
+      border: 1px solid var(--orange-line)
+    }
+
+    .pill.lock {
+      background: var(--card2);
+      color: var(--dim);
+      border: 1px solid var(--line2)
+    }
+
+    .srcTag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 1px 7px;
+      white-space: nowrap
+    }
+
+    .srcTag::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 2px;
+      background: currentColor
+    }
+
+    .srcTag.ERP {
+      color: var(--green);
+      background: var(--green-soft)
+    }
+
+    .srcTag.CTR {
+      color: var(--blue);
+      background: rgba(37, 99, 235, .10)
+    }
+
+    .srcTag.IDX {
+      color: var(--amber);
+      background: var(--amber-soft)
+    }
+
+    .srcTag.DEF {
+      color: var(--dim);
+      background: var(--card2)
+    }
+
+    .hr {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 16px 0
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 20px;
+      flex-wrap: wrap
+    }
+
+    .tab {
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--mut);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      background: none;
+      border-top: 0;
+      border-left: 0;
+      border-right: 0
+    }
+
+    .tab:hover {
+      color: var(--text)
+    }
+
+    .tab.on {
+      color: var(--orange-hi);
+      border-bottom-color: var(--orange)
+    }
+
+    .inp,
+    textarea.inp,
+    select.inp {
+      width: 100%;
+      background: var(--inset);
+      border: 1px solid var(--line2);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter';
+      font-size: 13px;
+      padding: 9px 12px;
+      outline: none
+    }
+
+    .inp:focus {
+      border-color: var(--orange-line);
+      box-shadow: 0 0 0 3px var(--orange-soft)
+    }
+
+    .inp.tiny {
+      width: 88px;
+      padding: 6px 9px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono'
+    }
+
+    label.flabel {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin: 0 0 6px
+    }
+
+    .help {
+      font-size: 11px;
+      color: var(--dim);
+      margin-top: 5px
+    }
+
+    .note {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      border-radius: var(--r-m);
+      padding: 12px 14px;
+      font-size: 12.5px
+    }
+
+    .note.warn {
+      background: var(--amber-soft);
+      color: var(--amber)
+    }
+
+    .note.info {
+      background: var(--cyan-soft);
+      color: var(--cyan)
+    }
+
+    .note.ok {
+      background: var(--green-soft);
+      color: var(--green)
+    }
+
+    .note.bad {
+      background: var(--red-soft);
+      color: var(--red)
+    }
+
+    .note.plain {
+      background: var(--card2);
+      color: var(--mut);
+      border: 1px solid var(--line)
+    }
+
+    .note .body {
+      color: var(--text);
+      opacity: .92
+    }
+
+    .note .body b {
+      display: block;
+      margin-bottom: 2px
+    }
+
+    .steps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 20px
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--dim);
+      padding: 5px 11px;
+      border: 1px solid var(--line);
+      border-radius: 20px
+    }
+
+    .step.on {
+      color: var(--orange-hi);
+      border-color: var(--orange-line);
+      background: var(--orange-soft)
+    }
+
+    .step.done {
+      color: var(--green);
+      border-color: transparent;
+      background: var(--green-soft)
+    }
+
+    .step .idx {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--card2);
+      display: grid;
+      place-items: center;
+      font-size: 9.5px
+    }
+
+    .step.on .idx {
+      background: var(--orange);
+      color: #fff
+    }
+
+    .step.done .idx {
+      background: var(--green);
+      color: #08251a
+    }
+
+    .stepDash {
+      width: 16px;
+      height: 1px;
+      background: var(--line2)
+    }
+
+    .seg {
+      display: inline-flex;
+      border: 1px solid var(--line2);
+      border-radius: 9px;
+      overflow: hidden
+    }
+
+    .seg button {
+      background: var(--card);
+      border: 0;
+      border-right: 1px solid var(--line2);
+      font: inherit;
+      font-weight: 600;
+      padding: 8px 20px;
+      cursor: pointer;
+      color: var(--mut)
+    }
+
+    .seg button:last-child {
+      border-right: 0
+    }
+
+    .seg button.on {
+      background: var(--orange);
+      color: #fff
+    }
+
+    .rtGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 16px
+    }
+
+    .scen {
+      border: 1px solid var(--line);
+      border-radius: var(--r-m);
+      padding: 16px;
+      background: var(--card)
+    }
+
+    .scen .tag {
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      background: var(--orange);
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      font-family: 'Space Grotesk'
+    }
+
+    .lever {
+      padding: 11px 0;
+      border-top: 1px solid var(--line)
+    }
+
+    .lever:first-child {
+      border-top: 0
+    }
+
+    .lever .lh {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 6px
+    }
+
+    .lever .lh .lk {
+      font-size: 12px;
+      color: var(--text);
+      font-weight: 600
+    }
+
+    .lever .lh .lv {
+      font-family: 'JetBrains Mono';
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--orange-hi)
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--orange);
+      cursor: pointer
+    }
+
+    .slabel {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--dim);
+      margin-top: 2px
+    }
+
+    .decomp {
+      margin-top: 6px
+    }
+
+    .drow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      font-size: 12px;
+      border-top: 1px dashed var(--line)
+    }
+
+    .drow:first-child {
+      border-top: 0
+    }
+
+    .drow .dk {
+      color: var(--mut);
+      display: flex;
+      align-items: center;
+      gap: 7px
+    }
+
+    .drow .dv {
+      font-family: 'JetBrains Mono';
+      font-weight: 600
+    }
+
+    .drow.moved .dv {
+      color: var(--orange-hi)
+    }
+
+    .drow.locked .dk,
+    .drow.locked .dv {
+      color: var(--dim)
+    }
+
+    .totalRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 9px;
+      padding-top: 9px;
+      border-top: 1px solid var(--line2)
+    }
+
+    .totalRow .tk {
+      font-size: 12px;
+      color: var(--mut);
+      font-weight: 600
+    }
+
+    .totalRow .tv {
+      font-family: 'Space Grotesk';
+      font-size: 22px;
+      font-weight: 700
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 6px;
+      background: var(--card2);
+      overflow: hidden;
+      margin-top: 9px;
+      position: relative;
+      border: 1px solid var(--line)
+    }
+
+    .bar .fill {
+      height: 100%;
+      background: var(--green)
+    }
+
+    .bar .env {
+      position: absolute;
+      top: -3px;
+      bottom: -3px;
+      width: 2px;
+      background: var(--red)
+    }
+
+    .lnk {
+      color: var(--orange-hi);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11px
+    }
+
+    .reveal {
+      margin-top: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--inset);
+      padding: 0;
+      overflow: hidden;
+      display: none
+    }
+
+    .reveal.open {
+      display: block
+    }
+
+    .reveal .rh {
+      padding: 8px 11px;
+      font-size: 11px;
+      color: var(--dim);
+      border-bottom: 1px solid var(--line);
+      background: var(--card2)
+    }
+
+    .reveal .ri {
+      padding: 8px 11px;
+      font-size: 11.5px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      gap: 9px;
+      align-items: flex-start
+    }
+
+    .reveal .ri:last-child {
+      border-bottom: 0
+    }
+
+    .big {
+      font-family: 'Space Grotesk';
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -.02em
+    }
+
+    .foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px
+    }
+
+    .sm-lbl {
+      font-size: 10.5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--dim);
+      font-weight: 700
+    }
+
+    .banner {
+      background: var(--amber-soft);
+      border: 1px solid var(--amber-line);
+      color: var(--amber);
+      border-radius: 10px;
+      padding: 9px 13px;
+      font-size: 12px;
+      margin-bottom: 18px
+    }
+
+    .miniList {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 8px
+    }
+
+    .miniList div {
+      font-size: 11.5px;
+      color: var(--mut);
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    .cmp {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: stretch;
+      margin-bottom: 16px
+    }
+
+    .cmpCard {
+      flex: 1;
+      min-width: 150px;
+      border: 1px solid var(--line);
+      border-radius: var(--r-m);
+      padding: 12px 14px;
+      background: var(--card)
+    }
+
+    .cmpCard .cn {
+      font-size: 11px;
+      color: var(--mut);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .cmpCard .cv {
+      font-family: 'Space Grotesk';
+      font-size: 22px;
+      font-weight: 700;
+      margin-top: 2px
+    }
+
+    .leverRow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 0;
+      border-top: 1px solid var(--line)
+    }
+
+    .leverRow:first-child {
+      border-top: 0
+    }
+
+    .leverRow .lgrow {
+      flex: 1
+    }
+
+    .lockRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 0;
+      border-top: 1px solid var(--line)
+    }
+
+    .trayCard {
+      border: 1px solid var(--line);
+      border-radius: var(--r-m);
+      padding: 12px 14px;
+      background: var(--card);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px
+    }
+
+    .gref {
+      margin-top: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--inset);
+      overflow: hidden;
+      display: none
+    }
+
+    .gref.open {
+      display: block
+    }
+
+    .gref .gh {
+      padding: 8px 12px;
+      background: var(--card2);
+      border-bottom: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--mut);
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 10.5px;
+      color: var(--mut);
+      padding: 8px 12px
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      display: inline-block
+    }
+
+    .chipRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px
+    }
+
+    .mchip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--line2);
+      border-radius: 9px;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--mut);
+      cursor: pointer;
+      background: var(--card)
+    }
+
+    .mchip:hover {
+      border-color: var(--dim)
+    }
+
+    .mchip.on {
+      border-color: var(--orange-line);
+      background: var(--orange-soft);
+      color: var(--text)
+    }
+
+    .mchip .x {
+      color: var(--green);
+      font-weight: 700
+    }
+
+    .measure {
+      padding: 9px 0;
+      border-top: 1px solid var(--line)
+    }
+
+    .measure:first-child {
+      border-top: 0
+    }
+
+    .mrow {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px
+    }
+
+    .mrow .k {
+      font-size: 12px;
+      color: var(--mut);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 7px
+    }
+
+    .mrow .v {
+      font-family: 'JetBrains Mono';
+      font-size: 15px;
+      font-weight: 700
+    }
+
+    .colHead {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 10px
+    }
+
+    .colHead .rm {
+      margin-left: auto;
+      flex: none;
+      color: var(--dim);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--line)
+    }
+
+    .colHead .rm:hover {
+      color: var(--red);
+      border-color: var(--red)
+    }
+
+    .savedFlag {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--green);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px
+    }
+
+    .rtWrap {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 16px;
+      align-items: start
+    }
+
+    @media(max-width:900px) {
+      .rtWrap {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .libRow {
+      border: 1px solid var(--line2);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      cursor: pointer;
+      background: var(--card);
+      transition: all .12s;
+      position: relative
+    }
+
+    .libRow:hover {
+      border-color: var(--orange-line)
+    }
+
+    .libRow.on {
+      border-color: var(--orange);
+      background: var(--orange-soft)
+    }
+
+    .libRow .ln {
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.35;
+      padding-right: 16px
+    }
+
+    .libRow .lm {
+      font-size: 11px;
+      color: var(--mut);
+      margin-top: 3px;
+      line-height: 1.5
+    }
+
+    .libRow .lb {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px
+    }
+
+    .libRow .lx {
+      position: absolute;
+      top: 8px;
+      right: 9px;
+      background: none;
+      border: 0;
+      color: var(--dim);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 1px 3px
+    }
+
+    .libRow .lx:hover {
+      color: #dc4444
+    }
+  </style>
 </head>
+
 <body>
-<div class="wrap">
-  <div class="banner">Draft mockup · Veolia PFAS capital program · the same operative-scenario model on a financial case. A scenario is a hypothetical <b>adjustment to a cost driver</b>; only the slice that driver attributes to moves — the rest is held, and the un-attributable residual is locked. Sample figures are illustrative.</div>
+  <div class="wrap">
+    <div class="banner">Draft mockup · Veolia PFAS capital program · the same operative-scenario model on a financial
+      case. A scenario is a hypothetical <b>adjustment to a cost driver</b>; only the slice that driver attributes to
+      moves — the rest is held, and the un-attributable residual is locked. Sample figures are illustrative.</div>
 
-  <div class="pageHead">
-    <div>
-      <h1>What-if</h1>
-      <div class="sub">Stress the remaining forecast to complete without pretending to predict it. A what-if moves one attributable driver at a time — index-linked materials, labor, contingency — and recomputes only the slice the graph can tie to that driver. What it can't attribute is shown as a locked residual, not smeared across the answer. Nothing is forecast; every slice opens to its source. Authoring sets the scenario — which measures you watch, which drivers a case may move and how far, and its name. Runtime is where you move the sliders across cases, publish the complete scenario when it is worth sharing, and open any figure to the contract, timesheet or index feed it came from.</div>
+    <div class="pageHead">
+      <div>
+        <h1>What-if</h1>
+        <div class="sub">Stress the remaining forecast to complete without pretending to predict it. A what-if moves one
+          attributable driver at a time — index-linked materials, labor, contingency — and recomputes only the slice the
+          graph can tie to that driver. What it can't attribute is shown as a locked residual, not smeared across the
+          answer. Nothing is forecast; every slice opens to its source. Authoring sets the scenario — which measures you
+          watch, which drivers a case may move and how far, and its name. Runtime is where you move the sliders across
+          cases, publish the complete scenario when it is worth sharing, and open any figure to the contract, timesheet
+          or index feed it came from.</div>
+      </div>
+      <span class="pill seal acts">◈ read-only overlay · never writes back</span>
     </div>
-    <span class="pill seal acts">◈ read-only overlay · never writes back</span>
+
+    <div class="tabs">
+      <button class="tab on" id="tab-author" onclick="showTab('author')">Authoring</button>
+      <button class="tab" id="tab-runtime" onclick="showTab('runtime')">Runtime</button>
+    </div>
+
+    <div id="pane-author"></div>
+    <div id="pane-runtime" style="display:none"></div>
   </div>
 
-  <div class="tabs">
-    <button class="tab on" id="tab-author" onclick="showTab('author')">Authoring</button>
-    <button class="tab" id="tab-runtime" onclick="showTab('runtime')">Runtime</button>
-  </div>
+  <script>
+    /* ============================ FIXTURE (illustrative) ============================ */
+    const PROGRAM = {
+      name: 'PFAS treatment program',
+      site: 'Veolia municipal water · GAC + ion-exchange build',
+      envelope: 132,          // authorized envelope / breach line, $M
+      approvedBudget: 126,    // board-approved budget the variance measure is judged against, $M
+      baselineMonths: 34
+    };
+    // the remaining $120M forecast, decomposed into slices the graph can attribute to a driver.
+    // a lever moves ONLY its own slice; locked slices never move — that is the honesty rule.
+    const SLICES = [
+      {
+        id: 'mat', label: 'Index-linked materials', base: 48, lever: true,
+        driver: 'Commodity index', unit: '%', min: -10, max: 30, val: 0,
+        src: 'IDX', srcName: 'Platts steel / GAC media index feed',
+        apply: v => 48 * (1 + v / 100), fmt: v => (v > 0 ? '+' : '') + v + '%',
+        trace: '48 of the 120 is priced against a published commodity index; moving the index moves this slice by exact proportion.'
+      },
+      {
+        id: 'lab', label: 'Field labor', base: 30, lever: true,
+        driver: 'Labor rate', unit: '%', min: -5, max: 20, val: 0,
+        src: 'ERP', srcName: 'SAP timesheets + committed rate card',
+        apply: v => 30 * (1 + v / 100), fmt: v => (v > 0 ? '+' : '') + v + '%',
+        trace: '30 of the 120 is labor hours × rate from committed timesheets; a rate change scales this slice only.'
+      },
+      {
+        id: 'sub', label: 'Fixed-price subcontracts', base: 18, lever: false,
+        src: 'CTR', srcName: 'Signed lump-sum subcontracts',
+        trace: '18 is under signed fixed-price subcontracts — contractually cannot move, so no lever is exposed.'
+      },
+      {
+        id: 'cont', label: 'Contingency drawn', base: 12, lever: true,
+        driver: 'Contingency draw', unit: '$M', min: 0, max: 18, val: 12,
+        src: 'CTR', srcName: 'Contingency register — $18M authorized',
+        apply: v => v, fmt: v => '$' + v + 'M',
+        trace: '12 of the 18M authorized contingency is currently drawn; a scenario can model drawing up to the full 18M.'
+      },
+      {
+        id: 'res', label: 'Residual — unattributed', base: 12, lever: false,
+        src: 'DEF', srcName: 'Not decomposable from the current graph',
+        trace: '12 of the 120 cannot be tied to any single driver from what the graph holds today. A scenario must NOT move it — moving an unattributed figure is the exact dishonesty this design refuses.'
+      },
+    ];
+    const leverSlices = SLICES.filter(s => s.lever);
+    const baseForecast = SLICES.reduce((t, s) => t + s.base, 0); // 120
 
-  <div id="pane-author"></div>
-  <div id="pane-runtime" style="display:none"></div>
-</div>
+    /* ============================ WATCHED MEASURES ============================ */
+    // Each measure is a figure the graph already computes from the same slice decomposition —
+    // nothing is forecast. All recompute from a scenario's lever positions. Mirrors VLS's measure library.
+    const MEAS = {
+      forecast: {
+        label: 'Remaining forecast to complete', src: 'ERP', unit: '$M',
+        grounds: 'Σ attributable slices, judged vs the authorized envelope',
+        get: vals => forecast(vals), limit: () => PROGRAM.envelope, detail: true,
+        judge: v => v > PROGRAM.envelope
+          ? { bad: true, txt: fM(v - PROGRAM.envelope) + ' over the ' + fM(PROGRAM.envelope) + ' envelope' }
+          : { bad: false, txt: fM(PROGRAM.envelope - v) + ' under the ' + fM(PROGRAM.envelope) + ' envelope' }
+      },
+      contingency: {
+        label: 'Contingency drawn', src: 'CTR', unit: '$M',
+        grounds: 'Contingency register — $18M authorized',
+        get: vals => vals.cont, limit: () => 18,
+        judge: v => v > 18
+          ? { bad: true, txt: 'exceeds the $18M authorized reserve' }
+          : { bad: false, txt: fM(18 - v) + ' of the $18M reserve still uncommitted' }
+      },
+      variance: {
+        label: 'Variance to approved budget', src: 'ERP', unit: '$M',
+        grounds: 'Forecast − board-approved ' + PROGRAM.approvedBudget + 'M',
+        get: vals => forecast(vals) - PROGRAM.approvedBudget,
+        judge: v => v > 0
+          ? { bad: true, txt: fM(v) + ' overrun vs the ' + fM(PROGRAM.approvedBudget) + ' board approval' }
+          : { bad: false, txt: fM(-v) + ' under the ' + fM(PROGRAM.approvedBudget) + ' board approval' }
+      },
+      committed: {
+        label: 'Committed cost (signed)', src: 'CTR', unit: '$M',
+        grounds: 'Fixed-price subcontracts + committed labor rate card',
+        get: vals => 18 + sliceVal(SLICES.find(s => s.id === 'lab'), vals), limit: () => PROGRAM.envelope,
+        judge: v => ({ bad: false, txt: fM(v) + ' contractually committed of the ' + fM(PROGRAM.envelope) + ' envelope' })
+      },
+    };
+    // what "add a measure" can resolve against — anything else is refused, and a predicted DATE is refused hard
+    const RESOLVABLE = [
+      { kw: ['forecast', 'remaining', 'complete', 'etc', 'at completion'], to: 'forecast', note: 'grounds to the summed slice decomposition' },
+      { kw: ['contingency', 'reserve', 'draw'], to: 'contingency', note: 'grounds to the contingency register (CTR)' },
+      { kw: ['variance', 'overrun', 'over budget', 'budget', 'approved'], to: 'variance', note: 'grounds to forecast − board-approved budget' },
+      { kw: ['committed', 'commitment', 'signed', 'purchase order', ' po '], to: 'committed', note: 'grounds to signed subcontracts + committed rate card' },
+      {
+        kw: ['date', 'in-service', 'in service', 'schedule', 'completion date', 'when', 'finish', 'timeline'], to: null, hard: true,
+        note: 'the graph holds committed milestone dates, but a predicted in-service date needs a forecasting model this product does not have and will not fake'
+      },
+      {
+        kw: ['per gallon', 'unit cost', 'per unit', 'throughput', 'capacity', '$/'], to: null, hard: true,
+        note: 'nothing in this graph resolves a unit cost — no throughput or treated-volume is modelled'
+      },
+    ];
 
-<script>
-/* ============================ FIXTURE (illustrative) ============================ */
-const PROGRAM = {
-  name:'PFAS treatment program',
-  site:'Veolia municipal water · GAC + ion-exchange build',
-  envelope:132,          // authorized envelope / breach line, $M
-  approvedBudget:126,    // board-approved budget the variance measure is judged against, $M
-  baselineMonths:34
-};
-// the remaining $120M forecast, decomposed into slices the graph can attribute to a driver.
-// a lever moves ONLY its own slice; locked slices never move — that is the honesty rule.
-const SLICES = [
-  { id:'mat', label:'Index-linked materials', base:48, lever:true,
-    driver:'Commodity index', unit:'%', min:-10, max:30, val:0,
-    src:'IDX', srcName:'Platts steel / GAC media index feed',
-    apply:v=>48*(1+v/100), fmt:v=>(v>0?'+':'')+v+'%',
-    trace:'48 of the 120 is priced against a published commodity index; moving the index moves this slice by exact proportion.' },
-  { id:'lab', label:'Field labor', base:30, lever:true,
-    driver:'Labor rate', unit:'%', min:-5, max:20, val:0,
-    src:'ERP', srcName:'SAP timesheets + committed rate card',
-    apply:v=>30*(1+v/100), fmt:v=>(v>0?'+':'')+v+'%',
-    trace:'30 of the 120 is labor hours × rate from committed timesheets; a rate change scales this slice only.' },
-  { id:'sub', label:'Fixed-price subcontracts', base:18, lever:false,
-    src:'CTR', srcName:'Signed lump-sum subcontracts',
-    trace:'18 is under signed fixed-price subcontracts — contractually cannot move, so no lever is exposed.' },
-  { id:'cont', label:'Contingency drawn', base:12, lever:true,
-    driver:'Contingency draw', unit:'$M', min:0, max:18, val:12,
-    src:'CTR', srcName:'Contingency register — $18M authorized',
-    apply:v=>v, fmt:v=>'$'+v+'M',
-    trace:'12 of the 18M authorized contingency is currently drawn; a scenario can model drawing up to the full 18M.' },
-  { id:'res', label:'Residual — unattributed', base:12, lever:false,
-    src:'DEF', srcName:'Not decomposable from the current graph',
-    trace:'12 of the 120 cannot be tied to any single driver from what the graph holds today. A scenario must NOT move it — moving an unattributed figure is the exact dishonesty this design refuses.' },
-];
-const leverSlices = SLICES.filter(s=>s.lever);
-const baseForecast = SLICES.reduce((t,s)=>t+s.base,0); // 120
+    /* ============================ STATE ============================ */
+    function mkScen(name) { return { name, vals: Object.fromEntries(leverSlices.map(s => [s.id, s.val])) }; }
+    function defCfg() { return Object.fromEntries(leverSlices.map(s => [s.id, { exposed: true, min: s.min, max: s.max }])); }
+    let S = {
+      step: 1, count: 2,
+      // which governed measures this what-if watches — 2 on by default, all selectable (mirrors VLS)
+      watch: { forecast: true, contingency: true, variance: false, committed: false },
+      // authoring config: which drivers are exposed + their EDITABLE range (per NS: author sets the range)
+      cfg: defCfg(),
+      scen: [mkScen('Base case'), mkScen('Steel spike')],
+      name: '', curId: null,
+      /* the library persists across visits, and it holds COMPLETE scenarios: the frame
+         (watched measures + which drivers are exposed and how far) plus its cases. A case is
+         never published on its own. One entry below is already published, one is a saved draft. */
+      saved: [
+        {
+          id: 1, name: 'Commodity index exposure — PFAS program',
+          // all four measures watched deliberately: it is the case that makes the publish preview
+          // differentiate — a reader whose masks hide committed cost sees three of the four.
+          watch: { forecast: true, contingency: true, variance: true, committed: true },
+          cfg: { mat: { exposed: true, min: -10, max: 30 }, lab: { exposed: true, min: -5, max: 20 }, cont: { exposed: true, min: 0, max: 18 } },
+          count: 2,
+          cases: [{ name: 'Base case', vals: { mat: 0, lab: 0, cont: 12 } },
+          { name: 'Steel spike +18%', vals: { mat: 18, lab: 0, cont: 12 } }],
+          pub: {
+            readers: ['ellis.hargrove@northlinewater.com', 'sofia.lindqvist@northlinewater.com'], graph: 'v4',
+            fresh: { preset: 'monday', every: 1, unit: 'week', days: ['Mon'], time: '6:00 AM' }
+          }
+        },
+        {
+          id: 2, name: 'Contingency draw-down',
+          watch: { forecast: true, contingency: true, variance: false, committed: false },
+          cfg: { mat: { exposed: false, min: -10, max: 30 }, lab: { exposed: true, min: -5, max: 20 }, cont: { exposed: true, min: 0, max: 18 } },
+          count: 1,
+          cases: [{ name: 'Full reserve drawn', vals: { mat: 0, lab: 0, cont: 18 } }],
+          pub: null
+        }
+      ],
+      sid: 3,                     // library entries store lever positions and the frame, never the computed figures
+    };
+    function curSaved() { return S.curId != null ? S.saved.find(x => x.id === S.curId) : null; }
+    function exposedLevers() { return leverSlices.filter(s => S.cfg[s.id].exposed); }
+    function clampRange(s) { const c = S.cfg[s.id]; return [Number(c.min), Number(c.max)]; }
+    function watched() { return Object.keys(MEAS).filter(k => S.watch[k]); }
+    function headlineKey() { return S.watch.forecast ? 'forecast' : (watched()[0] || 'forecast'); }
 
-/* ============================ WATCHED MEASURES ============================ */
-// Each measure is a figure the graph already computes from the same slice decomposition —
-// nothing is forecast. All recompute from a scenario's lever positions. Mirrors VLS's measure library.
-const MEAS = {
-  forecast:    { label:'Remaining forecast to complete', src:'ERP', unit:'$M',
-                 grounds:'Σ attributable slices, judged vs the authorized envelope',
-                 get:vals=>forecast(vals), limit:()=>PROGRAM.envelope, detail:true,
-                 judge:v=> v>PROGRAM.envelope
-                   ? {bad:true,  txt:fM(v-PROGRAM.envelope)+' over the '+fM(PROGRAM.envelope)+' envelope'}
-                   : {bad:false, txt:fM(PROGRAM.envelope-v)+' under the '+fM(PROGRAM.envelope)+' envelope'} },
-  contingency: { label:'Contingency drawn', src:'CTR', unit:'$M',
-                 grounds:'Contingency register — $18M authorized',
-                 get:vals=>vals.cont, limit:()=>18,
-                 judge:v=> v>18
-                   ? {bad:true,  txt:'exceeds the $18M authorized reserve'}
-                   : {bad:false, txt:fM(18-v)+' of the $18M reserve still uncommitted'} },
-  variance:    { label:'Variance to approved budget', src:'ERP', unit:'$M',
-                 grounds:'Forecast − board-approved '+PROGRAM.approvedBudget+'M',
-                 get:vals=>forecast(vals)-PROGRAM.approvedBudget,
-                 judge:v=> v>0
-                   ? {bad:true,  txt:fM(v)+' overrun vs the '+fM(PROGRAM.approvedBudget)+' board approval'}
-                   : {bad:false, txt:fM(-v)+' under the '+fM(PROGRAM.approvedBudget)+' board approval'} },
-  committed:   { label:'Committed cost (signed)', src:'CTR', unit:'$M',
-                 grounds:'Fixed-price subcontracts + committed labor rate card',
-                 get:vals=>18+sliceVal(SLICES.find(s=>s.id==='lab'),vals), limit:()=>PROGRAM.envelope,
-                 judge:v=> ({bad:false, txt:fM(v)+' contractually committed of the '+fM(PROGRAM.envelope)+' envelope'}) },
-};
-// what "add a measure" can resolve against — anything else is refused, and a predicted DATE is refused hard
-const RESOLVABLE = [
-  {kw:['forecast','remaining','complete','etc','at completion'], to:'forecast', note:'grounds to the summed slice decomposition'},
-  {kw:['contingency','reserve','draw'], to:'contingency', note:'grounds to the contingency register (CTR)'},
-  {kw:['variance','overrun','over budget','budget','approved'], to:'variance', note:'grounds to forecast − board-approved budget'},
-  {kw:['committed','commitment','signed','purchase order',' po '], to:'committed', note:'grounds to signed subcontracts + committed rate card'},
-  {kw:['date','in-service','in service','schedule','completion date','when','finish','timeline'], to:null, hard:true,
-     note:'the graph holds committed milestone dates, but a predicted in-service date needs a forecasting model this product does not have and will not fake'},
-  {kw:['per gallon','unit cost','per unit','throughput','capacity','$/'], to:null, hard:true,
-     note:'nothing in this graph resolves a unit cost — no throughput or treated-volume is modelled'},
-];
+    /* forecast math — pure decomposition, no prediction */
+    function sliceVal(s, vals) { return s.lever ? s.apply(vals[s.id]) : s.base; }
+    function forecast(vals) { return SLICES.reduce((t, s) => t + sliceVal(s, vals), 0); }
+    const fM = v => '$' + (Math.round(v * 10) / 10).toFixed(1).replace('.0', '') + 'M';
 
-/* ============================ STATE ============================ */
-function mkScen(name){ return {name, vals:Object.fromEntries(leverSlices.map(s=>[s.id,s.val]))}; }
-function defCfg(){ return Object.fromEntries(leverSlices.map(s=>[s.id,{exposed:true,min:s.min,max:s.max}])); }
-let S = {
-  step:1, count:2,
-  // which governed measures this what-if watches — 2 on by default, all selectable (mirrors VLS)
-  watch:{forecast:true, contingency:true, variance:false, committed:false},
-  // authoring config: which drivers are exposed + their EDITABLE range (per NS: author sets the range)
-  cfg:defCfg(),
-  scen:[ mkScen('Base case'), mkScen('Steel spike') ],
-  name:'', curId:null,
-  /* the library persists across visits, and it holds COMPLETE scenarios: the frame
-     (watched measures + which drivers are exposed and how far) plus its cases. A case is
-     never published on its own. One entry below is already published, one is a saved draft. */
-  saved:[
-    {id:1, name:'Commodity index exposure — PFAS program',
-     // all four measures watched deliberately: it is the case that makes the publish preview
-     // differentiate — a reader whose masks hide committed cost sees three of the four.
-     watch:{forecast:true,contingency:true,variance:true,committed:true},
-     cfg:{mat:{exposed:true,min:-10,max:30}, lab:{exposed:true,min:-5,max:20}, cont:{exposed:true,min:0,max:18}},
-     count:2,
-     cases:[{name:'Base case', vals:{mat:0,lab:0,cont:12}},
-            {name:'Steel spike +18%', vals:{mat:18,lab:0,cont:12}}],
-     pub:{readers:['ellis.hargrove@northlinewater.com','sofia.lindqvist@northlinewater.com'], graph:'v4',
-          fresh:{preset:'monday',every:1,unit:'week',days:['Mon'],time:'6:00 AM'}}},
-    {id:2, name:'Contingency draw-down',
-     watch:{forecast:true,contingency:true,variance:false,committed:false},
-     cfg:{mat:{exposed:false,min:-10,max:30}, lab:{exposed:true,min:-5,max:20}, cont:{exposed:true,min:0,max:18}},
-     count:1,
-     cases:[{name:'Full reserve drawn', vals:{mat:0,lab:0,cont:18}}],
-     pub:null}
-  ],
-  sid:3,                     // library entries store lever positions and the frame, never the computed figures
-};
-function curSaved(){ return S.curId!=null ? S.saved.find(x=>x.id===S.curId) : null; }
-function exposedLevers(){ return leverSlices.filter(s=>S.cfg[s.id].exposed); }
-function clampRange(s){ const c=S.cfg[s.id]; return [Number(c.min),Number(c.max)]; }
-function watched(){ return Object.keys(MEAS).filter(k=>S.watch[k]); }
-function headlineKey(){ return S.watch.forecast?'forecast':(watched()[0]||'forecast'); }
+    /* ============================ TABS ============================ */
+    function showTab(t) {
+      document.getElementById('tab-author').classList.toggle('on', t === 'author');
+      document.getElementById('tab-runtime').classList.toggle('on', t === 'runtime');
+      document.getElementById('pane-author').style.display = t === 'author' ? '' : 'none';
+      document.getElementById('pane-runtime').style.display = t === 'runtime' ? '' : 'none';
+      if (t === 'runtime') { syncScenCount(); renderRuntime(); } else renderAuthor();
+    }
+    function syncScenCount() {
+      while (S.scen.length < S.count) S.scen.push(mkScen('Scenario ' + (S.scen.length + 1)));
+      S.scen = S.scen.slice(0, S.count);
+    }
 
-/* forecast math — pure decomposition, no prediction */
-function sliceVal(s, vals){ return s.lever ? s.apply(vals[s.id]) : s.base; }
-function forecast(vals){ return SLICES.reduce((t,s)=>t+sliceVal(s,vals),0); }
-const fM = v=>'$'+(Math.round(v*10)/10).toFixed(1).replace('.0','')+'M';
+    /* ============================ AUTHORING ============================ */
+    function stepRail() {
+      const defs = [[1, 'Set up'], [2, 'Set your levers'], [3, 'Review']];
+      return '<div class="steps">' + defs.map(([n, t], i) =>
+        `<div class="step ${n === S.step ? 'on' : (n < S.step ? 'done' : '')}"><span class="idx">${n < S.step ? '✓' : n}</span>${t}</div>`
+        + (i < 2 ? '<span class="stepDash"></span>' : '')).join('') + '</div>';
+    }
+    function renderAuthor() {
+      const p = document.getElementById('pane-author');
+      p.innerHTML = stepRail() + (S.step === 1 ? step1() : S.step === 2 ? step2() : step3());
+    }
 
-/* ============================ TABS ============================ */
-function showTab(t){
-  document.getElementById('tab-author').classList.toggle('on',t==='author');
-  document.getElementById('tab-runtime').classList.toggle('on',t==='runtime');
-  document.getElementById('pane-author').style.display=t==='author'?'':'none';
-  document.getElementById('pane-runtime').style.display=t==='runtime'?'':'none';
-  if(t==='runtime'){ syncScenCount(); renderRuntime(); } else renderAuthor();
-}
-function syncScenCount(){
-  while(S.scen.length<S.count) S.scen.push(mkScen('Scenario '+(S.scen.length+1)));
-  S.scen=S.scen.slice(0,S.count);
-}
-
-/* ============================ AUTHORING ============================ */
-function stepRail(){
-  const defs=[[1,'Set up'],[2,'Set your levers'],[3,'Review']];
-  return '<div class="steps">'+defs.map(([n,t],i)=>
-    `<div class="step ${n===S.step?'on':(n<S.step?'done':'')}"><span class="idx">${n<S.step?'✓':n}</span>${t}</div>`
-    +(i<2?'<span class="stepDash"></span>':'')).join('')+'</div>';
-}
-function renderAuthor(){
-  const p=document.getElementById('pane-author');
-  p.innerHTML = stepRail() + (S.step===1?step1():S.step===2?step2():step3());
-}
-
-function step1(){
-  const chips = Object.entries(MEAS).map(([k,m])=>
-    `<div class="mchip ${S.watch[k]?'on':''}" onclick="S.watch['${k}']=!S.watch['${k}'];renderAuthor()">
-      <span class="srcTag ${m.src}">${m.src}</span>${m.label}${S.watch[k]?' <span class="x">✓</span>':''}</div>`).join('');
-  const segs=[1,2,3].map(n=>`<button class="${S.count===n?'on':''}" onclick="setCount(${n})">${n}</button>`).join('');
-  return `<div class="card" style="margin-bottom:16px">
+    function step1() {
+      const chips = Object.entries(MEAS).map(([k, m]) =>
+        `<div class="mchip ${S.watch[k] ? 'on' : ''}" onclick="S.watch['${k}']=!S.watch['${k}'];renderAuthor()">
+      <span class="srcTag ${m.src}">${m.src}</span>${m.label}${S.watch[k] ? ' <span class="x">✓</span>' : ''}</div>`).join('');
+      const segs = [1, 2, 3].map(n => `<button class="${S.count === n ? 'on' : ''}" onclick="setCount(${n})">${n}</button>`).join('');
+      return `<div class="card" style="margin-bottom:16px">
       <h3 style="font-size:15px;margin-bottom:3px">What are you watching move?</h3>
       <div class="help" style="margin-bottom:10px">${PROGRAM.name} · ${PROGRAM.site}. These are governed measures the graph already computes from the same cost decomposition — pick the ones each scenario should be judged against.</div>
       <div class="chipRow">${chips}</div>
@@ -341,30 +1216,30 @@ function step1(){
       <h3 style="font-size:15px;margin-bottom:3px">How many cases do you want side by side?</h3>
       <div class="help" style="margin-bottom:12px">Each case is one set of lever positions inside this scenario. Like naming cases in a spreadsheet, except every slice stays tied to its source — and readers open the scenario, never a case on its own.</div>
       <div class="seg">${segs}</div>
-      <div class="foot"><span></span><button class="btn pri" onclick="go(2)" ${watched().length?'':'disabled'}>Continue — set your levers →</button></div>
+      <div class="foot"><span></span><button class="btn pri" onclick="go(2)" ${watched().length ? '' : 'disabled'}>Continue — set your levers →</button></div>
     </div>`;
-}
-function setCount(n){ S.count=n; renderAuthor(); }
-let addMnote=''; // survives the step-1 re-render so the resolve verdict stays visible
-function resolveM(){
-  const t=(document.getElementById('addM').value||'').toLowerCase().trim();
-  if(!t){ addMnote=''; document.getElementById('addMout').innerHTML=''; return; }
-  const hit=RESOLVABLE.find(r=>r.kw.some(k=>t.includes(k)));
-  if(!hit){ addMnote=`<div class="note bad" style="margin-top:8px"><span>✕</span><div class="body"><b>Doesn't ground.</b>Nothing in this program graph resolves "${t}". A measure that doesn't map to the cost decomposition can't be watched — rephrase, or author it in Reports first.</div></div>`; }
-  else if(hit.hard){ addMnote=`<div class="note bad" style="margin-top:8px"><span>✕</span><div class="body"><b>Refused — this product will not forecast that.</b>${hit.note}.</div></div>`; }
-  else if(hit.to===null){ addMnote=`<div class="note warn" style="margin-top:8px"><span>◐</span><div class="body"><b>Grounds, but not here.</b>${hit.note}.</div></div>`; }
-  else { S.watch[hit.to]=true; addMnote=`<div class="note ok" style="margin-top:8px"><span>✓</span><div class="body"><b>Resolved — "${MEAS[hit.to].label}" added.</b>${hit.note}.</div></div>`; }
-  renderAuthor();
-}
+    }
+    function setCount(n) { S.count = n; renderAuthor(); }
+    let addMnote = ''; // survives the step-1 re-render so the resolve verdict stays visible
+    function resolveM() {
+      const t = (document.getElementById('addM').value || '').toLowerCase().trim();
+      if (!t) { addMnote = ''; document.getElementById('addMout').innerHTML = ''; return; }
+      const hit = RESOLVABLE.find(r => r.kw.some(k => t.includes(k)));
+      if (!hit) { addMnote = `<div class="note bad" style="margin-top:8px"><span>✕</span><div class="body"><b>Doesn't ground.</b>Nothing in this program graph resolves "${t}". A measure that doesn't map to the cost decomposition can't be watched — rephrase, or author it in Reports first.</div></div>`; }
+      else if (hit.hard) { addMnote = `<div class="note bad" style="margin-top:8px"><span>✕</span><div class="body"><b>Refused — this product will not forecast that.</b>${hit.note}.</div></div>`; }
+      else if (hit.to === null) { addMnote = `<div class="note warn" style="margin-top:8px"><span>◐</span><div class="body"><b>Grounds, but not here.</b>${hit.note}.</div></div>`; }
+      else { S.watch[hit.to] = true; addMnote = `<div class="note ok" style="margin-top:8px"><span>✓</span><div class="body"><b>Resolved — "${MEAS[hit.to].label}" added.</b>${hit.note}.</div></div>`; }
+      renderAuthor();
+    }
 
-function step2(){
-  const rows = leverSlices.map(s=>{
-    const c=S.cfg[s.id];
-    return `<div class="leverRow">
+    function step2() {
+      const rows = leverSlices.map(s => {
+        const c = S.cfg[s.id];
+        return `<div class="leverRow">
       <div class="lgrow">
         <div style="display:flex;align-items:center;gap:8px">
           <label style="display:flex;align-items:center;gap:7px;cursor:pointer">
-            <input type="checkbox" ${c.exposed?'checked':''} onchange="S.cfg['${s.id}'].exposed=this.checked;renderAuthor()">
+            <input type="checkbox" ${c.exposed ? 'checked' : ''} onchange="S.cfg['${s.id}'].exposed=this.checked;renderAuthor()">
             <b>${s.driver}</b></label>
           <span class="srcTag ${s.src}">${s.srcName.split(' ')[0]}</span>
         </div>
@@ -373,18 +1248,18 @@ function step2(){
       <div style="text-align:right;flex:none">
         <label class="flabel" style="margin-bottom:4px">Range (${s.unit})</label>
         <div style="display:flex;gap:6px;align-items:center">
-          <input class="inp tiny" value="${c.min}" ${c.exposed?'':'disabled'} onchange="S.cfg['${s.id}'].min=this.value">
+          <input class="inp tiny" value="${c.min}" ${c.exposed ? '' : 'disabled'} onchange="S.cfg['${s.id}'].min=this.value">
           <span class="help" style="margin:0">to</span>
-          <input class="inp tiny" value="${c.max}" ${c.exposed?'':'disabled'} onchange="S.cfg['${s.id}'].max=this.value">
+          <input class="inp tiny" value="${c.max}" ${c.exposed ? '' : 'disabled'} onchange="S.cfg['${s.id}'].max=this.value">
         </div>
       </div>
     </div>`;
-  }).join('');
-  const locked = SLICES.filter(s=>!s.lever).map(s=>
-    `<div class="lockRow"><div><b style="font-size:12.5px">${s.label}</b> <span class="srcTag ${s.src}">${s.srcName.split(' ')[0]}</span>
+      }).join('');
+      const locked = SLICES.filter(s => !s.lever).map(s =>
+        `<div class="lockRow"><div><b style="font-size:12.5px">${s.label}</b> <span class="srcTag ${s.src}">${s.srcName.split(' ')[0]}</span>
        <div class="help">${s.trace}</div></div>
      <div style="text-align:right;flex:none"><span class="pill lock">🔒 locked · ${fM(s.base)}</span></div></div>`).join('');
-  return `<div class="card" style="margin-bottom:14px">
+      return `<div class="card" style="margin-bottom:14px">
       <h3 style="font-size:15px;margin-bottom:3px">Which drivers can a scenario move — and how far?</h3>
       <div class="help" style="margin-bottom:8px">You choose the range. This is your envelope of plausible movement; the runtime slider cannot exceed it.</div>
       ${rows}
@@ -403,17 +1278,19 @@ function step2(){
     </div>
     <div class="foot"><button class="btn ghost" onclick="go(1)">← Back</button>
       <button class="btn pri" onclick="go(3)">Continue — review →</button></div>`;
-}
+    }
 
-function step3(){
-  const exp = exposedLevers();
-  const list = exp.map(s=>{ const [mn,mx]=clampRange(s);
-    return `<div class="drow moved"><span class="dk"><span class="srcTag ${s.src}">${s.srcName.split(' ')[0]}</span>${s.driver}</span>
-      <span class="dv">${mn} to ${mx} ${s.unit}</span></div>`;}).join('');
-  const lockedSlices = SLICES.filter(s=>!s.lever||!S.cfg[s.id].exposed).map(s=>
-    `<div class="drow locked"><span class="dk">🔒 ${s.label}</span><span class="dv">${fM(s.base)} held</span></div>`).join('');
-  const wl = watched().map(k=>MEAS[k].label).join(', ') || 'no measure selected';
-  return `<div class="help" style="margin-bottom:12px"><b>${PROGRAM.name}</b> · ${S.count} case${S.count>1?'s':''} · watching: ${wl}</div>
+    function step3() {
+      const exp = exposedLevers();
+      const list = exp.map(s => {
+        const [mn, mx] = clampRange(s);
+        return `<div class="drow moved"><span class="dk"><span class="srcTag ${s.src}">${s.srcName.split(' ')[0]}</span>${s.driver}</span>
+      <span class="dv">${mn} to ${mx} ${s.unit}</span></div>`;
+      }).join('');
+      const lockedSlices = SLICES.filter(s => !s.lever || !S.cfg[s.id].exposed).map(s =>
+        `<div class="drow locked"><span class="dk">🔒 ${s.label}</span><span class="dv">${fM(s.base)} held</span></div>`).join('');
+      const wl = watched().map(k => MEAS[k].label).join(', ') || 'no measure selected';
+      return `<div class="help" style="margin-bottom:12px"><b>${PROGRAM.name}</b> · ${S.count} case${S.count > 1 ? 's' : ''} · watching: ${wl}</div>
     <div class="card" style="margin-bottom:14px">
       <label class="flabel">Scenario name</label>
       <input class="inp" id="scName" value="${S.name}" placeholder="e.g. Commodity index exposure — PFAS program" style="width:100%" onchange="S.name=this.value">
@@ -421,562 +1298,1007 @@ function step3(){
     </div>
     <div class="card" style="margin-bottom:14px">
       <div class="sm-lbl" style="margin-bottom:8px">Levers a scenario may move</div>
-      ${list||'<div class="help">No drivers exposed — go back and enable at least one.</div>'}
+      ${list || '<div class="help">No drivers exposed — go back and enable at least one.</div>'}
       <div class="sm-lbl" style="margin:14px 0 8px">Held constant</div>
       ${lockedSlices}
     </div>
     <div class="note plain"><span>◈</span><div class="body"><b>This is a read-only overlay.</b>Running a scenario writes nothing to the graph and does not change the program of record. It moves an attributable slice and recomputes the total by arithmetic you can open — the value is not the arithmetic, it is that every input traces to a signed contract, a timesheet or an index feed, and that the ${fM(12)} the graph can't attribute stays locked instead of being quietly spread across the answer.</div></div>
     <div class="foot"><button class="btn ghost" onclick="go(2)">← Back</button>
-      <span style="display:flex;gap:8px"><button class="btn sec" onclick="publishScenario()" ${exp.length?'':'disabled'}>Publish scenario…</button>
-      <button class="btn pri" onclick="showTab('runtime')" ${exp.length?'':'disabled'}>Run & review →</button></span></div>
+      <span style="display:flex;gap:8px"><button class="btn sec" onclick="publishScenario()" ${exp.length ? '' : 'disabled'}>Publish scenario…</button>
+      <button class="btn pri" onclick="showTab('runtime')" ${exp.length ? '' : 'disabled'}>Run & review →</button></span></div>
     <div class="help" style="margin-top:10px">Publishing shares the <b>complete scenario</b> — never a single case. Review the cases in Runtime first if you want, then publish from here or from the scenario bar there. Start a new scenario any time with different watched measures and a different set of exposed drivers.</div>`;
-}
-function go(n){ S.step=n; renderAuthor(); }
+    }
+    function go(n) { S.step = n; renderAuthor(); }
 
-/* ============================ RUNTIME ============================ */
-function renderRuntime(){
-  const p=document.getElementById('pane-runtime');
-  const hk=headlineKey(); const hm=MEAS[hk];
-  const cmp = S.scen.map((sc,i)=>{
-    const v=hm.get(sc.vals); const j=hm.judge(v);
-    return `<div class="cmpCard"><div class="cn"><span class="scen tag" style="width:18px;height:18px;font-size:10px">${String.fromCharCode(65+i)}</span>${sc.name}</div>
-      <div class="cv" style="color:${j.bad?'var(--red)':'var(--text)'}">${hm.fmt?hm.fmt(v):fM(v)}</div>
+    /* ============================ RUNTIME ============================ */
+    function renderRuntime() {
+      const p = document.getElementById('pane-runtime');
+      const hk = headlineKey(); const hm = MEAS[hk];
+      const cmp = S.scen.map((sc, i) => {
+        const v = hm.get(sc.vals); const j = hm.judge(v);
+        return `<div class="cmpCard"><div class="cn"><span class="scen tag" style="width:18px;height:18px;font-size:10px">${String.fromCharCode(65 + i)}</span>${sc.name}</div>
+      <div class="cv" style="color:${j.bad ? 'var(--red)' : 'var(--text)'}">${hm.fmt ? hm.fmt(v) : fM(v)}</div>
       <div class="help" style="margin-top:0">${j.txt}</div></div>`;
-  }).join('');
-  const cards = S.scen.map((sc,i)=>scenCard(sc,i)).join('');
-  // headroom (Goal Seek): how far can the commodity index rise before the base scenario crosses the envelope
-  const mat=SLICES.find(s=>s.id==='mat');
-  const room = ((PROGRAM.envelope - baseForecast)/mat.base*100);
-  p.innerHTML = `<div class="rtWrap">
+      }).join('');
+      const cards = S.scen.map((sc, i) => scenCard(sc, i)).join('');
+      // headroom (Goal Seek): how far can the commodity index rise before the base scenario crosses the envelope
+      const mat = SLICES.find(s => s.id === 'mat');
+      const room = ((PROGRAM.envelope - baseForecast) / mat.base * 100);
+      p.innerHTML = `<div class="rtWrap">
     <div>${libPanel()}</div>
     <div>` + scenarioBar() + `<div class="sm-lbl" style="margin-bottom:8px">Side by side — ${hm.label} · ${S.scen.length} of max 3 cases</div>
     <div class="cmp">${cmp}</div>
     <div class="rtGrid" style="margin-bottom:16px">${cards}</div>
     <div class="card" style="margin-bottom:14px">
       <div class="sm-lbl">Headroom — the inverse question</div>
-      <div style="margin:6px 0 4px"><span class="big" style="color:${room>0?'var(--amber)':'var(--red)'}">${(room>0?'+':'')+room.toFixed(0)}%</span>
+      <div style="margin:6px 0 4px"><span class="big" style="color:${room > 0 ? 'var(--amber)' : 'var(--red)'}">${(room > 0 ? '+' : '') + room.toFixed(0)}%</span>
         <span style="color:var(--mut)"> — how far the commodity index can rise before the forecast crosses ${fM(PROGRAM.envelope)}, holding every other driver steady</span></div>
-      <div class="help">Solved from the same decomposition: only the ${fM(mat.base)} index-linked slice moves with the index, so it takes ${fM(PROGRAM.envelope-baseForecast)} of headroom ÷ ${fM(mat.base)} = ${room.toFixed(0)}%. Goal-Seek-style, exact — not a forecast.</div>
+      <div class="help">Solved from the same decomposition: only the ${fM(mat.base)} index-linked slice moves with the index, so it takes ${fM(PROGRAM.envelope - baseForecast)} of headroom ÷ ${fM(mat.base)} = ${room.toFixed(0)}%. Goal-Seek-style, exact — not a forecast.</div>
     </div>
     <div class="note info" style="margin-bottom:16px"><span>◈</span><div class="body"><b>Move a slider and the total recomputes live.</b>What a spreadsheet can't do is guarantee the ${fM(mat.base)} really is index-linked and the ${fM(18)} really is under signed fixed price — here each slice carries its source, so the decomposition itself is auditable, not just the sum. A saved scenario stores its frame and each case's lever positions — never the numbers — so it stays live as the graph and the connected tables change.</div></div>
     </div></div>`;
-}
+    }
 
-function scenCard(sc,i){
-  const exp=exposedLevers();
-  const levers = exp.map(s=>{
-    const [mn,mx]=clampRange(s); const v=sc.vals[s.id];
-    return `<div class="lever">
+    function scenCard(sc, i) {
+      const exp = exposedLevers();
+      const levers = exp.map(s => {
+        const [mn, mx] = clampRange(s); const v = sc.vals[s.id];
+        return `<div class="lever">
       <div class="lh"><span class="lk">${s.driver}</span><span class="lv" id="lv-${i}-${s.id}">${s.fmt(v)}</span></div>
-      <input type="range" min="${mn}" max="${mx}" step="${s.unit==='%'?1:1}" value="${v}"
+      <input type="range" min="${mn}" max="${mx}" step="${s.unit === '%' ? 1 : 1}" value="${v}"
         oninput="onLever(${i},'${s.id}',this.value)">
       <div class="slabel"><span>${s.fmt(mn)}</span><span>${s.fmt(mx)}</span></div>
     </div>`;
-  }).join('');
-  const rm = S.scen.length>1 ? `<span class="rm" title="Remove this case" onclick="removeCol(${i})">✕</span>` : '';
-  return `<div class="scen">
+      }).join('');
+      const rm = S.scen.length > 1 ? `<span class="rm" title="Remove this case" onclick="removeCol(${i})">✕</span>` : '';
+      return `<div class="scen">
     <div class="colHead">
-      <span class="tag">${String.fromCharCode(65+i)}</span>
+      <span class="tag">${String.fromCharCode(65 + i)}</span>
       <input class="inp" value="${sc.name}" placeholder="Name this case" style="padding:5px 9px;font-weight:600" onchange="S.scen[${i}].name=this.value;renderRuntime()">
       ${rm}</div>
-    ${levers||'<div class="help">No drivers exposed.</div>'}
+    ${levers || '<div class="help">No drivers exposed.</div>'}
     <div class="hr" style="margin:12px 0"></div>
-    <div id="ro-${i}">${scenReadout(sc,i)}</div>
+    <div id="ro-${i}">${scenReadout(sc, i)}</div>
     <div class="lnk" onclick="this.nextElementSibling.classList.toggle('open')">▸ Trace every slice to its source</div>
     <div class="reveal">
       <div class="rh">Each slice is priced from a named source — no figure is invented.</div>
-      ${SLICES.map(s=>`<div class="ri"><span class="srcTag ${s.src}">${s.srcName.split(' ')[0]}</span>
+      ${SLICES.map(s => `<div class="ri"><span class="srcTag ${s.src}">${s.srcName.split(' ')[0]}</span>
         <div><b>${s.label} · ${fM(s.base)}</b><div class="help">${s.srcName} — ${s.trace}</div></div></div>`).join('')}
     </div>
     <div class="lnk" style="margin-top:8px" onclick="toggleGref('gref-${i}')">◈ Show the graph this references</div>
     <div class="gref" id="gref-${i}">${grefScen(sc)}</div>
   </div>`;
-}
+    }
 
-/* ---- the scenario library: a persistent shelf of COMPLETE scenarios.
-       An entry stores the frame (watched measures, exposed drivers and their ranges) plus its
-       cases — the lever positions, never the computed figures. Re-opening recomputes. ---- */
-function saveCurrent(){
-  if(!S.scen.length) syncScenCount();
-  const nm = S.name || ('What-if — '+watched().map(k=>MEAS[k].label.toLowerCase()).join(' + '));
-  S.name = nm;
-  const cases = S.scen.map((sc,i)=>({ name: sc.name||('Case '+String.fromCharCode(65+i)), vals:{...sc.vals} }));
-  const frame = { watch:Object.assign({},S.watch), cfg:JSON.parse(JSON.stringify(S.cfg)), count:S.scen.length };
-  const cur=curSaved();
-  if(cur){ cur.name=nm; Object.assign(cur,frame); cur.cases=cases; }
-  else { const id=S.sid++; S.saved.push(Object.assign({ id, name:nm, cases, pub:null }, frame)); S.curId=id; }
-  renderRuntime();
-}
-// open = load a complete scenario from the library into authoring + runtime
-function openSaved(id){
-  const e=S.saved.find(x=>x.id===id); if(!e) return;
-  S.name=e.name; S.watch=Object.assign({},e.watch);
-  S.cfg=Object.assign(defCfg(), JSON.parse(JSON.stringify(e.cfg)));
-  S.count=e.cases.length;
-  S.scen=e.cases.map(c=>({ name:c.name, vals:{...c.vals} }));
-  S.curId=id; renderRuntime();
-}
-function removeCol(i){
-  if(S.scen.length<=1) return;          // always keep at least one case
-  S.scen.splice(i,1); S.count=S.scen.length; renderRuntime();
-}
-function delSaved(id){
-  S.saved=S.saved.filter(x=>x.id!==id);
-  if(S.curId===id) S.curId=null;        // the open scenario stays on screen, just unlinked
-  renderRuntime();
-}
-function scenarioBar(){
-  const e=curSaved();
-  const caseNames=S.scen.map((sc,i)=>String.fromCharCode(65+i)).join(', ');
-  const status = e
-    ? (e.pub
-        ? `<span class="savedFlag" style="color:var(--green)">● Published · ${e.pub.readers.length} reader${e.pub.readers.length>1?'s':''}</span>`
-        : `<span class="savedFlag">✓ In library</span>`)
-    : `<span class="savedFlag" style="color:var(--dim)">not saved yet</span>`;
-  const saveBtn = e
-    ? `<button class="btn sec sm" onclick="saveCurrent()">↻ Update in library</button>`
-    : `<button class="btn sec sm" onclick="saveCurrent()">＋ Save to library</button>`;
-  const pubBtn = (e&&e.pub)
-    ? `<button class="btn sec sm" onclick="publishScenario()">Manage publishing…</button>`
-    : `<button class="btn pri sm" onclick="publishScenario()">Publish scenario…</button>`;
-  return `<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    /* ---- the scenario library: a persistent shelf of COMPLETE scenarios.
+           An entry stores the frame (watched measures, exposed drivers and their ranges) plus its
+           cases — the lever positions, never the computed figures. Re-opening recomputes. ---- */
+    function saveCurrent() {
+      if (!S.scen.length) syncScenCount();
+      const nm = S.name || ('What-if — ' + watched().map(k => MEAS[k].label.toLowerCase()).join(' + '));
+      S.name = nm;
+      const cases = S.scen.map((sc, i) => ({ name: sc.name || ('Case ' + String.fromCharCode(65 + i)), vals: { ...sc.vals } }));
+      const frame = { watch: Object.assign({}, S.watch), cfg: JSON.parse(JSON.stringify(S.cfg)), count: S.scen.length };
+      const cur = curSaved();
+      if (cur) { cur.name = nm; Object.assign(cur, frame); cur.cases = cases; }
+      else { const id = S.sid++; S.saved.push(Object.assign({ id, name: nm, cases, pub: null }, frame)); S.curId = id; }
+      renderRuntime();
+    }
+    // open = load a complete scenario from the library into authoring + runtime
+    function openSaved(id) {
+      const e = S.saved.find(x => x.id === id); if (!e) return;
+      S.name = e.name; S.watch = Object.assign({}, e.watch);
+      S.cfg = Object.assign(defCfg(), JSON.parse(JSON.stringify(e.cfg)));
+      S.count = e.cases.length;
+      S.scen = e.cases.map(c => ({ name: c.name, vals: { ...c.vals } }));
+      S.curId = id; renderRuntime();
+    }
+    function removeCol(i) {
+      if (S.scen.length <= 1) return;          // always keep at least one case
+      S.scen.splice(i, 1); S.count = S.scen.length; renderRuntime();
+    }
+    function delSaved(id) {
+      S.saved = S.saved.filter(x => x.id !== id);
+      if (S.curId === id) S.curId = null;        // the open scenario stays on screen, just unlinked
+      renderRuntime();
+    }
+    function scenarioBar() {
+      const e = curSaved();
+      const caseNames = S.scen.map((sc, i) => String.fromCharCode(65 + i)).join(', ');
+      const status = e
+        ? (e.pub
+          ? `<span class="savedFlag" style="color:var(--green)">● Published · ${e.pub.readers.length} reader${e.pub.readers.length > 1 ? 's' : ''}</span>`
+          : `<span class="savedFlag">✓ In library</span>`)
+        : `<span class="savedFlag" style="color:var(--dim)">not saved yet</span>`;
+      const saveBtn = e
+        ? `<button class="btn sec sm" onclick="saveCurrent()">↻ Update in library</button>`
+        : `<button class="btn sec sm" onclick="saveCurrent()">＋ Save to library</button>`;
+      const pubBtn = (e && e.pub)
+        ? `<button class="btn sec sm" onclick="publishScenario()">Manage publishing…</button>`
+        : `<button class="btn pri sm" onclick="publishScenario()">Publish scenario…</button>`;
+      return `<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <div style="flex:1;min-width:220px"><div class="sm-lbl">Scenario</div>
-      <div style="font-weight:600;font-size:14.5px">${S.name||'Untitled scenario'}</div>
-      <div class="help" style="margin:2px 0 0">${exposedLevers().length} driver${exposedLevers().length===1?'':'s'} exposed · watching ${watched().length} measure${watched().length===1?'':'s'} · ${S.scen.length} case${S.scen.length===1?'':'s'} (${caseNames})</div></div>
+      <div style="font-weight:600;font-size:14.5px">${S.name || 'Untitled scenario'}</div>
+      <div class="help" style="margin:2px 0 0">${exposedLevers().length} driver${exposedLevers().length === 1 ? '' : 's'} exposed · watching ${watched().length} measure${watched().length === 1 ? '' : 's'} · ${S.scen.length} case${S.scen.length === 1 ? '' : 's'} (${caseNames})</div></div>
     ${status} ${saveBtn} ${pubBtn}</div>`;
-}
-function pubMeta(p){
-  const fl=(SH_PRESETS.find(x=>x.id===p.fresh.preset)||{}).t||'Custom';
-  return `points to graph ${p.graph} · refresh: ${fl==='Custom…'?'custom schedule':fl.toLowerCase()}`;
-}
-function libPanel(){
-  if(!S.saved.length) return `<div class="card"><div class="sm-lbl">Scenario library</div><div class="help" style="margin-top:6px">None yet. Save the scenario on the right to keep it here — the library stores the frame and each case's lever positions only; every figure recomputes when you re-open it.</div></div>`;
-  const rows=S.saved.map(s=>{
-    const isCur=S.curId===s.id;
-    const pubBit = s.pub
-      ? `<span style="color:var(--green);font-weight:600">● Published · ${s.pub.readers.length} reader${s.pub.readers.length>1?'s':''}</span><br>${pubMeta(s.pub)}`
-      : `<span style="color:var(--dim)">Draft — not published</span>`;
-    const pubBtn = s.pub
-      ? `<button class="btn ghost sm" onclick="event.stopPropagation();publishOpenSaved(${s.id})">Manage…</button>`
-      : `<button class="btn sec sm" onclick="event.stopPropagation();publishOpenSaved(${s.id})">Publish…</button>`;
-    const wn=Object.keys(MEAS).filter(k=>s.watch[k]).length;
-    return `<div class="libRow${isCur?' on':''}" onclick="openSaved(${s.id})">
+    }
+    function pubMeta(p) {
+      const fl = (SH_PRESETS.find(x => x.id === p.fresh.preset) || {}).t || 'Custom';
+      return `points to graph ${p.graph} · refresh: ${fl === 'Custom…' ? 'custom schedule' : fl.toLowerCase()}`;
+    }
+    function libPanel() {
+      if (!S.saved.length) return `<div class="card"><div class="sm-lbl">Scenario library</div><div class="help" style="margin-top:6px">None yet. Save the scenario on the right to keep it here — the library stores the frame and each case's lever positions only; every figure recomputes when you re-open it.</div></div>`;
+      const rows = S.saved.map(s => {
+        const isCur = S.curId === s.id;
+        const pubBit = s.pub
+          ? `<span style="color:var(--green);font-weight:600">● Published · ${s.pub.readers.length} reader${s.pub.readers.length > 1 ? 's' : ''}</span><br>${pubMeta(s.pub)}`
+          : `<span style="color:var(--dim)">Draft — not published</span>`;
+        const pubBtn = s.pub
+          ? `<button class="btn ghost sm" onclick="event.stopPropagation();publishOpenSaved(${s.id})">Manage…</button>`
+          : `<button class="btn sec sm" onclick="event.stopPropagation();publishOpenSaved(${s.id})">Publish…</button>`;
+        const wn = Object.keys(MEAS).filter(k => s.watch[k]).length;
+        return `<div class="libRow${isCur ? ' on' : ''}" onclick="openSaved(${s.id})">
       <button class="lx" title="Delete from library" onclick="event.stopPropagation();delSaved(${s.id})">✕</button>
       <div class="ln">${s.name}</div>
       <div class="lm">${pubBit}</div>
-      <div class="lm">${wn} measure${wn===1?'':'s'} watched · ${s.cases.length} case${s.cases.length===1?'':'s'}</div>
-      <div class="lb">${pubBtn}</div></div>`;}).join('');
-  return `<div class="card"><div class="sm-lbl">Scenario library · ${S.saved.length}</div>${rows}
+      <div class="lm">${wn} measure${wn === 1 ? '' : 's'} watched · ${s.cases.length} case${s.cases.length === 1 ? '' : 's'}</div>
+      <div class="lb">${pubBtn}</div></div>`;
+      }).join('');
+      return `<div class="card"><div class="sm-lbl">Scenario library · ${S.saved.length}</div>${rows}
     <div class="help" style="margin-top:9px">A library entry is the <b>complete scenario</b> — watched measures, exposed drivers and their ranges, and the cases. Select one and it opens on the right; re-opening recomputes every figure against the graph it points to.</div></div>`;
-}
-// the readout is now one block per WATCHED measure — forecast gets the full slice decomposition,
-// the others get a compact figure + judgement, all recomputed from this scenario's lever positions.
-function scenReadout(sc,i){
-  const wk=watched();
-  if(!wk.length) return '<div class="help">No measure selected — pick at least one in Authoring.</div>';
-  return wk.map(k=> k==='forecast' ? forecastDetail(sc) : measBlock(k,sc.vals)).join('');
-}
-function forecastDetail(sc){
-  const rows = SLICES.map(s=>{
-    const cur=sliceVal(s,sc.vals); const moved = s.lever && Math.abs(cur-s.base)>1e-9 && S.cfg[s.id].exposed;
-    const isLocked = !s.lever || !S.cfg[s.id].exposed;
-    const delta = cur-s.base;
-    return `<div class="drow ${moved?'moved':(isLocked?'locked':'')}">
-      <span class="dk">${isLocked?'🔒 ':''}${s.label}</span>
-      <span class="dv">${fM(cur)}${moved?` <span class="help" style="display:inline;margin:0">(${delta>0?'+':''}${fM(delta)})</span>`:''}</span></div>`;
-  }).join('');
-  const f=forecast(sc.vals); const over=f>PROGRAM.envelope;
-  const scaleMax=Math.max(f,PROGRAM.envelope)*1.05;
-  return `<div class="measure"><div class="sm-lbl" style="margin-bottom:6px"><span class="srcTag ERP">ERP</span> Remaining forecast to complete</div>
+    }
+    // the readout is now one block per WATCHED measure — forecast gets the full slice decomposition,
+    // the others get a compact figure + judgement, all recomputed from this scenario's lever positions.
+    function scenReadout(sc, i) {
+      const wk = watched();
+      if (!wk.length) return '<div class="help">No measure selected — pick at least one in Authoring.</div>';
+      return wk.map(k => k === 'forecast' ? forecastDetail(sc) : measBlock(k, sc.vals)).join('');
+    }
+    function forecastDetail(sc) {
+      const rows = SLICES.map(s => {
+        const cur = sliceVal(s, sc.vals); const moved = s.lever && Math.abs(cur - s.base) > 1e-9 && S.cfg[s.id].exposed;
+        const isLocked = !s.lever || !S.cfg[s.id].exposed;
+        const delta = cur - s.base;
+        return `<div class="drow ${moved ? 'moved' : (isLocked ? 'locked' : '')}">
+      <span class="dk">${isLocked ? '🔒 ' : ''}${s.label}</span>
+      <span class="dv">${fM(cur)}${moved ? ` <span class="help" style="display:inline;margin:0">(${delta > 0 ? '+' : ''}${fM(delta)})</span>` : ''}</span></div>`;
+      }).join('');
+      const f = forecast(sc.vals); const over = f > PROGRAM.envelope;
+      const scaleMax = Math.max(f, PROGRAM.envelope) * 1.05;
+      return `<div class="measure"><div class="sm-lbl" style="margin-bottom:6px"><span class="srcTag ERP">ERP</span> Remaining forecast to complete</div>
     ${rows}
     <div class="totalRow"><span class="tk">Total</span>
-      <span class="tv" style="color:${over?'var(--red)':'var(--text)'}">${fM(f)}</span></div>
-    <div class="bar"><div class="fill" style="width:${(f/scaleMax*100).toFixed(1)}%;background:${over?'var(--red)':'var(--green)'}"></div>
-      <div class="env" style="left:${(PROGRAM.envelope/scaleMax*100).toFixed(1)}%"></div></div>
-    <div class="slabel"><span>${over?'▲ '+fM(f-PROGRAM.envelope)+' over the '+fM(PROGRAM.envelope)+' envelope':fM(PROGRAM.envelope-f)+' under envelope'}</span><span>envelope ${fM(PROGRAM.envelope)}</span></div>
-    ${over?`<div class="note bad" style="margin-top:9px;padding:7px 10px"><span>⚠</span><div class="body">This scenario crosses the authorized envelope.</div></div>`:''}</div>`;
-}
-function measBlock(k,vals){
-  const m=MEAS[k]; const v=m.get(vals); const j=m.judge(v); const lim=m.limit?m.limit():0;
-  const scaleMax=lim?Math.max(v,lim)*1.05:0;
-  return `<div class="measure">
+      <span class="tv" style="color:${over ? 'var(--red)' : 'var(--text)'}">${fM(f)}</span></div>
+    <div class="bar"><div class="fill" style="width:${(f / scaleMax * 100).toFixed(1)}%;background:${over ? 'var(--red)' : 'var(--green)'}"></div>
+      <div class="env" style="left:${(PROGRAM.envelope / scaleMax * 100).toFixed(1)}%"></div></div>
+    <div class="slabel"><span>${over ? '▲ ' + fM(f - PROGRAM.envelope) + ' over the ' + fM(PROGRAM.envelope) + ' envelope' : fM(PROGRAM.envelope - f) + ' under envelope'}</span><span>envelope ${fM(PROGRAM.envelope)}</span></div>
+    ${over ? `<div class="note bad" style="margin-top:9px;padding:7px 10px"><span>⚠</span><div class="body">This scenario crosses the authorized envelope.</div></div>` : ''}</div>`;
+    }
+    function measBlock(k, vals) {
+      const m = MEAS[k]; const v = m.get(vals); const j = m.judge(v); const lim = m.limit ? m.limit() : 0;
+      const scaleMax = lim ? Math.max(v, lim) * 1.05 : 0;
+      return `<div class="measure">
     <div class="mrow"><span class="k"><span class="srcTag ${m.src}">${m.src}</span> ${m.label}</span>
-      <span class="v" style="color:${j.bad?'var(--red)':'var(--text)'}">${m.fmt?m.fmt(v):fM(v)}</span></div>
-    ${lim?`<div class="bar" style="margin-top:7px"><div class="fill" style="width:${(Math.max(0,v)/scaleMax*100).toFixed(1)}%;background:${j.bad?'var(--red)':'var(--green)'}"></div>
-      <div class="env" style="left:${(lim/scaleMax*100).toFixed(1)}%"></div></div>`:''}
+      <span class="v" style="color:${j.bad ? 'var(--red)' : 'var(--text)'}">${m.fmt ? m.fmt(v) : fM(v)}</span></div>
+    ${lim ? `<div class="bar" style="margin-top:7px"><div class="fill" style="width:${(Math.max(0, v) / scaleMax * 100).toFixed(1)}%;background:${j.bad ? 'var(--red)' : 'var(--green)'}"></div>
+      <div class="env" style="left:${(lim / scaleMax * 100).toFixed(1)}%"></div></div>` : ''}
     <div class="help" style="margin-top:5px">${j.txt}</div></div>`;
-}
+    }
 
-function onLever(i,id,val){
-  S.scen[i].vals[id]=Number(val);
-  const s=SLICES.find(x=>x.id===id);
-  document.getElementById('lv-'+i+'-'+id).textContent=s.fmt(Number(val));
-  document.getElementById('ro-'+i).innerHTML=scenReadout(S.scen[i],i);
-}
+    function onLever(i, id, val) {
+      S.scen[i].vals[id] = Number(val);
+      const s = SLICES.find(x => x.id === id);
+      document.getElementById('lv-' + i + '-' + id).textContent = s.fmt(Number(val));
+      document.getElementById('ro-' + i).innerHTML = scenReadout(S.scen[i], i);
+    }
 
-/* ==================== GRAPH REFERENCE (the provenance the what-if decomposes) ==================== */
-function toggleGref(id){ const e=document.getElementById(id); if(e) e.classList.toggle('open'); }
-function gnode(x,y,r,fill,label,sub,dim){
-  return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="#fff" stroke-width="1.5" ${dim?'opacity="0.4"':''}/>`
-    +(label?`<text x="${x}" y="${y+r+11}" text-anchor="middle" font-family="Inter" font-size="9" fill="var(--mut)" ${dim?'opacity="0.55"':''}>${label}</text>`:'')
-    +(sub?`<text x="${x}" y="${y+3}" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#fff" font-weight="700" ${dim?'opacity="0.7"':''}>${sub}</text>`:'');
-}
-function gedge(x1,y1,x2,y2,lbl,moved){
-  const mx=(x1+x2)/2,my=(y1+y2)/2;
-  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${moved?'var(--orange-line)':'var(--line2)'}" stroke-width="${moved?1.8:1.3}"/>`
-    +(lbl?`<text x="${mx}" y="${my-3}" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="var(--dim)">${lbl}</text>`:'');
-}
-const SRCCOL={IDX:'var(--amber)',ERP:'var(--green)',CTR:'var(--blue)',DEF:'var(--dim)'};
-function legendRow(){
-  return `<div class="legend">
+    /* ==================== GRAPH REFERENCE (the provenance the what-if decomposes) ==================== */
+    function toggleGref(id) { const e = document.getElementById(id); if (e) e.classList.toggle('open'); }
+    function gnode(x, y, r, fill, label, sub, dim) {
+      return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="#fff" stroke-width="1.5" ${dim ? 'opacity="0.4"' : ''}/>`
+        + (label ? `<text x="${x}" y="${y + r + 11}" text-anchor="middle" font-family="Inter" font-size="9" fill="var(--mut)" ${dim ? 'opacity="0.55"' : ''}>${label}</text>` : '')
+        + (sub ? `<text x="${x}" y="${y + 3}" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#fff" font-weight="700" ${dim ? 'opacity="0.7"' : ''}>${sub}</text>` : '');
+    }
+    function gedge(x1, y1, x2, y2, lbl, moved) {
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${moved ? 'var(--orange-line)' : 'var(--line2)'}" stroke-width="${moved ? 1.8 : 1.3}"/>`
+        + (lbl ? `<text x="${mx}" y="${my - 3}" text-anchor="middle" font-family="JetBrains Mono" font-size="7.5" fill="var(--dim)">${lbl}</text>` : '');
+    }
+    const SRCCOL = { IDX: 'var(--amber)', ERP: 'var(--green)', CTR: 'var(--blue)', DEF: 'var(--dim)' };
+    function legendRow() {
+      return `<div class="legend">
     <span><i class="dot" style="background:var(--orange)"></i>Forecast measure</span>
     <span><i class="dot" style="background:var(--green)"></i>Attributable slice</span>
     <span><i class="dot" style="background:var(--dim)"></i>Locked / residual</span>
     <span><i class="dot" style="background:var(--amber)"></i>Index feed</span>
     <span><i class="dot" style="background:var(--blue)"></i>Contract</span>
     <span><i class="dot" style="background:var(--green)"></i>ERP</span></div>`;
-}
-// the full frame: Forecast -> every slice -> its source system
-function grefFrame(){
-  const fx=70,fy=150; const sx=250, srcx=430;
-  const n=SLICES.length; let s='';
-  SLICES.forEach((sl,i)=>{
-    const y=40+i*(220/(n-1));
-    s+=gedge(fx,fy,sx,y,i===0?'DECOMPOSES_TO':'');
-    s+=gedge(sx,y,srcx,y,i===0?'PRICED_FROM':'');
-  });
-  SLICES.forEach((sl,i)=>{
-    const y=40+i*(220/(n-1)); const locked=!sl.lever;
-    s+=gnode(sx,y,9,locked?'var(--dim)':'var(--green)',sl.label,fM(sl.base).replace('$','').replace('M',''),locked);
-    s+=gnode(srcx,y,7,SRCCOL[sl.src]||'var(--dim)',sl.srcName.split(' ')[0],'');
-  });
-  s+=gnode(fx,fy,16,'var(--orange)','Forecast','$'+baseForecast+'M');
-  return `<div class="gh"><span>Remaining forecast decomposes into ${SLICES.length} slices, each priced from a named source</span><span class="mono">${fM(baseForecast)} → ${fM(PROGRAM.envelope)} envelope</span></div>
-    <svg viewBox="0 0 500 300" style="width:100%;height:auto;display:block">${s}</svg>${legendRow()}`;
-}
-// one scenario: same provenance, with the moved slices lit and the locked ones dimmed
-function grefScen(sc){
-  const fx=70,fy=150; const sx=250, srcx=430;
-  const n=SLICES.length; let s='';
-  SLICES.forEach((sl,i)=>{
-    const y=40+i*(220/(n-1));
-    const moved = sl.lever && S.cfg[sl.id] && S.cfg[sl.id].exposed && Math.abs(sliceVal(sl,sc.vals)-sl.base)>1e-9;
-    s+=gedge(fx,fy,sx,y,'',moved);
-    s+=gedge(sx,y,srcx,y,'',moved);
-  });
-  SLICES.forEach((sl,i)=>{
-    const y=40+i*(220/(n-1));
-    const exposed = sl.lever && S.cfg[sl.id] && S.cfg[sl.id].exposed;
-    const cur=sliceVal(sl,sc.vals);
-    const moved = exposed && Math.abs(cur-sl.base)>1e-9;
-    const dim = !exposed;
-    s+=gnode(sx,y,9,moved?'var(--orange)':(exposed?'var(--green)':'var(--dim)'),sl.label,fM(cur).replace('$','').replace('M',''),dim);
-    s+=gnode(srcx,y,7,SRCCOL[sl.src]||'var(--dim)',sl.srcName.split(' ')[0],'',dim);
-  });
-  s+=gnode(fx,fy,16,'var(--orange)','Forecast',fM(forecast(sc.vals)).replace('$','').replace('M',''));
-  return `<div class="gh"><span>Only the slices this scenario moves are lit — locked slices and the residual stay dim</span><span class="mono">recomputes on read</span></div>
-    <svg viewBox="0 0 500 300" style="width:100%;height:auto;display:block">${s}</svg>${legendRow()}`;
-}
-
-renderAuthor();
-</script>
-
-<!-- ==================== PUBLISH MODAL (self-contained) ==================== -->
-<style>
-.shOv{position:fixed;inset:0;background:rgba(20,25,35,.44);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:50px 20px 40px;overflow:auto}
-.shOv.on{display:flex}
-.shCard{background:var(--card,#fff);border:1px solid var(--line2,#d3d6db);border-radius:16px;box-shadow:0 14px 40px rgba(20,25,35,.16);width:100%;max-width:640px}
-.shHead{display:flex;align-items:flex-start;gap:12px;padding:22px 24px 0}
-.shHead h2{font-size:19px;font-weight:600;font-family:'Space Grotesk','Inter',sans-serif}
-.shHead p{color:var(--mut);font-size:12.5px;margin-top:3px}
-.shX{margin-left:auto;background:none;border:0;color:var(--dim);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px}
-.shX:hover{color:var(--text)}
-.shBody{padding:18px 24px 22px}
-.shSec{margin-bottom:20px}
-.shSec .sh2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:9px}
-.shEmWrap{position:relative}
-.shEmIn{width:100%;border:1px solid var(--line2);border-radius:7px;padding:10px 13px;font-size:13.5px;font-family:'Inter';outline:none;background:var(--inset,#f7f8f9);color:var(--text)}
-.shEmIn:focus{border-color:var(--orange-line)}
-.shDrop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid var(--line2);border-radius:11px;box-shadow:0 14px 40px rgba(20,25,35,.16);z-index:10;overflow:hidden}
-.shOpt{display:flex;align-items:center;gap:10px;padding:9px 13px;cursor:pointer;font-size:13px}
-.shOpt:hover{background:var(--card2,#f4f5f7)}
-.shOpt .em{color:var(--dim);font-size:11.5px;margin-left:auto;font-family:'JetBrains Mono',monospace}
-.shOpt.inv{border-top:1px dashed var(--line2)}
-.shOpt.inv .plus{color:var(--orange-hi);font-weight:700}
-.shRow{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--line,#e3e5e9);border-radius:11px;margin-bottom:7px;background:var(--inset,#f7f8f9)}
-.shRow .av2{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:700;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--orange-hi);flex:none}
-.shRow .rn{font-size:13px;font-weight:600;line-height:1.3}
-.shRow .re{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
-.shRow .scope{margin-left:auto;text-align:right;font-size:11.5px;line-height:1.45;max-width:260px}
-.shPill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:600}
-.shPill.full{background:var(--green-soft);color:var(--green)}
-.shPill.part{background:rgba(180,125,10,.12);color:#b47d0a}
-.shPill.zero{background:rgba(220,68,68,.10);color:#dc4444}
-.shRow .sd{color:var(--mut);margin-top:2px}
-.shRow .rx{background:none;border:0;color:var(--dim);cursor:pointer;font-size:15px;padding:2px 4px;flex:none}
-.shRow .rx:hover{color:#dc4444}
-.shHint{font-size:11.5px;color:var(--mut);line-height:1.55;background:var(--card2,#f4f5f7);border-radius:7px;padding:9px 12px;margin-top:9px}
-.shHint b{color:var(--text)}
-.shCall{font-size:12px;color:var(--mut);line-height:1.6;border-left:3px solid var(--orange-line);padding:2px 0 2px 12px;margin-bottom:11px}
-.shCall b{color:var(--text)}
-.frSel{width:100%;border:1px solid var(--line2);border-radius:var(--r-s,8px);padding:10px 13px;font-size:13px;font-family:'Inter';background:var(--inset,#f7f8f9);color:var(--text);cursor:pointer;outline:none;appearance:auto}
-.frSel:focus{border-color:var(--orange-line);background:var(--card)}
-.frNote{font-size:11.5px;color:var(--mut);margin-top:8px;line-height:1.5}
-.recPanel{border:1px solid var(--line2);border-radius:var(--r-m,11px);background:var(--card2,#f4f5f7);padding:13px 14px;margin-top:9px}
-.recRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--text)}
-.recNum{width:56px;border:1px solid var(--line2);border-radius:var(--r-s,8px);padding:7px 9px;font-size:12.5px;font-family:'Inter';background:var(--card);color:var(--text);outline:none;text-align:center}
-.recNum:focus{border-color:var(--orange-line)}
-.recSel{border:1px solid var(--line2);border-radius:var(--r-s,8px);padding:7px 9px;font-size:12.5px;font-family:'Inter';background:var(--card);color:var(--text);outline:none;cursor:pointer}
-.recSel:focus{border-color:var(--orange-line)}
-.dayRow{display:flex;gap:6px;margin-top:11px}
-.dayChip{width:34px;height:34px;border-radius:50%;border:1px solid var(--line2);background:var(--card);display:grid;place-items:center;font-size:11px;font-weight:700;cursor:pointer;color:var(--mut);transition:all .12s}
-.dayChip:hover{border-color:var(--orange-line)}
-.dayChip.on{background:var(--orange);border-color:var(--orange);color:#fff}
-.recSum{font-size:11.5px;color:var(--mut);margin-top:11px;padding-top:10px;border-top:1px dashed var(--line2);line-height:1.5}
-.recSum b{color:var(--text)}
-.shFoot{display:flex;align-items:center;gap:10px;padding:0 24px 22px}
-.shFoot .fnote{font-size:11.5px;color:var(--mut)}
-.shFoot .sp{flex:1}
-.shDone{text-align:center;padding:34px 30px 30px}
-.shDone .big{width:48px;height:48px;border-radius:50%;background:var(--green-soft);border:1px solid rgba(13,159,110,.4);color:var(--green);display:grid;place-items:center;font-size:22px;margin:0 auto 14px}
-.shDone h2{font-size:19px;margin-bottom:6px;font-family:'Space Grotesk','Inter',sans-serif}
-.shDone p{color:var(--mut);font-size:13px;line-height:1.6;max-width:440px;margin:0 auto}
-.shLink{display:flex;align-items:center;gap:10px;background:var(--inset,#f7f8f9);border:1px solid var(--line2);border-radius:7px;padding:9px 13px;margin:16px auto 6px;max-width:440px}
-.shLink .lk{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.shLink .sp{flex:1}
-.shRecap{max-width:440px;margin:14px auto 0;text-align:left;font-size:12.5px;color:var(--mut);line-height:1.7}
-.shRecap b{color:var(--text)}
-.shGov{display:inline-block;margin-top:16px;font-size:12.5px;color:var(--orange-hi);font-weight:600;text-decoration:none;cursor:pointer}
-.shGov:hover{text-decoration:underline}
-.shToast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text,#1b1e22);color:#fff;border-radius:11px;padding:12px 20px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:300}
-.shToast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-</style>
-
-<div class="shOv" id="shOv" onclick="if(event.target===this)shareClose()">
-  <div class="shCard" id="shCard"></div>
-</div>
-<div class="shToast" id="shToast"></div>
-
-<script>
-/* Demo directory — the five canonical Northline Water personas. Data-access rules live in
-   Audit & Governance; this modal only PREVIEWS their effect and never widens anyone's access.
-   `masked` lists which of the watched measures each person's field masks withhold. */
-const SH_DIR=[
- {e:'dana.whitfield@northlinewater.com', n:'Dana Whitfield', r:'Domain Architect',
-  kind:'full', masked:[], scopeNote:'', label:'Unrestricted — all 60 project rows, no field masks'},
- {e:'ellis.hargrove@northlinewater.com', n:'Ellis Hargrove', r:'Business User · Executive',
-  kind:'rules', masked:[], scopeNote:'', label:'Portfolio-wide; vendor contacts and unit rates masked — neither is a watched measure here'},
- {e:'sofia.lindqvist@northlinewater.com', n:'Sofia Lindqvist', r:'Data Analyst',
-  kind:'rules', masked:['committed'], scopeNote:'', label:'Portfolio-wide, but contract values and unit rates are masked'},
- {e:'rei.nakamura@northlinewater.com', n:'Rei Nakamura', r:'Business User · Project Level',
-  /* 8, not 9. The prototype's scope-matrix grid says 9 and its scope DEFINITION says 8;
-     the governance screen settles it by counting business unit 690 - Dunmoor East out of
-     the 60-project roster, which returns 8. This preview quotes that computed count rather
-     than restating the grid, and verify_package.py fails if the two disagree again. */
-  kind:'rules', masked:['forecast','variance'], scopeNote:'their own business unit — 8 of the 60 rows',
-  label:'Scoped to one business unit; forecast, EAC and EAC variance masked'},
- {e:'adaeze.okonjo@northlinewater.com', n:'Adaeze Okonjo', r:'Platform Admin',
-  kind:'zero', masked:['forecast','contingency','variance','committed'], scopeNote:'',
-  label:'Metadata only — refused at entitlement, zero rows'}
-];
-/* the published graphs a scenario can point to — publishing binds the scenario to one of them */
-const SH_GRAPHS=[
- {id:'v4',label:'Northline Water capital program graph · v4 — current, published Aug 14, 2026'},
- {id:'v3',label:'Northline Water capital program graph · v3 — published Jul 31, 2026'}
-];
-function shGraphLabel(id){const g=SH_GRAPHS.find(x=>x.id===id);return g?g.label:id;}
-const SH={readers:['ellis.hargrove@northlinewater.com'],graph:'v4',
- fresh:{preset:'open',every:1,unit:'week',days:['Mon'],time:'6:00 AM'},
- q:'',done:false,scen:null};
-/* Numbers freshness — the SAME recurrence interface as report publishing. */
-const SH_PRESETS=[
- {id:'open',   t:'Only when it’s opened'},
- {id:'daily',  t:'Every weekday (Mon–Fri) at 6:00 AM'},
- {id:'monday', t:'Weekly on Monday at 6:00 AM'},
- {id:'monthly',t:'Monthly on the 1st at 6:00 AM'},
- {id:'custom', t:'Custom…'}
-];
-const SH_DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const SH_TIMES=['6:00 AM','7:00 AM','8:00 AM','12:00 PM','6:00 PM'];
-function shFreshText(){
-  var R=SH.fresh;
-  if(R.preset==='open')   return 'Figures recompute from the live tables each time a reader opens it — no schedule.';
-  if(R.preset==='daily')  return 'Figures refresh at 6:00 AM, Monday to Friday.';
-  if(R.preset==='monday') return 'One refresh at the start of each week — Monday, 6:00 AM.';
-  if(R.preset==='monthly')return 'One refresh on the 1st of each month, 6:00 AM.';
-  var n=R.every>1?R.every+' '+R.unit+'s':R.unit;
-  if(R.unit==='week'){
-    if(!R.days.length) return 'Pick at least one day of the week below.';
-    return 'Occurs every '+n+' on '+R.days.join(', ')+' at '+R.time+'.';
-  }
-  if(R.unit==='month') return 'Occurs every '+n+' on the 1st at '+R.time+'.';
-  return 'Occurs every '+n+' at '+R.time+'.';
-}
-function shFreshLabel(){
-  var R=SH.fresh;
-  if(R.preset!=='custom'){for(var i=0;i<SH_PRESETS.length;i++)if(SH_PRESETS[i].id===R.preset)return SH_PRESETS[i].t;}
-  var n=R.every>1?R.every+' '+R.unit+'s':R.unit;
-  if(R.unit==='week'&&R.days.length) return 'Every '+n+' on '+R.days.join(', ')+' at '+R.time;
-  if(R.unit==='month') return 'Every '+n+' on the 1st at '+R.time;
-  return 'Every '+n+' at '+R.time;
-}
-function shSetPreset(id){SH.fresh.preset=id;shPaint();}
-function shRecEvery(v){v=parseInt(v,10);SH.fresh.every=(v>=1&&v<=99)?v:1;shPaint();}
-function shRecUnit(u){SH.fresh.unit=u;shPaint();}
-function shRecTime(t){SH.fresh.time=t;shPaint();}
-function shRecDay(d){
-  var ds=SH.fresh.days,i=ds.indexOf(d);
-  if(i>=0)ds.splice(i,1);else ds.push(d);
-  ds.sort(function(a,b){return SH_DAYS.indexOf(a)-SH_DAYS.indexOf(b);});
-  shPaint();
-}
-function shFreshHTML(){
-  var R=SH.fresh;
-  var opts=SH_PRESETS.map(function(p){
-    return '<option value="'+p.id+'"'+(R.preset===p.id?' selected':'')+'>'+p.t+'</option>';
-  }).join('');
-  var h='<select class="frSel" onchange="shSetPreset(this.value)">'+opts+'</select>';
-  if(R.preset==='custom'){
-    var units=['day','week','month'].map(function(u){
-      return '<option value="'+u+'"'+(R.unit===u?' selected':'')+'>'+u+(R.every>1?'s':'')+'</option>';
-    }).join('');
-    var times=SH_TIMES.map(function(t){return '<option'+(R.time===t?' selected':'')+'>'+t+'</option>';}).join('');
-    h+='<div class="recPanel"><div class="recRow"><span>Refresh every</span>'+
-       '<input class="recNum" type="number" min="1" max="99" value="'+R.every+'" onchange="shRecEvery(this.value)">'+
-       '<select class="recSel" onchange="shRecUnit(this.value)">'+units+'</select>'+
-       '<span>at</span><select class="recSel" onchange="shRecTime(this.value)">'+times+'</select></div>';
-    if(R.unit==='week'){
-      h+='<div class="dayRow">'+SH_DAYS.map(function(d){
-        return '<div class="dayChip'+(R.days.indexOf(d)>=0?' on':'')+'" title="'+d+'" onclick="shRecDay(\''+d+'\')">'+d[0]+'</div>';
-      }).join('')+'</div>';
     }
-    h+='<div class="recSum"><b>Summary:</b> '+shFreshText()+'</div></div>';
-  }else{
-    h+='<div class="frNote">'+shFreshText()+'</div>';
-  }
-  return h;
-}
-/* publish the COMPLETE current scenario: publishing implies saving — the library is where published scenarios live */
-function publishScenario(){
-  if(!S.scen.length) syncScenCount();
-  saveCurrent();
-  publishOpenSaved(S.curId);
-}
-function publishOpenSaved(id){
-  const e=S.saved.find(x=>x.id===id); if(!e) return;
-  SH.scen={name:e.name,cases:e.cases,watch:e.watch,savedId:id};
-  if(e.pub){ SH.readers=e.pub.readers.slice(); SH.graph=e.pub.graph;
-    SH.fresh={preset:e.pub.fresh.preset,every:e.pub.fresh.every,unit:e.pub.fresh.unit,days:e.pub.fresh.days.slice(),time:e.pub.fresh.time}; }
-  else { SH.readers=['ellis.hargrove@northlinewater.com']; SH.graph='v4';
-    SH.fresh={preset:'open',every:1,unit:'week',days:['Mon'],time:'6:00 AM'}; }
-  SH.done=false;SH.q='';document.getElementById('shOv').classList.add('on');shPaint();
-}
-function shToast(m){const t=document.getElementById('shToast');t.textContent=m;t.classList.add('on');clearTimeout(SH._tt);SH._tt=setTimeout(()=>t.classList.remove('on'),3000);}
-function shEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function shFind(e){return SH_DIR.find(p=>p.e===e)||null;}
-function shIni(n){return n.split(/[\s.@]+/).slice(0,2).map(w=>(w[0]||'').toUpperCase()).join('');}
-function shareClose(){document.getElementById('shOv').classList.remove('on');renderRuntime();}
-/* Scope preview runs over the WATCHED MEASURES, not over the cases: every case in a CAPEX
-   scenario is the same program at different lever positions, so a reader's row rules admit
-   all cases or none. What actually differs between readers is which measures their field
-   masks leave visible. */
-function shWatchedKeys(){ return Object.keys(MEAS).filter(k=>SH.scen.watch[k]); }
-function shScope(e){
-  const wk=shWatchedKeys(), all=wk.length;
-  const p=shFind(e);
-  if(!p) return {pill:'zero',pt:'Invited — no data access yet',sd:'They can open the scenario, but every figure stays withheld until their access rules are set in Audit &amp; Governance.'};
-  if(p.kind==='zero') return {pill:'zero',pt:'Sees the shell, no figures',sd:shEsc(p.label)+' — refused before the scenario is read.'};
-  const hid=wk.filter(k=>p.masked.indexOf(k)>=0);
-  const vis=all-hid.length;
-  const hn=hid.map(k=>MEAS[k].label.toLowerCase()).join(' and ');
-  if(!all) return {pill:'zero',pt:'No measure watched',sd:'This scenario watches nothing yet — there is nothing for a reader to open.'};
-  if(!vis) return {pill:'zero',pt:'Every watched measure masked',sd:shEsc(p.label)+' — the scenario opens with all '+all+' figure'+(all===1?'':'s')+' withheld.'};
-  if(hid.length) return {pill:'part',pt:'Sees '+vis+' of '+all+' measures',sd:shEsc(p.label)+' — '+shEsc(hn)+' stay'+(hid.length===1?'s':'')+' masked'+(p.scopeNote?', and only within '+shEsc(p.scopeNote):'')+'.'};
-  if(p.scopeNote) return {pill:'part',pt:'Sees all '+all+', narrower scope',sd:shEsc(p.label)+' — restricted to '+shEsc(p.scopeNote)+'.'};
-  if(p.kind==='full') return {pill:'full',pt:'Sees the full scenario',sd:shEsc(p.label)};
-  return {pill:'full',pt:'Sees all '+all+' measures',sd:shEsc(p.label)};
-}
-function shAdd(e){
-  e=e.trim().toLowerCase();if(!e)return;
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){shToast('That doesn’t look like an email address.');return;}
-  if(SH.readers.indexOf(e)<0)SH.readers.push(e);
-  SH.q='';shPaint();const el=document.getElementById('shEmIn');if(el)el.focus();
-}
-function shRemove(e){SH.readers=SH.readers.filter(x=>x!==e);shPaint();}
-function shQ(v){SH.q=v;shDrop();}
-function shKey(ev){if(ev.key==='Enter'){ev.preventDefault();const m=shMatches();if(m.length)shAdd(m[0].e);else shAdd(SH.q);}}
-function shMatches(){
-  const q=SH.q.trim().toLowerCase();if(!q)return [];
-  return SH_DIR.filter(p=>SH.readers.indexOf(p.e)<0&&(p.e.indexOf(q)>=0||p.n.toLowerCase().indexOf(q)>=0));
-}
-function shSet(k,v){SH[k]=v;shPaint();}
-function shDrop(){
-  const d=document.getElementById('shDrop');if(!d)return;
-  const q=SH.q.trim().toLowerCase();
-  if(!q){d.innerHTML='';d.style.display='none';return;}
-  let h=shMatches().map(p=>`<div class="shOpt" onclick="shAdd('${p.e}')"><b>${shEsc(p.n)}</b><span style="color:var(--dim);font-size:11px">${shEsc(p.r)}</span><span class="em">${p.e}</span></div>`).join('');
-  if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q)&&!shFind(q)&&SH.readers.indexOf(q)<0)
-    h+=`<div class="shOpt inv" onclick="shAdd('${shEsc(q)}')"><span class="plus">+ Invite</span><span class="em">${shEsc(q)}</span></div>`;
-  d.innerHTML=h;d.style.display=h?'block':'none';
-}
-function shPaint(){
-  const c=document.getElementById('shCard');
-  if(SH.done){c.innerHTML=shDoneHTML();return;}
-  const rows=SH.readers.map(e=>{
-    const p=shFind(e),s=shScope(e);
-    return `<div class="shRow"><div class="av2">${shIni(p?p.n:e)}</div>
-      <div><div class="rn">${shEsc(p?p.n:e.split('@')[0])}${p?'':' <span style="color:#b47d0a;font-size:10px;font-weight:700">INVITE</span>'}</div><div class="re">${shEsc(e)}</div></div>
+    // the full frame: Forecast -> every slice -> its source system
+    function grefFrame() {
+      const fx = 70, fy = 150; const sx = 250, srcx = 430;
+      const n = SLICES.length; let s = '';
+      SLICES.forEach((sl, i) => {
+        const y = 40 + i * (220 / (n - 1));
+        s += gedge(fx, fy, sx, y, i === 0 ? 'DECOMPOSES_TO' : '');
+        s += gedge(sx, y, srcx, y, i === 0 ? 'PRICED_FROM' : '');
+      });
+      SLICES.forEach((sl, i) => {
+        const y = 40 + i * (220 / (n - 1)); const locked = !sl.lever;
+        s += gnode(sx, y, 9, locked ? 'var(--dim)' : 'var(--green)', sl.label, fM(sl.base).replace('$', '').replace('M', ''), locked);
+        s += gnode(srcx, y, 7, SRCCOL[sl.src] || 'var(--dim)', sl.srcName.split(' ')[0], '');
+      });
+      s += gnode(fx, fy, 16, 'var(--orange)', 'Forecast', '$' + baseForecast + 'M');
+      return `<div class="gh"><span>Remaining forecast decomposes into ${SLICES.length} slices, each priced from a named source</span><span class="mono">${fM(baseForecast)} → ${fM(PROGRAM.envelope)} envelope</span></div>
+    <svg viewBox="0 0 500 300" style="width:100%;height:auto;display:block">${s}</svg>${legendRow()}`;
+    }
+    // one scenario: same provenance, with the moved slices lit and the locked ones dimmed
+    function grefScen(sc) {
+      const fx = 70, fy = 150; const sx = 250, srcx = 430;
+      const n = SLICES.length; let s = '';
+      SLICES.forEach((sl, i) => {
+        const y = 40 + i * (220 / (n - 1));
+        const moved = sl.lever && S.cfg[sl.id] && S.cfg[sl.id].exposed && Math.abs(sliceVal(sl, sc.vals) - sl.base) > 1e-9;
+        s += gedge(fx, fy, sx, y, '', moved);
+        s += gedge(sx, y, srcx, y, '', moved);
+      });
+      SLICES.forEach((sl, i) => {
+        const y = 40 + i * (220 / (n - 1));
+        const exposed = sl.lever && S.cfg[sl.id] && S.cfg[sl.id].exposed;
+        const cur = sliceVal(sl, sc.vals);
+        const moved = exposed && Math.abs(cur - sl.base) > 1e-9;
+        const dim = !exposed;
+        s += gnode(sx, y, 9, moved ? 'var(--orange)' : (exposed ? 'var(--green)' : 'var(--dim)'), sl.label, fM(cur).replace('$', '').replace('M', ''), dim);
+        s += gnode(srcx, y, 7, SRCCOL[sl.src] || 'var(--dim)', sl.srcName.split(' ')[0], '', dim);
+      });
+      s += gnode(fx, fy, 16, 'var(--orange)', 'Forecast', fM(forecast(sc.vals)).replace('$', '').replace('M', ''));
+      return `<div class="gh"><span>Only the slices this scenario moves are lit — locked slices and the residual stay dim</span><span class="mono">recomputes on read</span></div>
+    <svg viewBox="0 0 500 300" style="width:100%;height:auto;display:block">${s}</svg>${legendRow()}`;
+    }
+
+    renderAuthor();
+  </script>
+
+  <!-- ==================== PUBLISH MODAL (self-contained) ==================== -->
+  <style>
+    .shOv {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 25, 35, .44);
+      z-index: 200;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 50px 20px 40px;
+      overflow: auto
+    }
+
+    .shOv.on {
+      display: flex
+    }
+
+    .shCard {
+      background: var(--card, #fff);
+      border: 1px solid var(--line2, #d3d6db);
+      border-radius: 16px;
+      box-shadow: 0 14px 40px rgba(20, 25, 35, .16);
+      width: 100%;
+      max-width: 640px
+    }
+
+    .shHead {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 22px 24px 0
+    }
+
+    .shHead h2 {
+      font-size: 19px;
+      font-weight: 600;
+      font-family: 'Space Grotesk', 'Inter', sans-serif
+    }
+
+    .shHead p {
+      color: var(--mut);
+      font-size: 12.5px;
+      margin-top: 3px
+    }
+
+    .shX {
+      margin-left: auto;
+      background: none;
+      border: 0;
+      color: var(--dim);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px
+    }
+
+    .shX:hover {
+      color: var(--text)
+    }
+
+    .shBody {
+      padding: 18px 24px 22px
+    }
+
+    .shSec {
+      margin-bottom: 20px
+    }
+
+    .shSec .sh2 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--dim);
+      margin-bottom: 9px
+    }
+
+    .shEmWrap {
+      position: relative
+    }
+
+    .shEmIn {
+      width: 100%;
+      border: 1px solid var(--line2);
+      border-radius: 7px;
+      padding: 10px 13px;
+      font-size: 13.5px;
+      font-family: 'Inter';
+      outline: none;
+      background: var(--inset, #f7f8f9);
+      color: var(--text)
+    }
+
+    .shEmIn:focus {
+      border-color: var(--orange-line)
+    }
+
+    .shDrop {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--card);
+      border: 1px solid var(--line2);
+      border-radius: 11px;
+      box-shadow: 0 14px 40px rgba(20, 25, 35, .16);
+      z-index: 10;
+      overflow: hidden
+    }
+
+    .shOpt {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 13px;
+      cursor: pointer;
+      font-size: 13px
+    }
+
+    .shOpt:hover {
+      background: var(--card2, #f4f5f7)
+    }
+
+    .shOpt .em {
+      color: var(--dim);
+      font-size: 11.5px;
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    .shOpt.inv {
+      border-top: 1px dashed var(--line2)
+    }
+
+    .shOpt.inv .plus {
+      color: var(--orange-hi);
+      font-weight: 700
+    }
+
+    .shRow {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 10px 12px;
+      border: 1px solid var(--line, #e3e5e9);
+      border-radius: 11px;
+      margin-bottom: 7px;
+      background: var(--inset, #f7f8f9)
+    }
+
+    .shRow .av2 {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 10.5px;
+      font-weight: 700;
+      background: var(--orange-soft);
+      border: 1px solid var(--orange-line);
+      color: var(--orange-hi);
+      flex: none
+    }
+
+    .shRow .rn {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.3
+    }
+
+    .shRow .re {
+      font-size: 11px;
+      color: var(--dim);
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    .shRow .scope {
+      margin-left: auto;
+      text-align: right;
+      font-size: 11.5px;
+      line-height: 1.45;
+      max-width: 260px
+    }
+
+    .shPill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 10.5px;
+      font-weight: 600
+    }
+
+    .shPill.full {
+      background: var(--green-soft);
+      color: var(--green)
+    }
+
+    .shPill.part {
+      background: rgba(180, 125, 10, .12);
+      color: #b47d0a
+    }
+
+    .shPill.zero {
+      background: rgba(220, 68, 68, .10);
+      color: #dc4444
+    }
+
+    .shRow .sd {
+      color: var(--mut);
+      margin-top: 2px
+    }
+
+    .shRow .rx {
+      background: none;
+      border: 0;
+      color: var(--dim);
+      cursor: pointer;
+      font-size: 15px;
+      padding: 2px 4px;
+      flex: none
+    }
+
+    .shRow .rx:hover {
+      color: #dc4444
+    }
+
+    .shHint {
+      font-size: 11.5px;
+      color: var(--mut);
+      line-height: 1.55;
+      background: var(--card2, #f4f5f7);
+      border-radius: 7px;
+      padding: 9px 12px;
+      margin-top: 9px
+    }
+
+    .shHint b {
+      color: var(--text)
+    }
+
+    .shCall {
+      font-size: 12px;
+      color: var(--mut);
+      line-height: 1.6;
+      border-left: 3px solid var(--orange-line);
+      padding: 2px 0 2px 12px;
+      margin-bottom: 11px
+    }
+
+    .shCall b {
+      color: var(--text)
+    }
+
+    .frSel {
+      width: 100%;
+      border: 1px solid var(--line2);
+      border-radius: var(--r-s, 8px);
+      padding: 10px 13px;
+      font-size: 13px;
+      font-family: 'Inter';
+      background: var(--inset, #f7f8f9);
+      color: var(--text);
+      cursor: pointer;
+      outline: none;
+      appearance: auto
+    }
+
+    .frSel:focus {
+      border-color: var(--orange-line);
+      background: var(--card)
+    }
+
+    .frNote {
+      font-size: 11.5px;
+      color: var(--mut);
+      margin-top: 8px;
+      line-height: 1.5
+    }
+
+    .recPanel {
+      border: 1px solid var(--line2);
+      border-radius: var(--r-m, 11px);
+      background: var(--card2, #f4f5f7);
+      padding: 13px 14px;
+      margin-top: 9px
+    }
+
+    .recRow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+      color: var(--text)
+    }
+
+    .recNum {
+      width: 56px;
+      border: 1px solid var(--line2);
+      border-radius: var(--r-s, 8px);
+      padding: 7px 9px;
+      font-size: 12.5px;
+      font-family: 'Inter';
+      background: var(--card);
+      color: var(--text);
+      outline: none;
+      text-align: center
+    }
+
+    .recNum:focus {
+      border-color: var(--orange-line)
+    }
+
+    .recSel {
+      border: 1px solid var(--line2);
+      border-radius: var(--r-s, 8px);
+      padding: 7px 9px;
+      font-size: 12.5px;
+      font-family: 'Inter';
+      background: var(--card);
+      color: var(--text);
+      outline: none;
+      cursor: pointer
+    }
+
+    .recSel:focus {
+      border-color: var(--orange-line)
+    }
+
+    .dayRow {
+      display: flex;
+      gap: 6px;
+      margin-top: 11px
+    }
+
+    .dayChip {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--line2);
+      background: var(--card);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--mut);
+      transition: all .12s
+    }
+
+    .dayChip:hover {
+      border-color: var(--orange-line)
+    }
+
+    .dayChip.on {
+      background: var(--orange);
+      border-color: var(--orange);
+      color: #fff
+    }
+
+    .recSum {
+      font-size: 11.5px;
+      color: var(--mut);
+      margin-top: 11px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--line2);
+      line-height: 1.5
+    }
+
+    .recSum b {
+      color: var(--text)
+    }
+
+    .shFoot {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 24px 22px
+    }
+
+    .shFoot .fnote {
+      font-size: 11.5px;
+      color: var(--mut)
+    }
+
+    .shFoot .sp {
+      flex: 1
+    }
+
+    .shDone {
+      text-align: center;
+      padding: 34px 30px 30px
+    }
+
+    .shDone .big {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--green-soft);
+      border: 1px solid rgba(13, 159, 110, .4);
+      color: var(--green);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      margin: 0 auto 14px
+    }
+
+    .shDone h2 {
+      font-size: 19px;
+      margin-bottom: 6px;
+      font-family: 'Space Grotesk', 'Inter', sans-serif
+    }
+
+    .shDone p {
+      color: var(--mut);
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 440px;
+      margin: 0 auto
+    }
+
+    .shLink {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--inset, #f7f8f9);
+      border: 1px solid var(--line2);
+      border-radius: 7px;
+      padding: 9px 13px;
+      margin: 16px auto 6px;
+      max-width: 440px
+    }
+
+    .shLink .lk {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--mut);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .shLink .sp {
+      flex: 1
+    }
+
+    .shRecap {
+      max-width: 440px;
+      margin: 14px auto 0;
+      text-align: left;
+      font-size: 12.5px;
+      color: var(--mut);
+      line-height: 1.7
+    }
+
+    .shRecap b {
+      color: var(--text)
+    }
+
+    .shGov {
+      display: inline-block;
+      margin-top: 16px;
+      font-size: 12.5px;
+      color: var(--orange-hi);
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer
+    }
+
+    .shGov:hover {
+      text-decoration: underline
+    }
+
+    .shToast {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--text, #1b1e22);
+      color: #fff;
+      border-radius: 11px;
+      padding: 12px 20px;
+      font-size: 13px;
+      opacity: 0;
+      transition: all .3s;
+      pointer-events: none;
+      z-index: 300
+    }
+
+    .shToast.on {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+  </style>
+
+  <div class="shOv" id="shOv" onclick="if(event.target===this)shareClose()">
+    <div class="shCard" id="shCard"></div>
+  </div>
+  <div class="shToast" id="shToast"></div>
+
+  <script>
+    /* Demo directory — the five canonical Northline Water personas. Data-access rules live in
+       Audit & Governance; this modal only PREVIEWS their effect and never widens anyone's access.
+       `masked` lists which of the watched measures each person's field masks withhold. */
+    const SH_DIR = [
+      {
+        e: 'dana.whitfield@northlinewater.com', n: 'Dana Whitfield', r: 'Domain Architect',
+        kind: 'full', masked: [], scopeNote: '', label: 'Unrestricted — all 60 project rows, no field masks'
+      },
+      {
+        e: 'ellis.hargrove@northlinewater.com', n: 'Ellis Hargrove', r: 'Business User · Executive',
+        kind: 'rules', masked: [], scopeNote: '', label: 'Portfolio-wide; vendor contacts and unit rates masked — neither is a watched measure here'
+      },
+      {
+        e: 'sofia.lindqvist@northlinewater.com', n: 'Sofia Lindqvist', r: 'Data Analyst',
+        kind: 'rules', masked: ['committed'], scopeNote: '', label: 'Portfolio-wide, but contract values and unit rates are masked'
+      },
+      {
+        e: 'rei.nakamura@northlinewater.com', n: 'Rei Nakamura', r: 'Business User · Project Level',
+        /* 8, not 9. The prototype's scope-matrix grid says 9 and its scope DEFINITION says 8;
+           the governance screen settles it by counting business unit 690 - Dunmoor East out of
+           the 60-project roster, which returns 8. This preview quotes that computed count rather
+           than restating the grid, and verify_package.py fails if the two disagree again. */
+        kind: 'rules', masked: ['forecast', 'variance'], scopeNote: 'their own business unit — 8 of the 60 rows',
+        label: 'Scoped to one business unit; forecast, EAC and EAC variance masked'
+      },
+      {
+        e: 'adaeze.okonjo@northlinewater.com', n: 'Adaeze Okonjo', r: 'Platform Admin',
+        kind: 'zero', masked: ['forecast', 'contingency', 'variance', 'committed'], scopeNote: '',
+        label: 'Metadata only — refused at entitlement, zero rows'
+      }
+    ];
+    /* the published graphs a scenario can point to — publishing binds the scenario to one of them */
+    const SH_GRAPHS = [
+      { id: 'v4', label: 'Northline Water capital program graph · v4 — current, published Aug 14, 2026' },
+      { id: 'v3', label: 'Northline Water capital program graph · v3 — published Jul 31, 2026' }
+    ];
+    function shGraphLabel(id) { const g = SH_GRAPHS.find(x => x.id === id); return g ? g.label : id; }
+    const SH = {
+      readers: ['ellis.hargrove@northlinewater.com'], graph: 'v4',
+      fresh: { preset: 'open', every: 1, unit: 'week', days: ['Mon'], time: '6:00 AM' },
+      q: '', done: false, scen: null
+    };
+    /* Numbers freshness — the SAME recurrence interface as report publishing. */
+    const SH_PRESETS = [
+      { id: 'open', t: 'Only when it’s opened' },
+      { id: 'daily', t: 'Every weekday (Mon–Fri) at 6:00 AM' },
+      { id: 'monday', t: 'Weekly on Monday at 6:00 AM' },
+      { id: 'monthly', t: 'Monthly on the 1st at 6:00 AM' },
+      { id: 'custom', t: 'Custom…' }
+    ];
+    const SH_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const SH_TIMES = ['6:00 AM', '7:00 AM', '8:00 AM', '12:00 PM', '6:00 PM'];
+    function shFreshText() {
+      var R = SH.fresh;
+      if (R.preset === 'open') return 'Figures recompute from the live tables each time a reader opens it — no schedule.';
+      if (R.preset === 'daily') return 'Figures refresh at 6:00 AM, Monday to Friday.';
+      if (R.preset === 'monday') return 'One refresh at the start of each week — Monday, 6:00 AM.';
+      if (R.preset === 'monthly') return 'One refresh on the 1st of each month, 6:00 AM.';
+      var n = R.every > 1 ? R.every + ' ' + R.unit + 's' : R.unit;
+      if (R.unit === 'week') {
+        if (!R.days.length) return 'Pick at least one day of the week below.';
+        return 'Occurs every ' + n + ' on ' + R.days.join(', ') + ' at ' + R.time + '.';
+      }
+      if (R.unit === 'month') return 'Occurs every ' + n + ' on the 1st at ' + R.time + '.';
+      return 'Occurs every ' + n + ' at ' + R.time + '.';
+    }
+    function shFreshLabel() {
+      var R = SH.fresh;
+      if (R.preset !== 'custom') { for (var i = 0; i < SH_PRESETS.length; i++)if (SH_PRESETS[i].id === R.preset) return SH_PRESETS[i].t; }
+      var n = R.every > 1 ? R.every + ' ' + R.unit + 's' : R.unit;
+      if (R.unit === 'week' && R.days.length) return 'Every ' + n + ' on ' + R.days.join(', ') + ' at ' + R.time;
+      if (R.unit === 'month') return 'Every ' + n + ' on the 1st at ' + R.time;
+      return 'Every ' + n + ' at ' + R.time;
+    }
+    function shSetPreset(id) { SH.fresh.preset = id; shPaint(); }
+    function shRecEvery(v) { v = parseInt(v, 10); SH.fresh.every = (v >= 1 && v <= 99) ? v : 1; shPaint(); }
+    function shRecUnit(u) { SH.fresh.unit = u; shPaint(); }
+    function shRecTime(t) { SH.fresh.time = t; shPaint(); }
+    function shRecDay(d) {
+      var ds = SH.fresh.days, i = ds.indexOf(d);
+      if (i >= 0) ds.splice(i, 1); else ds.push(d);
+      ds.sort(function (a, b) { return SH_DAYS.indexOf(a) - SH_DAYS.indexOf(b); });
+      shPaint();
+    }
+    function shFreshHTML() {
+      var R = SH.fresh;
+      var opts = SH_PRESETS.map(function (p) {
+        return '<option value="' + p.id + '"' + (R.preset === p.id ? ' selected' : '') + '>' + p.t + '</option>';
+      }).join('');
+      var h = '<select class="frSel" onchange="shSetPreset(this.value)">' + opts + '</select>';
+      if (R.preset === 'custom') {
+        var units = ['day', 'week', 'month'].map(function (u) {
+          return '<option value="' + u + '"' + (R.unit === u ? ' selected' : '') + '>' + u + (R.every > 1 ? 's' : '') + '</option>';
+        }).join('');
+        var times = SH_TIMES.map(function (t) { return '<option' + (R.time === t ? ' selected' : '') + '>' + t + '</option>'; }).join('');
+        h += '<div class="recPanel"><div class="recRow"><span>Refresh every</span>' +
+          '<input class="recNum" type="number" min="1" max="99" value="' + R.every + '" onchange="shRecEvery(this.value)">' +
+          '<select class="recSel" onchange="shRecUnit(this.value)">' + units + '</select>' +
+          '<span>at</span><select class="recSel" onchange="shRecTime(this.value)">' + times + '</select></div>';
+        if (R.unit === 'week') {
+          h += '<div class="dayRow">' + SH_DAYS.map(function (d) {
+            return '<div class="dayChip' + (R.days.indexOf(d) >= 0 ? ' on' : '') + '" title="' + d + '" onclick="shRecDay(\'' + d + '\')">' + d[0] + '</div>';
+          }).join('') + '</div>';
+        }
+        h += '<div class="recSum"><b>Summary:</b> ' + shFreshText() + '</div></div>';
+      } else {
+        h += '<div class="frNote">' + shFreshText() + '</div>';
+      }
+      return h;
+    }
+    /* publish the COMPLETE current scenario: publishing implies saving — the library is where published scenarios live */
+    function publishScenario() {
+      if (!S.scen.length) syncScenCount();
+      saveCurrent();
+      publishOpenSaved(S.curId);
+    }
+    function publishOpenSaved(id) {
+      const e = S.saved.find(x => x.id === id); if (!e) return;
+      SH.scen = { name: e.name, cases: e.cases, watch: e.watch, savedId: id };
+      if (e.pub) {
+        SH.readers = e.pub.readers.slice(); SH.graph = e.pub.graph;
+        SH.fresh = { preset: e.pub.fresh.preset, every: e.pub.fresh.every, unit: e.pub.fresh.unit, days: e.pub.fresh.days.slice(), time: e.pub.fresh.time };
+      }
+      else {
+        SH.readers = ['ellis.hargrove@northlinewater.com']; SH.graph = 'v4';
+        SH.fresh = { preset: 'open', every: 1, unit: 'week', days: ['Mon'], time: '6:00 AM' };
+      }
+      SH.done = false; SH.q = ''; document.getElementById('shOv').classList.add('on'); shPaint();
+    }
+    function shToast(m) { const t = document.getElementById('shToast'); t.textContent = m; t.classList.add('on'); clearTimeout(SH._tt); SH._tt = setTimeout(() => t.classList.remove('on'), 3000); }
+    function shEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+    function shFind(e) { return SH_DIR.find(p => p.e === e) || null; }
+    function shIni(n) { return n.split(/[\s.@]+/).slice(0, 2).map(w => (w[0] || '').toUpperCase()).join(''); }
+    function shareClose() { document.getElementById('shOv').classList.remove('on'); renderRuntime(); }
+    /* Scope preview runs over the WATCHED MEASURES, not over the cases: every case in a CAPEX
+       scenario is the same program at different lever positions, so a reader's row rules admit
+       all cases or none. What actually differs between readers is which measures their field
+       masks leave visible. */
+    function shWatchedKeys() { return Object.keys(MEAS).filter(k => SH.scen.watch[k]); }
+    function shScope(e) {
+      const wk = shWatchedKeys(), all = wk.length;
+      const p = shFind(e);
+      if (!p) return { pill: 'zero', pt: 'Invited — no data access yet', sd: 'They can open the scenario, but every figure stays withheld until their access rules are set in Audit &amp; Governance.' };
+      if (p.kind === 'zero') return { pill: 'zero', pt: 'Sees the shell, no figures', sd: shEsc(p.label) + ' — refused before the scenario is read.' };
+      const hid = wk.filter(k => p.masked.indexOf(k) >= 0);
+      const vis = all - hid.length;
+      const hn = hid.map(k => MEAS[k].label.toLowerCase()).join(' and ');
+      if (!all) return { pill: 'zero', pt: 'No measure watched', sd: 'This scenario watches nothing yet — there is nothing for a reader to open.' };
+      if (!vis) return { pill: 'zero', pt: 'Every watched measure masked', sd: shEsc(p.label) + ' — the scenario opens with all ' + all + ' figure' + (all === 1 ? '' : 's') + ' withheld.' };
+      if (hid.length) return { pill: 'part', pt: 'Sees ' + vis + ' of ' + all + ' measures', sd: shEsc(p.label) + ' — ' + shEsc(hn) + ' stay' + (hid.length === 1 ? 's' : '') + ' masked' + (p.scopeNote ? ', and only within ' + shEsc(p.scopeNote) : '') + '.' };
+      if (p.scopeNote) return { pill: 'part', pt: 'Sees all ' + all + ', narrower scope', sd: shEsc(p.label) + ' — restricted to ' + shEsc(p.scopeNote) + '.' };
+      if (p.kind === 'full') return { pill: 'full', pt: 'Sees the full scenario', sd: shEsc(p.label) };
+      return { pill: 'full', pt: 'Sees all ' + all + ' measures', sd: shEsc(p.label) };
+    }
+    function shAdd(e) {
+      e = e.trim().toLowerCase(); if (!e) return;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { shToast('That doesn’t look like an email address.'); return; }
+      if (SH.readers.indexOf(e) < 0) SH.readers.push(e);
+      SH.q = ''; shPaint(); const el = document.getElementById('shEmIn'); if (el) el.focus();
+    }
+    function shRemove(e) { SH.readers = SH.readers.filter(x => x !== e); shPaint(); }
+    function shQ(v) { SH.q = v; shDrop(); }
+    function shKey(ev) { if (ev.key === 'Enter') { ev.preventDefault(); const m = shMatches(); if (m.length) shAdd(m[0].e); else shAdd(SH.q); } }
+    function shMatches() {
+      const q = SH.q.trim().toLowerCase(); if (!q) return [];
+      return SH_DIR.filter(p => SH.readers.indexOf(p.e) < 0 && (p.e.indexOf(q) >= 0 || p.n.toLowerCase().indexOf(q) >= 0));
+    }
+    function shSet(k, v) { SH[k] = v; shPaint(); }
+    function shDrop() {
+      const d = document.getElementById('shDrop'); if (!d) return;
+      const q = SH.q.trim().toLowerCase();
+      if (!q) { d.innerHTML = ''; d.style.display = 'none'; return; }
+      let h = shMatches().map(p => `<div class="shOpt" onclick="shAdd('${p.e}')"><b>${shEsc(p.n)}</b><span style="color:var(--dim);font-size:11px">${shEsc(p.r)}</span><span class="em">${p.e}</span></div>`).join('');
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q) && !shFind(q) && SH.readers.indexOf(q) < 0)
+        h += `<div class="shOpt inv" onclick="shAdd('${shEsc(q)}')"><span class="plus">+ Invite</span><span class="em">${shEsc(q)}</span></div>`;
+      d.innerHTML = h; d.style.display = h ? 'block' : 'none';
+    }
+    function shPaint() {
+      const c = document.getElementById('shCard');
+      if (SH.done) { c.innerHTML = shDoneHTML(); return; }
+      const rows = SH.readers.map(e => {
+        const p = shFind(e), s = shScope(e);
+        return `<div class="shRow"><div class="av2">${shIni(p ? p.n : e)}</div>
+      <div><div class="rn">${shEsc(p ? p.n : e.split('@')[0])}${p ? '' : ' <span style="color:#b47d0a;font-size:10px;font-weight:700">INVITE</span>'}</div><div class="re">${shEsc(e)}</div></div>
       <div class="scope"><span class="shPill ${s.pill}">${s.pt}</span><div class="sd">${s.sd}</div></div>
       <button class="rx" title="Remove" onclick="shRemove('${shEsc(e)}')">×</button></div>`;
-  }).join('');
-  const wl=shWatchedKeys().map(k=>MEAS[k].label).join(', ')||'no measure';
-  c.innerHTML=`
-   <div class="shHead"><div><h2>Publish this scenario</h2><p>The complete scenario — “${shEsc(SH.scen.name)}”, ${SH.scen.cases.length} case${SH.scen.cases.length===1?'':'s'} — goes live to the people you pick. No approval step; change readers or unpublish any time.</p></div><button class="shX" onclick="shareClose()">×</button></div>
+      }).join('');
+      const wl = shWatchedKeys().map(k => MEAS[k].label).join(', ') || 'no measure';
+      c.innerHTML = `
+   <div class="shHead"><div><h2>Publish this scenario</h2><p>The complete scenario — “${shEsc(SH.scen.name)}”, ${SH.scen.cases.length} case${SH.scen.cases.length === 1 ? '' : 's'} — goes live to the people you pick. No approval step; change readers or unpublish any time.</p></div><button class="shX" onclick="shareClose()">×</button></div>
    <div class="shBody">
    <div class="shSec"><div class="sh2">Who can open it</div>
    <div class="shEmWrap"><input class="shEmIn" id="shEmIn" placeholder="Type a name or email address…" value="${shEsc(SH.q)}" oninput="shQ(this.value)" onkeydown="shKey(event)" autocomplete="off"><div class="shDrop" id="shDrop" style="display:none"></div></div>
-   <div style="margin-top:10px">${rows||'<div style="font-size:12.5px;color:var(--dim);padding:6px 2px">No readers yet — add at least one email address.</div>'}</div>
+   <div style="margin-top:10px">${rows || '<div style="font-size:12.5px;color:var(--dim);padding:6px 2px">No readers yet — add at least one email address.</div>'}</div>
    <div class="shHint">This scenario watches <b>${shEsc(wl)}</b>. Each person opens it under their own <b>data access rules</b> — publishing never widens anyone’s access, so a masked measure stays masked here. Rules are managed in <b>Audit &amp; Governance</b>; the preview above shows the result.</div></div>
    <div class="shSec"><div class="sh2">The graph — entities &amp; relationships</div>
-   <select class="frSel" onchange="shSet('graph',this.value)">${SH_GRAPHS.map(g=>`<option value="${g.id}"${SH.graph===g.id?' selected':''}>${g.label}</option>`).join('')}</select>
+   <select class="frSel" onchange="shSet('graph',this.value)">${SH_GRAPHS.map(g => `<option value="${g.id}"${SH.graph === g.id ? ' selected' : ''}>${g.label}</option>`).join('')}</select>
    <div class="frNote">The scenario <b>points to the published graph</b> you select — every open re-traverses it, and when a newer graph is published you can repoint here.</div></div>
    <div class="shSec"><div class="sh2">The numbers — keep them fresh</div>
    <div class="shCall">The graph stores <b>which contract, timesheet and index feed prices which slice</b>, not the figures. Commitments, drawn contingency and the index level come from the <b>connected data tables</b> — they refresh on the same schedule a report does.</div>
    ${shFreshHTML()}
    </div>
    </div>
-   <div class="shFoot"><span class="fnote">Live immediately after you publish.</span><span class="sp"></span><button class="btn ghost sm" onclick="shareClose()">Cancel</button><button class="btn pri" ${SH.readers.length?'':'disabled '}onclick="shGo()">Publish scenario</button></div>`;
-  shDrop();
-}
-function shDoneHTML(){
-  const names=SH.readers.map(e=>{const p=shFind(e);return p?p.n:e;}).join(', ');
-  const gl=shGraphLabel(SH.graph);
-  const dl=shFreshLabel()+' — '+shFreshText();
-  return `<div class="shDone"><div class="big">✓</div><h2>Scenario published</h2>
-   <p>“${shEsc(SH.scen.name)}” is live for ${SH.readers.length} reader${SH.readers.length>1?'s':''}. Each opens it under their own access — same scenario, their scope. It stays in your library — come back any time to change readers or freshness.</p>
-   <div class="shLink"><span class="lk">contextweave.northlinewater.com/w/${shEsc(SH.scen.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''))}</span><span class="sp"></span><button class="btn sec sm" onclick="shToast('Link copied.')">Copy link</button></div>
-   <div class="shRecap"><b>Cases:</b> ${shEsc(SH.scen.cases.map(c=>c.name).join(' · '))}<br><b>Readers:</b> ${shEsc(names)}<br><b>Graph:</b> ${gl}.<br><b>Numbers:</b> ${dl}.<br><b>Access rules:</b> per-reader scope is managed in Audit &amp; Governance.</div>
-   <a class="shGov" href="../10_access_publishing/governance_audit_capex.html">Open Audit &amp; Governance →</a><br>
+   <div class="shFoot"><span class="fnote">Live immediately after you publish.</span><span class="sp"></span><button class="btn ghost sm" onclick="shareClose()">Cancel</button><button class="btn pri" ${SH.readers.length ? '' : 'disabled '}onclick="shGo()">Publish scenario</button></div>`;
+      shDrop();
+    }
+    function shDoneHTML() {
+      const names = SH.readers.map(e => { const p = shFind(e); return p ? p.n : e; }).join(', ');
+      const gl = shGraphLabel(SH.graph);
+      const dl = shFreshLabel() + ' — ' + shFreshText();
+      return `<div class="shDone"><div class="big">✓</div><h2>Scenario published</h2>
+   <p>“${shEsc(SH.scen.name)}” is live for ${SH.readers.length} reader${SH.readers.length > 1 ? 's' : ''}. Each opens it under their own access — same scenario, their scope. It stays in your library — come back any time to change readers or freshness.</p>
+   <div class="shLink"><span class="lk">contextweave.northlinewater.com/w/${shEsc(SH.scen.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))}</span><span class="sp"></span><button class="btn sec sm" onclick="shToast('Link copied.')">Copy link</button></div>
+   <div class="shRecap"><b>Cases:</b> ${shEsc(SH.scen.cases.map(c => c.name).join(' · '))}<br><b>Readers:</b> ${shEsc(names)}<br><b>Graph:</b> ${gl}.<br><b>Numbers:</b> ${dl}.<br><b>Access rules:</b> per-reader scope is managed in Audit &amp; Governance.</div>
+   <a class="shGov" href="../10_access_publishing/governance_audit_capex.html"></a><br>
    <button class="btn sec sm" style="margin-top:14px" onclick="newScenario()">＋ Start a new scenario</button>
    <button class="btn ghost sm" style="margin-top:14px" onclick="shareClose()">Done</button></div>`;
-}
-/* after publishing, start over: fresh frame, fresh cases — a different watched-measure set and different exposed drivers */
-function newScenario(){
-  document.getElementById('shOv').classList.remove('on');
-  S.step=1; S.name=''; S.curId=null; S.count=2;
-  S.watch={forecast:true, contingency:true, variance:false, committed:false};
-  S.cfg=defCfg();
-  S.scen=[ mkScen('Base case'), mkScen('Scenario B') ];
-  showTab('author');
-}
-function shGo(){
-  if(!SH.readers.length)return;
-  if(SH.fresh.preset==='custom'&&SH.fresh.unit==='week'&&!SH.fresh.days.length)return;
-  const e=S.saved.find(x=>x.id===SH.scen.savedId);
-  if(e) e.pub={readers:SH.readers.slice(),graph:SH.graph,
-    fresh:{preset:SH.fresh.preset,every:SH.fresh.every,unit:SH.fresh.unit,days:SH.fresh.days.slice(),time:SH.fresh.time}};
-  SH.done=true;shPaint();
-}
-</script>
+    }
+    /* after publishing, start over: fresh frame, fresh cases — a different watched-measure set and different exposed drivers */
+    function newScenario() {
+      document.getElementById('shOv').classList.remove('on');
+      S.step = 1; S.name = ''; S.curId = null; S.count = 2;
+      S.watch = { forecast: true, contingency: true, variance: false, committed: false };
+      S.cfg = defCfg();
+      S.scen = [mkScen('Base case'), mkScen('Scenario B')];
+      showTab('author');
+    }
+    function shGo() {
+      if (!SH.readers.length) return;
+      if (SH.fresh.preset === 'custom' && SH.fresh.unit === 'week' && !SH.fresh.days.length) return;
+      const e = S.saved.find(x => x.id === SH.scen.savedId);
+      if (e) e.pub = {
+        readers: SH.readers.slice(), graph: SH.graph,
+        fresh: { preset: SH.fresh.preset, every: SH.fresh.every, unit: SH.fresh.unit, days: SH.fresh.days.slice(), time: SH.fresh.time }
+      };
+      SH.done = true; shPaint();
+    }
+  </script>
 </body>
+
 </html>
