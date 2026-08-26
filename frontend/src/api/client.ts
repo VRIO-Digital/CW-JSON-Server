@@ -7663,11 +7663,41 @@ export interface GovernanceEvent {
   detail: string
 }
 
+/**
+ * The rendered Audit & Governance screen a dataset ships, or `null` where the screen is computed.
+ *
+ * The same arrangement as `WhatIfDocument`: a dataset can ship a finished page instead of a set of
+ * figures to resolve per request, and the page frames it rather than transcribing what it says.
+ */
+export interface GovernanceDocument {
+  documentId: string
+  /** The file, relative to the dataset's `audit-governance` folder. Resolved to a URL by the page. */
+  file: string
+  title: string
+  heading: string
+  subtitle: string
+  tabs: { key: string; label: string }[]
+  /** Where the screen came from — the package, which screen of it, and when it was generated. */
+  package: string
+  screen: string
+  generated: string
+  /** The roster every count on the page is resolved against, stated rather than recomputed here. */
+  rosterTotal: number
+}
+
 export interface GovernanceView {
   connectedSources: number
   publishedCount: number
   builtCount: number
   draftCount: number
+  /**
+   * The rendered screen this dataset ships, or `null`.
+   *
+   * Served on the **open branch only**: this page governs published artifacts, so a framed screen with
+   * nothing published would describe reports and scenarios nobody released. The gate is tested before
+   * this field is read, exactly as the What-if page tests it before `frame.document`.
+   */
+  document: GovernanceDocument | null
   rosterTotal: number
   bases: GovernanceBasis[]
   people: GovernancePerson[]
@@ -7691,6 +7721,23 @@ const GOVERNANCE_VIEW = shape({
   published_count: num,
   built_count: num,
   draft_count: num,
+  /* `nullable` accepts an absent key as well as null, which is what a dataset with a computed screen
+     sends. A *present* one is checked in full — it is what the page frames instead of the rules, so a
+     missing `file` is a blank frame and a missing `title` is a frame with no accessible name. */
+  document: nullable(
+    shape({
+      document_id: str,
+      file: str,
+      title: str,
+      heading: str,
+      subtitle: str,
+      tabs: arrayOf(shape({ key: str, label: str })),
+      package: str,
+      screen: str,
+      generated: str,
+      roster_total: num,
+    }),
+  ),
   roster_total: num,
   bases: arrayOf(
     shape({
@@ -7756,6 +7803,18 @@ interface RawGovernanceView {
   published_count: number
   built_count: number
   draft_count: number
+  document: {
+    document_id: string
+    file: string
+    title: string
+    heading: string
+    subtitle: string
+    tabs: { key: string; label: string }[]
+    package: string
+    screen: string
+    generated: string
+    roster_total: number
+  } | null
   roster_total: number
   bases: GovernanceBasis[]
   people: {
@@ -7809,6 +7868,20 @@ const toGovernanceView = (raw: RawGovernanceView): GovernanceView => ({
   publishedCount: raw.published_count,
   builtCount: raw.built_count,
   draftCount: raw.draft_count,
+  document: raw.document
+    ? {
+        documentId: raw.document.document_id,
+        file: raw.document.file,
+        title: raw.document.title,
+        heading: raw.document.heading,
+        subtitle: raw.document.subtitle,
+        tabs: raw.document.tabs,
+        package: raw.document.package,
+        screen: raw.document.screen,
+        generated: raw.document.generated,
+        rosterTotal: raw.document.roster_total,
+      }
+    : null,
   rosterTotal: raw.roster_total,
   bases: raw.bases,
   people: raw.people.map((p) => ({

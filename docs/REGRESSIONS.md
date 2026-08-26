@@ -4335,3 +4335,70 @@ Break-tested both ways — dropping the drive, and dropping one extraction row.
 that dataset.* Every such guard here now has a per-dataset twin or a loop over the documents; the tell
 is a claim whose subject is a `db.*` key rather than a file of source, and whose reason is about what a
 control or a renderer does with the values.
+---
+
+## An injected stylesheet loses to the document's *body-level* one — and it loses in halves
+
+**Symptom.** The CAPEX What-if lens's *Scenario published* dialog ended in an orange **Open Audit &
+Governance →**, an anchor at a sibling of the package it was exported from, which can only 404 inside the
+frame. Asked to remove it, `DocumentViewer` grew one more injected rule:
+`.shGov, .shGov + br { display: none }`. Reported back with a screenshot in which **the line break was
+gone and the link was still there**, sitting inline beside *Start a new scenario* and *Done* — which reads
+as a typo in the half that failed, and there is no typo.
+
+**Cause.** These documents carry **two** stylesheets: one in `<head>`, and a second **inside `<body>`**,
+which is where `.shOv`, `.shGov` and the rest of the publish dialog are declared. The injected sheet is
+appended to `<head>`, so it is *earlier* in document order than the block it is trying to beat, and at
+equal specificity the later rule wins. `.shGov` lost to the document's own `display: inline-block`;
+`.shGov + br` won because nothing else styles that `br`. **A rule that lands for exactly the selectors
+nobody else had written a rule for is the tell**, and it is indistinguishable from a half-wrong selector
+list.
+
+**Which dated an older bug by the same mechanism.** `.shOv { background: #fff }` — the opaque scrim, added
+because opening *Publish this scenario* washed the whole lens grey — is a rule against that same
+body-level block, so it had been inert since the day it was written, and the grey was visible in the
+screenshot that reported the link. The reason it was never caught is the rule *beside* it:
+`html, body { background: #fff }` works, because `body` is declared in the **head** sheet. One injection,
+two neighbours, opposite outcomes, decided by which stylesheet the document happens to declare a selector
+in.
+
+**Fix.** Every declaration in `SEAMLESS_CSS` carries `!important`. Appending the injection to the end of
+`<body>` instead would work by luck of ordering and break at the next export that moves a block; weight
+says what is meant — the frame's rule beats whatever the generator emits, wherever it emits it.
+
+**Guard.** The seamless claim pins `!important` on every rule **and asserts the fact underneath it**: that
+`<body>` really does precede `.shOv{` and `.shGov{` in the served document. That ordering probe was itself
+written as a literal `.shOv{` first, and the lens has since been re-exported with its CSS pretty-printed —
+`.shOv {` — so the probe found neither declaration and reported the ordering as false, which would have
+read as *the weight is unnecessary*. It matches `\.name\s*\{` now, through `String.raw` so the escapes
+survive the template literal.
+
+**The general shape.** *An injected stylesheet is only as strong as the document's own cascade, and that
+cascade is not a property you can read off its `<head>`.* When a rule reaches into somebody else's file,
+the competing declaration decides the outcome — so either state the weight or assert the ordering, and
+never infer either from the rule beside it that happens to work.
+
+---
+
+## Work that was never committed came back as a bug report
+
+**Symptom.** Asked to remove the same orange link a second time, in a screenshot that also showed the grey
+scrim the previous session had fixed. The working tree had neither fix: `DocumentViewer.tsx` was back at
+its pre-session state, and the `check-docs` claim, the CLAUDE.md paragraph and the regression entry above
+were all absent.
+
+**Cause.** Two sessions' worth of edits sat uncommitted across a `git merge` of the same branch from the
+remote. The commit that followed (*"changed the url"*) captured a different, later batch — the `/backend`
+API prefix and the Vite `allowedHosts` — so the tree looked deliberate: recent work committed, nothing
+staged, no conflict markers, no stashes. `git log -S "shGov"` returned nothing, which is what told the two
+apart: the fix had never been in history at all, so it was not reverted, it was overwritten.
+
+**What it cost, and the guard.** The second implementation was not wasted — it found the body-level
+stylesheet cause that the first one only half-fixed — but the diagnosis had to be redone from a screenshot.
+The check is cheap and worth making a habit: when a fix is reported as still broken, `git log -S "<the
+token the fix introduced>" -- <file>` **before** re-diagnosing. Nothing in history means the code never
+landed; a commit that touched it means the fix is real and the cause is elsewhere.
+
+**The general shape.** *A working tree that looks clean says nothing about whether your work is in it.*
+Uncommitted edits do not survive somebody else's merge of the same branch, and the failure arrives as a bug
+report about a fix that is genuinely no longer there.

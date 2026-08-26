@@ -1018,6 +1018,18 @@ const DB_SHAPE = {
      * section reads as a report section with nothing to govern.
      */
     isObject(v.governance) &&
+    /*
+     * A rendered governance screen is optional — EPA computes its own and has none — but a *present*
+     * pointer has to carry the two fields the page cannot do without, exactly as `whatif.document` does.
+     * Neither absence throws: with no `file` the frame resolves to no URL and the viewer reports a
+     * missing document, and with no `title` the frame has no accessible name and the opening notice
+     * says `undefined`.
+     */
+    (v.governance.document === null ||
+      v.governance.document === undefined ||
+      (isObject(v.governance.document) &&
+        typeof v.governance.document.file === 'string' &&
+        typeof v.governance.document.title === 'string')) &&
     Array.isArray(v.governance.statuses) &&
     v.governance.statuses.length > 0 &&
     /* A state needs all three: the chip reads the label and tints itself from the tone, so a
@@ -1187,6 +1199,8 @@ const DB_HINTS = {
     'summary_catalog[], summary_default[], saved[], data{ generators[], facilities[], ' +
     'quarters[], traces[] }, reports[] of { report_id, heading, spine, blocks[], ' +
     'tiles[], footer[] } and ' +
+    'a dataset whose Audit & Governance screen is a rendered page carries it as ' +
+    'governance.document{file,title}, from "npm run ingest:capex", and ' +
     'governance{ statuses[] of { key, label, tone }, reports[] of ' +
     '{ report_id, status naming one of those states, version, author, category, audience[] }, ' +
     'data_scope[], gate_notes{}, publishing{ lead, name{}, readers{ caveat saying ' +
@@ -6709,9 +6723,28 @@ const governanceRemoveReader = async (artifact, email) => {
 }
 
 /** The page's whole payload. */
+/**
+ * The rendered Audit & Governance screen this dataset ships, or `null`.
+ *
+ * **A dataset's governance screen can be a document, exactly as its reports and its What-if lens can.**
+ * EPA's is computed — every rule resolved against the 36-generator register per request, every count
+ * derived rather than stored, and the *recorded, not enforced* sentence served beside it. CAPEX ships the
+ * finished screen: its two gates, its directory, its four published artifacts and its audit trail, every
+ * figure resolved against the 60-project roster by the page itself. So the pointer rides on the payload
+ * and the client frames it, which is the arrangement `whatif.document` already has.
+ *
+ * **Behind the publish gate, on the open branch only.** This page governs *published* artifacts, so with
+ * nothing published a framed screen would describe reports and scenarios nobody released — the same
+ * reasoning that put the What-if document behind the gate after it briefly rode both branches. The gated
+ * branch is the shared `NoPublishedGraph`, for every dataset alike.
+ */
+const governanceDocument = () =>
+  reportGraphCounts().published_count > 0 ? (db.reports.governance.document ?? null) : null
 const governanceView = () => ({
   connected_sources: connectedSources().length,
   ...reportGraphCounts(),
+  /* Null wherever the screen is computed, and null for every dataset while the gate is closed. */
+  document: governanceDocument(),
   roster_total: registerRows().length,
   bases: governanceBases(),
   people: governancePeople(),

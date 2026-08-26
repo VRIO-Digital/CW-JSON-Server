@@ -449,7 +449,7 @@ const MIN_FRAME_PX = 420
 /**
  * What the app paints into a seamless document, and it is a stylesheet and nothing else.
  *
- * Two rules, both asked for, and both applied from here for the reason the mock-API pill's is: the
+ * Five rules, each asked for, and all applied from here for the reason the mock-API pill's is: a
  * document's `_meta` says *"never hand-edit this file — change the generator and rebuild"*, so an edit
  * would be lost at the next export and would silently come back. A rule holds for whatever version is
  * dropped in and keeps the file byte-identical to what produced it.
@@ -472,12 +472,40 @@ const MIN_FRAME_PX = 420
  *   outside: a parent cannot otherwise be styled by a descendant's class. Where `:has()` is not
  *   supported the rule is inert and the old behaviour returns, which is a visible fallback rather than
  *   a broken page.
+ * - **The lens receipt's link out of the app.** *Scenario published* ends in an orange *Open Audit &
+ *   Governance →* (`.shGov`), an anchor at `../10_access_publishing/governance_audit_capex.html` — a
+ *   sibling of the document in the package it was exported from, and a path no bundle here carries, so
+ *   inside the frame it is the most emphatic control on the dialog and it can only 404. The fact it
+ *   stated is still on the dialog in words one line above it (*"per-reader scope is managed in Audit &
+ *   Governance"*), which is why hiding it loses a broken route rather than the sentence. Its trailing
+ *   `<br>` goes with it, or the removed line keeps its blank.
+ * - **And a document's own top bar.** The Audit & Governance screen this dataset ships draws one: the
+ *   ContextWeave wordmark, a breadcrumb, and an avatar naming *Dana Whitfield, Domain Architect*.
+ *   Inside this app that is a second wordmark under the first and a second identity beside the one in
+ *   the sidebar, naming somebody the reader is not. It is the decision made when the report prototype
+ *   was vendored — its `main.tsx` and its `Sidebar` were dropped because this app draws the frame and
+ *   the prototype's named a different persona. `body > .top` rather than `.top`, so it reaches a
+ *   document's own chrome and not a `.top` nested somewhere inside its content; the rule is inert for
+ *   a document that draws no bar, which the What-if lens does not.
  *
- * These name the document's own classes, which is a real coupling and the same one `.apiFab` already is:
- * it is the price of not editing a generated file, and it fails visibly rather than silently — a renamed
- * class leaves the rule inert and the grey comes back.
+ * **Every declaration is `!important`, and that is load-bearing rather than a shortcut.** These
+ * documents carry *two* stylesheets — one in `<head>`, and a second **inside `<body>`**, which is where
+ * `.shOv`, `.shGov` and the rest of the publish dialog are declared. A sheet appended to `<head>` is
+ * therefore *earlier* in document order than the rules it means to beat, and at equal specificity the
+ * later one wins. The failure is half-silent and reads as a selector typo: hiding the receipt's link
+ * took its trailing `<br>` (which nothing else styles) and left the link itself, and the white scrim
+ * was inert from the day it was written while the ground beside it worked — because `body` is declared
+ * in the *head* sheet and `.shOv` is not. Appending the injection to the end of `<body>` would fix it
+ * by luck of ordering and break at the next export that moves a block; weight states the intent
+ * instead, which is that the frame's rule beats whatever the generator emits, wherever it emits it.
+ *
+ * These name the documents' own classes, which is a real coupling and the same one `.apiFab` already
+ * is: it is the price of not editing a generated file, and it fails visibly rather than silently — a
+ * renamed class leaves the rule inert and the grey comes back.
  */
 const SEAMLESS_CSS =
-  ' html, body { background: #fff }' +
-  ' .shOv { background: #fff }' +
-  ' body:has(.shOv.on) { overflow: hidden }'
+  ' html, body { background: #fff !important }' +
+  ' .shOv { background: #fff !important }' +
+  ' body:has(.shOv.on) { overflow: hidden !important }' +
+  ' .shGov, .shGov + br { display: none !important }' +
+  ' body > .top { display: none !important }'

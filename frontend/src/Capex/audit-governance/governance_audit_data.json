@@ -1,0 +1,2869 @@
+{
+ "meta": {
+  "package": "capex_demo_data_package_2026-08-18",
+  "screen": "10 — Access & publishing · Audit & Governance",
+  "source_prototype": "vls_demo_data_package_2026-08-10/10_access_publishing/governance_audit_vls.html, ported by _build/build_governance_v2.py onto the 60-project CAPEX roster",
+  "generated": "2026-08-18",
+  "note": "Extracted from the built page at runtime by _build/extract_governance.js. Every scope figure below was computed by the page from projects[], not typed. Re-run the extractor rather than editing this file.",
+  "cross_references": {
+   "07_reports": "the three published reports, their versions, authors and refresh contracts",
+   "09_What if lens": "the published scenario and its per-reader preview",
+   "05_knowledge_graph": "the fields a restriction may run on are graph attributes of a project"
+  }
+ },
+ "model_rules": {
+  "two_gates": "Gate 1 decides whether an artifact EXISTS for a viewer (component 13, audience). Gate 2 decides which ROWS a viewer sees inside it (component 12, data scope). They are independent: a viewer can be correctly entitled and correctly see zero rows.",
+  "counts_are_computed": "Every count on this screen — \"sees 8 of 60\" — is derived from the roster at paint time. No count is stored. A stated count stops being true the moment the roster changes and nothing notices.",
+  "rule_shape": "A person is full-scope, or restricted by exactly one BASIS field plus the values of it they may see. A separate boolean mask hides row-level money while leaving totals visible.",
+  "legal_basis": "A field qualifies as a restriction basis only if every one of its values maps to a definite, non-empty set of the roster. Continuous measures — forecast, EAC variance, percent complete — are excluded: a rule on them re-resolves every week, which makes it a filter, not an access rule.",
+  "no_approval": "There is no approval queue. Publishing, granting and revoking are immediate and logged. (Superseded the earlier CAPEX draft, which carried a six-item approval queue.)",
+  "admin_holds_none": "The platform administrator administers entitlement and does not thereby acquire it. Their zero scope is by design, not omission.",
+  "publishing_never_widens": "Adding a reader to an artifact grants existence, never rows. The reader opens it under their own rule."
+ },
+ "roster": {
+  "count": 60,
+  "note": "The same 60 demo projects the reports, traces and scope predicates are all counted against. Labelled by project code because names collide — five \"Reservoir Rehabilitation\" rows, six \"Clearwell Replacement\", and municipality does not break the tie.",
+  "projects": [
+   {
+    "n": "C23B225_690 · Dunmoor East Filter Rehabilitation and Media Renewal Programme",
+    "reg": "Lakeshore Region",
+    "bu": "690 - Dunmoor East",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C25B175_675 · Redmont Well Field Expansion and Raw Water Transmission",
+    "reg": "Cascadia Region",
+    "bu": "675 - Redmont",
+    "cat": "Plant large projects",
+    "comp": "Committed to Third Party"
+   },
+   {
+    "n": "C25B315_658 · Draycott PFAS Treatment Facility — Quarrydown Water Treatment Plant",
+    "reg": "Eastmoor Region",
+    "bu": "658 - Draycott",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "CZZF50229_623 · Marlow Creek Westbrook Lead Service Line Replacement Programme",
+    "reg": "Northvale Region",
+    "bu": "623 - Marlow Creek",
+    "cat": "Lead Capex Budget Category",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "CZZF5034_698 · Selby Point Water Main Replacement Programme",
+    "reg": "Lakeshore Region",
+    "bu": "698 - Selby Point",
+    "cat": "Network blankets",
+    "comp": "Committed to Third Party"
+   },
+   {
+    "n": "C23B161_694 · Harrowgate Reservoir Rehabilitation",
+    "reg": "Lakeshore Region",
+    "bu": "694 - Harrowgate",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C23B162_694 · Harrowgate Clearwell Replacement",
+    "reg": "Lakeshore Region",
+    "bu": "694 - Harrowgate",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B177_694 · Harrowgate WTP Replacement",
+    "reg": "Lakeshore Region",
+    "bu": "694 - Harrowgate",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C23B180_645 · Thornbury Reservoir Rehabilitation",
+    "reg": "Eastmoor Region",
+    "bu": "645 - Thornbury",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B222_682 · Pinehurst Pump Station Rebuild",
+    "reg": "Cascadia Region",
+    "bu": "682 - Pinehurst",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B235_640 · Belmara Central Clearwell Replacement",
+    "reg": "Eastmoor Region",
+    "bu": "640 - Belmara Central",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B293_612 · Kestrel Valley Bellwater",
+    "reg": "Northvale Region",
+    "bu": "612 - Kestrel Valley",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B371_640 · Belmara Central Reservoir Rehabilitation",
+    "reg": "Eastmoor Region",
+    "bu": "640 - Belmara Central",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B372_612 · Kestrel Valley Reservoir Rehabilitation",
+    "reg": "Northvale Region",
+    "bu": "612 - Kestrel Valley",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C23B402_682 · Pinehurst Filter Media Renewal",
+    "reg": "Cascadia Region",
+    "bu": "682 - Pinehurst",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C23B415_651 · Ashcombe Pump Station Rebuild",
+    "reg": "Eastmoor Region",
+    "bu": "651 - Ashcombe",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B433_682 · Pinehurst Well Field Expansion",
+    "reg": "Cascadia Region",
+    "bu": "682 - Pinehurst",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C23B446_670 · Corvale West Loxwater WTP",
+    "reg": "Cascadia Region",
+    "bu": "670 - Corvale West",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B451_682 · Pinehurst Ilfry WTP",
+    "reg": "Cascadia Region",
+    "bu": "682 - Pinehurst",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B455_698 · Selby Point WTP Replacement",
+    "reg": "Lakeshore Region",
+    "bu": "698 - Selby Point",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C23B504_617 · Weyburn Filter Media Renewal",
+    "reg": "Northvale Region",
+    "bu": "617 - Weyburn",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C23B557_670 · Corvale West Clearwell Replacement",
+    "reg": "Cascadia Region",
+    "bu": "670 - Corvale West",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C24B113_640 · Belmara Central Quarrydown",
+    "reg": "Eastmoor Region",
+    "bu": "640 - Belmara Central",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C24B180_694 · Harrowgate Pump Station Rebuild",
+    "reg": "Lakeshore Region",
+    "bu": "694 - Harrowgate",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C24B239_612 · Kestrel Valley Clearwell Replacement",
+    "reg": "Northvale Region",
+    "bu": "612 - Kestrel Valley",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C24B305_682 · Pinehurst Pump Station Rebuild",
+    "reg": "Cascadia Region",
+    "bu": "682 - Pinehurst",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C24B330_628 · Havenridge Well Field Expansion",
+    "reg": "Northvale Region",
+    "bu": "628 - Havenridge",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C24B399_645 · Thornbury Dunmere WTP",
+    "reg": "Eastmoor Region",
+    "bu": "645 - Thornbury",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C24B496_645 · Thornbury PFAS Ilfry 40",
+    "reg": "Eastmoor Region",
+    "bu": "645 - Thornbury",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C24B544_690 · Dunmoor East Booster Station Upgrade",
+    "reg": "Lakeshore Region",
+    "bu": "690 - Dunmoor East",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C25B190_682 · Pinehurst Fennwick",
+    "reg": "Cascadia Region",
+    "bu": "682 - Pinehurst",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C25B219_694 · Harrowgate Reservoir Rehabilitation",
+    "reg": "Lakeshore Region",
+    "bu": "694 - Harrowgate",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C25B232_690 · Dunmoor East Tillingham WTP",
+    "reg": "Lakeshore Region",
+    "bu": "690 - Dunmoor East",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C25B279_640 · Belmara Central Pump Station Rebuild",
+    "reg": "Eastmoor Region",
+    "bu": "640 - Belmara Central",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C25B306_694 · Harrowgate Clearwell Replacement",
+    "reg": "Lakeshore Region",
+    "bu": "694 - Harrowgate",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C25B332_640 · Belmara Central Booster Station Upgrade",
+    "reg": "Eastmoor Region",
+    "bu": "640 - Belmara Central",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C25B580_690 · Dunmoor East Booster Station Upgrade",
+    "reg": "Lakeshore Region",
+    "bu": "690 - Dunmoor East",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C25B591_640 · Belmara Central WTP Replacement",
+    "reg": "Eastmoor Region",
+    "bu": "640 - Belmara Central",
+    "cat": "Plant large projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "C26B137_675 · Redmont Vale End",
+    "reg": "Cascadia Region",
+    "bu": "675 - Redmont",
+    "cat": "PFAS",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "C26B253_610 · Ardenia North Clearwell Replacement",
+    "reg": "Northvale Region",
+    "bu": "610 - Ardenia North",
+    "cat": "Plant large projects",
+    "comp": "Committed to Third Party"
+   },
+   {
+    "n": "C26B493_698 · Selby Point Filter Media Renewal",
+    "reg": "Lakeshore Region",
+    "bu": "698 - Selby Point",
+    "cat": "Plant large projects",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "CZZF5011_623 · Marlow Creek Main Replacement",
+    "reg": "Northvale Region",
+    "bu": "623 - Marlow Creek",
+    "cat": "Network blankets",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "CZZF50121_670 · Corvale West Meter Replacement",
+    "reg": "Cascadia Region",
+    "bu": "670 - Corvale West",
+    "cat": "Network blankets",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "CZZF50211_682 · Pinehurst Lead Service Lines Replacement",
+    "reg": "Cascadia Region",
+    "bu": "682 - Pinehurst",
+    "cat": "Lead Capex Budget Category",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "CZZF50221_698 · Selby Point Loxwater",
+    "reg": "Lakeshore Region",
+    "bu": "698 - Selby Point",
+    "cat": "Lead Capex Budget Category",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "CZZF50232_675 · Redmont Lead Service Lines Replacement",
+    "reg": "Cascadia Region",
+    "bu": "675 - Redmont",
+    "cat": "Lead Capex Budget Category",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "CZZF50237_690 · Dunmoor East Lead Service Line Inventory",
+    "reg": "Lakeshore Region",
+    "bu": "690 - Dunmoor East",
+    "cat": "Lead Capex Budget Category",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "CZZF5024_698 · Selby Point Lead Service Line Inventory",
+    "reg": "Lakeshore Region",
+    "bu": "698 - Selby Point",
+    "cat": "Lead Capex Budget Category",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "CZZF5037_675 · Redmont Repl Domestic Services",
+    "reg": "Cascadia Region",
+    "bu": "675 - Redmont",
+    "cat": "Network blankets",
+    "comp": "Mandated by Government Agency"
+   },
+   {
+    "n": "CZZF5037_698 · Selby Point Valve Replacement Blanket",
+    "reg": "Lakeshore Region",
+    "bu": "698 - Selby Point",
+    "cat": "Network blankets",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "CZZF50418_690 · Dunmoor East Repl Domestic Services",
+    "reg": "Lakeshore Region",
+    "bu": "690 - Dunmoor East",
+    "cat": "Network blankets",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "CZZF5041_675 · Redmont Meter Replacement",
+    "reg": "Cascadia Region",
+    "bu": "675 - Redmont",
+    "cat": "Network blankets",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "CZZF5041_690 · Dunmoor East Hydrant Renewals",
+    "reg": "Lakeshore Region",
+    "bu": "690 - Dunmoor East",
+    "cat": "Network blankets",
+    "comp": "Committed to Third Party"
+   },
+   {
+    "n": "CZZF5042_628 · Havenridge Main Replacement",
+    "reg": "Northvale Region",
+    "bu": "628 - Havenridge",
+    "cat": "Network blankets",
+    "comp": "Committed to Third Party"
+   },
+   {
+    "n": "CZZF5043_694 · Harrowgate Main Replacement",
+    "reg": "Lakeshore Region",
+    "bu": "694 - Harrowgate",
+    "cat": "Network blankets",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "OVERHEAD2_623 · Marlow Creek Overhead Projects",
+    "reg": "Northvale Region",
+    "bu": "623 - Marlow Creek",
+    "cat": "Overhead - Budget Category",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "OVERHEAD4_670 · Corvale West Overhead Projects",
+    "reg": "Cascadia Region",
+    "bu": "670 - Corvale West",
+    "cat": "Overhead - Budget Category",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "Unencumbered Projects - Network common projects - 610 - Ardenia North · Ardenia North Network common projects",
+    "reg": "Northvale Region",
+    "bu": "610 - Ardenia North",
+    "cat": "Network common projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "Unencumbered Projects - Network common projects 15 - 690 - Dunmoor East · Dunmoor East Network common projects",
+    "reg": "Lakeshore Region",
+    "bu": "690 - Dunmoor East",
+    "cat": "Network common projects",
+    "comp": "No compliance constraint"
+   },
+   {
+    "n": "Unencumbered Projects - Network common projects 4 - 698 - Selby Point · Selby Point Network common projects",
+    "reg": "Lakeshore Region",
+    "bu": "698 - Selby Point",
+    "cat": "Network common projects",
+    "comp": "No compliance constraint"
+   }
+  ]
+ },
+ "restriction_bases": [
+  {
+   "id": "proj",
+   "label": "Project",
+   "values": [
+    {
+     "value": "C23B225_690 · Dunmoor East Filter Rehabilitation and Media Renewal Programme",
+     "display": "C23B225_690 · Dunmoor East Filter Rehabilitation and Media Renewal Programme",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B175_675 · Redmont Well Field Expansion and Raw Water Transmission",
+     "display": "C25B175_675 · Redmont Well Field Expansion and Raw Water Transmission",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B315_658 · Draycott PFAS Treatment Facility — Quarrydown Water Treatment Plant",
+     "display": "C25B315_658 · Draycott PFAS Treatment Facility — Quarrydown Water Treatment Plant",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF50229_623 · Marlow Creek Westbrook Lead Service Line Replacement Programme",
+     "display": "CZZF50229_623 · Marlow Creek Westbrook Lead Service Line Replacement Programme",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF5034_698 · Selby Point Water Main Replacement Programme",
+     "display": "CZZF5034_698 · Selby Point Water Main Replacement Programme",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B161_694 · Harrowgate Reservoir Rehabilitation",
+     "display": "C23B161_694 · Harrowgate Reservoir Rehabilitation",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B162_694 · Harrowgate Clearwell Replacement",
+     "display": "C23B162_694 · Harrowgate Clearwell Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B177_694 · Harrowgate WTP Replacement",
+     "display": "C23B177_694 · Harrowgate WTP Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B180_645 · Thornbury Reservoir Rehabilitation",
+     "display": "C23B180_645 · Thornbury Reservoir Rehabilitation",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B222_682 · Pinehurst Pump Station Rebuild",
+     "display": "C23B222_682 · Pinehurst Pump Station Rebuild",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B235_640 · Belmara Central Clearwell Replacement",
+     "display": "C23B235_640 · Belmara Central Clearwell Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B293_612 · Kestrel Valley Bellwater",
+     "display": "C23B293_612 · Kestrel Valley Bellwater",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B371_640 · Belmara Central Reservoir Rehabilitation",
+     "display": "C23B371_640 · Belmara Central Reservoir Rehabilitation",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B372_612 · Kestrel Valley Reservoir Rehabilitation",
+     "display": "C23B372_612 · Kestrel Valley Reservoir Rehabilitation",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B402_682 · Pinehurst Filter Media Renewal",
+     "display": "C23B402_682 · Pinehurst Filter Media Renewal",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B415_651 · Ashcombe Pump Station Rebuild",
+     "display": "C23B415_651 · Ashcombe Pump Station Rebuild",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B433_682 · Pinehurst Well Field Expansion",
+     "display": "C23B433_682 · Pinehurst Well Field Expansion",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B446_670 · Corvale West Loxwater WTP",
+     "display": "C23B446_670 · Corvale West Loxwater WTP",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B451_682 · Pinehurst Ilfry WTP",
+     "display": "C23B451_682 · Pinehurst Ilfry WTP",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B455_698 · Selby Point WTP Replacement",
+     "display": "C23B455_698 · Selby Point WTP Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B504_617 · Weyburn Filter Media Renewal",
+     "display": "C23B504_617 · Weyburn Filter Media Renewal",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C23B557_670 · Corvale West Clearwell Replacement",
+     "display": "C23B557_670 · Corvale West Clearwell Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C24B113_640 · Belmara Central Quarrydown",
+     "display": "C24B113_640 · Belmara Central Quarrydown",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C24B180_694 · Harrowgate Pump Station Rebuild",
+     "display": "C24B180_694 · Harrowgate Pump Station Rebuild",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C24B239_612 · Kestrel Valley Clearwell Replacement",
+     "display": "C24B239_612 · Kestrel Valley Clearwell Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C24B305_682 · Pinehurst Pump Station Rebuild",
+     "display": "C24B305_682 · Pinehurst Pump Station Rebuild",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C24B330_628 · Havenridge Well Field Expansion",
+     "display": "C24B330_628 · Havenridge Well Field Expansion",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C24B399_645 · Thornbury Dunmere WTP",
+     "display": "C24B399_645 · Thornbury Dunmere WTP",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C24B496_645 · Thornbury PFAS Ilfry 40",
+     "display": "C24B496_645 · Thornbury PFAS Ilfry 40",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C24B544_690 · Dunmoor East Booster Station Upgrade",
+     "display": "C24B544_690 · Dunmoor East Booster Station Upgrade",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B190_682 · Pinehurst Fennwick",
+     "display": "C25B190_682 · Pinehurst Fennwick",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B219_694 · Harrowgate Reservoir Rehabilitation",
+     "display": "C25B219_694 · Harrowgate Reservoir Rehabilitation",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B232_690 · Dunmoor East Tillingham WTP",
+     "display": "C25B232_690 · Dunmoor East Tillingham WTP",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B279_640 · Belmara Central Pump Station Rebuild",
+     "display": "C25B279_640 · Belmara Central Pump Station Rebuild",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B306_694 · Harrowgate Clearwell Replacement",
+     "display": "C25B306_694 · Harrowgate Clearwell Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B332_640 · Belmara Central Booster Station Upgrade",
+     "display": "C25B332_640 · Belmara Central Booster Station Upgrade",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B580_690 · Dunmoor East Booster Station Upgrade",
+     "display": "C25B580_690 · Dunmoor East Booster Station Upgrade",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C25B591_640 · Belmara Central WTP Replacement",
+     "display": "C25B591_640 · Belmara Central WTP Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C26B137_675 · Redmont Vale End",
+     "display": "C26B137_675 · Redmont Vale End",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C26B253_610 · Ardenia North Clearwell Replacement",
+     "display": "C26B253_610 · Ardenia North Clearwell Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "C26B493_698 · Selby Point Filter Media Renewal",
+     "display": "C26B493_698 · Selby Point Filter Media Renewal",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF5011_623 · Marlow Creek Main Replacement",
+     "display": "CZZF5011_623 · Marlow Creek Main Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF50121_670 · Corvale West Meter Replacement",
+     "display": "CZZF50121_670 · Corvale West Meter Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF50211_682 · Pinehurst Lead Service Lines Replacement",
+     "display": "CZZF50211_682 · Pinehurst Lead Service Lines Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF50221_698 · Selby Point Loxwater",
+     "display": "CZZF50221_698 · Selby Point Loxwater",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF50232_675 · Redmont Lead Service Lines Replacement",
+     "display": "CZZF50232_675 · Redmont Lead Service Lines Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF50237_690 · Dunmoor East Lead Service Line Inventory",
+     "display": "CZZF50237_690 · Dunmoor East Lead Service Line Inventory",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF5024_698 · Selby Point Lead Service Line Inventory",
+     "display": "CZZF5024_698 · Selby Point Lead Service Line Inventory",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF5037_675 · Redmont Repl Domestic Services",
+     "display": "CZZF5037_675 · Redmont Repl Domestic Services",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF5037_698 · Selby Point Valve Replacement Blanket",
+     "display": "CZZF5037_698 · Selby Point Valve Replacement Blanket",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF50418_690 · Dunmoor East Repl Domestic Services",
+     "display": "CZZF50418_690 · Dunmoor East Repl Domestic Services",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF5041_675 · Redmont Meter Replacement",
+     "display": "CZZF5041_675 · Redmont Meter Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF5041_690 · Dunmoor East Hydrant Renewals",
+     "display": "CZZF5041_690 · Dunmoor East Hydrant Renewals",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF5042_628 · Havenridge Main Replacement",
+     "display": "CZZF5042_628 · Havenridge Main Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "CZZF5043_694 · Harrowgate Main Replacement",
+     "display": "CZZF5043_694 · Harrowgate Main Replacement",
+     "projects_admitted": 1
+    },
+    {
+     "value": "OVERHEAD2_623 · Marlow Creek Overhead Projects",
+     "display": "OVERHEAD2_623 · Marlow Creek Overhead Projects",
+     "projects_admitted": 1
+    },
+    {
+     "value": "OVERHEAD4_670 · Corvale West Overhead Projects",
+     "display": "OVERHEAD4_670 · Corvale West Overhead Projects",
+     "projects_admitted": 1
+    },
+    {
+     "value": "Unencumbered Projects - Network common projects - 610 - Ardenia North · Ardenia North Network common projects",
+     "display": "Unencumbered Projects - Network common projects - 610 - Ardenia North · Ardenia North Network common projects",
+     "projects_admitted": 1
+    },
+    {
+     "value": "Unencumbered Projects - Network common projects 15 - 690 - Dunmoor East · Dunmoor East Network common projects",
+     "display": "Unencumbered Projects - Network common projects 15 - 690 - Dunmoor East · Dunmoor East Network common projects",
+     "projects_admitted": 1
+    },
+    {
+     "value": "Unencumbered Projects - Network common projects 4 - 698 - Selby Point · Selby Point Network common projects",
+     "display": "Unencumbered Projects - Network common projects 4 - 698 - Selby Point · Selby Point Network common projects",
+     "projects_admitted": 1
+    }
+   ]
+  },
+  {
+   "id": "reg",
+   "label": "Region",
+   "values": [
+    {
+     "value": "Cascadia Region",
+     "display": "Cascadia Region",
+     "projects_admitted": 16
+    },
+    {
+     "value": "Eastmoor Region",
+     "display": "Eastmoor Region",
+     "projects_admitted": 11
+    },
+    {
+     "value": "Lakeshore Region",
+     "display": "Lakeshore Region",
+     "projects_admitted": 22
+    },
+    {
+     "value": "Northvale Region",
+     "display": "Northvale Region",
+     "projects_admitted": 11
+    }
+   ]
+  },
+  {
+   "id": "bu",
+   "label": "Business unit",
+   "values": [
+    {
+     "value": "610 - Ardenia North",
+     "display": "610 - Ardenia North",
+     "projects_admitted": 2
+    },
+    {
+     "value": "612 - Kestrel Valley",
+     "display": "612 - Kestrel Valley",
+     "projects_admitted": 3
+    },
+    {
+     "value": "617 - Weyburn",
+     "display": "617 - Weyburn",
+     "projects_admitted": 1
+    },
+    {
+     "value": "623 - Marlow Creek",
+     "display": "623 - Marlow Creek",
+     "projects_admitted": 3
+    },
+    {
+     "value": "628 - Havenridge",
+     "display": "628 - Havenridge",
+     "projects_admitted": 2
+    },
+    {
+     "value": "640 - Belmara Central",
+     "display": "640 - Belmara Central",
+     "projects_admitted": 6
+    },
+    {
+     "value": "645 - Thornbury",
+     "display": "645 - Thornbury",
+     "projects_admitted": 3
+    },
+    {
+     "value": "651 - Ashcombe",
+     "display": "651 - Ashcombe",
+     "projects_admitted": 1
+    },
+    {
+     "value": "658 - Draycott",
+     "display": "658 - Draycott",
+     "projects_admitted": 1
+    },
+    {
+     "value": "670 - Corvale West",
+     "display": "670 - Corvale West",
+     "projects_admitted": 4
+    },
+    {
+     "value": "675 - Redmont",
+     "display": "675 - Redmont",
+     "projects_admitted": 5
+    },
+    {
+     "value": "682 - Pinehurst",
+     "display": "682 - Pinehurst",
+     "projects_admitted": 7
+    },
+    {
+     "value": "690 - Dunmoor East",
+     "display": "690 - Dunmoor East",
+     "projects_admitted": 8
+    },
+    {
+     "value": "694 - Harrowgate",
+     "display": "694 - Harrowgate",
+     "projects_admitted": 7
+    },
+    {
+     "value": "698 - Selby Point",
+     "display": "698 - Selby Point",
+     "projects_admitted": 7
+    }
+   ]
+  },
+  {
+   "id": "cat",
+   "label": "Budget category",
+   "values": [
+    {
+     "value": "Lead Capex Budget Category",
+     "display": "Lead Capex Budget Category",
+     "projects_admitted": 6
+    },
+    {
+     "value": "Network blankets",
+     "display": "Network blankets",
+     "projects_admitted": 10
+    },
+    {
+     "value": "Network common projects",
+     "display": "Network common projects",
+     "projects_admitted": 3
+    },
+    {
+     "value": "Overhead - Budget Category",
+     "display": "Overhead - Budget Category",
+     "projects_admitted": 2
+    },
+    {
+     "value": "PFAS",
+     "display": "PFAS",
+     "projects_admitted": 10
+    },
+    {
+     "value": "Plant large projects",
+     "display": "Plant large projects",
+     "projects_admitted": 29
+    }
+   ]
+  },
+  {
+   "id": "comp",
+   "label": "Compliance driver",
+   "values": [
+    {
+     "value": "Mandated by Government Agency",
+     "display": "Mandated by Government Agency",
+     "projects_admitted": 32
+    },
+    {
+     "value": "Committed to Third Party",
+     "display": "Committed to Third Party",
+     "projects_admitted": 5
+    },
+    {
+     "value": "No compliance constraint",
+     "display": "No compliance constraint",
+     "projects_admitted": 23
+    }
+   ]
+  }
+ ],
+ "excluded_bases": {
+  "fields": [
+   "forecast",
+   "EAC variance",
+   "percent complete",
+   "spend to date"
+  ],
+  "reason": "Continuous. A rule written on them re-resolves as the numbers move, so the same rule admits a different set every week. That is a filter, not an access rule."
+ },
+ "directory": [
+  {
+   "email": "sofia.lindqvist@northlinewater.com",
+   "name": "Sofia Lindqvist",
+   "role": "Capital Planning Analyst · authors the demo reports & scenarios",
+   "full_scope": true,
+   "masked": true,
+   "rule": null,
+   "resolved": {
+    "kind": "mask",
+    "projects_admitted": 60,
+    "of_total": 60,
+    "headline": "All 60, masked",
+    "detail": "Commercial terms masked",
+    "computed_from": "projects[] at paint time"
+   }
+  },
+  {
+   "email": "dana.whitfield@northlinewater.com",
+   "name": "Dana Whitfield",
+   "role": "Domain Architect · governs access on this screen",
+   "full_scope": true,
+   "masked": false,
+   "rule": null,
+   "resolved": {
+    "kind": "full",
+    "projects_admitted": 60,
+    "of_total": 60,
+    "headline": "Sees all 60",
+    "detail": "Full scope",
+    "computed_from": "projects[] at paint time"
+   }
+  },
+  {
+   "email": "ellis.hargrove@northlinewater.com",
+   "name": "Ellis Hargrove",
+   "role": "VP Capital Programmes · Executive",
+   "full_scope": true,
+   "masked": true,
+   "rule": null,
+   "resolved": {
+    "kind": "mask",
+    "projects_admitted": 60,
+    "of_total": 60,
+    "headline": "All 60, masked",
+    "detail": "Commercial terms masked",
+    "computed_from": "projects[] at paint time"
+   }
+  },
+  {
+   "email": "rei.nakamura@northlinewater.com",
+   "name": "Rei Nakamura",
+   "role": "Project Delivery Manager · Dunmoor East",
+   "full_scope": false,
+   "masked": false,
+   "rule": {
+    "basis": "bu",
+    "values": [
+     "690 - Dunmoor East"
+    ]
+   },
+   "resolved": {
+    "kind": "part",
+    "projects_admitted": 8,
+    "of_total": 60,
+    "headline": "Sees 8 of 60",
+    "detail": "Business unit: 690 - Dunmoor East",
+    "computed_from": "projects[] at paint time"
+   }
+  },
+  {
+   "email": "adaeze.okonjo@northlinewater.com",
+   "name": "Adaeze Okonjo",
+   "role": "Platform Admin · administers entitlement, holds none",
+   "full_scope": false,
+   "masked": false,
+   "rule": null,
+   "resolved": {
+    "kind": "zero",
+    "projects_admitted": 0,
+    "of_total": 60,
+    "headline": "No access yet",
+    "detail": "Reports open empty",
+    "computed_from": "projects[] at paint time"
+   }
+  }
+ ],
+ "published_artifacts": [
+  {
+   "id": "r1",
+   "type": "rep",
+   "type_label": "Report",
+   "name": "Variance Report",
+   "version": null,
+   "author": "Sofia Lindqvist",
+   "live": true,
+   "freshness": "Refreshes daily · 07:00 UTC",
+   "link": "contextweave.northlinewater.com/r/variance-report",
+   "cases": null,
+   "readers": [
+    {
+     "email": "dana.whitfield@northlinewater.com",
+     "name": "Dana Whitfield",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "full",
+      "projects_admitted": 60,
+      "detail": "Full scope"
+     }
+    },
+    {
+     "email": "ellis.hargrove@northlinewater.com",
+     "name": "Ellis Hargrove",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "mask",
+      "projects_admitted": 60,
+      "detail": "Commercial terms masked"
+     }
+    },
+    {
+     "email": "rei.nakamura@northlinewater.com",
+     "name": "Rei Nakamura",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "part",
+      "projects_admitted": 8,
+      "detail": "Business unit: 690 - Dunmoor East"
+     }
+    }
+   ]
+  },
+  {
+   "id": "r2",
+   "type": "rep",
+   "type_label": "Report",
+   "name": "Project 360",
+   "version": null,
+   "author": "Dana Whitfield",
+   "live": true,
+   "freshness": "Refreshes only when it’s opened",
+   "link": "contextweave.northlinewater.com/r/project-360",
+   "cases": null,
+   "readers": [
+    {
+     "email": "sofia.lindqvist@northlinewater.com",
+     "name": "Sofia Lindqvist",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "mask",
+      "projects_admitted": 60,
+      "detail": "Commercial terms masked"
+     }
+    },
+    {
+     "email": "ellis.hargrove@northlinewater.com",
+     "name": "Ellis Hargrove",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "mask",
+      "projects_admitted": 60,
+      "detail": "Commercial terms masked"
+     }
+    },
+    {
+     "email": "rei.nakamura@northlinewater.com",
+     "name": "Rei Nakamura",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "part",
+      "projects_admitted": 8,
+      "detail": "Business unit: 690 - Dunmoor East"
+     }
+    }
+   ]
+  },
+  {
+   "id": "r3",
+   "type": "rep",
+   "type_label": "Report",
+   "name": "Rate-Case Filing Calendar",
+   "version": null,
+   "author": "Sofia Lindqvist",
+   "live": true,
+   "freshness": "Refreshes on the 1st of the month · 06:00 UTC",
+   "link": "contextweave.northlinewater.com/r/rate-case-filing-calendar",
+   "cases": null,
+   "readers": [
+    {
+     "email": "dana.whitfield@northlinewater.com",
+     "name": "Dana Whitfield",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "full",
+      "projects_admitted": 60,
+      "detail": "Full scope"
+     }
+    },
+    {
+     "email": "ellis.hargrove@northlinewater.com",
+     "name": "Ellis Hargrove",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "mask",
+      "projects_admitted": 60,
+      "detail": "Commercial terms masked"
+     }
+    },
+    {
+     "email": "rei.nakamura@northlinewater.com",
+     "name": "Rei Nakamura",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "part",
+      "projects_admitted": 8,
+      "detail": "Business unit: 690 - Dunmoor East"
+     }
+    }
+   ]
+  },
+  {
+   "id": "w1",
+   "type": "wi",
+   "type_label": "What-if scenario",
+   "name": "Commodity index exposure — PFAS program",
+   "version": null,
+   "author": "Sofia Lindqvist",
+   "live": true,
+   "freshness": "Points to graph v4 · numbers refresh weekly on Monday · 6:00 AM",
+   "link": "contextweave.northlinewater.com/w/commodity-index-exposure-pfas",
+   "cases": [
+    "Base case",
+    "Steel spike +18%"
+   ],
+   "readers": [
+    {
+     "email": "ellis.hargrove@northlinewater.com",
+     "name": "Ellis Hargrove",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "mask",
+      "projects_admitted": 60,
+      "detail": "Commercial terms masked"
+     }
+    },
+    {
+     "email": "sofia.lindqvist@northlinewater.com",
+     "name": "Sofia Lindqvist",
+     "gate1_entitled": true,
+     "gate2": {
+      "kind": "mask",
+      "projects_admitted": 60,
+      "detail": "Commercial terms masked"
+     }
+    }
+   ]
+  }
+ ],
+ "audit_log": {
+  "categories": [
+   {
+    "id": "all",
+    "label": "All"
+   },
+   {
+    "id": "pub",
+    "label": "Publishing"
+   },
+   {
+    "id": "open",
+    "label": "Opens"
+   },
+   {
+    "id": "rule",
+    "label": "Rule changes"
+   },
+   {
+    "id": "ref",
+    "label": "Refreshes"
+   },
+   {
+    "id": "req",
+    "label": "Requests"
+   }
+  ],
+  "events": [
+   {
+    "t": "Today 09:24",
+    "cat": "open",
+    "ic": "open",
+    "sym": "◎",
+    "tx": "<b>Rei Nakamura</b> opened <b>Project 360</b>",
+    "sub": "Their access resolved: Business unit = 690 - Dunmoor East — 8 of 60 projects today."
+   },
+   {
+    "t": "Today 09:12",
+    "cat": "open",
+    "ic": "open",
+    "sym": "◎",
+    "tx": "<b>Ellis Hargrove</b> opened <b>Variance Report</b>",
+    "sub": "His access resolved: all 60 projects, commercial terms masked."
+   },
+   {
+    "t": "Today 07:00",
+    "cat": "ref",
+    "ic": "ref",
+    "sym": "↻",
+    "tx": "Scheduled refresh ran on <b>Variance Report</b>",
+    "sub": "Ledger blocks only. The line-item explanations and both correspondence blocks are read at open time under the asking session’s own mailbox entitlement, so they are never cached."
+   },
+   {
+    "t": "Aug 14 16:40",
+    "cat": "pub",
+    "ic": "pub",
+    "sym": "⇪",
+    "tx": "<b>Sofia Lindqvist</b> published what-if scenario <b>Commodity index exposure — PFAS program</b>",
+    "sub": "2 readers · 2 cases (Base case, Steel spike +18%) · points to graph v4 · numbers refresh Mondays 6:00 AM."
+   },
+   {
+    "t": "Aug 14 15:20",
+    "cat": "rule",
+    "ic": "rule",
+    "sym": "◱",
+    "tx": "<b>Dana Whitfield</b> changed <b>Rei Nakamura</b>’s access rule",
+    "sub": "Restriction basis: Business unit = 690 - Dunmoor East — resolves to 8 projects today. Applied immediately to everything published to them."
+   },
+   {
+    "t": "Aug 14 11:05",
+    "cat": "req",
+    "ic": "req",
+    "sym": "✋",
+    "tx": "<b>Adaeze Okonjo</b> holds no data scope",
+    "sub": "By design, not by omission — a platform admin administers entitlement and does not thereby acquire it. Anything published to her opens empty, and the audit records that it opened."
+   },
+   {
+    "t": "Aug 13 09:40",
+    "cat": "pub",
+    "ic": "pub",
+    "sym": "⇪",
+    "tx": "<b>Dana Whitfield</b> published <b>Project 360</b>",
+    "sub": "3 readers · refreshes only when it’s opened · no approval step."
+   },
+   {
+    "t": "Aug 13 09:38",
+    "cat": "rule",
+    "ic": "rule",
+    "sym": "◱",
+    "tx": "<b>Dana Whitfield</b> masked commercial terms for <b>Sofia Lindqvist</b> and <b>Ellis Hargrove</b>",
+    "sub": "Vendor contacts, contract values and unit rates. Both keep all 60 rows — masking removes columns, not rows, and the masked figures never reach the browser."
+   },
+   {
+    "t": "Aug 12 06:00",
+    "cat": "ref",
+    "ic": "ref",
+    "sym": "↻",
+    "tx": "Scheduled refresh ran on <b>Rate-Case Filing Calendar</b>",
+    "sub": "Monthly, 1st at 06:00 UTC. Two in-service dates moved out of the FY26 filing window."
+   },
+   {
+    "t": "Aug 11 14:10",
+    "cat": "pub",
+    "ic": "pub",
+    "sym": "⇪",
+    "tx": "<b>Sofia Lindqvist</b> published <b>Variance Report</b>",
+    "sub": "3 readers · refreshes daily 07:00 UTC · no approval step."
+   }
+  ]
+ },
+ "two_gates": {
+  "gate1": {
+   "question": "May this viewer see that this report EXISTS?",
+   "owner": "component 13",
+   "exercisedAt": "publish",
+   "administeredIn": "govern.audienceMatrix",
+   "storedOn": "report.audience[]",
+   "shape": "binary per (report, audience) pair",
+   "saysNothingAbout": "which rows a viewer's predicate admits"
+  },
+  "gate2": {
+   "question": "Which rows does this viewer's predicate ADMIT?",
+   "owner": "component 12",
+   "exercisedAt": "every query, server-side",
+   "administeredIn": "govern.scopeMatrix + db.scopes",
+   "appliedAt": "the e_project node",
+   "shape": "a predicate with a digest, resolved once per session",
+   "cannotBeFrontEnd": "If the browser receives 60 rows and shows 8, the viewer has 60. Every dev-tools session would be a full-portfolio export. This is why the renderer rule forbids filtering in the browser."
+  },
+  "neverCollapse": "The two are administered in two separate grids. A viewer can be entitled to a report and still see zero rows, and that is a correct outcome -- not an error.",
+  "twelveObligations": [
+   "Expose a resolved scope predicate as a first-class SESSION artifact with a digest, not a role lookup at query time. A digest is what makes an audit possible.",
+   "Define scope CLASSES as an administrable concept. Per-user predicates do not survive the tenth user."
+  ],
+  "prototypeStance": "Read-only in three places -- login, govern (scope class column), trace (predicate digest per entry). NO Gate 2 editor: 12 is a stub and a convincing editor would settle an unreviewed design (PD-21).",
+  "declaredAggregate": {
+   "question": "May this viewer read a figure DECLARED over a population wider than their predicate admits?",
+   "owner": "component 13, using 12's predicate",
+   "rule": "A block whose source is a declared aggregate (`portfolio` and its sub-objects) requires an unrestricted predicate. Any narrower predicate means the published figure covers rows the viewer may not read.",
+   "neverSubstitute": "Never re-aggregate the admitted rows under the declared figure's label. The sample of 60 projects is 12.7% of a 612-project programme and its quarterly variance has the opposite sign, so a re-aggregation is not a smaller version of the same answer -- it is a different answer wearing its name.",
+   "renders": "You are entitled to this report. It publishes portfolio figures declared over the whole programme, and your data scope admits a subset of it, so those figures are not shown. This is the scope working, not a query returning nothing.",
+   "aggregateGrainIsNotThis": "A scope class at `aggregate` grain has an unrestricted predicate and IS served these figures -- it just gets no detail rows. The two outcomes look similar on screen and have opposite causes."
+  }
+ },
+ "gate_1_audience_entitlement": {
+  "gate": 1,
+  "owner": "component 13 -- Reports & Publishing",
+  "note": "Audience entitlement (gate 1) -- who may see that a report EXISTS. It says nothing about which rows a viewer's predicate admits; that is gate 2 below. A viewer can be entitled to a report and correctly see zero rows in it.",
+  "reports": [
+   {
+    "id": "rep_gap_summary",
+    "label": "Five-Year Capital Gap",
+    "version": "v7",
+    "status": "archived"
+   },
+   {
+    "id": "rep_q_variance",
+    "label": "Variance Report",
+    "version": "v13",
+    "status": "published"
+   },
+   {
+    "id": "rep_forecast_walk",
+    "label": "Plan Movement Across Adoptions",
+    "version": "v4",
+    "status": "archived"
+   },
+   {
+    "id": "rep_large_projects",
+    "label": "Large Projects & Danger Zone",
+    "version": "v2",
+    "status": "pending_approval"
+   },
+   {
+    "id": "rep_proj_360",
+    "label": "Project 360",
+    "version": "v15",
+    "status": "published"
+   },
+   {
+    "id": "rep_pis_calendar",
+    "label": "Rate-Case Filing Calendar",
+    "version": "v7",
+    "status": "published"
+   },
+   {
+    "id": "rep_mixed_coord",
+    "label": "Category Spend Comparison",
+    "version": "v1",
+    "status": "blocked"
+   }
+  ],
+  "rows": [
+   {
+    "persona": "persona_architect",
+    "role": "Domain Architect",
+    "person": "pp_whitfield",
+    "personName": "Dana Whitfield",
+    "cells": [
+     "a",
+     "y",
+     "a",
+     "p",
+     "y",
+     "y",
+     "b"
+    ]
+   },
+   {
+    "persona": "persona_analyst",
+    "role": "Data Analyst",
+    "person": "pp_lindqvist",
+    "personName": "Sofia Lindqvist",
+    "cells": [
+     "a",
+     "y",
+     "a",
+     "p",
+     "y",
+     "y",
+     "b"
+    ]
+   },
+   {
+    "persona": "persona_exec",
+    "role": "Business User -- Executive",
+    "person": "pp_hargrove",
+    "personName": "Ellis Hargrove",
+    "cells": [
+     "a",
+     "y",
+     "a",
+     "p",
+     "y",
+     "y",
+     "n"
+    ]
+   },
+   {
+    "persona": "persona_project",
+    "role": "Business User -- Project Level",
+    "person": "pp_nakamura",
+    "personName": "Rei Nakamura",
+    "cells": [
+     "a",
+     "y",
+     "n",
+     "p",
+     "y",
+     "y",
+     "n"
+    ]
+   },
+   {
+    "persona": "persona_admin",
+    "role": "Platform Admin",
+    "person": "pp_okonjo",
+    "personName": "Adaeze Okonjo",
+    "cells": [
+     "n",
+     "n",
+     "n",
+     "n",
+     "n",
+     "n",
+     "n"
+    ]
+   }
+  ],
+  "legend": {
+   "y": "entitled -- published",
+   "n": "not entitled",
+   "p": "entitled once published -- awaiting approval",
+   "b": "entitled once published -- blocked at validation",
+   "a": "entitled -- archived, opens by link only"
+  },
+  "legendNote": "p and b are not entitlement states. The persona is in the audience; the report is not servable yet. Rendering them as 'entitled' would tell an admin the audience was live when nothing has been published. 'a' is the opposite case and the one most easily got wrong: an archived report is fully servable and the persona is fully entitled -- what archiving removed is discovery, not access. A link to it in a filing, a ticket or an email must still open. Showing it as 'not entitled' would tell an admin to go looking for a permissions problem that does not exist.",
+  "adminNote": "The Platform Admin row is 'n' across every report by design. An admin administers entitlement without holding it -- an admin exception in the presentation layer is how admin backdoors get built.",
+  "reportDetail": [
+   {
+    "id": "rep_gap_summary",
+    "name": "Five-Year Capital Gap",
+    "version": 7,
+    "status": "archived",
+    "audience": [
+     "persona_architect",
+     "persona_analyst",
+     "persona_exec",
+     "persona_project"
+    ]
+   },
+   {
+    "id": "rep_q_variance",
+    "name": "Variance Report",
+    "version": 13,
+    "status": "published",
+    "audience": [
+     "persona_architect",
+     "persona_analyst",
+     "persona_exec",
+     "persona_project"
+    ]
+   },
+   {
+    "id": "rep_forecast_walk",
+    "name": "Plan Movement Across Adoptions",
+    "version": 4,
+    "status": "archived",
+    "audience": [
+     "persona_architect",
+     "persona_analyst",
+     "persona_exec"
+    ]
+   },
+   {
+    "id": "rep_large_projects",
+    "name": "Large Projects & Danger Zone",
+    "version": 2,
+    "status": "pending_approval",
+    "audience": [
+     "persona_architect",
+     "persona_analyst",
+     "persona_exec",
+     "persona_project"
+    ]
+   },
+   {
+    "id": "rep_proj_360",
+    "name": "Project 360",
+    "version": 15,
+    "status": "published",
+    "audience": [
+     "persona_architect",
+     "persona_analyst",
+     "persona_exec",
+     "persona_project"
+    ]
+   },
+   {
+    "id": "rep_pis_calendar",
+    "name": "Rate-Case Filing Calendar",
+    "version": 7,
+    "status": "published",
+    "audience": [
+     "persona_architect",
+     "persona_analyst",
+     "persona_exec",
+     "persona_project"
+    ]
+   },
+   {
+    "id": "rep_mixed_coord",
+    "name": "Category Spend Comparison",
+    "version": 1,
+    "status": "blocked",
+    "audience": [
+     "persona_architect",
+     "persona_analyst"
+    ]
+   }
+  ],
+  "headerDefects": [],
+  "conflicts": [],
+  "agrees": true
+ },
+ "gate_2_data_scope": {
+  "gate": 2,
+  "owner": "component 12 -- Access & Scope",
+  "note": "Data scope (gate 2) -- which rows a session's predicate admits and which columns are masked. Resolved once per session at the e_project node, applied server-side, and sealed into every trace as a digest of the predicate text.",
+  "rows": [
+   {
+    "scopeClass": "scls_author",
+    "label": "Author -- full",
+    "shape": "unrestricted",
+    "grain": "detail",
+    "predicateTemplate": "TRUE",
+    "maskedFields": [],
+    "maskedCount": 0,
+    "scopes": [
+     "sc_author_all"
+    ],
+    "holders": [
+     {
+      "person": "pp_whitfield",
+      "name": "Dana Whitfield",
+      "role": "Domain Architect"
+     }
+    ],
+    "rowsAdmitted": 60,
+    "unassigned": false,
+    "note": "Held by the Domain Architect. The only class that sees vendor commercial terms.",
+    "scopeDetail": [
+     {
+      "id": "sc_author_all",
+      "label": "Author -- full",
+      "predicate": "TRUE",
+      "admissionRule": "predicate=TRUE\ngrain=detail\nmasked=",
+      "digest": "fnv1a64:41d7909832dd2e1b540cd1508c3b5235bcb8fd1482b1cb3d5a75041d22a8ba48",
+      "digestShort": "fnv1a64:41d7909832dd2e…"
+     }
+    ],
+    "holderCount": 1,
+    "unassignedNote": null
+   },
+   {
+    "scopeClass": "scls_analyst",
+    "label": "Analyst -- portfolio",
+    "shape": "unrestricted, vendor-masked",
+    "grain": "detail",
+    "predicateTemplate": "TRUE",
+    "maskedFields": [
+     "vendors",
+     "vendorContact",
+     "contractValue",
+     "unitRates"
+    ],
+    "maskedCount": 4,
+    "scopes": [
+     "sc_analyst_all"
+    ],
+    "holders": [
+     {
+      "person": "pp_lindqvist",
+      "name": "Sofia Lindqvist",
+      "role": "Data Analyst"
+     }
+    ],
+    "rowsAdmitted": 60,
+    "unassigned": false,
+    "note": "Full portfolio at detail grain. Commercial terms masked because an analyst does not need them to answer a planning question.",
+    "scopeDetail": [
+     {
+      "id": "sc_analyst_all",
+      "label": "Analyst -- portfolio",
+      "predicate": "TRUE",
+      "admissionRule": "predicate=TRUE\ngrain=detail\nmasked=contractValue,unitRates,vendorContact,vendors",
+      "digest": "fnv1a64:6b43e41f07bd96b9eb38e0e778a33f264675b8eebc6313ad77ce6325ad46ac16",
+      "digestShort": "fnv1a64:6b43e41f07bd96…"
+     }
+    ],
+    "holderCount": 1,
+    "unassignedNote": null
+   },
+   {
+    "scopeClass": "scls_exec",
+    "label": "Executive -- portfolio",
+    "shape": "unrestricted, vendor-masked",
+    "grain": "detail",
+    "predicateTemplate": "TRUE",
+    "maskedFields": [
+     "vendorContact",
+     "unitRates"
+    ],
+    "maskedCount": 2,
+    "scopes": [
+     "sc_exec_all"
+    ],
+    "holders": [
+     {
+      "person": "pp_hargrove",
+      "name": "Ellis Hargrove",
+      "role": "Business User 1"
+     }
+    ],
+    "rowsAdmitted": 60,
+    "unassigned": false,
+    "note": "Business User 1. All data, all regions. Sees vendor names but not rate cards.",
+    "scopeDetail": [
+     {
+      "id": "sc_exec_all",
+      "label": "Executive -- portfolio",
+      "predicate": "TRUE",
+      "admissionRule": "predicate=TRUE\ngrain=detail\nmasked=unitRates,vendorContact",
+      "digest": "fnv1a64:c2d3024fac5d2152dd32298de735c3f278b065f6e88689ebb89bcfcbb6b5cc43",
+      "digestShort": "fnv1a64:c2d3024fac5d21…"
+     }
+    ],
+    "holderCount": 1,
+    "unassignedNote": null
+   },
+   {
+    "scopeClass": "scls_project_own",
+    "label": "Project level -- own projects",
+    "shape": "row-scoped by manager and region, column-masked",
+    "grain": "detail",
+    "predicateTemplate": "project.manager = :person AND project.region IN (:regions)",
+    "maskedFields": [
+     "vendors",
+     "vendorContact",
+     "contractValue",
+     "unitRates",
+     "forecast",
+     "eac",
+     "eacVariance",
+     "eacVariancePct",
+     "rateBase"
+    ],
+    "maskedCount": 9,
+    "scopes": [
+     "sc_project_own"
+    ],
+    "holders": [
+     {
+      "person": "pp_nakamura",
+      "name": "Rei Nakamura",
+      "role": "Business User 2"
+     }
+    ],
+    "rowsAdmitted": 9,
+    "unassigned": false,
+    "note": "PD-2. Demonstrates row scoping AND column masking on one screen. May annotate its own projects but may not assign work to others.",
+    "scopeDetail": [
+     {
+      "id": "sc_project_own",
+      "label": "Project level -- own projects",
+      "predicate": "project.manager IN ('PM-03','PM-04','PM-06','PM-20','PM-36','PM-41') AND project.region = 'reg_lakeshore'",
+      "admissionRule": "predicate=project.manager IN ('PM-03','PM-04','PM-06','PM-20','PM-36','PM-41') AND project.region = 'reg_lakeshore'\ngrain=detail\nmasked=contractValue,eac,eacVariance,eacVariancePct,forecast,rateBase,unitRates,vendorContact,vendors",
+      "digest": "fnv1a64:a1da321cfe66bfa12d6bae5c5380fbe66ac34f8255e5fecb2948a9142c9c62fb",
+      "digestShort": "fnv1a64:a1da321cfe66bf…"
+     }
+    ],
+    "holderCount": 1,
+    "unassignedNote": null
+   },
+   {
+    "scopeClass": "scls_aggregate",
+    "label": "Aggregate only",
+    "shape": "unrestricted rows, no detail",
+    "grain": "aggregate",
+    "predicateTemplate": "TRUE",
+    "maskedFields": [
+     "projectName",
+     "projectCode",
+     "manager",
+     "vendors"
+    ],
+    "maskedCount": 4,
+    "scopes": [
+     "sc_aggregate_all"
+    ],
+    "holders": [],
+    "rowsAdmitted": 0,
+    "unassigned": true,
+    "note": "Not assigned to any persona in this fixture. Retained because the class taxonomy is the point, and a class with no current holder is normal.",
+    "scopeDetail": [
+     {
+      "id": "sc_aggregate_all",
+      "label": "Aggregate only",
+      "predicate": "TRUE",
+      "admissionRule": "predicate=TRUE\ngrain=aggregate\nmasked=manager,projectCode,projectName,vendors",
+      "digest": "fnv1a64:7f54b2da2ce731e4b5e21d7e59f31821ed0db14443d12e3c22586b1553d25fcd",
+      "digestShort": "fnv1a64:7f54b2da2ce731…"
+     }
+    ],
+    "holderCount": 0,
+    "unassignedNote": "Defined and held by nobody. It exists so the shape is designed before the first customer needs it, not invented under time pressure when they do."
+   },
+   {
+    "scopeClass": "scls_metadata",
+    "label": "Metadata only",
+    "shape": "no business figures",
+    "grain": "metadata",
+    "predicateTemplate": "FALSE",
+    "maskedFields": [
+     "*"
+    ],
+    "maskedCount": 1,
+    "scopes": [
+     "sc_metadata_only"
+    ],
+    "holders": [
+     {
+      "person": "pp_okonjo",
+      "name": "Adaeze Okonjo",
+      "role": "Platform Admin"
+     }
+    ],
+    "rowsAdmitted": 0,
+    "unassigned": false,
+    "note": "Platform Admin. Sees structure, lineage, cost and access -- no figures. An admin exception in the presentation layer is how admin backdoors get built, so the predicate is FALSE at the server and there is no override anywhere.",
+    "scopeDetail": [
+     {
+      "id": "sc_metadata_only",
+      "label": "Metadata only",
+      "predicate": "FALSE",
+      "admissionRule": "predicate=FALSE\ngrain=metadata\nmasked=*",
+      "digest": "fnv1a64:749cd6df478fe9400223f4e9adc79768132eaec55c942722bdfb68518d0d25b2",
+      "digestShort": "fnv1a64:749cd6df478fe9…"
+     }
+    ],
+    "holderCount": 1,
+    "unassignedNote": null
+   }
+  ],
+  "serverSideNote": "The predicate is applied in the query, not filtered out of a result set on the way to the screen. A client-side scope filter is a scope that leaks the moment anyone reads the network tab.",
+  "unassignedNote": "Aggregate-only is defined and unassigned -- it exists so the aggregate-grain path is exercised before a customer needs it. An unassigned class is shown as unassigned, not hidden.",
+  "digestNote": "Digests are computed at session resolution from the predicate text. The fixture carries the value a trace displays; 20_api.js must recompute it, or the digest proves nothing it claims to prove."
+ },
+ "cost_caps": [
+  {
+   "id": "cap_profile",
+   "scope": "Metadata profiling",
+   "cap": "$100 / mo",
+   "used": "$71.40",
+   "pct": 71,
+   "capDisplay": "$100 / mo",
+   "usedDisplay": "$71.40",
+   "pctDisplay": "71.0%",
+   "headroom": "md"
+  },
+  {
+   "id": "cap_wizard",
+   "scope": "Wizard derivation",
+   "cap": "$1 / run",
+   "used": "$0.34 avg",
+   "pct": 34,
+   "capDisplay": "$1 / run",
+   "usedDisplay": "$0.34 avg",
+   "pctDisplay": "34.0%",
+   "headroom": "hi"
+  },
+  {
+   "id": "cap_builds",
+   "scope": "Graph builds (tenant)",
+   "cap": "$250 / mo",
+   "used": "$205.00",
+   "pct": 82,
+   "warn": true,
+   "note": "82% with nine days left in the period. A raise is in approvals; until it lands, the next build refuses rather than overspending.",
+   "capDisplay": "$250 / mo",
+   "usedDisplay": "$205.00",
+   "pctDisplay": "82.0%",
+   "headroom": "md"
+  },
+  {
+   "id": "cap_query",
+   "scope": "Query (per run)",
+   "cap": "$0.50 / query",
+   "used": "$0.14 avg",
+   "pct": 28,
+   "note": "The refused mixed-coordinate question cost $0.00 -- it never reached a model.",
+   "capDisplay": "$0.50 / query",
+   "usedDisplay": "$0.14 avg",
+   "pctDisplay": "28.0%",
+   "headroom": "hi"
+  },
+  {
+   "id": "cap_refresh",
+   "scope": "Report refresh (tenant)",
+   "cap": "$150 / mo",
+   "used": "$44.10",
+   "pct": 29,
+   "capDisplay": "$150 / mo",
+   "usedDisplay": "$44.10",
+   "pctDisplay": "29.0%",
+   "headroom": "hi"
+  },
+  {
+   "id": "cap_runtime",
+   "scope": "Runtime correspondence reads",
+   "cap": "$40 / mo",
+   "used": "$12.80",
+   "pct": 32,
+   "note": "Runtime sources are read per question, so this cap is the one a burst of questions moves fastest. It is separate from the query cap because the cost is the fetch, not the reasoning.",
+   "capDisplay": "$40 / mo",
+   "usedDisplay": "$12.80",
+   "pctDisplay": "32.0%",
+   "headroom": "hi"
+  }
+ ],
+ "sealed_traces": [
+  {
+   "id": "trace_cw05",
+   "kind": "query",
+   "question": "What did correspondence say about Elkhart Granular Media Retrofit?",
+   "answerKey": "runtime",
+   "actor": "pp_whitfield",
+   "actorName": "Dana Whitfield",
+   "actorRole": "Domain Architect",
+   "confidence": 0.81,
+   "band": "md",
+   "durationMs": 8400,
+   "accountedMs": 7560,
+   "unaccountedMs": 840,
+   "unaccountedWhy": "Orchestration and transport the trace does not itemise. Shown as a gap at the end of the timeline rather than folded into the last step.",
+   "at": "2026-03-31T14:20:31Z",
+   "sealed": true,
+   "cost": 0.21,
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "doc 1.1 · graph 1.4",
+    "model": "cw-reasoner-2026-03",
+    "scope": "sc_author_all",
+    "scopeLabel": "Author -- all data",
+    "predicateDigest": "fnv1a64:41d7909832dd2e1b540cd1508c3b5235bcb8fd1482b1cb3d5a75041d22a8ba48",
+    "predicate": "TRUE",
+    "rowsAdmitted": 60,
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Understand & plan",
+     "ms": 300,
+     "state": "done",
+     "d": "classified: qualitative · runtime source required",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 0,
+     "width": 3.57,
+     "parallel": false
+    },
+    {
+     "t": "Resolve the subject",
+     "ms": 460,
+     "state": "done",
+     "d": "C23B293_612 → contractors → contracts",
+     "agent": "ag-graph",
+     "agentName": "graph agent",
+     "left": 3.57,
+     "width": 5.48,
+     "parallel": false
+    },
+    {
+     "t": "Pull correspondence",
+     "ms": 3900,
+     "state": "done",
+     "d": "src_gmail · 90-day window · 4 mailboxes in scope · permissions follow the source",
+     "agent": "ag-doc",
+     "agentName": "runtime agent",
+     "left": 9.05,
+     "width": 46.43,
+     "parallel": false
+    },
+    {
+     "t": "Extract & resolve observations",
+     "ms": 2400,
+     "state": "done",
+     "d": "3 extractions → 2 above the 0.70 floor → resolved against the graph",
+     "agent": "ag-doc",
+     "agentName": "runtime agent",
+     "left": 55.48,
+     "width": 28.57,
+     "parallel": false
+    },
+    {
+     "t": "Assemble & seal",
+     "ms": 500,
+     "state": "done",
+     "d": "observations kept distinguishable from graph facts",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 84.05,
+     "width": 5.95,
+     "parallel": false
+    }
+   ],
+   "coordStatement": "The two observations below make claims about figures at projection basis. They are observations, not facts in the graph — the distinction is preserved at every surface including export.",
+   "runtimePull": {
+    "source": "src_gmail",
+    "pulledAt": "2026-03-31T14:20:00Z",
+    "windowDays": 90,
+    "mailboxesInScope": 4,
+    "caveat": "Messages delivered after 14:20 UTC are not reflected. A runtime source has no as-of to publish, so the pull time is the honest boundary."
+   },
+   "runtimeNote": "A runtime read is part of the trace, but the messages it read are not. The trace records the pull window, the mailboxes in scope and the extraction floor -- replaying it re-reads under the reader's own permissions rather than serving a cached copy of someone else's inbox."
+  },
+  {
+   "id": "trace_cw01",
+   "kind": "query",
+   "question": "What is the five-year capital gap, and what is driving it?",
+   "answerKey": "gap",
+   "actor": "pp_hargrove",
+   "actorName": "Ellis Hargrove",
+   "actorRole": "Business User 1",
+   "confidence": 0.88,
+   "band": "hi",
+   "durationMs": 2140,
+   "accountedMs": 2140,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-31T11:02:14Z",
+   "sealed": true,
+   "cost": 0.13,
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "graph 1.4 · sda 1.2",
+    "model": "cw-reasoner-2026-03",
+    "scope": "sc_exec_all",
+    "scopeLabel": "Executive -- all data",
+    "predicateDigest": "fnv1a64:c2d3024fac5d2152dd32298de735c3f278b065f6e88689ebb89bcfcbb6b5cc43",
+    "predicate": "TRUE",
+    "rowsAdmitted": 60,
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Understand & plan",
+     "ms": 400,
+     "state": "done",
+     "d": "uc_capital_programs v4 · DAG: 5 steps, 2 parallel",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 0,
+     "width": 18.69,
+     "parallel": false
+    },
+    {
+     "t": "Resolve the measure coordinate",
+     "ms": 180,
+     "state": "done",
+     "d": "m_budget → commitment/full_span · m_forecast → projection/full_span · both defaults, both stated",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 18.69,
+     "width": 8.41,
+     "parallel": false
+    },
+    {
+     "t": "Resolve the plan horizon",
+     "ms": 520,
+     "state": "done",
+     "d": "FY2026 → FY2030 · 4,500 projects in scope",
+     "agent": "ag-graph",
+     "agentName": "graph agent",
+     "left": 27.1,
+     "width": 24.3,
+     "parallel": false
+    },
+    {
+     "t": "Budget & forecast",
+     "ms": 640,
+     "state": "done",
+     "d": "ds_epbcs_plan · plan version of record",
+     "agent": "ag-sda",
+     "agentName": "structured data",
+     "left": 51.4,
+     "width": 29.91,
+     "parallel": false
+    },
+    {
+     "t": "Category roll-up",
+     "ms": 380,
+     "state": "done",
+     "d": "15 budget categories → 3 executive categories (Pack-declared)",
+     "agent": "ag-sda",
+     "agentName": "structured data",
+     "left": 51.4,
+     "width": 17.76,
+     "parallel": true
+    },
+    {
+     "t": "Assemble & seal",
+     "ms": 400,
+     "state": "done",
+     "d": "weakest-link envelope · oldest as-of wins",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 81.31,
+     "width": 18.69,
+     "parallel": false
+    }
+   ],
+   "coordStatement": "Budget is stated at commitment basis over the full five-year span; forecast at projection basis over the same span. The gap is a declared cross-basis measure, which is why it is allowed to subtract one from the other.",
+   "asOfFloor": {
+    "dataset": "ds_psoft_appr",
+    "asOf": "2026-03-24",
+    "why": "Oldest contributing dataset. The floor is always the oldest, never the newest."
+   }
+  },
+  {
+   "id": "trace_cw02",
+   "kind": "query",
+   "question": "How much have we spent?",
+   "answerKey": "uncoordinated",
+   "actor": "pp_hargrove",
+   "actorName": "Ellis Hargrove",
+   "actorRole": "Business User 1",
+   "confidence": 0.86,
+   "band": "hi",
+   "durationMs": 4100,
+   "accountedMs": 4100,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-31T10:48:02Z",
+   "sealed": true,
+   "cost": 0.09,
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "sda 1.2",
+    "model": "cw-reasoner-2026-03",
+    "scope": "sc_exec_all",
+    "scopeLabel": "Executive -- all data",
+    "predicateDigest": "fnv1a64:c2d3024fac5d2152dd32298de735c3f278b065f6e88689ebb89bcfcbb6b5cc43",
+    "predicate": "TRUE",
+    "rowsAdmitted": 60,
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Understand & plan",
+     "ms": 260,
+     "state": "done",
+     "d": "classified: quantitative · measure reference is uncoordinated",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 0,
+     "width": 6.34,
+     "parallel": false
+    },
+    {
+     "t": "Resolve the measure coordinate",
+     "ms": 220,
+     "state": "done",
+     "d": "m_actual family → default record/to_date(project_inception) · alternatives enumerated",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 6.34,
+     "width": 5.37,
+     "parallel": false
+    },
+    {
+     "t": "Posted spend",
+     "ms": 3200,
+     "state": "done",
+     "d": "ds_psoft_gl · project costing",
+     "agent": "ag-sda",
+     "agentName": "structured data",
+     "left": 11.71,
+     "width": 78.05,
+     "parallel": false
+    },
+    {
+     "t": "Assemble & seal",
+     "ms": 420,
+     "state": "done",
+     "d": "coordinate stated in the answer, not only in the trace",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 89.76,
+     "width": 10.24,
+     "parallel": false
+    }
+   ],
+   "coordStatement": "\"Spent\" is a measure family, not a figure. It resolved to the family default: record basis, to-date from project inception. Three other coordinates were available and would each give a different, equally correct number.",
+   "asOfFloor": {
+    "dataset": "ds_psoft_gl",
+    "asOf": "2026-03-29"
+   }
+  },
+  {
+   "id": "trace_cw04",
+   "kind": "query",
+   "question": "What is the estimate at completion for Elkhart Granular Media Retrofit?",
+   "answerKey": "project",
+   "actor": "pp_lindqvist",
+   "actorName": "Sofia Lindqvist",
+   "actorRole": "Data Analyst",
+   "confidence": 0.87,
+   "band": "hi",
+   "durationMs": 2300,
+   "accountedMs": 2300,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-31T09:58:40Z",
+   "sealed": true,
+   "cost": 0.14,
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "doc 1.1 · graph 1.4 · sda 1.2",
+    "model": "cw-reasoner-2026-03",
+    "scope": "sc_analyst_all",
+    "scopeLabel": "Analyst -- all projects",
+    "predicateDigest": "fnv1a64:6b43e41f07bd96b9eb38e0e778a33f264675b8eebc6313ad77ce6325ad46ac16",
+    "predicate": "TRUE",
+    "rowsAdmitted": 60,
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Understand & plan",
+     "ms": 420,
+     "state": "done",
+     "d": "uc_capital_programs v4 · DAG: 6 steps, 2 parallel",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 0,
+     "width": 18.26,
+     "parallel": false
+    },
+    {
+     "t": "Resolve project & scope",
+     "ms": 460,
+     "state": "done",
+     "d": "C23B293_612 → WBS → contracts → assets",
+     "agent": "ag-graph",
+     "agentName": "graph agent",
+     "left": 18.26,
+     "width": 20,
+     "parallel": false
+    },
+    {
+     "t": "Budget & authorization",
+     "ms": 480,
+     "state": "done",
+     "d": "ds_epbcs_plan · line CAP.IN.PFAS.103",
+     "agent": "ag-sda",
+     "agentName": "structured data",
+     "left": 38.26,
+     "width": 20.87,
+     "parallel": false
+    },
+    {
+     "t": "Commitments & actuals",
+     "ms": 460,
+     "state": "done",
+     "d": "ds_psoft_gl + ds_psoft_appr",
+     "agent": "ag-sda",
+     "agentName": "structured data",
+     "left": 38.26,
+     "width": 20,
+     "parallel": true
+    },
+    {
+     "t": "Change orders",
+     "ms": 520,
+     "state": "done",
+     "d": "src_drive · project folder",
+     "agent": "ag-doc",
+     "agentName": "document agent",
+     "left": 59.13,
+     "width": 22.61,
+     "parallel": false
+    },
+    {
+     "t": "Assemble & seal",
+     "ms": 420,
+     "state": "done",
+     "d": "weakest-link envelope · oldest as-of wins",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 81.74,
+     "width": 18.26,
+     "parallel": false
+    }
+   ],
+   "coordStatement": "EAC is projection basis over the full span. Actual spend inside the reasoning is record basis to date. The variance between them is a declared cross-basis measure.",
+   "asOfFloor": {
+    "dataset": "ds_psoft_appr",
+    "asOf": "2026-03-24"
+   }
+  },
+  {
+   "id": "trace_cw08",
+   "kind": "query",
+   "question": "What is the five-year capital gap, and what is driving it?",
+   "answerKey": "zerorows",
+   "actor": "pp_nakamura",
+   "actorName": "Rei Nakamura",
+   "actorRole": "Business User 2",
+   "confidence": null,
+   "band": "neu",
+   "durationMs": 700,
+   "accountedMs": 700,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-31T09:21:06Z",
+   "sealed": true,
+   "cost": 0.01,
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "sda 1.2",
+    "model": "cw-reasoner-2026-03",
+    "scope": "sc_project_own",
+    "scopeLabel": "Project level -- Lakeshore, own projects",
+    "predicateDigest": "fnv1a64:a1da321cfe66bfa12d6bae5c5380fbe66ac34f8255e5fecb2948a9142c9c62fb",
+    "predicate": "project.manager IN ('PM-03','PM-04','PM-06','PM-20','PM-36','PM-41') AND project.region = 'reg_lakeshore'",
+    "rowsAdmitted": 8,
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Understand & plan",
+     "ms": 200,
+     "state": "done",
+     "d": "classified: quantitative · portfolio grain",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 0,
+     "width": 28.57,
+     "parallel": false
+    },
+    {
+     "t": "Resolved the scope predicate",
+     "ms": 120,
+     "state": "done",
+     "d": "12 · sc_project_own · digest b3359c8b… · pushed into the query, not applied after",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 28.57,
+     "width": 17.14,
+     "parallel": false
+    },
+    {
+     "t": "Query returned no admitted rows",
+     "ms": 260,
+     "state": "warn",
+     "d": "portfolio-grain aggregate requires rows the predicate excludes",
+     "agent": "ag-sda",
+     "agentName": "structured data",
+     "left": 45.71,
+     "width": 37.14,
+     "parallel": false
+    },
+    {
+     "t": "Explained rather than errored",
+     "ms": 120,
+     "state": "done",
+     "d": "zero rows is an outcome, not a failure",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 82.86,
+     "width": 17.14,
+     "parallel": false
+    }
+   ],
+   "zeroRows": true
+  },
+  {
+   "id": "trace_cw09",
+   "kind": "query",
+   "question": "How did FY2024 commitments compare with FY2024 budget?",
+   "answerKey": "rephrased",
+   "actor": "pp_lindqvist",
+   "actorName": "Sofia Lindqvist",
+   "actorRole": "Data Analyst",
+   "confidence": 0.89,
+   "band": "hi",
+   "durationMs": 2280,
+   "accountedMs": 2280,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-30T15:14:07Z",
+   "sealed": true,
+   "cost": 0.08,
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "sda 1.2",
+    "model": "cw-reasoner-2026-03",
+    "scope": "sc_analyst_all",
+    "scopeLabel": "Analyst -- all projects",
+    "predicateDigest": "fnv1a64:6b43e41f07bd96b9eb38e0e778a33f264675b8eebc6313ad77ce6325ad46ac16",
+    "predicate": "TRUE",
+    "rowsAdmitted": 60,
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Understand & plan",
+     "ms": 260,
+     "state": "done",
+     "d": "classified: quantitative comparison · rephrased from an abstained question",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 0,
+     "width": 11.4,
+     "parallel": false
+    },
+    {
+     "t": "Resolve the measure coordinate",
+     "ms": 200,
+     "state": "done",
+     "d": "m_budget → commitment/single · m_committed → commitment/to_date(fy_start) · one basis, two frames",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 11.4,
+     "width": 8.77,
+     "parallel": false
+    },
+    {
+     "t": "FY2024 budget",
+     "ms": 1180,
+     "state": "done",
+     "d": "ds_epbcs_plan · plan version of record · FY2024 closed",
+     "agent": "ag-sda",
+     "agentName": "structured data",
+     "left": 20.18,
+     "width": 51.75,
+     "parallel": false
+    },
+    {
+     "t": "FY2024 commitments",
+     "ms": 1620,
+     "state": "done",
+     "d": "ds_psoft_appr · earliest full year available",
+     "agent": "ag-sda",
+     "agentName": "structured data",
+     "left": 20.18,
+     "width": 71.05,
+     "parallel": true
+    },
+    {
+     "t": "Assemble & seal",
+     "ms": 640,
+     "state": "done",
+     "d": "both coordinates stated · no cross-basis operation required",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 71.93,
+     "width": 28.07,
+     "parallel": false
+    }
+   ],
+   "coordStatement": "Both figures sit at commitment basis. Budget is single-period FY2024 and commitments are to-date within FY2024, so the comparison is within one basis and the period frames are named rather than assumed.",
+   "asOfFloor": {
+    "dataset": "ds_psoft_appr",
+    "asOf": "2026-03-24",
+    "why": "The approvals dataset is the oldest contributor here too, and a closed prior year still carries the floor of what produced it."
+   }
+  },
+  {
+   "id": "trace_cw06",
+   "kind": "query",
+   "question": "How did FY2023 commitments compare with FY2023 budget?",
+   "answerKey": "abstain",
+   "actor": "pp_lindqvist",
+   "actorName": "Sofia Lindqvist",
+   "actorRole": "Data Analyst",
+   "confidence": null,
+   "band": "md",
+   "durationMs": 2100,
+   "accountedMs": 2100,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-30T15:12:33Z",
+   "sealed": true,
+   "cost": 0.04,
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "sda 1.2",
+    "model": "cw-reasoner-2026-03",
+    "scope": "sc_analyst_all",
+    "scopeLabel": "Analyst -- all projects",
+    "predicateDigest": "fnv1a64:6b43e41f07bd96b9eb38e0e778a33f264675b8eebc6313ad77ce6325ad46ac16",
+    "predicate": "TRUE",
+    "rowsAdmitted": 60,
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Understand & plan",
+     "ms": 240,
+     "state": "done",
+     "d": "classified: quantitative · commitment basis, FY2023",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 0,
+     "width": 11.43,
+     "parallel": false
+    },
+    {
+     "t": "Planned against available data",
+     "ms": 900,
+     "state": "done",
+     "d": "ds_psoft_appr earliest record is 2024-01 — legacy procurement retired before the warehouse",
+     "agent": "ag-sda",
+     "agentName": "structured data",
+     "left": 11.43,
+     "width": 42.86,
+     "parallel": false
+    },
+    {
+     "t": "Scored the evidence",
+     "ms": 640,
+     "state": "warn",
+     "d": "best available 0.38 · use-case floor is High (≥0.85)",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 54.29,
+     "width": 30.48,
+     "parallel": false
+    },
+    {
+     "t": "Abstained",
+     "ms": 320,
+     "state": "warn",
+     "d": "declined with the reason and the remedy — no estimate produced",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 84.76,
+     "width": 15.24,
+     "parallel": false
+    }
+   ],
+   "abstained": true
+  },
+  {
+   "id": "trace_cw07",
+   "kind": "query",
+   "question": "What is our customer churn this quarter?",
+   "answerKey": "refuse",
+   "actor": "pp_hargrove",
+   "actorName": "Ellis Hargrove",
+   "actorRole": "Business User 1",
+   "confidence": null,
+   "band": "info",
+   "durationMs": 400,
+   "accountedMs": 400,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-30T11:40:08Z",
+   "sealed": true,
+   "cost": 0.01,
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "graph 1.4",
+    "model": "— (refused before model call)",
+    "scope": "sc_exec_all",
+    "scopeLabel": "Executive -- all data",
+    "predicateDigest": "fnv1a64:c2d3024fac5d2152dd32298de735c3f278b065f6e88689ebb89bcfcbb6b5cc43",
+    "predicate": "TRUE",
+    "rowsAdmitted": 60,
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Understand & plan",
+     "ms": 200,
+     "state": "done",
+     "d": "classified: out-of-domain · no use case matches",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 0,
+     "width": 50,
+     "parallel": false
+    },
+    {
+     "t": "Refused",
+     "ms": 200,
+     "state": "warn",
+     "d": "refused rather than reaching for adjacent data",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 50,
+     "width": 50,
+     "parallel": false
+    }
+   ],
+   "refused": true
+  },
+  {
+   "id": "trace_cw03",
+   "kind": "query",
+   "question": "Add up budget, committed and forecast by executive category.",
+   "answerKey": "coordmix",
+   "actor": "pp_lindqvist",
+   "actorName": "Sofia Lindqvist",
+   "actorRole": "Data Analyst",
+   "confidence": null,
+   "band": "neu",
+   "durationMs": 1100,
+   "accountedMs": 1100,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-29T16:31:55Z",
+   "sealed": true,
+   "cost": 0.02,
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "graph 1.4",
+    "model": "cw-reasoner-2026-03",
+    "scope": "sc_analyst_all",
+    "scopeLabel": "Analyst -- all projects",
+    "predicateDigest": "fnv1a64:6b43e41f07bd96b9eb38e0e778a33f264675b8eebc6313ad77ce6325ad46ac16",
+    "predicate": "TRUE",
+    "rowsAdmitted": 60,
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Understand & plan",
+     "ms": 240,
+     "state": "done",
+     "d": "classified: aggregation across three measures",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 0,
+     "width": 21.82,
+     "parallel": false
+    },
+    {
+     "t": "Resolve the measure coordinates",
+     "ms": 260,
+     "state": "done",
+     "d": "three measures → three distinct coordinates",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 21.82,
+     "width": 23.64,
+     "parallel": false
+    },
+    {
+     "t": "Coordinate validation",
+     "ms": 180,
+     "state": "warn",
+     "d": "BLOCKING — mixed bases in one sum, no declared exception applies",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 45.45,
+     "width": 16.36,
+     "parallel": false
+    },
+    {
+     "t": "Offered remedies instead of a number",
+     "ms": 420,
+     "state": "done",
+     "d": "three typed remedies · no figure produced",
+     "agent": "ag-orch",
+     "agentName": "supervisor",
+     "left": 61.82,
+     "width": 38.18,
+     "parallel": false
+    }
+   ],
+   "coordStatement": "The three measures sit at three different coordinates. Summing them is a blocking validation failure, not a caveat.",
+   "blocked": true
+  },
+  {
+   "id": "trace_view_gap_01",
+   "kind": "view",
+   "isViewTrace": true,
+   "question": "Report view — Five-Year Capital Gap",
+   "report": "rep_gap_summary",
+   "reportName": "Five-Year Capital Gap",
+   "actor": "pp_nakamura",
+   "actorName": "Rei Nakamura",
+   "actorRole": "Business User 2",
+   "confidence": null,
+   "band": "neu",
+   "durationMs": 790,
+   "accountedMs": 790,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-31T09:16:44Z",
+   "sealed": true,
+   "outcome": "zero_rows",
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "graph 1.4 · sda 1.2",
+    "model": "— (no model call: a report view resolves a spec, it does not reason)",
+    "scope": "sc_project_own",
+    "scopeLabel": "Project level -- Lakeshore, own projects",
+    "predicateDigest": "fnv1a64:a1da321cfe66bfa12d6bae5c5380fbe66ac34f8255e5fecb2948a9142c9c62fb",
+    "predicate": "project.manager IN ('PM-03','PM-04','PM-06','PM-20','PM-36','PM-41') AND project.region = 'reg_lakeshore'",
+    "rowsAdmitted": 8,
+    "reportVersion": 7,
+    "asOf": "2026-03-30T06:00:00Z",
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Resolved the viewer",
+     "ms": 80,
+     "d": "R. Nakamura · Business User — Project Level · session established at login",
+     "state": "done",
+     "left": 0,
+     "width": 10.13
+    },
+    {
+     "t": "Checked audience entitlement (gate 1)",
+     "ms": 90,
+     "d": "persona_project is in the report's audience — entitled to see that this report exists",
+     "state": "done",
+     "left": 10.13,
+     "width": 11.39
+    },
+    {
+     "t": "Resolved the report spec",
+     "ms": 130,
+     "d": "rep_gap_summary version 7 · portfolio grain · binding inherited from the graph",
+     "state": "done",
+     "left": 21.52,
+     "width": 16.46
+    },
+    {
+     "t": "Applied the scope predicate at query construction (gate 2)",
+     "ms": 160,
+     "d": "Predicate pushed into the source query, not applied to returned rows · admits 8 projects, all Lakeshore Region",
+     "state": "done",
+     "left": 37.97,
+     "width": 20.25
+    },
+    {
+     "t": "Resolved figures",
+     "ms": 210,
+     "state": "warn",
+     "d": "Portfolio-grain aggregates require rows the predicate excludes — 0 figures resolved",
+     "left": 58.23,
+     "width": 26.58
+    },
+    {
+     "t": "Rendered the zero-rows explanation",
+     "ms": 120,
+     "d": "\"You are entitled to this report. Your data scope admits no rows for it.\" — not an error, not an empty chart",
+     "state": "done",
+     "left": 84.81,
+     "width": 15.19
+    }
+   ],
+   "note": "One trace per rendering, not per figure. A trace per figure would make volume unmanageable and would still not answer the question a view trace exists to answer: what did this person see on this screen at this time.",
+   "zeroRows": true,
+   "gate1": "entitled",
+   "gate2": "admits 0 rows at this grain",
+   "outcomeNote": "Entitlement and scope are two separate gates. Being entitled to a report and seeing nothing in it is the expected result of that separation, and the trace is what proves nothing failed."
+  },
+  {
+   "id": "trace_view_360_01",
+   "kind": "view",
+   "isViewTrace": true,
+   "question": "Report view — Project 360",
+   "report": "rep_proj_360",
+   "reportName": "Project 360",
+   "actor": "pp_nakamura",
+   "actorName": "Rei Nakamura",
+   "actorRole": "Business User 2",
+   "confidence": null,
+   "band": "neu",
+   "durationMs": 1260,
+   "accountedMs": 1260,
+   "unaccountedMs": 0,
+   "unaccountedWhy": null,
+   "at": "2026-03-31T09:24:19Z",
+   "sealed": true,
+   "outcome": "rows_admitted_columns_masked",
+   "binding": {
+    "graph": "Capital Programme Graph v1",
+    "graphId": "g_capital_programs",
+    "useCase": "uc_capital_programs v4",
+    "config": "cfg_2026-03-24.1",
+    "capabilities": "graph 1.4 · sda 1.2",
+    "model": "— (no model call: a report view resolves a spec, it does not reason)",
+    "scope": "sc_project_own",
+    "scopeLabel": "Project level -- Lakeshore, own projects",
+    "predicateDigest": "fnv1a64:a1da321cfe66bfa12d6bae5c5380fbe66ac34f8255e5fecb2948a9142c9c62fb",
+    "predicate": "project.manager IN ('PM-03','PM-04','PM-06','PM-20','PM-36','PM-41') AND project.region = 'reg_lakeshore'",
+    "rowsAdmitted": 8,
+    "reportVersion": 15,
+    "asOf": "2026-03-31T09:12:00Z",
+    "pack": "capital-projects 1.3.0 · water-wastewater 0.9.1"
+   },
+   "steps": [
+    {
+     "t": "Resolved the viewer",
+     "ms": 80,
+     "d": "R. Nakamura · scope sc_project_own · digest sealed into this trace",
+     "state": "done",
+     "left": 0,
+     "width": 6.35
+    },
+    {
+     "t": "Checked audience entitlement (gate 1)",
+     "ms": 90,
+     "d": "persona_project is in the audience for rep_proj_360",
+     "state": "done",
+     "left": 6.35,
+     "width": 7.14
+    },
+    {
+     "t": "Resolved the report spec",
+     "ms": 140,
+     "d": "rep_proj_360 version 15 · project grain · 8 blocks",
+     "state": "done",
+     "left": 13.49,
+     "width": 11.11
+    },
+    {
+     "t": "Applied the scope predicate at query construction (gate 2)",
+     "ms": 170,
+     "d": "9 of 60 projects admitted · the project selector offers those 9 and nothing else",
+     "state": "done",
+     "left": 24.6,
+     "width": 13.49
+    },
+    {
+     "t": "Resolved figures with column masking",
+     "ms": 640,
+     "state": "warn",
+     "d": "Forecast, EAC, EAC variance, rate base and every vendor column masked by the scope class — masked at the server, absent from the payload",
+     "left": 38.1,
+     "width": 50.79
+    },
+    {
+     "t": "Stamped as-of and sealed",
+     "ms": 140,
+     "d": "As-of is the oldest contributing dataset (ds_psoft_appr, 24 Mar) — never the newest",
+     "state": "done",
+     "left": 88.89,
+     "width": 11.11
+    }
+   ],
+   "note": "One trace per rendering, not per figure. A trace per figure would make volume unmanageable and would still not answer the question a view trace exists to answer: what did this person see on this screen at this time.",
+   "maskedFields": [
+    "vendors",
+    "vendorContact",
+    "contractValue",
+    "unitRates",
+    "forecast",
+    "eac",
+    "eacVariance",
+    "eacVariancePct",
+    "rateBase"
+   ],
+   "outcomeNote": "Row scoping and column masking are visible on one screen here. The masked measures are not in the payload at all — a masked figure that reaches the browser is a leak with a CSS rule in front of it."
+  }
+ ],
+ "retained_but_not_displayed": {
+  "what": [
+   "two_gates",
+   "gate_1_audience_entitlement",
+   "gate_2_data_scope",
+   "cost_caps",
+   "sealed_traces"
+  ],
+  "why": "The ported screen shows the governance the demo has to be able to DO — resolve a rule, grant a reader, revoke a publication, read the log. These are governance the demo has to be able to SHOW a reviewer, and the React frontend renders them from this file. They stay in the data even though the HTML no longer draws them; dropping them because a screen stopped rendering them would be a silent deletion.",
+  "divergence": "The gate grids are persona-shaped (five personas x three reports) while the screen is email-shaped. Same five people; the grids predate the email-only audience decision of August 13, 2026 and are kept as the reviewer-facing matrix view."
+ },
+ "dropped_from_the_previous_build": [
+  {
+   "what": "approvals — a six-item approval queue",
+   "why": "The screen this package now mirrors has no approval step, and the August 13 2026 access design removed it deliberately: publishing, granting and revoking are immediate and logged. Keeping the queue in the data would reintroduce the contradiction the memo used to record as an open conflict. It is resolved in favour of no approval."
+  },
+  {
+   "what": "lensPublication — five what-if lenses, three of them blocked",
+   "why": "That was the discarded lens design. The shipped what-if layer is scenario-shaped: one published scenario, its cases, its graph pin and its numbers recurrence. See 09_What if lens/."
+  },
+  {
+   "what": "audit — thirty events",
+   "why": "Two thirds of them narrated the approval queue and the lens runs. The ten events here are the ones the screen actually holds, and they are extracted from it rather than restated."
+  }
+ ],
+ "fixture_disagreements": {
+  "note": "Places where the prototype fixture contradicts itself. The package renders one side and names which; it does not patch the prototype, which is a build artifact whose correction is a prototype session rather than a content one.",
+  "items": [
+   {
+    "where": "scope matrix row \"Project level — own projects\" vs db.scopes.sc_project_own",
+    "grid_says": 9,
+    "scope_definition_says": 8,
+    "rendered": 8,
+    "resolved": "The scope definition wins, and this build no longer takes either on trust: the figure above is counted from the roster by the page itself. Business unit 690 - Dunmoor East holds that many of the 60 projects. It agrees with every sealed trace binding and with the predicate evaluated against db.projects."
+   }
+  ]
+ }
+}

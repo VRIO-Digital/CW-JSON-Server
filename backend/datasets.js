@@ -248,6 +248,16 @@ export const MERGE_PLAN = {
            * nothing said about enforcement.
            */
           audit: 'primary',
+          /*
+           * The **rendered** Audit & Governance screen a dataset ships instead of a computed one.
+           *
+           * `primary`, for the reason `authoring_document` is: it is one screen per dataset, and a
+           * merged view has no single one. EPA has none — its page resolves every rule against its
+           * own register per request — so `both` frames nothing and falls back to the computed page,
+           * which is the honest answer. Unioning would put CAPEX's screen, whose every count is
+           * resolved against its 60 projects, over a view that also holds EPA's 36 generators.
+           */
+          document: 'primary',
         },
       },
     },

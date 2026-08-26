@@ -43,6 +43,17 @@ const DIR = new URL('../../frontend/src/Capex/Report/', import.meta.url)
 const LENS_DIR = new URL('../../frontend/src/Capex/what-if-lens/', import.meta.url)
 
 /*
+ * And the Audit & Governance screen, which this dataset ships as a rendered page too — the same folder
+ * rule again: `audit-governance/` is what says a file is that screen rather than a report or a lens.
+ *
+ * **Two files, because they answer two questions**, exactly as a report's `.html` and the authoring JSON
+ * do. `governance_audit_capex.html` is the screen a reader sees; `governance_audit_data.json` is the
+ * extract the package's own `extract_governance.js` took *from that page*, carrying the machine-readable
+ * roster, directory, published artifacts and audit log it computes from.
+ */
+const GOV_DIR = new URL('../../frontend/src/Capex/audit-governance/', import.meta.url)
+
+/*
  * The folder holds the three rendered reports plus the authoring exploration. The reports are matched
  * on the `R<n>_` prefix rather than by listing three filenames: a fourth report is then a file drop
  * plus a re-run, and the authoring page — which carries no `REPORT_ID` — cannot be mistaken for one.
@@ -365,6 +376,186 @@ if (lensFiles.length === 1) {
   }
 }
 
+/*
+ * ---------------- the Audit & Governance screen, as a document ----------------
+ *
+ * **A dataset's governance screen can be a rendered page, for the same reason its reports can.** EPA's
+ * is computed: `governanceView()` resolves every rule against the 36-generator register at request time
+ * and states, in the tenant's own words, that a rule is *recorded and not enforced*. CAPEX ships the
+ * finished screen instead — its two gates, its five-person directory, its four published artifacts and
+ * its ten audit events, every count resolved against the 60-project roster by the page itself. So the
+ * pointer rides on the governance block and the client frames it, which is the arrangement
+ * `whatif.document` and `reports.documents` already have.
+ *
+ * **What framing buys is what it bought twice already**: the figures stay inside the file that computed
+ * them. Transcribing this page's roster into `db.reports.governance` would produce a screen that looks
+ * right and is a second answer to who sees what — and the extract beside it says in as many words that
+ * *"every scope figure below was computed by the page from projects[], not typed"*.
+ *
+ * **The JSON is read for two things and stored for neither.** It supplies the provenance the pointer
+ * carries (the package it came from, which screen it is, when it was generated), and it is what the page
+ * is *checked against*: the two were exported together, so a disagreement between them means one of the
+ * pair is stale, and a stale governance screen is the one kind of stale this section refuses outright.
+ */
+const govFiles = readdirSync(GOV_DIR)
+  .filter((f) => /\.html$/i.test(f))
+  .sort()
+const govExtractName = 'governance_audit_data.json'
+
+let govDocument = null
+if (govFiles.length !== 1) {
+  problems.push(
+    `${GOV_DIR.pathname} holds ${govFiles.length} governance documents ` +
+      `(${govFiles.join(', ') || 'none'}) — the Audit & Governance page frames one, so the rest ` +
+      'would be unreachable',
+  )
+} else {
+  const file = govFiles[0]
+  const html = readFileSync(new URL(file, GOV_DIR), 'utf8')
+
+  let extract = null
+  try {
+    extract = JSON.parse(readFileSync(new URL(govExtractName, GOV_DIR), 'utf8'))
+  } catch {
+    problems.push(
+      `${GOV_DIR.pathname}${govExtractName} is missing or unreadable — it is what ${file} is checked ` +
+        'against, and an unchecked screen is one that goes stale silently',
+    )
+  }
+
+  const grab = (re) => {
+    const m = re.exec(html)
+    return m ? text(m[1]) : null
+  }
+
+  if (extract) {
+    /*
+     * ---------------- the page and its extract have to agree ----------------
+     *
+     * They were exported from one build, so a disagreement here is a stale half. Each check names both
+     * numbers, because "the governance screen is out of date" is not something a reader can act on and
+     * "the page draws 59 projects, the extract counts 60" is.
+     */
+    const inline = (name) => {
+      const m = new RegExp(`var ${name}\\s*=\\s*\\[([\\s\\S]*?)\\n\\];`).exec(html)
+      return m ? m[1] : null
+    }
+    /* Counted by the `{` opening each record rather than by splitting on commas, which are inside every
+       one of them. A block this script cannot find is reported rather than counted as 0 — a zero agrees
+       with nothing and would read as the page having emptied. */
+    const rows = (name) => {
+      const body = inline(name)
+      return body === null ? null : (body.match(/\{/g) ?? []).length
+    }
+
+    const projectRows = rows('PROJ')
+    if (projectRows === null) {
+      problems.push(`${file} declares no PROJ roster — this script cannot check it against the extract`)
+    } else if (projectRows !== extract.roster?.count) {
+      problems.push(
+        `${file} draws ${projectRows} projects and ${govExtractName} counts ` +
+          `${extract.roster?.count} — one of the pair is from an older export`,
+      )
+    }
+
+    /* The people the screen governs. By address, because the screen keys its reader rows by one. */
+    const pageEmails = [...html.matchAll(/\{e:'([^']+)'/g)].map((m) => m[1]).sort()
+    const extractEmails = (extract.directory ?? []).map((p) => p.email).sort()
+    if (pageEmails.join('|') !== extractEmails.join('|')) {
+      problems.push(
+        `${file} and ${govExtractName} name different directories — ` +
+          `${pageEmails.join(', ') || 'none'} against ${extractEmails.join(', ') || 'none'}`,
+      )
+    }
+
+    /*
+     * **And the reports it governs are this dataset's own.** The screen lists three published reports by
+     * name; `db.reports.documents` is what the Library lists, read out of the report documents
+     * themselves. A governance screen naming a report the Library does not have is the two-answers
+     * failure this section is arranged to avoid, and it is invisible on screen because both pages look
+     * complete on their own.
+     */
+    const governedReports = (extract.published_artifacts ?? [])
+      .filter((a) => a.type === 'rep')
+      .map((a) => a.name)
+    const shipped = new Set(documents.map((d) => d.title))
+    for (const name of governedReports) {
+      if (!shipped.has(name)) {
+        problems.push(
+          `${govExtractName} governs a report called "${name}", which this dataset does not ship ` +
+            `(${[...shipped].join(', ')})`,
+        )
+      }
+    }
+
+    /*
+     * The people are the console's own, checked **by name and not by address**. The document is the
+     * tenant's own page and writes them at `@northlinewater.com`, while `db.settings` carries them at
+     * the domain this dataset was authored with; refusing over that difference would block a correct
+     * pair over something this script has no business resolving. The name still catches what matters —
+     * a governance screen about people this console has never heard of.
+     */
+    const consoleNames = new Set((db.settings?.users ?? []).map((u) => u.name))
+    for (const person of extract.directory ?? []) {
+      if (consoleNames.size > 0 && !consoleNames.has(person.name)) {
+        problems.push(
+          `${govExtractName} governs ${person.name}, who is not in this dataset's directory ` +
+            `(${[...consoleNames].join(', ')}) — run npm run seed:settings -- CAPEX if the roster moved`,
+        )
+      }
+    }
+
+    /* And the extract has to be this dataset's: two packages' worth of governance in one document reads
+       as a data error weeks later rather than as a mixed-up file now. */
+    if (extract.meta?.package && db._meta?.package && extract.meta.package !== db._meta.package) {
+      problems.push(
+        `${govExtractName} was extracted from ${extract.meta.package}, but this document is ` +
+          `${db._meta.package}`,
+      )
+    }
+  }
+
+  govDocument = {
+    /* The basename, which the folder already guarantees is unique across datasets — the same thing
+       `reportDocuments.ts` keys its URL map on. */
+    document_id: file.replace(/\.html$/i, '').toUpperCase(),
+    file,
+    /* The document's own `<title>`, whole: it states the product, the screen and the tenant. The frame
+       is seamless, so nothing prints it back — it is the frame's accessible name and what the viewer
+       says while the document is opening. */
+    title: grab(/<title>([\s\S]*?)<\/title>/),
+    /* What the page calls itself and what it says it is for, read rather than typed for the reason the
+       report titles are: a heading typed here is a second answer that goes stale at the next export. */
+    heading: grab(/<div class="pageHead">\s*<h1>([\s\S]*?)<\/h1>/),
+    subtitle: grab(/<div class="pageHead">[\s\S]*?<p>([\s\S]*?)<\/p>/),
+    /* Its own tabs, key and label, from the `setTab(n)` each button calls — carried for the reason the
+       lens's are: a tab list written into this repo is one nothing on screen prints, so it goes stale
+       invisibly. */
+    tabs: [
+      ...html.matchAll(
+        /<button class="tab[^"]*"[^>]*onclick="setTab\((\d+)\)"[^>]*>([\s\S]*?)<\/button>/g,
+      ),
+    ].map((m) => ({ key: m[1], label: text(m[2]) })),
+    /* Provenance, from the extract rather than from this file: which package the screen came out of,
+       which screen of it this is, and when it was generated. A framed document that cannot say where it
+       came from is a screen a reader has to take on trust. */
+    package: extract?.meta?.package ?? null,
+    screen: extract?.meta?.screen ?? null,
+    generated: extract?.meta?.generated ?? null,
+    /* The roster every count on the page is resolved against — the denominator, stated once, and the
+       number the check above compares the page's own rows to. */
+    roster_total: extract?.roster?.count ?? null,
+  }
+
+  for (const [key, value] of Object.entries(govDocument)) {
+    if (!value || (Array.isArray(value) && value.length === 0)) {
+      problems.push(
+        `${file} states no "${key}" — the Audit & Governance page would frame a document it cannot label`,
+      )
+    }
+  }
+}
+
 if (problems.length > 0) {
   console.error('\ningest-capex-reports: refusing to write —')
   for (const p of problems) console.error('  · ' + p)
@@ -517,10 +708,18 @@ db.graph_use_cases = [
   ...(db.graph_use_cases ?? []).filter((u) => u.use_case_id !== brief.use_case_id),
 ]
 
+/*
+ * `governance` is **spread, not replaced**. Its statuses, its report rows, its data-scope predicates
+ * and its audit copy are the package's own and none of them is this script's to rewrite — only the
+ * pointer to the rendered screen is set. This is the failure `ingest-reports.js` nearly shipped, where
+ * rebuilding `db.reports` wholesale would have deleted every audience row; the rule that came out of it
+ * is that a script owning a subtree must not rewrite its parent, and a pointer is a subtree of one key.
+ */
 db.reports = {
   ...db.reports,
   documents,
   authoring_document: authoring,
+  governance: { ...db.reports.governance, document: govDocument },
 }
 
 /*
@@ -553,5 +752,9 @@ console.log(
     documents.map((d) => `  ${d.document_id}  ${d.status.padEnd(9)} ${d.version.padEnd(4)} ${d.title}`).join('\n') +
     (authoring ? `\n  authoring: ${authoring}` : '\n  authoring: none found') +
     `\n  what-if:   ${lensDocument.stage.padEnd(9)} ${lensDocument.version.padEnd(4)} ${lensDocument.title} (${lensDocument.file})` +
-    `\n  tabs:      ${lensDocument.tabs.map((t) => t.label).join(' · ')}`,
+    `\n  tabs:      ${lensDocument.tabs.map((t) => t.label).join(' · ')}` +
+    `\n  governance: ${govDocument.heading} (${govDocument.file})` +
+    `\n  tabs:      ${govDocument.tabs.map((t) => t.label).join(' · ')}` +
+    `\n  checked against ${govExtractName}: ${govDocument.roster_total} projects, ` +
+    `extracted ${govDocument.generated} from ${govDocument.package}`,
 )

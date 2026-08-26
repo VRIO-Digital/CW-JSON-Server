@@ -6691,7 +6691,7 @@ expect(
        into a named constant when there were three of them, so both halves are asserted: the gate that
        applies them only to a seamless frame, and the ground rule itself. */
     /\(seamless \? SEAMLESS_CSS : ''\)/.test(viewerSrc) &&
-    /html, body \{ background: #fff \}/.test(viewerSrc) &&
+    /html, body \{ background: #fff !important \}/.test(viewerSrc) &&
     /* Style only: the injected text is a stylesheet, and nothing removes a node or touches a script. */
     !/\.remove\(\)|removeChild|contentDocument\.querySelector[\s\S]{0,40}\.remove/.test(
       codeOnly(viewerSrc),
@@ -6731,14 +6731,146 @@ expect(
      * Injected as rules, never edited into the document, which `_meta` forbids.
      */
     /* Opaque, not a wash: a translucent white was tried and reported as grey again, because the page
-       behind it read through. The regex pins white *and* opacity — `rgba(...)` no longer satisfies it. */
-    /\.shOv \{ background: #fff \}/.test(viewerSrc) &&
-    /body:has\(\.shOv\.on\) \{ overflow: hidden \}/.test(viewerSrc) &&
+       behind it read through. The regex pins white *and* the weight — `rgba(...)` no longer satisfies
+       it, and neither does a declaration a document's own body-level sheet can outrank. */
+    /\.shOv \{ background: #fff !important \}/.test(viewerSrc) &&
+    /body:has\(\.shOv\.on\) \{ overflow: hidden !important \}/.test(viewerSrc) &&
+    /*
+     * **And the receipt's *Open Audit & Governance →* is hidden, with its line break.** It points at a
+     * sibling of the package the lens was exported from, which no bundle here carries, so inside the
+     * frame it is an orange link that can only 404. The fact it stated stays on the dialog as prose.
+     */
+    /\.shGov, \.shGov \+ br \{ display: none !important \}/.test(viewerSrc) &&
+    /per-reader scope is managed in Audit &amp; Governance/.test(
+      read('frontend/src/Capex/what-if-lens/W1_what_if_lens.html'),
+    ) &&
+    /*
+     * **A framed document's own top bar goes too**, because this app already draws a wordmark and names
+     * the signed-in persona — the governance screen's bar names a different one. Asserted against the
+     * document as well as the rule: a rule for chrome no document draws is a rule nobody can tell is
+     * inert.
+     */
+    /body > \.top \{ display: none !important \}/.test(viewerSrc) &&
+    /<div class="top">/.test(read('frontend/src/Capex/audit-governance/governance_audit_capex.html')) &&
+    /*
+     * **Every injected declaration carries `!important`, and the reason is in the documents.** They
+     * carry a second stylesheet *inside `<body>`*, where `.shOv` and `.shGov` are declared — so a sheet
+     * appended to `<head>` is earlier in document order and loses at equal specificity. That is why the
+     * scrim rule was inert from the day it was written, and why hiding the link took its line break and
+     * left the link. Asserted as the fact underneath the weight, so the weight cannot be tidied away as
+     * a style preference.
+     */
+    (() => {
+      const lens = read('frontend/src/Capex/what-if-lens/W1_what_if_lens.html') || ''
+      /* Matched loosely on purpose: the lens has been re-exported once already with its CSS
+         pretty-printed, so `.shOv{` became `.shOv {` and a literal probe silently found neither
+         declaration — which would have reported this ordering as false and the weight as unnecessary. */
+      const bodyAt = lens.indexOf('<body')
+      const declaredAfterBody = (name) => {
+        const m = new RegExp(String.raw`\.${name}\s*\{`).exec(lens)
+        return m ? m.index > bodyAt : false
+      }
+      return bodyAt > 0 && declaredAfterBody('shOv') && declaredAfterBody('shGov')
+    })() &&
     /* A report is untouched: it still has its bar, its Back and its export. */
     /\{openDoc \? <DocumentViewer document=\{openDoc\} onBack=\{\(\) => setOpenDoc\(null\)\} \/> : null\}/.test(
       read('frontend/src/pages/ReportsPage.tsx'),
     ),
-  'no bar and no export in seamless, white ground injected, fixed viewport kept for the document’s fixed positioning',
+  'no bar and no export in seamless, white ground and an opaque scrim injected with weight, the receipt’s dead link and a document’s own top bar hidden, fixed viewport kept for the document’s fixed positioning',
+)
+
+/*
+ * ---------------- a dataset can ship its Audit & Governance screen ----------------
+ *
+ * The third surface to work this way, after the reports and the What-if lens, and for the same reason:
+ * EPA's governance page is *computed* — every rule resolved against its 36-generator register per
+ * request, every count derived rather than stored — while CAPEX ships the finished screen, with its two
+ * gates, its directory, its four published artifacts and its audit trail all resolved against its own
+ * 60-project roster by the page itself.
+ *
+ * **The claim is that nothing was transcribed.** Framing keeps those figures inside the file that
+ * computed them; copying the roster into `db.reports.governance` would produce a page that looks right
+ * and is a second answer to who sees what. So: the ingest reads the document *and* the extract beside
+ * it, the pointer carries no figure the page states, and the server gates it behind publication like
+ * every other surface that reads the tenant's data.
+ */
+const govIngest = read('backend/scripts/ingest-capex-reports.js')
+/* `auditPage` is already read above, comment-stripped — which is what an ordering claim wants.
+   A second read would be a second answer to what the page says. */
+const capexGovDoc = capexDoc.value?.reports?.governance?.document ?? null
+expect(
+  'a dataset whose Audit & Governance screen is a rendered page frames it, behind the same publish gate',
+  /* The pointer is in the document, and it names a file this bundle actually carries. A pointer to a
+     file nobody ships is a blank frame with a diagnosis in it, which is the failure `reportDocumentUrl`
+     returns null for rather than guessing. */
+  Boolean(capexGovDoc?.file) &&
+    Boolean(capexGovDoc?.title) &&
+    existsSync(join(root, `frontend/src/Capex/audit-governance/${capexGovDoc.file}`)) &&
+    /* Resolved through the same glob map as a report and a lens — a third glob, because the folder is
+       what says which kind of document a file is. */
+    /import\.meta\.glob\('\.\.\/\*\/audit-governance\/\*\.html'/.test(
+      read('frontend/src/data/reportDocuments.ts'),
+    ) &&
+    /* Served behind publication, and null while the gate is closed: this page governs *published*
+       artifacts, so a framed screen with nothing published would describe what nobody released. */
+    /const governanceDocument = \(\) =>\r?\n\s*reportGraphCounts\(\)\.published_count > 0/.test(server) &&
+    /document: governanceDocument\(\),/.test(server) &&
+    /* A present pointer is checked at boot for the two fields the frame cannot do without — neither
+       absence throws, which is why `validateDb` has to be the one to catch them. */
+    /v\.governance\.document === null \|\|/.test(server) &&
+    /typeof v\.governance\.document\.file === 'string'/.test(server) &&
+    /* Typed and validated at the boundary like every other payload, and mapped rather than read raw. */
+    /document: nullable\(\r?\n\s*shape\(\{\r?\n\s*document_id: str,\r?\n\s*file: str,\r?\n\s*title: str,\r?\n\s*heading: str,/.test(
+      client,
+    ) &&
+    /* The page reads the gate **first** and the document second, the order the What-if page had to be
+       corrected into: publication is the one precondition, for a computed screen and a shipped one
+       alike. Asserted as the two indices, not as both strings being present. */
+    auditPage.indexOf('view.publishedCount === 0') <
+      auditPage.indexOf('view.document ? (') &&
+    /<DocumentViewer document=\{view\.document\} seamless \/>/.test(auditPage) &&
+    /* And the ingest reads both files: the screen, and the extract it is checked against. Two files,
+       two questions — the same arrangement a report's `.html` and the authoring JSON have. */
+    /governance_audit_data\.json/.test(govIngest) &&
+    /const GOV_DIR = new URL\('\.\.\/\.\.\/frontend\/src\/Capex\/audit-governance\/'/.test(govIngest) &&
+    /* The checks with teeth: the page's own roster against the extract's count, and the reports it
+       governs against the reports this dataset ships. Both catch a stale half of an exported pair. */
+    /projects and \$\{govExtractName\} counts/.test(govIngest) &&
+    /governs a report called/.test(govIngest) &&
+    /* And `governance` is spread rather than replaced when the pointer is written — rebuilding it
+       wholesale is how the audiences and the data-scope rows get deleted, which this repo has been
+       bitten by twice. */
+    /governance: \{ \.\.\.db\.reports\.governance, document: govDocument \}/.test(govIngest),
+  capexGovDoc
+    ? `db.CAPEX.json points at ${capexGovDoc.file}, but a layer of the path to the screen is missing`
+    : 'db.CAPEX.json carries no governance document — run npm run ingest:capex',
+)
+
+/*
+ * **And the pointer states no figure the page computes.** The extract says in as many words that *"every
+ * scope figure below was computed by the page from projects[], not typed"*, so the one number the pointer
+ * carries is the denominator — the roster it resolves against — and it has to be the roster the page
+ * itself draws. Anything else on it is provenance: which package, which screen, when it was generated.
+ *
+ * The check is the *count against the document*, not the count against a number written here: a claim
+ * that pins 60 is a claim that fails the day the package ships 61 projects, which is the roster changing
+ * rather than the code breaking.
+ */
+const govHtml = read('frontend/src/Capex/audit-governance/governance_audit_capex.html')
+const govExtract = readJson('frontend/src/Capex/audit-governance/governance_audit_data.json')
+const govProjectRows = (() => {
+  const m = /var PROJ\s*=\s*\[([\s\S]*?)\n\];/.exec(govHtml || '')
+  return m ? (m[1].match(/\{/g) ?? []).length : null
+})()
+expect(
+  'the framed governance screen and the extract beside it agree about the roster',
+  govProjectRows !== null &&
+    govProjectRows === govExtract.value?.roster?.count &&
+    govProjectRows === capexGovDoc?.roster_total &&
+    /* The extract belongs to this dataset's package, so the two are halves of one export. */
+    govExtract.value?.meta?.package === capexDoc.value?._meta?.package,
+  `the page draws ${govProjectRows} projects, the extract counts ${govExtract.value?.roster?.count}, ` +
+    `and the pointer states ${capexGovDoc?.roster_total} — one of the three is from an older export`,
 )
 
 /*

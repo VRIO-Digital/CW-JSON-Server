@@ -4,6 +4,7 @@ import type { GovernanceView } from '../api/client'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import GovernedArtifactCard from '../components/governance/GovernedArtifactCard'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
+import DocumentViewer from '../components/report/DocumentViewer'
 import PageHeader from '../components/common/PageHeader'
 import { useAuthStore } from '../store/authStore'
 import { useGovernanceStore } from '../store/governanceStore'
@@ -64,6 +65,23 @@ export default function AuditPage() {
           builtCount={view.builtCount}
           draftCount={view.draftCount}
         />
+      ) : view.document ? (
+        /*
+         * **A dataset can ship this screen rather than have it computed**, exactly as it can ship its
+         * reports and its What-if lens. EPA resolves every rule against its 36-generator register per
+         * request; CAPEX ships the finished page — two gates, its directory, its published artifacts
+         * and its audit trail, every count resolved against its own 60-project roster by the page itself.
+         * Framing it keeps those figures inside the file that computed them: transcribing them into
+         * these components would be a second answer to who sees what, and it would look right.
+         *
+         * **Read after the gate**, because publication is the one precondition and this page governs
+         * *published* artifacts. The server agrees rather than being second-guessed here — it sends
+         * `document: null` while the gate is closed.
+         *
+         * `seamless`, because the frame is the page: no bar, no Back to a list this page does not
+         * have, and no border making the screen read as a panel dropped onto the app.
+         */
+        <DocumentViewer document={view.document} seamless />
       ) : (
         <Governance view={view} onMessage={message.error} />
       )}

@@ -25,6 +25,11 @@
  * throw below to live. **A second glob rather than a widened one**, because the folder is what says which
  * kind of document a file is: `Report/` holds reports and `what-if-lens/` holds a lens, and a pattern
  * loose enough to catch both would also catch the next folder somebody drops beside them.
+ *
+ * **And a third, for a dataset whose Audit & Governance screen is a rendered page.** Same reasoning
+ * again, and the folder name is again what classifies the file: `audit-governance/` holds that screen.
+ * Three globs feeding one lookup is three lines; one loose pattern is a rule nobody can read off the
+ * tree, and the duplicate-basename throw below has to see every candidate whichever way they arrive.
  */
 
 /*
@@ -44,6 +49,13 @@ const lensModules = import.meta.glob('../*/what-if-lens/*.html', {
   eager: true,
 }) as Record<string, string>
 
+/* And for a dataset that ships its Audit & Governance screen the same way. */
+const governanceModules = import.meta.glob('../*/audit-governance/*.html', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
 /**
  * Filename -> URL, keyed on the basename because that is what the payload carries.
  *
@@ -53,7 +65,7 @@ const lensModules = import.meta.glob('../*/what-if-lens/*.html', {
  * a build-time fact, so it cannot depend on which dataset a reader happens to select.
  */
 const byName = new Map<string, string>()
-for (const [path, url] of Object.entries({ ...modules, ...lensModules })) {
+for (const [path, url] of Object.entries({ ...modules, ...lensModules, ...governanceModules })) {
   const name = path.slice(path.lastIndexOf('/') + 1)
   const seen = byName.get(name)
   if (seen && seen !== url) {

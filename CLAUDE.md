@@ -1615,7 +1615,7 @@ is the print button**, and that is stated rather than glossed: nothing else offe
 lens, and the browser's own Print gives the app around it, because `DocumentViewer.css` deliberately
 narrows nothing for print. A report keeps all of it — bar, Back and export.
 
-**Three rules are injected, never edited in**, exactly as the mock-API pill's is: the document's
+**Five rules are injected, never edited in**, exactly as the mock-API pill's is: the document's
 `_meta` says *"never hand-edit this file — change the generator and rebuild"*, so an edit would be lost
 at the next export and silently return. They are `SEAMLESS_CSS`, applied only to a seamless frame:
 
@@ -1630,9 +1630,31 @@ at the next export and silently return. They are `SEAMLESS_CSS`, applied only to
   `position: fixed` with its own `overflow: auto`, so a tall dialog scrolled itself *while the document
   behind still scrolled too* — the second scrollbar back again the moment Publish opened. `:has()` is
   what lets a rule say that from outside; where it is unsupported the rule is inert and the old
-  behaviour returns, which is a visible fallback rather than a broken page.
+  behaviour returns, which is a visible fallback rather than a broken page;
+- **the receipt's link out of the app** (`.shGov`, and the `<br>` after it, or the removed line keeps
+  its blank). *Scenario published* ends in an orange *Open Audit & Governance →* pointing at
+  `../10_access_publishing/governance_audit_capex.html` — a sibling of the document in the package it
+  was exported from, and a path this bundle does not carry, so inside the frame it is the most emphatic
+  control on the dialog and it can only 404. The fact it stated is still there in words one line above
+  it (*"per-reader scope is managed in Audit & Governance"*), which is why hiding the link loses a
+  broken route rather than the sentence;
+- **and a document's own top bar** (`body > .top`). The Audit & Governance screen draws one — the
+  wordmark, a breadcrumb and an avatar naming *Dana Whitfield, Domain Architect* — which inside this
+  app is a second wordmark under the first and a second identity beside the sidebar's, naming somebody
+  the reader is not. The same decision as dropping the report prototype's `main.tsx` and `Sidebar`. The
+  rule is inert for a document that draws no bar, which the What-if lens does not.
 
-These name the document's own class names, which is a real coupling and the same one `.apiFab` already
+**Every declaration carries `!important`, and that is load-bearing.** These documents have *two*
+stylesheets — one in `<head>` and a second **inside `<body>`**, which is where `.shOv` and `.shGov` are
+declared — so a sheet appended to `<head>` is *earlier* in document order than the rules it means to
+beat, and at equal specificity the later one wins. The failure is half-silent and reads as a selector
+typo: hiding the receipt's link took its trailing `<br>` (which nothing else styles) and left the link
+itself, and the white scrim was inert from the day it was written while the ground beside it worked —
+because `body` is declared in the *head* sheet and `.shOv` is not. Appending the injection to the end of
+`<body>` would fix it by luck of ordering and break at the next export that moves a block; weight states
+the intent instead.
+
+These name the documents' own class names, which is a real coupling and the same one `.apiFab` already
 is. It is the price of not editing a generated file, and it fails visibly rather than silently — a
 renamed class leaves the rule inert and the grey comes back.
 
@@ -2697,6 +2719,47 @@ authored yet" rather than "opens empty", which would itself be a claim about enf
 this server keeps, a report definition's is not, and the refusal names the equivalent (an audience
 of nobody). The last reader of a published scenario cannot be removed either: a published scenario
 names at least one, so the refusal points at unpublish instead.
+
+**A dataset can ship this screen too, and CAPEX does.** Everything above describes the computed page:
+EPA resolves every rule against its own 36-generator register per request and states, in the tenant's
+words, that a rule is recorded and not enforced. CAPEX ships `frontend/src/Capex/audit-governance/` —
+the finished screen, with its two gates, its five-person directory, its three published reports and one
+published scenario, its audit trail, and every count resolved against its own 60-project roster **by the
+page itself**. `GET /governance` carries the pointer as `document`, `AuditPage` frames it with
+`DocumentViewer seamless`, and the computed page is what a dataset without one still gets. Transcribing
+the page's roster into `db.reports.governance` is the one change that would look right on screen and put
+a second answer to *who sees what* in the document.
+
+**Two files, because they answer two questions** — the same arrangement a report's `.html` and
+`report_authoring_data.json` have. `governance_audit_capex.html` is the screen; `governance_audit_data.json`
+is the extract the package's own `extract_governance.js` took *from that page*, carrying the roster, the
+directory, the published artifacts, the audit log, the cost caps and the sealed traces in machine-readable
+form. **Neither is transcribed into `db.CAPEX.json`.** `npm run ingest:capex` reads the document for what
+the app has to be able to say about it — its `<title>`, its `<h1>`, its standfirst, its own three tabs —
+and reads the extract for provenance (which package, which screen, when it was generated) and for the one
+number the pointer carries, the roster the page resolves against.
+
+**And the extract is what the page is *checked against*, which is the reason it is worth having.** The two
+were exported from one build, so a disagreement means one half is stale — and a stale governance screen is
+invisible, because it looks complete on its own. The ingest **refuses to write** when the page's own `PROJ`
+roster and the extract's `roster.count` differ, when the two name different directories, when the extract
+governs a report this dataset does not ship (matched against `db.reports.documents`, which is what the
+Library lists), when it governs a person `db.settings` has never heard of, or when it came out of a
+different package. The people are checked **by name and not by address**: the document writes them at
+`@northlinewater.com` and `db.settings` carries them at the domain the dataset was authored with, and
+refusing over that would block a correct pair over something the ingest has no business resolving.
+
+**Behind the publish gate, on the open branch only** — `governanceDocument()` returns `null` while
+`published_count` is 0, so the gated branch is the shared `NoPublishedGraph` for a shipped screen and a
+computed one alike. This page governs *published* artifacts, so framing it with nothing published would
+describe reports and scenarios nobody released; it is the same correction the What-if lens took. The page
+tests the gate **before** `view.document`, and `check-docs` compares the two indices in that order.
+
+**`MERGE_PLAN` marks it `primary`**, like `authoring_document`: one screen per dataset, and a merged view
+has no single one. EPA has none, so `both` frames nothing and falls back to the computed page — unioning
+would lay CAPEX's screen, whose every count is resolved against its 60 projects, over a view that also
+holds EPA's 36 generators. A new nested key with no rule stops the boot, which is exactly how this one was
+caught.
 
 ### Settings (`/settings`)
 

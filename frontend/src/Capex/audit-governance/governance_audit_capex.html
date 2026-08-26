@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Weave — Audit &amp; Governance · Northline Water Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#f3f4f6; --bg1:#ffffff; --card:#ffffff; --card2:#f4f5f7; --inset:#f7f8f9;
+  --line:#e3e5e9; --line2:#d3d6db;
+  --text:#1b1e22; --mut:#5c636b; --dim:#9aa0a8;
+  --orange:#f2691d; --orange-hi:#e85d10; --orange-soft:rgba(242,105,29,.10); --orange-line:rgba(242,105,29,.40);
+  --green:#0d9f6e; --green-soft:rgba(13,159,110,.10);
+  --amber:#b47d0a; --amber-soft:rgba(180,125,10,.12);
+  --red:#dc4444; --red-soft:rgba(220,68,68,.10);
+  --cyan:#0284c7; --cyan-soft:rgba(2,132,199,.10);
+  --shadow:0 8px 28px rgba(20,25,35,.10);
+  --shadow-lg:0 14px 40px rgba(20,25,35,.16);
+  --r-s:7px; --r-m:11px; --r-l:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg0);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Space Grotesk','Inter',sans-serif;letter-spacing:-.01em}
+.mono{font-family:'JetBrains Mono',monospace}
+button{font-family:'Inter'}
+
+.top{display:flex;align-items:center;gap:12px;padding:14px 26px;border-bottom:1px solid var(--line);background:var(--bg1)}
+.wordmark{font-family:'Space Grotesk';font-weight:700;font-size:18px;letter-spacing:-.02em}
+.wordmark b{color:var(--orange);font-weight:500}
+.crumb{color:var(--dim);font-size:12px}
+.crumb b{color:var(--mut);font-weight:600}
+.whoami{margin-left:auto;display:flex;align-items:center;gap:9px}
+.av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--orange-hi);font-size:11px;font-weight:700}
+.who{line-height:1.25;text-align:right}
+.who .n{font-size:12.5px;font-weight:600}
+.who .r{font-size:10px;color:var(--dim)}
+
+.wrap{max-width:980px;margin:0 auto;padding:34px 26px 110px}
+.pageHead{margin-bottom:22px}
+.pageHead h1{font-size:25px;font-weight:600;display:flex;align-items:center;gap:10px}
+.pageHead h1 .sh{font-size:20px}
+.pageHead p{color:var(--mut);font-size:13.5px;margin-top:5px;max-width:640px;line-height:1.6}
+
+.gates{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px}
+.gate{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:13px 15px}
+.gate .gt{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.gate .gd{font-size:11.5px;color:var(--mut);margin-top:4px;line-height:1.5}
+.gate .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11px;flex:none}
+
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line2);margin-bottom:22px}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:10px 16px;font-size:13.5px;font-weight:600;color:var(--mut);cursor:pointer}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--orange-hi);border-bottom-color:var(--orange)}
+.tab .ct{font-size:10.5px;background:var(--card2);border-radius:12px;padding:1px 7px;margin-left:5px;color:var(--dim)}
+
+.pane{display:none;animation:fade .3s ease}
+.pane.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---- People (tab 1) ---- */
+.pCard{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.pTop{display:flex;align-items:center;gap:11px}
+.pTop .av2{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;font-weight:700;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--orange-hi);flex:none}
+.pTop .pn{font-size:14px;font-weight:600}
+.pTop .pe{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+.pTop .pr{font-size:11.5px;color:var(--mut)}
+.pTop .req{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--amber);background:var(--amber-soft);border-radius:20px;padding:3px 10px}
+.pTop .sum{margin-left:auto;text-align:right}
+.pTop .sum .pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:10.5px;font-weight:600}
+.pill.full{background:var(--green-soft);color:var(--green)}
+.pill.part{background:var(--amber-soft);color:var(--amber)}
+.pill.zero{background:var(--red-soft);color:var(--red)}
+.pill.mask{background:var(--cyan-soft);color:var(--cyan)}
+.pTop .sum .sd{font-size:11px;color:var(--dim);margin-top:2px}
+
+.rule{margin-top:13px;font-size:14.5px;line-height:2.15}
+.rule .slot{display:inline-block;border-bottom:1.5px dashed var(--orange-line);color:var(--orange-hi);font-weight:600;cursor:pointer;padding:0 2px;border-radius:3px;position:relative}
+.rule .slot:hover{background:var(--orange-soft)}
+.rule .fix{color:var(--mut)}
+.rule .rmc{color:var(--dim);cursor:pointer;font-size:12px;margin-left:2px}
+.rule .rmc:hover{color:var(--red)}
+.addC{display:inline-block;font-size:12px;font-weight:600;color:var(--orange-hi);cursor:pointer;margin-left:8px}
+.addC:hover{text-decoration:underline}
+
+.eChips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:9px}
+.eChip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--inset);border-radius:20px;padding:3px 9px;font-size:11px}
+.eChip .est{font-size:9px;font-weight:700;color:var(--dim);letter-spacing:.04em}
+.eChip .x{cursor:pointer;color:var(--dim);font-size:12px;padding:0 1px}
+.eChip .x:hover{color:var(--red)}
+.moreT{font-size:11px;font-weight:600;color:var(--orange-hi);cursor:pointer;padding:2px 4px}
+.moreT:hover{text-decoration:underline}
+.addEnt{position:relative;display:inline-block}
+.pkItem.onv{background:var(--orange-soft)}
+.pkItem .tick{display:inline-block;width:15px;color:var(--orange-hi);font-weight:700}
+
+.menu{position:absolute;top:calc(100% + 6px);left:0;background:var(--card);border:1px solid var(--line2);border-radius:var(--r-m);box-shadow:var(--shadow-lg);z-index:40;min-width:300px;text-align:left;font-weight:400;line-height:1.5}
+.menu .mi{padding:9px 13px;cursor:pointer;font-size:12.5px;display:flex;align-items:center;gap:8px}
+.menu .mi:hover{background:var(--card2)}
+.menu .mi.onv{background:var(--orange-soft)}
+.menu .mi .tick{width:15px;color:var(--orange-hi);font-weight:700}
+
+.picker{padding:10px}
+.picker input{width:100%;border:1px solid var(--line2);border-radius:var(--r-s);padding:8px 11px;font-size:12.5px;font-family:'Inter';outline:none;background:var(--inset)}
+.picker input:focus{border-color:var(--orange-line);background:var(--card)}
+.pkList{max-height:280px;overflow:auto;margin-top:8px}
+.pkItem{padding:9px 10px;border-radius:var(--r-s);cursor:pointer}
+.pkItem:hover{background:var(--card2)}
+.pkItem.na{cursor:default;opacity:.75}
+.pkItem .pl{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px}
+.pkItem .tagL{font-size:9.5px;font-weight:700;border-radius:10px;padding:1px 7px}
+.tagL.live{background:var(--green-soft);color:var(--green)}
+.tagL.grain{background:var(--card2);color:var(--dim)}
+.pkItem .psrc{font-size:10.5px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-top:1px}
+.pkItem .pnote{font-size:10.5px;color:var(--mut);margin-top:2px;line-height:1.45}
+.pkHead{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);padding:6px 10px 2px}
+
+.pFoot{display:flex;align-items:center;gap:14px;margin-top:12px;padding-top:11px;border-top:1px dashed var(--line)}
+.meter{flex:1;max-width:220px;height:5px;background:var(--card2);border-radius:4px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--orange);border-radius:4px}
+.pFoot .cnt{font-size:12px;color:var(--mut)}
+.pFoot .cnt b{color:var(--text)}
+.pFoot .eg{font-size:11px;color:var(--dim)}
+.maskT{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mut);cursor:pointer;user-select:none}
+.maskT .box{width:15px;height:15px;border-radius:4px;border:1px solid var(--line2);display:grid;place-items:center;font-size:10px;color:#fff}
+.maskT.on .box{background:var(--cyan);border-color:var(--cyan)}
+.applyNote{font-size:11px;color:var(--mut);margin-top:8px}
+.applyNote b{color:var(--green)}
+
+.btn{font-weight:600;font-size:13.5px;border-radius:var(--r-s);padding:9px 16px;cursor:pointer;border:1px solid var(--line2);background:var(--card);color:var(--text);transition:all .15s}
+.btn:hover{background:var(--card2)}
+.btn.pri{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn.pri:hover{background:var(--orange-hi);border-color:var(--orange-hi)}
+.btn.sm{padding:6px 12px;font-size:12px}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.danger{color:var(--red);border-color:rgba(220,68,68,.35)}
+.btn.danger:hover{background:var(--red-soft)}
+
+/* ---- Artifacts (tab 2) ---- */
+.aCard{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.aTop{display:flex;align-items:center;gap:10px}
+.aType{font-size:9.5px;font-weight:700;letter-spacing:.06em;border-radius:10px;padding:2px 8px;text-transform:uppercase}
+.aType.rep{background:var(--orange-soft);color:var(--orange-hi)}
+.aType.wi{background:var(--cyan-soft);color:var(--cyan)}
+.aTop .an{font-size:14.5px;font-weight:600}
+.aTop .live{margin-left:auto;font-size:10.5px;font-weight:700;border-radius:20px;padding:3px 10px}
+.live.y{background:var(--green-soft);color:var(--green)}
+.live.n{background:var(--card2);color:var(--dim)}
+.aMeta{font-size:11.5px;color:var(--mut);margin-top:4px}
+.aMeta b{color:var(--text)}
+.aReaders{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.rChip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--inset);border-radius:20px;padding:4px 6px 4px 4px;font-size:11.5px}
+.rChip .av3{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:8.5px;font-weight:700;background:var(--orange-soft);color:var(--orange-hi)}
+.rChip .sc{font-size:10px;color:var(--dim)}
+.rChip .x{cursor:pointer;color:var(--dim);font-size:12px;padding:0 3px}
+.rChip .x:hover{color:var(--red)}
+.addR{position:relative;display:inline-block}
+.addR input{border:1px dashed var(--line2);border-radius:20px;padding:5px 12px;font-size:11.5px;font-family:'Inter';outline:none;background:transparent;width:210px;color:var(--text)}
+.addR input:focus{border-color:var(--orange-line)}
+.addR .drop{position:absolute;top:calc(100% + 4px);left:0;width:290px;background:var(--card);border:1px solid var(--line2);border-radius:var(--r-m);box-shadow:var(--shadow-lg);z-index:30;overflow:hidden}
+.addR .opt{display:flex;align-items:center;gap:9px;padding:8px 12px;cursor:pointer;font-size:12.5px}
+.addR .opt:hover{background:var(--card2)}
+.addR .opt .em{color:var(--dim);font-size:10.5px;margin-left:auto;font-family:'JetBrains Mono',monospace}
+/* per-reader access rows inside a report / what-if tile */
+.aRdr{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;background:var(--inset)}
+.aRdr .av3{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:700;background:var(--orange-soft);color:var(--orange-hi);flex:none}
+.aRdr .ri2{line-height:1.3;min-width:0}
+.aRdr .rn2{font-size:12.5px;font-weight:600}
+.aRdr .re2{font-size:10.5px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+.aRdr .lvl{margin-left:auto;flex:none;display:inline-block;padding:2px 10px;border-radius:20px;font-size:10.5px;font-weight:600}
+.aRdr .x{cursor:pointer;color:var(--dim);font-size:14px;padding:0 4px;flex:none}
+.aRdr .x:hover{color:var(--red)}
+.aAcc{border:1px dashed var(--line2);border-radius:9px;padding:4px 12px 12px;margin:-2px 0 8px;background:var(--card)}
+.aActs{margin-top:12px;display:flex;gap:8px;align-items:center}
+.aActs .fr{font-size:11.5px;color:var(--mut)}
+
+/* ---- Audit (tab 3) ---- */
+.fRow{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+.fChip{border:1px solid var(--line2);background:var(--card);border-radius:20px;padding:5px 13px;font-size:11.5px;font-weight:600;color:var(--mut);cursor:pointer}
+.fChip.on{background:var(--orange-soft);border-color:var(--orange-line);color:var(--orange-hi)}
+.evt{display:flex;gap:12px;padding:11px 4px;border-bottom:1px solid var(--line)}
+.evt:last-child{border-bottom:0}
+.evt .eIc{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:12px;flex:none;margin-top:1px}
+.eIc.pub{background:var(--orange-soft)}
+.eIc.open{background:var(--cyan-soft)}
+.eIc.rule{background:var(--amber-soft)}
+.eIc.ref{background:var(--green-soft)}
+.eIc.req{background:var(--red-soft)}
+.evt .eTx{font-size:12.5px;line-height:1.55}
+.evt .eTx b{font-weight:600}
+.evt .eSub{font-size:11px;color:var(--mut)}
+.evt .eT{margin-left:auto;font-size:10.5px;color:var(--dim);font-family:'JetBrains Mono',monospace;white-space:nowrap;padding-top:2px}
+.audCard{background:var(--card);border:1px solid var(--line);border-radius:var(--r-m);padding:8px 16px;box-shadow:var(--shadow)}
+.audNote{font-size:11.5px;color:var(--mut);margin-top:12px;line-height:1.6}
+
+.note{color:var(--dim);font-size:11px;margin-top:26px;text-align:center}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;border-radius:var(--r-m);padding:12px 20px;font-size:13px;box-shadow:var(--shadow-lg);opacity:0;transition:all .3s;pointer-events:none;display:flex;gap:10px;align-items:center;z-index:120}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .tk{color:#5be3a7}
+@media (max-width:760px){.gates{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="wordmark">context<b>weave</b></div>
+  <div class="crumb">Northline Water Group &nbsp;·&nbsp; <b>⛨ Audit &amp; Governance</b></div>
+  <div class="whoami">
+    <div class="who"><div class="n">Dana Whitfield</div><div class="r">Domain Architect · Northline Water Group</div></div>
+    <div class="av">DW</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="pageHead">
+    <h1><span class="sh">⛨</span> Audit &amp; Governance</h1>
+    <p>One place for who sees what. Authors decide <b>who can open</b> a report or scenario when they publish it; you decide <b>which projects each person can see</b> — and every open is logged.</p>
+  </div>
+
+  <div class="gates">
+    <div class="gate"><div class="gt"><span class="ic" style="background:var(--orange-soft)">✉</span>Who can open</div><div class="gd">Set by the author at publish time, by email address. Managed per report and per what-if in the first two tabs.</div></div>
+    <div class="gate"><div class="gt"><span class="ic" style="background:var(--amber-soft)">◱</span>What they see inside</div><div class="gd">Data access per person, managed right on the reader's row — open “Manage access” on any report or what-if, pick the field the restriction runs on — project, region, business unit, budget category, compliance driver — then the values they may see. It follows the person everywhere.</div></div>
+    <div class="gate"><div class="gt"><span class="ic" style="background:var(--cyan-soft)">☰</span>Every open is logged</div><div class="gd">Who opened what, what their access resolved to, and every access change — in the audit trail.</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" id="tabB0" onclick="setTab(0)">Reports <span class="ct" id="ctReps"></span></button>
+    <button class="tab" id="tabB1" onclick="setTab(1)">What-ifs <span class="ct" id="ctWifs"></span></button>
+    <button class="tab" id="tabB2" onclick="setTab(2)">Audit log <span class="ct" id="ctAud"></span></button>
+  </div>
+
+  <div class="pane on" id="pane0"><div id="repList"></div></div>
+
+  <div class="pane" id="pane1"><div id="wifList"></div></div>
+
+  <div class="pane" id="pane2">
+    <div class="fRow" id="audFilters"></div>
+    <div class="audCard" id="audList"></div>
+    <div class="audNote">Every event keeps who, what, when, and what the reader's access resolved to. Nothing here is editable — the trail is the record. Cost caps, the sealed predicate digests behind each trace, and the declared-aggregate rule are not on this screen; they are in <span class="mono" style="font-size:10.5px">governance_audit_data.json</span>.</div>
+  </div>
+
+  <div class="note">Exploration only — demo data. Northline Water Group, 60-project CAPEX portfolio. Every count on this screen is resolved against that roster at paint time, never stated. Not wired to the live graph.</div>
+</div>
+
+<div class="toast" id="toast"><span class="tk">✓</span><span id="toastMsg"></span></div>
+
+<script>
+/* ============ demo data — the 60 demo projects (the same 60 the reports, the traces
+       and the gate-2 predicates are all counted against) ============ */
+var PROJ=[
+ {n:"C23B225_690 \u00b7 Dunmoor East Filter Rehabilitation and Media Renewal Programme",reg:"Lakeshore Region",bu:"690 - Dunmoor East",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C25B175_675 \u00b7 Redmont Well Field Expansion and Raw Water Transmission",reg:"Cascadia Region",bu:"675 - Redmont",cat:"Plant large projects",comp:"Committed to Third Party"},
+ {n:"C25B315_658 \u00b7 Draycott PFAS Treatment Facility \u2014 Quarrydown Water Treatment Plant",reg:"Eastmoor Region",bu:"658 - Draycott",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"CZZF50229_623 \u00b7 Marlow Creek Westbrook Lead Service Line Replacement Programme",reg:"Northvale Region",bu:"623 - Marlow Creek",cat:"Lead Capex Budget Category",comp:"Mandated by Government Agency"},
+ {n:"CZZF5034_698 \u00b7 Selby Point Water Main Replacement Programme",reg:"Lakeshore Region",bu:"698 - Selby Point",cat:"Network blankets",comp:"Committed to Third Party"},
+ {n:"C23B161_694 \u00b7 Harrowgate Reservoir Rehabilitation",reg:"Lakeshore Region",bu:"694 - Harrowgate",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C23B162_694 \u00b7 Harrowgate Clearwell Replacement",reg:"Lakeshore Region",bu:"694 - Harrowgate",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C23B177_694 \u00b7 Harrowgate WTP Replacement",reg:"Lakeshore Region",bu:"694 - Harrowgate",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C23B180_645 \u00b7 Thornbury Reservoir Rehabilitation",reg:"Eastmoor Region",bu:"645 - Thornbury",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C23B222_682 \u00b7 Pinehurst Pump Station Rebuild",reg:"Cascadia Region",bu:"682 - Pinehurst",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C23B235_640 \u00b7 Belmara Central Clearwell Replacement",reg:"Eastmoor Region",bu:"640 - Belmara Central",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C23B293_612 \u00b7 Kestrel Valley Bellwater",reg:"Northvale Region",bu:"612 - Kestrel Valley",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"C23B371_640 \u00b7 Belmara Central Reservoir Rehabilitation",reg:"Eastmoor Region",bu:"640 - Belmara Central",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C23B372_612 \u00b7 Kestrel Valley Reservoir Rehabilitation",reg:"Northvale Region",bu:"612 - Kestrel Valley",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C23B402_682 \u00b7 Pinehurst Filter Media Renewal",reg:"Cascadia Region",bu:"682 - Pinehurst",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C23B415_651 \u00b7 Ashcombe Pump Station Rebuild",reg:"Eastmoor Region",bu:"651 - Ashcombe",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C23B433_682 \u00b7 Pinehurst Well Field Expansion",reg:"Cascadia Region",bu:"682 - Pinehurst",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C23B446_670 \u00b7 Corvale West Loxwater WTP",reg:"Cascadia Region",bu:"670 - Corvale West",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"C23B451_682 \u00b7 Pinehurst Ilfry WTP",reg:"Cascadia Region",bu:"682 - Pinehurst",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"C23B455_698 \u00b7 Selby Point WTP Replacement",reg:"Lakeshore Region",bu:"698 - Selby Point",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C23B504_617 \u00b7 Weyburn Filter Media Renewal",reg:"Northvale Region",bu:"617 - Weyburn",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C23B557_670 \u00b7 Corvale West Clearwell Replacement",reg:"Cascadia Region",bu:"670 - Corvale West",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C24B113_640 \u00b7 Belmara Central Quarrydown",reg:"Eastmoor Region",bu:"640 - Belmara Central",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"C24B180_694 \u00b7 Harrowgate Pump Station Rebuild",reg:"Lakeshore Region",bu:"694 - Harrowgate",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C24B239_612 \u00b7 Kestrel Valley Clearwell Replacement",reg:"Northvale Region",bu:"612 - Kestrel Valley",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C24B305_682 \u00b7 Pinehurst Pump Station Rebuild",reg:"Cascadia Region",bu:"682 - Pinehurst",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C24B330_628 \u00b7 Havenridge Well Field Expansion",reg:"Northvale Region",bu:"628 - Havenridge",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C24B399_645 \u00b7 Thornbury Dunmere WTP",reg:"Eastmoor Region",bu:"645 - Thornbury",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"C24B496_645 \u00b7 Thornbury PFAS Ilfry 40",reg:"Eastmoor Region",bu:"645 - Thornbury",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"C24B544_690 \u00b7 Dunmoor East Booster Station Upgrade",reg:"Lakeshore Region",bu:"690 - Dunmoor East",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C25B190_682 \u00b7 Pinehurst Fennwick",reg:"Cascadia Region",bu:"682 - Pinehurst",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"C25B219_694 \u00b7 Harrowgate Reservoir Rehabilitation",reg:"Lakeshore Region",bu:"694 - Harrowgate",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C25B232_690 \u00b7 Dunmoor East Tillingham WTP",reg:"Lakeshore Region",bu:"690 - Dunmoor East",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"C25B279_640 \u00b7 Belmara Central Pump Station Rebuild",reg:"Eastmoor Region",bu:"640 - Belmara Central",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C25B306_694 \u00b7 Harrowgate Clearwell Replacement",reg:"Lakeshore Region",bu:"694 - Harrowgate",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C25B332_640 \u00b7 Belmara Central Booster Station Upgrade",reg:"Eastmoor Region",bu:"640 - Belmara Central",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C25B580_690 \u00b7 Dunmoor East Booster Station Upgrade",reg:"Lakeshore Region",bu:"690 - Dunmoor East",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"C25B591_640 \u00b7 Belmara Central WTP Replacement",reg:"Eastmoor Region",bu:"640 - Belmara Central",cat:"Plant large projects",comp:"No compliance constraint"},
+ {n:"C26B137_675 \u00b7 Redmont Vale End",reg:"Cascadia Region",bu:"675 - Redmont",cat:"PFAS",comp:"Mandated by Government Agency"},
+ {n:"C26B253_610 \u00b7 Ardenia North Clearwell Replacement",reg:"Northvale Region",bu:"610 - Ardenia North",cat:"Plant large projects",comp:"Committed to Third Party"},
+ {n:"C26B493_698 \u00b7 Selby Point Filter Media Renewal",reg:"Lakeshore Region",bu:"698 - Selby Point",cat:"Plant large projects",comp:"Mandated by Government Agency"},
+ {n:"CZZF5011_623 \u00b7 Marlow Creek Main Replacement",reg:"Northvale Region",bu:"623 - Marlow Creek",cat:"Network blankets",comp:"No compliance constraint"},
+ {n:"CZZF50121_670 \u00b7 Corvale West Meter Replacement",reg:"Cascadia Region",bu:"670 - Corvale West",cat:"Network blankets",comp:"No compliance constraint"},
+ {n:"CZZF50211_682 \u00b7 Pinehurst Lead Service Lines Replacement",reg:"Cascadia Region",bu:"682 - Pinehurst",cat:"Lead Capex Budget Category",comp:"Mandated by Government Agency"},
+ {n:"CZZF50221_698 \u00b7 Selby Point Loxwater",reg:"Lakeshore Region",bu:"698 - Selby Point",cat:"Lead Capex Budget Category",comp:"Mandated by Government Agency"},
+ {n:"CZZF50232_675 \u00b7 Redmont Lead Service Lines Replacement",reg:"Cascadia Region",bu:"675 - Redmont",cat:"Lead Capex Budget Category",comp:"Mandated by Government Agency"},
+ {n:"CZZF50237_690 \u00b7 Dunmoor East Lead Service Line Inventory",reg:"Lakeshore Region",bu:"690 - Dunmoor East",cat:"Lead Capex Budget Category",comp:"Mandated by Government Agency"},
+ {n:"CZZF5024_698 \u00b7 Selby Point Lead Service Line Inventory",reg:"Lakeshore Region",bu:"698 - Selby Point",cat:"Lead Capex Budget Category",comp:"Mandated by Government Agency"},
+ {n:"CZZF5037_675 \u00b7 Redmont Repl Domestic Services",reg:"Cascadia Region",bu:"675 - Redmont",cat:"Network blankets",comp:"Mandated by Government Agency"},
+ {n:"CZZF5037_698 \u00b7 Selby Point Valve Replacement Blanket",reg:"Lakeshore Region",bu:"698 - Selby Point",cat:"Network blankets",comp:"No compliance constraint"},
+ {n:"CZZF50418_690 \u00b7 Dunmoor East Repl Domestic Services",reg:"Lakeshore Region",bu:"690 - Dunmoor East",cat:"Network blankets",comp:"No compliance constraint"},
+ {n:"CZZF5041_675 \u00b7 Redmont Meter Replacement",reg:"Cascadia Region",bu:"675 - Redmont",cat:"Network blankets",comp:"No compliance constraint"},
+ {n:"CZZF5041_690 \u00b7 Dunmoor East Hydrant Renewals",reg:"Lakeshore Region",bu:"690 - Dunmoor East",cat:"Network blankets",comp:"Committed to Third Party"},
+ {n:"CZZF5042_628 \u00b7 Havenridge Main Replacement",reg:"Northvale Region",bu:"628 - Havenridge",cat:"Network blankets",comp:"Committed to Third Party"},
+ {n:"CZZF5043_694 \u00b7 Harrowgate Main Replacement",reg:"Lakeshore Region",bu:"694 - Harrowgate",cat:"Network blankets",comp:"No compliance constraint"},
+ {n:"OVERHEAD2_623 \u00b7 Marlow Creek Overhead Projects",reg:"Northvale Region",bu:"623 - Marlow Creek",cat:"Overhead - Budget Category",comp:"No compliance constraint"},
+ {n:"OVERHEAD4_670 \u00b7 Corvale West Overhead Projects",reg:"Cascadia Region",bu:"670 - Corvale West",cat:"Overhead - Budget Category",comp:"No compliance constraint"},
+ {n:"Unencumbered Projects - Network common projects - 610 - Ardenia North \u00b7 Ardenia North Network common projects",reg:"Northvale Region",bu:"610 - Ardenia North",cat:"Network common projects",comp:"No compliance constraint"},
+ {n:"Unencumbered Projects - Network common projects 15 - 690 - Dunmoor East \u00b7 Dunmoor East Network common projects",reg:"Lakeshore Region",bu:"690 - Dunmoor East",cat:"Network common projects",comp:"No compliance constraint"},
+ {n:"Unencumbered Projects - Network common projects 4 - 698 - Selby Point \u00b7 Selby Point Network common projects",reg:"Lakeshore Region",bu:"698 - Selby Point",cat:"Network common projects",comp:"No compliance constraint"}
+];
+
+/* ============ entity shorthands — computed from the roster, so the demo lists stay honest ============ */
+/* ============ restriction bases — the profiled fields that can control these artifacts ============
+   Sourced from the connected data (metadata profiler), not a fixed list: a field qualifies only if
+   every one of its values maps to a definite set of the 60 projects. This is why forecast, EAC
+   variance and percent complete are absent: they are continuous, so a rule written on them
+   re-resolves to a different set every week, which is a filter and not an access rule. */
+var ENT_TYPES=[
+ {id:'proj',label:'Project', match:function(p,v){return p.n===v;},
+  vals:function(){return PROJ.map(function(p){return p.n;});}, disp:function(v){return v;}},
+ {id:'reg', label:'Region', match:function(p,v){return p.reg===v;},
+  vals:function(){var s=[];PROJ.forEach(function(p){if(s.indexOf(p.reg)<0)s.push(p.reg);});return s.sort();}, disp:function(v){return v;}},
+ {id:'bu',  label:'Business unit', match:function(p,v){return p.bu===v;},
+  vals:function(){var s=[];PROJ.forEach(function(p){if(s.indexOf(p.bu)<0)s.push(p.bu);});return s.sort();}, disp:function(v){return v;}},
+ {id:'cat', label:'Budget category', match:function(p,v){return p.cat===v;},
+  vals:function(){var s=[];PROJ.forEach(function(p){if(s.indexOf(p.cat)<0)s.push(p.cat);});return s.sort();}, disp:function(v){return v;}},
+ {id:'comp',label:'Compliance driver', match:function(p,v){return p.comp===v;},
+  vals:function(){return ['Mandated by Government Agency','Committed to Third Party','No compliance constraint'];}, disp:function(v){return v;}}
+];
+function typeById(id){for(var i=0;i<ENT_TYPES.length;i++)if(ENT_TYPES[i].id===id)return ENT_TYPES[i];return null;}
+function valCount(t,v){return PROJ.filter(function(g){return t.match(g,v);}).length;}
+function ruleRows(r){var t=typeById(r.type);if(!t)return [];
+  return PROJ.filter(function(g){return r.vals.some(function(v){return t.match(g,v);});});}
+function ruleSummary(r){var t=typeById(r.type);
+  return t.label+': '+r.vals.map(function(v){return t.disp(v);}).join(', ');}
+
+/* ============ people — access is a per-email RULE: a restriction basis + the values they may see ============
+   Five people, and they are the five personas the rest of the package already resolved. The mask is one
+   boolean here because it is one boolean in this screen's model; the per-person masked-column sets --
+   Sofia loses contract values and unit rates, Ellis loses vendor contacts and unit rates -- stay canonical
+   in governance_audit_data.json's gate2_scope, which is what a developer builds the masking from.
+   Adaeze holds no scope BY DESIGN: an admin administers entitlement and does not thereby acquire it. ============ */
+var PEOPLE=[
+ {e:'sofia.lindqvist@northlinewater.com', n:'Sofia Lindqvist', r:'Capital Planning Analyst \u00b7 authors the demo reports & scenarios', full:true,  mask:true,  rule:null},
+ {e:'dana.whitfield@northlinewater.com',  n:'Dana Whitfield',  r:'Domain Architect \u00b7 governs access on this screen',            full:true,  mask:false, rule:null},
+ {e:'ellis.hargrove@northlinewater.com',  n:'Ellis Hargrove',  r:'VP Capital Programmes \u00b7 Executive',                           full:true,  mask:true,  rule:null},
+ {e:'rei.nakamura@northlinewater.com',    n:'Rei Nakamura',    r:'Project Delivery Manager \u00b7 Dunmoor East',                     full:false, mask:false, rule:{type:'bu',vals:['690 - Dunmoor East']}},
+ {e:'adaeze.okonjo@northlinewater.com',   n:'Adaeze Okonjo',   r:'Platform Admin \u00b7 administers entitlement, holds none',        full:false, mask:false, rule:null}
+];
+function hasScope(p){return p.full||(p.rule&&p.rule.vals.length>0);}
+function person(e){for(var i=0;i<PEOPLE.length;i++)if(PEOPLE[i].e===e)return PEOPLE[i];return null;}
+function ini(n){return n.split(/[\s.@]+/).slice(0,2).map(function(w){return (w[0]||'').toUpperCase();}).join('');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+/* ============ published artifacts — the three published reports + the published scenario ============
+   Freshness is the report spec's own refresh label and the scenario's graph pin and recurrence are the
+   what-if layer's own, so this screen cannot disagree with either about when a reader's numbers move. ============ */
+var REPS=[
+ {id:'r1',type:'rep',tn:'Report', name:"Variance Report", by:"Sofia Lindqvist", live:true,
+  fresh:'Refreshes daily \u00b7 07:00 UTC', link:'contextweave.northlinewater.com/r/variance-report',
+  readers:["dana.whitfield@northlinewater.com","ellis.hargrove@northlinewater.com","rei.nakamura@northlinewater.com"]},
+ {id:'r2',type:'rep',tn:'Report', name:"Project 360", by:"Dana Whitfield", live:true,
+  fresh:'Refreshes only when it\u2019s opened', link:'contextweave.northlinewater.com/r/project-360',
+  readers:["sofia.lindqvist@northlinewater.com","ellis.hargrove@northlinewater.com","rei.nakamura@northlinewater.com"]},
+ {id:'r3',type:'rep',tn:'Report', name:"Rate-Case Filing Calendar", by:"Sofia Lindqvist", live:true,
+  fresh:'Refreshes on the 1st of the month \u00b7 06:00 UTC', link:'contextweave.northlinewater.com/r/rate-case-filing-calendar',
+  readers:["dana.whitfield@northlinewater.com","ellis.hargrove@northlinewater.com","rei.nakamura@northlinewater.com"]}
+];
+var WIFS=[
+ {id:'w1',type:'wi',tn:'What-if scenario', name:'Commodity index exposure \u2014 PFAS program', by:'Sofia Lindqvist', live:true,
+  fresh:'Points to graph v4 \u00b7 numbers refresh weekly on Monday \u00b7 6:00 AM', link:'contextweave.northlinewater.com/w/commodity-index-exposure-pfas',
+  readers:['ellis.hargrove@northlinewater.com','sofia.lindqvist@northlinewater.com'],
+  cases:['Base case','Steel spike +18%']}
+];
+function artById(id){
+  var i;
+  for(i=0;i<REPS.length;i++)if(REPS[i].id===id)return REPS[i];
+  for(i=0;i<WIFS.length;i++)if(WIFS[i].id===id)return WIFS[i];
+  return null;
+}
+
+/* ============ audit events ============ */
+var AUD=[
+ {t:'Today 09:24',cat:'open',ic:'open',sym:'\u25ce',tx:'<b>Rei Nakamura</b> opened <b>Project 360</b>',sub:'Their access resolved: Business unit = 690 - Dunmoor East \u2014 8 of 60 projects today.'},
+ {t:'Today 09:12',cat:'open',ic:'open',sym:'\u25ce',tx:'<b>Ellis Hargrove</b> opened <b>Variance Report</b>',sub:'His access resolved: all 60 projects, commercial terms masked.'},
+ {t:'Today 07:00',cat:'ref',ic:'ref',sym:'\u21bb',tx:'Scheduled refresh ran on <b>Variance Report</b>',sub:'Ledger blocks only. The line-item explanations and both correspondence blocks are read at open time under the asking session\u2019s own mailbox entitlement, so they are never cached.'},
+ {t:'Aug 14 16:40',cat:'pub',ic:'pub',sym:'\u21ea',tx:'<b>Sofia Lindqvist</b> published what-if scenario <b>Commodity index exposure \u2014 PFAS program</b>',sub:'2 readers \u00b7 2 cases (Base case, Steel spike +18%) \u00b7 points to graph v4 \u00b7 numbers refresh Mondays 6:00 AM.'},
+ {t:'Aug 14 15:20',cat:'rule',ic:'rule',sym:'\u25f1',tx:'<b>Dana Whitfield</b> changed <b>Rei Nakamura</b>\u2019s access rule',sub:'Restriction basis: Business unit = 690 - Dunmoor East \u2014 resolves to 8 projects today. Applied immediately to everything published to them.'},
+ {t:'Aug 14 11:05',cat:'req',ic:'req',sym:'\u270b',tx:'<b>Adaeze Okonjo</b> holds no data scope',sub:'By design, not by omission \u2014 a platform admin administers entitlement and does not thereby acquire it. Anything published to her opens empty, and the audit records that it opened.'},
+ {t:'Aug 13 09:40',cat:'pub',ic:'pub',sym:'\u21ea',tx:'<b>Dana Whitfield</b> published <b>Project 360</b>',sub:'3 readers \u00b7 refreshes only when it\u2019s opened \u00b7 no approval step.'},
+ {t:'Aug 13 09:38',cat:'rule',ic:'rule',sym:'\u25f1',tx:'<b>Dana Whitfield</b> masked commercial terms for <b>Sofia Lindqvist</b> and <b>Ellis Hargrove</b>',sub:'Vendor contacts, contract values and unit rates. Both keep all 60 rows \u2014 masking removes columns, not rows, and the masked figures never reach the browser.'},
+ {t:'Aug 12 06:00',cat:'ref',ic:'ref',sym:'\u21bb',tx:'Scheduled refresh ran on <b>Rate-Case Filing Calendar</b>',sub:'Monthly, 1st at 06:00 UTC. Two in-service dates moved out of the FY26 filing window.'},
+ {t:'Aug 11 14:10',cat:'pub',ic:'pub',sym:'\u21ea',tx:'<b>Sofia Lindqvist</b> published <b>Variance Report</b>',sub:'3 readers \u00b7 refreshes daily 07:00 UTC \u00b7 no approval step.'}
+];
+var AUD_FILTERS=[{id:'all',l:'All'},{id:'pub',l:'Publishing'},{id:'open',l:'Opens'},{id:'rule',l:'Rule changes'},{id:'ref',l:'Refreshes'},{id:'req',l:'Requests'}];
+
+/* ============ state ============ */
+var S={tab:0,menu:null,audF:'all',addFor:null,addQ:'',unpub:null,expand:{},acc:null};
+/* open/close the inline "Manage access" panel on a reader row — key is artifactId|email */
+function toggleAcc(ev,aid,e){ev.stopPropagation();var k=aid+'|'+e;S.acc=S.acc===k?null:k;S.menu=null;paint();}
+
+/* ============ scope evaluation ============ */
+function evalPerson(p){
+  var total=PROJ.length;
+  if(p.full&&p.mask) return {kind:'mask',n:total,pill:'mask',pt:'All '+total+', masked',sd:'Commercial terms masked',rows:PROJ};
+  if(p.full) return {kind:'full',n:total,pill:'full',pt:'Sees all '+total,sd:'Full scope',rows:PROJ};
+  if(!p.rule||!p.rule.vals.length) return {kind:'zero',n:0,pill:'zero',pt:'No access yet',sd:'Reports open empty',rows:[]};
+  var rows=ruleRows(p.rule);
+  if(!rows.length) return {kind:'zero',n:0,pill:'zero',pt:'No access yet',sd:'Rule matches nothing today',rows:[]};
+  return {kind:'part',n:rows.length,pill:'part',pt:'Sees '+rows.length+' of '+total,sd:ruleSummary(p.rule),rows:rows};
+}
+
+/* ============ tab plumbing ============ */
+function setTab(i){S.tab=i;S.menu=null;S.addFor=null;S.acc=null;
+  for(var k=0;k<3;k++){document.getElementById('tabB'+k).classList.toggle('on',k===i);document.getElementById('pane'+k).classList.toggle('on',k===i);}
+  paint();
+}
+
+/* ============ data access: a per-person RULE (basis field → values) — edited inline from reader rows ============ */
+function shortName(name){var w=name.split(' ');return w.length>3?w.slice(0,3).join(' '):name;}
+/* stage 1 — pick the restriction BASIS. Only profiled fields that can control these artifacts are
+   offered: a field qualifies when every one of its values maps to a definite set of the roster. */
+function typePicker(pi){
+  if(!S.menu||S.menu.pi!==pi||S.menu.stage!=='type')return '';
+  var q=(S.menu.q||'').trim().toLowerCase();
+  var hits=ENT_TYPES.filter(function(t){return !q||t.label.toLowerCase().indexOf(q)>=0;});
+  var h='<div class="menu picker" onclick="event.stopPropagation()">'+
+    '<input id="pkIn" placeholder="Restrict by which field? Search the profiled fields…" value="'+esc(S.menu.q||'')+'" oninput="pkQ(this.value)" onclick="event.stopPropagation()">'+
+    '<div class="pkList">';
+  h+=hits.map(function(t){
+    var vs=t.vals();
+    return '<div class="pkItem" onclick="pickType(event,'+pi+',\''+t.id+'\')">'+
+      '<div class="pl">'+esc(t.label)+'</div>'+
+      '<div class="psrc">'+vs.length+' value'+(vs.length===1?'':'s')+' · each maps to a definite set of the '+PROJ.length+' projects</div></div>';
+  }).join('');
+  if(!hits.length)
+    h+='<div class="pkItem na"><div class="pnote">No profiled field matches “'+esc(q)+'”. Only fields from the connected data that can actually control these reports are offered — not a fixed list.</div></div>';
+  return h+'</div></div>';
+}
+/* stage 2 — pick VALUES within the chosen basis */
+function valPicker(pi){
+  if(!S.menu||S.menu.pi!==pi||S.menu.stage!=='val')return '';
+  var p=PEOPLE[pi]; if(!p.rule)return '';
+  var t=typeById(p.rule.type),q=(S.menu.q||'').trim().toLowerCase();
+  var all=t.vals();
+  var hits=[];all.forEach(function(v,vi){if(!q||t.disp(v).toLowerCase().indexOf(q)>=0||v.toLowerCase().indexOf(q)>=0)hits.push({v:v,vi:vi});});
+  var h='<div class="menu picker" onclick="event.stopPropagation()">'+
+    '<input id="pkIn" placeholder="Search '+esc(t.label.toLowerCase())+' values…" value="'+esc(S.menu.q||'')+'" oninput="pkQ(this.value)" onclick="event.stopPropagation()">'+
+    '<div class="pkList">';
+  var addable=hits.filter(function(x){return p.rule.vals.indexOf(x.v)<0;});
+  if(q&&addable.length>1)
+    h+='<div class="pkItem" onclick="addAllVals(event,'+pi+')"><div class="pl" style="color:var(--orange-hi)">+ Add all '+addable.length+' matching “'+esc(q)+'”</div></div>';
+  h+=hits.map(function(x){
+    var on=p.rule.vals.indexOf(x.v)>=0,c=valCount(t,x.v);
+    return '<div class="pkItem'+(on?' onv':'')+'" onclick="toggleVal(event,'+pi+','+x.vi+')">'+
+      '<div class="pl"><span class="tick">'+(on?'✓':'')+'</span>'+esc(t.disp(x.v))+'</div>'+
+      '<div class="psrc">'+c+' project'+(c===1?'':'s')+'</div></div>';
+  }).join('');
+  if(!hits.length)
+    h+='<div class="pkItem na"><div class="pnote">No '+esc(t.label.toLowerCase())+' value matches “'+esc(q)+'”. The values come from the connected data itself.</div></div>';
+  return h+'</div></div>';
+}
+function pkQ(v){S.menu.q=v;paint();var el=document.getElementById('pkIn');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}}
+function openType(e,pi){e.stopPropagation();
+  S.menu=(S.menu&&S.menu.pi===pi&&S.menu.stage==='type')?null:{pi:pi,stage:'type',q:''};
+  paint();
+  if(S.menu){var el=document.getElementById('pkIn');if(el)el.focus();}
+}
+function openVal(e,pi){e.stopPropagation();
+  S.menu=(S.menu&&S.menu.pi===pi&&S.menu.stage==='val')?null:{pi:pi,stage:'val',q:''};
+  paint();
+  if(S.menu){var el=document.getElementById('pkIn');if(el)el.focus();}
+}
+function pickType(e,pi,tid){e.stopPropagation();
+  var p=PEOPLE[pi];
+  if(!p.rule||p.rule.type!==tid)p.rule={type:tid,vals:[]};
+  p.full=false;
+  S.menu={pi:pi,stage:'val',q:''};paint();
+  toast('Restriction basis: '+typeById(tid).label+'. Now pick the values '+p.n.split(' ')[0]+' may see.');
+  var el=document.getElementById('pkIn');if(el)el.focus();
+}
+function toggleVal(e,pi,vi){e.stopPropagation();
+  var p=PEOPLE[pi],t=typeById(p.rule.type),v=t.vals()[vi],ix=p.rule.vals.indexOf(v);
+  if(ix>=0){p.rule.vals.splice(ix,1);toast('Removed '+t.disp(v)+' — applies immediately to everything published to '+p.n.split(' ')[0]+'.');}
+  else{p.rule.vals.push(v);p.full=false;toast('Added '+t.disp(v)+' ('+valCount(t,v)+' projects) — applies immediately to everything published to '+p.n.split(' ')[0]+'.');}
+  paint();
+  var el=document.getElementById('pkIn');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}
+}
+function addAllVals(e,pi){e.stopPropagation();
+  var p=PEOPLE[pi],t=typeById(p.rule.type),q=(S.menu.q||'').trim().toLowerCase(),n=0;
+  t.vals().forEach(function(v){
+    if((t.disp(v).toLowerCase().indexOf(q)>=0||v.toLowerCase().indexOf(q)>=0)&&p.rule.vals.indexOf(v)<0){p.rule.vals.push(v);n++;}
+  });
+  if(n)p.full=false;
+  S.menu.q='';paint();
+  toast('Added '+n+' value'+(n===1?'':'s')+' to '+p.n.split(' ')[0]+'’s rule.');
+  var el=document.getElementById('pkIn');if(el)el.focus();
+}
+function rmVal(e,pi,ri){e.stopPropagation();
+  var p=PEOPLE[pi];p.rule.vals.splice(ri,1);
+  paint();toast('Removed — applies immediately to everything published to '+p.n.split(' ')[0]+'.');
+}
+function expandEnts(e,pi){e.stopPropagation();S.expand[pi]=!S.expand[pi];paint();}
+function grantAll(pi){PEOPLE[pi].full=true;PEOPLE[pi].rule=null;S.menu=null;paint();toast(PEOPLE[pi].n.split(' ')[0]+' can now see everything.');}
+function toggleMask(pi){var p=PEOPLE[pi];p.mask=!p.mask;if(p.mask&&!hasScope(p))p.full=true;paint();toast(p.mask?'Commercial terms masked for '+p.n.split(' ')[0]+' — rows unchanged, columns removed.':'Mask removed for '+p.n.split(' ')[0]+'.');}
+function entArea(p,pi){
+  var first=p.n.split(' ')[0];
+  if(p.full&&p.mask)
+    return '<div class="rule"><span class="fix">'+esc(first)+' can open everything — all '+PROJ.length+' projects — but</span> <b>commercial terms are masked</b><span class="fix">: vendor contacts, contract values and unit rates. Masking removes columns, not rows, and the masked figures are never in the payload.</span></div>';
+  if(p.full)
+    return '<div class="rule"><span class="fix">'+esc(first)+' can see</span> <b>everything</b> <span class="fix">— all '+PROJ.length+' entities.</span> '+
+      '<span class="addEnt"><span class="addC" onclick="openType(event,'+pi+')">Restrict by a field…</span>'+typePicker(pi)+'</span></div>';
+  if(!p.rule)
+    return '<div class="rule"><span class="fix">'+esc(first)+' has</span> <b style="color:var(--red)">no data access yet</b> <span class="fix">— anything shared with them opens empty.</span> '+
+      '<span class="addEnt"><span class="addC" onclick="openType(event,'+pi+')">+ Restrict by…</span>'+typePicker(pi)+'</span> '+
+      '<span class="addC" onclick="grantAll('+pi+')">or allow everything</span></div>';
+  var t=typeById(p.rule.type);
+  if(!p.rule.vals.length)
+    return '<div class="rule"><span class="fix">'+esc(first)+'’s restriction runs on</span> <b>'+esc(t.label)+'</b> <span class="fix">— no values picked yet, so everything still opens empty.</span> '+
+      '<span class="addEnt"><span class="addC" onclick="openVal(event,'+pi+')">+ Add '+esc(t.label.toLowerCase())+' value…</span>'+valPicker(pi)+'</span> '+
+      '<span class="addEnt"><span class="addC" onclick="openType(event,'+pi+')">change basis…</span>'+typePicker(pi)+'</span></div>';
+  var ev=evalPerson(p),exp=S.expand[pi];
+  var chips=p.rule.vals.map(function(v,ri){
+    var c=valCount(t,v);
+    return '<span class="eChip" title="'+esc(t.disp(v))+' — '+c+' projects">'+esc(t.disp(v))+'<span class="est">'+c+'</span><span class="x" title="Remove value" onclick="rmVal(event,'+pi+','+ri+')">×</span></span>';
+  }).join('');
+  var shown=exp?'<div class="rule" style="line-height:1.6"><span class="fix">'+ev.rows.map(function(g){return esc(shortName(g.g));}).join(' · ')+'</span></div>':'';
+  return '<div class="rule" style="line-height:1.6"><span class="fix">'+esc(first)+' is restricted by</span> <b>'+esc(t.label)+'</b><span class="fix"> — sees:</span></div>'+
+    '<div class="eChips">'+chips+
+    '<span class="addEnt"><span class="addC" style="margin-left:0" onclick="openVal(event,'+pi+')">+ Add value…</span>'+valPicker(pi)+'</span>'+
+    '<span class="addEnt"><span class="addC" onclick="openType(event,'+pi+')">change basis…</span>'+typePicker(pi)+'</span></div>'+
+    '<div class="rule" style="line-height:1.6"><span class="fix">Resolves to</span> <b>'+ev.n+' of '+PROJ.length+' projects</b> <span class="fix">today — re-resolved on every open, so the rule follows the data.</span> '+
+    '<span class="moreT" onclick="expandEnts(event,'+pi+')">'+(exp?'hide them':'show them')+'</span></div>'+shown;
+}
+/* ============ TABS 1 & 2 — published reports & what-ifs ============ */
+function addQ(aid,v){S.addQ=v;paint();var el=document.getElementById('addIn-'+aid);if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}}
+function addFocus(aid){if(S.addFor===aid)return;S.addFor=aid;S.addQ='';paint();var el=document.getElementById('addIn-'+aid);if(el)el.focus();}
+function addMatches(a){
+  var q=S.addQ.trim().toLowerCase();if(!q)return [];
+  return PEOPLE.filter(function(p){return a.readers.indexOf(p.e)<0&&(p.e.indexOf(q)>=0||p.n.toLowerCase().indexOf(q)>=0);});
+}
+function addReader(aid,e){
+  var a=artById(aid);
+  e=e.trim().toLowerCase();if(!e)return;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){toast('That doesn’t look like an email address.');return;}
+  if(a.readers.indexOf(e)<0)a.readers.push(e);
+  S.addQ='';paint();toast('Added. They can open it now — under their own access rule.');
+  var el=document.getElementById('addIn-'+aid);if(el)el.focus();
+}
+function addKey(ev,aid){if(ev.key==='Enter'){ev.preventDefault();var a=artById(aid);var m=addMatches(a);if(m.length)addReader(aid,m[0].e);else addReader(aid,S.addQ);}}
+function rmReader(aid,e){
+  var a=artById(aid);
+  a.readers=a.readers.filter(function(x){return x!==e;});
+  paint();toast('Removed — the link stops working for them right away.');
+}
+function unpub(aid){
+  if(S.unpub!==aid){S.unpub=aid;paint();return;}
+  var a=artById(aid);
+  a.live=false;S.unpub=null;paint();toast('Unpublished. Readers see “no longer available”; the author keeps the draft.');
+}
+function scopeChip(e){
+  var p=person(e);
+  if(!p)return 'invited · no entities yet';
+  var ev=evalPerson(p);
+  if(ev.kind==='full')return 'all '+PROJ.length;
+  if(ev.kind==='mask')return 'all '+PROJ.length+', masked';
+  if(ev.kind==='zero')return '0 rows';
+  return ev.n+' of '+PROJ.length;
+}
+function artCard(a){
+    var rows=a.readers.map(function(e){
+      var p=person(e),pi=PEOPLE.indexOf(p),k=a.id+'|'+e,open=S.acc===k;
+      var ev=p?evalPerson(p):null;
+      var pill=p?ev.pill:'zero';
+      var row='<div class="aRdr"><span class="av3">'+ini(p?p.n:e)+'</span>'+
+        '<div class="ri2"><div class="rn2">'+esc(p?p.n:e.split('@')[0])+(p?'':' <span style="color:var(--amber);font-size:9px;font-weight:700">INVITED</span>')+'</div><div class="re2">'+esc(e)+'</div></div>'+
+        '<span class="lvl pill '+pill+'">'+scopeChip(e)+'</span>'+
+        (p?'<button class="btn sm '+(open?'sec':'ghost')+'" onclick="toggleAcc(event,\''+a.id+'\',\''+esc(e)+'\')">'+(open?'Close':'Manage access')+'</button>':'')+
+        '<span class="x" title="Remove reader" onclick="rmReader(\''+a.id+'\',\''+esc(e)+'\')">×</span></div>';
+      if(open&&p){
+        var maskRow=hasScope(p)?'<div style="margin-top:9px"><span class="maskT'+(p.mask?' on':'')+'" onclick="toggleMask('+pi+')"><span class="box">'+(p.mask?'✓':'')+'</span>Commercial terms masked — vendor contacts, contract values, unit rates</span></div>':'';
+        row+='<div class="aAcc">'+entArea(p,pi)+maskRow+
+          '<div style="font-size:11px;color:var(--mut);margin-top:9px;border-top:1px dashed var(--line);padding-top:8px">Access follows the <b>person</b>, not this '+(a.type==='wi'?'scenario':'report')+' — a change here applies <b>immediately</b> to everything published to '+esc(p.n.split(' ')[0])+'. Publishing never widens access; the rule always wins.</div></div>';
+      }
+      return row;
+    }).join('');
+    var drop='';
+    if(S.addFor===a.id&&S.addQ.trim()){
+      var m=addMatches(a),q=S.addQ.trim().toLowerCase();
+      drop=m.map(function(p){return '<div class="opt" onclick="addReader(\''+a.id+'\',\''+p.e+'\')"><b>'+esc(p.n)+'</b><span class="em">'+p.e+'</span></div>';}).join('');
+      if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q)&&!person(q)&&a.readers.indexOf(q)<0)
+        drop+='<div class="opt" onclick="addReader(\''+a.id+'\',\''+esc(q)+'\')"><b style="color:var(--orange-hi)">+ Invite</b><span class="em">'+esc(q)+'</span></div>';
+      drop=drop?'<div class="drop">'+drop+'</div>':'';
+    }
+    return '<div class="aCard"><div class="aTop">'+
+      '<span class="aType '+a.type+'">'+a.tn+'</span><span class="an">'+esc(a.name)+'</span>'+
+      '<span class="live '+(a.live?'y':'n')+'">'+(a.live?'● live':'unpublished')+'</span></div>'+
+      '<div class="aMeta">Published by <b>'+esc(a.by)+'</b> · <span class="mono" style="font-size:10.5px">'+esc(a.link)+'</span>'+
+      (a.cases?'<br>Cases: <b>'+a.cases.map(esc).join('</b> · <b>')+'</b>':'')+'</div>'+
+      (a.live?'<div style="margin-top:10px">'+rows+
+        '<span class="addR"><input id="addIn-'+a.id+'" placeholder="+ add reader by email…" value="'+(S.addFor===a.id?esc(S.addQ):'')+'" onfocus="addFocus(\''+a.id+'\')" oninput="addQ(\''+a.id+'\',this.value)" onkeydown="addKey(event,\''+a.id+'\')" autocomplete="off">'+drop+'</span></div>'+
+      '<div class="aActs"><span class="fr">↻ '+esc(a.fresh)+'</span><span style="flex:1"></span>'+
+        (S.unpub===a.id?'<span style="font-size:11.5px;color:var(--red)">Sure? Readers lose it immediately.</span><button class="btn sm danger" onclick="unpub(\''+a.id+'\')">Yes, unpublish</button><button class="btn sm ghost" onclick="S.unpub=null;paint()">Keep it</button>'
+                       :'<button class="btn sm danger" onclick="unpub(\''+a.id+'\')">Unpublish</button>')+
+      '</div>':'<div class="aActs"><span class="fr" style="color:var(--dim)">Readers see “no longer available”. The author keeps the draft in their library.</span></div>')+
+      '</div>';
+}
+function paintReps(){
+  document.getElementById('repList').innerHTML=REPS.map(artCard).join('');
+  document.getElementById('ctReps').textContent=REPS.filter(function(a){return a.live;}).length;
+}
+function paintWifs(){
+  document.getElementById('wifList').innerHTML=WIFS.map(artCard).join('');
+  document.getElementById('ctWifs').textContent=WIFS.filter(function(a){return a.live;}).length;
+}
+
+/* ============ TAB 3 — audit ============ */
+function setAudF(id){S.audF=id;paint();}
+function paintAud(){
+  document.getElementById('audFilters').innerHTML=AUD_FILTERS.map(function(f){
+    return '<button class="fChip'+(S.audF===f.id?' on':'')+'" onclick="setAudF(\''+f.id+'\')">'+f.l+'</button>';
+  }).join('');
+  var evs=AUD.filter(function(e){return S.audF==='all'||e.cat===S.audF;});
+  document.getElementById('audList').innerHTML=evs.length?evs.map(function(e){
+    return '<div class="evt"><div class="eIc '+e.ic+'">'+e.sym+'</div><div><div class="eTx">'+e.tx+'</div><div class="eSub">'+e.sub+'</div></div><span class="eT">'+e.t+'</span></div>';
+  }).join(''):'<div class="evt"><div class="eTx" style="color:var(--dim)">Nothing in this category yet.</div></div>';
+  document.getElementById('ctAud').textContent=AUD.length;
+}
+
+/* ============ paint + global click ============ */
+function paint(){paintReps();paintWifs();paintAud();}
+document.addEventListener('click',function(){if(S.menu){S.menu=null;paint();}if(S.addFor&&!S.addQ){S.addFor=null;paint();}});
+
+var tt;
+function toast(m){var t=document.getElementById('toast');document.getElementById('toastMsg').textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('on');},3600);}
+
+paint();
+</script>
+</body>
+</html>
