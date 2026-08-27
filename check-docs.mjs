@@ -6874,6 +6874,72 @@ expect(
 )
 
 /*
+ * ---------------- the console's people are at the console's domain, and only they are ----------------
+ *
+ * CAPEX's documents named its five people at `@northlinewater.com` while `db.settings` carried the same
+ * five, same local parts, at `@vriodigital.com` — the addresses Settings lists and the only ones anybody
+ * can sign in as. So the governance screen named five readers, and the reports five authors, that no
+ * session here could be. Rewritten to the console's domain on request.
+ *
+ * **Two rules, because the substitution that fixes one breaks the other**, which is not hypothetical:
+ * the first pass here was a blanket domain swap, and the three reports turned out to carry *five more*
+ * people — report authors and approvers the console has never heard of — who were carried onto the real
+ * company's domain with everybody else. That reads as five colleagues who cannot sign in, which is the
+ * mirror image of the fault being fixed. So:
+ *
+ *   1. a person **in** the directory appears at the directory's address and never at a second domain;
+ *   2. an address at the directory's domain **is** one of the directory's, so nobody is invented into it.
+ *
+ * Either alone passes the bug the other catches.
+ *
+ * **Asserted here and not only in the ingest, because the ingest reads one of these files.** It checks
+ * the governance extract; the screen itself, the three reports and the What-if lens carry the same
+ * addresses and are never parsed for them, so a re-export reverting the domain in a report would sail
+ * past it and put a byline on screen that nobody can sign in as.
+ *
+ * **What is deliberately untouched.** The share links (`contextweave.northlinewater.com/r/variance-report`)
+ * are the *tenant's* web address rather than a mailbox — they carry no `@`, so the pattern never sees
+ * them. The reports' project contacts sit at `@northlinewater.example`, the reserved TLD that cannot
+ * resolve, and the five authors above stay on the package's own domain: all of them are figures *inside
+ * the report data* rather than people this console knows, and rule 2 is what keeps that boundary.
+ */
+const capexDocDir = 'frontend/src/Capex'
+const capexPeople = new Map(
+  (capexDoc.value?.settings?.users ?? []).map((u) => [u.email.split('@')[0], u.email]),
+)
+const capexDomain = [...capexPeople.values()][0]?.split('@')[1] ?? ''
+const capexDocFiles = [
+  'audit-governance/governance_audit_capex.html',
+  'audit-governance/governance_audit_data.json',
+  'what-if-lens/W1_what_if_lens.html',
+  ...readdirSync(join(root, capexDocDir, 'Report')).map((f) => `Report/${f}`),
+].filter((f) => existsSync(join(root, capexDocDir, f)))
+
+/** `[what is wrong, where]`, first sighting only — one line per address, not per mention. */
+const addressFaults = new Map()
+for (const file of capexDocFiles) {
+  const text = read(`${capexDocDir}/${file}`)
+  for (const [address, local, domain] of text.matchAll(
+    /([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\.[A-Za-z]{2,})/g,
+  )) {
+    const known = capexPeople.get(local)
+    const fault = known
+      ? /* Rule 1: a person the console knows, seen at some other domain. */
+        address !== known && `${address} is ${known} at another domain`
+      : /* Rule 2: somebody the console does not know, wearing its domain. */
+        domain === capexDomain && `${address} is at the console's domain and cannot sign in`
+    if (fault && !addressFaults.has(address)) addressFaults.set(address, `${fault} (${file})`)
+  }
+}
+expect(
+  `CAPEX's documents write its ${capexPeople.size} people at ${capexDomain} and nobody else: ${capexDocFiles.length} documents`,
+  capexPeople.size > 0 && capexDomain !== '' && capexDocFiles.length >= 4 && addressFaults.size === 0,
+  capexPeople.size === 0
+    ? 'db.CAPEX.json carries no directory to check against — run npm run seed:settings -- CAPEX'
+    : [...addressFaults.values()].join('; '),
+)
+
+/*
  * ---------------- Report View: which acts a persona is offered ----------------
  *
  * The Settings tab that records what each persona may do to a Library row — open it, edit its

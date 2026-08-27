@@ -1143,7 +1143,7 @@
           cases: [{ name: 'Base case', vals: { mat: 0, lab: 0, cont: 12 } },
           { name: 'Steel spike +18%', vals: { mat: 18, lab: 0, cont: 12 } }],
           pub: {
-            readers: ['ellis.hargrove@northlinewater.com', 'sofia.lindqvist@northlinewater.com'], graph: 'v4',
+            readers: ['ellis.hargrove@vriodigital.com', 'sofia.lindqvist@vriodigital.com'], graph: 'v4',
             fresh: { preset: 'monday', every: 1, unit: 'week', days: ['Mon'], time: '6:00 AM' }
           }
         },
@@ -2066,19 +2066,19 @@
        `masked` lists which of the watched measures each person's field masks withhold. */
     const SH_DIR = [
       {
-        e: 'dana.whitfield@northlinewater.com', n: 'Dana Whitfield', r: 'Domain Architect',
+        e: 'dana.whitfield@vriodigital.com', n: 'Dana Whitfield', r: 'Domain Architect',
         kind: 'full', masked: [], scopeNote: '', label: 'Unrestricted — all 60 project rows, no field masks'
       },
       {
-        e: 'ellis.hargrove@northlinewater.com', n: 'Ellis Hargrove', r: 'Business User · Executive',
+        e: 'ellis.hargrove@vriodigital.com', n: 'Ellis Hargrove', r: 'Business User · Executive',
         kind: 'rules', masked: [], scopeNote: '', label: 'Portfolio-wide; vendor contacts and unit rates masked — neither is a watched measure here'
       },
       {
-        e: 'sofia.lindqvist@northlinewater.com', n: 'Sofia Lindqvist', r: 'Data Analyst',
+        e: 'sofia.lindqvist@vriodigital.com', n: 'Sofia Lindqvist', r: 'Data Analyst',
         kind: 'rules', masked: ['committed'], scopeNote: '', label: 'Portfolio-wide, but contract values and unit rates are masked'
       },
       {
-        e: 'rei.nakamura@northlinewater.com', n: 'Rei Nakamura', r: 'Business User · Project Level',
+        e: 'rei.nakamura@vriodigital.com', n: 'Rei Nakamura', r: 'Business User · Project Level',
         /* 8, not 9. The prototype's scope-matrix grid says 9 and its scope DEFINITION says 8;
            the governance screen settles it by counting business unit 690 - Dunmoor East out of
            the 60-project roster, which returns 8. This preview quotes that computed count rather
@@ -2087,7 +2087,7 @@
         label: 'Scoped to one business unit; forecast, EAC and EAC variance masked'
       },
       {
-        e: 'adaeze.okonjo@northlinewater.com', n: 'Adaeze Okonjo', r: 'Platform Admin',
+        e: 'adaeze.okonjo@vriodigital.com', n: 'Adaeze Okonjo', r: 'Platform Admin',
         kind: 'zero', masked: ['forecast', 'contingency', 'variance', 'committed'], scopeNote: '',
         label: 'Metadata only — refused at entitlement, zero rows'
       }
@@ -2099,7 +2099,7 @@
     ];
     function shGraphLabel(id) { const g = SH_GRAPHS.find(x => x.id === id); return g ? g.label : id; }
     const SH = {
-      readers: ['ellis.hargrove@northlinewater.com'], graph: 'v4',
+      readers: ['ellis.hargrove@vriodigital.com'], graph: 'v4',
       fresh: { preset: 'open', every: 1, unit: 'week', days: ['Mon'], time: '6:00 AM' },
       q: '', done: false, scen: null
     };
@@ -2185,7 +2185,7 @@
         SH.fresh = { preset: e.pub.fresh.preset, every: e.pub.fresh.every, unit: e.pub.fresh.unit, days: e.pub.fresh.days.slice(), time: e.pub.fresh.time };
       }
       else {
-        SH.readers = ['ellis.hargrove@northlinewater.com']; SH.graph = 'v4';
+        SH.readers = ['ellis.hargrove@vriodigital.com']; SH.graph = 'v4';
         SH.fresh = { preset: 'open', every: 1, unit: 'week', days: ['Mon'], time: '6:00 AM' };
       }
       SH.done = false; SH.q = ''; document.getElementById('shOv').classList.add('on'); shPaint();

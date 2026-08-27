@@ -344,11 +344,11 @@ function ruleSummary(r){var t=typeById(r.type);
    in governance_audit_data.json's gate2_scope, which is what a developer builds the masking from.
    Adaeze holds no scope BY DESIGN: an admin administers entitlement and does not thereby acquire it. ============ */
 var PEOPLE=[
- {e:'sofia.lindqvist@northlinewater.com', n:'Sofia Lindqvist', r:'Capital Planning Analyst \u00b7 authors the demo reports & scenarios', full:true,  mask:true,  rule:null},
- {e:'dana.whitfield@northlinewater.com',  n:'Dana Whitfield',  r:'Domain Architect \u00b7 governs access on this screen',            full:true,  mask:false, rule:null},
- {e:'ellis.hargrove@northlinewater.com',  n:'Ellis Hargrove',  r:'VP Capital Programmes \u00b7 Executive',                           full:true,  mask:true,  rule:null},
- {e:'rei.nakamura@northlinewater.com',    n:'Rei Nakamura',    r:'Project Delivery Manager \u00b7 Dunmoor East',                     full:false, mask:false, rule:{type:'bu',vals:['690 - Dunmoor East']}},
- {e:'adaeze.okonjo@northlinewater.com',   n:'Adaeze Okonjo',   r:'Platform Admin \u00b7 administers entitlement, holds none',        full:false, mask:false, rule:null}
+ {e:'sofia.lindqvist@vriodigital.com', n:'Sofia Lindqvist', r:'Capital Planning Analyst \u00b7 authors the demo reports & scenarios', full:true,  mask:true,  rule:null},
+ {e:'dana.whitfield@vriodigital.com',  n:'Dana Whitfield',  r:'Domain Architect \u00b7 governs access on this screen',            full:true,  mask:false, rule:null},
+ {e:'ellis.hargrove@vriodigital.com',  n:'Ellis Hargrove',  r:'VP Capital Programmes \u00b7 Executive',                           full:true,  mask:true,  rule:null},
+ {e:'rei.nakamura@vriodigital.com',    n:'Rei Nakamura',    r:'Project Delivery Manager \u00b7 Dunmoor East',                     full:false, mask:false, rule:{type:'bu',vals:['690 - Dunmoor East']}},
+ {e:'adaeze.okonjo@vriodigital.com',   n:'Adaeze Okonjo',   r:'Platform Admin \u00b7 administers entitlement, holds none',        full:false, mask:false, rule:null}
 ];
 function hasScope(p){return p.full||(p.rule&&p.rule.vals.length>0);}
 function person(e){for(var i=0;i<PEOPLE.length;i++)if(PEOPLE[i].e===e)return PEOPLE[i];return null;}
@@ -361,18 +361,18 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 var REPS=[
  {id:'r1',type:'rep',tn:'Report', name:"Variance Report", by:"Sofia Lindqvist", live:true,
   fresh:'Refreshes daily \u00b7 07:00 UTC', link:'contextweave.northlinewater.com/r/variance-report',
-  readers:["dana.whitfield@northlinewater.com","ellis.hargrove@northlinewater.com","rei.nakamura@northlinewater.com"]},
+  readers:["dana.whitfield@vriodigital.com","ellis.hargrove@vriodigital.com","rei.nakamura@vriodigital.com"]},
  {id:'r2',type:'rep',tn:'Report', name:"Project 360", by:"Dana Whitfield", live:true,
   fresh:'Refreshes only when it\u2019s opened', link:'contextweave.northlinewater.com/r/project-360',
-  readers:["sofia.lindqvist@northlinewater.com","ellis.hargrove@northlinewater.com","rei.nakamura@northlinewater.com"]},
+  readers:["sofia.lindqvist@vriodigital.com","ellis.hargrove@vriodigital.com","rei.nakamura@vriodigital.com"]},
  {id:'r3',type:'rep',tn:'Report', name:"Rate-Case Filing Calendar", by:"Sofia Lindqvist", live:true,
   fresh:'Refreshes on the 1st of the month \u00b7 06:00 UTC', link:'contextweave.northlinewater.com/r/rate-case-filing-calendar',
-  readers:["dana.whitfield@northlinewater.com","ellis.hargrove@northlinewater.com","rei.nakamura@northlinewater.com"]}
+  readers:["dana.whitfield@vriodigital.com","ellis.hargrove@vriodigital.com","rei.nakamura@vriodigital.com"]}
 ];
 var WIFS=[
  {id:'w1',type:'wi',tn:'What-if scenario', name:'Commodity index exposure \u2014 PFAS program', by:'Sofia Lindqvist', live:true,
   fresh:'Points to graph v4 \u00b7 numbers refresh weekly on Monday \u00b7 6:00 AM', link:'contextweave.northlinewater.com/w/commodity-index-exposure-pfas',
-  readers:['ellis.hargrove@northlinewater.com','sofia.lindqvist@northlinewater.com'],
+  readers:['ellis.hargrove@vriodigital.com','sofia.lindqvist@vriodigital.com'],
   cases:['Base case','Steel spike +18%']}
 ];
 function artById(id){

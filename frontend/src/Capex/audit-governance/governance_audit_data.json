@@ -929,7 +929,7 @@
  },
  "directory": [
   {
-   "email": "sofia.lindqvist@northlinewater.com",
+   "email": "sofia.lindqvist@vriodigital.com",
    "name": "Sofia Lindqvist",
    "role": "Capital Planning Analyst · authors the demo reports & scenarios",
    "full_scope": true,
@@ -945,7 +945,7 @@
    }
   },
   {
-   "email": "dana.whitfield@northlinewater.com",
+   "email": "dana.whitfield@vriodigital.com",
    "name": "Dana Whitfield",
    "role": "Domain Architect · governs access on this screen",
    "full_scope": true,
@@ -961,7 +961,7 @@
    }
   },
   {
-   "email": "ellis.hargrove@northlinewater.com",
+   "email": "ellis.hargrove@vriodigital.com",
    "name": "Ellis Hargrove",
    "role": "VP Capital Programmes · Executive",
    "full_scope": true,
@@ -977,7 +977,7 @@
    }
   },
   {
-   "email": "rei.nakamura@northlinewater.com",
+   "email": "rei.nakamura@vriodigital.com",
    "name": "Rei Nakamura",
    "role": "Project Delivery Manager · Dunmoor East",
    "full_scope": false,
@@ -998,7 +998,7 @@
    }
   },
   {
-   "email": "adaeze.okonjo@northlinewater.com",
+   "email": "adaeze.okonjo@vriodigital.com",
    "name": "Adaeze Okonjo",
    "role": "Platform Admin · administers entitlement, holds none",
    "full_scope": false,
@@ -1028,7 +1028,7 @@
    "cases": null,
    "readers": [
     {
-     "email": "dana.whitfield@northlinewater.com",
+     "email": "dana.whitfield@vriodigital.com",
      "name": "Dana Whitfield",
      "gate1_entitled": true,
      "gate2": {
@@ -1038,7 +1038,7 @@
      }
     },
     {
-     "email": "ellis.hargrove@northlinewater.com",
+     "email": "ellis.hargrove@vriodigital.com",
      "name": "Ellis Hargrove",
      "gate1_entitled": true,
      "gate2": {
@@ -1048,7 +1048,7 @@
      }
     },
     {
-     "email": "rei.nakamura@northlinewater.com",
+     "email": "rei.nakamura@vriodigital.com",
      "name": "Rei Nakamura",
      "gate1_entitled": true,
      "gate2": {
@@ -1072,7 +1072,7 @@
    "cases": null,
    "readers": [
     {
-     "email": "sofia.lindqvist@northlinewater.com",
+     "email": "sofia.lindqvist@vriodigital.com",
      "name": "Sofia Lindqvist",
      "gate1_entitled": true,
      "gate2": {
@@ -1082,7 +1082,7 @@
      }
     },
     {
-     "email": "ellis.hargrove@northlinewater.com",
+     "email": "ellis.hargrove@vriodigital.com",
      "name": "Ellis Hargrove",
      "gate1_entitled": true,
      "gate2": {
@@ -1092,7 +1092,7 @@
      }
     },
     {
-     "email": "rei.nakamura@northlinewater.com",
+     "email": "rei.nakamura@vriodigital.com",
      "name": "Rei Nakamura",
      "gate1_entitled": true,
      "gate2": {
@@ -1116,7 +1116,7 @@
    "cases": null,
    "readers": [
     {
-     "email": "dana.whitfield@northlinewater.com",
+     "email": "dana.whitfield@vriodigital.com",
      "name": "Dana Whitfield",
      "gate1_entitled": true,
      "gate2": {
@@ -1126,7 +1126,7 @@
      }
     },
     {
-     "email": "ellis.hargrove@northlinewater.com",
+     "email": "ellis.hargrove@vriodigital.com",
      "name": "Ellis Hargrove",
      "gate1_entitled": true,
      "gate2": {
@@ -1136,7 +1136,7 @@
      }
     },
     {
-     "email": "rei.nakamura@northlinewater.com",
+     "email": "rei.nakamura@vriodigital.com",
      "name": "Rei Nakamura",
      "gate1_entitled": true,
      "gate2": {
@@ -1163,7 +1163,7 @@
    ],
    "readers": [
     {
-     "email": "ellis.hargrove@northlinewater.com",
+     "email": "ellis.hargrove@vriodigital.com",
      "name": "Ellis Hargrove",
      "gate1_entitled": true,
      "gate2": {
@@ -1173,7 +1173,7 @@
      }
     },
     {
-     "email": "sofia.lindqvist@northlinewater.com",
+     "email": "sofia.lindqvist@vriodigital.com",
      "name": "Sofia Lindqvist",
      "gate1_entitled": true,
      "gate2": {

@@ -489,18 +489,35 @@ if (govFiles.length !== 1) {
     }
 
     /*
-     * The people are the console's own, checked **by name and not by address**. The document is the
-     * tenant's own page and writes them at `@northlinewater.com`, while `db.settings` carries them at
-     * the domain this dataset was authored with; refusing over that difference would block a correct
-     * pair over something this script has no business resolving. The name still catches what matters —
-     * a governance screen about people this console has never heard of.
+     * The people are the console's own, **checked by address as well as by name**.
+     *
+     * This check was by name alone, and the comment said why: the document wrote the five of them at
+     * `@northlinewater.com` while `db.settings` carried them at `@vriodigital.com`, so refusing over
+     * the domain would have blocked a correct pair over something the script had no business
+     * resolving. That difference was resolved on request — the documents were rewritten to the domain
+     * the console signs in with — so the workaround has nothing left to work around, and the check can
+     * assert the thing that actually matters.
+     *
+     * **And that is what stops the mismatch coming back.** These files are package exports, so the
+     * next one will carry the package's own domain again; by name the ingest would pass and the
+     * governance screen would quietly list five addresses nobody here can sign in as. By address it
+     * refuses and names both, which is a fix somebody can act on in one command.
      */
-    const consoleNames = new Set((db.settings?.users ?? []).map((u) => u.name))
+    const directory = new Map((db.settings?.users ?? []).map((u) => [u.email, u.name]))
     for (const person of extract.directory ?? []) {
-      if (consoleNames.size > 0 && !consoleNames.has(person.name)) {
+      if (directory.size === 0) continue
+      if (!directory.has(person.email)) {
         problems.push(
-          `${govExtractName} governs ${person.name}, who is not in this dataset's directory ` +
-            `(${[...consoleNames].join(', ')}) — run npm run seed:settings -- CAPEX if the roster moved`,
+          `${govExtractName} governs ${person.email}, which is not an address this dataset can sign ` +
+            `in as (${[...directory.keys()].join(', ')}) — rewrite the documents' domain, or run ` +
+            'npm run seed:settings -- CAPEX if the roster itself moved',
+        )
+      } else if (directory.get(person.email) !== person.name) {
+        /* Same address, different person: a rename on one side only, which by address alone would
+           pass and would put the wrong name against the right permissions. */
+        problems.push(
+          `${govExtractName} calls ${person.email} "${person.name}", and this dataset's directory ` +
+            `calls them "${directory.get(person.email)}"`,
         )
       }
     }
@@ -559,7 +576,7 @@ if (govFiles.length !== 1) {
 if (problems.length > 0) {
   console.error('\ningest-capex-reports: refusing to write —')
   for (const p of problems) console.error('  · ' + p)
-  console.error('\n  Nothing was written. Fix the lens document or its title stamp.\n')
+  console.error('\n  Nothing was written. Fix the lens or the governance document, or the extract beside it.\n')
   process.exit(1)
 }
 

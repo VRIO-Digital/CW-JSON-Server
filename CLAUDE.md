@@ -2745,9 +2745,31 @@ invisible, because it looks complete on its own. The ingest **refuses to write**
 roster and the extract's `roster.count` differ, when the two name different directories, when the extract
 governs a report this dataset does not ship (matched against `db.reports.documents`, which is what the
 Library lists), when it governs a person `db.settings` has never heard of, or when it came out of a
-different package. The people are checked **by name and not by address**: the document writes them at
-`@northlinewater.com` and `db.settings` carries them at the domain the dataset was authored with, and
-refusing over that would block a correct pair over something the ingest has no business resolving.
+different package. The people are checked **by address as well as by name**, which they were not at
+first — see below.
+
+**The tenant's people are at one domain, and it is the console's.** The package writes its five people at
+`@northlinewater.com`; `db.settings` carries the same five, same local parts, at `@vriodigital.com` — the
+addresses Settings lists and the only ones anybody can sign in as. So the governance screen named five
+readers, and the reports named the same five authors, that no session here could ever be. **Every CAPEX
+document was rewritten to the console's domain on request**, which is a domain substitution and nothing
+else: 16 addresses in the governance page, 16 in its extract, 10 in each of the three reports and 9 in the
+What-if lens, all five local parts unchanged.
+
+**Two kinds of address were deliberately left alone.** The share links — `contextweave.northlinewater.com/r/variance-report` and its three siblings — are the *tenant's* web address rather than anybody's mailbox,
+and the What-if receipt prints the same host, so moving them would make two framed screens disagree about
+where a published artifact lives. And the reports' own project contacts (`i.ostrowski@northlinewater.example`
+and ~20 more, 47 mentions per report) are figures *inside the report data*, not the console's directory, and
+`.example` is the reserved TLD precisely so a demo address cannot resolve.
+
+**Which is what let the ingest's check be tightened.** It compared names alone, and its comment said why:
+with the domains differing, refusing over one was refusing a correct pair for something the script could
+not resolve. With the mismatch gone, the workaround has nothing left to work around — so it matches on the
+**address**, and reports a same-address-different-name as its own problem. That is also what stops this
+coming back: these are package exports, so the next one carries the package's domain again, and by name it
+would have passed while the screen listed five addresses nobody here can sign in as. `check-docs` asserts
+the same fact one layer wider, across **every** CAPEX document rather than the extract the ingest happens
+to read, with the `.example` contacts exempted by name.
 
 **Behind the publish gate, on the open branch only** — `governanceDocument()` returns `null` while
 `published_count` is 0, so the gated branch is the shared `NoPublishedGraph` for a shipped screen and a
