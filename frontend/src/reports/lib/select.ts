@@ -1,19 +1,46 @@
-import { GENERATORS } from '../data';
+import { GENERATORS, ROW_MODEL } from '../data';
 import { catVal, numVal } from './format';
-import type { Assumptions, Filter, Generator, MeasureKey } from '../types';
+import type { Assumptions, Filter, Generator, MeasureKey, ScopeRule } from '../types';
 
-/** The population the report is about, before any slicing filters. */
-export function scopeSet(scope: string): Generator[] {
-  switch (scope) {
-    case 'enf':
-      return GENERATORS.filter((p) => p.enf > 0);
-    case 'oos':
-      return GENERATORS.filter((p) => p.state !== 'TX');
-    case 'cd':
-      return GENERATORS.filter((p) => p.cd);
+/**
+ * Does one row satisfy one scope rule?
+ *
+ * A rule with no `field` is the "every row" case — the default scope every dataset has — rather than a
+ * rule that matches nothing, which is the reading that would empty a report without saying so.
+ */
+function admits(row: Generator, rule: ScopeRule): boolean {
+  if (!rule.field) return true;
+  const raw = row[rule.field];
+  switch (rule.op) {
+    case 'gt':
+      return Number(raw ?? 0) > Number(rule.value ?? 0);
+    case 'lt':
+      return Number(raw ?? 0) < Number(rule.value ?? 0);
+    case 'eq':
+      return String(raw ?? '') === String(rule.value ?? '');
+    case 'ne':
+      return String(raw ?? '') !== String(rule.value ?? '');
+    case 'truthy':
+      return Boolean(raw);
     default:
-      return GENERATORS;
+      return true;
   }
+}
+
+/**
+ * The population the report is about, before any slicing filters.
+ *
+ * **The rules are the dataset's, not this function's.** This was a `switch` over EPA's three scope ids
+ * reading EPA's three columns, with `default:` returning everything — so CAPEX's `major` (projects over
+ * $5M) fell through and a report claiming to cover the largest projects covered all of them, with
+ * nothing on screen saying so. A scope the dataset does not declare is the same silent widening, so it
+ * is an empty selection instead: a report with no rows reads as a scope that selected nothing, which is
+ * what happened.
+ */
+export function scopeSet(scope: string): Generator[] {
+  const rule = ROW_MODEL.scopes?.[scope];
+  if (!rule) return [];
+  return GENERATORS.filter((p) => admits(p, rule));
 }
 
 /** Scope narrowed by the active filter chips. `'All'` chips are no-ops. */

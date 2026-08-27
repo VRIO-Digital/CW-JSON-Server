@@ -21,6 +21,7 @@
     "seed:dataset": "npm --prefix backend run seed:dataset",
     "seed:workspaces": "npm --prefix backend run seed:workspaces",
     "seed:capex-drive": "npm --prefix backend run seed:capex-drive",
+    "seed:prototype-model": "npm --prefix backend run seed:prototype-model",
     "ingest:graph": "npm --prefix backend run ingest:graph",
     "ingest:whatif": "npm --prefix backend run ingest:whatif",
     "ingest:reports": "npm --prefix backend run ingest:reports",

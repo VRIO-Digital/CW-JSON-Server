@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GENERATORS, META, OPTS, STARTERS } from './data';
 import { assumptionsForStarter, freshAssumptions } from './lib/assumptions';
-import { instantiate, isMeasure } from './lib/blocks';
+import { instantiate, isMeasure, measures } from './lib/blocks';
 import { buildStages } from './lib/buildSteps';
 import { BuildRunDialog } from './components/BuildRunDialog';
 import {
@@ -443,7 +443,13 @@ export default function App({
 
   const scopeRows = useMemo(() => scopeSet(assumptions.scope.value), [assumptions.scope.value]);
   const rows = useMemo(() => selectRows(assumptions, filters), [assumptions, filters]);
-  const measure: MeasureKey = isMeasure(assumptions.measure.value) ? assumptions.measure.value : 'penalty';
+  /* The measure slot's *value* is the column a chart and a table rank by, and its label is the tenant's
+     words for it — which is why a dataset's options carry its own column keys. The fallback is the
+     dataset's first measure, not 'penalty': that is a column only one dataset has, and ranking by a
+     column that is not there sorts every row to zero and says nothing. */
+  const measure: MeasureKey = isMeasure(assumptions.measure.value)
+    ? assumptions.measure.value
+    : (measures()[0] ?? '');
 
   /*
    * What the build dialog narrates, computed from the state the build is about to use — so a

@@ -116,6 +116,7 @@ npm run seed:settings   # re-authors db.settings — users and persona navigatio
 npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secondary dataset
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
 npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
+npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
 npm run db:push     # upload the three documents to S3 (-- db|settings|prototype, -- CAPEX per dataset)
 npm run db:pull     # the other direction — overwrite the local copies from the bucket
 npm run verify:sigv4 # checks the S3 signing against AWS's published vector; no network needed
@@ -2389,15 +2390,65 @@ report, keyed to its slug so `starterForTag` resolves, carrying **the dataset's 
 read from its report definitions. Two weaker answers were tried first and both were reported: withholding
 the button, and framing the static authoring page — a page with no editing and no Save is not Edit.
 
-**What a starter cannot borrow is the dataset's own spine.** CAPEX's definitions are written for the
-renderer that produced the HTML — `spine: "projects"`, `figRow` blocks, its own scope and measure ids —
-while this prototype's authoring engine is written against the generator roster (`selectRows` returns
-`Generator[]`, and every block renderer reads those columns). So the starter uses the spine and block
-vocabulary the prototype actually has, which means **the figures inside the editor are the prototype's
-bundled sample data** — exactly as they are when EPA's reports are edited, since the Authoring tab has
-always drawn its own dataset and says so. Nothing about a *published* CAPEX report changes: Open still
-frames the real rendered document. Re-basing the editor on CAPEX's project rosters would be a rewrite of
-the vendored engine's core rather than data added to it, and should be argued on its own terms.
+**What a starter cannot borrow is the block vocabulary of the renderer that produced the HTML.** CAPEX's
+report definitions are written for that renderer — `spine: "projects"`, `figRow` blocks, its own scope
+and measure ids — and the authoring prototype has a different set of blocks. So a starter carries the
+dataset's own title and question with the blocks this prototype draws, and **the figures inside the
+editor are the authoring fixture's**, exactly as they are when EPA's reports are edited: the Authoring
+tab has always drawn its own sample data and says so. Nothing about a *published* CAPEX report changes —
+Open still frames the real rendered document, and its figures stay inside it.
+
+**And the editor draws that dataset's own rows, which it did not at first.** The starters took the
+prototype's block vocabulary because the engine was written against EPA's roster — `selectRows` returned
+`Generator[]`, `scopeSet` switched over three EPA scope ids, `fmt` knew that `penalty` is money, and
+seven closures were the summary tiles. So a CAPEX author composing a report was offered *all inbound
+generators*, *penalty exposure*, and filters for State / Compliance risk / Consent decree, over 36 rows
+that were EPA's. The note here used to say re-basing would be "a rewrite of the vendored engine's core
+rather than data added to it, and should be argued on its own terms" — **the argument is that the
+dataset already ships the fixture**, and what was left was one bounded generalisation.
+
+**`reports_prototype.row_model` is that generalisation.** Every literal above is now a declaration per
+dataset: which column names a row, which carries its state and how each value tones, what each scope
+option admits, which columns may be ranked, which tiles exist and what they aggregate, how each column
+prints. `src/reports/` reads that and nothing else — `check-docs` asserts the EPA column names are gone
+from `select.ts`, `format.ts`, `blocks.ts`, `TableBlock` and `ChartBlock`, **through `codeOnly`**,
+because each of those files' comments quotes the code it replaced.
+
+**Each failure it prevents is silent, which is why the model is required rather than defaulted.** A
+column another dataset does not carry renders as a blank cell; a scope with no rule fell through to
+`default:` and quietly covered every row; a tile over a missing column reads `0`; a chart ranking by an
+absent column sorts every row to zero. Four answers, none of them an error. So a missing rule now selects
+*nothing*, both validators refuse a document without a model, and each one is checked against the rows it
+claims to describe.
+
+**CAPEX's fixture is the package's own, and its `_note` says what it is for**: *"the seven-project
+fixture the screen previews against … deliberately NOT the CAPEX portfolio: an author composing a report
+should see a preview small enough to check by eye."* `npm run ingest:capex` builds the whole prototype
+block from it — the seven projects with their authorized, committed and projected figures, the dataset's
+own field dictionary, its three assumption slots, its filter columns, and its personas as the audience
+pool. The four **derived** columns (variance in dollars and per cent, per cent of envelope spent, and the
+status banding) are *computed from the fixture's own `derivationRules`* and checked against the `derived`
+block it ships; a disagreement refuses the write, and `check-docs` re-checks the written document. Reading
+`derived` directly would have been transcription, and it is the same rule that recomputes 17 report tiles.
+
+**A measure option's value is the column it ranks by**, which is how EPA's have always worked (`value:
+'penalty'`, label "penalty exposure"). CAPEX's are written as baselines — envelope, working forecast, MTP
+— so the ingest matches each to the column that answers it and **drops the ones it cannot**, stating
+which: the fixture carries authorized, committed and projected, so *against the authorized envelope* is
+computable and the other two are not. Offering a control that silently changes nothing is the fault this
+repo refuses everywhere; inventing the columns would be worse.
+
+**Three block kinds, because this fixture is projects and nothing else.** `facilities`, `quarters` and
+`traces` are EPA's rosters, so CAPEX's are empty — and empty is permitted **exactly when `row_model.
+blocks` does not list the block that draws them**, in both validators. A roster left empty behind a block
+a starter can still add is a panel that renders nothing.
+
+Nothing about a *published* CAPEX report changes: Open still frames the real rendered document, and the
+figures inside it stay inside it.
+
+**`npm run seed:prototype-model` authors the primary's model**, transcribed from the code it replaced
+rather than chosen, so EPA's behaviour is exactly what it was. It refuses to write a model naming a
+column its fixture does not carry — which is the blank table the model exists to prevent, one layer down.
 
 **Two things had to move with the starters, both found by a validator rather than guessed.** The
 dataset arrived carrying the primary's five starters *and* four demo shelf rows built on them, so

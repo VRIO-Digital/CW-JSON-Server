@@ -116,7 +116,9 @@ export function ConfirmPane({
             Stays private until you publish<b>Only you can see the draft</b>
           </div>
           <div className="m">
-            Every figure is traceable<b>Back to EPA &amp; e-Manifest source</b>
+            {/* The dataset's own provenance sentence. This was EPA's sources named in the component,
+                so CAPEX's confirm step promised its figures traced back to e-Manifest. */}
+            Every figure is traceable<b>{META.source_trace}</b>
           </div>
         </div>
       </div>

@@ -15647,7 +15647,9 @@
       "persona_initials": "AD",
       "entity_plural": "inbound generators",
       "scope_line": "the VLS Deer Park inbound network",
-      "source_trace": "Traces to: EPA RCRAInfo + e-Manifest + facility intake ledger, refreshed today."
+      "source_trace": "Traces to: EPA RCRAInfo + e-Manifest + facility intake ledger, refreshed today.",
+      "entity_singular": "inbound generator",
+      "ask_placeholder": "e.g. Which inbound generators carry the most compliance risk?"
     },
     "fields": [
       {
@@ -16866,6 +16868,139 @@
         "saved_at": "11 Aug 2026, 08:05",
         "audience": "operations"
       }
-    ]
+    ],
+    "row_model": {
+      "label": "generator",
+      "sublabel": "{evals} evaluations · last enforcement {last_enf}",
+      "status": "risk",
+      "tones": {
+        "high": "over",
+        "med": "warn",
+        "low": "ok"
+      },
+      "scopes": {
+        "all": {},
+        "enf": {
+          "field": "enf",
+          "op": "gt",
+          "value": 0
+        },
+        "oos": {
+          "field": "state",
+          "op": "ne",
+          "value": "TX"
+        },
+        "cd": {
+          "field": "cd",
+          "op": "truthy"
+        }
+      },
+      "measures": [
+        "penalty",
+        "tons",
+        "viols",
+        "enf",
+        "evals",
+        "manifests"
+      ],
+      "kpis": [
+        {
+          "key": "count",
+          "label": "Generators in scope",
+          "agg": "rows"
+        },
+        {
+          "key": "enf",
+          "label": "Enforcement actions",
+          "agg": "sum",
+          "field": "enf",
+          "format": "count",
+          "tone": "bad"
+        },
+        {
+          "key": "penalty",
+          "label": "Penalty exposure",
+          "agg": "sum",
+          "field": "penalty",
+          "format": "money",
+          "tone": "bad"
+        },
+        {
+          "key": "cd",
+          "label": "Under consent decree",
+          "agg": "count_true",
+          "field": "cd",
+          "tone": "warn"
+        },
+        {
+          "key": "viols",
+          "label": "Open violations",
+          "agg": "sum",
+          "field": "viols",
+          "format": "count",
+          "tone": "warn"
+        },
+        {
+          "key": "tons",
+          "label": "Tons shipped to VLS",
+          "agg": "sum",
+          "field": "tons",
+          "format": "tons"
+        },
+        {
+          "key": "manifests",
+          "label": "Manifests",
+          "agg": "sum",
+          "field": "manifests",
+          "format": "count"
+        }
+      ],
+      "formats": {
+        "penalty": "money",
+        "tons": "tons",
+        "evals": "count",
+        "viols": "count",
+        "enf": "count",
+        "manifests": "count",
+        "cd": "yesno",
+        "risk": "text",
+        "last_enf": "text"
+      },
+      "labels": {
+        "risk": {
+          "high": "High",
+          "med": "Med",
+          "low": "Low"
+        }
+      },
+      "pills": {
+        "cd": {
+          "on": "Decree",
+          "off": "None"
+        }
+      },
+      "blocks": [
+        "kpis",
+        "chart",
+        "table",
+        "facilities",
+        "quarterly",
+        "traces"
+      ],
+      "footer": [
+        {
+          "field": "penalty",
+          "label": "penalty exposure"
+        },
+        {
+          "field": "tons",
+          "label": "received"
+        },
+        {
+          "field": "manifests",
+          "label": "manifests"
+        }
+      ]
+    }
   }
 }

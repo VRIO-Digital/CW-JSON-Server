@@ -480,7 +480,18 @@ const PROTOTYPE_COLLECTIONS = [
   'audiences',
   'library',
 ]
-const PROTOTYPE_OBJECTS = ['meta', 'assumptions', 'opts']
+const PROTOTYPE_OBJECTS = ['meta', 'assumptions', 'opts', 'row_model']
+
+/**
+ * The rosters a dataset may legitimately have no rows for, and the block each one draws.
+ *
+ * EPA's fixture ships facilities, quarters and manifest traces; CAPEX's is capital projects and nothing
+ * else. Requiring these non-empty would refuse a dataset that is complete on its own terms — but the
+ * permission is narrow, and the client's validator states the same rule: a roster may be empty **exactly
+ * when `row_model.blocks` does not list its block**, because an empty roster behind a block a starter
+ * can still add is a panel that renders nothing.
+ */
+const PROTOTYPE_OPTIONAL_ROSTERS = { facilities: 'facilities', quarters: 'quarterly', traces: 'traces' }
 
 function validatePrototype(candidate) {
   const problems = []
@@ -505,7 +516,41 @@ function validatePrototype(candidate) {
      * demo reports, which is fabricating data to pass a check.
      */
     else if (value.length === 0 && key !== 'library') {
-      problems.push(`"${key}" is empty — the prototype would render nothing`)
+      const block = PROTOTYPE_OPTIONAL_ROSTERS[key]
+      /* Empty is a decision for a roster this dataset does not draw, and data loss for anything else. */
+      if (!block) problems.push(`"${key}" is empty — the prototype would render nothing`)
+      else if (isObject(candidate.row_model) && (candidate.row_model.blocks ?? []).includes(block)) {
+        problems.push(
+          `"${key}" is empty, but row_model.blocks lists "${block}" — that block would draw nothing`,
+        )
+      }
+    }
+  }
+
+  /*
+   * **The row model, shallowly — which columns name, tone and rank a row.**
+   *
+   * The page walks it in full; what the server owes is the refusal that stops a document booting when
+   * the prototype could not render at all. Without `label` every row draws a blank name, without
+   * `measures` no chart can rank anything, and without `scopes` the reader's scope selects nothing —
+   * three empty screens, none of which throws.
+   */
+  const rowModel = candidate.row_model
+  if (isObject(rowModel)) {
+    if (typeof rowModel.label !== 'string' || !rowModel.label) {
+      problems.push('row_model.label must name the column that titles a row')
+    }
+    if (!Array.isArray(rowModel.measures) || rowModel.measures.length === 0) {
+      problems.push('row_model.measures is empty — no chart could rank anything')
+    }
+    if (!isObject(rowModel.scopes) || Object.keys(rowModel.scopes).length === 0) {
+      problems.push('row_model.scopes is empty — every scope would select no rows')
+    }
+    if (!Array.isArray(rowModel.kpis) || rowModel.kpis.length === 0) {
+      problems.push('row_model.kpis is empty — a summary block would have no tiles to offer')
+    }
+    if (!Array.isArray(rowModel.blocks) || rowModel.blocks.length === 0) {
+      problems.push('row_model.blocks is empty — the dataset draws nothing')
     }
   }
   return problems

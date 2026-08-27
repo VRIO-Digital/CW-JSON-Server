@@ -6926,7 +6926,9 @@ for (const file of capexDocFiles) {
     const fault = known
       ? /* Rule 1: a person the console knows, seen at some other domain. */
         address !== known && `${address} is ${known} at another domain`
-      : /* Rule 2: somebody the console does not know, wearing its domain. */
+      : 
+
+/* Rule 2: somebody the console does not know, wearing its domain. */
         domain === capexDomain && `${address} is at the console's domain and cannot sign in`
     if (fault && !addressFaults.has(address)) addressFaults.set(address, `${fault} (${file})`)
   }
@@ -6937,6 +6939,181 @@ expect(
   capexPeople.size === 0
     ? 'db.CAPEX.json carries no directory to check against — run npm run seed:settings -- CAPEX'
     : [...addressFaults.values()].join('; '),
+)
+
+/*
+ * ---------------- the authoring engine reads a row model, not one dataset's columns ----------------
+ *
+ * The report-authoring prototype was vendored with one fixture, and how a row is read was written into
+ * it: `p.generator` named a row, `p.risk` toned it, `p.cd` drew a pill, a `switch` over three ids picked
+ * the scope, seven closures were the summary tiles, and `fmt` knew that `penalty` is money. Every one of
+ * those was right for EPA and wrong for CAPEX — **and wrong silently**, which is the whole reason this
+ * claim exists: a column another dataset does not have reads as a blank cell, a missing scope rule falls
+ * through to "everything", and a tile over a missing column reads `0`. Three answers, none of them an
+ * error.
+ *
+ * So the literals are `reports_prototype.row_model` now, and this asserts the engine goes through it.
+ *
+ * **Every absence here runs through `codeOnly`**, because these files' comments quote the code they
+ * replaced — `format.ts` names `key === 'penalty'` in the note explaining why it no longer does that.
+ * Six claims have been lost to that trap already; the comment explaining a removal names the thing
+ * removed.
+ */
+const rpSelect = codeOnly(read('frontend/src/reports/lib/select.ts'))
+const rpFormat = codeOnly(read('frontend/src/reports/lib/format.ts'))
+const rpBlocks = codeOnly(read('frontend/src/reports/lib/blocks.ts'))
+const rpTable = codeOnly(read('frontend/src/reports/components/blocks/TableBlock.tsx'))
+const rpChart = codeOnly(read('frontend/src/reports/components/blocks/ChartBlock.tsx'))
+const rpData = read('frontend/src/reports/data.ts')
+const rpValidate = read('frontend/src/reports/data/validate.ts')
+
+expect(
+  'the report-authoring engine reads each dataset’s row model rather than one dataset’s column names',
+  /* The scope is a declared rule per option, and the `switch` over EPA's three ids is gone. */
+  /ROW_MODEL\.scopes\?\.\[scope\]/.test(rpSelect) &&
+    !/case 'oos'|case 'enf'|case 'cd'/.test(rpSelect) &&
+    /* A missing rule selects nothing rather than everything: the old `default:` is what made an
+       unwired scope look like a scope that matched every row. */
+    /if \(!rule\) return \[\]/.test(rpSelect) &&
+    /* How a column prints is the dataset's declaration. */
+    /ROW_MODEL\.formats\?\.\[key\]/.test(rpFormat) &&
+    !/key === 'penalty'|key === 'tons'|key === 'cd'|key === 'risk'/.test(rpFormat) &&
+    /* The tone comes from the declared status column, not from `risk`. */
+    /export function rowTone/.test(rpFormat) &&
+    /ROW_MODEL\.status/.test(rpFormat) &&
+    !/riskTone|riskPill/.test(rpFormat) &&
+    /* The tiles are data with the aggregations named, not seven closures. */
+    /export function kpiValue/.test(rpBlocks) &&
+    /ROW_MODEL\.kpis/.test(rpBlocks) &&
+    !/KPI_DEFS|KPI_ORDER|Tons shipped to VLS|Under consent decree/.test(rpBlocks) &&
+    /* And the measures a chart may rank by. */
+    /ROW_MODEL\.measures/.test(rpBlocks) &&
+    !/const MEASURES: MeasureKey\[\] = \[/.test(rpBlocks) &&
+    /* The two blocks that printed EPA's columns by name now go through the model. */
+    /col === ROW_MODEL\.label/.test(rpTable) &&
+    /col === ROW_MODEL\.status/.test(rpTable) &&
+    !/p\.generator|p\.risk|p\.cd|p\.penalty|p\.tons/.test(rpTable) &&
+    !/p\.generator|p\.risk/.test(rpChart) &&
+    /rowLabel\(p\)/.test(rpChart) &&
+    /* Published to every consumer, and required rather than defaulted: a model that falls back to
+       EPA's names is the same engine guessing, one layer down. */
+    /export let ROW_MODEL/.test(rpData) &&
+    /row_model: RowModel/.test(rpData) &&
+    /'row_model',/.test(rpValidate) &&
+    /* Both validators refuse a document without one — the client walks it, the server refuses the boot. */
+    /row_model\.label names no column|row_model\.label is/.test(rpValidate) &&
+    /row_model\.label must name the column that titles a row/.test(server),
+  'a column another dataset does not have renders as a blank cell, not as an error',
+)
+
+/*
+ * ---------------- and each dataset's model describes its own rows ----------------
+ *
+ * The model is only worth having if it is checked against the fixture it claims to describe: one naming
+ * a column the rows do not carry is precisely the blank table it was introduced to prevent, moved from
+ * the engine into the data.
+ *
+ * Checked per dataset rather than once, for the reason the drive-kinds claim had to be: a rule verified
+ * against `db.json` is a rule that holds for EPA. This is the fourth guard of that shape.
+ */
+for (const [dsName, dsDoc] of [
+  ['EPA', dbDoc],
+  ['CAPEX', capexDoc],
+]) {
+  const proto = dsDoc.value?.reports_prototype
+  const rm = proto?.row_model
+  const rows = proto?.generators ?? []
+  const fieldKeys = new Set((proto?.fields ?? []).map((f) => f.key))
+  const names = (key) => key === null || fieldKeys.has(key)
+
+  const faults = []
+  if (!rm) faults.push('carries no row_model')
+  else {
+    if (!names(rm.label)) faults.push(`label "${rm.label}" is not one of its fields`)
+    if (!names(rm.status)) faults.push(`status "${rm.status}" is not one of its fields`)
+    for (const m of rm.measures ?? []) if (!names(m)) faults.push(`measure "${m}" is not one of its fields`)
+    for (const k of rm.kpis ?? []) {
+      if (k.field && !names(k.field)) faults.push(`tile "${k.key}" reads "${k.field}", not one of its fields`)
+    }
+    /* Every scope the reader is offered admits rows on purpose. */
+    for (const o of proto?.opts?.scope?.options ?? []) {
+      if (!rm.scopes?.[o.value]) faults.push(`no scope rule for "${o.value}"`)
+    }
+    /* The measure slot's value *is* the ranking column, which is what lets one engine rank both. */
+    for (const o of proto?.opts?.measure?.options ?? []) {
+      if (!(rm.measures ?? []).includes(o.value)) {
+        faults.push(`measure option "${o.value}" is not a rankable column`)
+      }
+    }
+    /* And the rows satisfy it: a name, a tone the map covers, a number in every rankable column. */
+    if (rows.length === 0) faults.push('has no rows')
+    for (const row of rows) {
+      if (!row[rm.label]) faults.push(`a row has no ${rm.label}`)
+      if (rm.status && !rm.tones?.[String(row[rm.status])]) {
+        faults.push(`a row's ${rm.status} is "${row[rm.status]}", which tones does not cover`)
+      }
+      for (const m of rm.measures ?? []) {
+        if (typeof row[m] !== 'number') faults.push(`a row's ${m} is not a number`)
+      }
+    }
+  }
+
+  expect(
+    `${dsName}'s authoring fixture is described by its own row model: ${rows.length} rows named by "${rm?.label ?? '—'}"`,
+    faults.length === 0,
+    [...new Set(faults)].slice(0, 4).join('; ') || 'db is not in this checkout — run npm run db:pull',
+  )
+}
+
+/*
+ * **And the two datasets are not the same fixture.** The point of the work was that CAPEX's authoring tab
+ * stopped asking about inbound generators: it inherited the primary's prototype whole, because
+ * `seed-dataset.js` strips *rows* and `reports_prototype` is not a collection of rows. A claim that only
+ * checked each model against its own fixture would pass just as happily on two copies of EPA's.
+ */
+expect(
+  'each dataset authors reports about its own population',
+  Boolean(dbDoc.value?.reports_prototype?.row_model?.label) &&
+    Boolean(capexDoc.value?.reports_prototype?.row_model?.label) &&
+    dbDoc.value.reports_prototype.row_model.label !==
+      capexDoc.value.reports_prototype.row_model.label &&
+    dbDoc.value.reports_prototype.meta.entity_plural !==
+      capexDoc.value.reports_prototype.meta.entity_plural &&
+    /* No EPA column survives in CAPEX's model — the tell that its fixture was inherited rather than built. */
+    !capexDoc.value.reports_prototype.row_model.measures.some((m) =>
+      ['penalty', 'tons', 'manifests', 'viols', 'evals'].includes(m),
+    ),
+  `EPA reports on "${dbDoc.value?.reports_prototype?.meta?.entity_plural}" and CAPEX on ` +
+    `"${capexDoc.value?.reports_prototype?.meta?.entity_plural}" — one of them is the other's fixture`,
+)
+
+/*
+ * **CAPEX's derived columns are computed from its own stated rules, and agree with the answers its
+ * package shipped.** The fixture carries `derivationRules` *and* a `derived` block holding what they
+ * produce; the ingest computes and refuses on a disagreement, and this re-checks the written document
+ * the way the report tiles' 17 identities are re-checked. Transcribing `derived` would have been the
+ * easy path and the wrong one.
+ */
+const capexFixture = capexDoc.value?.reports?.authoring_fixture
+const capexRows = capexDoc.value?.reports_prototype?.generators ?? []
+const derivedFaults = []
+for (const row of capexRows) {
+  const stated = capexFixture?.derived?.[row.name]
+  if (!stated) {
+    derivedFaults.push(`${row.name} has no entry in authoring_fixture.derived`)
+    continue
+  }
+  const r1 = (n) => Math.round(n * 10) / 10
+  if (row.varD !== r1(stated.varianceDollarsM)) derivedFaults.push(`${row.name} varD ${row.varD} vs ${stated.varianceDollarsM}`)
+  if (row.varP !== r1(stated.variancePct)) derivedFaults.push(`${row.name} varP ${row.varP} vs ${stated.variancePct}`)
+  if (row.pct !== r1(stated.pctOfEnvelopeSpent)) derivedFaults.push(`${row.name} pct ${row.pct} vs ${stated.pctOfEnvelopeSpent}`)
+  if (row.status !== stated.status) derivedFaults.push(`${row.name} status ${row.status} vs ${stated.status}`)
+}
+expect(
+  `CAPEX's authoring figures are recomputed from its own derivation rules: ${capexRows.length} projects`,
+  capexRows.length > 0 && derivedFaults.length === 0,
+  derivedFaults.slice(0, 3).join('; ') ||
+    'db.CAPEX.json has no authoring rows — run npm run ingest:capex',
 )
 
 /*

@@ -1,5 +1,5 @@
 import type { MouseEvent } from 'react';
-import { OPTS, STARTERS } from '../data';
+import { META, OPTS, STARTERS } from '../data';
 import { OptionList, useMenu } from '../components/MenuProvider';
 import type { GraphOption } from '../App';
 import type { Assumption } from '../types';
@@ -72,7 +72,9 @@ export function AskPane({
         <textarea
           rows={2}
           value={prompt}
-          placeholder="e.g. Which inbound generators carry the most compliance risk?"
+          /* The dataset's own example — it names its own columns, and EPA's asked CAPEX's
+             authors about inbound generators. */
+          placeholder={META.ask_placeholder}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) onRead();

@@ -4434,3 +4434,48 @@ set out to fix.
 **The wider one.** *A guard written for a fix should be run before believing the fix.* This one was, which
 is the only reason the overreach was a diagnostic line rather than five wrong bylines on screen. Write the
 assertion, then run it against your own change before reporting the change as done.
+
+---
+
+## A vendored engine that knew one dataset's column names
+
+**Symptom.** Under CAPEX, *Reports → Author a report* asked about **all inbound generators**, ranked by
+**penalty exposure**, offered filters for State / Compliance risk / Consent decree, and reported "36 of 36
+capital projects you see" — EPA's rows and vocabulary under a CAPEX heading, with the tenant's own noun in
+one line of it. Nothing errored.
+
+**Cause, and it was two.** `seed-dataset.js` writes a secondary dataset by taking the primary's structure
+with its *rows* removed — and `reports_prototype` is a fixture rather than a collection of rows, so it came
+across whole. Underneath that, the vendored authoring engine had one dataset's dictionary compiled into it:
+`p.generator` named a row, `p.risk` toned it, `p.cd` drew a pill, `scopeSet` was a `switch` over three EPA
+scope ids, `fmt` knew that `penalty` is money, and the summary tiles were seven closures with their labels
+written in ("Tons shipped to VLS").
+
+**Every one of those fails silently, which is the point.** A column another dataset does not carry renders
+as a *blank cell*. A scope with no rule fell through to `default:` and covered every row — a report headed
+"major projects over $5M" quietly covering all of them. A tile over an absent column reads `0`. A chart
+ranking by an absent column sorts every row to zero. Four wrong answers, no error, all of them plausible.
+
+**Fix.** `reports_prototype.row_model` — the dataset declares which column names a row, which carries its
+state and how each value tones, what each scope admits, which columns may be ranked, what the tiles
+aggregate, and how each column prints. The engine reads that and nothing else. A missing scope rule now
+selects *nothing* rather than everything, because an empty report reads as a scope that matched nothing,
+which is the truth.
+
+**The data was already there**, which is what made this data rather than a rewrite: CAPEX ships
+`reports.authoring_fixture`, seven capital projects whose own `_note` says they are "the seven-project
+fixture the screen previews against", with a field dictionary, assumption slots and filter columns beside
+them. Its four derived columns are computed from the fixture's stated `derivationRules` and checked against
+the `derived` block it also ships — compute-and-compare, never transcribe, the same rule that recomputes 17
+report tiles.
+
+**Guard.** Five claims: the EPA literals are absent from all five engine files (**through `codeOnly`** —
+each of those files' comments quotes the code it replaced, the trap that has cost six claims before), each
+dataset's model is checked against the rows it claims to describe, the two datasets' models differ (a check
+that only validated each model against its own fixture would pass on two copies of EPA's), and CAPEX's
+derived figures match its package's answers. All break-tested.
+
+**The general shape.** *Vendoring copies the data model as well as the code.* A folder imported whole
+carries its origin's column names in every renderer, and they read as correct for exactly as long as there
+is one dataset. The tell is not a crash — it is a second dataset whose screen is full of plausible values
+that belong to the first.

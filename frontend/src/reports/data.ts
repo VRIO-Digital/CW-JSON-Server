@@ -9,6 +9,7 @@ import type {
   Meta,
   Preset,
   Quarter,
+  RowModel,
   SlotKey,
   SlotOptions,
   Starter,
@@ -52,6 +53,9 @@ export interface Dataset {
   starters: Starter[];
   presets: Preset[];
   slice_default: string[];
+  /** How this dataset's rows are read — see `RowModel`. Required: an absent one is an engine
+   *  guessing EPA's column names against somebody else's fixture. */
+  row_model: RowModel;
 }
 
 export let DATA = null as unknown as Dataset;
@@ -69,6 +73,7 @@ export let TRACES: Trace[] = [];
 export let STARTERS: Starter[] = [];
 export let PRESETS: Preset[] = [];
 export let SLICE_DEFAULT: string[] = [];
+export let ROW_MODEL = {} as RowModel;
 
 /** Whether the dataset has arrived. The host renders the prototype only once this is true. */
 export let isHydrated = false;
@@ -95,6 +100,7 @@ export function hydrate(payload: unknown): void {
   STARTERS = DATA.starters;
   PRESETS = DATA.presets;
   SLICE_DEFAULT = DATA.slice_default;
+  ROW_MODEL = DATA.row_model;
 
   isHydrated = true;
 }

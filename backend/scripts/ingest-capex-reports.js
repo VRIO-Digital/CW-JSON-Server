@@ -707,10 +707,283 @@ if (template.length === 1) {
   }
 }
 
+/*
+ * ---------------- the authoring prototype, on this dataset's own rows ----------------
+ *
+ * **The Author-a-report tab was EPA's, under a CAPEX title.** `seed-dataset.js` writes a secondary
+ * dataset by taking the primary's *structure* with its rows removed — and `reports_prototype` is not a
+ * collection of rows, so it came across whole: 36 inbound generators, a penalty column, scopes reading
+ * "out-of-state generators (outside Texas)", filters for State / Compliance risk / Consent decree. A
+ * CAPEX author was composing a report about hazardous-waste shipments.
+ *
+ * **The dataset ships everything needed to do it properly**, which is what makes this data rather than a
+ * rewrite. `reports.authoring_fixture` is seven capital projects with their authorized, committed and
+ * projected figures, and its own `_note` says what it is for: *"the seven-project fixture the screen
+ * previews against … deliberately NOT the CAPEX portfolio: an author composing a report should see a
+ * preview small enough to check by eye."* Beside it are the dataset's own field dictionary, its three
+ * assumption slots, and the columns it slices by.
+ *
+ * **The derived columns are computed here and checked against the package's own answers.** The fixture
+ * ships `derivationRules` (`varD = projected - authorized`, and three more) *and* a `derived` block
+ * holding what they produce. Reading `derived` would be transcribing a figure; computing it and
+ * ignoring `derived` would waste the one check available. So it computes, compares, and **refuses to
+ * write** on a disagreement — the same arrangement the report tiles have, where 17 authored figures are
+ * recomputed from the roster and a mismatch names both numbers.
+ */
+const fixture = db.reports?.authoring_fixture
+const protoBase = db.reports_prototype
+
+if (!fixture || !Array.isArray(fixture.projects) || fixture.projects.length === 0) {
+  problems.push(
+    'db.CAPEX.json has no reports.authoring_fixture.projects — the Author-a-report tab has no rows of ' +
+      "this dataset's own to preview against",
+  )
+}
+
+/** Round the way a figure is read, so float noise is not reported as a disagreement. */
+const round1 = (n) => Math.round(n * 10) / 10
+
+let capexPrototype = null
+if (fixture && Array.isArray(fixture.projects) && fixture.projects.length > 0 && protoBase) {
+  /*
+   * The four derived columns, from the fixture's own stated rules. `status` is the banding those rules
+   * describe in words; the numbers are arithmetic on the row.
+   */
+  const rows = fixture.projects.map((p) => {
+    const varD = round1(p.proj - p.auth)
+    const varP = round1(((p.proj - p.auth) / p.auth) * 100)
+    const pct = round1((p.comm / p.auth) * 100)
+    const status = varP > 8 ? 'Delayed' : varP > 0 ? 'At risk' : 'On track'
+    return { ...p, varD, varP, pct, status }
+  })
+
+  /* Every one of them against the package's own answer. A rule that has drifted from the figures it
+     produced is exactly the silent staleness this repo recomputes tiles to catch. */
+  for (const row of rows) {
+    const stated = fixture.derived?.[row.name]
+    if (!stated) {
+      problems.push(`authoring_fixture.derived has no entry for "${row.name}"`)
+      continue
+    }
+    const disagreements = [
+      ['varD', row.varD, round1(stated.varianceDollarsM)],
+      ['varP', row.varP, round1(stated.variancePct)],
+      ['pct', row.pct, round1(stated.pctOfEnvelopeSpent)],
+      ['status', row.status, stated.status],
+    ].filter(([, ours, theirs]) => ours !== theirs)
+    for (const [key, ours, theirs] of disagreements) {
+      problems.push(
+        `authoring_fixture: "${row.name}" computes ${key} = ${ours} from derivationRules, but ` +
+          `derived states ${theirs}`,
+      )
+    }
+  }
+
+  /*
+   * **The slot options carry this dataset's own columns.** A measure option's *value* is the column a
+   * chart and a table rank by and its *label* is the tenant's words for it — which is how EPA's have
+   * always worked (`value: 'penalty'`, label "penalty exposure"). CAPEX's are written as baselines
+   * (`envelope`, `working`, `mtp`), so each is matched to the column that answers it.
+   *
+   * **An option with no column is dropped, and the drop is stated.** The fixture carries authorized,
+   * committed and projected; there is no working-forecast or MTP column in it, so those two baselines
+   * cannot be computed from these rows. Offering them anyway would be a control that silently changes
+   * nothing — the fault this repo refuses everywhere else — and inventing the columns would be worse.
+   */
+  const MEASURE_COLUMN = { envelope: 'varD' }
+  const measureOptions = []
+  const droppedMeasures = []
+  /* The dataset's own options, never the prototype block's — that one holds whatever the last run
+     left there, and on a fresh secondary it holds the primary's (penalty, tonnage, violations). */
+  for (const option of db.reports.opts?.measure?.options ?? []) {
+    const column = MEASURE_COLUMN[option.value]
+    if (column) measureOptions.push({ ...option, value: column })
+    else droppedMeasures.push(option.value)
+  }
+  if (measureOptions.length === 0) {
+    problems.push('no measure option maps to a column in the authoring fixture — nothing could be ranked')
+  }
+
+  /* The columns the rows actually carry. The dataset's dictionary describes more than the fixture has
+     (`fac`, `daily`, `invoice`, `complaint` belong to its rendered reports), and a field the rows do not
+     carry is a column of blanks in the picker. */
+  const present = new Set(Object.keys(rows[0]))
+  const fields = []
+  const seen = new Set()
+  for (const f of db.reports.fields ?? []) {
+    if (seen.has(f.key) || !present.has(f.key)) continue
+    seen.add(f.key)
+    fields.push({ key: f.key, label: f.label, kind: f.kind, filterable: f.filterable !== false })
+  }
+  for (const key of present) {
+    if (!seen.has(key)) {
+      problems.push(`authoring fixture carries "${key}", which db.reports.fields does not describe`)
+    }
+  }
+
+  /*
+   * How a CAPEX row is read. Every entry names a column the rows above carry, which the seed checks
+   * below rather than assuming — see `RowModel` in the prototype's types for what each one drives.
+   */
+  const rowModel = {
+    label: 'name',
+    sublabel: '{portfolio} · {phase} · {owner}',
+    status: 'status',
+    tones: { Delayed: 'over', 'At risk': 'warn', 'On track': 'ok' },
+    /* `active` is every row — the fixture is the active programme. `major` is the dataset's own
+       threshold, read off its option label ("major projects over $5M") against a fixture stated in
+       USD millions. */
+    scopes: {
+      active: {},
+      major: { field: 'auth', op: 'gt', value: 5 },
+    },
+    measures: ['varD', 'varP', 'pct', 'proj', 'comm', 'auth'],
+    kpis: [
+      { key: 'count', label: 'Projects in scope', agg: 'rows' },
+      { key: 'auth', label: 'Authorized envelope', agg: 'sum', field: 'auth', format: 'money_m' },
+      { key: 'proj', label: 'Projected outturn', agg: 'sum', field: 'proj', format: 'money_m' },
+      { key: 'varD', label: 'Variance to envelope', agg: 'sum', field: 'varD', format: 'money_m', tone: 'bad' },
+      { key: 'delayed', label: 'Delayed', agg: 'count_eq', field: 'status', value: 'Delayed', tone: 'bad' },
+      { key: 'atrisk', label: 'At risk', agg: 'count_eq', field: 'status', value: 'At risk', tone: 'warn' },
+    ],
+    formats: {
+      auth: 'money_m',
+      comm: 'money_m',
+      proj: 'money_m',
+      varD: 'money_m',
+      varP: 'pct',
+      pct: 'pct',
+      status: 'text',
+    },
+    labels: {},
+    pills: {},
+    /* Three block kinds, because this fixture is projects and nothing else: the facility, quarterly and
+       manifest-trace rosters are EPA's, and a block over an empty roster draws an empty panel. */
+    blocks: ['kpis', 'chart', 'table'],
+    /* No closing totals sentence: summing an authorized envelope across a filtered slice is a figure
+       nobody asked for, and EPA's three-column sentence has no CAPEX equivalent. */
+    footer: [],
+  }
+
+  /* The block presets this dataset offers, in its own vocabulary. EPA's seven name penalties, tonnage
+     and manifest traces. */
+  const presets = [
+    {
+      label: 'Summary tiles',
+      d: 'Projects, envelope, outturn, variance',
+      block: { type: 'kpis', title: 'Summary', kpis: ['count', 'auth', 'proj', 'varD'] },
+    },
+    {
+      label: 'Variance chart',
+      d: 'Projects ranked by variance to the authorized envelope',
+      block: { type: 'chart', title: 'Variance to envelope by project', chartType: 'bar', measure: 'varD' },
+    },
+    {
+      label: 'Outturn chart',
+      d: 'Projected outturn per project',
+      block: { type: 'chart', title: 'Projected outturn by project', chartType: 'column', measure: 'proj' },
+    },
+    {
+      label: 'Project detail',
+      d: 'One row per project, with status and the figures behind it',
+      block: {
+        type: 'table',
+        title: 'Detail',
+        cols: ['name', 'status', 'auth', 'comm', 'proj', 'varD'],
+      },
+    },
+  ]
+
+  /*
+   * The audience pool is this tenant's own personas, from the document's `auth_roles`, with each one's
+   * access note as its description. EPA's three are its own headcounts ("Deer Park plant and logistics
+   * leads · 34 people"), which is a claim about a workforce this dataset does not have.
+   */
+  const audiences = (db.auth_roles ?? []).map((r) => ({
+    key: r.role_id,
+    label: r.label,
+    d: r.access_note ?? '',
+  }))
+  if (audiences.length === 0) {
+    problems.push('db.CAPEX.json has no auth_roles — the publish dialog would offer no audience')
+  }
+
+  /* The starters keep the titles and questions read out of the report documents above, and take this
+     dataset's blocks: they were built on the primary's block vocabulary, so every one of them named EPA
+     columns — a Variance Report whose table had a Consent decree column. Read from `starters` rather
+     than from the document, which holds whatever the last run wrote. */
+  const capexStarters = starters.map((s) => ({
+    ...s,
+    spine: 'generators',
+    blocks: [
+      { type: 'kpis', title: 'Summary', kpis: ['count', 'auth', 'proj', 'varD'] },
+      { type: 'chart', title: 'Ranked by measure', chartType: 'bar', measure: 'varD' },
+      { type: 'table', title: 'Detail', cols: ['name', 'status', 'auth', 'comm', 'proj', 'varD'] },
+    ],
+  }))
+
+  const sliceDefault = (db.reports.slice_default ?? []).filter((k) => present.has(k))
+  if (sliceDefault.length === 0) {
+    problems.push('none of db.reports.slice_default names a column the authoring fixture carries')
+  }
+
+  capexPrototype = {
+    ...protoBase,
+    meta: {
+      ...protoBase.meta,
+      entity_singular: 'capital project',
+      ask_placeholder: 'e.g. Which capital projects are furthest over their authorized envelope?',
+    },
+    fields,
+    assumptions: {
+      ...db.reports.assumptions,
+      /* The default has to be one of the options, and the measure option's value is now a column. */
+      measure: measureOptions[0]
+        ? { value: measureOptions[0].value, label: measureOptions[0].label }
+        : protoBase.assumptions.measure,
+      /* The graph slot is the app's, not the dataset's: the wizard fills it from the published graphs. */
+      graph: protoBase.assumptions.graph,
+    },
+    opts: {
+      ...db.reports.opts,
+      measure: { ...db.reports.opts.measure, options: measureOptions },
+      graph: protoBase.opts.graph,
+    },
+    generators: rows,
+    /* Empty, and permitted empty exactly because `row_model.blocks` does not list their blocks. */
+    facilities: [],
+    quarters: [],
+    traces: [],
+    starters: capexStarters,
+    presets,
+    slice_default: sliceDefault,
+    audiences,
+    library: [],
+    row_model: rowModel,
+  }
+
+  /* The model has to name columns these rows carry, or the tab renders blanks with nothing thrown. */
+  const names = (key, where) => {
+    if (!present.has(key)) problems.push(`row_model.${where} names "${key}", which the fixture rows do not carry`)
+  }
+  names(rowModel.label, 'label')
+  names(rowModel.status, 'status')
+  for (const m of rowModel.measures) names(m, 'measures')
+  for (const k of rowModel.kpis) if (k.field) names(k.field, `kpis.${k.key}`)
+  for (const [, key] of rowModel.sublabel.matchAll(/\{(\w+)\}/g)) names(key, 'sublabel')
+  for (const option of (capexPrototype.opts.scope?.options ?? [])) {
+    if (!rowModel.scopes[option.value]) {
+      problems.push(`row_model.scopes has no rule for the "${option.value}" scope`)
+    }
+  }
+}
+
 if (problems.length > 0) {
   console.error('\ningest-capex-reports: refusing to write —')
   for (const p of problems) console.error('  · ' + p)
-  console.error('\n  Nothing was written. Fix the use-case template or its member ids.\n')
+  console.error(
+    '\n  Nothing was written. Fix the use-case template, the authoring fixture, or the report documents.\n',
+  )
   process.exit(1)
 }
 
@@ -740,28 +1013,19 @@ db.reports = {
 }
 
 /*
- * Only `starters` is replaced. The rest of `reports_prototype` — the rosters, the field dictionary, the
- * slot options, the persona — is the dataset's and is carried through: a script that owns a subtree and
- * rewrites its parent is how a subtree gets deleted, which this repo has been bitten by twice.
+ * **The whole authoring fixture is this dataset's**, built above from its own seven-project sample, its
+ * own field dictionary and its own assumption slots. It used to be the primary's with only `starters`
+ * replaced, which is how the tab came to ask a CAPEX author about inbound generators.
+ *
+ * **The shelf stays empty, and that is a decision rather than a leftover.** This dataset arrived carrying
+ * the primary's five starters *and* four demo library rows built on them; swapping the starters left
+ * those rows naming ids that no longer existed, which the prototype's own validator refuses at hydration
+ * — the section did not render at all, and that is how it was found. Emptying is right rather than
+ * keeping both: the shelf is the prototype's own fiction, other people's reports with bylines nobody here
+ * has, and hosted it starts empty anyway because a governed Library is present and the prototype defers
+ * to it. `library` may legitimately be empty; a fresh workspace has published nothing.
  */
-db.reports_prototype = {
-  ...db.reports_prototype,
-  starters,
-  /*
-   * **The seeded shelf is emptied, because its rows were built from the starters just replaced.**
-   *
-   * This dataset arrived carrying the primary's five starters and four demo library rows built on them
-   * (`built from unknown starter "facility"` and three more). Swapping in this dataset's own starters left
-   * those rows pointing at ids that no longer exist — which the prototype's *own* validator refuses,
-   * loudly and at hydration, so the section would not render at all. Found exactly that way.
-   *
-   * Emptying is the right resolution rather than keeping both sets: the shelf is the prototype's own
-   * fiction — other people's reports, with bylines nobody here has — and hosted it starts empty anyway,
-   * because a governed Library is present and the prototype defers to it. `library` may legitimately be
-   * empty; a fresh workspace has published nothing.
-   */
-  library: [],
-}
+db.reports_prototype = capexPrototype
 
 writeFileSync(DB, JSON.stringify(db, null, 2) + '\n', 'utf8')
 console.log(

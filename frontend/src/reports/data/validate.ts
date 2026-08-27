@@ -8,8 +8,7 @@ import type { Dataset } from '../data';
  * `undefined` somewhere deep in a block.
  */
 
-const RISKS = ['high', 'med', 'low'];
-const KINDS = ['cat', 'num', 'cta'];
+const KINDS = ['cat', 'num', 'cta', 'text'];
 const SPINES = ['generators', 'facilities', 'quarters', 'traces'];
 const BLOCK_TYPES = ['kpis', 'chart', 'table', 'facilities', 'quarterly', 'traces'];
 const SLOTS = ['graph', 'scope', 'measure', 'horizon'];
@@ -30,17 +29,24 @@ const TOP_LEVEL: (keyof Dataset)[] = [
   'starters',
   'presets',
   'slice_default',
+  'row_model',
 ];
 
-const COLLECTIONS: (keyof Dataset)[] = [
-  'audiences',
-  'fields',
-  'generators',
-  'facilities',
-  'quarters',
-  'traces',
-  'starters',
-  'presets',
+/* Always non-empty: without them there is no population to report on and no way to compose a report. */
+const COLLECTIONS: (keyof Dataset)[] = ['audiences', 'fields', 'generators', 'starters', 'presets'];
+
+/**
+ * The three rosters only some datasets have rows for, and the block each one draws.
+ *
+ * EPA ships facility, quarterly and manifest-trace rosters; CAPEX's authoring fixture is projects and
+ * nothing else, so requiring these non-empty would refuse a dataset that is complete on its own terms.
+ * The rule is not "may be empty" but **"may be empty exactly when the row model does not draw it"** —
+ * an empty roster behind a block a starter can still add is a panel that renders nothing.
+ */
+const OPTIONAL_ROSTERS: { key: keyof Dataset; block: string }[] = [
+  { key: 'facilities', block: 'facilities' },
+  { key: 'quarters', block: 'quarterly' },
+  { key: 'traces', block: 'traces' },
 ];
 
 export function validateDataset(d: Dataset): Dataset {
@@ -79,16 +85,77 @@ export function validateDataset(d: Dataset): Dataset {
     if (f.avail === false && !f.note) bad.push(`fields[${i}] (${f.key}) is unavailable but has no note explaining why`);
   });
 
+  /* Every one of these is printed somewhere with no fallback behind it: the persona in the header, the
+     noun in a table's count, the example under the Ask box, the provenance on the confirm step. A
+     missing one renders the word "undefined" on screen, which is why they are checked rather than
+     defaulted — a default here would put this file's words in the tenant's mouth. */
+  for (const k of [
+    'persona_name',
+    'persona_role',
+    'persona_initials',
+    'entity_plural',
+    'entity_singular',
+    'ask_placeholder',
+    'scope_line',
+    'source_trace',
+  ] as const) {
+    if (!d.meta?.[k]) bad.push(`meta.${k} is missing`);
+  }
+
   const fieldKeys = new Set(d.fields.map((f) => f.key));
 
-  d.generators.forEach((g, i) => {
-    if (!g.generator) bad.push(`generators[${i}] has no name`);
-    oneOf(`generators[${i}].risk`, g.risk, RISKS);
-    if (typeof g.cd !== 'boolean') bad.push(`generators[${i}].cd must be a boolean`);
-    for (const n of ['evals', 'viols', 'enf', 'penalty', 'tons', 'manifests'] as const) {
-      if (typeof g[n] !== 'number' || Number.isNaN(g[n])) bad.push(`generators[${i}].${n} must be a number`);
+  /*
+   * ---------------- the row model, and the rows read through it ----------------
+   *
+   * This block checked EPA's eleven columns by name — `risk` one of three levels, `cd` a boolean, six
+   * named numbers — which is the same mistake the engine made, in the one place whose job is to catch
+   * it. What is actually required of a row is what the dataset says it reads: a name, a state the tones
+   * cover, and a number in every column a chart may rank by.
+   */
+  const rm = d.row_model;
+  if (rm) {
+    if (!rm.label) bad.push('row_model.label names no column');
+    else if (!fieldKeys.has(rm.label)) bad.push(`row_model.label is "${rm.label}", which is not a field`);
+    if (rm.status && !fieldKeys.has(rm.status)) {
+      bad.push(`row_model.status is "${rm.status}", which is not a field`);
     }
-  });
+    if (!rm.measures?.length) bad.push('row_model.measures is empty — no chart could rank anything');
+    rm.measures?.forEach((m) => {
+      if (!fieldKeys.has(m)) bad.push(`row_model.measures names "${m}", which is not a field`);
+    });
+    /* Every scope the reader can pick has to admit rows on purpose. A missing rule selects nothing,
+       which reads as a slice that matched no rows rather than as an option nobody wired up. */
+    d.opts.scope?.options?.forEach((o) => {
+      if (!rm.scopes?.[o.value]) bad.push(`row_model.scopes has no rule for the "${o.value}" scope`);
+    });
+    rm.kpis?.forEach((k, i) => {
+      if (!k.key || !k.label) bad.push(`row_model.kpis[${i}] needs key and label`);
+      if (k.agg !== 'rows' && !k.field) bad.push(`row_model.kpis[${i}] (${k.key}) aggregates no field`);
+      if (k.field && !fieldKeys.has(k.field)) {
+        bad.push(`row_model.kpis[${i}] reads "${k.field}", which is not a field`);
+      }
+    });
+    for (const { key, block } of OPTIONAL_ROSTERS) {
+      const rows = d[key];
+      const drawn = rm.blocks?.includes(block as never);
+      if (!Array.isArray(rows)) bad.push(`"${key}" must be an array`);
+      else if (drawn && rows.length === 0) {
+        bad.push(`"${key}" is empty, but row_model.blocks lists "${block}" — that block would draw nothing`);
+      }
+    }
+
+    d.generators.forEach((g, i) => {
+      if (!g[rm.label]) bad.push(`generators[${i}] has no ${rm.label}`);
+      if (rm.status && !rm.tones?.[String(g[rm.status] ?? '')]) {
+        bad.push(`generators[${i}].${rm.status} is "${String(g[rm.status] ?? '')}", which row_model.tones does not cover`);
+      }
+      rm.measures?.forEach((m) => {
+        if (typeof g[m] !== 'number' || Number.isNaN(g[m] as number)) {
+          bad.push(`generators[${i}].${m} must be a number — a chart ranks by it`);
+        }
+      });
+    });
+  }
 
   d.quarters.forEach((q, i) => {
     if (!q.quarter) bad.push(`quarters[${i}] has no label`);
