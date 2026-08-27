@@ -4402,3 +4402,35 @@ landed; a commit that touched it means the fix is real and the cause is elsewher
 **The general shape.** *A working tree that looks clean says nothing about whether your work is in it.*
 Uncommitted edits do not survive somebody else's merge of the same branch, and the failure arrives as a bug
 report about a fix that is genuinely no longer there.
+
+---
+
+## A blanket substitution across documents with mixed casts
+
+**Symptom.** CAPEX's framed screens named their five people at `@northlinewater.com` while the console
+signs those same five in at `@vriodigital.com` — so Settings listed addresses that the governance screen,
+the reports and the What-if lens all contradicted. The fix looks like one line: swap the domain in the six
+documents that carry it.
+
+**What that broke.** Each of the three reports carries **ten** addresses at that domain, not five: the
+console's people *and* five report authors and approvers — `marc.beaulieu`, `tolu.adeyemi`, `karen.stroud`,
+`hector.villalobos`, `ilaria.castellan` — who are figures inside the report data and are in no directory
+here. The blanket swap moved them onto the real company's domain too, which reads as five colleagues who
+cannot sign in: the mirror image of the fault being fixed, and just as invisible, because every address on
+screen looks plausible either way. Caught by the guard written for the original fault, on its first run.
+
+**The shape.** *A document holds more than one cast, and a substitution cannot see the difference.* The
+same file mixes people the app knows with people the data merely mentions — here across three domains, one
+of them `.example`, the reserved TLD that cannot resolve. Anything keyed on the *domain* treats them alike;
+the distinction is the **local part**, which is what the console's directory actually knows.
+
+**Guard.** Two rules over every CAPEX document, because the substitution that satisfies one breaks the
+other: **(1)** a person in the directory appears at the directory's address and never at a second domain,
+and **(2)** an address at the directory's domain is one of the directory's, so nobody is invented into it.
+Rule 1 catches a re-export reverting the domain; rule 2 catches the blanket swap. Both break-tested — and
+rule 2 is the one that would not have existed if the first pass had been checked only against the fault it
+set out to fix.
+
+**The wider one.** *A guard written for a fix should be run before believing the fix.* This one was, which
+is the only reason the overreach was a diagnostic line rather than five wrong bylines on screen. Write the
+assertion, then run it against your own change before reporting the change as done.
