@@ -350,9 +350,7 @@ export default function DocumentViewer({
                * next export and would silently come back, while a rule applied by the frame holds for
                * whatever version is dropped in and keeps the file byte-identical to what produced it.
                */
-              style.textContent =
-                '.apiFab, .apiLog { display: none !important }' +
-                (seamless ? SEAMLESS_CSS : '')
+              style.textContent = FRAMED_CSS + (seamless ? SEAMLESS_CSS : '')
               inner.head?.appendChild(style)
             }}
           />
@@ -445,6 +443,44 @@ const FRAME_ID = 'cw-report-document-frame'
  * squeezed to nothing shows no document at all.
  */
 const MIN_FRAME_PX = 420
+
+/**
+ * What the app paints into **every** framed document, seamless or not.
+ *
+ * All three are applied from here rather than edited in, for the reason stated at the injection site:
+ * these files' `_meta` says *"never hand-edit this file — change the generator and rebuild"*, so an edit
+ * would be lost at the next export and silently return, while a rule holds for whatever version is
+ * dropped in and keeps the file byte-identical to what produced it.
+ *
+ * - **The mock-API pill.** A floating `API <count>` badge toggling a log of the calls behind the screen:
+ *   useful in the standalone document, noise inside an app that has its own API.
+ * - **The embedded *Ask about this report* surface.** A question box bound to the document's own mock
+ *   data, inside an app whose Ask page queries the published graph. Two ask boxes on one screen are two
+ *   answers to where a question goes, and only one of them reaches this tenant's data — the same
+ *   decision as dropping the report prototype's own sidebar and persona when it was vendored. The whole
+ *   block goes, not just its input: `.repBlock` is the block frame and carries the *"Ask about this
+ *   report"* heading, so hiding the body alone would leave a titled empty panel.
+ * - **The document's own *View* chip group.** Four chips that are blank and inert, and the reason is in
+ *   the document: its fixture serves `viewTypes` as plain strings (`["Category", "Region", …]`) while
+ *   its own `repFilterBar` reads `t.label`, `t.id` and `t.enabled` off each one. So every chip renders
+ *   with an empty label and, `t.enabled` being undefined, wears the locked class — four unlabelled pills
+ *   that cannot be read or clicked. This is a defect in the export rather than a control anybody chose,
+ *   and it cannot be fixed from here: the fix is a generator that serves objects. Hiding a control that
+ *   can be neither read nor used is the honest half of that, and the parameter chips beside it —
+ *   Region, Executive category, Period, Lifecycle phase — are untouched and still work.
+ *
+ * `:has()` carries the block rule, because a parent cannot otherwise be styled by a descendant's class.
+ * Where it is unsupported the rule is inert and the ask surface returns, which is a visible fallback
+ * rather than a broken page — the same trade `body:has(.shOv.on)` makes below.
+ *
+ * These name the documents' own class names, which is a real coupling: it is the price of not editing a
+ * generated file, and it fails visibly rather than silently — a renamed class leaves the rule inert and
+ * the thing it hid comes back.
+ */
+const FRAMED_CSS =
+  ' .apiFab, .apiLog { display: none !important }' +
+  ' .repBlock:has(.embedAsk) { display: none !important }' +
+  ' .filtBar .fgroup.vt { display: none !important }'
 
 /**
  * What the app paints into a seamless document, and it is a stylesheet and nothing else.

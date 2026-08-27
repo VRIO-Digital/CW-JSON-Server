@@ -2482,13 +2482,35 @@ apart. Every CAPEX persona now starts with all three, and narrowing is a decisio
 single audience record for a report. A pair of document-specific routes was built and then removed for
 exactly that reason: two audience fields for one report is two homes for one record.
 
-**The documents' own mock-API pill is hidden by the frame, not by editing them.** Each carries a floating
-`.apiFab` badge toggling a log of its mock calls — a prototype affordance, noise inside an app with its
-own API. `DocumentViewer` injects one style rule on load, because the documents' `_meta` says *"never
-hand-edit this file — change the generator and rebuild"*: an edit would be lost at the next export and
-silently return, while a rule applied by the frame holds for whatever version is dropped in, and keeps the
-file byte-identical to what the generator produced. It is the one place the app reaches into the document,
-and it is a style only — nothing is removed from the DOM and no script is touched.
+**Three things are hidden by the frame rather than by editing the documents**, and they are `FRAMED_CSS`
+in `DocumentViewer` — injected on load into *every* frame, seamless or not, because the documents' `_meta`
+says *"never hand-edit this file — change the generator and rebuild"*: an edit would be lost at the next
+export and silently return, while a rule applied by the frame holds for whatever version is dropped in and
+keeps the file byte-identical to what the generator produced. It is a style only — nothing is removed from
+the DOM and no script is touched.
+
+- **The mock-API pill** (`.apiFab`), a floating badge toggling a log of the document's own mock calls: a
+  prototype affordance, noise inside an app with its own API.
+- **The embedded *Ask about this report* surface** (`.repBlock:has(.embedAsk)`), a question box bound to
+  the document's own mock data inside an app whose Ask page queries the published graph. Two ask boxes on
+  one screen are two answers to where a question goes, and only one of them reaches this tenant's data —
+  the same decision as dropping the report prototype's sidebar and persona when it was vendored. The whole
+  block goes rather than its input: `.repBlock` is the block frame and carries the *"Ask about this
+  report"* heading, so hiding the body alone would leave a titled empty panel. `:has()` is what reaches
+  from the body up to the frame; where it is unsupported the rule is inert and the surface returns, which
+  is a visible fallback rather than a broken page.
+- **The document's own *View* chip group** (`.filtBar .fgroup.vt`) — and this one is a **defect in the
+  export rather than a control anybody chose**. The fixture serves `viewTypes` as plain strings
+  (`["Category", "Region", …]`) while the document's own `repFilterBar` reads `t.label`, `t.id` and
+  `t.enabled` off each entry, so every chip renders unlabelled and, `enabled` being undefined, locked:
+  four blank pills that can be neither read nor clicked. The real fix is a generator that serves objects;
+  hiding them is the honest half of that. The parameter chips beside them — Region, Executive category,
+  Period, Lifecycle phase — are untouched and still work.
+
+`check-docs` asserts each rule **and that the documents carry the class it names**, because a selector
+naming a class no document has is inert, and inert looks exactly like the thing having been removed. It
+also pins the `viewTypes` mismatch itself, so when a re-export starts serving objects both halves fail
+together and the rule that hides them can go.
 
 **Report View permissions apply exactly as they do to a governed row**, through the same
 `reportActionsFor`, with a withheld act being an absent handler rather than a disabled button. **Share is

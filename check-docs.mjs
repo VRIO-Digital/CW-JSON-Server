@@ -6778,6 +6778,74 @@ expect(
     ),
   'no bar and no export in seamless, white ground and an opaque scrim injected with weight, the receipt’s dead link and a document’s own top bar hidden, fixed viewport kept for the document’s fixed positioning',
 )
+/*
+ * ---------------- what the frame paints into every framed document ----------------
+ *
+ * Three rules, applied to every framed document rather than only to a seamless one, and never edited
+ * into the files themselves — their `_meta` forbids that, so an edit would be lost at the next export
+ * and silently return.
+ *
+ * **Each is asserted against the document as well as against the rule**, which is the half that makes
+ * this worth having: a selector naming a class no document carries is inert, and inert looks exactly
+ * like "the thing was removed". That is the `kgPath` failure — a guard whose good answer is its own
+ * inability to run — so the classes are checked where they actually live.
+ */
+const framedReports = readdirSync(join(root, 'frontend/src/Capex/Report'))
+  .filter((f) => /^R\d+_.*\.html$/i.test(f))
+  .map((f) => `frontend/src/Capex/Report/${f}`)
+
+expect(
+  `every framed report loses the mock-API pill, the embedded ask surface and the blank View chips: ${framedReports.length} documents`,
+  framedReports.length >= 3 &&
+    /* The rules, in the one constant applied to every frame. */
+    /\.apiFab, \.apiLog \{ display: none !important \}/.test(viewerSrc) &&
+    /\.repBlock:has\(\.embedAsk\) \{ display: none !important \}/.test(viewerSrc) &&
+    /\.filtBar \.fgroup\.vt \{ display: none !important \}/.test(viewerSrc) &&
+    /* Applied to every frame, not only the seamless ones — a report is framed with its bar. */
+    /style\.textContent = FRAMED_CSS \+ \(seamless \? SEAMLESS_CSS : ''\)/.test(viewerSrc) &&
+    /* And the documents really carry those classes, so none of the three rules is quietly inert. */
+    framedReports.every((f) => {
+      const html = read(f)
+      return (
+        html.includes('class="apiFab"') &&
+        html.includes('class="embedAsk"') &&
+        /* The ask body sits inside the block frame, which is what `:has()` reaches up to — hiding the
+           body alone would leave the block's own "Ask about this report" heading over an empty panel. */
+        html.includes('class="repBlock') &&
+        html.includes('class="fgroup vt"') &&
+        html.includes('class="filtBar"')
+      )
+    }) &&
+    /* Style only: nothing is removed from the DOM and no script is touched. */
+    !/\.remove\(\)|removeChild/.test(codeOnly(viewerSrc)),
+  'a selector naming a class no document carries is inert, and inert looks like the thing was removed',
+)
+
+/*
+ * **And the View chips are blank because of a defect in the export, which is worth writing down rather
+ * than leaving as "a control we chose to hide".**
+ *
+ * The documents' fixture serves `viewTypes` as plain strings while their own `repFilterBar` reads
+ * `t.label`, `t.id` and `t.enabled` off each entry — so every chip renders with an empty label and,
+ * `enabled` being undefined, wears the locked class. Four unlabelled pills that can be neither read nor
+ * clicked. The fix is a generator that serves objects; hiding them is the honest half of that, and this
+ * claim is what stops the hiding rule outliving the defect silently: when a re-export starts serving
+ * objects, both halves fail together and the rule can go.
+ */
+expect(
+  'the View chips this app hides are the blank ones the export produces',
+  framedReports.every((f) => {
+    const html = read(f)
+    /* The renderer reads objects off each entry … */
+    const reads = /v\.viewTypes\.map\(t => `<button/.test(html) && /rEsc\(t\.label\)/.test(html)
+    /* … and the fixture hands it strings. Matched on the array's own shape rather than on a count, so
+       a fourth view type does not fail a claim about the shape of the data. */
+    const serves = /"viewTypes": \[\s*"[A-Za-z]/.test(html)
+    return reads && serves
+  }),
+  'if a re-export serves {id,label,enabled} objects the chips work, and the rule hiding them should go',
+)
+
 
 /*
  * ---------------- a dataset can ship its Audit & Governance screen ----------------
