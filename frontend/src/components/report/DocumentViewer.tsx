@@ -460,6 +460,12 @@ const MIN_FRAME_PX = 420
  *   decision as dropping the report prototype's own sidebar and persona when it was vendored. The whole
  *   block goes, not just its input: `.repBlock` is the block frame and carries the *"Ask about this
  *   report"* heading, so hiding the body alone would leave a titled empty panel.
+ * - **The trust strip's two drawer buttons** (`.trustBar .tBtn`), *Sources & lineage* and *Limits*. Both
+ *   open the document's own drawer over its own mock lineage, which is a second account of where these
+ *   figures came from inside an app that answers that question itself — Audit & Governance for who sees
+ *   what, and the Catalog for what a source holds. Only the two buttons go: the strip's `.tItem` cells
+ *   beside them — *Data as of*, *Covering*, *Confidence* — are statements about the figures on screen
+ *   rather than doors out of them, and they stay.
  * - **The document's own *View* chip group.** Four chips that are blank and inert, and the reason is in
  *   the document: its fixture serves `viewTypes` as plain strings (`["Category", "Region", …]`) while
  *   its own `repFilterBar` reads `t.label`, `t.id` and `t.enabled` off each one. So every chip renders
@@ -480,7 +486,8 @@ const MIN_FRAME_PX = 420
 const FRAMED_CSS =
   ' .apiFab, .apiLog { display: none !important }' +
   ' .repBlock:has(.embedAsk) { display: none !important }' +
-  ' .filtBar .fgroup.vt { display: none !important }'
+  ' .filtBar .fgroup.vt { display: none !important }' +
+  ' .trustBar .tBtn { display: none !important }'
 
 /**
  * What the app paints into a seamless document, and it is a stylesheet and nothing else.

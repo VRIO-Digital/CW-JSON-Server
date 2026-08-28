@@ -6795,12 +6795,14 @@ const framedReports = readdirSync(join(root, 'frontend/src/Capex/Report'))
   .map((f) => `frontend/src/Capex/Report/${f}`)
 
 expect(
-  `every framed report loses the mock-API pill, the embedded ask surface and the blank View chips: ${framedReports.length} documents`,
+  `every framed report loses the mock-API pill, the ask surface, the blank View chips and the two ` +
+    `lineage drawer buttons: ${framedReports.length} documents`,
   framedReports.length >= 3 &&
     /* The rules, in the one constant applied to every frame. */
     /\.apiFab, \.apiLog \{ display: none !important \}/.test(viewerSrc) &&
     /\.repBlock:has\(\.embedAsk\) \{ display: none !important \}/.test(viewerSrc) &&
     /\.filtBar \.fgroup\.vt \{ display: none !important \}/.test(viewerSrc) &&
+    /\.trustBar \.tBtn \{ display: none !important \}/.test(viewerSrc) &&
     /* Applied to every frame, not only the seamless ones — a report is framed with its bar. */
     /style\.textContent = FRAMED_CSS \+ \(seamless \? SEAMLESS_CSS : ''\)/.test(viewerSrc) &&
     /* And the documents really carry those classes, so none of the three rules is quietly inert. */
@@ -6813,7 +6815,13 @@ expect(
            body alone would leave the block's own "Ask about this report" heading over an empty panel. */
         html.includes('class="repBlock') &&
         html.includes('class="fgroup vt"') &&
-        html.includes('class="filtBar"')
+        html.includes('class="filtBar"') &&
+        html.includes('class="trustBar"') &&
+        html.includes('class="tBtn') &&
+        /* And the strip's statement cells are *not* hidden with them: `.tItem` carries Data as of,
+           Covering and Confidence, which say what the figures on screen are rather than opening a
+           drawer away from them. A rule that took the whole strip would remove those silently. */
+        html.includes('class="tItem"')
       )
     }) &&
     /* Style only: nothing is removed from the DOM and no script is touched. */

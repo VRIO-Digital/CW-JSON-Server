@@ -2482,7 +2482,7 @@ apart. Every CAPEX persona now starts with all three, and narrowing is a decisio
 single audience record for a report. A pair of document-specific routes was built and then removed for
 exactly that reason: two audience fields for one report is two homes for one record.
 
-**Three things are hidden by the frame rather than by editing the documents**, and they are `FRAMED_CSS`
+**Four things are hidden by the frame rather than by editing the documents**, and they are `FRAMED_CSS`
 in `DocumentViewer` — injected on load into *every* frame, seamless or not, because the documents' `_meta`
 says *"never hand-edit this file — change the generator and rebuild"*: an edit would be lost at the next
 export and silently return, while a rule applied by the frame holds for whatever version is dropped in and
@@ -2499,6 +2499,13 @@ the DOM and no script is touched.
   report"* heading, so hiding the body alone would leave a titled empty panel. `:has()` is what reaches
   from the body up to the frame; where it is unsupported the rule is inert and the surface returns, which
   is a visible fallback rather than a broken page.
+- **The trust strip's two drawer buttons** (`.trustBar .tBtn`), *Sources & lineage* and *Limits*. Both
+  open the document's own drawer over its own mock lineage — a second account of where these figures came
+  from, inside an app that answers that question itself: Audit & Governance for who sees what, the Data
+  Catalog for what a source holds. **Only the two buttons go.** The strip's `.tItem` cells beside them —
+  *Data as of*, *Covering*, *Confidence* — are statements about the figures on screen rather than doors
+  out of them, so hiding the strip wholesale would take a staleness warning with it; `check-docs` asserts
+  those cells are still there.
 - **The document's own *View* chip group** (`.filtBar .fgroup.vt`) — and this one is a **defect in the
   export rather than a control anybody chose**. The fixture serves `viewTypes` as plain strings
   (`["Category", "Region", …]`) while the document's own `repFilterBar` reads `t.label`, `t.id` and
