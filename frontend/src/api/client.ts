@@ -178,7 +178,19 @@ export interface GcpProject {
 }
 
 /** Which Google consent the wizard is asking for. */
-export type OAuthProvider = 'bigquery' | 'drive'
+/**
+ * The connectors that run a Google consent, declared **once** so the type and the runtime check cannot
+ * disagree.
+ *
+ * They did. The union was widened for Gmail and the two `oneOf(['bigquery', 'drive'])` schemas below
+ * were not, so the server answered `provider: "gmail"`, the validator refused it, and the wizard showed
+ * *"The Google sign-in could not be read — … provider should be one of bigquery | drive"* — a message
+ * that blames a stale mock server, over a server that was right. A union is a compile-time claim and a
+ * schema is a runtime one; only the second is checked against the payload, and only the first was
+ * updated.
+ */
+export const OAUTH_PROVIDERS = ['bigquery', 'drive', 'gmail'] as const
+export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number]
 
 export interface OAuthStart {
   state: string
@@ -211,6 +223,48 @@ export interface DriveInfo {
 
 /** Drive's twin of `OAuthCallback` — its drives come from `/oauth/drives`. */
 export type DriveOAuthCallback = OAuthCallback
+
+/**
+ * The mailbox a Gmail consent reaches, and the handle minted for it.
+ *
+ * One per consent rather than a list the tenant configured: a mailbox is whoever just signed in, so
+ * unlike a drive there is no row in the document to point at.
+ */
+export interface MailboxInfo {
+  mailbox: string
+  /** What the tenant calls it — "EHS compliance inbox". */
+  display_name: string
+  description: string
+  credential_handle: string
+  label_count: number
+}
+
+/** What the Gmail preview discovers — labels only, and it registers nothing. */
+export interface GmailPreview {
+  mailbox: string
+  display_name: string
+  description: string
+  /** Gmail's own system labels first, then this mailbox's own filing. */
+  labels: string[]
+  label_count: number
+}
+
+/** A registered Gmail source. No profiled counts: this connector carries no catalogue. */
+export interface RegisteredGmailSource {
+  source_id: string
+  source_name: string
+  connector: string
+  mailbox: string
+  credential_handle: string
+  labels: string[]
+  /** The optional Gmail search, exactly as typed, or null. */
+  query: string | null
+  attachments: boolean
+  status: string
+  registered_at: string
+  newly_connected: boolean
+}
+
 
 export interface PreviewFolder {
   folder_id: string
@@ -268,6 +322,30 @@ export interface PreviewResult {
   registered: false
 }
 
+/**
+ * What a *generic* registration answers with — a different shape from BigQuery's, and it always was.
+ *
+ * It has no \`project_id\`: a mailbox connects as an OAuth client, not into a GCP project. Validating it
+ * against \`RegisteredSource\` demanded one anyway, so the server registered the source and the client
+ * then threw \`project_id should be a string, got undefined\` — a failure toast over a source that had
+ * been created. Never seen, because every connector on this path was \`available: false\` until the email
+ * one; the same locked door that hid the form-wiring defect.
+ */
+export interface RegisteredGenericSource {
+  source_id: string
+  source_name: string
+  connector: string
+  type_label: string
+  /** A \`secret://\` pointer, or null where the connector asks for no credential. */
+  credential_handle: string | null
+  /** What it connected *as* — the email connector's client id. Null where a connector names nothing. */
+  account: string | null
+  datasets: string[]
+  status: string
+  registered_at: string
+  newly_connected: boolean
+}
+
 export interface RegisteredSource {
   source_id: string
   source_name: string
@@ -303,6 +381,14 @@ export interface SourceRow {
   /** The folder allowlist. Drive sources only; empty for everything else. */
   folders: string[]
   kind: string
+  /**
+   * Whether this source carries a catalogue at all.
+   *
+   * The server derives it from whether a profiler exists for the kind, so it is one answer rather than
+   * a pair of connector names the Catalog also has to know. False for a mailbox: it is connected so a
+   * report can be delivered from it, and there is nothing in it to sample.
+   */
+  profilable: boolean
 }
 
 interface RawSourceRow {
@@ -320,6 +406,7 @@ interface RawSourceRow {
   datasets: string[]
   folders: string[]
   kind: string
+  profilable: boolean
 }
 
 /* ---------------- Catalog: browse & profile ---------------- */
@@ -1568,6 +1655,7 @@ const SOURCE_ROW = shape({
   datasets: arrayOf(str),
   folders: arrayOf(str),
   kind: str,
+  profilable: bool,
 })
 
 const SOURCES_PAYLOAD = shape({
@@ -2088,6 +2176,41 @@ const DRIVE_PREVIEW_PAYLOAD = shape({
 })
 
 /** The drives a session can read — the twin of OAUTH_PROJECTS_PAYLOAD. */
+const OAUTH_MAILBOXES_PAYLOAD = shape({
+  mailboxes: arrayOf(
+    shape({
+      mailbox: str,
+      display_name: str,
+      description: str,
+      credential_handle: str,
+      label_count: num,
+    }),
+  ),
+  mailbox_count: num,
+})
+
+const GMAIL_PREVIEW_PAYLOAD = shape({
+  mailbox: str,
+  display_name: str,
+  description: str,
+  labels: arrayOf(str),
+  label_count: num,
+})
+
+const REGISTERED_GMAIL_PAYLOAD = shape({
+  source_id: str,
+  source_name: str,
+  connector: str,
+  mailbox: str,
+  credential_handle: str,
+  labels: arrayOf(str),
+  query: nullable(str),
+  attachments: bool,
+  status: str,
+  registered_at: str,
+  newly_connected: bool,
+})
+
 const OAUTH_DRIVES_PAYLOAD = shape({
   drives: arrayOf(
     shape({
@@ -2118,7 +2241,7 @@ const DRIVE_FOLDERS_PAYLOAD = shape({
 const OAUTH_CALLBACK_PAYLOAD = shape({
   account: shape({ email: str, name: str }),
   session: str,
-  provider: oneOf(['bigquery', 'drive']),
+  provider: oneOf([...OAUTH_PROVIDERS]),
 })
 
 const OAUTH_PROJECTS_PAYLOAD = shape({
@@ -2494,7 +2617,7 @@ const ASK_ANSWER_PAYLOAD = shape({
  */
 const OAUTH_START_PAYLOAD = shape({
   state: str,
-  provider: oneOf(['bigquery', 'drive']),
+  provider: oneOf([...OAUTH_PROVIDERS]),
   auth_url: str,
   scopes: arrayOf(str),
 })
@@ -2505,6 +2628,21 @@ const REGISTERED_SOURCE_PAYLOAD = shape({
   connector: str,
   project_id: str,
   credential_handle: str,
+  datasets: arrayOf(str),
+  status: str,
+  registered_at: str,
+  newly_connected: bool,
+})
+
+/* A generic registration's own shape — see `RegisteredGenericSource` for why it cannot borrow the
+   BigQuery one. `nullable` on both of the fields a connector may legitimately not have. */
+const REGISTERED_GENERIC_PAYLOAD = shape({
+  source_id: str,
+  source_name: str,
+  connector: str,
+  type_label: str,
+  credential_handle: nullable(str),
+  account: nullable(str),
   datasets: arrayOf(str),
   status: str,
   registered_at: str,
@@ -3016,6 +3154,74 @@ export async function listOauthDrives(session: string): Promise<DriveInfo[]> {
   ).drives
 }
 
+export async function gmailOauthCallback(
+  state: string,
+  signedInAs?: string,
+): Promise<OAuthCallback> {
+  const raw = await request<unknown>(callbackPath(state, 'gmail', signedInAs))
+  return validate<OAuthCallback>('The Gmail sign-in result', raw, OAUTH_CALLBACK_PAYLOAD)
+}
+
+/**
+ * Twin of `listOauthDrives`. Takes the signed-in address for the reason the callback does: the
+ * identity is client-held, so the server has nothing to look the mailbox up from.
+ */
+export async function listOauthMailboxes(
+  session: string,
+  signedInAs?: string,
+): Promise<MailboxInfo[]> {
+  const as = signedInAs ? `&as=${encodeURIComponent(signedInAs)}` : ''
+  const raw = await request<unknown>(
+    `/sources/oauth/mailboxes?session=${encodeURIComponent(session)}${as}`,
+  )
+  return validate<{ mailboxes: MailboxInfo[] }>(
+    'The mailbox this account can read',
+    raw,
+    OAUTH_MAILBOXES_PAYLOAD,
+  ).mailboxes
+}
+
+/** Discovery only — the labels this handle can see, registering nothing. */
+export async function previewGmailSource(
+  mailbox: string,
+  credentialHandle: string,
+): Promise<GmailPreview> {
+  return validate<GmailPreview>(
+    'The Gmail preview',
+    await request<unknown>('/sources/gmail/preview', {
+      method: 'POST',
+      body: { mailbox, credential_handle: credentialHandle },
+    }),
+    GMAIL_PREVIEW_PAYLOAD,
+  )
+}
+
+export async function registerGmailSource(input: {
+  mailbox: string
+  credentialHandle: string
+  labels: string[]
+  /** The optional Gmail search. Sent as typed — the server does not second-guess it. */
+  query?: string
+  attachments: boolean
+  sourceName: string
+}): Promise<RegisteredGmailSource> {
+  return validate<RegisteredGmailSource>(
+    'The registered Gmail source',
+    await request<unknown>('/sources/gmail', {
+      method: 'POST',
+      body: {
+        mailbox: input.mailbox,
+        credential_handle: input.credentialHandle,
+        labels: input.labels,
+        query: input.query ?? null,
+        attachments: input.attachments,
+        source_name: input.sourceName,
+      },
+    }),
+    REGISTERED_GMAIL_PAYLOAD,
+  )
+}
+
 export async function previewSource(
   projectId: string,
   credentialHandle: string,
@@ -3085,8 +3291,16 @@ export async function registerGenericSource(input: {
   sourceName: string
   typeLabel: string
   credentialRef?: string
-}): Promise<RegisteredSource> {
-  return validate<RegisteredSource>(
+  /**
+   * What the source connected *as* — the email connector's OAuth client id.
+   *
+   * An identifier, never a secret: it is shown on the Sources row, which is the point. The secret half
+   * of the pair travels as \`credentialRef\`, a pointer, because the wizard promises the raw one is
+   * never persisted.
+   */
+  account?: string
+}): Promise<RegisteredGenericSource> {
+  return validate<RegisteredGenericSource>(
     'The registered source',
     await request<unknown>('/sources/generic', {
       method: 'POST',
@@ -3095,9 +3309,10 @@ export async function registerGenericSource(input: {
         source_name: input.sourceName,
         type_label: input.typeLabel,
         credential_ref: input.credentialRef ?? null,
+        account: input.account ?? null,
       },
     }),
-    REGISTERED_SOURCE_PAYLOAD,
+    REGISTERED_GENERIC_PAYLOAD,
   )
 }
 
@@ -3153,6 +3368,7 @@ export async function listSources(): Promise<{
       datasets: s.datasets,
       folders: s.folders,
       kind: s.kind,
+      profilable: s.profilable,
     })),
     registeredCount: raw.registered_count,
     connectedSources: raw.connected_sources,

@@ -31,6 +31,18 @@ export interface Connector {
   /** Shown on the source row once registered. */
   typeLabel: string
   available: boolean
+  /**
+   * Whether connecting this source produces a catalogue.
+   *
+   * **Connecting and profiling are two acts, and this is the first connector where they come apart.**
+   * BigQuery and Drive are connected *so that* they can be profiled — tables into columns, documents
+   * into entities. A mailbox is connected so the tenant can be delivered to and so the trail records
+   * where a report went; there is nothing in it to sample. Declared rather than inferred from the key,
+   * because "the two Google ones" is a pair of names that a third profilable connector would silently
+   * fall outside of — and the server derives the same fact from whether a pipeline exists, so
+   * `check-docs` can hold the two answers against each other.
+   */
+  profiles: boolean
   fields: ConnectorField[]
   /** Why it is not usable yet — surfaced when an unavailable card is picked. */
   reason?: string
@@ -66,9 +78,10 @@ export const CONNECTORS: Connector[] = [
   {
     key: 'bigquery',
     name: 'Google BigQuery',
-    blurb: 'structured — tables & columns',
+    blurb: 'real connector — MVP',
     typeLabel: 'BigQuery',
     available: true,
+    profiles: true,
     fields: [
       nameField,
       {
@@ -99,9 +112,10 @@ export const CONNECTORS: Connector[] = [
   {
     key: 'gdrive',
     name: 'Google Drive',
-    blurb: 'unstructured — docs, PDFs, files',
+    blurb: 'real connector — docs, sheets, files',
     typeLabel: 'Google Drive',
     available: true,
+    profiles: true,
     fields: [
       nameField,
       {
@@ -123,129 +137,106 @@ export const CONNECTORS: Connector[] = [
     ],
   },
   {
-    key: 'gcs',
-    name: 'GCS bucket',
-    blurb: 'objects — Parquet, CSV, JSON',
-    typeLabel: 'Google Cloud Storage',
+    /*
+     * **The third real connector, and the first that connects without profiling.**
+     *
+     * BigQuery and Drive are connected *so that* they can be profiled — tables into columns, documents
+     * into entities. Gmail is connected to prove the credential reaches a mailbox and to record what it
+     * was pointed at: which labels, which search, whether attachments are in scope. Nothing samples the
+     * mail, so `profiles: false`, the server has no pipeline for the kind, and the Data Catalog leaves
+     * it out and says why rather than listing it beside two dead buttons.
+     *
+     * **It takes no fields here.** Like the other two Google connectors it runs consent → preview →
+     * finish against the API, so what it needs is a name and what the mailbox itself reports; the
+     * generic field loop is for the connectors that have no branch of their own.
+     */
+    key: 'gmail',
+    name: 'Gmail',
+    blurb: 'real connector — email + attachments',
+    typeLabel: 'Gmail',
+    available: true,
+    profiles: false,
+    fields: [nameField],
+  },
+  {
+    key: 'sap',
+    name: 'SAP PM / S4HANA',
+    blurb: 'asset & work-order master',
+    typeLabel: 'SAP',
     available: false,
+    profiles: false,
     reason:
-      'Object-store profiling needs the schema-inference worker, which ships with the ' +
-      'lake connector milestone. Registration is stubbed until then.',
+      'Work-order and functional-location master data needs the IDoc/OData bridge, which is on the ' +
+      'roadmap behind the two Google connectors. Registration is stubbed until then.',
     fields: [
       nameField,
-      {
-        name: 'bucket',
-        label: 'Bucket',
-        kind: 'text',
-        placeholder: 'cw-raw-events',
-        required: true,
-      },
-      { name: 'prefix', label: 'Prefix', kind: 'text', placeholder: 'events/v2/' },
-      secretField('secret://gcp/gcs-reader'),
+      { name: 'host', label: 'Application server', kind: 'text', placeholder: 'sap-prd.internal', required: true },
+      { name: 'client', label: 'Client', kind: 'text', placeholder: '400', required: true },
+      secretField('secret://sap/odata-reader'),
     ],
   },
   {
-    key: 's3',
-    name: 'Amazon S3 bucket',
-    blurb: 'objects — Parquet, CSV, JSON',
-    typeLabel: 'Amazon S3',
+    key: 'osipi',
+    name: 'OSIsoft PI',
+    blurb: 'historian / telemetry',
+    typeLabel: 'OSIsoft PI',
     available: false,
+    profiles: false,
     reason:
-      'Shares the object-store profiler with GCS. Cross-account role assumption is ' +
-      'still being designed, so credentials cannot be validated yet.',
+      'A historian is a time series per tag, not a table of rows — the dictionary needs a tag-level ' +
+      'profile the column profiler cannot produce. That design is still open.',
     fields: [
       nameField,
+      { name: 'server', label: 'PI Data Archive', kind: 'text', placeholder: 'pi-archive.internal', required: true },
+      { name: 'tags', label: 'Tag filter', kind: 'text', placeholder: 'PLANT1.*' },
+      secretField('secret://osisoft/pi-web-api'),
+    ],
+  },
+  {
+    key: 'sharepoint',
+    name: 'SharePoint / docs',
+    blurb: 'contracts · manuals · PDFs',
+    typeLabel: 'SharePoint',
+    available: false,
+    profiles: false,
+    reason:
+      'Shares the document profiler with Drive, but Microsoft Graph consent and site-level ' +
+      'permissions are still being designed, so credentials cannot be validated yet.',
+    fields: [
+      nameField,
+      { name: 'siteUrl', label: 'Site URL', kind: 'text', placeholder: 'https://tenant.sharepoint.com/sites/capital', required: true },
       {
-        name: 'bucket',
-        label: 'Bucket',
-        kind: 'text',
-        placeholder: 'cw-data-lake',
-        required: true,
-      },
-      {
-        name: 'region',
-        label: 'Region',
+        name: 'libraries',
+        label: 'Document libraries',
         kind: 'select',
-        options: ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-south-1'],
-        required: true,
+        options: ['Contracts', 'Manuals', 'Drawings', 'Correspondence'],
+        multiple: true,
       },
-      { name: 'prefix', label: 'Prefix', kind: 'text', placeholder: 'curated/' },
-      secretField('secret://aws/s3-reader-role'),
+      secretField('secret://microsoft/graph-app'),
     ],
   },
   {
-    key: 'postgres',
-    name: 'PostgreSQL',
-    blurb: 'structured — schemas & tables',
-    typeLabel: 'PostgreSQL',
+    key: 'sql',
+    name: 'SQL database',
+    blurb: 'Postgres · MySQL · MSSQL · Oracle',
+    typeLabel: 'SQL database',
     available: false,
+    profiles: false,
     reason:
-      'The JDBC profiler works, but network egress to customer VPCs requires the ' +
-      'private-link agent that is not released yet.',
+      'The JDBC profiler works, but network egress to customer VPCs requires the private-link agent ' +
+      'that is not released yet.',
     fields: [
       nameField,
+      {
+        name: 'engine',
+        label: 'Engine',
+        kind: 'select',
+        options: ['PostgreSQL', 'MySQL', 'MSSQL', 'Oracle'],
+        required: true,
+      },
       { name: 'host', label: 'Host', kind: 'text', placeholder: 'db.internal', required: true },
-      { name: 'port', label: 'Port', kind: 'text', placeholder: '5432', required: true },
       { name: 'database', label: 'Database', kind: 'text', placeholder: 'orders', required: true },
-      {
-        name: 'schemas',
-        label: 'Schemas',
-        kind: 'select',
-        options: ['public', 'billing', 'shipping', 'audit'],
-        multiple: true,
-      },
-      secretField('secret://pg/orders-readonly'),
-    ],
-  },
-  {
-    key: 'snowflake',
-    name: 'Snowflake',
-    blurb: 'warehouse — databases & schemas',
-    typeLabel: 'Snowflake',
-    available: false,
-    reason:
-      'Warehouse metadata mapping is prototyped but key-pair auth and warehouse ' +
-      'cost controls are unfinished.',
-    fields: [
-      nameField,
-      {
-        name: 'account',
-        label: 'Account identifier',
-        kind: 'text',
-        placeholder: 'xy12345.ap-south-1',
-        required: true,
-      },
-      {
-        name: 'warehouse',
-        label: 'Warehouse',
-        kind: 'text',
-        placeholder: 'PROFILER_WH',
-        required: true,
-      },
-      { name: 'database', label: 'Database', kind: 'text', placeholder: 'ANALYTICS' },
-      secretField('secret://snowflake/profiler-keypair'),
-    ],
-  },
-  {
-    key: 'mongodb',
-    name: 'MongoDB',
-    blurb: 'semi-structured — collections',
-    typeLabel: 'MongoDB Atlas',
-    available: false,
-    reason:
-      'Collections have no fixed schema, so the dictionary needs sampled-shape ' +
-      'inference. That design is still open.',
-    fields: [
-      nameField,
-      { name: 'database', label: 'Database', kind: 'text', placeholder: 'catalog', required: true },
-      {
-        name: 'collections',
-        label: 'Collections',
-        kind: 'select',
-        options: ['products', 'variants', 'inventory', 'reviews'],
-        multiple: true,
-      },
-      secretField('secret://mongo/atlas-connection-string'),
+      secretField('secret://db/readonly'),
     ],
   },
 ]

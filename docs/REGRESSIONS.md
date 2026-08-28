@@ -4479,3 +4479,130 @@ derived figures match its package's answers. All break-tested.
 carries its origin's column names in every renderer, and they read as correct for exactly as long as there
 is one dataset. The tell is not a crash — it is a second dataset whose screen is full of plausible values
 that belong to the first.
+
+---
+
+## A form whose every field validated as empty over text on screen
+
+**Symptom.** Connecting the new Email mailbox source: all four fields filled in, and under every one of
+them a red *"… is required"*. Continue refused a form the reader could plainly see was filled.
+
+**Cause.** `Form.Item` wires a field by **cloning its child element** and injecting `value`, `onChange`
+and the accessibility ids onto it. The child was `<FieldInput field={field} />` — a wrapper component
+whose props were typed `{ field: ConnectorField }`, so everything antd injected was dropped on the
+floor. The `Input` inside was therefore uncontrolled: typing updated the DOM and never the form store,
+so validation read every field as empty while the text sat there in front of you.
+
+**Why nobody had seen it.** The generic field loop is reached only by a connector that is *not* one of
+the two Google ones — and every connector on that branch was `available: false`, so `Continue` was
+disabled on step 1 and the fields could never be typed into. A whole form's worth of wiring that no
+reader, dataset or test had ever exercised, sitting behind a door that was locked for as long as it
+existed. The email connector was the first to walk through it, and the bug arrived with it looking like
+a bug in the new connector.
+
+**Fix.** `fieldControl(field)` is **called**, so the element it returns *is* the child antd clones. The
+wrapper is gone rather than fixed by spreading props into it: the indirection was the whole defect, and
+a wrapper that must remember to forward props is a wrapper that will one day forget.
+
+**Guard.** A claim that the control is called and no component stands between `Form.Item` and its
+control on this branch — break-tested by restoring the wrapper. The behaviour is also asserted directly:
+an SSR render checks each field's `<input>` carries `id="<field name>"`, which is what antd injects when
+the wiring works, **and renders the wrapper shape alongside to prove the probe can fail**. An assertion
+that cannot distinguish the two states is a comment.
+
+**The general shape.** *A wrapper between a form and its control is invisible until somebody types.* Any
+library that wires children by cloning them — antd's `Form.Item`, and it is not alone — wires the element
+it is given, not the element that eventually renders. And the second lesson is about reachability: code
+behind a permanently disabled control is code that has never run, so the first feature to enable that
+path inherits every defect on it.
+
+---
+
+## A generic registration validated against another connector's shape
+
+**Symptom.** Not seen — found while wiring the email connector's OAuth fields, one step behind the form
+defect above. Finishing a generic registration would have shown *"The registered source could not be read
+— the data did not look the way this app expects… project_id should be a string, got undefined"*, over a
+source the server had already created. A failure toast for work that succeeded.
+
+**Cause.** `registerGenericSource` validated its reply against `REGISTERED_SOURCE_PAYLOAD`, which is
+BigQuery's: it requires `project_id`, and a generic source has no such thing — a mailbox connects as an
+OAuth client, not into a GCP project. The schema was reused because it was the nearest one, and reusing
+it asserted a field the payload never carried.
+
+**Why nobody had seen it.** The same locked door as the form-wiring defect in the entry above: every
+connector reaching this path was `available: false`, so Finish could not be pressed. Two independent
+defects on one unreachable branch, both surfacing the day an available connector walked through it.
+
+**Fix.** `REGISTERED_GENERIC_PAYLOAD`, describing what a generic registration actually answers with —
+`type_label`, a nullable `credential_handle`, a nullable `account` — and no `project_id`.
+
+**Guard.** A claim that the fetcher passes that shape, break-tested by pointing it back at BigQuery's.
+Better, the *behaviour* is asserted: an SSR smoke stubs `fetch` with a reply **captured from the running
+mock server** rather than invented, and runs the fetcher end to end. Pointed back at the old schema it
+throws the exact message above — so the probe is known to be able to fail.
+
+**The general shape.** *A schema is an assertion about a payload, so it belongs to the payload and not to
+the nearest similar one.* Sharing one across two endpoints claims their replies are the same shape, which
+is a claim nothing checks until the second endpoint is first called — and a fixture written by hand would
+have agreed with the schema instead of with the server.
+
+---
+
+## A claim sliced to a fixed number of characters shrinks as the code grows
+
+**Symptom.** Adding the Gmail branch to the connect wizard failed a claim about the *BigQuery* consent:
+"and Allow is what spends the consent" went red over code nobody had touched.
+
+**Cause.** The claim read a slice of the function — `wizard.split('async function grantGoogleConsent()')[1].slice(0, 1600)` — and the new branch was inserted *above* the BigQuery
+one, pushing it past character 1600. The fact was still true; the window had stopped reaching it.
+
+**Fix.** `untilNextFunction()` slices to the next top-level function declaration instead, so the window
+is the function rather than a guess at its length.
+
+**The general shape.** *A window sized to today's code shrinks every time the code grows*, which is the
+opposite of what a guard should do — and it fails in the direction that wastes the most time, reporting
+a correct fact as broken while the thing it actually guards goes unchecked in the tail it no longer
+reads. Slice to a boundary the code defines, never to a count.
+
+**Two more counts went the same way in the same sitting**: three claims asserted `=== 2` where the fact
+was "every real connector does this", and all three failed on the third one. They now count against
+`realConnectorCount`, derived from the catalog — the rule this file already records as *a number in
+prose drifts unless something reads it*, applied to a number in an assertion.
+
+---
+
+## A union widened, a schema not — the compile-time claim and the runtime one
+
+**Symptom.** Picking Gmail in the connect wizard: *"The Google sign-in could not be read — the data did
+not look the way this app expects. Restarting the mock server (npm run mock) usually fixes it. Details:
+provider should be one of bigquery | drive, got 'gmail'."* Restarting does not fix it, and the server was
+right.
+
+**Cause.** Adding the third connector widened `OAuthProvider` — a TypeScript union — and left both
+`oneOf(['bigquery', 'drive'])` response schemas alone. **A union is a claim the compiler checks against
+the code; a schema is a claim the validator checks against the payload.** Only the second meets the
+server, so the type said Gmail was fine and the boundary refused it. Every call site compiled.
+
+**Which makes the message actively misleading.** `ValidationError` says "restarting the mock server
+usually fixes it" because a stale server is the usual cause of a shape mismatch — here the shape was
+current and the *client* was stale, so the advice sent the reader to the one thing that could not help.
+
+**Fix.** One declaration: `OAUTH_PROVIDERS` is the list, the union is `(typeof OAUTH_PROVIDERS)[number]`,
+and both schemas read `oneOf([...OAUTH_PROVIDERS])`. The type can no longer be widened without the
+validator following.
+
+**Guard.** A claim holding the client's list equal to the server's `OAUTH_SCOPES` keys — the two ends of
+one fact, in two languages — plus the derivation and the absence of a hand-written list. Break-tested by
+narrowing the client's list. Verified by behaviour too: an SSR smoke drives the real fetchers against a
+running server for **every** provider at once, and reproduces the exact message above when pointed at
+the old schema.
+
+**The general shape.** *Widening a type is not widening a check.* Anywhere a value is described twice —
+once for the compiler, once for the boundary — the compiler's copy will be updated first and the
+boundary's will fail in production, wearing an error message written for a different cause. Derive one
+from the other, or assert them equal.
+
+**And a smaller one, for the sixth time:** the absence half of that guard first failed against correct
+code, because the comment explaining the removal quotes `oneOf(['bigquery', 'drive'])`. `codeOnly()` on
+every absence claim, always.

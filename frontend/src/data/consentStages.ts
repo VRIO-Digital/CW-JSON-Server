@@ -19,6 +19,11 @@ export const CONSENT_STAGES = {
     'Granting read-only access to Drive',
     'Reading the drives this account can see',
   ],
+  gmail: [
+    'Opening the Google sign-in',
+    'Granting read-only access to Gmail',
+    'Reading the mailbox this account can see',
+  ],
 } as const
 
 /**
@@ -32,6 +37,7 @@ export const CONSENT_SCOPE_LABEL = (scope: string): string =>
 export const CONSENT_SCOPES = {
   bigquery: 'bigquery.readonly',
   drive: 'drive.metadata.readonly',
+  gmail: 'gmail.readonly',
 } as const
 
 /**
@@ -59,6 +65,12 @@ export const CONSENT_GRANT_COPY: Record<string, { title: string; detail: string 
     title: 'See and download all your Google Drive files',
     detail:
       'Needed to extract text and entities when you profile a document. Read-only — no file is modified.',
+  },
+  'https://www.googleapis.com/auth/gmail.readonly': {
+    title: 'Read your email messages and settings',
+    detail:
+      'Labels, messages and their attachments. Read-only — ContextWeave can never send, modify or ' +
+      'delete mail, and this connector profiles nothing.',
   },
 }
 

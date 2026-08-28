@@ -186,6 +186,15 @@ const connectorList = connectorBlocks
 const distinctive = (name) =>
   name.replace(/^Google /, '').replace(/ bucket$/, '').trim()
 
+/*
+ * How many connectors run the bespoke consent → preview → finish path.
+ *
+ * **Derived, because it was written as `2` in three claims** and every one of them failed the day a
+ * third real connector landed — each reporting a correct fact as stale. It is the count of available
+ * connectors, which is what "has its own branch" means here: an unavailable one has no consent to run.
+ */
+const realConnectorCount = connectorList.filter((c) => c.available).length
+
 for (const c of connectorList) {
   const token = distinctive(c.name)
   expect(
@@ -238,6 +247,8 @@ expect(
     connectorKeys.every((k) => markedKeys.includes(k)),
   `keys ${connectorKeys.join(',')} · marks ${markedKeys.join(',')}`,
 )
+
+
 expect(
   'an unknown connector falls back to the neutral mark, not a vendor one',
   /GenericSourceIcon size=\{size\} label=\{connector\}/.test(iconSource) &&
@@ -376,6 +387,260 @@ expect(
   'the card and the detail header both render sourceName',
 )
 
+/*
+ * ---------------- connecting and profiling are two acts ----------------
+ *
+ * Every connector before the mailbox was connected *so that* it could be profiled — BigQuery into
+ * columns, Drive into entities — so "connected" and "has a catalogue" were the same fact and the app
+ * treated them as one. The Data Catalog tested `kind !== 'bigquery' && !isDrive` in two places to grey
+ * out its buttons: a pair of connector names written into a component, which a third profilable
+ * connector would have had to be added to by hand, and which drew a mailbox as a source whose buttons
+ * happened to be broken.
+ *
+ * **The two answers now come from two places and are held against each other here.** The server derives
+ * `profilable` from whether a pipeline exists for the kind (`PROFILERS`, the same map `pipelineFor`
+ * reads, so "can this be profiled" and "which stages run" cannot disagree). The client declares
+ * `profiles` per connector, because that is a product fact a card has to state before anybody connects
+ * anything. This claim asserts the two describe the same set — a connector declaring it profiles, with
+ * no pipeline behind it, promises a catalogue that never arrives.
+ */
+const serverProfilers = (server.match(/const PROFILERS = \{([^}]*)\}/) ?? [])[1] ?? ''
+const serverProfilerKinds = [...serverProfilers.matchAll(/(\w+):/g)].map((m) => m[1]).sort()
+const clientProfilingKeys = [...connectors.matchAll(/key: '(\w+)',[\s\S]{0,400}?profiles: true,/g)]
+  .map((m) => m[1])
+  .sort()
+
+expect(
+  `the connectors that profile are the kinds a profiler exists for: ${serverProfilerKinds.join(', ') || '—'}`,
+  serverProfilerKinds.length > 0 &&
+    serverProfilerKinds.join(',') === clientProfilingKeys.join(',') &&
+    /* Derived from the pipelines rather than listed beside them. */
+    /const isProfilable = \(kind\) => Object\.hasOwn\(PROFILERS, kind\)/.test(server) &&
+    /const pipelineFor = \(job\) => PROFILERS\[job\.kind\] \?\? PIPELINE/.test(server) &&
+    /profilable: isProfilable\(source\.kind\)/.test(server),
+  `server profiles ${serverProfilerKinds.join(', ')} · connectors declare ${clientProfilingKeys.join(', ')}`,
+)
+
+expect(
+  'a source with no catalogue is left out of the Catalog and the omission is stated, not greyed out',
+  /* The list is filtered on the served fact … */
+  /sources\.filter\(\(s\) => s\.profilable\)/.test(catalogPage) &&
+    /* … and the pair of connector names is gone from both buttons. */
+    !/kind !== 'bigquery' && !isDrive/.test(codeOnly(catalogPage)) &&
+    /* A shorter list is not a message: the count is said in words, on both branches — the populated
+       one and the one where a mailbox is the only source connected. */
+    /\{uncatalogued > 0 \?/.test(catalogPage) &&
+    (catalogPage.match(/\{uncatalogued > 0 \?/g) ?? []).length === 2 &&
+    /* Validated at the boundary like every other field, so a stale server is named rather than
+       rendering every source as uncatalogued. */
+    /profilable: bool,/.test(client) &&
+    /profilable: s\.profilable,/.test(client),
+  'a list that is merely shorter reads as data loss — the Library’s ungoverned rows learned this first',
+)
+
+
+/*
+ * **A connector field's control is the child `Form.Item` clones, not a wrapper around it.**
+ *
+ * antd wires a field by cloning its child element and injecting `value`, `onChange` and the
+ * accessibility ids onto it. While the child was a `<FieldInput field={...} />` component that
+ * accepted only `field`, those props were dropped: the input was uncontrolled, typing updated the DOM
+ * and never the form store, and every field failed its `required` rule over text plainly on screen.
+ *
+ * **It was unreachable for as long as it existed.** Every connector on the generic branch was
+ * `available: false`, so `Continue` was disabled on step 1 and nothing could reach the fields — a
+ * whole form's wiring that no reader had ever exercised, found the day an available connector used it.
+ * That is why this is a claim and not a note: the shape is invisible until somebody types.
+ */
+expect(
+  'each connector field control is the element the form wires, not a wrapper that swallows its props',
+  /* Called, so the returned element is the child. */
+  /\{fieldControl\(field\)\}/.test(wizard) &&
+    /function fieldControl\(field: ConnectorField\)/.test(wizard) &&
+    /* And no component stands between `Form.Item` and its control on this branch. */
+    !/<FieldInput/.test(codeOnly(wizard)),
+  'a wrapper component swallows value/onChange, so a filled form validates as empty',
+)
+/*
+ * ---------------- Gmail: a real connector that is never profiled ----------------
+ *
+ * The third connector with a wizard branch, and the first where **connecting and profiling come
+ * apart**. BigQuery and Drive are connected *so that* they can be profiled; a mailbox is connected to
+ * prove the credential reaches it and to record what it was pointed at — which labels, which search,
+ * whether attachments are in scope. Nothing samples the mail.
+ *
+ * That is asserted as an absence with teeth: `PROFILERS` is the map `pipelineFor` reads, so a `gmail`
+ * entry appearing there would give the kind a pipeline *and* flip `profilable`, and this claim is what
+ * says both must stay false together.
+ */
+const gmailBlock = connectorBlocks.find((b) => /key: 'gmail',/.test(b)) ?? ''
+expect(
+  'Gmail runs the full consent → preview → finish path and carries no catalogue',
+  /* Offered as a real connector, and declaring that it does not profile. */
+  /available: true,/.test(gmailBlock) &&
+    /profiles: false,/.test(gmailBlock) &&
+    !/reason:/.test(gmailBlock) &&
+    /* Its own consent scope, and read-only — the one thing a mail scope must be. */
+    /gmail: \['https:\/\/www\.googleapis\.com\/auth\/gmail\.readonly'\]/.test(server) &&
+    /* The provider parse is a lookup over that table, not a chain: two chained ternaries read every
+       unknown provider as BigQuery and granted its scope. */
+    /Object\.hasOwn\(OAUTH_SCOPES, asked\)/.test(server) &&
+    /* Three endpoints, each refusing the other providers' session or handle by name. */
+    /match: \(p\) => p === '\/sources\/oauth\/mailboxes'/.test(server) &&
+    /match: \(p\) => p === '\/sources\/gmail\/preview'/.test(server) &&
+    /match: \(p\) => p === '\/sources\/gmail'/.test(server) &&
+    /* And **no profiler**: the absence is the feature. A `gmail` entry in PROFILERS would give it a
+       pipeline and a catalogue at once, which is the thing this connector is defined by not having. */
+    !/gmail: (?:PIPELINE|DOC_PIPELINE)/.test(server) &&
+    /* The wizard has its own branch rather than falling through the generic field loop. */
+    /const isGmail = selected\?\.key === 'gmail'/.test(wizard) &&
+    /const isGoogle = isBigQuery \|\| isDrive \|\| isGmail/.test(wizard) &&
+    /* Labels come from the preview the endpoint returned, never a list held in the component — the
+       rule the consent scopes learned the hard way. */
+    !/'YELLOW_STAR'/.test(codeOnly(wizard)) &&
+    /options=\{gmailPreview\.labels\.map/.test(wizard),
+  'a mailbox with a pipeline would be profiled, which is the one thing this connector must not do',
+)
+
+/*
+ * **Gmail's step 2 asks for nothing, and Continue does not demand what it cannot be given.**
+ *
+ * The name field and the mailbox picker were removed on request; the gate on the name was not, so
+ * Continue refused with *"give this source a name of at least 6 characters"* over a step offering
+ * nowhere to type one — an instruction the reader could not carry out. **Removing a field is removing
+ * everything that reads it**, which is the rule this repo states for a removed feature and which a form
+ * control is a small instance of.
+ *
+ * Sliced to the branch, so a fact true of BigQuery's step cannot pass for this one.
+ */
+const gmailStep = (() => {
+  const from = wizard.indexOf("{step === 1 && isGmail ? (")
+  const to = wizard.indexOf("{step === 1 && isDrive ? (")
+  return from !== -1 && to > from ? wizard.slice(from, to) : ''
+})()
+expect(
+  'Gmail’s connection step asks for nothing and names no mailbox',
+  /* The slice is the branch — without this every absence below passes over an empty string. */
+  gmailStep.length > 200 &&
+    gmailStep.includes('Login with Google') &&
+    !gmailStep.includes('label="Source name"') &&
+    !gmailStep.includes('label="Mailbox"') &&
+    /* Says Gmail is connected and nothing more: the mailbox is settled by the consent and revealed by
+       the preview, so an address here is one the reader cannot act on. */
+    gmailStep.includes('Gmail is connected — read-only.') &&
+    !/read-only access to/.test(gmailStep) &&
+    /* The gate that used to demand the removed field now excludes this connector — and Gmail has one
+       of its own, on the thing the step can actually be missing. */
+    /if \(isGoogle && !isGmail && nameProblem\)/.test(wizard) &&
+    /Sign in with Google to reach the mailbox before continuing/.test(wizard) &&
+    /* And the name still reaches the server, from the mailbox rather than from a form. */
+    /sourceName: gmailPreview\.display_name,/.test(wizard),
+  'a Continue that demands a field the step does not offer is an instruction nobody can follow',
+)
+
+/*
+ * ---------------- the mailbox is the signed-in person's own ----------------
+ *
+ * **A Gmail consent reaches the account that granted it**, so the mailbox is not a resource the tenant
+ * configures the way a drive is — it is whoever signed in. Two designs were tried and both were wrong
+ * in the same direction: a mailbox minted from the signed-in address with Gmail's six labels (which
+ * made every dataset's connector identical), then a `mailboxes` key in each document holding role
+ * inboxes like `compliance@` (which nobody signs in as, and which duplicated the directory).
+ *
+ * It is derived from `settings.users` now, which makes `db.settings` the one answer to who exists — the
+ * duplication this repo refuses for the consent scopes, the report audience and the governance readers
+ * alike, and which drifts the moment somebody is added to one list and not the other.
+ */
+expect(
+  'the Gmail mailbox is the signed-in person’s, derived from the tenant directory',
+  /* Derived, and there is no key beside the directory holding a second copy. */
+  /const findMailbox = \(address\) => \{[\s\S]{0,200}?db\.settings\?\.users/.test(server) &&
+    !/db\.mailboxes/.test(codeOnly(server)) &&
+    !(dbDoc.value ?? {}).mailboxes &&
+    !(capexDoc.value ?? {}).mailboxes &&
+    /* The consent returns that one mailbox rather than a list — one person cannot connect another's
+       mail, and there is nothing to pick between, which is why the picker went. */
+    /mailbox_count: 1,/.test(server) &&
+    /* An address the directory does not have is refused naming who it does know, the refusal the login
+       already makes. An empty list instead would read as an account with no mail. */
+    /is not in this dataset's directory/.test(server) &&
+    /* The Sources row is named after the person, since the wizard no longer asks for a name. */
+    /display_name: `\$\{user\.name\}'s mailbox`/.test(server) &&
+    /* And the labels are Gmail's own — which is what the preview's heading calls them. */
+    /const GMAIL_LABELS = \['IMPORTANT', 'INBOX', 'SENT', 'STARRED', 'UNREAD', 'YELLOW_STAR'\]/.test(
+      server,
+    ) &&
+    /labels: GMAIL_LABELS,/.test(server),
+  'a mailbox list beside the directory is a second answer to who exists, and drifts',
+)
+
+/*
+ * **Every provider the server can issue is one the client's validator accepts.**
+ *
+ * These are two claims about one fact, in two languages: `OAUTH_SCOPES` on the server decides which
+ * providers exist, and `OAUTH_PROVIDERS` in `client.ts` is what the response schemas check `provider`
+ * against. Widening the TypeScript union for Gmail did **not** widen the schema — a union is a
+ * compile-time claim and only the schema is checked against the payload — so the server answered
+ * `provider: "gmail"` and the wizard refused it with *"provider should be one of bigquery | drive"*, a
+ * message that blames a stale mock server over a server that was right.
+ *
+ * So the list is declared once on each side and this holds them equal; the type is *derived* from the
+ * client's, which is what stops the union and the schema drifting again.
+ */
+/* The block is sliced with `indexOf` rather than a multiline regex: the `\n` in one written here
+   became a real newline in transit twice, and a regex broken across lines is a parse error rather than
+   a failed match — which kills the run before it prints a summary. */
+const between = (src, open, close) => {
+  const i = src.indexOf(open)
+  if (i === -1) return ''
+  const j = src.indexOf(close, i + open.length)
+  return j === -1 ? '' : src.slice(i + open.length, j)
+}
+const serverProviders = [
+  ...between(server, 'const OAUTH_SCOPES = {', '\n}').matchAll(/^ {2}(\w+):/gm),
+].map((m) => m[1])
+const clientProviders = [
+  ...((client.match(/const OAUTH_PROVIDERS = \[([^\]]*)\]/) ?? [])[1] ?? '').matchAll(/'(\w+)'/g),
+].map((m) => m[1])
+expect(
+  `the consent providers are the same set on both sides: ${serverProviders.join(', ') || '—'}`,
+  serverProviders.length > 0 &&
+    serverProviders.slice().sort().join(',') === clientProviders.slice().sort().join(',') &&
+    /* Derived, so a fourth provider cannot be typed without being validated. */
+    /export type OAuthProvider = \(typeof OAUTH_PROVIDERS\)\[number\]/.test(client) &&
+    /* And both schemas read that list rather than spelling one of their own. */
+    (client.match(/provider: oneOf\(\[\.\.\.OAUTH_PROVIDERS\]\)/g) ?? []).length === 2 &&
+    /* `codeOnly`, because the note above this list quotes the very literal being asserted absent —
+       the self-documenting-file trap this repo has now lost six claims to. */
+    !/oneOf\(\['bigquery', 'drive'\]\)/.test(codeOnly(client)),
+  `server issues ${serverProviders.join(', ')} · client accepts ${clientProviders.join(', ')}`,
+)
+
+/*
+ * **And what the wizard says about attachments is what the code does.**
+ *
+ * The toggle is recorded and shown on the receipt; it profiles nothing, because this connector has no
+ * profiler. A sentence promising attachments are "ingested as their own documents through the same
+ * extraction pipeline Drive files use" would describe a run that never happens — the one claim on this
+ * screen that could be false while everything around it is true.
+ */
+expect(
+  'the attachments toggle is stated as scope, not as ingestion',
+  /Records attachments \(PDFs, docs, sheets\) as part of what this connection covers/.test(wizard) &&
+    !/extraction pipeline Drive files use/.test(wizard) &&
+    /* Read back from the row the server stored rather than from the form. */
+    /registeredGmail\.attachments \? 'included' : 'excluded'/.test(wizard) &&
+    /* The optional query is sent as typed and refused by nothing, which the panel says. Keyed to a
+       fragment that stays on one source line: the sentence wraps, and matching across the wrap failed
+       against copy that was on screen. */
+    /it simply matches nothing, so check the message count/.test(wizard) &&
+    /query: typeof query === 'string'/.test(server),
+  'a promise of ingestion on a connector with no profiler is a run that never happens',
+)
+
+
+
+
 /* ---------------- the source-name rule is one rule ---------------- */
 
 /*
@@ -400,7 +665,15 @@ expect(
  * no id fallback, which is what made the field optional in practice even while
  * the form asked for it.
  */
-for (const route of ['/sources', '/sources/drive', '/sources/generic']) {
+/*
+ * **Gmail is on this list even though its form does not ask for a name.**
+ *
+ * A mailbox already carries one the tenant wrote (`display_name`), so the wizard sends that rather than
+ * a field nobody had anything to add to — which is *not* the id fallback this rule forbids: the rule's
+ * own words are "if the form asks, the code must not answer for the user", and the form no longer asks.
+ * What must not change is the endpoint's own refusal, so it is checked exactly like the other three.
+ */
+for (const route of ['/sources', '/sources/drive', '/sources/generic', '/sources/gmail']) {
   const block = (server.split(`p === '${route}'`)[1] ?? '').slice(0, 2600)
   expect(
     `POST ${route} refuses a bad source_name`,
@@ -488,8 +761,21 @@ expect(
  * before `/oauth/start` returned could only open blank or guess, and a callback fired on open
  * would make the Allow button decoration.
  */
-const openFn = (wizard.split('async function openGoogleSignIn()')[1] ?? '').slice(0, 900)
-const grantFn = (wizard.split('async function grantGoogleConsent()')[1] ?? '').slice(0, 1600)
+/*
+ * Sliced to the **end of the function**, not to a fixed number of characters.
+ *
+ * Both of these were `.slice(0, N)`, and adding the Gmail branch pushed the BigQuery one past 1600 —
+ * so the claim failed against code that was correct, reporting a missing call that was three lines
+ * further down. A window sized to today's function is a window that shrinks every time the function
+ * grows, which is the opposite of what a guard should do.
+ */
+const untilNextFunction = (src, name) => {
+  const after = src.split(name)[1] ?? ''
+  const end = after.search(new RegExp(String.raw`\r?\n {2}(?:async )?function `))
+  return end === -1 ? after : after.slice(0, end)
+}
+const openFn = untilNextFunction(wizard, 'async function openGoogleSignIn()')
+const grantFn = untilNextFunction(wizard, 'async function grantGoogleConsent()')
 expect(
   'the sign-in window opens on the response, not on the click',
   /await oauthStart\(/.test(openFn) &&
@@ -500,6 +786,7 @@ expect(
 expect(
   'and Allow is what spends the consent',
   /driveOauthCallback\(oauthState, signedInAs\)/.test(grantFn) &&
+    /gmailOauthCallback\(oauthState, signedInAs\)/.test(grantFn) &&
     /oauthCallback\(oauthState, signedInAs\)/.test(grantFn) &&
     /onAllow=\{\(\) => void grantGoogleConsent\(\)\}/.test(wizard),
   'cancelling grants nothing and connects nobody',
@@ -2542,9 +2829,9 @@ expect(
 expect(
   'client.ts sends the signed-in email with the consent callback',
   /&as=\$\{encodeURIComponent\(signedInAs\)\}/.test(client) &&
-    (client.match(/callbackPath\(state, '(bigquery|drive)', signedInAs\)/g) ?? [])
-      .length === 2,
-  'both oauthCallback and driveOauthCallback go through callbackPath',
+    (client.match(/callbackPath\(state, '(bigquery|drive|gmail)', signedInAs\)/g) ?? [])
+      .length === realConnectorCount,
+  'every real connector’s callback goes through callbackPath',
 )
 expect(
   'the connect wizard takes that email from the auth store',
@@ -2553,14 +2840,30 @@ expect(
        renamed `start.state` to `oauthState` when the consent became a
        click-through, and this failed for a variable name while the fact it
        guards — both connectors send the signed-in email — was still true. */
-    (wizard.match(/(?:drive)?[oO]authCallback\([\w.]+, signedInAs\)/g) ?? []).length === 2,
-  'BigQuery and Drive both pass signedInAs to their callback',
+    (wizard.match(/(?:drive)?[oO]authCallback\([\w.]+, signedInAs\)/g) ?? []).length ===
+      realConnectorCount,
+  'every real connector passes signedInAs to its callback',
 )
+/*
+ * **Every alert that names the connecting account names the client-held one.**
+ *
+ * Counted against the alerts that *exist* rather than against the connector count, which is the fact
+ * this guards: Gmail names nobody — the mailbox is settled by the consent and revealed by the preview,
+ * so an address there is one the reader cannot change — and a claim pinned to "one per connector" read
+ * that deliberate silence as a regression. The floor keeps it from passing vacuously if they all go.
+ */
+/* `codeOnly`, because a note 150 lines above the alerts says "the “Connected as …” alert below
+   prefers the store" — counted raw that comment is a third alert, and the claim failed against correct
+   code. The seventh time this file has lost a claim to prose describing the code beside it. */
+const wizardCode = codeOnly(wizard)
+const namedAlerts = (wizardCode.match(/Connected as/g) ?? []).length
 expect(
-  'the "Connected as" alert renders the signed-in email',
+  `every "Connected as" alert renders the signed-in email: ${namedAlerts} of them`,
   /signedInAs \?\? account\.email/.test(wizard) &&
-    (wizard.match(/Connected as <strong>\{connectedAs\}<\/strong>/g) ?? []).length === 2 &&
-    !/Connected as <strong>\{account\.email\}/.test(wizard),
+    namedAlerts >= 2 &&
+    (wizardCode.match(/Connected as <strong>\{connectedAs\}<\/strong>/g) ?? []).length ===
+      namedAlerts &&
+    !/Connected as <strong>\{account\.email\}/.test(wizardCode),
   'connectedAs prefers the auth store, so a stale server cannot name a stranger',
 )
 

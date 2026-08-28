@@ -1,5 +1,9 @@
 import { Modal, Typography } from 'antd'
-import type { RegisteredDriveSource, RegisteredSource } from '../../api/client'
+import type {
+  RegisteredDriveSource,
+  RegisteredGmailSource,
+  RegisteredSource,
+} from '../../api/client'
 import ConnectSourceWizard from './ConnectSourceWizard'
 
 /** Dialog chrome only — the flow itself lives in ConnectSourceWizard. */
@@ -12,7 +16,7 @@ export default function ConnectSourceModal({
   open: boolean
   onClose: () => void
   onConnect: (sourceName: string) => void
-  onRegistered: (source: RegisteredSource | RegisteredDriveSource) => void
+  onRegistered: (source: RegisteredSource | RegisteredDriveSource | RegisteredGmailSource) => void
 }) {
   return (
     <Modal

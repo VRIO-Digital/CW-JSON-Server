@@ -68,103 +68,69 @@ export function GoogleDriveIcon({ size = 20 }: { size?: number }) {
   )
 }
 
-export function GcsIcon({ size = 20 }: { size?: number }) {
+
+
+
+
+
+/** Gmail's envelope, in its own four colours. */
+export function GmailIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      role="img"
-      aria-label="Google Cloud Storage"
-    >
-      {/* A bucket: wide mouth, tapered body. Google blue. */}
-      <path d="M3.4 5h17.2l-2.1 13.4a1.6 1.6 0 0 1-1.6 1.4H7.1a1.6 1.6 0 0 1-1.6-1.4z" fill="#4285F4" />
-      <rect x="7.6" y="10.4" width="8.8" height="1.9" rx=".95" fill="#fff" />
-      <rect x="2.4" y="3.4" width="19.2" height="2.9" rx="1.45" fill="#1A73E8" />
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Gmail">
+      <path d="M2.4 6.6v11.2c0 .6.5 1.1 1.1 1.1h2.6V10L12 14.2 17.9 10v8.9h2.6c.6 0 1.1-.5 1.1-1.1V6.6" fill="#FFFFFF" />
+      <path d="M2.4 6.6c0-.9.7-1.6 1.6-1.6.4 0 .7.1 1 .3L12 10.4 19 5.3c.3-.2.6-.3 1-.3.9 0 1.6.7 1.6 1.6v.6L12 14.2 2.4 7.2z" fill="#EA4335" />
+      <path d="M2.4 7.2 12 14.2V19H3.5c-.6 0-1.1-.5-1.1-1.1z" fill="#C5221F" />
+      <path d="M21.6 7.2 12 14.2V19h8.5c.6 0 1.1-.5 1.1-1.1z" fill="#34A853" />
+      <path d="M2.4 6.6v.6L12 14.2l9.6-7v-.6c0-.9-.7-1.6-1.6-1.6-.4 0-.7.1-1 .3L12 10.4 5 5.3c-.3-.2-.6-.3-1-.3-.9 0-1.6.7-1.6 1.6z" fill="#FBBC04" />
     </svg>
   )
 }
 
-export function S3Icon({ size = 20 }: { size?: number }) {
+/** SAP's frame — the wordmark's shape rather than its letters, which do not survive 20px. */
+export function SapIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      role="img"
-      aria-label="Amazon S3 bucket"
-    >
-      {/* The same bucket form as GCS, because both are object stores — the
-          colour is what tells them apart, exactly as the real marks do. */}
-      <path d="M3.4 5h17.2l-2.1 13.4a1.6 1.6 0 0 1-1.6 1.4H7.1a1.6 1.6 0 0 1-1.6-1.4z" fill="#E25444" />
-      <rect x="7.6" y="10.4" width="8.8" height="1.9" rx=".95" fill="#fff" />
-      <rect x="2.4" y="3.4" width="19.2" height="2.9" rx="1.45" fill="#C7361F" />
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="SAP">
+      <path d="M2 6h20l-3.4 12H2z" fill="#0FAAFF" />
+      <path d="M2 6h10v12H2z" fill="#0076CB" />
     </svg>
   )
 }
 
-export function PostgresIcon({ size = 20 }: { size?: number }) {
+/** OSIsoft PI — a historian, drawn as the trace it stores. */
+export function OsiPiIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      role="img"
-      aria-label="PostgreSQL"
-    >
-      {/* A database cylinder in PostgreSQL's blue, not the elephant: a badly
-          drawn elephant reads as a mistake, and a cylinder plus the label
-          beside it identifies the thing without pretending to be the logo. */}
-      <ellipse cx="12" cy="5.6" rx="7.4" ry="2.7" fill="#336791" />
-      <path d="M4.6 5.6v12.8c0 1.5 3.3 2.7 7.4 2.7s7.4-1.2 7.4-2.7V5.6z" fill="#336791" />
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="OSIsoft PI">
+      <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" fill="#F1F5F9" stroke="#64748B" strokeWidth="1.3" />
       <path
-        d="M4.6 10.2c0 1.5 3.3 2.7 7.4 2.7s7.4-1.2 7.4-2.7M4.6 14.8c0 1.5 3.3 2.7 7.4 2.7s7.4-1.2 7.4-2.7"
+        d="M5.5 15.5l3-4.5 2.6 3 2.4-6 2.6 5 2.4-2.5"
         fill="none"
-        stroke="#fff"
-        strokeWidth="1.2"
-        opacity=".55"
-      />
-    </svg>
-  )
-}
-
-export function SnowflakeIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      role="img"
-      aria-label="Snowflake"
-    >
-      <g
-        stroke="#29B5E8"
-        strokeWidth="1.9"
+        stroke="#0F766E"
+        strokeWidth="1.6"
         strokeLinecap="round"
-        fill="none"
-        transform="translate(12 12)"
-      >
-        {[0, 60, 120].map((deg) => (
-          <g key={deg} transform={`rotate(${deg})`}>
-            <path d="M0-8.4V8.4" />
-            <path d="M-2.6-5.8 0-8.4l2.6 2.6" />
-            <path d="M-2.6 5.8 0 8.4l2.6-2.6" />
-          </g>
-        ))}
-      </g>
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
 
-export function MongoIcon({ size = 20 }: { size?: number }) {
+/** SharePoint — a document library, which is what this connector reads. */
+export function SharePointIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="MongoDB">
-      {/* The leaf. */}
-      <path
-        d="M12 1.8c2.9 3.4 5.3 6.6 5.3 10.4 0 3.6-2.2 6.6-5.3 8.2-3.1-1.6-5.3-4.6-5.3-8.2C6.7 8.4 9.1 5.2 12 1.8z"
-        fill="#47A248"
-      />
-      <path d="M12 4.4v17.8" stroke="#2F6B2F" strokeWidth="1.1" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="SharePoint">
+      <path d="M7 2.6h7.2L19 7.4V21a.8.8 0 0 1-.8.8H7a.8.8 0 0 1-.8-.8V3.4A.8.8 0 0 1 7 2.6z" fill="#E7F1FA" stroke="#036C70" strokeWidth="1.3" />
+      <path d="M14.2 2.6V7.4H19" fill="none" stroke="#036C70" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M9 12.5h7M9 15.5h7M9 18h4.5" stroke="#038387" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** A SQL database — the cylinder, because the connector spans four engines and belongs to none. */
+export function SqlDatabaseIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="SQL database">
+      <ellipse cx="12" cy="6" rx="7.5" ry="3" fill="#EEF2F7" stroke="#475569" strokeWidth="1.3" />
+      <path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6" fill="none" stroke="#475569" strokeWidth="1.3" />
+      <path d="M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3" fill="none" stroke="#94A3B8" strokeWidth="1.2" />
     </svg>
   )
 }
@@ -191,14 +157,15 @@ export function GenericSourceIcon({
   )
 }
 
+
 const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   bigquery: BigQueryIcon,
   gdrive: GoogleDriveIcon,
-  gcs: GcsIcon,
-  s3: S3Icon,
-  postgres: PostgresIcon,
-  snowflake: SnowflakeIcon,
-  mongodb: MongoIcon,
+  gmail: GmailIcon,
+  sap: SapIcon,
+  osipi: OsiPiIcon,
+  sharepoint: SharePointIcon,
+  sql: SqlDatabaseIcon,
 }
 
 /**

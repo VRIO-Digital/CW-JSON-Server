@@ -303,8 +303,44 @@ const db = documentProxy(currentDoc)
  * `map` and `array` are the two container kinds, named rather than inferred so a new entry has to
  * say which it is instead of being guessed from an initialiser that is no longer here.
  */
+
+/**
+ * What each connector asks Google for.
+ *
+ * One table, so `/sources/oauth/start` serves the scopes rather than a copy held anywhere else — the
+ * consent screen renders what the endpoint returned and cannot describe fewer permissions than are
+ * being asked for. It is also what makes the provider parse a lookup: a two-branch ternary read every
+ * unknown provider as BigQuery and granted its scope.
+ *
+ * **Gmail asks read-only and nothing else.** This connector never sends, modifies or deletes mail, and
+ * the preview panel states that where a reader can still act on it — the screen before anything is
+ * registered.
+ */
+const OAUTH_SCOPES = {
+  bigquery: ['https://www.googleapis.com/auth/bigquery.readonly'],
+  drive: [
+    'https://www.googleapis.com/auth/drive.metadata.readonly',
+    'https://www.googleapis.com/auth/drive.readonly',
+  ],
+  gmail: ['https://www.googleapis.com/auth/gmail.readonly'],
+}
+
+/**
+ * Gmail's own system labels.
+ *
+ * A constant, because that is what they are: every mailbox Google serves carries exactly these, and the
+ * preview's own heading says so. They were briefly per mailbox in the document, with tenant filing
+ * labels beside them — four words like *Manifests* under a heading reading “Gmail's own labels”. The
+ * heading was right and the data was wrong.
+ */
+const GMAIL_LABELS = ['IMPORTANT', 'INBOX', 'SENT', 'STARRED', 'UNREAD', 'YELLOW_STAR']
+
 const LIVE_SHAPE = {
   registered: 'map',
+  /* Credential handles minted by the Gmail consent, handle -> mailbox. In memory beside the sessions
+     that issued them: a mailbox is whoever just signed in, so unlike a drive there is no row in the
+     document to point at, and a restart clears the handles with the sessions. */
+  gmailHandles: 'map',
   profilingJobs: 'array',
   graphBuildsByUseCase: 'map',
   derivations: 'map',
@@ -599,6 +635,9 @@ export const API_PREFIX = '/backend'
 
 /** Registered sources, keyed by source_id. Resets on restart. */
 const registered = liveContainer('registered')
+/* Handles the Gmail consent minted, handle -> mailbox. Per dataset like every live container, and
+   gone on restart with the sessions that issued them. */
+const gmailHandles = liveContainer('gmailHandles')
 /** Profiling runs, newest first. */
 const profilingJobs = liveContainer('profilingJobs')
 /**
@@ -772,12 +811,16 @@ function sourceRow(source) {
     source_name: source.source_name,
     connector: source.connector,
     status: source.status,
-    project_account: source.project_id ?? source.drive_id ?? source.account ?? '—',
+    /* What it connected *as*. A mailbox is the account, which is why Gmail's row reads an address
+       where BigQuery's reads a project. */
+    project_account: source.project_id ?? source.drive_id ?? source.mailbox ?? source.account ?? '—',
     scope: isDrive
       ? `${(source.folders ?? []).length} folder(s)`
       : source.kind === 'bigquery'
         ? `${source.datasets.length} dataset(s)`
-        : '—',
+        : source.kind === 'gmail'
+          ? `${(source.labels ?? []).length} label(s)`
+          : '—',
     connected_at: source.registered_at,
     profiled_tables: source.profiled_tables ?? 0,
     profiled_columns: source.profiled_columns ?? 0,
@@ -786,6 +829,38 @@ function sourceRow(source) {
     datasets: source.datasets ?? [],
     folders: source.folders ?? [],
     kind: source.kind,
+    /*
+     * Whether this source carries a catalogue at all — derived from whether a profiler exists for its
+     * kind, never from a list of connector names kept beside one. The Catalog used to test
+     * `kind !== 'bigquery' && !isDrive` in two places to grey out its buttons, which is the same pair
+     * of names written into a component: a third profilable connector would have to remember both, and
+     * a connector with no profiler read as one whose buttons happened to be broken.
+     */
+    profilable: isProfilable(source.kind),
+  }
+}
+
+/**
+ * The mailbox one address reaches — **the person's own, from this dataset's directory**.
+ *
+ * A Gmail consent reaches the account that granted it, so the mailbox is not a resource the tenant
+ * configures the way a drive is: it is whoever signed in. That makes `settings.users` the whole of the
+ * data, and a `mailboxes` key beside it was a second answer to who exists — the duplication this repo
+ * refuses for the consent scopes, the report audience and the governance readers alike. It also drifts
+ * the moment somebody is added to the directory and not to it.
+ *
+ * So a mailbox is derived: the address is the person's, the name is theirs (which is what the Sources
+ * row is called, since the wizard no longer asks for one), and the labels are Gmail's.
+ */
+const findMailbox = (address) => {
+  const user = (db.settings?.users ?? []).find((u) => u.email === address)
+  if (!user) return null
+  return {
+    mailbox: user.email,
+    display_name: `${user.name}'s mailbox`,
+    description: `${db.auth_roles.find((r) => r.role_id === user.role_id)?.label ?? user.role_id} · ${user.email}`,
+    labels: GMAIL_LABELS,
+    credential_handle: `gmail-handle-${user.email.replace(/[^a-z0-9]+/gi, '-')}`,
   }
 }
 
@@ -2281,7 +2356,21 @@ const DOC_PIPELINE = [
   'Topic classification',
 ]
 
-const pipelineFor = (job) => (job.kind === 'gdrive' ? DOC_PIPELINE : PIPELINE)
+/**
+ * Which kinds of source there is a profiler for, and the pipeline each one runs.
+ *
+ * **One declaration, so "can this be profiled" and "which stages run" cannot disagree.** A connector
+ * that registers but has no pipeline is not an oversight — an email mailbox is connected so it can be
+ * *delivered from*, and there is nothing in it to sample columns or extract entities out of. The
+ * Catalog reads this through `sourceRow`, so a source with no profiler is left out of the catalogue
+ * rather than listed with two disabled buttons and no explanation.
+ */
+const PROFILERS = { bigquery: PIPELINE, gdrive: DOC_PIPELINE }
+
+/** Whether the profiler has anything to run against a source of this kind. */
+const isProfilable = (kind) => Object.hasOwn(PROFILERS, kind)
+
+const pipelineFor = (job) => PROFILERS[job.kind] ?? PIPELINE
 
 // Paced so a run is comfortably observable at the UI's 3s poll interval.
 const QUEUE_MS = 1200
@@ -7336,14 +7425,11 @@ const routes = [
     method: 'GET',
     match: (p) => p === '/sources/oauth/start',
     handle: (_req, res, { query }) => {
-      const provider = query.get('provider') === 'drive' ? 'drive' : 'bigquery'
-      const scopes =
-        provider === 'drive'
-          ? [
-              'https://www.googleapis.com/auth/drive.metadata.readonly',
-              'https://www.googleapis.com/auth/drive.readonly',
-            ]
-          : ['https://www.googleapis.com/auth/bigquery.readonly']
+      /* Three providers now, so the parse is a lookup rather than a ternary: a chain of two would
+         have read every unknown provider as BigQuery and granted its scope. */
+      const asked = query.get('provider')
+      const provider = Object.hasOwn(OAUTH_SCOPES, asked) ? asked : 'bigquery'
+      const scopes = OAUTH_SCOPES[provider]
 
       const state = `state-${nextId()}`
       oauthStates.set(state, provider)
@@ -7370,7 +7456,8 @@ const routes = [
         return send(res, 400, { error: 'invalid or expired state' })
       }
       const issuedFor = oauthStates.get(state)
-      const provider = query.get('provider') === 'drive' ? 'drive' : 'bigquery'
+      const askedFor = query.get('provider')
+      const provider = Object.hasOwn(OAUTH_SCOPES, askedFor) ? askedFor : 'bigquery'
       if (issuedFor !== provider) {
         return send(res, 400, {
           error: `this consent was granted for ${issuedFor}, not ${provider} — start the ${provider} sign-in again`,
@@ -7543,6 +7630,216 @@ const routes = [
   },
 
   // Drive discovery — the same contract as /sources/preview, in folders.
+  /*
+   * ---------------- Gmail: the mailbox the consenting account owns ----------------
+   *
+   * The twin of `/sources/oauth/drives`, and it refuses the other two providers' sessions by name for
+   * the reason they refuse each other's: answering a Drive session with an empty mailbox list reads as
+   * "this account has no mail" and sends you debugging the credentials instead of the call.
+   *
+   * **There is one mailbox and it is the consenting account's own**, which is why this takes `as=` the
+   * way the callback does: the console's identity is client-held, so the server has nothing to look the
+   * signed-in address up from. A malformed one is refused rather than falling back to the seeded
+   * account — connecting somebody else's mailbox is the failure that parameter exists to prevent.
+   *
+   * The handle it mints is **issued by the consent, not looked up in a table**. Drive's handles point at
+   * `db.drive_credentials` because a drive is a tenant-configured resource; a mailbox is whoever just
+   * signed in, so there is no row to point at and inventing one would be a second answer to who exists.
+   * It lives in memory beside the sessions and dies with the process, like every other live container.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/sources/oauth/mailboxes',
+    handle: (_req, res, { query }) => {
+      const session = query.get('session')
+      if (!session || !oauthSessions.has(session)) {
+        return send(res, 400, {
+          error: 'invalid or expired session — start the Google sign-in again',
+        })
+      }
+      const grantedFor = oauthSessions.get(session)
+      if (grantedFor !== 'gmail') {
+        return send(res, 400, {
+          error:
+            `this session was granted for ${grantedFor} — read its ` +
+            `${grantedFor === 'drive' ? 'drives with /sources/oauth/drives' : 'projects with /sources/oauth/projects'}`,
+        })
+      }
+
+      const as = query.get('as')
+      if (as !== null && !EMAIL_RE.test(as)) {
+        return send(res, 400, {
+          error: `"${as}" is not a valid email address — sign in again and retry the connection.`,
+        })
+      }
+
+      /*
+       * **A consent reaches the account that granted it, and only that one.**
+       *
+       * It briefly returned every mailbox this dataset shipped, which let one person connect another's
+       * mail — not something a Gmail consent can do. The signed-in address is the whole of the
+       * selection, which is why there is no picker: there is nothing to pick between.
+       *
+       * An address the tenant directory has never heard of is refused **naming who it does know**, the
+       * same refusal the login makes for an unknown address. Answering with an empty list instead would
+       * read as an account with no mail and send a reader to the credentials.
+       */
+      const address = as ?? db.google_account.email
+      const own = findMailbox(address)
+      if (!own) {
+        return send(res, 400, {
+          error:
+            `${address} is not in this dataset's directory — it has ` +
+            `${(db.settings?.users ?? []).map((u) => u.email).join(', ')}`,
+        })
+      }
+
+      /* Derived from the address, so a re-consent reaches the same mailbox rather than minting a second
+         name for it. Remembered here because the preview and the register both check it. */
+      gmailHandles.set(own.credential_handle, own.mailbox)
+
+      setTimeout(
+        () =>
+          send(res, 200, {
+            mailboxes: [
+              {
+                mailbox: own.mailbox,
+                display_name: own.display_name,
+                description: own.description,
+                credential_handle: own.credential_handle,
+                label_count: own.labels.length,
+              },
+            ],
+            mailbox_count: 1,
+          }),
+        DISCOVERY_MS,
+      ).unref?.()
+    },
+  },
+
+  /*
+   * Discovery only — registers nothing, which is what the panel says in as many words.
+   *
+   * **It reports the labels this credential can see, and nothing about the mail itself.** The scope
+   * asked for is `gmail.readonly` and the connector never sends, modifies or deletes; the preview is
+   * the place that is stated, because it is the last screen before anything is registered.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/sources/gmail/preview',
+    handle: async (req, res) => {
+      const { mailbox, credential_handle } = await readJson(req)
+      if (!mailbox || !credential_handle) {
+        return send(res, 400, {
+          error: 'mailbox and credential_handle are both required',
+        })
+      }
+      const held = gmailHandles.get(credential_handle)
+      if (!held) return send(res, 401, { error: 'unknown credential_handle' })
+      if (held !== mailbox) {
+        return send(res, 403, {
+          error: `credential_handle is not authorised for ${mailbox}`,
+        })
+      }
+
+      /* Its own labels, in the order the document lists them — Gmail's own set, which is what the
+         preview's heading claims they are. */
+      const row = findMailbox(mailbox)
+      if (!row) return send(res, 404, { error: `unknown mailbox ${mailbox}` })
+
+      const payload = {
+        mailbox,
+        display_name: row.display_name,
+        description: row.description,
+        labels: row.labels,
+        label_count: row.labels.length,
+      }
+      /* Paced on the endpoint, like the other two previews: the button advances when its request
+         returns, never on a timer the wizard holds. */
+      setTimeout(() => send(res, 200, payload), CONNECT_STEP_MS).unref?.()
+    },
+  },
+
+  /*
+   * ---------------- Gmail: register for real ----------------
+   *
+   * **Connected, and never profiled.** There is no entry for `gmail` in `PROFILERS`, so `sourceRow`
+   * reports `profilable: false` and the Data Catalog leaves it out and says why. That is the whole
+   * shape of this connector: it proves the credential reaches a mailbox and records what it was
+   * pointed at. Nothing samples the mail, so nothing here queues a profiling job.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/sources/gmail',
+    handle: async (req, res) => {
+      const { mailbox, credential_handle, labels, query, attachments, source_name } =
+        await readJson(req)
+
+      if (!mailbox || !credential_handle) {
+        return send(res, 400, {
+          error: 'mailbox and credential_handle are both required',
+        })
+      }
+      const nameProblem = sourceNameProblem(source_name)
+      if (nameProblem) return send(res, 400, { error: nameProblem })
+      if (!Array.isArray(labels) || labels.length === 0) {
+        return send(res, 400, {
+          error: 'labels must be a non-empty array for Finish',
+        })
+      }
+      const held = gmailHandles.get(credential_handle)
+      if (!held) return send(res, 401, { error: 'unknown credential_handle' })
+      if (held !== mailbox) {
+        return send(res, 403, {
+          error: `credential_handle is not authorised for ${mailbox}`,
+        })
+      }
+      /* Checked against **this mailbox's** labels, for the reason a Drive folder is checked against its
+         own drive: a label nobody could have picked means the wizard and the API disagree about what
+         was offered, and one mailbox's filing is not another's. */
+      const row = findMailbox(mailbox)
+      if (!row) return send(res, 404, { error: `unknown mailbox ${mailbox}` })
+      const unknown = labels.filter((l) => !row.labels.includes(l))
+      if (unknown.length > 0) {
+        return send(res, 400, {
+          error: `label(s) ${mailbox} does not offer: ${unknown.join(', ')}`,
+        })
+      }
+
+      const sourceId = `gmail:${mailbox}`
+      const alreadyRegistered = registered.has(sourceId)
+
+      const record = {
+        kind: 'gmail',
+        source_id: sourceId,
+        source_name: String(source_name).trim(),
+        connector: 'gmail',
+        mailbox,
+        credential_handle,
+        labels,
+        /*
+         * The optional Gmail search, stored exactly as typed. **A malformed one is not refused here**,
+         * and the panel says so: Gmail evaluates the expression, and an expression this server rejected
+         * on a guess would refuse a query Gmail would have accepted. What an unmatched query produces
+         * is nothing, which is checkable — the message count after the first sync.
+         */
+        query: typeof query === 'string' && query.trim() ? query.trim() : null,
+        /* Recorded rather than acted on, and the panel words it that way: this connector profiles
+           nothing, so what the flag does is state what the connection was pointed at. */
+        attachments: attachments !== false,
+        status: 'connected',
+        registered_at: new Date().toISOString(),
+        newly_connected: !alreadyRegistered,
+      }
+      registered.set(sourceId, record)
+
+      setTimeout(
+        () => send(res, alreadyRegistered ? 200 : 201, record),
+        CONNECT_STEP_MS,
+      ).unref?.()
+    },
+  },
+
   {
     method: 'POST',
     match: (p) => p === '/sources/drive/preview',
@@ -8207,7 +8504,7 @@ const routes = [
         active_count: active.length,
         recent_count: recent.length,
         status_line: statusLine,
-        pipelines: { bigquery: PIPELINE, gdrive: DOC_PIPELINE },
+        pipelines: PROFILERS,
       })
     },
   },
@@ -9195,7 +9492,9 @@ const routes = [
          cleared it. Nothing here can re-issue one, and inventing a handle would be worse than
          the null: the row is a stub either way, and nothing reads it. */
 
-      source.status = source.kind === 'generic' ? 'syncing' : 'connected'
+      /* Every kind reconnects to the same state now — see the note on the generic register above:
+         a generic source has no profiler to wait for, so "syncing" described nothing. */
+      source.status = 'connected'
       send(res, 200, sourceRow(source))
     },
   },
@@ -9286,7 +9585,7 @@ const routes = [
     method: 'POST',
     match: (p) => p === '/sources/generic',
     handle: async (req, res) => {
-      const { connector, source_name, type_label, credential_ref } = await readJson(req)
+      const { connector, source_name, type_label, credential_ref, account } = await readJson(req)
       if (!connector) {
         return send(res, 400, { error: 'connector is required' })
       }
@@ -9308,8 +9607,27 @@ const routes = [
         connector,
         type_label: type_label || connector,
         credential_handle: credential_ref ?? null,
+        /*
+         * What the source connected *as*, which \`sourceRow\` already prints as \`project_account\`. The
+         * email connector sends its OAuth client id — an identifier, and deliberately not the secret
+         * beside it, which stays a \`secret://\` pointer in \`credential_handle\`. A connector that names
+         * nothing gets null, and the row reads "—" rather than inventing an account for it.
+         */
+        account: typeof account === 'string' && account.trim() ? account.trim() : null,
         datasets: [],
-        status: 'syncing',
+        /*
+         * **Connected, not syncing.** This was `syncing` from when every generic connector was a
+         * roadmap stub, and it described a background job that does not exist: nothing profiles a
+         * generic source, so there is nothing for it to be waiting on and the row sat at "syncing"
+         * forever. It matters now because email is a *real* connector — a mailbox is connected the
+         * moment its credential is on file, and a permanent in-progress state reads as a connection
+         * that never finished.
+         *
+         * What it is *not* is profilable: `sourceRow` derives that from whether a profiler exists for
+         * the kind, so the Catalog leaves it out and says so. Connecting and cataloguing are two acts,
+         * and this is the connector where they come apart.
+         */
+        status: 'connected',
         registered_at: new Date().toISOString(),
         newly_connected: !alreadyRegistered,
       }

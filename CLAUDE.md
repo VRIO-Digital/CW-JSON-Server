@@ -791,6 +791,96 @@ as a name and is not one. Do not reintroduce one to "be lenient": the label is
 what the Sources table, the Catalog tab and every job row key off, and nothing
 downstream can make `db` readable.
 
+### Three real connectors, and connecting is not profiling
+
+**BigQuery, Google Drive and Gmail all run the bespoke consent → preview → finish path**; the other four
+(SAP PM / S4HANA, OSIsoft PI, SharePoint / docs, SQL database) are product vision and explain themselves
+instead. Step 1 *names* the working ones rather than counting them — a count goes stale the day a fourth
+lands, and the names are what a reader is choosing between.
+
+**Gmail is the connector where connecting and profiling come apart.** The other two are connected *so
+that* they can be profiled — tables into columns, documents into entities. A mailbox is connected to
+prove the credential reaches it and to record what it was pointed at: which labels, which optional Gmail
+search, whether attachments are in scope. Nothing samples the mail, so there is **no entry in
+`PROFILERS`** — and that absence is the feature, because `PROFILERS` is the same map `pipelineFor`
+reads, so adding one would hand the kind a pipeline and a catalogue at once.
+
+**Two answers, from two places, held against each other.** The server derives `profilable` from whether
+a pipeline exists for the kind; the client declares `profiles` per connector, because a card has to
+state it before anybody connects anything. `check-docs` asserts the two describe the same set: a
+connector claiming to profile with no pipeline behind it promises a catalogue that never arrives.
+
+**The Data Catalog leaves an unprofilable source out and says so.** It used to grey both buttons on a
+test of `kind !== 'bigquery' && !isDrive` — a pair of connector names written into a component, which a
+third profilable connector would have had to be added to by hand, and which drew a mailbox as a source
+whose buttons happened to be broken. The list filters on the served `profilable` instead, and the count
+it left out is stated in words on both branches: a list that is merely shorter is not a message, which
+is the rule the Library's ungoverned rows already follow. Sources still lists it like anything else.
+
+**The mailbox is the signed-in person's own, derived from the tenant directory.** A Gmail consent
+reaches the account that granted it, so a mailbox is not a resource the tenant configures the way a
+drive is — it is whoever signed in. Two designs were tried first and both were wrong in the same
+direction: one minted from the signed-in address with Gmail's labels, which made every dataset's
+connector identical; then a `mailboxes` key per document holding role inboxes like `compliance@`, which
+nobody signs in as and which **duplicated `settings.users`**. That key is gone. Deriving keeps
+`db.settings` the one answer to who exists — the duplication this file refuses for the consent scopes,
+the report audience and the governance readers alike, and the kind that drifts the moment somebody is
+added to one list and not the other.
+
+So the address is the person's, the Sources row is called *“Adaeze Okonjo's mailbox”* (the wizard asks
+for no name), and the labels are **Gmail's own six and nothing else** — which is what the preview's
+heading calls them. Tenant filing labels were seeded beside them briefly and removed on request: four
+words like *Manifests* under a heading reading “Gmail's own labels”, where the heading was right and
+the data was wrong.
+
+**The consent returns that one mailbox, not a list.** One person cannot connect another's mail, which
+is also why there is no picker: there is nothing to pick between. An address the directory has never
+heard of is refused **naming who it does know**, the same refusal the login makes — an empty list would
+read as an account with no mail and send a reader to the credentials.
+**Removing the field meant removing the gate that read it.** Continue kept validating the name after
+the input was gone, so it refused with *“give this source a name of at least 6 characters”* over a step
+offering nowhere to type one — an instruction nobody could carry out. Gmail is excluded from that check
+and has one of its own, on the thing its step can actually be missing: a consent that has not been
+granted. Removing a control is removing everything that reads it, which is the rule this file already
+states for a removed feature.
+
+**And the alert says only that Gmail is connected.** The other two name the connecting account because
+what they reach is *that account's* projects or drives, and which account it is decides what the next
+step lists. Here the mailbox is settled by the consent and revealed by the preview, so an address on
+this screen is one the reader cannot change. `check-docs` counts the alerts that *do* name an account
+and asserts every one of them renders the client-held identity — counted against the alerts that exist
+rather than against the connector count, or Gmail's deliberate silence reads as a regression.
+
+**Which mailbox, with no picker**: the signed-in reader's own where the tenant ships it, otherwise the
+first. A dataset shipping several therefore reaches only the first from the wizard — the seeded ones are
+role inboxes nobody signs in as — so a second mailbox is data the connect flow cannot currently select.
+Seed one per dataset, or put the choice on the preview step, if that matters.
+
+**`MERGE_PLAN` unions them on `mailbox`**: a compliance inbox and a capital-programme one are different
+mail rather than two answers to one question, so `both` offers all of them.
+
+**Gmail asks for `gmail.readonly` and nothing else**, and the consent screen renders the scopes the
+endpoint returned — `OAUTH_SCOPES` is the one table, which is also what makes the provider parse a
+lookup rather than a chain of ternaries that read every unknown provider as BigQuery. There is **no
+mailbox picker**: a consent reaches exactly one, and a Select with one option is indistinguishable from
+one that failed to load its others. The handle it mints is issued by the consent rather than looked up
+in a table — a drive is a tenant-configured resource, a mailbox is whoever just signed in — so it lives
+in memory beside the sessions and dies with the process.
+
+**The optional Gmail search is stored as typed and refused by nothing**, which the panel says: guessing
+at Gmail's grammar would reject a query Gmail would have accepted, and what an unmatched one produces is
+checkable — the message count after the first sync. **The attachments toggle is recorded, not acted
+on**, and is worded that way for the same reason: a sentence promising attachments become documents
+through the extraction pipeline would describe a run this connector never makes.
+
+**And a generic source is `connected`, not perpetually `syncing`.** That status came from when every
+generic connector was a roadmap stub and described a background job that does not exist — harmless while
+nothing generic could be connected, wrong the moment anything real used that path.
+
+**The connector catalog is the product's, not a dataset's**, so Gmail is offered under EPA as well as
+CAPEX. Making it per-dataset would mean a hardcoded map of which dataset may see which connector, with
+no data behind it.
+
 ### Two connectors, one shape
 
 BigQuery (structured) and Google Drive (unstructured) are both real, and Drive

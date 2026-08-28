@@ -103,11 +103,40 @@ Read the BigQuery column below and the Drive one mirrors it line for line.
 ### Step 1 · Connector
 
 Seven connectors from `CONNECTORS`. Only `available: true` ones are selectable —
-Google BigQuery and Google Drive. The other five (GCS bucket, Amazon S3 bucket,
-PostgreSQL, Snowflake, MongoDB) render dimmed; clicking one shows *why* it is not
-ready via its `reason` field rather than doing nothing. `Continue` is disabled
-until an available connector is picked.
+**Google BigQuery**, **Google Drive** and **Gmail**, which the step's own alert names
+rather than counts. The other four (SAP PM / S4HANA, OSIsoft PI, SharePoint / docs,
+SQL database) render dimmed under *Product vision — not yet built*; clicking one shows
+*why* via its `reason` field rather than doing nothing. `Continue` is disabled until an
+available connector is picked.
 
+**Gmail connects and is never profiled, and it is the connector where those two acts
+come apart.** BigQuery and Drive are connected *so that* they can be profiled — tables
+into columns, documents into entities. Gmail is connected to prove the credential
+reaches a mailbox and to record what it was pointed at: which labels, which optional
+Gmail search, whether attachments are in scope. It runs the same consent → preview →
+finish path as the other two:
+
+| step | call | what it does |
+|---|---|---|
+| consent | `GET /sources/oauth/start?provider=gmail` | asks for `gmail.readonly` and nothing else |
+| | `GET /sources/oauth/callback` | who signed in, plus a session |
+| | `GET /sources/oauth/mailboxes?session=&as=` | the one mailbox that consent reaches, and a handle for it |
+| preview | `POST /sources/gmail/preview` | the labels this handle can see. Registers nothing |
+| finish | `POST /sources/gmail` | registers `gmail:<mailbox>` with the labels, query and attachment scope |
+
+The mailbox is the **signed-in person's own**, derived from `settings.users` rather than
+held in a key beside it: a consent reaches the account that granted it, so there is no
+mailbox data independent of the directory. `/sources/oauth/mailboxes` returns that one
+and refuses an address the directory does not have, naming who it does. Labels are
+Gmail's own six and nothing else — what the preview's heading calls them.
+Step 2 asks for **nothing** — no source name and no mailbox picker. A mailbox already
+carries a name the tenant wrote, so the wizard sends `display_name`; the endpoint still
+validates it like the other three. The mailbox is the signed-in reader's own where the
+tenant ships it, otherwise the first. There is also **no profiler** — no entry in `PROFILERS`, so `sourceRow`
+reports `profilable: false`, the Data Catalog leaves it out and says why, and the Sources
+table lists it like any other connected source. The attachments toggle is *recorded*, not
+acted on, and the panel words it that way: promising ingestion on a connector with no
+pipeline would describe a run that never happens.
 **Each card carries its vendor mark**, from `ConnectorIcon` — inline SVG, so
 nothing is fetched. A vision connector keeps its mark, desaturated: removing it
 would leave holes in the grid that read as still loading, and leaving it at full

@@ -22,27 +22,35 @@ import {
   Select,
   Skeleton,
   Space,
+  Switch,
   Steps,
   Typography,
 } from 'antd'
 import { useState } from 'react'
 import {
   driveOauthCallback,
+  gmailOauthCallback,
   listOauthDrives,
+  listOauthMailboxes,
   listOauthProjects,
   oauthCallback,
   oauthStart,
   previewDrive,
+  previewGmailSource,
   previewSource,
   registerDriveSource,
+  registerGmailSource,
   registerGenericSource,
   registerSource,
   type DriveInfo,
   type DrivePreviewResult,
   type GcpProject,
+  type GmailPreview,
+  type MailboxInfo,
   type GoogleAccount,
   type PreviewResult,
   type RegisteredDriveSource,
+  type RegisteredGmailSource,
   type RegisteredSource,
 } from '../../api/client'
 import {
@@ -119,7 +127,22 @@ function ConnectorCard({
   )
 }
 
-function FieldInput({ field }: { field: ConnectorField }) {
+/**
+ * The control for one connector field.
+ *
+ * **Called as a function, never rendered as `<FieldInput />`** — and that distinction *is* the bug it
+ * fixes. `Form.Item` wires a field by cloning **its child element** and injecting `value`, `onChange`
+ * and the accessibility ids onto it. While this was a component, that child was `<FieldInput>`, which
+ * accepted only `field` and dropped everything else on the floor: the `Input` inside stayed
+ * uncontrolled, so typing updated the DOM and never the form store. Every field then failed its
+ * `required` rule over text the reader could plainly see, and Continue refused a form that looked
+ * filled in. Returning the element makes the control itself the child antd clones.
+ *
+ * **It was unreachable until the email connector.** Every connector on this branch was
+ * `available: false`, so `Continue` was disabled on step 1 and nothing could get to step 2 to type
+ * into it — a whole form's worth of wiring that no dataset, test or reader had ever exercised.
+ */
+function fieldControl(field: ConnectorField) {
   if (field.kind === 'select') {
     return (
       <Select
@@ -143,8 +166,8 @@ export default function ConnectSourceWizard({
 }: {
   /** Stubbed connectors: registers a bare row and closes. Receives its name. */
   onConnect: (sourceName: string) => void
-  /** BigQuery / Drive: registered for real; the dialog stays open. */
-  onRegistered: (source: RegisteredSource | RegisteredDriveSource) => void
+  /** BigQuery / Drive / Gmail: registered for real; the dialog stays open. */
+  onRegistered: (source: RegisteredSource | RegisteredDriveSource | RegisteredGmailSource) => void
   onCancel: () => void
 }) {
   const { message } = App.useApp()
@@ -183,6 +206,18 @@ export default function ConnectSourceWizard({
    * naming one would understate the grant being made. See docs/REGRESSIONS.md.
    */
   const [oauthScopes, setOauthScopes] = useState<string[]>([])
+
+  // ---- Gmail connection state ----
+  /* The mailbox the consent reached, and the handle it minted for it. One of each: a consent reaches
+     exactly one mailbox, which is why there is no picker. */
+  const [mailboxes, setMailboxes] = useState<MailboxInfo[]>([])
+  const [mailbox, setMailbox] = useState('')
+  const [gmailPreview, setGmailPreview] = useState<GmailPreview | null>(null)
+  const [checkedLabels, setCheckedLabels] = useState<string[]>([])
+  const [gmailQuery, setGmailQuery] = useState('')
+  /* On by default, which is what the screen shows and what the receipt then states. */
+  const [includeAttachments, setIncludeAttachments] = useState(true)
+  const [registeredGmail, setRegisteredGmail] = useState<RegisteredGmailSource | null>(null)
   /*
    * The sign-in window: which of its three phases is showing, and the state `/oauth/start` issued
    * for it. `null` is closed. The window is opened by the *first* call rather than by the click —
@@ -235,8 +270,9 @@ export default function ConnectSourceWizard({
 
   const isBigQuery = selected?.key === 'bigquery'
   const isDrive = selected?.key === 'gdrive'
-  /** Both real connectors run the bespoke consent → preview → finish path. */
-  const isGoogle = isBigQuery || isDrive
+  const isGmail = selected?.key === 'gmail'
+  /** All three real connectors run the bespoke consent → preview → finish path. */
+  const isGoogle = isBigQuery || isDrive || isGmail
 
   // `toMessage` already tells a validation failure, a network failure and the
   // server's own wording apart; "Unexpected error" told the user none of them.
@@ -264,7 +300,7 @@ export default function ConnectSourceWizard({
     setOauthScopes([])
     try {
       // The consent is scoped to the connector, so the state is issued for it.
-      const start = await oauthStart(isDrive ? 'drive' : 'bigquery')
+      const start = await oauthStart(isDrive ? 'drive' : isGmail ? 'gmail' : 'bigquery')
       setOauthScopes(start.scopes)
       setOauthState(start.state)
       setSignInPhase('account')
@@ -294,7 +330,21 @@ export default function ConnectSourceWizard({
     setSignInPhase('granting')
     setLoginStage(1)
     try {
-      if (isDrive) {
+      if (isGmail) {
+        /* The consent says who signed in; the session is then spent on the mailbox it reaches. The
+           signed-in address goes with it for the reason the callback takes one: the identity is
+           client-held, so the server has nothing to look the mailbox up from. */
+        const granted = await gmailOauthCallback(oauthState, signedInAs)
+        setAccount(granted.account)
+        setLoginStage(2)
+        const reachable = await listOauthMailboxes(granted.session, signedInAs)
+        setMailboxes(reachable)
+        /* The reader's own where the tenant ships it, otherwise the first. With no picker this is the
+           whole choice, so it is made on the one fact available rather than on list order alone. */
+        const own = reachable.find((m) => m.mailbox === signedInAs)
+        const chosen = own ?? reachable[0]
+        if (chosen) selectMailbox(chosen.mailbox, reachable)
+      } else if (isDrive) {
         // The consent says who signed in; the session says what they can see.
         const granted = await driveOauthCallback(oauthState, signedInAs)
         setAccount(granted.account)
@@ -347,6 +397,60 @@ export default function ConnectSourceWizard({
     setDrivePreview(null)
     setCheckedFolders([])
     setRegisteredDrive(null)
+  }
+
+  /**
+   * Discovery only — the labels this handle can see. Registers nothing, which the panel says.
+   *
+   * The picked set defaults to INBOX where the mailbox offers it, because a Finish button disabled
+   * until the reader has checked something reads as a broken button on the one connector whose
+   * labels are Gmail's rather than the tenant's.
+   */
+  /** Switching mailbox drops what was discovered for the last one: labels are per mailbox. */
+  function selectMailbox(address: string, list = mailboxes) {
+    const row = list.find((m) => m.mailbox === address)
+    setMailbox(address)
+    setCredentialHandle(row?.credential_handle ?? '')
+    setGmailPreview(null)
+    setCheckedLabels([])
+  }
+
+  async function runGmailPreview() {
+    if (!mailbox || !credentialHandle) return
+    setBusy('preview')
+    try {
+      const result = await previewGmailSource(mailbox, credentialHandle)
+      setGmailPreview(result)
+      setCheckedLabels(result.labels.includes('INBOX') ? ['INBOX'] : result.labels.slice(0, 1))
+    } catch (err) {
+      fail(err)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function finishGmail() {
+    if (!gmailPreview) return
+    setBusy('finish')
+    try {
+      const row = await registerGmailSource({
+        mailbox,
+        credentialHandle,
+        labels: checkedLabels,
+        /* Sent as typed, or omitted — an empty box is "no query", not a query matching nothing. */
+        query: gmailQuery.trim() || undefined,
+        attachments: includeAttachments,
+        /* The tenant's own name for this mailbox, read back from the preview rather than from local
+           state: what the server says the mailbox is called is the same fact the row will carry. */
+        sourceName: gmailPreview.display_name,
+      })
+      setRegisteredGmail(row)
+      onRegistered(row)
+    } catch (err) {
+      fail(err)
+    } finally {
+      setBusy(null)
+    }
   }
 
   async function runDrivePreview() {
@@ -449,11 +553,16 @@ export default function ConnectSourceWizard({
     }
     if (step === 1) {
       /*
-       * The name is checked before the connection details on both branches: it is
-       * the field the user typed, so it is the one they can fix without leaving
-       * the step, and the register call would refuse it anyway.
+       * The name is checked before the connection details on the two branches that *ask* for one: it is
+       * the field the user typed, so it is the one they can fix without leaving the step, and the
+       * register call would refuse it anyway.
+       *
+       * **Gmail is excluded because its form has no name field.** Leaving it in was the bug: Continue
+       * refused with "give this source a name of at least 6 characters" over a step that offered nowhere
+       * to type one — an instruction the reader could not carry out. Its name is the mailbox's own
+       * `display_name`, checked by the seed that authors it and by the endpoint that registers it.
        */
-      if (isGoogle && nameProblem) {
+      if (isGoogle && !isGmail && nameProblem) {
         setNameTouched(true)
         message.warning(
           `Give this source a name of at least ${SOURCE_NAME_MIN} characters — it is how it appears in the Sources table and the Data Catalog.`,
@@ -475,6 +584,15 @@ export default function ConnectSourceWizard({
           message.warning(
             'Sign in with Google, or supply a drive ID and credential handle under Advanced.',
           )
+          return
+        }
+        setStep(2)
+        return
+      }
+      if (isGmail) {
+        /* The one thing this step can be missing: a consent that has not been granted yet. */
+        if (!mailbox || !credentialHandle) {
+          message.warning('Sign in with Google to reach the mailbox before continuing.')
           return
         }
         setStep(2)
@@ -508,6 +626,9 @@ export default function ConnectSourceWizard({
         sourceName: name,
         typeLabel: selected.typeLabel,
         credentialRef: values.credentialRef,
+        /* Whatever this connector calls the thing it connects as — the email client id. Absent for a
+           connector that declares no such field, which is the honest '—' on its row. */
+        account: values.clientId,
       })
       onConnect(name)
     } catch (err) {
@@ -610,8 +731,16 @@ export default function ConnectSourceWizard({
       {/* ---------- Step 1: pick a connector ---------- */}
       {step === 0 ? (
         <>
+          {/* Names the working connectors rather than counting them: the count would go stale the
+              day a fourth lands, and the list is what a reader is choosing between. */}
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            title={`${AVAILABLE_CONNECTORS.map((c) => c.name).join(', ')} all have real, working connectors — pick one to continue. The rest below are product vision only — clicking any of them just shows why.`}
+          />
           <Typography.Title level={5} style={{ marginBottom: 12 }}>
-            Available now
+            Available now — pick one
           </Typography.Title>
           <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
             {AVAILABLE_CONNECTORS.map((c) => (
@@ -625,6 +754,9 @@ export default function ConnectSourceWizard({
             ))}
           </Row>
 
+          <Typography.Title level={5} style={{ marginBottom: 12 }}>
+            Product vision — not yet built
+          </Typography.Title>
           <Row gutter={[12, 12]}>
             {VISION_CONNECTORS.map((c) => (
               <Col key={c.key} xs={24} sm={12} md={8}>
@@ -779,6 +911,71 @@ export default function ConnectSourceWizard({
       ) : null}
 
       {/* ---------- Step 2: Google Drive connection ---------- */}
+      {/* ---------- Step 2: Gmail connection ---------- */}
+      {step === 1 && isGmail ? (
+        <>
+          <Alert type="info" showIcon style={{ marginBottom: 12 }} title={VISION_NOTE} />
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            title="Click below to sign in with your own Google account and grant read-only Gmail access — no service-account key to download or upload. Uses the GET /sources/oauth/start?provider=gmail → Google consent → GET /sources/oauth/callback flow."
+          />
+
+          <Button
+            type="primary"
+            icon={<GoogleOutlined />}
+            loading={busy === 'login'}
+            disabled={busy === 'login' || signInPhase !== null}
+            onClick={openGoogleSignIn}
+            style={{ marginBottom: 16 }}
+          >
+            {busy === 'login' ? 'Opening Google…' : 'Login with Google'}
+          </Button>
+
+          {/*
+            * **Says Gmail is connected, and names nothing else — asked for.**
+            *
+            * The other two name the connecting account because what they reach is *that account's*
+            * projects or drives, and which account it is decides what the next step lists. Here the
+            * mailbox is settled by the consent and revealed by the preview a step later, so printing
+            * an address here only invites the reader to check one they cannot change.
+            */}
+          {connectedAs ? (
+            <Alert
+              type="success"
+              showIcon
+              style={{ marginBottom: 16 }}
+              title="Gmail is connected — read-only."
+            />
+          ) : null}
+
+          {/*
+            * **No source name and no mailbox picker — both removed on request.**
+            *
+            * The other two connectors ask for a name because a project id and a drive id are not names:
+            * a row reading `vrio-contextweave-demo` is the failure `SOURCE_NAME_MIN` exists for. A
+            * mailbox already has one the *tenant* wrote — `display_name`, “EHS compliance inbox” — so
+            * there is nothing for a reader to supply that the document does not already say.
+            *
+            * That is not the id fallback this repo forbids. The rule's own words are *“if the form asks,
+            * the code must not answer for the user”*; the form no longer asks, and what fills the field
+            * is a name a person authored rather than an identifier wearing one. The server still
+            * requires it and still refuses a short one — the floor is unchanged, and `check-docs` covers
+            * this endpoint alongside the other three.
+            *
+            * The mailbox is the one the consent reached: the signed-in reader's own where the tenant
+            * ships it, otherwise the first. A picker over role inboxes nobody signs in as was a control
+            * whose only honest default was already being chosen for them.
+            */}
+          <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+            {mailbox
+              ? 'Its labels are read on the next step, before anything is registered.'
+              : 'Sign in above to reach the mailbox this account can read.'}
+          </Typography.Text>
+        </>
+      ) : null}
+
       {step === 1 && isDrive ? (
         <>
           <Alert type="info" showIcon style={{ marginBottom: 12 }} title={VISION_NOTE} />
@@ -959,7 +1156,7 @@ export default function ConnectSourceWizard({
                         : []),
                     ]}
                   >
-                    <FieldInput field={field} />
+                    {fieldControl(field)}
                   </Form.Item>
                 </Col>
               ))}
@@ -1055,6 +1252,126 @@ export default function ConnectSourceWizard({
       ) : null}
 
       {/* ---------- Step 3: Drive preview + finish ---------- */}
+      {/* ---------- Step 3: Gmail preview + finish ---------- */}
+      {step === 2 && isGmail ? (
+        <>
+          <Alert type="info" showIcon style={{ marginBottom: 16 }} title={VISION_NOTE} />
+
+          <Card size="small" style={{ marginBottom: 16 }}>
+            <Button
+              loading={busy === 'preview'}
+              onClick={runGmailPreview}
+              style={{ marginBottom: gmailPreview ? 14 : 0 }}
+            >
+              1. Run preview (POST /sources/gmail/preview)
+            </Button>
+
+            {busy === 'preview' && !gmailPreview ? (
+              <div style={{ marginTop: SP.base }}>
+                <Skeleton active title={{ width: '46%' }} paragraph={{ rows: 2 }} />
+              </div>
+            ) : null}
+
+            {gmailPreview ? (
+              <>
+                <Alert
+                  type="success"
+                  showIcon
+                  style={{ marginBottom: 14 }}
+                  title={`${gmailPreview.mailbox} · ${gmailPreview.label_count} selectable label(s)`}
+                />
+                <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>
+                  Gmail&rsquo;s own labels
+                </Typography.Text>
+                {/* The labels the endpoint reported, never a list held here: a client-side copy can
+                    offer one the API refuses, which is the mistake the consent scopes made once. */}
+                <Checkbox.Group
+                  options={gmailPreview.labels.map((l) => ({ label: l, value: l }))}
+                  value={checkedLabels}
+                  onChange={(next) => setCheckedLabels(next as string[])}
+                />
+              </>
+            ) : null}
+          </Card>
+
+          <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+            Discovers the labels visible to this credential handle without registering anything yet.
+            Read-only — ContextWeave can never send, modify, or delete mail.
+          </Typography.Text>
+
+          <Card size="small" style={{ marginTop: 16 }}>
+            <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+              Narrow it further (optional)
+            </Typography.Text>
+            <Input
+              value={gmailQuery}
+              onChange={(e) => setGmailQuery(e.target.value)}
+              placeholder="Gmail search, e.g. from:@supplier.com after:2026/01/01"
+            />
+            {/*
+              * Said here because this is where somebody would expect to be told: the server stores the
+              * expression as typed and refuses nothing. Guessing at Gmail's grammar would reject a
+              * query Gmail would have accepted, and what an unmatched one produces is checkable.
+              */}
+            <Typography.Paragraph type="secondary" style={{ fontSize: 12, margin: '8px 0 0' }}>
+              Any Gmail search expression, applied on top of the labels above. A malformed query is not
+              rejected here — it simply matches nothing, so check the message count after the first sync.
+            </Typography.Paragraph>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: SP.sm, marginTop: SP.base }}>
+              <Switch checked={includeAttachments} onChange={setIncludeAttachments} />
+              <Typography.Text strong>Include attachments</Typography.Text>
+            </div>
+            {/*
+              * **Stated as scope, not as ingestion.** This connector profiles nothing — it has no
+              * pipeline, and the Catalog leaves it out and says so — so a sentence promising that
+              * attachments become documents would describe a run that never happens. What the toggle
+              * does is record what the connection was pointed at, which is what the receipt shows.
+              */}
+            <Typography.Paragraph type="secondary" style={{ fontSize: 12, margin: '8px 0 0' }}>
+              Records attachments (PDFs, docs, sheets) as part of what this connection covers. Nothing
+              is profiled here — this source carries no catalogue, so the scope is what it stores.
+            </Typography.Paragraph>
+          </Card>
+
+          <Card size="small" style={{ marginTop: 16 }}>
+            <Button
+              type="primary"
+              disabled={!gmailPreview || checkedLabels.length === 0}
+              loading={busy === 'finish'}
+              onClick={finishGmail}
+              style={{ marginBottom: registeredGmail ? 14 : 0 }}
+            >
+              2. Finish — POST /sources/gmail (registers for real)
+            </Button>
+
+            {registeredGmail ? (
+              <Alert
+                type="success"
+                showIcon
+                icon={<CheckCircleOutlined />}
+                title={
+                  <span>
+                    Registered source_id <strong>{registeredGmail.source_id}</strong>
+                  </span>
+                }
+                description={
+                  <div style={{ fontSize: 13 }}>
+                    {/* Read back from the row the server returned, never from the form: what was
+                        stored and what was typed are two facts, and only one of them is a receipt. */}
+                    <div>Mailbox: {registeredGmail.mailbox}</div>
+                    <div>Labels: {registeredGmail.labels.join(', ')}</div>
+                    <div>Query: {registeredGmail.query ?? '(none)'}</div>
+                    <div>Attachments: {registeredGmail.attachments ? 'included' : 'excluded'}</div>
+                    <div>Newly connected: {String(registeredGmail.newly_connected)}</div>
+                  </div>
+                }
+              />
+            ) : null}
+          </Card>
+        </>
+      ) : null}
+
       {step === 2 && isDrive ? (
         <>
           <Alert type="info" showIcon style={{ marginBottom: 16 }} title={VISION_NOTE} />
@@ -1174,7 +1491,21 @@ export default function ConnectSourceWizard({
               showIcon
               icon={<CheckCircleOutlined />}
               title="Connection succeeded"
-              description="Registration is stubbed for this connector — it lands as a bare row with no discovery until its profiler ships."
+              /*
+               * **Two different reasons for no catalogue, and they must not share a sentence.** This
+               * read "…no discovery until its profiler ships" for every connector on the generic path,
+               * which is true of the five stubbed ones and a promise the mailbox will never keep:
+               * nothing is coming, because there is nothing in a mailbox to profile. Told apart by
+               * `available` — a connector that connects for real and still carries no catalogue is a
+               * decision, not an unfinished feature.
+               */
+              description={
+                selected.available
+                  ? 'This source connects for delivery and carries no catalogue: nothing in it is ' +
+                    'profiled, so it is listed on Sources and not in the Data Catalog.'
+                  : 'Registration is stubbed for this connector — it lands as a bare row with no ' +
+                    'discovery until its profiler ships.'
+              }
             />
           ) : null}
         </>

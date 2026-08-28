@@ -232,13 +232,27 @@ function CatalogTab({
   loading: boolean
   onChanged: () => void
 }) {
+  /*
+   * **A source with no profiler is left out of the catalogue, and the omission is stated.**
+   *
+   * The Catalog is a dictionary of what a source holds, and a mailbox holds nothing it can describe:
+   * it is connected so a report can be delivered from it. It used to appear here with both its buttons
+   * greyed and nothing saying why, which reads as a profiler that failed rather than as a source that
+   * has no catalogue — and the greying tested `kind !== 'bigquery' && !isDrive`, a pair of names
+   * written into this component that a third profilable connector would have to be added to by hand.
+   *
+   * `profilable` is the server's answer, derived from whether a pipeline exists for the kind. A list
+   * that is simply shorter is not a message, so the count is said in words below the list.
+   */
+  const catalogued = useMemo(() => sources.filter((s) => s.profilable), [sources])
+  const uncatalogued = sources.length - catalogued.length
   const [activeId, setActiveId] = useState<string | null>(null)
   const [panel, setPanel] = useState<
     'none' | 'browse' | 'columns' | 'browse-documents' | 'documents'
   >('none')
 
   const selected =
-    sources.find((s) => s.sourceId === activeId) ?? sources[0] ?? null
+    catalogued.find((s) => s.sourceId === activeId) ?? catalogued[0] ?? null
   const isDrive = selected?.kind === 'gdrive'
 
   /* Which of the two actions is currently showing its panel. Derived from `panel`
@@ -252,9 +266,20 @@ function CatalogTab({
     if (selected && selected.sourceId !== activeId) setActiveId(selected.sourceId)
   }, [selected, activeId])
 
-  if (!loading && sources.length === 0) {
+  if (!loading && catalogued.length === 0) {
     return (
-      <NoSourceConnected detail="Datasets and documents are discovered from connected sources. Connect a BigQuery project or a Google Drive and its tables or files will be browsable here." />
+      <>
+        <NoSourceConnected detail="Datasets and documents are discovered from connected sources. Connect a BigQuery project or a Google Drive and its tables or files will be browsable here." />
+        {/* Said even here — especially here. A tenant whose only source is a mailbox would otherwise
+            read "nothing is connected" one line under a Sources table listing one. */}
+        {uncatalogued > 0 ? (
+          <Typography.Paragraph className="cat-uncatalogued">
+            {uncatalogued} connected source{uncatalogued === 1 ? ' is' : 's are'} not catalogued here:
+            a mailbox is connected so reports can be delivered from it, and carries nothing to profile.
+            {' '}It is listed on Sources.
+          </Typography.Paragraph>
+        ) : null}
+      </>
     )
   }
 
@@ -262,7 +287,7 @@ function CatalogTab({
     <Row gutter={[SP.lg, SP.lg]} align="top">
       <Col xs={24} xl={9} xxl={8}>
         <div className="cat-list">
-          {sources.map((s) => (
+          {catalogued.map((s) => (
             <button
               type="button"
               key={s.sourceId}
@@ -293,6 +318,16 @@ function CatalogTab({
               </span>
             </button>
           ))}
+          {/* A list that is merely shorter is not a message — the rule the Library's missing
+              governance rows are stated under. A tenant with a mailbox connected would otherwise see
+              it on Sources and not here, with nothing accounting for the difference. */}
+          {uncatalogued > 0 ? (
+            <Typography.Text className="cat-list-note">
+              {uncatalogued} more connected source{uncatalogued === 1 ? '' : 's'} carr
+              {uncatalogued === 1 ? 'ies' : 'y'} no catalogue: a mailbox is connected so reports can be
+              delivered from it, and holds nothing to profile. It is listed on Sources.
+            </Typography.Text>
+          ) : null}
           <Typography.Text className="cat-list-note">
             Connecting a new source is an Admin action.
           </Typography.Text>
@@ -363,11 +398,15 @@ function CatalogTab({
               button, so this is the only thing saying which one is open and the only
               way to close it. Colour never does that alone — `aria-pressed` says the
               same thing to a screen reader, and the note below says it in words. */}
+          {/* Neither button carries a `disabled` any more: the list holds only sources that carry a
+              catalogue, so a row that is here can always be browsed. They used to test
+              `kind !== 'bigquery' && !isDrive` — a pair of connector names written into this component,
+              which a third profilable connector would have had to be added to by hand, and which drew a
+              mailbox as a source whose buttons happened to be broken. */}
           <Space wrap size={SP.sm} className="cat-actions">
             <Button
               type={browseOpen ? 'primary' : 'default'}
               aria-pressed={browseOpen}
-              disabled={selected.kind !== 'bigquery' && !isDrive}
               onClick={() =>
                 setPanel(
                   browseOpen ? 'none' : isDrive ? 'browse-documents' : 'browse',
@@ -379,7 +418,6 @@ function CatalogTab({
             <Button
               type={dictionaryOpen ? 'primary' : 'default'}
               aria-pressed={dictionaryOpen}
-              disabled={selected.kind !== 'bigquery' && !isDrive}
               onClick={() =>
                 setPanel(
                   dictionaryOpen ? 'none' : isDrive ? 'documents' : 'columns',
