@@ -2065,7 +2065,7 @@ tiles below another's title, which reads as data rather than as a race.
 removed when the prototype was vendored in, and re-adding five URLs would undo that as a side effect.
 Which report is open is `openId` in the store.
 
-**The authoring prototype is otherwise unchanged and still there.** It owns its three tabs and draws its
+**The authoring prototype is otherwise unchanged and still there.** It owns its two tabs and draws its
 own bundled sample data everywhere except that one button, and only one of the two is mounted at a time —
 it installs a toast host and a popover host that portal to `document.body`, and two of each would leave a
 menu opening against the wrong one, which is how Delete came to look like a dead button once already.
@@ -3313,7 +3313,7 @@ entries a persona sees — see Settings below. `App`'s mobile header deliberatel
 
 **`/reports` is one route, not four.** The React section that had a page per report was
 removed; what is there now is the demo package's authoring prototype, vendored into
-`src/reports/`, which owns its own three-tab navigation and its own library. So a report is not
+`src/reports/`, which owns its own two-tab navigation and its own library. So a report is not
 a URL here.
 
 The traffic also runs the other way. **Three routes are reachable by URL only**, having

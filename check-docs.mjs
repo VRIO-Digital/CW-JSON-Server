@@ -4836,7 +4836,7 @@ expect(
 /*
  * **The report section is one route and a published-graph gate.**
  *
- * The prototype owns its own navigation — three tabs and its own library — so there is no
+ * The prototype owns its own navigation — two tabs and its own library — so there is no
  * per-report URL the way the React section had. What this app contributes is the shell mount
  * and the precondition: available once a graph is published, the same rule Ask and the lens
  * follow, through the same component that states it.
@@ -4854,6 +4854,48 @@ expect(
     /createReadStore\(getReports\)/.test(reportsPage),
   'one page, and it opens only once something is published',
 )
+/*
+ * ---------------- the Operational audience tab is gone ----------------
+ *
+ * The prototype shipped three tabs, and the third was a placeholder: *"The audience view isn't built
+ * yet"* over a **Soon** badge. It was the one tab that answered nothing — a promise about a surface
+ * rather than a surface — so it was removed on request, for every dataset at once.
+ *
+ * **Asserted on every layer in one claim**, because a partial revival is the shape that fails silently:
+ * a tab entry whose pane no longer exists renders an empty pane, and a `ReportTab` union that still
+ * admits `'audience'` lets a stray `setTab` land on a branch nothing draws. That is the rule the report
+ * access gate and the Quality report tab were both removed under.
+ *
+ * **What deliberately stays** is the prototype's *audience* concept itself: a report is still published
+ * to one, `AUDIENCE_KEY` is still its default, and `audienceLabel` still names it on a card. So is
+ * `LibraryPane`'s `'audience'` mode — the read-only consumer view the tab would have opened once built.
+ * Nothing reaches it now, and that is the same waiting-for-a-caller state `/change-signals` is in, where
+ * this file already records the rule: do not delete the layers below a removed surface to "finish" the
+ * removal.
+ */
+const rpTypes = read('frontend/src/reports/types.ts')
+const rpApp = codeOnly(read('frontend/src/reports/App.tsx'))
+const rpCss = read('frontend/src/reports/reports-prototype.css')
+expect(
+  'the Operational audience tab is absent from the union, the tab table, the render and the stylesheet',
+  /* The union no longer admits it, so a stray `setTab('audience')` does not compile. */
+  /export type ReportTab = 'library' \| 'author';/.test(rpTypes) &&
+    /* No tab entry, no render branch, no import of the pane it drew. */
+    !/'audience'/.test(rpApp) &&
+    !/UnderDevelopmentPane|AUDIENCE_TAB_LABEL|audienceReports/.test(rpApp) &&
+    /* The pane itself is off disk rather than merely unreferenced. */
+    !existsSync(join(root, 'frontend/src/reports/panes/UnderDevelopmentPane.tsx')) &&
+    /* And its styles went with it — a scoped block nothing renders is dead weight in a vendored sheet. */
+    !/\.wip/.test(rpCss) &&
+    /* The two that remain are still there, which is the half an absence claim cannot show on its own. */
+    /\{ key: 'library', label: 'Library', count: library\.length \}/.test(rpApp) &&
+    /\{ key: 'author', label: 'Author a report' \}/.test(rpApp) &&
+    /* The audience *concept* is untouched: a report is still published to one and still says so. */
+    /AUDIENCE_KEY/.test(rpApp) &&
+    /export function audienceLabel/.test(read('frontend/src/reports/lib/library.ts')),
+  'half a removal is worse than none — a tab entry whose pane is gone renders an empty pane',
+)
+
 expect(
   'and the endpoints behind it are still served',
   server.includes("match: (p) => p === '/reports'") &&

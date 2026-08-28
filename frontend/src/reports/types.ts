@@ -251,7 +251,11 @@ export interface Filter {
 /* ------------------------------------------------------- library + publish */
 
 /** The three tabs inside the Reports section. */
-export type ReportTab = 'library' | 'author' | 'audience';
+/* Two tabs. **Operational audience was a third and is gone** — a placeholder pane that said the surface
+   "isn't built yet", which is a promise rather than a feature, and it was the one tab that answered
+   nothing. Removed on request for every dataset. The prototype's *audience* concept is untouched: a
+   report is still published to one, and `audienceLabel` still names it on a card. */
+export type ReportTab = 'library' | 'author';
 
 export type ReportStatus = 'draft' | 'published';
 

@@ -23,7 +23,6 @@ import { AskPane } from './panes/AskPane';
 import { ConfirmPane } from './panes/ConfirmPane';
 import { LibraryPane } from './panes/LibraryPane';
 import { ReportPane } from './panes/ReportPane';
-import { UnderDevelopmentPane } from './panes/UnderDevelopmentPane';
 import type {
   Assumptions,
   Block,
@@ -39,7 +38,6 @@ import type {
 
 /** The audience tab is the Operations group's view. */
 const AUDIENCE_KEY = 'operations';
-const AUDIENCE_TAB_LABEL = 'Operational audience';
 
 /**
  * Who a report saved in this session is credited to.
@@ -473,12 +471,10 @@ export default function App({
   );
 
   const opened = openedId ? library.find((r) => r.id === openedId) : undefined;
-  const audienceReports = library.filter((r) => r.status === 'published' && r.audience === AUDIENCE_KEY);
 
   const REPORT_TABS: TabDef<ReportTab>[] = [
     { key: 'library', label: 'Library', count: library.length },
     { key: 'author', label: 'Author a report' },
-    { key: 'audience', label: AUDIENCE_TAB_LABEL, badge: 'Soon' },
   ];
 
   function scrollTop() {
@@ -922,14 +918,6 @@ export default function App({
           )}
 
           {tab === 'author' && reportFlow(false)}
-
-          {tab === 'audience' && (
-            <UnderDevelopmentPane
-              audienceName={audienceLabel(AUDIENCE_KEY)}
-              publishedCount={audienceReports.length}
-              onSeeLibrary={() => goTab('library')}
-            />
-          )}
         </div>
       </main>
 
