@@ -895,6 +895,7 @@ export default function NewGraphPage() {
           the run it is watching: closing clears the id and the poll stops with it. */}
       <RuntimeBuildDialog
         open={handoffId !== null}
+        run={buildRun}
         published={askGraphs.find((g) => g.useCaseId === handoffId) ?? null}
         checking={checkingAsk}
         onAsk={() => navigate(appPath('/ask'))}

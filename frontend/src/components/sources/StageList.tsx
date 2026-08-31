@@ -15,12 +15,12 @@ import './StageList.css'
  * (`CONSENT_MS`, `CONNECT_STEP_MS`), so this reports progress rather than
  * animating over an answer already in hand.
  *
- * **The wizard's runtime hand-off is the one caller where that is not so, and it is the
- * client-side exception the What-if authoring steps and the report build already are.** Its
- * rows are not calls: the build is the server's and publishes itself, and the reader has no
- * act to take against it — so what is being paced is a wait, not a set of answers arriving.
- * The rule this component states holds for every caller that *has* requests behind its rows,
- * and a row must never be advanced by a timer where one does.
+ * **That holds for every caller, the wizard's runtime hand-off included.** Its rows are not
+ * calls of their own, but they are not a timer either: they are cut from the build run's own
+ * `stepIndex`, which the page is polling anyway, so a row there advances because the run
+ * advanced. It was a ten-second client-side hold once, and the cost was exactly what this
+ * rule exists to prevent — the list finished about eighty seconds before the build did, and
+ * the act it gates was offered over a graph that did not exist yet.
  */
 export default function StageList({
   stages,
