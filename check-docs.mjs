@@ -7256,6 +7256,65 @@ expect(
   'if a re-export serves {id,label,enabled} objects the chips work, and the rule hiding them should go',
 )
 
+/*
+ * ---------------- the rendered reports' figures are inside the range this demo shows ----------------
+ *
+ * **The documents shipped a $152B, 4,500-project programme**, of which their 60-project fixture is a
+ * 1.54% sample — so the Variance Report opened on a `$5.00B` period plan. `npm run scale:capex` divides
+ * every capital figure in all three by one factor, which is what keeps each ratio they state exactly
+ * true, and this claim is what stops the result being undone quietly: these are *generated* documents,
+ * so the next export arrives in billions again, and nothing else in this repo would notice.
+ *
+ * **Read off the documents rather than the script**, and off the figures the tiles actually print. A
+ * claim over the biggest number in the file would fail on the programme's own five-year figures, which
+ * no report block names and which are legitimately still there; a claim over the script's constants
+ * would pass over a document the script never ran on.
+ */
+const capexReportDocs = readdirSync(join(root, 'frontend/src/Capex/Report'))
+  .filter((f) => /^R\d+_.*\.html$/i.test(f))
+const capexScaler = read('backend/scripts/scale-capex-reports.js')
+const scaleFactor = Number((capexScaler.match(/const FACTOR = ([\d_]+)/) ?? [])[1]?.replace(/_/g, '') ?? 0)
+const scaleCeiling = Number((capexScaler.match(/const CEILING = ([\d_]+)/) ?? [])[1]?.replace(/_/g, '') ?? 0)
+/* The four figures the Variance Report's own tiles are built from, plus the per-project columns Project
+   360 and the filing calendar print. Regexes rather than a parse: this file reads ~320 paths already and
+   evaluating three 2.6 MB fixtures to check four numbers would be the slowest claim here by far. */
+const capexTiles = capexReportDocs.map((file) => {
+  const html = read(`frontend/src/Capex/Report/${file}`)
+  const one = (key) => Number((html.match(new RegExp(`"${key}": (-?\\d+(?:\\.\\d+)?)`)) ?? [])[1] ?? NaN)
+  const many = (key) =>
+    [...html.matchAll(new RegExp(`"${key}": (-?\\d+(?:\\.\\d+)?)`, 'g'))].map((m) => Math.abs(Number(m[1])))
+  return {
+    file,
+    periodPlan: Math.abs(one('periodPlan')),
+    periodActual: Math.abs(one('periodActual')),
+    /* Every project's own budget and estimate at completion — the largest figure Project 360 prints. */
+    budget: Math.max(...many('budget')),
+    eac: Math.max(...many('eac')),
+    deferred: Math.max(...many('deferredCapital')),
+  }
+})
+expect(
+  `every figure the CAPEX report tiles print is inside the ${scaleCeiling / 1e6}M range: ` +
+    `${capexReportDocs.length} documents, ÷${scaleFactor}`,
+  capexReportDocs.length >= 3 &&
+    scaleFactor > 1 &&
+    scaleCeiling > 0 &&
+    /* Each figure read, and each inside the ceiling. A NaN would mean the key was not found, which is a
+       claim that cannot run rather than one that passes. */
+    capexTiles.every((t) =>
+      [t.periodPlan, t.periodActual, t.budget, t.eac, t.deferred].every(
+        (v) => Number.isFinite(v) && v <= scaleCeiling,
+      ),
+    ) &&
+    /* And the transform is reachable by name, from the root as every other data command is. */
+    /"scale:capex": "node scripts\/scale-capex-reports\.js"/.test(read('backend/package.json')) &&
+    /"scale:capex": "npm --prefix backend run scale:capex"/.test(read('package.json')),
+  capexTiles.length === 0
+    ? 'no rendered CAPEX reports were found — this claim cannot run'
+    : `period plan ${(capexTiles[0].periodPlan / 1e6).toFixed(1)}M · largest project EAC ` +
+      `${(capexTiles[0].eac / 1e6).toFixed(1)}M — run npm run scale:capex after a re-export`,
+)
+
 
 /*
  * ---------------- a dataset can ship its Audit & Governance screen ----------------
