@@ -7149,7 +7149,9 @@ expect(
     /\.filtBar \.fgroup\.vt \{ display: none !important \}/.test(viewerSrc) &&
     /\.trustBar \.tBtn \{ display: none !important \}/.test(viewerSrc) &&
     /* Applied to every frame, not only the seamless ones — a report is framed with its bar. */
-    /style\.textContent = FRAMED_CSS \+ \(seamless \? SEAMLESS_CSS : ''\)/.test(viewerSrc) &&
+    /style\.textContent = FRAMED_CSS \+ PRINT_CSS \+ \(seamless \? SEAMLESS_CSS : ''\)/.test(
+      viewerSrc,
+    ) &&
     /* And the documents really carry those classes, so none of the three rules is quietly inert. */
     framedReports.every((f) => {
       const html = read(f)
@@ -7172,6 +7174,61 @@ expect(
     /* Style only: nothing is removed from the DOM and no script is touched. */
     !/\.remove\(\)|removeChild/.test(codeOnly(viewerSrc)),
   'a selector naming a class no document carries is inert, and inert looks like the thing was removed',
+)
+
+/*
+ * ---------------- and Export PDF prints the whole report, not its first screen ----------------
+ *
+ * **The failure this guards is a report that looks complete down to the tear.** These documents are the
+ * prototype app with one report in it, and an app sizes itself to the window: `.app` is `height: 100vh`
+ * with `overflow: hidden`, `.main` hides its overflow, and `.content` is the only thing that scrolls.
+ * Printing makes the viewport the page, so the rest is *clipped* rather than carried to a second sheet —
+ * `1/1` in the print dialog and the report cut mid-block, with nothing erroring and no way to tell from
+ * the file that pages are missing.
+ *
+ * Asserted both ways, as every injected rule here is: the rules exist and are injected into **every**
+ * frame, and the documents really carry the classes they name — an inert selector looks exactly like a
+ * report that prints whole.
+ */
+expect(
+  `Export PDF unclips the document so it paginates: ${framedReports.length} documents`,
+  /* Scoped to print, so the screen is untouched — that is what lets it be this blunt. */
+  /const PRINT_CSS =\r?\n\s*' @media print \{'/.test(viewerSrc) &&
+    /* The three that do the work: the shell, its column, and the element that scrolls. */
+    /html, body \{ height: auto !important; overflow: visible !important \}/.test(viewerSrc) &&
+    /\.app \{ display: block !important; height: auto !important; overflow: visible !important \}/.test(
+      viewerSrc,
+    ) &&
+    /\.main \{ display: block !important; height: auto !important; overflow: visible !important \}/.test(
+      viewerSrc,
+    ) &&
+    /\.content \{ flex: none !important;[\s\S]{0,120}?overflow: visible !important \}/.test(viewerSrc) &&
+    /* A card split across the fold reads as two — the rule `reportExport.js` already puts in the HTML
+       it writes, in both spellings. */
+    /page-break-inside: avoid !important; break-inside: avoid !important/.test(viewerSrc) &&
+    /* Backgrounds are the bars: without this the money chart prints as figures with no chart. */
+    /print-color-adjust: exact !important/.test(viewerSrc) &&
+    /* Injected into every frame, seamless or not, beside the rules that were already there. */
+    /style\.textContent = FRAMED_CSS \+ PRINT_CSS \+ \(seamless \? SEAMLESS_CSS : ''\)/.test(viewerSrc) &&
+    /* And each selector names something the documents actually carry. `.content` is checked as a class
+       and not only as the id beside it, because the rule is written against the class. */
+    framedReports.every((f) => {
+      const html = read(f)
+      return (
+        html.includes('class="app"') &&
+        html.includes('class="main"') &&
+        html.includes('class="content"') &&
+        /* The clip itself: the shell really is a fixed-height, overflow-hidden app. If a re-export
+           stops being one, these rules are no longer load-bearing and this claim should be revisited. */
+        /\.app\{[^}]*height:100vh[^}]*overflow:hidden/.test(html) &&
+        /\.content\{[^}]*overflow-y:auto/.test(html) &&
+        /* The controls and the session chrome the print job drops. */
+        html.includes('class="racts"') &&
+        html.includes('id="toasts"') &&
+        html.includes('class="repHead"')
+      )
+    }),
+  'a clipped print is a report that looks whole and is missing pages',
 )
 
 /*

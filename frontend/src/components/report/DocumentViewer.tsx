@@ -350,7 +350,10 @@ export default function DocumentViewer({
                * next export and would silently come back, while a rule applied by the frame holds for
                * whatever version is dropped in and keeps the file byte-identical to what produced it.
                */
-              style.textContent = FRAMED_CSS + (seamless ? SEAMLESS_CSS : '')
+              /* `PRINT_CSS` rides on every frame, seamless or not: it is `@media print`, so it
+                 changes nothing on screen, and a document that can be printed at all — by this app's
+                 button or by the reader's own Ctrl-P inside the frame — should print whole. */
+              style.textContent = FRAMED_CSS + PRINT_CSS + (seamless ? SEAMLESS_CSS : '')
               inner.head?.appendChild(style)
             }}
           />
@@ -488,6 +491,60 @@ const FRAMED_CSS =
   ' .repBlock:has(.embedAsk) { display: none !important }' +
   ' .filtBar .fgroup.vt { display: none !important }' +
   ' .trustBar .tBtn { display: none !important }'
+
+/**
+ * What makes **Export PDF** produce the whole report rather than its first screen.
+ *
+ * **The bug it fixes, because the symptom names the wrong thing.** These documents are the whole
+ * prototype app with one report in it, and an app sizes itself to the window: `.app` is a grid at
+ * `height: 100vh` with `overflow: hidden`, `.main` hides its overflow too, and `.content` is the one
+ * element that scrolls. On screen that is correct. Printing turns the viewport into the page, so
+ * everything past the first one is *clipped* rather than carried onto a second sheet — the print
+ * dialog says `1/1` and the report is cut mid-block. Nothing errors, and what a reader sends on is a
+ * report that looks complete down to the tear.
+ *
+ * **So the print job unclips the ancestors and lets the content flow.** Three rules do the work — the
+ * shell, its column and the scroller — and the rest are what a clipped print had hidden anyway.
+ *
+ * - **`page-break-inside: avoid` on a block**, so a card is not sliced across a sheet boundary. The
+ *   same rule `reportExport.js` puts in the HTML it writes, for the same reason: a table split across
+ *   the fold is read as two tables. Both spellings, because the documents' own vendor prefixes tell
+ *   you nothing about which engine prints them.
+ * - **`print-color-adjust: exact`**, because a bar chart is drawn with backgrounds and Chrome drops
+ *   backgrounds unless the page asks. Without it the money chart prints as empty outlines — figures
+ *   with no bars, which is a chart making a claim it cannot support.
+ * - **The report head's own actions go** (`.repHead .racts` — Refresh, Export, and the approve/submit
+ *   buttons beside them). A control on paper is not a control; the same decision
+ *   `PublishedReportPane.css` makes when it prints a computed report without the app around it.
+ * - **And the fixed overlays go**, because `position: fixed` resolves against the *page* when
+ *   printing: a toast, an open drawer or a hover popover would otherwise be stamped onto sheet one,
+ *   over the report. They are chrome for a session, and a printed report has none.
+ *
+ * **`@media print`, so nothing here touches the screen.** The document renders exactly as it did; this
+ * is a second layout that exists only while the frame is being printed, which is also why it can be
+ * this blunt about `display` and `overflow` without breaking the app inside the frame.
+ *
+ * **Injected rather than fixed in the file**, like every other rule here: the documents' `_meta` says
+ * *"never hand-edit this file — change the generator and rebuild"*, so an edit would be lost at the
+ * next export and the cut would silently return. It also means the fix holds for whatever version of
+ * the document is dropped in.
+ */
+const PRINT_CSS =
+  ' @media print {' +
+  /* The three that actually unclip it: the shell, its column, and the one element that scrolls. */
+  ' html, body { height: auto !important; overflow: visible !important }' +
+  ' .app { display: block !important; height: auto !important; overflow: visible !important }' +
+  ' .main { display: block !important; height: auto !important; overflow: visible !important }' +
+  ' .content { flex: none !important; height: auto !important; max-height: none !important;' +
+  ' overflow: visible !important }' +
+  /* A card is a unit; a card split across the fold reads as two. */
+  ' .repBlock, .card, .ansCard, .note, table, tr {' +
+  ' page-break-inside: avoid !important; break-inside: avoid !important }' +
+  /* Backgrounds are the bars. Without this the chart prints as figures with no chart. */
+  ' body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important }' +
+  /* Controls and session chrome are not part of a report. */
+  ' .repHead .racts, #toasts, .drawer, .overlay, .pvPop { display: none !important }' +
+  ' }'
 
 /**
  * What the app paints into a seamless document, and it is a stylesheet and nothing else.

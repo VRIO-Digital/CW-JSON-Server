@@ -4653,3 +4653,39 @@ the one thing every paced act in this app exists to deny. The narration runs for
 `BUILD_STAGE_MS` is per step, so a sixth step lengthens the narrated build; `SPEC_RUN_MS` is a total, so a
 sixth step shortens each row before a document. Reading either as the other kind is how a run comes to be
 described by a paragraph nobody re-ran.
+
+---
+
+## Export PDF gave one page of a report and no sign the rest existed
+
+**Symptom.** Exporting a framed CAPEX report produced a single sheet, cut mid-block, with `1/1` in the
+print dialog. Reported as "the download is half cut".
+
+**Cause.** `Export PDF` calls `contentWindow.print()`, so the *document* prints — which is correct, and
+these documents are the whole prototype app with one report in it. An app sizes itself to the window:
+`.app` is `height: 100vh` with `overflow: hidden`, `.main` hides its overflow, and `.content` is the only
+element that scrolls. Printing makes the viewport the page, so the rest of the report was **clipped**
+rather than paginated. Every layer behaved as designed and the output was wrong.
+
+**Why it is the dangerous kind.** Nothing errors, the page that does print is perfect, and the file
+carries no mark saying pages are missing — so it survives being read, sent on and quoted from. A
+truncated report is worse than a failed export for exactly the reason a stale figure is worse than a
+missing one.
+
+**Fix.** `PRINT_CSS`, injected into the frame like every other rule this app applies to a generated
+document (their `_meta` forbids hand-edits, so an edit would be lost at the next export and the cut would
+silently return). `@media print` only: unclip the three ancestors, keep a card whole across the fold,
+force backgrounds so the chart's bars print rather than showing figures with no chart, and drop the head's
+own buttons and the fixed-position session chrome — `position: fixed` resolves against the *page* when
+printing, so a toast or an open drawer is stamped onto sheet one over the report.
+
+**Guard.** A claim over every rule, every class the rules name **as the documents carry it**, and the
+clip itself — that the shell really is a fixed-height overflow-hidden app. That last limb is the one that
+ages well: if a re-export stops being an app shell, these rules stop being load-bearing and the claim
+says so rather than sitting inert. Break-tested six ways, including flipping `@media print` to `@media
+screen` and dropping each unclipping rule in turn.
+
+**The general shape.** *A frame inherits the printing model of what is inside it.* Anything vendored as a
+whole page brings its own layout assumptions — a viewport-height shell, an internal scroller, fixed
+overlays — and every one of those is a claim about a screen that paper does not honour. Ask what a
+vendored page does when it is printed, not only when it is rendered.

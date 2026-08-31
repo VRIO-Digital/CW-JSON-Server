@@ -2226,6 +2226,15 @@ dialog. `window.print()` over the `@media print` rules in `PublishedReportPane.c
 and reveal `.prp` — there is no PDF renderer here, by dependency decision, and the hint sits in
 `src/data/reportExport.ts` because a `Tooltip` portals out of `renderToString`.
 
+**And where a *framed* report leaves the app:** `Export PDF` on `DocumentViewer`'s bar calls
+`contentWindow.print()`, so the document prints as its own page and this app's print rules never come
+into it. What that needed was `PRINT_CSS`, injected into the frame: the document is the prototype app at
+`height: 100vh` with `overflow: hidden` and one scrolling `.content`, so printing clipped it at the
+first sheet — `1/1` and cut mid-block, with nothing erroring and no sign in the file that pages were
+lost. The injected `@media print` block unclips those three ancestors, keeps a card whole across the
+fold, forces backgrounds so the bars print, and drops the head's own buttons and the fixed session
+chrome that `position: fixed` would otherwise stamp onto page one.
+
 ### Its own key
 
 `db.settings` holds only what this page administers — users, each persona's navigation access, and the

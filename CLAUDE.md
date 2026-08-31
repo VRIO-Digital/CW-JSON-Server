@@ -2655,6 +2655,27 @@ naming a class no document has is inert, and inert looks exactly like the thing 
 also pins the `viewTypes` mismatch itself, so when a re-export starts serving objects both halves fail
 together and the rule that hides them can go.
 
+**A fifth rule is not a hiding rule: it is what makes `Export PDF` produce the whole report.**
+`PRINT_CSS`, injected into every frame beside those four, and `@media print` so nothing on screen
+changes. **The failure it fixes is a report that looks complete down to the tear**: these documents are
+the prototype app with one report in it, and an app sizes itself to the window — `.app` is `height:
+100vh` with `overflow: hidden`, `.main` hides its overflow, and `.content` is the only element that
+scrolls. Printing makes the viewport the page, so everything past the first sheet is *clipped* rather
+than carried onto a second one. The print dialog says `1/1`, the report is cut mid-block, nothing
+errors, and the file that gets sent on carries no sign that pages are missing.
+
+Three rules unclip it — the shell, its column, the scroller — and three more are what a clipped print
+had concealed: `page-break-inside: avoid` on a block, because a card split across the fold reads as two
+(the same rule `reportExport.js` writes into its HTML); `print-color-adjust: exact`, because the bars in
+the money chart *are* backgrounds and Chrome drops backgrounds unless the page asks, so without it the
+chart prints as figures with no chart; and the report head's own **Refresh / Export** buttons and the
+fixed-position session chrome (toasts, an open drawer, a hover popover) go, because a control on paper
+is not a control and `position: fixed` resolves against the *page* when printing — each would otherwise
+be stamped onto sheet one over the report. `check-docs` asserts every rule, that the documents carry
+each class it names, **and that the shell really is the fixed-height overflow-hidden app these rules
+exist for** — if a re-export stops being one, the rules stop being load-bearing and should be revisited
+rather than left inert.
+
 **Report View permissions apply exactly as they do to a governed row**, through the same
 `reportActionsFor`, with a withheld act being an absent handler rather than a disabled button. **Share is
 not gated**, because it edits the *audience* — which Settings deliberately excludes from the three acts,
