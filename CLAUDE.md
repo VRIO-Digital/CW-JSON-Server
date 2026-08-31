@@ -1675,27 +1675,38 @@ The dialog therefore takes **neither the graph's name nor its sources**:
 nothing left on it says anything about either, and a prop still being passed is how the
 paragraph comes back.
 
-**It holds rather than narrating, and it offers one act.** The stage-and-step readout it
+**It reports rather than narrating, and it offers one act.** The stage-and-step readout it
 printed at first is the Build tab's, where a reader is watching a run they can act on; here
-the build publishes itself and nothing on the dialog is pressable while it does, so a counter
-is detail with no decision attached. What stands in its place is `runtimeBuildCopy.analysing`
-— *Analysing Gmail data…*, *Preparing the data…*, *Finishing the analysis…* — over
-`ANALYSING_MS` (**10s**), and **the act is offered when the third row ticks**. **The steps are
-cut out of that one hold rather than each carrying a pace**, so adding one re-cuts the same
-ten seconds instead of making the reader wait longer: the derivation `specStepMs` makes, and
-for the same reason — what ends this wait is the act it offers. No step is written into the
-component and the total reaches it only through `analysingStepMs()`, so the panel states
-neither a word nor a duration of its own — the rule `BuildRunDialog` keeps with
-`BUILD_STAGE_MS`.
+the build publishes itself and nothing on the dialog is pressable while it does, so a substep
+counter is detail with no decision attached. What stands in its place is
+`runtimeBuildCopy.analysing` — *Analysing Gmail data…*, *Preparing the data…*, *Finishing the
+analysis…* — three phrases cut from the **build run's own progress**, and **the act is offered
+when the third row ticks**, which happens when the run completes and at no other time. No step
+and no duration is written into the component, so the panel states neither a word nor a number
+of its own — the rule `BuildRunDialog` keeps with `BUILD_STAGE_MS`.
+
+**That was a ten-second client-side hold once, and it was wrong by about eighty seconds.** A
+build is 31 substeps at `BUILD_STEP_MS`, and `runGraphBuild` publishes a runtime-answered
+graph when the run *lands* — so a dialog pacing itself offered *Ask a question* long before
+the version existed, and the reader arrived at a page that correctly drew `NoPublishedGraph`.
+Reported from use. Both sides were right and nothing errored, which is the shape this file
+keeps refusing: **the pace was the client's, and what it was pacing was the server's.** So
+`analysingStage` reads the run the page is already polling for the publication read-back —
+the same rule every other paced surface here keeps, and the reason the exception is gone
+rather than documented. It is a pure function in `src/data/` for the reason `datasetPathFix`
+is: a gate inside a component cannot be asserted without rendering the component's own state.
+
+**And the dialog is closable throughout, which it was not while the wait was ten seconds.** A
+modal with no exit over a run the reader cannot act on is a trap, and a poll that stopped
+answering would make it a permanent one. Nothing is lost by leaving: the run is the server's,
+it finishes either way, it still publishes itself, and Graph Studio finds it in flight.
 
 **They are drawn as `StageList`'s rows, from one cursor.** Every row is listed from the first
 frame, `pending` until it runs, because a list that grows a line at a time hides how much is
-left — `BuildRunDialog`'s rule, and the same rule here — and the list **stays after the hold
-ends**, all three ticked, since it is the body of the dialog. Reusing the component rather
+left — `BuildRunDialog`'s rule, and the same rule here — and the list **stays after the run
+lands**, all three ticked, since it is the body of the dialog. Reusing the component rather
 than drawing three rows inline is what stops a second set of marks and states drifting from
-the consent panel's; `StageList`'s own note names this as the one caller whose rows are a
-client-side hold rather than calls returning, the exception the What-if authoring steps and
-the report build already are. And the gate on the act is **derived** from that cursor
+the consent panel's. And the gate on the act is **derived** from that cursor
 (`stage >= analysing.length`) rather than tracked in a flag beside it: two counters over one
 wait is the fault `BUILD_STEPS`' single cursor exists to avoid, whose symptom is a row still
 spinning under a finished list. **And the

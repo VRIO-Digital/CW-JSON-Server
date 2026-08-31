@@ -2492,35 +2492,46 @@ expect(
   'the branch states the analysis, never a publication, and is never empty',
 )
 /*
- * **The hand-off holds; it does not narrate a pipeline.** The stage-and-step readout belongs
- * to the Build tab, where a reader is watching a run they can act on — here the build
- * publishes itself and nothing on the dialog is pressable while it does, so a counter would
- * be detail with no decision attached. The hold is `ANALYSING_MS`, stated beside the words it
- * paces and reaching the dialog only through `analysingStepMs()` — so the component names
- * neither the total nor a step, the rule `BuildRunDialog` keeps with `BUILD_STAGE_MS`.
+ * **The hand-off reports the build; it does not hold over one.** The stage-and-step readout
+ * belongs to the Build tab, where a reader is watching a run they can act on — here the build
+ * publishes itself and nothing on the dialog is pressable while it does, so a substep counter
+ * would be detail with no decision attached. Three phrases stand in its place, and they are
+ * cut from the run's own `stepIndex`.
+ *
+ * **This is the claim the ten-second hold cost, and it is why the pacing rule is a rule.** The
+ * rows were a client-side timer, the build is 31 substeps at `BUILD_STEP_MS`, and the server
+ * publishes a runtime-answered graph only when the run *lands* — so the act was offered about
+ * eighty seconds early, over a graph that did not exist, and Ask correctly met the reader with
+ * its no-published-graph gate. Reported from use. So the assertion is on the **gate** rather
+ * than on the wording: `analysingStage` returns a finished list on `complete` and nothing
+ * else, and the dialog holds no timer of its own to reach that state by another route.
  */
 expect(
-  'and the hand-off holds on a constant it does not restate',
-  /export const ANALYSING_MS = 10_000/.test(codeOnly(runtimeBuildSrc)) &&
-    !/ANALYSING_MS/.test(runtimeDialogCode) &&
-    /runtimeBuildCopy\.analysing/.test(runtimeDialogCode) &&
-    !/\d+\s?s\b/.test(runtimeDialogCode) &&
-    !/run\.stepMs/.test(runtimeDialogCode),
-  'ANALYSING_MS is stated once and the dialog prints no duration of its own',
+  'and the hand-off offers Ask only once the run has landed',
+  /export function analysingStage\(/.test(codeOnly(runtimeBuildSrc)) &&
+    /if \(run\.status === 'complete'\) return rows/.test(codeOnly(runtimeBuildSrc)) &&
+    /return Math\.min\(Math\.max\(at, 0\), rows - 1\)/.test(codeOnly(runtimeBuildSrc)) &&
+    /const stage = analysingStage\(run\)/.test(runtimeDialogCode) &&
+    /const done = held && !checking/.test(runtimeDialogCode) &&
+    /disabled=\{!done\}/.test(runtimeDialogCode) &&
+    !/setTimeout|setInterval|useEffect|useState/.test(runtimeDialogCode) &&
+    !/ANALYSING_MS|analysingStepMs/.test(codeOnly(runtimeBuildSrc)) &&
+    !/ANALYSING_MS|analysingStepMs/.test(runtimeDialogCode),
+  'the act is gated on the build completing, and no timer in the dialog reaches that state',
 )
 /*
- * The steps are the copy's and they are cut out of the one hold rather than each carrying a
- * pace: adding one re-cuts the same ten seconds instead of making the reader wait longer,
- * which is the derivation `specStepMs` makes and for the same reason — what ends this wait is
- * the act it offers.
+ * The steps are the copy's, and the component names neither a phrase nor a duration — the rule
+ * `BuildRunDialog` keeps with `BUILD_STAGE_MS`. A row advances because the run advanced, so
+ * adding a phrase re-cuts the same run rather than making anybody wait longer.
  */
 expect(
-  'and the steps are the copy’s, cut out of that one hold',
+  'and the steps are the copy’s, cut from the run’s own progress',
   /analysing: \[/.test(codeOnly(runtimeBuildSrc)) &&
-    /ANALYSING_MS \/ runtimeBuildCopy\.analysing\.length/.test(codeOnly(runtimeBuildSrc)) &&
-    /analysingStepMs\(\)/.test(runtimeDialogCode) &&
+    /run\.stepIndex \/ run\.stepTotal/.test(codeOnly(runtimeBuildSrc)) &&
+    /runtimeBuildCopy\.analysing/.test(runtimeDialogCode) &&
+    !/\d+\s?s\b/.test(runtimeDialogCode) &&
     !/Analysing|Preparing|Finishing/.test(runtimeDialogCode),
-  'analysing is a list in src/data/, and no step is written into the component',
+  'analysing is a list in src/data/, and no step or duration is written into the component',
 )
 /*
  * **They are rows, drawn by `StageList`, and every one is listed from the first frame.** A
