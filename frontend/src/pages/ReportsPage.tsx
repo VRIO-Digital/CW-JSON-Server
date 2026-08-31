@@ -12,6 +12,7 @@ import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
 import DocumentViewer from '../components/report/DocumentViewer'
 import PublishedReportPane from '../components/report/PublishedReportPane'
+import { reportDocumentUrl } from '../data/reportDocuments'
 import ReportsApp from '../reports/App'
 import { hydrate as hydratePrototype, isHydrated } from '../reports/data'
 import { MenuProvider } from '../reports/components/MenuProvider'
@@ -259,6 +260,29 @@ export default function ReportsPage() {
   )
 
   /*
+   * Where each rendered report's **specification** is, for the wait while that report is built.
+   *
+   * The prototype narrates that wait a step at a time; where the dataset ships a spec for the report,
+   * the document is framed instead — its own account of what the agent resolved and which measures it
+   * bound, rather than a summary of composing a report in general.
+   *
+   * **Resolved here because turning a filename into a URL is the host's job.** `reportDocumentUrl` is
+   * the single copy of every framed document's address, and the prototype is handed URLs so this folder
+   * keeps no second lookup of its own. A filename the bundle does not carry is left out rather than
+   * guessed at — a guess loads the SPA's own `index.html`, which renders this app inside the frame —
+   * and the build then narrates its steps, which is what a dataset shipping no specs gets.
+   */
+  const buildSpecs = useMemo(() => {
+    const out: Record<string, string> = {}
+    for (const doc of data?.documents ?? []) {
+      if (!doc.specFile) continue
+      const url = reportDocumentUrl(doc.specFile)
+      if (url) out[doc.reportId] = url
+    }
+    return out
+  }, [data?.documents])
+
+  /*
    * ---------------- a dataset whose reports are rendered documents ----------------
    *
    * Which document is open, and which tab. Local state rather than `reportsStore`, because a document is
@@ -415,6 +439,14 @@ export default function ReportsPage() {
                  * test for "can this be opened" is its own authoring starters.
                  */
                 hostOpenableIds={data?.documents.map((d) => d.reportId)}
+                /*
+                 * The specification behind each of those documents, as a URL per report id. Where one
+                 * exists it is framed in place of the narrated build steps: this dataset states how each
+                 * of its reports is built, and a generic five-step summary in front of that account is
+                 * the transcription problem in miniature — a shorter, vaguer copy of something already
+                 * written down.
+                 */
+                buildSpecs={buildSpecs}
                 /*
                  * **Open report** reads the published report; **Edit report** still loads the authoring
                  * definition. Two buttons that did the same thing now do what their labels say, and the

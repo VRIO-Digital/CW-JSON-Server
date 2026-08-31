@@ -698,6 +698,70 @@
 }
 
 /*
+ * ---- the specification dialog ----
+ *
+ * What a dataset that ships a spec per report shows instead of the step list above. Authored here
+ * like the rest of the section's rules, and on the `--sp-*` scale.
+ *
+ * **Wide and tall, because it is holding a document rather than five short rows.** These specs are
+ * authored at 1000px and are long; the narrow modal that fits a step list would put them in a
+ * column two words across. The frame takes whatever height the dialog has left, so the document's
+ * own scrollbar is the only one — the same fit the seamless viewer measures for, arrived at here
+ * by giving the dialog a height and letting the frame flex into it.
+ */
+.cw-reports .rp-spec {
+  /* The document's own width plus its padding plus the dialog's, and no wider: these specs are
+     authored at 1000px, so a wider dialog only adds ground beside a page that has stopped growing.
+     1100 - 48 of dialog padding = 1052 = the document's 1000 with its own 26 either side. */
+  max-width: 1100px;
+  /* `.modalBack`'s own 24px gutter, top and bottom — the rest of the viewport is the dialog. */
+  height: calc(100vh - var(--sp-9));
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/*
+ * The head is a row rather than a stack, so the act is beside what it acts on: a reader who has
+ * finished the document should not have to scroll past it to find the way on.
+ */
+.cw-reports .rp-specHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.cw-reports .rp-specHeadText {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+/* Its own margin already, from `.modal .mh` — cancelled here because the flex gap owns the spacing. */
+.cw-reports .rp-specHead .mh {
+  margin-bottom: 0;
+}
+
+.cw-reports .rp-specGo {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/*
+ * `min-height: 0` is what lets it shrink inside the flex column — without it a flex item refuses to
+ * go below its content's height, and an iframe's is its declared one, so the dialog would grow past
+ * the viewport and put a second scrollbar on the page behind it.
+ */
+.cw-reports .rp-specFrame {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: #fff;
+}
+
+/*
  * The switch between the tenant's published reports and the vendored authoring prototype. Its own rule
  * here rather than in the prototype's sheet, which carries a do-not-hand-edit note.
  */

@@ -55299,7 +55299,8 @@
         "slug": "variance-report",
         "author": "pp_lindqvist",
         "refresh": "Daily 07:00 UTC",
-        "updated_at": "2026-03-11T16:55:00Z"
+        "updated_at": "2026-03-11T16:55:00Z",
+        "spec_file": "Variance_Report_Specification.html"
       },
       {
         "document_id": "R2",
@@ -55313,7 +55314,8 @@
         "slug": "project-360",
         "author": "pp_whitfield",
         "refresh": "On demand",
-        "updated_at": "2026-03-18T12:40:00Z"
+        "updated_at": "2026-03-18T12:40:00Z",
+        "spec_file": "Report_Specification_rep_proj_360.html"
       },
       {
         "document_id": "R3",
@@ -55327,7 +55329,8 @@
         "slug": "placed-in-service-calendar",
         "author": "pp_lindqvist",
         "refresh": "1st of the month, 06:00 UTC",
-        "updated_at": "2026-03-22T10:05:00Z"
+        "updated_at": "2026-03-22T10:05:00Z",
+        "spec_file": "Report_Specification_rep_pis_calendar.html"
       }
     ],
     "authoring_document": "report_authoring_simplified_v3.html"

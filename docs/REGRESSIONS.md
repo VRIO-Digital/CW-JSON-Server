@@ -4606,3 +4606,50 @@ from the other, or assert them equal.
 **And a smaller one, for the sixth time:** the absence half of that guard first failed against correct
 code, because the comment explaining the removal quotes `oneOf(['bigquery', 'drive'])`. `codeOnly()` on
 every absence claim, always.
+
+---
+
+## A fallback starter is not a choice — framing a document that asserts the wrong thing
+
+**What was asked.** CAPEX ships a specification page per rendered report, and the build dialog was to
+frame it instead of narrating five generic steps.
+
+**The trap, avoided rather than shipped.** The build composes from `starter`, and `starter` is
+`STARTERS[0]` whenever the reader typed their own question — that is the only spine the vendored engine
+selects on, so the fallback is load-bearing and correct. Keying the spec off `starter.id` therefore
+frames *the first report's* specification — stating its version, its measures and that it is published —
+over a draft that is none of those things. Nothing errors: a document renders, in the right place, at
+the right moment, making a specific claim about the wrong report. It is the transcribed-figure failure
+with the transcription done by a lookup.
+
+**The obvious alternative is also wrong**, and in the one place it matters. Comparing the prompt against
+`starter.q` reads as "is this still that report's question" — but `fromGoverned` carries `row.question ||
+starter.q`, the *tenant's* wording rather than the package's, so the test fails exactly on Edit-from-the-
+Library, the path the feature was asked for. Two near-equivalent derivations, each losing a different
+half of the truth.
+
+**Fix.** `specFor` — state set where a report is genuinely named (a starter card, a row loaded from the
+Library) and cleared where none is (a blank question, a question the reader wrote). A spec is framed only
+for a report somebody chose.
+
+**Guard.** A claim asserting the key is `specFor` and not `starter.id`, anchored to each of the four
+functions that set or clear it, read through `codeOnly` so the comments explaining them cannot satisfy
+it. Break-tested both ways: keying it off the starter, and dropping the clear on a typed question.
+
+**The general shape.** *A fallback value is not an answer to the question the fallback was for.* Where a
+default stands in for "the reader has not chosen", anything that reads it as a choice will look right in
+every state the reader did choose.
+
+**And the break harness skipped two of its eight mutations first**, both because the search string's line
+endings did not match this file's CRLF — recorded here for the third time. The harness printed `SKIP`
+rather than `MISSED`, which is the only reason the two guards were not rewritten as broken: **a break
+test that cannot mutate must say so, not pass.**
+
+**A follow-up worth recording on top of it:** the first cut skipped the narration entirely and framed the
+spec the moment Build was pressed, on the reasoning that a document is paced by being read. That was half
+right — the *frame* needs no timer, but dropping the narration made composing a report look free, which is
+the one thing every paced act in this app exists to deny. The narration runs for a stated total
+(`SPEC_RUN_MS`) and the frame opens after it. **Two paces, opposite derivations, and each is a claim:**
+`BUILD_STAGE_MS` is per step, so a sixth step lengthens the narrated build; `SPEC_RUN_MS` is a total, so a
+sixth step shortens each row before a document. Reading either as the other kind is how a run comes to be
+described by a paragraph nobody re-ran.

@@ -6291,6 +6291,15 @@ export interface ReportDocument {
   reportId: string
   /** The file, relative to the dataset's report folder. Resolved to a URL by the page, not here. */
   file: string
+  /**
+   * The specification document that says how this report is built, or null where the dataset ships none.
+   *
+   * Framed while the report is being built, in place of the narrated build steps — the dataset's own
+   * account of what the agent resolved and which measures it bound, rather than a summary of composing a
+   * report in general. Resolved to a URL by the page like `file`, and nullable because a document
+   * predating the specs is a document with none rather than a malformed one.
+   */
+  specFile: string | null
   title: string
   subtitle: string
   category: string
@@ -7141,6 +7150,10 @@ const REPORTS_INDEX = shape({
       document_id: str,
       report_id: str,
       file: str,
+      /* Nullable, and the ingest still refuses to write a document without one: an absent spec can
+         only mean a document from before they existed, which is exactly what nullable is for.
+         Declaring it `str` would refuse a whole payload over a field nothing on the page needs. */
+      spec_file: nullable(str),
       title: str,
       subtitle: str,
       category: str,
@@ -7318,6 +7331,8 @@ export async function getReports(asRole?: string | null): Promise<ReportsIndex> 
       document_id: string
       report_id: string
       file: string
+      /* Absent on a document from before the specs existed, which is why the mapping defaults it. */
+      spec_file?: string | null
       title: string
       subtitle: string
       category: string
@@ -7353,6 +7368,7 @@ export async function getReports(asRole?: string | null): Promise<ReportsIndex> 
       documentId: d.document_id,
       reportId: d.report_id,
       file: d.file,
+      specFile: d.spec_file ?? null,
       title: d.title,
       subtitle: d.subtitle,
       category: d.category,

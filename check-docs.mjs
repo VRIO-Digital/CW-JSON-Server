@@ -7334,6 +7334,11 @@ const capexDocFiles = [
   'audit-governance/governance_audit_data.json',
   'what-if-lens/W1_what_if_lens.html',
   ...readdirSync(join(root, capexDocDir, 'Report')).map((f) => `Report/${f}`),
+  /* The specification behind each report is a CAPEX document too, so the two address rules below cover
+     it — a list of documents somebody remembered is how a re-export reverts a domain unnoticed. */
+  ...readdirSync(join(root, capexDocDir, 'Steps-building-report')).map(
+    (f) => `Steps-building-report/${f}`,
+  ),
 ].filter((f) => existsSync(join(root, capexDocDir, f)))
 
 /** `[what is wrong, where]`, first sighting only — one line per address, not per mention. */
@@ -8318,6 +8323,134 @@ expect(
     /* State is never colour alone: a tick on what is done, a spinner on what is running. */
     /rp-spin/.test(buildDialogCode),
   'a list that grew a row at a time would hide how much is left',
+)
+
+/*
+ * ---------------- a dataset can ship the account of how its report is built ----------------
+ *
+ * **The narrated steps are what this engine can say; a specification is what the dataset says.** CAPEX
+ * ships one spec document per rendered report — what the agent resolved, the measures it bound from the
+ * glossary, the sources those declare, the blocks the spec states — so the wait frames that document
+ * instead of five generic rows. A summary standing in front of the real account is the transcription
+ * problem in miniature: a shorter, vaguer copy of something already written down.
+ *
+ * Every layer at once, because half of this is the shape that fails silently: a spec on the payload that
+ * the build never reaches leaves the narrated dialog in place, looking exactly like a working dialog.
+ */
+const specDialogSrc = read('frontend/src/reports/components/BuildSpecDialog.tsx')
+const specDialogCode = codeOnly(specDialogSrc)
+const specRows = capexDocs.filter((d) => d.spec_file)
+expect(
+  'a dataset that ships a specification per report frames it instead of narrating steps',
+  /* Every document has one, and the file is really here — a pointer to a file nobody ships is a blank
+     frame, which is what `reportDocumentUrl` returns null for rather than guessing at a path. */
+  capexDocs.length > 0 &&
+    specRows.length === capexDocs.length &&
+    specRows.every((d) =>
+      existsSync(join(root, `frontend/src/Capex/Steps-building-report/${d.spec_file}`)),
+    ) &&
+    /* And it is *that report's* spec: the ingest matches on the id inside the document rather than on
+       its filename, so this checks the same fact the written document claims. */
+    specRows.every((d) => {
+      const flat = read(`frontend/src/Capex/Steps-building-report/${d.spec_file}`)
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+      return (/"report":\s*"([^"]+)"/.exec(flat) ?? [])[1] === d.report_id
+    }) &&
+    /* Resolved through the same one lookup every framed document goes through — a fourth glob, because
+       the folder is what says which kind of document a file is. */
+    /import\.meta\.glob\('\.\.\/\*\/Steps-building-report\/\*\.html'/.test(
+      read('frontend/src/data/reportDocuments.ts'),
+    ) &&
+    /* Typed and validated at the boundary, and nullable rather than required: a document from before
+       the specs existed is one with none, and declaring it `str` would refuse a whole payload. */
+    /spec_file: nullable\(str\)/.test(client) &&
+    /specFile: d\.spec_file \?\? null/.test(client) &&
+    /* The host turns the filename into a URL and hands over URLs, so the vendored folder keeps no
+       second lookup of its own. */
+    /reportDocumentUrl\(doc\.specFile\)/.test(reportsPage) &&
+    /buildSpecs=\{buildSpecs\}/.test(reportsPage) &&
+    /* **The steps still run, and the frame is what they end in.** The spec branch holds the same
+       list — so the wait is work being described rather than a document appearing the instant a
+       button is pressed — and hands `setSpecOpen` to `runStages` as its `done`, which is what makes
+       the two mutually exclusive: `working` is back to null before the frame opens. */
+    /if \(specUrl\) \{\r?\n\s*runStages\(buildSteps\.length, \(\) => setSpecOpen\(specUrl\), specStepMs\);\r?\n\s*return;/.test(
+      reportsAppCode,
+    ) &&
+    /* And the pace is the stated total over the steps there are — never a per-step number typed
+       here, which would be a second answer to how long a reader waits. */
+    /const specStepMs = Math\.round\(SPEC_RUN_MS \/ Math\.max\(1, buildSteps\.length\)\);/.test(
+      reportsAppCode,
+    ) &&
+    /* It is a frame, not a transcription, and it carries no timer: this one is paced by being read. */
+    /<iframe className="rp-specFrame" src=\{url\}/.test(specDialogCode) &&
+    !/_MS|setTimeout|\d+\s*ms/.test(specDialogCode) &&
+    /* The rule it injects names a class these documents really carry — a selector naming a class no
+       document has is inert, and inert looks exactly like the bar having been removed. */
+    / body > \.top \{ display: none !important \}/.test(specDialogSrc) &&
+    specRows.every((d) =>
+      read(`frontend/src/Capex/Steps-building-report/${d.spec_file}`).includes('class="top"'),
+    ) &&
+    /* And the ingest refuses rather than writing a report whose build would quietly narrate instead. */
+    /Steps-building-report\//.test(capexIngest) &&
+    /has no specification in \$\{SPEC_DIR\.pathname\}/.test(capexIngest) &&
+    /which this dataset ships no document for/.test(capexIngest),
+  specRows.length === capexDocs.length
+    ? `${specRows.length} of ${capexDocs.length} documents carry a specification`
+    : `${specRows.length} of ${capexDocs.length} documents carry a specification — the rest narrate generic steps`,
+)
+/*
+ * **And the wait before it is a stated total, documented as the code has it.**
+ *
+ * The two derivations are deliberately opposite and both are load-bearing: `BUILD_STAGE_MS` is a pace,
+ * so adding a step makes the narrated build longer; `SPEC_RUN_MS` is a total, so adding a step makes
+ * each row on the spec branch shorter. A number in prose drifts unless something reads it — this repo
+ * has already had a routing note claiming 13 nav entries against 8 — so the docs quote this one and
+ * this claim is what holds them to it.
+ */
+const specRunMs = Number(
+  ((reportsAppCode.match(/const SPEC_RUN_MS = ([\d_]+)/) ?? [])[1] ?? '0').replace(/_/g, ''),
+)
+expect(
+  'the narrated wait before a framed specification is documented as the code has it',
+  specRunMs > 0 &&
+    /* One declaration, and no per-step literal beside it: the pace is divided out of this. */
+    (reportsAppCode.match(/SPEC_RUN_MS/g) ?? []).length === 2 &&
+    [claude, skills].every((doc) => doc.includes(`(**${specRunMs / 1000}s**)`)),
+  specRunMs === 0
+    ? 'SPEC_RUN_MS was not found — this check cannot run'
+    : `SPEC_RUN_MS ${specRunMs} · the narration holds for ${specRunMs / 1000}s, then the document`,
+)
+/*
+ * **And the spec is keyed to the report the reader chose, never to the fallback starter.**
+ *
+ * A freely typed question falls back to `STARTERS[0]`, because that is the only spine this engine
+ * composes on — so keying the spec off `starter.id` would frame the first report's specification over a
+ * question nobody asked of it, a document making specific claims (its version, its measures, its
+ * published state) about a draft it does not describe. Nor is it a comparison of the prompt against
+ * `starter.q`: a governed row carries the *tenant's* question and the starter carries the package's, so
+ * that test would lose the spec on the one path this feature was asked for — Edit, from the Library.
+ */
+expect(
+  'the specification is framed only for the report the reader actually named',
+  /* Read through `codeOnly`, so every pattern here is keyed on the code and not on the comment
+     beside it explaining what it is for — the trap this file has fallen into six times. */
+  /const \[specFor, setSpecFor\] = useState<string \| null>\(null\);/.test(reportsAppCode) &&
+    /const specUrl = specFor \? buildSpecs\?\.\[specFor\] : undefined;/.test(reportsAppCode) &&
+    /* Never keyed off the starter, which is the fallback rather than a choice. */
+    !/buildSpecs\?\.\[starter\.id\]/.test(reportsAppCode) &&
+    /* Set where a report is named — a starter card, and a row loaded from the Library. Anchored to the
+       function, so a `setSpecFor` somewhere else cannot satisfy this. */
+    /function pickStarter\(index: number\) \{[\s\S]{0,200}?setSpecFor\(s\.id\);/.test(reportsAppCode) &&
+    /function load\(r: SavedReport\) \{[\s\S]{0,200}?setSpecFor\(r\.starterId\);/.test(
+      reportsAppCode,
+    ) &&
+    /* Cleared where none is: a blank question, and a question the reader wrote themselves. */
+    /function authorNew\(\) \{[\s\S]{0,160}?setSpecFor\(null\);/.test(reportsAppCode) &&
+    /if \(p !== starter\.q\) \{[\s\S]{0,160}?setSpecFor\(null\);/.test(reportsAppCode) &&
+    /* And the dialog is what renders on that branch, from the state the branch set. */
+    /\{specOpen && \(\r?\n\s*<BuildSpecDialog url=\{specOpen\}/.test(reportsAppCode),
+  'a spec framed over a question it does not describe is a document asserting the wrong thing',
 )
 
 /* ---------------- report ---------------- */

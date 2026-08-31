@@ -54,6 +54,21 @@ const LENS_DIR = new URL('../../frontend/src/Capex/what-if-lens/', import.meta.u
 const GOV_DIR = new URL('../../frontend/src/Capex/audit-governance/', import.meta.url)
 
 /*
+ * And the specification behind each report, which is a document too — the folder rule a fourth time.
+ *
+ * **It is what a reader sees while a report is being built.** The authoring prototype narrates that wait
+ * a step at a time, each step naming the value it used, because for the primary dataset that is all
+ * there is to say. This dataset ships a whole specification per report — what the agent resolved, the
+ * measures it bound from the glossary, the sources those declare, the blocks the spec states — so the
+ * document is framed instead, and a summary is not put in front of the real account.
+ *
+ * **Matched to its report by the id inside the spec itself**, never by filename: two of the three files
+ * happen to carry the id and one does not, and a report renamed in a re-export would still name itself
+ * correctly in its own spec box.
+ */
+const SPEC_DIR = new URL('../../frontend/src/Capex/Steps-building-report/', import.meta.url)
+
+/*
  * The folder holds the three rendered reports plus the authoring exploration. The reports are matched
  * on the `R<n>_` prefix rather than by listing three filenames: a fourth report is then a file drop
  * plus a re-run, and the authoring page — which carries no `REPORT_ID` — cannot be mistaken for one.
@@ -62,6 +77,34 @@ const files = readdirSync(DIR).filter((f) => /^R\d+_.*\.html$/i.test(f)).sort()
 
 const problems = []
 const documents = []
+
+/*
+ * report id -> the spec file that describes it.
+ *
+ * The tags are stripped before matching because the id sits inside a syntax-highlighted JSON block —
+ * `<span class="k">"report"</span>: <span class="s">"rep_q_variance"</span>` — so the markup is
+ * whitespace as far as this is concerned. The same normalisation the registry read below does, for the
+ * same reason: how the export was formatted is not a fact about the report.
+ */
+const specByReport = new Map()
+for (const file of readdirSync(SPEC_DIR).filter((f) => /\.html$/i.test(f)).sort()) {
+  const flat = readFileSync(new URL(file, SPEC_DIR), 'utf8')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+  const id = (/"report":\s*"([^"]+)"/.exec(flat) ?? [])[1]
+  if (!id) {
+    problems.push(`${file} names no report in its specification block — nothing could frame it`)
+    continue
+  }
+  if (specByReport.has(id)) {
+    problems.push(
+      `${specByReport.get(id)} and ${file} both specify report "${id}" — ` +
+        'the build would frame whichever won',
+    )
+    continue
+  }
+  specByReport.set(id, file)
+}
 
 for (const file of files) {
   const html = readFileSync(new URL(file, DIR), 'utf8')
@@ -131,7 +174,32 @@ for (const file of files) {
   for (const [key, value] of Object.entries(row)) {
     if (!value) problems.push(`${file} (${reportId}) has no "${key}" — a row cannot be listed without it`)
   }
+
+  /*
+   * Attached after that loop rather than inside `row`, so a missing spec gets its own sentence: the
+   * generic message would say a row cannot be listed without it, which is not true — the Library lists
+   * the report either way, and what is lost is the account of how it is built. Refused all the same,
+   * because the loss is silent: the build falls back to the narrated steps and looks like a working
+   * dialog.
+   */
+  row.spec_file = specByReport.get(reportId) ?? null
+  if (!row.spec_file) {
+    problems.push(
+      `${file} (${reportId}) has no specification in ${SPEC_DIR.pathname} — ` +
+        'its build would narrate generic steps instead of framing the spec, which reads as working',
+    )
+  }
   documents.push(row)
+}
+
+/*
+ * And the other direction: a spec naming a report this dataset does not ship is a document nothing can
+ * ever open, which is the same fault as an invented Library row.
+ */
+for (const [id, file] of specByReport) {
+  if (!documents.some((d) => d.report_id === id)) {
+    problems.push(`${file} specifies report "${id}", which this dataset ships no document for`)
+  }
 }
 
 if (files.length === 0) problems.push(`no rendered reports found in ${DIR.pathname}`)

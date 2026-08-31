@@ -56,6 +56,22 @@ const governanceModules = import.meta.glob('../*/audit-governance/*.html', {
   eager: true,
 }) as Record<string, string>
 
+/*
+ * And a fourth, for the specification behind each rendered report — what a reader sees while the
+ * report is being built, in place of narrated steps.
+ *
+ * The same reasoning a fourth time, and the folder is again what classifies the file:
+ * `Steps-building-report/` holds the specs, `Report/` the reports they describe. It feeds the one
+ * lookup below, so a spec is resolved by the module every other framed document goes through and the
+ * duplicate-basename throw sees it too — which matters here more than anywhere, since a spec and the
+ * report it describes are two documents about one thing and a collision would frame the wrong one.
+ */
+const specModules = import.meta.glob('../*/Steps-building-report/*.html', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
 /**
  * Filename -> URL, keyed on the basename because that is what the payload carries.
  *
@@ -65,7 +81,12 @@ const governanceModules = import.meta.glob('../*/audit-governance/*.html', {
  * a build-time fact, so it cannot depend on which dataset a reader happens to select.
  */
 const byName = new Map<string, string>()
-for (const [path, url] of Object.entries({ ...modules, ...lensModules, ...governanceModules })) {
+for (const [path, url] of Object.entries({
+  ...modules,
+  ...lensModules,
+  ...governanceModules,
+  ...specModules,
+})) {
   const name = path.slice(path.lastIndexOf('/') + 1)
   const seen = byName.get(name)
   if (seen && seen !== url) {

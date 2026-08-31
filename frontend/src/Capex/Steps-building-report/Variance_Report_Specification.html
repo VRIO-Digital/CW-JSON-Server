@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Variance Report — specification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root,[data-theme="dark"]{
+  --bg0:#0c0d0e; --bg1:#131416; --card:#1a1c1f; --card2:#212428; --inset:#141619;
+  --line:#292d32; --line2:#34393f;
+  --text:#f4f5f6; --mut:#9aa0a8; --dim:#686e76;
+  --orange:#f2691d; --orange-hi:#ff7d33; --orange-soft:rgba(242,105,29,.13);
+  --orange-line:rgba(242,105,29,.38);
+  --green:#34d399; --green-soft:rgba(52,211,153,.12);
+  --amber:#fbbf24; --amber-soft:rgba(251,191,36,.12);
+  --red:#f87171; --red-soft:rgba(248,113,113,.12);
+  --cyan:#38bdf8; --cyan-soft:rgba(56,189,248,.12);
+  --purple:#a78bfa; --purple-soft:rgba(167,139,250,.12);
+  --blue:#60a5fa;
+  --shadow:0 10px 34px rgba(0,0,0,.45);
+  --r-s:7px; --r-m:11px; --r-l:16px;
+}
+[data-theme="light"]{
+  --bg0:#f3f4f6; --bg1:#ffffff; --card:#ffffff; --card2:#f4f5f7; --inset:#f7f8f9;
+  --line:#e3e5e9; --line2:#d3d6db;
+  --text:#1b1e22; --mut:#5c636b; --dim:#9aa0a8;
+  --orange-soft:rgba(242,105,29,.09); --green-soft:rgba(16,150,110,.10);
+  --amber-soft:rgba(180,120,10,.12); --red-soft:rgba(220,60,60,.09);
+  --cyan-soft:rgba(2,132,199,.09); --purple-soft:rgba(124,58,237,.08);
+  --green:#0d9f6e; --amber:#b47d0a; --red:#dc4444; --cyan:#0284c7;
+  --purple:#7c3aed; --blue:#2563eb;
+  --orange-hi:#d9540f;
+  --shadow:0 8px 28px rgba(20,25,35,.10);
+}
+html,body{height:100%}
+body{background:var(--bg0); color:var(--text);
+  font-family:'Inter',-apple-system,system-ui,sans-serif; font-size:13.5px; line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,.disp{font-family:'Space Grotesk','Inter',sans-serif; letter-spacing:-.01em}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ---- shell: the page is the spec sheet, presented the way the modal is ---- */
+.top{background:var(--bg1); border-bottom:1px solid var(--line);
+  padding:13px 26px; display:flex; align-items:center; gap:13px;
+  position:sticky; top:0; z-index:20}
+.top .wordmark{font-family:'Space Grotesk'; font-weight:700; font-size:15px; letter-spacing:-.02em}
+.top .wordmark b{color:var(--orange); font-weight:500}
+.top .crumb{font-size:12.5px; color:var(--mut)}
+.top .sp{flex:1}
+.btn{display:inline-block; border-radius:var(--r-s); padding:6px 13px; font-size:12px;
+  font-weight:600; border:1px solid var(--line); background:var(--card); color:var(--mut);
+  cursor:pointer; font-family:inherit}
+.btn:hover{color:var(--text); border-color:var(--line2)}
+.btn.pri{background:var(--orange); border-color:var(--orange); color:#fff}
+
+.wrap{max-width:1000px; margin:0 auto; padding:26px 26px 60px}
+.hd{margin-bottom:16px}
+.hd h2{font-size:22px; font-weight:700}
+.hd .sub{color:var(--mut); font-size:13px; margin-top:4px; max-width:80ch}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--r-l); padding:20px}
+section{background:var(--card); border:1px solid var(--line); border-radius:var(--r-l);
+  padding:19px 22px; margin-bottom:14px}
+section > h3{font-size:14.5px; font-weight:600}
+section > .lede{color:var(--mut); font-size:12.5px; margin:5px 0 15px; max-width:82ch}
+
+.sectLbl{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim);
+  font-weight:600; margin:22px 0 11px}
+.mini{font-size:11px; color:var(--dim)}
+.mini b{color:var(--mut)}
+.dl{display:grid; grid-template-columns:auto 1fr; gap:5px 16px; font-size:11.5px}
+.dl dt{color:var(--dim)} .dl dd{color:var(--text)}
+
+/* ---- the facts strip under the title: the modal's footer line, expanded ---- */
+.facts{display:flex; flex-wrap:wrap; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--r-m); overflow:hidden; margin-top:14px}
+.facts div{padding:10px 16px; border-right:1px solid var(--line); min-width:146px; flex:1}
+.facts div:last-child{border-right:0}
+.facts dt{font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim)}
+.facts dd{font-size:13px; font-weight:600; margin-top:3px}
+
+/* ---- callouts ------------------------------------------------------------ */
+.note{display:flex; gap:10px; align-items:flex-start; border-radius:var(--r-m);
+  padding:12px 14px; font-size:12.5px}
+.note.plain{background:var(--card2); color:var(--mut); border:1px solid var(--line)}
+.note.info{background:var(--cyan-soft); color:var(--cyan)}
+.note.warn{background:var(--amber-soft); color:var(--amber)}
+.note .body{color:var(--text); opacity:.92}
+.note .body b{display:block; margin-bottom:2px}
+
+/* ---- the resolved-step list ---------------------------------------------- */
+.agentStep{display:flex; gap:10px; align-items:flex-start; padding:9px 0;
+  border-bottom:1px solid var(--line); font-size:12px}
+.agentStep:last-child{border-bottom:none}
+.agentStep .gl{width:17px; flex:none; text-align:center; color:var(--dim)}
+.agentStep.done .gl{color:var(--green)}
+.agentStep.run .gl{color:var(--orange-hi)}
+.agentStep .as-b{font-weight:600}
+.agentStep .as-d{font-size:11px; color:var(--dim); margin-top:1px}
+
+/* ---- source tags: the prototype's four, by their own class tokens -------- */
+.srcTag{display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:600;
+  letter-spacing:.02em; border-radius:4px; padding:2px 8px; white-space:nowrap}
+.srcTag::before{content:""; width:6px; height:6px; border-radius:2px; background:currentColor}
+.srcTag.BQ{color:var(--blue); background:rgba(96,165,250,.12)}
+.srcTag.GD{color:var(--green); background:var(--green-soft)}
+.srcTag.UP{color:var(--amber); background:var(--amber-soft)}
+.srcTag.GM{color:var(--purple); background:var(--purple-soft)}
+.srcTag.GR{color:var(--cyan); background:var(--cyan-soft)}
+.srcTag.DEF{color:var(--dim); background:var(--card2)}
+.srcRow{display:flex; gap:6px; flex-wrap:wrap}
+
+.pill{display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600;
+  border-radius:20px; padding:2px 9px; white-space:nowrap}
+.pill.hi{background:var(--green-soft); color:var(--green)}
+.pill.md{background:var(--amber-soft); color:var(--amber)}
+.pill.lo{background:var(--red-soft); color:var(--red)}
+.pill.neu{background:var(--card2); color:var(--mut); border:1px solid var(--line)}
+
+/* ---- the spec block ------------------------------------------------------ */
+.specBox{background:var(--inset); border:1px solid var(--line); border-radius:var(--r-m);
+  padding:14px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.65;
+  overflow-x:auto; white-space:pre; color:var(--mut)}
+.specBox .k{color:var(--cyan)} .specBox .s{color:var(--green)}
+.specBox .n{color:var(--orange-hi)} .specBox .c{color:var(--dim); font-style:italic}
+
+/* ---- tables -------------------------------------------------------------- */
+table.tbl{width:100%; border-collapse:collapse; font-size:12.5px}
+.tbl th{text-align:left; font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--dim); font-weight:600; padding:8px 10px 8px 0; border-bottom:1px solid var(--line)}
+.tbl td{padding:10px 10px 10px 0; border-bottom:1px solid var(--line); vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .num,.tbl th.num{font-family:'JetBrains Mono',monospace; font-size:12px; text-align:right}
+.tbl td.neg{color:var(--red)}
+.tbl td b{font-weight:600}
+.tbl td .d{display:block; font-size:11px; color:var(--dim); margin-top:2px}
+.tbl.sm th{padding:6px 8px 6px 0; font-size:9.5px}
+.tbl.sm td{padding:6px 8px 6px 0; font-size:11px}
+.arrow{color:var(--dim); padding:0 5px}
+
+ul.pl{list-style:none; font-size:12.5px}
+ul.pl li{padding:9px 0 9px 15px; border-bottom:1px solid var(--line); position:relative}
+ul.pl li:last-child{border-bottom:0}
+ul.pl li:before{content:""; position:absolute; left:0; top:16px; width:5px; height:5px;
+  border-radius:50%; background:var(--dim)}
+ul.pl li b{font-weight:600}
+ul.pl li span{color:var(--mut)}
+
+/* ---- slice bar (scenario page) ------------------------------------------- */
+.sbar{display:flex; height:34px; border-radius:var(--r-s); overflow:hidden; margin:2px 0 14px}
+.sbar span{display:flex; align-items:center; justify-content:center; color:#fff;
+  font-size:11px; font-weight:600; font-family:'JetBrains Mono',monospace}
+
+/* ---- graph --------------------------------------------------------------- */
+.gtools{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px}
+.gtools button{font:inherit; font-size:11.5px; font-weight:500; padding:5px 12px;
+  border-radius:20px; border:1px solid var(--line); background:var(--card);
+  color:var(--mut); cursor:pointer}
+.gtools button:hover{color:var(--text); border-color:var(--line2)}
+.gtools button[aria-pressed="true"]{background:var(--orange); border-color:var(--orange);
+  color:#fff; font-weight:600}
+.gbox{border:1px solid var(--line); border-radius:var(--r-m); background:var(--inset); overflow:hidden}
+.gbox svg{display:block; width:100%; height:auto}
+.gcap{display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; font-size:11px; color:var(--dim)}
+.gcap i{font-style:normal; display:inline-flex; align-items:center; gap:6px}
+.gcap i:before{content:""; width:10px; height:10px; border-radius:50%;
+  background:var(--card); border:1.6px solid var(--line2)}
+.gcap i.on:before{background:var(--orange-soft); border-color:var(--orange)}
+
+svg .ed{stroke:var(--line2); stroke-width:1.2px; fill:none}
+svg .nd circle{fill:var(--card); stroke:var(--line2); stroke-width:1.6px}
+svg .nd text{fill:var(--dim); font-size:10.5px; font-weight:500;
+  font-family:'Inter',system-ui,sans-serif}
+svg .el{fill:var(--dim); font-size:9.5px; opacity:0;
+  font-family:'Inter',system-ui,sans-serif}
+svg .on .ed{stroke:var(--orange); stroke-width:2.2px}
+svg .on circle{fill:var(--orange-soft); stroke:var(--orange); stroke-width:2.2px}
+svg .on text{fill:var(--text); font-weight:600; font-size:11px}
+svg .on .el{fill:var(--orange-hi); opacity:1; font-weight:600; font-size:10px}
+svg g{transition:opacity .18s ease}
+</style></head><body>
+<div class="top"><span class="wordmark">Context<b>Weave</b></span>
+<span class="crumb">Report specification</span><span class="sp"></span><a class="btn" href="Report_Specification_rep_proj_360.html">Project 360</a><a class="btn" href="Report_Specification_rep_pis_calendar.html">Rate-Case Filing Calendar</a><a class="btn" href="Scenario_Specification.html">Scenario specification</a></div>
+<div class="wrap">
+<div class="hd"><h2>Variance Report — specification</h2><p class="sub">Where spend is running against the calendarised plan, down to the contract line item and the message that explains it</p><dl class="facts"><div><dt>As of</dt><dd>2026-03-29</dd></div><div><dt>Sources</dt><dd>2 datasets · 1 connector</dd></div><div><dt>Graph</dt><dd>g_capital_programs v1</dd></div><div><dt>Pack</dt><dd>capital-projects 1.3.0</dd></div><div><dt>Scope</dt><dd>60 of 60 projects</dd></div><div><dt>Version</dt><dd>v13 · published</dd></div></dl></div><div style="margin:16px 0 14px"><div class="note plain"><span>◈</span><div class="body"><b>This is the whole report</b>Not one number is stored in it. The figures you see exist only because this spec was executed against the fact set under your predicate — which is why the same spec can show sixty rows to one person and none to another without being two reports.</div></div></div><section id="s1"><h3>How this report was resolved</h3><p class="lede">The spec, the sources it binds, and what the agent settled before any figure existed.</p><div class="sectLbl" style="margin-top:0">What the agent resolved</div><div class="agentStep done"><div class="gl">✓</div><div><div class="as-b">Grounded the question on g_capital_programs v1</div><div class="as-d">Under the capital-projects pack 1.3.0 with the water-wastewater overlay 0.9.1. An ungrounded prompt is refused here rather than turned into a spec whose blocks resolve to nothing.</div></div></div><div class="agentStep done"><div class="gl">✓</div><div><div class="as-b">Resolved all 6 measures from the glossary</div><div class="as-d">Every figure names a measure the graph defines — CAPEX-GL-001, CAPEX-GL-005, CAPEX-GL-014, CAPEX-GL-015 and others — at a stated coordinate. A measure the graph does not define cannot enter a spec, which is how two reports are stopped from disagreeing about &quot;variance&quot;.</div></div></div><div class="agentStep done"><div class="gl">✓</div><div><div class="as-b">Bound the sources</div><div class="as-d">Derived from the datasets those measures declare, not listed beside the spec: 2 datasets through 1 connector.</div></div></div><div class="agentStep done"><div class="gl">✓</div><div><div class="as-b">Stated what a reader must not conclude</div><div class="as-d">Show where spend is running behind the calendarised plan, and refuse to let underspend read as good news.</div></div></div><div class="agentStep run"><div class="gl">!</div><div><div class="as-b">Locked the as-of to the stalest input — 2026-03-29</div><div class="as-d">plan dataset is 2 days behind. Fresher datasets contributed and cannot lift the floor, so every figure on the page is computed at that date rather than at today&#x27;s.</div></div></div><div class="mini" style="margin-top:11px">Each step names what it resolved from the glossary, not what it guessed. Nothing on this page was typed by a person.</div><div class="sectLbl">Sources this spec binds</div><div class="srcRow"><span class="srcTag BQ">plan<span style="margin-left:4px;opacity:.72">2 days</span></span><span class="srcTag BQ">gl<span style="margin-left:4px;opacity:.72">today</span></span></div><div class="sectLbl">The specification</div><div class="specBox">{
+  <span class="k">"report"</span>: <span class="s">"rep_q_variance"</span>,
+  <span class="k">"name"</span>: <span class="s">"Variance Report"</span>,
+  <span class="k">"status"</span>: <span class="s">"published"</span>,
+  <span class="k">"version"</span>: <span class="n">13</span>,
+  <span class="k">"grain"</span>: <span class="s">"region × execCategory"</span>,
+  <span class="k">"objective"</span>: <span class="s">"Show where spend is running behind the calendarised plan, and refuse to let underspend read as good news."</span>,
+  <span class="k">"binding"</span>: {
+    <span class="k">"graph"</span>: <span class="s">"g_capital_programs"</span>,
+    <span class="k">"graphVersion"</span>: <span class="s">"v1"</span>,
+    <span class="k">"pack"</span>: <span class="s">"capital-projects"</span>,
+    <span class="k">"packVersion"</span>: <span class="s">"1.3.0"</span>,
+    <span class="k">"overlay"</span>: <span class="s">"water-wastewater"</span>,
+    <span class="k">"overlayVersion"</span>: <span class="s">"0.9.1"</span>
+  },
+  <span class="k">"scope"</span>: {
+    <span class="k">"id"</span>: <span class="s">"sc_author_all"</span>,
+    <span class="k">"label"</span>: <span class="s">"Author -- all data"</span>,
+    <span class="k">"grain"</span>: <span class="s">"detail"</span>,
+    <span class="k">"predicate"</span>: <span class="s">"TRUE"</span>
+  },
+  <span class="k">"measures"</span>: [
+    &quot;m_actual&quot;,
+    &quot;m_budget&quot;,
+    &quot;m_pct_complete&quot;,
+    &quot;m_plan_period&quot;,
+    &quot;m_variance_period&quot;,
+    &quot;m_variance_pct&quot;
+  ],
+  <span class="k">"blocks"</span>: [
+    {
+      <span class="k">"type"</span>: <span class="s">"figRow"</span>,
+      <span class="k">"label"</span>: <span class="s">"Q1 2026"</span>
+    },
+    {
+      <span class="k">"type"</span>: <span class="s">"bar"</span>,
+      <span class="k">"label"</span>: <span class="s">"Actual spend against the calendarised plan, by category"</span>
+    },
+    {
+      <span class="k">"type"</span>: <span class="s">"heatmap"</span>,
+      <span class="k">"label"</span>: <span class="s">"Variance by region and category"</span>
+    },
+    {
+      <span class="k">"type"</span>: <span class="s">"bubble"</span>,
+      <span class="k">"label"</span>: <span class="s">"Period variance against physical progress"</span>
+    },
+    {
+      <span class="k">"type"</span>: <span class="s">"varianceRows"</span>,
+      <span class="k">"label"</span>: <span class="s">"Period variance by project"</span>
+    },
+    {
+      <span class="k">"type"</span>: <span class="s">"reasonMix"</span>,
+      <span class="k">"label"</span>: <span class="s">"What the variance was for, across the portfolio"</span>
+    },
+    {
+      <span class="k">"type"</span>: <span class="s">"narrative"</span>,
+      <span class="k">"label"</span>: <span class="s">"Why underspend is not good news"</span>
+    },
+    {
+      <span class="k">"type"</span>: <span class="s">"ask"</span>,
+      <span class="k">"label"</span>: <span class="s">"Ask about this report"</span>
+    }
+  ]
+}</div><div class="mini" style="margin-top:11px">Version 13 · author Sofia Lindqvist · approved by Dana Whitfield</div></section><section id="s3"><h3>The graph these numbers were read through</h3><p class="lede">3 of 19 entities and 2 of 24 relationships were used to build this report. Pick a measure to see the ones it walked.</p><div class="gtools"><button type="button" aria-pressed="true">This report</button><button type="button" aria-pressed="false" data-ids="e_project e_budget x_proj_budget">Period Plan</button><button type="button" aria-pressed="false" data-ids="e_project e_actual x_proj_actual">Actual Spend</button><button type="button" aria-pressed="false" data-ids="e_project e_actual e_budget x_proj_actual x_proj_budget">Plan-to-Actual Variance</button><button type="button" aria-pressed="false" data-ids="e_project e_actual e_budget x_proj_actual x_proj_budget">Variance %</button><button type="button" aria-pressed="false" data-ids="e_project">Percent Complete</button><button type="button" aria-pressed="false" data-ids="e_project e_budget x_proj_budget">Approved Budget</button></div><div class="gbox" id="graph"><svg viewBox="44 16 872 629" xmlns="http://www.w3.org/2000/svg" role="img"><g data-id="x_prog_proj" data-walked="0"><path class="ed" d="M120 60 Q260 85 400 60"></path><text class="el" x="260" y="69" text-anchor="middle">contains</text></g><g data-id="x_proj_bu" data-walked="0"><path class="ed" d="M400 60 Q252 80 120 150"></path><text class="el" x="256" y="89" text-anchor="middle">rolls up to</text></g><g data-id="x_bu_region" data-walked="0"><path class="ed" d="M120 150 Q112 195 120 240"></path><text class="el" x="116" y="191" text-anchor="middle">belongs to</text></g><g data-id="x_proj_state" data-walked="0"><path class="ed" d="M400 60 Q314 137 260 240"></path><text class="el" x="322" y="140" text-anchor="middle">located in</text></g><g data-id="x_state_region" data-walked="0"><path class="ed" d="M260 240 Q190 227 120 240"></path><text class="el" x="190" y="230" text-anchor="middle">filed under</text></g><g data-id="x_region_juris" data-walked="0"><path class="ed" d="M120 240 Q112 285 120 330"></path><text class="el" x="116" y="281" text-anchor="middle">regulated by</text></g><g data-id="x_proj_class" data-walked="0"><path class="ed" d="M400 60 Q322 92 260 150"></path><text class="el" x="326" y="95" text-anchor="middle">classified as</text></g><g data-id="x_proj_budget" data-walked="1"><path class="ed" d="M400 60 Q480 74 560 60"></path><text class="el" x="480" y="63" text-anchor="middle">budgeted at</text></g><g data-id="x_proj_forecast" data-walked="0"><path class="ed" d="M400 60 Q472 119 560 150"></path><text class="el" x="476" y="108" text-anchor="middle">forecast at</text></g><g data-id="x_fc_vintage" data-walked="0"><path class="ed" d="M560 150 Q630 163 700 150"></path><text class="el" x="630" y="152" text-anchor="middle">issued at vintage</text></g><g data-id="x_proj_planver" data-walked="0"><path class="ed" d="M400 60 Q537 172 700 240"></path><text class="el" x="543" y="157" text-anchor="middle">has plan versions</text></g><g data-id="x_planver_auth" data-walked="0"><path class="ed" d="M700 240 Q770 253 840 240"></path><text class="el" x="770" y="242" text-anchor="middle">resolves to</text></g><g data-id="x_proj_auth" data-walked="0"><path class="ed" d="M400 60 Q610 174 840 240"></path><text class="el" x="615" y="158" text-anchor="middle">authorized at</text></g><g data-id="x_proj_actual" data-walked="1"><path class="ed" d="M400 60 Q458 208 560 330"></path><text class="el" x="469" y="198" text-anchor="middle">spent</text></g><g data-id="x_po_proj" data-walked="0"><path class="ed" d="M400 420 Q426 240 400 60"></path><text class="el" x="413" y="236" text-anchor="middle">committed to</text></g><g data-id="x_po_vendor" data-walked="0"><path class="ed" d="M400 420 Q323 447 260 500"></path><text class="el" x="326" y="450" text-anchor="middle">issued to</text></g><g data-id="x_po_actual" data-walked="0"><path class="ed" d="M400 420 Q488 389 560 330"></path><text class="el" x="484" y="378" text-anchor="middle">invoiced as</text></g><g data-id="x_po_contract" data-walked="0"><path class="ed" d="M400 420 Q386 500 400 580"></path><text class="el" x="393" y="496" text-anchor="middle">issued under</text></g><g data-id="x_co_contract" data-walked="0"><path class="ed" d="M560 580 Q480 566 400 580"></path><text class="el" x="480" y="569" text-anchor="middle">amends</text></g><g data-id="x_co_proj" data-walked="0"><path class="ed" d="M560 580 Q505 312 400 60"></path><text class="el" x="492" y="312" text-anchor="middle">changes</text></g><g data-id="x_actual_cwip" data-walked="0"><path class="ed" d="M560 330 Q630 343 700 330"></path><text class="el" x="630" y="332" text-anchor="middle">accumulates into</text></g><g data-id="x_cwip_asset" data-walked="0"><path class="ed" d="M700 330 Q762 388 840 420"></path><text class="el" x="766" y="377" text-anchor="middle">transfers to</text></g><g data-id="x_asset_juris" data-walked="0"><path class="ed" d="M840 420 Q483 349 120 330"></path><text class="el" x="482" y="358" text-anchor="middle">recovered through</text></g><g data-id="x_proj_cwip" data-walked="0"><path class="ed" d="M400 60 Q533 214 700 330"></path><text class="el" x="541" y="201" text-anchor="middle">holds</text></g><g class="nd" data-id="e_program" data-walked="0"><circle cx="120" cy="60" r="9"></circle><text x="120" y="81" text-anchor="middle">Programme</text></g><g class="nd" data-id="e_project" data-walked="1"><circle cx="400" cy="60" r="9"></circle><text x="400" y="81" text-anchor="middle">Project</text></g><g class="nd" data-id="e_bu" data-walked="0"><circle cx="120" cy="150" r="9"></circle><text x="120" y="171" text-anchor="middle">Business Unit</text></g><g class="nd" data-id="e_region" data-walked="0"><circle cx="120" cy="240" r="9"></circle><text x="120" y="261" text-anchor="middle">Region</text></g><g class="nd" data-id="e_state" data-walked="0"><circle cx="260" cy="240" r="9"></circle><text x="260" y="261" text-anchor="middle">State</text></g><g class="nd" data-id="e_juris" data-walked="0"><circle cx="120" cy="330" r="9"></circle><text x="120" y="351" text-anchor="middle">Rate Jurisdiction</text></g><g class="nd" data-id="e_class" data-walked="0"><circle cx="260" cy="150" r="9"></circle><text x="260" y="171" text-anchor="middle">Classification</text></g><g class="nd" data-id="e_vintage" data-walked="0"><circle cx="700" cy="150" r="9"></circle><text x="700" y="171" text-anchor="middle">Plan Vintage</text></g><g class="nd" data-id="e_budget" data-walked="1"><circle cx="560" cy="60" r="9"></circle><text x="560" y="81" text-anchor="middle">Approved Budget</text></g><g class="nd" data-id="e_forecast" data-walked="0"><circle cx="560" cy="150" r="9"></circle><text x="560" y="171" text-anchor="middle">Forecast</text></g><g class="nd" data-id="e_plan_ver" data-walked="0"><circle cx="700" cy="240" r="9"></circle><text x="700" y="261" text-anchor="middle">Budget Plan Version</text></g><g class="nd" data-id="e_auth" data-walked="0"><circle cx="840" cy="240" r="9"></circle><text x="840" y="261" text-anchor="middle">Authorized Amount</text></g><g class="nd" data-id="e_actual" data-walked="1"><circle cx="560" cy="330" r="9"></circle><text x="560" y="351" text-anchor="middle">Actual Spend</text></g><g class="nd" data-id="e_po" data-walked="0"><circle cx="400" cy="420" r="9"></circle><text x="400" y="441" text-anchor="middle">Purchase Order</text></g><g class="nd" data-id="e_vendor" data-walked="0"><circle cx="260" cy="500" r="9"></circle><text x="260" y="521" text-anchor="middle">Vendor</text></g><g class="nd" data-id="e_contract" data-walked="0"><circle cx="400" cy="580" r="9"></circle><text x="400" y="601" text-anchor="middle">Contract</text></g><g class="nd" data-id="e_change_order" data-walked="0"><circle cx="560" cy="580" r="9"></circle><text x="560" y="601" text-anchor="middle">Change Order</text></g><g class="nd" data-id="e_cwip" data-walked="0"><circle cx="700" cy="330" r="9"></circle><text x="700" y="351" text-anchor="middle">CWIP Balance</text></g><g class="nd" data-id="e_asset" data-walked="0"><circle cx="840" cy="420" r="9"></circle><text x="840" y="441" text-anchor="middle">In-Service Asset</text></g></svg></div><div class="gcap"><i class="on">used</i><i>in the graph, not used here</i></div><ul class="pl" style="margin-top:14px"><li><b>Weakest relationship in the model: Purchase Order issued under Contract</b><span> — Read from documents, confidence 0.84. The least certain step on this path is “issued under” at 84%, because it is read out of document text rather than out of a table. Nothing that depends on it can be more certain than that.</span></li></ul></section><section id="s4"><h3>Where each number comes from</h3><p class="lede">Every measure and every dimension this report and its charts use: the business name, what it is, the BigQuery dataset, table and column it is read from, the graph relationships crossed to reach it, and what was done to it before it reached the screen.</p><div class="sectLbl" style="margin-top:0">Measures</div><table class="tbl"><thead><tr><th>Business name</th><th>What it is</th><th>Dataset · table · column</th><th>Graph relationships crossed</th><th>How it combines</th></tr></thead><tbody><tr><td><b>Actual Spend</b><span class="d mono">CAPEX-GL-005</span><span class="d">on Q1 2026 and 2 more</span></td><td>Posted general-ledger spend.<span class="d">Posted lines only. Open commitments are a separate measure.</span></td><td><span class="srcTag BQ">BQ</span> gl<div style="margin-top:4px"><span class="mono">gl_actual_summary.actual_amount</span></div><span class="d">one project × period</span></td><td>Project<span class="arrow">— spent →</span>Actual Spend</td><td>Added up</td></tr><tr><td><b>Approved Budget</b><span class="d mono">CAPEX-GL-001</span><span class="d">on Period variance against physical progress</span></td><td>Board-approved plan amount for the period.<span class="d">Read at the approved version, not the working version.</span></td><td><span class="srcTag BQ">BQ</span> plan<div style="margin-top:4px"><span class="mono">plan_project_budget.approved_amount</span></div><span class="d">one project × fiscal year × budget version</span></td><td>Project<span class="arrow">— budgeted at →</span>Approved Budget</td><td>Added up</td></tr><tr><td><b>Percent Complete</b><span class="d mono">CAPEX-GL-019</span><span class="d">on Period variance against physical progress and 1 more</span></td><td>Physical completion. Weighted by budget when aggregated.<span class="d">Physical completion as reported by the project, not cost incurred.</span></td><td><span class="srcTag BQ">BQ</span> plan<div style="margin-top:4px"><span class="mono">plan_project_forecast.percent_complete</span></div><span class="d">one project × fiscal year × forecast vintage</span></td><td>Project · read directly, no relationship crossed</td><td>Weighted average, recomputed at the grain shown</td></tr><tr><td><b>Period Plan</b><span class="d mono">CAPEX-GL-014</span><span class="d">on Q1 2026 and 1 more</span></td><td>Calendarised plan for a single period.<span class="d">The January calendarisation of the annual budget, not the annual figure divided by twelve.</span></td><td><span class="srcTag BQ">BQ</span> plan<div style="margin-top:4px"><span class="mono">plan_calendarization.calendarized_amount</span></div><span class="d">one project × month</span></td><td>Project<span class="arrow">— budgeted at →</span>Approved Budget</td><td>Added up</td></tr><tr><td><b>Plan-to-Actual Variance</b><span class="d mono">CAPEX-GL-015</span><span class="d">on Q1 2026 and 3 more</span></td><td>Actual less period plan.<span class="d">Crosses two datasets. Negative is underspend.</span></td><td><span class="srcTag BQ">BQ</span> gl<div style="margin-top:4px"><span class="mono">gl.gl_actual_summary.actual_amount</span><br><span class="mono">plan.plan_calendarization.calendarized_amount</span></div><span class="d">one project × period</span></td><td>Project<span class="arrow">— spent →</span>Actual Spend<br>Project<span class="arrow">— budgeted at →</span>Approved Budget</td><td>Added up<span class="d">Computed: posted spend less the calendarised plan for the same period</span></td></tr><tr><td><b>Variance %</b><span class="d mono">CAPEX-GL-016</span><span class="d">on Q1 2026</span></td><td>Plan-to-actual variance as a percentage of plan.<span class="d">Express plan-to-actual variance as a share of plan.</span></td><td><span class="srcTag BQ">BQ</span> gl<div style="margin-top:4px"><span class="mono">gl.gl_actual_summary.actual_amount</span><br><span class="mono">plan.plan_calendarization.calendarized_amount</span></div><span class="d">one project × period</span></td><td>Project<span class="arrow">— spent →</span>Actual Spend<br>Project<span class="arrow">— budgeted at →</span>Approved Budget</td><td>Ratio, recomputed at the grain shown<span class="d">Computed: plan-to-actual variance divided by the calendarised plan</span></td></tr></tbody></table><div class="sectLbl">Dimensions</div><table class="tbl"><thead><tr><th>Business name</th><th>What it is</th><th>Dataset · table · column</th><th>Graph relationships crossed</th><th>How it is used</th></tr></thead><tbody><tr><td><b>Execution Category</b><span class="d">on Actual spend against the calendarised plan, by category and 3 more</span></td><td>How the work is executed and funded — plant projects, network blankets, PFAS, lead, overhead.</td><td><span class="srcTag BQ">BQ</span> plan<div style="margin-top:4px"><span class="mono">vw_project_plan_capex.Budget Category</span></div></td><td>Project<span class="arrow">— classified as →</span>Classification</td><td>Splits every chart that shows where money went.</td></tr><tr><td><b>Programme</b><span class="d">on Variance by region and category</span></td><td>The named capital programme a project belongs to. A project can sit under one programme only.</td><td><span class="srcTag BQ">BQ</span> plan<div style="margin-top:4px"><span class="mono">vw_project_plan_capex.Program Affiliation</span></div></td><td>Programme<span class="arrow">— contains →</span>Project</td><td>Groups projects above the region cut.</td></tr><tr><td><b>Project</b><span class="d">on Period variance against physical progress and 1 more</span></td><td>The capital project, and the primary business key everything else joins on. Two code shapes are in use — discrete and blanket.</td><td><span class="srcTag BQ">BQ</span> plan<div style="margin-top:4px"><span class="mono">vw_project_plan_capex.Project Code</span></div></td><td>Held on vw_project_plan_capex · no relationship crossed</td><td>The row identity on every project-grain block.</td></tr><tr><td><b>Region</b><span class="d">on Period variance by project and 1 more</span></td><td>The five operating regions the portfolio reports through — CAS, EAS, LAK, NOR, SSD.</td><td><span class="srcTag BQ">BQ</span> plan<div style="margin-top:4px"><span class="mono">vw_project_plan_capex.Region</span></div></td><td>Project<span class="arrow">— rolls up to →</span>Business Unit<br>Business Unit<span class="arrow">— belongs to →</span>Region</td><td>Groups projects into rows. Reached through the business unit, not stored on the project.</td></tr><tr><td><b>Project Manager</b><span class="d">on Period variance by project</span></td><td>The named owner of the project. A person, so it is masked under every scope except the author&#x27;s.</td><td><span class="srcTag BQ">BQ</span> plan<div style="margin-top:4px"><span class="mono">vw_project_plan_capex.Project Manager</span></div></td><td>Held on vw_project_plan_capex · no relationship crossed</td><td>Shown on the project table where the scope admits it.</td></tr></tbody></table><div class="sectLbl">Applied to every figure above</div><ul class="pl"><li><b>Non-additive measures are recomputed at the grain on screen</b><span> — Percent Complete (weighted_avg) · Variance % (ratio) — computed from the summed components, never averaged up from the rows below. Those two numbers differ, and only the first one exists in the source.</span></li><li><b>As-of is the oldest contributing dataset, not the newest</b><span> — plan dataset (2 days old) sets the floor for all 2 datasets this report reads, and arrives through BigQuery.</span></li></ul></section></div><script>
+(function(){
+  var box=document.getElementById('graph'); if(!box) return;
+  var btns=[].slice.call(document.querySelectorAll('.gtools button'));
+  function apply(ids){
+    var keep=ids?ids.split(' '):null;
+    [].forEach.call(box.querySelectorAll('[data-id]'),function(el){
+      var on = keep ? keep.indexOf(el.getAttribute('data-id'))>-1
+                    : el.getAttribute('data-walked')==='1';
+      el.classList.toggle('on',on);
+    });
+  }
+  btns.forEach(function(b){
+    b.addEventListener('click',function(){
+      btns.forEach(function(o){o.setAttribute('aria-pressed',String(o===b))});
+      apply(b.getAttribute('data-ids'));
+    });
+  });
+  apply(null);
+})();
+</script></body></html>

@@ -1970,6 +1970,20 @@ ticking each as it completes, then the report opens. The run is the list's lengt
 a step lengthens it and no duration is typed into the component. A spine that is not the generator register
 states its scope line rather than a generator count, because `selectRows` never selected against it.
 
+**Unless the dataset ships the account itself — then the spec is framed instead.** CAPEX has one
+specification page per report in `frontend/src/Capex/Steps-building-report/`, pointed at by
+`reports.documents[].spec_file` (written by `npm run ingest:capex`, matched on the id **inside** the
+spec rather than its filename, refusing a document with no spec or a spec with no document), resolved
+by `reportDocuments.ts`'s fourth glob, handed to the prototype as URLs and framed by
+`BuildSpecDialog`. The five steps still run in front of it, held for `SPEC_RUN_MS` (**10s**) in
+*total* rather than `BUILD_STAGE_MS` each — a total, so adding a step shortens each row here where it
+lengthens the narrated build, and `specStepMs` divides one by the other. The frame itself has no timer:
+a document is paced by being read, so **Open the report** or Escape ends the wait and the draft is
+composed on the way out. It is keyed to `specFor`, the report
+the reader actually named, never `starter.id`: a typed question falls back to `STARTERS[0]`, and
+framing the first report's spec over a question nobody asked of it is a document asserting the wrong
+thing. A report with no spec narrates the five steps exactly as before.
+
 It is also one of the two stylesheets exempt from the `--sp-*` rule — the graph viewer's is the
 other, and `check-docs` holds the list at exactly those two vendored paths — and it carries a
 **do-not-hand-edit** rule, so anything this repo

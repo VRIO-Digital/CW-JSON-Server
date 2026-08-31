@@ -2049,6 +2049,52 @@ Four things were changed to make it a page instead of an app, and nothing else:
   There is no Cancel: nothing is in flight to cancel, and closing it would leave the run to finish
   behind it.
 
+  **And a dataset that ships the account of how a report is built frames that instead.** The five
+  steps are what this engine can say about composing a report in general; CAPEX ships a whole
+  **specification document per report** — `frontend/src/Capex/Steps-building-report/`, one page each
+  stating what the agent resolved, the measures it bound from the glossary, the sources those declare,
+  the spec itself and the blocks it names. Narrating five generic rows in front of a reader who could be
+  reading that is the transcription problem in miniature: a shorter, vaguer copy of something already
+  written down. So `BuildSpecDialog` frames the document where there is one, and a report with none
+  narrates exactly as before — which is what EPA gets, and what a fourth CAPEX report would get until
+  somebody wrote its spec, except that the ingest **refuses to write** rather than letting that happen
+  quietly.
+
+  **Framed rather than transcribed, resolved through the one lookup, pointed at from the data.**
+  `reports.documents[].spec_file` is the pointer, written by `npm run ingest:capex` — which matches a
+  spec to its report by **the id inside the spec's own block**, never by filename, and refuses both a
+  document with no spec and a spec naming no document. `reportDocuments.ts` grows a **fourth glob**
+  (`Steps-building-report/`) rather than a widened one, for the reason it has three: the folder is what
+  says which kind of document a file is. The host resolves the filename and hands the prototype URLs,
+  so the vendored folder keeps no second lookup — and absent the prop it is the standalone prototype it
+  was.
+
+  **The steps still run first, and they are the preamble rather than something the document replaces.**
+  Same list, same rows, held for `SPEC_RUN_MS` (**10s**) in *total* — so the narration is a real act
+  being described, which is why everything else here is paced, and then the frame opens. **The two
+  derivations are opposite on purpose**: `BUILD_STAGE_MS` is a pace, so adding a step makes the narrated
+  build *longer*; `SPEC_RUN_MS` is a total, so adding one makes each row on this branch *shorter*. What
+  ends this wait is a page to read rather than the report, so what a reader is owed is a wait that ends
+  when they expect it to, not five rows each legible for five seconds. `specStepMs` divides the one by
+  the other and no per-step number is written anywhere; `check-docs` reads both constants and fails on a
+  paragraph quoting a different figure for either.
+
+  **The frame itself has no timer, and that is not an oversight.** A document is paced by being read,
+  and a dialog that dismissed itself would take the page away mid-sentence. So the draft is composed on
+  the way out, and **Open the report** (or Escape) is what ends it — a backdrop click deliberately does
+  not, since the frame fills the dialog and a stray click past its edge would advance the flow under
+  somebody reading. The document's own top bar is hidden by a rule the frame **injects**, like every
+  other framed document here: its links point at sibling files by name, one of which this bundle does
+  not carry, and these are generated exports whose `_meta` forbids hand-editing.
+
+  **The spec is keyed to the report the reader named, never to `starter.id`.** A freely typed question
+  falls back to `STARTERS[0]` because that is the only spine this engine composes on, so keying off the
+  starter would frame the first report's specification — its version, its measures, its published state
+  — over a draft it does not describe. `specFor` is set where a report is really chosen (a starter card,
+  a row loaded from the Library) and cleared where none is. Comparing the prompt against `starter.q`
+  looks equivalent and is not: a governed row carries the *tenant's* question and the starter carries
+  the package's, so that test would lose the spec on Edit, which is the path this was asked for.
+
 **It is one of two stylesheets exempt from the `--sp-*` spacing rule**, and both are
 vendored. 173 spacing declarations on a 2px rhythm here, and the graph viewer's own in
 `src/graph-viewer/styles.css` — neither expressible on a 4px scale without redrawing

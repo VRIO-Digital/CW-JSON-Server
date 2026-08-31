@@ -4,6 +4,7 @@ import { assumptionsForStarter, freshAssumptions } from './lib/assumptions';
 import { instantiate, isMeasure, measures } from './lib/blocks';
 import { buildStages } from './lib/buildSteps';
 import { BuildRunDialog } from './components/BuildRunDialog';
+import { BuildSpecDialog } from './components/BuildSpecDialog';
 import {
   audienceLabel,
   fromGoverned,
@@ -222,6 +223,22 @@ const named = (n: number) => `${n} role${n === 1 ? '' : 's'}`;
 const READ_MS = 2_000;
 const BUILD_STAGE_MS = 5_000;
 
+/**
+ * How long the narration runs before a framed specification takes over.
+ *
+ * **The spec branch narrates the same steps first**, because the wait is real work being described and
+ * a document appearing the instant the button is pressed teaches that composing a report is free —
+ * which is the reason every other act in this app is paced. What differs is that the steps are the
+ * *preamble* here rather than the event: what ends this wait is a document to read, so the number that
+ * matters is how long the reader waits in total, not how long a row is legible for.
+ *
+ * **So it is a stated total and the pace is derived from it** — `SPEC_RUN_MS / steps` — which is the
+ * opposite derivation from `BUILD_STAGE_MS`, deliberately: adding a step there makes the run longer,
+ * and adding one here makes each row shorter. Neither number is written down twice, and `check-docs`
+ * reads both and fails on a doc quoting a different one.
+ */
+const SPEC_RUN_MS = 10_000;
+
 /** Which step is running, so the pane can disable its button and say so. */
 export type Working = 'read' | 'build' | null;
 
@@ -234,6 +251,7 @@ export default function App({
   reportActions,
   hostOpenableIds,
   onOpenPublished,
+  buildSpecs,
 }: {
   identity?: ReportsIdentity;
   graphOptions?: GraphOption[];
@@ -288,6 +306,22 @@ export default function App({
    * path resolves for its rows too.
    */
   onOpenPublished?: (reportId: string) => void;
+  /**
+   * Report id -> the URL of the specification document that says how that report is built.
+   *
+   * **A dataset can ship the account of its own report instead of having one narrated.** Building here
+   * is `buildStages()` said a step at a time, each naming the value it used, because for the primary
+   * dataset that is all there is to say. A dataset that ships a rendered report ships a specification
+   * beside it — what the agent resolved, the measures it bound, the sources behind them — and five
+   * generic steps in front of a reader who could be reading that is a summary standing in front of the
+   * real account. So the spec is framed in place of them, and a report with none narrates as before.
+   *
+   * **URLs rather than filenames, because turning one into the other is the host's job.** One
+   * `import.meta.glob` in `src/data/reportDocuments.ts` is the single copy of every framed document's
+   * address; a second lookup in this folder would be a second answer to where a file is. Absent the
+   * prop this folder is the standalone prototype it was.
+   */
+  buildSpecs?: Record<string, string>;
 } = {}) {
   const toast = useToast();
 
@@ -413,7 +447,9 @@ export default function App({
    * fires into a dead component.
    */
   const runStages = useCallback(
-    (count: number, done: () => void) => {
+    /* The pace is a parameter with the narrated build's own value as its default, so the spec branch
+       can hold the same list for a different total without a second copy of this walk. */
+    (count: number, done: () => void, stepMs: number = BUILD_STAGE_MS) => {
       clearRun();
       setWorking('build');
       setBuildStep(0);
@@ -428,12 +464,37 @@ export default function App({
           setWorking(null);
           setBuildStep(0);
           done();
-        }, BUILD_STAGE_MS);
+        }, stepMs);
       };
       step(0);
     },
     [clearRun],
   );
+
+  /**
+   * Which report the draft on screen *is*, for the purpose of showing its specification — and `null`
+   * where the answer is "none of them".
+   *
+   * It is not `starter.id`, and the difference is the whole reason this exists. A freely typed question
+   * falls back to `STARTERS[0]` because that is the only spine this engine composes on, so keying the
+   * spec off the starter would frame the first report's specification over a question nobody asked of
+   * it — a document making a specific claim (its version, its measures, its published state) about a
+   * draft it does not describe. So it is set only where the reader really chose that report: a starter
+   * card, or a row opened from the Library.
+   */
+  const [specFor, setSpecFor] = useState<string | null>(null);
+
+  /**
+   * The spec document to frame instead of narrating the steps, or `undefined` for the narrated build.
+   *
+   * Two conditions, both required: the reader is building a named report, and the host resolved a
+   * document for it. A dataset that ships no specs never has one, which is why nothing about the
+   * narrated build changed.
+   */
+  const specUrl = specFor ? buildSpecs?.[specFor] : undefined;
+
+  /** The spec dialog's own URL while it is open — set by `build()`, cleared when the draft opens. */
+  const [specOpen, setSpecOpen] = useState<string | null>(null);
 
   /** Set when the open report already exists in the library. */
   const [openedId, setOpenedId] = useState<string | null>(null);
@@ -470,6 +531,15 @@ export default function App({
     [assumptions.graph.label, assumptions.measure.label, rows.length, starter, filters.length],
   );
 
+  /**
+   * How long each narrated row holds on the spec branch: the stated total over the steps there are.
+   *
+   * Derived rather than typed, so the run is `SPEC_RUN_MS` however many steps `buildStages()` returns —
+   * a number in the component would be a second answer to how long a reader waits, and it is the
+   * duration `check-docs` holds the docs to.
+   */
+  const specStepMs = Math.round(SPEC_RUN_MS / Math.max(1, buildSteps.length));
+
   const opened = openedId ? library.find((r) => r.id === openedId) : undefined;
 
   const REPORT_TABS: TabDef<ReportTab>[] = [
@@ -498,6 +568,8 @@ export default function App({
 
   function authorNew() {
     setStarter(STARTERS[0]);
+    /* A blank question names no report yet — the fallback starter is the engine's spine, not a choice. */
+    setSpecFor(null);
     setPrompt('');
     setError(false);
     setAssumptions(freshAssumptions(assumptions.graph));
@@ -512,6 +584,8 @@ export default function App({
   function pickStarter(index: number) {
     const s = STARTERS[index];
     setStarter(s);
+    /* Chosen by name, so its specification describes what is about to be built. */
+    setSpecFor(s.id);
     setPrompt(s.q);
     setError(false);
     setAssumptions(assumptionsForStarter(s, assumptions.graph));
@@ -534,6 +608,8 @@ export default function App({
     setError(false);
     if (p !== starter.q) {
       setStarter(STARTERS[0]);
+      /* Their own question, on the fallback spine: whatever spec was in play no longer describes it. */
+      setSpecFor(null);
       setAssumptions(freshAssumptions(assumptions.graph));
       setFilters([]);
       setOpenedId(null);
@@ -554,6 +630,26 @@ export default function App({
   function build() {
     setEditMode(false);
     setSelected(null);
+    /*
+     * **Where the dataset ships a specification for this report, the wait ends in that document.**
+     * The narrated steps are what this engine can say about composing a report in general; a spec is
+     * the dataset's own account of how *that* report is built, and a summary left standing in front
+     * of the real account is the one thing this section refuses everywhere else.
+     *
+     * **The steps still run — they are the preamble, not something the document replaces.** Same
+     * list, same rows, held for `SPEC_RUN_MS` in total rather than `BUILD_STAGE_MS` each: what comes
+     * next is a page to read rather than the report, so what the reader is owed is a wait that ends
+     * when they expect it to, not five rows each legible for five seconds. Then the frame opens, and
+     * it has no timer of its own — a document is paced by being read, and a dialog that dismissed
+     * itself would take the page away mid-sentence.
+     *
+     * The draft is composed on the way *out* of that dialog — see `openFromSpec` — so nothing is
+     * half-built behind it, which is the same reason the narrated branch instantiates at the end.
+     */
+    if (specUrl) {
+      runStages(buildSteps.length, () => setSpecOpen(specUrl), specStepMs);
+      return;
+    }
     /* The blocks are instantiated at the end, not per step: a report half-composed behind a
        dialog would open onto whichever steps had run if anything ever interrupted it. */
     runStages(buildSteps.length, () => {
@@ -562,11 +658,22 @@ export default function App({
     });
   }
 
+  /** The spec has been read; compose the draft and open it — the same two acts the narrated run ends on. */
+  function openFromSpec() {
+    setSpecOpen(null);
+    setBlocks(starter.blocks.map(instantiate));
+    go(3);
+  }
+
   /* ----------------------------------------------------------- library flow */
 
   /** Loads a saved report back into the authoring state. */
   function load(r: SavedReport) {
     setStarter(STARTERS.find((s) => s.id === r.starterId) ?? STARTERS[0]);
+    /* A row carries the report it is, so its spec describes it however its question was worded —
+       which is why this is state rather than a comparison of the prompt against `starter.q`: a
+       governed row's question is the tenant's, and the starter's is the package's. */
+    setSpecFor(r.starterId);
     setPrompt(r.question);
     setAssumptions(JSON.parse(JSON.stringify(r.assumptions)));
     setFilters(r.filters.map((f) => ({ ...f })));
@@ -931,6 +1038,14 @@ export default function App({
         */}
       {working === 'build' && (
         <BuildRunDialog stages={buildSteps} current={buildStep} reportTitle={reportTitle} />
+      )}
+
+      {/*
+        * One or the other, never both: `build()` takes the spec branch or the narrated one, so
+        * `working` is never `'build'` while a spec is open.
+        */}
+      {specOpen && (
+        <BuildSpecDialog url={specOpen} reportTitle={reportTitle} onOpen={openFromSpec} />
       )}
 
       {/*
