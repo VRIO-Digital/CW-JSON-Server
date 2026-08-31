@@ -1,8 +1,8 @@
-import { LoadingOutlined } from '@ant-design/icons'
-import { Alert, Button, Modal, Space, Spin, Typography } from 'antd'
+import { Alert, Button, Modal, Space, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import type { AskGraph } from '../../api/client'
-import { ANALYSING_MS, analysingStepMs, runtimeBuildCopy } from '../../data/runtimeBuild'
+import { analysingStepMs, runtimeBuildCopy } from '../../data/runtimeBuild'
+import StageList from '../sources/StageList'
 import { SP } from '../../theme'
 
 /*
@@ -23,10 +23,17 @@ import { SP } from '../../theme'
  * **And it holds rather than narrating.** The pipeline's stage-and-step readout is the Build
  * tab's, where a reader is watching a run they can act on; here the build publishes itself
  * and nothing on this dialog is pressable while it does, so a counter would be detail with no
- * decision attached. What stands in its place is `runtimeBuildCopy.analysing` — three phrases
- * over `ANALYSING_MS`, in order, the last one standing until the hold ends, because a line
- * held motionless for ten seconds reads as a page that stopped and a phrase coming back round
- * would say the work had restarted.
+ * decision attached. What stands in its place is `runtimeBuildCopy.analysing` drawn as
+ * **`StageList`'s rows** — every one listed from the first frame, `pending` until it runs, so
+ * the list says how much is left rather than growing a line at a time. That is
+ * `BuildRunDialog`'s rule and it is the same rule here, and reusing the component rather than
+ * drawing three rows inline is what stops a second set of marks and states drifting from the
+ * first. **The rows are a client-side hold**, the exception `StageList`'s own note names: they
+ * are not calls, so nothing returns to advance them.
+ *
+ * **The list stays after the hold ends**, all three ticked. It is the body of the dialog —
+ * clearing it on completion is how this dialog came to render a button over blank space once
+ * already.
  *
  * **And it explains nothing while it holds.** The paragraph that opened it — why a runtime
  * source leaves a reviewer nothing to settle — was the reasoning behind a routing decision the
@@ -49,14 +56,14 @@ import { SP } from '../../theme'
 
 export function RuntimeBuildPanel({
   ready,
-  phrase,
+  stage,
   published,
   checking,
 }: {
-  /** The hold has elapsed — before it, the panel says only what it is doing. */
+  /** The hold has elapsed — every row is ticked and the act is offered. */
   ready: boolean
-  /** The phrase standing right now, from `runtimeBuildCopy.analysing`. */
-  phrase: string
+  /** The row running now. Past `analysing.length` every row is done. */
+  stage: number
   /** The row `GET /ask` came back with, or null when the list does not hold this graph. */
   published: AskGraph | null
   /** Ask is being re-read — the build has landed and the publication is not confirmed yet. */
@@ -64,18 +71,18 @@ export function RuntimeBuildPanel({
 }) {
   return (
     <div className="rb">
-      {!ready || checking ? (
-        <Typography.Paragraph type="secondary">
-          <Spin indicator={<LoadingOutlined spin />} size="small" /> {phrase}
-        </Typography.Paragraph>
-      ) : published ? (
+      <StageList stages={runtimeBuildCopy.analysing} stage={stage} />
+
+      {!ready || checking ? null : published ? (
         <Alert
           type="success"
           showIcon
           title="Live in Ask"
           description={runtimeBuildCopy.published(published.version, published.publishedBy)}
         />
-      ) : null}
+      ) : (
+        <Typography.Paragraph type="secondary">{runtimeBuildCopy.done}</Typography.Paragraph>
+      )}
     </div>
   )
 }
@@ -98,28 +105,30 @@ export default function RuntimeBuildDialog({
    * timer must not fire into a panel the reader has already dismissed, which is the rule
    * the What-if lens's two client-side steps keep for the same reason.
    */
-  const [held, setHeld] = useState(false)
-  const [phraseAt, setPhraseAt] = useState(0)
+  const [stage, setStage] = useState(0)
   useEffect(() => {
     if (!open) {
-      setHeld(false)
-      setPhraseAt(0)
+      setStage(0)
       return
     }
-    /* The phrases advance and stop at the last one; the hold is what ends the wait, so a
-       phrase is never shown twice. */
-    const tick = window.setInterval(
-      () =>
-        setPhraseAt((at) => Math.min(at + 1, runtimeBuildCopy.analysing.length - 1)),
-      analysingStepMs(),
-    )
-    const end = window.setTimeout(() => setHeld(true), ANALYSING_MS)
-    return () => {
-      window.clearInterval(tick)
-      window.clearTimeout(end)
-    }
+    /*
+     * One cursor, and the hold ends when it passes the last row. A separate "held" flag
+     * beside it would be two counters over one wait — the fault `BUILD_STEPS`' single cursor
+     * exists to avoid, whose symptom is a row still spinning under a finished list.
+     */
+    const tick = window.setInterval(() => {
+      setStage((at) => {
+        if (at >= runtimeBuildCopy.analysing.length) {
+          window.clearInterval(tick)
+          return at
+        }
+        return at + 1
+      })
+    }, analysingStepMs())
+    return () => window.clearInterval(tick)
   }, [open])
 
+  const held = stage >= runtimeBuildCopy.analysing.length
   const done = held && !checking
 
   return (
@@ -146,7 +155,7 @@ export default function RuntimeBuildDialog({
     >
       <RuntimeBuildPanel
         ready={held}
-        phrase={runtimeBuildCopy.analysing[phraseAt]}
+        stage={stage}
         published={published}
         checking={checking}
       />

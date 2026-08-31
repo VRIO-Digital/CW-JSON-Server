@@ -2469,53 +2469,78 @@ expect(
   'the panel renders the row GET /ask returned, and its words come from src/data/',
 )
 /*
- * **And it says nothing where Ask did not list it.** The warning that stood there named Graph
- * Studio → Versions — the screen this hand-off exists to skip — for what is the *expected*
- * state in the first seconds after a build lands. Silence is the half that is true either
- * way; the guarantee the alert carried is untouched, because it was never the warning that
- * held it: the success branch is still gated on the row `GET /ask` returned, so a publish
- * this dialog has not seen still cannot be claimed.
+ * **And where Ask did not list it, the dialog reports the analysis rather than the
+ * publication.** The warning that stood there named Graph Studio → Versions — the screen this
+ * hand-off exists to skip — for what is the *expected* state in the first seconds after a
+ * build lands. What replaced it is `done`, which is true either way because it claims only
+ * this dialog's own act; the guarantee the alert looked like it was carrying is untouched,
+ * because the warning never carried it — the success branch is still gated on the row `GET
+ * /ask` returned, so a publish this dialog has not seen still cannot be claimed.
+ *
+ * **Something has to stand there**, which is why this is two halves rather than an absence
+ * claim: dropping the warning left the branch rendering `null`, and a dialog showing a button
+ * over blank space reads as one that failed to load its own contents. Reported from use.
  */
 expect(
-  'and says nothing rather than sending the reader back to the studio',
-  /\) : null\}/.test(runtimeDialogCode) &&
+  'and reports its own act rather than sending the reader back to the studio',
+  /runtimeBuildCopy\.done/.test(runtimeDialogCode) &&
+    /done: 'Analysis complete\.',/.test(codeOnly(runtimeBuildSrc)) &&
+    !/\) : null\}/.test(runtimeDialogCode) &&
     !/notPublished/.test(runtimeDialogCode) &&
     !/notPublished/.test(runtimeBuildSrc) &&
     !/type="warning"/.test(runtimeDialogCode),
-  'no not-published branch on the dialog or in its copy',
+  'the branch states the analysis, never a publication, and is never empty',
 )
 /*
  * **The hand-off holds; it does not narrate a pipeline.** The stage-and-step readout belongs
  * to the Build tab, where a reader is watching a run they can act on — here the build
  * publishes itself and nothing on the dialog is pressable while it does, so a counter would
- * be detail with no decision attached. One sentence for `ANALYSING_MS`, stated beside the
- * words it paces so the component prints no duration of its own — the rule `BuildRunDialog`
- * keeps with `BUILD_STAGE_MS`.
+ * be detail with no decision attached. The hold is `ANALYSING_MS`, stated beside the words it
+ * paces and reaching the dialog only through `analysingStepMs()` — so the component names
+ * neither the total nor a step, the rule `BuildRunDialog` keeps with `BUILD_STAGE_MS`.
  */
 expect(
   'and the hand-off holds on a constant it does not restate',
   /export const ANALYSING_MS = 10_000/.test(codeOnly(runtimeBuildSrc)) &&
-    /setTimeout\(\(\) => setHeld\(true\), ANALYSING_MS\)/.test(runtimeDialogCode) &&
+    !/ANALYSING_MS/.test(runtimeDialogCode) &&
     /runtimeBuildCopy\.analysing/.test(runtimeDialogCode) &&
     !/\d+\s?s\b/.test(runtimeDialogCode) &&
     !/run\.stepMs/.test(runtimeDialogCode),
   'ANALYSING_MS is stated once and the dialog prints no duration of its own',
 )
 /*
- * The phrases are the copy's and they are cut out of the one hold rather than each carrying a
+ * The steps are the copy's and they are cut out of the one hold rather than each carrying a
  * pace: adding one re-cuts the same ten seconds instead of making the reader wait longer,
  * which is the derivation `specStepMs` makes and for the same reason — what ends this wait is
- * the act it offers. They stop at the last one, because a phrase coming back round would say
- * the work had restarted.
+ * the act it offers.
  */
 expect(
-  'and the phrases are the copy’s, cut out of that one hold',
+  'and the steps are the copy’s, cut out of that one hold',
   /analysing: \[/.test(codeOnly(runtimeBuildSrc)) &&
     /ANALYSING_MS \/ runtimeBuildCopy\.analysing\.length/.test(codeOnly(runtimeBuildSrc)) &&
     /analysingStepMs\(\)/.test(runtimeDialogCode) &&
-    /Math\.min\(at \+ 1, runtimeBuildCopy\.analysing\.length - 1\)/.test(runtimeDialogCode) &&
     !/Analysing|Preparing|Finishing/.test(runtimeDialogCode),
-  'analysing is a list in src/data/, and no phrase is written into the component',
+  'analysing is a list in src/data/, and no step is written into the component',
+)
+/*
+ * **They are rows, drawn by `StageList`, and every one is listed from the first frame.** A
+ * list that grew a line at a time hides how much is left, which is the only thing this panel
+ * is for — `BuildRunDialog`'s rule, and the same rule here. Reusing the component rather than
+ * drawing three rows inline is what stops a second set of marks and states drifting from the
+ * consent panel's.
+ *
+ * **And one cursor drives it**, the way `BUILD_STEPS` has one: a `held` flag kept beside the
+ * index is two counters over one wait, whose symptom is a row still spinning under a finished
+ * list. The gate on the act is derived from the cursor rather than tracked alongside it.
+ */
+expect(
+  'and the hand-off draws them as rows, from one cursor',
+  /<StageList stages=\{runtimeBuildCopy\.analysing\} stage=\{stage\} \/>/.test(
+    runtimeDialogCode,
+  ) &&
+    /const held = stage >= runtimeBuildCopy\.analysing\.length/.test(runtimeDialogCode) &&
+    !/setHeld/.test(runtimeDialogCode),
+  'StageList renders the list and `held` is derived from the one cursor',
 )
 /*
  * And it offers Ask alone. The studio button beside it pointed back at the screen this

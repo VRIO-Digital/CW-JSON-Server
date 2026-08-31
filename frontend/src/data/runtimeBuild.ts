@@ -61,6 +61,16 @@ export const runtimeBuildCopy = {
     'Finishing the analysis…',
   ] as const,
 
+  /**
+   * What stands where the hold has ended and `GET /ask` did not list the graph.
+   *
+   * It reports the **analysis**, which is this dialog's own act and true either way, and says
+   * nothing about publication — the claim only the row Ask returned can carry. Something has
+   * to stand here: dropping the not-published warning left the branch empty, and a dialog
+   * showing a button over blank space reads as one that failed to load its own contents.
+   */
+  done: 'Analysis complete.',
+
   /** Only ever said once Ask has been re-read and really lists the graph. */
   published: (version: string, by: string | null) =>
     `Published as ${version}${by ? `, credited to ${by}` : ''}. Ask lists it now.`,

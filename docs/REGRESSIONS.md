@@ -4944,3 +4944,28 @@ mis-implemented — the gap rule, the gate and the empty state were each correct
 they were written against, and a source kind that derives nothing on purpose made one of them
 answer a question it was never asked. And *a claim that a screen states something must be
 checked against the screen*: this one was documented in two files and rendered by neither.
+
+## Removing a branch's only content leaves the branch (2026-08-31)
+
+**Symptom.** The wizard's runtime hand-off dialog rendered as a close button and *Ask a
+question* over blank space. Nothing errored, nothing was missing from the payload, and the
+button worked — the modal simply had no body.
+
+**Cause.** The dialog's not-published branch was one `Alert`, so removing that alert on request
+left `published ? (…) : null`. That branch is not an edge case: it is the state for every
+second between a build landing and `GET /ask` coming back holding the graph, and it is the
+*permanent* state for a graph the server did not publish. So the common path rendered nothing.
+
+The same removal had already been made safely twice on this dialog — the stage/step readout and
+the explanatory paragraph both went, and both were *additions* to a body that still had
+content. This one was the body.
+
+**Guard.** The claim about that branch is two halves rather than an absence: it states the
+analysis and never a publication (`runtimeBuildCopy.done`, `!/notPublished/`, `!/type="warning"/`)
+**and** it is never `null`. Break-tested by restoring the `null`.
+
+**The general shape.** *An absence claim cannot see an empty render* — the same reasoning as
+"assert in the same run that the render had its data", and as pairing every absence claim with a
+presence claim over the same region. Removing what a branch said is only safe while something
+else in it is still saying something; when it was the only thing, the removal is a rewrite. Ask
+what the branch renders **after** the deletion, not just what it no longer renders.
