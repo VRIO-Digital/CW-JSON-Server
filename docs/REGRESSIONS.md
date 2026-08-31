@@ -4944,3 +4944,49 @@ mis-implemented — the gap rule, the gate and the empty state were each correct
 they were written against, and a source kind that derives nothing on purpose made one of them
 answer a question it was never asked. And *a claim that a screen states something must be
 checked against the screen*: this one was documented in two files and rendered by neither.
+
+---
+
+## One world, two stores — the factor that had to be shared
+
+**What happened.** The rendered reports were rescaled by 100 and looked right. Then the same request
+arrived for Ask, and Ask turned out to quote the *same* figures: its *Actuals YTD (to May)* is, to the
+cent, the Variance Report's `periodActual`. Two independent rescales would have made one dataset give two
+answers to one question — invisible from either surface alone, visible the moment anybody compared them.
+
+**And the factor had to change, not just spread.** Ask quotes what the reports never print: a fiscal
+year's `$12.03b` working budget, the programme's `$113.08b` authorized total. At ÷100 the answer a reader
+opens on still read in billions. ÷250 is what brings the figures met in an *answer* inside the range,
+which is why the report tiles are now further inside it than they need to be ($20.0M where $50.0M was the
+target). Everything under $50M would have taken ÷3,046, and there a filter-rehabilitation programme costs
+$19K: the sixty projects are 1.54% of the programme, so a programme-level ceiling shrinks each of them
+thirty times further. The trade was put to the author with the numbers rather than guessed at.
+
+**Fix.** `backend/scripts/capex-scale.js` — the factor, the range, and the prose formatter, declared once
+and imported by both writers. `check-docs` asserts the identity **across the two stores** (Ask's figure
+equals the document's, to the dollar) rather than asserting two constants match, and that neither script
+keeps a copy of the number.
+
+**Where the scaling lives matters as much as what it does.** For Ask it happens *inside*
+`ingest-queries.js`, the writer of `ask_answers`, not in a pass afterwards: a second writer of one subtree
+is a bug this repo has already had, and worse, a re-ingest rebuilds those answers from the query set and
+would silently restore the billions. Scaling on the way in means the document is right after any run in
+any order.
+
+**Two bugs worth recording.**
+
+- **`/\$\d/` does not match a negative figure.** The cheap "does this string hold money" test skipped
+  every `$-130,939,591`, so a variance column kept its original value while the two columns it is the
+  difference of were scaled: the row read `$11,882,077` and `$11,358,319` against a variance of
+  `$-130,939,591`. **Nothing caught it** — the billions sweep only refuses figures over 1e9, and a
+  hundred-and-thirty-million figure is not a billion. It was spotted by eye in a printed table row. The
+  guard is now `/\$\s?-?\d/`, and the lesson is that a sweep with a floor is not a substitute for a
+  predicate that is right.
+- **`text.replace(/\.?0+$/, '')` turns `$200K` into `$2K`.** Trimming a trailing `.0` off a formatted
+  figure also trims the zeros out of `200`. It only shows on values that are exact multiples of ten in
+  their own unit, which is a minority of cases and therefore easy to ship. Trim only after a decimal
+  point.
+
+**The general shape.** *A figure quoted by two surfaces is one fact with two homes, and the arithmetic
+that produces it belongs in neither of them.* Move it to a module both read, and assert the two agree
+where a reader could compare them — never that two declarations happen to say the same thing.

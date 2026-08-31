@@ -39,6 +39,8 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 
+import { CEILING, FACTOR, scaleMoneyText } from './capex-scale.js'
+
 const DIR = new URL('../../frontend/src/Capex/Report/', import.meta.url)
 const FILES = [
   'R1_variance_report.html',
@@ -46,16 +48,14 @@ const FILES = [
   'R3_rate_case_filing_calendar.html',
 ]
 
-/**
- * The divisor, and the figure that decides it.
+/*
+ * The divisor and the range come from `capex-scale.js`, and deliberately not from here.
  *
- * 100 is pinned to the Variance Report's own tiles: `periodPlan` is $5.00B, so this lands it at exactly
- * $50.0M — the top of the range asked for — and every other figure the three reports print falls below.
- * `CEILING` is what the verification below and `check-docs` both re-check, so moving one without the
- * other fails rather than drifting.
+ * `ask_answers` quotes these same figures — Ask's *Actuals YTD (to May)* is, to the cent, the Variance
+ * Report's `periodActual` — so the documents and the recorded answers have to be scaled by one number.
+ * Two constants would be two answers to what a figure is, which is the fault this whole section is
+ * careful about; `check-docs` asserts neither script keeps a copy of it.
  */
-const FACTOR = 100
-const CEILING = 50_000_000
 
 /* ------------------------------------------------------------------ what counts as money */
 
@@ -173,37 +173,49 @@ const MONEY_FIELDS = new Set([
  * leaving one figure a hundred times the rest.
  */
 const PROSE = [
-  { path: 'portfolio.coverageNote', from: '$113.1B', to: '$1.13B', n: 1 },
-  { path: 'portfolio.vintageWalkNote', from: '$4.22B', to: '$42.2M', n: 1 },
-  { path: 'portfolio.megaProjectBasis', from: '$50M', to: '$500K', n: 1 },
-  { path: 'projects[0].scope[3][1][0]', from: '$15,900,000', to: '$159,000', n: 1 },
-  { path: 'projects[0].scope[7][1][0]', from: '$1.6 million', to: '$16,000', n: 1 },
-  { path: 'projects[4].scope[2][1][2]', from: '$762,000', to: '$7,620', n: 1 },
-  { path: 'annotations[2].body', from: '$1,207,400', to: '$12,074', n: 1 },
-  { path: 'annotations[3].body', from: '$399,000', to: '$3,990', n: 1 },
-  { path: 'annotations[4].body', from: '$1.58M', to: '$15,800', n: 2 },
-  { path: 'annotations[5].body', from: '$847,600', to: '$8,476', n: 1 },
-  { path: 'correspondence[27].excerpt', from: '$840,000', to: '$8,400', n: 1 },
+  { path: 'portfolio.coverageNote', from: '$113.1B', n: 1 },
+  { path: 'portfolio.vintageWalkNote', from: '$4.22B', n: 1 },
+  { path: 'portfolio.megaProjectBasis', from: '$50M', n: 1 },
+  { path: 'projects[0].scope[3][1][0]', from: '$15,900,000', n: 1 },
+  { path: 'projects[0].scope[7][1][0]', from: '$1.6 million', n: 1 },
+  { path: 'projects[4].scope[2][1][2]', from: '$762,000', n: 1 },
+  { path: 'annotations[2].body', from: '$1,207,400', n: 1 },
+  { path: 'annotations[3].body', from: '$399,000', n: 1 },
+  { path: 'annotations[4].body', from: '$1.58M', n: 2 },
+  { path: 'annotations[5].body', from: '$847,600', n: 1 },
+  { path: 'correspondence[27].excerpt', from: '$840,000', n: 1 },
   /* A letter's own figure, and the extraction's account of what it read there — the same number said
      twice on purpose, so both have to move or the extraction contradicts its source. */
-  { path: 'correspondence[29].excerpt', from: '$9,400', to: '$94', n: 1 },
-  { path: 'correspondence[29].extraction.statement', from: '$9,400', to: '$94', n: 1 },
-  { path: 'correspondence[30].excerpt', from: '$4.8M', to: '$48,000', n: 1 },
-  { path: 'correspondence[30].extraction.statement', from: '$4.8M', to: '$48,000', n: 1 },
-  { path: 'correspondence[30].extraction.sourceNote', from: '$4.8M', to: '$48,000', n: 1 },
+  { path: 'correspondence[29].excerpt', from: '$9,400', n: 1 },
+  { path: 'correspondence[29].extraction.statement', from: '$9,400', n: 1 },
+  { path: 'correspondence[30].excerpt', from: '$4.8M', n: 1 },
+  { path: 'correspondence[30].extraction.statement', from: '$4.8M', n: 1 },
+  { path: 'correspondence[30].extraction.sourceNote', from: '$4.8M', n: 1 },
   /* The change order that moved a contract, quoted in its own reason as well as in the project's
      scope note above. */
-  { path: 'changeOrders[19].reason', from: '$762,000', to: '$7,620', n: 1 },
+  { path: 'changeOrders[19].reason', from: '$762,000', n: 1 },
   /* An illustration rather than a figure out of the data — and it keeps its point only if both halves
      move, since what it illustrates is the ratio between them. */
-  { path: 'reports[1].spec.blocks[2].note', from: '$40k', to: '$400', n: 1 },
-  { path: 'reports[1].spec.blocks[2].note', from: '$40M', to: '$400K', n: 1 },
-  { path: 'reports[3].subtitle', from: '$1M', to: '$10K', n: 1 },
-  { path: 'reports[3].spec.blocks[0].figures[0].note', from: '$1M', to: '$10K', n: 1 },
-  { path: 'reports[3].spec.filters[0].why', from: '$1,000,000', to: '$10,000', n: 1 },
-  { path: 'reports[3].spec.blocks[0].figures[3].label', from: '$15M', to: '$150K', n: 1 },
-  { path: 'reports[3].spec.blocks[2].rank.why', from: '$1.2M', to: '$12K', n: 1 },
-]
+  { path: 'reports[1].spec.blocks[2].note', from: '$40k', n: 1 },
+  { path: 'reports[1].spec.blocks[2].note', from: '$40M', n: 1 },
+  { path: 'reports[3].subtitle', from: '$1M', n: 1 },
+  { path: 'reports[3].spec.blocks[0].figures[0].note', from: '$1M', n: 1 },
+  { path: 'reports[3].spec.filters[0].why', from: '$1,000,000', n: 1 },
+  { path: 'reports[3].spec.blocks[0].figures[3].label', from: '$15M', n: 1 },
+  { path: 'reports[3].spec.blocks[2].rank.why', from: '$1.2M', n: 1 },
+].map((p) => {
+  /*
+   * **The replacement is derived, never typed.** These were written out by hand at first, and every one
+   * of them was a figure that would have to be recomputed by a person the next time the factor moved —
+   * which happened on the first change, when Ask turned out to quote the same world and the divisor went
+   * from 100 to 250. A table of hand-scaled strings is twenty-four chances to be wrong about arithmetic
+   * nothing checks; `scaleMoneyText` is the same formatter the recorded answers go through, so the
+   * documents and Ask cannot come to write one figure two ways.
+   */
+  const to = scaleMoneyText(p.from)
+  if (to === null) throw new Error(`PROSE names "${p.from}", which is not a money run this can scale`)
+  return { ...p, to }
+})
 
 /** Money-shaped runs deliberately left alone, so the sweep can refuse everything it does not know. */
 const PROSE_KEEP = new Set(['1.1 million'])

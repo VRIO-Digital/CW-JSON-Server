@@ -20361,7 +20361,7 @@
     },
     {
       "question_id": "hq38",
-      "text": "What is the smallest set of projects we could defer to take $500 million out of FY26?",
+      "text": "What is the smallest set of projects we could defer to take $0 out of FY26?",
       "domains": [
         "capital-projects",
         "water-wastewater"
@@ -20587,6 +20587,281 @@
   ],
   "graph_use_cases": [
     {
+      "use_case_id": "uc-version-of-the-question-having-changed-epbcs-version-distinct-values-mtp2026-v3-3-9-6-6-9-3-working-mthf221b6",
+      "name": "version of the question having changed. epbcs.version distinct values: MTP2026_v3, 3+9, 6+6, 9+3, Working",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "asdsadsadsadsadas",
+      "personas": [
+        {
+          "name": "Project Manager",
+          "description": "Asks where a single project stands against its own plan.",
+          "source": "ai"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Open Commitments",
+          "description": "Open purchase-order value not yet invoiced.",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "gmail:adaeze.okonjo@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Which projects are trending to overrun, and by how much?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "How far has the approved baseline moved since original approval, and who approved each move?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 6,
+      "updated_at": "2026-08-31T15:53:33.871Z"
+    },
+    {
+      "use_case_id": "uc_capital_programs",
+      "name": "Capital Programme Intelligence",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "One model over the budget cube, the ledger, the approval chain and the project attribute registry, so a capital question resolves once and states which vintage, which basis and which scope it was answered at.",
+      "personas": [
+        {
+          "name": "Finance Executive",
+          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
+          "source": "ai"
+        },
+        {
+          "name": "Programme Director",
+          "description": "Asks which projects are slipping and what that does to the programme envelope.",
+          "source": "ai"
+        },
+        {
+          "name": "Procurement Lead",
+          "description": "Asks what has been awarded, what has changed since award, and to whom.",
+          "source": "ai"
+        },
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai"
+        },
+        {
+          "name": "Project Manager",
+          "description": "Asks where a single project stands against its own plan.",
+          "source": "ai"
+        },
+        {
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
+          "source": "ai"
+        },
+        {
+          "name": "Compliance Lead",
+          "description": "Asks what the regulatory drivers oblige and what they cost.",
+          "source": "ai"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Approved Budget",
+          "description": "Board-approved plan amount for the period.",
+          "source": "ai"
+        },
+        {
+          "name": "Forecast",
+          "description": "Re-forecast of period spend at a declared cut of the fiscal year.",
+          "source": "ai"
+        },
+        {
+          "name": "Forward Plan (Mid-Term)",
+          "description": "The adopted mid-term plan for a declared forward horizon, by planning round.",
+          "source": "ai"
+        },
+        {
+          "name": "Authorized Amount",
+          "description": "Currently approved amount from the plan-version chain.",
+          "source": "ai"
+        },
+        {
+          "name": "Open Commitments",
+          "description": "Open purchase-order value not yet invoiced.",
+          "source": "ai"
+        },
+        {
+          "name": "Actual Spend",
+          "description": "Posted general-ledger spend.",
+          "source": "ai"
+        },
+        {
+          "name": "CWIP Balance",
+          "description": "Construction work in progress at period end.",
+          "source": "ai"
+        },
+        {
+          "name": "Capitalized",
+          "description": "Cost transferred from CWIP to fixed assets.",
+          "source": "ai"
+        },
+        {
+          "name": "Rate Base Additions",
+          "description": "Capitalised cost admitted to rate base.",
+          "source": "ai"
+        },
+        {
+          "name": "Estimate at Completion",
+          "description": "Total expected cost at project completion.",
+          "source": "ai"
+        },
+        {
+          "name": "EAC Variance",
+          "description": "EAC less approved budget, at project completion.",
+          "source": "ai"
+        },
+        {
+          "name": "EAC Variance %",
+          "description": "EAC variance as a percentage of approved budget.",
+          "source": "ai"
+        },
+        {
+          "name": "Budget-to-Forecast Gap",
+          "description": "Forecast less approved budget over the five-year plan horizon.",
+          "source": "ai"
+        },
+        {
+          "name": "Gap %",
+          "description": "Gap as a percentage of approved budget.",
+          "source": "ai"
+        },
+        {
+          "name": "Period Plan",
+          "description": "Calendarised plan for a single period.",
+          "source": "ai"
+        },
+        {
+          "name": "Plan-to-Actual Variance",
+          "description": "Actual less period plan.",
+          "source": "ai"
+        },
+        {
+          "name": "Variance %",
+          "description": "Plan-to-actual variance as a percentage of plan.",
+          "source": "ai"
+        },
+        {
+          "name": "Contingency Allocated",
+          "description": "Contingency held against a project at authorisation.",
+          "source": "ai"
+        },
+        {
+          "name": "Contingency Drawn",
+          "description": "Contingency consumed to date.",
+          "source": "ai"
+        },
+        {
+          "name": "Percent Complete",
+          "description": "Physical completion. Weighted by budget when aggregated.",
+          "source": "ai"
+        },
+        {
+          "name": "Schedule Variance",
+          "description": "Forecast in-service date less planned in-service date.",
+          "source": "ai"
+        },
+        {
+          "name": "CWIP Age",
+          "description": "Days a CWIP balance has been held without transfer to assets.",
+          "source": "ai"
+        },
+        {
+          "name": "Capex Placed in Service",
+          "description": "Capex scheduled or recorded as placed in service in the window.",
+          "source": "ai"
+        }
+      ],
+      "sources": [],
+      "hero_questions": [
+        {
+          "text": "Are we going to spend the authorized capital this fiscal year?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "What is the burn rate against current approved, by programme?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Where is forecast diverging from budget, by programme and category?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "How far has the approved baseline moved since original approval, and who approved each move?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Which projects show no variance against current approved but material variance against original?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "How does the forward plan compare with the sum of project-life forecasts?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Which projects are trending to overrun, and by how much?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "What in-service value lands inside the current test year?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "What capital is at risk of missing the filing window, and what is it worth?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "For every figure on this page, tell me where it came from and how old it is.",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "What happens to FY26 if we defer the second half of the programme by two quarters?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Is our PFAS spend on track against the compliance deadline?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Are we replacing lead service lines fast enough to meet the mandated rate?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 6,
+      "updated_at": "2026-03-31T00:00:00.000Z"
+    },
+    {
       "use_case_id": "uc-hazrodous-mtha2r2g9",
       "name": "hazrodous",
       "status": "committed",
@@ -20685,7 +20960,7 @@
       ],
       "gap_decisions": [],
       "step": 6,
-      "updated_at": "2026-08-31T13:47:45.508Z"
+      "updated_at": "2026-08-31T15:48:56.723Z"
     }
   ],
   "graph_use_case_templates": [
@@ -20761,34 +21036,34 @@
       "kind": "hero",
       "question": "Are we going to spend the authorized capital this fiscal year?",
       "hero_ref": "hq1",
-      "summary": "No. The Working Forecast lands FY26 at $11.39b against a $12.03b working budget — $639.7m short.",
+      "summary": "No. The Working Forecast lands FY26 at $45.6m against a $48.1m working budget — $2.56m short.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "Read against the **Working Forecast** — the live, continuously-updated cut, not a forecast round — FY26 lands at **$11,388,920,975** against a working budget of **$12,028,661,826**. That is an underspend of **$639,740,851**, or 5.3% of the year.\n\nThe **3+9 forecast round** — the only formal round that ran this year — says **$12,021,894,758**, essentially on budget. The two disagree by **$632,973,783** because the 3+9 was cut in March and the working forecast has absorbed two months of actuals since. Which number you quote depends on whether you are reporting to a forecast round or to today."
+          "markdown": "Read against the **Working Forecast** — the live, continuously-updated cut, not a forecast round — FY26 lands at **$45,555,684** against a working budget of **$48,114,647**. That is an underspend of **$2,558,963**, or 5.3% of the year.\n\nThe **3+9 forecast round** — the only formal round that ran this year — says **$48,087,579**, essentially on budget. The two disagree by **$2,531,895** because the 3+9 was cut in March and the working forecast has absorbed two months of actuals since. Which number you quote depends on whether you are reporting to a forecast round or to today."
         },
         {
           "type": "metric",
           "items": [
             {
               "label": "Working budget FY26",
-              "value": 12028661825.91995,
+              "value": 48114647,
               "unit": "USD"
             },
             {
               "label": "Working Forecast FY26",
-              "value": 11388920975.29996,
+              "value": 45555684,
               "unit": "USD",
               "flag": "risk"
             },
             {
               "label": "3+9 Forecast FY26",
-              "value": 12021894758.429995,
+              "value": 48087579,
               "unit": "USD"
             },
             {
               "label": "Actuals YTD (to May)",
-              "value": 4405667595.539995,
+              "value": 17622670,
               "unit": "USD"
             }
           ]
@@ -20800,51 +21075,51 @@
           "data": [
             {
               "label": "Jan",
-              "value": 888521215.07
+              "value": 3554084.86
             },
             {
               "label": "Feb",
-              "value": 881358368.16
+              "value": 3525433.47
             },
             {
               "label": "Mar",
-              "value": 870837308.91
+              "value": 3483349.24
             },
             {
               "label": "Apr",
-              "value": 883541443.17
+              "value": 3534165.77
             },
             {
               "label": "May",
-              "value": 881409260.23
+              "value": 3525637.04
             },
             {
               "label": "Jun",
-              "value": 999751232.52
+              "value": 3999004.93
             },
             {
               "label": "Jul",
-              "value": 990472185.23
+              "value": 3961888.74
             },
             {
               "label": "Aug",
-              "value": 991879552.67
+              "value": 3967518.21
             },
             {
               "label": "Sep",
-              "value": 1001040199.65
+              "value": 4004160.8
             },
             {
               "label": "Oct",
-              "value": 998283379.71
+              "value": 3993133.52
             },
             {
               "label": "Nov",
-              "value": 993432500.41
+              "value": 3973730
             },
             {
               "label": "Dec",
-              "value": 1008394329.57
+              "value": 4033577.32
             }
           ],
           "x_label": "Month",
@@ -20863,39 +21138,39 @@
           "rows": [
             [
               "Eastmoor Region",
-              "$2,970,519,265",
-              "$2,839,579,675",
-              "$-130,939,591"
+              "$11,882,077",
+              "$11,358,319",
+              "$-523,758"
             ],
             [
               "Cascadia Region",
-              "$2,949,024,017",
-              "$2,767,174,421",
-              "$-181,849,596"
+              "$11,796,096",
+              "$11,068,698",
+              "$-727,398"
             ],
             [
               "Northvale Region",
-              "$2,966,972,171",
-              "$2,805,702,056",
-              "$-161,270,115"
+              "$11,867,889",
+              "$11,222,808",
+              "$-645,080"
             ],
             [
               "Lakeshore Region",
-              "$2,960,685,387",
-              "$2,807,089,768",
-              "$-153,595,619"
+              "$11,842,742",
+              "$11,228,359",
+              "$-614,382"
             ],
             [
               "Shared Services Division",
-              "$181,460,986",
-              "$169,375,055",
-              "$-12,085,931"
+              "$725,844",
+              "$677,500",
+              "$-48,344"
             ]
           ]
         },
         {
           "type": "text",
-          "markdown": "Every region forecasts under budget, so this is not one region's problem. Actuals to May are **$4,405,667,596** against a phased budget of **$4,996,377,631** — already **$590,710,035** behind at the five-month mark, which is where the full-year shortfall comes from."
+          "markdown": "Every region forecasts under budget, so this is not one region's problem. Actuals to May are **$17,622,670** against a phased budget of **$19,985,511** — already **$2,362,840** behind at the five-month mark, which is where the full-year shortfall comes from."
         }
       ],
       "evidence": [
@@ -20959,18 +21234,18 @@
       "kind": "standard",
       "question": "Where is authorized capital stalling — which stage of the chain is it stuck at?",
       "hero_ref": "hq2",
-      "summary": "The chain breaks at commitment. Authorization is $113.08b, actuals are $24.01b, and the commitment stage between them is not in the connected data.",
+      "summary": "The chain breaks at commitment. Authorization is $452m, actuals are $96m, and the commitment stage between them is not in the connected data.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "The capital chain runs **Budget → Authorization → Commitment → Actual → CWIP → Capitalized**. Two of those six stages are present in the connected sources.\n\nAuthorization is **$113,075,048,000** across 4,500 projects (Active Budget Plan, `northline_epbcs.plan`). Actual cost inception-to-date is **$24,010,050,019** (`northline_psoft.gl`). Between them sits the commitment stage — purchase orders and contract obligations — and **there is no connected source for it**. `northline_psoft.appr` carries approval workflow, not commitment value.\n\nSo the honest answer is that 21.2% of authorized capital has reached actuals, and the remaining 78.8% is either committed or uncommitted — and this data cannot tell you which."
+          "markdown": "The capital chain runs **Budget → Authorization → Commitment → Actual → CWIP → Capitalized**. Two of those six stages are present in the connected sources.\n\nAuthorization is **$452,300,192** across 4,500 projects (Active Budget Plan, `northline_epbcs.plan`). Actual cost inception-to-date is **$96,040,200** (`northline_psoft.gl`). Between them sits the commitment stage — purchase orders and contract obligations — and **there is no connected source for it**. `northline_psoft.appr` carries approval workflow, not commitment value.\n\nSo the honest answer is that 21.2% of authorized capital has reached actuals, and the remaining 78.8% is either committed or uncommitted — and this data cannot tell you which."
         },
         {
           "type": "metric",
           "items": [
             {
               "label": "Authorized (active plan)",
-              "value": 113075048000,
+              "value": 452300192,
               "unit": "USD"
             },
             {
@@ -20980,7 +21255,7 @@
             },
             {
               "label": "Actual cost (ITD)",
-              "value": 24010050019.069984,
+              "value": 96040200,
               "unit": "USD"
             },
             {
@@ -20997,11 +21272,11 @@
           "data": [
             {
               "label": "Budget (working)",
-              "value": 152290832124.53
+              "value": 609163328.5
             },
             {
               "label": "Authorization (active plan)",
-              "value": 113075048000
+              "value": 452300192
             },
             {
               "label": "Commitment",
@@ -21009,7 +21284,7 @@
             },
             {
               "label": "Actual (ITD)",
-              "value": 24010050019.07
+              "value": 96040200.08
             },
             {
               "label": "CWIP",
@@ -21094,7 +21369,7 @@
       "blocks": [
         {
           "type": "text",
-          "markdown": "This needs contracted commitment (K-07), and there is no source for it in the connected set. The four BigQuery datasets carry plan, general-ledger actuals, approval workflow and project attributes; none of them carries purchase-order or contract-obligation value.\n\n**Uncommitted is not the same as unspent.** I can tell you that **$7,622,994,230** of the FY26 working budget is unspent as of 2026-05-31 (FY26 actuals close at May). I cannot tell you how much of that is already under contract, and reporting the unspent figure as though it were the uncommitted figure would overstate your procurement runway by whatever is already committed.\n\nThere is a related figure in the data — 207 budget lines flagged **Unencumbered**, carrying $10,477,911,371. That flag sits at business unit × budget category grain, not project grain, and it is a plan attribute rather than a commitment reading. It answers a different question (K-31) and must not be aggregated with project-grain figures."
+          "markdown": "This needs contracted commitment (K-07), and there is no source for it in the connected set. The four BigQuery datasets carry plan, general-ledger actuals, approval workflow and project attributes; none of them carries purchase-order or contract-obligation value.\n\n**Uncommitted is not the same as unspent.** I can tell you that **$30,491,977** of the FY26 working budget is unspent as of 2026-05-31 (FY26 actuals close at May). I cannot tell you how much of that is already under contract, and reporting the unspent figure as though it were the uncommitted figure would overstate your procurement runway by whatever is already committed.\n\nThere is a related figure in the data — 207 budget lines flagged **Unencumbered**, carrying $41,911,645. That flag sits at business unit × budget category grain, not project grain, and it is a plan attribute rather than a commitment reading. It answers a different question (K-31) and must not be aggregated with project-grain figures."
         }
       ],
       "evidence": [
@@ -21129,7 +21404,7 @@
       "blocks": [
         {
           "type": "text",
-          "markdown": "Testing FY26 actuals = 0 where FY26 working budget > 0 returns **0 projects**. Every project carrying an FY26 budget in this data has recorded at least some FY26 cost.\n\nThat result deserves suspicion rather than comfort. A real portfolio of 4,500 projects almost always has a stalled tail, and its absence here is a property of the fixture, not a finding about Northline.\n\nThe adjacent condition is real and larger: **732 projects In Planning** hold **$16,104,068,000** of active plan and **zero** inception-to-date actuals. Those are not stalled — they have not started, and they carry no FY26 working budget, so they do not meet the test above."
+          "markdown": "Testing FY26 actuals = 0 where FY26 working budget > 0 returns **0 projects**. Every project carrying an FY26 budget in this data has recorded at least some FY26 cost.\n\nThat result deserves suspicion rather than comfort. A real portfolio of 4,500 projects almost always has a stalled tail, and its absence here is a property of the fixture, not a finding about Northline.\n\nThe adjacent condition is real and larger: **732 projects In Planning** hold **$64,416,272** of active plan and **zero** inception-to-date actuals. Those are not stalled — they have not started, and they carry no FY26 working budget, so they do not meet the test above."
         },
         {
           "type": "metric",
@@ -21146,12 +21421,12 @@
             },
             {
               "label": "Their active plan",
-              "value": 16104068000,
+              "value": 64416272,
               "unit": "USD"
             },
             {
               "label": "Their working budget",
-              "value": 26848828331.51001,
+              "value": 107395313,
               "unit": "USD"
             }
           ]
@@ -21170,21 +21445,21 @@
             [
               "In Delivery",
               "2,778",
-              "$66,550,729,000",
-              "$22,940,298,440",
+              "$266,202,916",
+              "$91,761,194",
               "34.5%"
             ],
             [
               "In Development",
               "990",
-              "$30,420,251,000",
-              "$1,069,751,579",
+              "$121,681,004",
+              "$4,279,006",
               "3.5%"
             ],
             [
               "In Planning",
               "732",
-              "$16,104,068,000",
+              "$64,416,272",
               "$0",
               "0.0%"
             ]
@@ -21255,7 +21530,7 @@
       "blocks": [
         {
           "type": "text",
-          "markdown": "Portfolio burn is **21.2%** — $24,010,050,019 of actuals against $113,075,048,000 of active plan.\n\nThat figure is the **ratio of the sums**, not the mean of the project ratios. The mean of the 4,193 individual project ratios is **21.6%** — close here, but the two are different measurements and only the first one answers this question. The mean of ratios weights a $400k blanket the same as a $60m treatment plant."
+          "markdown": "Portfolio burn is **21.2%** — $96,040,200 of actuals against $452,300,192 of active plan.\n\nThat figure is the **ratio of the sums**, not the mean of the project ratios. The mean of the 4,193 individual project ratios is **21.6%** — close here, but the two are different measurements and only the first one answers this question. The mean of ratios weights a $1.6k blanket the same as a $240k treatment plant."
         },
         {
           "type": "metric",
@@ -21272,12 +21547,12 @@
             },
             {
               "label": "ITD actuals",
-              "value": 24010050019.069984,
+              "value": 96040200,
               "unit": "USD"
             },
             {
               "label": "Active plan",
-              "value": 113075048000,
+              "value": 452300192,
               "unit": "USD"
             }
           ]
@@ -21318,22 +21593,22 @@
             [
               "No program affiliation",
               "3,308",
-              "$18,173,433,819",
-              "$82,822,493,000",
+              "$72,693,735",
+              "$331,289,972",
               "21.9%"
             ],
             [
               "Federal PFAS Program",
               "749",
-              "$3,045,223,539",
-              "$23,058,985,000",
+              "$12,180,894",
+              "$92,235,940",
               "13.2%"
             ],
             [
               "Lead Program",
               "443",
-              "$2,791,392,661",
-              "$7,193,570,000",
+              "$11,165,571",
+              "$28,774,280",
               "38.8%"
             ]
           ]
@@ -21405,33 +21680,33 @@
       "kind": "standard",
       "question": "If spend continues at the current rate, where does the year land?",
       "hero_ref": "hq6",
-      "summary": "A straight run-rate extrapolation lands FY26 at $10.57b — $815.3m below the Working Forecast.",
+      "summary": "A straight run-rate extrapolation lands FY26 at $42.3m — $3.26m below the Working Forecast.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**This is an extrapolation, not a forecast.** Five months of actuals ($4,405,667,596 through May) annualise to **$10,573,602,229**. The planning system's own forecast — a different number with a different owner and a different method — says **$11,388,920,975**.\n\nThe extrapolation runs **$815,318,746 lower** because it assumes the first five months are representative. They are not: the Jan-calendarized budget phases 58.5% of the year into June–December, so a flat run-rate systematically understates a portfolio with a back-loaded construction season."
+          "markdown": "**This is an extrapolation, not a forecast.** Five months of actuals ($17,622,670 through May) annualise to **$42,294,409**. The planning system's own forecast — a different number with a different owner and a different method — says **$45,555,684**.\n\nThe extrapolation runs **$3,261,275 lower** because it assumes the first five months are representative. They are not: the Jan-calendarized budget phases 58.5% of the year into June–December, so a flat run-rate systematically understates a portfolio with a back-loaded construction season."
         },
         {
           "type": "metric",
           "items": [
             {
               "label": "Actuals YTD (5 months)",
-              "value": 4405667595.539995,
+              "value": 17622670,
               "unit": "USD"
             },
             {
               "label": "Run-rate extrapolation",
-              "value": 10573602229.29599,
+              "value": 42294409,
               "unit": "USD"
             },
             {
               "label": "Working Forecast",
-              "value": 11388920975.29996,
+              "value": 45555684,
               "unit": "USD"
             },
             {
               "label": "Difference",
-              "value": 815318746.0039692,
+              "value": 3261275,
               "unit": "USD"
             }
           ]
@@ -21443,56 +21718,56 @@
           "data": [
             {
               "label": "Jan",
-              "value": 998310388.54
+              "value": 3993241.55
             },
             {
               "label": "Feb",
-              "value": 1005371252.16
+              "value": 4021485.01
             },
             {
               "label": "Mar",
-              "value": 1004730384.79
+              "value": 4018921.54
             },
             {
               "label": "Apr",
-              "value": 993254324.68
+              "value": 3973017.3
             },
             {
               "label": "May",
-              "value": 994711280.82
+              "value": 3978845.12
             },
             {
               "label": "Jun",
-              "value": 1023793478.96
+              "value": 4095173.92
             },
             {
               "label": "Jul",
-              "value": 1010865536.06
+              "value": 4043462.14
             },
             {
               "label": "Aug",
-              "value": 1007941572.98
+              "value": 4031766.29
             },
             {
               "label": "Sep",
-              "value": 995483646.15
+              "value": 3981934.58
             },
             {
               "label": "Oct",
-              "value": 994068934.67
+              "value": 3976275.74
             },
             {
               "label": "Nov",
-              "value": 1003481586.49
+              "value": 4013926.35
             },
             {
               "label": "Dec",
-              "value": 996649439.62
+              "value": 3986597.76
             }
           ],
           "x_label": "Month",
           "y_label": "USD (phased budget)",
-          "note": "Phased budget shown; actuals are flat at roughly $881.1m/month Jan–May."
+          "note": "Phased budget shown; actuals are flat at roughly $3.52m/month Jan–May."
         },
         {
           "type": "text",
@@ -21541,28 +21816,28 @@
       "kind": "hero",
       "question": "Where is forecast diverging from budget, by programme and category?",
       "hero_ref": "hq7",
-      "summary": "Project-life forecast is $152.29b against an active plan of $113.08b — $39.22b above, concentrated in Plant large projects.",
+      "summary": "Project-life forecast is $609m against an active plan of $452m — $157m above, concentrated in Plant large projects.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "Both coordinates, stated: **Forecast (EAC) × Project life, latest** reads **$152,290,832,125**. **Approved budget × Project life, active** reads **$113,075,048,000**. The gap is **$39,215,784,125**, or 34.7% above the approved book.\n\nA gap that size across a whole portfolio is not a set of individual overruns — it is a systematic difference between how the planning system estimates lifetime cost and what the approval chain has authorized. Treat the portfolio number as a signal about the estimating basis and the project-level numbers as the actionable layer."
+          "markdown": "Both coordinates, stated: **Forecast (EAC) × Project life, latest** reads **$609,163,329**. **Approved budget × Project life, active** reads **$452,300,192**. The gap is **$156,863,137**, or 34.7% above the approved book.\n\nA gap that size across a whole portfolio is not a set of individual overruns — it is a systematic difference between how the planning system estimates lifetime cost and what the approval chain has authorized. Treat the portfolio number as a signal about the estimating basis and the project-level numbers as the actionable layer."
         },
         {
           "type": "metric",
           "items": [
             {
               "label": "Forecast (EAC), project life",
-              "value": 152290832124.52994,
+              "value": 609163328,
               "unit": "USD"
             },
             {
               "label": "Approved budget, active",
-              "value": 113075048000,
+              "value": 452300192,
               "unit": "USD"
             },
             {
               "label": "Gap",
-              "value": 39215784124.52994,
+              "value": 156863136,
               "unit": "USD",
               "flag": "risk"
             },
@@ -21581,27 +21856,27 @@
           "data": [
             {
               "label": "Plant large projects",
-              "value": 10729540137.65
+              "value": 42918160.55
             },
             {
               "label": "Network common projects",
-              "value": 10477911371.05
+              "value": 41911645.48
             },
             {
               "label": "Overhead - Budget Category",
-              "value": 7978732716.64
+              "value": 31914930.87
             },
             {
               "label": "Network blankets",
-              "value": 4044534085.47
+              "value": 16178136.34
             },
             {
               "label": "PFAS",
-              "value": 3321170474.94
+              "value": 13284681.9
             },
             {
               "label": "Lead Capex Budget Category",
-              "value": 2663895338.78
+              "value": 10655581.36
             }
           ],
           "x_label": "Budget category",
@@ -21623,49 +21898,49 @@
             [
               "Plant large projects",
               "2,183",
-              "$67,532,166,000",
-              "$78,261,706,138",
-              "$10,729,540,138",
+              "$270,128,664",
+              "$313,046,825",
+              "$42,918,161",
               "15.9%"
             ],
             [
               "Network common projects",
               "207",
               "$0",
-              "$10,477,911,371",
-              "$10,477,911,371",
+              "$41,911,645",
+              "$41,911,645",
               "—"
             ],
             [
               "Overhead - Budget Category",
               "204",
-              "$3,949,839,000",
-              "$11,928,571,717",
-              "$7,978,732,717",
+              "$15,799,356",
+              "$47,714,287",
+              "$31,914,931",
               "202.0%"
             ],
             [
               "Network blankets",
               "714",
-              "$11,340,488,000",
-              "$15,385,022,085",
-              "$4,044,534,085",
+              "$45,361,952",
+              "$61,540,088",
+              "$16,178,136",
               "35.7%"
             ],
             [
               "PFAS",
               "749",
-              "$23,058,985,000",
-              "$26,380,155,475",
-              "$3,321,170,475",
+              "$92,235,940",
+              "$105,520,622",
+              "$13,284,682",
               "14.4%"
             ],
             [
               "Lead Capex Budget Category",
               "443",
-              "$7,193,570,000",
-              "$9,857,465,339",
-              "$2,663,895,339",
+              "$28,774,280",
+              "$39,429,861",
+              "$10,655,581",
               "37.0%"
             ]
           ]
@@ -21684,29 +21959,29 @@
             [
               "No program affiliation",
               "3,308",
-              "$82,822,493,000",
-              "$116,053,211,311",
-              "$33,230,718,311"
+              "$331,289,972",
+              "$464,212,845",
+              "$132,922,873"
             ],
             [
               "Federal PFAS Program",
               "749",
-              "$23,058,985,000",
-              "$26,380,155,475",
-              "$3,321,170,475"
+              "$92,235,940",
+              "$105,520,622",
+              "$13,284,682"
             ],
             [
               "Lead Program",
               "443",
-              "$7,193,570,000",
-              "$9,857,465,339",
-              "$2,663,895,339"
+              "$28,774,280",
+              "$39,429,861",
+              "$10,655,581"
             ]
           ]
         },
         {
           "type": "text",
-          "markdown": "**Overhead is the proportionally worst category** — $7,978,732,717 on an approved base of $3,949,839,000. Overhead projects are perpetual carriers rather than discrete builds, so an EAC against a project-life approval is a weak comparison for them. Read the Plant large projects and PFAS rows first."
+          "markdown": "**Overhead is the proportionally worst category** — $31,914,931 on an approved base of $15,799,356. Overhead projects are perpetual carriers rather than discrete builds, so an EAC against a project-life approval is a weak comparison for them. Read the Plant large projects and PFAS rows first."
         }
       ],
       "evidence": [
@@ -21756,28 +22031,28 @@
       "kind": "standard",
       "question": "What is the variance against the current approved baseline, and against the original?",
       "hero_ref": "hq8",
-      "summary": "FY26 actuals are $590.7m under the phased budget. Against the original approved book the portfolio-life forecast is $39.22b over.",
+      "summary": "FY26 actuals are $2.36m under the phased budget. Against the original approved book the portfolio-life forecast is $157m over.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "Two readings from one materialised set, because the comparison is lost if you re-execute against a single baseline.\n\n**Against the current approved baseline (year to date):** actuals $4,405,667,596 against phased budget $4,996,377,631 — **$-590,710,035**, -11.8%.\n\n**Against the original approved baseline (project life):** the approval chain has moved the baseline on **2,426 projects**, up $1,141,966,000 and down $-671,415,000 — net $470,551,000. Measured against the *original* rather than the moved baseline, project-life forecast exposure is **$39,215,784,125**."
+          "markdown": "Two readings from one materialised set, because the comparison is lost if you re-execute against a single baseline.\n\n**Against the current approved baseline (year to date):** actuals $17,622,670 against phased budget $19,985,511 — **$-2,362,840**, -11.8%.\n\n**Against the original approved baseline (project life):** the approval chain has moved the baseline on **2,426 projects**, up $4,567,864 and down $-2,685,660 — net $1,882,204. Measured against the *original* rather than the moved baseline, project-life forecast exposure is **$156,863,137**."
         },
         {
           "type": "metric",
           "items": [
             {
               "label": "Actuals YTD",
-              "value": 4405667595.539995,
+              "value": 17622670,
               "unit": "USD"
             },
             {
               "label": "Phased budget YTD",
-              "value": 4996377630.990001,
+              "value": 19985511,
               "unit": "USD"
             },
             {
               "label": "YTD variance",
-              "value": -590710035.4500055,
+              "value": -2362840,
               "unit": "USD"
             },
             {
@@ -21794,15 +22069,15 @@
           "data": [
             {
               "label": "Moved up",
-              "value": 1141966000
+              "value": 4567864
             },
             {
               "label": "Moved down",
-              "value": -671415000
+              "value": -2685660
             },
             {
               "label": "Net",
-              "value": 470551000
+              "value": 1882204
             }
           ],
           "x_label": "Direction",
@@ -21874,11 +22149,11 @@
       "kind": "hero",
       "question": "How far has the approved baseline moved since original approval, and who approved each move?",
       "hero_ref": "hq9",
-      "summary": "2,426 of 4,500 projects have a moved baseline — net $470.6m. Approver identity is only available for the five contract-pack projects.",
+      "summary": "2,426 of 4,500 projects have a moved baseline — net $1.88m. Approver identity is only available for the five contract-pack projects.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**2,426 of 4,500 projects** carry a Most Recent Budget Plan that differs from their Active Budget Plan. Upward movement totals **$1,141,966,000**, downward **$-671,415,000**, net **$470,551,000**.\n\n**On the second half of the question — who approved each move — the data is thin and this answer says so.** `northline_psoft.appr` carries a plan-version sequence and a status per version, which is enough to walk the chain. It does not carry an approving authority for every project. The graph holds **103 plan-version nodes** covering the five contract-pack projects and their peers; for the rest of the portfolio the chain exists as two values (active, most recent) with no named approver behind the move."
+          "markdown": "**2,426 of 4,500 projects** carry a Most Recent Budget Plan that differs from their Active Budget Plan. Upward movement totals **$4,567,864**, downward **$-2,685,660**, net **$1,882,204**.\n\n**On the second half of the question — who approved each move — the data is thin and this answer says so.** `northline_psoft.appr` carries a plan-version sequence and a status per version, which is enough to walk the chain. It does not carry an approving authority for every project. The graph holds **103 plan-version nodes** covering the five contract-pack projects and their peers; for the rest of the portfolio the chain exists as two values (active, most recent) with no named approver behind the move."
         },
         {
           "type": "metric",
@@ -21890,13 +22165,13 @@
             },
             {
               "label": "Moved up",
-              "value": 1141966000,
+              "value": 4567864,
               "unit": "USD",
               "flag": "risk"
             },
             {
               "label": "Moved down",
-              "value": -671415000,
+              "value": -2685660,
               "unit": "USD"
             },
             {
@@ -21919,20 +22194,20 @@
             [
               "seq 1",
               "Active",
-              "$59,959,000",
+              "$239,836",
               "appr.plan_seq C25B315_658/1"
             ],
             [
               "seq 2",
               "Approved - not yet active",
-              "$61,158,000",
+              "$244,632",
               "appr.plan_seq C25B315_658/2"
             ]
           ]
         },
         {
           "type": "text",
-          "markdown": "On Quarrydown the baseline moved from **$59,959,000** to **$61,158,000** — $1,199,000 — and seq 2 is *approved but not yet active*, so today's reporting still runs against seq 1. A reader quoting the active plan and a reader quoting the most recent plan will disagree by that amount and both will be right.\n\n**Note the as-of.** `ds_psoft_appr` runs 7 days behind the other datasets, so the plan chain is the oldest contributing source in this answer. Any figure derived from it inherits that floor — see HQ-33."
+          "markdown": "On Quarrydown the baseline moved from **$239,836** to **$244,632** — $4,796 — and seq 2 is *approved but not yet active*, so today's reporting still runs against seq 1. A reader quoting the active plan and a reader quoting the most recent plan will disagree by that amount and both will be right.\n\n**Note the as-of.** `ds_psoft_appr` runs 7 days behind the other datasets, so the plan chain is the oldest contributing source in this answer. Any figure derived from it inherits that floor — see HQ-33."
         }
       ],
       "evidence": [
@@ -22000,7 +22275,7 @@
       "blocks": [
         {
           "type": "text",
-          "markdown": "The 6+6 forecast round does not exist for FY26. `FY26 Forecast 6+6` is present as a column and empty on all 4,500 projects; the same is true of 9+3. Only the **3+9** round ran, alongside the continuously-maintained **Working Forecast**.\n\n**This is an absence, not a zero.** Reporting the movement as $12,021,894,758 — 3+9 minus a 6+6 of nothing — would state that the re-forecast removed the entire year, which is false. The correct answer is that one of the two operands does not exist.\n\n**What I can compare instead**, if you want the movement question answered against cuts that do exist: 3+9 at $12,021,894,758 against the Working Forecast at $11,388,920,975 — a movement of $-632,973,783. Note that `working` is a **reserved selector**, not a member of the forecast cycle, so that is a comparison across two different kinds of thing and is labelled as such."
+          "markdown": "The 6+6 forecast round does not exist for FY26. `FY26 Forecast 6+6` is present as a column and empty on all 4,500 projects; the same is true of 9+3. Only the **3+9** round ran, alongside the continuously-maintained **Working Forecast**.\n\n**This is an absence, not a zero.** Reporting the movement as $48,087,579 — 3+9 minus a 6+6 of nothing — would state that the re-forecast removed the entire year, which is false. The correct answer is that one of the two operands does not exist.\n\n**What I can compare instead**, if you want the movement question answered against cuts that do exist: 3+9 at $48,087,579 against the Working Forecast at $45,555,684 — a movement of $-2,531,895. Note that `working` is a **reserved selector**, not a member of the forecast cycle, so that is a comparison across two different kinds of thing and is labelled as such."
         }
       ],
       "evidence": [
@@ -22050,11 +22325,11 @@
       "kind": "hero",
       "question": "Which projects show no variance against current approved but material variance against original?",
       "hero_ref": "hq11",
-      "summary": "1,652 projects. $347.0m of variance was absorbed by baseline movement; $14.33b still sits above the moved baseline.",
+      "summary": "1,652 projects. $1.39m of variance was absorbed by baseline movement; $57.3m still sits above the moved baseline.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**1,652 projects** have both had their baseline moved *and* still carry a material forecast gap against the moved baseline.\n\nThe baseline movement absorbed **$347,014,000** of variance on those projects — that is variance which no longer appears in any report run against the current approved figure. Above the moved baseline, **$14,334,876,657** is still exposed. Measured against the original approved book, total exposure on this cohort is **$14,681,890,657**.\n\n**This is the question the domain actually asks**, and the answer names the movement rather than reporting a clean variance. A project whose baseline moved up by the same amount its forecast moved up reports zero variance and has consumed real capital."
+          "markdown": "**1,652 projects** have both had their baseline moved *and* still carry a material forecast gap against the moved baseline.\n\nThe baseline movement absorbed **$1,388,056** of variance on those projects — that is variance which no longer appears in any report run against the current approved figure. Above the moved baseline, **$57,339,507** is still exposed. Measured against the original approved book, total exposure on this cohort is **$58,727,563**.\n\n**This is the question the domain actually asks**, and the answer names the movement rather than reporting a clean variance. A project whose baseline moved up by the same amount its forecast moved up reports zero variance and has consumed real capital."
         },
         {
           "type": "metric",
@@ -22067,19 +22342,19 @@
             },
             {
               "label": "Absorbed by baseline move",
-              "value": 347014000,
+              "value": 1388056,
               "unit": "USD",
               "flag": "risk"
             },
             {
               "label": "Still exposed vs moved baseline",
-              "value": 14334876656.599989,
+              "value": 57339507,
               "unit": "USD",
               "flag": "risk"
             },
             {
               "label": "Exposure vs original",
-              "value": 14681890656.599989,
+              "value": 58727563,
               "unit": "USD",
               "flag": "risk"
             }
@@ -22092,15 +22367,15 @@
           "data": [
             {
               "label": "Absorbed by baseline movement",
-              "value": 347014000
+              "value": 1388056
             },
             {
               "label": "Still above moved baseline",
-              "value": 14334876656.6
+              "value": 57339506.63
             },
             {
               "label": "Total vs original approved",
-              "value": 14681890656.6
+              "value": 58727562.63
             }
           ],
           "x_label": "Component",
@@ -22122,88 +22397,88 @@
             [
               "OVERHEAD28_SSD",
               "Shared Services Division",
-              "$68,531,000",
-              "$112,962,417",
-              "$44,431,417",
+              "$274,124",
+              "$451,850",
+              "$177,726",
               "64.8%"
             ],
             [
               "OVERHEAD4_670",
               "Cascadia Region",
-              "$71,332,000",
-              "$112,949,290",
-              "$41,617,290",
+              "$285,328",
+              "$451,797",
+              "$166,469",
               "58.3%"
             ],
             [
               "OVERHEAD38_SSD",
               "Shared Services Division",
-              "$69,188,000",
-              "$110,685,170",
-              "$41,497,170",
+              "$276,752",
+              "$442,741",
+              "$165,989",
               "60.0%"
             ],
             [
               "OVERHEAD24_SSD",
               "Shared Services Division",
-              "$72,140,000",
-              "$113,573,134",
-              "$41,433,134",
+              "$288,560",
+              "$454,293",
+              "$165,733",
               "57.4%"
             ],
             [
               "OVERHEAD_694",
               "Lakeshore Region",
-              "$67,189,000",
-              "$107,846,109",
-              "$40,657,109",
+              "$268,756",
+              "$431,384",
+              "$162,628",
               "60.5%"
             ],
             [
               "OVERHEAD1_675",
               "Cascadia Region",
-              "$67,482,000",
-              "$107,847,395",
-              "$40,365,395",
+              "$269,928",
+              "$431,390",
+              "$161,462",
               "59.8%"
             ],
             [
               "C24B590_670",
               "Cascadia Region",
-              "$56,829,000",
-              "$96,887,528",
-              "$40,058,528",
+              "$227,316",
+              "$387,550",
+              "$160,234",
               "70.5%"
             ],
             [
               "OVERHEAD_617",
               "Northvale Region",
-              "$68,715,000",
-              "$107,754,130",
-              "$39,039,130",
+              "$274,860",
+              "$431,017",
+              "$156,157",
               "56.8%"
             ],
             [
               "OVERHEAD41_SSD",
               "Shared Services Division",
-              "$65,469,000",
-              "$104,364,993",
-              "$38,895,993",
+              "$261,876",
+              "$417,460",
+              "$155,584",
               "59.4%"
             ],
             [
               "OVERHEAD2_617",
               "Northvale Region",
-              "$63,376,000",
-              "$101,774,309",
-              "$38,398,309",
+              "$253,504",
+              "$407,097",
+              "$153,593",
               "60.6%"
             ]
           ]
         },
         {
           "type": "text",
-          "markdown": "Materiality floor applied: gap ≥ $2,000,000 **and** ≥ 5% of Most Recent Budget Plan. The floor is declared because it changes the population — without it the cohort is larger and dominated by small absolute movements."
+          "markdown": "Materiality floor applied: gap ≥ $8,000 **and** ≥ 5% of Most Recent Budget Plan. The floor is declared because it changes the population — without it the cohort is larger and dominated by small absolute movements."
         }
       ],
       "evidence": [
@@ -22253,28 +22528,28 @@
       "kind": "hero",
       "question": "How does the forward plan compare with the sum of project-life forecasts?",
       "hero_ref": "hq12",
-      "summary": "The FY27–32 forward plan (MTP2026_v3) is $110.39b; the working budget over the same span is $116.25b — $5.86b higher.",
+      "summary": "The FY27–32 forward plan (MTP2026_v3) is $442m; the working budget over the same span is $465m — $23.4m higher.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**Both spans stated.** The adopted forward plan is **MTP2026_v3** over **FY27–FY32**, totalling **$110,387,575,359**. The working budget across the same six years totals **$116,252,120,280**. The forward plan sits **$5,864,544,920** below the working view — 5.3%.\n\n**The reconciliation does not close, and here is why it cannot.** A forward plan contains programme-level provisions for projects that do not exist yet as records, and it excludes project-level detail the working budget carries. The two are different objects measured over the same calendar, not two versions of one number. Anyone presenting the difference as a variance is asserting a reconciliation that the data does not support."
+          "markdown": "**Both spans stated.** The adopted forward plan is **MTP2026_v3** over **FY27–FY32**, totalling **$441,550,301**. The working budget across the same six years totals **$465,008,481**. The forward plan sits **$23,458,180** below the working view — 5.3%.\n\n**The reconciliation does not close, and here is why it cannot.** A forward plan contains programme-level provisions for projects that do not exist yet as records, and it excludes project-level detail the working budget carries. The two are different objects measured over the same calendar, not two versions of one number. Anyone presenting the difference as a variance is asserting a reconciliation that the data does not support."
         },
         {
           "type": "metric",
           "items": [
             {
               "label": "Forward plan FY27–32 (MTP2026_v3)",
-              "value": 110387575359.22992,
+              "value": 441550301,
               "unit": "USD"
             },
             {
               "label": "Working budget FY27–32",
-              "value": 116252120279.54013,
+              "value": 465008481,
               "unit": "USD"
             },
             {
               "label": "Difference",
-              "value": 5864544920.310211,
+              "value": 23458180,
               "unit": "USD",
               "flag": "risk"
             },
@@ -22292,31 +22567,31 @@
           "data": [
             {
               "label": "FY26",
-              "value": 12028661825.92
+              "value": 48114647.3
             },
             {
               "label": "FY27",
-              "value": 28546334017.66
+              "value": 114185336.07
             },
             {
               "label": "FY28",
-              "value": 28415452822.2
+              "value": 113661811.29
             },
             {
               "label": "FY29",
-              "value": 23507877771.37
+              "value": 94031511.09
             },
             {
               "label": "FY30",
-              "value": 17287766814.04
+              "value": 69151067.26
             },
             {
               "label": "FY31",
-              "value": 11928061278.16
+              "value": 47712245.11
             },
             {
               "label": "FY32",
-              "value": 6566627576.11
+              "value": 26266510.3
             }
           ],
           "x_label": "Fiscal year",
@@ -22335,51 +22610,51 @@
           "rows": [
             [
               "FY26",
-              "$12,028,661,826",
-              "$11,353,986,703",
-              "$674,675,123"
+              "$48,114,647",
+              "$45,415,947",
+              "$2,698,700"
             ],
             [
               "FY27",
-              "$28,546,334,018",
-              "$27,113,537,781",
-              "$1,432,796,236"
+              "$114,185,336",
+              "$108,454,151",
+              "$5,731,185"
             ],
             [
               "FY28",
-              "$28,415,452,822",
-              "$26,872,638,983",
-              "$1,542,813,839"
+              "$113,661,811",
+              "$107,490,556",
+              "$6,171,255"
             ],
             [
               "FY29",
-              "$23,507,877,771",
-              "$22,364,060,020",
-              "$1,143,817,752"
+              "$94,031,511",
+              "$89,456,240",
+              "$4,575,271"
             ],
             [
               "FY30",
-              "$17,287,766,814",
-              "$16,485,542,617",
-              "$802,224,197"
+              "$69,151,067",
+              "$65,942,170",
+              "$3,208,897"
             ],
             [
               "FY31",
-              "$11,928,061,278",
-              "$11,282,263,102",
-              "$645,798,176"
+              "$47,712,245",
+              "$45,129,052",
+              "$2,583,193"
             ],
             [
               "FY32",
-              "$6,566,627,576",
-              "$6,269,532,856",
-              "$297,094,720"
+              "$26,266,510",
+              "$25,078,131",
+              "$1,188,379"
             ]
           ]
         },
         {
           "type": "text",
-          "markdown": "The gap is widest in **FY27** ($1,432,796,236) and narrows through the horizon, which is the normal shape: near years carry project detail the plan rounded, far years are mostly provision on both sides."
+          "markdown": "The gap is widest in **FY27** ($5,731,185) and narrows through the horizon, which is the normal shape: near years carry project detail the plan rounded, far years are mostly provision on both sides."
         }
       ],
       "evidence": [
@@ -22442,29 +22717,29 @@
       "kind": "standard",
       "question": "What share of the total gap is attributable to a single programme or driver?",
       "hero_ref": "hq13",
-      "summary": "No single programme dominates. Unaffiliated projects carry 84.7% of the $39.22b gap — roughly their share of the portfolio.",
+      "summary": "No single programme dominates. Unaffiliated projects carry 84.7% of the $157m gap — roughly their share of the portfolio.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "Total signed gap is **$39,215,784,125**. Shares below are of that signed total, and offsetting movement is shown rather than netted away: **605 projects** forecast *below* their baseline, worth **$-3,101,822,854**, which is already inside the net figure.\n\nDecomposed by programme, nothing stands out. The unaffiliated majority carries 73.5% of the projects and 84.7% of the gap. Programme affiliation is not the explanatory variable here."
+          "markdown": "Total signed gap is **$156,863,137**. Shares below are of that signed total, and offsetting movement is shown rather than netted away: **605 projects** forecast *below* their baseline, worth **$-12,407,291**, which is already inside the net figure.\n\nDecomposed by programme, nothing stands out. The unaffiliated majority carries 73.5% of the projects and 84.7% of the gap. Programme affiliation is not the explanatory variable here."
         },
         {
           "type": "metric",
           "items": [
             {
               "label": "Total gap",
-              "value": 39215784124.52994,
+              "value": 156863136,
               "unit": "USD"
             },
             {
               "label": "Gross overrun",
-              "value": 27619449607.109997,
+              "value": 110477798,
               "unit": "USD",
               "flag": "risk"
             },
             {
               "label": "Gross underrun",
-              "value": -3101822853.6300044,
+              "value": -12407291,
               "unit": "USD",
               "flag": "good"
             },
@@ -22483,15 +22758,15 @@
           "data": [
             {
               "label": "No program affiliation",
-              "value": 33230718310.81
+              "value": 132922873.24
             },
             {
               "label": "Federal PFAS Program",
-              "value": 3321170474.94
+              "value": 13284681.9
             },
             {
               "label": "Lead Program",
-              "value": 2663895338.78
+              "value": 10655581.36
             }
           ],
           "note": "Shares of the signed gap; all three components are positive here."
@@ -22509,38 +22784,38 @@
             [
               "Projects",
               "2,390",
-              "$21,207,451,509",
+              "$84,829,806",
               "54.1%"
             ],
             [
               "Overhead",
               "204",
-              "$7,978,732,717",
+              "$31,914,931",
               "20.3%"
             ],
             [
               "Blankets (minus Lead) and roll-ups",
               "714",
-              "$4,044,534,085",
+              "$16,178,136",
               "10.3%"
             ],
             [
               "PFAS",
               "749",
-              "$3,321,170,475",
+              "$13,284,682",
               "8.5%"
             ],
             [
               "Lead",
               "443",
-              "$2,663,895,339",
+              "$10,655,581",
               "6.8%"
             ]
           ]
         },
         {
           "type": "text",
-          "markdown": "By **driver** the picture is different and more useful: 2,215 projects are classified *Mandated by Government Agency*, carrying $69,433,960,187 of working budget — 45.6% of the portfolio. That share is not discretionary and cannot be deferred out of the gap, which constrains every what-if in family 7."
+          "markdown": "By **driver** the picture is different and more useful: 2,215 projects are classified *Mandated by Government Agency*, carrying $277,735,841 of working budget — 45.6% of the portfolio. That share is not discretionary and cannot be deferred out of the gap, which constrains every what-if in family 7."
         }
       ],
       "evidence": [
@@ -22589,11 +22864,11 @@
       "kind": "hero",
       "question": "Which projects are trending to overrun, and by how much?",
       "hero_ref": "hq14",
-      "summary": "2,966 projects clear the materiality floor, carrying $26.87b. Ranked by the floor, not by magnitude.",
+      "summary": "2,966 projects clear the materiality floor, carrying $107m. Ranked by the floor, not by magnitude.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**The materiality policy first, because it determines the answer.** A project is admitted to this ranking when its forecast gap is **≥ $2,000,000** *and* **≥ 5% of its Most Recent Budget Plan**. Both conditions, not either.\n\nUnder that policy **2,966 projects** are trending to overrun, carrying **$26,871,563,138**. Without the floor the population is 3,688 projects and $27,619,449,607 — so the floor removes **722 projects and $747,886,469**, which is 2.7% of the gross figure and almost none of the decision.\n\nA further **207 projects** carry no Most Recent Budget Plan at all. They have no baseline to overrun and are excluded from the population rather than ranked at zero."
+          "markdown": "**The materiality policy first, because it determines the answer.** A project is admitted to this ranking when its forecast gap is **≥ $8,000** *and* **≥ 5% of its Most Recent Budget Plan**. Both conditions, not either.\n\nUnder that policy **2,966 projects** are trending to overrun, carrying **$107,486,253**. Without the floor the population is 3,688 projects and $110,477,798 — so the floor removes **722 projects and $2,991,546**, which is 2.7% of the gross figure and almost none of the decision.\n\nA further **207 projects** carry no Most Recent Budget Plan at all. They have no baseline to overrun and are excluded from the population rather than ranked at zero."
         },
         {
           "type": "metric",
@@ -22606,7 +22881,7 @@
             },
             {
               "label": "Exposure over the floor",
-              "value": 26871563138.159996,
+              "value": 107486253,
               "unit": "USD",
               "flag": "risk"
             },
@@ -22617,7 +22892,7 @@
             },
             {
               "label": "Value removed by the floor",
-              "value": 747886468.9500008,
+              "value": 2991546,
               "unit": "USD"
             }
           ]
@@ -22641,9 +22916,9 @@
               "OVERHEAD28_SSD-Overhead Projects",
               "Shared Services Division",
               "Overhead - Budget Category",
-              "$68,531,000",
-              "$112,962,417",
-              "$44,431,417",
+              "$274,124",
+              "$451,850",
+              "$177,726",
               "64.8%"
             ],
             [
@@ -22651,9 +22926,9 @@
               "OVERHEAD4_670-Overhead Projects",
               "Cascadia Region",
               "Overhead - Budget Category",
-              "$71,332,000",
-              "$112,949,290",
-              "$41,617,290",
+              "$285,328",
+              "$451,797",
+              "$166,469",
               "58.3%"
             ],
             [
@@ -22661,9 +22936,9 @@
               "OVERHEAD38_SSD-Overhead Projects",
               "Shared Services Division",
               "Overhead - Budget Category",
-              "$69,188,000",
-              "$110,685,170",
-              "$41,497,170",
+              "$276,752",
+              "$442,741",
+              "$165,989",
               "60.0%"
             ],
             [
@@ -22671,9 +22946,9 @@
               "OVERHEAD24_SSD-Overhead Projects",
               "Shared Services Division",
               "Overhead - Budget Category",
-              "$72,140,000",
-              "$113,573,134",
-              "$41,433,134",
+              "$288,560",
+              "$454,293",
+              "$165,733",
               "57.4%"
             ],
             [
@@ -22681,9 +22956,9 @@
               "OVERHEAD_694-Overhead Projects",
               "Lakeshore Region",
               "Overhead - Budget Category",
-              "$67,189,000",
-              "$107,846,109",
-              "$40,657,109",
+              "$268,756",
+              "$431,384",
+              "$162,628",
               "60.5%"
             ],
             [
@@ -22691,9 +22966,9 @@
               "OVERHEAD1_675-Overhead Projects",
               "Cascadia Region",
               "Overhead - Budget Category",
-              "$67,482,000",
-              "$107,847,395",
-              "$40,365,395",
+              "$269,928",
+              "$431,390",
+              "$161,462",
               "59.8%"
             ],
             [
@@ -22701,9 +22976,9 @@
               "C24B590_670-B - Reservoir Rehabilitation",
               "Cascadia Region",
               "Plant large projects",
-              "$56,829,000",
-              "$96,887,528",
-              "$40,058,528",
+              "$227,316",
+              "$387,550",
+              "$160,234",
               "70.5%"
             ],
             [
@@ -22711,9 +22986,9 @@
               "OVERHEAD_617-Overhead Projects",
               "Northvale Region",
               "Overhead - Budget Category",
-              "$68,715,000",
-              "$107,754,130",
-              "$39,039,130",
+              "$274,860",
+              "$431,017",
+              "$156,157",
               "56.8%"
             ],
             [
@@ -22721,9 +22996,9 @@
               "OVERHEAD41_SSD-Overhead Projects",
               "Shared Services Division",
               "Overhead - Budget Category",
-              "$65,469,000",
-              "$104,364,993",
-              "$38,895,993",
+              "$261,876",
+              "$417,460",
+              "$155,584",
               "59.4%"
             ],
             [
@@ -22731,9 +23006,9 @@
               "OVERHEAD2_617-Overhead Projects",
               "Northvale Region",
               "Overhead - Budget Category",
-              "$63,376,000",
-              "$101,774,309",
-              "$38,398,309",
+              "$253,504",
+              "$407,097",
+              "$153,593",
               "60.6%"
             ],
             [
@@ -22741,9 +23016,9 @@
               "OVERHEAD5_658-Overhead Projects",
               "Eastmoor Region",
               "Overhead - Budget Category",
-              "$65,610,000",
-              "$103,555,021",
-              "$37,945,021",
+              "$262,440",
+              "$414,220",
+              "$151,780",
               "57.8%"
             ],
             [
@@ -22751,9 +23026,9 @@
               "OVERHEAD_698-Overhead Projects",
               "Lakeshore Region",
               "Overhead - Budget Category",
-              "$70,877,000",
-              "$108,734,059",
-              "$37,857,059",
+              "$283,508",
+              "$434,936",
+              "$151,428",
               "53.4%"
             ],
             [
@@ -22761,9 +23036,9 @@
               "OVERHEAD8_698-Overhead Projects",
               "Lakeshore Region",
               "Overhead - Budget Category",
-              "$62,618,000",
-              "$100,456,688",
-              "$37,838,688",
+              "$250,472",
+              "$401,827",
+              "$151,355",
               "60.4%"
             ],
             [
@@ -22771,9 +23046,9 @@
               "OVERHEAD16_SSD-Overhead Projects",
               "Shared Services Division",
               "Overhead - Budget Category",
-              "$67,132,000",
-              "$104,773,575",
-              "$37,641,575",
+              "$268,528",
+              "$419,094",
+              "$150,566",
               "56.1%"
             ],
             [
@@ -22781,9 +23056,9 @@
               "C24B322_628-M - WTP Replacement",
               "Northvale Region",
               "Plant large projects",
-              "$57,143,000",
-              "$94,432,436",
-              "$37,289,436",
+              "$228,572",
+              "$377,730",
+              "$149,158",
               "65.3%"
             ]
           ]
@@ -22795,43 +23070,43 @@
           "data": [
             {
               "label": "OVERHEAD28_SSD",
-              "value": 44431416.76
+              "value": 177725.67
             },
             {
               "label": "OVERHEAD4_670",
-              "value": 41617289.94
+              "value": 166469.16
             },
             {
               "label": "OVERHEAD38_SSD",
-              "value": 41497170.17
+              "value": 165988.68
             },
             {
               "label": "OVERHEAD24_SSD",
-              "value": 41433134.09
+              "value": 165732.54
             },
             {
               "label": "OVERHEAD_694",
-              "value": 40657109.46
+              "value": 162628.44
             },
             {
               "label": "OVERHEAD1_675",
-              "value": 40365394.51
+              "value": 161461.58
             },
             {
               "label": "C24B590_670",
-              "value": 40058528.07
+              "value": 160234.11
             },
             {
               "label": "OVERHEAD_617",
-              "value": 39039129.92
+              "value": 156156.52
             },
             {
               "label": "OVERHEAD41_SSD",
-              "value": 38895992.53
+              "value": 155583.97
             },
             {
               "label": "OVERHEAD2_617",
-              "value": 38398309.19
+              "value": 153593.24
             }
           ],
           "x_label": "Project",
@@ -22902,34 +23177,34 @@
       "kind": "standard",
       "question": "Why did the estimate at completion move on Quarrydown WTP?",
       "hero_ref": "hq15",
-      "summary": "The forecast moved $15.6m. Four contractor messages claim $4.3m of it against named change orders; the remainder is unexplained.",
+      "summary": "The forecast moved $62.4k. Four contractor messages claim $17.2k of it against named change orders; the remainder is unexplained.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**The movement, first, from the ledger.** Total Budget (Working) on Quarrydown is **$76,776,600** against a Most Recent Budget Plan of **$61,158,000** — a movement of **$15,618,600**. That figure is a fact in the plan cube and nothing below changes it.\n\n**The reason is not in the plan cube.** EPBCS carries the number and the version chain; it does not carry the sentence explaining why the number moved. That sentence is in contractor correspondence, and Gmail is connected as a runtime source, so the platform read it when you asked."
+          "markdown": "**The movement, first, from the ledger.** Total Budget (Working) on Quarrydown is **$307,106** against a Most Recent Budget Plan of **$244,632** — a movement of **$62,474**. That figure is a fact in the plan cube and nothing below changes it.\n\n**The reason is not in the plan cube.** EPBCS carries the number and the version chain; it does not carry the sentence explaining why the number moved. That sentence is in contractor correspondence, and Gmail is connected as a runtime source, so the platform read it when you asked."
         },
         {
           "type": "metric",
           "items": [
             {
               "label": "Working budget",
-              "value": 76776600.18,
+              "value": 307106,
               "unit": "USD"
             },
             {
               "label": "Most Recent Budget Plan",
-              "value": 61158000,
+              "value": 244632,
               "unit": "USD"
             },
             {
               "label": "Movement",
-              "value": 15618600.180000007,
+              "value": 62474,
               "unit": "USD",
               "flag": "risk"
             },
             {
               "label": "Claimed in correspondence",
-              "value": 4278000,
+              "value": 17112,
               "unit": "USD"
             }
           ]
@@ -22946,7 +23221,7 @@
               "subject": "C25B315_658 CO-001 — Rock and undocumented foundation obstructions encountered between elev",
               "claim": "Rock and undocumented foundation obstructions encountered between elevation 214 and 208 at the contactor building footprint, not shown on the subsurface data furnished under Article 8. Adds 1,840 CY of rock excavation and 610 CY of structural backfill.",
               "reason_label": "Differing site conditions",
-              "amount": 412600,
+              "amount": 1650,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.94,
@@ -22962,7 +23237,7 @@
               "subject": "C25B315_658 CO-002 — Owner-caused delay",
               "claim": "Owner-caused delay. Vessels 3 and 7 were rejected at delivery for undocumented plate origin under the American Iron and Steel and Build America, Buy America requirements and were re-fabricated.",
               "reason_label": "Differing site conditions",
-              "amount": 1340000,
+              "amount": 5360,
               "amount_basis": "commitment",
               "months": 4,
               "confidence": 0.88,
@@ -22978,7 +23253,7 @@
               "subject": "C25B315_658 CO-003 — Addition of the intermediate transfer pump station",
               "claim": "Addition of the intermediate transfer pump station. Hydraulic modelling completed after the contactor vessel submittal established that the as-fabricated vessel headloss leaves the post-contactor hydraulic grade line below the clearwell inlet at design flow.",
               "reason_label": "Scope added after award",
-              "amount": 2207400,
+              "amount": 8830,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.88,
@@ -22994,7 +23269,7 @@
               "subject": "C25B315_658 CO-004 — Amendment No",
               "claim": "Amendment No. 1.",
               "reason_label": "Design development after award",
-              "amount": 318000,
+              "amount": 1272,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.88,
@@ -23007,7 +23282,7 @@
         },
         {
           "type": "text",
-          "markdown": "**What the messages account for, and what they do not.** The four claims total **$4,278,000** at commitment basis against a movement of **$15,618,600** at budget basis. Those are different bases and the difference is not a reconciliation break — a commitment is what was agreed with a contractor, and a budget movement is what the plan absorbed. **27.4% of the movement has a message behind it**, which leaves the rest without one.\n\nThe honest reading: correspondence explains the *character* of the movement — rock and undocumented foundations, a rejected vessel delivery under Build America Buy America, an added transfer pump station — and it does not close the arithmetic. Anyone presenting this to a regulator should quote the ledger figure and use the messages as the narrative, never the other way round."
+          "markdown": "**What the messages account for, and what they do not.** The four claims total **$17,112** at commitment basis against a movement of **$62,474** at budget basis. Those are different bases and the difference is not a reconciliation break — a commitment is what was agreed with a contractor, and a budget movement is what the plan absorbed. **27.4% of the movement has a message behind it**, which leaves the rest without one.\n\nThe honest reading: correspondence explains the *character* of the movement — rock and undocumented foundations, a rejected vessel delivery under Build America Buy America, an added transfer pump station — and it does not close the arithmetic. Anyone presenting this to a regulator should quote the ledger figure and use the messages as the narrative, never the other way round."
         },
         {
           "type": "text",
@@ -23292,7 +23567,7 @@
         },
         {
           "type": "text",
-          "markdown": "**Coverage by count and coverage by money are different numbers, and both belong here.** The 16 covered projects carry **$316,068,008** of the **$26,871,563,138** total material overrun — 1.18%. Quoting the money share alone would look better than the count share and would still be a rounding error. Neither supports a sentence beginning \"correspondence tells us why the portfolio moved\"."
+          "markdown": "**Coverage by count and coverage by money are different numbers, and both belong here.** The 16 covered projects carry **$1,264,272** of the **$107,486,253** total material overrun — 1.18%. Quoting the money share alone would look better than the count share and would still be a rounding error. Neither supports a sentence beginning \"correspondence tells us why the portfolio moved\"."
         },
         {
           "type": "chart",
@@ -23318,7 +23593,7 @@
       "evidence": [
         {
           "source": "northline_epbcs.plan",
-          "detail": "Material-overrun population — 2,966 projects over the $2.0m / 5% floor"
+          "detail": "Material-overrun population — 2,966 projects over the $8k / 5% floor"
         },
         {
           "source": "Email — Vasquez Heritage Builders, 2024-04-26",
@@ -23344,7 +23619,7 @@
           "kind": "dataset",
           "source_id": "src_bq",
           "label": "northline_epbcs.plan",
-          "detail": "Material-overrun population — 2,966 projects over the $2.0m / 5% floor",
+          "detail": "Material-overrun population — 2,966 projects over the $8k / 5% floor",
           "runtime": false,
           "as_of": "2026-03-29",
           "authoritative": true,
@@ -23438,49 +23713,49 @@
             [
               "Material and labour escalation past the plan basis",
               4,
-              "$79,770,651",
+              "$319,083",
               "41.1%"
             ],
             [
               "Completion date moved out",
               3,
-              "$61,939,434",
+              "$247,758",
               "31.9%"
             ],
             [
               "Will not be in service before the filing",
               1,
-              "$38,307,000",
+              "$153,228",
               "19.7%"
             ],
             [
               "Design development after award",
               3,
-              "$5,517,000",
+              "$22,068",
               "2.8%"
             ],
             [
               "Scope added after award",
               3,
-              "$3,922,800",
+              "$15,691",
               "2.0%"
             ],
             [
               "Existing asset worse than the bid documents assumed",
               2,
-              "$3,091,700",
+              "$12,367",
               "1.6%"
             ],
             [
               "Differing site conditions",
               5,
-              "$1,072,600",
+              "$4,290",
               "0.6%"
             ],
             [
               "Owner-caused delay",
               1,
-              "$563,000",
+              "$2,252",
               "0.3%"
             ],
             [
@@ -23498,35 +23773,35 @@
           "data": [
             {
               "label": "Material and labour escalation past the plan basis",
-              "value": 79770651
+              "value": 319082.6
             },
             {
               "label": "Completion date moved out",
-              "value": 61939434
+              "value": 247757.74
             },
             {
               "label": "Will not be in service before the filing",
-              "value": 38307000
+              "value": 153228
             },
             {
               "label": "Design development after award",
-              "value": 5517000
+              "value": 22068
             },
             {
               "label": "Scope added after award",
-              "value": 3922800
+              "value": 15691.2
             },
             {
               "label": "Existing asset worse than the bid documents assumed",
-              "value": 3091700
+              "value": 12366.8
             },
             {
               "label": "Differing site conditions",
-              "value": 1072600
+              "value": 4290.4
             },
             {
               "label": "Owner-caused delay",
-              "value": 563000
+              "value": 2252
             }
           ],
           "x_label": "Category",
@@ -23811,55 +24086,55 @@
               "Kelso Ridge Constructors, Inc.",
               5,
               2,
-              "$6,015,000"
+              "$24,060"
             ],
             [
               "Marchetti & Vance Engineers, Inc.",
               5,
               1,
-              "$1,158,000"
+              "$4,632"
             ],
             [
               "Delmar Sinclair Construction Co.",
               3,
               2,
-              "$1,652,000"
+              "$6,608"
             ],
             [
               "Amberline Civil Works, LLC",
               1,
               1,
-              "$563,000"
+              "$2,252"
             ],
             [
               "Ardmore Kessler Engineering, P.C.",
               1,
               1,
-              "$399,000"
+              "$1,596"
             ],
             [
               "Halloway Underground, Inc.",
               1,
               1,
-              "$-1,864,000"
+              "$-7,456"
             ],
             [
               "Ostrander Paving & Restoration, Inc.",
               1,
               1,
-              "$496,000"
+              "$1,984"
             ],
             [
               "Thorne & Dain Drilling Company, Inc.",
               1,
               1,
-              "$-1,314,000"
+              "$-5,256"
             ],
             [
               "Vasquez Heritage Builders, Inc.",
               1,
               1,
-              "$1,884,300"
+              "$7,537"
             ]
           ]
         },
@@ -24092,7 +24367,7 @@
               "subject": "C25B175_675 CO-001 — Quantity reconciliation under Article 5 and General Conditions paragra",
               "claim": "Quantity reconciliation under Article 5 and General Conditions paragraph 13.03. The producing interval of the Redmont Sand was encountered between 62 and 94 feet shallower than the estimated quantities assumed at Wells 2, 4 and 6.",
               "reason_label": "Reason recorded on the change order",
-              "amount": -1314000,
+              "amount": -5256,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.66,
@@ -24108,7 +24383,7 @@
               "subject": "C23B225_690 CO-004 — Time extension and extended general conditions",
               "claim": "Time extension and extended general conditions. The Filter 10 and Filter 11 outages could not be completed before the June 1 peak-season restriction on filters out of service.",
               "reason_label": "Reason recorded on the change order",
-              "amount": 847600,
+              "amount": 3390,
               "amount_basis": "commitment",
               "months": 7,
               "confidence": 0.66,
@@ -24124,7 +24399,7 @@
               "subject": "CZZF50229_623 CO-002 — Quantity credit",
               "claim": "Quantity credit. 412 services closed as Access Not Provided after four documented contact attempts using at least two communication methods.",
               "reason_label": "Reason recorded on the change order",
-              "amount": -742000,
+              "amount": -2968,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.66,
@@ -24295,7 +24570,7 @@
       "blocks": [
         {
           "type": "text",
-          "markdown": "Mechanically, all **$24,010,050,019** of inception-to-date actuals across 4,500 projects have no resolvable commitment edge. Reporting that as the answer would be false in substance while true in form.\n\n**Absence of an edge and absence of the source are different findings and this distinction is the whole question.** An actual with no commitment edge when a commitment source is connected is a control finding — someone spent without a purchase order. An actual with no commitment edge when no commitment source exists is a connector gap.\n\nThis portfolio is entirely in the second state. `CONCEPT:PurchaseOrder` exists in the graph as a **concept with zero members** — the type is modelled so that the shape of the answer is visible, and it is deliberately empty so that nobody mistakes an unpopulated type for a populated one.\n\nConnect the PeopleSoft purchasing module and this question becomes answerable without any change to the graph schema."
+          "markdown": "Mechanically, all **$96,040,200** of inception-to-date actuals across 4,500 projects have no resolvable commitment edge. Reporting that as the answer would be false in substance while true in form.\n\n**Absence of an edge and absence of the source are different findings and this distinction is the whole question.** An actual with no commitment edge when a commitment source is connected is a control finding — someone spent without a purchase order. An actual with no commitment edge when no commitment source exists is a connector gap.\n\nThis portfolio is entirely in the second state. `CONCEPT:PurchaseOrder` exists in the graph as a **concept with zero members** — the type is modelled so that the shape of the answer is visible, and it is deliberately empty so that nobody mistakes an unpopulated type for a populated one.\n\nConnect the PeopleSoft purchasing module and this question becomes answerable without any change to the graph schema."
         }
       ],
       "evidence": [
@@ -24343,11 +24618,11 @@
       "kind": "standard",
       "question": "Which commitments exceed their authorization?",
       "hero_ref": "hq21",
-      "summary": "Answerable for the 5 contract-pack projects only. 31 contracts carry $215,729,000 adjusted value; 0 exceed the authorization in force.",
+      "summary": "Answerable for the 5 contract-pack projects only. 31 contracts carry $862,916 adjusted value; 0 exceed the authorization in force.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**The authorization read is the one in force — the Active Budget Plan — not the latest raised.** Several of these projects carry a Most Recent Budget Plan above their active one; using it would make exceedances disappear on paper before the money was actually authorized.\n\nContract value exists for **5 projects** out of 4,500, extracted from 31 contract documents in Drive. Award value totals **$207,059,000**; adjusted for 22 change orders it is **$215,729,000**."
+          "markdown": "**The authorization read is the one in force — the Active Budget Plan — not the latest raised.** Several of these projects carry a Most Recent Budget Plan above their active one; using it would make exceedances disappear on paper before the money was actually authorized.\n\nContract value exists for **5 projects** out of 4,500, extracted from 31 contract documents in Drive. Award value totals **$828,236**; adjusted for 22 change orders it is **$862,916**."
         },
         {
           "type": "metric",
@@ -24359,12 +24634,12 @@
             },
             {
               "label": "Award value",
-              "value": 207059000,
+              "value": 828236,
               "unit": "USD"
             },
             {
               "label": "Adjusted value",
-              "value": 215729000,
+              "value": 862916,
               "unit": "USD"
             },
             {
@@ -24391,96 +24666,96 @@
               "QDN-2025-C01",
               "Kelso Ridge Constructors, Inc.",
               "658 — Draycott · Eastmoor Region · Belmara",
-              "$33,760,000",
-              "$37,255,000",
+              "$135,040",
+              "$149,020",
               "—"
             ],
             [
               "QDN-2025-E01",
               null,
               "658 — Draycott · Eastmoor Region · Belmara",
-              "$5,696,000",
-              "$6,014,000",
+              "$22,784",
+              "$24,056",
               "—"
             ],
             [
               "QDN-2025-P01",
               "Brackenridge Program Services, Inc.",
               "658 — Draycott · Eastmoor Region · Belmara",
-              "$2,158,000",
-              "$2,158,000",
+              "$8,632",
+              "$8,632",
               "—"
             ],
             [
               "QDN-2025-P02",
               "Grantham Materials Laboratory, LLC",
               "658 — Draycott · Eastmoor Region · Belmara",
-              "$540,000",
-              "$540,000",
+              "$2,160",
+              "$2,160",
               "—"
             ],
             [
               "QDN-2025-S01",
               "Ridgeform Vessel Systems, LLC",
               "658 — Draycott · Eastmoor Region · Belmara",
-              "$15,191,000",
-              "$15,191,000",
+              "$60,764",
+              "$60,764",
               "—"
             ],
             [
               "RWF-2025-C01",
               "Thorne & Dain Drilling Company, Inc.",
               "675 — Redmont · Cascadia Region · Corvale",
-              "$5,996,000",
-              "$4,682,000",
+              "$23,984",
+              "$18,728",
               "—"
             ],
             [
               "RWF-2025-C02",
               "Amberline Civil Works, LLC",
               "675 — Redmont · Cascadia Region · Corvale",
-              "$32,391,000",
-              "$32,954,000",
+              "$129,564",
+              "$131,816",
               "—"
             ],
             [
               "RWF-2025-E01",
               null,
               "675 — Redmont · Cascadia Region · Corvale",
-              "$5,398,000",
-              "$5,549,000",
+              "$21,592",
+              "$22,196",
               "—"
             ],
             [
               "RWF-2025-P01",
               "Wexford Delivery Partners, LLC",
               "675 — Redmont · Cascadia Region · Corvale",
-              "$2,099,000",
-              "$2,099,000",
+              "$8,396",
+              "$8,396",
               "—"
             ],
             [
               "RWF-2025-P02",
               "Tarrant Geosciences & Testing, Inc.",
               "675 — Redmont · Cascadia Region · Corvale",
-              "$659,000",
-              "$659,000",
+              "$2,636",
+              "$2,636",
               "—"
             ],
             [
               "RWF-2025-S01",
               "Stavros Pump & Turbine Corporation",
               "675 — Redmont · Cascadia Region · Corvale",
-              "$7,197,000",
-              "$7,197,000",
+              "$28,788",
+              "$28,788",
               "—"
             ],
             [
               "DEF-2023-C01",
               "Vasquez Heritage Builders, Inc.",
               "690 — Dunmoor East · Lakeshore Region · Dunmoor",
-              "$12,580,000",
-              "$15,107,000",
+              "$50,320",
+              "$60,428",
               "—"
             ]
           ]
@@ -24551,11 +24826,11 @@
       "kind": "standard",
       "question": "What is committed but not yet incurred, by project and by vendor?",
       "hero_ref": "hq22",
-      "summary": "Answerable for 5 projects. Across them, $215,729,000 of contract value against ITD actuals — accrued-not-invoiced is stated separately and is not sourced.",
+      "summary": "Answerable for 5 projects. Across them, $862,916 of contract value against ITD actuals — accrued-not-invoiced is stated separately and is not sourced.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "Committed-not-incurred is commitment minus actual cost, and **accrued cost sits between them**. Accrual is not connected, so it is reported as its own line at zero-with-no-source rather than folded silently into either side. Folding it into actuals overstates spend; folding it into commitment overstates the remaining obligation.\n\nOn the five contract-pack projects, adjusted contract value is **$215,729,000**."
+          "markdown": "Committed-not-incurred is commitment minus actual cost, and **accrued cost sits between them**. Accrual is not connected, so it is reported as its own line at zero-with-no-source rather than folded silently into either side. Folding it into actuals overstates spend; folding it into commitment overstates the remaining obligation.\n\nOn the five contract-pack projects, adjusted contract value is **$862,916**."
         },
         {
           "type": "table",
@@ -24571,37 +24846,37 @@
             [
               "C25B315_658",
               "C25B315_658-PFAS - Quarrydown WTP",
-              "$61,158,000",
-              "$17,454,523",
-              "$43,703,477"
+              "$244,632",
+              "$69,818",
+              "$174,814"
             ],
             [
               "C25B175_675",
               "C25B175_675-Y - Well Field Expansion",
-              "$53,140,000",
-              "$11,809,381",
-              "$41,330,619"
+              "$212,560",
+              "$47,238",
+              "$165,322"
             ],
             [
               "C23B225_690",
               "C23B225_690-U - Filter Media Renewal",
-              "$47,000,000",
-              "$22,264,067",
-              "$24,735,933"
+              "$188,000",
+              "$89,056",
+              "$98,944"
             ],
             [
               "CZZF50229_623",
               "CZZF50229_623-Lead Replacement - Westbrook",
-              "$28,752,000",
-              "$10,452,043",
-              "$18,299,957"
+              "$115,008",
+              "$41,808",
+              "$73,200"
             ],
             [
               "CZZF5034_698",
               "CZZF5034_698-T D - Main Replacement",
-              "$25,679,000",
-              "$10,560,367",
-              "$15,118,633"
+              "$102,716",
+              "$42,241",
+              "$60,475"
             ]
           ]
         },
@@ -24610,12 +24885,12 @@
           "items": [
             {
               "label": "Adjusted contract value (5 projects)",
-              "value": 215729000,
+              "value": 862916,
               "unit": "USD"
             },
             {
               "label": "ITD actuals (same 5)",
-              "value": 72540381.41,
+              "value": 290162,
               "unit": "USD"
             },
             {
@@ -24768,11 +25043,11 @@
       "kind": "standard",
       "question": "What is sitting in CWIP past its in-service date?",
       "hero_ref": "hq25",
-      "summary": "No CWIP balance is sourced. Against the planned in-service date as a proxy, 944 In Delivery projects are past it, carrying $6.99b of ITD cost.",
+      "summary": "No CWIP balance is sourced. Against the planned in-service date as a proxy, 944 In Delivery projects are past it, carrying $28m of ITD cost.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**Which in-service date I read, stated up front: the planned one.** `Estimated In Service Date` is the only in-service field in the connected data. There is no *actual* in-service date, and on exactly the projects this question is about the two disagree — that is what makes them interesting.\n\nThere is also no CWIP balance. `CONCEPT:CWIPBalance` is modelled with zero members. **ITD actuals on projects not yet in service is the proxy**, and it is an imperfect one: it includes cost that has already been capitalized and excludes AFUDC.\n\nOn that proxy, **944 projects** are In Delivery with a planned in-service date before 2026-05-31 (FY26 actuals close at May), carrying **$6,985,206,210** of incurred cost against **$21,427,601,987** of project-life forecast."
+          "markdown": "**Which in-service date I read, stated up front: the planned one.** `Estimated In Service Date` is the only in-service field in the connected data. There is no *actual* in-service date, and on exactly the projects this question is about the two disagree — that is what makes them interesting.\n\nThere is also no CWIP balance. `CONCEPT:CWIPBalance` is modelled with zero members. **ITD actuals on projects not yet in service is the proxy**, and it is an imperfect one: it includes cost that has already been capitalized and excludes AFUDC.\n\nOn that proxy, **944 projects** are In Delivery with a planned in-service date before 2026-05-31 (FY26 actuals close at May), carrying **$27,940,825** of incurred cost against **$85,710,408** of project-life forecast."
         },
         {
           "type": "metric",
@@ -24785,13 +25060,13 @@
             },
             {
               "label": "ITD cost on those projects",
-              "value": 6985206210.45,
+              "value": 27940825,
               "unit": "USD",
               "flag": "risk"
             },
             {
               "label": "Their project-life forecast",
-              "value": 21427601986.800003,
+              "value": 85710408,
               "unit": "USD"
             },
             {
@@ -24861,7 +25136,7 @@
         },
         {
           "type": "text",
-          "markdown": "**The 2049 bucket deserves attention** — 52 projects carrying $3,016,182,299 sit at a date no plausible programme targets. That is a placeholder rather than a plan, and it is reported rather than filtered. A further 897 projects carry no in-service date at all."
+          "markdown": "**The 2049 bucket deserves attention** — 52 projects carrying $12,064,729 sit at a date no plausible programme targets. That is a placeholder rather than a plan, and it is reported rather than filtered. A further 897 projects carry no in-service date at all."
         }
       ],
       "evidence": [
@@ -25006,11 +25281,11 @@
       "kind": "hero",
       "question": "What in-service value lands inside the current test year?",
       "hero_ref": "hq28",
-      "summary": "1,009 projects with a 2026 planned in-service date carry $22.05b of forecast value — for the Belmara test year only.",
+      "summary": "1,009 projects with a 2026 planned in-service date carry $88.2m of forecast value — for the Belmara test year only.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**The test-year window comes from a configured calendar entry, and only one jurisdiction has one.** Belmara's current test year runs the 2026 calendar year. Ardenia, Corvale and Dunmoor have no configured window in this demo, so they yield **no block** rather than a zero — an unconfigured jurisdiction is a gap in configuration, not an absence of capital.\n\nAgainst the Belmara window, **1,009 projects** carry a planned in-service date inside 2026, valued at **$22,050,227,497** at project-life forecast.\n\n**Two qualifications on that figure.** It is valued at forecast, not at capitalized cost — capitalized cost is not sourced, so this is what the projects are expected to cost, not what will land in rate base. And it reads the *planned* in-service date; the projects most likely to slip out of the window are exactly the ones whose planned and actual dates diverge."
+          "markdown": "**The test-year window comes from a configured calendar entry, and only one jurisdiction has one.** Belmara's current test year runs the 2026 calendar year. Ardenia, Corvale and Dunmoor have no configured window in this demo, so they yield **no block** rather than a zero — an unconfigured jurisdiction is a gap in configuration, not an absence of capital.\n\nAgainst the Belmara window, **1,009 projects** carry a planned in-service date inside 2026, valued at **$88,200,910** at project-life forecast.\n\n**Two qualifications on that figure.** It is valued at forecast, not at capitalized cost — capitalized cost is not sourced, so this is what the projects are expected to cost, not what will land in rate base. And it reads the *planned* in-service date; the projects most likely to slip out of the window are exactly the ones whose planned and actual dates diverge."
         },
         {
           "type": "metric",
@@ -25022,7 +25297,7 @@
             },
             {
               "label": "Forecast value in window",
-              "value": 22050227496.570026,
+              "value": 88200910,
               "unit": "USD"
             },
             {
@@ -25045,31 +25320,31 @@
           "data": [
             {
               "label": "2026",
-              "value": 22050227496.57
+              "value": 88200909.99
             },
             {
               "label": "2027",
-              "value": 10807870001.94
+              "value": 43231480.01
             },
             {
               "label": "2028",
-              "value": 13256253389.46
+              "value": 53025013.56
             },
             {
               "label": "2029",
-              "value": 15811656630.96
+              "value": 63246626.52
             },
             {
               "label": "2030",
-              "value": 15803177529.72
+              "value": 63212710.12
             },
             {
               "label": "2031",
-              "value": 13451585814.28
+              "value": 53806343.26
             },
             {
               "label": "2032",
-              "value": 10707413333.37
+              "value": 42829653.33
             }
           ],
           "x_label": "Planned in-service year",
@@ -25109,7 +25384,7 @@
         },
         {
           "type": "text",
-          "markdown": "For scale: the next year out, 2027, carries 280 projects and $10,807,870,002. If the Belmara window moves by a year the answer changes by roughly that much, which is why the window is a configuration entry rather than a constant."
+          "markdown": "For scale: the next year out, 2027, carries 280 projects and $43,231,480. If the Belmara window moves by a year the answer changes by roughly that much, which is why the window is a configuration entry rather than a constant."
         }
       ],
       "evidence": [
@@ -25173,11 +25448,11 @@
       "kind": "hero",
       "question": "What capital is at risk of missing the filing window, and what is it worth?",
       "hero_ref": "hq29",
-      "summary": "280 projects worth $10.81b land in 2027, just outside the Belmara window. Stated as a position, not an alert.",
+      "summary": "280 projects worth $43.2m land in 2027, just outside the Belmara window. Stated as a position, not an alert.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**This is a value at a position, not an evaluation.** It reports where capital sits relative to a calendar entry. It does not decide whether that position is acceptable, and it carries no threshold — the moment it acquires one it has become a watch, which belongs to the execution engine and carries its own evaluation basis.\n\nAgainst the Belmara 2026 window: **280 projects** carry a planned in-service date in 2027, worth **$10,807,870,002** — the first cohort outside the window. A further **897 projects** carry no in-service date at all and therefore have no position relative to any window; they are reported separately rather than assumed inside or outside."
+          "markdown": "**This is a value at a position, not an evaluation.** It reports where capital sits relative to a calendar entry. It does not decide whether that position is acceptable, and it carries no threshold — the moment it acquires one it has become a watch, which belongs to the execution engine and carries its own evaluation basis.\n\nAgainst the Belmara 2026 window: **280 projects** carry a planned in-service date in 2027, worth **$43,231,480** — the first cohort outside the window. A further **897 projects** carry no in-service date at all and therefore have no position relative to any window; they are reported separately rather than assumed inside or outside."
         },
         {
           "type": "metric",
@@ -25189,7 +25464,7 @@
             },
             {
               "label": "Value at that position",
-              "value": 10807870001.940004,
+              "value": 43231480,
               "unit": "USD"
             },
             {
@@ -25300,11 +25575,11 @@
       "kind": "standard",
       "question": "Which mandated work is at risk of missing its consent-order milestone?",
       "hero_ref": "hqW5",
-      "summary": "Same rule as HQ-29 — a position, not an evaluation. All 342 dated Lead Program projects sit inside 2026, worth $7.76b.",
+      "summary": "Same rule as HQ-29 — a position, not an evaluation. All 342 dated Lead Program projects sit inside 2026, worth $31m.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**Position against a milestone, not an evaluation of it** — the same rule that governs HQ-29.\n\nThe Lead Program is the mandated cohort with a hard date. **All 342 of its 443 projects that carry a planned in-service date land in 2026**, worth **$7,761,886,928**. The remaining 101 carry no date and therefore hold no position against the milestone.\n\n**That uniformity is a fixture property, and it is worth saying plainly.** A real lead programme spreads across several years. Every dated Lead project sharing one year means the answer cannot distinguish an at-risk project from an on-track one — the position is identical for all 342."
+          "markdown": "**Position against a milestone, not an evaluation of it** — the same rule that governs HQ-29.\n\nThe Lead Program is the mandated cohort with a hard date. **All 342 of its 443 projects that carry a planned in-service date land in 2026**, worth **$31,047,548**. The remaining 101 carry no date and therefore hold no position against the milestone.\n\n**That uniformity is a fixture property, and it is worth saying plainly.** A real lead programme spreads across several years. Every dated Lead project sharing one year means the answer cannot distinguish an at-risk project from an on-track one — the position is identical for all 342."
         },
         {
           "type": "metric",
@@ -25326,7 +25601,7 @@
             },
             {
               "label": "Value at that position",
-              "value": 7761886928.290006,
+              "value": 31047548,
               "unit": "USD"
             }
           ]
@@ -25347,20 +25622,20 @@
               "443",
               "LCRI service line replacement",
               "2026 only",
-              "$9,857,465,339"
+              "$39,429,861"
             ],
             [
               "Federal PFAS Program",
               "749",
               "PFOA/PFOS MCL",
               "2025–2035",
-              "$26,380,155,475"
+              "$105,520,622"
             ]
           ]
         },
         {
           "type": "text",
-          "markdown": "By contrast the PFAS cohort spreads across eleven years and peaks in 2030 (110 projects, $4,174,638,967), which is the shape this question is built for. See HQ-W1."
+          "markdown": "By contrast the PFAS cohort spreads across eleven years and peaks in 2030 (110 projects, $16,698,556), which is the shape this question is built for. See HQ-W1."
         }
       ],
       "evidence": [
@@ -25877,7 +26152,7 @@
           "rows": [
             [
               "Active Budget Plan",
-              "$59,959,000",
+              "$239,836",
               "northline_epbcs.plan",
               "plan fact at basis=commitment",
               "2026-05-31",
@@ -25885,7 +26160,7 @@
             ],
             [
               "ITD Actuals",
-              "$17,454,523",
+              "$69,818",
               "northline_psoft.gl",
               "journal accumulated at named origin",
               "2026-05-31",
@@ -25901,7 +26176,7 @@
             ],
             [
               "Contract award value",
-              "$207,059,000 (5 projects)",
+              "$828,236 (5 projects)",
               "src_drive",
               "contract PDF extraction",
               "as-signed",
@@ -26183,11 +26458,11 @@
       "kind": "hero",
       "question": "What happens to FY26 if we defer the second half of the programme by two quarters?",
       "hero_ref": "hq35",
-      "summary": "**$5.98b** of FY26 working forecast sits in Jul–Dec across 3,768 projects and would move out of the year. The 732 In Planning projects **cannot** be deferred — they carry no FY26 forecast to move.",
+      "summary": "**$23.9m** of FY26 working forecast sits in Jul–Dec across 3,768 projects and would move out of the year. The 732 In Planning projects **cannot** be deferred — they carry no FY26 forecast to move.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**The lever moves H2 forecast only, and only where H2 forecast exists.**\n\nFY26 Working Forecast is **$11,388,920,975**. Of that, **$5,983,502,147** falls in July–December across **3,768** projects. Deferring two quarters moves that amount into FY27 and leaves FY26 at **$5,405,418,828**.\n\n**The baseline stays on the page.** The unmodified figure is the left-hand bar below and is never replaced by the scenario."
+          "markdown": "**The lever moves H2 forecast only, and only where H2 forecast exists.**\n\nFY26 Working Forecast is **$45,555,684**. Of that, **$23,934,009** falls in July–December across **3,768** projects. Deferring two quarters moves that amount into FY27 and leaves FY26 at **$21,621,675**.\n\n**The baseline stays on the page.** The unmodified figure is the left-hand bar below and is never replaced by the scenario."
         },
         {
           "type": "chart",
@@ -26196,15 +26471,15 @@
           "data": [
             {
               "label": "Baseline (unmodified)",
-              "value": 11388.9
+              "value": 45.56
             },
             {
               "label": "H1 retained",
-              "value": 5405.4
+              "value": 21.62
             },
             {
               "label": "Deferred into FY27",
-              "value": 5983.5
+              "value": 23.93
             }
           ],
           "y_label": "$m",
@@ -26215,12 +26490,12 @@
           "items": [
             {
               "label": "Baseline FY26 working forecast",
-              "value": 11388920975.29996,
+              "value": 45555684,
               "unit": "USD"
             },
             {
               "label": "Movable (Jul–Dec)",
-              "value": 5983502147.240011,
+              "value": 23934009,
               "unit": "USD"
             },
             {
@@ -26238,7 +26513,7 @@
         },
         {
           "type": "text",
-          "markdown": "**The In Planning cohort is the honest surprise.** It holds $26,848,828,332 of working budget across 732 projects — the largest-looking deferral candidate in the portfolio — and its FY26 working forecast is **zero**. Nothing can be deferred out of a year it was never in. A scenario that showed those projects saving FY26 cash would be inventing the saving.\n\n**Conflicting levers on one project are rejected, not averaged.** If a deferral lever and an acceleration lever both select the same project, the scenario refuses to run rather than netting them — a netted result reads as a single coherent plan when it is two incompatible ones. The user resolves the conflict; the engine does not guess.\n\n**What this does not tell you.** Moving spend out of FY26 moves it into FY27, where the working budget is already $19,706,951,712 for the delivery and planning cohorts alone. Deferral is a phasing change, not a reduction — total programme cost is unchanged and escalation on the deferred work is not modelled here (see HQ-36)."
+          "markdown": "**The In Planning cohort is the honest surprise.** It holds $107,395,313 of working budget across 732 projects — the largest-looking deferral candidate in the portfolio — and its FY26 working forecast is **zero**. Nothing can be deferred out of a year it was never in. A scenario that showed those projects saving FY26 cash would be inventing the saving.\n\n**Conflicting levers on one project are rejected, not averaged.** If a deferral lever and an acceleration lever both select the same project, the scenario refuses to run rather than netting them — a netted result reads as a single coherent plan when it is two incompatible ones. The user resolves the conflict; the engine does not guess.\n\n**What this does not tell you.** Moving spend out of FY26 moves it into FY27, where the working budget is already $78,827,807 for the delivery and planning cohorts alone. Deferral is a phasing change, not a reduction — total programme cost is unchanged and escalation on the deferred work is not modelled here (see HQ-36)."
         }
       ],
       "evidence": [
@@ -26360,7 +26635,7 @@
           "items": [
             {
               "label": "Portfolio working budget",
-              "value": 152290832124.52994,
+              "value": 609163328,
               "unit": "USD"
             },
             {
@@ -26448,11 +26723,11 @@
       "kind": "standard",
       "question": "Can we accelerate FY27 work into FY26, and what does that collide with?",
       "hero_ref": "hq37",
-      "summary": "FY27 Working Budget for the 2,778 In Delivery projects is **$13.47b**. Pulling any of it forward collides with three levers that are not declared in this scenario — and they are flagged, not zeroed.",
+      "summary": "FY27 Working Budget for the 2,778 In Delivery projects is **$53.9m**. Pulling any of it forward collides with three levers that are not declared in this scenario — and they are flagged, not zeroed.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**What is available to pull.** FY27 Working Budget is **$13,470,250,659** across the 2,778 In Delivery projects and **$6,236,701,053** across the 732 In Planning projects. Accelerating from the In Planning cohort means starting work whose FY26 forecast is currently zero — a much larger change than a phasing shift.\n\n**What it collides with.** Three interactions are undeclared in this scenario. They are listed rather than silently set to zero, because a zero is a claim and a flag is not:"
+          "markdown": "**What is available to pull.** FY27 Working Budget is **$53,881,003** across the 2,778 In Delivery projects and **$24,946,804** across the 732 In Planning projects. Accelerating from the In Planning cohort means starting work whose FY26 forecast is currently zero — a much larger change than a phasing shift.\n\n**What it collides with.** Three interactions are undeclared in this scenario. They are listed rather than silently set to zero, because a zero is a claim and a flag is not:"
         },
         {
           "type": "table",
@@ -26495,17 +26770,17 @@
           "items": [
             {
               "label": "FY27 WB — In Delivery",
-              "value": 13470250658.879982,
+              "value": 53881003,
               "unit": "USD"
             },
             {
               "label": "FY27 WB — In Planning",
-              "value": 6236701052.949998,
+              "value": 24946804,
               "unit": "USD"
             },
             {
               "label": "FY26 baseline forecast",
-              "value": 11388920975.29996,
+              "value": 45555684,
               "unit": "USD"
             },
             {
@@ -26579,13 +26854,13 @@
       "answer_id": "Q38",
       "persona": "Rate-Case Lead",
       "kind": "standard",
-      "question": "What is the smallest set of projects we could defer to take $500 million out of FY26?",
+      "question": "What is the smallest set of projects we could defer to take $2 million out of FY26?",
       "hero_ref": "hq38",
-      "summary": "**38 projects**, removing **$506,787,990** of H2 forecast. This is a candidate set under a stated rule, not a recommendation.",
+      "summary": "**38 projects**, removing **$2,027,152** of H2 forecast. This is a candidate set under a stated rule, not a recommendation.",
       "blocks": [
         {
           "type": "text",
-          "markdown": "**The rule, stated before the answer:** rank the 3,768 projects that carry July–December FY26 working forecast by the size of that H2 amount, and take from the top until the target is met. Nothing else is considered.\n\nUnder that rule, **38 projects** remove **$506,787,990** — 4.4% of the FY26 working forecast."
+          "markdown": "**The rule, stated before the answer:** rank the 3,768 projects that carry July–December FY26 working forecast by the size of that H2 amount, and take from the top until the target is met. Nothing else is considered.\n\nUnder that rule, **38 projects** remove **$2,027,152** — 4.4% of the FY26 working forecast."
         },
         {
           "type": "table",
@@ -26601,37 +26876,37 @@
               "C24B322_628",
               "C24B322_628-M - WTP Replacement",
               "Northvale Region",
-              "$18,565,719"
+              "$74,263"
             ],
             [
               "C25B304_694",
               "C25B304_694-PFAS Treatment - Kembleton",
               "Lakeshore Region",
-              "$17,116,087"
+              "$68,464"
             ],
             [
               "C25B367_682",
               "C25B367_682-B - Clearwell Replacement",
               "Cascadia Region",
-              "$17,113,239"
+              "$68,453"
             ],
             [
               "C25B523_651",
               "C25B523_651-J - Well Field Expansion",
               "Eastmoor Region",
-              "$16,913,212"
+              "$67,653"
             ],
             [
               "C24B347_694",
               "C24B347_694-PFAS GAC Install - Kembleton",
               "Lakeshore Region",
-              "$16,072,145"
+              "$64,289"
             ],
             [
               "C24B567_675",
               "C24B567_675-PFAS Fennwick 20",
               "Cascadia Region",
-              "$15,148,794"
+              "$60,595"
             ]
           ]
         },
@@ -26640,7 +26915,7 @@
           "items": [
             {
               "label": "Target",
-              "value": 500000000,
+              "value": 2000000,
               "unit": "USD"
             },
             {
@@ -26650,7 +26925,7 @@
             },
             {
               "label": "Actually removed",
-              "value": 506787990.49,
+              "value": 2027152,
               "unit": "USD"
             },
             {
@@ -26725,7 +27000,7 @@
       "kind": "hero",
       "question": "Is our PFAS spend on track against the compliance deadline?",
       "hero_ref": "hqW1",
-      "summary": "749 PFAS projects, $26,380,155,475 working budget, 11.5% spent to date. **367 projects worth $12.69b land after the 2029 deadline entry.**",
+      "summary": "749 PFAS projects, $105,520,622 working budget, 11.5% spent to date. **367 projects worth $50.8m land after the 2029 deadline entry.**",
       "blocks": [
         {
           "type": "text",
@@ -26741,12 +27016,12 @@
             },
             {
               "label": "Working budget",
-              "value": 26380155474.94001,
+              "value": 105520622,
               "unit": "USD"
             },
             {
               "label": "Spent to date",
-              "value": 3045223538.8799987,
+              "value": 12180894,
               "unit": "USD"
             },
             {
@@ -26824,26 +27099,26 @@
             [
               "In service ≤ 2029",
               "312",
-              "$11,045,362,453",
+              "$44,181,450",
               "ahead of the entry"
             ],
             [
               "In service after 2029",
               "367",
-              "$12,689,539,359",
+              "$50,758,157",
               "**after the entry**"
             ],
             [
               "No planned in-service date",
               "70",
-              "$2,645,253,663",
+              "$10,581,015",
               "**no position — not 'on time'**"
             ]
           ]
         },
         {
           "type": "text",
-          "markdown": "**A project with no in-service date holds no position against the deadline.** 70 PFAS projects carry none. They are not on track and they are not late; they are unplaceable, and counting them as compliant would be the single most misleading thing this answer could do.\n\n**'On track' is a position, not a verdict.** The graph reports where each project sits relative to a date somebody configured. It does not judge whether the programme will meet the rule — that requires an assessment of what the rule actually requires at each system, which is a regulatory judgement and not a query result.\n\n**Peak delivery is 2030**, one year past the configured entry: 110 projects worth $4,174,638,967."
+          "markdown": "**A project with no in-service date holds no position against the deadline.** 70 PFAS projects carry none. They are not on track and they are not late; they are unplaceable, and counting them as compliant would be the single most misleading thing this answer could do.\n\n**'On track' is a position, not a verdict.** The graph reports where each project sits relative to a date somebody configured. It does not judge whether the programme will meet the rule — that requires an assessment of what the rule actually requires at each system, which is a regulatory judgement and not a query result.\n\n**Peak delivery is 2030**, one year past the configured entry: 110 projects worth $16,698,556."
         }
       ],
       "evidence": [
@@ -26972,13 +27247,13 @@
               "Lead Program spend to date",
               "yes",
               "northline_psoft.gl",
-              "$2,791,392,661"
+              "$11,165,571"
             ],
             [
               "Lead Program working budget",
               "yes",
               "northline_epbcs.plan",
-              "$9,857,465,339"
+              "$39,429,861"
             ]
           ]
         },
@@ -26992,12 +27267,12 @@
             },
             {
               "label": "Working budget",
-              "value": 9857465338.780006,
+              "value": 39429861,
               "unit": "USD"
             },
             {
               "label": "Spent to date",
-              "value": 2791392661.320001,
+              "value": 11165571,
               "unit": "USD"
             },
             {
@@ -27010,11 +27285,11 @@
         },
         {
           "type": "text",
-          "markdown": "**The unknown-material trap.** Under LCRI a line of unknown material is treated as lead until proven otherwise, and inventory work reclassifies large numbers of them without replacing a single pipe. A dashboard that counts reclassifications as progress reports a replacement rate that is mostly paperwork. **An unknown-material line that becomes a known copper line is not a replaced line.** Any rate this platform eventually reports must state inventory completeness beside it, or the rate is uninterpretable.\n\n**What can be said today.** 443 projects sit in the Lead Program with $9,857,465,339 of working budget, 28.3% of it spent. All 342 that carry a planned in-service date land in 2026. That is a spend position, and it is not a replacement rate — the two are related only by an assumed cost per line that nobody has supplied.\n\n**What connecting a source would change.** A service-line inventory (typically GIS or the customer system) makes the numerator and denominator real. Until then this question has an honest partial answer and no complete one."
+          "markdown": "**The unknown-material trap.** Under LCRI a line of unknown material is treated as lead until proven otherwise, and inventory work reclassifies large numbers of them without replacing a single pipe. A dashboard that counts reclassifications as progress reports a replacement rate that is mostly paperwork. **An unknown-material line that becomes a known copper line is not a replaced line.** Any rate this platform eventually reports must state inventory completeness beside it, or the rate is uninterpretable.\n\n**What can be said today.** 443 projects sit in the Lead Program with $39,429,861 of working budget, 28.3% of it spent. All 342 that carry a planned in-service date land in 2026. That is a spend position, and it is not a replacement rate — the two are related only by an assumed cost per line that nobody has supplied.\n\n**What connecting a source would change.** A service-line inventory (typically GIS or the customer system) makes the numerator and denominator real. Until then this question has an honest partial answer and no complete one."
         },
         {
           "type": "text",
-          "markdown": "**Do not derive lines from dollars.** $2,791,392,661 divided by an assumed unit cost would produce a line count precise to four digits and grounded in nothing. The refusal is the answer."
+          "markdown": "**Do not derive lines from dollars.** $11,165,571 divided by an assumed unit cost would produce a line count precise to four digits and grounded in nothing. The refusal is the answer."
         }
       ],
       "evidence": [
@@ -27092,7 +27367,7 @@
       "kind": "hero",
       "question": "What has the contractor told us about Quarrydown that isn't in the numbers?",
       "hero_ref": "hqM1",
-      "summary": "Four messages from Kelso Ridge, claiming $4.3m against four change orders. Two are subsurface, one is a rejected delivery under Buy America, one is added scope.",
+      "summary": "Four messages from Kelso Ridge, claiming $17.2k against four change orders. Two are subsurface, one is a rejected delivery under Buy America, one is added scope.",
       "blocks": [
         {
           "type": "text",
@@ -27110,7 +27385,7 @@
               "subject": "C25B315_658 CO-001 — Rock and undocumented foundation obstructions encountered between elev",
               "claim": "Rock and undocumented foundation obstructions encountered between elevation 214 and 208 at the contactor building footprint, not shown on the subsurface data furnished under Article 8. Adds 1,840 CY of rock excavation and 610 CY of structural backfill.",
               "reason_label": "Differing site conditions",
-              "amount": 412600,
+              "amount": 1650,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.94,
@@ -27126,7 +27401,7 @@
               "subject": "C25B315_658 CO-002 — Owner-caused delay",
               "claim": "Owner-caused delay. Vessels 3 and 7 were rejected at delivery for undocumented plate origin under the American Iron and Steel and Build America, Buy America requirements and were re-fabricated.",
               "reason_label": "Differing site conditions",
-              "amount": 1340000,
+              "amount": 5360,
               "amount_basis": "commitment",
               "months": 4,
               "confidence": 0.88,
@@ -27142,7 +27417,7 @@
               "subject": "C25B315_658 CO-003 — Addition of the intermediate transfer pump station",
               "claim": "Addition of the intermediate transfer pump station. Hydraulic modelling completed after the contactor vessel submittal established that the as-fabricated vessel headloss leaves the post-contactor hydraulic grade line below the clearwell inlet at design flow.",
               "reason_label": "Scope added after award",
-              "amount": 2207400,
+              "amount": 8830,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.88,
@@ -27158,7 +27433,7 @@
               "subject": "C25B315_658 CO-004 — Amendment No",
               "claim": "Amendment No. 1.",
               "reason_label": "Design development after award",
-              "amount": 318000,
+              "amount": 1272,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.88,
@@ -27171,7 +27446,7 @@
         },
         {
           "type": "text",
-          "markdown": "**What the four messages amount to.** Two are the same failure — the ground was not what the subsurface data said it was, once at foundation level and once as added structural backfill. One is an owner-caused delay that reads as a compliance failure rather than a construction one: vessels rejected at delivery for undocumented plate origin under American Iron and Steel and Build America Buy America, then re-fabricated, costing **$1,340,000** and **4 months**. One is genuine added scope: a transfer pump station that hydraulic modelling showed was needed only after the vessel submittal came back.\n\n**The Buy America one is the message to carry into a rate case.** A delay caused by the owner's own documentation requirement is a different conversation with a regulator than a contractor who fell behind."
+          "markdown": "**What the four messages amount to.** Two are the same failure — the ground was not what the subsurface data said it was, once at foundation level and once as added structural backfill. One is an owner-caused delay that reads as a compliance failure rather than a construction one: vessels rejected at delivery for undocumented plate origin under American Iron and Steel and Build America Buy America, then re-fabricated, costing **$5,360** and **4 months**. One is genuine added scope: a transfer pump station that hydraulic modelling showed was needed only after the vessel submittal came back.\n\n**The Buy America one is the message to carry into a rate case.** A delay caused by the owner's own documentation requirement is a different conversation with a regulator than a contractor who fell behind."
         },
         {
           "type": "metric",
@@ -27183,12 +27458,12 @@
             },
             {
               "label": "Claimed in correspondence",
-              "value": 4278000,
+              "value": 17112,
               "unit": "USD"
             },
             {
               "label": "Ledger movement",
-              "value": 15618600.180000007,
+              "value": 62474,
               "unit": "USD",
               "flag": "risk"
             },
@@ -27431,7 +27706,7 @@
       "kind": "hero",
       "question": "Which projects will not be in service before the rate case filing?",
       "hero_ref": "hqM2",
-      "summary": "One is stated outright in correspondence — C23B372_612-A - Reservoir Rehabilitation, $38.3m — and 4 more carry an in-service date the sender says is not credible.",
+      "summary": "One is stated outright in correspondence — C23B372_612-A - Reservoir Rehabilitation, $153k — and 4 more carry an in-service date the sender says is not credible.",
       "blocks": [
         {
           "type": "text",
@@ -27449,7 +27724,7 @@
               "subject": "C23B372_612 — Will not be in service before the filing",
               "claim": "This will not be in service before the APSC filing date. It carries to the following case, so the spend sits in construction work in progress and earns nothing in the meantime.",
               "reason_label": "Will not be in service before the filing",
-              "amount": 38307000,
+              "amount": 153228,
               "amount_basis": "projection",
               "months": null,
               "confidence": 0.9,
@@ -27533,7 +27808,7 @@
         },
         {
           "type": "text",
-          "markdown": "**Why this matters more than its dollar value suggests.** Rate-case lag is the strongest cost driver in this business: capital not in service before the filing earns nothing until the next case, which can be years. **$38,307,000** on C23B372_612 is the amount the message names, and the message names it because somebody was already worried.\n\n**What this answer is not.** It is not a complete list of projects that will miss the filing. It is a complete list of projects somebody *wrote about* missing it. The difference is the entire coverage problem — a project whose date is quietly wrong and whose manager has not emailed anyone appears nowhere on this answer and is exactly the case a rate-case lead is most exposed to."
+          "markdown": "**Why this matters more than its dollar value suggests.** Rate-case lag is the strongest cost driver in this business: capital not in service before the filing earns nothing until the next case, which can be years. **$153,228** on C23B372_612 is the amount the message names, and the message names it because somebody was already worried.\n\n**What this answer is not.** It is not a complete list of projects that will miss the filing. It is a complete list of projects somebody *wrote about* missing it. The difference is the entire coverage problem — a project whose date is quietly wrong and whose manager has not emailed anyone appears nowhere on this answer and is exactly the case a rate-case lead is most exposed to."
         },
         {
           "type": "metric",
@@ -27552,7 +27827,7 @@
             },
             {
               "label": "Amount named in the message",
-              "value": 38307000,
+              "value": 153228,
               "unit": "USD",
               "flag": "risk"
             },
@@ -27857,7 +28132,7 @@
               "C23B225_690",
               "DEF-2023-C01",
               "CO-001",
-              "$1,884,300",
+              "$7,537",
               "Existing asset worse than the bid documents assumed",
               "0.94"
             ],
@@ -27865,7 +28140,7 @@
               "C23B225_690",
               "DEF-2026-C02",
               "CO-003",
-              "$1,207,400",
+              "$4,830",
               "Existing asset worse than the bid documents assumed",
               "0.88"
             ],
@@ -27873,7 +28148,7 @@
               "C23B225_690",
               "DEF-2026-C02",
               "CO-004",
-              "$847,600",
+              "$3,390",
               "Reason recorded on the change order",
               "0.66"
             ],
@@ -27881,7 +28156,7 @@
               "C23B225_690",
               "DEF-2023-E01",
               "CO-006",
-              "$399,000",
+              "$1,596",
               "Design development after award",
               "0.88"
             ],
@@ -27889,7 +28164,7 @@
               "C25B175_675",
               "RWF-2025-C01",
               "CO-001",
-              "$-1,314,000",
+              "$-5,256",
               "Reason recorded on the change order",
               "0.66"
             ],
@@ -27897,7 +28172,7 @@
               "C25B175_675",
               "RWF-2025-C02",
               "CO-002",
-              "$563,000",
+              "$2,252",
               "Owner-caused delay",
               "0.88"
             ],
@@ -27905,7 +28180,7 @@
               "C25B315_658",
               "QDN-2025-C01",
               "CO-001",
-              "$412,600",
+              "$1,650",
               "Differing site conditions",
               "0.94"
             ],
@@ -27913,7 +28188,7 @@
               "C25B315_658",
               "QDN-2025-C01",
               "CO-002",
-              "$1,340,000",
+              "$5,360",
               "Differing site conditions",
               "0.88"
             ],
@@ -27921,7 +28196,7 @@
               "C25B315_658",
               "QDN-2025-C01",
               "CO-003",
-              "$2,207,400",
+              "$8,830",
               "Scope added after award",
               "0.88"
             ],
@@ -27929,7 +28204,7 @@
               "C25B315_658",
               "QDN-2025-E01",
               "CO-004",
-              "$318,000",
+              "$1,272",
               "Design development after award",
               "0.88"
             ],
@@ -27937,7 +28212,7 @@
               "CZZF50229_623",
               "WLR-25-2",
               "CO-001",
-              "$1,706,000",
+              "$6,824",
               "Scope added after award",
               "0.94"
             ],
@@ -27945,7 +28220,7 @@
               "CZZF50229_623",
               "WLR-25-2",
               "CO-002",
-              "$-742,000",
+              "$-2,968",
               "Reason recorded on the change order",
               "0.66"
             ],
@@ -27953,7 +28228,7 @@
               "CZZF50229_623",
               "WLR-2024-R01",
               "CO-003",
-              "$496,000",
+              "$1,984",
               "Differing site conditions",
               "0.88"
             ],
@@ -27961,7 +28236,7 @@
               "CZZF5034_698",
               "WM-23-A",
               "CO-001",
-              "$-1,864,000",
+              "$-7,456",
               "Differing site conditions",
               "0.94"
             ],
@@ -27969,7 +28244,7 @@
               "CZZF5034_698",
               "WM-26-B",
               "CO-003",
-              "$688,000",
+              "$2,752",
               "Differing site conditions",
               "0.88"
             ]
@@ -28000,7 +28275,7 @@
             },
             {
               "label": "Contract value adjustment",
-              "value": 8670000,
+              "value": 34680,
               "unit": "USD"
             }
           ]
@@ -28203,9 +28478,9 @@
               "from_side": "contractor",
               "sent_at": "2026-05-06T14:20:00Z",
               "subject": "Re: Fwd: revised pricing — please advise",
-              "claim": "Per our call, the revised figure is $840,000 and holds for thirty days. Happy to walk through the build-up whenever suits.",
+              "claim": "Per our call, the revised figure is $3,360 and holds for thirty days. Happy to walk through the build-up whenever suits.",
               "reason_label": null,
-              "amount": 840000,
+              "amount": 3360,
               "amount_basis": null,
               "months": null,
               "confidence": null,
@@ -28266,7 +28541,7 @@
         },
         {
           "type": "text",
-          "markdown": "**The four failure shapes, and they are the ones that actually arrive.**\n\n*A figure with no subject.* `msg_028` says a revised figure of **$840,000** holds for thirty days. It names no project, no package and no change order, and the extractor cannot tell whether it is a quote or a commitment. Binding it to the sender's only active project would be a guess dressed as a resolution.\n\n*Two candidates and no tiebreak.* `msg_029` resolves to **2 projects** at 0.58 — below the 0.70 floor — because 'the PFAS package' names a programme, and the programme has two plants. Picking the larger one would be right about half the time.\n\n*Not read at all.* Two messages are in scope and unread. Their excerpt is literally `(not yet read)`. A runtime pull has a boundary and this is what the boundary looks like from the inside.\n\n**None of these is a bug to be fixed by a better model.** The first two are messages that do not contain the information required to resolve them. A system that resolved them anyway would be inventing the missing part."
+          "markdown": "**The four failure shapes, and they are the ones that actually arrive.**\n\n*A figure with no subject.* `msg_028` says a revised figure of **$3,360** holds for thirty days. It names no project, no package and no change order, and the extractor cannot tell whether it is a quote or a commitment. Binding it to the sender's only active project would be a guess dressed as a resolution.\n\n*Two candidates and no tiebreak.* `msg_029` resolves to **2 projects** at 0.58 — below the 0.70 floor — because 'the PFAS package' names a programme, and the programme has two plants. Picking the larger one would be right about half the time.\n\n*Not read at all.* Two messages are in scope and unread. Their excerpt is literally `(not yet read)`. A runtime pull has a boundary and this is what the boundary looks like from the inside.\n\n**None of these is a bug to be fixed by a better model.** The first two are messages that do not contain the information required to resolve them. A system that resolved them anyway would be inventing the missing part."
         },
         {
           "type": "metric",
@@ -28342,7 +28617,7 @@
             "to": "controls@northlinewater.example",
             "sent_at": "2026-05-06T14:20:00Z",
             "subject": "Re: Fwd: revised pricing — please advise",
-            "excerpt": "Per our call, the revised figure is $840,000 and holds for thirty days. Happy to walk through the build-up whenever suits."
+            "excerpt": "Per our call, the revised figure is $3,360 and holds for thirty days. Happy to walk through the build-up whenever suits."
           },
           "extraction": null,
           "why_not_authoritative": "A message is a claim by its sender, not a record. It is shown with the sender, the date and the extractor's confidence so a reader can weigh it; it is never counted into a figure.",
@@ -28487,9 +28762,9 @@
               "from_side": "internal",
               "sent_at": "2026-03-02T11:15:00Z",
               "subject": "RE: C25B175_675 — monthly report — well yield below the design basis",
-              "claim": "Yields on RW-4 and RW-5 are 18% below design basis; a third well would add roughly $4.8M.",
+              "claim": "Yields on RW-4 and RW-5 are 18% below design basis; a third well would add roughly $19.2K.",
               "reason_label": "Design development after award",
-              "amount": 4800000,
+              "amount": 19200,
               "amount_basis": "projection",
               "months": 5,
               "confidence": 0.71,
@@ -28502,7 +28777,7 @@
         },
         {
           "type": "text",
-          "markdown": "**The media change-out claim.** `msg_029` says pilot data suggests change-out every 14 months rather than 24. That is not a capital cost this year and it does not move any figure in this package — which is exactly why it is interesting. It changes the life-cycle case on a plant whose capital case has already been made. Nothing in the connected data would ever surface it, because the connected data is a capital ledger and this is an operating assumption.\n\n**The well-yield claim.** `msg_031` reports a well yield below the design basis and names **$4,800,000**, but its subject line names one project while its body describes another — a forwarded thread carrying last quarter's subject. The extractor resolved it to **Well Field Expansion** at 0.71 with 2 competing candidates, which is a resolution a reader should check rather than trust."
+          "markdown": "**The media change-out claim.** `msg_029` says pilot data suggests change-out every 14 months rather than 24. That is not a capital cost this year and it does not move any figure in this package — which is exactly why it is interesting. It changes the life-cycle case on a plant whose capital case has already been made. Nothing in the connected data would ever surface it, because the connected data is a capital ledger and this is an operating assumption.\n\n**The well-yield claim.** `msg_031` reports a well yield below the design basis and names **$19,200**, but its subject line names one project while its body describes another — a forwarded thread carrying last quarter's subject. The extractor resolved it to **Well Field Expansion** at 0.71 with 2 competing candidates, which is a resolution a reader should check rather than trust."
         },
         {
           "type": "text",
@@ -28593,12 +28868,12 @@
             "to": "controls@northlinewater.example",
             "sent_at": "2026-03-02T11:15:00Z",
             "subject": "RE: C25B175_675 — monthly report — well yield below the design basis",
-            "excerpt": "Step-drawdown testing on RW-4 and RW-5 returned yields about 18% below the design basis. Either we add a third well or we accept the lower firm capacity; the first is roughly $4.8M. (Replying on this thread, sorry — wrong chain.)"
+            "excerpt": "Step-drawdown testing on RW-4 and RW-5 returned yields about 18% below the design basis. Either we add a third well or we accept the lower firm capacity; the first is roughly $19.2K. (Replying on this thread, sorry — wrong chain.)"
           },
           "extraction": {
             "reason_class": "design_development",
             "reason_label": "Design development after award",
-            "statement": "Yields on RW-4 and RW-5 are 18% below design basis; a third well would add roughly $4.8M.",
+            "statement": "Yields on RW-4 and RW-5 are 18% below design basis; a third well would add roughly $19.2K.",
             "amount": 4800000,
             "amount_basis": "projection",
             "months": 5,
@@ -28693,7 +28968,7 @@
             }
           ],
           "y_label": "Messages",
-          "note": "Message count, not money. One message about a $40m job and one about a $2m job count the same here."
+          "note": "Message count, not money. One message about a $160k job and one about a $8k job count the same here."
         },
         {
           "type": "table",
@@ -28708,13 +28983,13 @@
             [
               "Differing site conditions",
               5,
-              "$1,072,600",
+              "$4,290",
               "contractor"
             ],
             [
               "Material and labour escalation past the plan basis",
               4,
-              "$79,770,651",
+              "$319,083",
               "internal"
             ],
             [
@@ -28726,37 +29001,37 @@
             [
               "Design development after award",
               3,
-              "$5,517,000",
+              "$22,068",
               "both"
             ],
             [
               "Completion date moved out",
               3,
-              "$61,939,434",
+              "$247,758",
               "internal"
             ],
             [
               "Scope added after award",
               3,
-              "$3,922,800",
+              "$15,691",
               "both"
             ],
             [
               "Existing asset worse than the bid documents assumed",
               2,
-              "$3,091,700",
+              "$12,367",
               "contractor"
             ],
             [
               "Owner-caused delay",
               1,
-              "$563,000",
+              "$2,252",
               "contractor"
             ],
             [
               "Will not be in service before the filing",
               1,
-              "$38,307,000",
+              "$153,228",
               "internal"
             ]
           ]
@@ -28894,12 +29169,12 @@
             "to": "controls@northlinewater.example",
             "sent_at": "2026-05-19T15:40:00Z",
             "subject": "OVERHEAD4_670 — traffic control line item",
-            "excerpt": "Traffic control came in $9,400 over the allowance because the county required a flagger on the second approach. Noting it for the record; it does not move the forecast."
+            "excerpt": "Traffic control came in $38 over the allowance because the county required a flagger on the second approach. Noting it for the record; it does not move the forecast."
           },
           "extraction": {
             "reason_class": "scope_addition",
             "reason_label": "Scope added after award",
-            "statement": "County-required second flagger added $9,400 to traffic control.",
+            "statement": "County-required second flagger added $38 to traffic control.",
             "amount": 9400,
             "amount_basis": "commitment",
             "months": null,
@@ -29039,7 +29314,7 @@
               "subject": "C25B175_675 CO-001 — Quantity reconciliation under Article 5 and General Conditions paragra",
               "claim": "Quantity reconciliation under Article 5 and General Conditions paragraph 13.03. The producing interval of the Redmont Sand was encountered between 62 and 94 feet shallower than the estimated quantities assumed at Wells 2, 4 and 6.",
               "reason_label": "Reason recorded on the change order",
-              "amount": -1314000,
+              "amount": -5256,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.66,
@@ -29055,7 +29330,7 @@
               "subject": "C23B225_690 CO-004 — Time extension and extended general conditions",
               "claim": "Time extension and extended general conditions. The Filter 10 and Filter 11 outages could not be completed before the June 1 peak-season restriction on filters out of service.",
               "reason_label": "Reason recorded on the change order",
-              "amount": 847600,
+              "amount": 3390,
               "amount_basis": "commitment",
               "months": 7,
               "confidence": 0.66,
@@ -29071,7 +29346,7 @@
               "subject": "CZZF50229_623 CO-002 — Quantity credit",
               "claim": "Quantity credit. 412 services closed as Access Not Provided after four documented contact attempts using at least two communication methods.",
               "reason_label": "Reason recorded on the change order",
-              "amount": -742000,
+              "amount": -2968,
               "amount_basis": "commitment",
               "months": null,
               "confidence": 0.66,
@@ -29388,55 +29663,55 @@
               "Kelso Ridge Constructors, Inc.",
               5,
               2,
-              "$6,015,000"
+              "$24,060"
             ],
             [
               "Marchetti & Vance Engineers, Inc.",
               5,
               1,
-              "$1,158,000"
+              "$4,632"
             ],
             [
               "Delmar Sinclair Construction Co.",
               3,
               2,
-              "$1,652,000"
+              "$6,608"
             ],
             [
               "Amberline Civil Works, LLC",
               1,
               1,
-              "$563,000"
+              "$2,252"
             ],
             [
               "Ardmore Kessler Engineering, P.C.",
               1,
               1,
-              "$399,000"
+              "$1,596"
             ],
             [
               "Halloway Underground, Inc.",
               1,
               1,
-              "$-1,864,000"
+              "$-7,456"
             ],
             [
               "Ostrander Paving & Restoration, Inc.",
               1,
               1,
-              "$496,000"
+              "$1,984"
             ],
             [
               "Thorne & Dain Drilling Company, Inc.",
               1,
               1,
-              "$-1,314,000"
+              "$-5,256"
             ],
             [
               "Vasquez Heritage Builders, Inc.",
               1,
               1,
-              "$1,884,300"
+              "$7,537"
             ]
           ]
         },
@@ -29615,7 +29890,7 @@
         },
         {
           "type": "text",
-          "markdown": "**Why the two percentages differ, and why both are quoted.** Coverage by money (1.18%) is more than double coverage by count (0.54%), because the projects people write about are the larger ones. Quoting only the money figure would flatter the platform; quoting only the count figure would understate what it reaches. Neither is anywhere near an answer to this question.\n\n**$26,555,495,130 of material overrun has no reason attached in anything connected.** Not a low-confidence reason. Not a withheld reason. Nothing was written down anywhere the platform can read."
+          "markdown": "**Why the two percentages differ, and why both are quoted.** Coverage by money (1.18%) is more than double coverage by count (0.54%), because the projects people write about are the larger ones. Quoting only the money figure would flatter the platform; quoting only the count figure would understate what it reaches. Neither is anywhere near an answer to this question.\n\n**$106,221,981 of material overrun has no reason attached in anything connected.** Not a low-confidence reason. Not a withheld reason. Nothing was written down anywhere the platform can read."
         },
         {
           "type": "chart",
@@ -29642,7 +29917,7 @@
       "evidence": [
         {
           "source": "northline_epbcs.plan",
-          "detail": "2,966 material overruns, $26,871,563,138 of exposure, computed against Most Recent Budget Plan"
+          "detail": "2,966 material overruns, $107,486,253 of exposure, computed against Most Recent Budget Plan"
         },
         {
           "source": "Project",
@@ -29650,7 +29925,7 @@
         },
         {
           "source": "Not connected",
-          "detail": "No variance-reason field in the planning system. 2,950 overruns carrying $26,555,495,130 have no explanation in any connected source, and no amount of mail would change that."
+          "detail": "No variance-reason field in the planning system. 2,950 overruns carrying $106,221,981 have no explanation in any connected source, and no amount of mail would change that."
         }
       ],
       "confidence_level": "High",
@@ -29663,7 +29938,7 @@
           "kind": "dataset",
           "source_id": "src_bq",
           "label": "northline_epbcs.plan",
-          "detail": "2,966 material overruns, $26,871,563,138 of exposure, computed against Most Recent Budget Plan",
+          "detail": "2,966 material overruns, $107,486,253 of exposure, computed against Most Recent Budget Plan",
           "runtime": false,
           "as_of": "2026-03-29",
           "authoritative": true,
@@ -29683,7 +29958,7 @@
           "kind": "absence",
           "source_id": null,
           "label": "Not connected",
-          "detail": "No variance-reason field in the planning system. 2,950 overruns carrying $26,555,495,130 have no explanation in any connected source, and no amount of mail would change that.",
+          "detail": "No variance-reason field in the planning system. 2,950 overruns carrying $106,221,981 have no explanation in any connected source, and no amount of mail would change that.",
           "runtime": false,
           "as_of": null,
           "authoritative": false,

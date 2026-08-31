@@ -1747,6 +1747,16 @@ worse than an abstention. Every recorded answer reports **which** it was —
 `Answered from the recorded query set · Q01 (hero, hq1)` — so nobody reads a
 written answer as something the walk derived.
 
+**CAPEX ships its own 50 and they are rescaled on the way in.** `npm run ingest:queries` reads the v2
+query set and divides every figure by `capex-scale.js`'s factor — the same one the rendered reports use,
+because Ask's *Actuals YTD (to May)* is to the cent the Variance Report's `periodActual`, and two factors
+would be two answers to one question. What is money is read from what the set declares (a metric item's
+`unit`, a chart's axis, an observation's `amount`) and never from how large a number is; a chart whose
+axis names no unit and holds a figure refuses the run. Prose goes through one formatter that keeps the
+author's shape — `$12.03b` becomes `$48.1m`, `$12,028,661,826` becomes `$48,114,647` — and it scales on
+the way in rather than in a second pass, so a re-ingest cannot undo it. A sweep refuses anything left
+reading in billions.
+
 Anything unrecognised falls through to `studioQuery` — **the same walk the
 studio's sanity check uses**, so a check that passed before publishing cannot
 disagree with the answer after it. That path carries four steps of working
@@ -2287,8 +2297,10 @@ honestly mean.
 
 A third: **their figures are rescaled, and the transform is `npm run scale:capex`.** The fixture inside
 each file is a $152B, 4,500-project programme whose 60 projects are a 1.54% sample, so the Variance
-Report opened on `$5.00B` where the demo's range is $50M. One factor (÷100) across every capital figure,
-so every ratio the documents state stays exactly true; the tiles now read `$50.0M · $44.1M · −$5.91M`.
+Report opened on `$5.00B` where the demo's range is $50M. One factor — `capex-scale.js`'s, shared with
+`npm run ingest:queries`, because Ask quotes the same figures and *Actuals YTD* is the report's own
+`periodActual` — across every capital figure, so every ratio the documents state stays exactly true; the
+tiles now read `$20.0M · $17.6M · −$2.4M`.
 Because these are generated files that forbid hand-edits, the safety is in the script: literals found by
 **path** rather than key name, every number in a report's own containers classified money or not-money
 with an unclassified one refusing the run, the arithmetic (`periodVariance = periodActual − periodPlan`,

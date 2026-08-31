@@ -7577,8 +7577,11 @@ expect(
 const capexReportDocs = readdirSync(join(root, 'frontend/src/Capex/Report'))
   .filter((f) => /^R\d+_.*\.html$/i.test(f))
 const capexScaler = read('backend/scripts/scale-capex-reports.js')
-const scaleFactor = Number((capexScaler.match(/const FACTOR = ([\d_]+)/) ?? [])[1]?.replace(/_/g, '') ?? 0)
-const scaleCeiling = Number((capexScaler.match(/const CEILING = ([\d_]+)/) ?? [])[1]?.replace(/_/g, '') ?? 0)
+/* From the module that declares them, which is neither of the two scripts that read them — see the
+   claim below on why there is only one declaration. */
+const capexScale = read('backend/scripts/capex-scale.js')
+const scaleFactor = Number((capexScale.match(/export const FACTOR = ([\d_]+)/) ?? [])[1]?.replace(/_/g, '') ?? 0)
+const scaleCeiling = Number((capexScale.match(/export const CEILING = ([\d_]+)/) ?? [])[1]?.replace(/_/g, '') ?? 0)
 /* The four figures the Variance Report's own tiles are built from, plus the per-project columns Project
    360 and the filing calendar print. Regexes rather than a parse: this file reads ~320 paths already and
    evaluating three 2.6 MB fixtures to check four numbers would be the slowest claim here by far. */
@@ -7617,6 +7620,72 @@ expect(
     ? 'no rendered CAPEX reports were found — this claim cannot run'
     : `period plan ${(capexTiles[0].periodPlan / 1e6).toFixed(1)}M · largest project EAC ` +
       `${(capexTiles[0].eac / 1e6).toFixed(1)}M — run npm run scale:capex after a re-export`,
+)
+
+/*
+ * **And the factor is declared once, because two surfaces quote the same figures.**
+ *
+ * The rendered reports carry them in their own fixture and `ask_answers` quotes them in recorded
+ * answers — Ask's *Actuals YTD (to May)* is, to the cent, the Variance Report's `periodActual`. Scaled
+ * by different numbers the dataset would give two answers to one question, and nothing would throw:
+ * both surfaces would look internally consistent and disagree only where a reader compared them.
+ *
+ * So the claim is the identity itself, checked across the two stores, plus the single declaration behind
+ * it. Read from the *documents* rather than from either script, because a claim over the constants
+ * passes over a document a script never ran on.
+ */
+const capexScaleModule = read('backend/scripts/capex-scale.js')
+const capexQueryIngest = read('backend/scripts/ingest-queries.js')
+const askAnswers = capexDoc.value?.ask_answers ?? []
+/* The figure both surfaces state, from each side. */
+const askActualsYtd = askAnswers
+  .flatMap((a) => a.blocks ?? [])
+  .flatMap((b) => b.items ?? [])
+  .find((it) => /Actuals YTD/.test(it.label ?? '') && it.unit === 'USD')?.value
+const reportPeriodActual = Number(
+  (read('frontend/src/Capex/Report/R1_variance_report.html').match(/"periodActual": (-?[\d.]+)/) ?? [])[1],
+)
+/* Nothing in a recorded answer may read in billions — the floor that catches a field the rescale's
+   rules do not cover, since an unscaled figure is out by the whole factor rather than by a rounding
+   cent. Not the $50M range itself: at this factor the programme-wide totals legitimately sit in the
+   hundreds of millions, and only answers about the whole programme quote them. */
+const askBillions = []
+const askSweep = (node, where) => {
+  if (typeof node === 'number') {
+    if (Math.abs(node) >= 1e9) askBillions.push(`${where} = ${node}`)
+  } else if (typeof node === 'string') {
+    for (const m of node.matchAll(/\$\s?-?[\d][\d,]*(?:\.\d+)?\s?(?:b|bn|billion)\b/gi)) {
+      askBillions.push(`${where} states ${m[0]}`)
+    }
+  } else if (Array.isArray(node)) node.forEach((v, i) => askSweep(v, `${where}[${i}]`))
+  else if (node && typeof node === 'object') {
+    for (const [k, v] of Object.entries(node)) askSweep(v, `${where}.${k}`)
+  }
+}
+for (const a of askAnswers) askSweep(a, a.answer_id)
+expect(
+  'the CAPEX money scale is declared once, and Ask agrees with the report on the figure they share',
+  askAnswers.length > 0 &&
+    /* One declaration … */
+    /export const FACTOR = \d+/.test(capexScaleModule) &&
+    /export const CEILING = /.test(capexScaleModule) &&
+    /* … read by both writers, neither keeping a copy. */
+    /import \{ CEILING, FACTOR, scaleMoneyText \} from '\.\/capex-scale\.js'/.test(capexScaler) &&
+    /import \{ FACTOR, scaleMoneyText \} from '\.\/capex-scale\.js'/.test(capexQueryIngest) &&
+    !/const FACTOR = \d/.test(codeOnly(capexScaler)) &&
+    !/const FACTOR = \d/.test(codeOnly(capexQueryIngest)) &&
+    /* The identity, across the two stores. To the dollar: both are whole-dollar after rounding. */
+    Number.isFinite(askActualsYtd) &&
+    Number.isFinite(reportPeriodActual) &&
+    Math.abs(askActualsYtd - reportPeriodActual) <= 1 &&
+    /* And no recorded answer left in billions. */
+    askBillions.length === 0,
+  askAnswers.length === 0
+    ? 'db.CAPEX.json carries no ask_answers — this claim cannot run'
+    : askBillions.length > 0
+      ? `${askBillions.length} figure(s) still read in billions, e.g. ${askBillions[0]}`
+      : `${askAnswers.length} answers · Ask and the Variance Report both state ` +
+        `${Number(askActualsYtd).toLocaleString()} for FY26 actuals to May`,
 )
 
 
@@ -8836,7 +8905,11 @@ expect(
   specRunMs > 0 &&
     /* One declaration, and no per-step literal beside it: the pace is divided out of this. */
     (reportsAppCode.match(/SPEC_RUN_MS/g) ?? []).length === 2 &&
-    [claude, skills].every((doc) => doc.includes(`(**${specRunMs / 1000}s**)`)),
+    /* **Keyed to the constant's own name, not to the figure alone.** A break test found this: CLAUDE.md
+       also documents `ANALYSING_MS` at ten seconds, so a mutation that changed *this* paragraph's figure
+       left the claim satisfied by a sentence about something else entirely. Two constants sharing a
+       value is not a reason for one's guard to pass on the other's prose. */
+    [claude, skills].every((doc) => doc.includes(`\`SPEC_RUN_MS\` (**${specRunMs / 1000}s**)`)),
   specRunMs === 0
     ? 'SPEC_RUN_MS was not found — this check cannot run'
     : `SPEC_RUN_MS ${specRunMs} · the narration holds for ${specRunMs / 1000}s, then the document`,

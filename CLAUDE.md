@@ -119,7 +119,8 @@ npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secon
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
 npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
 npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
-npm run scale:capex # divides the rendered CAPEX reports' capital figures by 100 — re-run after a re-export
+npm run scale:capex # rescales the rendered CAPEX reports' capital figures (capex-scale.js's factor)
+npm run ingest:queries # re-seeds CAPEX ask_answers from the query set, at the same money scale
 npm run db:push     # upload the three documents to S3 (-- db|settings|prototype, -- CAPEX per dataset)
 npm run db:pull     # the other direction — overwrite the local copies from the bucket
 npm run verify:sigv4 # checks the S3 signing against AWS's published vector; no network needed
@@ -2613,12 +2614,24 @@ different one is a fragile dependency on its internals.
 **And their figures were rescaled, by `npm run scale:capex`, because the world they shipped was two
 orders of magnitude larger than the demo shows.** The fixture inside each file is a $152B, 4,500-project
 programme of which its 60 projects are a **1.54% sample**, so the Variance Report opened on a `$5.00B`
-period plan against a range that tops out at $50M. Every capital figure is divided by **one factor
-(100)**, which is the whole design: each ratio the documents state — every variance percentage, that
-1.54% share, the gap as a share of the programme — is still exactly true afterwards, where a figure-by-
-figure rescale would have left the prose describing relationships the numbers no longer have. The
-Variance Report's tiles now read `$50.0M · $44.1M · −$5.91M · −11.8%`, Project 360's largest figure is
-$1.1M, and the filing calendar's is $1.9M.
+period plan against a range that tops out at $50M. Every capital figure is divided by **one factor**,
+which is the whole design: each ratio the documents state — every variance percentage, that 1.54% share,
+the gap as a share of the programme — is still exactly true afterwards, where a figure-by-figure rescale
+would have left the prose describing relationships the numbers no longer have. The Variance Report's
+tiles now read `$20.0M · $17.6M · −$2.4M · −11.8%`, Project 360's largest figure is $452K, and the filing
+calendar's is $746K.
+
+**The factor is `capex-scale.js`'s, not this script's, and that is the second thing to know about it.**
+`ask_answers` quotes the same figures these documents carry — Ask's *Actuals YTD (to May)* is, to the
+cent, the Variance Report's `periodActual` — so `npm run ingest:queries` divides by the same number, and
+`check-docs` asserts the identity across the two stores rather than trusting two constants to agree. It
+began at 100, pinned to the report tiles, and moved to **250** when Ask turned out to quote a fiscal
+year's `$12.03b` working budget: the tiles are further inside the range than they need to be so that the
+figures a reader meets in an *answer* are inside it too. What stays above the line is the programme-wide
+five-year total ($452M authorized, $609M forecast) and the multi-year aggregates beside it, quoted only
+in answers explicitly about the whole programme; taking those under $50M as well needs a factor of
+3,046, at which point a filter-rehabilitation programme costs $19K — the sixty projects are 1.54% of the
+programme, so a programme-level ceiling shrinks each of them thirty times further.
 
 **It is a script rather than an edit, and the document's own header says why**: *"DO NOT HAND-EDIT. Edit
 the generator that emits the fixture, re-run the chain."* That generator is in the demo package, not
