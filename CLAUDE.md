@@ -1651,12 +1651,19 @@ list holds the graph, naming the version and publisher the server reported. Its 
 `src/data/` for the reason `sourceActions` is (a `Modal` portals out of `renderToString`), and
 its body is exported apart from the `Modal` so a test can render it.
 
-**Where Ask does not list it, the dialog says nothing.** It drew a *Not in Ask yet* warning
-there at first, pointing at Graph Studio → Versions — the screen this hand-off exists to skip
-— for what is the **expected** state in the first seconds after a build lands. Silence is the
-half that is true either way, and the guarantee the alert looked like it was carrying is
-untouched, because the warning never carried it: the success branch is gated on the row `GET
-/ask` returned, so a publish this dialog has not seen still cannot be claimed.
+**Where Ask does not list it, the dialog reports the analysis rather than the publication.**
+It drew a *Not in Ask yet* warning there at first, pointing at Graph Studio → Versions — the
+screen this hand-off exists to skip — for what is the **expected** state in the first seconds
+after a build lands. What stands there instead is *Analysis complete.*, which claims only this
+dialog's own act and is therefore true either way; the guarantee the alert looked like it was
+carrying is untouched, because the warning never carried it: the success branch is gated on
+the row `GET /ask` returned, so a publish this dialog has not seen still cannot be claimed.
+
+**Something has to stand there, and for a moment nothing did.** Dropping the warning left that
+branch rendering `null`, so once the hold ended on an unlisted graph the modal was a button
+over blank space — which reads as a dialog that failed to load its own contents, and was
+reported from use. The claim is two halves for that reason: the branch says nothing about
+publication, *and* it is never empty.
 
 **And it explains nothing while it holds — the heading included.** It opened with a title
 (*Building — this graph publishes itself*) over a paragraph naming the mailbox and
@@ -1669,17 +1676,41 @@ The dialog therefore takes **neither the graph's name nor its sources**:
 nothing left on it says anything about either, and a prop still being passed is how the
 paragraph comes back.
 
-**It holds rather than narrating, and it offers one act.** The stage-and-step readout it
+**It reports rather than narrating, and it offers one act.** The stage-and-step readout it
 printed at first is the Build tab's, where a reader is watching a run they can act on; here
-the build publishes itself and nothing on the dialog is pressable while it does, so a counter
-is detail with no decision attached. What stands in its place is `runtimeBuildCopy.analysing`
-— *Analysing Gmail data…*, *Preparing the data…*, *Finishing the analysis…* — over
-`ANALYSING_MS` (**10s**). **The phrases are cut out of that one hold rather than each carrying
-a pace**, so adding one re-cuts the same ten seconds instead of making the reader wait longer:
-the derivation `specStepMs` makes, and for the same reason — what ends this wait is the act it
-offers. They stop at the last one, since a phrase coming back round would say the work had
-restarted, and no phrase is written into the component, so the panel states neither a word nor
-a duration of its own — the rule `BuildRunDialog` keeps with `BUILD_STAGE_MS`. **And the
+the build publishes itself and nothing on the dialog is pressable while it does, so a substep
+counter is detail with no decision attached. What stands in its place is
+`runtimeBuildCopy.analysing` — *Analysing Gmail data…*, *Preparing the data…*, *Finishing the
+analysis…* — three phrases cut from the **build run's own progress**, and **the act is offered
+when the third row ticks**, which happens when the run completes and at no other time. No step
+and no duration is written into the component, so the panel states neither a word nor a number
+of its own — the rule `BuildRunDialog` keeps with `BUILD_STAGE_MS`.
+
+**That was a ten-second client-side hold once, and it was wrong by about eighty seconds.** A
+build is 31 substeps at `BUILD_STEP_MS`, and `runGraphBuild` publishes a runtime-answered
+graph when the run *lands* — so a dialog pacing itself offered *Ask a question* long before
+the version existed, and the reader arrived at a page that correctly drew `NoPublishedGraph`.
+Reported from use. Both sides were right and nothing errored, which is the shape this file
+keeps refusing: **the pace was the client's, and what it was pacing was the server's.** So
+`analysingStage` reads the run the page is already polling for the publication read-back —
+the same rule every other paced surface here keeps, and the reason the exception is gone
+rather than documented. It is a pure function in `src/data/` for the reason `datasetPathFix`
+is: a gate inside a component cannot be asserted without rendering the component's own state.
+
+**And the dialog is closable throughout, which it was not while the wait was ten seconds.** A
+modal with no exit over a run the reader cannot act on is a trap, and a poll that stopped
+answering would make it a permanent one. Nothing is lost by leaving: the run is the server's,
+it finishes either way, it still publishes itself, and Graph Studio finds it in flight.
+
+**They are drawn as `StageList`'s rows, from one cursor.** Every row is listed from the first
+frame, `pending` until it runs, because a list that grows a line at a time hides how much is
+left — `BuildRunDialog`'s rule, and the same rule here — and the list **stays after the run
+lands**, all three ticked, since it is the body of the dialog. Reusing the component rather
+than drawing three rows inline is what stops a second set of marks and states drifting from
+the consent panel's. And the gate on the act is **derived** from that cursor
+(`stage >= analysing.length`) rather than tracked in a flag beside it: two counters over one
+wait is the fault `BUILD_STEPS`' single cursor exists to avoid, whose symptom is a row still
+spinning under a finished list. **And the
 studio button beside Ask is gone**, which with the warning also gone leaves the studio unnamed
 on this dialog: it pointed back at the screen this hand-off exists to skip, which reads as the
 two being equal choices. It is still a sidebar away, and every other brief still lands there.

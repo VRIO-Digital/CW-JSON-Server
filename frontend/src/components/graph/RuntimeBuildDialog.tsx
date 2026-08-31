@@ -1,8 +1,7 @@
-import { LoadingOutlined } from '@ant-design/icons'
-import { Alert, Button, Modal, Space, Spin, Typography } from 'antd'
-import { useEffect, useState } from 'react'
-import type { AskGraph } from '../../api/client'
-import { ANALYSING_MS, analysingStepMs, runtimeBuildCopy } from '../../data/runtimeBuild'
+import { Alert, Button, Modal, Space, Typography } from 'antd'
+import type { AskGraph, GraphBuild } from '../../api/client'
+import { analysingStage, runtimeBuildCopy } from '../../data/runtimeBuild'
+import StageList from '../sources/StageList'
 import { SP } from '../../theme'
 
 /*
@@ -20,13 +19,26 @@ import { SP } from '../../theme'
  * detour reads as the two being equal choices. The studio is still reachable from the
  * sidebar, and `notPublished` still names it as the fix where a publish did not land.
  *
- * **And it holds rather than narrating.** The pipeline's stage-and-step readout is the Build
- * tab's, where a reader is watching a run they can act on; here the build publishes itself
- * and nothing on this dialog is pressable while it does, so a counter would be detail with no
- * decision attached. What stands in its place is `runtimeBuildCopy.analysing` — three phrases
- * over `ANALYSING_MS`, in order, the last one standing until the hold ends, because a line
- * held motionless for ten seconds reads as a page that stopped and a phrase coming back round
- * would say the work had restarted.
+ * **And it reports rather than narrating.** The pipeline's stage-and-step readout is the Build
+ * tab's, where a reader is watching a run they can act on; here the build publishes itself and
+ * nothing on this dialog is pressable while it does, so a substep counter would be detail with
+ * no decision attached. What stands in its place is `runtimeBuildCopy.analysing` drawn as
+ * **`StageList`'s rows** — every one listed from the first frame, `pending` until it runs, so
+ * the list says how much is left rather than growing a line at a time. That is
+ * `BuildRunDialog`'s rule and it is the same rule here, and reusing the component rather than
+ * drawing three rows inline is what stops a second set of marks and states drifting from the
+ * first.
+ *
+ * **Three phrases over the run's own progress, and never a timer.** They were cut out of a
+ * ten-second hold, which was wrong by about eighty seconds — the build is 31 substeps and the
+ * publish happens when it lands, so the act was offered long before the graph existed and Ask
+ * met the reader with its no-published-graph gate. `analysingStage` reads the run the page is
+ * already polling, so this dialog keeps the rule the rest of the app keeps: a row advances
+ * because the run advanced.
+ *
+ * **The list stays after the hold ends**, all three ticked. It is the body of the dialog —
+ * clearing it on completion is how this dialog came to render a button over blank space once
+ * already.
  *
  * **And it explains nothing while it holds.** The paragraph that opened it — why a runtime
  * source leaves a reviewer nothing to settle — was the reasoning behind a routing decision the
@@ -49,14 +61,14 @@ import { SP } from '../../theme'
 
 export function RuntimeBuildPanel({
   ready,
-  phrase,
+  stage,
   published,
   checking,
 }: {
-  /** The hold has elapsed — before it, the panel says only what it is doing. */
+  /** The hold has elapsed — every row is ticked and the act is offered. */
   ready: boolean
-  /** The phrase standing right now, from `runtimeBuildCopy.analysing`. */
-  phrase: string
+  /** The row running now. Past `analysing.length` every row is done. */
+  stage: number
   /** The row `GET /ask` came back with, or null when the list does not hold this graph. */
   published: AskGraph | null
   /** Ask is being re-read — the build has landed and the publication is not confirmed yet. */
@@ -64,62 +76,46 @@ export function RuntimeBuildPanel({
 }) {
   return (
     <div className="rb">
-      {!ready || checking ? (
-        <Typography.Paragraph type="secondary">
-          <Spin indicator={<LoadingOutlined spin />} size="small" /> {phrase}
-        </Typography.Paragraph>
-      ) : published ? (
+      <StageList stages={runtimeBuildCopy.analysing} stage={stage} />
+
+      {!ready || checking ? null : published ? (
         <Alert
           type="success"
           showIcon
           title="Live in Ask"
           description={runtimeBuildCopy.published(published.version, published.publishedBy)}
         />
-      ) : null}
+      ) : (
+        <Typography.Paragraph type="secondary">{runtimeBuildCopy.done}</Typography.Paragraph>
+      )}
     </div>
   )
 }
 
 export default function RuntimeBuildDialog({
   open,
+  run,
   published,
   checking,
   onAsk,
   onClose,
 }: {
   open: boolean
+  /** The build this hand-off is watching. The rows and the act both read it. */
+  run: GraphBuild | null
   published: AskGraph | null
   checking: boolean
   onAsk: () => void
   onClose: () => void
 }) {
   /*
-   * The hold is the dialog's own, and it is cleared on close as well as on unmount: the
-   * timer must not fire into a panel the reader has already dismissed, which is the rule
-   * the What-if lens's two client-side steps keep for the same reason.
+   * One cursor, and it is the run's rather than a timer's — `analysingStage` is the whole
+   * of it, so there is nothing here to fall out of step with the build. `held` is derived
+   * from that cursor for the reason `BUILD_STEPS` keeps one: a flag beside the index is two
+   * counters over one wait, whose symptom is a row still spinning under a finished list.
    */
-  const [held, setHeld] = useState(false)
-  const [phraseAt, setPhraseAt] = useState(0)
-  useEffect(() => {
-    if (!open) {
-      setHeld(false)
-      setPhraseAt(0)
-      return
-    }
-    /* The phrases advance and stop at the last one; the hold is what ends the wait, so a
-       phrase is never shown twice. */
-    const tick = window.setInterval(
-      () =>
-        setPhraseAt((at) => Math.min(at + 1, runtimeBuildCopy.analysing.length - 1)),
-      analysingStepMs(),
-    )
-    const end = window.setTimeout(() => setHeld(true), ANALYSING_MS)
-    return () => {
-      window.clearInterval(tick)
-      window.clearTimeout(end)
-    }
-  }, [open])
-
+  const stage = analysingStage(run)
+  const held = stage >= runtimeBuildCopy.analysing.length
   const done = held && !checking
 
   return (
@@ -127,15 +123,19 @@ export default function RuntimeBuildDialog({
       open={open}
       /* No title. What one would say is what the paragraph below it said — the reasoning
          behind a routing decision the reader did not make; and a heading over a single
-         line of status is a label for something already reading as one. `title={null}`
+         line of status is a label for something already reading as one. 
          rather than an omitted prop, so a default cannot arrive from the theme. */
       title={null}
       onCancel={onClose}
-      /* No Cancel while the hold is running: closing would leave the build to finish
-         behind the dialog, which is the reason `BuildRunDialog` offers none either. The
-         run itself is unaffected — Graph Studio finds it in flight. */
-      maskClosable={done}
-      closable={done}
+      /*
+       * Closable throughout, which it was not while the wait was a ten-second timer.
+       * The wait is the build now — minutes, not seconds — and a modal with no exit over a
+       * run the reader cannot act on is a trap; a poll that stops answering would make it a
+       * permanent one. Nothing is lost by leaving: the run is the server's, it finishes
+       * either way, it still publishes itself, and Graph Studio finds it in flight.
+       */
+      maskClosable
+      closable
       footer={
         <Space size={SP.sm}>
           <Button type="primary" onClick={onAsk} disabled={!done}>
@@ -146,7 +146,7 @@ export default function RuntimeBuildDialog({
     >
       <RuntimeBuildPanel
         ready={held}
-        phrase={runtimeBuildCopy.analysing[phraseAt]}
+        stage={stage}
         published={published}
         checking={checking}
       />

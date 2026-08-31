@@ -4945,6 +4945,74 @@ they were written against, and a source kind that derives nothing on purpose mad
 answer a question it was never asked. And *a claim that a screen states something must be
 checked against the screen*: this one was documented in two files and rendered by neither.
 
+## Removing a branch's only content leaves the branch (2026-08-31)
+
+**Symptom.** The wizard's runtime hand-off dialog rendered as a close button and *Ask a
+question* over blank space. Nothing errored, nothing was missing from the payload, and the
+button worked — the modal simply had no body.
+
+**Cause.** The dialog's not-published branch was one `Alert`, so removing that alert on request
+left `published ? (…) : null`. That branch is not an edge case: it is the state for every
+second between a build landing and `GET /ask` coming back holding the graph, and it is the
+*permanent* state for a graph the server did not publish. So the common path rendered nothing.
+
+The same removal had already been made safely twice on this dialog — the stage/step readout and
+the explanatory paragraph both went, and both were *additions* to a body that still had
+content. This one was the body.
+
+**Guard.** The claim about that branch is two halves rather than an absence: it states the
+analysis and never a publication (`runtimeBuildCopy.done`, `!/notPublished/`, `!/type="warning"/`)
+**and** it is never `null`. Break-tested by restoring the `null`.
+
+**The general shape.** *An absence claim cannot see an empty render* — the same reasoning as
+"assert in the same run that the render had its data", and as pairing every absence claim with a
+presence claim over the same region. Removing what a branch said is only safe while something
+else in it is still saying something; when it was the only thing, the removal is a rewrite. Ask
+what the branch renders **after** the deletion, not just what it no longer renders.
+
+## A client-side pace over a server-side run (2026-08-31)
+
+**Symptom.** *Ask a question* on the wizard's runtime hand-off did not reach a usable Ask
+page. The reader clicked it, landed on `/E/ask`, and met `NoPublishedGraph` — "no graph has
+been published" — for the graph they had just built. Reported from use. Nothing errored, the
+navigation was correct, and the server was correct.
+
+**Cause.** The dialog enabled the act on a timer of its own: three phrases over `ANALYSING_MS`
+(10s), with `const done = held && !checking` where `held` was the timer running out. The build
+is `BUILD_STEPS` — 31 substeps at `BUILD_STEP_MS` (3s) ≈ **93 seconds** — and `runGraphBuild`
+publishes a runtime-answered graph only when the run *lands*. So the act was offered about
+**eighty seconds** before the version existed, and Ask, which queries the published version and
+only that one, drew its gate exactly as it should.
+
+Both halves were right in isolation. What was wrong was the join: **the pace was the client's,
+and what it was pacing was the server's.** The 10s was chosen as a legible hold, never checked
+against the run it was standing in for.
+
+**Fix.** `analysingStage` in `src/data/runtimeBuild.ts` cuts the three phrases out of the run's
+own `stepIndex`/`stepTotal` — the page was already polling it every 350ms for the publication
+read-back, so no call was added. It returns a finished list on `status === 'complete'` **and
+nowhere else**, clamping to `rows - 1` while running, so `held` (and therefore the button)
+cannot be reached early by arithmetic. The dialog's `useState`/`useEffect` timer is gone; it is
+now a pure function the reader of a test can call, for the reason `datasetPathFix` is one.
+
+**And the modal became closable throughout**, which it deliberately was not at 10 seconds: a
+93-second wait with no exit over a run nobody can act on is a trap, and a poll that stopped
+answering would make it permanent. The run is unaffected — Graph Studio finds it in flight.
+
+**Guard.** The claim is on the **gate**, not on the wording: `analysingStage` completes only on
+`complete`, the dialog reads `analysingStage(run)` and `disabled={!done}`, and it contains no
+`setTimeout`/`setInterval`/`useEffect`/`useState` by which any other route to that state could
+return. Break-tested five ways — restoring a timer, completing the list while running, ungating
+the button, dropping the completion branch, and hardcoding the progress — all five caught.
+
+**The general shape.** *A client-side pace is a claim about how long a server-side act takes,*
+and nothing checks it. This repo's rule — a stage advances when its request returns, never on a
+timer the client holds — already said so; the hand-off was written down as the documented
+exception, and the exception is what broke. Where there is a run to read, read it. Where a
+number is picked to feel right (`ANALYSING_MS`, `SPEC_RUN_MS`, `READ_MS`), check it against
+whatever it is standing in front of, because drift here is silent and reads as a broken page
+somewhere else entirely.
+
 ---
 
 ## One world, two stores — the factor that had to be shared
