@@ -27,6 +27,7 @@
     "ingest:reports": "npm --prefix backend run ingest:reports",
     "ingest:capex": "npm --prefix backend run ingest:capex",
     "ingest:queries": "npm --prefix backend run ingest:queries",
+    "scale:capex": "npm --prefix backend run scale:capex",
     "db:push": "npm --prefix backend run db:push",
     "db:pull": "npm --prefix backend run db:pull",
     "verify:sigv4": "npm --prefix backend run verify:sigv4",

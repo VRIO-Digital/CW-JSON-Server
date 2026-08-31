@@ -20587,6 +20587,107 @@
   ],
   "graph_use_cases": [
     {
+      "use_case_id": "uc-demo-mth5dt1s5",
+      "name": "demo",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "",
+      "personas": [
+        {
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
+          "source": "ai"
+        },
+        {
+          "name": "Compliance Lead",
+          "description": "Asks what the regulatory drivers oblige and what they cost.",
+          "source": "ai"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Capitalized",
+          "description": "Cost transferred from CWIP to fixed assets.",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "gmail:dana.whitfield@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Where is forecast diverging from budget, by programme and category?",
+          "priority": "high",
+          "source": "ai"
+        },
+        {
+          "text": "What is committed but not yet incurred, by project and by vendor?",
+          "priority": "high",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 6,
+      "updated_at": "2026-08-31T11:28:28.446Z"
+    },
+    {
+      "use_case_id": "uc-demo-mth4pehi4",
+      "name": "demo",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "test123",
+      "personas": [
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai"
+        },
+        {
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
+          "source": "ai"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Open Commitments",
+          "description": "Open purchase-order value not yet invoiced.",
+          "source": "ai"
+        },
+        {
+          "name": "Plan-to-Actual Variance",
+          "description": "Actual less period plan.",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "gmail:dana.whitfield@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Which projects hold authorization but show no activity this year?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "What has the contractor told us about Quarrydown that isn't in the numbers?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 6,
+      "updated_at": "2026-08-31T11:03:00.732Z"
+    },
+    {
       "use_case_id": "uc_capital_programs",
       "name": "Capital Programme Intelligence",
       "status": "committed",
@@ -20746,7 +20847,13 @@
           "source": "ai"
         }
       ],
-      "sources": [],
+      "sources": [
+        {
+          "source_id": "gmail:dana.whitfield@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
       "hero_questions": [
         {
           "text": "Are we going to spend the authorized capital this fiscal year?",
@@ -20816,7 +20923,7 @@
       ],
       "gap_decisions": [],
       "step": 6,
-      "updated_at": "2026-03-31T00:00:00.000Z"
+      "updated_at": "2026-08-31T10:59:54.567Z"
     },
     {
       "use_case_id": "uc-capex-test-analysis-mt6xkaqz9",

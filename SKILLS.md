@@ -2251,7 +2251,19 @@ bundled URL through `import.meta.glob` → `DocumentLibrary` (four acts, Report 
 stale — and **Edit opens the authoring exploration**, which is what editing a finished document can
 honestly mean.
 
-A third: **the frame is held until the document opens its report.** These files paint the prototype's own
+A third: **their figures are rescaled, and the transform is `npm run scale:capex`.** The fixture inside
+each file is a $152B, 4,500-project programme whose 60 projects are a 1.54% sample, so the Variance
+Report opened on `$5.00B` where the demo's range is $50M. One factor (÷100) across every capital figure,
+so every ratio the documents state stays exactly true; the tiles now read `$50.0M · $44.1M · −$5.91M`.
+Because these are generated files that forbid hand-edits, the safety is in the script: literals found by
+**path** rather than key name, every number in a report's own containers classified money or not-money
+with an unclassified one refusing the run, the arithmetic (`periodVariance = periodActual − periodPlan`,
+`sampleBudget` against the sixty budgets, the heatmap against both margins) re-checked on the file that
+was written, and the prose figures — *"does not sum to $113.1B"* — listed one by one so `1.1 million
+gallon` stays a volume. Platform spend and the unprinted five-year programme figures are left alone;
+`check-docs` reads the tiles back out of all three documents, so a re-export in billions fails the build.
+
+A fourth: **the frame is held until the document opens its report.** These files paint the prototype's own
 sidebar, topbar and Knowledge-graphs screen while the 2.6 MB parses, because the style that hides them and
 the script that opens the report are the file's last lines. `DocumentViewer` hides the frame
 (`visibility`, so it keeps loading and stays measurable), names what it is waiting for, and reveals it when

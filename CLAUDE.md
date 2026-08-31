@@ -119,6 +119,7 @@ npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secon
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
 npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
 npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
+npm run scale:capex # divides the rendered CAPEX reports' capital figures by 100 — re-run after a re-export
 npm run db:push     # upload the three documents to S3 (-- db|settings|prototype, -- CAPEX per dataset)
 npm run db:pull     # the other direction — overwrite the local copies from the bucket
 npm run verify:sigv4 # checks the S3 signing against AWS's published vector; no network needed
@@ -2531,6 +2532,47 @@ unknown state rather than producing a row the Library renders as `undefined`.
 and what it looks the registry entry up by. That is also why all three are carried rather than one
 parameterised copy: the id is baked into the file, and rewriting somebody's 2.5 MB export to inject a
 different one is a fragile dependency on its internals.
+
+**And their figures were rescaled, by `npm run scale:capex`, because the world they shipped was two
+orders of magnitude larger than the demo shows.** The fixture inside each file is a $152B, 4,500-project
+programme of which its 60 projects are a **1.54% sample**, so the Variance Report opened on a `$5.00B`
+period plan against a range that tops out at $50M. Every capital figure is divided by **one factor
+(100)**, which is the whole design: each ratio the documents state — every variance percentage, that
+1.54% share, the gap as a share of the programme — is still exactly true afterwards, where a figure-by-
+figure rescale would have left the prose describing relationships the numbers no longer have. The
+Variance Report's tiles now read `$50.0M · $44.1M · −$5.91M · −11.8%`, Project 360's largest figure is
+$1.1M, and the filing calendar's is $1.9M.
+
+**It is a script rather than an edit, and the document's own header says why**: *"DO NOT HAND-EDIT. Edit
+the generator that emits the fixture, re-run the chain."* That generator is in the demo package, not
+here, so the honest stand-in is a transform that is re-runnable and **verified against the document it
+just wrote** — and `check-docs` reads the tiles out of the three documents and fails if they come back in
+billions, because a re-export is exactly what will bring them back and nothing else here would notice.
+
+Four things make it safe rather than a find-and-replace over 2.6 MB, and each guards a silent failure:
+
+- **Every literal is found by its path, never by its key name.** `value` is a contract's amount, a
+  lever's position and a filter's threshold; `max` is a lever bound. A key-driven rewrite has to be right
+  about all of them at once, and a path-driven one cannot confuse them.
+- **Inside the containers a report reads, every number is classified money or not-money, and an
+  unclassified one refuses the run** — reported by path *shape*, so the refusal is a dozen lines rather
+  than four thousand. A missed field is the failure that matters: one unscaled figure among scaled
+  siblings is a report whose own subtotals disagree, and nothing errors.
+- **The arithmetic is re-checked on the document that was written**, not on what was intended:
+  `periodVariance = periodActual − periodPlan`, `gap5yr = forecast5yr − budget5yr`, `sampleBudget` against
+  the sixty projects' budgets, and the heatmap's total against both its margins — each to a tolerance of
+  a dollar per term, which is what rounding to the fixture's own whole-dollar grain costs.
+- **The prose is a table, not a pattern.** These documents *quote* their figures — *"a 60-row sample does
+  not sum to $113.1B"* — so each is listed with the path that holds it and the count it appears with, and
+  a money-shaped run the table does not name refuses the run. That is how `1.1 million gallon` stays a
+  basin's volume rather than becoming a rounding error.
+
+**What it deliberately leaves alone**: platform spend (a `$100 / mo` model cost cap divided by a hundred
+is a dollar, which is a different claim about a different thing), and the programme's own five-year
+figures, which stay at $1.13B — **no block in these three reports names them**, which is why the ceiling
+is checked over the figures each report actually prints rather than over the largest number in the file.
+The What-if lens document and `db.CAPEX.json`'s authoring fixture are already denominated in millions and
+are untouched.
 
 **The publish gate applies to them, and it did not always.** The documents rode on both branches at
 first, on the reasoning that a gate about *questions* should not apply to a finished artefact: a CAPEX
