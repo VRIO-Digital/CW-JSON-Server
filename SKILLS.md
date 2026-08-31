@@ -963,6 +963,23 @@ they already have three is useless advice, so the step distinguishes them:
 | nothing connected | `NoSourceConnected` — "Connect a source" → `/sources` |
 | connected, nothing profiled | an **error** alert — "No profiled data yet — you cannot select a source", with "Open the Data Catalog to profile a source" → `/catalog`, above the cards, each tagged `nothing profiled` and disabled |
 | something profiled | the selection UI; the alert disappears |
+| a Gmail mailbox connected | selectable straight away, tagged `read at question time`, offering `All labels (N)` — see below |
+
+**A runtime source is the exception, and it is selectable without being profiled.**
+Gmail has no entry in `PROFILERS` and never will, so "profile it first" is advice nobody
+can act on — that refusal used to lock a connected mailbox out of the wizard entirely.
+`RUNTIME_KINDS` names the kinds that are read *when a question needs them*; the server
+serves `runtime: true` on the row, its objects are the labels the wizard picked, and their
+`units` is **`null`** rather than 0 because nothing samples the mail and 0 would say a
+label is empty. The gate is now "has this source anything to point at", not "has it been
+profiled" — the old test put an error above a list whose one usable row sat underneath it.
+
+**What it contributes is an answer, not an entity.** Step 6 derives nothing from it and
+states so (`runtime_sources` and `runtime_note` on the coverage payload) rather than
+leaving it silently out of the entity list. At Ask time its content arrives as
+`observation` blocks — attributed claims read from correspondence, never merged into the
+graph. And a graph drawing on one **publishes itself when its build completes**, so it
+reaches Ask without anybody pressing Publish; see Flow 9.
 
 **`Next` refuses to leave step 4 empty** (its rule lives with every other step's,
 in `wizardSteps.ts`), and names the fix for each case: no
@@ -977,7 +994,10 @@ build time:
 - picking a source that is connected but has **nothing profiled** → 400 pointing
   at the Data Catalog. It is still *listed*, tagged `nothing profiled` and
   disabled — "not profiled yet" is a different problem from "not connected", and
-  hiding it would make the two indistinguishable.
+  hiding it would make the two indistinguishable. **A runtime source gets a different
+  sentence**, because it can never be profiled: it is refused only when its own scope is
+  empty (*"has no labels in scope — reconnect it and pick at least one"*), which is the
+  one thing about it a reader could actually fix.
 - a `subset` selecting nothing → 400 (*"an empty selection can't derive"*)
 - an object that is not profiled on that source, or a source that is not
   connected → 400 naming it
@@ -1544,6 +1564,23 @@ the flow that spends it.
 **Two tabs: Ask, and Answer requirements.** The second is where step 6 of the New Graph
 wizard went — see Flow 6. Both sit behind the one publish gate; only `PageHeader` and the
 graph picker are outside it.
+
+**The dropdown lists published versions and only those — including the ones that published
+themselves.** A graph drawing on a **runtime** source (a Gmail mailbox; see Flow 7 step 4)
+is published by its own build the moment the build completes, so it appears here without
+anybody pressing Publish. The gate itself is unchanged: `GET /ask` still lists what
+`publishedVersion()` returns a row for, and the version, content hash, timestamp and
+publisher it reports are the real ones that build produced — credited to whoever started
+the build. What a runtime-answered graph skips is the *review queue and pivot*, and it
+skips them because those decide what the **canvas** asserts and a runtime source puts
+nothing on the canvas. A graph with no runtime source still waits for Publish.
+
+**Its answers arrive as `observation` blocks**, which are the one block kind that is not a
+figure: attributed claims read from correspondence at question time, each naming its sender,
+its date and the extractor's confidence. The block **prints no total of them** — the moment
+a reader can read a sum off it, the claims have become a figure — and it borrows no status
+tint, because a contractor's claim is not a state of the project. A row that resolved to
+nothing says so, since that is a finding rather than a missing value.
 
 ### History — New chat, and this session's threads
 

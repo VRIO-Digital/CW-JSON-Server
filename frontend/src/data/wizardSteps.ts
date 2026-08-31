@@ -65,8 +65,18 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
       if (draft.graphSources.length === 0) {
         return 'Connect a data source on Sources first — there is nothing to select here yet.'
       }
+      /*
+       * **"Nothing profiled" has to mean nothing this step can use.**
+       *
+       * A runtime source is never profiled and never will be — Gmail has no profiler — so
+       * testing profiled-ness alone refused a step whose one selectable source was sitting
+       * right there, with advice (go and profile it) that nobody could carry out. The test
+       * is whether any source has objects to point at, whichever way it got them.
+       */
       if (!draft.graphSources.some((s) => s.objectCount > 0)) {
-        return 'Nothing is profiled yet — profile a source in the Data Catalog before continuing.'
+        return draft.graphSources.every((s) => s.runtime)
+          ? 'No labels are in scope on the connected mailbox — reconnect it and pick at least one.'
+          : 'Nothing is profiled yet — profile a source in the Data Catalog before continuing.'
       }
       if (draft.sourcePicks.length === 0) {
         return 'Select at least one source — the graph can only derive from data you point it at.'
@@ -80,7 +90,10 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
             (s) => s.sourceId === emptyPick.sourceId,
           )
           const unit = source?.unitLabel ?? 'tables'
-          return `Pick at least one ${unit.replace(/s$/, '')} for ${emptyPick.sourceId}, or switch it back to all profiled ${unit}.`
+          /* "all profiled labels" is not a thing a mailbox has, so the fix names the
+             control the reader is actually looking at. */
+          const all = source?.runtime ? `all ${unit}` : `all profiled ${unit}`
+          return `Pick at least one ${unit.replace(/s$/, '')} for ${emptyPick.sourceId}, or switch it back to ${all}.`
         }
       }
       return null

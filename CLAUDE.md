@@ -111,6 +111,8 @@ npm run check-docs  # asserts this file's factual claims against the code
 npm run ingest:graph # re-seeds graph_studio from 05_knowledge_graph/ (writes db.json)
 npm run ingest:whatif # re-seeds whatif from "09_What if lens/" (writes db.json)
 npm run ingest:reports # re-seeds reports from 07_reports/ (writes db.json)
+npm run ingest:queries # re-seeds a dataset's ask_answers + hero questions from a query set
+                       # (-- CAPEX [path]; defaults to query_set_v2*.json at the repo root)
 npm run seed:governance # re-authors db.reports.governance — the fix when a definition is missing
 npm run seed:settings   # re-authors db.settings — users and persona navigation
 npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secondary dataset
@@ -805,6 +807,14 @@ search, whether attachments are in scope. Nothing samples the mail, so there is 
 `PROFILERS`** — and that absence is the feature, because `PROFILERS` is the same map `pipelineFor`
 reads, so adding one would hand the kind a pipeline and a catalogue at once.
 
+**Not profilable is not the same as not usable, and it is `RUNTIME_KINDS` that says which.** An
+absent `PROFILERS` entry only says a mailbox has no catalogue; it says nothing about whether a
+graph may draw on one, and read as "nothing to contribute" it locked Gmail out of the New Graph
+wizard entirely. So the positive fact is declared rather than inferred from a gap:
+`RUNTIME_KINDS` holds `gmail`, the two maps are asserted **disjoint at boot**, and a runtime
+source feeds step 4 while deriving nothing in step 6 — see *The New Graph wizard* below. Its
+answers reach a reader as `observation` blocks on an Ask answer, never as a node on the canvas.
+
 **Two answers, from two places, held against each other.** The server derives `profilable` from whether
 a pipeline exists for the kind; the client declares `profiles` per connector, because a card has to
 state it before anybody connects anything. `check-docs` asserts the two describe the same set: a
@@ -1156,10 +1166,47 @@ Two rules the copy on the page promises, and the code has to keep:
   disabled, because "not profiled yet" and "not connected" are different problems
   and only the user can fix either. `mode: 'all'` is stored rather than expanded,
   so a table profiled later is included without editing the draft.
+
+- **Except a runtime source, which is selectable the moment it is connected.**
+  `RUNTIME_KINDS` is declared beside `PROFILERS` and holds `gmail` alone; the two are
+  asserted disjoint **at boot**, because a connector that both profiles and answers at
+  question time makes "where did this figure come from" unanswerable. A runtime source's
+  objects are what the connection was *pointed at* rather than what a profiler landed —
+  Gmail's are its labels, unit `labels` — and they carry **`units: null`**, since nothing
+  samples the mail and `0` would say a label is empty rather than uncounted. `runtime` is
+  **served** on each row rather than derived from `kind` in the component, so the step's
+  gate, the coverage note and the copy beside them cannot disagree about which sources are
+  runtime — the reason `profilable` is served too.
+
+  **What this fixed was a refusal nobody could act on.** Gmail has no profiler, so a
+  mailbox arrived with `object_count: 0` and picking it was refused with *"has nothing
+  profiled yet — profile it in the Data Catalog first"* — an instruction that cannot be
+  carried out, which is exactly the fault this repo already removed once from Gmail's own
+  Continue button. Both halves are worded from what is true of the kind now: a runtime
+  source is refused only when its own scope is empty, and then for that reason.
+
+- **Step 6 derives nothing from it, and says so.** `selectedProfiledObjects` skips a runtime
+  source **by name** rather than letting it fall through the structured branch and contribute
+  nothing by accident — `findProject(undefined)` and an empty `profiled` list produce the
+  same silence as a deliberate exclusion, and only one of the two survives a second runtime
+  connector. What the step gets instead is `runtime_sources` and a `runtime_note` on the
+  coverage payload, because a source the reader deliberately picked contributing no entity to
+  a list of entities is indistinguishable from one that failed. The wording is the query
+  set's own rule: *"Nothing it produces becomes a graph element. An extraction from a message
+  is an OBSERVATION — a claim about a subject the graph already holds — resolved at question
+  time and never merged into the fact set."*
+
+  **`runtimeSourcesIn` is the one definition of "which picked sources are runtime"**, called
+  by both the coverage step and the build. It was written twice for a day, and a break test
+  is what found the cost: dropping the "still connected" test from one copy broke nothing,
+  because the claim guarding it was pointed at the other.
+
 - **Step 4 is the one step that cannot be skipped empty.** Nothing connected
   shows `NoSourceConnected`; connected-but-unprofiled shows an error linking to
   the Data Catalog; and `Next` refuses with the fix for whichever case applies,
-  because every later step derives from this selection.
+  because every later step derives from this selection. **"Nothing profiled" had to become
+  "nothing this step can use"** — testing profiled-ness alone put an error above a list whose
+  one selectable row sat right underneath it.
 
 The user never types an entity name — that is the product premise, so do not add
 an entity field to any step. Step 7 confirms what the AI derived. Personas are
@@ -1542,6 +1589,27 @@ is entitled to ask. Both are still counted (`built_count`, `draft_count`), becau
 has to name the right one. `POST /ask` refuses an unpublished graph with the
 sentence that says so.
 
+**A runtime-answered graph publishes itself when its build lands, and the rule above is
+unchanged by it.** Ask still queries the published version and only that one — what changed
+is *who presses Publish*, not what Ask answers from. A graph drawing on a runtime source has
+nothing for a reviewer to settle before a reader may ask it: the review queue and the pivot
+decide what the **canvas** asserts, and a runtime source puts nothing on the canvas. So
+`runGraphBuild` sets `studioLive` on completion for such a graph, and every fact downstream
+stays real — the version, its content hash, when it landed and who it is credited to are the
+ones that build produced, credited to whoever started it via `?as=` (validated exactly as the
+publish route validates its own, because for this graph the build *is* the publish act).
+
+Three things make that narrow rather than a hole in the gate, and `check-docs` asserts all
+three: the write sits **inside** `if (runtimeSourcesFor(useCase).length > 0)` — a
+`studioLive.set` that drifted out of it would publish every build, so the claim tests the
+guard's *contents* and not merely its presence; it is the **build** that publishes and never
+the commit, since committing is instantaneous and a brief that published on save would put a
+version in Ask before the content behind it existed; and a graph with no runtime source is
+untouched and still waits for Publish. The alternative designs were both worse: listing an
+unpublished graph in Ask leaves `version`, `sha256`, `published_at` and `published_by` with
+nothing to report, and lifting the gate on all four gated surfaces changes the meaning of a
+precondition three other pages share.
+
 The walk is the studio's (`studioQuery`), deliberately: the sanity check that
 passed before publishing cannot then disagree with the answer after it. What
 Ask adds is the part a reader can audit — the entities the question was
@@ -1634,8 +1702,46 @@ chips are the use case's own hero questions — a
 chip is a promise the brief already made.
 
 **The answer is streamed, and the recorded one wins.** `ask_answers` holds the
-tenant's 40 written answers (from `06_queries/query_set.json`) as ordered
-**blocks** — text, metric, chart, table — with evidence and a stated confidence.
+tenant's written answers as ordered **blocks** — text, metric, chart, table, and
+`observation` — with evidence and a stated confidence. EPA's are its 40, from
+`06_queries/query_set.json`; CAPEX's are the **50** of query set v2, from
+`npm run ingest:queries`.
+
+**Query set v2 is where `observation` and authored `citations` come from.** It supersedes the
+40-query set and says so in its own `_note`, and its two additions are the reason it is a
+script rather than an edit:
+
+- **An `observation` block is what a runtime source yields** — a claim read from
+  correspondence at question time, attributed to whoever made it, with the extractor's
+  confidence attached. `ObservationBlock` renders those claims and **computes nothing**: no
+  total of the amounts, no average confidence. That is not a styling preference — the moment
+  a reader can read a total off the block, the claims have become a figure, which is the one
+  thing an observation is not. Its own notes say so per answer. Nothing in it borrows a
+  status tint either: a contractor's claim is not a state of the project. **An absent field
+  draws nothing** (10 of the corpus's 27 rows name no amount, 13 no change order), with one
+  deliberate exception — a row that resolved to nothing *says* so, because that is a finding
+  rather than a missing value.
+- **`citations` is the answer's own numbered source list**, served where the answer authors
+  one and still derived from `evidence` where it does not. It carries what `evidence` never
+  could: whether a source was read at question time (`runtime`), its `as_of` where it has one,
+  and whether it is `authoritative` for *this* claim. The derived fallback leaves every one of
+  those `null` rather than defaulting them — `runtime: false` on a row that says nothing about
+  runtime is a claim, and `kind: 'dataset'` on an evidence line is a guess. A runtime citation
+  has **no as-of** by design, which is the set's own rule: two people asking an hour apart can
+  legitimately get different answers and neither is stale.
+
+**The ingest derives rather than transcribes, and refuses to write instead of guessing.** The
+persona *label*, its keywords and its domains are read out of that document's own
+`graph_personas` by the slug each query carries, so a pool entry cannot come to disagree with
+the persona list. **The tenant is checked, not assumed** — the document's `_meta.tenant` must
+equal the set's, which is what stops Northline's capital answers being written under EPA's
+name, a failure that would render perfectly. And the hero questions it adds are added *beside*
+the package's own rather than over them: the use-case template names 13 by id and `validateDb`
+refuses a template naming a question the pool lacks, so regenerating those 13 would fail the
+boot the moment one derived string came out differently. **A `decline` is answerable but never
+suggested** — asking one returns the recorded refusal, which is what the set records it for,
+but offering it on step 5 would write a question into the brief the graph is on record as
+unable to answer.
 `matchAskAnswer` serves one for the same question, or one sharing ≥ `ASK_MATCH_MIN`
 (0.6) of the asked words and beating the runner-up; a tie matches nothing, and
 anything unrecognised falls through to the graph walk, which abstains. Every

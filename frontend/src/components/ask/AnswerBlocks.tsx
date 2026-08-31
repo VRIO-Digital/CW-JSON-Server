@@ -133,6 +133,98 @@ function TableBlock({ block }: { block: Extract<AnswerBlock, { type: 'table' }> 
 }
 
 /**
+ * **Claims read from correspondence — attributed, and never added up.**
+ *
+ * A runtime source is read when a question needs it, and what it yields is an *observation*:
+ * a claim about a subject the graph already holds. The query set is explicit that none of it
+ * is merged into the fact set, and its own block notes say so per answer — *"Each is a CLAIM
+ * by its sender with the extractor's confidence attached — none of it is counted into any
+ * figure above."*
+ *
+ * So this renders attributed claims and **computes nothing**: no total of the amounts, no
+ * count of the months, no average confidence. That is not a styling preference — the moment a
+ * reader can read a total off this block, the claims have become a figure, which is the one
+ * thing the block exists not to be. Every amount is printed as the single claim's own.
+ *
+ * Nothing here is a status tint either. A contractor's claim is not a state of the project,
+ * and `confidence` is the extractor's, so the band is printed as its own word beside the
+ * number rather than tinted good/warn/crit.
+ *
+ * **An absent field draws nothing**, the rule the studio canvas follows for an absence: 10 of
+ * the corpus's 27 rows name no amount and 13 no change order, and a "—" in every such slot
+ * reads as a value that failed to load.
+ */
+function ObservationBlock({
+  block,
+}: {
+  block: Extract<AnswerBlock, { type: 'observation' }>
+}) {
+  return (
+    <figure className="ab-obs">
+      <figcaption className="ab-obs-head">
+        <span className="ab-obs-label">{block.label}</span>
+        {/* What it is read from and when, so a reader knows this is not a stored figure.
+            Worded once here rather than per row. */}
+        <span className="ab-obs-kind">read at question time · not counted</span>
+      </figcaption>
+      <ul className="ab-obs-list">
+        {block.items.map((it) => (
+          <li key={it.message_id} className="ab-obs-item">
+            <div className="ab-obs-from">
+              <strong>{it.from_name}</strong>
+              {it.from_side ? <span className="ab-obs-side">{it.from_side}</span> : null}
+              {/* The date only — these are dated claims, and a time of day implies a
+                  precision the reader has no use for here. */}
+              <time dateTime={it.sent_at}>{it.sent_at.slice(0, 10)}</time>
+              {it.change_order ? (
+                <span className="ab-obs-co">{it.change_order}</span>
+              ) : null}
+            </div>
+            {it.subject ? <p className="ab-obs-subject">{it.subject}</p> : null}
+            <p className="ab-obs-claim">{inline(it.claim, `cl-${it.message_id}`)}</p>
+            <div className="ab-obs-marks">
+              {it.amount !== null && it.amount !== undefined ? (
+                <span className="ab-obs-mark">
+                  <em>claims</em> {it.amount.toLocaleString()}
+                  {it.amount_basis ? ` (${it.amount_basis})` : ''}
+                </span>
+              ) : null}
+              {it.months !== null && it.months !== undefined ? (
+                <span className="ab-obs-mark">
+                  <em>schedule</em> {it.months} month{it.months === 1 ? '' : 's'}
+                </span>
+              ) : null}
+              {it.reason_label ? (
+                <span className="ab-obs-mark">
+                  <em>reason</em> {it.reason_label}
+                </span>
+              ) : null}
+              {it.confidence !== null && it.confidence !== undefined ? (
+                <span className="ab-obs-mark">
+                  <em>extracted</em> {it.confidence.toFixed(2)}
+                  {it.band ? ` · ${it.band}` : ''}
+                </span>
+              ) : null}
+              {/*
+                * Where the claim landed, or that it landed nowhere. This one *does* print on
+                * the null branch, because "did not resolve" is a finding rather than a
+                * missing value — it is the difference between a claim about a known project
+                * and a claim about nothing this graph holds.
+                */}
+              <span className="ab-obs-mark">
+                <em>{it.resolved_to ? 'resolved to' : 'resolved'}</em>{' '}
+                {it.resolved_to ?? 'nothing in this graph'}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {block.note ? <p className="ab-obs-note">{inline(block.note, 'obs-note')}</p> : null}
+    </figure>
+  )
+}
+
+/**
  * A paragraph that has not arrived yet.
  *
  * **It is a placeholder for a promise, not an animation over nothing.** The count comes from
@@ -181,6 +273,7 @@ export default function AnswerBlocks({
           {block.type === 'metric' ? <MetricBlock items={block.items} /> : null}
           {block.type === 'chart' ? <AnswerChart block={block} /> : null}
           {block.type === 'table' ? <TableBlock block={block} /> : null}
+          {block.type === 'observation' ? <ObservationBlock block={block} /> : null}
         </div>
       ))}
       {Array.from({ length: Math.max(0, pending) }, (_, i) => (

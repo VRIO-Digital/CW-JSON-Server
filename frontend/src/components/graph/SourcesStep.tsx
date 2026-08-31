@@ -71,16 +71,28 @@ export default function SourcesStep({
       // inside it reads as a rendering fault rather than as an empty slot.
       <NoSourceConnected
         bare
-        detail="A graph can only draw on data that has been profiled. Connect a BigQuery project or a Google Drive, then profile it in the Data Catalog — its tables and documents become selectable here."
+        detail="A graph draws on data this tenant has connected. Connect a BigQuery project or a Google Drive and profile it in the Data Catalog — its tables and documents become selectable here. A Gmail mailbox is selectable as soon as it is connected: it is read at question time rather than profiled."
       />
     )
   }
 
-  const nothingProfiled = !sources.some((s) => s.objectCount > 0)
+  /*
+   * **Nothing this step can use** — which is not the same as nothing profiled.
+   *
+   * A runtime source is never profiled and never will be, so counting it as unprofiled put
+   * an error above a list whose one usable row sat right underneath it, telling the reader
+   * to go and profile a mailbox. The test is "has this source anything to contribute",
+   * which for a profiled source is its objects and for a runtime source is its scope.
+   */
+  const usable = (s: GraphSource) => s.objectCount > 0
+  const nothingUsable = !sources.some(usable)
+  /* Named apart, because the *advice* differs: profiling is the fix for one and there is no
+     fix for the other, it is simply not how that connector contributes. */
+  const profilableSources = sources.filter((s) => !s.runtime)
 
   return (
     <>
-      {nothingProfiled ? (
+      {nothingUsable ? (
         <Alert
           type="error"
           showIcon
@@ -89,10 +101,10 @@ export default function SourcesStep({
           description={
             <div>
               <div style={{ marginBottom: SP.sm }}>
-                {sources.length} source(s) are connected, but the Metadata Profiler
-                has not run on any of them. Profiling is what produces the columns
-                and entities a graph reasons over, so there is nothing to point this
-                use case at yet.
+                {profilableSources.length} source(s) are connected, but the Metadata
+                Profiler has not run on any of them. Profiling is what produces the
+                columns and entities a graph reasons over, so there is nothing to point
+                this use case at yet.
               </div>
               <Link to={appPath('/catalog')}>
                 <Button type="primary" size="small">
@@ -147,7 +159,18 @@ export default function SourcesStep({
 
               <span className="ng-source-status">
                 <StatusTag tone={empty ? 'warn' : 'good'}>
-                  {empty ? 'nothing profiled' : source.status}
+                  {/*
+                    * A runtime source is never profiled, so "nothing profiled" would be
+                    * describing a state it can never leave. It reports what it is instead —
+                    * and only reaches the warn branch when its own scope is genuinely empty.
+                    */}
+                  {empty
+                    ? source.runtime
+                      ? `no ${source.unitLabel} in scope`
+                      : 'nothing profiled'
+                    : source.runtime
+                      ? 'read at question time'
+                      : source.status}
                 </StatusTag>
               </span>
             </div>
@@ -158,8 +181,15 @@ export default function SourcesStep({
 
             {empty ? (
               <div className="ng-source-warn">
-                Connected, but the profiler has not run here yet — profile it in the
-                Data Catalog and it becomes selectable.
+                {/*
+                  * "Profile it in the Data Catalog" is only advice somebody can act on when
+                  * the source *can* be profiled. Gmail has no profiler, so that sentence
+                  * over a mailbox is an instruction with no way to carry it out — the same
+                  * fault this wizard already fixed once on Gmail's own Continue button.
+                  */}
+                {source.runtime
+                  ? `Connected, but no ${source.unitLabel} are in scope — reconnect it and pick at least one.`
+                  : 'Connected, but the profiler has not run here yet — profile it in the Data Catalog and it becomes selectable.'}
               </div>
             ) : (
               <>
@@ -170,7 +200,8 @@ export default function SourcesStep({
                     disabled={!selected}
                     onClick={() => setMode(source, 'all')}
                   >
-                    All profiled {source.unitLabel} ({source.objectCount})
+                    All {source.runtime ? '' : 'profiled '}
+                    {source.unitLabel} ({source.objectCount})
                   </button>
                   <button
                     type="button"
@@ -217,9 +248,17 @@ export default function SourcesStep({
                         }
                       >
                         {o.label}{' '}
-                        <span className="ng-source-units">
-                          · {o.units} {o.unitLabel}
-                        </span>
+                        {/*
+                          * `units` is null where nothing has counted the object — a Gmail
+                          * label has no message count, because this connector samples no
+                          * mail. Printing "· 0 messages" would say the label is empty, which
+                          * is a claim; printing nothing says only that it was not counted.
+                          */}
+                        {o.units === null ? null : (
+                          <span className="ng-source-units">
+                            · {o.units} {o.unitLabel}
+                          </span>
+                        )}
                       </Checkbox>
                     ))}
 
@@ -240,9 +279,10 @@ export default function SourcesStep({
       <div className="ng-hint">
         <span aria-hidden="true">✦</span>
         <span>
-          Only profiled objects are listed. Profiling is what produces the columns
-          and entities the graph reasons over, so an unprofiled source has nothing
-          to contribute yet — <Tag>Data Catalog</Tag> is where that runs.
+          Profiling is what produces the columns and entities the graph reasons over, so
+          an unprofiled source has nothing to contribute yet — <Tag>Data Catalog</Tag> is
+          where that runs. A <Tag>Gmail</Tag> mailbox is different: it is read when a
+          question needs it, so it derives no entities and needs no profiling.
         </span>
       </div>
     </>

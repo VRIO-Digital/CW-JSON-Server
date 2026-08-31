@@ -4689,3 +4689,92 @@ screen` and dropping each unclipping rule in turn.
 whole page brings its own layout assumptions — a viewport-height shell, an internal scroller, fixed
 overlays — and every one of those is a claim about a screen that paper does not honour. Ask what a
 vendored page does when it is printed, not only when it is rendered.
+
+---
+
+## A connector with no profiler is refused with an instruction nobody can carry out
+
+**Symptom.** Gmail could be connected, and the Sources page listed it correctly, but a graph could
+never draw on it. Step 4 of the New Graph wizard drew the mailbox greyed out with the status
+*"nothing profiled"*, and picking it through the API was refused with *"gmail:… has nothing
+profiled yet — profile it in the Data Catalog first"*. The Data Catalog deliberately leaves Gmail
+out, because it is not profilable — so the fix the refusal named did not exist. The row also
+reported `type_label: 'BigQuery'`, drawing a mailbox as a BigQuery project whose buttons happened
+to be broken.
+
+**Root cause.** Two facts were being read off one absence. `PROFILERS` has no `gmail` entry, which
+correctly means *this connector has no catalogue*; every consumer then took it to mean *this
+connector has nothing to contribute*. `graphSources()` had a single `isDrive ? … : …` ternary, so
+Gmail fell down the BigQuery branch and produced `object_count: 0` from an empty `profiled` list,
+and both the server's pick validation and `stepIssue`'s step-4 rule gated on that count.
+
+**Why it is the dangerous kind.** Every layer behaved exactly as designed and nothing errored. The
+symptom was a disabled control with a plausible-sounding explanation attached, which reads as *the
+user has not done something yet* rather than as *the app cannot express this*. It is the same fault
+this repo had already fixed once on Gmail's own Continue button — a refusal demanding a name from a
+step that offered nowhere to type one — reached again from the other side.
+
+**Fix.** Declare the positive fact instead of inferring it from a gap. `RUNTIME_KINDS` sits beside
+`PROFILERS` and holds `gmail`; the two are asserted **disjoint at boot**, because a connector that
+both profiles and answers at question time makes "where did this figure come from" unanswerable. A
+runtime source's objects are what the connection was pointed at — Gmail's labels, unit `labels`,
+`units: null` because nothing samples the mail. `runtime` is served on the row rather than derived
+from `kind` in a component. Both refusals are reworded from what is true of the kind: a runtime
+source is refused only when its own scope is empty. `selectedProfiledObjects` skips it **by name**,
+and the coverage payload states `runtime_sources` and a `runtime_note` rather than leaving it out.
+
+**Guard.** Boot refuses a kind in both maps. `check-docs` asserts `runtimeSourcesIn` is the single
+definition of the predicate and that no third copy of its filter exists. Break-tested three ways.
+
+**The general shape.** *An absence carries one fact, not two.* When a lookup miss starts standing in
+for a second meaning, declare the second meaning positively — the miss cannot distinguish "has no
+catalogue" from "has nothing to offer", and reading it as both is invisible until something is
+locked out.
+
+---
+
+## One definition, or the claim guards the copy that was not mutated
+
+**Symptom.** A break test on the "still connected" check inside the runtime-source predicate
+reported `MISSED` — the mutation landed, `check-docs` ran, and no claim failed.
+
+**Root cause.** The predicate had been written twice — once in `graphCoverage` for the step's note,
+once in `runtimeSourcesFor` for the build's auto-publish — and the claim was pointed at the second.
+Mutating the first was genuinely unguarded: a disconnected mailbox would have been named as a
+runtime source on step 6 while the build correctly ignored it.
+
+**Fix.** `runtimeSourcesIn(picks)` is the one definition; both call it.
+
+**Guard.** The claim reads that function's body *and* asserts the filter appears exactly once in
+`server.js`, so a re-duplication fails rather than splitting the guard again.
+
+**The general shape.** *A `MISSED` on a landed mutation is a real gap, not a broken test.* CLAUDE.md
+already says to suspect the break first when a claim looks unbreakable — the other half is that once
+the mutation is confirmed to have landed, the gap it found is worth fixing at the source rather than
+by adding a second claim.
+
+---
+
+## A no-total assertion over a whole answer finds the tenant's own figure
+
+**Symptom.** A smoke test asserting that the `observation` block prints no total of the amounts it
+lists failed on Q15: the sum of its four claims, 4,278,000, was present in the rendered HTML.
+
+**Root cause.** The assertion searched the whole answer. Q15's own metric block, written by the
+tenant, is labelled *"Claimed in correspondence"* and states exactly that figure — the answer is
+*supposed* to say it. The observation block itself contained no total at all.
+
+**Fix.** Scope the assertion to the block's own markup, sliced from `<figure class="ab-obs"` to its
+`</figure>`. Two further assertions in the same run were wrong the same way and were corrected by the
+fixture rather than by loosening them: `renderToString` escapes apostrophes to `&#x27;`, so a note
+containing "extractor's" was reported missing while it rendered perfectly; and `inline()` splits
+`` `code` `` spans into separate nodes, so a slice spanning a backtick is never contiguous.
+
+**Guard.** The test asserts, in the same run, that the corpus really exercises the branches it checks
+— 10 of 27 rows carry no amount, 7 resolved to nothing, 27 items rendered — so none of the absence
+assertions can pass over an empty render.
+
+**The general shape.** *A negative assertion needs the narrowest region that carries the fact.* This
+is the two-grids ambiguity again in a new place: on a page where the thing being forbidden is legal
+somewhere else, a whole-render search does not express the rule. And a failing assertion is as likely
+to be wrong as the code — three of five here were the test.

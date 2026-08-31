@@ -17,6 +17,7 @@
     "ingest:whatif": "node scripts/ingest-whatif.js",
     "ingest:reports": "node scripts/ingest-reports.js",
     "ingest:capex": "node scripts/ingest-capex-reports.js",
+    "ingest:queries": "node scripts/ingest-queries.js",
     "db:push": "node scripts/s3-sync.js push",
     "db:pull": "node scripts/s3-sync.js pull",
     "verify:sigv4": "node scripts/verify-sigv4.js",
@@ -24,5 +25,5 @@
     "bundle:eb": "node scripts/bundle-eb.js"
   },
   "//start": "Elastic Beanstalk's Node platform runs `npm start` when there is no Procfile, so `start` has to exist and has to be the server. `mock` is kept as the name the docs and every developer already use; both run the same thing, and neither passes a port so the platform's PORT wins.",
-  "//engines": "Deliberately absent. Elastic Beanstalk reads engines.node and cannot resolve a range like \">=22\", so it warns (\"used the default Node.js version for your platform version instead\") and falls back \u2014 noise on every deploy for a constraint the platform choice already expresses. Pick the platform version instead: \"Node.js 22 running on 64bit Amazon Linux 2023\"."
+  "//engines": "Deliberately absent. Elastic Beanstalk reads engines.node and cannot resolve a range like \">=22\", so it warns (\"used the default Node.js version for your platform version instead\") and falls back — noise on every deploy for a constraint the platform choice already expresses. Pick the platform version instead: \"Node.js 22 running on 64bit Amazon Linux 2023\"."
 }

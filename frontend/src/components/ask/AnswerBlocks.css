@@ -339,3 +339,124 @@
     background: #eef1f5;
   }
 }
+
+/*
+ * An observation block: claims read from correspondence at question time.
+ *
+ * **No status tints, deliberately.** A contractor's claim is not a state of the project, and
+ * the confidence on it is the extractor's rather than the answer's — so nothing here borrows
+ * good/warn/crit, which this file reserves for a metric's own flag. What separates the block
+ * from the answer's figures is a left rule and a quieter ground, not a colour that means
+ * something elsewhere.
+ */
+.ab-obs {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #e6e6e6;
+  border-left: 3px solid #b9b9b9;
+  border-radius: 6px;
+  background: #fbfbfb;
+}
+
+.ab-obs-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.ab-obs-label {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* The standing caveat, stated once for the block rather than on every row. */
+.ab-obs-kind {
+  font-size: 11px;
+  color: #6b6b6b;
+  text-transform: lowercase;
+}
+
+.ab-obs-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ab-obs-item {
+  padding: var(--sp-3);
+  border: 1px solid #ededed;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.ab-obs-from {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-size: 12px;
+  color: #4a4a4a;
+}
+
+/* Which side of the contract made the claim. A neutral chip: it is a category, not a
+   state, so it must not read as one. */
+.ab-obs-side,
+.ab-obs-co {
+  padding: 0 var(--sp-2);
+  border: 1px solid #dcdcdc;
+  border-radius: 3px;
+  background: #f4f4f4;
+  font-size: 11px;
+  color: #555;
+}
+
+.ab-obs-co {
+  font-variant-numeric: tabular-nums;
+}
+
+.ab-obs-subject {
+  margin: var(--sp-2) 0 0;
+  font-size: 12px;
+  color: #6b6b6b;
+}
+
+.ab-obs-claim {
+  margin: var(--sp-2) 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.ab-obs-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  margin-top: var(--sp-3);
+  font-size: 12px;
+}
+
+/* Each mark names what it is, so a bare figure is never left to be guessed at. */
+.ab-obs-mark {
+  color: #333;
+  font-variant-numeric: tabular-nums;
+}
+
+.ab-obs-mark em {
+  margin-right: var(--sp-1);
+  color: #7a7a7a;
+  font-style: normal;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ab-obs-note {
+  margin: var(--sp-3) 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6b6b6b;
+}

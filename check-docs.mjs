@@ -2354,10 +2354,64 @@ expect(
   /recordVersion\(run,/.test(runBuildBody),
   'runGraphBuild records one on completion, not on start',
 )
+/*
+ * **Building publishes exactly one kind of graph: a runtime-answered one.**
+ *
+ * This used to read "building never publishes", and it was right for as long as every graph
+ * was answered from its own canvas. A graph whose answers are read from correspondence at
+ * question time has nothing for the review queue to settle before a reader may ask it — the
+ * queue and the pivot decide what the *canvas* asserts, and a runtime source puts nothing on
+ * the canvas — so its build publishes it and nobody presses Publish.
+ *
+ * What must not come back is the unconditional version: a build that published *any* graph
+ * would put a canvas nobody had reviewed into Ask. So the claim is that the write sits
+ * **inside the runtime guard**, not merely that the guard exists somewhere in the function —
+ * a `studioLive.set` that drifted out of that `if` is the regression, and it would satisfy a
+ * looser test while publishing every build.
+ */
+const runtimePublishBlock = (runBuildBody.match(
+  /if \(runtimeSourcesFor\(useCase\)\.length > 0\) \{[\s\S]*?\n {6}\}/,
+) ?? [''])[0]
 expect(
-  'building never publishes',
-  !/studioLive\.set/.test(startBuildBody) && !/studioLive\.set/.test(runBuildBody),
-  'publishing stays behind its own gate',
+  'a build publishes only a runtime-answered graph',
+  !/studioLive\.set/.test(startBuildBody) &&
+    runtimePublishBlock.length > 0 &&
+    /studioLive\.set/.test(runtimePublishBlock) &&
+    runBuildBody.split('studioLive.set').length - 1 === 1,
+  'the one studioLive.set in runGraphBuild sits inside if (runtimeSourcesFor(useCase).length > 0)',
+)
+/*
+ * **One definition of "which picked sources are runtime", not two.**
+ *
+ * Step 6's coverage note and the build's auto-publish both need the answer, and it was
+ * written out twice for a day. A break test is what found the cost: dropping the "still
+ * connected" test from one copy broke nothing, because the claim was pointed at the other —
+ * so a disconnected mailbox would have been named as a runtime source on the step while the
+ * build correctly ignored it. Both callers go through `runtimeSourcesIn` now, and this
+ * asserts the predicate lives there and that neither caller has grown its own copy back.
+ */
+const runtimeSourcesBody = (server.match(/function runtimeSourcesIn\(picks\) \{[\s\S]*?\n\}/) ?? [
+  '',
+])[0]
+expect(
+  'and the picks decide it, checked against what is still connected',
+  /isRuntimeSource\(s\.kind\)/.test(runtimeSourcesBody) &&
+    /status === 'connected'/.test(runtimeSourcesBody) &&
+    /normalizeSourcePicks\(picks \?\? \[\]\)/.test(runtimeSourcesBody) &&
+    /function runtimeSourcesFor\(useCase\) \{\s*return runtimeSourcesIn\(useCase\?\.sources \?\? \[\]\)/.test(
+      server,
+    ) &&
+    /* Exactly the two call sites, and no third copy of the filter anywhere else. */
+    server.split('isRuntimeSource(s.kind)').length - 1 === 1,
+  'runtimeSourcesIn is the one definition; the coverage step and the build both call it',
+)
+expect(
+  'a runtime connector is never also profilable',
+  /const RUNTIME_KINDS = new Set\(\['gmail'\]\)/.test(server) &&
+    /for \(const kind of RUNTIME_KINDS\) \{[\s\S]*?isProfilable\(kind\)[\s\S]*?throw new Error/.test(
+      server,
+    ),
+  'refused at boot — a kind that both profiles and answers at question time makes "where did this figure come from" unanswerable',
 )
 expect(
   'publishing names a content hash, and unpublishing exists',
@@ -2404,11 +2458,24 @@ expect(
 /* ---------------- Ask's recorded answers are renderable ---------------- */
 
 /*
- * `ask_answers` is the tenant's 40 written answers. Every block kind in them needs
- * a branch in `AnswerBlocks` and a case in the client's `variant`, or a block
- * silently disappears mid-answer — the reader sees a shorter answer, not an error.
+ * `ask_answers` is a tenant's written answers. Every block kind in them needs a branch in
+ * `AnswerBlocks` and a case in the client's `variant`, or a block silently disappears
+ * mid-answer — the reader sees a shorter answer, not an error.
+ *
+ * **Both documents, because a block kind is one dataset's fact.** This read only the
+ * primary's, and CAPEX's query set v2 introduced `observation` — so the claim passed while
+ * the client would have refused every answer carrying one, which is the same shape as the
+ * `rows: num` and `group` failures: a declaration checked against the one document that
+ * happens not to exercise it. Answers are tagged with their dataset, because both sets
+ * number their queries from Q01 and an untagged failure names neither.
  */
-const answers = db.ask_answers ?? []
+const answerSets = [
+  ['EPA', db.ask_answers ?? []],
+  ['CAPEX', capexDoc.value?.ask_answers ?? []],
+]
+const answers = answerSets.flatMap(([dataset, list]) =>
+  list.map((a) => ({ ...a, _dataset: dataset })),
+)
 const blockKinds = [...new Set(answers.flatMap((a) => a.blocks.map((b) => b.type)))].sort()
 const answerBlocks = read('frontend/src/components/ask/AnswerBlocks.tsx')
 expect(
@@ -2440,20 +2507,26 @@ expect(
 for (const a of answers) {
   const band = a.confidence >= 0.85 ? 'High' : a.confidence >= 0.6 ? 'Medium' : 'Low'
   expect(
-    `${a.answer_id} states a band that matches its score`,
+    `${a._dataset} ${a.answer_id} states a band that matches its score`,
     a.confidence_level === band,
     `${a.confidence_level} for ${a.confidence}`,
   )
 }
 
-/* No two recorded answers may answer the same question, or the matcher's
-   tie-breaker decides which one a user gets. */
-const askQuestions = answers.map((a) => a.question.trim().toLowerCase())
-expect(
-  'no question is recorded twice',
-  new Set(askQuestions).size === askQuestions.length,
-  `${answers.length} answers`,
-)
+/*
+ * No two recorded answers *in one dataset* may answer the same question, or the matcher's
+ * tie-breaker decides which one a reader gets. Per dataset rather than across both: the two
+ * sets are matched against separately, so the same question in each is not a collision — and
+ * checking the union would fail on every question CAPEX and EPA happen to share.
+ */
+for (const [dataset, list] of answerSets) {
+  const asked = list.map((a) => a.question.trim().toLowerCase())
+  expect(
+    `${dataset}: no question is recorded twice`,
+    new Set(asked).size === asked.length,
+    `${list.length} answers`,
+  )
+}
 
 /* The stream is the contract: refusals before it opens, events after. */
 expect(

@@ -2370,6 +2370,35 @@ const PROFILERS = { bigquery: PIPELINE, gdrive: DOC_PIPELINE }
 /** Whether the profiler has anything to run against a source of this kind. */
 const isProfilable = (kind) => Object.hasOwn(PROFILERS, kind)
 
+/**
+ * The connectors that are read *at question time* rather than profiled into the graph.
+ *
+ * Declared beside `PROFILERS` rather than as a second list of connector names kept
+ * somewhere else, because the two answer one question between them: a kind either has a
+ * profiler — its objects become graph elements — or it is runtime, and its objects are
+ * read when a question needs them. Nothing may be both, which is why `LIVE_SHAPE`-style
+ * membership is asserted rather than assumed.
+ *
+ * Gmail is the one runtime kind, and the query set states the rule in its own words:
+ * *"A runtime source is read when a question needs it and never on a schedule. Nothing it
+ * produces becomes a graph element. An extraction from a message is an OBSERVATION — a
+ * claim about a subject the graph already holds — resolved at question time and never
+ * merged into the fact set."* So a runtime source legitimately feeds step 4 while
+ * deriving no entities in step 6, and that is stated on both rather than inferred from a
+ * count of zero.
+ */
+const RUNTIME_KINDS = new Set(['gmail'])
+const isRuntimeSource = (kind) => RUNTIME_KINDS.has(kind)
+/* A kind that both profiles and is read at question time would make "where did this
+   figure come from" unanswerable. Refused at boot rather than discovered on a graph. */
+for (const kind of RUNTIME_KINDS) {
+  if (isProfilable(kind)) {
+    throw new Error(
+      `${kind} is in RUNTIME_KINDS and PROFILERS — a connector is profiled or read at question time, never both`,
+    )
+  }
+}
+
 const pipelineFor = (job) => PROFILERS[job.kind] ?? PIPELINE
 
 // Paced so a run is comfortably observable at the UI's 3s poll interval.
@@ -2725,6 +2754,16 @@ function selectedProfiledObjects(picks) {
   for (const pick of normalizeSourcePicks(picks)) {
     const source = registered.get(pick.source_id)
     if (!source || source.status !== 'connected') continue
+    /*
+     * A runtime source derives nothing, and it is skipped *here, by name* rather than
+     * falling through to the structured branch and contributing nothing by accident —
+     * which is what it did while Gmail had no branch: `findProject(undefined)` and an
+     * empty `profiled` list produce the same silence as a deliberate exclusion, and only
+     * one of the two survives somebody adding a second runtime connector. What it feeds
+     * the step instead is `runtime_sources` on the coverage payload, so "no entities from
+     * Gmail" is a sentence rather than an absence.
+     */
+    if (isRuntimeSource(source.kind)) continue
     const wanted = new Set(pick.objects)
     const takeAll = pick.mode !== 'subset'
 
@@ -2816,6 +2855,21 @@ const STOPWORDS = new Set([
  */
 function graphCoverage({ name, picks, heroQuestions }) {
   const objects = selectedProfiledObjects(picks)
+  /*
+   * The picked sources that derive nothing because they are read at question time.
+   *
+   * Stated rather than omitted, for the reason the Data Catalog states the count it left
+   * out: a source the reader deliberately picked, contributing no entity to a list of
+   * entities, is indistinguishable from one that failed — and "Gmail produced nothing"
+   * is the wrong reading of a connector that was never going to produce a node.
+   */
+  const runtimeSources = runtimeSourcesIn(picks).map((s) => ({
+    source_id: s.source_id,
+    source_name: s.source_name,
+    type_label: 'Gmail',
+    scope: (s.labels ?? []).length,
+    scope_label: 'labels',
+  }))
   const questions = normalizeQuestions(heroQuestions)
   const elements = []
 
@@ -2911,6 +2965,17 @@ function graphCoverage({ name, picks, heroQuestions }) {
     gap_count: gaps.length,
     object_count: objects.length,
     elements,
+    /*
+     * Runtime sources contribute no element, so they are reported beside the derivation
+     * rather than inside it. The query set's own rule is the wording the step follows:
+     * nothing a runtime source produces becomes a graph element, and an extraction from a
+     * message is an observation about a subject the graph already holds.
+     */
+    runtime_sources: runtimeSources,
+    runtime_note:
+      runtimeSources.length > 0
+        ? `${runtimeSources.map((s) => s.source_name).join(', ')} ${runtimeSources.length === 1 ? 'is a runtime source and derives' : 'are runtime sources and derive'} no entities: correspondence is read when a question needs it and never merged into the graph. It answers as an observation on a subject the graph already holds.`
+        : null,
   }
 }
 
@@ -3129,6 +3194,10 @@ function recordVersion(run, gatePassed) {
     gate: gatePassed ? 'passed' : 'unknown',
   })
   studioVersions.set(run.use_case_id, rows)
+  /* The row it just wrote. Returned rather than re-found by hash, so a caller that has to
+     act on this version acts on the one this call created and not on whatever now sits at
+     the head of the list. */
+  return rows[0]
 }
 
 /**
@@ -3190,6 +3259,40 @@ const buildView = (run) => ({
   finished_at: run.finished_at,
 })
 
+/**
+ * Whether a graph draws on a source that is read at question time.
+ *
+ * Read off the brief's own source picks rather than a flag stored beside them, so it
+ * cannot disagree with what step 4 recorded. A pick whose source has since been
+ * disconnected does not count — the same test `selectedProfiledObjects` applies, because
+ * a graph is runtime-answered only while the mailbox is actually reachable.
+ */
+/**
+ * The connected runtime sources among a set of step-4 picks.
+ *
+ * **One definition, two callers** — step 6's coverage note and the build's auto-publish. It
+ * was written twice for a day, and a break test caught what that costs: mutating one copy's
+ * "still connected" test broke nothing, because the claim guarding it was pointed at the
+ * other. Two copies of a predicate is two answers to "is this graph runtime-answered".
+ */
+function runtimeSourcesIn(picks) {
+  return normalizeSourcePicks(picks ?? [])
+    .map((pick) => registered.get(pick.source_id))
+    /* Still connected, because a graph is runtime-answered only while the mailbox is
+       actually reachable — the same test `selectedProfiledObjects` applies to its own. */
+    .filter((s) => s && s.status === 'connected' && isRuntimeSource(s.kind))
+}
+
+/**
+ * Whether a graph draws on a source that is read at question time.
+ *
+ * Read off the brief's own source picks rather than a flag stored beside them, so it cannot
+ * disagree with what step 4 recorded.
+ */
+function runtimeSourcesFor(useCase) {
+  return runtimeSourcesIn(useCase?.sources ?? [])
+}
+
 function runGraphBuild(run, useCase) {
   const step = () => {
     if (run.status !== 'running') return
@@ -3200,7 +3303,36 @@ function runGraphBuild(run, useCase) {
       run.status = 'complete'
       run.finished_at = new Date().toISOString()
       // The version exists because the build finished — not because it started.
-      recordVersion(run, studioSummary(useCase).queue_count === 0)
+      const version = recordVersion(run, studioSummary(useCase).queue_count === 0)
+
+      /*
+       * **A runtime-answered graph publishes itself when its build lands.**
+       *
+       * Ask queries the published version and only that one, and that rule is not being
+       * relaxed here — what changes is *who presses Publish*, not what Ask will answer
+       * from. A graph whose answers are read from correspondence at question time has
+       * nothing for a reviewer to settle before a reader may ask it: the review queue and
+       * the pivot decide what the *canvas* asserts, and a runtime source puts nothing on
+       * the canvas. So the publish happens here rather than being asked for, and every
+       * fact downstream stays real — the version, its content hash, when it landed and who
+       * it is credited to are the ones this build produced.
+       *
+       * It is the *build* that publishes, never the commit: committing is instantaneous,
+       * and a brief that published on save would put a version in Ask before the content
+       * behind it existed. A rebuild moves the pointer to the newer version for the same
+       * reason a rebuild is the normal case after settling rows.
+       *
+       * A graph with no runtime source is untouched and still waits for Publish.
+       */
+      if (runtimeSourcesFor(useCase).length > 0) {
+        studioLive.set(run.use_case_id, version.sha256)
+        const key = `${run.use_case_id}:${version.sha256}`
+        /* Credited to whoever started the build, the way a publish credits whoever pressed
+           it. Cleared rather than left when the run named nobody, so `publishedByFor`
+           falls back to the tenant account instead of inheriting an earlier publisher. */
+        if (run.started_by) studioPublishedBy.set(key, run.started_by)
+        else studioPublishedBy.delete(key)
+      }
       return
     }
     setTimeout(step, BUILD_STEP_MS).unref?.()
@@ -3208,8 +3340,15 @@ function runGraphBuild(run, useCase) {
   setTimeout(step, BUILD_STEP_MS).unref?.()
 }
 
-/** Starts a build for a graph and records it in that graph's history. */
-function startBuildFor(useCase) {
+/**
+ * Starts a build for a graph and records it in that graph's history.
+ *
+ * `startedBy` is the signed-in address, sent as `?as=` for the reason every other route
+ * that records who did something is told: the identity is client-held and this server has
+ * nothing to look it up from. It matters here because a runtime-answered graph publishes
+ * itself on completion, and a publication has to name somebody.
+ */
+function startBuildFor(useCase, startedBy = null) {
   const id = useCase.use_case_id
   const buildId = crypto.randomUUID()
   const run = {
@@ -3230,6 +3369,9 @@ function startBuildFor(useCase) {
      */
     config_version: nextBuildVersion(id),
     started_at: new Date().toISOString(),
+    /* Who to credit if this build publishes itself. Not reported on `buildView`: a build
+       is not a publication, and the publication it may produce states its own publisher. */
+    started_by: startedBy,
     finished_at: null,
   }
   const history = graphBuildsByUseCase.get(id) ?? []
@@ -3320,9 +3462,26 @@ function normalizeSourcePicks(list) {
 function graphSources() {
   const sources = connectedSources().map((source) => {
     const isDrive = source.kind === 'gdrive'
+    const isMail = source.kind === 'gmail'
+    const runtime = isRuntimeSource(source.kind)
     const drive = isDrive ? findDrive(source.drive_id) : null
 
-    const objects = isDrive
+    /*
+     * A runtime source's objects are what the connection was *pointed at* rather than
+     * what a profiler landed: Gmail's are the labels picked in the wizard. They carry no
+     * `units` — nothing samples the mail, so a message count would be a figure this
+     * server has never read, and `0` would say a label is empty rather than uncounted.
+     * That is the `rows: null` rule the browse schema already learned from CAPEX.
+     */
+    const objects = isMail
+      ? (source.labels ?? []).map((label) => ({
+          object_id: label,
+          parent_id: source.mailbox ?? '—',
+          label,
+          units: null,
+          unit_label: 'messages',
+        }))
+      : isDrive
       ? (source.profiled_docs ?? []).map((p) => {
           const meta = findDocument(drive, p.folder_id, p.document_id)
           const folder = findFolder(drive, p.folder_id)
@@ -3348,26 +3507,45 @@ function graphSources() {
       connector: source.connector,
       kind: source.kind,
       status: source.status,
-      type_label: isDrive ? 'Google Drive' : 'BigQuery',
-      account: source.project_id ?? source.drive_id ?? '—',
-      // "Datasets: a, b" for BigQuery; "Folders: …" for Drive.
-      scope_label: isDrive ? 'Folders' : 'Datasets',
+      type_label: isDrive ? 'Google Drive' : isMail ? 'Gmail' : 'BigQuery',
+      /* What it connected *as* — a mailbox is the account, the way a project is. */
+      account: source.project_id ?? source.drive_id ?? source.mailbox ?? '—',
+      // "Datasets: a, b" for BigQuery; "Folders: …" for Drive; "Labels: …" for Gmail.
+      scope_label: isDrive ? 'Folders' : isMail ? 'Labels' : 'Datasets',
       scope: isDrive
         ? (source.folders ?? []).map(
             (id) => findFolder(drive, id)?.name ?? id,
           )
-        : (source.datasets ?? []),
+        : isMail
+          ? (source.labels ?? [])
+          : (source.datasets ?? []),
       objects,
       object_count: objects.length,
-      unit_label: isDrive ? 'documents' : 'tables',
+      unit_label: isDrive ? 'documents' : isMail ? 'labels' : 'tables',
+      /*
+       * Read at question time, so this source contributes no entities to step 6's
+       * derivation. Carried as a flag rather than left to be inferred from `kind`: the
+       * step-4 gate, the coverage note and the client's own copy all have to agree about
+       * which sources are runtime, and a second list of connector names in a component is
+       * what `profilable` already exists to avoid.
+       */
+      runtime,
     }
   })
 
   return {
     sources,
     source_count: sources.length,
-    // Sources that could actually contribute — connected is not enough.
-    profiled_source_count: sources.filter((s) => s.object_count > 0).length,
+    /*
+     * Sources that could actually contribute — connected is not enough.
+     *
+     * A runtime source contributes at question time rather than through a profiler, so it
+     * is counted apart instead of being folded in here: this number still means "how many
+     * sources have something profiled", which is what the Data Catalog's own copy
+     * promises. Step 4 is satisfied by either count being non-zero.
+     */
+    profiled_source_count: sources.filter((s) => !s.runtime && s.object_count > 0).length,
+    runtime_source_count: sources.filter((s) => s.runtime).length,
   }
 }
 
@@ -4458,11 +4636,60 @@ function askAnswer(useCase, question, requested = { citations: DEFAULT_CITATIONS
         detail: `${a.answer_id} (${a.kind}${a.hero_ref ? `, ${a.hero_ref}` : ''}) — ${how}.`,
       },
     ]
-    /* Evidence rows carry no per-row score: the query set states one confidence
-       for the whole answer, and a number per row would be invented. */
-    const citations = (a.evidence ?? [])
-      .filter((e) => e.source && e.source !== '—')
-      .map((e) => ({ label: e.source, detail: e.detail, confidence: null }))
+    /*
+     * **The answer's own numbered source list, where it states one.**
+     *
+     * v2 of the query set authors `citations` per query — the numbered list rendered under
+     * a chat answer — carrying what `evidence` never could: whether a source was read at
+     * question time (`runtime`), its as-of where it has one, and whether it is
+     * authoritative for the claim. Serving the authored list is the same rule the report
+     * section follows for its authored tiles: read what the tenant wrote, and only compute
+     * where nothing is written.
+     *
+     * The fallback stays exactly as it was, for the answers that state none. Its extra
+     * fields are `null` rather than defaulted — `runtime: false` on a row that says
+     * nothing about runtime is a claim, and `kind: 'dataset'` on an evidence line is a
+     * guess about what the source is.
+     *
+     * Evidence rows carry no per-row score either way: the set states one confidence for
+     * the whole answer, and a number per row would be invented.
+     */
+    const authored = Array.isArray(a.citations) ? a.citations : []
+    const citations =
+      authored.length > 0
+        ? [...authored]
+            /* By the set's own numbering, so the list a reader cites by number is the list
+               the set wrote rather than whatever order the array happened to hold. */
+            .sort((x, y) => (x.n ?? 0) - (y.n ?? 0))
+            .map((c) => ({
+              label: c.label,
+              detail: c.detail,
+              confidence: null,
+              kind: c.kind ?? null,
+              source_id: c.source_id ?? null,
+              runtime: typeof c.runtime === 'boolean' ? c.runtime : null,
+              as_of: c.as_of ?? null,
+              authoritative:
+                typeof c.authoritative === 'boolean' ? c.authoritative : null,
+              /* Why it is not, in the set's words — printed only where it says so, because
+                 an empty reason under a "not authoritative" mark is worse than the mark. */
+              why_not_authoritative: c.why_not_authoritative ?? null,
+              n: typeof c.n === 'number' ? c.n : null,
+            }))
+        : (a.evidence ?? [])
+            .filter((e) => e.source && e.source !== '—')
+            .map((e, i) => ({
+              label: e.source,
+              detail: e.detail,
+              confidence: null,
+              kind: null,
+              source_id: null,
+              runtime: null,
+              as_of: null,
+              authoritative: null,
+              why_not_authoritative: null,
+              n: i + 1,
+            }))
 
     if (a.kind === 'decline') {
       /*
@@ -8983,13 +9210,24 @@ const routes = [
   {
     method: 'POST',
     match: (p) => /^\/graph-studio\/[^/]+\/builds$/.test(p),
-    handle: (_req, res, { pathname }) => {
+    handle: (_req, res, { pathname, query }) => {
       const id = decodeURIComponent(
         pathname.slice('/graph-studio/'.length, -'/builds'.length),
       )
       const found = findBuiltGraph(id)
       if (found.error) return send(res, found.status, { error: found.error })
-      send(res, 202, buildView(startBuildFor(found.useCase)))
+      /*
+       * Who started it, validated exactly as the publish route validates its own — because
+       * for a runtime-answered graph this *is* the publish act, and a malformed address
+       * would reach every "published by" line rather than being quietly dropped.
+       */
+      const as = query.get('as')
+      if (as !== null && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(as)) {
+        return send(res, 400, {
+          error: `"${as}" is not an email — send the signed-in address as ?as=, or nothing`,
+        })
+      }
+      send(res, 202, buildView(startBuildFor(found.useCase, as)))
     },
   },
 
@@ -9326,9 +9564,19 @@ const routes = [
               error: `${pick.source_id} is not a connected source`,
             })
           }
+          /*
+           * "Profile it first" is only an instruction somebody can carry out when the
+           * source *can* be profiled. Gmail has no entry in `PROFILERS`, so telling a
+           * reader to profile a mailbox is the refusal-with-no-remedy this repo already
+           * removed once from Gmail's own Continue button. A runtime source is refused
+           * only when it carries nothing at all, and then for the reason that is true of
+           * it — no labels are in scope.
+           */
           if (source.object_count === 0) {
             return send(res, 400, {
-              error: `${pick.source_id} has nothing profiled yet — profile it in the Data Catalog first`,
+              error: source.runtime
+                ? `${pick.source_id} has no ${source.unit_label} in scope — reconnect it and pick at least one`
+                : `${pick.source_id} has nothing profiled yet — profile it in the Data Catalog first`,
             })
           }
           if (pick.mode === 'subset') {

@@ -978,6 +978,31 @@ export interface AskCitation {
    * invented — and the page shows the figure only where there is one.
    */
   confidence: number | null
+  /**
+   * The rest of the numbered source list, where the answer *authored* one.
+   *
+   * Every field below is `null` for a citation the server derived from an answer's
+   * `evidence` rows, and that is the distinction the page has to keep: an evidence line
+   * says nothing about whether its source was read at question time, so `runtime: false`
+   * would be a claim rather than a default. Render each mark only where its value is not
+   * null.
+   */
+  /** "dataset" · "document" · "correspondence" · "graph" · "absence". */
+  kind: string | null
+  sourceId: string | null
+  /**
+   * Read at question time rather than on a schedule. A runtime source has **no as-of** —
+   * the query set's own rule is that two people asking an hour apart can legitimately get
+   * different answers and neither is stale — so `asOf` is null on these by design.
+   */
+  runtime: boolean | null
+  asOf: string | null
+  /** Whether this source is authoritative *for this claim*, not in general. */
+  authoritative: boolean | null
+  /** Why it is not, in the set's own words. Null unless it says. */
+  whyNotAuthoritative: string | null
+  /** Its place in the numbered list the answer wrote. */
+  n: number | null
 }
 
 /* ---------------- Ask: the blocks a recorded answer is made of ---------------- */
@@ -1015,6 +1040,60 @@ export type AnswerBlock =
       }[]
     }
   | { type: 'table'; title: string; columns: string[]; rows: AnswerCell[][] }
+  /**
+   * **What correspondence claimed — never a figure the answer counted.**
+   *
+   * A runtime source is read when a question needs it, and what it yields is an
+   * *observation*: a claim about a subject the graph already holds, attributed to whoever
+   * made it, with the extractor's confidence attached. The query set is explicit that none
+   * of it is merged into the fact set, and its own block notes say so per answer — *"Each
+   * is a CLAIM by its sender with the extractor's confidence attached — none of it is
+   * counted into any figure above."*
+   *
+   * So this block renders as attributed claims and never as a metric or a chart: the moment
+   * a reader can read a total off it, it has stopped being an observation. Every field but
+   * the four that identify the claim is nullable, because the corpus genuinely does not
+   * carry them all — 22 of 27 rows name no month count and 13 name no change order.
+   */
+  | {
+      type: 'observation'
+      /** The tenant's own heading — "From correspondence", "Did not resolve", and others. */
+      label: string
+      items: AnswerObservation[]
+      /** What the block is and what it is not, in the tenant's words. */
+      note?: string | null
+    }
+
+/**
+ * One claim read out of a message at question time.
+ *
+ * **snake_case, like the chart block's `x_label` beside it.** Blocks are passed through
+ * from the payload unmapped — `toAskAnswer` maps the envelope's fields and hands `blocks`
+ * straight on — so renaming these would need a block mapper whose only job is this one
+ * type. The camelCase rule applies to the fields the envelope carries, not inside a block.
+ */
+export interface AnswerObservation {
+  message_id: string
+  from_name: string
+  /** "contractor", "owner" — which side of the contract made the claim. */
+  from_side?: string | null
+  sent_at: string
+  subject?: string | null
+  claim: string
+  /** The reason the extractor filed it under, where it resolved one. */
+  reason_label?: string | null
+  /** Money the claim asserts. Null where it asserts none — never 0, which is an amount. */
+  amount?: number | null
+  amount_basis?: string | null
+  /** Schedule months the claim asserts, where it names any. */
+  months?: number | null
+  confidence?: number | null
+  /** The extractor's own band for that confidence — "High", "Medium", "Low". */
+  band?: string | null
+  /** The graph subject this claim was resolved against, or null where nothing resolved. */
+  resolved_to?: string | null
+  change_order?: string | null
+}
 
 /** A table cell or a metric value: the tenant writes counts as numbers. */
 export type AnswerCell = string | number
@@ -1297,13 +1376,21 @@ export interface GraphStudioPayload extends StudioGraph {
   versions: GraphVersion[]
 }
 
-/** One profiled object a graph could draw from — a table, or a document. */
+/** One object a graph could draw from — a table, a document, or a Gmail label. */
 export interface GraphSourceObject {
   objectId: string
   parentId: string
   label: string
-  units: number
-  /** "columns" or "entities". */
+  /**
+   * How much the object holds, in `unitLabel`, or `null` where nothing has counted it.
+   *
+   * Nullable because a runtime source is not sampled: Gmail's labels have no message
+   * count, and `0` would say a label is empty rather than uncounted. Do not default it
+   * to zero on the way out — that is the `rows ?? 0` mistake CLAUDE.md records, where the
+   * compiler is satisfied by a value that lies.
+   */
+  units: number | null
+  /** "columns", "entities", or "messages". */
   unitLabel: string
 }
 
@@ -1315,13 +1402,21 @@ export interface GraphSource {
   status: string
   typeLabel: string
   account: string
-  /** "Datasets" or "Folders". */
+  /** "Datasets", "Folders" or "Labels". */
   scopeLabel: string
   scope: string[]
   objects: GraphSourceObject[]
   objectCount: number
-  /** "tables" or "documents". */
+  /** "tables", "documents" or "labels". */
   unitLabel: string
+  /**
+   * Read at question time rather than profiled into the graph.
+   *
+   * Served rather than derived from `kind` in the component, so the step-4 gate and the
+   * copy beside it cannot disagree about which sources are runtime — the same reason
+   * `profilable` is served rather than tested against a pair of connector names.
+   */
+  runtime: boolean
 }
 
 export interface GraphSourcesPayload {
@@ -1329,6 +1424,8 @@ export interface GraphSourcesPayload {
   sourceCount: number
   /** Connected *and* carrying something profiled — connected alone can't feed a graph. */
   profiledSourceCount: number
+  /** Connected runtime sources, which contribute at question time instead. */
+  runtimeSourceCount: number
 }
 
 /**
@@ -1979,6 +2076,7 @@ const DRAFTED_ITEM = shape({
 const GRAPH_SOURCES_PAYLOAD = shape({
   source_count: num,
   profiled_source_count: num,
+  runtime_source_count: num,
   sources: arrayOf(
     shape({
       source_id: str,
@@ -1992,12 +2090,21 @@ const GRAPH_SOURCES_PAYLOAD = shape({
       scope: arrayOf(str),
       object_count: num,
       unit_label: str,
+      /* Read at question time rather than profiled — served, not derived from `kind`. */
+      runtime: bool,
       objects: arrayOf(
         shape({
           object_id: str,
           parent_id: str,
           label: str,
-          units: num,
+          /*
+           * **Nullable, and that is a claim about every dataset rather than the one in
+           * front of us.** A Gmail label has no message count because this connector
+           * samples no mail, and `num` here refused every runtime source with "units
+           * should be a number, got null" under a message blaming a stale server — the
+           * same shape as the `rows: num` failure CAPEX's browse schema hit.
+           */
+          units: nullable(num),
           unit_label: str,
         }),
       ),
@@ -2582,6 +2689,39 @@ const ANSWER_BLOCK = variant('type', {
      */
     rows: arrayOf(arrayOf(cell)),
   }),
+  /*
+   * Claims read from correspondence at question time.
+   *
+   * Only the four fields that *identify* a claim are required — who said it, when, in which
+   * message, and what they claimed. Everything else is `nullable`, and that was measured
+   * against the corpus rather than assumed: of 27 rows, 10 name no amount, 22 no month
+   * count, 13 no change order, 7 resolved to nothing and 3 carry no confidence at all.
+   * Declaring any of those non-null is the `rows: num` mistake — a field the whole array
+   * does not share is not a required field, and one absent value would refuse the answer.
+   */
+  observation: shape({
+    type: str,
+    label: str,
+    note: nullable(str),
+    items: arrayOf(
+      shape({
+        message_id: str,
+        from_name: str,
+        from_side: nullable(str),
+        sent_at: str,
+        subject: nullable(str),
+        claim: str,
+        reason_label: nullable(str),
+        amount: nullable(num),
+        amount_basis: nullable(str),
+        months: nullable(num),
+        confidence: nullable(num),
+        band: nullable(str),
+        resolved_to: nullable(str),
+        change_order: nullable(str),
+      }),
+    ),
+  }),
 })
 
 const ASK_ANSWER_PAYLOAD = shape({
@@ -2597,7 +2737,25 @@ const ASK_ANSWER_PAYLOAD = shape({
   path: arrayOf(str),
   hops: num,
   reasoning: arrayOf(shape({ step: str, detail: str })),
-  citations: arrayOf(shape({ label: str, detail: str, confidence: nullable(num) })),
+  /*
+   * Every field past the first three is `nullable`, which also means *absent is accepted* —
+   * so the graph walk's own citations, which carry only a label and a detail, still validate
+   * without the walk having to emit nulls it knows nothing about.
+   */
+  citations: arrayOf(
+    shape({
+      label: str,
+      detail: str,
+      confidence: nullable(num),
+      kind: nullable(str),
+      source_id: nullable(str),
+      runtime: nullable(bool),
+      as_of: nullable(str),
+      authoritative: nullable(bool),
+      why_not_authoritative: nullable(str),
+      n: nullable(num),
+    }),
+  ),
   caveats: arrayOf(str),
   asked_at: str,
   summary: nullable(str),
@@ -3783,16 +3941,19 @@ export async function listGraphSources(): Promise<GraphSourcesPayload> {
       scope: string[]
       object_count: number
       unit_label: string
+      runtime: boolean
       objects: {
         object_id: string
         parent_id: string
         label: string
-        units: number
+        /* Null where nothing has counted the object — a Gmail label has no message count. */
+        units: number | null
         unit_label: string
       }[]
     }[]
     source_count: number
     profiled_source_count: number
+    runtime_source_count: number
   }>(
     'The available sources',
     await request<unknown>('/graph-sources'),
@@ -3812,16 +3973,19 @@ export async function listGraphSources(): Promise<GraphSourcesPayload> {
       scope: s.scope,
       objectCount: s.object_count,
       unitLabel: s.unit_label,
+      runtime: s.runtime,
       objects: s.objects.map((o) => ({
         objectId: o.object_id,
         parentId: o.parent_id,
         label: o.label,
+        /* Carried through as null, never `?? 0`: nothing counted it, and 0 is a count. */
         units: o.units,
         unitLabel: o.unit_label,
       })),
     })),
     sourceCount: raw.source_count,
     profiledSourceCount: raw.profiled_source_count,
+    runtimeSourceCount: raw.runtime_source_count,
   }
 }
 
@@ -4663,7 +4827,7 @@ type RawAskAnswer = {
   path: string[]
   hops: number
   reasoning: AskStep[]
-  citations: AskCitation[]
+  citations: RawAskCitation[]
   caveats: string[]
   asked_at: string
   summary: string | null
@@ -4676,6 +4840,43 @@ type RawAskAnswer = {
     note: string
   }
 }
+
+/*
+ * The wire shape of one citation. Spelled out rather than reusing `AskCitation`, which is
+ * the *camelCase* one the UI reads — declaring the raw payload as the mapped type is the
+ * mistake CLAUDE.md records as "a payload field name is a contract the compiler cannot
+ * check": it compiles, and then `asOf` is `undefined` on every citation at runtime.
+ *
+ * The four optional fields are optional on the wire too, because the graph walk emits
+ * citations with only a label and a detail.
+ */
+interface RawAskCitation {
+  label: string
+  detail: string
+  confidence: number | null
+  kind?: string | null
+  source_id?: string | null
+  runtime?: boolean | null
+  as_of?: string | null
+  authoritative?: boolean | null
+  why_not_authoritative?: string | null
+  n?: number | null
+}
+
+/* `?? null` rather than left undefined: the UI tests each mark against null, and an absent
+   key and a stated null mean the same thing here — the answer did not say. */
+const toAskCitation = (c: RawAskCitation): AskCitation => ({
+  label: c.label,
+  detail: c.detail,
+  confidence: c.confidence ?? null,
+  kind: c.kind ?? null,
+  sourceId: c.source_id ?? null,
+  runtime: c.runtime ?? null,
+  asOf: c.as_of ?? null,
+  authoritative: c.authoritative ?? null,
+  whyNotAuthoritative: c.why_not_authoritative ?? null,
+  n: c.n ?? null,
+})
 
 const toAskAnswer = (raw: RawAskAnswer): AskAnswer => ({
   question: raw.question,
@@ -4690,7 +4891,7 @@ const toAskAnswer = (raw: RawAskAnswer): AskAnswer => ({
   path: raw.path,
   hops: raw.hops,
   reasoning: raw.reasoning,
-  citations: raw.citations,
+  citations: raw.citations.map(toAskCitation),
   caveats: raw.caveats,
   askedAt: raw.asked_at,
   summary: raw.summary,
