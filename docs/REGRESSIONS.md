@@ -4778,3 +4778,64 @@ assertions can pass over an empty render.
 is the two-grids ambiguity again in a new place: on a page where the thing being forbidden is legal
 somewhere else, a whole-render search does not express the rule. And a failing assertion is as likely
 to be wrong as the code — three of five here were the test.
+
+---
+
+## A demo world two orders of magnitude larger than the demo
+
+**Symptom.** Every CAPEX report opened in billions — the Variance Report's tiles read `$5.00B / $4.41B /
+−$591M` where the range being demonstrated tops out at $50M.
+
+**Cause, and it is not a formatting choice.** The figures live inside the three rendered documents, in a
+600 KB fixture that describes a $152B, 4,500-project programme of which its 60 projects are a **1.54%
+sample**. Nothing was wrong; the world was simply the wrong size.
+
+**What made the fix a decision rather than a division.** A single project is $30–70M and the portfolio
+period plan is $5.00B — some two thousand times apart, and *the documents print that ratio in prose*. So
+"every figure under $50M" and "projects that still read like capital works" cannot both hold, and the
+factor had to be chosen against a stated target: 100, pinned to the tiles, which is what the request was
+actually about.
+
+**Fix.** `npm run scale:capex` — one factor across every capital figure, so every percentage, share and
+gap the documents state is still exactly true. Not a hand edit, because the file's own header forbids one
+and a re-export would silently undo it.
+
+**What the script had to get right, each one a silent failure if missed:**
+
+- **Literals are found by path, not by key name.** `value` is a contract's amount, a lever's position and
+  a filter's threshold; `max` is a lever bound. A key-driven pass has to be right about every collision
+  at once.
+- **Every number inside a report's own containers is classified money or not-money, and an unclassified
+  one refuses the run.** This is what caught `policy.floorUSD` (a dollar threshold that has to move with
+  its column) and kept `daysToFilingBy`, `pctComplete` and `cites[].n` from being divided by a hundred.
+  It is reported by path *shape*, because a refusal listing 4,124 instances of a dozen fields is a
+  refusal nobody reads.
+- **A filter's threshold is money when the column it filters is.** "Projects above $1M" would otherwise
+  select a different population than the sentence beside it describes — and its block label, its `why`
+  and its subtitle all quote the figure.
+- **The prose is a table.** The fixture quotes its own figures nineteen times; each is listed with its
+  path and its expected count, and a money-shaped run the table does not name refuses the run. That is
+  what kept `1.1 million gallon` a basin's volume — a pattern confident enough to catch every figure is
+  confident enough to shrink a reservoir.
+- **The arithmetic is re-checked on the file that was written**, not on the intent: variance against
+  actual-minus-plan, `sampleBudget` against the sixty budgets, the heatmap total against both margins.
+  A tolerance of one dollar per term, which is what rounding to the fixture's own whole-dollar grain
+  costs — and an unscaled field would fail these by a factor of a hundred rather than by a cent.
+
+**Two bugs the script found in itself, both worth the telling.** Its own sweep for unaccounted figures
+matched `$16,000.` — the replacement it had just written — because the pattern ended on punctuation; a
+guard that cannot recognise its own output reports success as failure and wastes the run. And rounding was
+added only after noticing that `fmt` builds its `exact` string straight off the value, so two thirds of
+the figures would have carried cents into every provenance panel: `$24,497,475.78` is a precision claim
+the source never made.
+
+**Guard.** `check-docs` reads the tiles back out of all three documents — period plan, period actual,
+every project's budget and EAC, the deferred capital column — and fails if any exceeds the ceiling the
+script states. Read off the *documents* rather than the script's constants, because a claim over the
+constants passes over a document the script never ran on. Break-tested by putting a period plan back in
+billions, by raising one project's EAC, and by unwiring the command.
+
+**The general shape.** *A vendored fixture is a set of claims about scale, and scale is a decision
+somebody made once and wrote into prose as well as into numbers.* When the numbers have to change, the
+sentences that quote them are part of the data — and the only safe way through is a transform that
+refuses to run rather than one that does its best.
