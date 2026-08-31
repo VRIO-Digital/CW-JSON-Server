@@ -247,7 +247,12 @@ export const useGraphBuildStore = create<BuildState>()((set, get) => ({
   start: async (useCaseId) => {
     set({ starting: true, error: null })
     try {
-      const run = await startGraphBuild(useCaseId)
+      /* Told who, the way `publish` is: this build publishes itself where the graph is
+         runtime-answered, and a publication has to name somebody. */
+      const run = await startGraphBuild(
+        useCaseId,
+        useAuthStore.getState().identity?.email ?? null,
+      )
       set({ shown: run, history: [run, ...get().history] })
       return { ok: true }
     } catch (error) {

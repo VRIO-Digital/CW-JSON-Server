@@ -975,11 +975,18 @@ label is empty. The gate is now "has this source anything to point at", not "has
 profiled" — the old test put an error above a list whose one usable row sat underneath it.
 
 **What it contributes is an answer, not an entity.** Step 6 derives nothing from it and
-states so (`runtime_sources` and `runtime_note` on the coverage payload) rather than
-leaving it silently out of the entity list. At Ask time its content arrives as
+states so (`runtime_sources` and `runtime_note` on the coverage payload, both now carried by
+`toCoverage` and printed as the server worded them) rather than leaving it silently out of
+the entity list. **A hero question no profiled column covers is `runtime` rather than a
+`gap`** on such a brief — it needs no decision, it is counted as `runtime_question_count`, and
+it does not block the build, which is what a mailbox-only brief used to do with no control on
+screen to unblock it. At Ask time its content arrives as
 `observation` blocks — attributed claims read from correspondence, never merged into the
 graph. And a graph drawing on one **publishes itself when its build completes**, so it
-reaches Ask without anybody pressing Publish; see Flow 9.
+reaches Ask without anybody pressing Publish; see Flow 9. Which is why **Save & build does
+not route it to Graph Studio**: the studio's one remaining act for this graph has already
+happened, so the wizard watches the run in a dialog and hands the reader to Ask. See Flow 7's
+last step.
 
 **`Next` refuses to leave step 4 empty** (its rule lives with every other step's,
 in `wizardSteps.ts`), and names the fix for each case: no
@@ -1130,6 +1137,31 @@ to prevent.
 The review is **re-derived on every arrival**, never cached — narrowing a source
 pick on step 4 immediately narrows what step 6 reports.
 
+**Where the click lands depends on whether this graph publishes itself.**
+`isRuntimeAnswered` in `src/data/runtimeBuild.ts` resolves the step-4 picks against the
+served source list and keeps the ones flagged `runtime` — the client half of the server's
+`runtimeSourcesIn`, asking the same question of the same facts, and reading the **served
+flag** rather than testing for a connector name.
+
+- **No runtime source** — unchanged. The commit and the build start here, and the reader
+  goes to `/graph-studio/:id` on the Build tab, because a graph is built more than once and
+  rebuilding lives where reviewing does.
+- **A runtime source** — the reader stays put. `RuntimeBuildDialog` watches the run to the
+  end (the studio's own poll, 350ms while in flight), and its two acts are *Ask a question*
+  and *Open Graph Studio*, in that order of prominence: the studio is somewhere to go rather
+  than somewhere to pass through, since the server published the version this run produced.
+
+**The dialog reports the publication rather than asserting it.** When the run lands the page
+re-reads `GET /ask` once, keyed on the build id, and says *live* only where that list holds
+the graph — naming the version and the publisher the server reported. Where it does not, it
+says so and names Versions as the fix. A build finishing and a graph being live are two
+facts, and only the first is the run's to report.
+
+The build is also **told who started it** (`?as=`, from the client-held identity, validated
+by the route exactly as the publish route validates its own): for this graph the build *is*
+the publish act, so an unsent address credits the tenant's seeded account on every
+"published by" line rather than erroring.
+
 **Where it fails:** an unnamed draft → 400 (`name is required`), an unknown
 domain or an out-of-range step → 400, opening a use case the server no longer has
 → 404. All surface through the store's `Result`, so the page shows a message and
@@ -1146,8 +1178,10 @@ keeps its state.
 ```
 New Graph step 6 · Save & build graph
         → POST /graph-use-cases              commits the brief (pin_inputs)
-        → POST /graph-studio/:id/builds       202 + a queued run
+        → POST /graph-studio/:id/builds?as=  202 + a queued run, credited to the reader
         → /graph-studio/:useCaseId            lands on Build, watching that run
+          …unless the brief drew on a runtime source, which stays in the wizard
+           and lands on /ask — the build published it, see Flow 7
 /graph-studio                                every graph you have built
         → click one → Build · Review queue (6) · Canvas · Query & sanity-check
                       · Versions

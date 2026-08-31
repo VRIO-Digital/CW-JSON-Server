@@ -795,18 +795,33 @@ export interface GapChoice {
 }
 
 /**
- * One derived element of the step 7 review. A `backed` element names the
- * profiled object it came from in `evidence`; a `gap` explains what is missing
- * and needs a decision.
+ * One derived element of the step 6 review. A `backed` element names the profiled object it
+ * came from in `evidence`; a `gap` explains what is missing and needs a decision.
+ *
+ * **`runtime` is neither, and it is a third status rather than a shade of one of them.** A
+ * hero question no profiled column covers, on a brief that picked a source read at question
+ * time, is not backed — nothing in the graph carries it — and it is not a gap, because
+ * something will answer it. It carries no decision, since there is nothing for a reviewer to
+ * settle, and it is counted apart from `gapCount` so the build gate reads exactly as it did.
  */
 export interface CoverageElement {
   elementId: string
   name: string
   kind: 'entity' | 'relationship'
-  status: 'backed' | 'gap'
+  status: 'backed' | 'gap' | 'runtime'
   confidence: number
   evidence: string | null
   reason: string | null
+}
+
+/** A picked source that contributes at question time instead of deriving elements. */
+export interface CoverageRuntimeSource {
+  sourceId: string
+  sourceName: string
+  typeLabel: string
+  /** How much of it is in scope — Gmail's labels, counted. */
+  scope: number
+  scopeLabel: string
 }
 
 export interface CoveragePayload {
@@ -815,8 +830,20 @@ export interface CoveragePayload {
   relationshipCount: number
   heroQuestionCount: number
   gapCount: number
+  /** Questions routed to a runtime source. Never folded into `gapCount`. */
+  runtimeQuestionCount: number
   objectCount: number
   elements: CoverageElement[]
+  /**
+   * The runtime sources this brief picked, and the served sentence about what they do.
+   *
+   * Carried rather than dropped, which it was: the server has sent both since runtime
+   * sources existed and the client mapped neither, so the step could not say why a source
+   * the reader deliberately picked had contributed nothing — and a list that is merely
+   * empty is not a message.
+   */
+  runtimeSources: CoverageRuntimeSource[]
+  runtimeNote: string | null
 }
 
 export interface HeroQuestion {
@@ -2136,18 +2163,30 @@ const COVERAGE_PAYLOAD = shape({
   relationship_count: num,
   hero_question_count: num,
   gap_count: num,
+  runtime_question_count: num,
   object_count: num,
   elements: arrayOf(
     shape({
       element_id: str,
       name: str,
       kind: oneOf(['entity', 'relationship']),
-      status: oneOf(['backed', 'gap']),
+      status: oneOf(['backed', 'gap', 'runtime']),
       confidence: num,
       evidence: nullable(str),
       reason: nullable(str),
     }),
   ),
+  runtime_sources: arrayOf(
+    shape({
+      source_id: str,
+      source_name: str,
+      type_label: str,
+      scope: num,
+      scope_label: str,
+    }),
+  ),
+  /* Null where the brief picked none — an absent note is not an empty one. */
+  runtime_note: nullable(str),
 })
 
 const SOURCE_PICK = shape({
@@ -4000,16 +4039,25 @@ interface RawCoverage {
   relationship_count: number
   hero_question_count: number
   gap_count: number
+  runtime_question_count: number
   object_count: number
   elements: {
     element_id: string
     name: string
     kind: 'entity' | 'relationship'
-    status: 'backed' | 'gap'
+    status: 'backed' | 'gap' | 'runtime'
     confidence: number
     evidence: string | null
     reason: string | null
   }[]
+  runtime_sources: {
+    source_id: string
+    source_name: string
+    type_label: string
+    scope: number
+    scope_label: string
+  }[]
+  runtime_note: string | null
 }
 
 /** Shared by the direct review and the answer a derivation run finishes with. */
@@ -4019,6 +4067,7 @@ const toCoverage = (raw: RawCoverage): CoveragePayload => ({
   relationshipCount: raw.relationship_count,
   heroQuestionCount: raw.hero_question_count,
   gapCount: raw.gap_count,
+  runtimeQuestionCount: raw.runtime_question_count,
   objectCount: raw.object_count,
   elements: raw.elements.map((e) => ({
     elementId: e.element_id,
@@ -4029,6 +4078,14 @@ const toCoverage = (raw: RawCoverage): CoveragePayload => ({
     evidence: e.evidence,
     reason: e.reason,
   })),
+  runtimeSources: raw.runtime_sources.map((s) => ({
+    sourceId: s.source_id,
+    sourceName: s.source_name,
+    typeLabel: s.type_label,
+    scope: s.scope,
+    scopeLabel: s.scope_label,
+  })),
+  runtimeNote: raw.runtime_note,
 })
 
 export async function reviewCoverage(input: {
@@ -4538,11 +4595,26 @@ const studioBuildsPath = (useCaseId: string) =>
   `/graph-studio/${encodeURIComponent(useCaseId)}/builds`
 
 /** Builds, or rebuilds. Answers 202 with a queued run, not a finished graph. */
-export async function startGraphBuild(useCaseId: string): Promise<GraphBuild> {
+/**
+ * Start a build, saying who started it.
+ *
+ * `as` is the signed-in address, sent for the reason `publishVersion` sends its own: the
+ * identity is client-held and the server has nothing to look it up from. It matters more
+ * here than it looks — a runtime-answered graph publishes itself when the run lands, so for
+ * that graph this call *is* the publish act, and an address left unsent credits the tenant's
+ * seeded account on every "published by" line.
+ */
+export async function startGraphBuild(
+  useCaseId: string,
+  as?: string | null,
+): Promise<GraphBuild> {
+  const path = studioBuildsPath(useCaseId)
   return toGraphBuild(
     validate<RawGraphBuild>(
       'The graph build',
-      await request<unknown>(studioBuildsPath(useCaseId), { method: 'POST' }),
+      await request<unknown>(as ? `${path}?as=${encodeURIComponent(as)}` : path, {
+        method: 'POST',
+      }),
       GRAPH_BUILD,
     ),
   )

@@ -4839,3 +4839,108 @@ billions, by raising one project's EAC, and by unwiring the command.
 somebody made once and wrote into prose as well as into numbers.* When the numbers have to change, the
 sentences that quote them are part of the data — and the only safe way through is a transform that
 refuses to run rather than one that does its best.
+
+---
+
+## Save & build routed a graph that had already published itself into the studio
+
+**Symptom.** With a Gmail source connected, the whole flow worked and read as broken. The
+server publishes a runtime-answered graph when its build lands, so by the time the reader
+arrived in Graph Studio the version was already live in Ask — but the wizard had dropped them
+on the Build tab, watching a pipeline whose completion would leave a **Publish** button they
+did not need, beside four tabs locked on a canvas this graph never asserts on. Reported as
+"the graph should publish and show in Ask, no graph studio required", which was a fair reading
+of a screen whose only remaining act had already happened.
+
+**Cause.** The hand-off was written when the studio was where a build was *both* watched and
+published, and nothing re-read it when the build itself started publishing one kind of graph.
+Two facts drifting apart with no error between them: the backend rule was right, the routing
+was one release behind it.
+
+**Fix.** `Save & build graph` forks on `isRuntimeAnswered` (`src/data/runtimeBuild.ts`) — the
+client half of the server's `runtimeSourcesIn`, resolving the step-4 picks against the served
+source list and keeping the ones flagged `runtime`. A runtime-answered brief keeps the reader
+in the wizard behind `RuntimeBuildDialog` and lands on **Ask**; every other brief goes to the
+studio exactly as before.
+
+**Three things this had to get right, each a quiet failure otherwise:**
+
+- **The rule reads the served `runtime` flag, never `kind === 'gmail'`.** A pair of connector
+  names in a component is a second answer to the question `runtime` is served to settle, and
+  it is wrong the day a second runtime connector lands — the same reasoning that put
+  `profilable` on the payload.
+- **The dialog reports the publish; it does not claim it.** A build finishing and a graph
+  being live are two facts, and only the first is the run's. When the run lands the page
+  re-reads `GET /ask` once, keyed on the build id, and says *live* only where that list holds
+  the graph — otherwise it says so and names Versions. A dialog asserting a publication the
+  next screen disproves is worse than one that waits.
+- **The pace comes from the run.** A second surface now prints a build's duration, so `dur`
+  moved to `src/data/duration.ts` and both import it; two formatters would round one run two
+  ways.
+
+**A second bug found on the way, and it was the silent kind.** `startGraphBuild` never sent
+`?as=`, and nothing failed: the route treats an absent address as legitimate, so a
+runtime-answered graph published itself crediting `db.google_account` — a wrong name on every
+"published by" line, on a screen where the name is the point. The client sends the signed-in
+address now, the way `publishVersion` always has.
+
+**Guard.** Five `check-docs` claims, all break-tested: the fork exists and the studio branch
+is untouched, the rule reads the served flag and neither file names a connector, the dialog's
+`published` prop comes from the Ask list and its words from `src/data/`, the build is told who
+started it on all three layers, and neither surface hardcodes a duration.
+
+**The general shape.** *When a decision moves to the server, the client's routing is part of
+what moved.* Auto-publishing was implemented, asserted and correct — and every reader still
+walked through the screen it had made unnecessary, because no claim covered where the button
+goes afterwards.
+
+---
+
+## A mailbox-only brief could never be built: every hero question was an undecided gap
+
+**Symptom.** Step 6 of New Graph, with a Gmail source picked and nothing else: *"No profiled
+objects are selected, so there is nothing to derive from. Step 4 is where a use case picks the
+tables and documents it draws on."* — and **Save & build graph greyed out**. Both halves
+wrong, and wrong in a way that left no move: the reader *had* picked a source on step 4, and
+the button they were told to press was disabled by something the screen never showed them.
+
+**Cause, in two layers that hid each other.** `graphCoverage` marks a hero question a **gap**
+when no profiled column covers it, and a runtime source contributes no profiled objects — so
+every question became a gap, and `coverageIsDecided` blocks the build until each is decided.
+`CoverageStep` then returned its `objectCount === 0` empty state **before** rendering the
+element list, so the gap rows and their four decision buttons were never drawn. A gate whose
+controls are behind an early return is a disabled button with no explanation.
+
+**Fix, and it is a modelling one rather than a loosened gate.** An uncovered question is a gap
+only where *nothing* will answer it. With a runtime source picked, correspondence is read when
+the question needs it — so the question is not unanswerable, and *"No candidates in any
+connected source"* is untrue of a brief that deliberately picked one. It carries its own
+status now:
+
+- **`runtime` is a third status, not a shade of the other two.** Not `backed` (nothing in the
+  graph holds it) and not `gap` (something answers it). It offers no decision, because there
+  is nothing for a reviewer to settle.
+- **Counted as `runtime_question_count`, never folded into `gap_count`.** `coverageIsDecided`
+  is untouched and still filters `status === 'gap'`, so every other brief's gate reads exactly
+  as it did — which is the point: the gate was right, its input was wrong.
+- **The step falls through to the list for a runtime brief** and keeps the empty state for one
+  that really picked nothing, because "go back to step 4" is the right instruction there and
+  only there.
+
+**A field the client had been dropping the whole time.** `runtime_sources` and `runtime_note`
+have ridden on the coverage payload since runtime sources existed, and `toCoverage` mapped
+neither — so the one surface whose job is to say why a deliberately-picked source contributed
+nothing had nothing to say it with. CLAUDE.md and SKILLS.md both claimed the step stated it.
+True of the server, false of the screen, and no claim compared them.
+
+**Guard.** Four `check-docs` claims, all break-tested: the runtime branch is *inside* the
+runtime test (an unconditional one would turn real gaps into runtime rows and ship an
+unanswerable question), its count stays out of `gap_count`, the gate still filters on `gap`
+alone, the step keeps the empty state only for a brief with no runtime source, and the note is
+printed from the payload rather than paraphrased.
+
+**The general shape.** *A gate is only as good as the fact it reads.* Nothing here was
+mis-implemented — the gap rule, the gate and the empty state were each correct for the data
+they were written against, and a source kind that derives nothing on purpose made one of them
+answer a question it was never asked. And *a claim that a screen states something must be
+checked against the screen*: this one was documented in two files and rendered by neither.

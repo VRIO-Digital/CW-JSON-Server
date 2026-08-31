@@ -479,6 +479,23 @@
   background: #fffdf8;
 }
 
+/* A runtime-answered question is a *category*, not a state — nothing about it is good,
+   warning or critical — so it takes a neutral tint and never the gap's amber. The rule the
+   whole app keeps: a status colour means state, and a class chip must not borrow one. */
+.ng-cov.is-runtime {
+  border-color: #dfe4ec;
+  background: #fafbfd;
+}
+
+.ng-cov.is-runtime .ng-cov-mark {
+  color: #64748b;
+}
+
+.ng-cov-runtime-note {
+  color: #4b5a75;
+  font-size: 12.5px;
+}
+
 .ng-cov-head {
   display: flex;
   align-items: center;
@@ -535,6 +552,10 @@
 
 .ng-cov-status.is-gap {
   color: #b45309;
+}
+
+.ng-cov-status.is-runtime {
+  color: #4b5a75;
 }
 
 .ng-cov-evidence {

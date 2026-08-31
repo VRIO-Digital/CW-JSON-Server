@@ -1,6 +1,7 @@
 import { CheckCircleFilled, LoadingOutlined, ReloadOutlined } from '@ant-design/icons'
 import { Button, Select, Spin, Typography } from 'antd'
 import type { GraphBuild } from '../../api/client'
+import { dur } from '../../data/duration'
 import './BuildTab.css'
 
 /*
@@ -43,19 +44,6 @@ function Mark({ state }: { state: 'pending' | 'running' | 'complete' }) {
       )}
     </span>
   )
-}
-
-/**
- * A duration a person reads, from milliseconds: "5m 10s", "40s", "0.3s".
- *
- * Sub-second keeps a decimal rather than rounding to zero — the pace is the
- * server's to choose, and "each step takes about 0s" would be this function
- * misreporting it rather than the server pacing badly.
- */
-const dur = (ms: number) => {
-  if (ms < 1000) return `${Math.round(ms / 100) / 5}s`
-  const s = Math.round(ms / 1000)
-  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${s % 60 ? ` ${s % 60}s` : ''}`
 }
 
 /** "11/08/2026, 14:55 · complete · d2aee040…" — time, state, which run. */

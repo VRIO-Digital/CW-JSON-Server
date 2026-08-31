@@ -20,7 +20,7 @@ import {
   Tag,
   Typography,
 } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type {
   GapChoice,
@@ -31,6 +31,7 @@ import type {
 } from '../api/client'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import CoverageStep from '../components/graph/CoverageStep'
+import RuntimeBuildDialog from '../components/graph/RuntimeBuildDialog'
 import { LlmRunPanel } from '../components/graph/LlmRun'
 import { useGraphBuildStore } from '../store/graphStudioStore'
 import DraftedStep from '../components/graph/DraftedStep'
@@ -54,8 +55,11 @@ import {
   stepIssue,
   type WizardDraft,
 } from '../data/wizardSteps'
+import { isRuntimeAnswered } from '../data/runtimeBuild'
+import { selectAskGraphs, useAskStore } from '../store/askStore'
 import { SP } from '../theme'
-import './NewGraphPage.css'
+import './NewGraphPage.css'
+
 import { appPath } from '../api/dataset'
 
 /*
@@ -212,8 +216,12 @@ export default function NewGraphPage() {
   const loadGraphSources = useGraphSourcesStore((s) => s.load)
 
   const derivation = useDerivationStore((s) => s.run)
-  /* Starting the build is the wizard's last act; the studio owns everything after. */
+  /* Starting the build is the wizard's last act — and for a runtime-answered graph it is
+     also the publish, so the wizard watches that one to the end rather than handing it to
+     the studio. Every other graph is the studio's the moment the run starts. */
   const startBuild = useGraphBuildStore((s) => s.start)
+  const buildRun = useGraphBuildStore((s) => s.shown)
+  const pollBuild = useGraphBuildStore((s) => s.poll)
   const startingDerivation = useDerivationStore((s) => s.starting)
   const startDerivationRun = useDerivationStore((s) => s.start)
   const pollDerivation = useDerivationStore((s) => s.poll)
@@ -255,6 +263,17 @@ export default function NewGraphPage() {
   // cannot skip a step's validation. Restored from the draft on open.
   const [maxStep, setMaxStep] = useState(1)
   const [savedAt, setSavedAt] = useState<string | null>(null)
+  /*
+   * The hand-off for a graph that publishes itself: the id it is watching, and whether Ask
+   * has been re-read since the run landed. Held here rather than in the dialog because the
+   * poll and the re-read are the page's, and a dialog that owned them would keep running
+   * after it closed.
+   */
+  const [handoffId, setHandoffId] = useState<string | null>(null)
+  const [checkingAsk, setCheckingAsk] = useState(false)
+
+  const loadAskGraphs = useAskStore((s) => s.load)
+  const askGraphs = useAskStore(selectAskGraphs)
 
   useEffect(() => {
     void load()
@@ -278,6 +297,31 @@ export default function NewGraphPage() {
     const id = window.setInterval(() => void pollDerivation(), 700)
     return () => window.clearInterval(id)
   }, [derivation?.status, pollDerivation])
+
+  /*
+   * The hand-off's two effects, and they are the studio's own pattern rather than a second
+   * one: poll only while the run is in flight, and stop on the poll that sees it land.
+   */
+  useEffect(() => {
+    if (!handoffId || buildRun?.status !== 'running') return
+    const id = window.setInterval(() => void pollBuild(), 350)
+    return () => window.clearInterval(id)
+  }, [handoffId, buildRun?.status, pollBuild])
+
+  /*
+   * **The publication is read back, never assumed.** The server publishes a runtime-answered
+   * graph when its build lands, so the honest thing for this dialog to say is what `GET /ask`
+   * answers — a build that finished and a graph that is live are two facts, and only one of
+   * them is this run's to report. Keyed on the build id so it re-reads once per run.
+   */
+  const checkedForBuild = useRef<string | null>(null)
+  useEffect(() => {
+    if (!handoffId || buildRun?.status !== 'complete') return
+    if (checkedForBuild.current === buildRun.buildId) return
+    checkedForBuild.current = buildRun.buildId
+    setCheckingAsk(true)
+    void loadAskGraphs().finally(() => setCheckingAsk(false))
+  }, [handoffId, buildRun?.status, buildRun?.buildId, loadAskGraphs])
 
   const steps = useMemo(() => data?.steps ?? [], [data])
   const stepTotal = steps.length || LAST_STEP
@@ -443,6 +487,24 @@ export default function NewGraphPage() {
       navigate(appPath(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`))
       return
     }
+
+    /*
+     * **Where the click lands is decided by whether this graph publishes itself.**
+     *
+     * A runtime-answered brief has nothing for a reviewer to settle — its sources are read
+     * at question time and put nothing on the canvas, which is what the review queue and the
+     * pivot decide — so the server publishes the version the build produces. Routing that
+     * reader through Graph Studio would send them to a screen whose one remaining act has
+     * already happened; the wizard watches the run instead and hands them to Ask.
+     *
+     * Every other graph is unchanged: the studio owns the pipeline, because a graph is built
+     * more than once and rebuilding lives where reviewing does.
+     */
+    if (isRuntimeAnswered(graphSources, sourcePicks)) {
+      setHandoffId(result.useCase.useCaseId)
+      return
+    }
+
     message.success('Built — watch the pipeline in Graph Studio.')
     navigate(appPath(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`), {
       state: { tab: 'build' },
@@ -828,6 +890,16 @@ export default function NewGraphPage() {
           </Space>
         </div>
       </div>
+
+      {/* Rendered from `handoffId` rather than a boolean, so the dialog cannot outlive
+          the run it is watching: closing clears the id and the poll stops with it. */}
+      <RuntimeBuildDialog
+        open={handoffId !== null}
+        published={askGraphs.find((g) => g.useCaseId === handoffId) ?? null}
+        checking={checkingAsk}
+        onAsk={() => navigate(appPath('/ask'))}
+        onClose={() => setHandoffId(null)}
+      />
 
       <Flex justify="flex-end" style={{ marginTop: SP.md }}>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>

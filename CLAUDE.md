@@ -1186,7 +1186,27 @@ Two rules the copy on the page promises, and the code has to keep:
   Continue button. Both halves are worded from what is true of the kind now: a runtime
   source is refused only when its own scope is empty, and then for that reason.
 
-- **Step 6 derives nothing from it, and says so.** `selectedProfiledObjects` skips a runtime
+- **And an uncovered hero question is a gap only where nothing will answer it.** The gate on
+step 6 exists so a question the graph cannot answer is never shipped silently, and it read
+"no profiled column covers this" as being that — which is a different fact once a runtime
+source is picked, because correspondence is read when a question needs it. A mailbox-only
+brief derives no objects, so *every* hero question became an undecided gap and **Save & build
+graph stayed disabled over a step that drew no gap rows to decide** — its
+nothing-is-selected branch returned before the element list. The same dead end as Gmail's
+Continue refusing over a name field its own step no longer had. So such a question carries
+its own status, `runtime`: not `backed`, since nothing in the graph holds it, and not a
+`gap`, since something answers it. It offers no decision, it is counted as
+`runtime_question_count` rather than in `gap_count`, and `coverageIsDecided` is untouched —
+every other brief's gate reads exactly as it did.
+
+**The step prints the served note, which the client used to drop.** `runtime_sources` and
+`runtime_note` had ridden on the coverage payload since runtime sources existed and
+`toCoverage` mapped neither, so the one surface meant to say why a deliberately-picked source
+contributed nothing could not say it. Both are carried now and printed as the server worded
+them; the empty state survives for a brief that really picked nothing, because "go back to
+step 4" is the right instruction there and only there.
+
+**Step 6 derives nothing from it, and says so.** `selectedProfiledObjects` skips a runtime
   source **by name** rather than letting it fall through the structured branch and contribute
   nothing by accident — `findProject(undefined)` and an empty `profiled` list produce the
   same silence as a deliberate exclusion, and only one of the two survives a second runtime
@@ -1610,6 +1630,63 @@ untouched and still waits for Publish. The alternative designs were both worse: 
 unpublished graph in Ask leaves `version`, `sha256`, `published_at` and `published_by` with
 nothing to report, and lifting the gate on all four gated surfaces changes the meaning of a
 precondition three other pages share.
+
+**Which makes the wizard's hand-off wrong for that one graph, so it forks.** *Save & build
+graph* routed every reader to Graph Studio's Build tab — right while the studio was where a
+build was watched *and* published, and wrong for a graph the server has already published by
+the time the reader arrives: the screen's one remaining act had happened, and its four
+locked tabs are about a canvas this graph does not assert on. So the button asks
+`isRuntimeAnswered` — `src/data/runtimeBuild.ts`, the client half of `runtimeSourcesIn`,
+resolving the step-4 picks against the served list and keeping the ones flagged **`runtime`**
+rather than testing for a connector name, for the reason step 4's own gate reads the served
+flag. A runtime-answered brief keeps the reader in the wizard behind `RuntimeBuildDialog`,
+which watches the run to the end and hands them to **Ask**; every other brief goes to the
+studio exactly as before.
+
+**And that dialog reports the publication rather than asserting it.** A build finishing and a
+graph being live are two facts, and only the first belongs to the run — so when the run lands
+the page re-reads `GET /ask` once, keyed on the build id, and says *live* only where that
+list holds the graph, naming the version and publisher the server reported. Its words are in
+`src/data/` for the reason `sourceActions` is (a `Modal` portals out of `renderToString`), and
+its body is exported apart from the `Modal` so a test can render it.
+
+**Where Ask does not list it, the dialog says nothing.** It drew a *Not in Ask yet* warning
+there at first, pointing at Graph Studio → Versions — the screen this hand-off exists to skip
+— for what is the **expected** state in the first seconds after a build lands. Silence is the
+half that is true either way, and the guarantee the alert looked like it was carrying is
+untouched, because the warning never carried it: the success branch is gated on the row `GET
+/ask` returned, so a publish this dialog has not seen still cannot be claimed.
+
+**And it explains nothing while it holds — the heading included.** It opened with a title
+(*Building — this graph publishes itself*) over a paragraph naming the mailbox and
+saying why a runtime source leaves a reviewer nothing to settle: both were the reasoning behind a
+routing decision the reader did not make and cannot change, put in front of them at the one
+moment they are waiting on a result. That reasoning is on record here, which is where a
+decision belongs, and a heading over a single line of status labels something already reading
+as one. `title={null}` rather than an omitted prop, so a default cannot arrive from the theme.
+The dialog therefore takes **neither the graph's name nor its sources**:
+nothing left on it says anything about either, and a prop still being passed is how the
+paragraph comes back.
+
+**It holds rather than narrating, and it offers one act.** The stage-and-step readout it
+printed at first is the Build tab's, where a reader is watching a run they can act on; here
+the build publishes itself and nothing on the dialog is pressable while it does, so a counter
+is detail with no decision attached. What stands in its place is `runtimeBuildCopy.analysing`
+— *Analysing Gmail data…*, *Preparing the data…*, *Finishing the analysis…* — over
+`ANALYSING_MS` (**10s**). **The phrases are cut out of that one hold rather than each carrying
+a pace**, so adding one re-cuts the same ten seconds instead of making the reader wait longer:
+the derivation `specStepMs` makes, and for the same reason — what ends this wait is the act it
+offers. They stop at the last one, since a phrase coming back round would say the work had
+restarted, and no phrase is written into the component, so the panel states neither a word nor
+a duration of its own — the rule `BuildRunDialog` keeps with `BUILD_STAGE_MS`. **And the
+studio button beside Ask is gone**, which with the warning also gone leaves the studio unnamed
+on this dialog: it pointed back at the screen this hand-off exists to skip, which reads as the
+two being equal choices. It is still a sidebar away, and every other brief still lands there.
+
+**Nothing sent `?as=` on a build for a while, and nothing failed.** The route validated the
+absent parameter happily, so a runtime graph published itself crediting `db.google_account`
+— a wrong name on every "published by" line rather than an error. `startGraphBuild` takes the
+address and the store passes the signed-in one, exactly as `publish` does.
 
 The walk is the studio's (`studioQuery`), deliberately: the sanity check that
 passed before publishing cannot then disagree with the answer after it. What

@@ -2290,13 +2290,16 @@ expect(
 const buildTabCode = read('frontend/src/components/studio/BuildTab.tsx')
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/\/\/.*/g, '')
+/* The Build tab is the one surface that prints a build's pace now: the wizard's hand-off
+   holds on a constant of its own instead — see the claims beside it below. */
 expect(
-  'and the page reports the pace rather than hardcoding it',
+  'and the tab reports the pace rather than hardcoding it',
   /step_ms: BUILD_STEP_MS/.test(server) &&
     /step_ms: num/.test(client) &&
     /shown\.stepTotal \* shown\.stepMs/.test(buildTabCode) &&
-    !/\d+\s?s\b/.test(buildTabCode),
-  'a duration on screen is derived from what the server sent',
+    !/\d+\s?s\b/.test(buildTabCode) &&
+    /import \{ dur \} from '\.\.\/\.\.\/data\/duration'/.test(buildTabCode),
+  'a duration on screen is derived from what the server sent, by one formatter',
 )
 expect(
   'and the panel renders the substeps under their stage',
@@ -2404,6 +2407,234 @@ expect(
     /* Exactly the two call sites, and no third copy of the filter anywhere else. */
     server.split('isRuntimeSource(s.kind)').length - 1 === 1,
   'runtimeSourcesIn is the one definition; the coverage step and the build both call it',
+)
+/*
+ * **Save & build lands in Ask for the one graph that publishes itself.**
+ *
+ * The server already publishes a runtime-answered graph when its build lands, which made the
+ * wizard's hand-off wrong rather than merely long: it routed every reader to Graph Studio,
+ * whose one remaining act — Publish — had already happened for this kind of graph. So the
+ * button forks, and the fork has to be the *same* rule the server applies or the two disagree
+ * about which graphs skip the studio.
+ *
+ * Three halves, because a partial version of this is the shape that fails quietly: a fork
+ * that always hands off publishes nothing and strands every other graph in a dialog; one
+ * that never hands off is the old behaviour with dead code beside it.
+ */
+const newGraphCode = codeOnly(read('frontend/src/pages/NewGraphPage.tsx'))
+expect(
+  'the wizard hands a runtime-answered graph to Ask, and every other one to the studio',
+  /if \(isRuntimeAnswered\(graphSources, sourcePicks\)\) \{\s*setHandoffId\(/.test(
+    newGraphCode,
+  ) &&
+    /navigate\(appPath\(`\/graph-studio\/\$\{encodeURIComponent\(result\.useCase\.useCaseId\)\}`\), \{\s*state: \{ tab: 'build' \}/.test(
+      newGraphCode,
+    ) &&
+    /onAsk=\{\(\) => navigate\(appPath\('\/ask'\)\)\}/.test(newGraphCode),
+  'Save & build forks on isRuntimeAnswered; the studio branch is untouched',
+)
+/*
+ * The client's half of "which picks are runtime" reads the served flag, exactly as the step-4
+ * gate does. `kind === 'gmail'` written into a component is a second answer to the question
+ * `runtime` is served to settle, and it goes stale the day a second runtime connector lands.
+ */
+const runtimeBuildSrc = read('frontend/src/data/runtimeBuild.ts')
+expect(
+  'and it decides that from the served flag, never a connector name',
+  /s\.runtime/.test(codeOnly(runtimeBuildSrc)) &&
+    !/'gmail'/.test(codeOnly(runtimeBuildSrc)) &&
+    !/'gmail'/.test(codeOnly(read('frontend/src/components/graph/RuntimeBuildDialog.tsx'))),
+  'runtimePicks filters on GraphSource.runtime',
+)
+/*
+ * **The dialog reports the publication; it does not assert it.**
+ *
+ * A build finishing and a graph being live are two facts, and only the first is this run's to
+ * report — so the panel says "live" only where `GET /ask` came back holding the graph, and
+ * says the opposite, with the studio as the fix, where it did not. The wording lives in
+ * `src/data/` for the reason `sourceActions` does: a `Modal` portals out of `renderToString`,
+ * so a sentence inline in the dialog cannot be asserted on — and the body is exported apart
+ * from its `Modal` so a test can render it at all.
+ */
+const runtimeDialogCode = codeOnly(read('frontend/src/components/graph/RuntimeBuildDialog.tsx'))
+expect(
+  'the hand-off states a publish only from what Ask answered',
+  /published=\{askGraphs\.find\(\(g\) => g\.useCaseId === handoffId\) \?\? null\}/.test(
+    newGraphCode,
+  ) &&
+    /void loadAskGraphs\(\)/.test(newGraphCode) &&
+    /published \? \(/.test(runtimeDialogCode) &&
+    /runtimeBuildCopy\.published\(/.test(runtimeDialogCode) &&
+    /export function RuntimeBuildPanel/.test(runtimeDialogCode),
+  'the panel renders the row GET /ask returned, and its words come from src/data/',
+)
+/*
+ * **And it says nothing where Ask did not list it.** The warning that stood there named Graph
+ * Studio → Versions — the screen this hand-off exists to skip — for what is the *expected*
+ * state in the first seconds after a build lands. Silence is the half that is true either
+ * way; the guarantee the alert carried is untouched, because it was never the warning that
+ * held it: the success branch is still gated on the row `GET /ask` returned, so a publish
+ * this dialog has not seen still cannot be claimed.
+ */
+expect(
+  'and says nothing rather than sending the reader back to the studio',
+  /\) : null\}/.test(runtimeDialogCode) &&
+    !/notPublished/.test(runtimeDialogCode) &&
+    !/notPublished/.test(runtimeBuildSrc) &&
+    !/type="warning"/.test(runtimeDialogCode),
+  'no not-published branch on the dialog or in its copy',
+)
+/*
+ * **The hand-off holds; it does not narrate a pipeline.** The stage-and-step readout belongs
+ * to the Build tab, where a reader is watching a run they can act on — here the build
+ * publishes itself and nothing on the dialog is pressable while it does, so a counter would
+ * be detail with no decision attached. One sentence for `ANALYSING_MS`, stated beside the
+ * words it paces so the component prints no duration of its own — the rule `BuildRunDialog`
+ * keeps with `BUILD_STAGE_MS`.
+ */
+expect(
+  'and the hand-off holds on a constant it does not restate',
+  /export const ANALYSING_MS = 10_000/.test(codeOnly(runtimeBuildSrc)) &&
+    /setTimeout\(\(\) => setHeld\(true\), ANALYSING_MS\)/.test(runtimeDialogCode) &&
+    /runtimeBuildCopy\.analysing/.test(runtimeDialogCode) &&
+    !/\d+\s?s\b/.test(runtimeDialogCode) &&
+    !/run\.stepMs/.test(runtimeDialogCode),
+  'ANALYSING_MS is stated once and the dialog prints no duration of its own',
+)
+/*
+ * The phrases are the copy's and they are cut out of the one hold rather than each carrying a
+ * pace: adding one re-cuts the same ten seconds instead of making the reader wait longer,
+ * which is the derivation `specStepMs` makes and for the same reason — what ends this wait is
+ * the act it offers. They stop at the last one, because a phrase coming back round would say
+ * the work had restarted.
+ */
+expect(
+  'and the phrases are the copy’s, cut out of that one hold',
+  /analysing: \[/.test(codeOnly(runtimeBuildSrc)) &&
+    /ANALYSING_MS \/ runtimeBuildCopy\.analysing\.length/.test(codeOnly(runtimeBuildSrc)) &&
+    /analysingStepMs\(\)/.test(runtimeDialogCode) &&
+    /Math\.min\(at \+ 1, runtimeBuildCopy\.analysing\.length - 1\)/.test(runtimeDialogCode) &&
+    !/Analysing|Preparing|Finishing/.test(runtimeDialogCode),
+  'analysing is a list in src/data/, and no phrase is written into the component',
+)
+/*
+ * And it offers Ask alone. The studio button beside it pointed back at the screen this
+ * hand-off exists to skip, which reads as the two being equal choices — and with the
+ * not-published warning gone the studio is not named on this dialog at all. It is still a
+ * sidebar away, and the wizard's every *other* brief still lands there, which the fork claim
+ * above holds.
+ */
+expect(
+  'and the hand-off offers Ask and nothing else',
+  /runtimeBuildCopy\.askAction/.test(runtimeDialogCode) &&
+    !/studioAction/.test(runtimeDialogCode) &&
+    !/onStudio/.test(runtimeDialogCode) &&
+    !/onStudio/.test(newGraphCode) &&
+    !/Graph Studio/.test(codeOnly(runtimeBuildSrc)),
+  'one act on the dialog, and no route back to the studio drawn on it',
+)
+/*
+ * **And it explains nothing while it holds.** The paragraph that opened it was the reasoning
+ * behind a routing decision the reader did not make and cannot change, put in front of them at
+ * the one moment they are waiting on a result; it is on record in CLAUDE.md, which is where a
+ * decision belongs. Nothing left on the dialog says anything about the graph or its sources,
+ * so it takes neither — a prop still being passed is how the paragraph comes back.
+ */
+expect(
+  'and the hand-off is the phrase and the act, nothing else',
+  !/runtimeBuildCopy\.why/.test(runtimeDialogCode) &&
+    !/\bwhy:/.test(codeOnly(runtimeBuildSrc)) &&
+    !/graphName/.test(runtimeDialogCode) &&
+    !/runtimeSources/.test(runtimeDialogCode) &&
+    !/graphName=|runtimeSources=/.test(newGraphCode) &&
+    /title=\{null\}/.test(runtimeDialogCode) &&
+    !/\btitle:/.test(codeOnly(runtimeBuildSrc)),
+  'no heading, no explanatory paragraph, and no graph name or source list reaching the dialog',
+)
+/*
+ * A build is told who started it, because for a runtime-answered graph that call *is* the
+ * publish act. It was not sent for a while and nothing failed: the server validated the
+ * absent parameter happily and credited the tenant's seeded account on every "published by"
+ * line — a wrong name rather than an error, which is the failure this repo keeps refusing.
+ */
+expect(
+  'and the build is told who started it, the way publishing is',
+  /export async function startGraphBuild\(\s*useCaseId: string,\s*as\?: string \| null,/.test(
+    client,
+  ) &&
+    /await startGraphBuild\(\s*useCaseId,\s*useAuthStore\.getState\(\)\.identity\?\.email \?\? null,/.test(
+      codeOnly(read('frontend/src/store/graphStudioStore.ts')),
+    ) &&
+    /* The build route's own two lines: it validates an `as` and passes it to the run. */
+    /send the signed-in address as \?as=, or nothing/.test(server) &&
+    /startBuildFor\(found\.useCase, as\)/.test(server),
+  'startGraphBuild sends ?as=, so a runtime publish credits the signed-in reader',
+)
+/*
+ * **An uncovered hero question is a gap only where nothing will answer it.**
+ *
+ * A mailbox-only brief derives no objects, so every hero question fell through to the gap
+ * branch — and the gate on step 6 refuses to build while a gap is undecided, over a step
+ * whose object-count-zero branch returned before the element list and so drew no decision
+ * controls at all. Disabled button, no way to enable it. The status is its own now, counted
+ * apart from `gap_count` so the gate is unchanged for every other brief.
+ *
+ * Four halves, because each failure here is silent: the branch must be *inside* the runtime
+ * test (an unconditional one turns real gaps into runtime rows and lets an unanswerable
+ * question ship), the count must stay out of `gap_count`, the client must carry the third
+ * status, and the step must fall through to the list rather than the empty state.
+ */
+const coverageQuestionLoop = (server.match(
+  /for \(const q of questions\) \{[\s\S]*?\n {2}\}/,
+) ?? [''])[0]
+const coverageStepCode = codeOnly(read('frontend/src/components/graph/CoverageStep.tsx'))
+expect(
+  'a hero question a runtime source will answer is not a gap',
+  /if \(runtimeSources\.length > 0\) \{[\s\S]*?status: 'runtime',[\s\S]*?continue\s*\}/.test(
+    coverageQuestionLoop,
+  ) &&
+    /status: 'gap',/.test(coverageQuestionLoop) &&
+    /gap_count: gaps\.length/.test(server) &&
+    /runtime_question_count: runtimeQuestions\.length/.test(server) &&
+    /e\.status === 'runtime'/.test(server),
+  'the runtime branch is inside the runtime test, and its count is not gap_count',
+)
+expect(
+  'and the build gate still counts only gaps',
+  /\.filter\(\(e\) => e\.status === 'gap'\)/.test(
+    codeOnly(read('frontend/src/data/coverage.ts')),
+  ) &&
+    /status: oneOf\(\['backed', 'gap', 'runtime'\]\)/.test(client),
+  'coverageIsDecided is untouched; a runtime row simply is not a gap',
+)
+/*
+ * The step has to *show* the runtime rows, which is the half that made the old bug a dead
+ * end rather than a wrong sentence — and it has to keep the empty state for a brief that
+ * really picked nothing, or "go back to step 4" disappears for the reader who needs it.
+ */
+expect(
+  'the coverage step renders the runtime rows and keeps the empty state for an empty brief',
+  /data\.objectCount === 0 && data\.runtimeSources\.length === 0/.test(coverageStepCode) &&
+    /\{data\.runtimeNote \?/.test(coverageStepCode) &&
+    /runtime \? null : \(/.test(coverageStepCode) &&
+    !/'No profiled objects are selected/.test(
+      coverageStepCode.replace(/description="[^"]*"/g, ''),
+    ),
+  'only a brief with no runtime source gets "pick the tables and documents"',
+)
+/*
+ * The note is the server's sentence, printed rather than paraphrased — the rule the What-if
+ * page learned when two Alerts restated a tenant note the payload already carried. The
+ * client dropped both fields for as long as they had existed, so the step could not say why
+ * a source the reader deliberately picked had contributed nothing.
+ */
+expect(
+  'and the runtime note reaches the step from the payload',
+  /runtime_note:\s*\n?\s*runtimeSources\.length > 0/.test(server) &&
+    /runtime_note: nullable\(str\)/.test(client) &&
+    /runtimeNote: raw\.runtime_note/.test(client) &&
+    /\{data\.runtimeNote\}/.test(coverageStepCode),
+  "the words are the payload's, printed once",
 )
 expect(
   'a runtime connector is never also profilable',

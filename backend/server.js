@@ -2940,6 +2940,46 @@ function graphCoverage({ name, picks, heroQuestions }) {
     if (matched.length > 0) continue
 
     const missing = salient.slice(0, 3).join(', ')
+
+    /*
+     * **An uncovered question is a gap only where nothing will answer it.**
+     *
+     * The gate on this step exists so a hero question the graph cannot answer is never
+     * shipped silently — and it read "no profiled column covers this" as being that. It is
+     * not the same fact once a **runtime** source is picked: correspondence is read when a
+     * question needs it, so the question is answered at question time rather than left
+     * unanswerable, and "No candidates in any connected source" is untrue of a brief that
+     * deliberately picked one.
+     *
+     * What getting this wrong cost was not a wrong sentence but a dead end. A mailbox-only
+     * brief derives no objects, so *every* hero question became an undecided gap and
+     * `Save & build graph` stayed disabled — over a step rendering its
+     * nothing-is-selected empty state, which draws no gap rows, so there was no control on
+     * screen to decide the very thing blocking the button. The same shape as Gmail's
+     * Continue refusing over a name field its own step no longer had.
+     *
+     * So it is its own status rather than folded into either: not `backed`, since nothing in
+     * the graph carries it, and not a `gap`, since something will answer it. It offers no
+     * decision, because there is nothing for a reviewer to settle, and it is counted apart
+     * from `gap_count` so the build gate reads exactly as it always did.
+     */
+    if (runtimeSources.length > 0) {
+      elements.push({
+        element_id: `runtime:${slugify(q.text).slice(0, 44)}`,
+        name: q.text,
+        kind: q.priority === 'high' ? 'entity' : 'relationship',
+        status: 'runtime',
+        confidence: Number((0.2 + (hash(q.text) % 30) / 100).toFixed(2)),
+        evidence: null,
+        reason:
+          `Nothing profiled covers ${missing} — ${runtimeSources
+            .map((s) => s.source_name)
+            .join(', ')} answers this at question time, as an observation rather than a ` +
+          'graph element.',
+      })
+      continue
+    }
+
     elements.push({
       element_id: `gap:${slugify(q.text).slice(0, 48)}`,
       name: q.text,
@@ -2956,6 +2996,8 @@ function graphCoverage({ name, picks, heroQuestions }) {
     (e) => e.kind === 'relationship' && e.status === 'backed',
   )
   const gaps = elements.filter((e) => e.status === 'gap')
+  /* Counted apart from the gaps, because only a gap blocks the build. */
+  const runtimeQuestions = elements.filter((e) => e.status === 'runtime')
 
   return {
     title: `${name || 'Untitled use case'} — coverage review`,
@@ -2963,6 +3005,7 @@ function graphCoverage({ name, picks, heroQuestions }) {
     relationship_count: relationships.length,
     hero_question_count: questions.length,
     gap_count: gaps.length,
+    runtime_question_count: runtimeQuestions.length,
     object_count: objects.length,
     elements,
     /*

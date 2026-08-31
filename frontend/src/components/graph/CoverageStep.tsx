@@ -56,7 +56,18 @@ export default function CoverageStep({
     )
   }
 
-  if (data.objectCount === 0) {
+  /*
+   * **"Nothing profiled" and "nothing at all" are two different screens.**
+   *
+   * A brief that picked only a runtime source legitimately derives no objects, and this
+   * branch told it to go back to step 4 and pick some — an instruction the reader had
+   * already carried out. Worse, it returned *before* the element list, so the hero questions
+   * routed to that source were invisible: with the old server marking each of them a gap,
+   * `Save & build graph` sat disabled over a screen with no control to decide the thing
+   * blocking it. The runtime branch falls through to the list instead, and only a brief with
+   * nothing at all gets the empty state.
+   */
+  if (data.objectCount === 0 && data.runtimeSources.length === 0) {
     return (
       <Empty
         image={null}
@@ -82,16 +93,29 @@ export default function CoverageStep({
           : `Backed elements show their evidence; each of the ${data.gapCount} gaps needs a decision before you can build.`}
       </Typography.Paragraph>
 
+      {/* The server's own sentence about what a runtime source contributes, printed because a
+          source that derived nothing is otherwise indistinguishable from one that failed. The
+          words are the payload's — restating them here would put them in the tenant's mouth. */}
+      {data.runtimeNote ? (
+        <Typography.Paragraph className="ng-cov-runtime-note">
+          {data.runtimeNote}
+          {data.runtimeQuestionCount > 0
+            ? ` ${data.runtimeQuestionCount} hero question(s) are answered that way, and need no decision here.`
+            : ''}
+        </Typography.Paragraph>
+      ) : null}
+
       {data.elements.map((element: CoverageElement) => {
         const gap = element.status === 'gap'
+        const runtime = element.status === 'runtime'
         const chosen = decisionFor(element.elementId)
         return (
           <div
             key={element.elementId}
-            className={`ng-cov${gap ? ' is-gap' : ''}`}
+            className={`ng-cov${gap ? ' is-gap' : ''}${runtime ? ' is-runtime' : ''}`}
           >
             <div className="ng-cov-head">
-              {gap ? (
+              {gap || runtime ? (
                 <span className="ng-cov-mark" aria-hidden="true">
                   ◆
                 </span>
@@ -100,12 +124,21 @@ export default function CoverageStep({
               <span className="ng-cov-kind">{element.kind}</span>
 
               <span className="ng-cov-right">
-                <span className={`ng-conf${gap ? ' is-low' : ''}`}>
-                  <BarChartOutlined /> {gap ? 'Low' : 'High'}{' '}
-                  {element.confidence.toFixed(2)}
-                </span>
-                <span className={`ng-cov-status${gap ? ' is-gap' : ''}`}>
-                  {gap ? 'gap' : 'backed'}
+                {/* A runtime question states no confidence: nothing has been derived, so
+                    there is no match to score, and a number here would be one this step
+                    made up. */}
+                {runtime ? null : (
+                  <span className={`ng-conf${gap ? ' is-low' : ''}`}>
+                    <BarChartOutlined /> {gap ? 'Low' : 'High'}{' '}
+                    {element.confidence.toFixed(2)}
+                  </span>
+                )}
+                <span
+                  className={`ng-cov-status${gap ? ' is-gap' : ''}${
+                    runtime ? ' is-runtime' : ''
+                  }`}
+                >
+                  {gap ? 'gap' : runtime ? 'answered at question time' : 'backed'}
                 </span>
               </span>
             </div>
