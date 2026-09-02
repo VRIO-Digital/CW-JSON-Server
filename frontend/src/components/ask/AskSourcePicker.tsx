@@ -1,5 +1,6 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { Button, Checkbox, Dropdown, Tag, Tooltip, Typography } from 'antd'
+import { Button, Checkbox, Modal, Tag, Tooltip, Typography } from 'antd'
+import { useState } from 'react'
 import type { AskSource } from '../../api/client'
 import ConnectorIcon from '../common/ConnectorIcon'
 import { askSourceCopy } from '../../data/askSources'
@@ -14,10 +15,16 @@ import './AskSourcePicker.css'
  * second runtime connector lands — the reason step 4 of the New Graph wizard reads the served
  * `runtime` flag rather than testing a connector name.
  *
- * **Its own component, because a dropdown's contents cannot be asserted from the page.**
- * `renderToString` renders the closed control and every check about the rows inside it would
- * pass over nothing — the rule that already put `AudiencePicker` and `ConnectSourceWizard` in
- * files of their own. The panel is exported apart from the `Dropdown` for the same reason.
+ * **The `+` opens a modal**, asked for as one. It was a `Dropdown` panel hanging off the
+ * button, which put the rows in a popover the reader had to keep hovering to hold; a modal is
+ * the surface for a decision they came to make. There is no OK: a checkbox is the act, the
+ * store has it the moment it changes, and a footer offering to confirm what has already
+ * happened is a control with nothing to do. Closing is done.
+ *
+ * **The list is exported apart from the `Modal`, because a modal portals out of
+ * `renderToString`** — the rule that already put `AudiencePicker` and `ConnectSourceWizard` in
+ * files of their own, and the same one that keeps this file’s words in `src/data/`. A check
+ * written against the page would render the closed control and pass over nothing.
  *
  * **It is the rows and nothing else.** It opened with a heading and closed with the observation
  * rule spelled out; both were removed on request. The rule is still true and still on record —
@@ -89,22 +96,10 @@ export default function AskSourcePicker({
   onToggle: (sourceId: string, on: boolean) => void
   disabled?: boolean
 }) {
+  const [open, setOpen] = useState(false)
   const count = picked.length
   return (
-    <Dropdown
-      trigger={['click']}
-      placement="topLeft"
-      /* The rows are the menu. `dropdownRender` rather than `items` because these are
-         checkboxes with two lines of meta each, which a menu item cannot carry. */
-      popupRender={() => (
-        <AskSourceList
-          sources={sources}
-          picked={picked}
-          onToggle={onToggle}
-          disabled={disabled}
-        />
-      )}
-    >
+    <>
       <Tooltip title={askSourceCopy.buttonHint}>
         <Button
           type="text"
@@ -112,12 +107,35 @@ export default function AskSourcePicker({
           icon={<PlusOutlined />}
           disabled={disabled}
           aria-label={askSourceCopy.buttonHint}
+          onClick={() => setOpen(true)}
         >
           {/* The count is on the control, because a shut picker with no number says nothing
-              about what is behind it — the rule Ask's own history toggle follows. */}
+              about what is behind it — the rule Ask’s own history toggle follows. */}
           {count > 0 ? <Tag color="processing">{count}</Tag> : null}
         </Button>
       </Tooltip>
-    </Dropdown>
+
+      <Modal
+        open={open}
+        onCancel={() => setOpen(false)}
+        /* No title: the heading over these rows was removed on request, and a modal title is
+           the same heading one layer out. `title={null}` rather than an omitted prop, so a
+           default cannot arrive from the theme — the rule `RuntimeBuildDialog` kept. */
+        title={null}
+        /* No footer either. Ticking a row *is* the act — it reaches the store immediately —
+           so an OK button would confirm something already done, and a Cancel would promise an
+           undo this dialog does not perform. The X and the mask are how it closes. */
+        footer={null}
+        width={420}
+        destroyOnHidden
+      >
+        <AskSourceList
+          sources={sources}
+          picked={picked}
+          onToggle={onToggle}
+          disabled={disabled}
+        />
+      </Modal>
+    </>
   )
 }

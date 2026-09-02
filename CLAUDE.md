@@ -1829,10 +1829,19 @@ does not apply to it.
 
 **On the page it is a `+` beside the question box, and the graph select stays put.** `AskSourcePicker`
 lists what `GET /ask` served — a component filtering on a connector name would be a second answer to
-which sources are askable — and it is its own component with its words in `src/data/askSources.ts`,
-because a `Dropdown`'s rows portal out of `renderToString`. Its empty state is a sentence naming
-Sources rather than an absent control, and it says why BigQuery and Drive are not in it: a list that
-is merely shorter is not a message.
+which sources are askable — and the list is exported apart from its dialog, with its words in
+`src/data/askSources.ts`, because a `Modal` portals out of `renderToString`. Its empty state is a
+sentence naming Sources rather than an absent control, and it says why BigQuery and Drive are not in
+it: a list that is merely shorter is not a message.
+
+**The `+` opens a modal, and the panel is the rows alone.** It was a `Dropdown` hanging off the
+button, with a heading above the rows and the observation rule spelled out below them; all three went
+on request. The rule is still on record here and still printed on the page above a graph-less thread,
+which is where it bears on something a reader is actually reading. The dialog has **no title** — a
+modal title is that heading one layer out — and **no footer**: ticking a row *is* the act and reaches
+the store immediately, so an OK would confirm what has already happened and a Cancel would promise an
+undo this dialog does not perform. Both are `null` rather than omitted, so no default arrives from the
+theme.
 
 **The gate now means "there is nothing here to ask at all".** `askAvailability` is the one
 definition — a pure function in `src/data/` for the reason `datasetPathFix` is, since a test written

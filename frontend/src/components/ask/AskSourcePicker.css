@@ -12,24 +12,19 @@
   padding-inline: var(--sp-2);
 }
 
+/*
+ * The list inside the modal.
+ *
+ * **It draws no chrome of its own** — no ground, no border, no shadow, no width. It had all
+ * four while it was a `Dropdown` panel, which had to be its own surface because it hung in
+ * mid-air off the button; inside a `Modal` those would be a card drawn inside a card, and the
+ * width would fight the one the dialog is given. The modal is the surface now, and this is
+ * only what goes in it.
+ */
 .asp-panel {
-  background: #fff;
-  border: 1px solid rgba(5, 5, 5, 0.08);
-  border-radius: var(--sp-2);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-  padding: var(--sp-3);
-  /* Wide enough for an address plus a scope, capped so a long mailbox name wraps rather
-     than stretching the panel past the composer it hangs off. */
-  min-width: 320px;
-  max-width: 420px;
-}
-
-.asp-head {
-  display: block;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
 }
 
 .asp-row {
@@ -48,8 +43,8 @@
 .asp-text {
   display: flex;
   flex-direction: column;
-  /* Without this the flex item refuses to shrink and a long address widens the panel
-     past its own max-width — the `min-width: 0` rule the canvas panel needed too. */
+  /* Without this the flex item refuses to shrink and a long address widens the row
+     past the dialog — the `min-width: 0` rule the canvas panel needed too. */
   min-width: 0;
 }
 

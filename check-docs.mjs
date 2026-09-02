@@ -4169,7 +4169,7 @@ expect(
  * **The picker lists what the server served.** `GET /ask` says which sources are askable; a
  * component filtering on a connector name would be a second answer to that and would go stale
  * the day a second runtime connector lands — the rule step 4 of the New Graph wizard follows
- * for the same fact. It is its own component because a `Dropdown`'s rows portal out of
+ * for the same fact. The list is its own exported component because a `Modal` portals out of
  * `renderToString`, and its words are in `src/data/` for the same reason.
  */
 const pickerSrc = codeOnly(read('frontend/src/components/ask/AskSourcePicker.tsx'))
@@ -4179,7 +4179,7 @@ expect(
     !/'gmail'/.test(pickerSrc) &&
     !/kind ===/.test(pickerSrc) &&
     /askSourceCopy\.emptyTitle/.test(pickerSrc),
-  'the panel is exported apart from its Dropdown and names no connector',
+  'the list is exported apart from its Modal and names no connector',
 )
 /*
  * **And the panel is the rows and nothing else.** It carried a heading above them and the
@@ -4192,6 +4192,24 @@ expect(
  * has no rows to be, so stripping it too would leave a `+` opening onto nothing — the "button
  * over blank space" this repo has already fixed once, on the wizard's own build dialog.
  */
+/*
+ * **The `+` opens a modal, asked for as one.** It was a `Dropdown` panel hanging off the button.
+ * There is no footer: ticking a row *is* the act and reaches the store immediately, so an OK
+ * would confirm something already done and a Cancel would promise an undo this dialog does not
+ * perform. And no title, because a modal title is the heading over these rows one layer out —
+ * the heading that was removed on request. Both are `null` rather than omitted, so a default
+ * cannot arrive from the theme.
+ */
+expect(
+  'the + opens a modal, with nothing to confirm and no heading',
+  /<Modal/.test(pickerSrc) &&
+    /open=\{open\}/.test(pickerSrc) &&
+    /onClick=\{\(\) => setOpen\(true\)\}/.test(pickerSrc) &&
+    /footer=\{null\}/.test(pickerSrc) &&
+    /title=\{null\}/.test(pickerSrc) &&
+    !/Dropdown/.test(pickerSrc),
+  'a Modal on the + button, no footer to press and no title over the rows',
+)
 expect(
   'and its populated panel is the rows alone, while the empty one still names the fix',
   !/asp-head/.test(pickerSrc) &&
