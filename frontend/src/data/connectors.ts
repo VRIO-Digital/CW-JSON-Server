@@ -34,13 +34,20 @@ export interface Connector {
   /**
    * Whether connecting this source produces a catalogue.
    *
-   * **Connecting and profiling are two acts, and this is the first connector where they come apart.**
-   * BigQuery and Drive are connected *so that* they can be profiled — tables into columns, documents
-   * into entities. A mailbox is connected so the tenant can be delivered to and so the trail records
-   * where a report went; there is nothing in it to sample. Declared rather than inferred from the key,
-   * because "the two Google ones" is a pair of names that a third profilable connector would silently
-   * fall outside of — and the server derives the same fact from whether a pipeline exists, so
-   * `check-docs` can hold the two answers against each other.
+   * **Connecting and profiling are still two acts** — every source here is registered first and
+   * profiled second — but all three real connectors now do both: tables into columns, documents
+   * into entities, messages into entities. What is left on `false` is the stubbed connectors,
+   * which have no pipeline behind them at all.
+   *
+   * Declared rather than inferred from the key, because "the Google ones" is a set of names that a
+   * fourth profilable connector would silently fall outside of — and the server derives the same
+   * fact from whether a pipeline exists, so `check-docs` can hold the two answers against each
+   * other. A card has to state it before anybody has connected anything, which is why it is
+   * declared here as well as derived there.
+   *
+   * It says nothing about the **graph**. Mail is profiled for its catalogue and read at question
+   * time, so nothing its profile holds becomes a graph element; `runtime` on the step-4 payload is
+   * the flag for that, and the two are deliberately separate answers.
    */
   profiles: boolean
   fields: ConnectorField[]
@@ -138,13 +145,18 @@ export const CONNECTORS: Connector[] = [
   },
   {
     /*
-     * **The third real connector, and the first that connects without profiling.**
+     * **The third real connector.** Connecting proves the credential reaches a mailbox and records
+     * what it was pointed at: which labels, which search, whether attachments are in scope.
      *
-     * BigQuery and Drive are connected *so that* they can be profiled — tables into columns, documents
-     * into entities. Gmail is connected to prove the credential reaches a mailbox and to record what it
-     * was pointed at: which labels, which search, whether attachments are in scope. Nothing samples the
-     * mail, so `profiles: false`, the server has no pipeline for the kind, and the Data Catalog leaves
-     * it out and says why rather than listing it beside two dead buttons.
+     * `profiles: true`, because there is a mail pipeline behind it — the messages under the
+     * connected labels become a catalogue of extracted entities, browsable and reviewable exactly
+     * as a drive's documents are. It was `false` while there was no pipeline for the kind, and the
+     * Data Catalog left a mailbox out and said why.
+     *
+     * **What that does not change is where a mail profile may travel.** Gmail is still the one
+     * runtime kind: its extractions are observations resolved when a question needs them, and
+     * nothing in its catalogue becomes a graph element. Profiling and graph derivation are two
+     * questions, and `CATALOGUE_ONLY_KINDS` on the server is where the pair is declared.
      *
      * **It takes no fields here.** Like the other two Google connectors it runs consent → preview →
      * finish against the API, so what it needs is a name and what the mailbox itself reports; the
@@ -155,7 +167,7 @@ export const CONNECTORS: Connector[] = [
     blurb: 'real connector — email + attachments',
     typeLabel: 'Gmail',
     available: true,
-    profiles: false,
+    profiles: true,
     fields: [nameField],
   },
   {

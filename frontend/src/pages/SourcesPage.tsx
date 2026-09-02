@@ -154,13 +154,24 @@ export default function SourcesPage() {
             the same write, because a disabled button is only a courtesy to whoever is looking
             at it.
           */}
+          {/*
+            * The reason a row cannot be edited has to be the reason that is true of it.
+            *
+            * A mailbox used to fall into "this connector has no discovery yet", which was right
+            * while Gmail carried no catalogue and is not now: its labels came from a real preview
+            * and are a real allowlist. What a mailbox has no route for is *changing* them — they
+            * are settled by the consent — so it says that instead, and the server's own refusal on
+            * the allowlist routes says the same thing in the same words.
+            */}
           <Tooltip
             title={
               row.status === 'disconnected'
                 ? 'Disconnected — reconnect this source before changing its allowlist.'
-                : row.kind !== 'bigquery' && row.kind !== 'gdrive'
-                  ? 'This connector has no discovery yet, so there is no allowlist to edit.'
-                  : undefined
+                : row.kind === 'gmail'
+                  ? 'A mailbox’s labels are settled by the Google consent — re-run the connect wizard to change them.'
+                  : row.kind !== 'bigquery' && row.kind !== 'gdrive'
+                    ? 'This connector has no discovery yet, so there is no allowlist to edit.'
+                    : undefined
             }
           >
             {/* A disabled antd button fires no events, so the tooltip needs a wrapper to hover. */}

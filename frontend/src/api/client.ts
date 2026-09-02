@@ -373,20 +373,35 @@ export interface SourceRow {
   /** 0 until the Metadata Profiler has run on this source. */
   profiledTables: number
   profiledColumns: number
-  /** Drive sources only; null for everything else. */
+  /**
+   * Drive **and Gmail** sources; null for everything else, never 0.
+   *
+   * One field for one noun: a file in a folder and a file attached to a message are both
+   * documents, and a `profiledMessages` beside this was two answers to one count.
+   */
   profiledDocuments: number | null
-  /** Entities extracted from profiled documents. Drive sources only. */
+  /** Entities extracted from those documents. Drive and Gmail sources. */
   profiledEntities: number | null
+  /** Objects of this source profiled on `profiledTodayDate`, in whichever unit it holds. */
+  profiledToday: number
+  /** The server's own day, so the count above is checkable rather than assumed. */
+  profiledTodayDate: string
   datasets: string[]
   /** The folder allowlist. Drive sources only; empty for everything else. */
   folders: string[]
+  /** The label allowlist. Gmail sources only; empty for everything else. */
+  labels: string[]
   kind: string
   /**
    * Whether this source carries a catalogue at all.
    *
    * The server derives it from whether a profiler exists for the kind, so it is one answer rather than
-   * a pair of connector names the Catalog also has to know. False for a mailbox: it is connected so a
-   * report can be delivered from it, and there is nothing in it to sample.
+   * a set of connector names the Catalog also has to know. True for a mailbox as well as a project and
+   * a drive; false for the stubbed connectors, which have no pipeline behind them.
+   *
+   * It says nothing about the *graph*: mail is profiled for its catalogue and read at question
+   * time, so what a mail profile holds never becomes a graph element. `runtime` on the step-4
+   * payload is the flag for that, and the two are deliberately separate answers.
    */
   profilable: boolean
 }
@@ -403,8 +418,13 @@ interface RawSourceRow {
   profiled_columns: number
   profiled_documents: number | null
   profiled_entities: number | null
+  /** Objects of this source profiled on `profiled_today_date`, across whichever unit it holds. */
+  profiled_today: number
+  /** The server's own day, so the count above is checkable rather than assumed. */
+  profiled_today_date: string
   datasets: string[]
   folders: string[]
+  labels: string[]
   kind: string
   profilable: boolean
 }
@@ -471,10 +491,99 @@ export interface DocumentBrowseResult {
 }
 
 /**
- * One item of a job's work list. A BigQuery job profiles tables and a Drive job
- * profiles documents, so the pair is named generically: `parent_id` is the
- * dataset or folder, `object_id` the table or document, `units` its columns or
- * entities. `unit` on the job says which noun to print.
+ * One document attached to a message, in the browse tree.
+ *
+ * **`entities` is what profiling would extract, not what it has** — the same field a
+ * `BrowseDocument` carries, and the document's `units` on a job row.
+ */
+export interface BrowseMailDocument {
+  document_id: string
+  name: string
+  mime_type: string
+  size_kb: number
+  entities: number
+  profiled: boolean
+}
+
+/**
+ * One message in the browse tree — a **container**, not a profiled object.
+ *
+ * It is a level of the tree rather than a field on a leaf because a document in a mailbox is
+ * not self-locating the way one in a folder is: who sent it and when is how a reader
+ * recognises it. `documents` is empty for a message carrying nothing, and such a message is
+ * still listed — an absent row would say the message does not exist rather than that it has
+ * nothing to profile, and knowing which mail carries documents is most of what this is for.
+ */
+export interface BrowseMailMessage {
+  message_id: string
+  thread_id: string
+  subject: string
+  from: string
+  from_name: string
+  to: string
+  to_name: string
+  direction: 'sent' | 'received'
+  /** Every label this message carries, its own first. */
+  labels: string[]
+  received: string
+  size_kb: number
+  document_count: number
+  documents: BrowseMailDocument[]
+}
+
+/** A label and the mail filed under it — mail's twin of `BrowseFolder`, one level deeper. */
+export interface BrowseMailLabel {
+  label_id: string
+  name: string
+  message_count: number
+  document_count: number
+  messages: BrowseMailMessage[]
+}
+
+export interface MailDocumentBrowseResult {
+  source_id: string
+  labels: BrowseMailLabel[]
+  label_count: number
+  message_count: number
+  /** The profilable objects — documents, not the mail walked to find them. */
+  object_count: number
+  /**
+   * Whether the wizard put attachments in scope.
+   *
+   * Served rather than inferred from an empty tree: a source connected with attachments
+   * excluded has no documents at all, which looks exactly like a mailbox that happens to carry
+   * none — one is a decision the reader made and the other is a fact about the mail, and only
+   * the first has a remedy.
+   */
+  attachments_in_scope: boolean
+}
+
+/**
+ * The connectors a profiling job can run for, and the object each one profiles — declared
+ * **once** so the type and the runtime check cannot disagree.
+ *
+ * They already did once, for `OAUTH_PROVIDERS` above: the union was widened for Gmail and the
+ * schema beside it was not, so a correct server answer was refused with a message blaming a
+ * stale server. `kind` and `unit` are the same shape of claim — a union is checked by the
+ * compiler, a `oneOf` is checked against the payload — and mail profiling adds a third member
+ * to both, so they are derived from one array rather than written twice.
+ *
+ * **Three kinds, two units**, and that is not an oversight: BigQuery profiles tables, and both
+ * Drive and Gmail profile *documents* — a file somebody filed in a folder and a file somebody
+ * attached to a message are the same kind of object, so a job row reports the same noun for
+ * either. What differs is where the profiler found it, which is the job's `kind`.
+ */
+export const PROFILE_KINDS = ['bigquery', 'gdrive', 'gmail'] as const
+export type ProfileKind = (typeof PROFILE_KINDS)[number]
+
+export const PROFILE_UNITS = ['table', 'document'] as const
+export type ProfileUnit = (typeof PROFILE_UNITS)[number]
+
+/**
+ * One item of a job's work list. A BigQuery job profiles tables and a Drive or Gmail
+ * job profiles documents, so the pair is named generically: `parent_id` is the dataset,
+ * folder or label, `object_id` the table or document, `units` its columns or entities.
+ * `unit` on the job says which noun to print.
  */
 export interface JobObject {
   parent_id: string
@@ -488,8 +597,8 @@ export interface ProfilingJob {
   job_id: string
   short_id: string
   source_id: string
-  kind: 'bigquery' | 'gdrive'
-  unit: 'table' | 'document'
+  kind: ProfileKind
+  unit: ProfileUnit
   status: 'queued' | 'running' | 'complete' | 'cancelled' | 'failed'
   stage_index: number
   stage_total: number
@@ -710,6 +819,72 @@ export interface ProfiledDocumentsPayload {
   facets: DocumentFacets
   type_facets: DocumentTypeFacet[]
   folders: ProfiledFolder[]
+}
+
+/**
+ * What the mail profiler extracted from one attached document.
+ *
+ * **It carries no `resolution`, and `observation` is why.** A drive document's resolution is the
+ * graph node its entity resolved to — the join that makes profiling a filing worth doing. Mail is
+ * a runtime source: an extraction from something that arrived in an inbox is a *claim about a
+ * subject the graph already holds*, resolved when a question needs it and never merged into the
+ * fact set. A resolved node here would be that merge, arriving quietly through the catalogue.
+ *
+ * It also carries **the message it arrived on**, because a document in a mailbox is not
+ * self-locating the way one in a folder is: `signed-agreement.pdf` alone is ambiguous across a
+ * corpus that reuses stems, and who sent it is how a reader recognises it.
+ */
+export interface ProfiledMailDocument {
+  document_id: string
+  name: string
+  mime_type: string
+  size_kb: number
+  label: string
+  message_id: string
+  subject: string
+  from: string
+  from_name: string
+  to: string
+  to_name: string
+  direction: 'sent' | 'received'
+  received: string
+  /** Chunked off its size, since an attachment states no page count. */
+  chunks: number
+  entity_count: number
+  pii_count: number
+  /** Always true, and stated rather than inferred from the absent resolution. */
+  observation: boolean
+  summary: string | null
+  summary_status: 'needs review' | 'described'
+  entities: ProfiledEntity[]
+}
+
+export interface ProfiledMailLabel {
+  label_id: string
+  name: string
+  document_count: number
+  entity_count: number
+  documents: ProfiledMailDocument[]
+}
+
+/** One label chip. Mail's grouping is Gmail's own labels, so the key *is* the label. */
+export interface MailLabelFacet {
+  key: string
+  label: string
+  count: number
+}
+
+export interface ProfiledMailDocumentsPayload {
+  source_id: string
+  mailbox: string | null
+  profiled_documents: number
+  /** Everything attached under the connected labels, so "5 of 19" is expressible. */
+  document_total: number
+  label_count: number
+  entity_count: number
+  facets: DocumentFacets
+  label_facets: MailLabelFacet[]
+  labels: ProfiledMailLabel[]
 }
 
 export interface ChangeSignal {
@@ -1776,8 +1951,11 @@ const SOURCE_ROW = shape({
   profiled_columns: num,
   profiled_documents: nullable(num),
   profiled_entities: nullable(num),
+  profiled_today: num,
+  profiled_today_date: str,
   datasets: arrayOf(str),
   folders: arrayOf(str),
+  labels: arrayOf(str),
   kind: str,
   profilable: bool,
 })
@@ -1790,6 +1968,8 @@ const SOURCES_PAYLOAD = shape({
   profiled_columns: num,
   profiled_documents: num,
   profiled_entities: num,
+  profiled_today: num,
+  profiled_today_date: str,
 })
 
 const BROWSE_PAYLOAD = shape({
@@ -1855,8 +2035,10 @@ const JOB = shape({
   job_id: str,
   short_id: str,
   source_id: str,
-  kind: oneOf(['bigquery', 'gdrive']),
-  unit: oneOf(['table', 'document']),
+  /* Both read off the one declaration above, for the reason `OAUTH_PROVIDERS` is: a widened
+     union with an unwidened schema refuses a correct payload and blames the server. */
+  kind: oneOf(PROFILE_KINDS),
+  unit: oneOf(PROFILE_UNITS),
   status: oneOf(['queued', 'running', 'complete', 'cancelled', 'failed']),
   stage_index: num,
   stage_total: num,
@@ -1995,6 +2177,107 @@ const DOCUMENTS_PAYLOAD = shape({
               type: str,
               /* Same reasoning as a column's: CAPEX's documents carry `measure_commitment`,
                  `person` and `label`, and refusing them blanked the whole document dictionary. */
+              class: str,
+              confidence: num,
+              pii: bool,
+              occurrences: num,
+              coverage_pct: num,
+            }),
+          ),
+        }),
+      ),
+    }),
+  ),
+})
+
+const MAIL_BROWSE_PAYLOAD = shape({
+  source_id: str,
+  label_count: num,
+  message_count: num,
+  object_count: num,
+  attachments_in_scope: bool,
+  labels: arrayOf(
+    shape({
+      label_id: str,
+      name: str,
+      message_count: num,
+      document_count: num,
+      messages: arrayOf(
+        shape({
+          message_id: str,
+          thread_id: str,
+          subject: str,
+          from: str,
+          from_name: str,
+          to: str,
+          to_name: str,
+          direction: oneOf(['sent', 'received']),
+          labels: arrayOf(str),
+          received: str,
+          size_kb: num,
+          document_count: num,
+          documents: arrayOf(
+            shape({
+              document_id: str,
+              name: str,
+              mime_type: str,
+              size_kb: num,
+              entities: num,
+              profiled: bool,
+            }),
+          ),
+        }),
+      ),
+    }),
+  ),
+})
+
+const MAIL_DOCUMENTS_PAYLOAD = shape({
+  source_id: str,
+  mailbox: nullable(str),
+  profiled_documents: num,
+  document_total: num,
+  label_count: num,
+  entity_count: num,
+  facets: shape({
+    all: num,
+    needs_review: num,
+    pii: num,
+  }),
+  label_facets: arrayOf(shape({ key: str, label: str, count: num })),
+  labels: arrayOf(
+    shape({
+      label_id: str,
+      name: str,
+      document_count: num,
+      entity_count: num,
+      documents: arrayOf(
+        shape({
+          document_id: str,
+          name: str,
+          mime_type: str,
+          size_kb: num,
+          label: str,
+          message_id: str,
+          subject: str,
+          from: str,
+          from_name: str,
+          to: str,
+          to_name: str,
+          direction: oneOf(['sent', 'received']),
+          received: str,
+          chunks: num,
+          entity_count: num,
+          pii_count: num,
+          observation: bool,
+          summary: nullable(str),
+          summary_status: oneOf(['needs review', 'described']),
+          entities: arrayOf(
+            shape({
+              entity_id: str,
+              type: str,
+              /* The dataset's vocabulary, not ours — the same reasoning as a drive document
+                 entity's class, which refusing blanked a whole dictionary once. */
               class: str,
               confidence: num,
               pii: bool,
@@ -3521,6 +3804,8 @@ export async function listSources(): Promise<{
   profiledColumns: number
   profiledDocuments: number
   profiledEntities: number
+  profiledToday: number
+  profiledTodayDate: string
 }> {
   const payload = await request<unknown>('/sources')
 
@@ -3547,6 +3832,8 @@ export async function listSources(): Promise<{
     profiled_columns: number
     profiled_documents: number
     profiled_entities: number
+    profiled_today: number
+    profiled_today_date: string
   }>('The sources list', payload, SOURCES_PAYLOAD)
 
   return {
@@ -3562,8 +3849,11 @@ export async function listSources(): Promise<{
       profiledColumns: s.profiled_columns,
       profiledDocuments: s.profiled_documents,
       profiledEntities: s.profiled_entities,
+      profiledToday: s.profiled_today,
+      profiledTodayDate: s.profiled_today_date,
       datasets: s.datasets,
       folders: s.folders,
+      labels: s.labels,
       kind: s.kind,
       profilable: s.profilable,
     })),
@@ -3573,6 +3863,8 @@ export async function listSources(): Promise<{
     profiledColumns: raw.profiled_columns,
     profiledDocuments: raw.profiled_documents,
     profiledEntities: raw.profiled_entities,
+    profiledToday: raw.profiled_today,
+    profiledTodayDate: raw.profiled_today_date,
   }
 }
 
@@ -3740,6 +4032,74 @@ export async function setDocumentSummary(
   return validate<{ key: string; summary: string | null }>(
     'The saved summary',
     await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/documents`, {
+      method: 'PATCH',
+      body: input,
+    }),
+    DOCUMENT_SUMMARY_PAYLOAD,
+  )
+}
+
+/* ---------------- Catalog: mail documents ----------------
+ *
+ * Mail's twins of the four above. Each endpoint refuses the other connectors' sources with a
+ * 400 naming the one that serves them, so a mistaken call says which door to use rather than
+ * answering with an empty tree that reads as "nothing to profile".
+ *
+ * The paths say `mail-documents` rather than `documents` because both connectors hold
+ * documents and the payloads are different shapes — a drive's is folder → document, a
+ * mailbox's is label → message → document, and one route serving both would be a union every
+ * consumer had to narrow.
+ */
+
+export async function browseMailDocuments(
+  sourceId: string,
+): Promise<MailDocumentBrowseResult> {
+  const raw = await request<unknown>(
+    `/sources/${encodeURIComponent(sourceId)}/browse-mail-documents`,
+  )
+  return validate<MailDocumentBrowseResult>(
+    'The browsable mail documents',
+    raw,
+    MAIL_BROWSE_PAYLOAD,
+  )
+}
+
+/** Mail's twin of `profileDocuments`, checked against the same job shape. */
+export async function profileMailDocuments(
+  sourceId: string,
+  objects: { label_id: string; document_id: string }[],
+  force: boolean,
+): Promise<{ job: ProfilingJob }> {
+  return validate<{ job: ProfilingJob }>(
+    'The queued profiling job',
+    await request<unknown>(
+      `/sources/${encodeURIComponent(sourceId)}/profile-mail-documents`,
+      { method: 'POST', body: { objects, force } },
+    ),
+    JOB_STARTED_PAYLOAD,
+  )
+}
+
+export async function getProfiledMailDocuments(
+  sourceId: string,
+): Promise<ProfiledMailDocumentsPayload> {
+  const raw = await request<unknown>(
+    `/sources/${encodeURIComponent(sourceId)}/mail-documents`,
+  )
+  return validate<ProfiledMailDocumentsPayload>(
+    'The mail document dictionary',
+    raw,
+    MAIL_DOCUMENTS_PAYLOAD,
+  )
+}
+
+export async function setMailDocumentSummary(
+  sourceId: string,
+  input: { label_id: string; document_id: string; summary: string },
+): Promise<{ key: string; summary: string | null }> {
+  return validate<{ key: string; summary: string | null }>(
+    'The saved summary',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/mail-documents`, {
       method: 'PATCH',
       body: input,
     }),

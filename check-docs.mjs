@@ -423,8 +423,10 @@ expect(
 
 expect(
   'a source with no catalogue is left out of the Catalog and the omission is stated, not greyed out',
-  /* The list is filtered on the served fact … */
-  /sources\.filter\(\(s\) => s\.profilable\)/.test(catalogPage) &&
+  /* The list is filtered on the served fact, **and** on this build knowing what to call what the
+     source holds — a row past the first test and not the second would have to be drawn in another
+     connector's nouns, which is the misidentifying default `ConnectorIcon` was fixed for. */
+  /sources\.filter\(\(s\) => s\.profilable && catalogUnitsFor\(s\.kind\)\)/.test(catalogPage) &&
     /* … and the pair of connector names is gone from both buttons. */
     !/kind !== 'bigquery' && !isDrive/.test(codeOnly(catalogPage)) &&
     /* A shorter list is not a message: the count is said in words, on both branches — the populated
@@ -462,23 +464,30 @@ expect(
   'a wrapper component swallows value/onChange, so a filled form validates as empty',
 )
 /*
- * ---------------- Gmail: a real connector that is never profiled ----------------
+ * ---------------- Gmail: profiled for its catalogue, read at question time ----------------
  *
- * The third connector with a wizard branch, and the first where **connecting and profiling come
- * apart**. BigQuery and Drive are connected *so that* they can be profiled; a mailbox is connected to
- * prove the credential reaches it and to record what it was pointed at — which labels, which search,
- * whether attachments are in scope. Nothing samples the mail.
+ * The third connector with a wizard branch. Connecting proves the credential reaches the mailbox and
+ * records what it was pointed at — which labels, which search, whether attachments are in scope — and
+ * profiling is a second act started from the Data Catalog, exactly as it is for a project or a drive.
  *
- * That is asserted as an absence with teeth: `PROFILERS` is the map `pipelineFor` reads, so a `gmail`
- * entry appearing there would give the kind a pipeline *and* flip `profilable`, and this claim is what
- * says both must stay false together.
+ * **This was an absence claim and is now a positive one.** For as long as mail had no pipeline the
+ * fact worth guarding was that it had none: `PROFILERS` is the map `pipelineFor` reads, so a `gmail`
+ * entry would have given the kind a pipeline *and* flipped `profilable` at once. Mail has both now,
+ * and what has to be guarded instead is the pair being **declared** — see the catalogue-only claims
+ * below, which assert that a runtime kind carrying a pipeline says so in `CATALOGUE_ONLY_KINDS`, and
+ * that `selectedProfiledObjects` still skips it so nothing it profiles reaches the graph.
+ *
+ * The old guard is worth recording as a lesson rather than deleted quietly: it read
+ * `!/gmail: (?:PIPELINE|DOC_PIPELINE)/`, and the entry that broke its premise is spelled `gmail:
+ * MAIL_PIPELINE` — so it would have gone on passing over the very change it existed to catch. A claim
+ * keyed to the spellings a fact happens to have today is a claim about the spellings.
  */
 const gmailBlock = connectorBlocks.find((b) => /key: 'gmail',/.test(b)) ?? ''
 expect(
-  'Gmail runs the full consent → preview → finish path and carries no catalogue',
-  /* Offered as a real connector, and declaring that it does not profile. */
+  'Gmail runs the full consent → preview → finish path and carries a catalogue of its own',
+  /* Offered as a real connector, and declaring that it profiles. */
   /available: true,/.test(gmailBlock) &&
-    /profiles: false,/.test(gmailBlock) &&
+    /profiles: true,/.test(gmailBlock) &&
     !/reason:/.test(gmailBlock) &&
     /* Its own consent scope, and read-only — the one thing a mail scope must be. */
     /gmail: \['https:\/\/www\.googleapis\.com\/auth\/gmail\.readonly'\]/.test(server) &&
@@ -489,9 +498,12 @@ expect(
     /match: \(p\) => p === '\/sources\/oauth\/mailboxes'/.test(server) &&
     /match: \(p\) => p === '\/sources\/gmail\/preview'/.test(server) &&
     /match: \(p\) => p === '\/sources\/gmail'/.test(server) &&
-    /* And **no profiler**: the absence is the feature. A `gmail` entry in PROFILERS would give it a
-       pipeline and a catalogue at once, which is the thing this connector is defined by not having. */
-    !/gmail: (?:PIPELINE|DOC_PIPELINE)/.test(server) &&
+    /* And a profiler of its own, whose stages are mail's work rather than a reused pipeline —
+       reading `PROFILERS` itself rather than a spelling, because the guard this replaced tested
+       `!/gmail: (?:PIPELINE|DOC_PIPELINE)/` and would have passed unchanged over `gmail:
+       MAIL_PIPELINE`. A claim keyed to two constant names is a claim about the names. */
+    /gmail/.test(serverProfilers) &&
+    /const MAIL_PIPELINE = \[/.test(server) &&
     /* The wizard has its own branch rather than falling through the generic field loop. */
     /const isGmail = selected\?\.key === 'gmail'/.test(wizard) &&
     /const isGoogle = isBigQuery \|\| isDrive \|\| isGmail/.test(wizard) &&
@@ -536,6 +548,374 @@ expect(
     /* And the name still reaches the server, from the mailbox rather than from a form. */
     /sourceName: gmailPreview\.display_name,/.test(wizard),
   'a Continue that demands a field the step does not offer is an instruction nobody can follow',
+)
+
+/*
+ * ---------------- mail is profiled for its catalogue and nowhere else ----------------
+ *
+ * **The two maps overlap now, and the overlap is declared.** `PROFILERS` says a kind has a pipeline;
+ * `RUNTIME_KINDS` says its objects are read when a question needs them. They were asserted *disjoint*
+ * at boot, on the reasoning that a connector doing both makes "where did this figure come from"
+ * unanswerable — and that reasoning is about the graph, which `selectedProfiledObjects` is what
+ * actually enforces: it skips a runtime source by name, so nothing a mail profiler lands can reach
+ * step 6's derivation however much of it there is.
+ *
+ * So the disjointness assert became a **declaration** assert. What must never happen is an
+ * *undeclared* overlap: a kind that quietly gained a pipeline would start carrying a catalogue nobody
+ * decided it should have, and the symptom is a Data Catalog row rather than an error. Both drift
+ * directions are refused at boot — an overlap missing from `CATALOGUE_ONLY_KINDS`, and an entry there
+ * that no longer overlaps, which is the stale-waiver nag the audit gate already makes.
+ */
+const catalogueOnly =
+  (server.match(/const CATALOGUE_ONLY_KINDS = new Set\(\[([^\]]*)\]\)/) ?? [])[1] ?? ''
+expect(
+  'a runtime kind that profiles declares that its catalogue is all it profiles for',
+  /* The overlap is real — gmail is in both maps — and named in the declaration. */
+  /gmail/.test(serverProfilers) &&
+    /const RUNTIME_KINDS = new Set\(\['gmail'\]\)/.test(server) &&
+    /gmail/.test(catalogueOnly) &&
+    /* Refused when an overlap is not declared … */
+    /if \(isProfilable\(kind\) && !CATALOGUE_ONLY_KINDS\.has\(kind\)\)/.test(server) &&
+    /* … and when a declaration has nothing left to declare. */
+    /if \(!isProfilable\(kind\) \|\| !isRuntimeSource\(kind\)\)/.test(server) &&
+    /* The old assert is gone rather than loosened — it would refuse this boot outright. */
+    !/a connector is profiled or read at question time, never both/.test(server),
+  'an undeclared overlap is a catalogue nobody decided to add, and it fails as a row rather than an error',
+)
+
+/*
+ * **What the graph guarantee rests on, asserted where it lives rather than in a note.**
+ *
+ * This is the claim that makes the one above safe. If `selectedProfiledObjects` ever stopped skipping
+ * a runtime source, mail's profiled entities would start arriving as step 6 derivations — silently,
+ * because a longer entity list is not an error — and the whole distinction between a catalogue and a
+ * fact set would be gone with it.
+ */
+expect(
+  'nothing a mail profile holds reaches the graph',
+  /* Skipped by name in the derivation, not left to fall through a structured branch. */
+  /function selectedProfiledObjects\(picks\)[\s\S]*?if \(isRuntimeSource\(source\.kind\)\) continue/.test(
+    server,
+  ) &&
+    /* And the step-4 payload still reports a mailbox's *labels* with no unit count, rather than the
+       messages a profiler has since landed — `0` would say a label is empty and a real count would
+       say the mail is derivable. */
+    /const objects = isMail[\s\S]{0,320}?units: null,/.test(server) &&
+    /* One definition of "which picks are runtime", still filtering on connected. */
+    /function runtimeSourcesIn\(picks\)[\s\S]{0,400}?isRuntimeSource\(s\.kind\)/.test(server),
+  'a runtime source contributing entities would make "where did this figure come from" unanswerable',
+)
+
+/*
+ * **Every catalogue endpoint refuses the other connectors' sources, naming the one that serves them.**
+ *
+ * A rule this repo already stated for two connectors, where each guard could carry the other's name
+ * inline. At three that stops working: the guards were `kind === 'gdrive'` / `kind !== 'gdrive'` pairs,
+ * so a mail source reaching `GET /sources/:id/browse` fell through to `browsableObjects`, which has no
+ * datasets to find and answered `{ datasets: [] }` — "nothing to profile", which is the reading the
+ * twin-naming rule exists to prevent, and which sends a reader to the allowlist instead of the call.
+ */
+expect(
+  'the catalogue routes are declared per connector, so a wrong door names the right one',
+  /const CATALOGUE_ROUTES = \{/.test(server) &&
+    /function wrongConnector\(source, servedKind, act, method = 'GET'\)/.test(server) &&
+    /* Nine guards read it — three acts across three connectors. */
+    (
+      server.match(
+        /wrongConnector\(source, '(?:bigquery|gdrive|gmail)', '(?:browse|profile|dictionary)'/g,
+      ) ?? []
+    ).length === 9 &&
+    /* And the pairs written into those guards are gone. */
+    !/holds documents, not tables — use/.test(codeOnly(server)) &&
+    !/is not a Drive source — use/.test(codeOnly(server)) &&
+    /* A profilable kind with no routes would refuse every request naming no twin, so it stops the
+       boot rather than being discovered from a message that says "carries no catalogue". */
+    /has a profiler but no CATALOGUE_ROUTES entry/.test(server),
+  'an empty tree reads as "nothing to profile" and sends the reader to the wrong screen',
+)
+
+/*
+ * **Three mail endpoints, each with a schema and a store slice**, because the rule here is that a
+ * payload is validated at the boundary — writes included — and `check-docs` already fails an exported
+ * fetcher that reaches `request()` without `validate()`.
+ */
+const catalogStoreSrc = read('frontend/src/store/catalogStore.ts')
+expect(
+  'the mail catalogue is served, validated and held in a store of its own',
+  /* Server — the three routes, by the pattern each is matched on. */
+  /* Server — the three routes, by the pattern each is matched on. */
+  /browse-mail-documents\$\/\.test\(p\)/.test(server) &&
+    /profile-mail-documents\$\/\.test\(p\)/.test(server) &&
+    /mail-documents\$\/\.test\(p\)/.test(server) &&
+    /* Client: a fetcher and a schema each. */
+    /export async function browseMailDocuments/.test(client) &&
+    /export async function profileMailDocuments/.test(client) &&
+    /export async function getProfiledMailDocuments/.test(client) &&
+    /export async function setMailDocumentSummary/.test(client) &&
+    /const MAIL_BROWSE_PAYLOAD = shape\(\{/.test(client) &&
+    /const MAIL_DOCUMENTS_PAYLOAD = shape\(\{/.test(client) &&
+    /* Store: separate from the other two, for the reason the Drive one is separate. */
+    /export const useMailBrowseStore = create<MailBrowseState>/.test(catalogStoreSrc) &&
+    /export const useMailDocumentsStore = create<MailDocumentsState>/.test(catalogStoreSrc),
+  'an endpoint with no schema surfaces as undefined.map deep inside a render',
+)
+
+/*
+ * **A job's connector and its noun come from one declaration.**
+ *
+ * This is the `OAUTH_PROVIDERS` bug waiting to happen again: that union was widened for Gmail and the
+ * schema beside it was not, so the server answered `provider: "gmail"`, the validator refused it, and
+ * the wizard blamed a stale mock server over a server that was right. `kind` and `unit` are the same
+ * shape of claim — a union the compiler checks, a `oneOf` the payload is checked against — and mail
+ * adds a third member to the first.
+ *
+ * **Three kinds, two units**, and that asymmetry is the point: Drive and Gmail both profile
+ * *documents* — a file somebody filed in a folder and a file somebody attached to a message are the
+ * same kind of object — so a job row reports the same noun for either, and what differs is where the
+ * profiler found it, which is the `kind`. A third unit would have been a second name for one thing.
+ */
+expect(
+  'the job kinds and their units are declared once, so the type and the schema cannot disagree',
+  /export const PROFILE_KINDS = \['bigquery', 'gdrive', 'gmail'\] as const/.test(client) &&
+    /export const PROFILE_UNITS = \['table', 'document'\] as const/.test(client) &&
+    /* Both read off it rather than restating the members. */
+    /kind: oneOf\(PROFILE_KINDS\),/.test(client) &&
+    /unit: oneOf\(PROFILE_UNITS\),/.test(client) &&
+    /kind: ProfileKind/.test(client) &&
+    /unit: ProfileUnit/.test(client) &&
+    /* And the shared outcome module takes the declared type rather than a union of its own.
+
+       Read here rather than through `outcomeSrc`, which is declared ~500 lines below this claim:
+       this file is one long script, so definition order is execution order, and a `const` in the
+       temporal dead zone kills the run before its summary — the failure where the claim total
+       stops moving and every break test reports MISSED. */
+    /unit: ProfileUnit,/.test(read('frontend/src/data/profilingOutcome.ts')),
+  'a widened union with an unwidened schema refuses a correct payload and blames the server',
+)
+
+/*
+ * **A re-run goes back to the endpoint its job came from, chosen by kind rather than by an `else`.**
+ *
+ * While there were two connectors, `kind === 'gdrive'` and "everything else" happened to coincide.
+ * Mail made them diverge: that `else` names BigQuery's endpoint *and* its field names, so a mail job
+ * re-run down it posted `{dataset_id, table_id}` to `/profile` and the server refused it with "holds
+ * messages, not tables" — a Force button that reports a wrong-endpoint error. The same shape as
+ * `reportEntitlementCell`'s chain ending at the archived cell: an `else` that returns a specific
+ * answer is not a fallback.
+ */
+expect(
+  'a profiling job re-runs on its own connector, and an unknown kind says so',
+  /switch \(job\.kind\) \{/.test(catalogStoreSrc) &&
+    /case 'gmail':/.test(catalogStoreSrc) &&
+    /case 'gdrive':/.test(catalogStoreSrc) &&
+    /case 'bigquery':/.test(catalogStoreSrc) &&
+    /* The default refuses rather than picking a door. */
+    /default:[\s\S]{0,60}?return \{[\s\S]{0,40}?ok: false,/.test(catalogStoreSrc) &&
+    /* Each branch posts the field names its own endpoint reads — mail's are the label and the
+       document, and posting a drive's `{folder_id, document_id}` or BigQuery's
+       `{dataset_id, table_id}` here is exactly what the `else` this replaced did. */
+    /label_id: o\.parent_id,[\s\S]{0,40}?document_id: o\.object_id,/.test(catalogStoreSrc),
+  'an else that names one connector’s endpoint is not a fallback for the others',
+)
+
+/*
+ * ---------------- today's runs are counted off the stamps, and say which day ----------------
+ *
+ * The figure the Catalog's mail profile states. It is the one number on that screen not derived from a
+ * hash: `commitNextObject` writes a real `profiled_at` per object, and this counts the ones filed
+ * under today.
+ *
+ * **The boundary is served, not assumed.** The count is computed against the *server's* day, so a tile
+ * reading "4 profiled today" over a box in another timezone is a claim the reader cannot check — and a
+ * component that read the browser's clock instead would let the line and the dictionary's own figure
+ * disagree by a day. `localDateKey` is local rather than `toISOString().slice(0, 10)` for the same
+ * reason in miniature: east of Greenwich, UTC names yesterday for the first hours of the working day.
+ */
+const mailPanel = read('frontend/src/components/catalog/ProfiledMailDocumentsPanel.tsx')
+/* Declared here rather than beside the claim below that also reads it: this file is one long
+   script, so definition order is execution order, and a `const` in the temporal dead zone kills
+   the run before its summary — the failure where the claim total stops moving. */
+const catalogUnitsSrc = read('frontend/src/data/catalogUnits.ts')
+expect(
+  'today’s profiled count is read off the commit stamps and states the day it means',
+  /* **One definition, across all three connectors and for the one surface that renders it.** A
+     per-kind copy is how two surfaces come to answer one question differently, and a second
+     copy with no second reader is the same fault without the symptom — which is why the mail
+     dictionary deliberately does not count it again. */
+  /function profiledToday\(source\)/.test(server) &&
+    /\.\.\.\(source\.profiled \?\? \[\]\),[\s\S]{0,180}?\.\.\.\(source\.profiled_mail_docs \?\? \[\]\),/.test(
+      server,
+    ) &&
+    (server.match(/localDateKey\(new Date\(p\.profiled_at\)\)/g) ?? []).length <= 1 &&
+    /* Local, not UTC: east of Greenwich, `toISOString().slice(0, 10)` names yesterday for the
+       first hours of the working day, so a run committed this morning would not count. */
+    /const localDateKey = \(d\) =>/.test(server) &&
+    /d\.getFullYear\(\)/.test(server) &&
+    /* Served on the row with the day it means beside it. */
+    /profiled_today: profiledToday\(source\),/.test(server) &&
+    /profiled_today_date: localDateKey\(new Date\(\)\),/.test(server) &&
+    /* Validated at the boundary, and carried through the camelCase mapping. */
+    /profiled_today: num,/.test(client) &&
+    /profiledToday: s\.profiled_today,/.test(client) &&
+    /* Rendered as Gmail's fourth tile — the figure *and* its date, both from the payload, and
+       the note travels with the label rather than being a literal in the page. */
+    /unitsCount: \(s\) => s\.profiledToday,/.test(catalogUnitsSrc) &&
+    /unitsNote: \(s\) => s\.profiledTodayDate,/.test(catalogUnitsSrc) &&
+    /note=\{units\?\.unitsNote\(selected\) \?\? ''\}/.test(catalogPage) &&
+    /* And nothing on either surface invents a day of its own. */
+    !/new Date\(\)/.test(codeOnly(catalogPage)) &&
+    !/new Date\(\)/.test(codeOnly(catalogUnitsSrc)),
+  'a bare "today" over another box’s midnight is a figure nobody can check',
+)
+
+/*
+ * **The Catalog's nouns are declared per connector, because `isDrive ? a : b` does not survive a
+ * third one.** The page described itself with nine of those ternaries — two tiles of labels, two of
+ * counts, both button labels, both panel keys, the list row's meta and the foot sentence. Mail made
+ * every one wrong in the same direction: each `false` branch drew a mailbox as a BigQuery project, so
+ * a reader would have been told a mailbox had "0 tables profiled" in a "GCP project".
+ *
+ * The fallback is `null` and not another connector's row, for the reason `ConnectorIcon` stopped
+ * falling back to BigQuery's logo: a default may be plainer than the real thing, and must not assert
+ * something false.
+ */
+expect(
+  'each connector states its own catalogue nouns, and an unknown kind gets none',
+  /export const CATALOG_UNITS: Record<string, CatalogUnits> = \{/.test(catalogUnitsSrc) &&
+    /* All three, each with the pair of panels its two acts open. */
+    /browsePanel: 'browse',[\s\S]{0,240}?dictionaryPanel: 'columns',/.test(catalogUnitsSrc) &&
+    /browsePanel: 'browse-documents',[\s\S]{0,240}?dictionaryPanel: 'documents',/.test(
+      catalogUnitsSrc,
+    ) &&
+    /browsePanel: 'browse-mail-documents',[\s\S]{0,300}?dictionaryPanel: 'mail-documents',/.test(
+      catalogUnitsSrc,
+    ) &&
+    /* Null rather than a misidentifying default. */
+    /CATALOG_UNITS\[kind\] \?\? null/.test(catalogUnitsSrc) &&
+    /* And the page reads it rather than branching on a connector name. */
+    !/isDrive \? /.test(codeOnly(catalogPage)) &&
+    /units\?\.browseLabel/.test(catalogPage) &&
+    /units\?\.foot\(selected\)/.test(catalogPage),
+  'a mailbox drawn in BigQuery’s nouns is a default that asserts something false',
+)
+
+/*
+ * **A profiled message has no resolution, and says so where a document would state one.**
+ *
+ * A document's resolution is real and is the point of profiling a filing: `document_extractions`
+ * records the graph node its entity resolved to. Mail is read at question time, so an extraction from
+ * a message is a claim about a subject the graph already holds — an observation, resolved when a
+ * question needs it and never merged into the fact set. A resolved node on a message would be that
+ * merge arriving quietly through the catalogue.
+ *
+ * The row is a *sentence* rather than a blank, for the reason a document that resolved to nothing says
+ * so: a reader comparing the two dictionaries would otherwise read the absence as a resolution that
+ * failed.
+ */
+/*
+ * **Sliced to the function, because the absence is not absent from the file.**
+ *
+ * `documentDictionary` — Drive's — names its parameter `doc` too, and its own line reads
+ * `db.document_extractions?.[doc.document_id]`, which is exactly right there. A whole-file
+ * `!/document_extractions/` therefore reported this claim broken over correct code: the fourth
+ * time in this file that an absence claim has been keyed to a token the file legitimately holds
+ * elsewhere. Assert a fact at its site.
+ */
+const mailDictFn = (() => {
+  const from = server.indexOf('function mailDocumentDictionary(')
+  /* An index slice rather than a regex: the obvious `[\s\S]*?` body pattern needs a literal
+     newline in it, which does not survive being written into this file. */
+  const to = from === -1 ? -1 : server.indexOf(String.fromCharCode(10) + '}', from)
+  return to > from ? server.slice(from, to) : ''
+})()
+expect(
+  'a mail document reports an observation where a drive document reports a resolved node',
+  /* The slice is the function — without this every absence below passes over an empty string. */
+  mailDictFn.length > 400 &&
+    /* And through `codeOnly`, because the comment explaining the absence names the thing that is
+       absent: *"inferred from the absent resolution: an extraction from mail…"* matched
+       `/resolution:/` on the sentence's own punctuation. The fifth time in this file. */
+    !/document_extractions/.test(codeOnly(mailDictFn)) &&
+    !/resolution:/.test(codeOnly(mailDictFn)) &&
+    /* … and `observation` is stated rather than left to be inferred from the gap. */
+    /observation: true,/.test(server) &&
+    /observation: bool,/.test(client) &&
+    /* The panel prints that, and never a resolved-node row. */
+    /read at question time/i.test(mailPanel) &&
+    !/resolved_node/.test(mailPanel),
+  'a resolved node on a mail document is the fact-set merge this connector exists not to make',
+)
+
+/*
+ * ---------------- what a mailbox's documents are ----------------
+ *
+ * **The profiled unit is the attached document, never the message.** A mailbox's documents are the
+ * files that arrived in it; the mail is the container they came in, and nothing samples a message
+ * body. So the browse tree is one level deeper than a drive's — label → message → document — and a
+ * message carrying no attachment has nothing here to profile at all.
+ *
+ * Two consequences that are easy to get wrong in opposite directions:
+ *
+ * - **The count lives in `profiled_documents`**, the same field a drive uses, because it is the
+ *   same unit. A `profiled_messages` beside it was two fields for one noun, which is how a tile
+ *   and a dictionary come to disagree about a number.
+ * - **The wizard's attachments toggle became load-bearing.** It was recorded and not acted on; it
+ *   now decides whether a source has any documents at all. That has to be *said*, because a
+ *   source connected with attachments excluded looks exactly like a mailbox that happens to carry
+ *   none — one is a decision with a remedy and the other is a fact about the mail.
+ */
+expect(
+  'the mail profiler runs over attached documents, never the messages',
+  /* The documents are their own synthesised objects, resolved through one walk so the browse
+     tree, the dictionary and the validator cannot disagree about what exists. */
+  /function attachedDocuments\(messageId, seed\)/.test(server) &&
+    /function mailDocuments\(source\)/.test(server) &&
+    /* The tree nests them under the message they arrived on … */
+    /documents: m\.documents\.map\(\(d\) => \(\{/.test(server) &&
+    /* … and a message with none is still listed, which is what makes "nothing to profile"
+       distinguishable from "no such message". */
+    /document_count: m\.documents\.length,/.test(server) &&
+    /* Counted as documents, in the field a drive uses. */
+    /source\.profiled_documents = docs\.length/.test(server) &&
+    !/profiled_messages: /.test(codeOnly(server)) &&
+    /* The toggle is read, and refused where it excludes everything — named as the decision it is
+       rather than letting every id come back "does not exist". */
+    /const inScope = source\.attachments !== false/.test(server) &&
+    /if \(source\.attachments === false\)/.test(server) &&
+    /was connected with attachments out of scope/.test(server) &&
+    /* Served rather than inferred from an empty tree, and the panel draws the difference. */
+    /attachments_in_scope: source\.attachments !== false,/.test(server) &&
+    /attachments_in_scope: bool,/.test(client) &&
+    /!data\.attachments_in_scope/.test(read('frontend/src/components/catalog/MailBrowsePanel.tsx')),
+  'a mailbox profiling its messages would sample mail nobody asked it to read',
+)
+
+/*
+ * **The synthesised corpus takes its people from the tenant directory.**
+ *
+ * No dataset ships a message, so the corpus is synthesised the way `synthesiseColumns` and a
+ * document's entity list are. What it must not synthesise is *who* — a mailbox holding correspondence
+ * with five colleagues nobody has heard of puts five people into the console the directory has never
+ * seen, which is the objection that deleted the `mailboxes` key and the one `seed:capex-drive` keeps
+ * for a drive's documents.
+ */
+const mailSubjects = (server.match(/const MAIL_SUBJECTS = \[([^\]]*)\]/) ?? [])[1] ?? ''
+expect(
+  'a synthesised message’s correspondents are the directory’s, and its subjects carry no data',
+  /* The people are read from settings.users. */
+  /function mailboxMessages\(source\)/.test(server) &&
+    /const directory = db\.settings\?\.users \?\? \[\]/.test(server) &&
+    /* The subject pool is authored, and dataset-neutral: an address in one would be a person this
+       corpus invented, and a figure would be content nothing has read. */
+    mailSubjects.length > 100 &&
+    !/@/.test(mailSubjects) &&
+    !/\d/.test(mailSubjects) &&
+    /* Deterministic, so a browse taken twice lists the same mail … */
+    /hash\(`\$\{mailbox\}:\$\{label\}:\$\{i\}`\)/.test(server) &&
+    /* … and anchored to the registration rather than to now, or the corpus relists every day while
+       claiming to be deterministic. */
+    /Date\.parse\(source\.registered_at \?\? ''\) \|\| Date\.now\(\)/.test(server),
+  'a corpus that invents people puts strangers in the tenant directory',
 )
 
 /*
@@ -1093,6 +1473,10 @@ const panelFiles = [
   'frontend/src/components/catalog/ProfiledColumnsPanel.tsx',
   'frontend/src/components/catalog/ProfiledDocumentsPanel.tsx',
   'frontend/src/components/catalog/DocumentBrowsePanel.tsx',
+  /* Mail's two, listed here rather than left to inherit the guarantee by resemblance: a panel
+     copied from one that has no ✕ is the easiest place for one to come back. */
+  'frontend/src/components/catalog/MailBrowsePanel.tsx',
+  'frontend/src/components/catalog/ProfiledMailDocumentsPanel.tsx',
 ]
 for (const path of panelFiles) {
   const src = codeOnly(read(path))
@@ -1179,6 +1563,7 @@ expect(
 for (const [label, path] of [
   ['BrowsePanel', 'frontend/src/pages/CatalogPage.tsx'],
   ['DocumentBrowsePanel', 'frontend/src/components/catalog/DocumentBrowsePanel.tsx'],
+  ['MailBrowsePanel', 'frontend/src/components/catalog/MailBrowsePanel.tsx'],
 ]) {
   const src = codeOnly(read(path))
   expect(
@@ -1192,7 +1577,7 @@ for (const [label, path] of [
     `and ${label} words the outcome from the shared module`,
     /profilingOutcome\(job\.objects, '(table|document)', job\.short_id\)/.test(src) &&
       !/Nothing to profile/.test(src),
-    'BigQuery and Drive differ by a noun, so the wording is written once',
+    'the connectors differ by a noun, so the wording is written once',
   )
   /* Both buttons, not just the one that acts: the cancel was written twice as a literal while
      the claim above said the wording was written once, which is how the two dialogs come to

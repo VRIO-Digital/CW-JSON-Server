@@ -1,21 +1,27 @@
 import { create } from 'zustand'
 import {
   browseDocuments,
+  browseMailDocuments,
   browseSource,
   cancelProfilingJob,
   getProfiledColumns,
   getProfiledDocuments,
+  getProfiledMailDocuments,
   listChangeSignals,
   listProfilingJobs,
   profileDocuments,
+  profileMailDocuments,
   profileTables,
   setColumnDescription,
   setDocumentSummary,
+  setMailDocumentSummary,
   type BrowseResult,
   type ChangeSignal,
   type DocumentBrowseResult,
+  type MailDocumentBrowseResult,
   type ProfiledColumnsPayload,
   type ProfiledDocumentsPayload,
+  type ProfiledMailDocumentsPayload,
   type ProfilingJob,
   type ProfilingJobsPayload,
 } from '../api/client'
@@ -128,6 +134,60 @@ export const useDocumentBrowseStore = create<DocumentBrowseState>()((set) => ({
   reset: () => set({ data: null, loading: false, error: null, starting: false }),
 }))
 
+/* ---------------- Browse & profile mail documents ---------------- */
+
+interface MailBrowseState {
+  data: MailDocumentBrowseResult | null
+  loading: boolean
+  error: string | null
+  starting: boolean
+
+  load: (sourceId: string) => Promise<void>
+  start: (
+    sourceId: string,
+    objects: { label_id: string; document_id: string }[],
+    force: boolean,
+  ) => Promise<{ ok: true; job: ProfilingJob } | { ok: false; error: string }>
+  reset: () => void
+}
+
+/**
+ * The Gmail twin of `useBrowseStore`, separate for the reason the Drive one is: the three
+ * payloads share no fields, so one `data` would be a union every consumer had to narrow.
+ */
+export const useMailBrowseStore = create<MailBrowseState>()((set) => ({
+  data: null,
+  loading: false,
+  error: null,
+  starting: false,
+
+  load: async (sourceId) => {
+    set({ loading: true })
+    try {
+      set({ data: await browseMailDocuments(sourceId), error: null, loading: false })
+    } catch (error) {
+      set({ error: toMessage(error), loading: false })
+    }
+  },
+
+  start: async (sourceId, objects, force) => {
+    if (objects.length === 0) {
+      return { ok: false, error: 'Select at least one document to profile.' }
+    }
+    set({ starting: true })
+    try {
+      const { job } = await profileMailDocuments(sourceId, objects, force)
+      return { ok: true, job }
+    } catch (error) {
+      return { ok: false, error: toMessage(error) }
+    } finally {
+      set({ starting: false })
+    }
+  },
+
+  reset: () => set({ data: null, loading: false, error: null, starting: false }),
+}))
+
 /* ---------------- Profiled columns ---------------- */
 
 interface ColumnsState {
@@ -219,6 +279,56 @@ export const useDocumentsStore = create<DocumentsState>()((set, get) => ({
   reset: () => set({ data: null, loading: false, error: null }),
 }))
 
+/* ---------------- Profiled mail documents ---------------- */
+
+interface MailDocumentsState {
+  data: ProfiledMailDocumentsPayload | null
+  loading: boolean
+  error: string | null
+
+  load: (sourceId: string) => Promise<void>
+  /** The reviewable unit is the document, exactly as it is for a drive's. */
+  summarise: (
+    sourceId: string,
+    input: { label_id: string; document_id: string; summary: string },
+  ) => Promise<Result>
+  reset: () => void
+}
+
+export const useMailDocumentsStore = create<MailDocumentsState>()((set, get) => ({
+  data: null,
+  loading: false,
+  error: null,
+
+  load: async (sourceId) => {
+    set({ loading: true })
+    try {
+      set({
+        data: await getProfiledMailDocuments(sourceId),
+        error: null,
+        loading: false,
+      })
+    } catch (error) {
+      set({ error: toMessage(error), loading: false })
+    }
+  },
+
+  summarise: async (sourceId, input) => {
+    if (!input.label_id || !input.document_id) {
+      return { ok: false, error: 'Missing the label or document to describe.' }
+    }
+    try {
+      await setMailDocumentSummary(sourceId, input)
+      await get().load(sourceId)
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: toMessage(error) }
+    }
+  },
+
+  reset: () => set({ data: null, loading: false, error: null }),
+}))
+
 /* ---------------- Profiling jobs ---------------- */
 
 interface JobsState {
@@ -260,31 +370,60 @@ export const useJobsStore = create<JobsState>()((set, get) => ({
     }
   },
 
-  // One board runs both connectors, so a re-run has to go back to the endpoint
-  // the job came from — its objects mean folders/documents for a Drive job.
+  /*
+   * One board runs every connector, so a re-run has to go back to the endpoint the job came
+   * from — a job's `parent_id`/`object_id` mean a dataset and table, a folder and document,
+   * or a label and message, and only its `kind` says which.
+   *
+   * **Switched on the kind rather than tested for one**, because the `else` here is not a
+   * fallback: it names BigQuery's endpoint and its field names specifically. While there were
+   * two connectors `kind === 'gdrive'` and "everything else" happened to coincide; mail made
+   * them diverge, and a mail job re-run down that branch posted `{dataset_id, table_id}` to
+   * `/profile`, which the server refuses with *"holds messages, not tables"* — a Force button
+   * that reports a wrong-endpoint error. The same shape as `reportEntitlementCell`'s chain
+   * ending at the archived cell. An unhandled kind now says so instead of picking a door.
+   */
   rerun: async (job, force) => {
     if (job.objects.length === 0) {
       return { ok: false, error: `That job has no ${job.unit}s to re-profile.` }
     }
     try {
-      if (job.kind === 'gdrive') {
-        await profileDocuments(
-          job.source_id,
-          job.objects.map((o) => ({
-            folder_id: o.parent_id,
-            document_id: o.object_id,
-          })),
-          force,
-        )
-      } else {
-        await profileTables(
-          job.source_id,
-          job.objects.map((o) => ({
-            dataset_id: o.parent_id,
-            table_id: o.object_id,
-          })),
-          force,
-        )
+      switch (job.kind) {
+        case 'gdrive':
+          await profileDocuments(
+            job.source_id,
+            job.objects.map((o) => ({
+              folder_id: o.parent_id,
+              document_id: o.object_id,
+            })),
+            force,
+          )
+          break
+        case 'gmail':
+          await profileMailDocuments(
+            job.source_id,
+            job.objects.map((o) => ({
+              label_id: o.parent_id,
+              document_id: o.object_id,
+            })),
+            force,
+          )
+          break
+        case 'bigquery':
+          await profileTables(
+            job.source_id,
+            job.objects.map((o) => ({
+              dataset_id: o.parent_id,
+              table_id: o.object_id,
+            })),
+            force,
+          )
+          break
+        default:
+          return {
+            ok: false,
+            error: `This build cannot re-run a ${String(job.kind)} job — reload the page to pick up a newer one.`,
+          }
       }
       await get().load()
       return { ok: true }

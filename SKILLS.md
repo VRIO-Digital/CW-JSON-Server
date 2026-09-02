@@ -79,7 +79,7 @@ is no server-side session to revoke.
 
 ---
 
-## Flow 1 — Connecting a source (BigQuery or Google Drive)
+## Flow 1 — Connecting a source (BigQuery, Google Drive or Gmail)
 
 **Files:** `ConnectSourceModal.tsx` → `ConnectSourceWizard.tsx` → `client.ts` →
 `server.js` · connector list in `data/connectors.ts`
@@ -109,12 +109,11 @@ SQL database) render dimmed under *Product vision — not yet built*; clicking o
 *why* via its `reason` field rather than doing nothing. `Continue` is disabled until an
 available connector is picked.
 
-**Gmail connects and is never profiled, and it is the connector where those two acts
-come apart.** BigQuery and Drive are connected *so that* they can be profiled — tables
-into columns, documents into entities. Gmail is connected to prove the credential
-reaches a mailbox and to record what it was pointed at: which labels, which optional
-Gmail search, whether attachments are in scope. It runs the same consent → preview →
-finish path as the other two:
+**Gmail is profiled for its catalogue and read at question time.** Connecting proves the
+credential reaches a mailbox and records what it was pointed at: which labels, which
+optional Gmail search, whether attachments are in scope. Profiling is a second act,
+started from the Data Catalog, exactly as it is for a project or a drive — see Flow 3. It
+runs the same consent → preview → finish path as the other two:
 
 | step | call | what it does |
 |---|---|---|
@@ -132,11 +131,27 @@ Gmail's own six and nothing else — what the preview's heading calls them.
 Step 2 asks for **nothing** — no source name and no mailbox picker. A mailbox already
 carries a name the tenant wrote, so the wizard sends `display_name`; the endpoint still
 validates it like the other three. The mailbox is the signed-in reader's own where the
-tenant ships it, otherwise the first. There is also **no profiler** — no entry in `PROFILERS`, so `sourceRow`
-reports `profilable: false`, the Data Catalog leaves it out and says why, and the Sources
-table lists it like any other connected source. The attachments toggle is *recorded*, not
-acted on, and the panel words it that way: promising ingestion on a connector with no
-pipeline would describe a run that never happens.
+tenant ships it, otherwise the first.
+
+There **is** a profiler — `MAIL_PIPELINE`, five stages like the other two — so `sourceRow`
+reports `profilable: true` and the Data Catalog lists a mailbox beside a project and a
+drive. **What it profiles is the attached document, never the message**: a mailbox's
+documents are the files that arrived in it, and nothing samples a message body. What is
+unchanged is where that profile may travel: `gmail` is still the one member of
+`RUNTIME_KINDS`, its extractions are observations resolved at question time, and nothing in
+its catalogue becomes a graph element. The overlap between the two maps is declared in
+`CATALOGUE_ONLY_KINDS` and both drift directions are refused at boot.
+
+**Which made the attachments toggle load-bearing.** It was *recorded and not acted on* while
+nothing read the attachments; it now decides whether the source has any documents at all. A
+mailbox connected with attachments excluded is refused at the profile route, naming the
+decision, and `attachments_in_scope` is served so the browse panel can tell that apart from
+a mailbox that simply carries none.
+
+**Its allowlist cannot be changed afterwards.** Labels are settled by the consent, so there
+is no `PUT /sources/:id/labels`; the Sources row's Edit button is disabled saying so, and
+`wrongScope` refuses the two allowlist routes with the same sentence. Re-run the wizard to
+change them.
 **Each card carries its vendor mark**, from `ConnectorIcon` — inline SVG, so
 nothing is fetched. A vision connector keeps its mark, desaturated: removing it
 would leave holes in the grid that read as still loading, and leaving it at full
@@ -444,9 +459,24 @@ This is the most involved flow and the one most likely to be misunderstood.
 **Drive files:** `CatalogPage.tsx` (`DocumentBrowsePanel`) →
 `useDocumentBrowseStore` → the same `ProfilingJobsTab`.
 
+**Gmail files:** `MailBrowsePanel.tsx` → `useMailBrowseStore` →
+`ProfiledMailDocumentsPanel.tsx` → `useMailDocumentsStore` → the same `ProfilingJobsTab`.
+
 ### The source list
 
-Left column, one card per connected source. **The `source_id` leads and the name
+Left column, one card per connected source **that carries a catalogue** — the list filters
+on the served `profilable`, and the sources it leaves out are counted in a sentence below
+it, because a list that is merely shorter is not a message. What it leaves out is the four
+stubbed connectors; all three real ones are catalogued.
+
+**The nouns on this page are declared per connector, in `src/data/catalogUnits.ts`.** It
+described itself with nine `isDrive ? a : b` ternaries — two tiles of labels, two of counts,
+both button labels, both panel keys, the list meta and the foot sentence — and each `false`
+branch drew a mailbox as a BigQuery project, so a reader would have been told a mailbox had
+"0 tables profiled" in a "GCP project". The fallback for an unknown kind is **`null`, never
+another connector's row**: such a source is left out and counted, because a default that
+misidentifies is worse than one that is plain.
+ **The `source_id` leads and the name
 the user gave rides beside it as a neutral tag** (`cat-source-name`) — the id is
 what every action acts on, but `bigquery:vrio-contextweave-demo` is not what
 anyone is scanning for. Same pairing in the detail header. Now that a name is
@@ -476,7 +506,7 @@ instruction for a state the reader is not in. `browseOpen` / `dictionaryOpen` ar
 *derived* from `panel`; a second piece of state beside it is how a button comes to look
 open with nothing under it.
 
-`check-docs` asserts the removal on all four panels at once (no `CloseOutlined`, no
+`check-docs` asserts the removal on all six panels at once (no `CloseOutlined`, no
 `onClose`), because half of it is worse than all of it: a ✕ wired to a prop nobody
 passes is a button that does nothing.
 
@@ -502,42 +532,95 @@ is `doc_type_label · linked_entity` — what the file *is*
 never synthesised: it is the join to the structured side, and a hash must not
 invent it.
 
+`GET /sources/:id/browse-mail-documents` is the Gmail twin, and it is **three levels**:
+the labels the wizard picked, the messages under each, and **the documents attached to
+those messages** — which is what a run acts on. Leaf keys encode `label::document`; a
+message carries no key of its own, because it is a container. Its line is the
+correspondent and the date, named by *direction* since "from" on a sent message is the
+reader themselves, and it states its document count — **`no attachments` where it has
+none**, rather than being dropped, because which mail carries documents is most of what
+the panel is read for. Such a row is also not `checkable`: antd would let it be ticked
+and the run would receive nothing for it, which reads as a selection that was ignored.
+
+One message sits under exactly one label even though Gmail's overlap: a profiled record
+is keyed `{parent_id, object_id}` with the label as parent, so a message reachable under
+two would put its documents in reach of both and commit twice. The others it carries are
+on the row.
+
+**And the wizard's attachments toggle decides whether there is anything here at all** —
+it was recorded and not acted on until documents became the unit. `attachments_in_scope`
+is served rather than left to be inferred from an empty tree, because a source connected
+with attachments excluded looks exactly like a mailbox that carries none: one is a
+decision with a remedy and the other is a fact about the mail. The panel draws the
+difference and the profile route refuses such a source naming the decision.
+
 Ask the wrong one and you get a **400 naming the right endpoint**, not an empty
 tree — an empty tree reads as "nothing to profile" and sends you debugging the
-allowlist. Same for `columns` vs `documents`, and `profile` vs
-`profile-documents`.
+allowlist. Same for `columns` vs `documents` vs `mail-documents`, and `profile` vs
+`profile-documents` vs `profile-mail-documents`. Nine guards, one declaration:
+`CATALOGUE_ROUTES` in `server.js` says which routes each kind answers on and
+`wrongConnector` reads it, because at three connectors a pair of names written into each
+guard stopped working — that is exactly how a mailbox came to get the empty dataset list.
+Its `holds` nouns are qualified (*drive documents* / *mail documents*) because both hold
+documents and "holds documents, not documents" names nothing.
 
 ### Start Profiling
 
 ```
 POST /sources/:id/profile             →  202 Accepted, job status "queued"
 POST /sources/:id/profile-documents   →  202 Accepted, job status "queued"
+POST /sources/:id/profile-mail-documents  →  202 Accepted, job status "queued"
 ```
 
 **It does not do the work.** The response is a queued job. The server then walks
 it through five stages on timers — which five depends on the connector, because
-extracting text from a PDF is not sampling a column:
+extracting text from a PDF is not sampling a column, and grouping a thread is
+neither:
 
 ```
-queued                          queued
-  → 1/5 Schema fetch              → 1/5 Text extraction
-  → 2/5 Statistics sampling       → 2/5 Chunking
-  → 3/5 Class inference           → 3/5 Entity extraction
-  → 4/5 PII detection             → 4/5 Document PII detection
-  → 5/5 Candidate keys            → 5/5 Topic classification
-complete                        complete
+queued                      queued                          queued
+  → 1/5 Schema fetch          → 1/5 Text extraction           → 1/5 Attachment fetch
+  → 2/5 Statistics sampling   → 2/5 Chunking                  → 2/5 Text extraction
+  → 3/5 Class inference       → 3/5 Entity extraction         → 3/5 Entity extraction
+  → 4/5 PII detection         → 4/5 Document PII detection    → 4/5 Document PII detection
+  → 5/5 Candidate keys        → 5/5 Topic classification      → 5/5 Topic classification
+complete                    complete                        complete
 ```
 
-Both are **five stages on purpose**, so a job row reads the same either way.
+All three are **five stages on purpose**, so a job row reads the same whichever
+connector ran it.
+
+**A re-run from the jobs board switches on `job.kind`** rather than testing for one:
+while there were two connectors, `kind === 'gdrive'` and "everything else" coincided, and
+that `else` names BigQuery's endpoint *and* its field names — so a mail job re-run down it
+posted `{dataset_id, table_id}` to `/profile` and got *"holds messages, not tables"* back.
+An unhandled kind says so instead of picking a door.
 
 Objects are committed to the source as stages pass, so `profiled_tables` /
-`profiled_columns` — or `profiled_documents` / `profiled_entities` — climb
-*during* the run rather than jumping at the end.
+`profiled_columns` — or `profiled_documents` / `profiled_entities` for **both** unstructured
+connectors — climb *during* the run rather than jumping at the end. Mail reports documents in
+the same fields a drive does, because they are the same unit; a `profiled_messages` beside
+them was two fields for one noun. A count is `null` on a connector that has no such unit,
+never `0`: `profiled_documents: 0` on a BigQuery source would say a project holds no
+documents rather than that documents are not what it holds.
+
+**And `profiled_today` rides beside them, with the date it means.** One function,
+`profiledToday`, reads the real `profiled_at` stamps `commitNextObject` wrote and counts
+the ones filed under today — so it is a count of runs, not a synthesised figure, and a forced
+re-run moves the stamp, so re-profiling today counts today. **One definition and one reader**:
+it is Gmail's fourth tile, and the mail dictionary deliberately does not compute it again. The
+boundary is *served* (`profiled_today_date`) because it is the server's day: a tile saying
+"today" over a box in another timezone is a claim the reader cannot check, and a component
+reading its own clock would disagree with it by a day.
 
 A job's work list is `objects`, never `tables`: `{parent_id, object_id, label,
-units, state}`, plus `unit: 'table' | 'document'` and `kind` on the job. One
-board shows runs from both connectors, and `unit` is what it prints. A re-run
-sends the objects back to the endpoint the job's `kind` came from.
+units, state}`, plus `unit: 'table' | 'document'` and `kind` on the job. One board shows runs
+from all three connectors, and `unit` is what it prints — **three kinds, two units**, because
+Drive and Gmail both profile documents and what differs is where the profiler found one. Both
+are declared once in `client.ts` (`PROFILE_KINDS`, `PROFILE_UNITS`) so the TypeScript union and
+the `oneOf` schema cannot disagree — the `OAUTH_PROVIDERS` bug, where a widened union with an
+unwidened schema refused a correct payload and blamed the server. A re-run sends the objects
+back to the endpoint the job's `kind` came from.
 
 Two behaviours that look like bugs but are not:
 
@@ -550,7 +633,7 @@ Two behaviours that look like bugs but are not:
 - If everything selected is already profiled, the job completes instantly with
   `nothing to profile` instead of faking a 12-second run — **and that outcome is a
   question, not a notice.** `profilingOutcome` (`src/data/profilingOutcome.ts`,
-  shared by both panels so they differ only by the noun) turns it into a confirm
+  shared by all three panels so they differ only by the noun) turns it into a confirm
   that **names the objects** — `2 table(s) already profiled: route_segments and
   transporter_manifests.` — says what re-profiling does (re-reads them, replaces
   what the profiler wrote, in place), and puts `force: true` behind its OK.
@@ -709,6 +792,74 @@ over the document's chunk count (`pages × 2.5`). The resolved entity is reporte
 in its own row rather than dropped into that list, because a fact that was read and
 a fact that was hashed must not sit in the same column looking alike —
 `check-docs`-adjacent coverage asserts no `FAC:` id appears among the entities.
+
+---
+
+### The mail document dictionary — the same idea, on what arrived by email
+
+**Files:** `ProfiledMailDocumentsPanel.tsx` → `useMailDocumentsStore` →
+`GET /sources/:id/mail-documents` → `mailDocumentDictionary()` in `server.js`
+
+Facet chips (All / Needs review / PII, then one per **label**), then labels → collapsible
+document cards → the entity table: `ENTITY · TYPE · CLASS · PII · OCCURRENCES · COVERAGE`.
+Each card head carries the file kind through the shared `fileKind()`, the filename, **the
+message it arrived on** and the correspondent — named by direction, since "from" on a sent
+message is the reader.
+
+**The unit is the attached document, not the message.** A mailbox's documents are the files
+that arrived in it; the mail is the container, and nothing samples a message body. That is
+why the card names its message at all: a document in a mailbox is not self-locating the way
+one in a folder is, the corpus reuses filename stems, and who sent it is how a reader tells
+two `signed-agreement.pdf`s apart.
+
+**Its type chips are Gmail's labels, so there is no `DOC_TYPE_LABEL` twin to keep in step.**
+A drive document's kind is a slug that has to be given a label somewhere; a mail document's
+grouping *is* the label its message was filed under, which is real data with a name of its
+own. The keys come from the source's **allowlist** rather than from the profiled subset, so
+the chips do not appear and disappear as profiling progresses — a label with nothing profiled
+yet reads as 0 of something real, exactly as the drive dictionary's do.
+
+**Each card says the document resolved *nothing*, and that is the one real difference from a
+drive's.** A drive document's resolution is the point of profiling a filing. Mail is a runtime
+source, so `mailDocumentDictionary` carries **`observation: true`** and the row reads *read at
+question time — these extractions are observations about subjects the graph already holds, and
+none of them becomes a graph element.* A resolved node here would be the fact-set merge this
+connector exists not to make, arriving quietly through the catalogue. It is a **sentence rather
+than a blank** for the same reason a drive document that resolved to nothing gets one: a reader
+comparing the two dictionaries would otherwise read the absence as a resolution that failed.
+
+Everything else mirrors the drive dictionary and should not be "fixed" apart from it:
+
+- **The facets count documents, not entities.** A document is the unit a curator reviews, so
+  `all` is the profiled-document count and `pii` counts documents holding at least one PII
+  entity.
+- **The editable note is the document's `summary`.** `PATCH /sources/:id/mail-documents` stores
+  it against `label.document` and flips `summary_status`, which decrements **Needs review**.
+  Extracted entities are read-only machine output.
+- **The entity list is synthesised** from `document_vocabulary` — the same pool, because what an
+  extractor pulls out of a signed agreement does not depend on whether it arrived in a drive or
+  an inbox — sliced by hashing the document id, with `coverage_pct` over `chunks`
+  (`size_kb / 40`), since an attachment states no page count.
+
+**Today's count is deliberately not on this payload.** It is Gmail's fourth **tile**, read off
+`sourceRow`, and `profiledToday` is its one definition; counting it again in this handler would
+be a second implementation of one figure with no second reader — the duplication that lets two
+surfaces answer one question differently.
+
+**The corpus behind all of it is synthesised, and four things in it are not.** No dataset ships
+a message or an attachment — `findMailbox` derives the address, the name and Gmail's six labels
+from `settings.users` — so `mailboxMessages` and `attachedDocuments` synthesise them by hashing
+ids, deterministically. What is not invented: the **people** are `settings.users` (a mailbox
+full of colleagues nobody has heard of puts strangers in the tenant directory — the objection
+that deleted the `mailboxes` key); the **labels** are Gmail's own; the **dates** are anchored to
+the source's `registered_at` rather than `Date.now()`, since mail predates the connection that
+read it; and the **file kinds** are ones `fileKind()` renders (`application/pdf`, `text/csv`,
+`text/plain`), because an Office mime type would arrive on a chip as
+`VND.OPENXMLFORMATS-OFFICEDOCUMENT.SPREADSHEETML.SHEET`. `MAIL_SUBJECTS` and
+`MAIL_DOCUMENT_STEMS` are authored in `server.js` beside `GMAIL_LABELS` and are deliberately
+administrative and dataset-neutral: a subject or filename naming hazardous waste would be a
+claim about EPA's mail that CAPEX's mailbox would repeat, and a figure in one would be content
+nothing has read. `check-docs` asserts the subject pool holds no address and no digit.
 
 ---
 
@@ -965,14 +1116,22 @@ they already have three is useless advice, so the step distinguishes them:
 | something profiled | the selection UI; the alert disappears |
 | a Gmail mailbox connected | selectable straight away, tagged `read at question time`, offering `All labels (N)` — see below |
 
-**A runtime source is the exception, and it is selectable without being profiled.**
-Gmail has no entry in `PROFILERS` and never will, so "profile it first" is advice nobody
-can act on — that refusal used to lock a connected mailbox out of the wizard entirely.
+**A runtime source is the exception, and it is selectable whatever its catalogue holds.**
 `RUNTIME_KINDS` names the kinds that are read *when a question needs them*; the server
 serves `runtime: true` on the row, its objects are the labels the wizard picked, and their
-`units` is **`null`** rather than 0 because nothing samples the mail and 0 would say a
-label is empty. The gate is now "has this source anything to point at", not "has it been
-profiled" — the old test put an error above a list whose one usable row sat underneath it.
+`units` is **`null`** rather than 0 because nothing about a label is sampled and 0 would say
+a label is empty. The gate is "has this source anything to point at", not "has it been
+profiled" — the old test put an error above a list whose one usable row sat underneath it,
+and it refused a mailbox with *"profile it in the Data Catalog first"*, advice that could
+not be acted on.
+
+**Mail has a profiler now, and none of the above changed** — which is the point of wording
+the gate that way. A mailbox's `object_count` here is still its labels, deliberately not the
+messages a profiler has landed: a real count would say the mail is derivable. So a fully
+profiled mailbox with nothing in scope is still 0, and a mailbox with labels and nothing
+profiled is still selectable. Had that refusal instead been fixed by testing "is there a
+profiler for this kind", it would now send a reader to the Data Catalog — where profiling
+the mail changes nothing about this step.
 
 **What it contributes is an answer, not an entity.** Step 6 derives nothing from it and
 states so (`runtime_sources` and `runtime_note` on the coverage payload, both now carried by
@@ -2460,9 +2619,31 @@ derives from a source.
 
 **A new connector**
 
-Entry in `data/connectors.ts` with its `fields`. `available: false` needs a
-`reason`. Making it real means a step-2 branch in the wizard and server support;
-`ConnectorIcon` needs a mark, or it falls back to BigQuery's.
+Entry in `data/connectors.ts` with its `fields`, and `profiles` declared. `available: false`
+needs a `reason`. Making it real means a step-2 branch in the wizard and server support;
+`ConnectorIcon` needs a mark, or the card draws no vendor logo.
+
+**Making a connector profilable** is six things, and each one fails a different silent way:
+
+1. Its pipeline in `PROFILERS` — five stages, so a job row reads the same as the others'.
+2. Its row in `CATALOGUE_ROUTES`, or its endpoints refuse every request naming no twin.
+   The boot stops on a pipeline with no routes, so this cannot be forgotten.
+3. Its branches in `commitNextObject` and `recount`, or a run commits nothing and the
+   counters never move.
+4. Its three endpoints — browse, profile, dictionary — each with a schema in `client.ts`
+   and a store slice, plus a `rerun` case in `useJobsStore` (an `else` there names
+   BigQuery's endpoint *and* its field names, so a missing case posts the wrong body).
+5. Its member in `PROFILE_KINDS`, and a member in `PROFILE_UNITS` **only if it profiles a new
+   kind of object** — one declaration drives the union and the `oneOf`, and widening one
+   without the other refuses a correct payload. Gmail added a kind and no unit: it profiles
+   documents, like Drive, and a second name for one thing is worse than none.
+6. Its row in `src/data/catalogUnits.ts`, or the Catalog leaves it out — which is the
+   deliberate behaviour, because drawing it in another connector's nouns would call a
+   mailbox a GCP project.
+
+If it is *also* read at question time, add it to `RUNTIME_KINDS` **and**
+`CATALOGUE_ONLY_KINDS`: the overlap is allowed and must be declared, and an undeclared one
+stops the boot.
 
 Google Drive is the worked example of making one real — copy its shape rather
 than inventing a third: `kind` on the record, its own preview/register/browse/

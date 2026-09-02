@@ -1,4 +1,4 @@
-import type { JobObject } from '../api/client'
+import type { JobObject, ProfileUnit } from '../api/client'
 
 /**
  * What a profiling run actually did, in words — and, when it did nothing, which objects it
@@ -16,8 +16,8 @@ import type { JobObject } from '../api/client'
  * capped at `NAMES_SHOWN`: a list of 40 documents is not a sentence, and **the cap is stated**
  * ("+ 34 more") rather than silently truncating, which is the rule the report charts follow.
  *
- * Shared by both browse panels rather than written twice: BigQuery skips tables and Drive skips
- * documents, and the only difference between the two is the noun.
+ * Shared by all three browse panels rather than written once each: BigQuery skips tables, Drive
+ * skips documents and Gmail skips messages, and the only difference between them is the noun.
  */
 
 /**
@@ -77,12 +77,16 @@ export type ProfilingOutcome =
     }
 
 /**
- * Reads a queued job's work list. `unit` is the connector's noun — `table` or `document` — and is
- * the only thing that differs between the two panels.
+ * Reads a queued job's work list. `unit` is the connector's noun and is the only thing that
+ * differs between the panels.
+ *
+ * Typed as `ProfileUnit` rather than as a union written again here: the nouns are the job's own,
+ * declared once in `client.ts` beside the schema that checks them, so a fourth connector cannot
+ * arrive with a noun this module refuses to describe.
  */
 export function profilingOutcome(
   objects: JobObject[],
-  unit: 'table' | 'document',
+  unit: ProfileUnit,
   shortId: string,
 ): ProfilingOutcome {
   const queued = objects.filter((o) => o.state === 'pending')

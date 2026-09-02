@@ -47,10 +47,13 @@
  *   DELETE /sources/:sourceId
  *   GET    /sources/:id/browse             allowlisted datasets + their tables
  *   GET    /sources/:id/browse-documents   allowlisted folders + their documents
+ *   GET    /sources/:id/browse-mail-documents   labels + messages + the documents attached
  *   POST   /sources/:id/profile            { objects: [{dataset_id, table_id}], force }
  *   POST   /sources/:id/profile-documents  { objects: [{folder_id, document_id}], force }
+ *   POST   /sources/:id/profile-mail-documents { objects: [{label_id, document_id}], force }
  *   GET    /sources/:id/columns            profiled columns
  *   GET    /sources/:id/documents          profiled documents + extracted entities
+ *   GET    /sources/:id/mail-documents         profiled mail documents + entities, today's count
  *   GET    /profiling-jobs
  *   GET    /change-signals
  *   GET    /graph-domains                  step 1 options, ranked by real fit
@@ -334,6 +337,64 @@ const OAUTH_SCOPES = {
  * heading was right and the data was wrong.
  */
 const GMAIL_LABELS = ['IMPORTANT', 'INBOX', 'SENT', 'STARRED', 'UNREAD', 'YELLOW_STAR']
+
+/**
+ * Subject lines the mail profiler's synthesised corpus draws on.
+ *
+ * Authored here, beside the labels, for the reason `DOC_TYPE_LABEL` is: a mailbox ships no
+ * message corpus in any dataset's document, so a message is synthesised the way a column
+ * and a document entity already are — deterministically, from a declared vocabulary.
+ *
+ * **Deliberately administrative and dataset-neutral.** A subject naming hazardous waste
+ * would be a claim about EPA's mail that CAPEX's mailbox would then repeat, and a figure or
+ * an entity inside a subject line is content this server has never read. What a subject may
+ * carry is the shape of correspondence — a request, an approval, a roll-up — which is true
+ * of any mailbox. The *people* are never drawn from here: they come from `settings.users`,
+ * so the corpus cannot invent somebody the tenant directory has never heard of.
+ */
+const MAIL_SUBJECTS = [
+  'Weekly status roll-up',
+  'Re: sign-off needed',
+  'Document request',
+  'Action required before close of week',
+  'Meeting notes and follow-ups',
+  'Re: revised figures attached',
+  'Approval request',
+  'Schedule change notice',
+  'Re: outstanding items',
+  'Quarterly review pack',
+  'Fwd: correspondence for the record',
+  'Clarification on the submitted numbers',
+]
+
+/**
+ * The attached documents the corpus draws on — a stem and a kind, combined into a filename.
+ *
+ * **The kinds are ones `fileKind()` already renders**, which is why they are `pdf`, `csv` and
+ * `text/plain` and not an Office mime type: the browse tree and both dictionaries label a file
+ * through that one helper, so a `.xlsx` would arrive as
+ * `VND.OPENXMLFORMATS-OFFICEDOCUMENT.SPREADSHEETML.SHEET` on a chip. Sharing the helper is also
+ * what stops one mime type reading `DOCUMENT` in a drive and `GDOC` in a mailbox.
+ *
+ * The stems are administrative and dataset-neutral for the reason `MAIL_SUBJECTS` is: a filename
+ * naming a manifest would be a claim about EPA's mail that CAPEX's mailbox would then repeat.
+ */
+const MAIL_DOCUMENT_STEMS = [
+  'signed-agreement',
+  'rate-schedule',
+  'meeting-minutes',
+  'status-summary',
+  'revised-figures',
+  'submitted-return',
+  'approval-record',
+  'correspondence-log',
+]
+
+const MAIL_DOCUMENT_KINDS = [
+  { suffix: 'pdf', mime: 'application/pdf' },
+  { suffix: 'csv', mime: 'text/csv' },
+  { suffix: 'txt', mime: 'text/plain' },
+]
 
 const LIVE_SHAPE = {
   registered: 'map',
@@ -795,6 +856,37 @@ const readJson = (req) =>
   })
 
 /**
+ * A date as `YYYY-MM-DD` in the **server's own** timezone.
+ *
+ * Not `toISOString().slice(0, 10)`, which is UTC: east of Greenwich that names yesterday for
+ * the first hours of the working day, so a run committed this morning would not be counted
+ * as today's. The stamps themselves stay ISO/UTC — an instant has one spelling — and only
+ * the day a run is *filed under* is local.
+ */
+const localDateKey = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+/**
+ * How many of this source's objects were profiled today, across whichever unit it holds.
+ *
+ * One definition for all three connectors rather than a count inside each branch: "profiled
+ * today" is one question, and a per-kind copy is how the tile and the dictionary come to
+ * disagree about it. A forced re-run *moves* `profiled_at`, so re-profiling an object today
+ * counts it today — which is the honest reading, since a run did happen.
+ */
+function profiledToday(source) {
+  const today = localDateKey(new Date())
+  const records = [
+    ...(source.profiled ?? []),
+    ...(source.profiled_docs ?? []),
+    ...(source.profiled_mail_docs ?? []),
+  ]
+  return records.filter(
+    (p) => p.profiled_at && localDateKey(new Date(p.profiled_at)) === today,
+  ).length
+}
+
+/**
  * A registered source, shaped for the Sources table.
  *
  * Every profiled_* counter deliberately starts at 0: registration is instant,
@@ -806,6 +898,7 @@ const readJson = (req) =>
  */
 function sourceRow(source) {
   const isDrive = source.kind === 'gdrive'
+  const isMail = source.kind === 'gmail'
   return {
     source_id: source.source_id,
     source_name: source.source_name,
@@ -824,10 +917,36 @@ function sourceRow(source) {
     connected_at: source.registered_at,
     profiled_tables: source.profiled_tables ?? 0,
     profiled_columns: source.profiled_columns ?? 0,
-    profiled_documents: isDrive ? (source.profiled_documents ?? 0) : null,
-    profiled_entities: isDrive ? (source.profiled_entities ?? 0) : null,
+    /*
+     * **Mail reports documents in this same field**, because they are the same unit: a file
+     * somebody attached and a file somebody filed are both documents, and a `profiled_messages`
+     * beside this was two fields for one noun — which is how a tile and a dictionary come to
+     * disagree about a count. It stays `null` on a connector that has no such unit, never `0`,
+     * for the reason the browse schema learned from CAPEX's uncounted rows: `0` would say a
+     * project holds no documents rather than that documents are not what it holds.
+     */
+    profiled_documents: isDrive || isMail ? (source.profiled_documents ?? 0) : null,
+    /* Both kinds extract entities, so this one is shared rather than branched twice. */
+    profiled_entities:
+      isDrive || isMail ? (source.profiled_entities ?? 0) : null,
+    /*
+     * How many of this source's objects were profiled **today**, with the date that answers
+     * "today" beside it.
+     *
+     * Computed from the `profiled_at` stamps `commitNextObject` really wrote, so it is a
+     * count of runs rather than a synthesised figure — the one number on a mail profile that
+     * is not derived from a hash. The boundary is *stated* because the server's day and the
+     * reader's need not be the same one: a tile reading "4 profiled today" over a box in
+     * another timezone is a claim the reader cannot check, and `profiled_today_date` is what
+     * makes it checkable.
+     */
+    profiled_today: profiledToday(source),
+    profiled_today_date: localDateKey(new Date()),
     datasets: source.datasets ?? [],
     folders: source.folders ?? [],
+    /* Mail's allowlist, beside the other two rather than left to be parsed out of `scope` —
+       which is a sentence for a table cell and not a number anything can count. */
+    labels: source.labels ?? [],
     kind: source.kind,
     /*
      * Whether this source carries a catalogue at all — derived from whether a profiler exists for its
@@ -2332,6 +2451,251 @@ function documentDictionary(source, folderId, doc) {
   }
 }
 
+/**
+ * The mailbox's message corpus, synthesised — because no dataset ships one.
+ *
+ * A drive's documents are *read* from `drive.folders[].documents[]`; a project's tables are
+ * read from its profile. A mailbox has neither: `findMailbox` derives the address, the name
+ * and Gmail's six labels from `settings.users`, and nothing anywhere holds a message. So the
+ * corpus is synthesised the way `synthesiseColumns` and `documentDictionary`'s entity list
+ * are — deterministically, by hashing ids, so repeat requests agree and a browse taken twice
+ * lists the same mail.
+ *
+ * Three things it does **not** invent, each for a reason this repo states elsewhere:
+ *
+ * - **The people are the directory's.** `from` and `to` are `settings.users`, never a name
+ *   from a vocabulary, because a mailbox holding correspondence with five colleagues nobody
+ *   has heard of puts five people into the console that the tenant directory has never seen
+ *   — the objection that deleted the `mailboxes` key and the one `seed:capex-drive` keeps.
+ * - **The labels are Gmail's.** A message's primary label is one the wizard actually picked;
+ *   the rest come from `GMAIL_LABELS`, since a message carries whatever labels it has
+ *   regardless of what was connected.
+ * - **The dates are anchored to the registration**, not to `Date.now()`. Mail predates the
+ *   connection that read it, and an anchor that moves would relist the corpus differently
+ *   every day while claiming to be deterministic.
+ *
+ * **One message sits under exactly one label**, which is a modelling decision rather than a
+ * simplification worth hiding. Gmail's labels genuinely overlap — a message is INBOX *and*
+ * UNREAD *and* IMPORTANT — but a profiled record is keyed `{parent_id, object_id}`, and the
+ * parent here is the label: a message reachable under two labels would put its documents in
+ * reach of both, so profiling from each would commit twice and double `profiled_documents`
+ * while `profiled_at` still moved — the exact double-count `commitNextObject` updates in place
+ * to avoid. So the label a message is *filed under* here is its primary one, and every other
+ * label it carries is stated on it as `labels`.
+ */
+/**
+ * The documents attached to one message — synthesised, deterministic by message id.
+ *
+ * Called with the message's own seed so a re-read produces the same files, and kept as its own
+ * function rather than inlined because the browse tree, the dictionary and the profile validator
+ * all need to resolve the same list: three copies of a hash is three corpora.
+ */
+function attachedDocuments(messageId, seed) {
+  /* About a third of messages carry one, and a carrier may carry two. Deliberately not "every
+     message has one" — a message with nothing to profile is a state this tree has to show. */
+  if (seed % 3 !== 0) return []
+  const count = 1 + (seed % 2)
+
+  return Array.from({ length: count }, (_, i) => {
+    const s = hash(`${messageId}:doc:${i}`)
+    const stem = MAIL_DOCUMENT_STEMS[s % MAIL_DOCUMENT_STEMS.length]
+    const kind = MAIL_DOCUMENT_KINDS[s % MAIL_DOCUMENT_KINDS.length]
+    return {
+      /* Unique across the mailbox, because it carries the message it arrived on — so a profiled
+         record needs the label and this id and nothing else, and a job row's `object_id` is
+         still something a reader can recognise. */
+      document_id: `${messageId}-d${i + 1}`,
+      name: `${stem}.${kind.suffix}`,
+      mime_type: kind.mime,
+      size_kb: 12 + (s % 900),
+      /* What the profiler will extract — the document's `units`, exactly as a drive file's
+         entity count is. */
+      entities: 2 + (s % 7),
+    }
+  })
+}
+
+function mailboxMessages(source) {
+  const mailbox = source.mailbox
+  const directory = db.settings?.users ?? []
+  /* Correspondents are everybody but the owner; a directory of one leaves the owner as their
+     own correspondent rather than an empty `to` the panel would render blank. */
+  const others = directory.filter((u) => u.email !== mailbox)
+  const people = others.length > 0 ? others : directory
+  const owner = directory.find((u) => u.email === mailbox)
+  const anchor = Date.parse(source.registered_at ?? '') || Date.now()
+  /* The wizard's toggle, and the one place it is read. Absent on an older registration, which
+     is treated as in scope: the field was recorded long before it decided anything. */
+  const inScope = source.attachments !== false
+
+  return (source.labels ?? []).map((label) => {
+    const seed = hash(`${mailbox}:${label}`)
+    const count = 4 + (seed % 12)
+
+    const messages = Array.from({ length: count }, (_, i) => {
+      const s = hash(`${mailbox}:${label}:${i}`)
+      const messageId = `${label.toLowerCase().replace(/_/g, '-')}-${String(i + 1).padStart(3, '0')}`
+      const person = people[s % people.length]
+
+      /* SENT is the one label that says which way a message went, so it is read rather than
+         hashed: the owner sent it, and anything else arrived. */
+      const outbound = label === 'SENT'
+      const ownerAddress = owner?.email ?? mailbox
+
+      /* The other labels this message carries. Drawn from Gmail's own set, primary first,
+         and never more than three — a message tagged with all six says nothing. */
+      const extra = GMAIL_LABELS.filter(
+        (l) => l !== label && hash(`${messageId}:${l}`) % 4 === 0,
+      ).slice(0, 2)
+
+      /* Threads group two or three messages, so "Re:" on a subject has something behind it. */
+      const threadSlot = Math.floor(i / (2 + (seed % 2)))
+
+      return {
+        message_id: messageId,
+        thread_id: `${label.toLowerCase().replace(/_/g, '-')}-t${String(threadSlot + 1).padStart(2, '0')}`,
+        subject: MAIL_SUBJECTS[s % MAIL_SUBJECTS.length],
+        from: outbound ? ownerAddress : person.email,
+        from_name: outbound ? (owner?.name ?? mailbox) : person.name,
+        to: outbound ? person.email : ownerAddress,
+        to_name: outbound ? person.name : (owner?.name ?? mailbox),
+        direction: outbound ? 'sent' : 'received',
+        label,
+        labels: [label, ...extra],
+        /* Back from the registration, never forward: mail this source read already existed. */
+        received: new Date(anchor - (s % 45) * 86400000 - (s % 17) * 3600000).toISOString(),
+        size_kb: 3 + (s % 120),
+        /*
+         * **The message's documents — what this connector actually profiles.**
+         *
+         * Roughly a third of messages carry one, which is what makes the tree worth walking:
+         * a mailbox where every message had an attachment would not show that a message with
+         * none has nothing to profile, and that is the fact the browse panel has to make
+         * visible. `attachments` is the count and stays on the message so a row can state it
+         * without opening; the documents themselves are the profiled objects.
+         *
+         * **Empty when the wizard put attachments out of scope.** That toggle used to be
+         * recorded and not acted on; now it decides whether this source has any documents at
+         * all, which is the honest reading once documents are the unit.
+         */
+        documents: inScope ? attachedDocuments(messageId, s) : [],
+        attachments: inScope ? attachedDocuments(messageId, s).length : 0,
+      }
+    })
+
+    return { label_id: label, message_count: messages.length, messages }
+  })
+}
+
+/**
+ * Every document in a mailbox, flattened with the message it arrived on.
+ *
+ * One walk, used by the browse tree, the dictionary and the profile validator, because three
+ * hashes of the same corpus is three corpora. Keyed by `document_id`, which carries its own
+ * message id, so a profiled record needs the label and this id and nothing more.
+ */
+function mailDocuments(source) {
+  const out = []
+  for (const group of mailboxMessages(source)) {
+    for (const msg of group.messages) {
+      for (const doc of msg.documents) {
+        out.push({ label_id: group.label_id, message: msg, document: doc })
+      }
+    }
+  }
+  return out
+}
+
+/** One document by id, within a label. Null for one this source's scope does not reach. */
+const findMailDocument = (source, labelId, documentId) =>
+  mailDocuments(source).find(
+    (d) => d.label_id === labelId && d.document.document_id === documentId,
+  ) ?? null
+
+/**
+ * What the mail profiler extracts from one attached document.
+ *
+ * The twin of `documentDictionary`, and it differs in exactly one way that matters: **a mail
+ * document has no `resolution`.** A drive file's is real — `document_extractions` records the
+ * graph node its extracted entity resolved to, which is the join that makes profiling a filing
+ * worth doing. Mail is a runtime source: an extraction from something that arrived in an inbox is
+ * an *observation*, a claim about a subject the graph already holds, resolved when a question
+ * needs it and never merged into the fact set. A resolved node here would be that merge arriving
+ * quietly through the catalogue, so the field is absent and `observation` says why in its place.
+ *
+ * The entity list is synthesised from `document_vocabulary` — the same pool a drive document draws
+ * on, because what an extractor pulls out of a signed agreement does not depend on whether it
+ * arrived in a drive or an inbox. The summary is the curator's, from `mail_document_notes`, and is
+ * the unit reviewed here for the reason a drive document's summary is.
+ *
+ * **It carries the message it arrived on.** A document in a mailbox is not self-locating the way
+ * one in a folder is: who sent it and when is how a reader recognises it, and the filename alone
+ * (`signed-agreement.pdf`) would be ambiguous across a corpus that reuses stems.
+ */
+function mailDocumentDictionary(source, labelId, msg, doc) {
+  const vocab = db.document_vocabulary
+  const offset = hash(doc.document_id) % vocab.length
+  const notes = source.mail_document_notes ?? {}
+  /* Chunked off its size, since an attachment states no page count. */
+  const chunks = Math.max(1, Math.round(doc.size_kb / 40))
+
+  // Suffixed on collision within this document, for the reason tableDictionary explains.
+  const used = new Map()
+
+  const entities = Array.from({ length: doc.entities }, (_, i) => {
+    const v = vocab[(offset + i) % vocab.length]
+    const seen = (used.get(v.name) ?? 0) + 1
+    used.set(v.name, seen)
+    const entityId = seen > 1 ? `${v.name}_${seen}` : v.name
+    const seed = hash(`${doc.document_id}:${entityId}`)
+
+    const occurrences =
+      v.class === 'identifier' ? 1 + (seed % 2) : Math.max(1, (seed % 5) + 1)
+
+    return {
+      entity_id: entityId,
+      type: v.type,
+      class: v.class,
+      confidence: v.confidence,
+      pii: Boolean(v.pii),
+      occurrences,
+      coverage_pct: Number(Math.min(100, (occurrences / chunks) * 100).toFixed(1)),
+    }
+  })
+
+  const key = `${labelId}.${doc.document_id}`
+  const summary = notes[key] ?? null
+
+  return {
+    document_id: doc.document_id,
+    name: doc.name,
+    mime_type: doc.mime_type,
+    size_kb: doc.size_kb,
+    label: labelId,
+    /* The message it arrived on — the mail equivalent of a folder path. */
+    message_id: msg.message_id,
+    subject: msg.subject,
+    from: msg.from,
+    from_name: msg.from_name,
+    to: msg.to,
+    to_name: msg.to_name,
+    direction: msg.direction,
+    received: msg.received,
+    chunks,
+    entity_count: entities.length,
+    pii_count: entities.filter((e) => e.pii).length,
+    /*
+     * Said on every document rather than inferred from the absent resolution: an extraction from
+     * mail is a claim resolved at question time. A reader looking at a catalogue of entities is
+     * owed the difference between this and a drive document's resolved node.
+     */
+    observation: true,
+    summary,
+    summary_status: summary ? 'described' : 'needs review',
+    entities,
+  }
+}
+
 /*
  * The Metadata Profiler pipelines. A job is queued, then walks the stages of
  * its connector one at a time, committing profiled objects as it goes — so the
@@ -2356,6 +2720,29 @@ const DOC_PIPELINE = [
   'Topic classification',
 ]
 
+/*
+ * The mail profiler. Five stages, like the other two, so a job row reads the same on one board.
+ *
+ * **What it profiles is the attachment, not the message.** A mailbox's *documents* are the files
+ * that arrived in it; the mail itself is the container they came in, and nothing samples a message
+ * body. So the tree is one level deeper than a drive's — label → message → document — and a
+ * message carrying no attachment has nothing here to profile at all.
+ *
+ * That makes the wizard's attachments toggle **load-bearing**, where it used to be recorded and
+ * not acted on: a source connected with attachments out of scope has no documents, which the
+ * browse panel says in words rather than showing an empty tree.
+ *
+ * The stages are a document's work as a result, and the last three are Drive's own — what an
+ * extractor does to a PDF does not depend on whether it arrived in a drive or an inbox.
+ */
+const MAIL_PIPELINE = [
+  'Attachment fetch',
+  'Text extraction',
+  'Entity extraction',
+  'Document PII detection',
+  'Topic classification',
+]
+
 /**
  * Which kinds of source there is a profiler for, and the pipeline each one runs.
  *
@@ -2365,7 +2752,7 @@ const DOC_PIPELINE = [
  * Catalog reads this through `sourceRow`, so a source with no profiler is left out of the catalogue
  * rather than listed with two disabled buttons and no explanation.
  */
-const PROFILERS = { bigquery: PIPELINE, gdrive: DOC_PIPELINE }
+const PROFILERS = { bigquery: PIPELINE, gdrive: DOC_PIPELINE, gmail: MAIL_PIPELINE }
 
 /** Whether the profiler has anything to run against a source of this kind. */
 const isProfilable = (kind) => Object.hasOwn(PROFILERS, kind)
@@ -2374,10 +2761,9 @@ const isProfilable = (kind) => Object.hasOwn(PROFILERS, kind)
  * The connectors that are read *at question time* rather than profiled into the graph.
  *
  * Declared beside `PROFILERS` rather than as a second list of connector names kept
- * somewhere else, because the two answer one question between them: a kind either has a
- * profiler — its objects become graph elements — or it is runtime, and its objects are
- * read when a question needs them. Nothing may be both, which is why `LIVE_SHAPE`-style
- * membership is asserted rather than assumed.
+ * somewhere else, because the two answer one question between them: what a source's
+ * objects *become*. A profiled source's become graph elements; a runtime source's are read
+ * when a question needs them.
  *
  * Gmail is the one runtime kind, and the query set states the rule in its own words:
  * *"A runtime source is read when a question needs it and never on a schedule. Nothing it
@@ -2389,14 +2775,148 @@ const isProfilable = (kind) => Object.hasOwn(PROFILERS, kind)
  */
 const RUNTIME_KINDS = new Set(['gmail'])
 const isRuntimeSource = (kind) => RUNTIME_KINDS.has(kind)
-/* A kind that both profiles and is read at question time would make "where did this
-   figure come from" unanswerable. Refused at boot rather than discovered on a graph. */
+
+/**
+ * The kinds that are profiled **for the catalogue only** — they carry a pipeline *and* are
+ * read at question time.
+ *
+ * This overlap used to be refused outright: the two maps were asserted disjoint at boot,
+ * on the reasoning that a connector doing both makes "where did this figure come from"
+ * unanswerable. That reasoning is about the **graph**, and it is `selectedProfiledObjects`
+ * that carries it — it skips a runtime source *by name*, so nothing a mail profiler lands
+ * can reach step 6's derivation however much of it there is. A mailbox having a catalogue
+ * says what was read out of the mail; it says nothing about what the graph asserts.
+ *
+ * So the overlap is permitted and **declared**, which is the part that matters. An
+ * undeclared one is the failure the original assert was really catching: a kind that
+ * quietly gained a pipeline would start contributing a catalogue nobody decided it should
+ * have, and the symptom is a Data Catalog row rather than an error. Both drift directions
+ * are refused below — an overlap missing from this set, and an entry here that no longer
+ * overlaps (a waiver that waives nothing, exactly as the audit gate nags about).
+ *
+ * What keeps the graph guarantee is asserted where it lives: `check-docs` reads the
+ * `isRuntimeSource` skip out of `selectedProfiledObjects` rather than trusting this note.
+ */
+const CATALOGUE_ONLY_KINDS = new Set(['gmail'])
+
 for (const kind of RUNTIME_KINDS) {
-  if (isProfilable(kind)) {
+  if (isProfilable(kind) && !CATALOGUE_ONLY_KINDS.has(kind)) {
     throw new Error(
-      `${kind} is in RUNTIME_KINDS and PROFILERS — a connector is profiled or read at question time, never both`,
+      `${kind} is in RUNTIME_KINDS and PROFILERS but not CATALOGUE_ONLY_KINDS — a runtime kind that profiles must declare that its catalogue is all it profiles for`,
     )
   }
+}
+for (const kind of CATALOGUE_ONLY_KINDS) {
+  if (!isProfilable(kind) || !isRuntimeSource(kind)) {
+    throw new Error(
+      `${kind} is in CATALOGUE_ONLY_KINDS but is not both profilable and runtime — remove it rather than leaving a declaration that declares nothing`,
+    )
+  }
+}
+
+/**
+ * Which catalogue routes each profilable kind answers on, and the noun it holds.
+ *
+ * **Every endpoint refuses the other connectors' sources with a 400 that names its twin** —
+ * a rule this repo already stated for two connectors, where each guard could carry the other
+ * one's name inline. At three that stops working: the guards were written as
+ * `kind === 'gdrive'` / `kind !== 'gdrive'` pairs, so a mail source reaching `GET
+ * /sources/:id/browse` fell through to `browsableObjects`, which has no datasets to find and
+ * answered `{ datasets: [] }` — "nothing to profile", the exact reading the twin-naming rule
+ * exists to prevent, and it sends a reader to the allowlist instead of the call.
+ *
+ * So the pairing is declared once and `wrongConnector` reads it. A fourth profilable
+ * connector adds a row here rather than editing six predicates, and the boot check below
+ * refuses a kind that has a pipeline but no routes — which would otherwise refuse every
+ * request against it with "has no catalogue" while `profilable` said it had one.
+ */
+const CATALOGUE_ROUTES = {
+  bigquery: {
+    browse: 'browse',
+    profile: 'profile',
+    dictionary: 'columns',
+    holds: 'tables',
+    /* The allowlist route, which is a fourth act and the one mail has none of — see `wrongScope`. */
+    scope: 'datasets',
+    scopeUnit: 'datasets',
+  },
+  gdrive: {
+    browse: 'browse-documents',
+    profile: 'profile-documents',
+    dictionary: 'documents',
+    /* Qualified, because mail holds documents too: "holds mail documents, not documents" names
+       nothing, and a refusal that does not distinguish the two is no better than an empty tree. */
+    holds: 'drive documents',
+    scope: 'folders',
+    scopeUnit: 'folders',
+  },
+  gmail: {
+    browse: 'browse-mail-documents',
+    profile: 'profile-mail-documents',
+    dictionary: 'mail-documents',
+    /* Its own noun, and not bare "documents": both connectors hold documents, so a refusal
+       reading "holds documents, not documents" would name nothing. */
+    holds: 'mail documents',
+    /*
+     * **No allowlist route, and `null` says so rather than an absent key.**
+     *
+     * A mailbox's scope is its labels, and they are settled by the consent: the wizard picks them
+     * and there is nothing afterwards that changes them. So this is a route that does not exist
+     * rather than one nobody has called yet, and the refusal names the wizard instead of pointing
+     * at a twin the caller would find equally closed.
+     */
+    scope: null,
+    scopeUnit: 'labels',
+  },
+}
+
+for (const kind of Object.keys(PROFILERS)) {
+  if (!Object.hasOwn(CATALOGUE_ROUTES, kind)) {
+    throw new Error(
+      `${kind} has a profiler but no CATALOGUE_ROUTES entry — its catalogue endpoints would refuse every request naming no twin`,
+    )
+  }
+}
+
+/**
+ * Refuse a source this route does not serve, naming the endpoint that does.
+ *
+ * Returns the sentence, or `null` when the source belongs here. The message states what the
+ * source *holds* rather than what it is not, because "not a Drive source" tells a caller
+ * which door they used and not which one to use.
+ */
+function wrongConnector(source, servedKind, act, method = 'GET') {
+  if (source.kind === servedKind) return null
+  const twin = CATALOGUE_ROUTES[source.kind]
+  if (!twin) {
+    return `${source.source_id} carries no catalogue — ${source.connector} is connected but never profiled`
+  }
+  return `${source.source_id} holds ${twin.holds}, not ${CATALOGUE_ROUTES[servedKind].holds} — use ${method} /sources/${source.source_id}/${twin[act]}`
+}
+
+/**
+ * Refuse an allowlist write this route does not serve, naming what would work.
+ *
+ * The fourth act, kept apart from `wrongConnector` because it is the one where a twin may not
+ * exist: mail's scope is picked during the consent and no route changes it afterwards, so pointing
+ * a mailbox at the other connector's endpoint would be a remedy that fails the same way — the
+ * refusal-with-no-remedy this repo has already removed twice.
+ *
+ * **`PUT /datasets` had no kind guard at all**, which was harmless only while nothing else could
+ * reach it: a mail or Drive source fell through to `findProject(undefined)`, whose empty dataset
+ * list made every id "not present in undefined" — a message naming a project that does not exist.
+ */
+function wrongScope(source, servedKind) {
+  if (source.kind === servedKind) return null
+  const own = CATALOGUE_ROUTES[source.kind]
+  const served = CATALOGUE_ROUTES[servedKind]
+  if (!own) {
+    return `${source.source_id} has no allowlist — ${source.connector} discovers nothing to narrow`
+  }
+  if (own.scope === null) {
+    return `${source.source_id}'s scope is its ${own.scopeUnit}, which are settled by the consent — re-run the connect wizard to change them. There is no allowlist route for a ${source.connector} source.`
+  }
+  return `${source.source_id} holds ${own.scopeUnit}, not ${served.scopeUnit} — use PUT /sources/${source.source_id}/${own.scope}`
 }
 
 const pipelineFor = (job) => PROFILERS[job.kind] ?? PIPELINE
@@ -2453,6 +2973,15 @@ function recount(source) {
     source.profiled_entities = docs.reduce((s, p) => s + p.entities, 0)
     return
   }
+  if (source.kind === 'gmail') {
+    /* Counted as **documents**, in the same field a drive uses, because they are the same unit:
+       a file somebody attached and a file somebody filed are both documents, and two fields for
+       one noun is how a tile and a dictionary come to disagree. */
+    const docs = source.profiled_mail_docs ?? []
+    source.profiled_documents = docs.length
+    source.profiled_entities = docs.reduce((s, p) => s + p.entities, 0)
+    return
+  }
   source.profiled_tables = source.profiled.length
   source.profiled_columns = source.profiled.reduce((s, p) => s + p.columns, 0)
 }
@@ -2472,7 +3001,25 @@ function commitNextObject(job) {
    */
   const at = new Date().toISOString()
 
-  if (job.kind === 'gdrive') {
+  if (job.kind === 'gmail') {
+    source.profiled_mail_docs = source.profiled_mail_docs ?? []
+    const existing = source.profiled_mail_docs.find(
+      (p) => p.label_id === next.parent_id && p.document_id === next.object_id,
+    )
+    if (existing) {
+      existing.entities = next.units
+      existing.profiled_at = at
+    } else {
+      source.profiled_mail_docs.push({
+        label_id: next.parent_id,
+        /* The id carries its own message, so the label and this are the whole key — a third
+           part in `{parent_id, object_id}` is not expressible on a job's work list. */
+        document_id: next.object_id,
+        entities: next.units,
+        profiled_at: at,
+      })
+    }
+  } else if (job.kind === 'gdrive') {
     source.profiled_docs = source.profiled_docs ?? []
     const existing = source.profiled_docs.find(
       (p) => p.folder_id === next.parent_id && p.document_id === next.object_id,
@@ -5070,6 +5617,65 @@ function browsableDocuments(source) {
     folders,
     folder_count: folders.length,
     object_count: folders.reduce((sum, f) => sum + f.document_count, 0),
+  }
+}
+
+/**
+ * The documents a Gmail source may profile — label → message → document.
+ *
+ * **One level deeper than a drive's**, because a mailbox's documents arrive *on* something: the
+ * message is where a reader recognises a file from, so it is a level of the tree rather than a
+ * field on a leaf. A message carrying nothing is still listed, with `documents: []` — an absent
+ * row would say the message does not exist rather than that it has nothing to profile, and
+ * knowing which mail carries documents is most of what this panel is for.
+ *
+ * **And `attachments_in_scope` is served rather than inferred from an empty tree.** A source
+ * registered with attachments excluded has no documents at all, which looks exactly like a
+ * mailbox that happens to carry none — one is a decision the reader made in the wizard and the
+ * other is a fact about the mail, and only the first has a remedy.
+ */
+function browsableMailDocuments(source) {
+  const profiled = source.profiled_mail_docs ?? []
+  const labels = mailboxMessages(source).map((group) => ({
+    label_id: group.label_id,
+    /* Gmail's labels are their own names — there is no display name to look up the way a
+       folder or a dataset has one, which is why nothing is resolved here. */
+    name: group.label_id,
+    message_count: group.message_count,
+    document_count: group.messages.reduce((s, m) => s + m.documents.length, 0),
+    messages: group.messages.map((m) => ({
+      message_id: m.message_id,
+      thread_id: m.thread_id,
+      subject: m.subject,
+      from: m.from,
+      from_name: m.from_name,
+      to: m.to,
+      to_name: m.to_name,
+      direction: m.direction,
+      labels: m.labels,
+      received: m.received,
+      size_kb: m.size_kb,
+      document_count: m.documents.length,
+      documents: m.documents.map((d) => ({
+        document_id: d.document_id,
+        name: d.name,
+        mime_type: d.mime_type,
+        size_kb: d.size_kb,
+        entities: d.entities,
+        profiled: profiled.some(
+          (p) => p.label_id === group.label_id && p.document_id === d.document_id,
+        ),
+      })),
+    })),
+  }))
+  return {
+    labels,
+    label_count: labels.length,
+    message_count: labels.reduce((sum, l) => sum + l.message_count, 0),
+    /* The profilable objects, so the panel's footer counts what a run would act on rather than
+       the mail it had to walk to find them. */
+    object_count: labels.reduce((sum, l) => sum + l.document_count, 0),
+    attachments_in_scope: source.attachments !== false,
   }
 }
 
@@ -8033,10 +8639,16 @@ const routes = [
   /*
    * ---------------- Gmail: register for real ----------------
    *
-   * **Connected, and never profiled.** There is no entry for `gmail` in `PROFILERS`, so `sourceRow`
-   * reports `profilable: false` and the Data Catalog leaves it out and says why. That is the whole
-   * shape of this connector: it proves the credential reaches a mailbox and records what it was
-   * pointed at. Nothing samples the mail, so nothing here queues a profiling job.
+   * **Connected, and not yet profiled — which is every connector here.** Registering proves the
+   * credential reaches a mailbox and records what it was pointed at; profiling is a second act,
+   * started from the Data Catalog, exactly as it is for a project or a drive. So nothing here
+   * queues a job, and the profiled counters start at 0 for the reason they do everywhere else.
+   *
+   * What *is* particular to mail is what it profiles and where that profile may travel. The unit is
+   * the **attached document**, never the message — so `attachments` here is load-bearing rather than
+   * merely recorded, and a source registered with it false has nothing to profile. And `gmail` is in
+   * `PROFILERS` *and* `RUNTIME_KINDS`, so it carries a catalogue while nothing that catalogue holds
+   * becomes a graph element; `CATALOGUE_ONLY_KINDS` is where that pair is declared and checked.
    */
   {
     method: 'POST',
@@ -8314,6 +8926,11 @@ const routes = [
         profiled_columns: rows.reduce((s, r) => s + r.profiled_columns, 0),
         profiled_documents: rows.reduce((s, r) => s + (r.profiled_documents ?? 0), 0),
         profiled_entities: rows.reduce((s, r) => s + (r.profiled_entities ?? 0), 0),
+        /* Across every connector, for the reason `profiledToday` is one function: "profiled
+           today" is one question, and a per-kind total is how two surfaces come to answer it
+           differently. The date is stated once here rather than per row. */
+        profiled_today: rows.reduce((s, r) => s + (r.profiled_today ?? 0), 0),
+        profiled_today_date: localDateKey(new Date()),
       })
     },
   },
@@ -8328,13 +8945,11 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
-      // A Drive source has no datasets, so this would answer with an empty tree
-      // that reads as "nothing to profile" rather than "wrong endpoint".
-      if (source.kind === 'gdrive') {
-        return send(res, 400, {
-          error: `${sourceId} holds documents, not tables — use GET /sources/${sourceId}/browse-documents`,
-        })
-      }
+      /* A source of another kind has no datasets, so this would answer with an empty tree
+         that reads as "nothing to profile" rather than "wrong endpoint". Both other kinds:
+         the test used to name Drive alone, so a mailbox got the empty tree. */
+      const wrong = wrongConnector(source, 'bigquery', 'browse')
+      if (wrong) return send(res, 400, { error: wrong })
       send(res, 200, { source_id: sourceId, ...browsableObjects(source) })
     },
   },
@@ -8350,11 +8965,8 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
-      if (source.kind === 'gdrive') {
-        return send(res, 400, {
-          error: `${sourceId} holds documents, not tables — use POST /sources/${sourceId}/profile-documents`,
-        })
-      }
+      const wrong = wrongConnector(source, 'bigquery', 'profile', 'POST')
+      if (wrong) return send(res, 400, { error: wrong })
 
       const { objects, force } = await readJson(req)
       if (!Array.isArray(objects) || objects.length === 0) {
@@ -8415,11 +9027,8 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
-      if (source.kind !== 'gdrive') {
-        return send(res, 400, {
-          error: `${sourceId} is not a Drive source — use GET /sources/${sourceId}/browse`,
-        })
-      }
+      const wrong = wrongConnector(source, 'gdrive', 'browse')
+      if (wrong) return send(res, 400, { error: wrong })
       send(res, 200, { source_id: sourceId, ...browsableDocuments(source) })
     },
   },
@@ -8435,11 +9044,8 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
-      if (source.kind !== 'gdrive') {
-        return send(res, 400, {
-          error: `${sourceId} is not a Drive source — use POST /sources/${sourceId}/profile`,
-        })
-      }
+      const wrong = wrongConnector(source, 'gdrive', 'profile', 'POST')
+      if (wrong) return send(res, 400, { error: wrong })
 
       const { objects, force } = await readJson(req)
       if (!Array.isArray(objects) || objects.length === 0) {
@@ -8487,6 +9093,98 @@ const routes = [
     },
   },
 
+  // What "Browse documents for profiling" lists on a mailbox: the labels the wizard picked, the
+  // messages under each, and the documents attached to those messages.
+  {
+    method: 'GET',
+    match: (p) => /^\/sources\/.+\/browse-mail-documents$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/browse-mail-documents'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      const wrong = wrongConnector(source, 'gmail', 'browse')
+      if (wrong) return send(res, 400, { error: wrong })
+      send(res, 200, { source_id: sourceId, ...browsableMailDocuments(source) })
+    },
+  },
+
+  // The mail document profiler. Same job board, same five-stage shape, and its unit is
+  // `document` — the same noun a Drive run reports, because it is the same kind of object.
+  {
+    method: 'POST',
+    match: (p) => /^\/sources\/.+\/profile-mail-documents$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/profile-mail-documents'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      const wrong = wrongConnector(source, 'gmail', 'profile', 'POST')
+      if (wrong) return send(res, 400, { error: wrong })
+
+      const { objects, force } = await readJson(req)
+      if (!Array.isArray(objects) || objects.length === 0) {
+        return send(res, 400, { error: 'objects must be a non-empty array' })
+      }
+
+      /* Refused before the objects are checked, and named as the decision it is: with
+         attachments out of scope every id below would be "does not exist", which reads as a
+         stale browse rather than as a scope the reader chose in the wizard. */
+      if (source.attachments === false) {
+        return send(res, 400, {
+          error: `${sourceId} was connected with attachments out of scope, so it has no documents to profile — re-run the connect wizard to include them`,
+        })
+      }
+
+      /* Built once rather than per object: the corpus is synthesised, so a lookup per document
+         would rebuild every label's mail for each one picked. */
+      const corpus = new Map(
+        mailDocuments(source).map((d) => [`${d.label_id}/${d.document.document_id}`, d]),
+      )
+      const allowed = new Set(source.labels ?? [])
+      source.profiled_mail_docs = source.profiled_mail_docs ?? []
+
+      const work = []
+      for (const { label_id, document_id } of objects) {
+        if (!allowed.has(label_id)) {
+          return send(res, 400, {
+            error: `label ${label_id} is not in this source's allowlist`,
+          })
+        }
+        const found = corpus.get(`${label_id}/${document_id}`)
+        if (!found) {
+          return send(res, 400, {
+            error: `document ${label_id}/${document_id} does not exist`,
+          })
+        }
+
+        const already = source.profiled_mail_docs.some(
+          (p) => p.label_id === label_id && p.document_id === document_id,
+        )
+        work.push({
+          parent_id: label_id,
+          object_id: document_id,
+          /* The filename, because a reader picked it by that — the same choice the Drive
+             browse panel makes with `document.name`. */
+          label: found.document.name,
+          units: found.document.entities,
+          state: already && !force ? 'skipped' : 'pending',
+        })
+      }
+
+      const job = queueJob({
+        sourceId,
+        kind: 'gmail',
+        unit: 'document',
+        objects: work,
+        force,
+      })
+      send(res, 202, { job: jobView(job) })
+    },
+  },
+
   // Backs "View profiled columns" — grouped dataset → table → columns, with
   // the facet counts the filter chips display.
   {
@@ -8498,11 +9196,8 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
-      if (source.kind === 'gdrive') {
-        return send(res, 400, {
-          error: `${sourceId} has documents, not columns — use GET /sources/${sourceId}/documents`,
-        })
-      }
+      const wrong = wrongConnector(source, 'bigquery', 'dictionary')
+      if (wrong) return send(res, 400, { error: wrong })
 
       const project = findProject(source.project_id)
       const byDataset = new Map()
@@ -8619,11 +9314,8 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
-      if (source.kind !== 'gdrive') {
-        return send(res, 400, {
-          error: `${sourceId} is not a Drive source — use GET /sources/${sourceId}/columns`,
-        })
-      }
+      const wrong = wrongConnector(source, 'gdrive', 'dictionary')
+      if (wrong) return send(res, 400, { error: wrong })
 
       const drive = findDrive(source.drive_id)
       const byFolder = new Map()
@@ -8722,6 +9414,125 @@ const routes = [
       const key = `${folder_id}.${document_id}`
       if (summary) source.document_notes[key] = summary
       else delete source.document_notes[key]
+
+      send(res, 200, { key, summary: summary ?? null })
+    },
+  },
+
+  /*
+   * Backs "View profiled documents" on a mailbox — grouped label → document → entities.
+   *
+   * The facets count *documents*, as the Drive dictionary's do: a document is the unit a curator
+   * reviews, so "needs review" means a document with no summary.
+   *
+   * **Its type chips are the labels**, and that is why nothing here needs a `DOC_TYPE_LABEL` twin.
+   * A drive document's kind is a slug that has to be given a label somewhere; a mail document's
+   * container *is* the label Gmail filed its message under, which is real data with a name of its
+   * own. The keys come from the source's **allowlist** rather than from the profiled subset, so the
+   * chips do not appear and disappear as profiling progresses — a label with nothing profiled yet
+   * reads as 0 of something real.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/sources\/.+\/mail-documents$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/mail-documents'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      const wrong = wrongConnector(source, 'gmail', 'dictionary')
+      if (wrong) return send(res, 400, { error: wrong })
+
+      const corpus = new Map(
+        mailDocuments(source).map((d) => [`${d.label_id}/${d.document.document_id}`, d]),
+      )
+      const byLabel = new Map()
+      const facets = { all: 0, needs_review: 0, pii: 0 }
+      const labelFacets = (source.labels ?? []).map((label) => ({
+        key: label,
+        label,
+        count: 0,
+      }))
+      const labelFacetFor = new Map(labelFacets.map((f) => [f.key, f]))
+
+      for (const entry of source.profiled_mail_docs ?? []) {
+        const found = corpus.get(`${entry.label_id}/${entry.document_id}`)
+        if (!found) continue
+        const document = mailDocumentDictionary(
+          source,
+          entry.label_id,
+          found.message,
+          found.document,
+        )
+
+        facets.all += 1
+        if (document.summary_status === 'needs review') facets.needs_review += 1
+        if (document.pii_count > 0) facets.pii += 1
+        const bucket = labelFacetFor.get(entry.label_id)
+        if (bucket) bucket.count += 1
+
+        if (!byLabel.has(entry.label_id)) {
+          byLabel.set(entry.label_id, {
+            label_id: entry.label_id,
+            name: entry.label_id,
+            documents: [],
+          })
+        }
+        byLabel.get(entry.label_id).documents.push(document)
+      }
+
+      const labels = [...byLabel.values()].map((l) => ({
+        ...l,
+        document_count: l.documents.length,
+        entity_count: l.documents.reduce((s, d) => s + d.entity_count, 0),
+      }))
+
+      send(res, 200, {
+        source_id: sourceId,
+        mailbox: source.mailbox ?? null,
+        profiled_documents: (source.profiled_mail_docs ?? []).length,
+        /*
+         * **Today's count is deliberately not here.** It is a tile on the Catalog, read off
+         * `sourceRow`, and `profiledToday` is its one definition; counting it again in this
+         * handler would be a second implementation of one figure with no second reader — the
+         * duplication that lets two surfaces answer one question differently. Add it back only
+         * alongside something that renders it.
+         */
+        /* What the whole mailbox carries, so "12 of 63 profiled" is expressible rather than
+           leaving a bare count to read as the corpus. */
+        document_total: corpus.size,
+        label_count: labels.length,
+        entity_count: labels.reduce((s, l) => s + l.entity_count, 0),
+        facets,
+        label_facets: labelFacets,
+        labels,
+      })
+    },
+  },
+
+  // The pencil beside a mail document's summary writes here. The twin of the Drive note —
+  // extracted entities are machine output and stay read-only.
+  {
+    method: 'PATCH',
+    match: (p) => /^\/sources\/.+\/mail-documents$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/mail-documents'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+
+      const { label_id, document_id, summary } = await readJson(req)
+      if (!label_id || !document_id) {
+        return send(res, 400, {
+          error: 'label_id and document_id are both required',
+        })
+      }
+      source.mail_document_notes = source.mail_document_notes ?? {}
+      const key = `${label_id}.${document_id}`
+      if (summary) source.mail_document_notes[key] = summary
+      else delete source.mail_document_notes[key]
 
       send(res, 200, { key, summary: summary ?? null })
     },
@@ -9608,12 +10419,16 @@ const routes = [
             })
           }
           /*
-           * "Profile it first" is only an instruction somebody can carry out when the
-           * source *can* be profiled. Gmail has no entry in `PROFILERS`, so telling a
-           * reader to profile a mailbox is the refusal-with-no-remedy this repo already
-           * removed once from Gmail's own Continue button. A runtime source is refused
-           * only when it carries nothing at all, and then for the reason that is true of
-           * it — no labels are in scope.
+           * "Profile it first" is only an instruction somebody can carry out when profiling
+           * is what this step is missing — and for a runtime source it never is. Its
+           * `object_count` here is the **labels the wizard picked**, not what a profiler
+           * landed, because nothing it profiles reaches step 6's derivation; so a mailbox at
+           * 0 is one with nothing in scope, and telling its reader to open the Data Catalog
+           * would send them to a screen that cannot fix it. That remains true now that mail
+           * *has* a profiler: a fully profiled mailbox with no labels in scope is still 0
+           * here, and a mailbox with labels and nothing profiled is still selectable. It is
+           * the same refusal-with-no-remedy this repo removed once from Gmail's own Continue
+           * button.
            */
           if (source.object_count === 0) {
             return send(res, 400, {
@@ -9800,6 +10615,11 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      /* This route had no kind guard, which read as a project with no datasets rather than as the
+         wrong endpoint — see `wrongScope`. Added to both allowlist routes at once, for the reason
+         the disconnected check below was. */
+      const wrongKind = wrongScope(source, 'bigquery')
+      if (wrongKind) return send(res, 400, { error: wrongKind })
       /*
        * A disconnected source has no credential, so widening what it may profile promises
        * access it cannot make. The Sources table disables the button too — but a disabled
@@ -9840,11 +10660,8 @@ const routes = [
       )
       const source = registered.get(sourceId)
       if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
-      if (source.kind !== 'gdrive') {
-        return send(res, 400, {
-          error: `${sourceId} is not a Drive source — use PUT /sources/${sourceId}/datasets`,
-        })
-      }
+      const wrongKind = wrongScope(source, 'gdrive')
+      if (wrongKind) return send(res, 400, { error: wrongKind })
       /* The twin of the check on /datasets, and added to both at once: a guard on one connector
          only is how the two paths come to disagree about what a disconnected source may do. */
       if (source.status === 'disconnected') {
@@ -9914,9 +10731,10 @@ const routes = [
          * moment its credential is on file, and a permanent in-progress state reads as a connection
          * that never finished.
          *
-         * What it is *not* is profilable: `sourceRow` derives that from whether a profiler exists for
-         * the kind, so the Catalog leaves it out and says so. Connecting and cataloguing are two acts,
-         * and this is the connector where they come apart.
+         * What a generic source is *not* is profilable: `sourceRow` derives that from whether a
+         * profiler exists for the kind, and the four stubbed connectors have none — so the Catalog
+         * leaves them out and says so. This is the branch where connecting and cataloguing come
+         * apart, and it is now the only one: Gmail took a pipeline of its own and moved off it.
          */
         status: 'connected',
         registered_at: new Date().toISOString(),

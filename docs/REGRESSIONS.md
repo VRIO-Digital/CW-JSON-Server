@@ -5058,3 +5058,124 @@ any order.
 **The general shape.** *A figure quoted by two surfaces is one fact with two homes, and the arithmetic
 that produces it belongs in neither of them.* Move it to a module both read, and assert the two agree
 where a reader could compare them — never that two declarations happen to say the same thing.
+
+## Giving Gmail a profiler: five guards that were about the names, not the facts (2026-09-02)
+
+Mail was asked for in the Data Catalog — a document profile per mailbox, and a count of what was
+profiled today. Gmail had deliberately had **no** profiler since it landed: `PROFILERS` held two
+kinds, `RUNTIME_KINDS` held `gmail`, and the two were asserted **disjoint at boot** on the reasoning
+that a connector doing both makes "where did this figure come from" unanswerable.
+
+**That reasoning was right and the assert was in the wrong place.** What it protects is the *graph*,
+and the graph is protected by `selectedProfiledObjects`, which skips a runtime source **by name** —
+so nothing a mail profiler lands can reach step 6's derivation however much of it there is. A
+mailbox having a catalogue says what was read out of the mail; it says nothing about what the graph
+asserts. So the disjointness assert became a **declaration** assert: the overlap is permitted, must
+be named in `CATALOGUE_ONLY_KINDS`, and both drift directions stop the boot — an undeclared overlap,
+and a declaration that no longer overlaps (a waiver that waives nothing, the nag the audit gate
+already makes).
+
+**The unit took two passes, and the first one was wrong.** It was built with the *message* as the
+profiled object, which is the obvious reading of "profile a mailbox" and not what was wanted:
+documents are, and a message is the container they arrived in. The second pass is one level deeper —
+label → message → document — and it is better in a way worth recording: `profiled_documents` is now
+**one field for one noun** across both unstructured connectors, where the first pass had added a
+`profiled_messages` beside it, which is exactly how a tile and a dictionary come to disagree about a
+count. `PROFILE_UNITS` shrank back to two units for three kinds for the same reason. *When a second
+connector produces the same kind of object, it reports it in the same field — the noun belongs to the
+object, not to where it was found.*
+
+**And it made a recorded non-behaviour load-bearing.** The wizard's attachments toggle was
+*recorded, not acted on* — written down here in those words — and it now decides whether a source
+has any documents at all. That needed saying rather than inferring: a source connected with
+attachments excluded looks exactly like a mailbox that carries none, and only the first has a
+remedy. So `attachments_in_scope` is served, the panel draws the difference, and the profile route
+refuses naming the decision. *A flag documented as inert is a flag something will eventually read;
+when it does, every surface that showed nothing has to say which nothing it is showing.*
+
+Five guards were pointed at the shape of the old code rather than at the fact, and **four of them
+would have gone on passing over the change that broke their premise.**
+
+- **`!/gmail: (?:PIPELINE|DOC_PIPELINE)/`** was the whole of "mail has no profiler". The entry that
+  broke it is spelled `gmail: MAIL_PIPELINE`, which that regex does not match — so the guard defined
+  by an absence would have reported the absence intact while the pipeline sat two lines above it.
+  It reads `PROFILERS` itself now. **A claim keyed to the spellings a fact happens to have today is
+  a claim about the spellings** — the fifth instance of this in this file.
+- **`kind === 'gdrive'` / `kind !== 'gdrive'`**, in six endpoint guards. Each carried the other
+  connector's name inline, which is expressible at two connectors and not at three: a mail source
+  reaching `GET /sources/:id/browse` fell through to `browsableObjects`, which has no datasets to
+  find, and answered `{ datasets: [] }` — *"nothing to profile"*, the exact reading the
+  twin-naming rule exists to prevent, and it sends a reader to the allowlist instead of the call.
+  `CATALOGUE_ROUTES` + `wrongConnector` now declare the pairing once, and a profilable kind with no
+  routes stops the boot. Its `holds` nouns had to be **qualified** — *drive documents* / *mail
+  documents* — the moment both connectors held documents, or the refusal read "holds documents, not
+  documents" and named nothing.
+- **`if (job.kind === 'gdrive') … else profileTables(…)`** in `useJobsStore.rerun`. That `else`
+  names BigQuery's endpoint *and* its field names, so a mail job's Force posted
+  `{dataset_id, table_id}` to `/profile` and got *"holds messages, not tables"* — a button that
+  reports a wrong-endpoint error. **An `else` that returns a specific answer is not a fallback**,
+  which this file already records for `reportEntitlementCell`; while there were two connectors,
+  `gdrive` and "everything else" happened to coincide.
+- **`kind: oneOf(['bigquery', 'gdrive'])`** beside `kind: 'bigquery' | 'gdrive'`. This is the
+  `OAUTH_PROVIDERS` bug verbatim, one entry down the same file: a union the compiler checks and a
+  `oneOf` the payload is checked against, and only the first gets updated. A mail job would have
+  been refused with *"kind should be one of bigquery | gdrive"* — a message that blames a stale mock
+  server over a server that was right. `PROFILE_KINDS` / `PROFILE_UNITS` now drive both.
+- **`PUT /sources/:id/datasets` had no kind guard at all**, which was harmless only while nothing
+  else could reach it: any other kind fell through to `findProject(undefined)`, whose empty dataset
+  list made every id *"not present in undefined"* — a refusal naming a project that does not exist.
+  Its twin refused a mailbox with *"use PUT …/datasets"*, a remedy that fails the same way, so the
+  allowlist got its own helper: mail's labels are settled by the consent, and `wrongScope` names the
+  wizard instead. The Sources tooltip said *"this connector has no discovery yet"*, which was true
+  of a mailbox and is not now — a mailbox has a real allowlist it simply cannot edit.
+
+**The nine ternaries.** `CatalogPage` described itself with `isDrive ? a : b` nine times — two tiles
+of labels, two of counts, both button labels, both panel keys, the list row's meta and the foot
+sentence. Every `false` branch drew a mailbox as a BigQuery project, so a reader would have been
+told a mailbox had "0 tables profiled" in a "GCP project". They are one row per kind in
+`src/data/catalogUnits.ts` now, whose fallback for an unknown kind is **`null`, never another
+connector's row**: the `ConnectorIcon` lesson, where a fallback that misidentifies drew five
+connectors as BigQuery. Such a source is left out of the list and counted in the sentence below it.
+The fourth tile turned out not to be the same *fact* on every connector — Gmail states today's runs
+where the other two state their second unit — so its **note** travels with its label in that row
+rather than being the literal "for this source" in the page.
+
+**What the feature had to not do.** The graph path is untouched: `graphSources` still reports a
+mailbox's *labels* with `units: null`, deliberately not the documents a profiler has landed, because
+`0` would say a label is empty and a real count would say the mail is derivable. Step 4's refusal is
+still worded from what is true of a runtime source — nothing in scope — rather than "profile it
+first"; had it been fixed by testing "is there a profiler for this kind", it would now send a reader
+to the Data Catalog, where profiling the mail changes nothing about that step. And
+`mailDocumentDictionary` carries no `resolution`: `observation: true` and a sentence in that row
+instead, because a resolved node on a mail document is the fact-set merge arriving quietly through
+the catalogue.
+
+**Three smaller things, all from the verification passes.**
+
+- **`{data?.object_count} document(s) across …`** — `renderToString` splits `text {expr} text` into
+  separate text nodes, so the sentence could not be asserted as the sentence it renders as. One
+  template expression now, the rule this file already records for report copy.
+- **An entity table behind a `useEffect`-set `open` is legitimately absent under SSR**, so the
+  assertion proving the render had its data had to be the entity *count* in the card head. Both
+  halves are asserted — the count present *and* the table not — so the absence is never read as
+  missing data.
+- **A `check-docs` absence claim matched Drive's own correct line.** `!/document_extractions/` over
+  the whole file failed because `documentDictionary` legitimately reads
+  `db.document_extractions?.[doc.document_id]` — and its parameter is also called `doc`. Sliced to
+  `mailDocumentDictionary`, the claim then failed again on `!/resolution:/`, because the comment
+  explaining the absence reads *"inferred from the absent resolution: an extraction from mail…"* and
+  matched on the sentence's own punctuation. `codeOnly` on the slice. **Assert a fact at its site,
+  and strip comments before asserting that code does not say something** — the fourth and fifth
+  instances of each in this file.
+
+**Two harness lessons, both already on record and both repeated.** A `const` used by a claim must be
+declared *above* it — `outcomeSrc` sits ~500 lines below the claims block, and a temporal-dead-zone
+reference kills the run before its summary, which is the failure where the claim total stops moving
+and every break test reports MISSED. And a body-slicing regex needs a literal newline that does not
+survive being written into `check-docs.mjs`; an index slice avoids the escaping entirely.
+
+**The general shape.** *When a guard exists to protect a rule, point it at the rule and not at the
+code that currently keeps it.* Four of these five would have passed over the change that broke their
+premise, and the one that did fail — `profiles: false` — failed only because it was a literal in the
+data rather than a pattern over the code. All eleven new claims were break-tested before being
+trusted.

@@ -19,12 +19,15 @@ import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import ConnectorIcon from '../components/common/ConnectorIcon'
 import DocumentBrowsePanel from '../components/catalog/DocumentBrowsePanel'
+import MailBrowsePanel from '../components/catalog/MailBrowsePanel'
 import NoSourceConnected from '../components/common/NoSourceConnected'
 import PageHeader from '../components/common/PageHeader'
 import ProfiledColumnsPanel from '../components/catalog/ProfiledColumnsPanel'
 import ProfiledDocumentsPanel from '../components/catalog/ProfiledDocumentsPanel'
+import ProfiledMailDocumentsPanel from '../components/catalog/ProfiledMailDocumentsPanel'
 import ProfilingJobsTab from '../components/catalog/ProfilingJobsTab'
 import StatusTag from '../components/common/StatusTag'
+import { catalogUnitsFor, type CatalogPanel } from '../data/catalogUnits'
 import { CONFIRM_WIDTH, profilingOutcome } from '../data/profilingOutcome'
 import { SP } from '../theme'
 import './CatalogPage.css'
@@ -244,22 +247,28 @@ function CatalogTab({
    * `profilable` is the server's answer, derived from whether a pipeline exists for the kind. A list
    * that is simply shorter is not a message, so the count is said in words below the list.
    */
-  const catalogued = useMemo(() => sources.filter((s) => s.profilable), [sources])
+  const catalogued = useMemo(
+    /* Both halves: the server says whether a pipeline exists, and `catalogUnitsFor` says
+       whether *this build* knows what to call what it holds. A row past the first test and not
+       the second would have to be drawn in some other connector's nouns, which is the
+       misidentifying default this repo refuses. */
+    () => sources.filter((s) => s.profilable && catalogUnitsFor(s.kind)),
+    [sources],
+  )
   const uncatalogued = sources.length - catalogued.length
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [panel, setPanel] = useState<
-    'none' | 'browse' | 'columns' | 'browse-documents' | 'documents'
-  >('none')
+  const [panel, setPanel] = useState<CatalogPanel>('none')
 
   const selected =
     catalogued.find((s) => s.sourceId === activeId) ?? catalogued[0] ?? null
-  const isDrive = selected?.kind === 'gdrive'
+  /* Non-null for every row in `catalogued` — that is what the filter above guarantees. */
+  const units = selected ? catalogUnitsFor(selected.kind) : null
 
   /* Which of the two actions is currently showing its panel. Derived from `panel`
      rather than tracked beside it: two pieces of state for one fact is how a button
      comes to look pressed with nothing open under it. */
-  const browseOpen = panel === (isDrive ? 'browse-documents' : 'browse')
-  const dictionaryOpen = panel === (isDrive ? 'documents' : 'columns')
+  const browseOpen = panel === units?.browsePanel
+  const dictionaryOpen = panel === units?.dictionaryPanel
 
   // Keep the selection valid when the list changes underneath.
   useEffect(() => {
@@ -269,14 +278,12 @@ function CatalogTab({
   if (!loading && catalogued.length === 0) {
     return (
       <>
-        <NoSourceConnected detail="Datasets and documents are discovered from connected sources. Connect a BigQuery project or a Google Drive and its tables or files will be browsable here." />
-        {/* Said even here — especially here. A tenant whose only source is a mailbox would otherwise
-            read "nothing is connected" one line under a Sources table listing one. */}
+        <NoSourceConnected detail="Datasets, documents and messages are discovered from connected sources. Connect a BigQuery project, a Google Drive or a Gmail mailbox and its tables, files or mail will be browsable here." />
+        {/* Said even here — especially here. A tenant whose only source is a stubbed connector
+            would otherwise read "nothing is connected" one line under a Sources table listing one. */}
         {uncatalogued > 0 ? (
           <Typography.Paragraph className="cat-uncatalogued">
-            {uncatalogued} connected source{uncatalogued === 1 ? ' is' : 's are'} not catalogued here:
-            a mailbox is connected so reports can be delivered from it, and carries nothing to profile.
-            {' '}It is listed on Sources.
+            {`${uncatalogued} connected source${uncatalogued === 1 ? ' is' : 's are'} not catalogued here: there is no profiler behind that connector yet, so there is nothing to describe. It is listed on Sources.`}
           </Typography.Paragraph>
         ) : null}
       </>
@@ -309,23 +316,23 @@ function CatalogTab({
                   <span className="cat-source-name">{s.sourceName}</span>
                 </span>
                 <span className="cat-source-meta">
-                  {s.projectAccount} ·{' '}
-                  {s.kind === 'gdrive'
-                    ? `${s.profiledDocuments ?? 0} documents profiled`
-                    : `${s.profiledTables} tables profiled`}{' '}
-                  · {s.status}
+                  {s.projectAccount} · {catalogUnitsFor(s.kind)?.listCount(s) ?? ''} ·{' '}
+                  {s.status}
                 </span>
               </span>
             </button>
           ))}
           {/* A list that is merely shorter is not a message — the rule the Library's missing
-              governance rows are stated under. A tenant with a mailbox connected would otherwise see
-              it on Sources and not here, with nothing accounting for the difference. */}
+              governance rows are stated under. A connected source missing from here would
+              otherwise show up on Sources and not in the Catalog, with nothing accounting for the
+              difference.
+
+              The reason changed when mail got a profiler: the sources this leaves out are now the
+              stubbed connectors, which have no pipeline behind them at all. Mail is catalogued
+              like a project and a drive. */}
           {uncatalogued > 0 ? (
             <Typography.Text className="cat-list-note">
-              {uncatalogued} more connected source{uncatalogued === 1 ? '' : 's'} carr
-              {uncatalogued === 1 ? 'ies' : 'y'} no catalogue: a mailbox is connected so reports can be
-              delivered from it, and holds nothing to profile. It is listed on Sources.
+              {`${uncatalogued} more connected source${uncatalogued === 1 ? '' : 's'} carr${uncatalogued === 1 ? 'ies' : 'y'} no catalogue: there is no profiler behind that connector yet, so there is nothing here to describe. It is listed on Sources.`}
             </Typography.Text>
           ) : null}
           <Typography.Text className="cat-list-note">
@@ -350,37 +357,38 @@ function CatalogTab({
           <Row gutter={[SP.base, SP.base]} style={{ marginBottom: SP.lg }}>
             <Col xs={24} sm={12} lg={6}>
               <StatBox
-                label={isDrive ? 'drive' : 'project'}
+                label={units?.accountLabel ?? ''}
                 value={selected.projectAccount}
-                note={isDrive ? 'Google Drive' : 'GCP project'}
+                note={units?.accountNote ?? ''}
                 mono
               />
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <StatBox
-                label={isDrive ? 'folders allowed' : 'datasets allowed'}
-                value={String(
-                  isDrive ? selected.folders.length : selected.datasets.length,
-                )}
+                label={units?.scopeLabel ?? ''}
+                value={String(units?.scopeCount(selected) ?? 0)}
                 note="in the allowlist"
               />
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <StatBox
-                label={isDrive ? 'documents profiled' : 'tables profiled'}
-                value={String(
-                  isDrive ? (selected.profiledDocuments ?? 0) : selected.profiledTables,
-                )}
+                label={units?.objectsLabel ?? ''}
+                value={String(units?.objectsCount(selected) ?? 0)}
                 note="for this source"
               />
             </Col>
+            {/*
+              * The fourth tile is not the same fact on every connector — Gmail states today's
+              * runs where the other two state their second unit — so its note comes from the
+              * same row as its label rather than being a literal here. "for this source" under
+              * a date would be wrong, and a page that knew which connector was which would be
+              * the nine ternaries back again.
+              */}
             <Col xs={24} sm={12} lg={6}>
               <StatBox
-                label={isDrive ? 'entities extracted' : 'columns profiled'}
-                value={String(
-                  isDrive ? (selected.profiledEntities ?? 0) : selected.profiledColumns,
-                )}
-                note="for this source"
+                label={units?.unitsLabel ?? ''}
+                value={String(units?.unitsCount(selected) ?? 0)}
+                note={units?.unitsNote(selected) ?? ''}
               />
             </Col>
           </Row>
@@ -408,23 +416,19 @@ function CatalogTab({
               type={browseOpen ? 'primary' : 'default'}
               aria-pressed={browseOpen}
               onClick={() =>
-                setPanel(
-                  browseOpen ? 'none' : isDrive ? 'browse-documents' : 'browse',
-                )
+                setPanel(browseOpen ? 'none' : (units?.browsePanel ?? 'none'))
               }
             >
-              {isDrive ? 'Browse documents for profiling' : 'Browse table for profiling'}
+              {units?.browseLabel}
             </Button>
             <Button
               type={dictionaryOpen ? 'primary' : 'default'}
               aria-pressed={dictionaryOpen}
               onClick={() =>
-                setPanel(
-                  dictionaryOpen ? 'none' : isDrive ? 'documents' : 'columns',
-                )
+                setPanel(dictionaryOpen ? 'none' : (units?.dictionaryPanel ?? 'none'))
               }
             >
-              {isDrive ? 'View profiled documents' : 'View profiled columns'}
+              {units?.dictionaryLabel}
             </Button>
           </Space>
 
@@ -464,14 +468,23 @@ function CatalogTab({
             <ProfiledDocumentsPanel key={`${selected.sourceId}-docs`} source={selected} />
           ) : null}
 
+          {panel === 'browse-mail-documents' ? (
+            <MailBrowsePanel
+              key={`${selected.sourceId}-mail-browse`}
+              source={selected}
+              onProfiled={onChanged}
+            />
+          ) : null}
+
+          {panel === 'mail-documents' ? (
+            <ProfiledMailDocumentsPanel
+              key={`${selected.sourceId}-mail`}
+              source={selected}
+            />
+          ) : null}
+
           <Typography.Paragraph className="cat-detail-foot">
-            {isDrive
-              ? (selected.profiledDocuments ?? 0) === 0
-                ? 'No profiled documents yet for this source. Browse & profile some documents first, then watch the Profiling jobs tab.'
-                : `${selected.profiledDocuments} document(s) and ${selected.profiledEntities} entities profiled. Re-profile any time from Browse documents for profiling.`
-              : selected.profiledTables === 0
-                ? 'No profiled tables yet for this source. Browse & profile some tables first, then watch the Profiling jobs tab.'
-                : `${selected.profiledTables} table(s) and ${selected.profiledColumns} column(s) profiled. Re-profile any time from Browse table for profiling.`}
+            {units?.foot(selected)}
           </Typography.Paragraph>
         </div>
         ) : null}
@@ -526,7 +539,7 @@ export default function CatalogPage() {
     <>
       <PageHeader
         title="Data Catalog"
-        subtitle="Browse and curate every source registered across the platform — BigQuery tables and fields, and Google Drive documents — describing, tagging, and keeping metadata accurate."
+        subtitle="Browse and curate every source registered across the platform — BigQuery tables and fields, Google Drive documents, and the documents attached to a Gmail mailbox — describing, tagging, and keeping metadata accurate."
       />
 
       {error ? (
