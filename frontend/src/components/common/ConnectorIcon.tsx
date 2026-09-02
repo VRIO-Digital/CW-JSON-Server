@@ -158,10 +158,30 @@ export function GenericSourceIcon({
 }
 
 
+/**
+ * Outlook's envelope-and-O.
+ *
+ * Drawn rather than fetched, like every other mark here — nothing in this app loads a vendor
+ * asset over the network. The `O` is a ring rather than a glyph because a letterform at 20px
+ * is a smudge, which is the same reason SAP's mark is its frame and not its wordmark.
+ */
+export function OutlookIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Outlook">
+      <path d="M10.6 5.6h10.3c.6 0 1.1.5 1.1 1.1v10.6c0 .6-.5 1.1-1.1 1.1H10.6z" fill="#0F6CBD" />
+      <path d="M11.4 11.2h10.6v6.1c0 .6-.5 1.1-1.1 1.1H11.4z" fill="#0A5AA8" />
+      <path d="M11.4 10.6h10.6v1L16.7 15 11.4 11.6z" fill="#FFFFFF" opacity=".9" />
+      <path d="M1.6 4.4 10 2.8v18.4L1.6 19.6z" fill="#1B4F91" />
+      <ellipse cx="5.8" cy="12" rx="2.5" ry="3.2" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
 const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   bigquery: BigQueryIcon,
   gdrive: GoogleDriveIcon,
   gmail: GmailIcon,
+  outlook: OutlookIcon,
   sap: SapIcon,
   osipi: OsiPiIcon,
   sharepoint: SharePointIcon,

@@ -46,6 +46,15 @@ export const askSourceCopy = {
   noGraphOption: 'No graph published',
 
   /**
+   * What the graph select shows while a connected source is being asked instead.
+   *
+   * The two are exclusive, so a graph left named there would be naming something this question
+   * will not be asked of. The control stays enabled: choosing a graph is how a reader switches
+   * back, and doing so drops the source picks.
+   */
+  graphPlaceholder: 'Asking a source — pick a graph to switch',
+
+  /**
    * What stands where nothing has been picked and no graph is live.
    *
    * The page is usable in that state — the box and the picker are both there — so what it
@@ -54,6 +63,16 @@ export const askSourceCopy = {
    */
   pickPrompt:
     'Use the + to pick a connected source to read this question against.',
+
+  /**
+   * The same instruction where a graph is also on offer.
+   *
+   * **A question is asked of one thing**, so picking either clears the other, and with neither
+   * picked the reader has two ways forward rather than one. Naming only the `+` would be an
+   * instruction that works and hides the shorter route.
+   */
+  pickPromptWithGraph:
+    'Choose a graph above, or use the + to pick a connected source. A question is asked of one or the other, not both.',
 } as const
 
 /**
@@ -84,3 +103,36 @@ export function askAvailability(
     target: graphName ?? picked.map((s) => s.name).join(', '),
   }
 }
+
+/**
+ * The opener chips: what this page offers to ask, given what it is asking.
+ *
+ * **Whatever answers the question is what suggests it.** A graph answers where one is selected,
+ * so its hero questions are the chips — unchanged. Otherwise the picked sources answer, so their
+ * own recorded questions are, and the server draws those from the *same pool* its answerer
+ * matches within, so a chip cannot be offered that the source would then abstain on.
+ *
+ * **A source merely connected offers nothing.** Suggesting a question the reader cannot yet ask
+ * — because they have not picked the source — would be a chip that refuses when clicked.
+ *
+ * De-duplicated across sources, because two mailboxes drawing on one recorded set would
+ * otherwise offer the same sentence twice, which reads as two different questions.
+ */
+export function askSuggestions(
+  graphQuestions: string[] | null,
+  sources: { sourceId: string; suggestedQuestions: string[] }[],
+  sourceIds: string[],
+): string[] {
+  if (graphQuestions !== null) return graphQuestions
+  const picked = sources.filter((s) => sourceIds.includes(s.sourceId))
+  return [...new Set(picked.flatMap((s) => s.suggestedQuestions))]
+}
+
+/**
+ * Which instruction to print when nothing is selected.
+ *
+ * A pure function beside `askAvailability` and for the same reason: a ternary inside the page
+ * cannot be asserted without rendering the page’s own state.
+ */
+export const askPickPrompt = (graphsAvailable: boolean): string =>
+  graphsAvailable ? askSourceCopy.pickPromptWithGraph : askSourceCopy.pickPrompt

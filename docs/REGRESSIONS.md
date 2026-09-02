@@ -5259,6 +5259,104 @@ has no compile error and no visible symptom: it just runs forever against a scre
 When deleting a surface, grep for its state, its effects, its store subscriptions and its copy
 file — then check what it was *reporting on* is still asserted somewhere.
 
+## A `\b` written as a backspace byte, and a grep that read a crash as success (2026-09-02)
+
+**Symptom.** A brand-new `check-docs` claim failed against code that satisfied every one of its
+conditions. Each sub-condition was verified true in a standalone script using the same `read`,
+the same `codeOnly` and the same root — and the claim still went red.
+
+**Cause.** The claim was tightened from `/<ConnectorDirectory/` to `/<ConnectorDirectory\b/`
+through a shell `node -e` one-liner. The escaping collapsed on the way through, and what landed
+in the file was a literal **backspace character (0x08)** inside the regex literal — so the
+pattern was `<ConnectorDirectory␈`, which nothing can match. It is invisible in an editor, it
+survives `node --check`, and it reads as a plain regex in a diff.
+
+**Two adjacent traps in the same session, both from the same route.** An earlier attempt at the
+same line wrote `/import ConnectorDirectory from './ConnectorDirectory'/` — whose `/` in the
+path terminated the regex and made the whole file a `SyntaxError`. That one crashed the run
+before any claim executed, and the check `npm run check-docs | grep -c "✗"` **printed 0**, which
+is exactly what a clean run prints. A crash was read as a pass.
+
+**The general shape.** *Do not write regex literals through a shell.* Every escaping layer
+between the intent and the file is a chance to lose a backslash, and the failures are silent in
+both directions — a pattern that can never match, or a file that can never parse. Write the
+patch to a file with `String.raw` and run it, which is what finally worked.
+
+**And never count `✗` to decide whether a gate passed.** An absent summary line is a crash, not
+a green run; assert the summary is *present* and then read it. This file already records "a
+break-test harness has to read the stream check-docs actually uses" — same lesson, one layer up:
+the harness must be able to tell "nothing failed" from "nothing ran".
+
+**Found by break-testing.** The claim was reported CAUGHT for three mutations and MISSED for the
+one that renamed the element — which is what prompted tightening it in the first place, and then
+exposed the backspace. Two further mutations then reported SKIP because their search strings used
+`\n` against a CRLF file, the trap already recorded here. Every guard in this entry was found by
+a break test, not by reading.
+
+## A suggestion is a promise, so it must come from the pool that answers it (2026-09-02)
+
+**What was asked.** Ask should offer Gmail-shaped openers when a mailbox is what is being asked,
+and the graph's own when a graph is.
+
+**The hazard.** The obvious build is two lists: the graph keeps `suggested_questions` from its
+brief, and the source gets a list assembled wherever seemed convenient. That is two predicates
+over one question, and the failure is silent — a chip drawn from a wider pool than the one that
+answers it is a question the reader is invited to ask and then told nothing about. The abstention
+would be *correct*, and would read as a broken suggestion.
+
+**What was built instead.** `runtimeAnswerPool` is one function; `askSourceAnswer` matches within
+it and `askableSources` offers from it. Verified end-to-end rather than by inspection: all 13
+chips the CAPEX mailbox serves were POSTed back to `/ask`, and all 13 returned a recorded answer
+with none abstaining.
+
+**Two check-docs faults found by break-testing, both already recorded shapes.**
+
+- The claims were inserted *above* the `const askSourcesSrc` they read, so the run died on a
+  temporal-dead-zone `ReferenceError` before printing a summary — and the check `| grep -E
+  "claims"` printed nothing, which looks exactly like a filtered-out pass. This file already says
+  a helper belongs above every claim that uses it; the corollary is that a claim belongs *below*
+  every declaration it reads, and that an absent summary is a crash rather than a pass.
+- The chip-picking claim searched the whole of `askSources.ts` for
+  `sources.filter((s) => sourceIds.includes(s.sourceId))` — which is spelled identically inside
+  `askAvailability` one function up. Deleting the rule from `askSuggestions` left the claim green.
+  Fixed by slicing the function body first, the recorded rule of *asserting a fact at its site,
+  not its token in a file*. Six mutations; the other five were caught first time.
+
+## A control that changes nothing (2026-09-02)
+
+**Symptom.** Ask showed a published graph selected in its picker *and* a `+ 1` badge for a
+picked mailbox, with the graph’s hero questions as chips. Nothing errored. The mailbox
+contributed nothing: `POST /ask` dispatches to the graph whenever a `use_case_id` is named, and
+ignores `source_ids` entirely.
+
+**Cause.** The server had a rule — one question is asked of one thing — and the client had no
+idea. `select` and `toggleSource` were independent, so both could be set, and the UI drew a
+count for a pick that had already been discarded on the other side of the request.
+
+**Fix.** The two selections are exclusive on the client, which is the server’s rule made
+visible: picking a source clears the graph, selecting a graph clears the picks.
+
+Two things that had to be got right rather than assumed:
+
+- **The new thread is on the *switch*, not on every toggle.** Dropping a graph for a mailbox
+  changes what answers; adding a second mailbox to a first does not. `dropsGraph` is
+  `on && useCaseId !== null`, so a widened scope keeps its conversation.
+- **`load` must not land on a graph over a pick.** It selects the newest published graph on
+  arrival, which would have quietly re-selected a graph under a reader who reloaded while asking
+  a mailbox — changing what their next question was asked of, with the `+` still showing a count.
+  The same class of bug one layer down.
+
+**A claim went red over a fact that had not changed.** `switching graphs starts a new thread`
+was keyed to the literal `set({ useCaseId, activeChatId: null })`, which gained a `sourceIds`
+field here. The guarantee was untouched. Re-keyed to `activeChatId: null` *within `select`’s own
+body* — the recorded rule of asserting the fact rather than the spelling, and of slicing to the
+site rather than searching the file.
+
+**The general shape.** *When one side of a request already decides between two inputs, the other
+side must not offer both.* A control whose value is discarded downstream is worse than a missing
+one: it reports a state the system does not have, and every surface built on it — a badge, a
+count, a chip list — inherits the lie.
+
 ## A correct figure that looks like a broken filter (2026-09-02)
 
 **The report.** Picking `Executive category: Blankets` on the CAPEX Variance Report narrowed the

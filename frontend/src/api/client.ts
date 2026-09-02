@@ -1171,6 +1171,15 @@ export interface AskSource {
   /** What it connected as — an address, for a mailbox. Null where a connector has no such notion. */
   account: string | null
   scope: string
+  /**
+   * What this source is on record as answering.
+   *
+   * The graph's chips are its brief's hero questions; a connected source has no brief, so these
+   * are the recorded answers really drawn from it — the same promise by the same standard.
+   * Declines are excluded server-side: asking one returns the recorded refusal, but offering it
+   * would put a question in front of a reader this dataset cannot answer.
+   */
+  suggestedQuestions: string[]
 }
 
 export interface AskGraphsPayload {
@@ -2980,6 +2989,7 @@ const ASK_SOURCE = shape({
   connector: str,
   account: nullable(str),
   scope: str,
+  suggested_questions: arrayOf(str),
 })
 
 const ASK_GRAPHS_PAYLOAD = shape({
@@ -5277,6 +5287,7 @@ export async function listAskGraphs(): Promise<AskGraphsPayload> {
       connector: string
       account: string | null
       scope: string
+      suggested_questions: string[]
     }[]
     source_count: number
     built_count: number
@@ -5299,6 +5310,7 @@ export async function listAskGraphs(): Promise<AskGraphsPayload> {
       connector: r.connector,
       account: r.account,
       scope: r.scope,
+      suggestedQuestions: r.suggested_questions,
     })),
     sourceCount: raw.source_count,
     builtCount: raw.built_count,

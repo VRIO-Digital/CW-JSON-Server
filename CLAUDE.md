@@ -798,9 +798,12 @@ downstream can make `db` readable.
 
 ### Three real connectors, all of them profiled
 
-**BigQuery, Google Drive and Gmail all run the bespoke consent → preview → finish path**; the other four
-(SAP PM / S4HANA, OSIsoft PI, SharePoint / docs, SQL database) are product vision and explain themselves
-instead. Step 1 *names* the working ones rather than counting them — a count goes stale the day a fourth
+**BigQuery, Google Drive and Gmail all run the bespoke consent → preview → finish path**; the other five
+(Microsoft Outlook, SAP PM / S4HANA, OSIsoft PI, SharePoint / docs, SQL database) are product vision and
+explain themselves instead. **Outlook is vision because of the corpus rather than the API** — the mail
+pipeline is connector-agnostic and would be reused, but Gmail derives its address, its labels and its
+correspondence from what this tenant really holds, and there is no Outlook equivalent; reusing Gmail's
+labels or inventing folders would both put mail in the console that nobody sent. Step 1 *names* the working ones rather than counting them — a count goes stale the day a fourth
 lands, and the names are what a reader is choosing between.
 
 **Gmail is profiled for its catalogue and read at question time, and those are two different
@@ -1830,10 +1833,53 @@ does not apply to it.
 
 **On the page it is a `+` beside the question box, and the graph select stays put.** `AskSourcePicker`
 lists what `GET /ask` served — a component filtering on a connector name would be a second answer to
-which sources are askable — and it is its own component with its words in `src/data/askSources.ts`,
-because a `Dropdown`'s rows portal out of `renderToString`. Its empty state is a sentence naming
-Sources rather than an absent control, and it says why BigQuery and Drive are not in it: a list that
-is merely shorter is not a message.
+which sources are askable — and the list is exported apart from its dialog, with its words in
+`src/data/askSources.ts`, because a `Modal` portals out of `renderToString`. Its empty state is a
+sentence naming Sources rather than an absent control, and it says why BigQuery and Drive are not in
+it: a list that is merely shorter is not a message.
+
+**The `+` opens a modal, and the panel is the rows alone.** It was a `Dropdown` hanging off the
+button, with a heading above the rows and the observation rule spelled out below them; all three went
+on request. The rule is still on record here and still printed on the page above a graph-less thread,
+which is where it bears on something a reader is actually reading. The dialog has **no title** — a
+modal title is that heading one layer out — and **no footer**: ticking a row *is* the act and reaches
+the store immediately, so an OK would confirm what has already happened and a Cancel would promise an
+undo this dialog does not perform. Both are `null` rather than omitted, so no default arrives from the
+theme.
+
+**A question is asked of one thing, and the two controls say so.** The route always settled it —
+a `use_case_id` wins and the `source_ids` beside it are ignored — but the page let both be set,
+so a mailbox could sit ticked on the `+` with a count beside it while contributing nothing to the
+answer on screen. Reported from use. **Picking a source clears the graph and selecting a graph
+clears the picks**, so the controls now show what the server does.
+
+**The new thread is on the switch alone.** Dropping a graph for a mailbox changes what answers,
+and an answer belongs to whatever produced it; adding a second mailbox to a first is a widened
+scope, and clearing the thread there would throw away a conversation for no reason. `dropsGraph`
+is the test, and it is `on && useCaseId !== null` rather than "a source was toggled".
+
+**And `load` must not land on a graph over a pick.** It selects the newest published graph on
+arrival, which for a reader asking a mailbox who reloads would silently change what their next
+question is asked of — so it lands on a graph only when nothing is picked. With neither picked
+the select shows a placeholder and the box states `pickPromptWithGraph`, which names both routes
+because with a graph published there are two.
+
+**And the opener chips come from whatever will answer.** A graph offers its brief's hero
+questions, exactly as before. A connected source has no brief, so it offers the recorded answers
+really drawn from it — and the server takes those from the **same pool** `askSourceAnswer`
+matches within (`runtimeAnswerPool`), so a chip cannot be offered that the source would then
+abstain on. Two predicates over one question is how a suggestion becomes a promise nothing
+keeps; CAPEX's mailbox offers 13, and asking every one of them returns a recorded answer.
+
+**A decline is excluded, though it is answerable.** Asking one returns the recorded refusal,
+which is what the set records it for; offering it would put a question in front of a reader this
+dataset is on record as unable to answer — the rule step 5 of the New Graph wizard already keeps.
+
+**And a source merely *connected* offers nothing.** `askSuggestions` reads the **picked** ones,
+because a chip for a question the reader cannot yet ask would refuse when clicked. It is a pure
+function beside `askAvailability` for the same reason, and `check-docs` slices its body rather
+than searching the file — the pick filter is spelled identically in `askAvailability` one
+function up, so a whole-file search passed while the rule it guarded had been deleted.
 
 **The gate now means "there is nothing here to ask at all".** `askAvailability` is the one
 definition — a pure function in `src/data/` for the reason `datasetPathFix` is, since a test written
@@ -3854,7 +3900,7 @@ which has no antd equivalent.
 
 **`ConnectorIcon` has one mark per connector key, and an unknown key gets a
 neutral cylinder — never another vendor's logo.** It fell back to `BigQueryIcon`,
-which drew five of the seven connectors as BigQuery; `check-docs` now fails if a
+which drew five of the seven connectors there were then as BigQuery; `check-docs` now fails if a
 key in `CONNECTORS` has no entry in `MARKS`. A wrong logo is a claim about what
 something *is*, not a styling default — the same rule as a status colour on a
 category chip, one level up.

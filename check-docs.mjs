@@ -249,6 +249,56 @@ expect(
 )
 
 
+/*
+ * **Step 1 is a searchable directory, and the two sections are what search must not dissolve.**
+ *
+ * It was two hardcoded grids. A search box over one flat list ordered by relevance would let a
+ * reader click three cards in a row and be told "not yet built" three times — available and
+ * vision is not a tidy grouping, it is the difference between a connector that registers a
+ * source and one that explains why it cannot. So the search narrows *within* the sections, and
+ * a section left empty is dropped rather than drawn as a heading over nothing.
+ *
+ * **The predicate is a pure function in `src/data/`**, for the reason `askAvailability` is: this
+ * grid lives inside a `Modal` that `renderToString` will not traverse, so a filter written in
+ * the component could not be asserted at all.
+ */
+const wizardSrc = codeOnly(read('frontend/src/components/sources/ConnectSourceWizard.tsx'))
+const dirSrc = codeOnly(read('frontend/src/components/sources/ConnectorDirectory.tsx'))
+const dirDataSrc = codeOnly(read('frontend/src/data/connectorSearch.ts'))
+expect(
+  'step 1 is a searchable directory whose predicate lives in src/data/',
+  /export function filterConnectors\(/.test(dirDataSrc) &&
+    /filterConnectors\(connectors, query, filter\)/.test(dirSrc) &&
+    /rows\.length === 0 \? null/.test(dirSrc) &&
+    /<ConnectorDirectory\b/.test(wizardSrc) &&
+    wizardSrc.includes("import ConnectorDirectory from './ConnectorDirectory'"),
+  'the wizard renders the directory, and an emptied section is dropped rather than drawn',
+)
+/*
+ * **It searches what a reader can see, and nothing else.** Matching the `key` would make `osipi`
+ * find OSIsoft PI — a string this app never shows anybody; matching the `reason` would make a
+ * vision card answer to words that appear only *after* it is clicked, so a search for "roadmap"
+ * would return cards whose visible text says nothing about roadmaps. A result a reader cannot
+ * account for reads as a bug.
+ */
+expect(
+  'and it matches the name, the blurb and the type label — never the key or the reason',
+  /\[c\.name, c\.blurb, c\.typeLabel\]/.test(dirDataSrc) &&
+    !/c\.key/.test(dirDataSrc.slice(dirDataSrc.indexOf('export function filterConnectors'))) &&
+    !/c\.reason/.test(dirDataSrc),
+  'the searched fields are the ones on the card',
+)
+/*
+ * And a search that matches nothing **names the query**. "No connectors" over a grid the reader
+ * has just narrowed is indistinguishable from a directory that failed to load — the rule the
+ * Library's ungoverned notice follows.
+ */
+expect(
+  'and a search that matches nothing says what it was searching for',
+  /noMatch: \(query: string\) =>/.test(dirDataSrc) &&
+    /connectorDirectoryCopy\.noMatch\(query\)/.test(dirSrc),
+  'the empty state interpolates the query rather than stating a bare absence',
+)
 expect(
   'an unknown connector falls back to the neutral mark, not a vendor one',
   /GenericSourceIcon size=\{size\} label=\{connector\}/.test(iconSource) &&
@@ -4147,8 +4197,7 @@ expect(
     askServerSrc,
   ) && !/kind === 'gmail'/.test(askServerSrc.slice(askServerSrc.indexOf('function askableSources'), askServerSrc.indexOf('function askCitations'))),
   'the refusal names the fix, and neither helper tests for a connector by name',
-)
-/*
+)/*
  * **On the client the gate is a pure function**, for the reason `datasetPathFix` and `diagnose`
  * are: a test written inline in the page can only be asserted by rendering the page's own
  * state, and `renderToString` hands a zustand component its *initial* state — so the check
@@ -4165,11 +4214,80 @@ expect(
     /\) : gated \? \(/.test(codeOnly(askPageSrc)),
   'askAvailability decides it and AskPage renders the answer',
 )
+
+/*
+ * **The opener chips come from whatever will answer the question.**
+ *
+ * A graph's are its brief's hero questions, unchanged. A connected source has no brief, so its
+ * chips are the recorded answers really drawn from it — and the server takes those from the
+ * **same pool** `askSourceAnswer` matches within, so a chip cannot be offered that the source
+ * would then abstain on. That shared pool is the claim: two predicates over one question is how
+ * a suggestion comes to be a promise nothing keeps.
+ *
+ * **A decline is excluded, though it is answerable.** Asking one returns the recorded refusal,
+ * which is what the set records it for; offering it would put a question in front of a reader
+ * this dataset is on record as unable to answer — exactly the rule step 5 of the wizard keeps.
+ */
+/*
+ * **A question is asked of one thing, and the two controls say so.**
+ *
+ * The route has always settled this — a `use_case_id` wins and the `source_ids` beside it are
+ * ignored — but the page let both be set at once, so a mailbox could sit ticked on the `+` with
+ * a count beside it while contributing nothing to the answer on screen. Reported from use.
+ *
+ * So picking a source clears the graph and selecting a graph clears the picks. **The new thread
+ * is only on the switch**: dropping a graph for a mailbox changes what answers, and an answer
+ * belongs to whatever produced it — but adding a second mailbox to a first is a widened scope,
+ * and clearing the thread there would throw away a conversation for no reason.
+ *
+ * **And `load` must not land on a graph over a pick.** It selects the newest published graph on
+ * arrival, which for a reader who is asking a mailbox and reloads would silently change what
+ * their next question is asked of.
+ */
+expect(
+  'a graph and a source are exclusive, and only the switch starts a new thread',
+  /set\(\{ useCaseId, sourceIds: EMPTY_SOURCE_IDS, activeChatId: null \}\)/.test(askStoreSrc) &&
+    /const dropsGraph = on && state\.useCaseId !== null/.test(askStoreSrc) &&
+    /\.\.\.\(dropsGraph \? \{ useCaseId: null, activeChatId: null \} : \{\}\)/.test(askStoreSrc) &&
+    /const hasPicks = get\(\)\.sourceIds\.length > 0/.test(askStoreSrc),
+  'each selection clears the other; the thread resets on the switch alone; a reload keeps the picks',
+)
+expect(
+  'a source’s chips come from the pool that answers it, minus the declines',
+  /function runtimeAnswerPool\(citationKinds\)/.test(askServerSrc) &&
+    /const pool = runtimeAnswerPool\(citationKinds\)/.test(askServerSrc) &&
+    /suggested_questions: runtimeAnswerPool\(/.test(askServerSrc) &&
+    /\.filter\(\(a\) => a\.kind !== 'decline'\)/.test(askServerSrc),
+  'one pool behind the answer and the suggestion, and a decline is never suggested',
+)
+/*
+ * And the page reads one rule for which chips to draw, so a graph and a source cannot come to
+ * disagree about what is on offer. A source merely *connected* offers nothing — suggesting a
+ * question the reader cannot yet ask would be a chip that refuses when clicked.
+ */
+/*
+ * Sliced to `askSuggestions`’ own body rather than searched across the file. The pick filter is
+ * spelled identically in `askAvailability` one function up, so a whole-file search passed while
+ * the rule it was guarding had been deleted — the recorded trap of asserting a token rather than
+ * a fact at its site. Found by break-testing, not by reading.
+ */
+const askSuggestionsBody =
+  (askSourcesSrc.match(/export function askSuggestions\([\s\S]*?\n\}/) ?? [''])[0]
+expect(
+  'and the page picks its chips from one rule in src/data/',
+  askSuggestionsBody.length > 0 &&
+    /if \(graphQuestions !== null\) return graphQuestions/.test(askSuggestionsBody) &&
+    /sources\.filter\(\(s\) => sourceIds\.includes\(s\.sourceId\)\)/.test(askSuggestionsBody) &&
+    /askSuggestions\(/.test(codeOnly(askPageSrc)) &&
+    /\{suggestions\.map\(\(q\) => \(/.test(codeOnly(askPageSrc)) &&
+    !/graph\.suggestedQuestions\.map/.test(codeOnly(askPageSrc)),
+  'askSuggestions decides it; the page renders what it returns',
+)
 /*
  * **The picker lists what the server served.** `GET /ask` says which sources are askable; a
  * component filtering on a connector name would be a second answer to that and would go stale
  * the day a second runtime connector lands — the rule step 4 of the New Graph wizard follows
- * for the same fact. It is its own component because a `Dropdown`'s rows portal out of
+ * for the same fact. The list is its own exported component because a `Modal` portals out of
  * `renderToString`, and its words are in `src/data/` for the same reason.
  */
 const pickerSrc = codeOnly(read('frontend/src/components/ask/AskSourcePicker.tsx'))
@@ -4179,7 +4297,7 @@ expect(
     !/'gmail'/.test(pickerSrc) &&
     !/kind ===/.test(pickerSrc) &&
     /askSourceCopy\.emptyTitle/.test(pickerSrc),
-  'the panel is exported apart from its Dropdown and names no connector',
+  'the list is exported apart from its Modal and names no connector',
 )
 /*
  * **And the panel is the rows and nothing else.** It carried a heading above them and the
@@ -4192,6 +4310,24 @@ expect(
  * has no rows to be, so stripping it too would leave a `+` opening onto nothing — the "button
  * over blank space" this repo has already fixed once, on the wizard's own build dialog.
  */
+/*
+ * **The `+` opens a modal, asked for as one.** It was a `Dropdown` panel hanging off the button.
+ * There is no footer: ticking a row *is* the act and reaches the store immediately, so an OK
+ * would confirm something already done and a Cancel would promise an undo this dialog does not
+ * perform. And no title, because a modal title is the heading over these rows one layer out —
+ * the heading that was removed on request. Both are `null` rather than omitted, so a default
+ * cannot arrive from the theme.
+ */
+expect(
+  'the + opens a modal, with nothing to confirm and no heading',
+  /<Modal/.test(pickerSrc) &&
+    /open=\{open\}/.test(pickerSrc) &&
+    /onClick=\{\(\) => setOpen\(true\)\}/.test(pickerSrc) &&
+    /footer=\{null\}/.test(pickerSrc) &&
+    /title=\{null\}/.test(pickerSrc) &&
+    !/Dropdown/.test(pickerSrc),
+  'a Modal on the + button, no footer to press and no title over the rows',
+)
 expect(
   'and its populated panel is the rows alone, while the empty one still names the fix',
   !/asp-head/.test(pickerSrc) &&
@@ -4234,10 +4370,18 @@ expect(
   'the thread survives an answer no graph produced',
 )
 /* Switching graphs starts a new thread: an answer belongs to the version that produced it,
-   and reading it under another graph's heading is a claim about content that never answered. */
+   and reading it under another graph's heading is a claim about content that never answered.
+
+   Keyed on `activeChatId: null` inside `select` rather than on the whole `set({…})` literal it
+   used to match: that spelling gained `sourceIds` when a graph and a source became exclusive,
+   and the claim went red over a fact that had not changed at all — a claim about a spelling,
+   which this file records as its own recurring fault. The body is sliced so the reset being
+   asserted is `select`'s own. */
 expect(
   'switching graphs starts a new thread rather than continuing one',
-  /set\(\{ useCaseId, activeChatId: null \}\)/.test(askStoreSrc),
+  /activeChatId: null/.test(
+    (askStoreSrc.match(/select: \(useCaseId\) => \{[\s\S]*?\n  \},/) ?? [''])[0],
+  ),
   'an answer belongs to the version that produced it',
 )
 /* The agent's own messages are the streamed stages, paced by the server between the pieces.

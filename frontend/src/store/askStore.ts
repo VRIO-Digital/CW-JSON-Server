@@ -145,7 +145,17 @@ export const useAskStore = create<AskState>()((set, get) => ({
        */
       const current = get().useCaseId
       const stillLive = data.graphs.some((g) => g.useCaseId === current)
-      const useCaseId = stillLive ? current : (data.graphs[0]?.useCaseId ?? null)
+      /*
+       * Landing on a graph is for arrival, not for a reload — and never over a source pick. A
+       * reader asking a mailbox who reloads must not find a graph selected under them, which
+       * would silently change what the next question is asked of.
+       */
+      const hasPicks = get().sourceIds.length > 0
+      const useCaseId = stillLive
+        ? current
+        : hasPicks
+          ? null
+          : (data.graphs[0]?.useCaseId ?? null)
       /*
        * **A source pick that is no longer connected is dropped**, the same rule the graph
        * selection follows one line up and for the same reason: a registration lives in the
@@ -181,7 +191,13 @@ export const useAskStore = create<AskState>()((set, get) => ({
      *
      * The requirements are the *reader's*, not the graph's, so they stay.
      */
-    set({ useCaseId, activeChatId: null })
+    /*
+     * **And the source picks go, because a question is asked of one thing.** The route already
+     * decided this — a `use_case_id` wins and the sources are ignored — so leaving them ticked
+     * showed a count on the `+` for a mailbox contributing nothing to the answer beside it.
+     * Reported from use. The control now says what the server does.
+     */
+    set({ useCaseId, sourceIds: EMPTY_SOURCE_IDS, activeChatId: null })
   },
 
   setCitations: (citations) => set({ citations }),
@@ -192,11 +208,27 @@ export const useAskStore = create<AskState>()((set, get) => ({
    * of the *next* question, and every answer already records which sources read it.
    */
   toggleSource: (sourceId, on) =>
-    set((state) => ({
-      sourceIds: on
+    set((state) => {
+      const sourceIds = on
         ? [...state.sourceIds, sourceId]
-        : state.sourceIds.filter((s) => s !== sourceId),
-    })),
+        : state.sourceIds.filter((s) => s !== sourceId)
+      /*
+       * **Picking a source deselects the graph, which is the same rule the other way round.**
+       * One question is asked of one thing, and the server settles it by ignoring the sources
+       * whenever a graph is named — so a mailbox ticked beside a selected graph was a control
+       * that changed nothing.
+       *
+       * **It starts a new thread only when a graph was actually dropped**, because that is the
+       * switch: what answers changed from a graph to correspondence, and an answer belongs to
+       * whatever produced it. Adding a second mailbox to a mailbox is not a switch, and
+       * clearing the thread there would throw away a conversation over a widened scope.
+       */
+      const dropsGraph = on && state.useCaseId !== null
+      return {
+        sourceIds,
+        ...(dropsGraph ? { useCaseId: null, activeChatId: null } : {}),
+      }
+    }),
 
   toggleFormat: (formatId, on) =>
     set((state) => ({

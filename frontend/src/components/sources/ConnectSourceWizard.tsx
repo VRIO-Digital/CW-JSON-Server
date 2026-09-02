@@ -55,7 +55,6 @@ import {
 } from '../../api/client'
 import {
   AVAILABLE_CONNECTORS,
-  VISION_CONNECTORS,
   type Connector,
   type ConnectorField,
 } from '../../data/connectors'
@@ -67,6 +66,8 @@ import GoogleSignInWindow, { type SignInPhase } from './GoogleSignInWindow'
 import { toMessage } from '../../store/asyncState'
 import { useAuthStore } from '../../store/authStore'
 import { BRAND, BRAND_SOFT, SP } from '../../theme'
+import ConnectorDirectory from './ConnectorDirectory'
+import { CONNECTORS } from '../../data/connectors'
 import './ConnectSourceModal.css'
 
 type TestState = 'idle' | 'running' | 'passed'
@@ -739,35 +740,25 @@ export default function ConnectSourceWizard({
             style={{ marginBottom: 16 }}
             title={`${AVAILABLE_CONNECTORS.map((c) => c.name).join(', ')} all have real, working connectors — pick one to continue. The rest below are product vision only — clicking any of them just shows why.`}
           />
-          <Typography.Title level={5} style={{ marginBottom: 12 }}>
-            Available now — pick one
-          </Typography.Title>
-          <Row gutter={[12, 12]} style={{ marginBottom: 24 }}>
-            {AVAILABLE_CONNECTORS.map((c) => (
-              <Col key={c.key} xs={24} sm={12} md={8}>
-                <ConnectorCard
-                  connector={c}
-                  selected={selected?.key === c.key}
-                  onSelect={() => pick(c)}
-                />
-              </Col>
-            ))}
-          </Row>
-
-          <Typography.Title level={5} style={{ marginBottom: 12 }}>
-            Product vision — not yet built
-          </Typography.Title>
-          <Row gutter={[12, 12]}>
-            {VISION_CONNECTORS.map((c) => (
-              <Col key={c.key} xs={24} sm={12} md={8}>
-                <ConnectorCard
-                  connector={c}
-                  selected={blocked?.key === c.key}
-                  onSelect={() => pick(c)}
-                />
-              </Col>
-            ))}
-          </Row>
+          {/*
+            * The directory: one grid, searchable, still sectioned.
+            *
+            * It was two hardcoded `Row`s. The sections survive because they are the one
+            * distinction search must not dissolve — available registers a source, vision
+            * explains why it cannot — but which cards are in them is now the directory's,
+            * and it draws a section only when something is left in it.
+            *
+            * The **card** stays here: `selected` is the wizard's own two-headed state (a
+            * pick, or a blocked one), and moving that into the directory would be a second
+            * answer to which card is chosen.
+            */}
+          <ConnectorDirectory
+            connectors={CONNECTORS}
+            selectedKey={selected?.key ?? blocked?.key ?? null}
+            renderCard={(c, isSelected) => (
+              <ConnectorCard connector={c} selected={isSelected} onSelect={() => pick(c)} />
+            )}
+          />
 
           {blocked ? (
             <Alert
