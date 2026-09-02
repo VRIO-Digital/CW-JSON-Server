@@ -1,0 +1,51 @@
+/*
+ * Step 1's connector directory.
+ *
+ * Spacing is the `--sp-*` scale, like everything authored here — the two vendored stylesheets
+ * are the only exemption and this is not one of them.
+ */
+
+.cd-controls {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-5);
+}
+
+/* The search takes the room; the filter takes what it needs and no more. */
+.cd-controls .ant-input-affix-wrapper {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cd-filter {
+  flex: 0 0 auto;
+  min-width: 168px;
+}
+
+.cd-section + .cd-section {
+  margin-top: var(--sp-6);
+}
+
+.cd-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3) !important;
+}
+
+/*
+ * The count beside a section heading.
+ *
+ * Neutral, never a status tint: how many connectors are in a section is a quantity, and
+ * `STATUS.good` / `warn` / `crit` are reserved for state — the rule that keeps a class chip from
+ * being mistaken for a status one.
+ */
+.cd-count {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 3px var(--sp-2);
+  border-radius: 999px;
+  color: rgba(0, 0, 0, 0.55);
+  background: rgba(5, 5, 5, 0.05);
+}

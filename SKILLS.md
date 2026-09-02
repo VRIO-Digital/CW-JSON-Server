@@ -102,6 +102,21 @@ Read the BigQuery column below and the Drive one mirrors it line for line.
 
 ### Step 1 · Connector
 
+**Step 1 is a searchable directory** — `ConnectorDirectory`, over a search box and a
+`Filter: All / Available now / Product vision` select, with a card per connector and the count
+on each section heading. `filterConnectors` in `src/data/connectorSearch.ts` is the predicate,
+out of the component because this grid sits inside a `Modal` that `renderToString` will not
+traverse. It searches the **name, blurb and type label** and nothing else: matching the `key`
+would let `osipi` find OSIsoft PI, a string this app never shows, and matching the `reason`
+would return vision cards for words that appear only after one is clicked. A search that
+matches nothing names the query rather than saying "no connectors".
+
+**The two sections survive the search, and that is the point of them.** Available registers a
+source; vision explains why it cannot. One flat grid ordered by relevance would let a reader
+click three cards in a row and be told "not yet built" three times, so the search narrows
+*within* the sections and a section left empty is dropped rather than drawn as a heading over
+nothing.
+
 Eight connectors from `CONNECTORS`. Only `available: true` ones are selectable —
 **Google BigQuery**, **Google Drive** and **Gmail**, which the step's own alert names
 rather than counts. The other five (**Microsoft Outlook**, SAP PM / S4HANA, OSIsoft PI,

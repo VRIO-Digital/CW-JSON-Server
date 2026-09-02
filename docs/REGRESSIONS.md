@@ -5258,3 +5258,37 @@ field its step no longer had). The second half is worse, because a timer or a po
 has no compile error and no visible symptom: it just runs forever against a screen nobody sees.
 When deleting a surface, grep for its state, its effects, its store subscriptions and its copy
 file — then check what it was *reporting on* is still asserted somewhere.
+
+## A `\b` written as a backspace byte, and a grep that read a crash as success (2026-09-02)
+
+**Symptom.** A brand-new `check-docs` claim failed against code that satisfied every one of its
+conditions. Each sub-condition was verified true in a standalone script using the same `read`,
+the same `codeOnly` and the same root — and the claim still went red.
+
+**Cause.** The claim was tightened from `/<ConnectorDirectory/` to `/<ConnectorDirectory\b/`
+through a shell `node -e` one-liner. The escaping collapsed on the way through, and what landed
+in the file was a literal **backspace character (0x08)** inside the regex literal — so the
+pattern was `<ConnectorDirectory␈`, which nothing can match. It is invisible in an editor, it
+survives `node --check`, and it reads as a plain regex in a diff.
+
+**Two adjacent traps in the same session, both from the same route.** An earlier attempt at the
+same line wrote `/import ConnectorDirectory from './ConnectorDirectory'/` — whose `/` in the
+path terminated the regex and made the whole file a `SyntaxError`. That one crashed the run
+before any claim executed, and the check `npm run check-docs | grep -c "✗"` **printed 0**, which
+is exactly what a clean run prints. A crash was read as a pass.
+
+**The general shape.** *Do not write regex literals through a shell.* Every escaping layer
+between the intent and the file is a chance to lose a backslash, and the failures are silent in
+both directions — a pattern that can never match, or a file that can never parse. Write the
+patch to a file with `String.raw` and run it, which is what finally worked.
+
+**And never count `✗` to decide whether a gate passed.** An absent summary line is a crash, not
+a green run; assert the summary is *present* and then read it. This file already records "a
+break-test harness has to read the stream check-docs actually uses" — same lesson, one layer up:
+the harness must be able to tell "nothing failed" from "nothing ran".
+
+**Found by break-testing.** The claim was reported CAUGHT for three mutations and MISSED for the
+one that renamed the element — which is what prompted tightening it in the first place, and then
+exposed the backspace. Two further mutations then reported SKIP because their search strings used
+`\n` against a CRLF file, the trap already recorded here. Every guard in this entry was found by
+a break test, not by reading.

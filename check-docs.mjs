@@ -249,6 +249,56 @@ expect(
 )
 
 
+/*
+ * **Step 1 is a searchable directory, and the two sections are what search must not dissolve.**
+ *
+ * It was two hardcoded grids. A search box over one flat list ordered by relevance would let a
+ * reader click three cards in a row and be told "not yet built" three times — available and
+ * vision is not a tidy grouping, it is the difference between a connector that registers a
+ * source and one that explains why it cannot. So the search narrows *within* the sections, and
+ * a section left empty is dropped rather than drawn as a heading over nothing.
+ *
+ * **The predicate is a pure function in `src/data/`**, for the reason `askAvailability` is: this
+ * grid lives inside a `Modal` that `renderToString` will not traverse, so a filter written in
+ * the component could not be asserted at all.
+ */
+const wizardSrc = codeOnly(read('frontend/src/components/sources/ConnectSourceWizard.tsx'))
+const dirSrc = codeOnly(read('frontend/src/components/sources/ConnectorDirectory.tsx'))
+const dirDataSrc = codeOnly(read('frontend/src/data/connectorSearch.ts'))
+expect(
+  'step 1 is a searchable directory whose predicate lives in src/data/',
+  /export function filterConnectors\(/.test(dirDataSrc) &&
+    /filterConnectors\(connectors, query, filter\)/.test(dirSrc) &&
+    /rows\.length === 0 \? null/.test(dirSrc) &&
+    /<ConnectorDirectory\b/.test(wizardSrc) &&
+    wizardSrc.includes("import ConnectorDirectory from './ConnectorDirectory'"),
+  'the wizard renders the directory, and an emptied section is dropped rather than drawn',
+)
+/*
+ * **It searches what a reader can see, and nothing else.** Matching the `key` would make `osipi`
+ * find OSIsoft PI — a string this app never shows anybody; matching the `reason` would make a
+ * vision card answer to words that appear only *after* it is clicked, so a search for "roadmap"
+ * would return cards whose visible text says nothing about roadmaps. A result a reader cannot
+ * account for reads as a bug.
+ */
+expect(
+  'and it matches the name, the blurb and the type label — never the key or the reason',
+  /\[c\.name, c\.blurb, c\.typeLabel\]/.test(dirDataSrc) &&
+    !/c\.key/.test(dirDataSrc.slice(dirDataSrc.indexOf('export function filterConnectors'))) &&
+    !/c\.reason/.test(dirDataSrc),
+  'the searched fields are the ones on the card',
+)
+/*
+ * And a search that matches nothing **names the query**. "No connectors" over a grid the reader
+ * has just narrowed is indistinguishable from a directory that failed to load — the rule the
+ * Library's ungoverned notice follows.
+ */
+expect(
+  'and a search that matches nothing says what it was searching for',
+  /noMatch: \(query: string\) =>/.test(dirDataSrc) &&
+    /connectorDirectoryCopy\.noMatch\(query\)/.test(dirSrc),
+  'the empty state interpolates the query rather than stating a bare absence',
+)
 expect(
   'an unknown connector falls back to the neutral mark, not a vendor one',
   /GenericSourceIcon size=\{size\} label=\{connector\}/.test(iconSource) &&
