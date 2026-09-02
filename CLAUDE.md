@@ -1790,6 +1790,68 @@ is entitled to ask. Both are still counted (`built_count`, `draft_count`), becau
 has to name the right one. `POST /ask` refuses an unpublished graph with the
 sentence that says so.
 
+**And a connected runtime source can be asked *directly*, which is a second thing to ask rather
+than a loosened gate.** The paragraph above is untouched: a **graph** answer still comes from the
+published version and only that one, and `POST /ask` still refuses a `use_case_id` whose graph was
+never published. What is new is that a question need not name a graph at all. A runtime source is
+read *at question time* and puts nothing on a canvas — the review queue and the pivot decide what
+the **canvas** asserts — so there is no version for it to wait on and no reviewer decision that
+would change what it says. Asking one asserts nothing about a graph, which is why the precondition
+does not apply to it.
+
+- **`GET /ask` serves `sources`**, the connected sources that can be asked: `askableSources()` is
+  `connectedSources()` filtered by **`isRuntimeSource`**, never by a connector name, so a second
+  runtime connector needs no edit — the rule step 4 of the New Graph wizard already keeps. A
+  BigQuery or Drive source is deliberately absent, because its data reaches an answer *through*
+  the published graph and a pick here would answer nothing; sending one is a 400 that says so
+  rather than an empty answer.
+- **`POST /ask` takes `source_ids` beside `use_case_id`**, and a request naming neither is the
+  refusal — it was `choose a graph to ask first`, which is now half the fix and would send a
+  reader to Graph Studio for a mailbox question. A graph answers where one was named; otherwise
+  `askSourceAnswer` does. **Never both**: an answer carrying a graph version *and* a mailbox would
+  have two accounts of where it came from, and a graph-grounded answer already reports its runtime
+  sources as `observation` blocks, which is the seam this mode sits on the other side of.
+- **The pool is the answers really read out of that connector**, matched through
+  `RUNTIME_CITATION_KIND` — an answer qualifies by carrying a `runtime: true` citation of the
+  source's own kind. CAPEX ships 13 such answers, 7 of them with `observation` blocks. It is a
+  **declaration rather than an id match** because the two ids are from different namespaces: a
+  citation's `source_id` is the tenant package's (`src_gmail`) and a connected source's is minted
+  at registration. Comparing them would match nothing — and match nothing *quietly*, leaving every
+  mailbox question abstaining as though the mail held no answer. A runtime kind with no entry stops
+  the boot.
+- **It abstains rather than falling through to the graph walk**, because there is no graph here to
+  walk. The reason names the source that was read, so "the mail does not say" is distinguishable
+  from "the connector failed", and no confidence is invented to fill the field.
+- **`use_case_id`, `graph_name` and `version` are `null`** on such an answer rather than borrowed
+  from whatever happens to be selected — the client schema declares all three `nullable(str)` now.
+  A source-scoped answer was not produced by a graph, and naming one would attribute it to content
+  that did not answer it.
+
+**On the page it is a `+` beside the question box, and the graph select stays put.** `AskSourcePicker`
+lists what `GET /ask` served — a component filtering on a connector name would be a second answer to
+which sources are askable — and it is its own component with its words in `src/data/askSources.ts`,
+because a `Dropdown`'s rows portal out of `renderToString`. Its empty state is a sentence naming
+Sources rather than an absent control, and it says why BigQuery and Drive are not in it: a list that
+is merely shorter is not a message.
+
+**The gate now means "there is nothing here to ask at all".** `askAvailability` is the one
+definition — a pure function in `src/data/` for the reason `datasetPathFix` is, since a test written
+inline in the page could only be asserted by rendering the page's own state, which `renderToString`
+gives its *initial* value. `gated` is `no published graph **and** no connected source`, so a reader
+with a mailbox connected never meets `NoPublishedGraph`; `canAsk` additionally requires a source to
+have been **picked**, because connecting one is not choosing to read this question against it. The
+four-page claim is unchanged — Ask still renders the shared empty state on the branch that remains.
+
+**And the graph select is drawn whether or not anything is published**, stating `No graph published`
+as a disabled option. Hiding it was right while a graph was the only thing this page could ask; it is
+wrong now that the page works without one, because a missing control would be the reader's only clue
+that a graph is a thing to have at all.
+
+**A chat is filed for these answers too, under `subject`.** `appendTurn` returned early without a
+`use_case_id`, so a source-scoped reply streamed to the screen and was then never recorded — no turn,
+no chat, gone the moment `asking` went false. `subject` is a field of its own rather than a widened
+`graphName`: a mailbox filed under a key called "graph name" says something false about where the
+answers came from, which is the payload-field-is-a-contract mistake one layer up.
 **A runtime-answered graph publishes itself when its build lands, and the rule above is
 unchanged by it.** Ask still queries the published version and only that one — what changed
 is *who presses Publish*, not what Ask answers from. A graph drawing on a runtime source has

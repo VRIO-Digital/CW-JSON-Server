@@ -139,7 +139,7 @@ export default function AskChatRail({
                   {/* What it was asked *of*, and how much of it there is: a thread's
                       answers belong to one graph, and reopening it selects that graph. */}
                   <span className="ask-rail-item-meta">
-                    {`${chat.graphName} · ${chat.turns.length} question${chat.turns.length === 1 ? '' : 's'} · ${day(chat.updatedAt)}`}
+                    {`${chat.subject} · ${chat.turns.length} question${chat.turns.length === 1 ? '' : 's'} · ${day(chat.updatedAt)}`}
                   </span>
                 </span>
               </button>

@@ -7,11 +7,13 @@ import AnswerBlocks from '../components/ask/AnswerBlocks'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import AskAnswerView from '../components/ask/AskAnswerView'
 import AskChatRail from '../components/ask/AskChatRail'
+import AskSourcePicker from '../components/ask/AskSourcePicker'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
 import {
   selectActiveChat,
   selectAskGraphs,
+  selectAskSources,
   selectChats,
   selectCurrentGraph,
   // selectCitations and selectRequirementOptions are the Answer requirements tab's, and
@@ -20,6 +22,7 @@ import {
 } from '../store/askStore'
 import { useAuthStore } from '../store/authStore'
 import type { AskTurn } from '../data/askChats'
+import { askAvailability, askSourceCopy } from '../data/askSources'
 import './AskPage.css'
 
 const shortDate = (iso: string | null) =>
@@ -82,6 +85,11 @@ export default function AskPage() {
   const signedInAs = useAuthStore((s) => s.identity?.email ?? null)
   const graphs = useAskStore(selectAskGraphs)
   const graph = useAskStore(selectCurrentGraph)
+  /* The connected sources that can be asked at question time, and which of them this
+     question is read against. Served, never filtered on a connector name here. */
+  const askSources = useAskStore(selectAskSources)
+  const sourceIds = useAskStore((s) => s.sourceIds)
+  const toggleSource = useAskStore((s) => s.toggleSource)
   /*
    * The Answer requirements tab is **switched off** — the tab item is commented out at the
    * bottom of this file, and these five hooks are commented with it because
@@ -134,23 +142,58 @@ export default function AskPage() {
     if (!result.ok) message.error(result.error)
   }
 
+  /*
+   * **What this question will be asked of.** A published graph, or the connected sources
+   * picked with the `+`, or both — the server decides how they combine, and this is only
+   * what the page needs to know to enable the box and label it.
+   *
+   * `canAsk` is the one definition, read by the button, the input and the placeholder, so
+   * they cannot disagree about whether there is anything to ask.
+   */
+  const pickedSources = askSources.filter((s) => sourceIds.includes(s.sourceId))
+  const {
+    gated,
+    canAsk,
+    target: askTarget,
+  } = askAvailability(graph ? `${graph.name} ${graph.version}` : null, askSources, sourceIds)
+
   if (error) return <ApiErrorAlert error={error} onRetry={() => void load()} />
 
-  const picker =
-    graphs.length > 0 ? (
-      <Select
-        value={useCaseId ?? undefined}
-        onChange={select}
-        style={{ minWidth: 220 }}
-        aria-label="Graph to ask"
-        options={graphs.map((g) => ({
-          value: g.useCaseId,
-          // The live version, beside the name — asking a graph without knowing
-          // which version answered is asking nothing in particular.
-          label: `${g.name} · ${g.version}`,
-        }))}
-      />
-    ) : null
+  /*
+   * The graph select, rendered whether or not anything is published.
+   *
+   * **It used to be absent with nothing live**, which was right while a graph was the only
+   * thing this page could ask: there was no choice to offer, and the gate below said so. It
+   * is wrong now that a connected source can be asked on its own — the page works, the
+   * reader is asking questions, and a missing control is the only thing saying that a graph
+   * is even a thing to have. So it states `No graph published` as a disabled option instead,
+   * which is a fact about the tenant rather than a gap in the furniture.
+   */
+  const picker = (
+    <Select
+      value={graphs.length > 0 ? (useCaseId ?? undefined) : askSourceCopy.noGraphOption}
+      onChange={select}
+      style={{ minWidth: 220 }}
+      disabled={graphs.length === 0}
+      aria-label="Graph to ask"
+      options={
+        (graphs.length > 0
+          ? graphs.map((g) => ({
+              value: g.useCaseId,
+              // The live version, beside the name — asking a graph without knowing
+              // which version answered is asking nothing in particular.
+              label: `${g.name} · ${g.version}`,
+            }))
+          : [
+              {
+                value: askSourceCopy.noGraphOption,
+                label: askSourceCopy.noGraphOption,
+                disabled: true,
+              },
+            ]) as { value: string; label: string; disabled?: boolean }[]
+      }
+    />
+  )
 
   return (
     <>
@@ -162,7 +205,7 @@ export default function AskPage() {
 
       {loading && !data ? (
         <Spin />
-      ) : !graph ? (
+      ) : gated ? (
         /*
          * The shared gate, not a private one. Ask had its own `EmptyState` here — same
          * precondition, different title, different steps and its own "Open Graph Studio"
@@ -170,8 +213,11 @@ export default function AskPage() {
          * only Ask-specific parts are the sentence and the closing line, which are what the
          * component takes as props.
          */
+        /* Reached only when there is *neither* a published graph nor a connected source that
+           can be read at question time — the two things this page can ask. A reader with a
+           mailbox connected never sees it, which is the whole of the second mode. */
         <NoPublishedGraph
-          detail="Ask queries the published version of a graph — a draft has no version to hold an answer."
+          detail="Ask queries the published version of a graph — a draft has no version to hold an answer. Connect a Gmail source to ask correspondence directly instead."
           builtCount={data?.builtCount ?? 0}
           draftCount={data?.draftCount ?? 0}
           footnote="A draft cannot be asked — there is no version to hold the answer to."
@@ -242,20 +288,43 @@ export default function AskPage() {
                      * it will and will not get you.
                      */
                     <div className="ask-grounding">
-                      <Typography.Title level={5} style={{ margin: 0 }}>
-                        Ask against {graph.name}
-                      </Typography.Title>
-                      <p className="ask-grounding-note">
-                        Answers are grounded in graph <strong>{graph.version}</strong>
-                        {graph.publishedAt && graph.publishedBy
-                          ? `, published ${shortDate(graph.publishedAt)} by ${graph.publishedBy}`
-                          : ''}
-                        . {graph.entityCount} entities · {graph.relationshipCount}{' '}
-                        relationships.
-                        {graph.caveats.length > 0 ? ` ${graph.caveats.join('. ')}.` : ''}{' '}
-                        Every number carries its source; every answer carries its
-                        confidence — or the reason it abstains.
-                      </p>
+                      {graph ? (
+                        <>
+                          <Typography.Title level={5} style={{ margin: 0 }}>
+                            Ask against {graph.name}
+                          </Typography.Title>
+                          <p className="ask-grounding-note">
+                            Answers are grounded in graph <strong>{graph.version}</strong>
+                            {graph.publishedAt && graph.publishedBy
+                              ? `, published ${shortDate(graph.publishedAt)} by ${graph.publishedBy}`
+                              : ''}
+                            . {graph.entityCount} entities · {graph.relationshipCount}{' '}
+                            relationships.
+                            {graph.caveats.length > 0 ? ` ${graph.caveats.join('. ')}.` : ''}{' '}
+                            Every number carries its source; every answer carries its
+                            confidence — or the reason it abstains.
+                          </p>
+                        </>
+                      ) : (
+                        /*
+                         * No graph is live, so this states what *is* being asked rather than
+                         * a version. The sentence is the observation rule in the query set’s
+                         * own words — one claim in one place, printed here, in the picker and
+                         * on an observation block alike.
+                         */
+                        <>
+                          <Typography.Title level={5} style={{ margin: 0 }}>
+                            {pickedSources.length > 0
+                              ? `Ask ${askTarget}`
+                              : 'Pick a source to ask'}
+                          </Typography.Title>
+                          <p className="ask-grounding-note">
+                            {pickedSources.length > 0
+                              ? askSourceCopy.observationNote
+                              : askSourceCopy.pickPrompt}
+                          </p>
+                        </>
+                      )}
                     </div>
                   ) : null}
 
@@ -307,7 +376,9 @@ export default function AskPage() {
                           <span>
                             {streamedSummary
                               ? 'Composing the rest of the answer…'
-                              : `Grounding the question in ${graph.name} ${graph.version}…`}
+                              : graph
+                                ? `Grounding the question in ${askTarget}…`
+                                : `Reading the question against ${askTarget}…`}
                           </span>
                         </div>
                       </div>
@@ -317,20 +388,31 @@ export default function AskPage() {
 
                 <div className="ask-composer">
                   <div className="ask-box">
+                    {/* Which connected sources this question is read against. Its own
+                        component, because a dropdown's rows cannot be asserted from here. */}
+                    <AskSourcePicker
+                      sources={askSources}
+                      picked={sourceIds}
+                      onToggle={toggleSource}
+                      disabled={asking}
+                    />
                     <Input
                       variant="borderless"
                       value={question}
                       onChange={(e) => setQuestion(e.target.value)}
                       onPressEnter={() => void onAsk(question)}
                       placeholder="Ask anything about your operations..."
-                      aria-label={`Ask ${graph.name} ${graph.version}`}
+                      aria-label={canAsk ? `Ask ${askTarget}` : askSourceCopy.pickPrompt}
                       disabled={asking}
                     />
                     <Button
                       type="primary"
                       icon={<ArrowUpOutlined />}
                       loading={asking}
-                      disabled={!question.trim()}
+                      /* Nothing to ask is as much a reason to withhold the act as an empty
+                         box: with no graph live and no source picked, the request would be
+                         refused by the server for a reason the reader can fix here. */
+                      disabled={!question.trim() || !canAsk}
                       onClick={() => void onAsk(question)}
                     >
                       Ask
@@ -346,7 +428,10 @@ export default function AskPage() {
                    * standing row of openers under a conversation reads as the app not having
                    * noticed it began.
                    */}
-                  {graph.suggestedQuestions.length > 0 && turns.length === 0 ? (
+                  {/* The chips are a *graph's* hero questions — the ones its brief said it
+                      had to answer. A source-scoped ask has no brief and therefore no
+                      openers: inventing some would be the trap this comment already names. */}
+                  {graph && graph.suggestedQuestions.length > 0 && turns.length === 0 ? (
                     <div className="ask-chips">
                       {graph.suggestedQuestions.map((q) => (
                         <Button

@@ -2789,8 +2789,20 @@ expect(
     /function runtimeSourcesFor\(useCase\) \{\s*return runtimeSourcesIn\(useCase\?\.sources \?\? \[\]\)/.test(
       server,
     ) &&
-    /* Exactly the two call sites, and no third copy of the filter anywhere else. */
-    server.split('isRuntimeSource(s.kind)').length - 1 === 1,
+    /*
+     * And no third copy of the *picks* filter anywhere else.
+     *
+     * `askableSources` is cut out first rather than counted, because it answers a different
+     * question with the same words: which **connected** sources may be asked directly, taking
+     * no picks at all. Counting the bare token made this claim a claim about a spelling —
+     * the fault this file records more than once — and it went red on a helper that could not
+     * possibly disagree with `runtimeSourcesIn`, having no picks to disagree about.
+     */
+    server
+      .replace(/function askableSources\(\) \{[\s\S]*?\n\}/, '')
+      .split('isRuntimeSource(s.kind)').length -
+      1 ===
+      1,
   'runtimeSourcesIn is the one definition; the coverage step and the build both call it',
 )
 /*
@@ -4214,6 +4226,127 @@ expect(
     /export const selectActiveChat/.test(askStoreSrc) &&
     !/^\s*answer: AskAnswer \| null$/m.test(codeOnly(askStoreSrc)),
   'two homes for one answer is how the thread and the history disagree',
+)
+/*
+ * **A connected runtime source can be asked directly, and that is a second mode rather than a
+ * relaxed gate.** Ask still queries the published version of a graph and only that one — what
+ * changed is that there is a second thing to ask. A runtime source is read *at question time*
+ * and puts nothing on a canvas, so there is no version for it to wait on and no reviewer
+ * decision that would change what it says; the publish precondition is about what a graph
+ * asserts, and a mailbox answer asserts nothing about a graph.
+ *
+ * The gate that matters is asserted where it lives, in the route: a `use_case_id` naming a
+ * graph that was never published is still refused, naming Graph Studio.
+ */
+const askServerSrc = read('backend/server.js')
+expect(
+  'a connected runtime source can be asked with no graph published',
+  /function askSourceAnswer\(/.test(askServerSrc) &&
+    /function askableSources\(/.test(askServerSrc) &&
+    /\.filter\(\(s\) => isRuntimeSource\(s\.kind\)\)/.test(askServerSrc) &&
+    /const answer = useCase/.test(askServerSrc) &&
+    /: askSourceAnswer\(picked, String\(question\)\.trim\(\), requested\)/.test(askServerSrc),
+  'askSourceAnswer answers where no graph was named, over runtime sources only',
+)
+expect(
+  'and the publish gate on a graph is exactly what it was',
+  /has never been published — publish it in Graph Studio, then ask it/.test(askServerSrc) &&
+    /if \(liveVersion\(id\) === null\)/.test(askServerSrc),
+  'a graph that was never published is still refused, naming the fix',
+)
+/*
+ * **The pool is the answers really read out of that kind of source.** An answer qualifies by
+ * carrying a `runtime: true` citation of the connector's own kind, declared once in
+ * `RUNTIME_CITATION_KIND` — never by id, because a citation's `source_id` is the tenant
+ * package's (`src_gmail`) and a connected source's is minted at registration. Comparing the two
+ * would match nothing, and would match nothing *quietly*: every mailbox question would abstain
+ * as though the mail held no answer. A runtime kind with no entry stops the boot.
+ */
+expect(
+  'and a mailbox is credited only with answers really read from correspondence',
+  /const RUNTIME_CITATION_KIND = \{ gmail: 'correspondence' \}/.test(askServerSrc) &&
+    /c\.runtime === true && citationKinds\.has\(c\.kind\)/.test(askServerSrc) &&
+    /is a runtime kind with no RUNTIME_CITATION_KIND/.test(askServerSrc),
+  'the pool is matched by declared citation kind, and an undeclared runtime kind stops the boot',
+)
+/*
+ * **A source that derives into the graph is not offered and is refused if sent.** BigQuery and
+ * Drive reach an answer *through* the published graph, so a pick here would answer nothing —
+ * and the refusal says that rather than returning an empty answer, which is the reading this
+ * whole file keeps refusing. Read off `isRuntimeSource`, never a connector name, so a second
+ * runtime connector needs no edit here.
+ */
+expect(
+  'and a source that derives into the graph is refused, naming why',
+  /is not read at question time — its data reaches an answer through the published graph/.test(
+    askServerSrc,
+  ) && !/kind === 'gmail'/.test(askServerSrc.slice(askServerSrc.indexOf('function askableSources'), askServerSrc.indexOf('function askCitations'))),
+  'the refusal names the fix, and neither helper tests for a connector by name',
+)
+/*
+ * **On the client the gate is a pure function**, for the reason `datasetPathFix` and `diagnose`
+ * are: a test written inline in the page can only be asserted by rendering the page's own
+ * state, and `renderToString` hands a zustand component its *initial* state — so the check
+ * would pass over an empty render. `gated` also changed meaning, from "no graph is live" to
+ * "there is nothing here to ask at all", which is the whole of the second mode.
+ */
+const askSourcesSrc = codeOnly(read('frontend/src/data/askSources.ts'))
+expect(
+  'the page’s gate is decided in src/data/, not inside the component',
+  /export function askAvailability\(/.test(askSourcesSrc) &&
+    /gated: graphName === null && sources\.length === 0/.test(askSourcesSrc) &&
+    /canAsk: graphName !== null \|\| picked\.length > 0/.test(askSourcesSrc) &&
+    /askAvailability\(/.test(codeOnly(askPageSrc)) &&
+    /\) : gated \? \(/.test(codeOnly(askPageSrc)),
+  'askAvailability decides it and AskPage renders the answer',
+)
+/*
+ * **The picker lists what the server served.** `GET /ask` says which sources are askable; a
+ * component filtering on a connector name would be a second answer to that and would go stale
+ * the day a second runtime connector lands — the rule step 4 of the New Graph wizard follows
+ * for the same fact. It is its own component because a `Dropdown`'s rows portal out of
+ * `renderToString`, and its words are in `src/data/` for the same reason.
+ */
+const pickerSrc = codeOnly(read('frontend/src/components/ask/AskSourcePicker.tsx'))
+expect(
+  'and the + picker renders the served sources rather than deciding which are askable',
+  /export function AskSourceList/.test(pickerSrc) &&
+    !/'gmail'/.test(pickerSrc) &&
+    !/kind ===/.test(pickerSrc) &&
+    /askSourceCopy\.observationNote/.test(pickerSrc) &&
+    /askSourceCopy\.emptyTitle/.test(pickerSrc),
+  'the panel is exported apart from its Dropdown and names no connector',
+)
+/*
+ * **And the graph select is rendered whether or not anything is published**, stating
+ * `No graph published` as a disabled option. It used to be absent, which was right while a
+ * graph was the only thing this page could ask — and is wrong now that the page works without
+ * one, because a missing control would be the reader's only clue that a graph is a thing to
+ * have at all.
+ */
+expect(
+  'and the graph select states that nothing is published rather than disappearing',
+  /askSourceCopy\.noGraphOption/.test(codeOnly(askPageSrc)) &&
+    /disabled=\{graphs\.length === 0\}/.test(codeOnly(askPageSrc)) &&
+    /noGraphOption: 'No graph published'/.test(askSourcesSrc),
+  'the control is always drawn, and says why it has nothing to offer',
+)
+/*
+ * **A chat records what answered it, and a source-scoped answer has no graph.** `appendTurn`
+ * returned early without a `use_case_id`, so once a source could answer alone the reply
+ * streamed to the screen and was never filed — no turn, no chat, gone the moment `asking` went
+ * false. `subject` is a field of its own rather than a widened `graphName`, because a mailbox
+ * filed under a key called "graph name" says something false about where the answers came from.
+ */
+const chatsSrc = codeOnly(read('frontend/src/data/askChats.ts'))
+expect(
+  'a chat is filed for a source-scoped answer too, under what actually answered',
+  /subject: string/.test(chatsSrc) &&
+    /useCaseId: string \| null/.test(chatsSrc) &&
+    /str\(v\.subject\)/.test(chatsSrc) &&
+    /if \(!state\.useCaseId && picked\.length === 0\) return/.test(codeOnly(askStoreSrc)) &&
+    /chat\.subject/.test(codeOnly(read('frontend/src/components/ask/AskChatRail.tsx'))),
+  'the thread survives an answer no graph produced',
 )
 /* Switching graphs starts a new thread: an answer belongs to the version that produced it,
    and reading it under another graph's heading is a claim about content that never answered. */

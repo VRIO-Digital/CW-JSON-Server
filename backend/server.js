@@ -2806,6 +2806,29 @@ for (const kind of RUNTIME_KINDS) {
     )
   }
 }
+/**
+ * Which citation kind a runtime connector's answers carry.
+ *
+ * **A reader may ask a connected runtime source directly, with no graph in the picture** —
+ * see `askSourceAnswer`. What makes that answerable is that the recorded query set marks its
+ * question-time citations `runtime: true` and names the kind of source they came from, so a
+ * mailbox pick admits the answers that really were read out of correspondence.
+ *
+ * **It is a declaration rather than an id match, because the two ids are from different
+ * namespaces.** A citation's `source_id` is the tenant package's (`src_gmail`); a connected
+ * source's is minted at registration and dies with the process. Comparing them would match
+ * nothing, and — worse — would match nothing *quietly*, leaving every mailbox question
+ * abstaining as though the mail held no answer.
+ */
+const RUNTIME_CITATION_KIND = { gmail: 'correspondence' }
+
+for (const kind of RUNTIME_KINDS) {
+  if (!RUNTIME_CITATION_KIND[kind]) {
+    throw new Error(
+      `${kind} is a runtime kind with no RUNTIME_CITATION_KIND — asking it directly would match no recorded answer and abstain as though its data held none`,
+    )
+  }
+}
 for (const kind of CATALOGUE_ONLY_KINDS) {
   if (!isProfilable(kind) || !isRuntimeSource(kind)) {
     throw new Error(
@@ -5046,8 +5069,13 @@ const askTokens = (s) =>
  * honestly, and that is the better outcome than confidently answering a question
  * nobody asked.
  */
-function matchAskAnswer(question) {
-  const answers = db.ask_answers ?? []
+/**
+ * @param pool Which recorded answers may be served. Defaults to the whole set; the source-
+ *   scoped ask narrows it to the answers really read out of that connector, so a mailbox
+ *   cannot be credited with an answer the graph produced.
+ */
+function matchAskAnswer(question, pool = null) {
+  const answers = pool ?? db.ask_answers ?? []
   if (answers.length === 0) return null
 
   const asked = askTokens(question)
@@ -5136,6 +5164,202 @@ function askRequested(body) {
     }
   }
   return { citations, formats: pool.filter((f) => asked.includes(f.format_id)) }
+}
+
+/**
+ * The connected sources a reader may ask **directly**, with no graph in the picture.
+ *
+ * **Runtime sources only, read off `isRuntimeSource` rather than a connector name** — the
+ * rule step 4 of the wizard already follows for the same fact. A BigQuery or Drive source
+ * derives *into* the graph, so its answer is the graph's answer and it has none of its own;
+ * offering it here would be a pick that answers nothing.
+ *
+ * **And only while it is connected.** A disconnected mailbox is still listed on Sources so it
+ * can be reconnected, but nothing can be read out of it at question time — which is the whole
+ * of what asking one means.
+ */
+function askableSources() {
+  return connectedSources()
+    .filter((s) => isRuntimeSource(s.kind))
+    .map((s) => ({
+      source_id: s.source_id,
+      name: s.source_name,
+      kind: s.kind,
+      connector: s.connector,
+      /* What it connected *as* — the address, for a mailbox. The row says whose mail this is,
+         which is the one thing a reader picking between two mailboxes needs. */
+      account: s.mailbox ?? s.account ?? null,
+      scope: `${(s.labels ?? []).length} label(s)`,
+    }))
+}
+
+/**
+ * Asking a connected runtime source directly.
+ *
+ * **This is a second mode, not a relaxed gate.** Ask still queries the published version of a
+ * graph and only that one — what this adds is a different thing to ask. A runtime source is
+ * read *at question time* and puts nothing on the canvas, so there is no version for it to
+ * wait on and no reviewer decision that would change what it says: the publish precondition
+ * is about what a graph asserts, and this asserts nothing about a graph.
+ *
+ * **The pool is the answers really read out of that kind of source**, matched through
+ * `RUNTIME_CITATION_KIND` — an answer qualifies by carrying a `runtime: true` citation of the
+ * connector's own kind. So a mailbox cannot be credited with an answer the graph produced,
+ * which is the one failure that would make this mode dishonest rather than merely narrow.
+ *
+ * **And it abstains rather than falling through to the graph walk.** There is no graph here to
+ * walk; a question the mail does not answer is a fact about the mail, and saying so names the
+ * source rather than leaving a reader to think the connector is broken.
+ */
+function askSourceAnswer(sources, question, requested) {
+  const names = sources.map((s) => s.source_name).join(', ')
+  const citationKinds = new Set(
+    sources.map((s) => RUNTIME_CITATION_KIND[s.kind]).filter(Boolean),
+  )
+  const pool = (db.ask_answers ?? []).filter((a) =>
+    (a.citations ?? []).some((c) => c.runtime === true && citationKinds.has(c.kind)),
+  )
+
+  const grounding = {
+    step: 'Read the question against the connected source',
+    detail:
+      pool.length > 0
+        ? `${names} — read at question time. ${pool.length} recorded answer(s) are drawn from it.`
+        : `${names} — read at question time. Nothing recorded in this dataset was drawn from it.`,
+  }
+
+  /*
+   * The frame every answer here carries. `use_case_id`, `graph_name` and `version` are **null**
+   * rather than borrowed from whatever happens to be live: a source-scoped answer was not
+   * produced by a graph, and naming one would attribute it to content that did not answer it.
+   */
+  const base = {
+    question,
+    use_case_id: null,
+    graph_name: null,
+    version: null,
+    source_ids: sources.map((s) => s.source_id),
+    entities: [],
+    path: [],
+    hops: 0,
+    caveats: [
+      'Read at question time from correspondence. Nothing here is a graph element: an extraction from a message is an observation — a claim about a subject, attributed to whoever made it — and it is never merged into the fact set.',
+    ],
+    asked_at: new Date().toISOString(),
+  }
+
+  const recorded = matchAskAnswer(question, pool)
+  if (!recorded) {
+    /*
+     * Abstaining *is* the answer, exactly as it is for the walk: no confidence is invented to
+     * fill the field, and the reason names the source that was read so a reader can tell
+     * "the mail does not say" from "the connector failed".
+     */
+    const reason =
+      pool.length > 0
+        ? `Nothing read from ${names} answers this. ${pool.length} recorded answer(s) are drawn from it, and none matches the question closely enough to serve.`
+        : `Nothing recorded in this dataset was read from ${names}, so there is nothing here to answer from.`
+    return {
+      ...base,
+      answered: false,
+      reason,
+      answer: null,
+      confidence: null,
+      reasoning: [grounding, { step: 'Abstained', detail: reason }],
+      citations: [],
+      requirements: askRequirements(requested, [], false),
+      summary: null,
+      blocks: [],
+      answer_id: null,
+    }
+  }
+
+  const { answer: a, how } = recorded
+  const citations = askCitations(a)
+  const reasoning = [
+    grounding,
+    {
+      step: 'Answered from the recorded query set',
+      detail: `${a.answer_id} (${a.kind}${a.hero_ref ? `, ${a.hero_ref}` : ''}) — ${how}.`,
+    },
+  ]
+
+  /* A decline is an abstention here too — same rule, and for the same reason: the set scores
+     its declines high, and that is certainty it *cannot* answer rather than a confidence. */
+  if (a.kind === 'decline') {
+    return {
+      ...base,
+      answered: false,
+      reason: a.summary,
+      answer: null,
+      confidence: null,
+      reasoning: [...reasoning, { step: 'Declined', detail: a.summary }],
+      citations,
+      requirements: askRequirements(requested, citations, false),
+      summary: a.summary,
+      blocks: a.blocks,
+      answer_id: a.answer_id,
+    }
+  }
+
+  return {
+    ...base,
+    answered: true,
+    reason: `Answered from ${a.answer_id} — read from ${names} at question time.`,
+    answer: a.summary,
+    confidence: a.confidence,
+    reasoning,
+    citations,
+    requirements: askRequirements(requested, citations, true),
+    summary: a.summary,
+    blocks: a.blocks,
+    answer_id: a.answer_id,
+  }
+}
+
+/**
+ * An answer's numbered source list.
+ *
+ * **Extracted so the graph-grounded answer and the source-scoped one cannot come to disagree
+ * about what a citation is** — the rule one `AnswerChart` follows for an answer and a report.
+ * The body below is what was inline in `askAnswer`, moved and not rewritten.
+ */
+function askCitations(a) {
+  const authored = Array.isArray(a.citations) ? a.citations : []
+  return authored.length > 0
+    ? [...authored]
+        /* By the set's own numbering, so the list a reader cites by number is the list
+           the set wrote rather than whatever order the array happened to hold. */
+        .sort((x, y) => (x.n ?? 0) - (y.n ?? 0))
+        .map((c) => ({
+          label: c.label,
+          detail: c.detail,
+          confidence: null,
+          kind: c.kind ?? null,
+          source_id: c.source_id ?? null,
+          runtime: typeof c.runtime === 'boolean' ? c.runtime : null,
+          as_of: c.as_of ?? null,
+          authoritative:
+            typeof c.authoritative === 'boolean' ? c.authoritative : null,
+          /* Why it is not, in the set's words — printed only where it says so, because
+             an empty reason under a "not authoritative" mark is worse than the mark. */
+          why_not_authoritative: c.why_not_authoritative ?? null,
+          n: typeof c.n === 'number' ? c.n : null,
+        }))
+    : (a.evidence ?? [])
+        .filter((e) => e.source && e.source !== '—')
+        .map((e, i) => ({
+          label: e.source,
+          detail: e.detail,
+          confidence: null,
+          kind: null,
+          source_id: null,
+          runtime: null,
+          as_of: null,
+          authoritative: null,
+          why_not_authoritative: null,
+          n: i + 1,
+        }))
 }
 
 /**
@@ -5244,42 +5468,7 @@ function askAnswer(useCase, question, requested = { citations: DEFAULT_CITATIONS
      * Evidence rows carry no per-row score either way: the set states one confidence for
      * the whole answer, and a number per row would be invented.
      */
-    const authored = Array.isArray(a.citations) ? a.citations : []
-    const citations =
-      authored.length > 0
-        ? [...authored]
-            /* By the set's own numbering, so the list a reader cites by number is the list
-               the set wrote rather than whatever order the array happened to hold. */
-            .sort((x, y) => (x.n ?? 0) - (y.n ?? 0))
-            .map((c) => ({
-              label: c.label,
-              detail: c.detail,
-              confidence: null,
-              kind: c.kind ?? null,
-              source_id: c.source_id ?? null,
-              runtime: typeof c.runtime === 'boolean' ? c.runtime : null,
-              as_of: c.as_of ?? null,
-              authoritative:
-                typeof c.authoritative === 'boolean' ? c.authoritative : null,
-              /* Why it is not, in the set's words — printed only where it says so, because
-                 an empty reason under a "not authoritative" mark is worse than the mark. */
-              why_not_authoritative: c.why_not_authoritative ?? null,
-              n: typeof c.n === 'number' ? c.n : null,
-            }))
-        : (a.evidence ?? [])
-            .filter((e) => e.source && e.source !== '—')
-            .map((e, i) => ({
-              label: e.source,
-              detail: e.detail,
-              confidence: null,
-              kind: null,
-              source_id: null,
-              runtime: null,
-              as_of: null,
-              authoritative: null,
-              why_not_authoritative: null,
-              n: i + 1,
-            }))
+    const citations = askCitations(a)
 
     if (a.kind === 'decline') {
       /*
@@ -10163,9 +10352,21 @@ const routes = [
         .filter(Boolean)
         .sort((a, b) => Date.parse(b.published_at ?? 0) - Date.parse(a.published_at ?? 0))
 
+      const sources = askableSources()
+
       send(res, 200, {
         graphs,
         count: graphs.length,
+        /*
+         * The connected runtime sources a reader may ask **directly**, with no graph.
+         *
+         * Served here rather than read off `/sources` by the page, for the reason the consent
+         * screen renders the scopes the endpoint returned: a client deciding for itself which
+         * of its sources are askable would offer a pick this route refuses, and would go
+         * stale the day a second runtime connector lands.
+         */
+        sources,
+        source_count: sources.length,
         built_count: built.length,
         draft_count: db.graph_use_cases.length - built.length,
         /*
@@ -10190,15 +10391,43 @@ const routes = [
     match: (p) => p === '/ask',
     handle: async (req, res) => {
       const body = await readJson(req)
-      const { use_case_id, question } = body
+      const { use_case_id, question, source_ids } = body
       const id = String(use_case_id ?? '').trim()
-      if (!id) return send(res, 400, { error: 'choose a graph to ask first' })
 
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-      if (liveVersion(id) === null) {
+      /*
+       * **Two things can be asked, and the request says which.** A published graph, exactly as
+       * before; or one or more connected runtime sources, read at question time. Naming
+       * neither is the refusal — it was `choose a graph to ask first`, which is now only half
+       * the fix and would send a reader to Graph Studio for a mailbox question.
+       */
+      const askedSources = Array.isArray(source_ids)
+        ? source_ids.map((sid) => String(sid ?? '').trim()).filter(Boolean)
+        : []
+      const picked = []
+      for (const sid of askedSources) {
+        const source = registered.get(sid)
+        if (!source) {
+          return send(res, 404, { error: `no source "${sid}" — connect it first, or pick another` })
+        }
+        if (source.status !== 'connected') {
+          return send(res, 400, {
+            error: `${source.source_name} is disconnected — reconnect it on Sources, then ask it`,
+          })
+        }
+        /* Refused by what the server says a source *is*, never by connector name: a source that
+           derives into the graph has no answer of its own, and the refusal says so rather than
+           returning an empty one. */
+        if (!isRuntimeSource(source.kind)) {
+          return send(res, 400, {
+            error: `${source.source_name} is not read at question time — its data reaches an answer through the published graph, so ask the graph instead`,
+          })
+        }
+        picked.push(source)
+      }
+
+      if (!id && picked.length === 0) {
         return send(res, 400, {
-          error: `${found.useCase.name} has never been published — publish it in Graph Studio, then ask it`,
+          error: 'choose a graph or a connected source to ask first',
         })
       }
       if (!String(question ?? '').trim()) {
@@ -10208,6 +10437,23 @@ const routes = [
          opens, like every other refusal on this route. */
       const requested = askRequested(body)
       if (requested.error) return send(res, 400, { error: requested.error })
+
+      /*
+       * The graph, where one was named — and the publish gate is exactly as it was. A graph
+       * that has never been published is still refused here, naming Graph Studio, because
+       * this route answering from an unpublished version is the failure the gate exists for.
+       */
+      let useCase = null
+      if (id) {
+        const found = findBuiltGraph(id)
+        if (found.error) return send(res, found.status, { error: found.error })
+        if (liveVersion(id) === null) {
+          return send(res, 400, {
+            error: `${found.useCase.name} has never been published — publish it in Graph Studio, then ask it`,
+          })
+        }
+        useCase = found.useCase
+      }
 
       /*
        * The answer is streamed, because it is composed rather than fetched.
@@ -10223,7 +10469,16 @@ const routes = [
        * rather than animating over a finished blob, which is the same distinction
        * `GoogleConsentPanel` draws between a stage and a timer.
        */
-      const answer = askAnswer(found.useCase, String(question).trim(), requested)
+      /*
+       * **A graph answers where one was named; otherwise the sources do.** Never both: an
+       * answer carrying a graph version *and* a mailbox would have two accounts of where it
+       * came from, and the reader could not tell which produced the figure in front of them.
+       * A graph-grounded answer already reports its runtime sources as `observation` blocks,
+       * which is the seam this mode is on the other side of.
+       */
+      const answer = useCase
+        ? askAnswer(useCase, String(question).trim(), requested)
+        : askSourceAnswer(picked, String(question).trim(), requested)
 
       sseOpen(res)
       // A client that goes away mid-answer stops the loop rather than writing to

@@ -6,6 +6,7 @@ import {
   type AskAnswer,
   type AskGraph,
   type AskGraphsPayload,
+  type AskSource,
   type AskStep,
   type Citations,
 } from '../api/client'
@@ -78,7 +79,17 @@ interface AskState {
   formatIds: string[]
 
   load: () => Promise<void>
-  select: (useCaseId: string) => void
+  select: (useCaseId: string | null) => void
+
+  /**
+   * The connected sources this question is asked of, by id.
+   *
+   * **Beside the graph rather than instead of it**: a reader may ask a published graph, or a
+   * connected runtime source, or both — the server decides how they combine, which is why
+   * the picks travel with every question rather than being dropped when a graph is selected.
+   */
+  sourceIds: string[]
+  toggleSource: (sourceId: string, on: boolean) => void
   setCitations: (citations: Citations) => void
   toggleFormat: (formatId: string, on: boolean) => void
   ask: (question: string) => Promise<Result>
@@ -98,6 +109,9 @@ const EMPTY_STEPS: AskStep[] = []
 const EMPTY_BLOCKS: AnswerBlock[] = []
 const EMPTY_FORMATS: string[] = []
 const EMPTY_CHATS: AskChat[] = []
+/** Stable reference, the rule every selector here follows. */
+const EMPTY_SOURCE_IDS: string[] = []
+const EMPTY_SOURCES: AskSource[] = []
 
 /** Who the history belongs to. Client-held, so it is read at call time rather than captured. */
 const signedInAs = () => useAuthStore.getState().identity?.email ?? null
@@ -113,6 +127,7 @@ export const useAskStore = create<AskState>()((set, get) => ({
   askedNow: '',
   citations: null,
   formatIds: EMPTY_FORMATS,
+  sourceIds: EMPTY_SOURCE_IDS,
   streamedSteps: EMPTY_STEPS,
   streamedBlocks: EMPTY_BLOCKS,
   streamedSummary: null,
@@ -131,11 +146,23 @@ export const useAskStore = create<AskState>()((set, get) => ({
       const current = get().useCaseId
       const stillLive = data.graphs.some((g) => g.useCaseId === current)
       const useCaseId = stillLive ? current : (data.graphs[0]?.useCaseId ?? null)
+      /*
+       * **A source pick that is no longer connected is dropped**, the same rule the graph
+       * selection follows one line up and for the same reason: a registration lives in the
+       * mock server's memory and dies with the process, so a pick can outlive the source it
+       * names. Keeping it would send an id the route refuses with a 404 the reader cannot act
+       * on, over a control that no longer draws the row it came from.
+       */
+      const live = new Set(data.sources.map((r) => r.sourceId))
+      const kept = get().sourceIds.filter((sid) => live.has(sid))
+      const sourceIds =
+        kept.length === get().sourceIds.length ? get().sourceIds : kept
       set({
         data,
         error: null,
         loading: false,
         useCaseId,
+        sourceIds,
         ...(stillLive ? {} : { activeChatId: null }),
       })
       get().syncHistory()
@@ -158,6 +185,18 @@ export const useAskStore = create<AskState>()((set, get) => ({
   },
 
   setCitations: (citations) => set({ citations }),
+
+  /*
+   * Picking a source does **not** start a new thread, unlike picking a graph. A graph and its
+   * version are what produced an answer, so a thread belongs to them; a source pick is part
+   * of the *next* question, and every answer already records which sources read it.
+   */
+  toggleSource: (sourceId, on) =>
+    set((state) => ({
+      sourceIds: on
+        ? [...state.sourceIds, sourceId]
+        : state.sourceIds.filter((s) => s !== sourceId),
+    })),
 
   toggleFormat: (formatId, on) =>
     set((state) => ({
@@ -208,7 +247,18 @@ export const useAskStore = create<AskState>()((set, get) => ({
 
   ask: async (question) => {
     const useCaseId = get().useCaseId
-    if (!useCaseId) return { ok: false, error: 'No graph is live to ask.' }
+    const sourceIds = get().sourceIds
+    /*
+     * **Either is enough.** This read `!useCaseId` alone, which was right while a graph was
+     * the only thing that could be asked and refuses every mailbox question now — with the
+     * sentence "No graph is live to ask", which is true and is not the reader's problem.
+     */
+    if (!useCaseId && sourceIds.length === 0) {
+      return {
+        ok: false,
+        error: 'Pick a published graph, or a connected source with the + button, to ask.',
+      }
+    }
     if (!question.trim()) return { ok: false, error: 'Ask a question first.' }
     const asked = question.trim()
 
@@ -234,6 +284,7 @@ export const useAskStore = create<AskState>()((set, get) => ({
         useCaseId,
         asked,
         { citations: required, formats: get().formatIds },
+        sourceIds,
         (event) => {
           // A stale stream cannot write into the store: switching graphs mid-answer
           // changes `useCaseId`, and this one's events stop landing.
@@ -292,7 +343,17 @@ export const useAskStore = create<AskState>()((set, get) => ({
 function appendTurn(asked: string, answer: AskAnswer) {
   const state = useAskStore.getState()
   const graph = state.data?.graphs.find((g) => g.useCaseId === state.useCaseId)
-  if (!state.useCaseId) return
+  /*
+   * **The subject is whatever answered**, and this used to return early without a graph —
+   * which, once a connected source could answer on its own, meant a source-scoped answer
+   * streamed to the screen and was then never filed: no turn, no chat, and the reply gone
+   * the moment `asking` went false. A thread has to exist for every answer, or the page is
+   * a stream with no memory.
+   */
+  const sources = state.data?.sources ?? []
+  const picked = sources.filter((r) => state.sourceIds.includes(r.sourceId))
+  const subject = graph?.name ?? picked.map((r) => r.name).join(', ')
+  if (!state.useCaseId && picked.length === 0) return
 
   const turn: AskTurn = {
     turnId: newId(),
@@ -308,7 +369,8 @@ function appendTurn(asked: string, answer: AskAnswer) {
     : {
         chatId: newId(),
         useCaseId: state.useCaseId,
-        graphName: graph?.name ?? state.useCaseId,
+        graphName: graph?.name ?? null,
+        subject,
         title: chatTitle(asked),
         turns: [turn],
         createdAt: now,
@@ -324,6 +386,9 @@ function appendTurn(asked: string, answer: AskAnswer) {
 
 /** Stable reference — `data?.graphs ?? []` would allocate every render. */
 export const selectAskGraphs = (s: AskState) => s.data?.graphs ?? EMPTY_GRAPHS
+
+/** The connected sources that can be asked directly. Empty when none is connected. */
+export const selectAskSources = (s: AskState) => s.data?.sources ?? EMPTY_SOURCES
 
 /** The requirement pool, once the list has landed. Null before that. */
 export const selectRequirementOptions = (s: AskState) =>

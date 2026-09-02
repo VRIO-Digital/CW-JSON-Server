@@ -1156,9 +1156,29 @@ export interface AnswerRequirementOptions {
   note: string
 }
 
+/**
+ * A connected source a reader may ask **directly**, with no graph in the picture.
+ *
+ * These are the runtime sources — read at question time, deriving nothing onto a canvas —
+ * and the server is what says which those are. The page renders what it was served rather
+ * than testing for a connector name, the rule step 4 of the New Graph wizard already keeps.
+ */
+export interface AskSource {
+  sourceId: string
+  name: string
+  kind: string
+  connector: string
+  /** What it connected as — an address, for a mailbox. Null where a connector has no such notion. */
+  account: string | null
+  scope: string
+}
+
 export interface AskGraphsPayload {
   graphs: AskGraph[]
   count: number
+  /** The connected sources that can be asked directly. Empty when none is connected. */
+  sources: AskSource[]
+  sourceCount: number
   /** Built but never published — the fix is Publish, not New Graph. */
   builtCount: number
   draftCount: number
@@ -1325,9 +1345,12 @@ export interface AnswerRequirements {
 
 export interface AskAnswer {
   question: string
-  useCaseId: string
-  graphName: string
-  version: string
+  /** Null when a connected source answered — there was no graph, so there is no version. */
+  useCaseId: string | null
+  graphName: string | null
+  version: string | null
+  /** The sources read at question time, where they were what answered. Empty otherwise. */
+  sourceIds: string[]
   /** False is a real outcome: the graph abstained, and `reason` says why. */
   answered: boolean
   reason: string
@@ -2944,9 +2967,26 @@ const ANSWER_REQUIREMENT_OPTIONS = shape({
   note: str,
 })
 
+/*
+ * A connected source a reader may ask directly.
+ *
+ * `account` is nullable because it is what the source connected *as* — an address for a
+ * mailbox — and a connector with no such notion states none rather than an empty string.
+ */
+const ASK_SOURCE = shape({
+  source_id: str,
+  name: str,
+  kind: str,
+  connector: str,
+  account: nullable(str),
+  scope: str,
+})
+
 const ASK_GRAPHS_PAYLOAD = shape({
   graphs: arrayOf(ASK_GRAPH),
   count: num,
+  sources: arrayOf(ASK_SOURCE),
+  source_count: num,
   built_count: num,
   draft_count: num,
   answer_requirements: ANSWER_REQUIREMENT_OPTIONS,
@@ -3048,9 +3088,17 @@ const ANSWER_BLOCK = variant('type', {
 
 const ASK_ANSWER_PAYLOAD = shape({
   question: str,
-  use_case_id: str,
-  graph_name: str,
-  version: str,
+  /*
+   * **Null where a connected source answered rather than a graph.** These three were `str`,
+   * which was true while a graph was the only thing that could be asked; a source-scoped
+   * answer has no use case, no graph name and no version, and borrowing whatever happened to
+   * be live would attribute it to content that did not produce it.
+   */
+  use_case_id: nullable(str),
+  graph_name: nullable(str),
+  version: nullable(str),
+  /** The sources read at question time, where they were what answered. */
+  source_ids: nullable(arrayOf(str)),
   answered: bool,
   reason: str,
   answer: nullable(str),
@@ -5222,6 +5270,15 @@ export async function listAskGraphs(): Promise<AskGraphsPayload> {
   const raw = validate<{
     graphs: RawAskGraph[]
     count: number
+    sources: {
+      source_id: string
+      name: string
+      kind: string
+      connector: string
+      account: string | null
+      scope: string
+    }[]
+    source_count: number
     built_count: number
     draft_count: number
     answer_requirements: {
@@ -5235,6 +5292,15 @@ export async function listAskGraphs(): Promise<AskGraphsPayload> {
   return {
     graphs: raw.graphs.map(toAskGraph),
     count: raw.count,
+    sources: raw.sources.map((r) => ({
+      sourceId: r.source_id,
+      name: r.name,
+      kind: r.kind,
+      connector: r.connector,
+      account: r.account,
+      scope: r.scope,
+    })),
+    sourceCount: raw.source_count,
     builtCount: raw.built_count,
     draftCount: raw.draft_count,
     answerRequirements: {
@@ -5248,9 +5314,10 @@ export async function listAskGraphs(): Promise<AskGraphsPayload> {
 
 type RawAskAnswer = {
   question: string
-  use_case_id: string
-  graph_name: string
-  version: string
+  use_case_id: string | null
+  graph_name: string | null
+  version: string | null
+  source_ids?: string[] | null
   answered: boolean
   reason: string
   answer: string | null
@@ -5315,6 +5382,7 @@ const toAskAnswer = (raw: RawAskAnswer): AskAnswer => ({
   useCaseId: raw.use_case_id,
   graphName: raw.graph_name,
   version: raw.version,
+  sourceIds: raw.source_ids ?? [],
   answered: raw.answered,
   reason: raw.reason,
   answer: raw.answer,
@@ -5383,11 +5451,16 @@ const ASK_BLOCK_EVENT = shape({ index: num, block: ANSWER_BLOCK })
  * `ApiError` path is unchanged: only the success case streams.
  */
 export async function askQuestionStreaming(
-  useCaseId: string,
+  /** The published graph, or null when connected sources are what is being asked. */
+  useCaseId: string | null,
   question: string,
   /* What the reader required of this answer. Sent with the question because it is a
      property of the asking, not of the graph — the brief no longer declares it. */
   requirements: { citations: Citations; formats: string[] },
+  /* Which connected sources to read at question time. Sent whether or not a graph was
+     named, because the server is what decides how the two combine — a client that dropped
+     them when a graph was selected would be making that decision here. */
+  sourceIds: string[],
   onEvent: (event: AskEvent) => void,
 ): Promise<AskAnswer> {
   const response = await fetch(`${BASE}/ask`, {
@@ -5401,6 +5474,7 @@ export async function askQuestionStreaming(
     body: JSON.stringify({
       use_case_id: useCaseId,
       question,
+      source_ids: sourceIds,
       citations: requirements.citations,
       formats: requirements.formats,
     }),

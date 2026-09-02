@@ -5179,3 +5179,46 @@ code that currently keeps it.* Four of these five would have passed over the cha
 premise, and the one that did fail — `profiles: false` — failed only because it was a literal in the
 data rather than a pattern over the code. All eleven new claims were break-tested before being
 trusted.
+
+## A second mode has to be carried by every layer that recorded the first (2026-09-02)
+
+**What was asked.** A `+` beside Ask's question box to pick a connected source, so a Gmail
+source can be asked directly; the page usable with no graph published; and the graph select
+saying `No graph published` rather than vanishing.
+
+**What made it more than a UI change.** Every layer between the button and the answer recorded
+"a graph answered this" as a *fact about the shape*, not as data:
+
+- `POST /ask` refused an absent `use_case_id` before reading anything else.
+- `askQuestionStreaming` took `useCaseId: string`.
+- `ASK_ANSWER_PAYLOAD` declared `use_case_id`, `graph_name` and `version` as `str`.
+- `askStore.ask` returned `No graph is live to ask.` on `!useCaseId`.
+- `appendTurn` **returned early** without one.
+- `AskChat` declared `useCaseId: string` and `graphName: string`, and `validChat` required both.
+
+The compiler found the first three. It could not find the last three, because they are runtime
+guards and a storage validator — all three would have compiled, run, and produced a page where a
+mailbox answer streamed in full and then **disappeared**: no turn, no chat, nothing on reload.
+The one that would have been silent longest is `validChat`, which drops what fails rather than
+throwing, so the thread would have survived the session and vanished on the next read.
+
+**The general shape.** *When a thing that was always true becomes optional, the type system finds
+the reads and not the guards.* Grep the field name through every early return, every validator and
+every stored shape, not just the call sites the compiler objects to — the same reasoning as "a
+payload field name is a contract the compiler cannot check", applied to a field going nullable
+rather than being renamed.
+
+**And a claim keyed to a token went red for a helper that could not disagree with it.** The
+"one definition of which picked sources are runtime" claim counted `isRuntimeSource(s.kind)`
+occurrences in `server.js` and required exactly one. `askableSources` answers a *different*
+question with the same words — which **connected** sources may be asked, taking no picks at all —
+so the count went to two and a correct guard reported a fault. Fixed by cutting that function out
+before counting, with the reason stated: this is the recorded trap of *a claim keyed to the
+spelling a fact happens to have today*, and the fix is to narrow what is counted rather than to
+rename the new code around the check.
+
+**Guards.** Eight claims, all break-tested: source answering removed, `askableSources` no longer
+filtering to runtime, the publish gate dropped from the graph branch, the pool no longer checking
+the citation kind, the non-runtime refusal removed, the gate reverted to graph-only, the page no
+longer reading `askAvailability`, the picker deciding for itself, the select hiding itself again,
+and `subject` dropped from the chat. All ten mutations caught.

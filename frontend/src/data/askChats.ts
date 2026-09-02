@@ -36,9 +36,21 @@ export interface AskTurn {
 export interface AskChat {
   chatId: string
   /** The graph this chat is against. A chat cannot span graphs: an answer belongs to the
-      version that produced it, so switching graphs starts a new chat. */
-  useCaseId: string
-  graphName: string
+      version that produced it, so switching graphs starts a new chat.
+
+      **Null where connected sources answered instead.** A source-scoped answer is not a
+      graph's, and filling these in with whatever happened to be selected would file the
+      thread under content that did not produce it. */
+  useCaseId: string | null
+  graphName: string | null
+  /**
+   * What this chat was asked *of*, as the rail prints it — a graph's name, or the sources'.
+   *
+   * A field of its own rather than a widened `graphName`, because a mailbox filed under a
+   * key called "graph name" is the payload-field-is-a-contract mistake in miniature: it
+   * compiles, it renders, and it says something false about where the answers came from.
+   */
+  subject: string
   /** The first question, which is what the history list shows. */
   title: string
   turns: AskTurn[]
@@ -105,8 +117,11 @@ function validChat(v: unknown): v is AskChat {
   if (!isRecord(v)) return false
   return (
     str(v.chatId) &&
-    str(v.useCaseId) &&
-    str(v.graphName) &&
+    /* Null is a real value on both now — a chat the sources answered has no graph. The
+       subject is what the rail prints, so that one is required. */
+    (v.useCaseId === null || str(v.useCaseId)) &&
+    (v.graphName === null || str(v.graphName)) &&
+    str(v.subject) &&
     str(v.title) &&
     str(v.createdAt) &&
     str(v.updatedAt) &&
