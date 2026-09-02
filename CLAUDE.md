@@ -797,9 +797,12 @@ downstream can make `db` readable.
 
 ### Three real connectors, all of them profiled
 
-**BigQuery, Google Drive and Gmail all run the bespoke consent → preview → finish path**; the other four
-(SAP PM / S4HANA, OSIsoft PI, SharePoint / docs, SQL database) are product vision and explain themselves
-instead. Step 1 *names* the working ones rather than counting them — a count goes stale the day a fourth
+**BigQuery, Google Drive and Gmail all run the bespoke consent → preview → finish path**; the other five
+(Microsoft Outlook, SAP PM / S4HANA, OSIsoft PI, SharePoint / docs, SQL database) are product vision and
+explain themselves instead. **Outlook is vision because of the corpus rather than the API** — the mail
+pipeline is connector-agnostic and would be reused, but Gmail derives its address, its labels and its
+correspondence from what this tenant really holds, and there is no Outlook equivalent; reusing Gmail's
+labels or inventing folders would both put mail in the console that nobody sent. Step 1 *names* the working ones rather than counting them — a count goes stale the day a fourth
 lands, and the names are what a reader is choosing between.
 
 **Gmail is profiled for its catalogue and read at question time, and those are two different
@@ -3805,7 +3808,7 @@ which has no antd equivalent.
 
 **`ConnectorIcon` has one mark per connector key, and an unknown key gets a
 neutral cylinder — never another vendor's logo.** It fell back to `BigQueryIcon`,
-which drew five of the seven connectors as BigQuery; `check-docs` now fails if a
+which drew five of the seven connectors there were then as BigQuery; `check-docs` now fails if a
 key in `CONNECTORS` has no entry in `MARKS`. A wrong logo is a claim about what
 something *is*, not a styling default — the same rule as a status colour on a
 category chip, one level up.

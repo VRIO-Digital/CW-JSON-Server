@@ -102,12 +102,21 @@ Read the BigQuery column below and the Drive one mirrors it line for line.
 
 ### Step 1 · Connector
 
-Seven connectors from `CONNECTORS`. Only `available: true` ones are selectable —
+Eight connectors from `CONNECTORS`. Only `available: true` ones are selectable —
 **Google BigQuery**, **Google Drive** and **Gmail**, which the step's own alert names
-rather than counts. The other four (SAP PM / S4HANA, OSIsoft PI, SharePoint / docs,
-SQL database) render dimmed under *Product vision — not yet built*; clicking one shows
-*why* via its `reason` field rather than doing nothing. `Continue` is disabled until an
-available connector is picked.
+rather than counts. The other five (**Microsoft Outlook**, SAP PM / S4HANA, OSIsoft PI,
+SharePoint / docs, SQL database) render dimmed under *Product vision — not yet built*;
+clicking one shows *why* via its `reason` field rather than doing nothing. `Continue` is
+disabled until an available connector is picked.
+
+**Outlook is vision because of the corpus, not the API.** Microsoft Graph's mail endpoints
+are the easy half; what a mail connector has to produce here is a mailbox with an address,
+a set of filing labels and correspondence a question can be read against. Gmail derives all
+three from things this tenant really holds — `settings.users`, Gmail's own six labels, and
+the recorded answers whose runtime citations name it. There is no Outlook equivalent, and
+both ways to fake one are dishonest: reusing Gmail's labels puts Gmail's filing on a
+Microsoft mailbox, and inventing folders puts mail in the console nobody sent. The mail
+pipeline itself is connector-agnostic and would be reused as-is.
 
 **Gmail is profiled for its catalogue and read at question time.** Connecting proves the
 credential reaches a mailbox and records what it was pointed at: which labels, which

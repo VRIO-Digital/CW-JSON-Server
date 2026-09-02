@@ -171,6 +171,57 @@ export const CONNECTORS: Connector[] = [
     fields: [nameField],
   },
   {
+    /**
+     * **Outlook is product vision, and the reason is the corpus rather than the API.**
+     *
+     * Microsoft Graph's mail endpoints are the easy half; what a mail connector has to produce
+     * here is a mailbox with an address, a set of filing labels and a body of correspondence
+     * that questions can be read against. Gmail derives all three from things this tenant
+     * really has — `settings.users` for the people, Gmail's own six labels, and the recorded
+     * answers whose runtime citations name it. **None of that exists for Outlook**, and the two
+     * ways to make the card work anyway are both dishonest: reusing Gmail’s labels would put
+     * Gmail's filing on a Microsoft mailbox, and inventing folders would put correspondence in
+     * the console that nobody wrote.
+     *
+     * So it explains itself instead, like the other four. Making it real is a corpus decision
+     * before it is a connector one — see the Gmail section of CLAUDE.md for what it would need.
+     */
+    key: 'outlook',
+    name: 'Microsoft Outlook',
+    blurb: 'email + attachments',
+    typeLabel: 'Outlook',
+    available: false,
+    profiles: false,
+    reason:
+      'The mail pipeline behind Gmail is connector-agnostic, so Outlook would reuse it — what is missing is the mailbox itself. Gmail derives its address, its labels and its correspondence from data this tenant really holds; there is no Outlook equivalent yet, and inventing one would put mail in the console that nobody sent.',
+    fields: [
+      nameField,
+      {
+        name: 'tenantId',
+        label: 'Microsoft tenant ID',
+        kind: 'text',
+        placeholder: '72f988bf-86f1-41af-91ab-2d7cd011db47',
+        required: true,
+      },
+      {
+        name: 'mailbox',
+        label: 'Mailbox',
+        kind: 'text',
+        placeholder: 'dana.whitfield@vriodigital.com',
+        required: true,
+      },
+      {
+        name: 'folders',
+        label: 'Folders',
+        kind: 'select',
+        options: ['Inbox', 'Sent Items', 'Archive', 'Deleted Items'],
+        multiple: true,
+        help: 'Leave empty to read every folder the application registration can see.',
+      },
+      secretField('secret://microsoft/graph-mail-reader'),
+    ],
+  },
+  {
     key: 'sap',
     name: 'SAP PM / S4HANA',
     blurb: 'asset & work-order master',
