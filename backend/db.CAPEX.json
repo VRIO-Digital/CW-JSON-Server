@@ -20587,222 +20587,47 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-version-of-the-question-having-changed-epbcs-version-distinct-values-mtp2026-v3-3-9-6-6-9-3-working-mthf221b6",
-      "name": "version of the question having changed. epbcs.version distinct values: MTP2026_v3, 3+9, 6+6, 9+3, Working",
+      "use_case_id": "uc-test-mtihh1ph5",
+      "name": "test",
       "status": "committed",
       "domain_id": "capital-projects",
-      "business_need": "asdsadsadsadsadas",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
       "personas": [
-        {
-          "name": "Project Manager",
-          "description": "Asks where a single project stands against its own plan.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Open Commitments",
-          "description": "Open purchase-order value not yet invoiced.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "gmail:adaeze.okonjo@vriodigital.com",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "Which projects are trending to overrun, and by how much?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "How far has the approved baseline moved since original approval, and who approved each move?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 6,
-      "updated_at": "2026-08-31T15:53:33.871Z"
-    },
-    {
-      "use_case_id": "uc_capital_programs",
-      "name": "Capital Programme Intelligence",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "One model over the budget cube, the ledger, the approval chain and the project attribute registry, so a capital question resolves once and states which vintage, which basis and which scope it was answered at.",
-      "personas": [
-        {
-          "name": "Finance Executive",
-          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
-          "source": "ai"
-        },
-        {
-          "name": "Programme Director",
-          "description": "Asks which projects are slipping and what that does to the programme envelope.",
-          "source": "ai"
-        },
-        {
-          "name": "Procurement Lead",
-          "description": "Asks what has been awarded, what has changed since award, and to whom.",
-          "source": "ai"
-        },
         {
           "name": "Controller",
           "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai"
-        },
-        {
-          "name": "Project Manager",
-          "description": "Asks where a single project stands against its own plan.",
           "source": "ai"
         },
         {
           "name": "Rate-Case Lead",
           "description": "Asks which assets will be in service in time for the next filing.",
           "source": "ai"
-        },
-        {
-          "name": "Compliance Lead",
-          "description": "Asks what the regulatory drivers oblige and what they cost.",
-          "source": "ai"
         }
       ],
       "kpis": [
-        {
-          "name": "Approved Budget",
-          "description": "Board-approved plan amount for the period.",
-          "source": "ai"
-        },
-        {
-          "name": "Forecast",
-          "description": "Re-forecast of period spend at a declared cut of the fiscal year.",
-          "source": "ai"
-        },
-        {
-          "name": "Forward Plan (Mid-Term)",
-          "description": "The adopted mid-term plan for a declared forward horizon, by planning round.",
-          "source": "ai"
-        },
-        {
-          "name": "Authorized Amount",
-          "description": "Currently approved amount from the plan-version chain.",
-          "source": "ai"
-        },
-        {
-          "name": "Open Commitments",
-          "description": "Open purchase-order value not yet invoiced.",
-          "source": "ai"
-        },
-        {
-          "name": "Actual Spend",
-          "description": "Posted general-ledger spend.",
-          "source": "ai"
-        },
-        {
-          "name": "CWIP Balance",
-          "description": "Construction work in progress at period end.",
-          "source": "ai"
-        },
-        {
-          "name": "Capitalized",
-          "description": "Cost transferred from CWIP to fixed assets.",
-          "source": "ai"
-        },
-        {
-          "name": "Rate Base Additions",
-          "description": "Capitalised cost admitted to rate base.",
-          "source": "ai"
-        },
-        {
-          "name": "Estimate at Completion",
-          "description": "Total expected cost at project completion.",
-          "source": "ai"
-        },
-        {
-          "name": "EAC Variance",
-          "description": "EAC less approved budget, at project completion.",
-          "source": "ai"
-        },
-        {
-          "name": "EAC Variance %",
-          "description": "EAC variance as a percentage of approved budget.",
-          "source": "ai"
-        },
-        {
-          "name": "Budget-to-Forecast Gap",
-          "description": "Forecast less approved budget over the five-year plan horizon.",
-          "source": "ai"
-        },
-        {
-          "name": "Gap %",
-          "description": "Gap as a percentage of approved budget.",
-          "source": "ai"
-        },
-        {
-          "name": "Period Plan",
-          "description": "Calendarised plan for a single period.",
-          "source": "ai"
-        },
         {
           "name": "Plan-to-Actual Variance",
           "description": "Actual less period plan.",
           "source": "ai"
         },
         {
-          "name": "Variance %",
-          "description": "Plan-to-actual variance as a percentage of plan.",
-          "source": "ai"
-        },
-        {
-          "name": "Contingency Allocated",
-          "description": "Contingency held against a project at authorisation.",
-          "source": "ai"
-        },
-        {
-          "name": "Contingency Drawn",
-          "description": "Contingency consumed to date.",
-          "source": "ai"
-        },
-        {
-          "name": "Percent Complete",
-          "description": "Physical completion. Weighted by budget when aggregated.",
-          "source": "ai"
-        },
-        {
-          "name": "Schedule Variance",
-          "description": "Forecast in-service date less planned in-service date.",
-          "source": "ai"
-        },
-        {
-          "name": "CWIP Age",
-          "description": "Days a CWIP balance has been held without transfer to assets.",
-          "source": "ai"
-        },
-        {
-          "name": "Capex Placed in Service",
-          "description": "Capex scheduled or recorded as placed in service in the window.",
+          "name": "Actual Spend",
+          "description": "Posted general-ledger spend.",
           "source": "ai"
         }
       ],
-      "sources": [],
+      "sources": [
+        {
+          "source_id": "gmail:adaeze.okonjo@vriodigital.com",
+          "mode": "subset",
+          "objects": [
+            "INBOX"
+          ]
+        }
+      ],
       "hero_questions": [
         {
-          "text": "Are we going to spend the authorized capital this fiscal year?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What is the burn rate against current approved, by programme?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Where is forecast diverging from budget, by programme and category?",
+          "text": "Show me the change orders with the message that explains each one.",
           "priority": "normal",
           "source": "ai"
         },
@@ -20810,157 +20635,11 @@
           "text": "How far has the approved baseline moved since original approval, and who approved each move?",
           "priority": "normal",
           "source": "ai"
-        },
-        {
-          "text": "Which projects show no variance against current approved but material variance against original?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "How does the forward plan compare with the sum of project-life forecasts?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Which projects are trending to overrun, and by how much?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What in-service value lands inside the current test year?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What capital is at risk of missing the filing window, and what is it worth?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "For every figure on this page, tell me where it came from and how old it is.",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What happens to FY26 if we defer the second half of the programme by two quarters?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Is our PFAS spend on track against the compliance deadline?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Are we replacing lead service lines fast enough to meet the mandated rate?",
-          "priority": "normal",
-          "source": "ai"
         }
       ],
       "gap_decisions": [],
       "step": 6,
-      "updated_at": "2026-03-31T00:00:00.000Z"
-    },
-    {
-      "use_case_id": "uc-hazrodous-mtha2r2g9",
-      "name": "hazrodous",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "test",
-      "personas": [
-        {
-          "name": "Finance Executive",
-          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
-          "source": "ai"
-        },
-        {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Period Plan",
-          "description": "Calendarised plan for a single period.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "bigquery:northline_epbcs",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "What is the variance against the current approved baseline, and against the original?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 6,
-      "updated_at": "2026-08-31T13:33:06.835Z"
-    },
-    {
-      "use_case_id": "uc-roshan-mth9vout6",
-      "name": "roshan",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "test",
-      "personas": [
-        {
-          "name": "Finance Executive",
-          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
-          "source": "ai"
-        },
-        {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai"
-        },
-        {
-          "name": "Project Manager",
-          "description": "Asks where a single project stands against its own plan.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Period Plan",
-          "description": "Calendarised plan for a single period.",
-          "source": "ai"
-        },
-        {
-          "name": "Percent Complete",
-          "description": "Physical completion. Weighted by budget when aggregated.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "gmail:adaeze.okonjo@vriodigital.com",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "What is the variance against the current approved baseline, and against the original?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What share of the total gap is attributable to a single programme or driver?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 6,
-      "updated_at": "2026-08-31T15:26:35.217Z"
+      "updated_at": "2026-09-01T09:48:25.835Z"
     }
   ],
   "graph_use_case_templates": [
