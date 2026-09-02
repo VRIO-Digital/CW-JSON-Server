@@ -8127,6 +8127,190 @@ expect(
         `${Number(askActualsYtd).toLocaleString()} for FY26 actuals to May`,
 )
 
+/*
+ * ---------------- a narrowed CAPEX report re-sums its period figures over the rows in view ----------------
+ *
+ * **The behaviour.** Picking an executive category on the Variance Report narrowed the table, the chart
+ * and the population line and left `$20.0M · $17.6M · −$2.4M · −11.8%` byte-identical above them, because
+ * those four are `portfolio.period*` — declared programme figures published over all 4,500 projects and
+ * served as stated. Correct, and indistinguishable on screen from a broken filter. `npm run narrow:capex`
+ * gives a figRow whose every figure has a row field behind it a second path: narrowed, it re-sums over
+ * the rows the reader's filters admit, relabels itself with that population and carries a seam naming
+ * both the count it footed to and the declared figure it is no longer showing.
+ *
+ * **Asserted on every layer at once, because half of it is the shape that fails silently.** A map with
+ * no caller changes nothing; a caller with no relabelling is the substitution the fixture's own
+ * `neverSubstitute` rule forbids — a re-summed total wearing the declared figure's label; and a
+ * relabelling that left `unaffectedByParams` reachable would print *"Unchanged by your filters"* directly
+ * under a figure that had just changed.
+ *
+ * **And the map is checked against the roster, which is the one that matters after a re-export.** These
+ * are generated documents, and a block re-sums only if EVERY figure in it has a row field — so one
+ * renamed field turns the whole thing off *quietly*: every block falls back to its declared figure and
+ * the reader is back where they started with nothing on screen saying so.
+ */
+const NARROW_LAYERS = [
+  ['the map', 'const IN_VIEW_FIELD = {'],
+  ['the resolver that reads it', 'function inViewFigures(b, ctx) {'],
+  ['the label and the seam, composed once', 'function inViewCoverage(b, ctx, inView) {'],
+  ['H.figRow reaching the resolver', 'const inView = inViewFigures(b, ctx);'],
+  [
+    'the block relabelling itself',
+    'return inView ? Object.assign(out, inViewCoverage(b, ctx, inView)) : out;',
+  ],
+  [
+    'resolveBlock dropping the note off a figure that moved',
+    'if (out.inView) { out.population = out.inView.population; return out; }',
+  ],
+]
+/* Bracket-carved rather than evaluated, and strings skipped explicitly: a `]` inside a project name
+   would end a roster early and the check would run on a prefix. ~3ms over a 2.6 MB document, so all
+   three are read rather than the first standing for the other two — they are separate files, and the
+   patch script skips a document it thinks is already done. */
+const BACKSLASH = String.fromCharCode(92)
+const carveJson = (src, from) => {
+  let open = from
+  while (open < src.length && src[open] !== '[' && src[open] !== '{') open++
+  let depth = 0
+  for (let i = open; i < src.length; i++) {
+    const c = src[i]
+    if (c === '"') {
+      i++
+      while (i < src.length && !(src[i] === '"' && src[i - 1] !== BACKSLASH)) i++
+      continue
+    }
+    if (c === '[' || c === '{') depth++
+    else if (c === ']' || c === '}') {
+      depth--
+      if (!depth) return src.slice(open, i + 1)
+    }
+  }
+  return null
+}
+const capexNarrow = capexReportDocs.map((file) => {
+  const html = read(`frontend/src/Capex/Report/${file}`)
+  const layers = NARROW_LAYERS.filter(([, needle]) => html.split(needle).length - 1 === 1)
+  /* The map read out of the code that runs, so this claim tests the map rather than a copy of it. A
+     `null` value is a key the block may carry and that is not re-summed from a row — the ratio.
+
+     Comments stripped first and the entries matched anywhere in what is left, rather than one per
+     line: a break test that put four entries on one line was reported as uncatchable, and the fault
+     was the reader, not the claim. A line-anchored parse of a generated block reads a reformatting as
+     an empty map — which claim A would catch, since nothing would be covered, but which would let
+     claim B pass while a second block had quietly started re-summing. */
+  const mapBlock = (html.match(/const IN_VIEW_FIELD = \{[\s\S]*?\r?\n {2}\};/) ?? [''])[0].replace(
+    /\/\*[\s\S]*?\*\//g,
+    '',
+  )
+  const mapped = Object.fromEntries(
+    [...mapBlock.matchAll(/(\w+):\s*(?:'([^']*)'|null)/g)].map((m) => [m[1], m[2] ?? null]),
+  )
+  /* Every figRow the document declares, by the keys its figures name. */
+  const figRows = []
+  for (const m of html.matchAll(/"type":\s*"figRow"/g)) {
+    let x = m.index
+    let d = 0
+    for (; x >= 0; x--) {
+      if (html[x] === '}') d++
+      else if (html[x] === '{') {
+        if (!d) break
+        d--
+      }
+    }
+    const txt = carveJson(html, x)
+    if (!txt) continue
+    try {
+      const o = JSON.parse(txt.replace(/\/\*[\s\S]*?\*\//g, ''))
+      if (o?.figures) figRows.push(o.figures.map((f) => f.key))
+    } catch {
+      /* a block this cannot parse is reported by the count below, not swallowed */
+    }
+  }
+  const covered = (keys) => keys.every((k) => k in mapped)
+  const rows = Number((html.match(/"projectCountInFixture": (\d+)/) ?? [])[1] ?? NaN)
+  /* Each row field the map names, counted against the roster it has to be carried by. */
+  const unresolved = Object.values(mapped)
+    .filter(Boolean)
+    .filter((field) => html.split(`"${field}": `).length - 1 < rows)
+  return { file, layers: layers.length, mapped, figRows, covered, rows, unresolved }
+})
+const narrowed = capexNarrow[0] ?? { figRows: [], covered: () => false, mapped: {} }
+const periodRow = narrowed.figRows.find((keys) => keys.includes('periodPlan')) ?? []
+expect(
+  'a narrowed CAPEX report re-sums its period figures over the rows in view, and says which rows',
+  capexNarrow.length >= 3 &&
+    /* Every layer, in every document, exactly once. */
+    capexNarrow.every((d) => d.layers === NARROW_LAYERS.length) &&
+    /* The period figRow is wholly covered, or the all-or-nothing rule turns it off in silence. */
+    periodRow.length === 4 &&
+    capexNarrow.every((d) => d.covered(periodRow)) &&
+    /* And every row field the map names is carried by every project row in the roster. */
+    capexNarrow.every((d) => Number.isFinite(d.rows) && d.rows > 0 && d.unresolved.length === 0) &&
+    /* Reachable by name, from the root as every other data command is. */
+    /"narrow:capex": "node scripts\/narrow-capex-reports\.js"/.test(read('backend/package.json')) &&
+    /"narrow:capex": "npm --prefix backend run narrow:capex"/.test(read('package.json')),
+  capexNarrow.length < 3
+    ? 'fewer than three rendered CAPEX reports were found — this claim cannot run'
+    : capexNarrow.some((d) => d.layers !== NARROW_LAYERS.length)
+      ? `${capexNarrow.find((d) => d.layers !== NARROW_LAYERS.length).file} carries ${
+          capexNarrow.find((d) => d.layers !== NARROW_LAYERS.length).layers
+        } of ${NARROW_LAYERS.length} layers — run npm run narrow:capex after a re-export`
+      : capexNarrow.some((d) => d.unresolved.length)
+        ? `IN_VIEW_FIELD names ${capexNarrow
+            .find((d) => d.unresolved.length)
+            .unresolved.join(', ')}, which the roster no longer carries on every row — every ` +
+          'narrowed figRow would quietly serve the declared figure instead'
+        : `${periodRow.join(', ')} re-sum over the ${narrowed.rows}-project roster; ` +
+          `${NARROW_LAYERS.length} layers in ${capexNarrow.length} documents`,
+)
+
+/*
+ * **And a block a narrowing genuinely cannot move keeps its declared figure and the note saying so.**
+ *
+ * This is the other half, and it has to be asserted separately: the claim above would pass just as
+ * happily if every figRow had been made to re-sum, which is the substitution the fixture forbids.
+ * Nothing in this workspace re-derives a five-year approved budget, a count of large projects across the
+ * programme or the days to the next filing, so those four blocks read `portfolio` and must go on doing
+ * it — with `unaffectedByParams` still reached on that branch, and `bFoot` still printing what it
+ * returns. The declared figures themselves are checked too, because they are what an unnarrowed reader
+ * and every uncovered block still get.
+ */
+const DECLARED_PERIOD = ['periodPlan', 'periodActual', 'periodVariance', 'periodVariancePct']
+const stillDeclared = capexNarrow.map((d) => {
+  const html = read(`frontend/src/Capex/Report/${d.file}`)
+  return {
+    file: d.file,
+    total: d.figRows.length,
+    /* The blocks that do NOT re-sum — every figRow but the period one. */
+    unmoved: d.figRows.filter((keys) => !d.covered(keys)),
+    fallsBack: html.includes('return Object.assign(out, unaffectedByParams(b, ctx));'),
+    stillPrints: html.includes('if (b.paramsDoNotNarrow) out.push('),
+    figures: DECLARED_PERIOD.filter((k) => new RegExp(`"${k}": -?\\d`).test(html)),
+  }
+})
+expect(
+  'and a figRow a narrowing cannot move keeps the declared figure and the note saying it did not move',
+  stillDeclared.length >= 3 &&
+    stillDeclared.every(
+      (d) =>
+        /* EXACTLY ONE figRow re-sums, and it is the period one. Counted against the document's own
+           total rather than against a number written here, so a later export adding a figRow does not
+           fail this — but covering a second one does, which is the direction that matters: five of the
+           six blocks today are the gap, the large-project population, the project position, the filing
+           exposure and the next twelve months, and not one of them is derivable from these rows. */
+        d.total > 1 &&
+        d.unmoved.length === d.total - 1 &&
+        /* The branch that reaches the note, and the renderer that prints it. */
+        d.fallsBack &&
+        d.stillPrints &&
+        /* And the declared figures an unnarrowed reader falls back to are all still there. */
+        d.figures.length === DECLARED_PERIOD.length,
+    ),
+  stillDeclared.length < 3
+    ? 'fewer than three rendered CAPEX reports were found — this claim cannot run'
+    : `${stillDeclared[0].unmoved.length} of ${narrowed.figRows.length} figRows keep their declared ` +
+      `figures: ${stillDeclared[0].unmoved.map((k) => k[0]).join(', ')}`,
+)
 
 /*
  * ---------------- a dataset can ship its Audit & Governance screen ----------------

@@ -5258,3 +5258,66 @@ field its step no longer had). The second half is worse, because a timer or a po
 has no compile error and no visible symptom: it just runs forever against a screen nobody sees.
 When deleting a surface, grep for its state, its effects, its store subscriptions and its copy
 file — then check what it was *reporting on* is still asserted somewhere.
+
+## A correct figure that looks like a broken filter (2026-09-02)
+
+**The report.** Picking `Executive category: Blankets` on the CAPEX Variance Report narrowed the
+table, the chart and the population line to 10 of 50 projects, and left the four headline tiles —
+`$20.0M · $17.6M · −$2.4M · −11.8%` — byte-identical above them.
+
+**Nothing was broken.** Those four are `portfolio.period*`: declared programme figures published
+over all 4,500 projects and served as stated rather than re-summed, which is exactly why they
+survive a scope narrower than the programme. The document even says so, in an orange
+*Unchanged by your filters* note printed on the block by `bFoot`, composed by `unaffectedByParams`
+— a mechanism written for precisely this moment.
+
+**And it was still read as a bug, twice.** A note explaining why a number did not move is not the
+same act as a number moving. The reader's two available conclusions were "the filter is broken"
+and "the number is wrong"; the third — "this figure is a different population from the rows
+below" — is the one the note was asking them to hold, and a sentence under four large unchanged
+numbers loses that argument every time.
+
+**What the fixture's own rule actually forbids.** `db.gates.declaredAggregate.neverSubstitute` is
+written as *"a different measure wearing this one's label"*. The fault it names is a total
+re-summed over 60 sample rows printed under a figure published over 4,500 — so **the label is what
+carries the lie, not the arithmetic**. Read as "never re-sum", the rule blocks the fix; read as
+written, it prescribes it. The fixture already keeps `samplePeriod*` beside `period*` under a note
+reading *"samplePeriod\* foots to the table on screen; period\* is the declared programme figure"*,
+which is the same distinction drawn by hand.
+
+**The fix.** `npm run narrow:capex`, a re-runnable transform over the three generated documents,
+in the shape `npm run scale:capex` established. Unnarrowed, nothing changes. Narrowed, a figRow
+whose every figure has a row field behind it re-sums over the rows the reader's filters admit,
+relabels itself *Q1 2026 · 10 projects in view*, and carries a seam naming the count it footed to
+and the declared figure it is no longer showing.
+
+**Three things it would have been easy to get wrong, and each renders perfectly.**
+
+- **`FIELD_FOR_MEASURE` is the obvious map and the wrong one — it is coordinate-blind.** It
+  resolves `m_actual` to `actual`, the project's inception-to-date spend, so a period row built on
+  it prints a project's whole life as its five-month actual: right shape, right unit, wrong
+  meaning. The block key already encodes the coordinate, so the new map is keyed on that.
+- **The percentage must be recomputed, not aggregated.** `m_variance_pct` is declared `ratio` with
+  `derivedFrom`, so handing the block's own `{key, measure}` pairs to `aggregate()` recomputes it
+  from the two summed operands. Summing the row-level percentages instead gives a mean of sixty
+  numbers, which is off by however unequal the projects are and looks entirely plausible.
+- **The row fields need their own masking check.** `figure()` masks on the block's key
+  (`periodPlan`); the value now comes from `planPeriod` — a different name, a different mask
+  entry. Without the check, a re-sum serves out of the rows a column the scope class withheld from
+  the figure: the disclosure-by-membership failure `maskedReads()` was rewritten to close,
+  arriving through a second door.
+
+**Guard.** A block re-sums only if **every** figure in it has a row field — a half-moved strip is
+worse than either whole — and that all-or-nothing rule is itself the hazard: after a re-export,
+one renamed field turns the feature off *in silence*, every block reverting to its declared figure
+with nothing on screen saying so. So the script refuses to write on a map entry the roster does not
+carry, and two `check-docs` claims cover it: every layer present in all three documents with the
+map resolving against the roster, and **exactly one** figRow re-summing. Two rather than one
+because either alone passes the wrong way — the first if every block had been made to re-sum, the
+second if none had. All six break-test mutations are caught.
+
+**The general shape.** *A note explaining why a figure did not move is not a substitute for the
+figure moving.* When a correct behaviour is repeatedly reported as a bug, the report is evidence
+about the surface rather than about the reader — and the governance rule that appears to forbid the
+fix is worth re-reading against its own words, because it usually forbids something narrower than
+the thing being avoided.

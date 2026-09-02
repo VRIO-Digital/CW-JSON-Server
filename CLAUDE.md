@@ -120,6 +120,7 @@ npm run seed:workspaces # adds the extra GCP projects and Drives (with nested fo
 npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
 npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
 npm run scale:capex # rescales the rendered CAPEX reports' capital figures (capex-scale.js's factor)
+npm run narrow:capex # lets those reports' period figures re-sum over the rows a reader's filters admit
 npm run ingest:queries # re-seeds CAPEX ask_answers from the query set, at the same money scale
 npm run db:push     # upload the three documents to S3 (-- db|settings|prototype, -- CAPEX per dataset)
 npm run db:pull     # the other direction — overwrite the local copies from the bucket
@@ -2872,6 +2873,63 @@ figures, which stay at $1.13B — **no block in these three reports names them**
 is checked over the figures each report actually prints rather than over the largest number in the file.
 The What-if lens document and `db.CAPEX.json`'s authoring fixture are already denominated in millions and
 are untouched.
+
+**And a narrowed report's headline figures narrow with it, which they did not**, written by
+`npm run narrow:capex` — a second transform over the same three documents, and a script for the same
+reason the rescale is one. Picking *Executive category: Blankets* moved the population line from 50 to
+10, narrowed the table and the chart, and left `$20.0M · $17.6M · −$2.4M · −11.8%` byte-identical above
+them. That is correct — those four are `portfolio.period*`, **declared programme figures** published
+over all 4,500 projects and served as stated rather than re-summed — and the document says so on the
+block, in an orange *Unchanged by your filters* note. It is also indistinguishable from a broken filter,
+which is what it was read as.
+
+**What a re-sum is licensed by is the label, not the arithmetic.** The fixture's own
+`db.gates.declaredAggregate.neverSubstitute` forbids *"a different measure wearing this one's label"* —
+so the fault it names is a total re-summed over 60 sample rows and printed under a figure published over
+4,500, and the licence is saying which population was totalled. The fixture already draws exactly that
+distinction for itself: `samplePeriod*` sits beside `period*` under a note reading *"samplePeriod* foots
+to the table on screen; period* is the declared programme figure."*
+
+So the shape is **swap on narrow**, and both halves are asserted:
+
+- **Unnarrowed, nothing changed.** The declared programme figure is served exactly as before, with its
+  note ready for the blocks a narrowing genuinely cannot move.
+- **Narrowed, the block re-sums over the rows the reader's filters admit**, relabels itself *Q1 2026 ·
+  10 projects in view*, and carries a seam naming the count it footed to and the declared figure it is
+  no longer showing. Clearing the filter brings the programme figure back.
+
+**Only the period family qualifies, and the rule that decides is all-or-nothing.** `IN_VIEW_FIELD` maps
+a portfolio key to the row field carrying the same measure *at the same coordinate*, and a figRow
+re-sums only if **every** figure in it has one — two tiles narrowed beside two that could not be is a
+worse reading than either whole, since nothing on the strip would say which two were which. Five of the
+six figRows are therefore untouched: nothing in this workspace re-derives a five-year approved budget, a
+count of large projects across the programme, or the days to the next filing.
+
+**`FIELD_FOR_MEASURE` looks like the map for this job and is the wrong one**, which is worth knowing
+before somebody reaches for it: it is **coordinate-blind**. It resolves `m_actual` to `actual`, the
+project's inception-to-date spend, so a period row built on it would print a project's whole life as its
+five-month actual — right shape, right unit, wrong meaning. The block key already encodes the
+coordinate, so the map is keyed on that.
+
+**The arithmetic is the measure's, never the script's.** The block's own `{key, measure}` pairs go to
+the document's `aggregate()`, so `m_plan_period` sums and `m_variance_pct` — declared `ratio` — is
+recomputed from its operands rather than averaged: a mean of sixty variance percentages is not the
+population's variance, and it is off by however unequal the projects are. Every figure still goes through
+`figure()`, so one formatting path, one masking check and one provenance record cover both branches.
+
+**The row fields take the masking check too, and that is not the same check `figure()` makes.**
+`figure()` masks on the block's key (`periodPlan`); the value now comes out of `planPeriod`, a different
+name and a different mask entry. Re-summing without it would serve, out of the rows, a column the scope
+class had withheld from the figure — the disclosure-by-membership failure `maskedReads()` was rewritten
+to close, arriving through a second door. A masked field means no re-sum, so the block falls back to the
+declared figure and its note.
+
+**And the failure to guard against is silence.** All-or-nothing means one renamed row field turns the
+whole thing off *quietly* — every block reverts to its declared figure with nothing on screen saying so.
+So the script refuses to write on a map entry the roster does not carry, and `check-docs` re-checks the
+same thing against each document, asserts every layer is present in all three, and asserts **exactly
+one** figRow re-sums. Two claims rather than one, because either alone passes the wrong way: the first
+would pass if every block had been made to re-sum, and the second if none had.
 
 **The publish gate applies to them, and it did not always.** The documents rode on both branches at
 first, on the reasoning that a gate about *questions* should not apply to a finished artefact: a CAPEX

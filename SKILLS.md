@@ -2468,7 +2468,26 @@ was written, and the prose figures — *"does not sum to $113.1B"* — listed on
 gallon` stays a volume. Platform spend and the unprinted five-year programme figures are left alone;
 `check-docs` reads the tiles back out of all three documents, so a re-export in billions fails the build.
 
-A fourth: **the frame is held until the document opens its report.** These files paint the prototype's own
+A fourth: **those tiles narrow with the reader's filters, and the transform is `npm run narrow:capex`.**
+They did not: picking an executive category moved the population line from 50 to 10 and left
+`$20.0M · $17.6M · −$2.4M · −11.8%` byte-identical, because they are `portfolio.period*` — declared
+programme figures over all 4,500 projects, served as stated, with the document's own *Unchanged by your
+filters* note on the block. Correct, and unreadable from a broken filter. So: **unnarrowed, nothing
+changed**; narrowed, a figRow whose every figure has a row field re-sums over the rows admitted,
+relabels itself *Q1 2026 · 10 projects in view*, and carries a seam naming what it footed to and the
+declared figure it is not showing. That is not the substitution `neverSubstitute` forbids — the fault
+there is a re-summed total wearing the *declared* figure's label, and the fixture already keeps
+`samplePeriod*` beside `period*` for exactly this distinction.
+Where to look when it goes wrong: `IN_VIEW_FIELD` (portfolio key → row field, **coordinate-aware**,
+which is why `FIELD_FOR_MEASURE` cannot serve — it resolves `m_actual` to inception-to-date `actual`),
+`inViewFigures` (the guards: unnarrowed, no rows, an `expr` figure, a key with no field, a masked row
+field — each returns null and serves the declared figure), and `resolveBlock`, which drops
+`unaffectedByParams` on a block that moved. **All-or-nothing is the trap**: a block re-sums only if
+every figure in it has a field, so one renamed field turns the feature off in silence — the script
+refuses to write on a map entry the roster does not carry, and two `check-docs` claims assert every
+layer in all three documents *and* that exactly one figRow re-sums.
+
+A fifth: **the frame is held until the document opens its report.** These files paint the prototype's own
 sidebar, topbar and Knowledge-graphs screen while the 2.6 MB parses, because the style that hides them and
 the script that opens the report are the file's last lines. `DocumentViewer` hides the frame
 (`visibility`, so it keeps loading and stays measurable), names what it is waiting for, and reveals it when

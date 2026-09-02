@@ -19,6 +19,7 @@
     "ingest:capex": "node scripts/ingest-capex-reports.js",
     "ingest:queries": "node scripts/ingest-queries.js",
     "scale:capex": "node scripts/scale-capex-reports.js",
+    "narrow:capex": "node scripts/narrow-capex-reports.js",
     "db:push": "node scripts/s3-sync.js push",
     "db:pull": "node scripts/s3-sync.js pull",
     "verify:sigv4": "node scripts/verify-sigv4.js",
