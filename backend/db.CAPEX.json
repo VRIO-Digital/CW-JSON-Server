@@ -1475,7 +1475,7 @@
           "start": 760,
           "duration": 3900,
           "agent": "runtime agent",
-          "detail": "src_gmail · 90-day window · 4 mailboxes in scope · permissions follow the source"
+          "detail": "src_  · 90-day window · 4 mailboxes in scope · permissions follow the source"
         },
         {
           "name": "Extract & resolve observations",
@@ -19262,7 +19262,7 @@
           },
           {
             "chip": "source",
-            "label": "src_gmail",
+            "label": "src_ ",
             "meta": "runtime; observation only",
             "ok": true
           }
@@ -20587,6 +20587,59 @@
   ],
   "graph_use_cases": [
     {
+      "use_case_id": "uc-hazrodous-mtjv1nk54",
+      "name": "hazrodous",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "wwwww",
+      "personas": [
+        {
+          "name": "Finance Executive",
+          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
+          "source": "ai"
+        },
+        {
+          "name": "Project Manager",
+          "description": "Asks where a single project stands against its own plan.",
+          "source": "ai"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Actual Spend",
+          "description": "Posted general-ledger spend.",
+          "source": "ai"
+        },
+        {
+          "name": "Estimate at Completion",
+          "description": "Total expected cost at project completion.",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": " :adaeze.okonjo@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "What if materials escalation runs three points above our assumption?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Which mandated work is at risk of missing its consent-order milestone?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 6,
+      "updated_at": "2026-09-02T09:30:24.194Z"
+    },
+    {
       "use_case_id": "uc-test-mtihh1ph5",
       "name": "test",
       "status": "committed",
@@ -20618,7 +20671,7 @@
       ],
       "sources": [
         {
-          "source_id": "gmail:adaeze.okonjo@vriodigital.com",
+          "source_id": " :adaeze.okonjo@vriodigital.com",
           "mode": "subset",
           "objects": [
             "INBOX"
@@ -22860,7 +22913,7 @@
       "blocks": [
         {
           "type": "text",
-          "markdown": "**The movement, first, from the ledger.** Total Budget (Working) on Quarrydown is **$307,106** against a Most Recent Budget Plan of **$244,632** — a movement of **$62,474**. That figure is a fact in the plan cube and nothing below changes it.\n\n**The reason is not in the plan cube.** EPBCS carries the number and the version chain; it does not carry the sentence explaining why the number moved. That sentence is in contractor correspondence, and Gmail is connected as a runtime source, so the platform read it when you asked."
+          "markdown": "**The movement, first, from the ledger.** Total Budget (Working) on Quarrydown is **$307,106** against a Most Recent Budget Plan of **$244,632** — a movement of **$62,474**. That figure is a fact in the plan cube and nothing below changes it.\n\n**The reason is not in the plan cube.** EPBCS carries the number and the version chain; it does not carry the sentence explaining why the number moved. That sentence is in contractor correspondence, and   is connected as a runtime source, so the platform read it when you asked."
         },
         {
           "type": "metric",
@@ -23030,7 +23083,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-01-04",
           "detail": "C25B315_658 CO-001 — Rock and undocumented foundation obstructions encountered between elev",
           "runtime": true,
@@ -23071,7 +23124,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-04-12",
           "detail": "C25B315_658 CO-002 — Owner-caused delay",
           "runtime": true,
@@ -23112,7 +23165,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-05-31",
           "detail": "C25B315_658 CO-003 — Addition of the intermediate transfer pump station",
           "runtime": true,
@@ -23153,7 +23206,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Marchetti & Vance Engineers, 2026-04-18",
           "detail": "C25B315_658 CO-004 — Amendment No",
           "runtime": true,
@@ -23306,7 +23359,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Vasquez Heritage Builders, 2024-04-26",
           "detail": "Representative of the 29 messages that resolve to a project",
           "runtime": true,
@@ -23555,7 +23608,7 @@
       "citations": [
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-01-04",
           "detail": "Differing site conditions — rock and undocumented foundations",
           "runtime": true,
@@ -23596,7 +23649,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Amberline Civil Works, 2026-07-10",
           "detail": "Owner-caused delay",
           "runtime": true,
@@ -23637,7 +23690,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Vasquez Heritage Builders, 2024-04-26",
           "detail": "Existing asset worse than the bid documents assumed",
           "runtime": true,
@@ -23678,7 +23731,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Priya Novaczek, 2026-04-23",
           "detail": "Material and labour escalation past the plan basis",
           "runtime": true,
@@ -23880,7 +23933,7 @@
       "citations": [
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-05-31",
           "detail": "Kelso Ridge Constructors — one of four on C25B315_658",
           "runtime": true,
@@ -23921,7 +23974,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Halloway Underground, 2025-08-01",
           "detail": "Delmar Sinclair Construction — credit on CZZF5034_698",
           "runtime": true,
@@ -24147,7 +24200,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Tomas Marchetti, 2026-04-17",
           "detail": "Held — 2 competing candidate projects, confidence below the floor",
           "runtime": true,
@@ -24188,7 +24241,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Thorne & Dain Drilling Company, 2026-05-25",
           "detail": "Published at the low end of the band — a quantity reconciliation the extractor could not classify beyond 'reason recorded'",
           "runtime": true,
@@ -27195,7 +27248,7 @@
       "citations": [
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-01-04",
           "detail": "C25B315_658 CO-001 — Rock and undocumented foundation obstructions encountered between elev",
           "runtime": true,
@@ -27236,7 +27289,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-04-12",
           "detail": "C25B315_658 CO-002 — Owner-caused delay",
           "runtime": true,
@@ -27277,7 +27330,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-05-31",
           "detail": "C25B315_658 CO-003 — Addition of the intermediate transfer pump station",
           "runtime": true,
@@ -27318,7 +27371,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Marchetti & Vance Engineers, 2026-04-18",
           "detail": "C25B315_658 CO-004 — Amendment No",
           "runtime": true,
@@ -27558,7 +27611,7 @@
       "citations": [
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Florian Lundqvist, 2026-04-24",
           "detail": "C23B372_612 — Will not be in service before the filing",
           "runtime": true,
@@ -27599,7 +27652,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Dorothea Halloran, 2026-04-25",
           "detail": "OVERHEAD4_670 — In-service date not credible",
           "runtime": true,
@@ -27640,7 +27693,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Jasper Tarnowski, 2026-04-21",
           "detail": "C23B557_670 — In-service date not credible",
           "runtime": true,
@@ -27681,7 +27734,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Marcus Estergard, 2026-04-20",
           "detail": "C23B402_682 — In-service date not credible",
           "runtime": true,
@@ -27722,7 +27775,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kiran Novaczek, 2026-04-14",
           "detail": "CZZF50237_690 — In-service date not credible",
           "runtime": true,
@@ -28002,7 +28055,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-03-08",
           "detail": "C23B225_690 CO-003 — Filter floors in Filters 8, 9 and 11 out of level beyond the underdrai",
           "runtime": true,
@@ -28043,7 +28096,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Delmar Sinclair Construction Co., 2026-01-24",
           "detail": "CZZF50229_623 CO-001 — Quantity increase on material discovery",
           "runtime": true,
@@ -28084,7 +28137,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Delmar Sinclair Construction Co., 2026-06-12",
           "detail": "CZZF5034_698 CO-003 — Unmarked private service connections at fourteen tie-in locations and",
           "runtime": true,
@@ -28280,7 +28333,7 @@
       "citations": [
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Rosalind Aldana, 2026-05-06",
           "detail": "Re: Fwd: revised pricing — please advise",
           "runtime": true,
@@ -28304,7 +28357,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Tomas Marchetti, 2026-04-17",
           "detail": "PFAS package — media change-out frequency assumption",
           "runtime": true,
@@ -28345,7 +28398,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Scheduling Desk, 2026-05-25",
           "detail": "RE: RE: monthly progress — attachments",
           "runtime": true,
@@ -28369,7 +28422,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Scheduling Desk, 2026-05-26",
           "detail": "Site access for the survey crew week of the 8th",
           "runtime": true,
@@ -28490,7 +28543,7 @@
       "citations": [
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Tomas Marchetti, 2026-04-17",
           "detail": "Below the publication floor — shown because the question asked for contradictions",
           "runtime": true,
@@ -28531,7 +28584,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Marcus Iverston, 2026-03-02",
           "detail": "Resolved with competing candidates — check before relying on it",
           "runtime": true,
@@ -28750,7 +28803,7 @@
       "citations": [
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-01-04",
           "detail": "Representative of 'Differing site conditions' — 5 messages in this class",
           "runtime": true,
@@ -28791,7 +28844,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Florian Lundqvist, 2026-04-24",
           "detail": "Representative of the internal warning classes — no amount attached",
           "runtime": true,
@@ -28832,7 +28885,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Dorothea Halloran, 2026-05-19",
           "detail": "Highest-confidence extraction in the corpus",
           "runtime": true,
@@ -28934,7 +28987,7 @@
       "evidence": [
         {
           "source": "Not connected",
-          "detail": "No mailbox search index is built. Gmail is read at question time against a 90-day window and nothing is retained."
+          "detail": "No mailbox search index is built.   is read at question time against a 90-day window and nothing is retained."
         },
         {
           "source": "Project",
@@ -28951,7 +29004,7 @@
           "kind": "absence",
           "source_id": null,
           "label": "Not connected",
-          "detail": "No mailbox search index is built. Gmail is read at question time against a 90-day window and nothing is retained.",
+          "detail": "No mailbox search index is built.   is read at question time against a 90-day window and nothing is retained.",
           "runtime": false,
           "as_of": null,
           "authoritative": false,
@@ -29095,7 +29148,7 @@
       "citations": [
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Thorne & Dain Drilling Company, 2026-05-25",
           "detail": "Withheld below the publication floor",
           "runtime": true,
@@ -29136,7 +29189,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-06-06",
           "detail": "Withheld below the publication floor",
           "runtime": true,
@@ -29177,7 +29230,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Delmar Sinclair Construction Co., 2026-01-24",
           "detail": "Withheld below the publication floor",
           "runtime": true,
@@ -29218,7 +29271,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Tomas Marchetti, 2026-04-17",
           "detail": "Withheld below the publication floor",
           "runtime": true,
@@ -29430,7 +29483,7 @@
       "citations": [
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Florian Lundqvist, 2026-04-24",
           "detail": "Highest-confidence internal warning — rate-case exposure, no cost",
           "runtime": true,
@@ -29471,7 +29524,7 @@
         },
         {
           "kind": "correspondence",
-          "source_id": "src_gmail",
+          "source_id": "src_ ",
           "label": "Email — Kelso Ridge Constructors, 2026-01-04",
           "detail": "Representative contractor entitlement claim",
           "runtime": true,
@@ -46883,8 +46936,8 @@
                     },
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -46931,8 +46984,8 @@
                     },
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -47009,8 +47062,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -47076,8 +47129,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -47180,8 +47233,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -47247,8 +47300,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -47313,8 +47366,8 @@
                     },
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -47456,8 +47509,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -47603,8 +47656,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -47670,8 +47723,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -47848,8 +47901,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -47930,8 +47983,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -48034,8 +48087,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -48153,8 +48206,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -48257,8 +48310,8 @@
                       },
                       "amountBasis": "commitment",
                       "source": {
-                        "id": "src_gmail",
-                        "name": "Gmail",
+                        "id": "src_ ",
+                        "name": " ",
                         "tag": "GM",
                         "class": "runtime"
                       }
@@ -48346,8 +48399,8 @@
                     },
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -48571,8 +48624,8 @@
                     "amount": null,
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -48661,8 +48714,8 @@
                     },
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -48737,8 +48790,8 @@
                     },
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -48883,8 +48936,8 @@
                     },
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -48940,8 +48993,8 @@
                     "amount": null,
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -48997,8 +49050,8 @@
                     "amount": null,
                     "amountBasis": "projection",
                     "source": {
-                      "id": "src_gmail",
-                      "name": "Gmail",
+                      "id": "src_ ",
+                      "name": " ",
                       "tag": "GM",
                       "class": "runtime"
                     },
@@ -51107,8 +51160,8 @@
                           },
                           "amountBasis": "commitment",
                           "source": {
-                            "id": "src_gmail",
-                            "name": "Gmail",
+                            "id": "src_ ",
+                            "name": " ",
                             "tag": "GM",
                             "class": "runtime"
                           },
@@ -51178,8 +51231,8 @@
                           },
                           "amountBasis": "commitment",
                           "source": {
-                            "id": "src_gmail",
-                            "name": "Gmail",
+                            "id": "src_ ",
+                            "name": " ",
                             "tag": "GM",
                             "class": "runtime"
                           },
@@ -51307,8 +51360,8 @@
                           },
                           "amountBasis": "commitment",
                           "source": {
-                            "id": "src_gmail",
-                            "name": "Gmail",
+                            "id": "src_ ",
+                            "name": " ",
                             "tag": "GM",
                             "class": "runtime"
                           },
@@ -51471,8 +51524,8 @@
                           },
                           "amountBasis": "commitment",
                           "source": {
-                            "id": "src_gmail",
-                            "name": "Gmail",
+                            "id": "src_ ",
+                            "name": " ",
                             "tag": "GM",
                             "class": "runtime"
                           },
@@ -51829,9 +51882,9 @@
               {
                 "id": "an_003",
                 "provenance": "extracted",
-                "author": "src_gmail",
+                "author": "src_ ",
                 "authorName": "Runtime observation",
-                "authorRole": "Gmail connector",
+                "authorRole": "  connector",
                 "createdAt": "2026-03-08T09:41:00Z",
                 "body": "Kelso Ridge raised CO-003 for $1,207,400 on package DEF-2026-C02: filter floors in Filters 8, 9 and 11 out of level beyond the underdrain manufacturer's installation tolerance, adding a self-levelling grout course and a re-survey of the remaining Phase 2 filters. The estimate at completion moved with it.",
                 "binding": {
@@ -51864,9 +51917,9 @@
               {
                 "id": "an_004",
                 "provenance": "extracted",
-                "author": "src_gmail",
+                "author": "src_ ",
                 "authorName": "Runtime observation",
-                "authorRole": "Gmail connector",
+                "authorRole": "  connector",
                 "createdAt": "2026-03-15T10:05:00Z",
                 "body": "Ardmore Kessler's Amendment No. 2 adds $399,000 of design services — structural investigation of the Phase 2 filter floors and revision of the underdrain support detail. It follows CO-003 rather than standing on its own, so the two should not be read as independent overruns.",
                 "binding": {
