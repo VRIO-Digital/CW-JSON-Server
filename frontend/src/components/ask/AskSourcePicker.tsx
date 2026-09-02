@@ -19,10 +19,15 @@ import './AskSourcePicker.css'
  * pass over nothing — the rule that already put `AudiencePicker` and `ConnectSourceWizard` in
  * files of their own. The panel is exported apart from the `Dropdown` for the same reason.
  *
- * **The empty state is a sentence, not an absent control.** A `+` that opens onto nothing reads
- * as broken; one that opens onto "no source is connected that can be asked at question time"
- * names the fix, which is the Sources page. Same rule as the Library's ungoverned notice: a
- * list that is merely shorter is not a message.
+ * **It is the rows and nothing else.** It opened with a heading and closed with the observation
+ * rule spelled out; both were removed on request. The rule is still true and still on record —
+ * in CLAUDE.md, where a decision belongs, and in the `observation` block a reader meets on the
+ * answer itself, which is where it bears on something they are actually reading. A picker is a
+ * control, and three lines of doctrine over two checkboxes is a paragraph in front of a click.
+ *
+ * **The empty state keeps its sentence**, because that branch has no rows to be: a `+` that
+ * opens onto nothing reads as broken, where one naming the Sources page names the fix. Same
+ * rule as the Library's ungoverned notice — a list that is merely shorter is not a message.
  */
 
 export function AskSourceList({
@@ -50,9 +55,6 @@ export function AskSourceList({
 
   return (
     <div className="asp-panel">
-      <Typography.Text type="secondary" className="asp-head">
-        {askSourceCopy.heading}
-      </Typography.Text>
       {sources.map((s) => (
         <label className="asp-row" key={s.sourceId}>
           <Checkbox
@@ -72,9 +74,6 @@ export function AskSourceList({
           </span>
         </label>
       ))}
-      <Typography.Paragraph type="secondary" className="asp-note">
-        {askSourceCopy.observationNote}
-      </Typography.Paragraph>
     </div>
   )
 }

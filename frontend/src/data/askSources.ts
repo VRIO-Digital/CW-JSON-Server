@@ -9,10 +9,13 @@
 export const askSourceCopy = {
   buttonHint: 'Add a connected source to read this question against',
 
-  heading: 'Read at question time',
-
   /**
    * Why a mailbox answer is not a graph answer.
+   *
+   * **Printed on the page, not in the picker.** The picker showed it under its rows and no
+   * longer does — three lines of doctrine over two checkboxes is a paragraph in front of a
+   * click. It stands where it bears on something the reader is actually reading: above a
+   * thread with no graph behind it, saying what these answers are.
    *
    * The query set's own rule, in its own terms — the same sentence `ObservationBlock` and the
    * New Graph wizard's coverage step already state, because a reader meeting it in three places

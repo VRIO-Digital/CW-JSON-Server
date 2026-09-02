@@ -1873,88 +1873,25 @@ unpublished graph in Ask leaves `version`, `sha256`, `published_at` and `publish
 nothing to report, and lifting the gate on all four gated surfaces changes the meaning of a
 precondition three other pages share.
 
-**Which makes the wizard's hand-off wrong for that one graph, so it forks.** *Save & build
-graph* routed every reader to Graph Studio's Build tab — right while the studio was where a
-build was watched *and* published, and wrong for a graph the server has already published by
-the time the reader arrives: the screen's one remaining act had happened, and its four
-locked tabs are about a canvas this graph does not assert on. So the button asks
-`isRuntimeAnswered` — `src/data/runtimeBuild.ts`, the client half of `runtimeSourcesIn`,
-resolving the step-4 picks against the served list and keeping the ones flagged **`runtime`**
-rather than testing for a connector name, for the reason step 4's own gate reads the served
-flag. A runtime-answered brief keeps the reader in the wizard behind `RuntimeBuildDialog`,
-which watches the run to the end and hands them to **Ask**; every other brief goes to the
-studio exactly as before.
+**The wizard forked on this for a while, and the fork is gone.** *Save & build graph* kept a
+runtime-answered brief in the wizard behind `RuntimeBuildDialog`, which watched the run, read
+`GET /ask` back when it landed and handed the reader to Ask — on the reasoning that such a graph
+publishes itself, so the studio's one remaining act had already happened. **Removed on request:**
+the studio is where a build is watched, for every graph, and a second place to watch one is a
+second answer to where a run lives. `RuntimeBuildDialog` and `src/data/runtimeBuild.ts` are
+deleted, and the page keeps none of the state that fed them — a poll and a read-back with no
+dialog to render them is dead state that reads as a feature.
 
-**And that dialog reports the publication rather than asserting it.** A build finishing and a
-graph being live are two facts, and only the first belongs to the run — so when the run lands
-the page re-reads `GET /ask` once, keyed on the build id, and says *live* only where that
-list holds the graph, naming the version and publisher the server reported. Its words are in
-`src/data/` for the reason `sourceActions` is (a `Modal` portals out of `renderToString`), and
-its body is exported apart from the `Modal` so a test can render it.
+**What did not change is the sentence above it.** `runGraphBuild` still publishes a
+runtime-answered graph when its build lands; that is a fact about the graph rather than about a
+button, and `check-docs` asserts it where it lives, inside the guard. Such a reader now watches
+the same pipeline as everybody else and finds the version already live when the run finishes.
 
-**Where Ask does not list it, the dialog reports the analysis rather than the publication.**
-It drew a *Not in Ask yet* warning there at first, pointing at Graph Studio → Versions — the
-screen this hand-off exists to skip — for what is the **expected** state in the first seconds
-after a build lands. What stands there instead is *Analysis complete.*, which claims only this
-dialog's own act and is therefore true either way; the guarantee the alert looked like it was
-carrying is untouched, because the warning never carried it: the success branch is gated on
-the row `GET /ask` returned, so a publish this dialog has not seen still cannot be claimed.
-
-**Something has to stand there, and for a moment nothing did.** Dropping the warning left that
-branch rendering `null`, so once the hold ended on an unlisted graph the modal was a button
-over blank space — which reads as a dialog that failed to load its own contents, and was
-reported from use. The claim is two halves for that reason: the branch says nothing about
-publication, *and* it is never empty.
-
-**And it explains nothing while it holds — the heading included.** It opened with a title
-(*Building — this graph publishes itself*) over a paragraph naming the mailbox and
-saying why a runtime source leaves a reviewer nothing to settle: both were the reasoning behind a
-routing decision the reader did not make and cannot change, put in front of them at the one
-moment they are waiting on a result. That reasoning is on record here, which is where a
-decision belongs, and a heading over a single line of status labels something already reading
-as one. `title={null}` rather than an omitted prop, so a default cannot arrive from the theme.
-The dialog therefore takes **neither the graph's name nor its sources**:
-nothing left on it says anything about either, and a prop still being passed is how the
-paragraph comes back.
-
-**It reports rather than narrating, and it offers one act.** The stage-and-step readout it
-printed at first is the Build tab's, where a reader is watching a run they can act on; here
-the build publishes itself and nothing on the dialog is pressable while it does, so a substep
-counter is detail with no decision attached. What stands in its place is
-`runtimeBuildCopy.analysing` — *Analysing Gmail data…*, *Preparing the data…*, *Finishing the
-analysis…* — three phrases cut from the **build run's own progress**, and **the act is offered
-when the third row ticks**, which happens when the run completes and at no other time. No step
-and no duration is written into the component, so the panel states neither a word nor a number
-of its own — the rule `BuildRunDialog` keeps with `BUILD_STAGE_MS`.
-
-**That was a ten-second client-side hold once, and it was wrong by about eighty seconds.** A
-build is 31 substeps at `BUILD_STEP_MS`, and `runGraphBuild` publishes a runtime-answered
-graph when the run *lands* — so a dialog pacing itself offered *Ask a question* long before
-the version existed, and the reader arrived at a page that correctly drew `NoPublishedGraph`.
-Reported from use. Both sides were right and nothing errored, which is the shape this file
-keeps refusing: **the pace was the client's, and what it was pacing was the server's.** So
-`analysingStage` reads the run the page is already polling for the publication read-back —
-the same rule every other paced surface here keeps, and the reason the exception is gone
-rather than documented. It is a pure function in `src/data/` for the reason `datasetPathFix`
-is: a gate inside a component cannot be asserted without rendering the component's own state.
-
-**And the dialog is closable throughout, which it was not while the wait was ten seconds.** A
-modal with no exit over a run the reader cannot act on is a trap, and a poll that stopped
-answering would make it a permanent one. Nothing is lost by leaving: the run is the server's,
-it finishes either way, it still publishes itself, and Graph Studio finds it in flight.
-
-**They are drawn as `StageList`'s rows, from one cursor.** Every row is listed from the first
-frame, `pending` until it runs, because a list that grows a line at a time hides how much is
-left — `BuildRunDialog`'s rule, and the same rule here — and the list **stays after the run
-lands**, all three ticked, since it is the body of the dialog. Reusing the component rather
-than drawing three rows inline is what stops a second set of marks and states drifting from
-the consent panel's. And the gate on the act is **derived** from that cursor
-(`stage >= analysing.length`) rather than tracked in a flag beside it: two counters over one
-wait is the fault `BUILD_STEPS`' single cursor exists to avoid, whose symptom is a row still
-spinning under a finished list. **And the
-studio button beside Ask is gone**, which with the warning also gone leaves the studio unnamed
-on this dialog: it pointed back at the screen this hand-off exists to skip, which reads as the
-two being equal choices. It is still a sidebar away, and every other brief still lands there.
+**Two things the removal cost, recorded rather than glossed.** The reader is no longer told, at
+the moment the build lands, that this graph published itself — they find that out in Versions,
+like everybody else; and the paced three-phrase panel that made a 93-second wait legible is gone
+with the dialog, so the wait is the Build tab's own stage-and-step readout, which is what it is
+for. Both were deliberate: **do not restore either without being asked.**
 
 **Nothing sent `?as=` on a build for a while, and nothing failed.** The route validated the
 absent parameter happily, so a runtime graph published itself crediting `db.google_account`

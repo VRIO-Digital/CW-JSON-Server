@@ -2806,183 +2806,48 @@ expect(
   'runtimeSourcesIn is the one definition; the coverage step and the build both call it',
 )
 /*
- * **Save & build lands in Ask for the one graph that publishes itself.**
+ * **Every brief lands in Graph Studio, and the wizard's runtime hand-off is gone.**
  *
- * The server already publishes a runtime-answered graph when its build lands, which made the
- * wizard's hand-off wrong rather than merely long: it routed every reader to Graph Studio,
- * whose one remaining act — Publish — had already happened for this kind of graph. So the
- * button forks, and the fork has to be the *same* rule the server applies or the two disagree
- * about which graphs skip the studio.
+ * It forked here for a while: a runtime-answered brief stayed in the wizard behind
+ * `RuntimeBuildDialog`, which watched the run and handed the reader to Ask, on the reasoning
+ * that such a graph publishes itself and the studio's one remaining act had therefore already
+ * happened. **Removed on request** — the studio is where a build is watched, for every graph,
+ * and a second place to watch one is a second answer to where a run lives.
  *
- * Three halves, because a partial version of this is the shape that fails quietly: a fork
- * that always hands off publishes nothing and strands every other graph in a dialog; one
- * that never hands off is the old behaviour with dead code beside it.
+ * **What did not change is the server.** `runGraphBuild` still publishes a runtime-answered
+ * graph when its build lands: that is a fact about the graph rather than about this button,
+ * and the claim asserting it sits with the route. Such a reader now watches the same pipeline
+ * as everybody else and finds the version live when it finishes.
+ *
+ * **Asserted as an absence across every layer at once**, because half a removal is the shape
+ * that fails silently — a page still holding the poll and the read-back with no dialog to
+ * render them is dead state that looks like a feature. Both deleted files are checked off
+ * disk, and the page is checked for the state, the effects and the fork that fed them.
  */
 const newGraphCode = codeOnly(read('frontend/src/pages/NewGraphPage.tsx'))
 expect(
-  'the wizard hands a runtime-answered graph to Ask, and every other one to the studio',
-  /if \(isRuntimeAnswered\(graphSources, sourcePicks\)\) \{\s*setHandoffId\(/.test(
+  'every brief lands in Graph Studio — the wizard keeps no build hand-off of its own',
+  /navigate\(appPath\(`\/graph-studio\/\$\{encodeURIComponent\(result\.useCase\.useCaseId\)\}`\), \{\s*state: \{ tab: 'build' \}/.test(
     newGraphCode,
   ) &&
-    /navigate\(appPath\(`\/graph-studio\/\$\{encodeURIComponent\(result\.useCase\.useCaseId\)\}`\), \{\s*state: \{ tab: 'build' \}/.test(
-      newGraphCode,
-    ) &&
-    /onAsk=\{\(\) => navigate\(appPath\('\/ask'\)\)\}/.test(newGraphCode),
-  'Save & build forks on isRuntimeAnswered; the studio branch is untouched',
+    !/isRuntimeAnswered/.test(newGraphCode) &&
+    !/handoffId|checkingAsk|RuntimeBuildDialog/.test(newGraphCode) &&
+    !/pollBuild|loadAskGraphs/.test(newGraphCode) &&
+    !existsSync(join(root, 'frontend/src/components/graph/RuntimeBuildDialog.tsx')) &&
+    !existsSync(join(root, 'frontend/src/data/runtimeBuild.ts')),
+  'the fork, the dialog, its poll and its copy are all gone, and the studio branch is the only one',
 )
 /*
- * The client's half of "which picks are runtime" reads the served flag, exactly as the step-4
- * gate does. `kind === 'gmail'` written into a component is a second answer to the question
- * `runtime` is served to settle, and it goes stale the day a second runtime connector lands.
- */
-const runtimeBuildSrc = read('frontend/src/data/runtimeBuild.ts')
-expect(
-  'and it decides that from the served flag, never a connector name',
-  /s\.runtime/.test(codeOnly(runtimeBuildSrc)) &&
-    !/'gmail'/.test(codeOnly(runtimeBuildSrc)) &&
-    !/'gmail'/.test(codeOnly(read('frontend/src/components/graph/RuntimeBuildDialog.tsx'))),
-  'runtimePicks filters on GraphSource.runtime',
-)
-/*
- * **The dialog reports the publication; it does not assert it.**
- *
- * A build finishing and a graph being live are two facts, and only the first is this run's to
- * report — so the panel says "live" only where `GET /ask` came back holding the graph, and
- * says the opposite, with the studio as the fix, where it did not. The wording lives in
- * `src/data/` for the reason `sourceActions` does: a `Modal` portals out of `renderToString`,
- * so a sentence inline in the dialog cannot be asserted on — and the body is exported apart
- * from its `Modal` so a test can render it at all.
- */
-const runtimeDialogCode = codeOnly(read('frontend/src/components/graph/RuntimeBuildDialog.tsx'))
-expect(
-  'the hand-off states a publish only from what Ask answered',
-  /published=\{askGraphs\.find\(\(g\) => g\.useCaseId === handoffId\) \?\? null\}/.test(
-    newGraphCode,
-  ) &&
-    /void loadAskGraphs\(\)/.test(newGraphCode) &&
-    /published \? \(/.test(runtimeDialogCode) &&
-    /runtimeBuildCopy\.published\(/.test(runtimeDialogCode) &&
-    /export function RuntimeBuildPanel/.test(runtimeDialogCode),
-  'the panel renders the row GET /ask returned, and its words come from src/data/',
-)
-/*
- * **And where Ask did not list it, the dialog reports the analysis rather than the
- * publication.** The warning that stood there named Graph Studio → Versions — the screen this
- * hand-off exists to skip — for what is the *expected* state in the first seconds after a
- * build lands. What replaced it is `done`, which is true either way because it claims only
- * this dialog's own act; the guarantee the alert looked like it was carrying is untouched,
- * because the warning never carried it — the success branch is still gated on the row `GET
- * /ask` returned, so a publish this dialog has not seen still cannot be claimed.
- *
- * **Something has to stand there**, which is why this is two halves rather than an absence
- * claim: dropping the warning left the branch rendering `null`, and a dialog showing a button
- * over blank space reads as one that failed to load its own contents. Reported from use.
+ * And the *server* half is untouched: a runtime-answered graph still publishes itself when its
+ * build lands. The write stays inside the guard — a `studioLive.set` that drifted out of it
+ * would publish every build — so this reads the guard's contents rather than its presence.
  */
 expect(
-  'and reports its own act rather than sending the reader back to the studio',
-  /runtimeBuildCopy\.done/.test(runtimeDialogCode) &&
-    /done: 'Analysis complete\.',/.test(codeOnly(runtimeBuildSrc)) &&
-    !/\) : null\}/.test(runtimeDialogCode) &&
-    !/notPublished/.test(runtimeDialogCode) &&
-    !/notPublished/.test(runtimeBuildSrc) &&
-    !/type="warning"/.test(runtimeDialogCode),
-  'the branch states the analysis, never a publication, and is never empty',
-)
-/*
- * **The hand-off reports the build; it does not hold over one.** The stage-and-step readout
- * belongs to the Build tab, where a reader is watching a run they can act on — here the build
- * publishes itself and nothing on the dialog is pressable while it does, so a substep counter
- * would be detail with no decision attached. Three phrases stand in its place, and they are
- * cut from the run's own `stepIndex`.
- *
- * **This is the claim the ten-second hold cost, and it is why the pacing rule is a rule.** The
- * rows were a client-side timer, the build is 31 substeps at `BUILD_STEP_MS`, and the server
- * publishes a runtime-answered graph only when the run *lands* — so the act was offered about
- * eighty seconds early, over a graph that did not exist, and Ask correctly met the reader with
- * its no-published-graph gate. Reported from use. So the assertion is on the **gate** rather
- * than on the wording: `analysingStage` returns a finished list on `complete` and nothing
- * else, and the dialog holds no timer of its own to reach that state by another route.
- */
-expect(
-  'and the hand-off offers Ask only once the run has landed',
-  /export function analysingStage\(/.test(codeOnly(runtimeBuildSrc)) &&
-    /if \(run\.status === 'complete'\) return rows/.test(codeOnly(runtimeBuildSrc)) &&
-    /return Math\.min\(Math\.max\(at, 0\), rows - 1\)/.test(codeOnly(runtimeBuildSrc)) &&
-    /const stage = analysingStage\(run\)/.test(runtimeDialogCode) &&
-    /const done = held && !checking/.test(runtimeDialogCode) &&
-    /disabled=\{!done\}/.test(runtimeDialogCode) &&
-    !/setTimeout|setInterval|useEffect|useState/.test(runtimeDialogCode) &&
-    !/ANALYSING_MS|analysingStepMs/.test(codeOnly(runtimeBuildSrc)) &&
-    !/ANALYSING_MS|analysingStepMs/.test(runtimeDialogCode),
-  'the act is gated on the build completing, and no timer in the dialog reaches that state',
-)
-/*
- * The steps are the copy's, and the component names neither a phrase nor a duration — the rule
- * `BuildRunDialog` keeps with `BUILD_STAGE_MS`. A row advances because the run advanced, so
- * adding a phrase re-cuts the same run rather than making anybody wait longer.
- */
-expect(
-  'and the steps are the copy’s, cut from the run’s own progress',
-  /analysing: \[/.test(codeOnly(runtimeBuildSrc)) &&
-    /run\.stepIndex \/ run\.stepTotal/.test(codeOnly(runtimeBuildSrc)) &&
-    /runtimeBuildCopy\.analysing/.test(runtimeDialogCode) &&
-    !/\d+\s?s\b/.test(runtimeDialogCode) &&
-    !/Analysing|Preparing|Finishing/.test(runtimeDialogCode),
-  'analysing is a list in src/data/, and no step or duration is written into the component',
-)
-/*
- * **They are rows, drawn by `StageList`, and every one is listed from the first frame.** A
- * list that grew a line at a time hides how much is left, which is the only thing this panel
- * is for — `BuildRunDialog`'s rule, and the same rule here. Reusing the component rather than
- * drawing three rows inline is what stops a second set of marks and states drifting from the
- * consent panel's.
- *
- * **And one cursor drives it**, the way `BUILD_STEPS` has one: a `held` flag kept beside the
- * index is two counters over one wait, whose symptom is a row still spinning under a finished
- * list. The gate on the act is derived from the cursor rather than tracked alongside it.
- */
-expect(
-  'and the hand-off draws them as rows, from one cursor',
-  /<StageList stages=\{runtimeBuildCopy\.analysing\} stage=\{stage\} \/>/.test(
-    runtimeDialogCode,
-  ) &&
-    /const held = stage >= runtimeBuildCopy\.analysing\.length/.test(runtimeDialogCode) &&
-    !/setHeld/.test(runtimeDialogCode),
-  'StageList renders the list and `held` is derived from the one cursor',
-)
-/*
- * And it offers Ask alone. The studio button beside it pointed back at the screen this
- * hand-off exists to skip, which reads as the two being equal choices — and with the
- * not-published warning gone the studio is not named on this dialog at all. It is still a
- * sidebar away, and the wizard's every *other* brief still lands there, which the fork claim
- * above holds.
- */
-expect(
-  'and the hand-off offers Ask and nothing else',
-  /runtimeBuildCopy\.askAction/.test(runtimeDialogCode) &&
-    !/studioAction/.test(runtimeDialogCode) &&
-    !/onStudio/.test(runtimeDialogCode) &&
-    !/onStudio/.test(newGraphCode) &&
-    !/Graph Studio/.test(codeOnly(runtimeBuildSrc)),
-  'one act on the dialog, and no route back to the studio drawn on it',
-)
-/*
- * **And it explains nothing while it holds.** The paragraph that opened it was the reasoning
- * behind a routing decision the reader did not make and cannot change, put in front of them at
- * the one moment they are waiting on a result; it is on record in CLAUDE.md, which is where a
- * decision belongs. Nothing left on the dialog says anything about the graph or its sources,
- * so it takes neither — a prop still being passed is how the paragraph comes back.
- */
-expect(
-  'and the hand-off is the phrase and the act, nothing else',
-  !/runtimeBuildCopy\.why/.test(runtimeDialogCode) &&
-    !/\bwhy:/.test(codeOnly(runtimeBuildSrc)) &&
-    !/graphName/.test(runtimeDialogCode) &&
-    !/runtimeSources/.test(runtimeDialogCode) &&
-    !/graphName=|runtimeSources=/.test(newGraphCode) &&
-    /title=\{null\}/.test(runtimeDialogCode) &&
-    !/\btitle:/.test(codeOnly(runtimeBuildSrc)),
-  'no heading, no explanatory paragraph, and no graph name or source list reaching the dialog',
+  'and a runtime-answered graph still publishes itself when its build lands',
+  /if \(runtimeSourcesFor\(useCase\)\.length > 0\) \{\s*studioLive\.set\(run\.use_case_id, version\.sha256\)/.test(
+    server,
+  ),
+  'the build publishes it, and only for a graph that draws on a runtime source',
 )
 /*
  * A build is told who started it, because for a runtime-answered graph that call *is* the
@@ -4313,9 +4178,29 @@ expect(
   /export function AskSourceList/.test(pickerSrc) &&
     !/'gmail'/.test(pickerSrc) &&
     !/kind ===/.test(pickerSrc) &&
-    /askSourceCopy\.observationNote/.test(pickerSrc) &&
     /askSourceCopy\.emptyTitle/.test(pickerSrc),
   'the panel is exported apart from its Dropdown and names no connector',
+)
+/*
+ * **And the panel is the rows and nothing else.** It carried a heading above them and the
+ * observation rule spelled out below; both were removed on request. The rule is not lost — it
+ * is in CLAUDE.md, where a decision belongs, and on the page above a thread with no graph
+ * behind it, which is where it bears on something the reader is actually reading. Three lines
+ * of doctrine over two checkboxes is a paragraph in front of a click.
+ *
+ * **The empty branch keeps its sentence**, and that is the half worth asserting alongside: it
+ * has no rows to be, so stripping it too would leave a `+` opening onto nothing — the "button
+ * over blank space" this repo has already fixed once, on the wizard's own build dialog.
+ */
+expect(
+  'and its populated panel is the rows alone, while the empty one still names the fix',
+  !/asp-head/.test(pickerSrc) &&
+    !/observationNote/.test(pickerSrc) &&
+    !/heading:/.test(askSourcesSrc) &&
+    /asp-empty/.test(pickerSrc) &&
+    /askSourceCopy\.emptyDetail/.test(pickerSrc) &&
+    /askSourceCopy\.observationNote/.test(codeOnly(askPageSrc)),
+  'no heading and no note over the rows; the copy that moved still has a reader on the page',
 )
 /*
  * **And the graph select is rendered whether or not anything is published**, stating

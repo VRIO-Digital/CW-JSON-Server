@@ -5222,3 +5222,39 @@ filtering to runtime, the publish gate dropped from the graph branch, the pool n
 the citation kind, the non-runtime refusal removed, the gate reverted to graph-only, the page no
 longer reading `askAvailability`, the picker deciding for itself, the select hiding itself again,
 and `subject` dropped from the chat. All ten mutations caught.
+
+## Removing a surface means removing what fed it (2026-09-02)
+
+**What was asked.** The wizard's runtime build dialog removed — a build is watched in Graph
+Studio, for every graph — and Ask's `+` picker reduced to its source rows, without the heading
+above them or the observation rule spelled out below.
+
+**What the removal actually touched.** The dialog was the visible tenth of it. Deleting the
+component alone would have left the page holding: two `useEffect`s polling the build and
+re-reading `GET /ask`, `handoffId` and `checkingAsk`, a `useRef` guarding the read-back, three
+store subscriptions (`buildRun`, `pollBuild`, and the whole `askStore` import), and the
+`isRuntimeAnswered` fork that set the state. None of that would fail to compile — `noUnusedLocals`
+catches an unused *binding*, not a `useEffect` that still runs and still polls a server every
+350ms for a dialog nobody renders.
+
+The compiler found three of them only because the last reader of each went with the dialog. The
+effects it could not have found at all.
+
+**The dead copy is the other half.** `src/data/runtimeBuild.ts` existed to hold the dialog's
+words where a test could reach them; with the dialog gone it was a file of strings nothing
+printed. `askSourceCopy.heading` was the same fault in miniature one file over — the picker
+stopped rendering it, and a `heading:` key with no reader is copy that looks maintained.
+
+**Guard.** One cross-layer absence claim rather than one per file, because a partial revival is
+the shape that fails silently: the fork, the dialog, its poll, its read-back and both deleted
+files are asserted together, and the studio branch is asserted to be the only one. Beside it, a
+*presence* claim that the server still self-publishes a runtime-answered graph inside its guard —
+the behaviour the dialog reported on is not the behaviour being removed, and asserting the
+removal without asserting what survives it is how a UI removal quietly becomes a behaviour change.
+
+**The general shape.** *Removing a control is removing everything that reads it — and everything
+that feeds it.* This file already recorded the first half (a Continue button validating a name
+field its step no longer had). The second half is worse, because a timer or a poll left behind
+has no compile error and no visible symptom: it just runs forever against a screen nobody sees.
+When deleting a surface, grep for its state, its effects, its store subscriptions and its copy
+file — then check what it was *reporting on* is still asserted somewhere.
