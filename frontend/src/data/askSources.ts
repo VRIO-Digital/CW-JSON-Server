@@ -84,3 +84,27 @@ export function askAvailability(
     target: graphName ?? picked.map((s) => s.name).join(', '),
   }
 }
+
+/**
+ * The opener chips: what this page offers to ask, given what it is asking.
+ *
+ * **Whatever answers the question is what suggests it.** A graph answers where one is selected,
+ * so its hero questions are the chips — unchanged. Otherwise the picked sources answer, so their
+ * own recorded questions are, and the server draws those from the *same pool* its answerer
+ * matches within, so a chip cannot be offered that the source would then abstain on.
+ *
+ * **A source merely connected offers nothing.** Suggesting a question the reader cannot yet ask
+ * — because they have not picked the source — would be a chip that refuses when clicked.
+ *
+ * De-duplicated across sources, because two mailboxes drawing on one recorded set would
+ * otherwise offer the same sentence twice, which reads as two different questions.
+ */
+export function askSuggestions(
+  graphQuestions: string[] | null,
+  sources: { sourceId: string; suggestedQuestions: string[] }[],
+  sourceIds: string[],
+): string[] {
+  if (graphQuestions !== null) return graphQuestions
+  const picked = sources.filter((s) => sourceIds.includes(s.sourceId))
+  return [...new Set(picked.flatMap((s) => s.suggestedQuestions))]
+}

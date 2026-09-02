@@ -5178,6 +5178,21 @@ function askRequested(body) {
  * can be reconnected, but nothing can be read out of it at question time — which is the whole
  * of what asking one means.
  */
+/**
+ * The recorded answers really read out of a connector of these kinds.
+ *
+ * **One definition, because the chips and the answerer must not disagree.** A suggestion is a
+ * promise, and a chip drawn from a wider pool than the one that answers it is a question the
+ * reader is invited to ask and then told nothing about — the abstention would be correct and
+ * would read as a broken suggestion. So `askSourceAnswer` matches within this, and
+ * `askableSources` offers from it.
+ */
+function runtimeAnswerPool(citationKinds) {
+  return (db.ask_answers ?? []).filter((a) =>
+    (a.citations ?? []).some((c) => c.runtime === true && citationKinds.has(c.kind)),
+  )
+}
+
 function askableSources() {
   return connectedSources()
     .filter((s) => isRuntimeSource(s.kind))
@@ -5190,6 +5205,21 @@ function askableSources() {
          which is the one thing a reader picking between two mailboxes needs. */
       account: s.mailbox ?? s.account ?? null,
       scope: `${(s.labels ?? []).length} label(s)`,
+      /*
+       * **What this source is on record as answering.** The graph offers its brief’s hero
+       * questions; a connected source has no brief, so it offers the questions the recorded set
+       * really drew from it — which is the same promise by the same standard, not an invention.
+       *
+       * **Declines are excluded, though they are answerable.** Asking one returns the recorded
+       * refusal, which is what the set records it for; *offering* one would put a question in
+       * front of a reader that this dataset is on record as unable to answer. Exactly the rule
+       * step 5 of the New Graph wizard keeps for the same reason.
+       */
+      suggested_questions: runtimeAnswerPool(
+        new Set([RUNTIME_CITATION_KIND[s.kind]].filter(Boolean)),
+      )
+        .filter((a) => a.kind !== 'decline')
+        .map((a) => a.question),
     }))
 }
 
@@ -5216,9 +5246,7 @@ function askSourceAnswer(sources, question, requested) {
   const citationKinds = new Set(
     sources.map((s) => RUNTIME_CITATION_KIND[s.kind]).filter(Boolean),
   )
-  const pool = (db.ask_answers ?? []).filter((a) =>
-    (a.citations ?? []).some((c) => c.runtime === true && citationKinds.has(c.kind)),
-  )
+  const pool = runtimeAnswerPool(citationKinds)
 
   const grounding = {
     step: 'Read the question against the connected source',

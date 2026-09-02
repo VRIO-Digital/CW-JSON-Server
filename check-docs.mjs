@@ -4197,8 +4197,7 @@ expect(
     askServerSrc,
   ) && !/kind === 'gmail'/.test(askServerSrc.slice(askServerSrc.indexOf('function askableSources'), askServerSrc.indexOf('function askCitations'))),
   'the refusal names the fix, and neither helper tests for a connector by name',
-)
-/*
+)/*
  * **On the client the gate is a pure function**, for the reason `datasetPathFix` and `diagnose`
  * are: a test written inline in the page can only be asserted by rendering the page's own
  * state, and `renderToString` hands a zustand component its *initial* state — so the check
@@ -4214,6 +4213,51 @@ expect(
     /askAvailability\(/.test(codeOnly(askPageSrc)) &&
     /\) : gated \? \(/.test(codeOnly(askPageSrc)),
   'askAvailability decides it and AskPage renders the answer',
+)
+
+/*
+ * **The opener chips come from whatever will answer the question.**
+ *
+ * A graph's are its brief's hero questions, unchanged. A connected source has no brief, so its
+ * chips are the recorded answers really drawn from it — and the server takes those from the
+ * **same pool** `askSourceAnswer` matches within, so a chip cannot be offered that the source
+ * would then abstain on. That shared pool is the claim: two predicates over one question is how
+ * a suggestion comes to be a promise nothing keeps.
+ *
+ * **A decline is excluded, though it is answerable.** Asking one returns the recorded refusal,
+ * which is what the set records it for; offering it would put a question in front of a reader
+ * this dataset is on record as unable to answer — exactly the rule step 5 of the wizard keeps.
+ */
+expect(
+  'a source’s chips come from the pool that answers it, minus the declines',
+  /function runtimeAnswerPool\(citationKinds\)/.test(askServerSrc) &&
+    /const pool = runtimeAnswerPool\(citationKinds\)/.test(askServerSrc) &&
+    /suggested_questions: runtimeAnswerPool\(/.test(askServerSrc) &&
+    /\.filter\(\(a\) => a\.kind !== 'decline'\)/.test(askServerSrc),
+  'one pool behind the answer and the suggestion, and a decline is never suggested',
+)
+/*
+ * And the page reads one rule for which chips to draw, so a graph and a source cannot come to
+ * disagree about what is on offer. A source merely *connected* offers nothing — suggesting a
+ * question the reader cannot yet ask would be a chip that refuses when clicked.
+ */
+/*
+ * Sliced to `askSuggestions`’ own body rather than searched across the file. The pick filter is
+ * spelled identically in `askAvailability` one function up, so a whole-file search passed while
+ * the rule it was guarding had been deleted — the recorded trap of asserting a token rather than
+ * a fact at its site. Found by break-testing, not by reading.
+ */
+const askSuggestionsBody =
+  (askSourcesSrc.match(/export function askSuggestions\([\s\S]*?\n\}/) ?? [''])[0]
+expect(
+  'and the page picks its chips from one rule in src/data/',
+  askSuggestionsBody.length > 0 &&
+    /if \(graphQuestions !== null\) return graphQuestions/.test(askSuggestionsBody) &&
+    /sources\.filter\(\(s\) => sourceIds\.includes\(s\.sourceId\)\)/.test(askSuggestionsBody) &&
+    /askSuggestions\(/.test(codeOnly(askPageSrc)) &&
+    /\{suggestions\.map\(\(q\) => \(/.test(codeOnly(askPageSrc)) &&
+    !/graph\.suggestedQuestions\.map/.test(codeOnly(askPageSrc)),
+  'askSuggestions decides it; the page renders what it returns',
 )
 /*
  * **The picker lists what the server served.** `GET /ask` says which sources are askable; a

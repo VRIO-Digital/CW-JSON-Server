@@ -22,7 +22,7 @@ import {
 } from '../store/askStore'
 import { useAuthStore } from '../store/authStore'
 import type { AskTurn } from '../data/askChats'
-import { askAvailability, askSourceCopy } from '../data/askSources'
+import { askAvailability, askSourceCopy, askSuggestions } from '../data/askSources'
 import './AskPage.css'
 
 const shortDate = (iso: string | null) =>
@@ -156,6 +156,13 @@ export default function AskPage() {
     canAsk,
     target: askTarget,
   } = askAvailability(graph ? `${graph.name} ${graph.version}` : null, askSources, sourceIds)
+  /* The openers, from whatever will answer. A graph’s brief, or the picked sources’ own
+     recorded questions — one rule, so the two cannot come to disagree about what is offered. */
+  const suggestions = askSuggestions(
+    graph ? graph.suggestedQuestions : null,
+    askSources,
+    sourceIds,
+  )
 
   if (error) return <ApiErrorAlert error={error} onRetry={() => void load()} />
 
@@ -428,12 +435,12 @@ export default function AskPage() {
                    * standing row of openers under a conversation reads as the app not having
                    * noticed it began.
                    */}
-                  {/* The chips are a *graph's* hero questions — the ones its brief said it
-                      had to answer. A source-scoped ask has no brief and therefore no
-                      openers: inventing some would be the trap this comment already names. */}
-                  {graph && graph.suggestedQuestions.length > 0 && turns.length === 0 ? (
+                  {/* The chips are what *answers* this question: a graph’s hero questions where
+                      one is selected, otherwise the picked sources’ own recorded questions. Both
+                      are promises something already made — neither is invented here. */}
+                  {suggestions.length > 0 && turns.length === 0 ? (
                     <div className="ask-chips">
-                      {graph.suggestedQuestions.map((q) => (
+                      {suggestions.map((q) => (
                         <Button
                           key={q}
                           size="small"

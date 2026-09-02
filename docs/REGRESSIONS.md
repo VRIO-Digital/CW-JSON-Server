@@ -5292,3 +5292,32 @@ one that renamed the element — which is what prompted tightening it in the fir
 exposed the backspace. Two further mutations then reported SKIP because their search strings used
 `\n` against a CRLF file, the trap already recorded here. Every guard in this entry was found by
 a break test, not by reading.
+
+## A suggestion is a promise, so it must come from the pool that answers it (2026-09-02)
+
+**What was asked.** Ask should offer Gmail-shaped openers when a mailbox is what is being asked,
+and the graph's own when a graph is.
+
+**The hazard.** The obvious build is two lists: the graph keeps `suggested_questions` from its
+brief, and the source gets a list assembled wherever seemed convenient. That is two predicates
+over one question, and the failure is silent — a chip drawn from a wider pool than the one that
+answers it is a question the reader is invited to ask and then told nothing about. The abstention
+would be *correct*, and would read as a broken suggestion.
+
+**What was built instead.** `runtimeAnswerPool` is one function; `askSourceAnswer` matches within
+it and `askableSources` offers from it. Verified end-to-end rather than by inspection: all 13
+chips the CAPEX mailbox serves were POSTed back to `/ask`, and all 13 returned a recorded answer
+with none abstaining.
+
+**Two check-docs faults found by break-testing, both already recorded shapes.**
+
+- The claims were inserted *above* the `const askSourcesSrc` they read, so the run died on a
+  temporal-dead-zone `ReferenceError` before printing a summary — and the check `| grep -E
+  "claims"` printed nothing, which looks exactly like a filtered-out pass. This file already says
+  a helper belongs above every claim that uses it; the corollary is that a claim belongs *below*
+  every declaration it reads, and that an absent summary is a crash rather than a pass.
+- The chip-picking claim searched the whole of `askSources.ts` for
+  `sources.filter((s) => sourceIds.includes(s.sourceId))` — which is spelled identically inside
+  `askAvailability` one function up. Deleting the rule from `askSuggestions` left the claim green.
+  Fixed by slicing the function body first, the recorded rule of *asserting a fact at its site,
+  not its token in a file*. Six mutations; the other five were caught first time.

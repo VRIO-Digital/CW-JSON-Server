@@ -1846,6 +1846,23 @@ the store immediately, so an OK would confirm what has already happened and a Ca
 undo this dialog does not perform. Both are `null` rather than omitted, so no default arrives from the
 theme.
 
+**And the opener chips come from whatever will answer.** A graph offers its brief's hero
+questions, exactly as before. A connected source has no brief, so it offers the recorded answers
+really drawn from it — and the server takes those from the **same pool** `askSourceAnswer`
+matches within (`runtimeAnswerPool`), so a chip cannot be offered that the source would then
+abstain on. Two predicates over one question is how a suggestion becomes a promise nothing
+keeps; CAPEX's mailbox offers 13, and asking every one of them returns a recorded answer.
+
+**A decline is excluded, though it is answerable.** Asking one returns the recorded refusal,
+which is what the set records it for; offering it would put a question in front of a reader this
+dataset is on record as unable to answer — the rule step 5 of the New Graph wizard already keeps.
+
+**And a source merely *connected* offers nothing.** `askSuggestions` reads the **picked** ones,
+because a chip for a question the reader cannot yet ask would refuse when clicked. It is a pure
+function beside `askAvailability` for the same reason, and `check-docs` slices its body rather
+than searching the file — the pick filter is spelled identically in `askAvailability` one
+function up, so a whole-file search passed while the rule it guarded had been deleted.
+
 **The gate now means "there is nothing here to ask at all".** `askAvailability` is the one
 definition — a pure function in `src/data/` for the reason `datasetPathFix` is, since a test written
 inline in the page could only be asserted by rendering the page's own state, which `renderToString`
