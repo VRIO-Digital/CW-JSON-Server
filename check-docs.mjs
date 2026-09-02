@@ -4228,6 +4228,30 @@ expect(
  * which is what the set records it for; offering it would put a question in front of a reader
  * this dataset is on record as unable to answer — exactly the rule step 5 of the wizard keeps.
  */
+/*
+ * **A question is asked of one thing, and the two controls say so.**
+ *
+ * The route has always settled this — a `use_case_id` wins and the `source_ids` beside it are
+ * ignored — but the page let both be set at once, so a mailbox could sit ticked on the `+` with
+ * a count beside it while contributing nothing to the answer on screen. Reported from use.
+ *
+ * So picking a source clears the graph and selecting a graph clears the picks. **The new thread
+ * is only on the switch**: dropping a graph for a mailbox changes what answers, and an answer
+ * belongs to whatever produced it — but adding a second mailbox to a first is a widened scope,
+ * and clearing the thread there would throw away a conversation for no reason.
+ *
+ * **And `load` must not land on a graph over a pick.** It selects the newest published graph on
+ * arrival, which for a reader who is asking a mailbox and reloads would silently change what
+ * their next question is asked of.
+ */
+expect(
+  'a graph and a source are exclusive, and only the switch starts a new thread',
+  /set\(\{ useCaseId, sourceIds: EMPTY_SOURCE_IDS, activeChatId: null \}\)/.test(askStoreSrc) &&
+    /const dropsGraph = on && state\.useCaseId !== null/.test(askStoreSrc) &&
+    /\.\.\.\(dropsGraph \? \{ useCaseId: null, activeChatId: null \} : \{\}\)/.test(askStoreSrc) &&
+    /const hasPicks = get\(\)\.sourceIds\.length > 0/.test(askStoreSrc),
+  'each selection clears the other; the thread resets on the switch alone; a reload keeps the picks',
+)
 expect(
   'a source’s chips come from the pool that answers it, minus the declines',
   /function runtimeAnswerPool\(citationKinds\)/.test(askServerSrc) &&
@@ -4346,10 +4370,18 @@ expect(
   'the thread survives an answer no graph produced',
 )
 /* Switching graphs starts a new thread: an answer belongs to the version that produced it,
-   and reading it under another graph's heading is a claim about content that never answered. */
+   and reading it under another graph's heading is a claim about content that never answered.
+
+   Keyed on `activeChatId: null` inside `select` rather than on the whole `set({…})` literal it
+   used to match: that spelling gained `sourceIds` when a graph and a source became exclusive,
+   and the claim went red over a fact that had not changed at all — a claim about a spelling,
+   which this file records as its own recurring fault. The body is sliced so the reset being
+   asserted is `select`'s own. */
 expect(
   'switching graphs starts a new thread rather than continuing one',
-  /set\(\{ useCaseId, activeChatId: null \}\)/.test(askStoreSrc),
+  /activeChatId: null/.test(
+    (askStoreSrc.match(/select: \(useCaseId\) => \{[\s\S]*?\n  \},/) ?? [''])[0],
+  ),
   'an answer belongs to the version that produced it',
 )
 /* The agent's own messages are the streamed stages, paced by the server between the pieces.

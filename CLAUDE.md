@@ -1846,6 +1846,23 @@ the store immediately, so an OK would confirm what has already happened and a Ca
 undo this dialog does not perform. Both are `null` rather than omitted, so no default arrives from the
 theme.
 
+**A question is asked of one thing, and the two controls say so.** The route always settled it —
+a `use_case_id` wins and the `source_ids` beside it are ignored — but the page let both be set,
+so a mailbox could sit ticked on the `+` with a count beside it while contributing nothing to the
+answer on screen. Reported from use. **Picking a source clears the graph and selecting a graph
+clears the picks**, so the controls now show what the server does.
+
+**The new thread is on the switch alone.** Dropping a graph for a mailbox changes what answers,
+and an answer belongs to whatever produced it; adding a second mailbox to a first is a widened
+scope, and clearing the thread there would throw away a conversation for no reason. `dropsGraph`
+is the test, and it is `on && useCaseId !== null` rather than "a source was toggled".
+
+**And `load` must not land on a graph over a pick.** It selects the newest published graph on
+arrival, which for a reader asking a mailbox who reloads would silently change what their next
+question is asked of — so it lands on a graph only when nothing is picked. With neither picked
+the select shows a placeholder and the box states `pickPromptWithGraph`, which names both routes
+because with a graph published there are two.
+
 **And the opener chips come from whatever will answer.** A graph offers its brief's hero
 questions, exactly as before. A connected source has no brief, so it offers the recorded answers
 really drawn from it — and the server takes those from the **same pool** `askSourceAnswer`

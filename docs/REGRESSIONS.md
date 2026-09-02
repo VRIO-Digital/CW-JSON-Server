@@ -5321,3 +5321,38 @@ with none abstaining.
   `askAvailability` one function up. Deleting the rule from `askSuggestions` left the claim green.
   Fixed by slicing the function body first, the recorded rule of *asserting a fact at its site,
   not its token in a file*. Six mutations; the other five were caught first time.
+
+## A control that changes nothing (2026-09-02)
+
+**Symptom.** Ask showed a published graph selected in its picker *and* a `+ 1` badge for a
+picked mailbox, with the graph’s hero questions as chips. Nothing errored. The mailbox
+contributed nothing: `POST /ask` dispatches to the graph whenever a `use_case_id` is named, and
+ignores `source_ids` entirely.
+
+**Cause.** The server had a rule — one question is asked of one thing — and the client had no
+idea. `select` and `toggleSource` were independent, so both could be set, and the UI drew a
+count for a pick that had already been discarded on the other side of the request.
+
+**Fix.** The two selections are exclusive on the client, which is the server’s rule made
+visible: picking a source clears the graph, selecting a graph clears the picks.
+
+Two things that had to be got right rather than assumed:
+
+- **The new thread is on the *switch*, not on every toggle.** Dropping a graph for a mailbox
+  changes what answers; adding a second mailbox to a first does not. `dropsGraph` is
+  `on && useCaseId !== null`, so a widened scope keeps its conversation.
+- **`load` must not land on a graph over a pick.** It selects the newest published graph on
+  arrival, which would have quietly re-selected a graph under a reader who reloaded while asking
+  a mailbox — changing what their next question was asked of, with the `+` still showing a count.
+  The same class of bug one layer down.
+
+**A claim went red over a fact that had not changed.** `switching graphs starts a new thread`
+was keyed to the literal `set({ useCaseId, activeChatId: null })`, which gained a `sourceIds`
+field here. The guarantee was untouched. Re-keyed to `activeChatId: null` *within `select`’s own
+body* — the recorded rule of asserting the fact rather than the spelling, and of slicing to the
+site rather than searching the file.
+
+**The general shape.** *When one side of a request already decides between two inputs, the other
+side must not offer both.* A control whose value is discarded downstream is worse than a missing
+one: it reports a state the system does not have, and every surface built on it — a badge, a
+count, a chip list — inherits the lie.

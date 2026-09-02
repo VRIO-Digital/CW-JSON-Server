@@ -46,6 +46,15 @@ export const askSourceCopy = {
   noGraphOption: 'No graph published',
 
   /**
+   * What the graph select shows while a connected source is being asked instead.
+   *
+   * The two are exclusive, so a graph left named there would be naming something this question
+   * will not be asked of. The control stays enabled: choosing a graph is how a reader switches
+   * back, and doing so drops the source picks.
+   */
+  graphPlaceholder: 'Asking a source — pick a graph to switch',
+
+  /**
    * What stands where nothing has been picked and no graph is live.
    *
    * The page is usable in that state — the box and the picker are both there — so what it
@@ -54,6 +63,16 @@ export const askSourceCopy = {
    */
   pickPrompt:
     'Use the + to pick a connected source to read this question against.',
+
+  /**
+   * The same instruction where a graph is also on offer.
+   *
+   * **A question is asked of one thing**, so picking either clears the other, and with neither
+   * picked the reader has two ways forward rather than one. Naming only the `+` would be an
+   * instruction that works and hides the shorter route.
+   */
+  pickPromptWithGraph:
+    'Choose a graph above, or use the + to pick a connected source. A question is asked of one or the other, not both.',
 } as const
 
 /**
@@ -108,3 +127,12 @@ export function askSuggestions(
   const picked = sources.filter((s) => sourceIds.includes(s.sourceId))
   return [...new Set(picked.flatMap((s) => s.suggestedQuestions))]
 }
+
+/**
+ * Which instruction to print when nothing is selected.
+ *
+ * A pure function beside `askAvailability` and for the same reason: a ternary inside the page
+ * cannot be asserted without rendering the page’s own state.
+ */
+export const askPickPrompt = (graphsAvailable: boolean): string =>
+  graphsAvailable ? askSourceCopy.pickPromptWithGraph : askSourceCopy.pickPrompt

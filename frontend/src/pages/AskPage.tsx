@@ -22,7 +22,12 @@ import {
 } from '../store/askStore'
 import { useAuthStore } from '../store/authStore'
 import type { AskTurn } from '../data/askChats'
-import { askAvailability, askSourceCopy, askSuggestions } from '../data/askSources'
+import {
+  askAvailability,
+  askPickPrompt,
+  askSourceCopy,
+  askSuggestions,
+} from '../data/askSources'
 import './AskPage.css'
 
 const shortDate = (iso: string | null) =>
@@ -158,6 +163,8 @@ export default function AskPage() {
   } = askAvailability(graph ? `${graph.name} ${graph.version}` : null, askSources, sourceIds)
   /* The openers, from whatever will answer. A graph’s brief, or the picked sources’ own
      recorded questions — one rule, so the two cannot come to disagree about what is offered. */
+  /* What to say when nothing is selected — it names both routes where both exist. */
+  const pickPrompt = askPickPrompt(graphs.length > 0)
   const suggestions = askSuggestions(
     graph ? graph.suggestedQuestions : null,
     askSources,
@@ -182,6 +189,10 @@ export default function AskPage() {
       onChange={select}
       style={{ minWidth: 220 }}
       disabled={graphs.length === 0}
+      /* Empty while a source is being asked instead — the two are exclusive, so a graph left
+         showing here would name something this question will not be asked of. It stays
+         enabled: choosing one is how a reader switches back, and doing so drops the picks. */
+      placeholder={askSourceCopy.graphPlaceholder}
       aria-label="Graph to ask"
       options={
         (graphs.length > 0
@@ -328,7 +339,7 @@ export default function AskPage() {
                           <p className="ask-grounding-note">
                             {pickedSources.length > 0
                               ? askSourceCopy.observationNote
-                              : askSourceCopy.pickPrompt}
+                              : pickPrompt}
                           </p>
                         </>
                       )}
@@ -409,7 +420,7 @@ export default function AskPage() {
                       onChange={(e) => setQuestion(e.target.value)}
                       onPressEnter={() => void onAsk(question)}
                       placeholder="Ask anything about your operations..."
-                      aria-label={canAsk ? `Ask ${askTarget}` : askSourceCopy.pickPrompt}
+                      aria-label={canAsk ? `Ask ${askTarget}` : pickPrompt}
                       disabled={asking}
                     />
                     <Button
