@@ -97,6 +97,7 @@ export default function DocumentViewer({
   onBack,
   backLabel = 'Back to Library',
   seamless = false,
+  enhance,
 }: {
   document: FramedDocument
   /** Absent where the frame *is* the page — the What-if lens has nothing to go back to. */
@@ -104,6 +105,17 @@ export default function DocumentViewer({
   backLabel?: string
   /** Render the document as the page rather than as a framed file. See the note above. */
   seamless?: boolean
+  /**
+   * Run against the loaded document, after the stylesheets are in.
+   *
+   * **The one thing this viewer lets a caller do inside the frame**, and it is a seam rather than a
+   * capability: what goes in belongs to the page that framed the document, not to a viewer shared
+   * by reports, the What-if lens and this. Audit & Governance uses it to put its Session history tab
+   * in the document's own strip — see `injectSessionTab` for why that could not be a tab out here.
+   *
+   * Optional and absent everywhere else, so nothing reaches into a report or a lens by default.
+   */
+  enhance?: (inner: Document) => void
 }) {
   const url = reportDocumentUrl(doc.file)
 
@@ -355,6 +367,10 @@ export default function DocumentViewer({
                  button or by the reader's own Ctrl-P inside the frame — should print whole. */
               style.textContent = FRAMED_CSS + PRINT_CSS + (seamless ? SEAMLESS_CSS : '')
               inner.head?.appendChild(style)
+              /* After the stylesheets, so anything a caller adds is laid out under the same rules
+                 the rest of the document is — and never before, or an injected node would paint
+                 once unstyled. Guarded because most frames pass none. */
+              enhance?.(inner)
             }}
           />
         ) : (

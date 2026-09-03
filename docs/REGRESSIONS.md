@@ -5523,3 +5523,57 @@ the one a reader would never notice.
 a decision is reversed, check each half against the reason it was made under rather than against the
 fact that it was made: here two halves came back and one stayed gone, and treating "removed on
 request" as a single indivisible decision would have got both of those wrong.
+
+## "One level out is not beside" (2026-09-03)
+
+**The request.** A fourth tab beside *Reports · What-ifs · Audit log* on Audit & Governance, listing
+the reader's session history.
+
+**The first answer, and why it was refused.** For a dataset that *ships* its governance screen —
+CAPEX does — those three tabs belong to a generated export whose own header reads *"never hand-edit
+this file — change the generator and rebuild"*, rendered in an `iframe`. So the tab was built as an
+**app-level strip wrapping the whole screen**, and that was reported back immediately: *"I want the
+session history here, not in the top level."* Correct. The constraint was real and the conclusion did
+not follow — a strip one level out is not the strip that was pointed at, and dressing a different
+place up with a true explanation is still not doing what was asked.
+
+**The second answer.** Each branch puts the tab where that branch keeps its tabs: a fourth `Tabs`
+item on the computed screen, and — on the framed one — an injected tab, through a single `enhance`
+seam on `DocumentViewer`.
+
+**Injection was available the whole time, and the first attempt talked itself out of it.** This app
+already injects four stylesheets into every framed document and reads `#v-reports` out of one to know
+when a report has opened. The stated rule was never *"do not touch the frame"*; it is *"never
+hand-edit a generated export — apply what you need at the frame, and keep the file byte-identical."*
+Injecting two nodes is a step past a stylesheet and worth naming as one, but it is the same bargain,
+and "the app deliberately cannot reach into the frame" was a paraphrase of the rule that had quietly
+become stronger than the rule.
+
+**What the reach costs, recorded rather than glossed.** It couples to four things in the document —
+a `.tabs` strip, a `.pane` per tab, the last pane's position, and a global `setTab(i)` — plus seven
+class names the pane borrows so it looks native. Every one is asserted against the shipped file,
+because there is no app-level tab left to fall back to: a re-export that renamed any of them would
+drop the tab in silence rather than loudly. Two smaller traps were designed out: the document's
+`setTab` loops `k < 3`, so the injector reads the strip rather than assuming three tabs; and the
+wrapper clears our nodes **by id** rather than closing over them, so a re-injection with fresh rows
+cannot leave a stale wrapper clearing a button that has been replaced.
+
+**And the markup is escaped, which the React panel got for free and this does not.** A session's name
+is the reader's own typed question, arriving from hand-editable `sessionStorage` into an HTML string.
+`sessionTabHtml` escapes every interpolation and `check-docs` reads that at each one.
+
+**One break test was wrong before the claim was, again.** The escaping test asserted `onerror=` was
+absent from the output — but the *escaped* text legitimately contains those characters as visible
+prose, so a correct implementation failed a bad assertion. The property is that nothing lands inside
+a tag (`/<[^>]*onerror/`), not that a string never appears. **Assert the fact, not the spelling** —
+recorded here for the fourth time.
+
+**A fail-open crept in and was caught by writing the break test.** The ordering half read
+`indexOf("key: 'log'") < indexOf("key: 'sessions'")`, and with the log renamed that is `-1 < n` —
+true. The mutation meant to break it would have passed. Both indices are now required present first.
+
+**The general shape.** *A constraint explains where a thing cannot go; it does not choose where it
+does.* When the honest answer to "put it here" is "that surface is not mine", the next question is
+what access to that surface already exists — not whether to build the nearest thing that is easy.
+Fourteen mutations are caught now, including a re-export renaming the strip and a name reaching the
+markup unescaped.

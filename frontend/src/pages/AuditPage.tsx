@@ -6,6 +6,10 @@ import GovernedArtifactCard from '../components/governance/GovernedArtifactCard'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import DocumentViewer from '../components/report/DocumentViewer'
 import PageHeader from '../components/common/PageHeader'
+import SessionHistoryPanel from '../components/governance/SessionHistoryPanel'
+import { loadChats } from '../data/askChats'
+import { injectSessionTab } from '../components/governance/sessionTabFrame'
+import { sessionHistoryCopy, sessionHistoryRows } from '../data/sessionHistory'
 import { useAuthStore } from '../store/authStore'
 import { useGovernanceStore } from '../store/governanceStore'
 import { SP } from '../theme'
@@ -34,6 +38,10 @@ export default function AuditPage() {
   const loading = useGovernanceStore((s) => s.loading)
   const error = useGovernanceStore((s) => s.error)
   const load = useGovernanceStore((s) => s.load)
+  /* Client-held, and the key the chats are filed under: two people sharing a browser must not
+     read each other's questions, so a signed-out reader has nothing to key on rather than a
+     shared bucket. */
+  const identity = useAuthStore((s) => s.identity?.email ?? null)
 
   useEffect(() => {
     void load()
@@ -42,6 +50,19 @@ export default function AuditPage() {
   if (loading && !view) return <Spin />
   if (error && !view) return <ApiErrorAlert error={error} onRetry={() => void load()} />
   if (!view) return null
+
+  /*
+   * **The Ask threads this browser tab is holding**, read once per render — `sessionStorage` has no
+   * change event worth subscribing to here, and this is a reading surface. What it must not do is
+   * disagree with Ask's own rail, which loads from the same key through the same validator.
+   *
+   * **It goes in the governance screen's own tab strip, not above it.** An app-level strip wrapping
+   * the whole screen was built first and rejected: the tab was asked for *beside the audit log*, and
+   * one level out is not beside. So each branch places it where that branch keeps its tabs — a
+   * fourth `Tabs` item on the computed page, and an injected tab on the framed one.
+   */
+  const rows = sessionHistoryRows(loadChats(identity))
+  const sessions = <SessionHistoryPanel rows={rows} signedIn={identity !== null} />
 
   return (
     <>
@@ -58,6 +79,10 @@ export default function AuditPage() {
        * had to be corrected for. Everything below is a claim about published artifacts and a
        * 36-generator register; printing any of it above "nothing is published" describes data the
        * page has just said is not there.
+       *
+       * Session history goes behind it too, and that is the honest reading of "beside the audit
+       * log": the tab lives in a strip that only exists once there is a governance screen to hold
+       * it. A page whose only content was one reader's own chat titles would be a different page.
        */}
       {view.publishedCount === 0 ? (
         <NoPublishedGraph
@@ -80,10 +105,19 @@ export default function AuditPage() {
          *
          * `seamless`, because the frame is the page: no bar, no Back to a list this page does not
          * have, and no border making the screen read as a panel dropped onto the app.
+         *
+         * **And `enhance` is how Session history reaches the document's own tab strip.** The tabs on
+         * a shipped screen belong to the document, so the tab is injected at load rather than drawn
+         * out here — see `injectSessionTab` for what that couples to and how it fails. The rows are
+         * this app's; where they are put is the document's business.
          */
-        <DocumentViewer document={view.document} seamless />
+        <DocumentViewer
+          document={view.document}
+          seamless
+          enhance={(inner) => injectSessionTab(inner, rows)}
+        />
       ) : (
-        <Governance view={view} onMessage={message.error} />
+        <Governance view={view} onMessage={message.error} sessions={sessions} sessionCount={rows.length} />
       )}
     </>
   )
@@ -92,9 +126,20 @@ export default function AuditPage() {
 function Governance({
   view,
   onMessage,
+  sessions,
+  sessionCount,
 }: {
   view: GovernanceView
   onMessage: (text: string) => void
+  /**
+   * The Session history panel, built by the page and placed here as a fourth tab.
+   *
+   * Passed in rather than built here, so the computed screen and the framed one draw the same rows
+   * from the same `sessionHistoryRows` — two components each loading `sessionStorage` for
+   * themselves is how two surfaces come to disagree about what a session is.
+   */
+  sessions: React.ReactNode
+  sessionCount: number
 }) {
   const setScope = useGovernanceStore((s) => s.setScope)
   const addReader = useGovernanceStore((s) => s.addReader)
@@ -255,6 +300,17 @@ function Governance({
                 <p className="gv-help gv-log-note">{view.copy.logNote}</p>
               </>
             ),
+          },
+          {
+            /* Beside the audit log, which is where it was asked for. The framed screen reaches the
+               same position by injection, because its strip is the document's. */
+            key: 'sessions',
+            label: (
+              <>
+                {sessionHistoryCopy.tabLabel} <Tag>{sessionCount}</Tag>
+              </>
+            ),
+            children: sessions,
           },
         ]}
       />

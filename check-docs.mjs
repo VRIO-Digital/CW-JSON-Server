@@ -8590,7 +8590,7 @@ expect(
        alike. Asserted as the two indices, not as both strings being present. */
     auditPage.indexOf('view.publishedCount === 0') <
       auditPage.indexOf('view.document ? (') &&
-    /<DocumentViewer document=\{view\.document\} seamless \/>/.test(auditPage) &&
+    /<DocumentViewer\r?\n\s*document=\{view\.document\}\r?\n\s*seamless\r?\n\s*enhance=/.test(auditPage) &&
     /* And the ingest reads both files: the screen, and the extract it is checked against. Two files,
        two questions — the same arrangement a report's `.html` and the authoring JSON have. */
     /governance_audit_data\.json/.test(govIngest) &&
@@ -8606,6 +8606,98 @@ expect(
   capexGovDoc
     ? `db.CAPEX.json points at ${capexGovDoc.file}, but a layer of the path to the screen is missing`
     : 'db.CAPEX.json carries no governance document — run npm run ingest:capex',
+)
+
+/*
+ * ---------------- Session history sits in the governance screen's own tab strip ----------------
+ *
+ * **Asked for beside the audit log, twice.** It was built first as an app-level strip wrapping the
+ * whole screen, on the reasoning that a dataset which *ships* its governance screen keeps those tabs
+ * inside a generated export. That is still true, and it is not an answer: one level out is not
+ * beside. So each branch puts the tab where that branch keeps its tabs.
+ *
+ *  - **The computed screen** gets a fourth `Tabs` item, next to the log. Nothing clever.
+ *  - **The framed screen** gets it injected at load, through `DocumentViewer`'s one `enhance` seam —
+ *    the same access this app already takes on these documents, which it injects four stylesheets
+ *    into and reads `#v-reports` out of.
+ *
+ * **So the coupling is asserted in both directions**, which is the whole point of this claim. The
+ * injector names four things in the document — a `.tabs` strip, a `.pane` per tab, the last pane's
+ * position, and a global `setTab` — and the shipped file has to carry every one. There is no
+ * app-level tab left to fall back to, so a re-export that renames any of them must fail *here*
+ * rather than silently dropping the tab. It is the same guard `.apiFab` and `#v-reports` already
+ * have, applied to a stronger reach: two nodes and one wrapped function rather than a stylesheet.
+ *
+ * **And the markup is escaped, because a session's name is the reader's own typed question** arriving
+ * from hand-editable `sessionStorage` into an HTML string. The claim reads `escapeHtml` at every
+ * interpolation rather than trusting the name.
+ */
+const sessionCopySrc = read('frontend/src/data/sessionHistory.ts')
+const sessionPanelSrc = codeOnly(read('frontend/src/components/governance/SessionHistoryPanel.tsx'))
+const sessionFrameSrc = codeOnly(read('frontend/src/components/governance/sessionTabFrame.ts'))
+const viewerSrcForSessions = codeOnly(read('frontend/src/components/report/DocumentViewer.tsx'))
+const govDocSrc = capexGovDoc
+  ? read(`frontend/src/Capex/audit-governance/${capexGovDoc.file}`)
+  : ''
+const sessionRowsBody =
+  (sessionCopySrc.match(/export function sessionHistoryRows[\s\S]*?\n\}/) ?? [''])[0]
+const sessionHtmlBody =
+  (sessionCopySrc.match(/export function sessionTabHtml[\s\S]*?\n\}/) ?? [''])[0]
+/* The sentence itself, not the key: a caveat renamed to `notARecord` and emptied would satisfy a
+   check on the identifier while saying nothing — the self-documenting-file trap this file records
+   for absence claims, met by a presence one. */
+const notARecord = (sessionCopySrc.match(/notARecord:\s*\r?\n?\s*'([^']*)'/) ?? ['', ''])[1]
+/* Every class the injected pane borrows, and every hook the injector reaches for. Both lists are
+   checked against the shipped document, so neither can drift into naming something it has not got. */
+const SESSION_BORROWS = ['audCard', 'evt', 'eIc', 'eTx', 'eSub', 'eT', 'audNote']
+const SESSION_HOOKS = ['.tabs', '.pane', '.tab', 'setTab']
+expect(
+  'Session history is a tab in the governance screen’s own strip, computed or framed, and says it is not the trail',
+  /* The computed screen: a fourth tab beside the log. */
+  /key: 'sessions'/.test(auditPage) &&
+    /sessionHistoryCopy\.tabLabel/.test(auditPage) &&
+    /children: sessions,/.test(auditPage) &&
+    /* Both present before the order is compared: with the log gone, `-1 < n` is true and the
+       ordering half would pass over a tab that no longer has anything to sit beside. */
+    auditPage.includes("key: 'log'") &&
+    auditPage.indexOf("key: 'log'") < auditPage.indexOf("key: 'sessions'") &&
+    /* The framed screen: injected through the viewer's one seam, which nothing else uses. */
+    /enhance=\{\(inner\) => injectSessionTab\(inner, rows\)\}/.test(auditPage) &&
+    /enhance\?\.\(inner\)/.test(viewerSrcForSessions) &&
+    /* … and the app-level strip that was tried first is gone, or there would be two. */
+    !/key: 'governance'/.test(auditPage) &&
+    /* The injector names the document's hooks, and the document carries every one. */
+    SESSION_HOOKS.every((h) => sessionFrameSrc.includes(h)) &&
+    govDocSrc.length > 0 &&
+    /<div class="tabs">/.test(govDocSrc) &&
+    /class="pane on" id="pane0"/.test(govDocSrc) &&
+    /function setTab\(/.test(govDocSrc) &&
+    /* The pane borrows the document's own classes, and the document has them all. */
+    SESSION_BORROWS.every((c) => sessionHtmlBody.includes(`class="${c}`)) &&
+    SESSION_BORROWS.every((c) => govDocSrc.includes(`.${c}{`) || govDocSrc.includes(`.${c} `)) &&
+    /* Their tabs clear ours and ours clears theirs — by id lookup, so a re-injection with fresh
+       rows cannot leave an older wrapper clearing a button that has been replaced. */
+    /win\.setTab = wrapped/.test(sessionFrameSrc) &&
+    /doc\.getElementById\(SESSION_TAB_ID\)\?\.classList\.remove\('on'\)/.test(sessionFrameSrc) &&
+    /* Nothing the reader typed reaches the markup unescaped. */
+    !/\$\{r\.name\}/.test(sessionHtmlBody) &&
+    /escapeHtml\(r\.name\)/.test(sessionHtmlBody) &&
+    /escapeHtml\(r\.subject\)/.test(sessionHtmlBody) &&
+    /* The shaping is one pure function and neither surface reads storage for itself. */
+    sessionRowsBody.length > 0 &&
+    /sort\(\(a, b\) => b\.updatedAt\.localeCompare\(a\.updatedAt\)\)/.test(sessionRowsBody) &&
+    /t\.answer !== null/.test(sessionRowsBody) &&
+    !/sessionStorage/.test(sessionPanelSrc) &&
+    !/loadChats/.test(sessionPanelSrc) &&
+    /* And the caveat carries all three facts, read off the rendered sentence. */
+    /title=\{sessionHistoryCopy\.notARecord\}/.test(sessionPanelSrc) &&
+    /escapeHtml\(sessionHistoryCopy\.notARecord\)/.test(sessionHtmlBody) &&
+    /this browser tab/.test(notARecord) &&
+    /signed-in address/.test(notARecord) &&
+    /never seen by a server/.test(notARecord),
+  govDocSrc.length === 0
+    ? 'the CAPEX governance document is not in this checkout — this claim cannot run'
+    : `a fourth tab on the computed screen; injected into the framed one on ${SESSION_HOOKS.join(', ')}`,
 )
 
 /*

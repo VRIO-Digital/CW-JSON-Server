@@ -3652,6 +3652,69 @@ would lay CAPEX's screen, whose every count is resolved against its 60 projects,
 holds EPA's 36 generators. A new nested key with no rule stops the boot, which is exactly how this one was
 caught.
 
+**And Session history is a fourth tab, in whichever strip this dataset's governance screen keeps.**
+Asked for *beside the audit log*, and built the wrong way first: as an app-level strip wrapping the
+whole screen, on the reasoning that a shipped screen keeps its tabs inside a generated export. That
+reasoning is correct and it is not an answer — **one level out is not beside** — so each branch now
+places the tab where that branch keeps its tabs.
+
+- **The computed screen** gets a fourth `Tabs` item next to the log. Nothing clever.
+- **The framed screen** gets it injected at load, through `DocumentViewer`'s single `enhance` seam.
+
+**`enhance` is the one thing the viewer lets a caller do inside a frame**, and it is a seam rather
+than a capability: what goes in belongs to the page that framed the document, not to a viewer shared
+by reports, the What-if lens and this. It runs *after* the stylesheets, so an injected node is laid
+out under the same rules as the rest of the document rather than painting once unstyled, and it is
+optional and passed by this page alone.
+
+**Injection is a step past the four stylesheets, and worth naming as such.** Those add no node and
+touch no script; `injectSessionTab` adds two nodes and wraps one function. What it does not do is
+remove anything, rewrite anything or change what the document says — open the file directly and it is
+exactly the screen its generator produced. That is the same bargain the `.apiFab` rule struck: never
+hand-edit a generated export, apply what you need at the frame, and keep the file byte-identical.
+
+**It couples to four things in the document** — a `.tabs` strip, a `.pane` per tab, the last pane's
+position and a global `setTab(i)` — and `check-docs` asserts the shipped file carries every one.
+That guard matters more here than for the stylesheets: there is no app-level tab left to fall back
+to, so a re-export that renamed any of them would drop the tab in silence. The claim also asserts
+every class the pane *borrows* (`audCard`, `evt`, `eIc`, `eTx`, `eSub`, `eT`, `audNote`) is still in
+the document, since a renamed class leaves an unstyled list rather than a missing one.
+
+**The document's own tab count is never assumed.** Its `setTab` loops `k < 3` because the export has
+three tabs; the injector reads the strip instead, so a fourth tab in a later export is one it clears
+rather than one it leaves lit beside its own. Their tabs clear ours by a wrapper on `setTab`, and it
+looks our nodes up **by id rather than closing over them**, so a re-injection with fresh rows cannot
+leave an older wrapper clearing a button that has been replaced.
+
+**Both surfaces draw the same rows from `sessionHistoryRows`.** The panel is built by the page and
+passed into the computed screen; the framed one gets `sessionTabHtml` of the same array. Two
+components each loading `sessionStorage` for themselves is how two surfaces come to disagree about
+what a session is.
+
+**`sessionTabHtml` escapes everything, and that is not decoration.** A session's name is the reader's
+own typed question arriving from hand-editable `sessionStorage` into an HTML string; every
+interpolation goes through `escapeHtml` and `check-docs` reads that at each one rather than trusting
+the name.
+
+**What it lists is `sessionStorage`, and the caveat is above the list rather than under it.** These
+are Ask's chats — `loadChats(email)`, the same key and validator the Ask rail reads — held under the
+signed-in address, capped at `CHATS_KEPT`, seen by no server and gone when the tab closes. On a page
+whose argument is *"nothing here is editable — the trail is the record"*, a list of named sessions
+reads as a server-side record of who did what, so the caveat carries **three** facts — this tab's,
+this address's, no server's — because each one alone still leaves a plausible wrong conclusion.
+`check-docs` reads the sentence rather than the key, since a caveat renamed and emptied would satisfy
+a check on the identifier while saying nothing.
+
+**The tab is behind the publish gate with everything else**, which is the honest reading of *beside
+the audit log*: it lives in a strip that exists only once there is a governance screen to hold it. A
+page whose sole content was one reader's own chat titles would be a different page.
+
+`sessionHistoryRows` orders by `updatedAt` — the thread returned to an hour ago is the one a reader
+is looking for, and it is the order Ask's own rail uses, so the two cannot disagree about which
+session is current — drops a nameless chat rather than drawing a blank row, and counts answered turns
+apart from asked ones, because a turn left streaming when the tab closed was still a question asked.
+
+
 ### Settings (`/settings`)
 
 Four tabs — **Add User**, **Dataset**, **Persona Configuration** and **Report View** — over `SettingsPage`

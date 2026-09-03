@@ -1,0 +1,41 @@
+/*
+ * The Session history tab on Audit & Governance.
+ *
+ * Spacing is the `--sp-*` scale, like everything authored in this repo — the two vendored
+ * stylesheets are the only exemption, and this is not one of them.
+ */
+
+.sh-title {
+  margin-bottom: var(--sp-3) !important;
+}
+
+.sh-caveat {
+  margin-bottom: var(--sp-5);
+}
+
+.sh-name {
+  font-weight: 500;
+}
+
+.sh-subject,
+.sh-at {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+/* Tabular figures, so a column of counts lines up on the digit rather than on the glyph. */
+.sh-turns {
+  font-variant-numeric: tabular-nums;
+}
+
+.sh-empty {
+  padding: var(--sp-6) 0;
+  text-align: center;
+}
+
+.sh-note {
+  margin-top: var(--sp-2);
+  margin-bottom: 0 !important;
+  font-size: 12px;
+  line-height: 1.5;
+}
