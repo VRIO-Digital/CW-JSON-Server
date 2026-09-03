@@ -1838,14 +1838,45 @@ which sources are askable — and the list is exported apart from its dialog, wi
 sentence naming Sources rather than an absent control, and it says why BigQuery and Drive are not in
 it: a list that is merely shorter is not a message.
 
-**The `+` opens a modal, and the panel is the rows alone.** It was a `Dropdown` hanging off the
-button, with a heading above the rows and the observation rule spelled out below them; all three went
-on request. The rule is still on record here and still printed on the page above a graph-less thread,
-which is where it bears on something a reader is actually reading. The dialog has **no title** — a
-modal title is that heading one layer out — and **no footer**: ticking a row *is* the act and reaches
-the store immediately, so an OK would confirm what has already happened and a Cancel would promise an
-undo this dialog does not perform. Both are `null` rather than omitted, so no default arrives from the
-theme.
+**The `+` opens the connector directory's own dialog.** It was a `Dropdown` hanging off the button,
+then a 420px modal holding a column of rows; it is a **wide titled dialog with a search and a grid of
+cards** now, asked for in exactly those terms — the shape step 1 of the connect wizard already has.
+Its width is the **same number** as `ConnectSourceModal`'s and `check-docs` reads both rather than
+either: these are the two dialogs in the app that draw a grid of connector cards, and one of them
+being narrower would make the same card two sizes. There is still **no footer** — ticking a card *is*
+the act and reaches the store immediately, so an OK would confirm what has already happened and a
+Cancel would promise an undo this dialog does not perform.
+
+**The title and the heading are back, and that is a deliberate reversal.** Both were removed on
+request when the picker was reduced to a column of checkboxes, and both return because the shape
+changed underneath them: a heading over two bare checkboxes was a label nobody needed, while a
+heading carrying the **count** above a *searchable* grid is the only thing telling a narrowed list
+from the whole one — `ConnectorDirectory`'s own reason for putting one on each of its sections. The
+count is `shown.length`, never the served total, or it would describe a list the reader is not
+looking at.
+
+**What did not come back is the doctrine.** `observationNote` — what a mailbox answer is and is not —
+still has exactly one reader, the page, where it stands above a graph-less thread and bears on
+something a reader is actually looking at. Three lines of it over a picker is a paragraph in front of
+a click whatever shape the picker is, and `check-docs` asserts the picker does not print it.
+
+**The search is a pure function in `src/data/`, and it decides nothing about what is askable.**
+`filterAskSources` matches a source's name, the account it connected as, its scope and the connector
+key its mark stands for — the words a card prints, so a reader searching for what they can see finds
+it. It lives beside the copy for the reason `filterConnectors` does: the grid is inside a `Modal`,
+which `renderToString` will not traverse, so a predicate written in the component could not be
+asserted at all. An empty or whitespace query narrows nothing rather than matching nothing — a search
+box that empties the grid the moment it is focused reads as broken.
+
+**And there is no filter control beside it, unlike the directory.** The only axis available is the
+connector kind and every askable source is a runtime source, so today the control would be a Select
+with one option — the fault this repo refuses everywhere, from the mailbox that has no picker to the
+drive kind offered with the count that says so. A second runtime connector makes it a row of copy and
+a second argument to `filterAskSources`.
+
+**The empty branch draws no search**, because it has no cards to be: a `+` opening onto a search box
+above the sentence *"there is nothing to search"* is the button-over-blank-space this repo has fixed
+once already. That branch still names Sources as the fix.
 
 **A question is asked of one thing, and the two controls say so.** The route always settled it —
 a `use_case_id` wins and the `source_ids` beside it are ignored — but the page let both be set,

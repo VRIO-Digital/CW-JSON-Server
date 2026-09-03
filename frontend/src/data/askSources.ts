@@ -10,6 +10,35 @@ export const askSourceCopy = {
   buttonHint: 'Add a connected source to read this question against',
 
   /**
+   * The dialog's own title, and the heading over the cards.
+   *
+   * **Both were removed once, and both are back on request** — the picker was reduced to its
+   * rows, then asked for again in the connector directory's shape. What is *not* back is the
+   * doctrine paragraph: `observationNote` still stands on the page, above a thread with no
+   * graph behind it, where it bears on something the reader is looking at. A heading naming a
+   * grid is a label; three lines explaining what an observation is were a paragraph in front of
+   * a click, and only the first belongs over a control.
+   *
+   * The heading earns its place here in a way it did not over two bare checkboxes: it carries
+   * the count, and with a search above it the count is the only thing telling a narrowed grid
+   * from the whole list — the reason `ConnectorDirectory` puts one on each of its sections.
+   */
+  modalTitle: 'Sources',
+  heading: 'Connected sources',
+
+  searchPlaceholder: 'Search connected sources',
+  /**
+   * Names the query rather than saying "no sources".
+   *
+   * Over a grid the reader has just narrowed, the bare sentence is indistinguishable from a
+   * picker that failed to load — the same reason the connector directory's own no-match state
+   * quotes what was typed.
+   */
+  noMatch: (query: string) => `No connected source matches “${query.trim()}”.`,
+  noMatchHint:
+    'Search matches a source’s name, the account it connected as, and what it has in scope.',
+
+  /**
    * Why a mailbox answer is not a graph answer.
    *
    * **Printed on the page, not in the picker.** The picker showed it under its rows and no
@@ -74,6 +103,42 @@ export const askSourceCopy = {
   pickPromptWithGraph:
     'Choose a graph above, or use the + to pick a connected source. A question is asked of one or the other, not both.',
 } as const
+
+/**
+ * The fields a row is searched on. Structural rather than `AskSource` itself, like every other
+ * function in this file: `src/data/` states what it needs and the payload satisfies it.
+ */
+type SearchableSource = {
+  name: string
+  account: string | null
+  scope: string
+  connector: string
+}
+
+/**
+ * Narrows the picker's grid.
+ *
+ * **A pure function here rather than a predicate inside the component**, for the reason
+ * `filterConnectors` is one: the grid lives inside a `Modal`, which `renderToString` will not
+ * traverse, so a filter written in the component could not be asserted at all — a check about it
+ * would render the shut dialog and pass over nothing.
+ *
+ * **It searches what the card prints, and the connector's own key.** Name, account and scope are
+ * the three things on a card, so a reader searching for what they can see finds it; `connector`
+ * is included because "gmail" is the word somebody types for a mailbox and the mark is the only
+ * place the card states it. It is deliberately *not* a filter on connector kind — that would be
+ * the picker deciding which sources are askable, which is the server's answer and nobody else's.
+ *
+ * Case-insensitive, and an empty or whitespace query narrows nothing rather than matching
+ * nothing: a search box that empties the grid the moment it is focused reads as broken.
+ */
+export function filterAskSources<T extends SearchableSource>(sources: T[], query: string): T[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return sources
+  return sources.filter((s) =>
+    [s.name, s.account ?? '', s.scope, s.connector].some((f) => f.toLowerCase().includes(q)),
+  )
+}
 
 /**
  * What this page can ask, and therefore what it may render.

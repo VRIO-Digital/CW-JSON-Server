@@ -1,5 +1,5 @@
 /*
- * The `+` picker beside the question box.
+ * The `+` picker beside the question box, and the connector-directory grid inside its dialog.
  *
  * Spacing is the `--sp-*` scale, like everything authored in this repo — the two vendored
  * stylesheets are the only exemption, and this is not one of them.
@@ -13,43 +13,103 @@
 }
 
 /*
- * The list inside the modal.
+ * The body inside the modal.
  *
  * **It draws no chrome of its own** — no ground, no border, no shadow, no width. It had all
  * four while it was a `Dropdown` panel, which had to be its own surface because it hung in
  * mid-air off the button; inside a `Modal` those would be a card drawn inside a card, and the
- * width would fight the one the dialog is given. The modal is the surface now, and this is
- * only what goes in it.
+ * width would fight the one the dialog is given. The modal is the surface; this is what goes
+ * in it.
  */
 .asp-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
 }
 
-.asp-row {
+/* The search takes the whole row. There is no filter beside it — see the component for why —
+   so this is a single control rather than the directory's two-item flex row. */
+.asp-controls {
+  margin-bottom: var(--sp-5);
+}
+
+.asp-grid-heading {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-2);
-  border-radius: var(--sp-1);
-  cursor: pointer;
+  margin-bottom: var(--sp-3) !important;
 }
 
-.asp-row:hover {
-  background: rgba(5, 5, 5, 0.03);
+/*
+ * The count beside the heading.
+ *
+ * Neutral, never a status tint: how many sources are listed is a quantity, and `STATUS.good` /
+ * `warn` / `crit` are reserved for state — the rule that keeps a class chip from being mistaken
+ * for a status one. Matches `.cd-count` in the connector directory, because the two grids are
+ * the same grid and a reader should not have to learn two counts.
+ */
+.asp-count {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 3px var(--sp-2);
+  border-radius: 999px;
+  color: rgba(0, 0, 0, 0.55);
+  background: rgba(5, 5, 5, 0.05);
 }
 
-.asp-text {
+/*
+ * A source card.
+ *
+ * `height: 100%` so a row of cards is one height whatever the length of an address — the grid
+ * rule this repo already applies to the report cards. Nothing here expands, so the equal-height
+ * trick is safe: the hazard recorded in REGRESSIONS is a card with a panel inside it, and a
+ * checkbox is not one.
+ */
+.asp-card {
   display: flex;
   flex-direction: column;
-  /* Without this the flex item refuses to shrink and a long address widens the row
-     past the dialog — the `min-width: 0` rule the canvas panel needed too. */
-  min-width: 0;
+  gap: var(--sp-1);
+  height: 100%;
+  padding: var(--sp-3);
+  border: 1px solid #e8eaee;
+  border-radius: var(--sp-2);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.asp-card:hover {
+  border-color: #d3d6db;
+  background: rgba(5, 5, 5, 0.015);
+}
+
+/*
+ * A picked card carries the brand edge *and* its checkbox, so selection is never colour alone —
+ * the rule every status mark in this app follows. The wash is the brand at 6%, well under the
+ * tint that would make the text on it fail contrast.
+ */
+.asp-card.is-picked {
+  /* The literal, as every other stylesheet here writes it — there is no brand custom property
+     in index.css, and inventing one with a fallback would put the brand in two places. The
+     theme in src/theme.ts is still where it is changed. */
+  border-color: #f4562b;
+  background: rgba(244, 86, 43, 0.06);
+}
+
+.asp-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
 }
 
 .asp-name {
   font-weight: 500;
+  /* A long mailbox name wraps rather than being clipped: the name is what a reader picks by,
+     and half of it is not a name. The address below it is the line that may truncate. */
+  overflow-wrap: anywhere;
 }
 
 .asp-meta {

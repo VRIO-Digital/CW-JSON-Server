@@ -5485,3 +5485,41 @@ change was correct in isolation and made the screen less trustworthy than leavin
 what was wrong was never one figure — it was that one population was being narrowed and another was
 not. When the complaint is that things disagree, the unit of work is every surface that quotes the
 figure, and the way to guarantee that is one source rather than one careful edit per reader.
+
+## A removal that was right until the shape changed (2026-09-03)
+
+**What happened.** Ask's `+` picker was reduced, on request, to its rows: the heading over them
+went, the dialog's title went with it (a modal title being that heading one layer out), and the
+observation rule below them went too. `check-docs` recorded all three absences as one claim, and
+CLAUDE.md recorded why — *three lines of doctrine over two checkboxes is a paragraph in front of a
+click*.
+
+**Then the picker was asked for in the connector directory's shape** — a wide dialog with a search
+field and a grid of cards instead of a 420px column of checkboxes. Two of the three removals had to
+be reversed to build it, and the third did not.
+
+**Which is the point worth recording.** The heading was not removed because headings are bad; it was
+removed because *over two bare checkboxes it was a label nobody needed*. Put a search box above the
+same rows and the heading's count becomes the only thing telling a narrowed grid from the whole list
+— which is exactly why `ConnectorDirectory` carries one on every section. The reason for the removal
+expired when the shape changed, and the reason for the doctrine paragraph's removal did not: it is
+still a paragraph in front of a click, so it still has exactly one reader, on the page above a
+graph-less thread.
+
+**The trap in reversing it.** The old claim asserted `!/asp-head/` — a substring, so the new heading's
+class `asp-grid-heading` would have failed a check that was *about something else entirely*. Renaming
+the class to dodge it would have been the wrong fix twice over: it would have kept a claim whose
+subject no longer exists, and it would have hidden that a documented decision was being reversed. The
+claim was rewritten to assert the new fact and the reversal was written down here and in CLAUDE.md.
+
+**Guard.** Three claims where there were two: the dialog is titled, wide and footerless with its
+width read off `ConnectSourceModal` rather than restated; the grid's heading carries `shown.length`
+rather than the served total, the empty state names the fix and the no-match quotes the query; and
+the narrowing is `filterAskSources` in `src/data/` with no second predicate in the component. Nine
+break-test mutations, all caught — including the count silently counting the wrong thing, which is
+the one a reader would never notice.
+
+**The general shape.** *A removal is recorded with its reason, and the reason is what expires.* When
+a decision is reversed, check each half against the reason it was made under rather than against the
+fact that it was made: here two halves came back and one stayed gone, and treating "removed on
+request" as a single indivisible decision would have got both of those wrong.

@@ -4311,32 +4311,89 @@ expect(
  * over blank space" this repo has already fixed once, on the wizard's own build dialog.
  */
 /*
- * **The `+` opens a modal, asked for as one.** It was a `Dropdown` panel hanging off the button.
- * There is no footer: ticking a row *is* the act and reaches the store immediately, so an OK
- * would confirm something already done and a Cancel would promise an undo this dialog does not
- * perform. And no title, because a modal title is the heading over these rows one layer out —
- * the heading that was removed on request. Both are `null` rather than omitted, so a default
- * cannot arrive from the theme.
+ * **The `+` opens the connector directory's dialog, asked for as one.** It was a `Dropdown`
+ * panel, then a 420px modal holding a column of rows; it is a wide titled dialog with a search
+ * and a grid of cards now, the same shape step 1 of the connect wizard already has. The width
+ * is asserted to be the *same number* as `ConnectSourceModal`'s rather than a number written
+ * here: these are the two dialogs in the app that draw a grid of connector cards, and one of
+ * them being narrower would make the same card two sizes.
+ *
+ * There is still no footer: ticking a card *is* the act and reaches the store immediately, so an
+ * OK would confirm something already done and a Cancel would promise an undo this dialog does
+ * not perform.
+ *
+ * **And no filter beside the search**, which the connector directory does have. The only axis
+ * available is the connector kind and every askable source is a runtime source, so today the
+ * control would be a Select with one option — the fault this repo refuses from the mailbox that
+ * has no picker to the drive kind offered with the count that says so.
  */
+const connectModalSrc = codeOnly(read('frontend/src/components/sources/ConnectSourceModal.tsx'))
+const modalWidth = (src) => (src.match(/width=\{(\d+)\}/) ?? [])[1] ?? null
 expect(
-  'the + opens a modal, with nothing to confirm and no heading',
+  'the + opens the directory’s own dialog — titled, wide, searchable, with nothing to confirm',
   /<Modal/.test(pickerSrc) &&
     /open=\{open\}/.test(pickerSrc) &&
     /onClick=\{\(\) => setOpen\(true\)\}/.test(pickerSrc) &&
     /footer=\{null\}/.test(pickerSrc) &&
-    /title=\{null\}/.test(pickerSrc) &&
-    !/Dropdown/.test(pickerSrc),
-  'a Modal on the + button, no footer to press and no title over the rows',
+    /title=\{askSourceCopy\.modalTitle\}/.test(pickerSrc) &&
+    !/Dropdown/.test(pickerSrc) &&
+    /* The same width as the wizard's dialog, read off both rather than restated. */
+    modalWidth(pickerSrc) !== null &&
+    modalWidth(pickerSrc) === modalWidth(connectModalSrc) &&
+    /* The search is drawn and the filter deliberately is not. */
+    /askSourceCopy\.searchPlaceholder/.test(pickerSrc) &&
+    !/<Select/.test(pickerSrc),
+  `a titled ${modalWidth(pickerSrc) ?? '?'}px Modal, the wizard's own width, with a search and no filter`,
 )
+/*
+ * **The grid carries a heading with its count, and that is a deliberate reversal.** Both the
+ * dialog's title and the heading over the rows were removed on request when the picker was
+ * reduced to a column of checkboxes, and both are back because the shape changed underneath
+ * them: a heading over two bare checkboxes was a label nobody needed, while a heading carrying
+ * the count above a *searchable* grid is the only thing that tells a narrowed list from the
+ * whole one — `ConnectorDirectory`'s own reason for putting one on each section.
+ *
+ * **What did not come back is the doctrine**, and that is the half worth asserting beside it:
+ * `observationNote` still has exactly one reader, the page, where it stands above a thread with
+ * no graph behind it. Three lines explaining what an observation is over a picker would be a
+ * paragraph in front of a click whatever shape the picker is.
+ *
+ * **And the empty branch keeps its sentence and draws no search**, because it has no cards to
+ * be: a `+` opening onto a search box above "there is nothing to search" is the button-over-
+ * blank-space this repo has already fixed once.
+ */
 expect(
-  'and its populated panel is the rows alone, while the empty one still names the fix',
-  !/asp-head/.test(pickerSrc) &&
+  'and the grid carries a heading and a count, while the doctrine keeps its one reader on the page',
+  /askSourceCopy\.heading/.test(pickerSrc) &&
+    /asp-count/.test(pickerSrc) &&
+    /\{shown\.length\}/.test(pickerSrc) &&
     !/observationNote/.test(pickerSrc) &&
-    !/heading:/.test(askSourcesSrc) &&
+    /askSourceCopy\.observationNote/.test(codeOnly(askPageSrc)) &&
     /asp-empty/.test(pickerSrc) &&
     /askSourceCopy\.emptyDetail/.test(pickerSrc) &&
-    /askSourceCopy\.observationNote/.test(codeOnly(askPageSrc)),
-  'no heading and no note over the rows; the copy that moved still has a reader on the page',
+    /askSourceCopy\.noMatch\(query\)/.test(pickerSrc),
+  'a counted heading over the grid, an empty state that names the fix, and a no-match that quotes the query',
+)
+/*
+ * **The narrowing is a pure function in `src/data/`, and the component holds no predicate.**
+ * The grid lives inside a `Modal`, which `renderToString` will not traverse, so a filter written
+ * in the component could not be asserted at all — the reason `filterConnectors` sits beside the
+ * directory and `datasetPathFix` beside the gate. It searches what a card prints; it never
+ * decides which sources are askable, which is the server's answer and nobody else's.
+ */
+const askFilterBody =
+  (askSourcesSrc.match(/export function filterAskSources[\s\S]*?\n\}/) ?? [''])[0]
+expect(
+  'and the picker’s search narrows through one rule in src/data/, deciding nothing about what is askable',
+  askFilterBody.length > 0 &&
+    /if \(!q\) return sources/.test(askFilterBody) &&
+    /toLowerCase\(\)/.test(askFilterBody) &&
+    /* The fields a card prints, plus the connector key the mark stands for. */
+    /s\.name, s\.account \?\? '', s\.scope, s\.connector/.test(askFilterBody) &&
+    /filterAskSources\(sources, query\)/.test(pickerSrc) &&
+    /* … and no second implementation in the component. */
+    !/\.toLowerCase\(\)/.test(pickerSrc),
+  'filterAskSources decides what is shown; the picker renders what it returns',
 )
 /*
  * **And the graph select is rendered whether or not anything is published**, stating
