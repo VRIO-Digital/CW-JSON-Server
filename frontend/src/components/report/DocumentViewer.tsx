@@ -485,6 +485,23 @@ const MIN_FRAME_PX = 420
  *   what, and the Catalog for what a source holds. Only the two buttons go: the strip's `.tItem` cells
  *   beside them — *Data as of*, *Covering*, *Confidence* — are statements about the figures on screen
  *   rather than doors out of them, and they stay.
+ * - **The report head's own *Refresh* and *Export*.** Both act on the document's own mock fixture:
+ *   Refresh re-resolves it against nothing that has changed, and Export opens the document's own
+ *   export drawer, which is a second way out of a report this app already exports — `DocumentViewer`'s
+ *   bar carries **Export PDF**, which prints the frame. Two export controls on one screen are two
+ *   answers to how a report leaves, and only one of them is this app's.
+ *
+ *   **The two buttons, not the `.racts` container they sit in.** That container also holds *Approve &
+ *   publish* and *Submit for approval*, drawn only when the document's own status is `draft` or
+ *   `pending_approval` — not on these three, which ship published, but hiding a box because of what
+ *   it happens to hold today is how a later export loses a control nobody meant to remove. And there
+ *   is a **second `.racts`** on the authoring head carrying *How this was built*, which is a real
+ *   door into the document's own specification and stays. So the rule names `#repRefreshBtn` and the
+ *   Export button by its handler, scoped under `.repHead .racts` so it cannot reach the other one.
+ *
+ *   `PRINT_CSS` hides the whole container instead, and that stays right: on paper *no* control is a
+ *   control, so there the blunt rule is the correct one.
+ *
  * - **The document's own *View* chip group.** Four chips that are blank and inert, and the reason is in
  *   the document: its fixture serves `viewTypes` as plain strings (`["Category", "Region", …]`) while
  *   its own `repFilterBar` reads `t.label`, `t.id` and `t.enabled` off each one. So every chip renders
@@ -506,7 +523,9 @@ const FRAMED_CSS =
   ' .apiFab, .apiLog { display: none !important }' +
   ' .repBlock:has(.embedAsk) { display: none !important }' +
   ' .filtBar .fgroup.vt { display: none !important }' +
-  ' .trustBar .tBtn { display: none !important }'
+  ' .trustBar .tBtn { display: none !important }' +
+  ' .repHead .racts #repRefreshBtn,' +
+  ' .repHead .racts [onclick="repExportOpen()"] { display: none !important }'
 
 /**
  * What makes **Export PDF** produce the whole report rather than its first screen.

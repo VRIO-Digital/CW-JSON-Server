@@ -3246,7 +3246,7 @@ apart. Every CAPEX persona now starts with all three, and narrowing is a decisio
 single audience record for a report. A pair of document-specific routes was built and then removed for
 exactly that reason: two audience fields for one report is two homes for one record.
 
-**Four things are hidden by the frame rather than by editing the documents**, and they are `FRAMED_CSS`
+**Five things are hidden by the frame rather than by editing the documents**, and they are `FRAMED_CSS`
 in `DocumentViewer` — injected on load into *every* frame, seamless or not, because the documents' `_meta`
 says *"never hand-edit this file — change the generator and rebuild"*: an edit would be lost at the next
 export and silently return, while a rule applied by the frame holds for whatever version is dropped in and
@@ -3277,14 +3277,26 @@ the DOM and no script is touched.
   four blank pills that can be neither read nor clicked. The real fix is a generator that serves objects;
   hiding them is the honest half of that. The parameter chips beside them — Region, Executive category,
   Period, Lifecycle phase — are untouched and still work.
+- **The report head's own *Refresh* and *Export*** (`.repHead .racts #repRefreshBtn` and the
+  Export button by its handler). Both act on the document's own mock fixture: Refresh re-resolves it
+  against nothing that changed, and Export opens the document's own export drawer — a second way out
+  of a report this app already exports, since `DocumentViewer`'s bar carries **Export PDF**. Two
+  export controls on one screen are two answers to how a report leaves, and only one of them is this
+  app's. **The two buttons, not the `.racts` box they sit in**: that box also holds *Approve &
+  publish* and *Submit for approval* on a draft — not on these three, which ship published, but
+  hiding a container for what it happens to hold today is how a later export loses a control nobody
+  meant to remove. And there is a **second `.racts`**, on the authoring head, carrying *How this was
+  built*; that is a real door into the document's own specification and stays, which is why the rule
+  is scoped under `.repHead`. `PRINT_CSS` hides the whole container instead and that stays right: on
+  paper no control is a control, so there the blunt rule is the correct one.
 
 `check-docs` asserts each rule **and that the documents carry the class it names**, because a selector
 naming a class no document has is inert, and inert looks exactly like the thing having been removed. It
 also pins the `viewTypes` mismatch itself, so when a re-export starts serving objects both halves fail
 together and the rule that hides them can go.
 
-**A fifth rule is not a hiding rule: it is what makes `Export PDF` produce the whole report.**
-`PRINT_CSS`, injected into every frame beside those four, and `@media print` so nothing on screen
+**A sixth rule is not a hiding rule: it is what makes `Export PDF` produce the whole report.**
+`PRINT_CSS`, injected into every frame beside those five, and `@media print` so nothing on screen
 changes. **The failure it fixes is a report that looks complete down to the tear**: these documents are
 the prototype app with one report in it, and an app sizes itself to the window — `.app` is `height:
 100vh` with `overflow: hidden`, `.main` hides its overflow, and `.content` is the only element that

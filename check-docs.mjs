@@ -8092,14 +8092,21 @@ const framedReports = readdirSync(join(root, 'frontend/src/Capex/Report'))
   .map((f) => `frontend/src/Capex/Report/${f}`)
 
 expect(
-  `every framed report loses the mock-API pill, the ask surface, the blank View chips and the two ` +
-    `lineage drawer buttons: ${framedReports.length} documents`,
+  `every framed report loses the mock-API pill, the ask surface, the blank View chips, the two ` +
+    `lineage drawer buttons and the head's own Refresh and Export: ${framedReports.length} documents`,
   framedReports.length >= 3 &&
     /* The rules, in the one constant applied to every frame. */
     /\.apiFab, \.apiLog \{ display: none !important \}/.test(viewerSrc) &&
     /\.repBlock:has\(\.embedAsk\) \{ display: none !important \}/.test(viewerSrc) &&
     /\.filtBar \.fgroup\.vt \{ display: none !important \}/.test(viewerSrc) &&
     /\.trustBar \.tBtn \{ display: none !important \}/.test(viewerSrc) &&
+    /* The head's two acts, named individually rather than by the box they sit in: that box also
+       holds Approve & publish and Submit for approval on a draft, and a *second* `.racts` on the
+       authoring head carries How this was built, which stays. */
+    /\.repHead \.racts #repRefreshBtn,/.test(viewerSrc) &&
+    /\.repHead \.racts \[onclick="repExportOpen\(\)"\] \{ display: none !important \}/.test(
+      viewerSrc,
+    ) &&
     /* Applied to every frame, not only the seamless ones — a report is framed with its bar. */
     /style\.textContent = FRAMED_CSS \+ PRINT_CSS \+ \(seamless \? SEAMLESS_CSS : ''\)/.test(
       viewerSrc,
@@ -8120,7 +8127,13 @@ expect(
         /* And the strip's statement cells are *not* hidden with them: `.tItem` carries Data as of,
            Covering and Confidence, which say what the figures on screen are rather than opening a
            drawer away from them. A rule that took the whole strip would remove those silently. */
-        html.includes('class="tItem"')
+        html.includes('class="tItem"') &&
+        /* The two buttons the head rule names — and the control it must not reach, which lives in
+           the *other* `.racts` and is the reason that rule is two selectors rather than one box. */
+        html.includes('id="repRefreshBtn"') &&
+        html.includes('onclick="repExportOpen()"') &&
+        html.includes('class="repHead"') &&
+        html.includes('How this was built')
       )
     }) &&
     /* Style only: nothing is removed from the DOM and no script is touched. */

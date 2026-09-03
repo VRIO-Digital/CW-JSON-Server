@@ -5627,3 +5627,32 @@ claim total not moving would have hidden if the file had not refused to parse.
 skip the act the precondition guards.* If a reviewer genuinely has nothing to settle for some
 graph, the honest expression is a gate that computes to unblocked — leaving the act itself
 where it was, on a button a person presses.
+
+## Hiding a control by the box it sits in (2026-09-03)
+
+**Asked for.** The framed CAPEX reports' own **Refresh** and **Export** buttons, gone from all three.
+
+**The obvious rule was already written, in the wrong stylesheet.** `PRINT_CSS` hides
+`.repHead .racts` — the whole action box — because on paper no control is a control. Moving that
+selector into `FRAMED_CSS` would have taken two more things with it, neither of them asked for:
+
+- **Approve & publish / Submit for approval**, drawn in the same box when the document's own status
+  is `draft` or `pending_approval`. These three ship `published`, so nothing renders there today —
+  and hiding a container for what it happens to hold *today* is how a later export silently loses a
+  control nobody meant to remove.
+- **A second `.racts` entirely**, on the authoring head, carrying *How this was built* — a real door
+  into the document's own specification, and one this app has no other route to.
+
+So the rule names the two buttons: `#repRefreshBtn` by its id and Export by its handler, both scoped
+under `.repHead` so they cannot reach the other box. `PRINT_CSS` keeps the blunt version, which is
+correct where it lives.
+
+**Guard.** The existing framed-report claim gained the two selectors *and* the three facts they
+depend on in the documents — the ids, the head class, and the presence of *How this was built*, so a
+rule widened back to the container fails against the control it would swallow. Six break-test
+mutations, all caught, including a re-export renaming either button and the rule being widened to
+`.repHead .racts`.
+
+**The general shape.** *Hide what was named, not the box it came in.* A container selector is a bet
+that the container will never hold anything else — and for generated exports, which is where these
+rules exist at all, that is a bet against the next rebuild.
