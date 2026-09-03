@@ -962,7 +962,7 @@ export default function ConnectSourceWizard({
           <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
             {mailbox
               ? 'Its labels are read on the next step, before anything is registered.'
-              : 'Sign in above to reach the mailbox this account can read.'}
+              : '  Sign in above to reach the mailbox this account can read.'}
           </Typography.Text>
         </>
       ) : null}
@@ -1138,12 +1138,12 @@ export default function ConnectSourceWizard({
                          registering a row with a blank label. */
                       ...(field.minLength
                         ? [
-                            {
-                              min: field.minLength,
-                              whitespace: true,
-                              message: `${field.label} needs at least ${field.minLength} characters`,
-                            },
-                          ]
+                          {
+                            min: field.minLength,
+                            whitespace: true,
+                            message: `${field.label} needs at least ${field.minLength} characters`,
+                          },
+                        ]
                         : []),
                     ]}
                   >
@@ -1493,9 +1493,9 @@ export default function ConnectSourceWizard({
               description={
                 selected.available
                   ? 'This source connects for delivery and carries no catalogue: nothing in it is ' +
-                    'profiled, so it is listed on Sources and not in the Data Catalog.'
+                  'profiled, so it is listed on Sources and not in the Data Catalog.'
                   : 'Registration is stubbed for this connector — it lands as a bare row with no ' +
-                    'discovery until its profiler ships.'
+                  'discovery until its profiler ships.'
               }
             />
           ) : null}
