@@ -120,7 +120,7 @@ npm run seed:workspaces # adds the extra GCP projects and Drives (with nested fo
 npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
 npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
 npm run scale:capex # rescales the rendered CAPEX reports' capital figures (capex-scale.js's factor)
-npm run narrow:capex # lets those reports' period figures re-sum over the rows a reader's filters admit
+npm run narrow:capex # lets those reports re-derive over the rows a reader's filters admit
 npm run ingest:queries # re-seeds CAPEX ask_answers from the query set, at the same money scale
 npm run db:push     # upload the three documents to S3 (-- db|settings|prototype, -- CAPEX per dataset)
 npm run db:pull     # the other direction — overwrite the local copies from the bucket
@@ -2920,62 +2920,102 @@ is checked over the figures each report actually prints rather than over the lar
 The What-if lens document and `db.CAPEX.json`'s authoring fixture are already denominated in millions and
 are untouched.
 
-**And a narrowed report's headline figures narrow with it, which they did not**, written by
+**And a narrowed report re-derives itself over the rows in view, which it did not**, written by
 `npm run narrow:capex` — a second transform over the same three documents, and a script for the same
 reason the rescale is one. Picking *Executive category: Blankets* moved the population line from 50 to
-10, narrowed the table and the chart, and left `$20.0M · $17.6M · −$2.4M · −11.8%` byte-identical above
-them. That is correct — those four are `portfolio.period*`, **declared programme figures** published
+10 and narrowed the three `projects`-sourced blocks under it, and left everything sourced from
+`portfolio` byte-identical: the four headline tiles, the category chart, the region × category heatmap,
+and the prose quoting all of them. That is correct — those are **declared programme figures** published
 over all 4,500 projects and served as stated rather than re-summed — and the document says so on the
 block, in an orange *Unchanged by your filters* note. It is also indistinguishable from a broken filter,
 which is what it was read as.
 
-**What a re-sum is licensed by is the label, not the arithmetic.** The fixture's own
+**What a re-derivation is licensed by is the label, not the arithmetic.** The fixture's own
 `db.gates.declaredAggregate.neverSubstitute` forbids *"a different measure wearing this one's label"* —
-so the fault it names is a total re-summed over 60 sample rows and printed under a figure published over
+so the fault it names is a total re-summed over 60 sample rows printed under a figure published over
 4,500, and the licence is saying which population was totalled. The fixture already draws exactly that
-distinction for itself: `samplePeriod*` sits beside `period*` under a note reading *"samplePeriod* foots
-to the table on screen; period* is the declared programme figure."*
+distinction for itself: `samplePeriod*` sits beside `period*` under a note reading *"samplePeriod\* foots
+to the table on screen; period\* is the declared programme figure."*
 
 So the shape is **swap on narrow**, and both halves are asserted:
 
-- **Unnarrowed, nothing changed.** The declared programme figure is served exactly as before, with its
-  note ready for the blocks a narrowing genuinely cannot move.
-- **Narrowed, the block re-sums over the rows the reader's filters admit**, relabels itself *Q1 2026 ·
-  10 projects in view*, and carries a seam naming the count it footed to and the declared figure it is
-  no longer showing. Clearing the filter brings the programme figure back.
+- **Unnarrowed, nothing changed.** Every declared figure is served exactly as before, with its note
+  ready for the blocks a narrowing genuinely cannot move.
+- **Narrowed, the report re-derives**, and every block that reads a recomputed key states the
+  population it totalled. Clearing the filter brings the programme figures back.
 
-**Only the period family qualifies, and the rule that decides is all-or-nothing.** `IN_VIEW_FIELD` maps
-a portfolio key to the row field carrying the same measure *at the same coordinate*, and a figRow
-re-sums only if **every** figure in it has one — two tiles narrowed beside two that could not be is a
-worse reading than either whole, since nothing on the strip would say which two were which. Five of the
-six figRows are therefore untouched: nothing in this workspace re-derives a five-year approved budget, a
-count of large projects across the programme, or the days to the next filing.
+**One overlay, not a rule per block, because the alternative is a report at two scales.** The tiles
+alone were made to narrow first, and that left the Variance Report contradicting itself: `$31.8K` of
+period plan above a category chart still drawn in millions and a paragraph still reading *"actual spend
+of $17.6M"*. Figures on one screen move together or not at all, so `inViewPortfolio` builds **one
+overlay over `db.portfolio`** — the declared object with the recomputed keys replaced — and two readers
+reach it: `sourceObject`, which is every figRow, bar, heatmap and filing calendar, and `resolveTokens`,
+so the prose quotes what the tiles print. A key with no rule still resolves, to exactly what it always
+did.
+
+**Three kinds of rule, and each declares the row fields it reads.** `IN_VIEW_FIELD` maps a portfolio key
+to a row field carrying the same measure *at the same coordinate*; `IN_VIEW_DERIVED` holds the counts,
+sums-over-a-subset and extremes; `IN_VIEW_SHAPE` rebuilds the three collections a block reads as its
+source — the category series, the region × category matrix, and the per-jurisdiction rate-case exposure.
+The `reads` declaration is load-bearing rather than documentation: it is what the masking check runs
+against, so `check-docs` asserts **no rule touches a row field it did not declare**.
+
+**Four of the rules reproduce their declared figure exactly and two do not, and both facts are
+asserted.** The rate-case exposure figures are already sample-scoped — `portfolio.rcSampleNote` says so
+in as many words — so a disagreement there means a rule is reading the wrong field, and that is how
+`rcSampleDeferredCapital` was settled on the working forecast rather than the approved budget (`budget`
+gives 447,728 where the document states 746,183). The period figures and the two variance shapes are
+programme aggregates, so the rows reproduce them at roughly a fortieth; a shape that suddenly footed to
+the declared total would mean the rebuild had stopped reading rows.
+
+**The arithmetic is the measure's wherever the glossary states it.** The period keys go through the
+document's own `aggregate()` with their declared measures, so `m_plan_period` sums and `m_variance_pct`
+— declared `ratio` — is recomputed from its operands rather than averaged: a mean of sixty variance
+percentages is not the population's variance, and it is off by however unequal the projects are.
 
 **`FIELD_FOR_MEASURE` looks like the map for this job and is the wrong one**, which is worth knowing
 before somebody reaches for it: it is **coordinate-blind**. It resolves `m_actual` to `actual`, the
 project's inception-to-date spend, so a period row built on it would print a project's whole life as its
-five-month actual — right shape, right unit, wrong meaning. The block key already encodes the
-coordinate, so the map is keyed on that.
+five-month actual — right shape, right unit, wrong meaning. The portfolio key already encodes the
+coordinate.
 
-**The arithmetic is the measure's, never the script's.** The block's own `{key, measure}` pairs go to
-the document's `aggregate()`, so `m_plan_period` sums and `m_variance_pct` — declared `ratio` — is
-recomputed from its operands rather than averaged: a mean of sixty variance percentages is not the
-population's variance, and it is off by however unequal the projects are. Every figure still goes through
-`figure()`, so one formatting path, one masking check and one provenance record cover both branches.
+**The row fields take the masking check, and it is not the check `figure()` makes.** `figure()` masks on
+the portfolio key (`periodPlan`); the value now comes out of `planPeriod`, a different name and a
+different mask entry. A rule whose fields are not all visible is simply not applied, so its key keeps the
+declared value — and if nothing is left to recompute, the overlay is `null` and the note is correct
+again. Two bugs here were found by running the overlay rather than reading it: the check covered only
+the measured rules and left the other two thirds open, and the memo was keyed on the row array alone, so
+one reader got an overlay computed under another's masking.
 
-**The row fields take the masking check too, and that is not the same check `figure()` makes.**
-`figure()` masks on the block's key (`periodPlan`); the value now comes out of `planPeriod`, a different
-name and a different mask entry. Re-summing without it would serve, out of the rows, a column the scope
-class had withheld from the figure — the disclosure-by-membership failure `maskedReads()` was rewritten
-to close, arriving through a second door. A masked field means no re-sum, so the block falls back to the
-declared figure and its note.
+**What cannot move is listed, not left out.** `IN_VIEW_DECLARED` names each key kept declared and quotes
+the fixture's own reason, because "deliberately left alone" and "nobody has written the rule yet" look
+identical in a map. The substantive ones are the in-service figures: `pisNext12moCount` is counted over
+**3,770 rows of a separate in-service file**, and `pisNext12moValue` and `rateBase` are null because —
+in the fixture's words — *"the file carries dates and categories, not money, and joining it to a budget
+for the whole programme is a join this fixture has not made."* So R3's *Next twelve months* row and
+R1's *What was not found* keep their declared figures and their note. `check-docs` asserts no key is
+both left declared and given a rule.
 
-**And the failure to guard against is silence.** All-or-nothing means one renamed row field turns the
-whole thing off *quietly* — every block reverts to its declared figure with nothing on screen saying so.
-So the script refuses to write on a map entry the roster does not carry, and `check-docs` re-checks the
-same thing against each document, asserts every layer is present in all three, and asserts **exactly
-one** figRow re-sums. Two claims rather than one, because either alone passes the wrong way: the first
-would pass if every block had been made to re-sum, and the second if none had.
+**Not everything in these documents is a programme aggregate to begin with.** The `projects`-sourced
+blocks — R1's bubble, project table and reason mix, R3's verdict chart, slack bubble and in-service
+calendar — always narrowed, because `sourceObject('projects')` is `ctx.rows`. And **R2 needed nothing**:
+Project 360's only view parameter is `project`, so every block reads the one project the reader picked
+and the whole report already changes when they pick another.
+
+**What a commission published is not a project row, and does not move with one.** The rebuilt filing
+calendar recomputes every count and every capital figure per jurisdiction and carries the filing date,
+the certification lead and its justification, the recurrence and the squeeze window across untouched. A
+jurisdiction with no rows in view is kept, at zero: its deadline exists whether or not this reader is
+looking at work in it, and dropping the row would say the jurisdiction has no filing rather than that the
+filter excluded its projects.
+
+**And the failure to guard against is silence.** A rule whose row field a re-export renamed stops moving
+*quietly* — its block reverts to a declared figure with nothing on screen saying so. So the script
+refuses to write on a field the roster does not carry or an identity rule that no longer reproduces, and
+`check-docs` re-checks the same things per document plus the layers, the `reads` completeness and the
+declared-key list. Two claims rather than one, because either alone passes the wrong way: the first
+would pass if every figure had been made to move, and the second if none had.
+
 
 **The publish gate applies to them, and it did not always.** The documents rode on both branches at
 first, on the reasoning that a gate about *questions* should not apply to a finished artefact: a CAPEX

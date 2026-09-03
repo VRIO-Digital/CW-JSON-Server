@@ -38082,10 +38082,17 @@ CW.api = CW.api || {};
     if (src == null) return null;
     if (src === 'projects') return ctx.rows;
     if (src === 'project')  return ctx.project;
-    if (src === 'portfolio') return db.portfolio;
+    /* THE ONE PLACE A BLOCK'S SOURCE RESOLVES, so it is the one place the rows in view
+       need to be read. Null unless the reader has narrowed and something was actually
+       recomputed, in which case the overlay is db.portfolio with those keys replaced —
+       so a key with no rule still resolves, to exactly what it always did. See
+       inViewPortfolio. */
+    const inView = inViewPortfolio(ctx);
+    const pf = inView || db.portfolio;
+    if (src === 'portfolio') return pf;
     if (src.indexOf('portfolio.') === 0) {
       const leaf = src.slice('portfolio.'.length);
-      const v = (db.portfolio || {})[leaf];
+      const v = (pf || {})[leaf];
       if (v === undefined) throw new Error('block source ' + src + ' does not exist — ' +
                                            'db.portfolio has no ' + leaf);
       return v;
@@ -38300,7 +38307,14 @@ CW.api = CW.api || {};
       if (!spec) { out.unbound.push(tok); return; }
       const gate = admitDeclaredAggregate(spec.source, ctx.scope);
       if (!gate.ok) { out.refused.push({ token: tok, gate: gate }); return; }
-      const holder = spec.source === 'portfolio' ? db.portfolio : ctx.project;
+      /* THE SAME OVERLAY THE TILES READ. A token resolves through figure() like any
+         other figure, but it did not go through sourceObject — so while only the
+         figRow narrowed, "Reading this" went on stating $17.6M of actual spend under
+         a tile reading $26.7K. A report may show two populations; it may not show one
+         figure twice with two values. */
+      const holder = spec.source === 'portfolio'
+        ? (inViewPortfolio(ctx) || db.portfolio)
+        : ctx.project;
       out.tokens[tok] = figure({
         key: spec.key, measure: spec.measure || null, coord: spec.coord || null,
         signed: !!spec.signed, note: spec.note || null,
@@ -38363,167 +38377,396 @@ CW.api = CW.api || {};
   };
 
   /* ====================================================================== */
-  /* THE FIGURES A NARROWING CAN HONESTLY MOVE                              */
+  /* WHAT THE ROWS IN VIEW SAY                                              */
   /* ====================================================================== */
 
-  /* `unaffectedByParams` above is the whole story for a declared aggregate the
-     rows cannot reproduce, and it stays the whole story for most of them. Nothing
-     in this workspace re-derives a five-year approved budget, a count of large
-     projects across the programme, or the days to the next filing — so those
-     figRows keep their declared figures and keep saying a narrowing did not move
-     them.
+  /* `unaffectedByParams` above is the whole story for a declared aggregate the rows
+     cannot reproduce, and it stays the whole story for the ones that genuinely
+     cannot — see IN_VIEW_DECLARED at the foot of this block, which names each and
+     quotes the fixture's own reason.
 
-     A PERIOD VARIANCE IS THE ONE FAMILY THAT IS DIFFERENT, and it is different
-     because the rows carry it. Every project in db.projects holds planPeriod and
-     actualPeriod over the same FY26-to-date window the declared figure covers, and
-     the fixture already states what summing them gives — samplePeriodPlan,
-     samplePeriodActual, samplePeriodVariance — under a note reading "samplePeriod*
-     foots to the table on screen; period* is the declared programme figure."
+     For the rest, a narrowed reader gets what their own rows say. ONE OVERLAY over
+     db.portfolio carries it, and every surface reads through that overlay rather
+     than each computing its own answer:
 
-     So a narrowed reader can be handed a figure that MOVES and is still a real
-     measurement of the same measure, provided the population is named. That naming
-     is the entire licence. db.gates.declaredAggregate.neverSubstitute forbids a
-     re-summed total wearing the DECLARED figure's label — "a different measure
-     wearing this one's label" — and it is the LABEL that carries the lie. It does
-     not forbid a re-summed total that says what it totalled.
+       · sourceObject('portfolio') and sourceObject('portfolio.<leaf>'), which is
+         every figRow, bar, heatmap and filingCalendar in these reports;
+       · resolveTokens, so the prose quotes the same figures the tiles print.
 
-     Hence the shape. Unnarrowed, nothing changes: the declared programme figure is
-     served exactly as it always was, with its unchanged-by-your-filters note ready
-     for the blocks a narrowing really cannot move. Narrowed, the block re-sums over
-     the rows the reader's own filters admit, RELABELS itself with that population,
-     and carries a seam naming both the count it footed to and the declared figure it
-     is no longer showing. Clearing the filter brings the programme figure back.
+     THE ALTERNATIVE IS A REPORT AT TWO SCALES, and it was built first: only the four
+     headline tiles were made to narrow, which left $31.8K of period plan above a
+     category chart still drawn in millions and a paragraph still reading "actual
+     spend of $17.6M". Figures on one screen move together or not at all, and the only
+     way to guarantee that is for them to come from one place.
 
-     Two rules keep it narrow:
+     WHAT LICENSES ANY OF THIS is the label, not the arithmetic.
+     db.gates.declaredAggregate.neverSubstitute forbids "a different measure wearing
+     this one's label" — a total re-summed over 60 rows printed under a figure
+     published over 4500. So every block that reads a recomputed key states the
+     population it totalled, and the two figures are never shown as one. The fixture
+     already draws exactly this distinction for itself, keeping samplePeriod* beside
+     period* under a note reading "samplePeriod* foots to the table on screen;
+     period* is the declared programme figure."
 
-       · A block re-sums ONLY IF EVERY FIGURE IN IT HAS A ROW FIELD. Two tiles
-         narrowed beside two that could not be is a worse reading than either whole,
-         because nothing on the strip would say which two were which.
+     Two of these rules reproduce the declared figure EXACTLY over the whole roster
+     and two reproduce it at roughly a fortieth, and both are correct: the rate-case
+     exposure figures are already sample-scoped (portfolio.rcSampleNote says so in as
+     many words), while the period figures and the two variance shapes are programme
+     aggregates. The build script asserts both properties, because a shape that
+     started footing to the declared total would mean it had stopped reading rows. */
 
-       · The arithmetic is the MEASURE'S, not this table's. aggregate() is handed
-         the block's own {key, measure} pairs, so m_plan_period sums and
-         m_variance_pct is recomputed from its declared operands. The average-of-
-         percentages answer — plausible, wrong, and off by however unequal the
-         projects are — is unreachable from here. All this table supplies is which
-         row field carries each key, which is the one thing the glossary does not
-         say. */
+  /* A portfolio key whose value is the same measure as a row field, summed. The
+     measure is named beside it so the arithmetic stays the MEASURE'S: aggregate()
+     sums m_plan_period and RECOMPUTES m_variance_pct from its declared operands,
+     rather than averaging sixty variance percentages — the classic wrong answer that
+     renders perfectly, and one that is off by however unequal the projects are.
+
+     FIELD_FOR_MEASURE cannot serve as this map, and it is worth saying why because it
+     looks like the table for the job: it is COORDINATE-BLIND. It resolves m_actual to
+     `actual`, the project's inception-to-date spend, so a period row built on it
+     would print a project's whole life as its five-month actual — right shape, right
+     unit, wrong meaning. The portfolio key already encodes the coordinate. */
   const IN_VIEW_FIELD = {
-    /* portfolio key -> the row field holding the same measure at the same coordinate.
-       periodPlan and periodActual are the programme's FY26-to-date plan and posted
-       spend; planPeriod and actualPeriod are one project's. The two halves of each
-       name are inverted between the two shapes, which is exactly why this is a map
-       and not a key match.
-
-       FIELD_FOR_MEASURE cannot serve here and it is worth saying why, because it
-       looks like the table for this job: it is COORDINATE-BLIND. It resolves m_actual
-       to `actual`, which is the project's inception-to-date spend, and a period row
-       built on it would print a project's whole life as its five-month actual — a
-       number of the right shape, the right unit and the wrong meaning. The block key
-       already encodes the coordinate, so the map is keyed on that. */
-    periodPlan: 'planPeriod',
-    periodActual: 'actualPeriod',
-    periodVariance: 'periodVariance',
-    /* Null, and deliberately: m_variance_pct is a `ratio`, so aggregate() recomputes
-       it from periodVariance over periodPlan once those two are summed. A row field
-       here would make it a mean of sixty percentages instead, which is the classic
-       wrong answer that renders perfectly. The key is PRESENT rather than absent
-       because absence means "this block may not re-sum", and this figure may. */
-    periodVariancePct: null
+    periodPlan: { field: 'planPeriod', measure: 'm_plan_period' },
+    periodActual: { field: 'actualPeriod', measure: 'm_actual' },
+    periodVariance: { field: 'periodVariance', measure: 'm_variance_period' },
+    /* No field, and none is wanted: m_variance_pct is declared `ratio`, so aggregate()
+       recomputes it from periodVariance over periodPlan once those two are summed. */
+    periodVariancePct: { field: null, measure: 'm_variance_pct' }
   };
 
-  /* Returns null — "serve the declared figure, exactly as before" — for every case
-     this may not or need not act on, so the caller has one test and the untouched
-     path is the default rather than something arrived at. */
-  function inViewFigures(b, ctx) {
-    if (!ctx.paramsNarrowed) return null;
-    if (!isDeclaredAggregate(b.source)) return null;
-    const figs = b.figures || [];
-    if (!figs.length) return null;
-    /* An `expr` figure is computed rather than read and a `count` counts a population
-       this map says nothing about, so a block holding either keeps its figures whole. */
-    if (figs.some(f => f.expr)) return null;
-    if (figs.some(f => !(f.key in IN_VIEW_FIELD))) return null;
+  /* A portfolio key with a rule of its own — a count, an extreme, or a sum over a
+     subset. These four reproduce their declared values EXACTLY over the whole roster,
+     which is the fixture's own doing: portfolio.rcSampleNote says "exposure counts are
+     over the 60-project sample, not the programme". */
+  const IN_VIEW_DERIVED = {
+    rcSampleAtRiskCount: { reads: ['rcStatus'],
+      of: rows => rows.filter(r => r.rcStatus === 'misses_case').length },
+    rcSampleNoDateCount: { reads: ['rcStatus'],
+      of: rows => rows.filter(r => r.rcStatus === 'no_date').length },
+    /* Deferred capital is the working estimate, not the approved budget: what a missed
+       filing defers is what the project is now expected to cost. Checked against the
+       declared figure by the build script, which is how the field was chosen rather
+       than guessed — `budget` gives 447,728 where the document states 746,183. */
+    rcSampleDeferredCapital: { reads: ['rcStatus', 'forecast'],
+      of: rows => rows.filter(r => r.rcStatus === 'misses_case')
+                      .reduce((a, r) => a + (Number(r.forecast) || 0), 0) },
+    rcNextFilingBy: { reads: ['rcFilingBy'],
+      of: rows => { const r = nearestFilingRow(rows); return r ? r.rcFilingBy : null; } },
+    rcNextFilingJuris: { reads: ['rcFilingBy', 'jurisdiction'],
+      of: rows => { const r = nearestFilingRow(rows); return r ? r.jurisdiction : null; } }
+  };
 
-    /* Nothing admitted is not a narrowing this can answer. Re-summing no rows gives
-       nulls, and a strip of dashes under "0 projects in view" is a worse account of a
-       filter that excluded everything than the declared figure plus the note saying it
-       did not move. The report already has an empty state for the rows themselves. */
-    const rows = ctx.rows || [];
-    if (!rows.length) return null;
-
-    const fields = figs.map(f => IN_VIEW_FIELD[f.key]).filter(Boolean);
-
-    /* THE ROW FIELDS TAKE THE MASKING CHECK TOO, and they take it here because
-       figure() cannot: it masks on the block's own key (`periodPlan`) and the value
-       now comes out of `planPeriod`, which is a different name and a different mask
-       entry. Re-summing without this would serve, out of the rows, a column the scope
-       class had withheld from the figure — the disclosure-by-membership failure
-       maskedReads() was rewritten to close, arriving through a second door. Masked
-       means no re-sum, so the block falls back to the declared figure and its note,
-       which is the safe direction. */
-    if (fields.some(k => I.isMasked(ctx.scope, k))) return null;
-
-    /* Projected onto the BLOCK'S OWN KEYS, so aggregate() reads the pairs the block
-       already declares and figure() reads the result out of a holder shaped like
-       db.portfolio. WEIGHT_FIELD rides along because a weighted_avg measure added to
-       this family later would otherwise divide by a weight nobody carried. */
-    const projected = rows.map(r => {
-      const o = {}; o[I.WEIGHT_FIELD] = r[I.WEIGHT_FIELD];
-      figs.forEach(f => { const k = IN_VIEW_FIELD[f.key]; if (k) o[f.key] = r[k]; });
-      return o;
+  /* The earliest filing-by date among the rows in view, and the row carrying it. Dates
+     are ISO, so a string compare is a date compare; a row with no date is not a row
+     with a late one, so it is left out rather than sorted to the end. */
+  function nearestFilingRow(rows) {
+    let best = null;
+    (rows || []).forEach(r => {
+      if (!r.rcFilingBy) return;
+      if (!best || r.rcFilingBy < best.rcFilingBy) best = r;
     });
-
-    const holder = I.aggregate(projected, figs.map(f => ({ key: f.key, measure: f.measure || null })));
-    return { holder: holder, n: rows.length };
+    return best;
   }
 
-  /* The label, the population and the seam a re-summed block wears, composed in ONE
-     place and handed back whole — so the heading, the footer sentence and the
-     population the export records cannot come to name different populations, which
-     is the failure population() was written to close one level up. */
-  function inViewCoverage(b, ctx, inView) {
-    const n = inView.n;
+  /* A portfolio key whose value is a SHAPE — an array or a matrix a block reads as its
+     source. Rebuilt entirely from the rows in view, with the parts that are not row
+     facts carried across from the declared object: a commission's filing date and
+     certification lead are not properties of this tenant's projects and must not move
+     when the project list does. */
+  const IN_VIEW_SHAPE = {
+    /* The category series behind "Actual spend against the calendarised plan". One
+       entry per budget category, in the declared order so a category keeps its place
+       on the axis; a category with no rows in view is DROPPED rather than drawn at
+       zero, because a zero bar says a category spent nothing and an absent one says
+       the filter excluded it. */
+    variancePeriodByCategory: {
+      reads: ['budgetCategory', 'execCategory', 'planPeriod', 'actualPeriod', 'periodVariance'],
+      of: (rows, declared) => {
+      const by = {};
+      (rows || []).forEach(r => {
+        const k = r.budgetCategory;
+        if (k == null) return;
+        if (!by[k]) by[k] = { execCategory: r.execCategory, budgetCategory: k, plan: 0, actual: 0, variance: 0 };
+        by[k].plan += Number(r.planPeriod) || 0;
+        by[k].actual += Number(r.actualPeriod) || 0;
+        by[k].variance += Number(r.periodVariance) || 0;
+      });
+      const order = (declared || []).map(d => d.budgetCategory);
+      const seen = order.filter(k => by[k]);
+      Object.keys(by).forEach(k => { if (seen.indexOf(k) < 0) seen.push(k); });
+        return seen.map(k => by[k]);
+      }
+    },
+
+    /* The region × category matrix. Its axes are rebuilt from the rows in view rather
+       than kept at the declared five-by-six, so a narrowed reader gets a matrix of the
+       regions and categories they actually have — an all-zero row would read as "at
+       plan", which is the one thing an excluded region must not say. The axes keep
+       their declared ORDER, and regionNames stays aligned to regions because the
+       renderer indexes one by the other.
+
+       rowTotals, colTotals and total are recomputed here rather than carried, because
+       H.heatmap asserts closure against `total` and reports a DEFECT band when the
+       cells do not sum to it. `footsTo` stays "portfolio.periodVariance" and is still
+       true: both sides of that identity moved together. grainNote does NOT stay — it
+       says "over all 4500 projects", which would be a false sentence under a matrix
+       built from ten rows. */
+    varianceHeatmap: {
+      reads: ['regionCode', 'regionName', 'budgetCategory', 'periodVariance'],
+      of: (rows, declared) => {
+      const d = declared || {};
+      const declaredRegions = d.regions || [];
+      const declaredNames = d.regionNames || [];
+      const keep = (list, has) => {
+        const out = (list || []).filter(has);
+        (rows || []).forEach(() => {});
+        return out;
+      };
+      const hasRegion = rg => (rows || []).some(r => r.regionCode === rg);
+      const hasCat = c => (rows || []).some(r => r.budgetCategory === c);
+      const regions = keep(declaredRegions, hasRegion);
+      const categories = keep(d.categories, hasCat);
+      const names = regions.map(rg => {
+        const at = declaredRegions.indexOf(rg);
+        if (at > -1 && declaredNames[at]) return declaredNames[at];
+        const row = (rows || []).find(r => r.regionCode === rg);
+        return row ? row.regionName : rg;
+      });
+      const z = regions.map(rg => categories.map(c =>
+        (rows || []).reduce((a, r) =>
+          a + (r.regionCode === rg && r.budgetCategory === c ? (Number(r.periodVariance) || 0) : 0), 0)));
+      const rowTotals = z.map(v => v.reduce((a, b) => a + b, 0));
+      const colTotals = categories.map((c, ci) => z.reduce((a, v) => a + v[ci], 0));
+      return Object.assign({}, d, {
+        regions: regions, regionNames: names, categories: categories, z: z,
+        rowTotals: rowTotals, colTotals: colTotals,
+        total: rowTotals.reduce((a, b) => a + b, 0),
+        grain: 'rows in view',
+        grainNote: 'Every cell is the FY26 year-to-date variance for that region and category ' +
+                   'over the rows your filters admit, so the matrix foots to the period variance ' +
+                   'above it — which is computed over the same rows. The declared programme ' +
+                   'matrix, over all ' + ((db.portfolio || {}).projectCountTotal || '4500') + ' ' +
+                   'projects, is what an unfiltered reading of this block shows.'
+        });
+      }
+    },
+
+    /* The per-jurisdiction rate-case exposure behind the filing calendar. Every COUNT
+       and every CAPITAL figure is recomputed from the rows in view; the filing date,
+       the certification lead and its justification, the recurrence, the test-year end
+       and the squeeze window are the commission's and are carried across untouched. A
+       jurisdiction with no rows in view is KEPT, at zero: its deadline exists whether
+       or not this reader is looking at projects in it, and dropping the row would say
+       the jurisdiction has no filing rather than that the filter excluded its work. */
+    rateCaseExposure: {
+      reads: ['jurisdiction', 'rcStatus', 'forecast', 'rcDaysOfSlack'],
+      of: (rows, declared) => (declared || []).map(e => {
+      const mine = (rows || []).filter(r => r.jurisdiction === e.jurisdiction);
+      const of = st => mine.filter(r => r.rcStatus === st);
+      const cap = list => list.reduce((a, r) => a + (Number(r.forecast) || 0), 0);
+      const slack = mine.map(r => r.rcDaysOfSlack).filter(v => typeof v === 'number');
+      return Object.assign({}, e, {
+        projectCount: mine.length,
+        eligibleCount: of('in_case').length,
+        laterCaseCount: of('later_case').length,
+        atRiskCount: of('misses_case').length,
+        noDateCount: of('no_date').length,
+        deferredCapital: cap(of('misses_case')),
+        undatedCapital: cap(of('no_date')),
+        /* null, not 0: no rows in view is no tightest slack, and 0 would say a
+           project files exactly on its deadline. */
+        tightestSlackDays: slack.length ? Math.min.apply(null, slack) : null
+        });
+      })
+    }
+  };
+
+  /* Kept declared on purpose, with the fixture's own reason. Listed rather than left
+     out, because "no rule" and "a rule nobody wrote yet" look identical in a map and
+     only one of them is a decision. Nothing reads this at runtime — it is here so the
+     next person to ask "why does this figure not move?" finds the answer beside the
+     rules rather than in a commit message. */
+  const IN_VIEW_DECLARED = {
+    pisNext12moCount: 'Counted over the 3770 rows of the in-service file, which is a ' +
+      'different population from these project rows. portfolio.pisBasisNote.',
+    pisNext12moValue: 'Null in this fixture: the in-service file "carries dates and ' +
+      'categories, not money", so there is nothing to sum. portfolio.pisBasisNote.',
+    rateBase: 'Null on every row — the CAPEX extract carries no general-ledger columns.',
+    pisPeakMonth: 'A property of the in-service file, not of these rows.',
+    rcSqueezedJurisdictionCount: 'A count of jurisdictions whose calendar has a squeeze ' +
+      'window. A property of the commission calendar, not of the projects.',
+    rcNoWindowJurisdictions: 'The same: which commissions publish no window.',
+    discoveryMisses: 'A list of what the sources do not carry. Narrowing the rows does ' +
+      'not change what was never found.'
+  };
+
+  /* One overlay per request, memoised on the row array itself — every block in a report
+     is resolved against the same `rows`, and rebuilding a heatmap once per block that
+     reads it would be the same answer computed six times.
+
+     THE SCOPE IS PART OF THE KEY, not just the rows. What this returns depends on which
+     fields the viewer's scope class masks, so a cache keyed on rows alone hands one
+     reader an overlay computed under another's masking — which is a disclosure in one
+     direction and a figure that mysteriously will not move in the other. Caught by a
+     harness that asked for a masked overlay and an unmasked one over the same array and
+     got the masked answer twice. */
+  const inViewCache = typeof WeakMap === 'function' ? new WeakMap() : null;
+  const scopeKeyOf = ctx => ((ctx.scope || {}).scopeId || (ctx.scope || {}).id || '') +
+    '|' + ((ctx.scope || {}).maskedFields || []).join(',');
+  function remember(rows, ctx, value) {
+    if (inViewCache) inViewCache.set(rows, { scope: scopeKeyOf(ctx), value: value });
+    return value;
+  }
+
+  /* Returns null — "serve the declared figures, exactly as before" — for every case this
+     may not or need not act on, so every caller has one test and the untouched path is
+     the default rather than something arrived at. */
+  function inViewPortfolio(ctx) {
+    if (!ctx || !ctx.paramsNarrowed) return null;
+    const rows = ctx.rows || [];
+    /* Nothing admitted is not a narrowing this can answer. Re-deriving no rows gives
+       nulls and empty axes, and a report of dashes under "0 projects in view" is a
+       worse account of a filter that excluded everything than the declared figures
+       plus the note saying they did not move. */
+    if (!rows.length) return null;
+    if (inViewCache && inViewCache.has(rows)) {
+      const hit = inViewCache.get(rows);
+      if (hit.scope === scopeKeyOf(ctx)) return hit.value;
+    }
+
+    const declared = db.portfolio || {};
+    const moved = [];
+    const out = Object.assign({}, declared);
+
+    /* THE ROW FIELDS TAKE THE MASKING CHECK, and they take it here because figure()
+       cannot: it masks on the portfolio key (`periodPlan`) and the value now comes out
+       of `planPeriod`, which is a different name and a different mask entry. Deriving
+       without this would serve, out of the rows, a column the scope class had withheld
+       from the figure — the disclosure-by-membership failure maskedReads() was
+       rewritten to close, arriving through a second door. A masked field means that
+       key is not recomputed, so it keeps its declared value: the safe direction. */
+    const visible = f => !f || !I.isMasked(ctx.scope, f);
+
+    /* The measured keys, through the document's own aggregate() so the arithmetic is
+       each measure's own. Projected onto the portfolio's key names first, and
+       WEIGHT_FIELD carried because a weighted_avg measure added to this family later
+       would otherwise divide by a weight nobody supplied. */
+    const fieldKeys = Object.keys(IN_VIEW_FIELD);
+    if (fieldKeys.every(k => visible(IN_VIEW_FIELD[k].field))) {
+      const projected = rows.map(r => {
+        const o = {}; o[I.WEIGHT_FIELD] = r[I.WEIGHT_FIELD];
+        fieldKeys.forEach(k => { const f = IN_VIEW_FIELD[k].field; if (f) o[k] = r[f]; });
+        return o;
+      });
+      const agg = I.aggregate(projected, fieldKeys.map(k => ({ key: k, measure: IN_VIEW_FIELD[k].measure })));
+      fieldKeys.forEach(k => {
+        if (agg[k] == null) return;
+        out[k] = agg[k]; moved.push(k);
+      });
+    }
+
+    /* THE SAME CHECK, on every rule rather than only the measured ones. It was written
+       for IN_VIEW_FIELD first and left off these two, which meant a scope class masking
+       everything still got a rebuilt heatmap and a rebuilt exposure table — the hole
+       the paragraph above describes, left open for two thirds of the rules. A rule
+       whose fields are not all visible is simply not applied, so its key keeps the
+       declared value. */
+    const runnable = rule => (rule.reads || []).every(visible);
+
+    Object.keys(IN_VIEW_DERIVED).forEach(k => {
+      const rule = IN_VIEW_DERIVED[k];
+      if (!(k in declared) || !runnable(rule)) return;
+      const v = rule.of(rows);
+      if (v === undefined) return;
+      out[k] = v; moved.push(k);
+    });
+
+    Object.keys(IN_VIEW_SHAPE).forEach(k => {
+      const rule = IN_VIEW_SHAPE[k];
+      if (!(k in declared) || !runnable(rule)) return;
+      const v = rule.of(rows, declared[k]);
+      if (v == null) return;
+      out[k] = v; moved.push(k);
+    });
+
+    /* Nothing recomputed is not an overlay. Returning one anyway would make every
+       caller's "did this move?" test true while every value in it was the declared
+       one — and unaffectedByParams, which is the correct thing to say here, would
+       never fire again. */
+    if (!moved.length) return remember(rows, ctx, null);
+
+    out.inViewRows = rows.length;
+    out.inViewMoved = moved;
+    return remember(rows, ctx, out);
+  }
+
+  /* Which of the keys this block reads were recomputed. Null — never an empty array —
+     where the block read none, so the caller's test is the same shape as everywhere
+     else here. Four ways a block names a portfolio key, and all four are checked
+     because the blocks in these reports use all four: a dotted source (the category
+     bar, the heatmap), a `key` (the filing calendar), a figure list (every figRow), and
+     a $TOKEN in prose (every narrative that quotes a figure). */
+  function inViewTouches(b, ctx) {
+    const ov = inViewPortfolio(ctx);
+    if (!ov) return null;
+    const hit = [];
+    const add = k => {
+      if (k && ov.inViewMoved.indexOf(k) > -1 && hit.indexOf(k) < 0) hit.push(k);
+    };
+    if (typeof b.source === 'string' && b.source.indexOf('portfolio.') === 0) {
+      add(b.source.slice('portfolio.'.length));
+    }
+    if (b.source === 'portfolio') add(b.key);
+    (b.figures || []).forEach(f => add(f.key));
+    if (typeof b.body === 'string') {
+      const table = (db.narrativeTokens || {}).tokens || {};
+      (b.body.match(TOKEN_RE) || []).forEach(t => {
+        const spec = table[t];
+        if (spec && spec.source === 'portfolio') add(spec.key);
+      });
+    }
+    return hit.length ? { keys: hit, n: ov.inViewRows } : null;
+  }
+
+  /* The population a re-derived block states, composed in ONE place and handed back
+     whole — so a block's heading, its footer sentence and the population the export
+     records cannot come to name different populations, which is the failure
+     population() was written to close one level up. */
+  function inViewCoverage(b, ctx, touched) {
+    const n = touched.n;
     const pf = db.portfolio || {};
     const projects = n + ' project' + (n === 1 ? '' : 's');
-    /* The declared figure this block is no longer showing, formatted by figure()
-       rather than composed here: every character on screen comes from a served
-       display, and a seam formatting its own would be the second implementation of
-       fmt() — the one thing this file spends six hundred lines refusing. */
-    const head = figure((b.figures || [])[0], sourceObject(b.source, ctx), ctx);
     const pop = {
       kind: 'inView', n: n,
       label: 'the ' + projects + ' your filters admit',
       note: pf.coverageNote || null,
-      /* The bold lead bFoot prints is the label above, so the sentence does not say
-         "the rows your filters admit" a second time three words later. */
-      seam: 'These figures are re-summed over those rows, so they foot to the table on ' +
-            'screen rather than to the declared programme. Clear the filter and this block ' +
-            'serves the declared figure again, published over all ' +
-            (pf.projectCountTotal || 'the programme\'s') + ' projects: ' +
-            (head.label || head.key) + ' ' + (head.display || '——') + '.'
+      seam: 'Re-derived over those rows, so this foots to the rest of the report rather ' +
+            'than to the declared programme. Clear the filter and it is served as ' +
+            'published over all ' + (pf.projectCountTotal || 'the programme\'s') +
+            ' projects again.'
     };
-    return {
-      label: (b.label ? b.label + ' · ' : '') + projects + ' in view',
-      coverage: pop,
-      inView: {
-        n: n, population: pop,
-        declared: { key: head.key, label: head.label, display: head.display, raw: head.raw }
-      }
-    };
+    const out = { coverage: pop, inView: { n: n, keys: touched.keys, population: pop } };
+    /* The heading takes the population only where the heading is the figure's own —
+       a figRow is four numbers under a short label, and "Q1 2026" alone beside a
+       changed number is the ambiguity this whole change is about. A chart already
+       titled "Actual spend against the calendarised plan, by category" says what it
+       is; it gets the seam and keeps its title. */
+    if (b.type === 'figRow') {
+      out.label = (b.label ? b.label + ' · ' : '') + projects + ' in view';
+    }
+    return out;
   }
   /* ---- figRow ---------------------------------------------------------- */
   H.figRow = (b, ctx) => {
-    /* A narrowing the rows can answer is answered from the rows. See IN_VIEW_FIELD:
-       null here is the untouched path, and it is what every other figRow gets. */
-    const inView = inViewFigures(b, ctx);
-    const holder = inView ? inView.holder : sourceObject(b.source, ctx);
+    const holder = sourceObject(b.source, ctx);
     const figs = (b.figures || []).map(f => figure(f, holder, ctx));
     /* Side by side, not summed. rep_proj_360's row spans commitment, projection
        and record, and that is the value-chain story rather than a defect — so the
        bases present are REPORTED, and no mix check runs. */
     const bases = [];
     figs.forEach(f => { const bs = (f.coord || {}).basis; if (bs && bases.indexOf(bs) < 0) bases.push(bs); });
-    const out = {
+    return {
       figures: figs,
       basesPresent: bases,
       basisNote: b.basisNote || null,
@@ -38535,9 +38778,6 @@ CW.api = CW.api || {};
         : null,
       coverage: b.coverageNote ? population(b.source) : null
     };
-    /* Assigned last, so a re-summed block's own label and coverage win over the
-       spec's. A block that did not re-sum is untouched, down to the key order. */
-    return inView ? Object.assign(out, inViewCoverage(b, ctx, inView)) : out;
   };
 
   /* ---- bar ------------------------------------------------------------- */
@@ -41195,13 +41435,16 @@ CW.api = CW.api || {};
 
     try {
       const out = Object.assign(base, fn(b, ctx), { population: population(b.source) });
-      /* A block that re-summed over the rows in view MOVED with the narrowing, so the
-         unchanged-by-your-filters note would be a false sentence printed directly
-         under a figure that had just changed — and the population it totalled is the
-         rows on screen rather than the declared programme. Both answers come off the
-         handler rather than being re-derived here, so the heading, the footer seam and
-         the population this records cannot disagree about what was totalled. */
-      if (out.inView) { out.population = out.inView.population; return out; }
+      /* A block that re-derived over the rows in view MOVED with the narrowing, so the
+         unchanged-by-your-filters note would be a false sentence printed directly under
+         a figure that had just changed — and the population it read is the rows on
+         screen rather than the declared programme. Applied here rather than in each
+         handler because it is true of every block type: the figRows, the category bar,
+         the heatmap, the filing calendar and the prose all reach the same overlay
+         through sourceObject, and a rule written per handler would be six chances to
+         word one fact differently. */
+      const touched = inViewTouches(b, ctx);
+      if (touched) return Object.assign(out, inViewCoverage(b, ctx, touched));
       return Object.assign(out, unaffectedByParams(b, ctx));
     } catch (e) {
       /* A handler that throws produces a defect block naming the block and the

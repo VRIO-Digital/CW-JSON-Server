@@ -5419,3 +5419,69 @@ figure moving.* When a correct behaviour is repeatedly reported as a bug, the re
 about the surface rather than about the reader — and the governance rule that appears to forbid the
 fix is worth re-reading against its own words, because it usually forbids something narrower than
 the thing being avoided.
+
+## Fixing half a report is worse than not starting (2026-09-02)
+
+**The follow-up.** The entry above made the CAPEX Variance Report's four headline tiles narrow with
+the reader's filters. Reported back the same day: *"only the values are changing, entire report data
+need to change."*
+
+**And that was right, in a way the first fix made worse.** The tiles moved to the ten rows in view —
+`$31.8K` of period plan — while directly beneath them the category chart, the region × category
+heatmap and the paragraph *"actual spend of $17.6M against a period plan of $19.9M"* were all still
+the declared programme figures. Before the fix the report was uniformly at programme scale and
+explained itself. After it, one screen carried the same measure at two scales three inches apart, and
+the paragraph and the tile above it disagreed about a number they both called *actual spend*.
+
+**Why it happened.** The first fix built a holder inside `H.figRow`, so exactly the blocks that
+handler drew got the new figures. Everything else resolved through `sourceObject` — the category
+chart's `portfolio.variancePeriodByCategory`, the heatmap's `portfolio.varianceHeatmap`, the filing
+calendar's `rateCaseExposure` — and the prose resolved through `resolveTokens`, which reads
+`db.portfolio` directly and never touches `sourceObject` at all. A per-handler fix reaches one
+handler.
+
+**The fix is one overlay and two readers.** `inViewPortfolio` builds `db.portfolio` with the
+recomputed keys replaced; `sourceObject` and `resolveTokens` both read it. A key with no rule still
+resolves, to exactly what it always did. Adding a rule now moves every surface that quotes it at once,
+which is the property the first attempt did not have.
+
+**What that surfaced about the reports themselves**, none of it visible before mapping every block:
+
+- The `projects`-sourced blocks always narrowed — R1's bubble, project table and reason mix, R3's
+  verdict chart, slack bubble and in-service calendar. Half the complaint was about the half that was
+  already working, sitting under figures that were not.
+- **R2 needed nothing.** Project 360's only view parameter is `project`; every block reads the one
+  project picked, so the whole report already changes when the reader picks another. "All three
+  reports" was two.
+- Two of the six rules reproduce their declared figure **exactly** over the whole roster and four do
+  not, and both are correct: `portfolio.rcSampleNote` says the rate-case exposure is *"over the
+  60-project sample, not the programme"*, while the period figures and the two variance shapes are
+  programme aggregates. Asserting the first as an identity is what settled `rcSampleDeferredCapital`
+  on the working forecast rather than the approved budget — `budget` gives 447,728 where the document
+  states 746,183, which is a plausible wrong number nothing else would have caught.
+
+**Two bugs the build found by running the code rather than reading it**, both in the part that had
+been most carefully argued in prose:
+
+- **The masking check covered a third of the rules.** It was written for the measured keys and left
+  off the derived and shape rules, so a scope class masking *everything* still got a rebuilt heatmap
+  and a rebuilt exposure table — out of columns it had withheld. The paragraph explaining why the
+  check was necessary sat directly above the two maps that did not have it.
+- **The memo was keyed on the row array alone**, but what it holds depends on which fields the
+  viewer's scope masks. A harness that asked for a masked overlay and then an unmasked one over the
+  same rows got the masked answer twice. In the app each request builds a fresh array, so it would
+  have hidden until it did not.
+
+**Guard.** Every rule declares the row fields it `reads`, and that declaration is load-bearing rather
+than documentation: it is what the masking check runs against, so a rule touching an undeclared field
+serves a withheld column. `check-docs` therefore asserts **no rule reads a field it did not declare**
+— one-way, since a rule may legitimately declare a field it touches through a helper. That check was
+added because a break test came back MISSED: changing a rule's `reads` while its body went on reading
+the old field was uncatchable, and so was the reverse. Nine mutations are caught now, including the
+two-scale regression itself — reverting `resolveTokens` to `db.portfolio` fails the build.
+
+**The general shape.** *A partial fix to a coherence problem is a new coherence problem.* The first
+change was correct in isolation and made the screen less trustworthy than leaving it alone, because
+what was wrong was never one figure — it was that one population was being narrowed and another was
+not. When the complaint is that things disagree, the unit of work is every surface that quotes the
+figure, and the way to guarantee that is one source rather than one careful edit per reader.

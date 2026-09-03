@@ -2492,24 +2492,33 @@ was written, and the prose figures — *"does not sum to $113.1B"* — listed on
 gallon` stays a volume. Platform spend and the unprinted five-year programme figures are left alone;
 `check-docs` reads the tiles back out of all three documents, so a re-export in billions fails the build.
 
-A fourth: **those tiles narrow with the reader's filters, and the transform is `npm run narrow:capex`.**
-They did not: picking an executive category moved the population line from 50 to 10 and left
-`$20.0M · $17.6M · −$2.4M · −11.8%` byte-identical, because they are `portfolio.period*` — declared
+A fourth: **a narrowed report re-derives itself, and the transform is `npm run narrow:capex`.** It did
+not: picking an executive category moved the population line from 50 to 10 and narrowed the three
+`projects`-sourced blocks, and left everything sourced from `portfolio` byte-identical — the four tiles,
+the category chart, the region × category heatmap and the prose quoting all of them. They are declared
 programme figures over all 4,500 projects, served as stated, with the document's own *Unchanged by your
 filters* note on the block. Correct, and unreadable from a broken filter. So: **unnarrowed, nothing
-changed**; narrowed, a figRow whose every figure has a row field re-sums over the rows admitted,
-relabels itself *Q1 2026 · 10 projects in view*, and carries a seam naming what it footed to and the
-declared figure it is not showing. That is not the substitution `neverSubstitute` forbids — the fault
-there is a re-summed total wearing the *declared* figure's label, and the fixture already keeps
-`samplePeriod*` beside `period*` for exactly this distinction.
-Where to look when it goes wrong: `IN_VIEW_FIELD` (portfolio key → row field, **coordinate-aware**,
-which is why `FIELD_FOR_MEASURE` cannot serve — it resolves `m_actual` to inception-to-date `actual`),
-`inViewFigures` (the guards: unnarrowed, no rows, an `expr` figure, a key with no field, a masked row
-field — each returns null and serves the declared figure), and `resolveBlock`, which drops
-`unaffectedByParams` on a block that moved. **All-or-nothing is the trap**: a block re-sums only if
-every figure in it has a field, so one renamed field turns the feature off in silence — the script
-refuses to write on a map entry the roster does not carry, and two `check-docs` claims assert every
-layer in all three documents *and* that exactly one figRow re-sums.
+changed**; narrowed, `inViewPortfolio` builds one overlay over `db.portfolio` and two readers reach it —
+`sourceObject` (every figRow, bar, heatmap and filing calendar) and `resolveTokens` (the prose) — with
+every block that reads a recomputed key stating the population it totalled. That is not the substitution
+`neverSubstitute` forbids: the fault there is a re-summed total wearing the *declared* figure's label,
+and the fixture already keeps `samplePeriod*` beside `period*` for exactly this distinction.
+
+**One overlay rather than a rule per block, because the tiles alone were done first and that was worse
+than not starting**: `$31.8K` of period plan above a chart still drawn in millions and a paragraph still
+reading *"actual spend of $17.6M"*. Figures on one screen move together or not at all.
+
+Where to look when it goes wrong: the three rule maps (`IN_VIEW_FIELD` for a portfolio key backed by a
+row field — **coordinate-aware**, which is why `FIELD_FOR_MEASURE` cannot serve, it resolves `m_actual`
+to inception-to-date `actual`; `IN_VIEW_DERIVED` for counts and extremes; `IN_VIEW_SHAPE` for the
+category series, the heatmap and the filing calendar's exposure table), `IN_VIEW_DECLARED` for what is
+deliberately *not* moved and why, and `resolveBlock`, which drops `unaffectedByParams` on a block that
+moved. Every rule declares the row fields it `reads`, and that declaration is load-bearing — it is what
+the masking check runs against, so `check-docs` refuses a rule touching a field it did not declare.
+**Silence is the trap**: a renamed row field stops a rule moving with nothing on screen saying so, so the
+script refuses to write on a field the roster lacks or an identity rule that stops reproducing, and two
+claims assert every layer in all three documents *and* that the in-service figures stay declared.
+R2 needed nothing — Project 360's only view parameter is `project`, so it already changes whole.
 
 A fifth: **the frame is held until the document opens its report.** These files paint the prototype's own
 sidebar, topbar and Knowledge-graphs screen while the 2.6 MB parses, because the style that hides them and
