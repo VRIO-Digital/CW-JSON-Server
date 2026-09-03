@@ -5012,27 +5012,21 @@ const toGraphBuild = (raw: RawGraphBuild): GraphBuild => ({
 const studioBuildsPath = (useCaseId: string) =>
   `/graph-studio/${encodeURIComponent(useCaseId)}/builds`
 
-/** Builds, or rebuilds. Answers 202 with a queued run, not a finished graph. */
 /**
- * Start a build, saying who started it.
+ * Builds, or rebuilds. Answers 202 with a queued run, not a finished graph.
  *
- * `as` is the signed-in address, sent for the reason `publishVersion` sends its own: the
- * identity is client-held and the server has nothing to look it up from. It matters more
- * here than it looks — a runtime-answered graph publishes itself when the run lands, so for
- * that graph this call *is* the publish act, and an address left unsent credits the tenant's
- * seeded account on every "published by" line.
+ * **It says who started it to nobody, and that is deliberate.** This took an `as` and sent it
+ * as `?as=`, because a runtime-answered graph published itself when the run landed — so for
+ * that one graph this call *was* the publish act and had to name somebody. A build publishes
+ * nothing now: every graph waits for the Publish button, `publishVersion` still sends the
+ * address, and a build has no publication to credit. Sending one anyway would ask the reader's
+ * identity of a route that throws it away.
  */
-export async function startGraphBuild(
-  useCaseId: string,
-  as?: string | null,
-): Promise<GraphBuild> {
-  const path = studioBuildsPath(useCaseId)
+export async function startGraphBuild(useCaseId: string): Promise<GraphBuild> {
   return toGraphBuild(
     validate<RawGraphBuild>(
       'The graph build',
-      await request<unknown>(as ? `${path}?as=${encodeURIComponent(as)}` : path, {
-        method: 'POST',
-      }),
+      await request<unknown>(studioBuildsPath(useCaseId), { method: 'POST' }),
       GRAPH_BUILD,
     ),
   )

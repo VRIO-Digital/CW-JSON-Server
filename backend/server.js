@@ -3896,15 +3896,13 @@ function runtimeSourcesIn(picks) {
     .filter((s) => s && s.status === 'connected' && isRuntimeSource(s.kind))
 }
 
-/**
- * Whether a graph draws on a source that is read at question time.
- *
- * Read off the brief's own source picks rather than a flag stored beside them, so it cannot
- * disagree with what step 4 recorded.
+/*
+ * `runtimeSourcesFor(useCase)` was here — a one-line wrapper reading a brief's own picks. Its
+ * only caller was the build's auto-publish, and it went with it: a helper nothing calls is
+ * dead code that reads as a feature, and node reports no error for one, so nothing else would
+ * have said so. `runtimeSourcesIn` stays, because the coverage step still asks it which of a
+ * brief's picked sources are read at question time.
  */
-function runtimeSourcesFor(useCase) {
-  return runtimeSourcesIn(useCase?.sources ?? [])
-}
 
 function runGraphBuild(run, useCase) {
   const step = () => {
@@ -3919,33 +3917,27 @@ function runGraphBuild(run, useCase) {
       const version = recordVersion(run, studioSummary(useCase).queue_count === 0)
 
       /*
-       * **A runtime-answered graph publishes itself when its build lands.**
+       * **A BUILD NEVER PUBLISHES. Publishing is a button, for every graph.**
        *
-       * Ask queries the published version and only that one, and that rule is not being
-       * relaxed here — what changes is *who presses Publish*, not what Ask will answer
-       * from. A graph whose answers are read from correspondence at question time has
-       * nothing for a reviewer to settle before a reader may ask it: the review queue and
-       * the pivot decide what the *canvas* asserts, and a runtime source puts nothing on
-       * the canvas. So the publish happens here rather than being asked for, and every
-       * fact downstream stays real — the version, its content hash, when it landed and who
-       * it is credited to are the ones this build produced.
+       * A runtime-answered graph used to publish itself here, on the reasoning that it had
+       * nothing for a reviewer to settle: the review queue and the pivot decide what the
+       * *canvas* asserts, and a runtime source puts nothing on the canvas. **Removed on
+       * request** — reported from use as a graph that "automatically got published".
        *
-       * It is the *build* that publishes, never the commit: committing is instantaneous,
-       * and a brief that published on save would put a version in Ask before the content
-       * behind it existed. A rebuild moves the pointer to the newer version for the same
-       * reason a rebuild is the normal case after settling rows.
+       * The reasoning was about what a *reviewer* owes the canvas, and publishing is not
+       * only that. It is the act that puts a version in front of readers, it names who
+       * did it, and Versions offers to undo it — so a reader who never pressed it is left
+       * with a live graph, a byline in their name and an Unpublish button explaining an
+       * act they did not perform. Two surfaces then disagree about what the button is for:
+       * every other graph waits, and this one had already gone.
        *
-       * A graph with no runtime source is untouched and still waits for Publish.
+       * It also stepped around the gate rather than through it. `studioLive.set` here
+       * consulted no `publish.blocked`, so a build could put a graph in Ask with must-review
+       * rows still open — which the queue exists to prevent, whatever the canvas holds.
+       *
+       * So the build records a version and stops. Ask still queries the published version
+       * and only that one; what changed is that somebody has to press Publish first.
        */
-      if (runtimeSourcesFor(useCase).length > 0) {
-        studioLive.set(run.use_case_id, version.sha256)
-        const key = `${run.use_case_id}:${version.sha256}`
-        /* Credited to whoever started the build, the way a publish credits whoever pressed
-           it. Cleared rather than left when the run named nobody, so `publishedByFor`
-           falls back to the tenant account instead of inheriting an earlier publisher. */
-        if (run.started_by) studioPublishedBy.set(key, run.started_by)
-        else studioPublishedBy.delete(key)
-      }
       return
     }
     setTimeout(step, BUILD_STEP_MS).unref?.()
@@ -3956,12 +3948,14 @@ function runGraphBuild(run, useCase) {
 /**
  * Starts a build for a graph and records it in that graph's history.
  *
- * `startedBy` is the signed-in address, sent as `?as=` for the reason every other route
- * that records who did something is told: the identity is client-held and this server has
- * nothing to look it up from. It matters here because a runtime-answered graph publishes
- * itself on completion, and a publication has to name somebody.
+ * **It takes no `startedBy`, and that is a removal rather than an omission.** The route used to
+ * accept `?as=` and the run carried `started_by`, both for one reader: the auto-publish that
+ * credited whoever started a runtime-answered build. With that gone nothing reads either, and a
+ * field with no reader is dead state that reads as a feature — so the parameter went with the
+ * behaviour it existed for. Publishing still takes `?as=`, because a publication still has to
+ * name somebody; a build is not a publication.
  */
-function startBuildFor(useCase, startedBy = null) {
+function startBuildFor(useCase) {
   const id = useCase.use_case_id
   const buildId = crypto.randomUUID()
   const run = {
@@ -3982,9 +3976,6 @@ function startBuildFor(useCase, startedBy = null) {
      */
     config_version: nextBuildVersion(id),
     started_at: new Date().toISOString(),
-    /* Who to credit if this build publishes itself. Not reported on `buildView`: a build
-       is not a publication, and the publication it may produce states its own publisher. */
-    started_by: startedBy,
     finished_at: null,
   }
   const history = graphBuildsByUseCase.get(id) ?? []
@@ -10288,17 +10279,13 @@ const routes = [
       const found = findBuiltGraph(id)
       if (found.error) return send(res, found.status, { error: found.error })
       /*
-       * Who started it, validated exactly as the publish route validates its own — because
-       * for a runtime-answered graph this *is* the publish act, and a malformed address
-       * would reach every "published by" line rather than being quietly dropped.
+       * **No `?as=` here, and it is not an oversight.** This route validated one, because a
+       * runtime-answered build *was* the publish act and a malformed address would have
+       * reached every "published by" line. A build publishes nothing now, so there is
+       * nobody for it to name — and a route that went on accepting an address it never
+       * recorded would be asking the client for something it throws away.
        */
-      const as = query.get('as')
-      if (as !== null && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(as)) {
-        return send(res, 400, {
-          error: `"${as}" is not an email — send the signed-in address as ?as=, or nothing`,
-        })
-      }
-      send(res, 202, buildView(startBuildFor(found.useCase, as)))
+      send(res, 202, buildView(startBuildFor(found.useCase)))
     },
   },
 

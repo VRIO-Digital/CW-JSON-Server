@@ -247,12 +247,9 @@ export const useGraphBuildStore = create<BuildState>()((set, get) => ({
   start: async (useCaseId) => {
     set({ starting: true, error: null })
     try {
-      /* Told who, the way `publish` is: this build publishes itself where the graph is
-         runtime-answered, and a publication has to name somebody. */
-      const run = await startGraphBuild(
-        useCaseId,
-        useAuthStore.getState().identity?.email ?? null,
-      )
+      /* Told nobody, unlike `publish`. A build publishes nothing — every graph waits for the
+         button — so there is no publication for this call to credit. */
+      const run = await startGraphBuild(useCaseId)
       set({ shown: run, history: [run, ...get().history] })
       return { ok: true }
     } catch (error) {

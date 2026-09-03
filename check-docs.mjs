@@ -2793,31 +2793,61 @@ expect(
   'runGraphBuild records one on completion, not on start',
 )
 /*
- * **Building publishes exactly one kind of graph: a runtime-answered one.**
+ * **A BUILD NEVER PUBLISHES. Publishing is a button, for every graph.**
  *
- * This used to read "building never publishes", and it was right for as long as every graph
- * was answered from its own canvas. A graph whose answers are read from correspondence at
- * question time has nothing for the review queue to settle before a reader may ask it — the
- * queue and the pivot decide what the *canvas* asserts, and a runtime source puts nothing on
- * the canvas — so its build publishes it and nobody presses Publish.
+ * A runtime-answered graph used to publish itself when its build landed, on the reasoning that
+ * it had nothing for a reviewer to settle: the review queue and the pivot decide what the
+ * *canvas* asserts, and a runtime source puts nothing on the canvas. **Removed on request** —
+ * reported from use as a graph that "automatically got published".
  *
- * What must not come back is the unconditional version: a build that published *any* graph
- * would put a canvas nobody had reviewed into Ask. So the claim is that the write sits
- * **inside the runtime guard**, not merely that the guard exists somewhere in the function —
- * a `studioLive.set` that drifted out of that `if` is the regression, and it would satisfy a
- * looser test while publishing every build.
+ * The reasoning was about what a reviewer owes the canvas, and publishing is not only that. It
+ * puts a version in front of readers, it names who did it, and Versions offers to undo it — so
+ * a reader who never pressed it met a live graph, a byline in their name, and an Unpublish
+ * button explaining an act they had not performed. It also stepped around the gate rather than
+ * through it: that `studioLive.set` consulted no `publish.blocked`, so a build could put a graph
+ * in Ask with must-review rows still open.
+ *
+ * **Asserted as an absence across every layer at once**, because half a removal is the shape
+ * that fails silently. The write, the guard it sat in, the one-line helper that fed the guard,
+ * the `?as=` the route validated so the auto-publish could credit somebody, the run field it
+ * was carried on, and the client and store that sent it — all of them, in one claim. A layer
+ * left behind is not a compile error: node reports nothing for an uncalled function, and a
+ * route that still validates an address it throws away still returns 202.
+ *
+ * **And what survives is asserted beside it**, or this passes just as happily on a server that
+ * cannot publish at all: `studioLive.set` still exists on the publish route, that route still
+ * takes and validates `?as=`, and `publishVersion` still sends it.
  */
-const runtimePublishBlock = (runBuildBody.match(
-  /if \(runtimeSourcesFor\(useCase\)\.length > 0\) \{[\s\S]*?\n {6}\}/,
-) ?? [''])[0]
+/* Sliced from the *version* publish route — `/publish$/.test(p)` alone appears three times, the
+   What-if scenario's among them, so the anchor carries the segment that tells them apart. */
+const publishRouteAt = server.indexOf('versions\\/[0-9a-f]+\\/publish$')
+const publishRouteBody =
+  publishRouteAt < 0 ? '' : server.slice(publishRouteAt, server.indexOf('\n    },', publishRouteAt))
+/* studioStoreCode is declared above, with the quality-report absence claim. */
 expect(
-  'a build publishes only a runtime-answered graph',
-  !/studioLive\.set/.test(startBuildBody) &&
-    runtimePublishBlock.length > 0 &&
-    /studioLive\.set/.test(runtimePublishBlock) &&
-    runBuildBody.split('studioLive.set').length - 1 === 1,
-  'the one studioLive.set in runGraphBuild sits inside if (runtimeSourcesFor(useCase).length > 0)',
+  'a build never publishes — every graph waits for the Publish button',
+  /* The write is gone from the build, and so is everything that fed it. Through `codeOnly`,
+     because the comment that replaced the behaviour explains what it used to do and names
+     `studioLive.set` doing it — the self-documenting-file trap, met here by an absence claim
+     for the sixth time in this file's history. */
+  !/studioLive\.set/.test(codeOnly(runBuildBody)) &&
+    !/studioLive\.set/.test(codeOnly(startBuildBody)) &&
+    !/runtimeSourcesFor/.test(codeOnly(server)) &&
+    !/started_by/.test(codeOnly(server)) &&
+    /* The route asks for nobody, and passes nobody. */
+    /startBuildFor\(found\.useCase\)\)/.test(server) &&
+    /function startBuildFor\(useCase\) \{/.test(server) &&
+    /* Nor does the client offer one. */
+    /export async function startGraphBuild\(useCaseId: string\): Promise<GraphBuild>/.test(client) &&
+    !/startGraphBuild\(\s*useCaseId,/.test(studioStoreCode) &&
+    /* What survives: publishing is still an act, still gated, and still names somebody. */
+    /studioLive\.set\(id, sha\)/.test(publishRouteBody) &&
+    /if \(gate\.blocked\)/.test(publishRouteBody) &&
+    /const as = query\.get\('as'\)/.test(publishRouteBody) &&
+    /publishVersion\(/.test(studioStoreCode),
+  'no studioLive.set in the build path; the publish route keeps its gate, its ?as= and its write',
 )
+
 /*
  * **One definition of "which picked sources are runtime", not two.**
  *
@@ -2836,9 +2866,11 @@ expect(
   /isRuntimeSource\(s\.kind\)/.test(runtimeSourcesBody) &&
     /status === 'connected'/.test(runtimeSourcesBody) &&
     /normalizeSourcePicks\(picks \?\? \[\]\)/.test(runtimeSourcesBody) &&
-    /function runtimeSourcesFor\(useCase\) \{\s*return runtimeSourcesIn\(useCase\?\.sources \?\? \[\]\)/.test(
-      server,
-    ) &&
+    /* `runtimeSourcesFor` used to be asserted here as the build's way in. It was a one-line
+       wrapper whose only caller was the auto-publish, and it went with it — so the coverage
+       step is the one caller now, and asserting a second would be asserting a helper back
+       into existence. */
+    !/runtimeSourcesFor/.test(codeOnly(server)) &&
     /*
      * And no third copy of the *picks* filter anywhere else.
      *
@@ -2888,36 +2920,12 @@ expect(
   'the fork, the dialog, its poll and its copy are all gone, and the studio branch is the only one',
 )
 /*
- * And the *server* half is untouched: a runtime-answered graph still publishes itself when its
- * build lands. The write stays inside the guard — a `studioLive.set` that drifted out of it
- * would publish every build — so this reads the guard's contents rather than its presence.
+ * And the *server* half changed after all: a build publishes nothing now, for any graph. The
+ * claim asserting that — and the removal of everything that fed the auto-publish — sits with the
+ * build route above, because it is a fact about the server rather than about this button. What
+ * matters here is unchanged: every brief lands in the studio, and the reader watches the same
+ * pipeline. They now press Publish at the end of it, like everybody else.
  */
-expect(
-  'and a runtime-answered graph still publishes itself when its build lands',
-  /if \(runtimeSourcesFor\(useCase\)\.length > 0\) \{\s*studioLive\.set\(run\.use_case_id, version\.sha256\)/.test(
-    server,
-  ),
-  'the build publishes it, and only for a graph that draws on a runtime source',
-)
-/*
- * A build is told who started it, because for a runtime-answered graph that call *is* the
- * publish act. It was not sent for a while and nothing failed: the server validated the
- * absent parameter happily and credited the tenant's seeded account on every "published by"
- * line — a wrong name rather than an error, which is the failure this repo keeps refusing.
- */
-expect(
-  'and the build is told who started it, the way publishing is',
-  /export async function startGraphBuild\(\s*useCaseId: string,\s*as\?: string \| null,/.test(
-    client,
-  ) &&
-    /await startGraphBuild\(\s*useCaseId,\s*useAuthStore\.getState\(\)\.identity\?\.email \?\? null,/.test(
-      codeOnly(read('frontend/src/store/graphStudioStore.ts')),
-    ) &&
-    /* The build route's own two lines: it validates an `as` and passes it to the run. */
-    /send the signed-in address as \?as=, or nothing/.test(server) &&
-    /startBuildFor\(found\.useCase, as\)/.test(server),
-  'startGraphBuild sends ?as=, so a runtime publish credits the signed-in reader',
-)
 /*
  * **An uncovered hero question is a gap only where nothing will answer it.**
  *

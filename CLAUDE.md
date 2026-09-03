@@ -1930,26 +1930,37 @@ that a graph is a thing to have at all.
 no chat, gone the moment `asking` went false. `subject` is a field of its own rather than a widened
 `graphName`: a mailbox filed under a key called "graph name" says something false about where the
 answers came from, which is the payload-field-is-a-contract mistake one layer up.
-**A runtime-answered graph publishes itself when its build lands, and the rule above is
-unchanged by it.** Ask still queries the published version and only that one — what changed
-is *who presses Publish*, not what Ask answers from. A graph drawing on a runtime source has
-nothing for a reviewer to settle before a reader may ask it: the review queue and the pivot
-decide what the **canvas** asserts, and a runtime source puts nothing on the canvas. So
-`runGraphBuild` sets `studioLive` on completion for such a graph, and every fact downstream
-stays real — the version, its content hash, when it landed and who it is credited to are the
-ones that build produced, credited to whoever started it via `?as=` (validated exactly as the
-publish route validates its own, because for this graph the build *is* the publish act).
+**A build never publishes. Publishing is a button, for every graph.** A runtime-answered graph
+used to publish itself when its build landed, on the reasoning that it had nothing for a reviewer
+to settle: the review queue and the pivot decide what the **canvas** asserts, and a runtime source
+puts nothing on the canvas. **Removed on request** — reported from use as a graph that
+*"automatically got published"*.
 
-Three things make that narrow rather than a hole in the gate, and `check-docs` asserts all
-three: the write sits **inside** `if (runtimeSourcesFor(useCase).length > 0)` — a
-`studioLive.set` that drifted out of it would publish every build, so the claim tests the
-guard's *contents* and not merely its presence; it is the **build** that publishes and never
-the commit, since committing is instantaneous and a brief that published on save would put a
-version in Ask before the content behind it existed; and a graph with no runtime source is
-untouched and still waits for Publish. The alternative designs were both worse: listing an
-unpublished graph in Ask leaves `version`, `sha256`, `published_at` and `published_by` with
-nothing to report, and lifting the gate on all four gated surfaces changes the meaning of a
-precondition three other pages share.
+**Why the reasoning did not hold.** It was about what a reviewer owes the canvas, and publishing
+is not only that. It is the act that puts a version in front of readers, it names who did it, and
+Versions offers to undo it — so a reader who never pressed Publish met a live graph, a byline in
+their own name, and an **Unpublish** button explaining an act they had not performed. Two surfaces
+then disagreed about what that button is for: every other graph waited, and this one had already
+gone. It also stepped around the gate rather than through it — that `studioLive.set` consulted no
+`publish.blocked`, so a build could put a graph into Ask with must-review rows still open, which
+is the one thing the queue exists to prevent whatever the canvas holds.
+
+**What went with it, because a removal takes what fed it.** The write, the
+`if (runtimeSourcesFor(useCase).length > 0)` guard around it, `runtimeSourcesFor` itself — a
+one-line wrapper whose only caller was that guard — the `?as=` the build route validated so the
+publication could be credited, the `started_by` the run carried it on, and the parameter
+`startGraphBuild` took to send it. None of those is a compile error once orphaned: node reports
+nothing for an uncalled function, and a route that goes on validating an address it throws away
+still answers 202. `check-docs` asserts every layer's absence in **one** claim, and asserts beside
+it that publishing still works — the publish route keeps its gate, its `?as=` and its write.
+
+`runtimeSourcesIn` stays, because step 6's coverage note still asks it which of a brief's picked
+sources are read at question time. It has one caller now rather than two.
+
+**What is unchanged is Ask.** It still queries the published version and only that one, and a
+graph that draws on a runtime source still reaches a reader a second way — asked *directly*, with
+no graph named at all, which needs no publication and never did. So nothing became unreachable:
+what changed is that a version reaches Ask when somebody publishes it.
 
 **The wizard forked on this for a while, and the fork is gone.** *Save & build graph* kept a
 runtime-answered brief in the wizard behind `RuntimeBuildDialog`, which watched the run, read
@@ -1960,21 +1971,16 @@ second answer to where a run lives. `RuntimeBuildDialog` and `src/data/runtimeBu
 deleted, and the page keeps none of the state that fed them — a poll and a read-back with no
 dialog to render them is dead state that reads as a feature.
 
-**What did not change is the sentence above it.** `runGraphBuild` still publishes a
-runtime-answered graph when its build lands; that is a fact about the graph rather than about a
-button, and `check-docs` asserts it where it lives, inside the guard. Such a reader now watches
-the same pipeline as everybody else and finds the version already live when the run finishes.
+**That removal's premise has since gone too**, which is worth noticing rather than leaving as an
+orphaned rationale: the dialog was removed partly *because* such a graph published itself, and now
+none does. The removal still stands on its own other half — one place to watch a build — and the
+reader it left watching the Build tab now presses Publish at the end of it, like everybody else.
 
-**Two things the removal cost, recorded rather than glossed.** The reader is no longer told, at
-the moment the build lands, that this graph published itself — they find that out in Versions,
-like everybody else; and the paced three-phrase panel that made a 93-second wait legible is gone
-with the dialog, so the wait is the Build tab's own stage-and-step readout, which is what it is
-for. Both were deliberate: **do not restore either without being asked.**
+**Two things that removal cost, recorded rather than glossed.** The paced three-phrase panel that
+made a 93-second wait legible is gone with the dialog, so the wait is the Build tab's own
+stage-and-step readout, which is what it is for; and the reader is not handed to Ask when the run
+lands. Both were deliberate: **do not restore either without being asked.**
 
-**Nothing sent `?as=` on a build for a while, and nothing failed.** The route validated the
-absent parameter happily, so a runtime graph published itself crediting `db.google_account`
-— a wrong name on every "published by" line rather than an error. `startGraphBuild` takes the
-address and the store passes the signed-in one, exactly as `publish` does.
 
 The walk is the studio's (`studioQuery`), deliberately: the sanity check that
 passed before publishing cannot then disagree with the answer after it. What

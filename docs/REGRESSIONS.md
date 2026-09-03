@@ -5577,3 +5577,53 @@ does.* When the honest answer to "put it here" is "that surface is not mine", th
 what access to that surface already exists — not whether to build the nearest thing that is easy.
 Fourteen mutations are caught now, including a re-export renaming the strip and a name reaching the
 markup unescaped.
+
+## A build that published without being asked (2026-09-03)
+
+**Reported from use.** A graph in Graph Studio *"automatically got published"* — its Versions
+row already showed `published` with an **Unpublish** button, on a v1 nobody had released.
+
+**It was deliberate, and the reasoning was half-right.** A graph drawing on a runtime source
+published itself when its build landed, on the argument that it had nothing for a reviewer to
+settle first: the review queue and the pivot decide what the **canvas** asserts, and a runtime
+source puts nothing on the canvas. True — and an argument about what a *reviewer* owes the
+canvas, which is not what publishing is. Publishing puts a version in front of readers, names
+who did it, and offers an undo. So a reader who never pressed it met a live graph, a byline in
+their own name, and an Unpublish button explaining an act they had not performed.
+
+**And it stepped around the gate rather than through it.** That `studioLive.set` consulted no
+`publish.blocked` — the same gate the publish route refuses on — so a build could put a graph
+into Ask with must-review rows still open. The feature reasoned that the queue was irrelevant
+*for this kind of graph*, and then bypassed it for that graph rather than satisfying it.
+
+**What the removal had to take with it**, none of which the compiler would have flagged:
+
+- the write, and the `if (runtimeSourcesFor(useCase).length > 0)` guard it sat in;
+- `runtimeSourcesFor` — a one-line wrapper whose only caller was that guard. **Node reports
+  nothing for an uncalled function**, so an orphaned helper is invisible in a way an unused
+  import is not;
+- `?as=` on the build route, which existed so the auto-publish could credit somebody. A route
+  that goes on validating an address it never records still answers 202;
+- `started_by` on the run, its only reader gone;
+- the parameter `startGraphBuild` took to send it, and the store's call passing the identity.
+
+`runtimeSourcesIn` stays: step 6's coverage note still asks it which picked sources are read at
+question time. It has one caller now instead of two.
+
+**Guard.** One cross-layer absence claim — the write, the guard, the helper, the field, the
+route, the client and the store — **with what survives asserted beside it**, or the claim would
+pass just as happily on a server that could not publish at all: the publish route keeps its
+gate, its `?as=` and its `studioLive.set`. Eight break-test mutations, all caught.
+
+**Three of my own mistakes in writing that claim, all previously recorded here.** The absence
+check read `runBuildBody` raw, and the comment that *replaced* the behaviour names
+`studioLive.set` explaining what it used to do — so a correct removal failed its own claim
+until the body went through `codeOnly`. That is the self-documenting-file trap, for the sixth
+time. Two break-test anchors used `\n` against a CRLF `server.js` and did not land, reported as
+"unbreakable". And a duplicate `const studioStoreCode` crashed the run outright, which the
+claim total not moving would have hidden if the file had not refused to parse.
+
+**The general shape.** *An argument for why a precondition does not apply is not a licence to
+skip the act the precondition guards.* If a reviewer genuinely has nothing to settle for some
+graph, the honest expression is a gate that computes to unblocked — leaving the act itself
+where it was, on a button a person presses.

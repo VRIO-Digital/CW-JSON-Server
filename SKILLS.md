@@ -1165,11 +1165,11 @@ the entity list. **A hero question no profiled column covers is `runtime` rather
 it does not block the build, which is what a mailbox-only brief used to do with no control on
 screen to unblock it. At Ask time its content arrives as
 `observation` blocks — attributed claims read from correspondence, never merged into the
-graph. And a graph drawing on one **publishes itself when its build completes**, so it
-reaches Ask without anybody pressing Publish; see Flow 9. Which is why **Save & build does
-not route it to Graph Studio**: the studio's one remaining act for this graph has already
-happened, so the wizard watches the run in a dialog and hands the reader to Ask. See Flow 7's
-last step.
+graph. Such a graph used to **publish itself when its build completed** and no longer does —
+removed on request, reported as a graph that published without anybody asking. Every graph
+waits for the Publish button now, and **Save & build routes every brief to Graph Studio**,
+which is where a build is watched. A mailbox is still askable the moment it is connected: Ask
+can be pointed at a connected source directly, with no graph named and nothing to publish.
 
 **`Next` refuses to leave step 4 empty** (its rule lives with every other step's,
 in `wizardSteps.ts`), and names the fix for each case: no
@@ -1320,30 +1320,21 @@ to prevent.
 The review is **re-derived on every arrival**, never cached — narrowing a source
 pick on step 4 immediately narrows what step 6 reports.
 
-**Where the click lands depends on whether this graph publishes itself.**
-`isRuntimeAnswered` in `src/data/runtimeBuild.ts` resolves the step-4 picks against the
-served source list and keeps the ones flagged `runtime` — the client half of the server's
-`runtimeSourcesIn`, asking the same question of the same facts, and reading the **served
-flag** rather than testing for a connector name.
+**The click lands in one place, for every graph.** The commit and the build start here and the
+reader goes to `/graph-studio/:id` on the Build tab, because a graph is built more than once
+and rebuilding lives where reviewing does.
 
-- **No runtime source** — unchanged. The commit and the build start here, and the reader
-  goes to `/graph-studio/:id` on the Build tab, because a graph is built more than once and
-  rebuilding lives where reviewing does.
-- **A runtime source** — the reader stays put. `RuntimeBuildDialog` watches the run to the
-  end (the studio's own poll, 350ms while in flight), and its two acts are *Ask a question*
-  and *Open Graph Studio*, in that order of prominence: the studio is somewhere to go rather
-  than somewhere to pass through, since the server published the version this run produced.
+It forked once: a runtime-answered brief stayed in the wizard behind `RuntimeBuildDialog`,
+which watched the run and handed the reader to Ask, on the reasoning that such a graph
+published itself and the studio had nothing left to do for it. **Both halves of that are gone**
+— the dialog was removed on request (one place to watch a build), and the self-publish was
+removed after it, so there *is* a remaining act: pressing Publish on the Versions tab.
+`RuntimeBuildDialog` and `src/data/runtimeBuild.ts` are deleted, `isRuntimeAnswered` with them.
 
-**The dialog reports the publication rather than asserting it.** When the run lands the page
-re-reads `GET /ask` once, keyed on the build id, and says *live* only where that list holds
-the graph — naming the version and the publisher the server reported. Where it does not, it
-says so and names Versions as the fix. A build finishing and a graph being live are two
-facts, and only the first is the run's to report.
-
-The build is also **told who started it** (`?as=`, from the client-held identity, validated
-by the route exactly as the publish route validates its own): for this graph the build *is*
-the publish act, so an unsent address credits the tenant's seeded account on every
-"published by" line rather than erroring.
+**The build is told nobody.** It took `?as=` while a runtime-answered build was the publish
+act and had a publication to credit. It publishes nothing now, so the parameter went with the
+behaviour — the route no longer validates one and the client no longer offers one.
+`publishVersion` still sends the signed-in address, because a publication still names somebody.
 
 **Where it fails:** an unnamed draft → 400 (`name is required`), an unknown
 domain or an out-of-range step → 400, opening a use case the server no longer has

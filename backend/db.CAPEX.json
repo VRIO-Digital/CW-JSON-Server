@@ -20587,82 +20587,19 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-hazrodous-mtjv1nk54",
-      "name": "hazrodous",
+      "use_case_id": "uc-testdata-mtlcqu332",
+      "name": "testdata",
       "status": "committed",
       "domain_id": "capital-projects",
-      "business_need": "wwwww",
-      "personas": [
-        {
-          "name": "Finance Executive",
-          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
-          "source": "ai"
-        },
-        {
-          "name": "Project Manager",
-          "description": "Asks where a single project stands against its own plan.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Actual Spend",
-          "description": "Posted general-ledger spend.",
-          "source": "ai"
-        },
-        {
-          "name": "Estimate at Completion",
-          "description": "Total expected cost at project completion.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": " :adaeze.okonjo@vriodigital.com",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "What if materials escalation runs three points above our assumption?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Which mandated work is at risk of missing its consent-order milestone?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 6,
-      "updated_at": "2026-09-02T09:30:24.194Z"
-    },
-    {
-      "use_case_id": "uc-test-mtihh1ph5",
-      "name": "test",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "business_need": "\nDomains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
       "personas": [
         {
           "name": "Controller",
           "description": "Asks whether the ledger and the plan agree, and where they do not.",
           "source": "ai"
-        },
-        {
-          "name": "Rate-Case Lead",
-          "description": "Asks which assets will be in service in time for the next filing.",
-          "source": "ai"
         }
       ],
       "kpis": [
-        {
-          "name": "Plan-to-Actual Variance",
-          "description": "Actual less period plan.",
-          "source": "ai"
-        },
         {
           "name": "Actual Spend",
           "description": "Posted general-ledger spend.",
@@ -20671,7 +20608,7 @@
       ],
       "sources": [
         {
-          "source_id": " :adaeze.okonjo@vriodigital.com",
+          "source_id": "gmail:adaeze.okonjo@vriodigital.com",
           "mode": "subset",
           "objects": [
             "INBOX"
@@ -20680,11 +20617,6 @@
       ],
       "hero_questions": [
         {
-          "text": "Show me the change orders with the message that explains each one.",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
           "text": "How far has the approved baseline moved since original approval, and who approved each move?",
           "priority": "normal",
           "source": "ai"
@@ -20692,7 +20624,7 @@
       ],
       "gap_decisions": [],
       "step": 6,
-      "updated_at": "2026-09-01T09:48:25.835Z"
+      "updated_at": "2026-09-03T09:58:56.425Z"
     }
   ],
   "graph_use_case_templates": [
