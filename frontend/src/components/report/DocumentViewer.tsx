@@ -502,6 +502,19 @@ const MIN_FRAME_PX = 420
  *   `PRINT_CSS` hides the whole container instead, and that stays right: on paper *no* control is a
  *   control, so there the blunt rule is the correct one.
  *
+ * - **The Variance Report's *Period* chip** (`.filtBar .fWrap:has(#fm_period)`), which selects nothing
+ *   and cannot be made to. It is declared `field: null, cls: "refresh"` — the document's own class for
+ *   a basis change rather than a filter — and nothing in the export reads it, so the "report
+ *   re-resolves" its `reason` promises happens nowhere and there is no basis-mix data for it to
+ *   re-resolve against. Its sibling `pisWindow` on the filing calendar was identical and **is** now a
+ *   real filter, because the rows carry in-service dates and its label names a population (see
+ *   `IN_VIEW_PARAM` in the ingest). `period` has no such escape: the rows hold plan and actual for one
+ *   period only, so *FY2026* and *Full plan span* have nothing to narrow to, and a chip that appeared
+ *   to work would be worse than one that is absent.
+ *
+ *   It is a coordinate chip — no `×`, and not counted by the bar's *Clear N filters* — so hiding it
+ *   leaves no count describing a control that is gone.
+ *
  * - **The document's own *View* chip group.** Four chips that are blank and inert, and the reason is in
  *   the document: its fixture serves `viewTypes` as plain strings (`["Category", "Region", …]`) while
  *   its own `repFilterBar` reads `t.label`, `t.id` and `t.enabled` off each one. So every chip renders
@@ -525,7 +538,8 @@ const FRAMED_CSS =
   ' .filtBar .fgroup.vt { display: none !important }' +
   ' .trustBar .tBtn { display: none !important }' +
   ' .repHead .racts #repRefreshBtn,' +
-  ' .repHead .racts [onclick="repExportOpen()"] { display: none !important }'
+  ' .repHead .racts [onclick="repExportOpen()"] { display: none !important }' +
+  ' .filtBar .fWrap:has(#fm_period) { display: none !important }'
 
 /**
  * What makes **Export PDF** produce the whole report rather than its first screen.

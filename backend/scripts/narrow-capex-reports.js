@@ -168,7 +168,27 @@ const HELPER = lines(
   '    rcNextFilingBy: { reads: [\'rcFilingBy\'],',
   '      of: rows => { const r = nearestFilingRow(rows); return r ? r.rcFilingBy : null; } },',
   '    rcNextFilingJuris: { reads: [\'rcFilingBy\', \'jurisdiction\'],',
-  '      of: rows => { const r = nearestFilingRow(rows); return r ? r.jurisdiction : null; } }',
+  '      of: rows => { const r = nearestFilingRow(rows); return r ? r.jurisdiction : null; } },',
+  '    /* THE DAYS ARE READ, NEVER COUNTED. The obvious rule is (filingBy - today), and it is',
+  '       wrong here: this fixture is dated against its own as-of, so counting from the clock',
+  '       gives a number that drifts every morning and goes negative the moment the demo',
+  '       outlives its data — 2026-08-01 is already behind us. The document states the answer',
+  '       per jurisdiction as `daysToFilingBy` on its own rateCaseExposure entry, so the rule',
+  '       looks it up for whichever jurisdiction the nearest filing is in. That also keeps this',
+  '       figure and the calendar block below it reading the same number.',
+  '',
+  '       Added after the fact: the tile beside two that moved stayed at the declared 62, which',
+  '       is the half-moved strip the first design refused by making a block all-or-nothing. The',
+  '       overlay lost that guarantee, so `check-docs` now asserts every key a block reads has',
+  '       either a rule or an entry in IN_VIEW_DECLARED. */',
+  '    rcNextFilingDays: { reads: [\'rcFilingBy\', \'jurisdiction\'],',
+  '      of: rows => {',
+  '        const r = nearestFilingRow(rows);',
+  '        if (!r) return null;',
+  '        const entry = ((db.portfolio || {}).rateCaseExposure || [])',
+  '          .find(e => e.jurisdiction === r.jurisdiction);',
+  '        return entry ? entry.daysToFilingBy : null;',
+  '      } }',
   '  };',
   '',
   '  /* The earliest filing-by date among the rows in view, and the row carrying it. Dates',
@@ -295,6 +315,97 @@ const HELPER = lines(
   '      })',
   '    }',
   '  };',
+  '',
+  '  /* ---------------------------------------------------------------------- */',
+  '  /* A VIEW PARAM THAT NARROWS NOTHING                                        */',
+  '  /* ---------------------------------------------------------------------- */',
+  '',
+  '  /* `pisWindow` — the filing calendar\'s *In-service window* — is declared',
+  '     `field: null, cls: "refresh"`, so `applyParams` skips it and `paramSig` does',
+  '     not count it. Picking "Next 24 months" left the population line at 60 of 60',
+  '     and every figure at its declared value, with the chip lit as though it had',
+  '     done something. Reported from use.',
+  '',
+  '     THE PARAM IS READ BY NOTHING. It appears three times in the whole export —',
+  '     its definition and the report\'s list of params — so the "report re-resolves"',
+  '     its own `reason` promises is not implemented anywhere, and there is no',
+  '     basis-mix data in the fixture for it to re-resolve against. It is a control',
+  '     that could never have moved a figure.',
+  '',
+  '     **So it is made a row filter, and that is a reinterpretation on record.** The',
+  '     document draws a deliberate line between a `view` param (a filter) and a',
+  '     `refresh` one (a basis change), and argues in its own comments that a snapshot',
+  '     picker which looks like a filter teaches the reader the wrong thing. Asked for',
+  '     anyway, and the argument cuts the other way once the basis change does not',
+  '     exist: a chip labelled *In-service window* that narrows nothing at all teaches',
+  '     the reader less than one that narrows by in-service date. The rows carry the',
+  '     dates, so the reading its label promises is the one it now performs.',
+  '',
+  '     R1\'s `period` chip is the same class and is NOT given a rule: its rows hold',
+  '     plan and actual for one period only, so "FY2026" and "Full plan span" have no',
+  '     data to narrow to. It is hidden by the frame instead — see FRAMED_CSS. */',
+  '  const IN_VIEW_PARAM = {',
+  '    pisWindow: {',
+  '      /* The date the window is measured from, and the row field it is measured on.',
+  '         Both are the document\'s own: the anchor is derived from `pisCutoff`, which',
+  '         is the end of this fixture\'s twelve-month window, rather than from the',
+  '         clock — `Date.now()` would slide the window every morning and empty it',
+  '         once the demo outlives its data, which is the same trap `rcNextFilingDays`',
+  '         fell into. */',
+  '      admits: (row, values) => {',
+  '        const at = inViewServiceDate(row);',
+  '        /* A row with no in-service date is EXCLUDED rather than defaulted, which is',
+  '           the report\'s own stated rule: "a defaulted date puts value in a month',
+  '           nobody planned it for." Three of the sixty carry none. */',
+  '        if (!at) return false;',
+  '        return values.some(v => inViewWindowAdmits(v, at));',
+  '      }',
+  '    }',
+  '  };',
+  '',
+  '  /* Published to the shared interface, because the one caller that applies it —',
+  '     `applyParams` — is in the core module and cannot see this scope. Assigned rather',
+  '     than passed, the way the core module publishes everything else on `I`. */',
+  '  I.IN_VIEW_PARAM = IN_VIEW_PARAM;',
+  '',
+  '  const inViewServiceDate = row =>',
+  '    row.forecastInService || row.plannedInService || null;',
+  '',
+  '  /* The anchor, memoised per document rather than per row. */',
+  '  let inViewAnchor;',
+  '  function inViewWindowFrom() {',
+  '    if (inViewAnchor !== undefined) return inViewAnchor;',
+  '    const cutoff = (db.portfolio || {}).pisCutoff;',
+  '    inViewAnchor = null;',
+  '    if (cutoff) {',
+  '      const d = new Date(cutoff + \'T00:00:00Z\');',
+  '      if (!isNaN(d.getTime())) { d.setUTCFullYear(d.getUTCFullYear() - 1); inViewAnchor = d; }',
+  '    }',
+  '    return inViewAnchor;',
+  '  }',
+  '',
+  '  /* "Next N months" runs from the anchor; a named fiscal year is that calendar year.',
+  '     A value this does not recognise admits everything rather than nothing — an',
+  '     unrecognised window emptying the report would read as a filter that broke. */',
+  '  function inViewWindowAdmits(value, at) {',
+  '    const months = /^Next (\\d+) months$/.exec(String(value));',
+  '    if (months) {',
+  '      const from = inViewWindowFrom();',
+  '      if (!from) return true;',
+  '      const to = new Date(from);',
+  '      to.setUTCMonth(to.getUTCMonth() + Number(months[1]));',
+  '      const d = new Date(at + \'T00:00:00Z\');',
+  '      return d > from && d <= to;',
+  '    }',
+  '    const fy = /^FY(\\d{4})$/.exec(String(value));',
+  '    if (fy) return at >= fy[1] + \'-01-01\' && at <= fy[1] + \'-12-31\';',
+  '    return true;',
+  '  }',
+  '',
+  '  /* Whether a param narrows the row set at all — its own field, or a rule here.',
+  '     Read by `applyParams` and by the narrowing signature, so a param cannot filter',
+  '     the rows while the report still believes nothing was narrowed. */',
+  '  const inViewNarrows = p => !!(p && (p.field || IN_VIEW_PARAM[p.id]));',
   '',
   '  /* Kept declared on purpose, with the fixture\'s own reason. Listed rather than left',
   '     out, because "no rule" and "a rule nobody wrote yet" look identical in a map and',
@@ -533,6 +644,70 @@ const TOKENS_TO = lines(
 
 /* ---- edit 4: a block that moved says so, and loses the note saying it did not ---- */
 
+/* ---- edit 5: a param with a rule narrows the rows ---- */
+
+/*
+ * Patched in `applyParams` itself rather than wrapped around `I.applyParams`, because there are two
+ * callers and only one goes through `I`: the report's rows do, and the **option counts** beside each
+ * value call the bare local function. Wrapping the export would have narrowed the report while every
+ * count in the menu was computed over the unnarrowed set — a count that disagrees with the list it
+ * describes, which this document already records as worse than no count at all.
+ */
+const PARAMS_FROM = lines(
+  '      /* Membership, not equality — two selected values are a union, which is what',
+  '         checking two boxes means everywhere else a person has used a filter. */',
+  '      if (p.field) out = out.filter(r => vals.indexOf(String(r[p.field])) > -1);',
+  '',
+)
+
+const PARAMS_TO = lines(
+  '      /* Membership, not equality — two selected values are a union, which is what',
+  '         checking two boxes means everywhere else a person has used a filter. */',
+  '      if (p.field) out = out.filter(r => vals.indexOf(String(r[p.field])) > -1);',
+  '      /* A param with no field of its own but a rule in IN_VIEW_PARAM — the in-service',
+  '         window, whose values are ranges rather than column values, so no single field',
+  '         could express them: a project inside the next twelve months is inside the next',
+  '         twenty-four as well, and membership against one stored value cannot say that. */',
+  '      /* Through `I`, and that is not stylistic. `applyParams` lives in the CORE module',
+  '         (`(function (I) { … })(CW._api)`) and IN_VIEW_PARAM is declared in the REPORTS',
+  '         module below it — two IIFEs, two scopes, one shared `I`. A bare identifier here',
+  '         is a ReferenceError at request time, which the report catches and renders as',
+  '         "Could not resolve this report: IN_VIEW_PARAM is not defined". Both modules are',
+  '         called with CW._api, so the interface object is how one reaches the other — which',
+  '         is what `Object.assign(I, { … })` at the end of the core module is already for. */',
+  '      else if (I.IN_VIEW_PARAM && I.IN_VIEW_PARAM[p.id]) {',
+  '        out = out.filter(r => I.IN_VIEW_PARAM[p.id].admits(r, vals));',
+  '      }',
+  '',
+)
+
+/* ---- edit 6: and the report knows it was narrowed ---- */
+
+/*
+ * `paramSig` is what tells every block whether the reader narrowed. It tested `p.field`, so a param
+ * filtered by the rule above would have narrowed the rows while `paramsNarrowed` stayed false — the
+ * overlay would not fire, and the report would show declared figures over a filtered population,
+ * which is worse than the bug being fixed. `narrowedBy` takes the same test so the seam names the
+ * window among the filters that moved the figures.
+ */
+const SIG_FROM = lines(
+  '    const paramSig = params.filter(p => p.field && (active[p.id] || []).length)',
+  '      .map(p => p.id + \':\' + active[p.id].slice().sort().join(\',\')).join(\'|\');',
+  '    const paramsNarrowed = !!paramSig;',
+  '    const narrowedBy = params.filter(p => p.field && (active[p.id] || []).length)',
+  '      .map(p => p.label.toLowerCase());',
+  '',
+)
+
+const SIG_TO = lines(
+  '    const paramSig = params.filter(p => inViewNarrows(p) && (active[p.id] || []).length)',
+  '      .map(p => p.id + \':\' + active[p.id].slice().sort().join(\',\')).join(\'|\');',
+  '    const paramsNarrowed = !!paramSig;',
+  '    const narrowedBy = params.filter(p => inViewNarrows(p) && (active[p.id] || []).length)',
+  '      .map(p => p.label.toLowerCase());',
+  '',
+)
+
 const RESOLVE_FROM = lines(
   '      return Object.assign(base, fn(b, ctx), { population: population(b.source) },',
   '                           unaffectedByParams(b, ctx));',
@@ -563,6 +738,8 @@ const EDITS = [
   },
   { name: 'sourceObject resolving through the overlay', from: SOURCE_FROM, to: SOURCE_TO },
   { name: 'resolveTokens reading the same overlay as the tiles', from: TOKENS_FROM, to: TOKENS_TO },
+  { name: 'applyParams narrowing on a param whose values are ranges', from: PARAMS_FROM, to: PARAMS_TO },
+  { name: 'the narrowing signature counting that param', from: SIG_FROM, to: SIG_TO },
   {
     name: 'resolveBlock stating the population and dropping the note off a block that moved',
     from: RESOLVE_FROM,
@@ -672,9 +849,74 @@ const CATEGORICAL = [
 ]
 const ROW_FIELDS = [...SUMMED, ...NULLABLE, ...CATEGORICAL]
 
+/*
+ * The document is not one scope. It is a series of IIFEs, each `(function (I) { … })(CW._api)`, and
+ * the two this transform edits are different ones: `applyParams` and `aggregate` live in the CORE
+ * module, while everything inserted above `H.figRow` lives in the REPORTS module below it. They share
+ * only the interface object `I`.
+ *
+ * **That cost a released bug.** The `applyParams` branch was written referencing `IN_VIEW_PARAM`
+ * directly, which is declared in the other module — a ReferenceError at request time, surfacing as
+ * *"Could not resolve this report: IN_VIEW_PARAM is not defined"* on every CAPEX report. Nothing
+ * caught it: `check-docs` matches text, and the harness that executed the rules had flattened every
+ * region into one `vm` context, so the boundary it was violating did not exist there.
+ *
+ * So the boundary is checked here, structurally: **an identifier this transform introduces may only
+ * be named inside the module that declares it.** Anything the other module needs goes through `I`,
+ * which is what the core module's own `Object.assign(I, { … })` is for.
+ */
+function moduleRegions(src) {
+  const regions = []
+  const open = /\(function \(I\) \{/g
+  let m
+  while ((m = open.exec(src))) {
+    const end = src.indexOf('})(CW._api);', m.index)
+    if (end < 0) continue
+    regions.push({ from: m.index, to: end, text: src.slice(m.index, end) })
+    open.lastIndex = end
+  }
+  return regions
+}
+
+/* Every identifier the inserted code declares at module level. A name added to the module without
+   being listed here is checked by nothing, so the list is derived from the inserted text rather than
+   typed: any `const X =` or `function X(` at two-space indent inside HELPER. */
+function injectedNames() {
+  const names = new Set()
+  for (const m of HELPER.matchAll(/^ {2}(?:const|let) (\w+)/gm)) names.add(m[1])
+  for (const m of HELPER.matchAll(/^ {2}function (\w+)/gm)) names.add(m[1])
+  return [...names]
+}
+
+function checkScopes(name, src) {
+  const regions = moduleRegions(src)
+  if (regions.length < 2) {
+    die(name + ': expected at least two `(function (I) { … })(CW._api)` modules and found ' +
+        regions.length + '. The scope check cannot run, and it is the check that catches an ' +
+        'identifier used across a module boundary.')
+  }
+  const bare = (text, id) => new RegExp('(?<![.\\w])' + id + '\\b').test(text)
+  for (const id of injectedNames()) {
+    const declaredIn = regions.findIndex((r) =>
+      new RegExp('^ {2}(?:const|let|function) ' + id + '\\b', 'm').test(r.text),
+    )
+    if (declaredIn < 0) continue
+    regions.forEach((r, i) => {
+      if (i === declaredIn) return
+      if (bare(strip(r.text), id)) {
+        die(name + ': `' + id + '` is declared in module ' + (declaredIn + 1) + ' and named bare in ' +
+            'module ' + (i + 1) + '. These are separate IIFEs sharing only `I`, so that is a ' +
+            'ReferenceError the moment the report resolves — reach it as `I.' + id + '` and publish ' +
+            'it there, the way the core module publishes everything else.')
+      }
+    })
+  }
+}
+
 function verify(name) {
   const path = fileURLToPath(new URL(name, DIR))
   const src = readFileSync(path, 'utf8')
+  checkScopes(name, src)
 
   for (const e of EDITS) {
     const hits = src.split(e.to).length - 1

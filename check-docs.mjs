@@ -7676,8 +7676,14 @@ const capexDocs = capexDb.value?.reports?.documents ?? []
  * viewer that frames the document. A separate CAPEX-only grid existed briefly and was removed: two
  * grids of the same definitions is two answers to what reports exist.
  */
-const capexRowSrc =
-  read('frontend/src/reports/panes/GovernedCard.tsx') + read('frontend/src/components/report/DocumentViewer.tsx')
+/* Through `codeOnly`, because the fact is "no ingested title is a literal a component *renders*" and a
+   comment is not that. It went red the day `DocumentViewer` explained why the Variance Report's Period
+   chip is hidden — naming the report, correctly, in prose. The self-documenting-file trap met by a
+   claim that was only ever meant to read code. */
+const capexRowSrc = codeOnly(
+  read('frontend/src/reports/panes/GovernedCard.tsx') +
+    read('frontend/src/components/report/DocumentViewer.tsx'),
+)
 expect(
   'the CAPEX documents are ingested from the documents, never typed here',
   capexDocs.length > 0 &&
@@ -8107,6 +8113,12 @@ expect(
     /\.repHead \.racts \[onclick="repExportOpen\(\)"\] \{ display: none !important \}/.test(
       viewerSrc,
     ) &&
+    /* The Variance Report's Period chip, which selects nothing and cannot be made to: its rows hold
+       one period only. Its sibling `pisWindow` was the same and *is* now a filter, so this asserts
+       the distinction rather than the rule alone — `period` declared field-less, and `pisWindow`
+       given a rule in the ingest. If a later export gives `period` per-period rows, both halves
+       change together. */
+    /\.filtBar \.fWrap:has\(#fm_period\) \{ display: none !important \}/.test(viewerSrc) &&
     /* Applied to every frame, not only the seamless ones — a report is framed with its bar. */
     /style\.textContent = FRAMED_CSS \+ PRINT_CSS \+ \(seamless \? SEAMLESS_CSS : ''\)/.test(
       viewerSrc,
@@ -8133,7 +8145,12 @@ expect(
         html.includes('id="repRefreshBtn"') &&
         html.includes('onclick="repExportOpen()"') &&
         html.includes('class="repHead"') &&
-        html.includes('How this was built')
+        html.includes('How this was built') &&
+        /* The chip rule reaches a menu the document builds as `fm_<paramId>`, so that template has
+           to be what it still builds — and `period` has to still be the field-less param the rule
+           is about, or it would be hiding a control that had started working. */
+        html.includes('id="fm_${rEsc(p.id)}"') &&
+        /"period": \{[\s\S]{0,400}?"field": null/.test(html)
       )
     }) &&
     /* Style only: nothing is removed from the DOM and no script is touched. */
@@ -8382,6 +8399,21 @@ const NARROW_LAYERS = [
   ['what it deliberately leaves declared', 'const IN_VIEW_DECLARED = {'],
   ['every block source resolving through it', 'const inView = inViewPortfolio(ctx);'],
   ['the prose reading the same overlay as the tiles', '? (inViewPortfolio(ctx) || db.portfolio)'],
+  /* The in-service window: a param the document declares `field: null`, so its own `applyParams`
+     skipped it and its own `paramSig` did not count it — a lit chip that narrowed nothing. All three
+     halves are asserted, because any one alone is worse than none: the rule without the filter does
+     nothing, the filter without the signature narrows the rows while every block still believes it
+     was unnarrowed and serves declared figures over a filtered population. */
+  ['the param whose values are ranges', 'const IN_VIEW_PARAM = {'],
+  /* Through `I.`, and the needle pins that rather than the branch alone. `applyParams` is in the
+     CORE module and the rule is declared in the REPORTS module below it — two IIFEs sharing only the
+     interface object — so a bare `IN_VIEW_PARAM` here is a ReferenceError at request time, which is
+     how this shipped once as "Could not resolve this report". The transform refuses to write such a
+     document now; this is the second lock. */
+  ['applyParams narrowing on it', 'else if (I.IN_VIEW_PARAM && I.IN_VIEW_PARAM[p.id]) {'],
+  ['the rule published on the shared interface', 'I.IN_VIEW_PARAM = IN_VIEW_PARAM;'],
+  ['the signature counting it', 'params.filter(p => inViewNarrows(p) && (active[p.id] || []).length)'],
+  ['and the window measured from the fixture, not the clock', 'function inViewWindowFrom() {'],
   ['which keys a block touched', 'function inViewTouches(b, ctx) {'],
   ['the population it states', 'function inViewCoverage(b, ctx, touched) {'],
   ['resolveBlock dropping the note off a block that moved', 'if (touched) return Object.assign(out, inViewCoverage(b, ctx, touched));'],
@@ -8494,6 +8526,26 @@ expect(
     /* The rules read real fields — enough of them that a silently-emptied rule set fails here. */
     narrowed.fields.length >= 10 &&
     capexNarrow.every((d) => d.unresolved.length === 0) &&
+    /* The window rule is needed and can run: the param really is declared field-less — so the
+       document's own applyParams really does skip it — the rows really carry the date it reads, and
+       the anchor it measures from really exists. `Date.now()` must not appear among the rules: a
+       window counted from the clock slides every morning and empties once the demo outlives its
+       data, which is the trap `rcNextFilingDays` had to be pulled out of. */
+    capexNarrow.every((d) => {
+      const html = read(`frontend/src/Capex/Report/${d.file}`)
+      /* `codeOnly`, because the comment beside the rule explains why `Date.now()` is wrong — and
+         so names it. Seventh time in this file's history; the trap does not get less reliable. */
+      const rules = codeOnly(
+        (html.match(/const IN_VIEW_PARAM = \{[\s\S]*?\r?\n {2}const inViewNarrows/) ?? [''])[0],
+      )
+      return (
+        /"pisWindow": \{[\s\S]{0,400}?"field": null/.test(html) &&
+        /"pisCutoff":/.test(html) &&
+        rules.length > 0 &&
+        !/Date\.now\(\)/.test(rules) &&
+        d.projects.every((r) => 'forecastInService' in r)
+      )
+    }) &&
     /* And the four sample-scoped rules reproduce the figure they replace, to the dollar. */
     capexNarrow.every((d) => d.identities.length === 0) &&
     /* … and no rule touches a row field it did not declare, which is what the masking check reads. */
@@ -8560,6 +8612,92 @@ expect(
     ? 'fewer than three rendered CAPEX reports were found — this claim cannot run'
     : `${narrowed.leftDeclared.length} keys are left declared on purpose, each with its reason: ` +
       `${narrowed.leftDeclared.slice(0, 4).join(', ')}…`,
+)
+
+/*
+ * **And no block is half-moved in silence.**
+ *
+ * The overlay narrows per *key*, and that lost a guarantee the first design had. Before it, a figRow
+ * re-summed only if **every** figure in it had a row field — all-or-nothing, because two tiles
+ * narrowed beside two that could not be is a worse reading than either whole, with nothing on the
+ * strip saying which two were which. The overlay has no such rule: it replaces the keys it can and
+ * leaves the rest, so a block can carry both.
+ *
+ * **Which is exactly what happened.** The filing calendar's exposure tiles read three keys and only
+ * two had rules: `rcNextFilingDays` had none, so it sat at the declared 62 beside two figures that
+ * had moved to the rows in view — under a seam saying the block had been re-derived over them.
+ * Reported from use.
+ *
+ * **So the invariant is not "every key moves".** Some genuinely cannot: the in-service figures come
+ * from a different file, and how many jurisdictions publish a squeeze window is a fact about the
+ * commission calendar rather than about anybody's projects. A narrative may honestly mix the two.
+ * What must never happen is a key that is neither given a rule **nor** written down as deliberately
+ * declared — because those two look identical on screen and only one of them is a decision.
+ *
+ * **Scoped to the reports a document actually renders**, read from `reports.documents` rather than
+ * listed here. Each file embeds all seven specs and opens one; the other four are unreachable in this
+ * app, and inventing rules for blocks nobody can see would be answering a question nobody asked.
+ */
+const shippedReportIds = (capexDoc.value?.reports?.documents ?? []).map((d) => d.report_id)
+const inViewMapKeys = (html, name) => {
+  const m = html.match(new RegExp(`const ${name} = \\{[\\s\\S]*?\\r?\\n {2}\\};`))
+  return m ? [...m[0].replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/^ {4}(\w+):/gm)].map((x) => x[1]) : []
+}
+const unexplainedKeys = capexReportDocs.flatMap((file) => {
+  const html = read(`frontend/src/Capex/Report/${file}`)
+  const covered = new Set(
+    ['IN_VIEW_FIELD', 'IN_VIEW_DERIVED', 'IN_VIEW_SHAPE', 'IN_VIEW_DECLARED'].flatMap((n) =>
+      inViewMapKeys(html, n),
+    ),
+  )
+  let reports = []
+  let tokens = {}
+  try {
+    reports = JSON.parse(
+      carveJson(html, html.indexOf('CW.db.reports = [')).replace(/\/\*[\s\S]*?\*\//g, ''),
+    )
+    const table = JSON.parse(
+      carveJson(html, html.indexOf('CW.db.narrativeTokens =')).replace(/\/\*[\s\S]*?\*\//g, ''),
+    )
+    tokens = table.tokens ?? table
+  } catch {
+    return [`${file}: could not read its report specs`]
+  }
+  const out = []
+  for (const r of reports.filter((r) => shippedReportIds.includes(r.id))) {
+    for (const b of r.spec?.blocks ?? []) {
+      const keys = []
+      if (typeof b.source === 'string' && b.source.startsWith('portfolio.')) keys.push(b.source.slice(10))
+      if (b.source === 'portfolio' && b.key) keys.push(b.key)
+      if (b.source === 'portfolio') for (const f of b.figures ?? []) keys.push(f.key)
+      if (typeof b.body === 'string') {
+        for (const t of b.body.match(/\$[A-Z0-9]+/g) ?? []) {
+          const spec = tokens[t]
+          if (spec && spec.source === 'portfolio') keys.push(spec.key)
+        }
+      }
+      for (const k of new Set(keys)) {
+        if (!covered.has(k)) out.push(`${r.id}/${b.id} reads ${k}`)
+      }
+    }
+  }
+  return out
+})
+expect(
+  'and no block reads a portfolio key that has neither a rule nor a recorded reason for staying declared',
+  capexReportDocs.length >= 3 &&
+    shippedReportIds.length >= 3 &&
+    /* Every map the check reads is really there, or "nothing uncovered" would mean "nothing read". */
+    capexReportDocs.every(
+      (file) =>
+        inViewMapKeys(read(`frontend/src/Capex/Report/${file}`), 'IN_VIEW_FIELD').length > 0 &&
+        inViewMapKeys(read(`frontend/src/Capex/Report/${file}`), 'IN_VIEW_DECLARED').length > 0,
+    ) &&
+    unexplainedKeys.length === 0,
+  unexplainedKeys.length
+    ? `${unexplainedKeys.length} key(s) would sit at the declared figure beside figures that moved, ` +
+      `with nothing saying so — e.g. ${unexplainedKeys[0]}`
+    : `every portfolio key the ${shippedReportIds.length} rendered reports read is ruled or declared`,
 )
 
 /*

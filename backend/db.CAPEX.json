@@ -20587,11 +20587,11 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-testdata-mtlcqu332",
-      "name": "testdata",
+      "use_case_id": "uc-test-mtleyosy2",
+      "name": "test",
       "status": "committed",
       "domain_id": "capital-projects",
-      "business_need": "\nDomains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
       "personas": [
         {
           "name": "Controller",
@@ -20601,30 +20601,33 @@
       ],
       "kpis": [
         {
-          "name": "Actual Spend",
-          "description": "Posted general-ledger spend.",
+          "name": "Plan-to-Actual Variance",
+          "description": "Actual less period plan.",
           "source": "ai"
         }
       ],
       "sources": [
         {
           "source_id": "gmail:adaeze.okonjo@vriodigital.com",
-          "mode": "subset",
-          "objects": [
-            "INBOX"
-          ]
+          "mode": "all",
+          "objects": []
         }
       ],
       "hero_questions": [
         {
-          "text": "How far has the approved baseline moved since original approval, and who approved each move?",
+          "text": "Show me the change orders with the message that explains each one.",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "Which explanations came from correspondence rather than from a person?",
           "priority": "normal",
           "source": "ai"
         }
       ],
       "gap_decisions": [],
       "step": 6,
-      "updated_at": "2026-09-03T09:58:56.425Z"
+      "updated_at": "2026-09-03T11:13:57.333Z"
     }
   ],
   "graph_use_case_templates": [

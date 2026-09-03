@@ -2997,6 +2997,85 @@ source — the category series, the region × category matrix, and the per-juris
 The `reads` declaration is load-bearing rather than documentation: it is what the masking check runs
 against, so `check-docs` asserts **no rule touches a row field it did not declare**.
 
+**And no block may be half-moved in silence**, which is a guarantee the overlay lost and had to be
+given back. The first design was all-or-nothing per figRow — it re-summed only if *every* figure had a
+row field — because two tiles narrowed beside two that could not be is a worse reading than either
+whole, with nothing on the strip saying which two were which. An overlay narrows per *key*, so it
+replaces what it can and leaves the rest. That is exactly what went wrong: the filing calendar's
+exposure tiles read three keys and only two had rules, so `rcNextFilingDays` sat at the declared 62
+beside two figures that had moved — under a seam saying the block had been re-derived. Reported from
+use.
+
+**The invariant is not "every key moves"**, because some honestly cannot: the in-service figures come
+from a different file, and how many jurisdictions publish a squeeze window is a fact about the
+commission calendar rather than about anybody's projects, so a narrative may legitimately mix the two.
+What must never happen is a key with **neither a rule nor an entry in `IN_VIEW_DECLARED`** — those two
+look identical on screen and only one is a decision. `check-docs` walks every block of every report a
+document actually renders, collects the portfolio keys it reads through all four routes (a dotted
+source, a `key`, a figure list, a `$TOKEN`), and fails on any that is neither ruled nor declared. It is
+scoped to `reports.documents` because each file embeds all seven specs and opens one; rules for blocks
+nobody can reach would be answering a question nobody asked.
+
+**And a view param that narrows nothing is either given a rule or hidden.** The filing calendar's
+*In-service window* is declared `field: null, cls: "refresh"` — the document's own class for a basis
+change rather than a filter — so its `applyParams` skipped it and its `paramSig` did not count it:
+picking *Next 24 months* left the population line at 60 of 60 and every figure at its declared value,
+with the chip lit as though it had done something. **The param is read by nothing** — it appears three
+times in the whole export, its definition and the report's list — so the re-resolution its own `reason`
+promises is implemented nowhere and there is no basis-mix data to re-resolve against.
+
+**So `IN_VIEW_PARAM` makes it a row filter, and that is a reinterpretation on record.** The document
+argues in its own comments that a snapshot picker which looks like a filter teaches the reader the
+wrong thing — and that argument cuts the other way once the basis change does not exist: a chip
+labelled *In-service window* that narrows nothing teaches less than one that narrows by in-service
+date. The rows carry the dates, so it now performs the reading its label promises. **Three edits, all
+asserted**: the rule, `applyParams` applying it, and `paramSig` counting it — the third because
+without it the rows would narrow while every block still believed they had not, serving declared
+figures over a filtered population, which is worse than the bug. Patched into `applyParams` itself
+rather than wrapped around `I.applyParams`, because the **option counts** call the bare local
+function: wrapping the export would have narrowed the report while every count in the menu described
+the unnarrowed set.
+
+**And the rule is published on `I`, because the document is not one scope.** These files are four
+IIFEs, each `(function (I) { … })(CW._api)`. `applyParams` and `aggregate` live in the **core**
+module; everything the transform inserts lives in the **reports** module below it. They share exactly
+one thing — the interface object — which is what the core module's own `Object.assign(I, { … })`
+exists for, and how `resolveReport` already reaches `I.applyParams` across the same boundary. A bare
+identifier crossing it the other way is a `ReferenceError` the moment a report resolves, and it
+shipped once as *"Could not resolve this report: IN_VIEW_PARAM is not defined"* on all three CAPEX
+reports.
+
+**The transform refuses to write that now.** It splits the document into its
+`(function (I) …)(CW._api)` modules, derives every identifier the inserted text declares — rather than
+a typed list, so a name added later is covered — and fails if one is named bare in a module that does
+not declare it, saying to publish it on `I` instead. Ordering was never the question: the `const` was
+initialised long before the call. The question was **place**, and "it runs later" is an answer about
+time.
+
+**The harness had to change with it.** The one that executed these rules loaded every extracted
+function into a single `vm` context, so the boundary being violated did not exist in it and the bug
+could not have failed there. It now evaluates the document's real modules in their real scopes,
+sharing one `CW._api`, and calls `I.applyParams` across the boundary. *A harness that flattens the
+structure under test cannot test the structure.*
+
+**The window is measured from the fixture, never the clock** — the anchor is derived from `pisCutoff`,
+the end of this fixture's own twelve-month window. `Date.now()` would slide it every morning and empty
+it once the demo outlives its data, the same trap `rcNextFilingDays` had to be pulled out of. A row
+with no in-service date is **excluded rather than defaulted**, which is the report's own stated rule.
+
+**R1's `period` chip is the same class and gets no rule — it is hidden by the frame instead.** Its rows
+hold plan and actual for one period only, so *FY2026* and *Full plan span* have nothing to narrow to,
+and a chip that appeared to work would be worse than one that is absent. The two refresh params end up
+treated differently, and each on its own merits: one names a population the rows can answer, the other
+names periods the rows do not carry.
+
+**`rcNextFilingDays` reads its answer rather than counting it**, which is the other half of that fix.
+The obvious rule is `filingBy - today`, and it is wrong here: the fixture is dated against its own
+as-of, so counting from the clock drifts every morning and goes negative once the demo outlives its
+data — 2026-08-01 is already behind us. The document states the answer per jurisdiction as
+`daysToFilingBy`, so the rule looks it up for whichever jurisdiction the nearest filing is in, which
+also keeps the tile and the calendar block below it quoting one number.
+
 **Four of the rules reproduce their declared figure exactly and two do not, and both facts are
 asserted.** The rate-case exposure figures are already sample-scoped — `portfolio.rcSampleNote` says so
 in as many words — so a disagreement there means a rule is reading the wrong field, and that is how

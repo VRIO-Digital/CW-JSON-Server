@@ -5656,3 +5656,153 @@ mutations, all caught, including a re-export renaming either button and the rule
 **The general shape.** *Hide what was named, not the box it came in.* A container selector is a bet
 that the container will never hold anything else — and for generated exports, which is where these
 rules exist at all, that is a bet against the next rebuild.
+
+## The tile that stayed still beside two that moved (2026-09-03)
+
+**Reported.** On the Rate-Case Filing Calendar, with 38 of 60 projects admitted, the exposure tiles
+still read `4 · $746k · 62` — the declared programme values — under a seam saying the block had been
+re-derived over the rows in view.
+
+**Two of the three were right by coincidence.** All four at-risk projects are in APSC, and the
+filter kept APSC, so `4` and `$746k` were genuinely unchanged. That is the worst kind of correct: it
+looked like the same bug as the third figure and would have sent anybody debugging it.
+
+**The third was wrong.** `rcNextFilingDays` had **no rule**. With DCC filtered out the nearest filing
+is BUC's — 65 days — and the tile said 62, which is DCC's. So the strip quoted a deadline in a
+jurisdiction the reader had just excluded, beside a table listing BUC as the nearest one.
+
+**The cause is a guarantee lost in a redesign.** The first version of this feature was
+all-or-nothing per figRow: it re-summed only if *every* figure in it had a row field, precisely
+because two tiles narrowed beside two that could not be is a worse reading than either whole. When
+that was rewritten as one overlay over `db.portfolio` — the right move, and the one that made the
+prose and the chart agree with the tiles — the rule went with it. An overlay narrows per key: it
+replaces what it can and silently leaves the rest. **The redesign fixed the reported bug and dropped
+an invariant nobody restated**, which is why the next report of the same shape was a different
+block.
+
+**The invariant, stated properly this time.** Not "every key moves" — some honestly cannot, and a
+narrative may legitimately mix a figure that narrowed with a fact about the commission calendar that
+does not. What must never happen is a key with **neither a rule nor a recorded reason**: those two
+are indistinguishable on screen and only one of them is a decision.
+
+**Guard.** `check-docs` walks every block of every report a document actually renders, collects the
+portfolio keys it reads through all four routes — a dotted source, a `key`, a figure list, a
+`$TOKEN` in prose — and fails on any that is neither ruled nor listed in `IN_VIEW_DECLARED`. Scoped
+to `reports.documents`, because each file embeds seven specs and opens one. Four break-test
+mutations, all caught, the first being this exact bug.
+
+**A second trap inside the fix.** The natural rule for `rcNextFilingDays` is `filingBy - today`, and
+it is wrong: this fixture is dated against its own as-of, so counting from the clock drifts daily and
+goes negative the moment the demo outlives its data — 2026-08-01 is already past. The document states
+the answer per jurisdiction as `daysToFilingBy`; the rule reads it. **A derived figure over fixture
+data must derive from the fixture's own anchor, never the wall clock.**
+
+**The general shape.** *When a redesign subsumes a feature, enumerate the invariants the old shape
+enforced structurally.* The all-or-nothing rule was not written down as an invariant — it was a
+property of how the first version happened to be built, and rebuilding lost it without a single test
+going red.
+
+## A filter chip that was never wired to anything (2026-09-03)
+
+**Reported.** On the filing calendar, picking *In-service window: Next 24 months* changed nothing —
+population line still 60 of 60, every figure at its declared value — while the same report responded
+normally to Region and Jurisdiction.
+
+**It was never a filter.** `pisWindow` is declared `field: null, cls: "refresh"`, so the document's
+own `applyParams` skips it and its `paramSig` does not count it. The param **is read by nothing**: it
+appears three times in the whole export — its definition and the report's list of params — so the
+"the report re-resolves" its own `reason` promises is implemented nowhere, and there is no basis-mix
+data for it to re-resolve against. A chip that could never have moved a figure, lit as though it had.
+
+**R1 has the same defect and nobody had hit it**: its *Period* chip is the same class, equally inert.
+It went unnoticed because a reader there also sets Executive category, which does filter. **When a
+control turns out to be decorative, check its siblings** — the class is the bug, not the instance.
+
+**They were fixed differently, on their own merits.** The window becomes a real row filter on each
+project's in-service date: the rows carry the dates, and its label names a population, so it now
+performs the reading a reader takes from it (40 / 43 / 45 of 60 for the three values). `period`
+cannot: its rows hold plan and actual for one period only, so *FY2026* and *Full plan span* have
+nothing to narrow to — it is hidden by the frame instead, because a chip that appeared to work would
+be worse than one that is absent.
+
+**That is a reinterpretation, recorded as one.** The document deliberately distinguishes a `view`
+param (a filter) from a `refresh` one (a basis change) and argues in its own comments that a snapshot
+picker which looks like a filter teaches the reader the wrong thing. The argument cuts the other way
+once the basis change does not exist.
+
+**Three edits, because any one alone is worse than none.** The rule; `applyParams` applying it; and
+`paramSig` counting it. Without the third the rows would narrow while every block still believed they
+had not — serving *declared programme figures over a filtered population*, which is a worse lie than
+the one being fixed. And it is patched into `applyParams` itself rather than wrapped around
+`I.applyParams`, because there are two callers and only one goes through `I`: the **option counts**
+call the bare local function, so wrapping the export would have narrowed the report while every count
+in the menu described the unnarrowed set.
+
+**The clock trap, twice in one day.** The window anchor is derived from the fixture's own `pisCutoff`,
+not `Date.now()` — a window counted from the wall clock slides every morning and empties once the demo
+outlives its data. Exactly the mistake `rcNextFilingDays` had to be pulled out of hours earlier.
+
+**Guard.** Five assertions on the narrow claim — the rule, the `applyParams` branch, the signature, the
+anchor helper, and `Date.now()` absent from the rules — plus the document still declaring `pisWindow`
+field-less, still carrying `pisCutoff`, and every row carrying `forecastInService`. The framed-report
+claim gained the Period rule and asserts `period` is *still* field-less, so if a later export gives it
+per-period rows both halves change together. Six break-test mutations, all caught.
+
+**Two process failures of mine, both worth the entry.**
+
+- **`Date.now()` appeared inside the comment explaining why not to use it**, so a check for its absence
+  went red against correct code until the slice went through `codeOnly`. Seventh occurrence. The same
+  hour, a *pre-existing* claim went red because a new comment named an ingested report title. **Every
+  whole-file or whole-region search needs `codeOnly`, positive or negative.**
+- **I ran `git checkout --` on a file with uncommitted work**, inside a one-line verification command,
+  to undo a deliberate test mutation. It reverted the mutation and two real edits with it. Nothing was
+  lost only because the rest had been committed minutes earlier. **Undo a test mutation by writing back
+  the bytes you read, never with git** — every break-test harness here already does this, and the one
+  place it was done by hand is the one place it went wrong.
+
+**The general shape.** *A control that changes nothing is a claim that it does something.* Whether the
+fix is to wire it up or to remove it depends on whether the data can answer what its label promises —
+and that question is worth asking of every sibling control at the same time.
+
+## The document is not one scope (2026-09-03)
+
+**Shipped, and it broke every CAPEX report.** *"Could not resolve this report — IN_VIEW_PARAM is not
+defined."*
+
+**The mistake.** The in-service window filter needed one branch inside the document's own
+`applyParams`, and that branch referenced `IN_VIEW_PARAM` — declared by the injected module a few
+hundred lines below. I checked the ordering, reasoned that `applyParams` only *runs* at request time
+long after every `const` is initialised, and moved on. The ordering was fine. **The scope was not.**
+
+These documents are four IIFEs, each `(function (I) { … })(CW._api)`. `applyParams` lives in the core
+module; everything the transform inserts lives in the reports module below it. They share exactly one
+thing: the interface object `I` — which is what the core module's own `Object.assign(I, { … })` exists
+for, and which `resolveReport` already uses to call `I.applyParams` across the same boundary. A bare
+identifier reaching the other way is a `ReferenceError` the moment a report resolves.
+
+**Why nothing caught it.**
+
+- `check-docs` matches text. It confirmed the branch was present and said nothing about whether the
+  name in it resolved.
+- The harness that *executed* the rules had loaded every extracted function into **one flattened `vm`
+  context**. The boundary being violated did not exist there, so it could not have failed. **A harness
+  that flattens the structure under test cannot test the structure.** It had passed on every previous
+  change because none of them crossed a module.
+- The transform's own verify step re-parses the document and replays the arithmetic — all of which was
+  correct. Correct arithmetic in unreachable code.
+
+**Two guards, and the first is the one that matters.**
+
+- **The transform now checks the boundary structurally, and refuses to write.** It splits the document
+  into its `(function (I) …)(CW._api)` modules, derives every identifier the inserted text declares
+  (rather than a typed list), and fails if any is *named bare* in a module that does not declare it —
+  naming the fix: publish it on `I`. Re-introducing the shipped bug now stops the run with
+  *"`IN_VIEW_PARAM` is declared in module 2 and named bare in module 1."*
+- **And the harness now evaluates the real modules in their real scopes**, sharing one `CW._api`, then
+  calls `I.applyParams` across the boundary. All four modules evaluate, `I.IN_VIEW_PARAM` is published,
+  and the counts come back 60 / 40 / 43 / 45 / 4 on each of the three documents.
+
+**The general shape.** *When you inject into someone else's file, the unit of correctness is their
+module, not their line order.* "It runs later, so the const is initialised" answers a question about
+time; the question that mattered was about place. And a test harness built by extracting pieces into
+one scope quietly asserts that the pieces share one — which is the very thing worth checking.
