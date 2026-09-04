@@ -20,17 +20,41 @@ import { MT } from '../../data/dataModelTokens'
 
 interface ProvenanceBadgeProps {
   /**
+   * Three, and the two non-human ones are **different facts about where a suggestion came from**.
+   *
    * `human` is somebody's declaration. `derived` is this server's own reading of the profiled
-   * columns — deliberately not called "AI": there is no model behind it, the suggestions payload
-   * says so with `degraded`, and a badge claiming one would be the only untrue thing on the page.
+   * columns — two tables sharing an identifier. `recorded` is a suggestion written into this
+   * dataset's document, carrying the relationship's own name, the alternatives somebody weighed and
+   * their reasoning.
+   *
+   * **`derived` is labelled *Curated by AI*, and that is a product decision rather than a
+   * description of the mechanism.** Renamed on request. What actually produces one of these is a
+   * column-name scan in `dataModelSuggestions` — no model runs, and the payload's `degraded` stays
+   * `true` for that reason, so the server has not been made to agree with the label. Worth knowing
+   * before reading a rationale as a model's reasoning: the figures in one are the profiler's.
+   *
+   * **The relabel stops here and must not spread to `recorded`.** That kind is somebody's authored
+   * row, carrying a name, weighed alternatives and a paragraph of reasoning — it has an AI
+   * suggester's shape, which is exactly why calling it one would be the tempting mistake, and the
+   * one the `evidence_kind` is `recorded` rather than `llm` to prevent.
    */
-  kind: 'human' | 'derived'
+  kind: 'human' | 'derived' | 'recorded'
   /** The long form for a card or a legend; the short one for an inline field label. */
   full?: boolean
 }
 
+const PROVENANCE_WORDS: Record<
+  ProvenanceBadgeProps['kind'],
+  { short: string; long: string }
+> = {
+  human: { short: 'You', long: 'Confirmed by you' },
+  derived: { short: 'Curated by AI', long: 'Curated by AI' },
+  recorded: { short: 'Recorded', long: 'Recorded in this dataset' },
+}
+
 export function ProvenanceBadge({ kind, full }: ProvenanceBadgeProps) {
   const isHuman = kind === 'human'
+  const words = PROVENANCE_WORDS[kind]
   return (
     <span
       style={{
@@ -52,13 +76,7 @@ export function ProvenanceBadge({ kind, full }: ProvenanceBadgeProps) {
       ) : (
         <ThunderboltFilled style={{ fontSize: 9 }} />
       )}
-      {isHuman
-        ? full
-          ? 'Confirmed by you'
-          : 'You'
-        : full
-          ? 'Derived from the schema'
-          : 'Derived'}
+      {full ? words.long : words.short}
     </span>
   )
 }

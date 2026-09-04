@@ -249,6 +249,14 @@
               "profiled_in_full": true,
               "carries": "The CAPEX project extract flattened to one row per project — attributes, budget plan, actuals by month and year, four forecast vintages, the multi-year plan and the derived priority columns. Draws on all four datasets; presented over northline_epbcs.plan because the money columns dominate it.",
               "rows_basis": "profiled in full"
+            },
+            {
+              "table_id": "plan_capital_gate_log",
+              "label": "Capital gate decisions",
+              "grain": "one row per project and gate decision",
+              "type": "TABLE",
+              "rows": null,
+              "columns": 6
             }
           ]
         }
@@ -4372,6 +4380,166 @@
         "pii": false,
         "null_pct": 0,
         "distinct": 1
+      }
+    ],
+    "plan.plan_scenario_dim": [
+      {
+        "column_id": "scenario_id",
+        "label": "SCENARIO ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The Scenario member key, as the cube stores it. Joins to plan_version_master.scenario.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "scenario_name",
+        "label": "SCENARIO NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "What the scenario is called on screen — Budget, Actual, Forecast.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "scenario_type",
+        "label": "SCENARIO TYPE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "Whether the member holds a plan, a recorded actual, or a forecast vintage.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "maps_to_version",
+        "label": "MAPS TO VERSION",
+        "type": "STRING",
+        "class": "text",
+        "description": "The default version this scenario resolves to when a form does not name one. No class stated, so it is read from the type.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "is_active",
+        "label": "IS ACTIVE",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the scenario is open for input. Derived class: flag.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "effective_from",
+        "label": "EFFECTIVE FROM",
+        "type": "DATE",
+        "class": "date",
+        "description": "First period the scenario accepts data for. Derived class: date.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "owner_email",
+        "label": "OWNER EMAIL",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who owns the scenario. Marked PII, so it answers the PII chip.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_capital_gate_log": [
+      {
+        "column_id": "gate_id",
+        "label": "GATE ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The gate decision key.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "project_id",
+        "label": "PROJECT ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The project the decision was made against. Declared as an identifier here, which is what lets the Data Modeling tab suggest the join.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "gate_number",
+        "label": "GATE NUMBER",
+        "type": "INT64",
+        "class": "measure",
+        "description": "Which gate in the stage sequence. Derived class: measure.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "decided_on",
+        "label": "DECIDED ON",
+        "type": "DATE",
+        "class": "date",
+        "description": "When the gate was decided. Derived class: date.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "approved_amount",
+        "label": "APPROVED AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "What the gate released, in dollars.",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "gate_notes",
+        "label": "GATE NOTES",
+        "type": null,
+        "class": "text",
+        "description": "",
+        "derivation": "declared in schema-upload-example.json",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
       }
     ]
   },
@@ -60946,16 +61114,15 @@
               "Business Unit"
             ],
             "to_columns": [
-              "Asset Class"
+              "ITD Actuals"
             ],
             "relationship_type": "test",
             "cardinality_hint": "1:N",
             "rationale": "test"
           }
         ],
-        "metrics": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-04T08:37:09.623Z"
+        "updated_at": "2026-09-04T12:43:40.778Z"
       },
       {
         "entity_id": "ent-plan-plan-project-budget-mtmpaekc3",
@@ -60965,10 +61132,22 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [],
-        "metrics": [],
+        "relationships": [
+          {
+            "target_table_key": "plan.plan_project_forecast",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "N:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget holds 0 distinct values, plan_project_forecast holds 0 distinct values."
+          }
+        ],
         "cross_attributes": [],
-        "updated_at": "2026-09-04T08:37:09.564Z"
+        "updated_at": "2026-09-04T12:07:43.388Z"
       },
       {
         "entity_id": "ent-plan-plan-account-dim-mtmpcohv4",
@@ -60992,10 +61171,35 @@
             "rationale": ""
           }
         ],
-        "metrics": [],
         "cross_attributes": [],
         "updated_at": "2026-09-04T08:38:55.747Z"
+      },
+      {
+        "entity_id": "ent-plan-plan-project-forecast-mtmwszpw4",
+        "table_key": "plan.plan_project_forecast",
+        "entity_name": "plan_project_forecast",
+        "description": "Entity for plan_project_forecast, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "plan.plan_version_master",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "N:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_forecast holds 0 distinct values, plan_version_master holds 0 distinct values."
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-09-04T12:07:34.100Z"
       }
-    ]
+    ],
+    "suggestions": []
   }
 }

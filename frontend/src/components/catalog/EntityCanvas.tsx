@@ -19,7 +19,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react'
-import type { ModelEntity, ModelMetric, ProfiledColumn } from '../../api/client'
+import type { ModelEntity, ProfiledColumn } from '../../api/client'
 import {
   MAX_COLUMN_ROWS,
   NODE_W,
@@ -30,7 +30,7 @@ import {
   type CanvasEdgeVM,
   type NodeRect,
 } from '../../data/dataModelCanvas'
-import { columnGlyph } from '../../data/dataModelMetrics'
+import { columnGlyph } from '../../data/dataModelColumns'
 import { confirmedIdentifier } from '../../data/dataModelRelationships'
 import { MT } from '../../data/dataModelTokens'
 import { entityForTable, type ModelTable } from '../../store/dataModelStore'
@@ -62,7 +62,6 @@ interface EntityCanvasProps {
   onSelectEdge?: (edgeId: string) => void
   /** A card's `+` jumps to the matching sub-tab for that table rather than editing on the canvas. */
   onAddRelationshipFor?: (tableKey: string) => void
-  onAddMetricFor?: (tableKey: string) => void
   /** The toolbar's **Fit** button, which lives above this component, calls what this assigns. */
   fitRef?: MutableRefObject<(() => void) | null>
 }
@@ -124,7 +123,11 @@ export interface SectionRow {
 }
 
 /**
- * A card's collapsible Relationships / Metrics section.
+ * A card's collapsible Relationships section.
+ *
+ * **There were two, and the Metrics one went with its tab** (removed on request). One section is
+ * still a section: it collapses, it counts, and its `+` takes the reader to where a relationship is
+ * actually declared — none of which was about there being a second one.
  *
  * Open by default when it has rows and shut when it does not, because a shut section with a count of
  * zero is a control that opens onto nothing. Its `+` opens the section *and* fires `onAdd`, which
@@ -278,13 +281,11 @@ interface NodeCardProps {
   confirmedCount: number
   pendingCount: number
   relationshipRows: SectionRow[]
-  metricRows: SectionRow[]
   /** The canvas's zoom. A pointer delta is in screen pixels; a card's position is in world units. */
   scale: number
   onSelect: () => void
   onDrag: (x: number, y: number) => void
   onAddRelationship?: () => void
-  onAddMetric?: () => void
 }
 
 function NodeCard({
@@ -295,12 +296,10 @@ function NodeCard({
   confirmedCount,
   pendingCount,
   relationshipRows,
-  metricRows,
   scale,
   onSelect,
   onDrag,
   onAddRelationship,
-  onAddMetric,
 }: NodeCardProps) {
   const { shown, moreCount } = nodeColumnRows(table, entity)
   const displayName = entity?.entity_name ?? table.tableId
@@ -475,7 +474,6 @@ function NodeCard({
         rows={relationshipRows}
         onAdd={onAddRelationship}
       />
-      <CardSection label="Metrics" rows={metricRows} onAdd={onAddMetric} />
     </div>
   )
 }
@@ -506,7 +504,6 @@ export default function EntityCanvas({
   onSelect,
   onSelectEdge,
   onAddRelationshipFor,
-  onAddMetricFor,
   fitRef,
 }: EntityCanvasProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null)
@@ -867,9 +864,6 @@ export default function EntityCanvas({
                   onClick: onSelectEdge ? () => onSelectEdge(e.id) : undefined,
                 }
               })
-              const metricRows: SectionRow[] = (entity?.metrics ?? []).map(
-                (m: ModelMetric) => ({ id: m.metric_id, label: m.name }),
-              )
               return (
                 <NodeCard
                   key={t.tableKey}
@@ -880,7 +874,6 @@ export default function EntityCanvas({
                   confirmedCount={touching.filter((e) => e.status === 'confirmed').length}
                   pendingCount={touching.filter((e) => e.status === 'pending').length}
                   relationshipRows={relationshipRows}
-                  metricRows={metricRows}
                   scale={transform.scale}
                   onSelect={() => onSelect(t.tableKey)}
                   onDrag={(x, y) =>
@@ -890,9 +883,6 @@ export default function EntityCanvas({
                     onAddRelationshipFor
                       ? () => onAddRelationshipFor(t.tableKey)
                       : undefined
-                  }
-                  onAddMetric={
-                    onAddMetricFor ? () => onAddMetricFor(t.tableKey) : undefined
                   }
                 />
               )

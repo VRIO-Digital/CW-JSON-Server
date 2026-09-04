@@ -4,6 +4,7 @@ import type { ModelEntity } from '../../api/client'
 import {
   CARDINALITY_KINDS,
   CARDINALITY_LABELS,
+  confidenceLabel,
   evidenceKindLabel,
   type CardinalityKind,
   type DeclaredRelationship,
@@ -237,7 +238,7 @@ export default function RelationshipModal({
         ) : (
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {relationship?.name}
-            <ProvenanceBadge kind={isPending ? 'derived' : 'human'} full />
+            <ProvenanceBadge kind={relationship?.provenance ?? 'human'} full />
           </span>
         )
       }
@@ -270,7 +271,7 @@ export default function RelationshipModal({
           <>
             <Popconfirm
               title="Delete this relationship?"
-              description="Any metric built on it goes with it — a metric whose relationship is gone has no columns to resolve."
+              description="The canvas stops drawing it, and nothing derives over it again. The two entities keep their own declarations."
               okText="Delete"
               okButtonProps={{ danger: true }}
               onConfirm={() => {
@@ -312,7 +313,9 @@ export default function RelationshipModal({
                   <span> · </span>
                 ) : null}
                 {relationship.confidence != null ? (
-                  <span>Classifier confidence: {relationship.confidence.toFixed(2)}</span>
+                  <span>
+                    {confidenceLabel(relationship)}: {relationship.confidence.toFixed(2)}
+                  </span>
                 ) : null}
               </div>
             ) : null}

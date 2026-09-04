@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import {
+  applySchemaUpload,
   browseDocuments,
   browseMailDocuments,
   browseSource,
@@ -11,6 +12,7 @@ import {
   listProfilingJobs,
   profileDocuments,
   profileMailDocuments,
+  previewSchemaUpload,
   profileTables,
   setColumnDescription,
   setDocumentSummary,
@@ -24,6 +26,7 @@ import {
   type ProfiledMailDocumentsPayload,
   type ProfilingJob,
   type ProfilingJobsPayload,
+  type SchemaPreviewPayload,
 } from '../api/client'
 import { createReadStore, toMessage, type Result } from './asyncState'
 
@@ -329,6 +332,75 @@ export const useMailDocumentsStore = create<MailDocumentsState>()((set, get) => 
   reset: () => set({ data: null, loading: false, error: null }),
 }))
 
+
+/* ---------------- Uploading a schema or data dictionary ---------------- */
+
+interface SchemaUploadState {
+  /** What the last preview read, or `null` before one has run. */
+  plan: SchemaPreviewPayload | null
+  reading: boolean
+  applying: boolean
+  /** The parser's own refusal, shown verbatim — it is written as a sentence to whoever holds the file. */
+  error: string | null
+
+  preview: (
+    sourceId: string,
+    input: { filename: string; text: string; dataset_id: string },
+  ) => Promise<Result>
+  apply: (
+    sourceId: string,
+    input: { filename: string; text: string; dataset_id: string },
+  ) => Promise<{ ok: true; job: ProfilingJob } | { ok: false; error: string }>
+  reset: () => void
+}
+
+/**
+ * The two acts of a schema upload.
+ *
+ * A store rather than calls from the panel, because this is a **write** with two steps: the rule
+ * here is that a component may reach `client.ts` directly only for a one-shot read. The refusals are
+ * kept in `error` rather than thrown, so the panel prints the parser's sentence where the file was
+ * chosen instead of in a toast that outlives the screen.
+ *
+ * `plan` is cleared by `preview` starting, not just by `reset` — a stale plan under a newly chosen
+ * file is the one state this must not show, since Apply acts on the file and the reader would be
+ * reading the previous one's report.
+ */
+export const useSchemaUploadStore = create<SchemaUploadState>()((set) => ({
+  plan: null,
+  reading: false,
+  applying: false,
+  error: null,
+
+  preview: async (sourceId, input) => {
+    set({ reading: true, error: null, plan: null })
+    try {
+      set({ plan: await previewSchemaUpload(sourceId, input), reading: false })
+      return { ok: true }
+    } catch (error) {
+      const message = toMessage(error)
+      set({ error: message, reading: false })
+      return { ok: false, error: message }
+    }
+  },
+
+  apply: async (sourceId, input) => {
+    set({ applying: true, error: null })
+    try {
+      const { job } = await applySchemaUpload(sourceId, input)
+      /* The plan goes with the apply: it described a change that has now happened, and leaving it on
+         screen beside "applied" would read as a change still waiting to be made. */
+      set({ applying: false, plan: null })
+      return { ok: true, job }
+    } catch (error) {
+      const message = toMessage(error)
+      set({ error: message, applying: false })
+      return { ok: false, error: message }
+    }
+  },
+
+  reset: () => set({ plan: null, reading: false, applying: false, error: null }),
+}))
 /* ---------------- Profiling jobs ---------------- */
 
 interface JobsState {

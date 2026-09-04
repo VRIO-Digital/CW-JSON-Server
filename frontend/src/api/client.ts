@@ -338,8 +338,10 @@ export interface RegisteredGenericSource {
   type_label: string
   /** A \`secret://\` pointer, or null where the connector asks for no credential. */
   credential_handle: string | null
-  /** What it connected *as* — the email connector's client id. Null where a connector names nothing. */
+  /** What it connected *as* — a host, an account identifier. Null where a connector names nothing. */
   account: string | null
+  /** What it has in scope, in the connector's own noun. Null where it narrows nothing. */
+  scope: string | null
   datasets: string[]
   status: string
   registered_at: string
@@ -651,7 +653,8 @@ export interface ProfiledColumn {
   column_id: string
   /** The profiler's own name for it (`TOTAL QUANTITY ACUTE KG`). */
   label: string
-  type: string
+  /** Null where an uploaded dictionary named the column and not its type. */
+  type: string | null
   class: ColumnClass
   /**
    * The class chip this column answers to, or `null` for a class with no chip.
@@ -660,8 +663,14 @@ export interface ProfiledColumn {
    * copies can disagree — a chip counting 69 and listing 41 reads as a broken filter.
    */
   facet: string | null
-  /** LLM classification confidence, shown beside the class chip. */
-  confidence: number
+  /**
+   * The classifier's confidence, shown beside the class chip — and **null for a declared column.**
+   *
+   * A column that arrived in an uploaded data dictionary was scored by nothing: a person wrote down
+   * what it means. `0` would be a claim (the classifier was certain it was wrong) and a made-up
+   * number would be worse, so the panel prints the derivation and no score.
+   */
+  confidence: number | null
   /**
    * How the classification was reached, or `null` where the profiler did not record it.
    *
@@ -676,8 +685,9 @@ export interface ProfiledColumn {
    */
   derivation: string | null
   pii: boolean
-  null_pct: number
-  distinct: number
+  /** Both null for a declared column: a dictionary states meaning, and samples nothing. */
+  null_pct: number | null
+  distinct: number | null
   description: string | null
   /**
    * `needs review` means the profiler was below the High band (0.85) and no
@@ -2134,16 +2144,26 @@ const COLUMNS_PAYLOAD = shape({
             shape({
               column_id: str,
               label: str,
-              type: str,
+              /*
+               * **Nullable, all four, because a column can now be *declared* rather than measured.**
+               * An uploaded data dictionary states what a column means; nothing sampled it, so there
+               * is no type where the file gave none and no confidence, null% or distinct at all. The
+               * alternative was a plausible figure in each, which is the one thing a dictionary must
+               * not carry — the value of a profile is that its numbers were measured.
+               *
+               * Fifth in the family after `rows`, `class` and `derivation`, and the same lesson:
+               * a declared type is a claim about every column, not the ones it was written against.
+               */
+              type: nullable(str),
               /* The dataset's vocabulary, not ours — see ColumnClass. */
               class: str,
               facet: nullable(str),
-              confidence: num,
+              confidence: nullable(num),
               /* Null wherever the profiler recorded no method — see the interface. */
               derivation: nullable(str),
               pii: bool,
-              null_pct: num,
-              distinct: num,
+              null_pct: nullable(num),
+              distinct: nullable(num),
               description: nullable(str),
               description_status: oneOf(['needs review', 'described']),
             }),
@@ -3181,6 +3201,7 @@ const REGISTERED_GENERIC_PAYLOAD = shape({
   type_label: str,
   credential_handle: nullable(str),
   account: nullable(str),
+  scope: nullable(str),
   datasets: arrayOf(str),
   status: str,
   registered_at: str,
@@ -3837,6 +3858,14 @@ export async function registerGenericSource(input: {
    * never persisted.
    */
   account?: string
+  /**
+   * What this source has in scope, in the connector's own noun — a database, a schema.
+   *
+   * Sent so the Sources row can state it where BigQuery's states a dataset count. Absent for a
+   * connector that narrows nothing, and the row then prints an em dash rather than a zero: `0` would
+   * say the source reaches nothing, where the truth is that scope is not what this connector has.
+   */
+  scope?: string
 }): Promise<RegisteredGenericSource> {
   return validate<RegisteredGenericSource>(
     'The registered source',
@@ -3848,6 +3877,7 @@ export async function registerGenericSource(input: {
         type_label: input.typeLabel,
         credential_ref: input.credentialRef ?? null,
         account: input.account ?? null,
+        scope: input.scope ?? null,
       },
     }),
     REGISTERED_GENERIC_PAYLOAD,
@@ -4229,34 +4259,6 @@ export interface ModelRelationshipItem {
   rationale: string
 }
 
-/** One metric built over a related entity through a confirmed relationship. */
-export interface ModelMetric {
-  metric_id: string
-  name: string
-  /** `aggregation` | `math` | `string`. */
-  category: string
-  /**
-   * The relationship it resolves its columns through, as the tab addresses one.
-   *
-   * Nullable because the id is *derived* from the owning entity and the join columns, so a
-   * relationship edited into a different shape leaves a metric pointing at an address that no longer
-   * resolves. The tab drops such a metric when its relationship goes, and a null here reads as
-   * "declared before this was recorded" rather than as a metric on a relationship that exists.
-   */
-  relationship_id: string | null
-  related_table_key: string
-  column_1: string
-  operator: string | null
-  column_2: string | null
-  aggregation: string | null
-  math_function: string | null
-  math_param: number | null
-  string_function: string | null
-  string_column_2: string | null
-  string_param_1: string | null
-  string_param_2: string | null
-}
-
 /**
  * A column stored on one table whose *meaning* belongs to this entity.
  *
@@ -4281,7 +4283,6 @@ export interface ModelEntity {
   grain_description: string | null
   attributes: ModelAttribute[]
   relationships: ModelRelationshipItem[]
-  metrics: ModelMetric[]
   cross_attributes: ModelCrossAttribute[]
   updated_at: string
 }
@@ -4305,7 +4306,6 @@ export interface ModelEntityInput {
   grain_description?: string | null
   attributes?: ModelAttribute[]
   relationships?: ModelRelationshipItem[]
-  metrics?: (Omit<ModelMetric, 'metric_id'> & { metric_id?: string })[]
   cross_attributes?: (Omit<ModelCrossAttribute, 'attribute_id'> & {
     attribute_id?: string
   })[]
@@ -4335,9 +4335,23 @@ export interface ModelRelationshipSuggestion {
   relationship_type_alternatives: string[]
   cardinality_hint: string
   rationale: string
-  /** The classifier's own confidence in the weaker of the two columns matched on. */
+  /**
+   * How sure the suggestion is — and **the two kinds mean different things by it**, which is why
+   * `evidence_kind` is what tells them apart rather than the number.
+   *
+   * A *derived* suggestion's is the classifier's own confidence in the weaker of the two columns it
+   * matched on. A *recorded* one's is a stated opinion, written down beside the suggestion.
+   */
   confidence: number
-  /** `structural` here always — there is no model behind this server, and `degraded` says so. */
+  /**
+   * What the suggestion stands on: `recorded` or `structural`.
+   *
+   * **Never `llm`, and that is deliberate.** A recorded suggestion has an AI suggester's *shape* — a
+   * relationship name, the alternatives somebody weighed, a paragraph of reasoning, a confidence —
+   * and its *provenance* is that it was written into this dataset's document. Printing "model
+   * reasoning" over it would be the one untrue thing on the page, which is why `degraded` stays true
+   * whichever kind a reader is looking at.
+   */
   evidence_kind: string
 }
 
@@ -4346,11 +4360,19 @@ export interface ModelSuggestionsPayload {
   tables: ModelTableSuggestion[]
   relationships: ModelRelationshipSuggestion[]
   /**
-   * True, and not a placeholder. The tab renders it as "AI analysis unavailable, showing structural
-   * matches only", which is exactly what this run is: shared identifier columns and the figures the
-   * profiler already recorded, with nothing invented to fill a field.
+   * Whether a model ran. Always false-in-spirit: no model runs here, either way.
+   *
+   * Not a placeholder, and not the same question as "is this any good" — a **recorded** suggestion
+   * carries a real relationship name, the alternatives somebody weighed and a paragraph of
+   * reasoning, none of which a column scan produces, and it was still written down rather than
+   * generated. The two counts below are what let the tab say which kind it served instead of
+   * implying one.
    */
   degraded: boolean
+  /** Written into this dataset's document, and served ahead of a derived row for the same pair. */
+  recorded_count: number
+  /** Found by matching a shared identifier column, for every pair nothing has written down. */
+  derived_count: number
   /** A pair-wise scan is quadratic, so a run considers a capped set — and says when it did. */
   truncated: boolean
   tables_considered: number
@@ -4374,25 +4396,6 @@ const MODEL_ENTITY = shape({
       relationship_type: str,
       cardinality_hint: str,
       rationale: str,
-    }),
-  ),
-  metrics: arrayOf(
-    shape({
-      metric_id: str,
-      name: str,
-      category: str,
-      relationship_id: nullable(str),
-      related_table_key: str,
-      column_1: str,
-      operator: nullable(str),
-      column_2: nullable(str),
-      aggregation: nullable(str),
-      math_function: nullable(str),
-      math_param: nullable(num),
-      string_function: nullable(str),
-      string_column_2: nullable(str),
-      string_param_1: nullable(str),
-      string_param_2: nullable(str),
     }),
   ),
   cross_attributes: arrayOf(
@@ -4439,6 +4442,8 @@ const MODEL_SUGGESTIONS_PAYLOAD = shape({
     }),
   ),
   degraded: bool,
+  recorded_count: num,
+  derived_count: num,
   truncated: bool,
   tables_considered: num,
 })
@@ -4468,7 +4473,7 @@ export async function saveDataModelEntity(
   )
 }
 
-/** Drops a whole declaration — its Overview, its identifier, its relationships and their metrics. */
+/** Drops a whole declaration — its Overview, its identifier and its relationships. */
 export async function deleteDataModelEntity(
   entityId: string,
 ): Promise<{ deleted: string }> {
@@ -4492,6 +4497,152 @@ export async function suggestDataModel(
       body: { source_id: sourceId },
     }),
     MODEL_SUGGESTIONS_PAYLOAD,
+  )
+}
+
+/* ---------------- Uploading a schema or data dictionary ----------------
+ *
+ * Two acts over one file: a preview that writes nothing, then an apply that commits the dictionary
+ * and queues a forced profiling run over the tables it touched.
+ *
+ * **The file travels as text in a JSON body**, read in the browser with `File.text()`. The server is
+ * zero-dependency and a multipart parser for a text file would be a dependency's worth of code for
+ * no gain — and it means the body is subject to the same 1 MB cap every other request has, which
+ * `schemaUploadProblem` checks against *before* sending so an oversized file is a sentence rather
+ * than a dropped connection.
+ */
+
+/** What one table in an upload would do to the dictionary. */
+export interface SchemaPlanTable {
+  table_id: string
+  /** False for a table the upload *declares* — those must carry a label and a grain. */
+  exists: boolean
+  /** Whether a run has already profiled it, so the panel can say it will be re-profiled. */
+  profiled: boolean
+  label: string
+  grain: string
+  column_count: number
+  /** How many the dictionary held before. 0 for a table whose columns were synthesised. */
+  previous_column_count: number
+  /**
+   * How many columns the Catalog says this table has **now** — the number on screen.
+   *
+   * Not the same question as `previous_column_count`, and running the flow is what showed why: a
+   * table catalogued with 24 columns and no dictionary reported `0 → 3` for a 3-column file, while
+   * the figure a reader was looking at went 24 → 3. Applying replaces the count with the file's, so
+   * this is what the preview puts before the arrow.
+   */
+  catalogued_column_count: number
+  added: string[]
+  /**
+   * Columns the dictionary holds now and this file does not name.
+   *
+   * An upload **replaces** a table's dictionary rather than merging into it — a merge cannot remove
+   * a column that is no longer there — so these are listed by name in the preview. Nothing about an
+   * upload is silent about what it drops.
+   */
+  dropped: string[]
+  /** Dropped columns that carry a curator's note, which stops applying with them. */
+  orphaned_notes: string[]
+  /**
+   * Data Modeling declarations left reading a column this upload would drop.
+   *
+   * Worse than an orphaned note, which is why it is its own field: a declared join on a column the
+   * dictionary no longer carries is a state `POST /data-model/entities` *refuses* to write, so it
+   * would be found only by somebody trying to edit that relationship. Named in the preview, while
+   * dropping the column is still a choice.
+   */
+  stranded_declarations: string[]
+}
+
+export interface SchemaPlan {
+  filename: string
+  /** `json` | `csv` | `tsv` | `sql` — what the reader made of the file. */
+  format: string
+  dataset_id: string
+  table_count: number
+  column_count: number
+  new_table_count: number
+  tables: SchemaPlanTable[]
+}
+
+export interface SchemaPreviewPayload extends SchemaPlan {
+  source_id: string
+}
+
+export interface SchemaAppliedPayload {
+  source_id: string
+  applied: SchemaPlan
+  /** The forced run this queued. The Catalog switches to the jobs board on it. */
+  job: ProfilingJob
+}
+
+const SCHEMA_PLAN_FIELDS = {
+  filename: str,
+  format: str,
+  dataset_id: str,
+  table_count: num,
+  column_count: num,
+  new_table_count: num,
+  tables: arrayOf(
+    shape({
+      table_id: str,
+      exists: bool,
+      profiled: bool,
+      label: str,
+      grain: str,
+      column_count: num,
+      previous_column_count: num,
+      catalogued_column_count: num,
+      added: arrayOf(str),
+      dropped: arrayOf(str),
+      orphaned_notes: arrayOf(str),
+      stranded_declarations: arrayOf(str),
+    }),
+  ),
+}
+
+const SCHEMA_PREVIEW_PAYLOAD = shape({ source_id: str, ...SCHEMA_PLAN_FIELDS })
+
+const SCHEMA_APPLIED_PAYLOAD = shape({
+  source_id: str,
+  applied: shape(SCHEMA_PLAN_FIELDS),
+  job: JOB,
+})
+
+/** Reads the file and reports what it would do. Writes nothing. */
+export async function previewSchemaUpload(
+  sourceId: string,
+  input: { filename: string; text: string; dataset_id: string },
+): Promise<SchemaPreviewPayload> {
+  return validate<SchemaPreviewPayload>(
+    'The schema preview',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/schema/preview`, {
+      method: 'POST',
+      body: input,
+    }),
+    SCHEMA_PREVIEW_PAYLOAD,
+  )
+}
+
+/**
+ * Commits the dictionary and queues the run, in one call.
+ *
+ * One act, because the two halves are one: a dictionary that landed with no run behind it is a
+ * Catalog advertising columns nothing has profiled, and splitting them would put the decision in the
+ * one place that cannot see whether the first half succeeded.
+ */
+export async function applySchemaUpload(
+  sourceId: string,
+  input: { filename: string; text: string; dataset_id: string },
+): Promise<SchemaAppliedPayload> {
+  return validate<SchemaAppliedPayload>(
+    'The applied schema',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/schema`, {
+      method: 'POST',
+      body: input,
+    }),
+    SCHEMA_APPLIED_PAYLOAD,
   )
 }
 export async function cancelProfilingJob(jobId: string): Promise<ProfilingJob> {

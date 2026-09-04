@@ -151,7 +151,14 @@ export const MERGE_PLAN = {
    * The nested arrays are the entity's own and travel with it rather than being merged themselves —
    * two datasets cannot hold the same entity, so there is nothing to reconcile inside one.
    */
-  data_model: { deep: { entities: { union: 'entity_id' } } },
+  /*
+   * The declarations union on the entity and the recorded suggestions on their own id, because both
+   * are a dataset's own: EPA's suggestions are about EPA's views, and a merged view genuinely offers
+   * both sets — each is filtered to the source in front of the reader anyway.
+   */
+  data_model: {
+    deep: { entities: { union: 'entity_id' }, suggestions: { union: 'suggestion_id' } },
+  },
 
   ask_answers: { union: 'answer_id' },
 

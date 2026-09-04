@@ -117,12 +117,28 @@ click three cards in a row and be told "not yet built" three times, so the searc
 *within* the sections and a section left empty is dropped rather than drawn as a heading over
 nothing.
 
-Eight connectors from `CONNECTORS`. Only `available: true` ones are selectable —
-**Google BigQuery**, **Google Drive** and **Gmail**, which the step's own alert names
-rather than counts. The other five (**Microsoft Outlook**, SAP PM / S4HANA, OSIsoft PI,
-SharePoint / docs, SQL database) render dimmed under *Product vision — not yet built*;
-clicking one shows *why* via its `reason` field rather than doing nothing. `Continue` is
-disabled until an available connector is picked.
+Eleven connectors from `CONNECTORS`, and **six of them are pickable** — the two kinds of
+pickable card sit in one section, because a third heading was removed on request:
+
+| section | connectors | what clicking one does |
+|---|---|---|
+| *Available now — pick one* | **Google BigQuery**, **Google Drive**, **Gmail** | consent → preview → finish, and the source carries a catalogue |
+| | **MySQL**, **PostgreSQL**, **Snowflake** | step 2 asks for that engine's own connection details; Finish registers the source and nothing profiles it |
+| *Product vision — not yet built* | **Microsoft Outlook**, SAP PM / S4HANA, OSIsoft PI, SharePoint / docs, SQL database | shows its `reason` rather than doing nothing |
+
+`Continue` is disabled until an available card is picked — an unavailable one sets `blocked`
+instead of `selected`, which is what draws its reason.
+
+**Which of the six carry a catalogue is stated on the cards, not by the heading.** Each database
+card's blurb reads *"registers a connection — no profiler yet"*, on the grid beside its name;
+`check-docs` asserts it on all three, because with one section for both kinds that line is the
+only thing telling a database card from BigQuery. `connectorGroup` still derives the three
+groups from `available` and `profiles`, and its one remaining reader is the step's note.
+
+**The step's own note names the connectors in each group rather than counting them**, composed
+by `connectorPickerNote` from the directory: a count goes stale the day a fourth lands, and a
+group with nothing in it contributes no sentence. It read *"the rest below are product vision
+only"* until a database card could be clicked.
 
 **Outlook is vision because of the corpus, not the API.** Microsoft Graph's mail endpoints
 are the easy half; what a mail connector has to produce here is a mailbox with an address,
@@ -391,6 +407,52 @@ dismisses it. `onRegistered` refreshes the Sources table without closing.
 **Where it fails:** wrong project/handle or drive/handle pairing → 403. Empty
 allowlist → 400. A consent replayed against the other provider → 400. Mock server
 not running → the wizard shows the "start `npm run mock`" message.
+
+### The credential branch — MySQL, PostgreSQL, Snowflake
+
+**The steps are the same three; what differs is that there is no Google in them.** Step 2 is the
+generic field loop over `selected.fields` — one `Form.Item` per declared field, with
+`fieldControl(field)` as the child antd wires — and step 3 is a check plus `POST /sources/generic`.
+
+**Each engine's fields are its own, which is why these are three cards and not one Engine dropdown**
+(that dropdown is what is left of the `sql` card, now narrowed to *MSSQL · Oracle*):
+
+| | MySQL | PostgreSQL | Snowflake |
+|---|---|---|---|
+| addressed by | Host + Port (3306) | Host + Port (5432) | Account identifier — **no host, no port** |
+| reads | Database | Database + optional Schema | Database + Schema, on a Warehouse, through a Role |
+| transport | TLS mode (MySQL's own five) | SSL mode (libpq's own six, in libpq's spelling) | — |
+| identity | Username | Username | Username + Role |
+| secret | `secret://…` pointer | `secret://…` pointer | `secret://…` pointer |
+| Sources row prints | Host · Database | Host · Database | Account · Database |
+
+**No password field on any of them.** Step 2's alert promises the raw secret is never persisted, and
+a password box under that sentence would make the sentence false. `check-docs` asserts the absence.
+
+**Which two cells the Sources row prints is declared, not guessed.** `accountField` and `scopeField`
+name a *field*, so the wizard reads the value out of the form and a card cannot state an account it
+never asked for. Both optional; absent means the row prints an em dash, which is what a generic row
+did before — `0 dataset(s)` would say the source reaches nothing rather than that a dataset count is
+not what it has. They replaced `values.clientId`, a field name **no connector declares**, so that
+cell was `undefined` for every generic source however much the form collected.
+
+**Step 3's check says what it checked.** It read *Run connection test* → *Connection succeeded*: a
+claim about a database, made by a 900ms timer. That was scenery while every connector here was a
+stub; it is a false statement with a real host and TLS mode typed in above it. Nothing in this repo
+holds a database driver, so it is *Check these details* → *These details are well-formed*, and the
+alert **names where the connection is actually proven** — the first time something reads from the
+source. Then *Connect source* registers it and the dialog closes.
+
+**Where it fails:** a name under `SOURCE_NAME_MIN` → the server refuses with the length, exactly as
+it does for the Google connectors. A missing required field → antd highlights it and `Continue` does
+not advance. `Connect source` stays disabled until the check has run — the same deliberate second act
+`force` is on a profiling run.
+
+**And what a registered database source cannot do, it cannot do loudly.** Nothing profiles it: the
+Data Catalog leaves the row out and counts it in words, step 4 of the New Graph wizard never lists it
+(that step lists profiled state), and asking it for a model is refused by `wrongStructuredOnly` naming what it
+holds. Giving one a profiler is a `PROFILERS` entry, a `CATALOGUE_ROUTES` row and flipping
+`profiles` — and `connectorGroup` then moves the card into *Available now* by itself.
 
 ---
 
@@ -887,6 +949,126 @@ read it; and the **file kinds** are ones `fileKind()` renders (`application/pdf`
 administrative and dataset-neutral: a subject or filename naming hazardous waste would be a
 claim about EPA's mail that CAPEX's mailbox would repeat, and a figure in one would be content
 nothing has read. `check-docs` asserts the subject pool holds no address and no digit.
+
+### Suggested relationships — recorded, then derived
+
+**Suggest from schema** serves two kinds and says which is which.
+
+| | recorded | derived |
+|---|---|---|
+| comes from | `data_model.suggestions` in the document | a column scan over the profiled dictionary |
+| carries | the relationship's own name, 2 alternatives, a paragraph of reasoning, a stated confidence | `LINKED_BY_<COLUMN>`, two alternatives, the distinct counts the profiler recorded |
+| `evidence_kind` | `recorded` → *Recorded in this dataset* | `structural` → *Structural analysis* |
+| confidence is | *Stated confidence* — an opinion written down | *Classifier confidence* — the profiler's score for the weaker column |
+| badge | **Recorded** (purple) | **Curated by AI** (purple) |
+
+**A recorded suggestion wins.** Where one exists for a pair — either direction — the derived row for
+that pair is dropped, because two rows for one join ask the reviewer the same question twice. The two
+counts ride on the payload and `suggestionRunNote` turns them into the note above the canvas, which
+keeps saying **no figure is invented** for both kinds. It said *"no model ran"* until the derived
+badge was renamed **Curated by AI** on request; `degraded` still answers that question honestly on
+the payload — `true` for both kinds — and it answers "did a model run", not "is this any good".
+
+**EPA ships five, one per cardinality plus a second 1:1** — authored by `npm run seed:data-model`,
+every figure in their rationales read out of `column_profiles` at write time rather than typed:
+
+| | join | why |
+|---|---|---|
+| `1:1` | `e_manifest.manifest_tracking_number` ⇄ `e_manifest_all.manifest_tracking_number` | 1,200 distinct over 1,200 rows on both sides |
+| `1:1` | `FRS_Facility_profile.registry_id` ⇄ `RCRA_Compliance_Summary.registry_id` | 49 over 49 — a profile and its summary |
+| `1:N` | `FRS_Facility_profile.registry_id` → `RCRA_compliance.registry_id` | 49 unique facilities, 364 line items |
+| `N:1` | `e_manifest.des_facility_id` → `FRS_Facility_profile.pgm_sys_id` | many manifests, one TSDF — and the id has exactly one distinct value, which the rationale says |
+| `N:N` | `e_manifest.generator_id` ⇄ `e_manifest_all.generator_id` | both carry it, neither is unique on it — **confidence 0.61**, and its rationale says to re-point it |
+
+That last row is there on purpose: a suggester whose every suggestion is good makes the review queue
+theatre, and this one is a real join that a reviewer should decline or move.
+
+**Where it fails:** a suggestion naming a table or a column the document does not carry → the boot
+refuses it, because it would be offered and then refused on Confirm; two suggestions sharing an id →
+refused, since the tab keys a pending row by it; a column joined to itself → refused. A secondary
+dataset carries `suggestions: []` — these name EPA's views, and authoring them under CAPEX would
+describe tables it has never heard of. Re-author them with
+`node backend/scripts/seed-data-model.js --suggestions`, which leaves the declarations beside them
+alone.
+
+### Uploading a schema or a data dictionary
+
+**Files:** the third button on a BigQuery source → `SchemaUploadPanel.tsx` → `useSchemaUploadStore`
+→ `POST /sources/:id/schema/preview` and `POST /sources/:id/schema` → `resolveSchemaUpload` in
+`server.js` over `backend/schemaImport.js`. Copy and file rules in `src/data/schemaUpload.ts`;
+`npm run verify:schema-import` replays the reader offline.
+
+**What it does.** A schema or dictionary file becomes this source's **column dictionary** —
+`column_profiles`, keyed `dataset.table`, the same place a profiling run reads from and the same
+place the demo's own 206 columns were ingested into. Then it starts a run. So it is the ingest
+script's act through a screen, and afterwards the Catalog serves what the file said instead of
+synthesised columns, Data Modeling draws them, and the graph derives over them.
+
+**BigQuery only.** `catalogUnits`' bigquery row declares `schemaLabel`/`schemaPanel` and the other
+two declare neither, so the button is drawn where the act exists rather than tested for by connector
+name. A drive or a mailbox reaching the endpoint is refused by `wrongStructuredOnly` — a schema is
+what neither has.
+
+| step | what happens |
+|---|---|
+| choose a file | read in the browser (`File.text()`); the extension and the size are checked against `schemaFileProblem` before anything is sent |
+| **Read the file** | `POST …/schema/preview` — parses, reports, **writes nothing** |
+| **Apply and profile** | `POST …/schema` — commits the dictionary through `commitDb`, then queues a **forced** run over the tables it touched and switches to the jobs board |
+
+**There is a sample to upload: `docs/samples/schema-upload-example.json`.** It is written against
+CAPEX's `bigquery:northline_epbcs` / `plan`, and it demonstrates both halves in one file — it
+replaces the synthesised columns of `plan_scenario_dim` **without changing its count** (`7 -> 7`) and
+*declares* `plan_capital_gate_log`, which is why it carries a label and a grain. Its own `_note` says
+what to look for, and unknown top-level keys are ignored by the reader so that note travels with the
+file. `check-docs` **parses it** and holds it against the real document: a sample that had gone stale
+would refuse in the feature it exists to demonstrate.
+
+**Three formats:** JSON (a document with `tables`, or a flat array of column rows), CSV/TSV (one row
+per column, with a header — `table` and `column` required, plus `type`, `description`, `class`,
+`pii`, `table_label`, `grain`), and SQL DDL. Header names are folded generously (`Column Name`,
+`Field`, `COLUMN_NAME`, `name` are one key) because a dictionary exported from a spreadsheet calls
+things whatever its author called them. **Anything else is refused naming the three and the remedy** —
+for a spreadsheet, export the sheet as CSV. The picker filters on the same list the reader declares.
+
+**Why the preview exists.** Applying **replaces** a table's column list rather than adding to it, so
+the preview is the reader's chance to see what a parse understood first — "seed, check the diff,
+push" with a screen instead of a terminal. It names, per table:
+
+- both column counts, **catalogue → file** (a table catalogued with 24 columns and a 3-column file
+  reads `24 → 3`, which is what the reader will see; the dictionary's own previous length is a
+  different question and was the misleading one)
+- the columns it would **drop**, by name
+- any **curator note** written against a dropped column, which stops applying with it
+- any **Data Modeling declaration** reading a dropped column — the worst of the three, because
+  `POST /data-model/entities` refuses that state, so it would otherwise be found only by somebody
+  trying to edit the relationship
+- whether the table is **new** to the project
+
+**A declared column carries no statistics, and the panel says so before you upload.** A dictionary
+states what a column means and measures nothing, so `confidence`, `null_pct` and `distinct` are
+`null` and print as `—`; `type` is null too where the file named none. Nothing is synthesised into
+them — a dictionary of invented statistics looks exactly as plausible as a measured one, which is why
+this is the feature's central rule. What a declared column does carry is `derivation: "declared in
+<filename>"`, which is the provenance, in the field that already holds one.
+
+**Its class** comes from the file where the file states one — checked against `CLASS_FACET` +
+`CLASS_UNFACETED`, so a class with no chip is refused naming the set — and otherwise from the
+**type**. Never from the column's name: `identifier` is what the relationship suggester matches joins
+on, so inferring it from `_id` would put a suggested join in front of a reviewer on no evidence.
+
+**Where it fails:**
+
+- a format it does not read → refused naming the three and "export the sheet as CSV"
+- a file over ~900 KB → refused **in the browser**, naming its size and the cap, because the body
+  cap is the server's and a dropped request reads as a broken server
+- a dataset outside the source's allowlist → refused naming the allowlist
+- a **new** table with no label or grain → refused naming the table and both fields; `validateDb`
+  requires them and a table without them renders as a blank cell
+- a class the app has no chip for → refused naming the value and the accepted set
+- a duplicate column in one table → refused; it would collide in the dictionary and in `column_notes`
+- a CSV with no `table`/`column` header → refused naming the headers it did find
+- a drive or a mailbox → `wrongStructuredOnly`, which names what the source holds and its own
+  catalogue route rather than pointing at a structured one that would fail the same way
 
 ---
 
@@ -2619,17 +2801,17 @@ naming the real keys.
 ## Flow 14 — Data Modeling: saying what a table is
 
 **Files:** `DataModelTab.tsx` (+ `EntityCanvas`, `ModelTableList`, `EntityOverviewPanel`,
-`EntityColumnsPanel`, `EntityRelationshipsPanel`, `EntityMetricsPanel`, `RelationshipModal`,
+`EntityColumnsPanel`, `EntityRelationshipsPanel`, `RelationshipModal`,
 `ModelMarks`) → `dataModelStore.ts` → `GET|POST /data-model/entities`,
 `DELETE /data-model/entities/:id`, `POST /data-model/suggestions`, plus
 `GET /sources/:id/columns` — the same read Flow 4 makes. Pure logic in
-`src/data/dataModelCanvas.ts`, `dataModelRelationships.ts`, `dataModelMetrics.ts`,
+`src/data/dataModelCanvas.ts`, `dataModelRelationships.ts`, `dataModelColumns.ts`,
 `dataModelTokens.ts`. Stored in `db.data_model`.
 
 **It is the Catalog's third tab, and third for a reason.** Flow 3 browses and profiles, Flow 4
 describes what a run recorded column by column, and this is where a curator says what a *table*
 is — the entity it stands for, the column that identifies a row, its relationships to other
-tables, and the metrics those carry. It draws over the profiled dictionary, so a source with
+tables. It draws over the profiled dictionary, so a source with
 nothing profiled says so in words rather than drawing an empty canvas, and a drive or a mailbox is
 left out with the count stated (a model is a schema; a document corpus has none).
 
@@ -2639,7 +2821,7 @@ left out with the count stated (a model is a schema; a document corpus has none)
 |---|---|
 | left rail | which structured source, and which of its profiled tables — with a pill per table stating its confirmed relationships, or its pending ones, or an em dash |
 | centre | four counts (tables · relationships confirmed · suggested, pending · columns described), **Suggest from schema**, **Fit**, then the canvas and its legend |
-| right | the one table in hand, over Overview / Columns / Relationships / Metrics |
+| right | the one table in hand, over Overview / Columns / Relationships |
 
 **Selection is one piece of state.** `selectedTableKey` goes to the rail and to the canvas and both
 call the same setter, so the two cannot disagree about what is selected — there is nothing to sync
@@ -2648,7 +2830,7 @@ DOM state nobody outside reads; **Fit** is therefore handed in as a ref rather t
 
 ### What persists, and what deliberately does not
 
-- **A declaration** — the Overview, the confirmed identifier, a relationship, a metric, a reassigned
+- **A declaration** — the Overview, the confirmed identifier, a relationship, a reassigned
   column — goes through `commitDb` into `db.data_model`. It survives a restart the way a saved graph
   brief does, because it is somebody's work and the graph builders are meant to read it.
 - **A suggestion** lives in the tab until somebody confirms it. A suggestion nobody accepted is not
@@ -2667,8 +2849,9 @@ there.
 ### The writes
 
 `POST /data-model/entities` is **one upsert that carries absent fields forward**: the Overview panel
-sends the text fields, the relationship editor sends `relationships`, the metric builder sends
-`metrics`, and none of them may erase the others' work. It refuses a table this dataset does not
+sends the text fields, the relationship editor sends `relationships`, the reassigned-column editor
+sends `cross_attributes`, and none may erase the others' work. It refuses a table this dataset does
+not
 carry, a second entity on one table, two confirmed identifiers, a cardinality outside
 `1:1 | 1:N | N:1 | N:N`, and a join on a column `column_profiles` does not list.
 
@@ -2689,9 +2872,11 @@ distinct counts are the profiler's, the cardinality follows from whether each si
 reaches its row count, and the confidence is the **classifier's own** for the weaker of the two
 columns. It is paced at `SUGGEST_MS`; its refusals are not.
 
-**There is no model behind it, and the payload says so.** `degraded: true` rides on every response
-and the tab prints *"Structural matches only — no model was involved"*; the provenance badge reads
-**Derived**, not AI. A run is capped at `SUGGEST_TABLE_CAP` (12) tables and reports `truncated`,
+**There is no model behind it, and the payload still says so even though the badge does not.**
+`degraded: true` rides on every response; the tab prints *"No figure is invented to fill a field"*;
+and the provenance badge reads **Curated by AI**, renamed on request over a scan no model performs.
+Do not "fix" the disagreement by flipping `degraded` — it is the only honest answer left to that
+question, and `check-docs` fails on it. A run is capped at `SUGGEST_TABLE_CAP` (12) tables and reports `truncated`,
 because a pair-wise scan is quadratic and a list silently covering a fifth of a source would read as
 a source with few relationships. Each suggestion is named after the **column it matched on**, since
 three `HAS_<TABLE>` names in one list are three suggestions nobody can tell apart.
@@ -2700,15 +2885,14 @@ three `HAS_<TABLE>` names in one list are three suggestions nobody can tell apar
 
 - A source with nothing profiled → the canvas states it and names the Catalog tab, and the
   suggestions route refuses with the same fix rather than answering an empty list.
-- A drive or a mailbox reaching the suggestions route → `wrongModel` refuses, states what the source
+- A drive or a mailbox reaching the suggestions route → `wrongStructuredOnly` refuses, states what the source
   holds, says there is no modelling route for it, and names its catalogue. It does **not** point at
   the structured route, which would fail the same way.
 - An entity on a table the document no longer carries → the server refuses to boot, naming the
   entity and the table. Same for a relationship onto one, and for two entities on one table.
-- A metric over a one-to-many relationship, in the Math or String category → the option is listed
-  **disabled with the reason**, because a shorter list reads as a missing relationship.
-- Deleting a relationship → the metrics built on it go with it; a metric whose relationship is gone
-  has no columns to resolve.
+- Deleting a relationship → the canvas stops drawing it and the two entities keep their own
+  declarations. It used to cascade into the metrics built on it; the Metrics sub-tab is gone, so
+  there is nothing left to cascade into and the write clears the relationship and nothing else.
 - A page that looks stale after an edit → every write re-reads the declarations, so the tab renders
   the server's copy rather than an optimistic guess at it.
 

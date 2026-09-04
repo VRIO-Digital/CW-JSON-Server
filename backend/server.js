@@ -101,6 +101,7 @@ import {
   withDataset,
 } from './datasets.js'
 import { exportKey, FORMATS } from './reportExport.js'
+import { classForType, parseSchemaDocument } from './schemaImport.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -913,7 +914,8 @@ function sourceRow(source) {
         ? `${source.datasets.length} dataset(s)`
         : source.kind === 'gmail'
           ? `${(source.labels ?? []).length} label(s)`
-          : '—',
+          : /* A generic source states what its form named, or an em dash where it named nothing. */
+            (source.scope ?? '—'),
     connected_at: source.registered_at,
     profiled_tables: source.profiled_tables ?? 0,
     profiled_columns: source.profiled_columns ?? 0,
@@ -996,6 +998,17 @@ const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v)
  * not be able to remove a key the app then crashes on, so a candidate document
  * is checked before anything touches disk.
  */
+/**
+ * The four short codes a cardinality may carry. Advisory, but a closed set — see the client.
+ *
+ * **Declared above `DB_SHAPE` rather than beside its other reader**, because the shape check for
+ * `data_model.suggestions` reads it. `DB_SHAPE`'s values are arrow functions and would not have
+ * touched it until boot, so the old position happened to work — but "it runs later" is an answer
+ * about time to a question about place, which is the lesson `IN_VIEW_PARAM` cost a shipped bug to
+ * learn. One declaration, above everything that reads it.
+ */
+const CARDINALITY_HINTS = ['1:1', '1:N', 'N:1', 'N:N']
+
 const DB_SHAPE = {
   google_account: (v) => isObject(v) && typeof v.email === 'string',
   auth_roles: (v, empty) =>
@@ -1094,7 +1107,17 @@ const DB_SHAPE = {
             typeof c.column_id === 'string' &&
             typeof c.class === 'string' &&
             typeof c.description === 'string' &&
-            typeof c.confidence === 'number',
+            /*
+             * **Nullable, because a *declared* column has no confidence to state.** Every column in
+             * here was a profiler's until a reader could upload a data dictionary, and a dictionary
+             * states what a column means without measuring anything — no classifier scored it, no
+             * sample was taken. The alternative was a plausible number, which is the one thing this
+             * key must not hold: the whole value of a real profile is that its figures were
+             * measured. Same widening as `rows`, `class` and `derivation` before it, and for the
+             * same reason — a declared type is a claim about every row, not the ones it was written
+             * against.
+             */
+            (typeof c.confidence === 'number' || c.confidence === null),
         ),
     ),
   /*
@@ -1116,8 +1139,8 @@ const DB_SHAPE = {
     ),
   /*
    * The Data Modeling tab's declarations — one entity per profiled table, holding the Overview a
-   * curator wrote, the identifier they confirmed, the relationships they declared, the metrics they
-   * built on those, and the columns they reassigned from another table.
+   * curator wrote, the identifier they confirmed, the relationships they declared, and the columns
+   * they reassigned from another table.
    *
    * **Required, and written through `commitDb`, because this is somebody's work.** That is the same
    * asymmetry `graph_use_cases` has and a registered source does not: a mock registration is not
@@ -1133,6 +1156,32 @@ const DB_SHAPE = {
    */
   data_model: (v) =>
     isObject(v) &&
+    /*
+     * **The tenant's own suggested relationships, written down** — the same arrangement
+     * `ask_answers` has, and for the same reason. A recorded suggestion carries a real relationship
+     * *name*, the reasoning a reviewer needs, the alternatives somebody considered and a stated
+     * confidence, none of which a column-name scan can produce; the structural derivation is the
+     * fallback for the pairs nothing has written down. Required as a key and permitted empty: a
+     * dataset with none is a dataset whose suggestions are all derived, which is a real state.
+     */
+    Array.isArray(v.suggestions) &&
+    v.suggestions.every(
+      (r) =>
+        isObject(r) &&
+        typeof r.suggestion_id === 'string' &&
+        typeof r.from_table_key === 'string' &&
+        typeof r.from_column === 'string' &&
+        typeof r.to_table_key === 'string' &&
+        typeof r.to_column === 'string' &&
+        typeof r.relationship_type === 'string' &&
+        Array.isArray(r.relationship_type_alternatives) &&
+        CARDINALITY_HINTS.includes(r.cardinality_hint) &&
+        typeof r.rationale === 'string' &&
+        r.rationale.trim() !== '' &&
+        typeof r.confidence === 'number' &&
+        r.confidence >= 0 &&
+        r.confidence <= 1,
+    ) &&
     Array.isArray(v.entities) &&
     v.entities.every(
       (e) =>
@@ -1154,15 +1203,6 @@ const DB_SHAPE = {
             r.to_columns.length > 0 &&
             typeof r.relationship_type === 'string' &&
             typeof r.cardinality_hint === 'string',
-        ) &&
-        Array.isArray(e.metrics) &&
-        e.metrics.every(
-          (m) =>
-            isObject(m) &&
-            typeof m.metric_id === 'string' &&
-            typeof m.name === 'string' &&
-            typeof m.category === 'string' &&
-            typeof m.column_1 === 'string',
         ) &&
         Array.isArray(e.cross_attributes) &&
         e.cross_attributes.every(
@@ -1480,7 +1520,7 @@ const DB_HINTS = {
     'object with entities[] of { entity_id, table_key "<dataset>.<table>", entity_name, ' +
     'description, business_purpose, grain_description, attributes[], relationships[] of ' +
     '{ target_table_key, from_columns[], to_columns[], relationship_type, cardinality_hint, ' +
-    'rationale }, metrics[], cross_attributes[] } — the Data Modeling declarations. ' +
+    'rationale }, cross_attributes[] } — the Data Modeling declarations. ' +
     'An empty { "entities": [] } is the initial state, from "npm run seed:data-model"',
   graph_domains: 'non-empty array of { domain_id, name }',
   graph_personas: 'non-empty array of { persona_id, name }',
@@ -1693,6 +1733,65 @@ function validateDb(candidate) {
               'would not be drawn at all',
           )
         }
+      }
+    }
+
+    /*
+     * **A recorded suggestion has to name two tables and two columns that exist.**
+     *
+     * Every break here is silent, and the last one is the worst. A suggestion on a table this
+     * document does not carry never reaches a reader, so it reads as a suggester that found nothing.
+     * A suggestion on a **column** nobody carries is worse than that: it reaches the reader, looks
+     * exactly like the others, and is then *refused* by `POST /data-model/entities` when they press
+     * Confirm — a suggestion the app offered and will not accept.
+     *
+     * The column check runs only where the table has a `column_profiles` entry, because a table
+     * whose columns are synthesised has no list to check against — the same rule the upload route
+     * applies, and for the same reason.
+     */
+    const columnsOfTable = (key) => {
+      const profiled = candidate.column_profiles[key]
+      return Array.isArray(profiled) ? new Set(profiled.map((col) => col.column_id)) : null
+    }
+    const seenSuggestions = new Set()
+    for (const suggestion of candidate.data_model.suggestions) {
+      if (seenSuggestions.has(suggestion.suggestion_id)) {
+        problems.push(
+          `data_model.suggestions has two entries with the id "${suggestion.suggestion_id}" — ` +
+            'the tab keys a pending row by it, so the second would replace the first on screen',
+        )
+      }
+      seenSuggestions.add(suggestion.suggestion_id)
+
+      for (const [side, key, column] of [
+        ['from', suggestion.from_table_key, suggestion.from_column],
+        ['to', suggestion.to_table_key, suggestion.to_column],
+      ]) {
+        if (!tableKeys.has(key)) {
+          problems.push(
+            `data_model.suggestions "${suggestion.suggestion_id}" names ${side} table "${key}", ` +
+              'which no project in this document carries — it would never reach a reader, which ' +
+              'reads as a suggester that found nothing',
+          )
+          continue
+        }
+        const known = columnsOfTable(key)
+        if (known && !known.has(column)) {
+          problems.push(
+            `data_model.suggestions "${suggestion.suggestion_id}" joins on ${key}.${column}, ` +
+              'which that table does not carry — the suggestion would be offered and then refused ' +
+              'when somebody pressed Confirm',
+          )
+        }
+      }
+
+      if (
+        suggestion.from_table_key === suggestion.to_table_key &&
+        suggestion.from_column === suggestion.to_column
+      ) {
+        problems.push(
+          `data_model.suggestions "${suggestion.suggestion_id}" joins a column to itself`,
+        )
       }
     }
   }
@@ -2381,6 +2480,22 @@ const HIGH_CONFIDENCE = 0.85
  * A curator's note (`column_notes`) overrides the description on either path —
  * that is the one field a human owns.
  */
+/**
+ * Whether a column's description counts as settled, or still wants a reviewer.
+ *
+ * A curator's note settles it outright — a human wrote it. Otherwise the two kinds of column part
+ * ways: a **measured** column is settled once the classifier cleared the High band, and a
+ * **declared** one (`confidence: null`, uploaded in a dictionary) is settled if it carries a
+ * description at all, because a person wrote that sentence and there is no score to clear.
+ */
+function describedStatus(note, column) {
+  if (note) return 'described'
+  if (column.confidence === null || column.confidence === undefined) {
+    return String(column.description ?? '').trim() ? 'described' : 'needs review'
+  }
+  return column.confidence >= HIGH_CONFIDENCE ? 'described' : 'needs review'
+}
+
 function tableDictionary(source, datasetId, tableId, columnCount, tableRows) {
   const profiled = db.column_profiles?.[`${datasetId}.${tableId}`]
   if (Array.isArray(profiled) && profiled.length > 0) {
@@ -2403,9 +2518,15 @@ function tableDictionary(source, datasetId, tableId, columnCount, tableRows) {
          * the Needs-review facet read 0 forever. What it means here is what a
          * reviewer would actually want: the profiler was less than confident and
          * no human has confirmed it. A curator note settles it either way.
+         *
+         * **Three branches, because there are now two kinds of column here.** A `null` confidence
+         * is a column somebody *declared* — uploaded in a data dictionary — rather than one a
+         * classifier scored, so the confidence test has nothing to say about it: `null >= 0.85` is
+         * false, which would have marked every declared column "needs review" however carefully its
+         * description was written. What a declaration is missing is a description, so that is what
+         * decides it.
          */
-        description_status:
-          note || c.confidence >= HIGH_CONFIDENCE ? 'described' : 'needs review',
+        description_status: describedStatus(note, c),
       }
     })
   }
@@ -3059,22 +3180,26 @@ function wrongScope(source, servedKind) {
 }
 
 /**
- * Refuse a modelling request this route does not serve, and say why there is no twin.
+ * Refuse an act only a structured source has, and say why there is no twin.
  *
- * **A fifth act, and the second one where a twin may not exist** — `wrongScope`'s reasoning applied
- * to the other end of the catalogue. A model is tables, columns, relationships and metrics, all of
- * which come from a profiled *schema*, so a drive and a mailbox have nothing here at all. Pointing
- * either at the structured route would be a remedy that fails the same way, which is the
- * refusal-with-no-remedy this repo has already removed twice; and reusing `wrongConnector` would
- * name that connector's dictionary, which answers a different question.
+ * **`wrongScope`'s reasoning applied to the other end of the catalogue.** Two acts here are about a
+ * *schema* — declaring a model over one, and uploading one — and a drive and a mailbox have no
+ * schema at all, however much of either is profiled. Pointing one at the structured route would be a
+ * remedy that fails the same way, which is the refusal-with-no-remedy this repo has already removed
+ * twice; and reusing `wrongConnector` would name that connector's **dictionary**, which answers a
+ * different question from either of these.
+ *
+ * `act` is the phrase the sentence needs ("a model", "a schema upload"). One helper rather than one
+ * per act, because the *reason* is identical and only the noun differs — two copies of this would be
+ * two places for the same refusal to be worded differently.
  */
-function wrongModel(source, servedKind) {
+function wrongStructuredOnly(source, servedKind, act) {
   if (source.kind === servedKind) return null
   const own = CATALOGUE_ROUTES[source.kind]
   if (!own) {
-    return `${source.source_id} carries no catalogue — ${source.connector} is connected but never profiled, so there is no schema to model`
+    return `${source.source_id} carries no catalogue — ${source.connector} is connected but never profiled, so there is no schema for ${act}`
   }
-  return `${source.source_id} holds ${own.holds}, not ${CATALOGUE_ROUTES[servedKind].holds} — a model is drawn over a profiled schema, so there is no modelling route for a ${source.connector} source. Its catalogue is GET /sources/${source.source_id}/${own.dictionary}.`
+  return `${source.source_id} holds ${own.holds}, not ${CATALOGUE_ROUTES[servedKind].holds} — ${act} is about a schema, and a ${source.connector} source has none. Its catalogue is GET /sources/${source.source_id}/${own.dictionary}.`
 }
 
 const pipelineFor = (job) => PROFILERS[job.kind] ?? PIPELINE
@@ -8195,6 +8320,245 @@ const reportView = (report) => {
   }
 }
 
+/* ---------------- Uploading a schema or data dictionary ---------------- */
+
+/**
+ * Every semantic class this app knows, from the two lists that already declare them.
+ *
+ * Read off `CLASS_FACET` and `CLASS_UNFACETED` rather than written again, because those two are
+ * already the authority: `check-docs` walks every dataset's `column_profiles` and asserts each class
+ * it finds is in one of them, so a class this accepted and they did not would fail `preflight` the
+ * moment the document was committed — and a third copy of the vocabulary is how the chip a column
+ * answers to comes to disagree with the class it carries.
+ */
+const KNOWN_CLASSES = new Set([...Object.values(CLASS_FACET).flat(), ...CLASS_UNFACETED])
+
+/** A class as the profile spells them: lower case, underscores. */
+const normaliseClass = (raw) =>
+  String(raw ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+
+/**
+ * What an uploaded file *means* for a project this server can see — the half `schemaImport.js`
+ * deliberately does not do.
+ *
+ * **One function, two callers**, which is the whole point: the preview and the write read the same
+ * answer, so what a reader was shown is what lands. Two walks over the same file is how a preview
+ * comes to promise a table the write then refuses.
+ *
+ * It throws with a reader-facing sentence, and every refusal names the fix. Nothing here mutates:
+ * it returns a *plan*, and the route commits it.
+ */
+function resolveSchemaUpload({ source, parsed, datasetId, filename }) {
+  const chosen = datasetId || parsed.dataset_id
+  const allowed = source.datasets ?? []
+  if (!chosen) {
+    throw new Error(
+      `this file does not name a dataset, so pick one — this source allows ${allowed.join(', ') || 'none'}.`,
+    )
+  }
+  if (!allowed.includes(chosen)) {
+    throw new Error(
+      `${chosen} is not in this source's allowlist (${allowed.join(', ') || 'none'}) — a dictionary for a dataset the source cannot read would describe tables nothing profiles.`,
+    )
+  }
+
+  const project = findProject(source.project_id)
+  const dataset = project?.datasets.find((d) => d.dataset_id === chosen)
+  if (!dataset) {
+    throw new Error(
+      `${source.project_id} has no dataset ${chosen} — the allowlist names it, so the document and the registration disagree. Restart the mock server, or re-check the project.`,
+    )
+  }
+
+  const notes = source.column_notes ?? {}
+  const tables = parsed.tables.map((table) => {
+    const existing = dataset.tables.find((t) => t.table_id === table.table_id)
+
+    /*
+     * **A table the project does not have is *declared* by the upload, and a declaration needs a
+     * label and a grain.** `validateDb` requires both on every table, and they are read straight
+     * through to the browse tree and the dictionary — so a table added without them renders as a
+     * blank cell rather than raising anything. Neither can be invented here: a label is a name and a
+     * grain is the sentence "one row per …", and this server has read nothing that would know either.
+     */
+    if (!existing && (!table.label || !table.grain)) {
+      const missing = [!table.label && 'a label', !table.grain && 'a grain']
+        .filter(Boolean)
+        .join(' and ')
+      throw new Error(
+        `${chosen}.${table.table_id} is new to this project, so the file has to give it ${missing}. ` +
+          'A label is what the Catalog calls it and a grain is what one row of it is ("one row per project and version") — ' +
+          'add a table_label and a grain column, or a "label" and "grain" on the table in JSON.',
+      )
+    }
+
+    const columns = table.columns.map((column) => {
+      const stated = normaliseClass(column.class)
+      if (stated && !KNOWN_CLASSES.has(stated)) {
+        throw new Error(
+          `${table.table_id}.${column.column_id} states the class "${column.class}", which this app has no chip for. ` +
+            `Use one of ${[...KNOWN_CLASSES].sort().join(', ')}, or leave the class blank and it is read from the type.`,
+        )
+      }
+      return {
+        column_id: column.column_id,
+        /*
+         * Derived from the id where the file gives no display name, exactly as `synthesiseColumns`
+         * derives one — its own note says a synthesised column has no name beyond its id, and a
+         * declared one with no label is in the same position.
+         */
+        label: column.label || column.column_id.replace(/_/g, ' ').toUpperCase(),
+        /* Null where the file said nothing. A type is the file's to state, and `UNSPECIFIED` in this
+           field would be this server naming a type nobody wrote. */
+        type: column.type || null,
+        class: stated || classForType(column.type),
+        description: column.description ?? '',
+        /*
+         * **The provenance, in the field that already carries it.** `derivation` is "how the
+         * classification was reached" — EPA's profiler says `llm`, CAPEX's records nothing — and for
+         * a declared column the honest answer is the file it was declared in. It prints where a
+         * profiler's method prints, so no second field and no new key is needed to say where a
+         * column came from.
+         */
+        derivation: `declared in ${filename}`,
+        pii: Boolean(column.pii),
+        /*
+         * **Null, all three, because a declaration is not a measurement.** Confidence is a
+         * classifier's score, and null% and distinct are counts from a sample; a file that states a
+         * column's meaning has taken none of them. Synthesising a plausible figure here is the one
+         * thing this feature must not do — the whole point of a real dictionary is that its numbers
+         * were measured, and a dictionary full of invented statistics is worse than one with none.
+         */
+        confidence: null,
+        null_pct: null,
+        distinct: null,
+      }
+    })
+
+    /*
+     * **An upload replaces a table's dictionary rather than merging into it**, and the preview is
+     * what makes that safe. A merge has no way to *remove* a column that is no longer there, and it
+     * would leave two authors in one list with nothing saying which wrote what. So the plan states
+     * what it would drop, by name, and nothing lands until somebody has read it.
+     */
+    const before = db.column_profiles[`${chosen}.${table.table_id}`] ?? []
+    const beforeIds = new Set(before.map((c) => c.column_id))
+    const afterIds = new Set(columns.map((c) => c.column_id))
+    const dropped = before.filter((c) => !afterIds.has(c.column_id)).map((c) => c.column_id)
+
+    /* A curator's note is keyed `dataset.table.column`, so a dropped column's note stops applying.
+       Counted rather than left to be discovered: it is somebody's typing. */
+    const orphanedNotes = dropped.filter((id) => notes[`${chosen}.${table.table_id}.${id}`])
+
+    /*
+     * **And a Data Modeling declaration can be stranded by a dropped column**, which is worse than
+     * an orphaned note: a confirmed identifier or a declared join reads a column by name, and
+     * `POST /data-model/entities` *refuses* a join on a column `column_profiles` does not carry. So
+     * an upload that drops one leaves a declaration the write path would no longer accept —
+     * findable only by trying to edit it. Named here, in the preview, while it is still a choice.
+     */
+    const tableKey = `${chosen}.${table.table_id}`
+    const strandedDeclarations = []
+    for (const entity of db.data_model.entities) {
+      if (entity.table_key === tableKey) {
+        for (const attribute of entity.attributes) {
+          if (attribute.is_identifier && dropped.includes(attribute.name)) {
+            strandedDeclarations.push(`${entity.entity_name}: identifier ${attribute.name}`)
+          }
+        }
+      }
+      for (const relationship of entity.relationships) {
+        /* Either end: the declaration lives on the from side, and a join names a column on both. */
+        const ends = [
+          entity.table_key === tableKey ? relationship.from_columns : [],
+          relationship.target_table_key === tableKey ? relationship.to_columns : [],
+        ].flat()
+        for (const column of ends) {
+          if (dropped.includes(column)) {
+            strandedDeclarations.push(
+              `${entity.entity_name}: ${relationship.relationship_type} on ${column}`,
+            )
+          }
+        }
+      }
+    }
+
+    return {
+      table_id: table.table_id,
+      exists: Boolean(existing),
+      label: existing?.label ?? table.label,
+      grain: existing?.grain ?? table.grain,
+      /* Stated so the preview can say "was profiled, will be re-profiled". */
+      profiled: (source.profiled ?? []).some(
+        (p) => p.dataset_id === chosen && p.table_id === table.table_id,
+      ),
+      column_count: columns.length,
+      previous_column_count: before.length,
+      /*
+       * **What the Catalog says this table has *now*, which is the number a reader is looking at.**
+       *
+       * Kept apart from `previous_column_count` because the two answer different questions and
+       * running this showed why: `plan_project_budget` is catalogued with 24 columns and had no
+       * dictionary at all, so a 3-column file reported `0 → 3` while the number on screen went
+       * **24 → 3**. The preview was accurate and told the reader nothing about the change they would
+       * actually see. Applying replaces the count as well as the columns — one answer per table
+       * rather than a catalogue advertising 24 over a dictionary of 3 — so this is the figure the
+       * panel puts before the arrow.
+       */
+      catalogued_column_count: existing?.columns ?? columns.length,
+      added: columns.filter((c) => !beforeIds.has(c.column_id)).map((c) => c.column_id),
+      dropped,
+      orphaned_notes: orphanedNotes,
+      stranded_declarations: strandedDeclarations,
+      columns,
+    }
+  })
+
+  const seen = new Set()
+  for (const table of tables) {
+    if (seen.has(table.table_id)) {
+      throw new Error(`this file declares ${table.table_id} twice.`)
+    }
+    seen.add(table.table_id)
+  }
+
+  return {
+    dataset_id: chosen,
+    format: parsed.format,
+    tables,
+    table_count: tables.length,
+    column_count: tables.reduce((n, t) => n + t.column_count, 0),
+    new_table_count: tables.filter((t) => !t.exists).length,
+  }
+}
+
+/** The plan as the reader sees it — the columns themselves are the write's business, not the preview's. */
+const schemaPlanView = (plan, filename) => ({
+  filename,
+  format: plan.format,
+  dataset_id: plan.dataset_id,
+  table_count: plan.table_count,
+  column_count: plan.column_count,
+  new_table_count: plan.new_table_count,
+  tables: plan.tables.map((t) => ({
+    table_id: t.table_id,
+    exists: t.exists,
+    profiled: t.profiled,
+    label: t.label,
+    grain: t.grain,
+    column_count: t.column_count,
+    previous_column_count: t.previous_column_count,
+    catalogued_column_count: t.catalogued_column_count,
+    added: t.added,
+    dropped: t.dropped,
+    orphaned_notes: t.orphaned_notes,
+    stranded_declarations: t.stranded_declarations,
+  })),
+})
+
 /* ---------------- Data Modeling ---------------- */
 
 /**
@@ -8241,9 +8605,6 @@ const profiledModelTables = (source) => {
     }
   })
 }
-
-/** The four short codes a declaration may carry. Advisory, but a closed set — see the client. */
-const CARDINALITY_HINTS = ['1:1', '1:N', 'N:1', 'N:N']
 
 /**
  * How many tables one suggestions run considers.
@@ -8337,13 +8698,66 @@ const dataModelSuggestions = (source) => {
     }
   }
 
+  /*
+   * **The recorded suggestions win, and each one says which it is** — the rule `matchAskAnswer`
+   * keeps for a written answer, applied to a written suggestion.
+   *
+   * A recorded suggestion carries what a column-name scan cannot produce: a real relationship
+   * *name*, the reasoning a reviewer needs to judge it, the alternatives somebody considered, and a
+   * confidence that is a stated opinion rather than a classifier's score. So where one exists for a
+   * pair, the derived row for that same pair is dropped: two rows for one join would ask the
+   * reviewer the same question twice and let them answer it two ways.
+   *
+   * Scoped to the tables in front of the reader, because a suggestion whose other end this source
+   * has not profiled has nowhere to land — the rule `declaredRelationshipsFrom` applies to a stored
+   * declaration, applied here to a suggested one.
+   */
+  const inScope = new Set(all.map((t) => t.table_key))
+  const recorded = db.data_model.suggestions
+    .filter((r) => inScope.has(r.from_table_key) && inScope.has(r.to_table_key))
+    .map((r) => ({
+      from_table_key: r.from_table_key,
+      from_column: r.from_column,
+      to_table_key: r.to_table_key,
+      to_column: r.to_column,
+      relationship_type: r.relationship_type,
+      relationship_type_alternatives: r.relationship_type_alternatives,
+      cardinality_hint: r.cardinality_hint,
+      rationale: r.rationale,
+      confidence: r.confidence,
+      /*
+       * **`recorded`, and never `llm`.** The shape of these is an AI suggester's — a name, its
+       * alternatives, a paragraph of reasoning, a confidence — and the *provenance* is that somebody
+       * wrote them into this dataset's document. Printing "model reasoning" over an authored row
+       * would be the one untrue thing on the page, which is why `degraded` below stays true: no
+       * model ran, whichever kind of suggestion a reader is looking at.
+       */
+      evidence_kind: 'recorded',
+    }))
+
+  const covers = (a, b) =>
+    (a.from_table_key === b.from_table_key &&
+      a.from_column === b.from_column &&
+      a.to_table_key === b.to_table_key &&
+      a.to_column === b.to_column) ||
+    (a.from_table_key === b.to_table_key &&
+      a.from_column === b.to_column &&
+      a.to_table_key === b.from_table_key &&
+      a.to_column === b.from_column)
+
+  const derived = relationships.filter((d) => !recorded.some((r) => covers(r, d)))
+
   return {
     source_id: source.source_id,
     tables,
-    relationships,
-    /* True, and not a placeholder: there is no LLM behind this server, and the tab's own wording for
-       this flag says exactly that. */
+    relationships: [...recorded, ...derived],
+    /*
+     * True whichever kind was served, because it answers "did a model run" and the answer is no.
+     * The two counts beside it are what let the tab say which is which rather than implying one.
+     */
     degraded: true,
+    recorded_count: recorded.length,
+    derived_count: derived.length,
     truncated: all.length > considered.length,
     tables_considered: considered.length,
   }
@@ -8359,7 +8773,6 @@ const modelEntityView = (entity) => ({
   grain_description: entity.grain_description ?? null,
   attributes: entity.attributes ?? [],
   relationships: entity.relationships ?? [],
-  metrics: entity.metrics ?? [],
   cross_attributes: entity.cross_attributes ?? [],
   updated_at: entity.updated_at,
 })
@@ -9813,11 +10226,160 @@ const routes = [
     },
   },
 
+
+  /* ---------------- Uploading a schema or data dictionary ----------------
+   *
+   * **Two acts, and the first one writes nothing** — the same shape the connect wizard's preview and
+   * finish have, and for a stronger reason here: applying replaces a table's dictionary, so the
+   * preview is the reader's chance to see what a parse understood *before* it stands as the
+   * Catalog's answer. "Seed, check the diff, push" is the rule this repo already follows for a
+   * document; a preview is that rule with a screen instead of a terminal.
+   *
+   * **The file arrives as text in a JSON body, not as multipart.** The browser reads it with
+   * `File.text()` and posts a string, so this zero-dependency server needs no multipart parser for
+   * a feature whose input is a text file either way — and `readJson`'s 1 MB cap then applies to the
+   * whole body, which the client checks against before sending so the reader gets a sentence rather
+   * than a dropped connection.
+   */
+
+  {
+    method: 'POST',
+    match: (p) => /^\/sources\/.+\/schema\/preview$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/schema/preview'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      const wrong = wrongStructuredOnly(source, 'bigquery', 'a schema upload')
+      if (wrong) return send(res, 400, { error: wrong })
+
+      const { filename, text, dataset_id } = await readJson(req)
+      if (!filename || typeof text !== 'string') {
+        return send(res, 400, { error: 'filename and text are both required' })
+      }
+      try {
+        const parsed = parseSchemaDocument({ filename, text })
+        const plan = resolveSchemaUpload({ source, parsed, datasetId: dataset_id, filename })
+        send(res, 200, { source_id: sourceId, ...schemaPlanView(plan, filename) })
+      } catch (error) {
+        /* Sent verbatim: every refusal in the parser and the resolver is written as a sentence to
+           the person holding the file, and the panel prints it as it arrived. */
+        send(res, 400, { error: `${filename}: ${error.message}` })
+      }
+    },
+  },
+
+  /*
+   * Applies the plan, then **queues a profiling run over the tables it touched**, forced.
+   *
+   * One call rather than two, because the two are one act: a dictionary that landed and a run that
+   * did not is a Catalog advertising columns nothing has profiled, and asking the client to make the
+   * second call would put the decision in the one place that cannot see whether the first succeeded.
+   *
+   * **Forced, and that is the point.** The normal rule is that an already-profiled table is skipped
+   * unless somebody asks twice — because re-running over unchanged columns does nothing. Here the
+   * columns are exactly what changed, so a skip would leave the tile counting a profile of the
+   * dictionary that has just been replaced.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/sources\/.+\/schema$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/schema'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      const wrong = wrongStructuredOnly(source, 'bigquery', 'a schema upload')
+      if (wrong) return send(res, 400, { error: wrong })
+
+      const { filename, text, dataset_id } = await readJson(req)
+      if (!filename || typeof text !== 'string') {
+        return send(res, 400, { error: 'filename and text are both required' })
+      }
+
+      let plan
+      try {
+        const parsed = parseSchemaDocument({ filename, text })
+        plan = resolveSchemaUpload({ source, parsed, datasetId: dataset_id, filename })
+      } catch (error) {
+        return send(res, 400, { error: `${filename}: ${error.message}` })
+      }
+
+      /*
+       * The whole document, rebuilt rather than mutated. `db` is a Proxy over the dataset this
+       * request selected and `commitDb` validates the candidate before anything touches storage, so
+       * every level of this is a new object — editing `db.projects` in place would change the live
+       * document before it had been checked.
+       */
+      const byTable = new Map(plan.tables.map((t) => [t.table_id, t]))
+      const projects = db.projects.map((project) => {
+        if (project.project_id !== source.project_id) return project
+        return {
+          ...project,
+          datasets: project.datasets.map((dataset) => {
+            if (dataset.dataset_id !== plan.dataset_id) return dataset
+            const updated = dataset.tables.map((table) => {
+              const plannedTable = byTable.get(table.table_id)
+              /* The advertised column count and the dictionary have to agree — `check-docs` asserts
+                 it per table, and a Catalog claiming 12 columns over a dictionary of 47 is the same
+                 two-answers fault everywhere else here refuses. */
+              return plannedTable ? { ...table, columns: plannedTable.column_count } : table
+            })
+            const added = plan.tables
+              .filter((t) => !t.exists)
+              .map((t) => ({
+                table_id: t.table_id,
+                /* Non-null for a new table — `resolveSchemaUpload` refuses one without both. */
+                label: t.label,
+                grain: t.grain,
+                type: 'TABLE',
+                /* **Null, not 0.** Nobody has counted this table's rows: a dictionary states what a
+                   column means and never how many rows there are, and `0` would say the table is
+                   empty. The browse payload already carries `rows` nullable for exactly this. */
+                rows: null,
+                columns: t.column_count,
+              }))
+            return { ...dataset, tables: [...updated, ...added] }
+          }),
+        }
+      })
+
+      const profiles = { ...db.column_profiles }
+      for (const table of plan.tables) {
+        profiles[`${plan.dataset_id}.${table.table_id}`] = table.columns
+      }
+
+      await commitDb({ ...db, projects, column_profiles: profiles })
+
+      const job = queueJob({
+        sourceId,
+        kind: 'bigquery',
+        unit: 'table',
+        objects: plan.tables.map((table) => ({
+          parent_id: plan.dataset_id,
+          object_id: table.table_id,
+          label: table.table_id,
+          units: table.column_count,
+          /* Every one of them runs: the dictionary is what changed. */
+          state: 'pending',
+        })),
+        force: true,
+      })
+
+      send(res, 202, {
+        source_id: sourceId,
+        applied: schemaPlanView(plan, filename),
+        job: jobView(job),
+      })
+    },
+  },
   /* ---------------- Data Modeling ----------------
    *
    * The Catalog's third act. Browse says what a source holds and the dictionary describes it column
    * by column; this is where a curator says what a table *is* — the entity it stands for, the column
-   * that identifies a row, the relationships it has to other tables, and the metrics those carry.
+   * that identifies a row, and the relationships it has to the other tables.
    *
    * Unlike a registered source these are written to the document through `commitDb`, because they
    * are somebody's work and the graph builders are meant to read them — the same asymmetry that
@@ -9858,7 +10420,6 @@ const routes = [
         grain_description,
         attributes,
         relationships,
-        metrics,
         cross_attributes,
       } = body
 
@@ -9975,17 +10536,6 @@ const routes = [
         }
       }
 
-      const measures = metrics ?? existing?.metrics ?? []
-      if (
-        !Array.isArray(measures) ||
-        measures.some(
-          (m) => !isObject(m) || !m.name || !m.category || !m.column_1 || !m.related_table_key,
-        )
-      ) {
-        return send(res, 400, {
-          error: 'every metric needs a name, a category, a related_table_key and a column_1',
-        })
-      }
       const crossAttrs = cross_attributes ?? existing?.cross_attributes ?? []
       if (
         !Array.isArray(crossAttrs) ||
@@ -10031,23 +10581,6 @@ const routes = [
           cardinality_hint: r.cardinality_hint,
           rationale: String(r.rationale ?? '').trim(),
         })),
-        metrics: measures.map((m, i) => ({
-          metric_id: m.metric_id ?? `met-${slugify(m.name)}-${nextId()}${i}`,
-          name: String(m.name).trim(),
-          category: m.category,
-          relationship_id: m.relationship_id ?? null,
-          related_table_key: m.related_table_key,
-          column_1: m.column_1,
-          operator: m.operator ?? null,
-          column_2: m.column_2 ?? null,
-          aggregation: m.aggregation ?? null,
-          math_function: m.math_function ?? null,
-          math_param: m.math_param ?? null,
-          string_function: m.string_function ?? null,
-          string_column_2: m.string_column_2 ?? null,
-          string_param_1: m.string_param_1 ?? null,
-          string_param_2: m.string_param_2 ?? null,
-        })),
         cross_attributes: crossAttrs.map((a, i) => ({
           attribute_id: a.attribute_id ?? `xat-${slugify(a.source_column)}-${nextId()}${i}`,
           source_table_key: a.source_table_key,
@@ -10074,8 +10607,8 @@ const routes = [
   },
 
   /*
-   * Drops one whole declaration — the entity, its identifier, its relationships and the metrics
-   * built on them. Removing a single relationship is a save of the entity without it, not this: the
+   * Drops one whole declaration — the entity, its identifier and its relationships. Removing a
+   * single relationship is a save of the entity without it, not this: the
    * arrays belong to the entity, so there is nothing here for a sub-resource to address.
    */
   {
@@ -10113,7 +10646,7 @@ const routes = [
       const { source_id } = await readJson(req)
       const source = registered.get(source_id)
       if (!source) return send(res, 404, { error: `no registered source ${source_id}` })
-      const wrong = wrongModel(source, 'bigquery')
+      const wrong = wrongStructuredOnly(source, 'bigquery', 'a model')
       if (wrong) return send(res, 400, { error: wrong })
       if ((source.profiled ?? []).length === 0) {
         return send(res, 400, {
@@ -11579,7 +12112,8 @@ const routes = [
     method: 'POST',
     match: (p) => p === '/sources/generic',
     handle: async (req, res) => {
-      const { connector, source_name, type_label, credential_ref, account } = await readJson(req)
+      const { connector, source_name, type_label, credential_ref, account, scope } =
+        await readJson(req)
       if (!connector) {
         return send(res, 400, { error: 'connector is required' })
       }
@@ -11608,6 +12142,14 @@ const routes = [
          * nothing gets null, and the row reads "—" rather than inventing an account for it.
          */
         account: typeof account === 'string' && account.trim() ? account.trim() : null,
+        /*
+         * What this source has in scope, in the connector's own noun — a database, a schema. The
+         * three real kinds compute their scope in `sourceRow` from an allowlist they actually
+         * hold; a generic source has no allowlist, so what it can honestly state is the thing the
+         * form named. `null` where the connector narrows nothing, and the row then prints an em
+         * dash rather than a zero: `0 dataset(s)` would say the source reaches nothing.
+         */
+        scope: typeof scope === 'string' && scope.trim() ? scope.trim() : null,
         datasets: [],
         /*
          * **Connected, not syncing.** This was `syncing` from when every generic connector was a

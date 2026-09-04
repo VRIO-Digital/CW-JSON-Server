@@ -2,6 +2,7 @@ import { DeleteOutlined } from '@ant-design/icons'
 import { Button, Popconfirm, Typography } from 'antd'
 import type { ModelEntity } from '../../api/client'
 import {
+  confidenceLabel,
   evidenceKindLabel,
   type DeclaredRelationship,
 } from '../../data/dataModelRelationships'
@@ -90,15 +91,31 @@ export default function EntityRelationshipsPanel({
                 gap: 8,
               }}
             >
-              <ProvenanceBadge kind={confirmed ? 'human' : 'derived'} full />
+              {/* The relationship's own provenance, not a guess from its status: a pending row is
+                  recorded or derived, and those are different facts. */}
+              <ProvenanceBadge kind={r.provenance} full />
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <StatusPill variant={confirmed ? 'mut' : 'suggested'}>
-                  {confirmed ? r.name : 'pending review'}
-                </StatusPill>
+                {/*
+                  * **The name is on the row whether or not it is confirmed**, and it took recorded
+                  * suggestions to show why it should be.
+                  *
+                  * A pending row used to print only *pending review*, which was defensible while
+                  * every suggestion was derived and its name was mechanical — `LINKED_BY_GATE_ID`
+                  * tells a reviewer nothing the column join beneath it does not already say. A
+                  * recorded suggestion's name is the opposite: `HAS_COMPLIANCE_HISTORY` is the most
+                  * informative thing on the row, and hiding it behind a click made the reviewer open
+                  * a dialog to find out what they were being asked about.
+                  *
+                  * So the name shows, and the state shows beside it as its own pill — two facts,
+                  * two marks, rather than one slot doing double duty and losing whichever it is not
+                  * showing.
+                  */}
+                <StatusPill variant="mut">{r.name}</StatusPill>
+                {confirmed ? null : <StatusPill variant="suggested">pending review</StatusPill>}
                 {confirmed ? (
                   <Popconfirm
                     title="Delete this relationship?"
-                    description="Any metric built on it goes with it — a metric whose relationship is gone has no columns to resolve."
+                    description="The canvas stops drawing it, and nothing derives over it again. The two entities keep their own declarations."
                     okText="Delete"
                     okButtonProps={{ danger: true }}
                     onConfirm={(ev) => {
@@ -175,7 +192,7 @@ export default function EntityRelationshipsPanel({
                   ) : null}
                   {r.confidence != null ? (
                     <span>
-                      Classifier confidence:{' '}
+                      {confidenceLabel(r)}:{' '}
                       <b style={{ color: MT.text }}>{r.confidence.toFixed(2)}</b>
                     </span>
                   ) : null}

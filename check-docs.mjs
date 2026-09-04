@@ -15,6 +15,10 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, sep } from 'node:path'
+/* The real reader, so the sample dictionary below is *parsed* rather than eyeballed. Safe to import:
+   `schemaImport.js` is pure — no `db`, no filesystem, no request — which is the same property that
+   lets `verify:schema-import` replay it with nothing running. */
+import { parseSchemaDocument } from './backend/schemaImport.js'
 
 /*
  * The repo root, which is **this file's own directory** — it sits at the top level rather than in a
@@ -190,10 +194,24 @@ const distinctive = (name) =>
  * How many connectors run the bespoke consent → preview → finish path.
  *
  * **Derived, because it was written as `2` in three claims** and every one of them failed the day a
- * third real connector landed — each reporting a correct fact as stale. It is the count of available
- * connectors, which is what "has its own branch" means here: an unavailable one has no consent to run.
+ * third real connector landed — each reporting a correct fact as stale.
+ *
+ * **It was the count of *available* connectors, and that premise broke.** The comment said so
+ * outright — "an unavailable one has no consent to run" — which was true only while every connector
+ * that could be picked also signed in with Google. The database connectors are picked, register a
+ * source, and run no consent at all, so counting them here made two correct claims about the OAuth
+ * wiring report six callbacks where three exist.
+ *
+ * So it is read off the **server's own `OAUTH_SCOPES`**, which is the authority on which providers
+ * have a consent to run — the same table the provider parse is a lookup over. A fourth Google
+ * connector adds a row there and this follows; a fourth database connector does not touch it.
  */
-const realConnectorCount = connectorList.filter((c) => c.available).length
+const consentProviders = [
+  ...((server.match(/const OAUTH_SCOPES = \{([\s\S]*?)\n\}/) ?? [])[1] ?? '').matchAll(
+    /^ {2}(\w+):/gm,
+  ),
+].map((m) => m[1])
+const realConnectorCount = consentProviders.length
 
 for (const c of connectorList) {
   const token = distinctive(c.name)
@@ -287,6 +305,204 @@ expect(
     !/c\.key/.test(dirDataSrc.slice(dirDataSrc.indexOf('export function filterConnectors'))) &&
     !/c\.reason/.test(dirDataSrc),
   'the searched fields are the ones on the card',
+)
+
+/* ---------------- the three connectors that register by credentials ---------------- */
+
+/*
+ * **`available` cannot answer two questions, so a third answer is derived from the two facts.**
+ *
+ * It used to mean both "can be clicked" and "is real", because every clickable connector also
+ * carried a catalogue. MySQL, PostgreSQL and Snowflake register a source and profile nothing, so the
+ * two came apart — and the failure of getting this wrong is a card in the wrong section: under
+ * *Available now* a database card promises a catalogue it does not have, and under *Product vision*
+ * it refuses a click that works.
+ *
+ * `connectorGroup` folds `available` and `profiles` rather than adding a field, so a card cannot
+ * appear under a heading that misdescribes it — and flipping `profiles` when a profiler lands moves
+ * the card on its own.
+ */
+const connectorsSrc = codeOnly(connectors)
+const credentialKeys = [...connectors.matchAll(/key: '(\w+)',[\s\S]{0,600}?profiles: false,/g)]
+  .map((m) => m[1])
+  .filter((k) => {
+    const block = connectorBlocks.find((b) => new RegExp(`key: '${k}',`).test(b)) ?? ''
+    return /available: true/.test(block)
+  })
+expect(
+  'a pickable connector that profiles nothing says so on its own card, not in a heading',
+  credentialKeys.join(',') === 'mysql,postgres,snowflake' &&
+    /* The group is still derived — `connectorPickerNote` reads it — and still folds the two facts
+       already declared rather than adding a third nobody would keep in step. */
+    /export function connectorGroup\(connector: Connector\)/.test(connectorsSrc) &&
+    /if \(!connector\.available\) return 'vision'/.test(connectorsSrc) &&
+    /return connector\.profiles \? 'profiling' : 'credentials'/.test(connectorsSrc) &&
+    /*
+     * **Every one of them states it in its own blurb**, which is where the fact went when the third
+     * section was removed. This is the whole guard now: with both kinds of pickable card under
+     * *Available now*, the blurb is the only thing on the grid telling them apart, so a card that
+     * lost this line would sit beside BigQuery promising a catalogue it does not have.
+     */
+    credentialKeys.every((k) => {
+      const block = connectorBlocks.find((b) => new RegExp(`key: '${k}',`).test(b)) ?? ''
+      return /blurb: 'registers a connection — no profiler yet',/.test(block)
+    }) &&
+    /* Two sections, drawn as **direct siblings**: the stylesheet spaces them with
+       `.cd-section + .cd-section`, so a wrapper around either makes it an only child and the two
+       run together with no gap. That shipped for a minute while three sections were mapped from a
+       list. */
+    /\.cd-section \+ \.cd-section/.test(read('frontend/src/components/sources/ConnectorDirectory.css')) &&
+    /\{section\(connectorDirectoryCopy\.availableHeading, available\)\}/.test(dirSrc) &&
+    /\{section\(connectorDirectoryCopy\.visionHeading, vision\)\}/.test(dirSrc) &&
+    /* And the removed section is removed everywhere, not just from the grid: a filter offering a
+       group the directory draws no heading for would name a concept the page does not have. */
+    !/Connect by credentials/.test(dirDataSrc) &&
+    !/'credentials' as const/.test(dirDataSrc) &&
+    /export type ConnectorFilter = 'all' \| 'available' \| 'vision'/.test(dirDataSrc),
+  `credential connectors: ${credentialKeys.join(', ') || 'none'} — with one section for both kinds, the blurb is the only thing telling a database card from BigQuery`,
+)
+
+/*
+ * **Step 1's note tells the two pickable kinds apart.**
+ *
+ * It read "the rest below are product vision only", which stopped being true the moment a database
+ * card could be clicked — and a reader about to type six connection fields has to know beforehand
+ * that nothing will profile the result, not afterwards from a Data Catalog that leaves the row out.
+ * Composed from the directory so it cannot go stale, and a group with nothing in it contributes no
+ * sentence.
+ */
+expect(
+  'the connector note names each group from the data, and no longer calls the rest "the rest"',
+  /export function connectorPickerNote\(connectors: Connector\[\]\): string/.test(dirDataSrc) &&
+    /title=\{connectorPickerNote\(CONNECTORS\)\}/.test(wizardSrc) &&
+    !/The rest below are product vision only/.test(wizard) &&
+    /* Names, not a count, on both pickable groups — the rule since the third connector landed. */
+    /\$\{profiling\.join\(', '\)\}/.test(dirDataSrc) &&
+    /\$\{credentials\.join\(', '\)\}/.test(dirDataSrc) &&
+    /not in the Data Catalog/.test(dirDataSrc) &&
+    /*
+     * **The note is now the only place the two pickable kinds are told apart in prose**, since the
+     * section that did it was removed — so it carries more weight than when it was written, not
+     * less. A group with nothing in it still contributes no sentence, which is what keeps it from
+     * describing a group the directory is not showing.
+     */
+    /if \(credentials\.length > 0\)/.test(dirDataSrc) &&
+    /if \(profiling\.length > 0\)/.test(dirDataSrc),
+  'a note that calls a clickable connector product vision is wrong about the thing it is there to explain',
+)
+
+/*
+ * **Every field kind a connector declares has a control, and no connector asks for a password.**
+ *
+ * `fieldControl` ends in a plain `Input`, so a kind with no branch renders as a text box — silently,
+ * and wrongly: the port that prompted `number` would have validated as prose. The second half is the
+ * promise step 2's own alert makes; a password box under "ContextWeave never persists the secret
+ * itself" would make that sentence false.
+ */
+const declaredKinds = [...new Set([...connectors.matchAll(/kind: '(\w+)'/g)].map((m) => m[1]))]
+const controlBody =
+  /function fieldControl\(field: ConnectorField\) \{[\s\S]*?\n\}/.exec(wizard)?.[0] ?? ''
+expect(
+  'each declared field kind has its own control, and nothing asks for a password',
+  declaredKinds.length >= 4 &&
+    controlBody.length > 200 &&
+    declaredKinds
+      .filter((k) => k !== 'text')
+      .every((k) => new RegExp(`field\\.kind === '${k}'`).test(controlBody)) &&
+    /* `text` is the fall-through rather than a branch, which is what makes an unhandled kind
+       invisible — hence the claim above it. */
+    /return <Input placeholder=\{field\.placeholder\} \/>/.test(controlBody) &&
+    !/password/i.test(connectorsSrc),
+  `declared kinds: ${declaredKinds.join(', ')} — an unhandled kind is a text box where a number belongs`,
+)
+
+/*
+ * **The Sources row's two cells are declared as field *names*, and read out of the form.**
+ *
+ * They replaced `values.clientId` — a field name no connector declares — so the account cell was
+ * `undefined` for every generic source however much the form had collected. A payload field read by
+ * name is a contract the compiler cannot check, which is why this is a claim: both ends have to
+ * agree, and neither end can see the other.
+ */
+expect(
+  'what a generic source states about itself comes from the field its connector named',
+  /accountField\?: string/.test(connectorsSrc) &&
+    /scopeField\?: string/.test(connectorsSrc) &&
+    /account: fieldValue\(selected\.accountField, values\)/.test(wizard) &&
+    /scope: fieldValue\(selected\.scopeField, values\)/.test(wizard) &&
+    /* `codeOnly`, because the comment beside the replacement *names* `values.clientId` — the
+       self-documenting-file trap, recorded six times now and hit twice more in this change alone. */
+    !/values\.clientId/.test(codeOnly(wizard)) &&
+    /* Every credential connector names two fields it actually has. */
+    credentialKeys.every((k) => {
+      const block = connectorBlocks.find((b) => new RegExp(`key: '${k}',`).test(b)) ?? ''
+      const account = (block.match(/accountField: '(\w+)'/) ?? [])[1]
+      const scope = (block.match(/scopeField: '(\w+)'/) ?? [])[1]
+      return (
+        !!account &&
+        !!scope &&
+        new RegExp(`name: '${account}'`).test(block) &&
+        new RegExp(`name: '${scope}'`).test(block)
+      )
+    }) &&
+    /* The server stores it and the row prints it, with an em dash where the connector named nothing
+       — never a zero, which would say the source reaches nothing. */
+    /scope: typeof scope === 'string' && scope\.trim\(\) \? scope\.trim\(\) : null,/.test(server) &&
+    /\(source\.scope \?\? '—'\)/.test(server) &&
+    /scope: nullable\(str\),/.test(client),
+  'a row that states an account the form never collected is a cell nobody can account for',
+)
+
+/*
+ * **The check on step 3 does not claim a connection.**
+ *
+ * *Run connection test* → *Connection succeeded* was a claim about a database made by a 900ms timer.
+ * Scenery while every connector on the branch was a stub; a false statement with a real host, port,
+ * role and TLS mode typed in above it. Nothing here holds a driver, so the honest version is the one
+ * the Google consent screen already makes about itself: the request is well-formed.
+ */
+/*
+ * `codeOnly` first, then sliced: the note above this branch quotes both retired strings in order to
+ * explain why they are gone, so the raw slice fails an absence claim over correct code. Paired with
+ * the positive checks below over the same slice, which is what proves it looked at something.
+ */
+const genericStep3 = (() => {
+  const code = codeOnly(wizard)
+  const from = code.indexOf('{step === 2 && selected && !isGoogle ? (')
+  return from === -1 ? '' : code.slice(from)
+})()
+expect(
+  'step 3 checks the details rather than announcing a connection nothing opened',
+  genericStep3.length > 500 &&
+    /Check these details/.test(genericStep3) &&
+    /These details are well-formed/.test(genericStep3) &&
+    !/Connection succeeded/.test(genericStep3) &&
+    !/Run connection test/.test(genericStep3) &&
+    /* And it names where the connection is actually proven — in the copy, which survives
+       `codeOnly` because it is a template literal rather than a comment. */
+    /the connection is proven the first time something reads from it/.test(genericStep3),
+  'a timer that reports a successful connection is telling the reader their credentials are right',
+)
+
+/*
+ * **The generic SQL card was narrowed rather than left to contradict the new ones or deleted.**
+ *
+ * Leaving *"Postgres · MySQL · MSSQL · Oracle"* would have made Postgres both available and product
+ * vision, on two cards a reader sees side by side. Deleting it would have dropped MSSQL and Oracle
+ * out of the directory with nothing accounting for the difference — the shorter-list-is-not-a-message
+ * rule. Its own `reason` now names the three that have cards, which is the only thing that keeps the
+ * two halves of the directory consistent with each other.
+ */
+const sqlBlock = connectorBlocks.find((b) => /key: 'sql',/.test(b)) ?? ''
+expect(
+  'the generic SQL card claims only the engines that have no card of their own',
+  sqlBlock.length > 200 &&
+    /blurb: 'MSSQL · Oracle',/.test(sqlBlock) &&
+    !/MySQL, PostgreSQL and Snowflake/.test(sqlBlock.split('reason:')[0]) &&
+    /MySQL, PostgreSQL and Snowflake have connectors of their own/.test(sqlBlock) &&
+    /options: \['MSSQL', 'Oracle'\],/.test(sqlBlock) &&
+    /available: false,/.test(sqlBlock),
+  'one engine on two cards, available on one and vision on the other, is two answers to one question',
 )
 /*
  * And a search that matches nothing **names the query**. "No connectors" over a grid the reader
@@ -538,7 +754,13 @@ expect(
   /* Offered as a real connector, and declaring that it profiles. */
   /available: true,/.test(gmailBlock) &&
     /profiles: true,/.test(gmailBlock) &&
-    !/reason:/.test(gmailBlock) &&
+    /*
+     * `codeOnly`, and the reason is recorded three times over: a *comment* explaining why something
+     * is absent names the thing it is absent of. This read the raw block and failed the day the
+     * connector below it grew a header comment containing the words "for exactly that reason:" —
+     * a correct guard reporting correct code as stale, which is how a real red claim gets ignored.
+     */
+    !/reason:/.test(codeOnly(gmailBlock)) &&
     /* Its own consent scope, and read-only — the one thing a mail scope must be. */
     /gmail: \['https:\/\/www\.googleapis\.com\/auth\/gmail\.readonly'\]/.test(server) &&
     /* The provider parse is a lookup over that table, not a chain: two chained ternaries read every
@@ -717,7 +939,12 @@ const dataModelStoreSrc = read('frontend/src/store/dataModelStore.ts')
 const dataModelRels = read('frontend/src/data/dataModelRelationships.ts')
 const dataModelCanvasSrc = read('frontend/src/data/dataModelCanvas.ts')
 const entityCanvasSrc = read('frontend/src/components/catalog/EntityCanvas.tsx')
-const metricsPanelSrc = read('frontend/src/components/catalog/EntityMetricsPanel.tsx')
+/* These three are read here rather than beside their first claim: the file is one long script, so
+   definition order is execution order, and a `const` reached from a claim above it dies in the
+   temporal dead zone — which takes the whole run and prints no summary. */
+const suggestionsData = read('frontend/src/data/dataModelSuggestions.ts')
+const relsData = read('frontend/src/data/dataModelRelationships.ts')
+const marksSrc = read('frontend/src/components/catalog/ModelMarks.tsx')
 
 /*
  * **A declaration persists and a suggestion does not**, and every layer of that has to hold at once.
@@ -735,7 +962,9 @@ expect(
       read('frontend/src/pages/CatalogPage.tsx'),
     ) &&
     /^  data_model: \(v\) =>/m.test(server) &&
-    /data_model: \{ deep: \{ entities: \{ union: 'entity_id' \} \} \}/.test(
+    /* Both nested keys, because a new one with no rule stops the boot — which is how this one was
+       caught. The declarations union on the entity and the recorded suggestions on their own id. */
+    /entities: \{ union: 'entity_id' \}, suggestions: \{ union: 'suggestion_id' \}/.test(
       read('backend/datasets.js'),
     ) &&
     /npm run seed:data-model/.test(server),
@@ -768,9 +997,9 @@ expect(
  * **One upsert, and it carries absent fields forward.**
  *
  * The Overview panel sends the four text fields and the identifier; the relationship editor sends
- * `relationships`; the metric builder sends `metrics`. A route that replaced the whole entity would
- * have each of them silently delete the others' work — the fault `ingest-reports.js` nearly committed
- * against `governance`, one layer down.
+ * `relationships`; the reassigned-column editor sends `cross_attributes`. A route that replaced the
+ * whole entity would have each of them silently delete the others' work — the fault
+ * `ingest-reports.js` nearly committed against `governance`, one layer down.
  */
 const dataModelRoute =
   /match: \(p\) => p === '\/data-model\/entities',\r?\n\s*handle: async[\s\S]*?\n  \},/.exec(
@@ -790,7 +1019,6 @@ expect(
     /description \?\? existing\?\.description/.test(dataModelRoute) &&
     /attributes \?\? existing\?\.attributes/.test(dataModelRoute) &&
     /relationships \?\? existing\?\.relationships/.test(dataModelRoute) &&
-    /metrics \?\? existing\?\.metrics/.test(dataModelRoute) &&
     /cross_attributes \?\? existing\?\.cross_attributes/.test(dataModelRoute) &&
     /*
      * And the two nullable text fields tell *absent* from *cleared*: `undefined` carries the stored
@@ -810,14 +1038,21 @@ expect(
 /*
  * **The suggestions run says what it is.**
  *
- * There is no model behind this server, so the payload carries `degraded: true` and the tab renders it
- * as the sentence it means. The badge says *Derived* rather than AI for the same reason: a mark
- * claiming a model would be the only untrue thing on the page. Every figure in a rationale is read off
- * the profile — the distinct counts are the profiler's and the confidence is the classifier's own — so
- * nothing here is a number with nothing behind it.
+ * There is no model behind this server: a derived suggestion is a column-name scan, so the payload
+ * carries `degraded: true`.
+ *
+ * **The badge over one reads *Curated by AI*, renamed on request, and the payload was deliberately
+ * not changed to agree with it.** `degraded` still says `true`, so the one machine-readable account
+ * of whether a model ran still says no — which is what keeps this claim worth having: the label is a
+ * product decision, and the moment somebody flips `degraded` to match it, the honest answer is gone
+ * with nothing on screen looking any different.
+ *
+ * Every figure in a rationale is still read off the profile — the distinct counts are the profiler's
+ * and the confidence is the classifier's own score for the weaker column — so nothing here is a
+ * number with nothing behind it, which is the guarantee the run note now carries.
  */
 expect(
-  'the derived suggestions claim no model, and the tab prints the claim the server made',
+  'a derived suggestion is a column scan, labelled Curated by AI over a payload that still says no model ran',
   /degraded: true,/.test(server) &&
     /const dataModelSuggestions = \(source\) => \{/.test(server) &&
     /confidence: Math\.min\(ca\.confidence, cb\.confidence\)/.test(server) &&
@@ -826,10 +1061,21 @@ expect(
     /relationship_type: `LINKED_BY_\$\{upper\(ca\.column_id\)\}`/.test(server) &&
     /* Paced like every other suggester here, and the refusals above it are not. */
     /setTimeout\(\(\) => send\(res, 200, payload\), SUGGEST_MS\)/.test(server) &&
-    /Structural matches only — no model was involved/.test(dataModelTab) &&
-    /'Derived from the schema'/.test(read('frontend/src/components/catalog/ModelMarks.tsx')) &&
-    !/\bAI\b/.test(codeOnly(dataModelTab)),
-  'a badge claiming a model, or a confidence nobody computed, is a figure with nothing behind it',
+    /*
+     * **The sentence moved rather than went**, and the claim moved with it. It used to be a literal
+     * in the tab reading "structural matches only"; recorded suggestions made that true of half a
+     * run, so it is composed per run by `suggestionRunNote` — asserted by the claim below this one.
+     * What stays here is the badge, and the mechanism stated beside it.
+     */
+    /derived: \{ short: 'Curated by AI', long: 'Curated by AI' \}/.test(marksSrc) &&
+    /*
+     * The label is a claim about the agent and nothing else: the *evidence* is still called what it
+     * is, and the confidence is still labelled by what it is a confidence in. Relabelling either to
+     * match the badge would put a model behind a figure the profiler produced.
+     */
+    /if \(kind === 'structural'\) return 'Structural analysis'/.test(relsData) &&
+    /'Classifier confidence'/.test(relsData),
+  'a payload made to agree with the badge would lose the one honest answer about whether a model ran',
 )
 
 /*
@@ -842,9 +1088,17 @@ expect(
  */
 expect(
   'a drive or a mailbox is refused modelling by a guard that names no twin',
-  /function wrongModel\(source, servedKind\)/.test(server) &&
-    /there is no modelling route for a \$\{source\.connector\} source/.test(server) &&
-    /const wrong = wrongModel\(source, 'bigquery'\)/.test(server) &&
+  /*
+   * **One helper for the acts that have no twin, not one per act.** It was `wrongModel`; a schema
+   * upload is the second act here that is about a *schema* — which a drive and a mailbox do not
+   * have — and the reason is word-for-word the same, so a second copy would be two places for one
+   * refusal to be worded differently. The noun is the parameter.
+   */
+  /function wrongStructuredOnly\(source, servedKind, act\)/.test(server) &&
+    /\$\{act\} is about a schema, and a \$\{source\.connector\} source has none/.test(server) &&
+    /const wrong = wrongStructuredOnly\(source, 'bigquery', 'a model'\)/.test(server) &&
+    /* And both callers go through it, so neither act can grow a refusal of its own. */
+    (server.match(/wrongStructuredOnly\(source, 'bigquery', '[^']+'\)/g) ?? []).length === 3 &&
     /* And the tab leaves them out with the count said in words, rather than listing a dead end. */
     /s\.kind === 'bigquery' && s\.status === 'connected'/.test(dataModelTab) &&
     /not modelled here: a drive and a mailbox hold documents rather than tables/.test(dataModelTab),
@@ -870,8 +1124,13 @@ expect(
     /for \(const write of writes\) await saveDataModelEntity\(write\.input\)/.test(
       dataModelStoreSrc,
     ) &&
-    /* A metric whose relationship is gone has nothing to resolve its columns against. */
-    /metrics: owner\.metrics\.filter\(\(m\) => m\.relationship_id !== id\)/.test(dataModelRels),
+    /*
+     * And the removal write clears the relationship and **nothing else**. It used to cascade into
+     * `metrics`; that field is gone with the Metrics tab, and a write that cleared a field nothing
+     * reads is the half-removal the claim further down guards against.
+     */
+    /relationships: owner\.relationships\.filter\(/.test(dataModelRels) &&
+    !/metrics/.test(codeOnly(dataModelRels)),
   'dropping a declaration on a failed move is invisible; duplicating one is not',
 )
 
@@ -897,26 +1156,223 @@ expect(
   'a silent truncation of a 90-column table is a card that misrepresents its own entity',
 )
 
+/* ---------------- recorded relationship suggestions ---------------- */
+
 /*
- * **The metric builder is closed-vocabulary, and a metric is a declaration rather than a computation.**
+ * **A recorded suggestion wins over the derived row for the same pair, and every layer says which it
+ * is.**
  *
- * Three categories whose controls follow from what each produces — the two per-row ones show no
- * aggregation picker at all, because there is nothing to roll up. A relationship whose related side
- * resolves to many rows is offered to them **disabled with the reason** rather than removed: a
- * shorter list reads as a missing relationship, which is the fault the Library's ungoverned rows
- * already state in words.
+ * The arrangement `matchAskAnswer` has for a written answer, applied to a written suggestion: the
+ * document carries relationships with a real *name*, the alternatives somebody weighed, a paragraph
+ * of reasoning and a stated confidence — none of which a column-name scan produces — and the
+ * structural derivation stays as the fallback for the pairs nothing names. Two rows for one join
+ * would ask a reviewer the same question twice and let them answer it two ways.
  */
 expect(
-  'a metric is built from a closed vocabulary and claims to compute nothing',
-  /export const CATEGORY_OPTIONS/.test(read('frontend/src/data/dataModelMetrics.ts')) &&
-    /export function formatMetric/.test(read('frontend/src/data/dataModelMetrics.ts')) &&
-    /* No free-text formula field anywhere in the panel. */
-    !/placeholder="[^"]*formula/i.test(metricsPanelSrc) &&
-    /category === 'aggregation' \? \(/.test(metricsPanelSrc) &&
-    /disabled: !!reason/.test(metricsPanelSrc) &&
-    /Use Aggregation instead/.test(metricsPanelSrc) &&
-    /A metric is a declaration, not a computation/.test(metricsPanelSrc),
-  'a builder that accepts a typed formula is a query surface pretending to be a declaration',
+  'a recorded suggestion is served ahead of the derived row for the same pair',
+  /Array\.isArray\(v\.suggestions\)/.test(server) &&
+    /const recorded = db\.data_model\.suggestions/.test(server) &&
+    /const derived = relationships\.filter\(\(d\) => !recorded\.some\(\(r\) => covers\(r, d\)\)\)/.test(
+      server,
+    ) &&
+    /relationships: \[\.\.\.recorded, \.\.\.derived\]/.test(server) &&
+    /* Both directions of the pair, or the same join arrives twice spelled backwards. */
+    /a\.from_table_key === b\.to_table_key/.test(server) &&
+    /* Scoped to the tables in front of the reader, like a stored declaration. */
+    /inScope\.has\(r\.from_table_key\) && inScope\.has\(r\.to_table_key\)/.test(server) &&
+    /* And the two counts ride on the payload so the tab can say which kind it served. */
+    /recorded_count: recorded\.length,/.test(server) &&
+    /derived_count: derived\.length,/.test(server) &&
+    /recorded_count: num,/.test(client) &&
+    /derived_count: num,/.test(client),
+  'two rows for one join asks the reviewer the same question twice',
+)
+
+/*
+ * **Nothing calls a recorded suggestion "AI", and this is the claim that matters most here.**
+ *
+ * These have an AI suggester's *shape* — that is the point of them — which is exactly why the label
+ * is the tempting thing to get wrong: everything around it looks generated. `evidence_kind` is
+ * `recorded` and never `llm`, the badge says *Recorded in this dataset*, and `degraded` stays true
+ * because it answers "did a model run" and the answer is no either way.
+ */
+expect(
+  'a recorded suggestion is labelled recorded, never as a model’s',
+  /evidence_kind: 'recorded',/.test(server) &&
+    !/evidence_kind: 'llm/.test(server) &&
+    /* True for both kinds, because no model ran for either. */
+    /degraded: true,/.test(server) &&
+    /if \(kind === 'recorded'\) return 'Recorded in this dataset'/.test(relsData) &&
+    /recorded: \{ short: 'Recorded', long: 'Recorded in this dataset' \}/.test(marksSrc) &&
+    /* The badge is the relationship's own provenance rather than a guess from its status — a
+       pending row is recorded or derived, and those are different facts. */
+    /<ProvenanceBadge kind=\{r\.provenance\} full \/>/.test(
+      read('frontend/src/components/catalog/EntityRelationshipsPanel.tsx'),
+    ) &&
+    /r\.evidence_kind === 'recorded' \? \('recorded' as const\)/.test(dataModelTab),
+  'a badge claiming a model over an authored row would be the only untrue thing on the page',
+)
+
+/*
+ * **The run's note names both kinds, and keeps saying no figure is invented.**
+ *
+ * Three forms, and each retirement is on record. It read "structural matches only — no model was
+ * involved", which was true while every suggestion came from a column scan and stopped being true
+ * the moment a dataset carried recorded ones: a reader looking at a named relationship with a
+ * paragraph of reasoning would have been told it was a structural match. It then read "No model ran:
+ * nothing here was generated", which held for both kinds until the derived badge was renamed
+ * *Curated by AI* — a note denying a model one line under a badge crediting one is a panel arguing
+ * with itself.
+ *
+ * **The half that must survive is the one with teeth**: no figure here is invented. That is
+ * falsifiable — every count is the profiler's and every confidence is the classifier's — where "no
+ * model ran" was a claim about a mechanism the reader cannot see. Both retired sentences are
+ * asserted gone rather than left beside the new one.
+ */
+expect(
+  'the suggestions note names both kinds and still says no figure is invented',
+  /export function suggestionRunNote/.test(suggestionsData) &&
+    /No figure is invented to fill a field/.test(suggestionsData) &&
+    /* Neither retired sentence is left standing beside the new one. */
+    !/No model ran:/.test(codeOnly(suggestionsData)) &&
+    /title=\{suggestionRunNote\(suggestCounts\)\}/.test(dataModelTab) &&
+    !/Structural matches only — no model was involved/.test(codeOnly(dataModelTab)) &&
+    /* And the note's derived clause is worded from the badge, so the two cannot disagree. */
+    /curated by AI — a shared identifier column/.test(suggestionsData) &&
+    /* A kind with nothing in it contributes no clause, so the note cannot describe a kind the run
+       did not serve — the rule `connectorPickerNote` follows. */
+    /if \(counts\.recorded > 0\)/.test(suggestionsData) &&
+    /if \(counts\.derived > 0\)/.test(suggestionsData),
+  'calling a named, reasoned suggestion a structural match describes the wrong thing',
+)
+
+/*
+ * **The same confidence number means two things, so it is labelled by kind.**
+ *
+ * A derived suggestion's is the profiler's own score for the weaker of the two columns it matched
+ * on; a recorded one's is a stated opinion written down beside it. Calling both "classifier
+ * confidence" was wrong for half of them, and a reviewer weighing 0.61 needs to know which they are
+ * reading.
+ */
+expect(
+  'a suggestion’s confidence is labelled by what it is a confidence in',
+  /export const confidenceLabel/.test(relsData) &&
+    /isRecordedSuggestion\(r\) \? 'Stated confidence' : 'Classifier confidence'/.test(relsData) &&
+    /\{confidenceLabel\(r\)\}/.test(
+      read('frontend/src/components/catalog/EntityRelationshipsPanel.tsx'),
+    ) &&
+    /\{confidenceLabel\(relationship\)\}/.test(
+      read('frontend/src/components/catalog/RelationshipModal.tsx'),
+    ),
+  'one label over two different measurements is wrong about one of them',
+)
+
+/*
+ * **A recorded suggestion has to be confirmable, which means its columns have to exist.**
+ *
+ * The worst break in this feature, and a silent one: a suggestion on a column nobody carries reaches
+ * the reader looking exactly like the others and is then *refused* by `POST /data-model/entities`
+ * when they press Confirm — a suggestion the app offered and will not accept. So `validateDb`
+ * refuses the document, and the seed refuses to write one.
+ */
+expect(
+  'a recorded suggestion cannot name a table or a column that does not exist',
+  /data_model\.suggestions "\$\{suggestion\.suggestion_id\}" names \$\{side\} table/.test(server) &&
+    /joins on \$\{key\}\.\$\{column\}/.test(server) &&
+    /would be offered and then refused/.test(server) &&
+    /* Two entries with one id would replace each other on screen, since the tab keys a pending row
+       by it. */
+    /data_model\.suggestions has two entries with the id/.test(server) &&
+    /joins a column to itself/.test(server) &&
+    /* And the seed refuses rather than writing one. */
+    /The tab would offer it and then refuse it on Confirm\./.test(
+      read('backend/scripts/seed-data-model.js'),
+    ),
+  'a suggestion the app offers and will not accept is worse than one it never made',
+)
+
+/*
+ * **The document really carries them, all four cardinalities, and each is confirmable.**
+ *
+ * Read out of the documents rather than trusted: this is the half a claim over source text cannot
+ * see, and it is where a re-seed or a renamed column would actually go wrong. Every pair is checked
+ * against `column_profiles` the same way `validateDb` checks it, so this fails in `preflight` rather
+ * than in front of a reviewer.
+ */
+const cardinalitiesSeen = new Set()
+const unresolvedSuggestions = []
+for (const [name, doc] of datasetDocs) {
+  const tableKeys = new Set(
+    (doc.projects ?? []).flatMap((p) =>
+      (p.datasets ?? []).flatMap((d) =>
+        (d.tables ?? []).map((t) => `${d.dataset_id}.${t.table_id}`),
+      ),
+    ),
+  )
+  for (const s of doc.data_model?.suggestions ?? []) {
+    cardinalitiesSeen.add(s.cardinality_hint)
+    for (const [key, column] of [
+      [s.from_table_key, s.from_column],
+      [s.to_table_key, s.to_column],
+    ]) {
+      const profiled = doc.column_profiles?.[key]
+      if (!tableKeys.has(key)) unresolvedSuggestions.push(`${name}:${s.suggestion_id} table ${key}`)
+      else if (Array.isArray(profiled) && !profiled.some((c) => c.column_id === column)) {
+        unresolvedSuggestions.push(`${name}:${s.suggestion_id} column ${key}.${column}`)
+      }
+    }
+  }
+}
+expect(
+  'the recorded suggestions resolve, and cover every cardinality a reviewer has to judge',
+  unresolvedSuggestions.length === 0 &&
+    ['1:1', '1:N', 'N:1', 'N:N'].every((k) => cardinalitiesSeen.has(k)),
+  unresolvedSuggestions.length > 0
+    ? `unresolved: ${unresolvedSuggestions.join(', ')}`
+    : `cardinalities: ${[...cardinalitiesSeen].sort().join(', ')}`,
+)
+
+/*
+ * **There was a fourth sub-tab, Metrics, and it is gone at every layer — one claim, not one per
+ * file.** Removed on request, and the removal spanned a closed-vocabulary builder panel, its
+ * vocabulary module, a section on every canvas card and the height that section occupied, a
+ * `ModelMetric` type with its schema, a field on the served entity, that field's own shape check in
+ * `DB_SHAPE`, the route's read/validate/record of it, and a cascade in the relationship-removal
+ * write. Half of that is worse than all of it: a card section with no panel behind it is a `+` that
+ * opens onto a tab that does not exist, and a route still validating `metrics` refuses a save the
+ * app can no longer explain.
+ *
+ * **`columnGlyph` is the one thing that came back out**, into `dataModelColumns.ts` — it is the
+ * canvas's glyph for a column and only ever lived beside the metrics vocabulary by accident. So this
+ * claim asserts it is *present* there as well as absent from the deleted module, because "the file
+ * is gone" alone would pass just as well if the glyph had gone with it and every column row had
+ * silently fallen back to plain text.
+ *
+ * The stored key went too: no document carries `metrics` on a declaration, so the shape check's
+ * absence is not a loosened validator — there is nothing left for it to be about.
+ */
+const dataModelEntitiesShape =
+  /\n  data_model: \(v\) =>[\s\S]*?\n  ask_answers:/.exec(server)?.[0] ?? ''
+expect(
+  'the Metrics sub-tab is absent from every layer it touched, and the column glyph survived it',
+  absentUnderComponents('EntityMetricsPanel') &&
+    !existsSync(join(root, 'frontend/src/data/dataModelMetrics.ts')) &&
+    /* The client's type, its schema entry and the two payload fields. */
+    !/ModelMetric/.test(client) &&
+    !/\bmetrics[?]?:/.test(codeOnly(client)) &&
+    /* The tab's fourth item, and the section on every card. */
+    !/'metrics'/.test(codeOnly(dataModelTab)) &&
+    !/CardSection label="Metrics"/.test(entityCanvasSrc) &&
+    /* One section's height, not two — or every card carries 26px of empty space. */
+    dataModelEntitiesShape.length > 400 &&
+    !/metrics/.test(dataModelEntitiesShape) &&
+    /plainRows \* ROW_H \+ SECTION_ROW_H/.test(dataModelCanvasSrc) &&
+    /* The route no longer reads, validates or records it. */
+    !/metrics/.test(dataModelRoute) &&
+    /* And the glyph is where it moved to, still read off the server's facet. */
+    /export function columnGlyph/.test(read('frontend/src/data/dataModelColumns.ts')) &&
+    /from '\.\.\/\.\.\/data\/dataModelColumns'/.test(entityCanvasSrc),
+  'a card section whose panel is deleted is a + that opens onto nothing',
 )
 
 /*
@@ -1803,7 +2259,9 @@ expect(
 expect(
   'and the way to close a panel is stated while one is open',
   /Click the same button again to close the panel\./.test(catalogPage) &&
-    /\{browseOpen \|\| dictionaryOpen \?/.test(catalogPage),
+    /* **Every** panel that can be open, which is now three on BigQuery — the hint is the only thing
+       saying how to close one, so a panel left out of this test opens with no way back stated. */
+    /\{browseOpen \|\| dictionaryOpen \|\| schemaOpen \?/.test(catalogPage),
   'the ✕ is gone, so the way back has to be said somewhere',
 )
 /* ---------------- a run that profiled nothing says which objects, and offers the re-run ---------------- */
@@ -2178,6 +2636,285 @@ expect(
         .map(([f, ds]) => `${f} (${[...ds].join(',')})`)
         .join(', ')}`
     : `${nullableColumnFields.size} nullable field(s) across ${datasetDocs.size} dataset(s), all declared`,
+)
+
+/* ---------------- uploading a schema or a data dictionary ---------------- */
+
+const schemaImport = read('backend/schemaImport.js')
+const schemaImportCode = codeOnly(schemaImport)
+const schemaUploadData = read('frontend/src/data/schemaUpload.ts')
+const schemaPanel = read('frontend/src/components/catalog/SchemaUploadPanel.tsx')
+
+/*
+ * **The reader is pure and in a file of its own, and it is verified offline.**
+ *
+ * A parser is arithmetic over text: it either read the file the reader meant or it read a different
+ * one, and getting it wrong produces a dictionary full of plausible nonsense rather than an error.
+ * That is the same argument `reportExport.js` stands on, so it gets the same treatment — no `db`, no
+ * request, and a verifier in `preflight` that replays it over fixtures with nothing running.
+ */
+expect(
+  'the schema reader is pure, separate, and in the preflight chain',
+  /export function parseSchemaDocument/.test(schemaImport) &&
+    /* Pure: none of the three things that would make it un-replayable. */
+    !/\bdb\./.test(schemaImportCode) &&
+    !/readFile|writeFile/.test(schemaImportCode) &&
+    !/\breq\b/.test(schemaImportCode) &&
+    /verify-schema-import\.js/.test(read('backend/package.json')) &&
+    /npm run verify:schema-import/.test(read('package.json')) &&
+    /verify:schema-import && npm run check-docs/.test(read('package.json')),
+  'a parser nothing replays is a parser whose failures are invisible',
+)
+
+/*
+ * **What it reads is declared once, and the picker filters on the same list.**
+ *
+ * A file dialog offering `.xlsx` would promise something the parse then refuses, which is worse than
+ * a dialog that never showed it — so the two lists have to be the same set, and the refusal has to
+ * name the remedy rather than just the rule. A spreadsheet is the format a dictionary most often
+ * arrives in, and "export the sheet as CSV" is a one-click answer.
+ */
+const readerExtensions = [...schemaImport.matchAll(/^ {2}'(\.\w+)':/gm)].map((m) => m[1]).sort()
+const pickerExtensions = (
+  /export const SCHEMA_EXTENSIONS = \[([^\]]*)\]/.exec(schemaUploadData)?.[1] ?? ''
+)
+  .split(',')
+  .map((s) => s.trim().replace(/'/g, ''))
+  .filter(Boolean)
+  .sort()
+expect(
+  'the picker offers exactly the formats the reader handles',
+  readerExtensions.length >= 5 &&
+    readerExtensions.join(',') === pickerExtensions.join(',') &&
+    /* And the refusal names the remedy on both sides of the wire. */
+    /export the sheet as CSV/.test(schemaImport) &&
+    /export the sheet as CSV/.test(schemaUploadData),
+  `reader: ${readerExtensions.join(',')} · picker: ${pickerExtensions.join(',')}`,
+)
+
+/*
+ * **A declared column has no statistics, and nothing invents one.**
+ *
+ * This is the claim the whole feature rests on. A profiling run *measures* — a classifier scores the
+ * class, a sample gives null% and distinct — and a data dictionary states what a column means and
+ * measures nothing. Filling those three with plausible figures would destroy the one thing a real
+ * profile is worth, and it would be invisible: every number would look exactly as reasonable as the
+ * measured ones beside it.
+ *
+ * So all three are `null` on the way in, nullable at every layer that carries them, drawn as an em
+ * dash, and **said out loud in the panel before anybody uploads anything** — a reader who meets a
+ * table of em dashes unwarned has been surprised by the one thing this panel could have told them.
+ */
+const columnSchemaBlock = braceBlock(client, 'columns: arrayOf(')
+expect(
+  'a declared column carries no confidence, no null% and no distinct — at every layer',
+  /confidence: null,\r?\n\s*null_pct: null,\r?\n\s*distinct: null,/.test(server) &&
+    /* The document permits it. */
+    /typeof c\.confidence === 'number' \|\| c\.confidence === null/.test(server) &&
+    /* The payload declares it — and `type` too, for a file that names a column and not its type. */
+    /confidence: nullable\(num\)/.test(columnSchemaBlock) &&
+    /null_pct: nullable\(num\)/.test(columnSchemaBlock) &&
+    /distinct: nullable\(num\)/.test(columnSchemaBlock) &&
+    /type: nullable\(str\)/.test(columnSchemaBlock) &&
+    /* The panel draws the em dash rather than 0. */
+    /v === null \? \(\r?\n\s*<span className="pc-dash">—<\/span>/.test(
+      read('frontend/src/components/catalog/ProfiledColumnsPanel.tsx'),
+    ) &&
+    /* And the upload panel says so first. */
+    /samples nothing/.test(schemaUploadData) &&
+    /no classifier score/.test(schemaUploadData),
+  'a dictionary of invented statistics is worse than one with none, and looks exactly as plausible',
+)
+
+/*
+ * **A declared column is settled by its description, not by a score it never had.**
+ *
+ * `description_status` was `note || confidence >= HIGH_CONFIDENCE`, and `null >= 0.85` is false — so
+ * every declared column would have arrived marked "needs review" however carefully its description
+ * was written, and the Needs-review chip would have counted a whole dictionary.
+ */
+expect(
+  'the description status has a branch for a column nobody scored',
+  /function describedStatus\(note, column\)/.test(server) &&
+    /if \(column\.confidence === null \|\| column\.confidence === undefined\)/.test(server) &&
+    /description_status: describedStatus\(note, c\)/.test(server) &&
+    /* One reader, so the dictionary and the facet counts cannot disagree about which columns are
+       settled — they are counted off this same field. */
+    (server.match(/describedStatus\(/g) ?? []).length === 2,
+  'a confidence test says nothing about a column no classifier scored',
+)
+
+/*
+ * **The class an uploaded column carries is one this app has a chip for, and it is never guessed
+ * from a name.**
+ *
+ * Two halves. The first is a hard requirement: `check-docs` asserts every class in every dataset is
+ * in `CLASS_FACET` or `CLASS_UNFACETED`, so a class this accepted and they did not would fail
+ * `preflight` the moment the document was pushed — and the known set is read off those two rather
+ * than written a third time.
+ *
+ * The second is a judgement, and worth asserting because it is the tempting shortcut: `customer_id`
+ * looks like an identifier, and `identifier` is what the relationship suggester matches joins on. A
+ * class inferred from a naming convention would put a suggested join in front of a reviewer on no
+ * evidence at all, so the class comes from the type and from nothing else.
+ */
+expect(
+  'an uploaded class is one the app has a chip for, and no class is inferred from a name',
+  /const KNOWN_CLASSES = new Set\(\[\.\.\.Object\.values\(CLASS_FACET\)\.flat\(\), \.\.\.CLASS_UNFACETED\]\)/.test(
+    server,
+  ) &&
+    /which this app has no chip for/.test(server) &&
+    /* Derived from the type, in the pure module, and the fallback is the unfaceted `text`. */
+    /export function classForType/.test(schemaImport) &&
+    /return 'text'/.test(schemaImportCode) &&
+    /* Nothing reads a column *name* to decide a class — the shortcut this refuses. */
+    !/column_id\)\s*\?\s*'identifier'/.test(schemaImportCode) &&
+    !/_id\$/.test(schemaImportCode),
+  'a class chip nothing can fill, or an identifier nobody declared, are both silent',
+)
+
+/*
+ * **Two acts: a preview that writes nothing, then one call that writes and profiles.**
+ *
+ * The preview is "seed, check the diff, push" with a screen instead of a terminal, and it earns its
+ * place because applying *replaces* a table's column list. The write and the run are deliberately
+ * **one** call: a dictionary that landed with no run behind it is a Catalog advertising columns
+ * nothing has profiled, and splitting them would put that decision in the one place that cannot see
+ * whether the first half succeeded. Forced, because the columns are exactly what changed.
+ */
+expect(
+  'the preview writes nothing, and the apply writes and profiles in one call',
+  /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\\\/preview\$\/\.test\(p\)/.test(server) &&
+    /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\$\/\.test\(p\)/.test(server) &&
+    /* One resolver behind both, so what the reader was shown is what lands. */
+    (server.match(/resolveSchemaUpload\(\{ source, parsed, datasetId: dataset_id, filename \}\)/g) ?? [])
+      .length === 2 &&
+    /* The write is the only one of the two that commits, and it queues the run itself. */
+    /await commitDb\(\{ \.\.\.db, projects, column_profiles: profiles \}\)/.test(server) &&
+    /force: true,/.test(server) &&
+    /* Client: a fetcher and a schema each, validated like a read — a write is rendered like one. */
+    /export async function previewSchemaUpload/.test(client) &&
+    /export async function applySchemaUpload/.test(client) &&
+    /const SCHEMA_PREVIEW_PAYLOAD = shape\(/.test(client) &&
+    /const SCHEMA_APPLIED_PAYLOAD = shape\(/.test(client) &&
+    /* And Apply is gated on a preview of *this* file. */
+    /disabled=\{!file \|\| !plan\}/.test(schemaPanel),
+  'a dictionary with no run behind it advertises columns nothing profiled',
+)
+
+/*
+ * **Nothing an upload takes away goes without being named.**
+ *
+ * An upload replaces a table's dictionary, so three things can be lost, and each is reported by name
+ * rather than counted: the columns themselves, a curator's note written against one of them, and — the
+ * worst of the three — a Data Modeling declaration reading one. That last is a state
+ * `POST /data-model/entities` *refuses* to write, so it would be found only by somebody trying to
+ * edit that relationship.
+ *
+ * The two column counts are here too, and they are the fault running this actually found: a table
+ * catalogued with 24 columns and no dictionary reported `0 → 3` for a 3-column file while the figure
+ * on screen went 24 → 3. Accurate, and it told the reader nothing about the change they would see.
+ */
+expect(
+  'the preview names what an upload would drop, and both column counts',
+  /dropped,/.test(server) &&
+    /orphaned_notes: orphanedNotes,/.test(server) &&
+    /stranded_declarations: strandedDeclarations,/.test(server) &&
+    /catalogued_column_count: existing\?\.columns \?\? columns\.length,/.test(server) &&
+    /* Named in the panel, not counted — the dropped columns and the declarations both. */
+    /\{dropped\.join\(', '\)\}/.test(schemaPanel) &&
+    /stranded_declarations\.map/.test(schemaPanel) &&
+    /* And the before number is the catalogue's, which is the one on screen. */
+    /\$\{row\.catalogued_column_count\} → \$\{row\.column_count\}/.test(schemaPanel),
+  'a column leaving the dictionary is the one thing a reader has to be able to check before applying',
+)
+
+/*
+ * **A table the upload *declares* has to carry a label and a grain.**
+ *
+ * `validateDb` requires both on every table and they are read straight through to the browse tree
+ * and the dictionary, so a table added without them renders as a blank cell rather than raising
+ * anything. Neither can be invented: a label is a name and a grain is the sentence "one row per …".
+ * Its row count is `null` rather than 0 for the same reason — a dictionary states no row count, and
+ * `0` would say the table is empty.
+ */
+expect(
+  'a new table needs a label and a grain, and its rows are uncounted rather than zero',
+  /is new to this project, so the file has to give it \$\{missing\}/.test(server) &&
+    /a grain is what one row of it is/.test(server) &&
+    /rows: null,/.test(server) &&
+    /* The dataset is checked against the source's own allowlist, not typed. */
+    /is not in this source's allowlist/.test(server) &&
+    /options=\{source\.datasets\.map/.test(schemaPanel),
+  'a table with a blank label renders as a blank cell rather than raising anything',
+)
+
+/*
+ * **The sample dictionary is parsed rather than trusted, and it is checked against the real
+ * document.**
+ *
+ * A sample file is the one kind of documentation that can be *run*, which makes leaving it unchecked
+ * indefensible: it would go stale the first time the reader's format changed or the CAPEX document
+ * renamed a table, and a reader following the docs would meet a refusal from the feature the sample
+ * exists to demonstrate. So this parses it with the real reader and holds what came out against the
+ * dataset it names.
+ *
+ * The column-count half is the one worth having. The sample's own note promises `7 -> 7` for
+ * `plan_scenario_dim` — the whole point of that table being in it is that a dictionary can replace
+ * synthesised columns *without* shrinking what the Catalog advertises — and if the document ever
+ * catalogues a different number, the sample would quietly become a count-shrinking upload while its
+ * note still said otherwise.
+ *
+ * **The two halves are read off the sample, not off which tables the document happens to hold**, and
+ * that is a correction rather than a convenience. The claim used to require one table the document
+ * *lacks* — and applying the sample is exactly what the sample is for, so the first reader to follow
+ * the docs turned this guard red by succeeding. A guard that fails on the feature working is a guard
+ * nobody will keep. So the file itself has to carry both shapes: an entry with no label and no grain
+ * (which can only enrich a table the project already has) and an entry declaring both (which can
+ * declare a new one), and any table the document *does* carry must not have its count shrunk.
+ */
+const samplePath = 'docs/samples/schema-upload-example.json'
+const sampleFile = read(samplePath)
+let sample = null
+let sampleError = ''
+try {
+  sample = parseSchemaDocument({ filename: 'schema-upload-example.json', text: sampleFile })
+} catch (error) {
+  sampleError = error.message
+}
+const capexPlan = (datasetDocs.get('CAPEX')?.projects ?? [])
+  .find((p) => p.project_id === 'northline_epbcs')
+  ?.datasets.find((d) => d.dataset_id === 'plan')
+const planTables = new Map((capexPlan?.tables ?? []).map((t) => [t.table_id, t]))
+/* An entry with no label and no grain can only enrich a table the project already catalogues; one
+   declaring both can bring a new table in. The sample has to demonstrate each. */
+const sampleEnriching = sample?.tables.filter((t) => !t.label && !t.grain) ?? []
+const sampleDeclaring = sample?.tables.filter((t) => t.label && t.grain) ?? []
+expect(
+  'the sample dictionary parses, and describes tables the dataset it names really has',
+  sample !== null &&
+    sample.dataset_id === 'plan' &&
+    /* Both halves it demonstrates, read off the file. */
+    sampleEnriching.length > 0 &&
+    sampleDeclaring.length > 0 &&
+    /* An entry with no label names a table the project must already have, or the upload is refused
+       for want of one and the sample cannot be applied at all. */
+    sampleEnriching.every((t) => planTables.has(t.table_id)) &&
+    /* And whatever the document already catalogues must not have its count shrunk — the sample's own
+       note promises the count is unchanged. */
+    sample.tables.every(
+      (t) => !planTables.has(t.table_id) || t.columns.length === planTables.get(t.table_id).columns,
+    ) &&
+    /* And it stays clear of the tables anything has Data Modeling declarations on, or applying it
+       would strand somebody's work to demonstrate a feature. */
+    sample.tables.every(
+      (t) =>
+        !(datasetDocs.get('CAPEX')?.data_model?.entities ?? []).some(
+          (e) => e.table_key === `plan.${t.table_id}`,
+        ),
+    ),
+  sampleError ||
+    `${(sample?.tables ?? []).map((t) => `${t.table_id} ${t.columns.length}/${planTables.get(t.table_id)?.columns ?? 'not catalogued'}`).join(', ')} · declares: ${sampleDeclaring.map((t) => t.table_id).join(', ') || 'nothing'}`,
 )
 
 /* ---------------- the canvas ---------------- */

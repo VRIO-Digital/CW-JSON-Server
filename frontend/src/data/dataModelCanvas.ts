@@ -48,7 +48,14 @@ const HEADER_H = 38
 const BODY_PAD = 18
 /** One column row: 10.5px type at 1.5 line-height plus 1.5px above and below. */
 export const ROW_H = 19
-/** A collapsible section header, taller than a row because it carries a chevron and a `+`. */
+/**
+ * A collapsible section header, taller than a row because it carries a chevron and a `+`.
+ *
+ * **One of them, since the Metrics section went with its tab.** The height below counted two, and
+ * leaving it at two would have left every card 26px of empty space at the bottom — a gap that reads
+ * as a layout fault rather than as a removed section, and the kind of thing a removal leaves behind
+ * when only the markup is deleted.
+ */
 export const SECTION_ROW_H = 26
 /**
  * Column rows a card shows before it collapses the rest into "and N more".
@@ -65,8 +72,8 @@ export function nodeContentHeight(opts: {
 }): number {
   const plainRows =
     opts.columnRowCount + (opts.hasMoreLine ? 1 : 0) + (opts.hasSummaryLine ? 1 : 0)
-  /* Relationships and Metrics, always present, collapsed. */
-  return HEADER_H + BODY_PAD + plainRows * ROW_H + 2 * SECTION_ROW_H
+  /* The Relationships section, always present, collapsed. */
+  return HEADER_H + BODY_PAD + plainRows * ROW_H + SECTION_ROW_H
 }
 
 /**

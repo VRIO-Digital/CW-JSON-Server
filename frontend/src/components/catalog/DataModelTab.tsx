@@ -8,6 +8,7 @@ import {
 import { Alert, App, Button, Col, Row, Skeleton, Space, Tooltip, Typography } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ModelTableSuggestion, SourceRow } from '../../api/client'
+import { suggestionRunNote } from '../../data/dataModelSuggestions'
 import {
   CARDINALITY_LABELS,
   cardinalityKindFromHint,
@@ -23,7 +24,6 @@ import ApiErrorAlert from '../common/ApiErrorAlert'
 import ConnectorIcon from '../common/ConnectorIcon'
 import EntityCanvas from './EntityCanvas'
 import EntityColumnsPanel from './EntityColumnsPanel'
-import EntityMetricsPanel from './EntityMetricsPanel'
 import EntityOverviewPanel from './EntityOverviewPanel'
 import EntityRelationshipsPanel from './EntityRelationshipsPanel'
 import ModelTableList from './ModelTableList'
@@ -36,7 +36,7 @@ const DETAIL_TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'columns', label: 'Columns' },
   { key: 'relationships', label: 'Relationships' },
-  { key: 'metrics', label: 'Metrics' },
+  /* Metrics was the fourth and was removed on request — see the note on `EntityCanvas`'s section. */
 ] as const
 type DetailTabKey = (typeof DETAIL_TABS)[number]['key']
 
@@ -60,7 +60,7 @@ function StatItem({
 interface DataModelTabProps {
   /**
    * Every connected source. This tab keeps the **structured** ones, because a model is tables,
-   * columns, relationships and metrics — all of which come from a profiled schema. A drive or a
+   * columns and relationships — all of which come from a profiled schema. A drive or a
    * mailbox holds documents, so selecting one could only ever say "no profiled tables here": a row
    * that exists to be a dead end.
    */
@@ -118,6 +118,15 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
   const [suggesting, setSuggesting] = useState(false)
   const [suggestError, setSuggestError] = useState<string | null>(null)
   const [suggestDegraded, setSuggestDegraded] = useState(false)
+  /*
+   * What the last run served, by kind. Held rather than counted off `pending`, because that list is
+   * filtered against what is already declared — a suggestion the run produced and the tab dropped as
+   * already-covered still happened, and a sentence about the run has to describe the run.
+   */
+  const [suggestCounts, setSuggestCounts] = useState<{
+    recorded: number
+    derived: number
+  } | null>(null)
   const [suggestTruncated, setSuggestTruncated] = useState<number | null>(null)
 
   const [relationshipTarget, setRelationshipTarget] = useState<
@@ -278,8 +287,7 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
 
   /**
    * One remover, two intents. **Reject** drops a suggestion from local state; **Delete** writes the
-   * declaration away, and takes the metrics built on it with it — a metric whose relationship is
-   * gone has nothing to resolve its columns against. The id decides which of the two this is.
+   * declaration away. The id decides which of the two this is.
    */
   const removeRelationship = async (id: string) => {
     if (!selectedSource) return
@@ -305,6 +313,7 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     setSuggestError(null)
     setSuggestDegraded(false)
     setSuggestTruncated(null)
+    setSuggestCounts(null)
     const result = await suggest(selectedSource.sourceId)
     setSuggesting(false)
     if (!result.ok) {
@@ -313,6 +322,7 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     }
     const data = result.data
     setSuggestDegraded(data.degraded)
+    setSuggestCounts({ recorded: data.recorded_count, derived: data.derived_count })
     setSuggestTruncated(data.truncated ? data.tables_considered : null)
     setTableSuggestions((prev) => {
       const next = { ...prev }
@@ -361,7 +371,10 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
             cardinalityKind: kind,
             rationale: '',
             status: 'pending' as const,
-            provenance: 'derived' as const,
+            /* From what the run said the suggestion stands on, so the badge on the row cannot
+               describe it differently from the sentence inside it. */
+            provenance:
+              r.evidence_kind === 'recorded' ? ('recorded' as const) : ('derived' as const),
             suggestionReasoning: r.rationale,
             confidence: r.confidence,
             evidenceKind: r.evidence_kind,
@@ -389,7 +402,7 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
           type="info"
           showIcon
           title="No structured source is connected"
-          description="A model is tables, columns, relationships and metrics, so it is drawn over a connected BigQuery project. Connect one on Sources, then browse and profile it on the Catalog tab."
+          description="A model is tables, columns and relationships, so it is drawn over a connected BigQuery project. Connect one on Sources, then browse and profile it on the Catalog tab."
         />
         {/* A list that is merely shorter is not a message: a tenant whose only sources are a drive
             and a mailbox would otherwise read "nothing is connected" beside a Sources table
@@ -611,15 +624,23 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                 style={{ margin: '0 14px 10px' }}
               />
             ) : null}
-            {/* The server's own `degraded`, in the words it means: this is a structural read, and
-                what a reviewer needs in order to weigh a suggestion is knowing that. */}
+            {/*
+              * **The server's own `degraded`, in the words it means — and now naming both kinds.**
+              *
+              * It read "structural matches only", which was true while every suggestion was derived
+              * from a column scan and stopped being true the moment this dataset started carrying
+              * recorded ones: a reader looking at a named relationship with a paragraph of reasoning
+              * would have been told it was a structural match. What has not changed is the half that
+              * matters — **no model ran either way** — so that is still said, and the two counts say
+              * which kind produced what is on screen.
+              */}
             {!suggestError && suggestDegraded ? (
               <Alert
                 type="info"
                 showIcon
                 closable
                 onClose={() => setSuggestDegraded(false)}
-                title="Structural matches only — no model was involved. Every suggestion quotes the distinct counts the profiler recorded."
+                title={suggestionRunNote(suggestCounts)}
                 style={{ margin: '0 14px 10px' }}
               />
             ) : null}
@@ -646,10 +667,6 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                 setDetailTab('relationships')
                 openCreate(tableKey)
               }}
-              onAddMetricFor={(tableKey) => {
-                setSelectedTableKey(tableKey)
-                setDetailTab('metrics')
-              }}
               fitRef={fitRef}
             />
           </PanelShell>
@@ -661,8 +678,8 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
             {!selectedTable ? (
               <div style={{ padding: 20 }}>
                 <Text type="secondary" style={{ fontSize: 12.5 }}>
-                  Pick a table on the left, or a card on the canvas, to see its Overview, columns,
-                  relationships and metrics.
+                  Pick a table on the left, or a card on the canvas, to see its Overview, columns
+                  and relationships.
                 </Text>
               </div>
             ) : (
@@ -782,16 +799,6 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                       onOpen={openRelationship}
                       onCreate={() => openCreate(selectedTable.tableKey)}
                       onDelete={(id) => void removeRelationship(id)}
-                    />
-                  ) : null}
-                  {detailTab === 'metrics' ? (
-                    <EntityMetricsPanel
-                      key={`${selectedTable.tableKey}-metrics`}
-                      table={selectedTable}
-                      tables={tables}
-                      entities={entities}
-                      entity={selectedEntity}
-                      relationships={relationships}
                     />
                   ) : null}
                 </div>

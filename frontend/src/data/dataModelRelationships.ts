@@ -21,8 +21,8 @@ import type { CanvasEdgeVM } from './dataModelCanvas'
  * Structured cardinality. `A:B` reads "one row of the **from** table to B rows of the **to** table",
  * which is standard ER notation and the reason the from side is always the "A".
  *
- * Kept apart from the display label because the Metrics panel has to *reason* about multiplicity —
- * a per-row metric over a one-to-many relationship has no single related row to read — and parsing
+ * Kept apart from the display label because a caller has to *reason* about multiplicity — the
+ * modal preselects a stored relationship's side, and the canvas words its edge from it — and parsing
  * a display string to find that out is how the two come to disagree.
  */
 export type CardinalityKind = '1:1' | '1:N' | 'N:1' | 'N:N'
@@ -51,13 +51,40 @@ export function cardinalityKindFromHint(hint: string | undefined): CardinalityKi
     : '1:N'
 }
 
-/** What the suggestions run's `evidence_kind` says, in words a reviewer reads. */
+/**
+ * What the suggestions run's `evidence_kind` says, in words a reader reads.
+ *
+ * **`recorded` is the one this dataset actually serves, and it does not say "AI".** A recorded
+ * suggestion has an AI suggester's shape — a relationship name, the alternatives somebody weighed, a
+ * paragraph of reasoning, a stated confidence — and it was *written into this dataset's document*.
+ * Labelling it "model reasoning" would be the only untrue thing on the page, and it is the tempting
+ * label precisely because everything around it looks generated.
+ *
+ * The two model values stay mapped rather than deleted: they are what a real suggester would send,
+ * and a value this returned raw would print `llm_and_structural` at a reader.
+ */
 export function evidenceKindLabel(kind: string): string {
+  if (kind === 'recorded') return 'Recorded in this dataset'
   if (kind === 'structural') return 'Structural analysis'
   if (kind === 'llm') return 'Model reasoning'
   if (kind === 'llm_and_structural') return 'Model reasoning + structural analysis'
   return kind
 }
+
+/** Whether this suggestion was written down rather than derived from a column scan. */
+export const isRecordedSuggestion = (r: { evidenceKind?: string }): boolean =>
+  r.evidenceKind === 'recorded'
+
+/**
+ * What a suggestion's confidence figure is a confidence *in* — one definition, two readings.
+ *
+ * The same number means different things by kind, and labelling both "classifier confidence" was
+ * wrong for half of them: a **derived** suggestion's is the profiler's own score for the weaker of
+ * the two columns it matched on, and a **recorded** one's is a stated opinion written down beside
+ * the suggestion. A reviewer weighing 0.61 needs to know which of those they are reading.
+ */
+export const confidenceLabel = (r: { evidenceKind?: string }): string =>
+  isRecordedSuggestion(r) ? 'Stated confidence' : 'Classifier confidence'
 
 /**
  * One relationship as every surface here works with it.
@@ -80,7 +107,15 @@ export interface DeclaredRelationship {
   /** The declarer's business rationale, carried onto every edge the declaration produces. */
   rationale: string
   status: 'confirmed' | 'pending'
-  provenance: 'human' | 'derived'
+  /**
+   * Where this came from, which is **not** the same question as `status`.
+   *
+   * A `confirmed` one is always `human` — it exists because somebody wrote it. A `pending` one is
+   * `recorded` (written into this dataset's document) or `derived` (a shared identifier column this
+   * server matched), and the two are judged differently by a reviewer: one is a stated opinion about
+   * this schema, the other is two columns having the same name.
+   */
+  provenance: 'human' | 'derived' | 'recorded'
   /** A suggestion's own reasoning, with the figures it read. Pending only. */
   suggestionReasoning?: string
   confidence?: number
@@ -191,23 +226,6 @@ export function relationshipToCanvasEdge(r: DeclaredRelationship): CanvasEdgeVM 
   }
 }
 
-/**
- * Whether, looking from `tableKey`'s side, the **related** side resolves to at most one row.
- *
- * The grain question the Metrics panel's Math and String categories need answered: a one-to-many
- * relationship has no single related row to read a column from without aggregating first, so a
- * per-row metric over one would double-count. `false` — not "unknown" — for a table that is not part
- * of this relationship at all, since every caller has already filtered to relationships that touch it.
- */
-export function relatedSideIsSingular(
-  r: DeclaredRelationship,
-  tableKey: string,
-): boolean {
-  const [fromMult, toMult] = r.cardinalityKind.split(':') as ['1' | 'N', '1' | 'N']
-  if (tableKey === r.fromTableKey) return toMult === '1'
-  if (tableKey === r.toTableKey) return fromMult === '1'
-  return false
-}
 
 /**
  * A minimal entity for a table nobody has written an Overview for yet.
@@ -326,11 +344,14 @@ export function relationshipWrites(args: {
 }
 
 /**
- * The write that removes one stored declaration — and the metrics built on it.
+ * The write that removes one stored declaration.
  *
- * A metric whose relationship is gone has nothing to resolve its columns against, so it goes with
- * it. `null` when the id addresses nothing: the caller's copy of the entities may simply be a
- * refresh behind, and failing loudly on an already-deleted row is noise rather than information.
+ * `null` when the id addresses nothing: the caller's copy of the entities may simply be a refresh
+ * behind, and failing loudly on an already-deleted row is noise rather than information.
+ *
+ * **It used to cascade into `metrics`**, because a metric whose relationship was gone had no columns
+ * to resolve against. That went with the Metrics tab — there is nothing left to cascade into, and a
+ * write that cleared a field nothing reads would be the half-removal this repo refuses.
  */
 export function removeRelationshipWrite(
   id: string,
@@ -345,7 +366,6 @@ export function removeRelationshipWrite(
     relationships: owner.relationships.filter(
       (r) => !matchesId(owner.entity_id, r, id),
     ),
-    metrics: owner.metrics.filter((m) => m.relationship_id !== id),
   }
 }
 

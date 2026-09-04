@@ -119,7 +119,10 @@ export default function ProfiledColumnsPanel({
         title: 'type',
         dataIndex: 'type',
         width: 90,
-        render: (t: string) => <span className="pc-type">{t}</span>,
+        /* Null where an uploaded dictionary named a column and not its type. An em dash rather than
+           a guessed `STRING`, which would be this app naming a type nobody wrote. */
+        render: (t: string | null) =>
+          t ? <span className="pc-type">{t}</span> : <span className="pc-dash">—</span>,
       },
       {
         title: 'description',
@@ -173,10 +176,15 @@ export default function ProfiledColumnsPanel({
             {/* The derivation is reported, not assumed: EPA's profiler says `llm` on every column
                 and a rule-derived one would say so here — but CAPEX's records no method at all, and
                 printing `llm` there would attribute one it never claimed. So it is omitted when
-                absent, and the confidence still shows: the score is real either way. */}
+                absent.
+
+                **And the score is omitted with it where there is none.** A column from an uploaded
+                data dictionary was scored by nothing — its derivation names the file it was declared
+                in, and `0.00` beside that would read as a classifier that was certain and wrong. */}
             <span className="pc-conf">
-              {col.derivation ? `${col.derivation} ` : ''}
-              {col.confidence.toFixed(2)}
+              {col.derivation ? `${col.derivation}` : ''}
+              {col.derivation && col.confidence !== null ? ' ' : ''}
+              {col.confidence === null ? '' : col.confidence.toFixed(2)}
             </span>
           </span>
         ),
@@ -198,13 +206,25 @@ export default function ProfiledColumnsPanel({
         title: 'null%',
         dataIndex: 'null_pct',
         width: 90,
-        render: (v: number) => <span className="pc-num">{v.toFixed(1)}%</span>,
+        /* An em dash for a declared column, the same mark an absent PII flag uses: nobody sampled
+           this, and `0.0%` would say every row is populated. */
+        render: (v: number | null) =>
+          v === null ? (
+            <span className="pc-dash">—</span>
+          ) : (
+            <span className="pc-num">{v.toFixed(1)}%</span>
+          ),
       },
       {
         title: 'distinct',
         dataIndex: 'distinct',
         width: 100,
-        render: (v: number) => <span className="pc-num">{v.toLocaleString()}</span>,
+        render: (v: number | null) =>
+          v === null ? (
+            <span className="pc-dash">—</span>
+          ) : (
+            <span className="pc-num">{v.toLocaleString()}</span>
+          ),
       },
     ],
     [data],

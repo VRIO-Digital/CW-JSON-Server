@@ -5857,3 +5857,209 @@ compiles, answers 400, and sends the reader somewhere that cannot help them.
   not only before you store it.** `renderToString` over both branches is what caught it, which is the
   argument for rendering a component rather than reading it: the loop is invisible in the source and
   instant on screen.
+
+---
+
+## A stubbed test told a reader their database credentials were right
+
+**Date:** 2026-09-04 · **Surface:** step 3 of the connect wizard, on the generic branch
+
+**What happened.** MySQL, PostgreSQL and Snowflake became pickable connectors, which meant the
+generic branch got its first *real* engine details — host, port, role, TLS mode. The branch already
+had a step 3: a button reading **Run connection test**, a 900ms `setTimeout`, and then an alert
+reading **Connection succeeded**.
+
+Nothing in this repo holds a database driver. That alert had been on screen since the branch existed
+and had never been wrong about anything, because every connector that could reach it was a roadmap
+stub and the whole step was scenery. The moment a reader could type a real host above it, the same
+900ms timer was telling them their credentials, their port and their TLS mode were correct.
+
+**The fix is what the Google consent screen already says of itself.** The button is *Check these
+details*, the alert is *These details are well-formed*, and its description **names where the
+connection is actually proven** — the first time something reads from the source. `check-docs`
+asserts the two retired strings are gone from that branch and the new ones are present.
+
+**The general shape.** *Scenery becomes a claim the moment something real is put in front of it.*
+When a placeholder path takes its first real input, re-read every sentence on it as if it were being
+written for the first time — the words did not change, but what they now assert did. The same
+reasoning retired the `syncing` status on this branch, and for the same reason: it described a
+background job that does not exist, harmlessly, until a real connector used the path.
+
+**Two smaller ones from the same change.**
+
+- **A comment naming what is absent broke two absence claims, in one commit, twice.** This is the
+  seventh and eighth instance — the entry above records five. A header comment containing *"for
+  exactly that reason:"* failed `!/reason:/` on the Gmail connector block; a note explaining the
+  retirement of *Run connection test* and *Connection succeeded* failed the claims asserting they
+  were gone; and a note naming the replaced `values.clientId` failed the claim asserting it was gone.
+  All three guards were correct and all three reported correct code as stale, which is how a real red
+  claim gets ignored. **`codeOnly` is not for negative claims — it is for every whole-file claim.**
+  The Gmail one predates this change and had been raw text for months; it is `codeOnly` now.
+- **A count over a set of guards is a claim about what the set means.** `realConnectorCount` was
+  derived as "the number of available connectors", with a comment stating the premise outright: *"an
+  unavailable one has no consent to run."* True while every pickable connector signed in with Google.
+  A database connector is pickable and runs no consent, so two correct claims about the OAuth wiring
+  reported six callbacks where three exist. It reads the server's own `OAUTH_SCOPES` now — the
+  authority on which providers have a consent — so a fourth Google connector follows and a fourth
+  database one does not touch it.
+- **And an adjacent-sibling CSS rule does not survive a wrapper.** Mapping the three sections into
+  `<div key={group}><section/></div>` made each `.cd-section` an only child, so
+  `.cd-section + .cd-section` matched nothing and the three groups ran together with no gap. Invisible
+  in the source, obvious on screen. The key belongs on the element the rule is about; the claim now
+  asserts both the rule and the absence of the wrapper.
+
+- **And the section that carried one of those facts was removed the next day** — *Connect by
+  credentials — registers a source, no catalogue yet*, three headings and a sentence of taxonomy over
+  eleven cards. Removed on request, and it cost nothing because **the fact was never only in the
+  heading**: each of those cards already says *"registers a connection — no profiler yet"* in its own
+  blurb, on the grid, beside its name. The claim moved with it — it asserts the blurb on all three
+  now, since with one section for both kinds that line is the only thing on the grid telling a
+  database card from BigQuery. *A grouping is a weak place to keep a fact; the card the reader is
+  looking at is a strong one.* What did have to go with the section was its **filter option**: an
+  option offering a group the directory draws no heading for names a concept the page does not have.
+
+---
+
+## A dictionary reader lost a column, and nothing said so
+
+**Date:** 2026-09-04 · **Surface:** `backend/schemaImport.js`, the SQL DDL path
+
+**What happened.** Two faults, found by running the parser rather than reading it, and both silent.
+
+Column definitions are split on commas. A trailing `--` comment sits *after* the comma that ends its
+own column:
+
+    period DATE, -- calendar month
+    amount NUMERIC(18,2),
+
+so the split gave `period DATE` and then `-- calendar month
+  amount NUMERIC(18,2)` — whose first
+token is `--`, which the column regex matched as an identifier with the type `calendar`. **`amount`
+was gone.** A table's dictionary came back with a column nobody wrote and one missing.
+
+Folding the comment into a `COMMENT '…'` clause fixed that and introduced the second: the clause's
+own text contained a comma, at paren depth 0, so the definition split in half. The `COMMENT '` had no
+closing quote for the reader to match, the column landed with **no description**, and a fragment
+named ` unrounded'` was skipped in silence.
+
+**Neither raised anything.** A column missing from a data dictionary is invisible — the table simply
+appears to have fewer columns than it has, and every one that is there looks right.
+
+**The fix, and why it is a verifier rather than a comment.** `foldSqlComments` moves the comment to
+the left of the comma, and the splitter tracks single quotes as well as parens — the same rule the
+CSV reader one function up already applies, and the same rule `reportExport.js` applies when it
+*writes* a CSV. Both cases are now fixtures in `npm run verify:schema-import`, which is in
+`preflight`: the reader is **pure**, so replaying it needs nothing running, and that is most of the
+argument for it living in its own file rather than inside `server.js`.
+
+**The general shape.** *A parser is arithmetic over text, and a wrong answer is not an error.* It
+either read the file the author meant or it read a different one, and the second outcome produces
+plausible nonsense rather than a failure. The same reasoning put `sigv4` and the report renderers
+behind their own verifiers; a parser belongs there for a stronger reason, because its wrong answers
+are the ones a reader is least able to spot.
+
+**And a third thing, which only running the whole flow showed.** The preview reported
+`0 → 3 columns` for a 3-column dictionary uploaded against `plan_project_budget` — accurate, since
+that table had no dictionary entry at all — while the number **on screen** went `24 → 3`, because
+the table is catalogued with 24 columns. The preview was answering a question nobody had asked. It
+carries `catalogued_column_count` now, and the panel puts *that* before the arrow. *A diff has to be
+against the thing the reader is looking at, not against the field it happens to be stored in.*
+
+- **And a render test found a row hiding the most useful thing on it.** A *pending* relationship row
+  printed only `pending review` where a confirmed one printed the relationship's name — defensible
+  while every suggested name was mechanical (`LINKED_BY_GATE_ID` tells a reviewer nothing the column
+  join beneath it does not), and wrong the moment recorded suggestions arrived carrying names like
+  `HAS_COMPLIANCE_HISTORY`. The reviewer had to open a dialog to find out what they were being asked
+  about. The name and the state are two pills now, rather than one slot doing double duty and losing
+  whichever it is not showing. *A slot that shows one of two facts is fine until the other one starts
+  mattering.*
+- **A word inside a sentence is not a structural assertion.** The break test for "a kind with nothing
+  in it contributes no clause" checked `!note.includes('recorded')` — and the *derived* clause ends
+  "…the distinct counts the profiler recorded". The assertion failed against a correct note. Keyed on
+  each clause's own opening (`'recorded — written into'`) it passes and means what it says: when an
+  absence claim runs over prose, match the structure, not a word the prose is allowed to contain.
+
+## Removing the Data Modeling Metrics tab (2026-09-04)
+
+**Asked for as "remove metrix tab in data modeling", and it spanned nine layers.** A closed-vocabulary
+builder panel, its vocabulary module, a section on every canvas card, the height that section
+occupied, a `ModelMetric` type with its runtime schema, a field on the served entity, that field's own
+shape check in `DB_SHAPE`, the route's read/validate/record of it, and a cascade in the
+relationship-removal write. None of those nine is a compile error once orphaned in the direction that
+matters: a route that goes on validating `metrics` still answers 200, and a card section whose panel
+is deleted still renders — as a `+` that opens onto a tab that does not exist.
+
+- **A helper outlived the module it lived in, and deleting the module would have taken it silently.**
+  `columnGlyph` sat in `dataModelMetrics.ts` and has nothing to do with metrics — it is the canvas's
+  glyph for a column, read off the facet the server already assigned. Folding it into
+  `dataModelCanvas.ts` would have broken that file's own stated rule (*"nothing in this file knows
+  what a table is"*), so it got `src/data/dataModelColumns.ts`. The guard therefore asserts the glyph
+  is **present** there as well as absent from the deleted module: *"the file is gone" would have
+  passed just as well if the glyph had gone with it* and every column row had quietly fallen back to
+  the plain-text glyph. **A removal claim needs a survival claim beside it whenever anything was
+  moved out on the way.**
+- **A removed section leaves its height behind.** `nodeContentHeight` added `2 * SECTION_ROW_H` for
+  Relationships and Metrics. Deleting only the markup left every card with 26px of empty space at the
+  bottom, which reads as a layout fault rather than as a removed section — the kind of residue that
+  gets "fixed" later by padding something else. *Deleting a thing that occupied space is two edits.*
+- **The `DB_SHAPE` slice regex matched nothing, and the length assertion is what caught it.** The new
+  claim sliced `data_model`'s validator with `/data_model: \(v, empty\)…/` — the key is spelled
+  `data_model: (v) =>`, with no `empty` parameter — so the slice was `''` and `!/metrics/.test('')`
+  was trivially true. `dataModelEntitiesShape.length > 400` beside it turned a guard describing itself
+  into a red claim. **The fourth time this file has been bitten by a slice that fails open; assert the
+  slice landed, every time.**
+- **A guard failed because the feature worked.** The sample-dictionary claim required one table the
+  CAPEX document *lacks*, to prove the declare-a-new-table half. Applying the sample is exactly what
+  the sample is for, so the first reader to follow the docs turned the claim red by succeeding. It is
+  keyed to the **file** now — one entry with no label and no grain (which can only enrich a table the
+  project already has), one declaring both — with the count check applying to whatever the document
+  does carry. *A claim keyed to a state the feature changes is a claim against using the feature.*
+- **The heredoc mangled the patch scripts three times** — em dashes to `?`, `\n` collapsed to real
+  newlines inside a JS string literal, breaking `node --check`. Same lesson as the earlier session:
+  write patch scripts with the Write tool, never through a shell heredoc.
+
+**What the removal cost is on record in CLAUDE.md rather than glossed**: nothing in the app now says
+what a table's measures are. **Do not restore any of it without being asked** — the guard is one
+cross-layer claim, so re-adding it deliberately means deleting that claim in the same commit.
+
+## Renaming the derived-suggestion badge to "Curated by AI" (2026-09-04)
+
+**Asked for as a rename of two strings, and it is the one change in this repo that makes a screen say
+something the code does not.** `derived: { short: 'Derived', long: 'Derived from the schema' }` became
+`Curated by AI`. What produces one of these is a column-name scan in `dataModelSuggestions` — an
+identifier shared between two profiled tables — and no model runs at any point. The label is a
+product decision about how the feature presents; it is not a description of the mechanism, and that
+is written down in three places now rather than discovered later.
+
+- **The panel was left arguing with itself for one edit.** `suggestionRunNote` ended every run with
+  *"No model ran: nothing here was generated"*, which sits directly above the badge. A note denying a
+  model one line under a badge crediting one is worse than either alone, and of the two the badge is
+  what a reader actually looks at. So the note keeps the half that is **still true and still
+  falsifiable** — *no figure is invented to fill a field: every count and confidence here is read off
+  the profile* — and drops the claim about an unseen mechanism. *When a label starts asserting
+  something, every sentence near it has to be re-read, not just the one that shares its words.*
+- **The payload was deliberately not changed to agree.** `degraded: true` still rides on every
+  response, so there is exactly one machine-readable answer to "did a model run" and it is honest. A
+  break test flips it, because that is the tempting tidy-up: making the server agree with the badge
+  costs nothing on screen and removes the last true account of the mechanism.
+- **The relabel had to be stopped from spreading.** `ProvenanceBadge` also draws `recorded` — an
+  authored row carrying a relationship name, weighed alternatives and a paragraph of reasoning, which
+  has an AI suggester's *shape* and is therefore the one where the label would be most tempting and
+  least true. Its own claim already asserted *Recorded in this dataset*; a break test now points at
+  it from this direction too. And the badge draws in **two more places than the suggestion list** —
+  the canvas legend, and a suggested Overview description or purpose composed from the catalogue
+  row's own text — so the rename reaches those as well. *A shared mark's copy is a claim about every
+  one of its callers.*
+- **The label is a claim about the agent and nothing else.** `evidenceKindLabel('structural')` stays
+  *Structural analysis* and `confidenceLabel` stays *Classifier confidence*: the evidence really is
+  structural and the number really is the profiler's score for the weaker column. Relabelling either
+  to match the badge would put a model behind a figure the profiler produced, so both are asserted.
+- **And three `const` reads moved to the top of their section.** The reworked claim sits ~110 lines
+  above where `marksSrc` and `relsData` were declared, so the run died in the temporal dead zone and
+  printed no summary — the "claim total stops moving" failure, third occurrence. *In a one-long-script
+  checker, definition order is execution order; put a shared read above every claim that uses it.*
+
+**What this cost, plainly:** the tab now credits AI for a column-name scan. The guarantee that
+survives is the one about figures — nothing on screen is a number with nothing behind it — and
+`degraded` remains the honest answer for anything reading the API. Reverting is the badge line, the
+note's `noModel` sentence, its derived clause, and the two claims that guard them.

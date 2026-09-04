@@ -27,6 +27,7 @@ import ProfiledColumnsPanel from '../components/catalog/ProfiledColumnsPanel'
 import ProfiledDocumentsPanel from '../components/catalog/ProfiledDocumentsPanel'
 import ProfiledMailDocumentsPanel from '../components/catalog/ProfiledMailDocumentsPanel'
 import ProfilingJobsTab from '../components/catalog/ProfilingJobsTab'
+import SchemaUploadPanel from '../components/catalog/SchemaUploadPanel'
 import StatusTag from '../components/common/StatusTag'
 import { catalogUnitsFor, type CatalogPanel } from '../data/catalogUnits'
 import { CONFIRM_WIDTH, profilingOutcome } from '../data/profilingOutcome'
@@ -270,6 +271,14 @@ function CatalogTab({
      comes to look pressed with nothing open under it. */
   const browseOpen = panel === units?.browsePanel
   const dictionaryOpen = panel === units?.dictionaryPanel
+  /*
+   * The third act, where the connector declares one. `schemaPanel` is optional and only BigQuery
+   * has it — a drive and a mailbox have no schema a dictionary could describe — so the test is on
+   * the declaration rather than on a connector name, which is the whole reason `catalogUnits`
+   * exists. A `panel` of `'none'` must not read as open, hence the explicit undefined check: the
+   * two above are safe only because every row declares them.
+   */
+  const schemaOpen = units?.schemaPanel !== undefined && panel === units.schemaPanel
 
   // Keep the selection valid when the list changes underneath.
   useEffect(() => {
@@ -431,12 +440,23 @@ function CatalogTab({
             >
               {units?.dictionaryLabel}
             </Button>
+            {/* Drawn only where the connector declares the act, so a mailbox gets two buttons and
+                not a third one that could do nothing. */}
+            {units?.schemaPanel !== undefined ? (
+              <Button
+                type={schemaOpen ? 'primary' : 'default'}
+                aria-pressed={schemaOpen}
+                onClick={() => setPanel(schemaOpen ? 'none' : (units.schemaPanel ?? 'none'))}
+              >
+                {units.schemaLabel}
+              </Button>
+            ) : null}
           </Space>
 
           {/* Said once, where the panels open. The ✕ that used to sit inside each panel is gone,
               so the way back has to be stated somewhere — and only while something is open, or it
               is an instruction for a state the reader is not in. */}
-          {browseOpen || dictionaryOpen ? (
+          {browseOpen || dictionaryOpen || schemaOpen ? (
             <Typography.Paragraph className="cat-actions-hint">
               Click the same button again to close the panel.
             </Typography.Paragraph>
@@ -455,6 +475,17 @@ function CatalogTab({
 
           {panel === 'columns' ? (
             <ProfiledColumnsPanel key={`${selected.sourceId}-cols`} source={selected} />
+          ) : null}
+
+          {/* `onProfiled` is the queued-run path, the same one Start Profiling takes: it re-reads
+              the board and switches to the jobs tab, because a queued job is otherwise invisible
+              from here. */}
+          {panel === 'schema' ? (
+            <SchemaUploadPanel
+              key={`${selected.sourceId}-schema`}
+              source={selected}
+              onProfiled={onChanged}
+            />
           ) : null}
 
           {panel === 'browse-documents' ? (
@@ -566,7 +597,7 @@ export default function CatalogPage() {
                * **The Catalog's third act, and it comes third for a reason.** Browse says what a
                * source holds and the dictionary describes it column by column; Data Modeling is
                * where a curator says what a table *is* — the entity it stands for, the column that
-               * identifies a row, its relationships and the metrics those carry.
+               * identifies a row, and its relationships to the other tables.
                *
                * It draws over what a profiling run recorded, so it is downstream of the first tab
                * rather than beside it, and it says so on a source with nothing profiled instead of

@@ -177,6 +177,77 @@ export function OutlookIcon({ size = 20 }: { size?: number }) {
   )
 }
 
+/*
+ * The three database marks.
+ *
+ * **Each is a silhouette in its vendor's own colour, and none of them is a letterform.** The rule
+ * SAP's frame and Outlook's ring already follow: a wordmark at 20px is a smudge. It also means no
+ * two of these are told apart by hue alone — a cylinder, an elephant and a six-spoke star read
+ * differently at any size, which matters because they sit in one grid three cards apart.
+ */
+
+/** MySQL — the cylinder in its teal, with the orange band its brand pairs with it. */
+export function MySqlIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="MySQL">
+      <ellipse cx="12" cy="5.6" rx="7.6" ry="2.8" fill="#F29111" />
+      <path d="M4.4 5.6v12.8c0 1.5 3.4 2.8 7.6 2.8s7.6-1.3 7.6-2.8V5.6" fill="#00758F" />
+      <path
+        d="M4.4 11.4c0 1.6 3.4 2.8 7.6 2.8s7.6-1.2 7.6-2.8"
+        fill="none"
+        stroke="#F29111"
+        strokeWidth="1.3"
+      />
+      <ellipse cx="12" cy="5.6" rx="7.6" ry="2.8" fill="none" stroke="#005E73" strokeWidth="1" />
+    </svg>
+  )
+}
+
+/**
+ * PostgreSQL — its elephant, as a silhouette.
+ *
+ * A head, two ears and a trunk in Postgres blue. Crude at this size on purpose: what has to survive
+ * is that it is an animal rather than a cylinder, so it cannot be mistaken for the MySQL card three
+ * columns away.
+ */
+export function PostgresIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="PostgreSQL">
+      <path
+        d="M7.2 4.1c-1 0-1.8.9-1.8 2 0 .5.2 1 .5 1.4-1.1 1.2-1.8 2.9-1.8 4.8 0 3.6 2.5 6.6 5.7 6.6.9 0 1.7-.2 2.4-.6.7.4 1.5.6 2.4.6 3.2 0 5.7-3 5.7-6.6 0-1.9-.7-3.6-1.8-4.8.3-.4.5-.9.5-1.4 0-1.1-.8-2-1.8-2-.7 0-1.3.4-1.6 1a6.9 6.9 0 0 0 -3-.7c-1.1 0-2.1.2-3 .7-.3-.6-.9-1-1.6-1z"
+        fill="#336791"
+      />
+      <path
+        d="M11 19.9c0 .9.5 1.6 1.1 1.6s1.1-.7 1.1-1.6"
+        fill="none"
+        stroke="#336791"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="9.7" cy="11.4" r="1" fill="#FFFFFF" />
+      <circle cx="14.6" cy="11.4" r="1" fill="#FFFFFF" />
+    </svg>
+  )
+}
+
+/** Snowflake — the six-spoke star it actually uses, which is the one mark here that is drawable. */
+export function SnowflakeIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" role="img" aria-label="Snowflake">
+      <g stroke="#29B5E8" strokeWidth="1.8" strokeLinecap="round">
+        <path d="M12 3.2v17.6" />
+        <path d="M4.4 7.6 19.6 16.4" />
+        <path d="M4.4 16.4 19.6 7.6" />
+      </g>
+      <g stroke="#29B5E8" strokeWidth="1.5" strokeLinecap="round">
+        <path d="M12 6.4 9.8 4.6M12 6.4 14.2 4.6" />
+        <path d="M12 17.6 9.8 19.4M12 17.6 14.2 19.4" />
+      </g>
+      <circle cx="12" cy="12" r="1.9" fill="#29B5E8" />
+    </svg>
+  )
+}
+
 const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   bigquery: BigQueryIcon,
   gdrive: GoogleDriveIcon,
@@ -186,6 +257,9 @@ const MARKS: Record<string, (props: { size?: number }) => JSX.Element> = {
   osipi: OsiPiIcon,
   sharepoint: SharePointIcon,
   sql: SqlDatabaseIcon,
+  mysql: MySqlIcon,
+  postgres: PostgresIcon,
+  snowflake: SnowflakeIcon,
 }
 
 /**

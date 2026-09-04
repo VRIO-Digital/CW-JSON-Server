@@ -25,6 +25,11 @@ import './ConnectorDirectory.css'
  * narrows *within* the sections, and a section with nothing left in it is dropped rather than
  * drawn as an empty heading — the rule the sidebar's nav groups already follow.
  *
+ * **There were briefly three**, splitting the pickable cards into the ones that carry a catalogue
+ * and the ones that only register a source. Removed on request. *Available now* covers both kinds
+ * now, which is what the heading says — it is a claim about being pickable — and which of them
+ * profile is stated on each card and in the step's note, where the reader is looking anyway.
+ *
  * **The filtering itself is `filterConnectors`, in `src/data/`.** This component sits inside a
  * `Modal`, which `renderToString` will not traverse, so a predicate written here could not be
  * asserted at all — the same reason the wizard's body was extracted from its dialog in the first
@@ -50,6 +55,12 @@ export default function ConnectorDirectory({
     () => filterConnectors(connectors, query, filter),
     [connectors, query, filter],
   )
+  /*
+   * The two sections are drawn one after the other, as **direct siblings** — which is not
+   * incidental: `ConnectorDirectory.css` spaces them with `.cd-section + .cd-section`, so a wrapper
+   * element around either makes it an only child and the two run together with no gap. That shipped
+   * for a minute while the sections were mapped from a list; it is a plain pair again.
+   */
   const available = shown.filter((c) => c.available)
   const vision = shown.filter((c) => !c.available)
 

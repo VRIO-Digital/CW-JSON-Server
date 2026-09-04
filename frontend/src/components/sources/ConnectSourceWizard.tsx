@@ -16,6 +16,7 @@ import {
   Flex,
   Form,
   Input,
+  InputNumber,
   Modal,
   Row,
   Segmented,
@@ -53,11 +54,8 @@ import {
   type RegisteredGmailSource,
   type RegisteredSource,
 } from '../../api/client'
-import {
-  AVAILABLE_CONNECTORS,
-  type Connector,
-  type ConnectorField,
-} from '../../data/connectors'
+import { type Connector, type ConnectorField } from '../../data/connectors'
+import { connectorPickerNote } from '../../data/connectorSearch'
 import { SOURCE_NAME_MIN, sourceNameProblem } from '../../data/sourceName'
 import ConnectRunPanel from './ConnectRunPanel'
 import ConnectorIcon from '../common/ConnectorIcon'
@@ -157,7 +155,42 @@ function fieldControl(field: ConnectorField) {
   if (field.kind === 'secret') {
     return <Input placeholder={field.placeholder} prefix="🔒" />
   }
+  /* A port is a number, so it gets a control that says so. `stringMode` is deliberately off: the
+     value goes into a JSON body, and a port arriving as a string would be a field whose type the
+     schema cannot check. */
+  if (field.kind === 'number') {
+    return <InputNumber style={{ width: '100%' }} placeholder={field.placeholder} />
+  }
   return <Input placeholder={field.placeholder} />
+}
+
+/**
+ * One form value, by the field name a connector declared — as a trimmed string, or `undefined`.
+ *
+ * `undefined` rather than `''` for an absent or blank field, because the register call turns it into
+ * `null` and the Sources row then prints an em dash. An empty string would be a value: it would
+ * claim the connector connected as nothing, where the truth is that it never said.
+ *
+ * Numbers are stringified here, so a port can be the value a row states without the form having to
+ * hold a string it will validate as a number.
+ */
+function fieldValue(
+  name: string | undefined,
+  values: Record<string, unknown>,
+): string | undefined {
+  if (!name) return undefined
+  const raw = values[name]
+  if (raw === null || raw === undefined) return undefined
+  const text = String(raw).trim()
+  return text === '' ? undefined : text
+}
+
+/**
+ * The label a connector gave one of its own fields — so the summary and the row say *Host* where
+ * the form said *Host*, rather than a heading this component chose for them.
+ */
+function labelOfField(connector: Connector, name: string): string {
+  return connector.fields.find((f) => f.name === name)?.label ?? name
 }
 
 export default function ConnectSourceWizard({
@@ -265,6 +298,16 @@ export default function ConnectSourceWizard({
   /* One rule, shared with the server (`sourceNameProblem` in server.mjs) so the
      wizard refuses what the API would refuse, before the round trip. */
   const nameProblem = sourceNameProblem(sourceName)
+
+  /*
+   * What a credential connector says it connected to, read out of the form by the field the
+   * connector named. Read here rather than twice below, because step 3 both lists it and names it
+   * in the check's own sentence — and two reads of one form are two answers to what is about to be
+   * stored. `undefined` on the Google branches, which name their account from the consent instead.
+   */
+  const accountValue = selected
+    ? fieldValue(selected.accountField, form.getFieldsValue())
+    : undefined
 
   /** The drives on the side of the picker that is showing. */
   const drivesOfKind = drives.filter((d) => d.kind === driveKind)
@@ -627,9 +670,18 @@ export default function ConnectSourceWizard({
         sourceName: name,
         typeLabel: selected.typeLabel,
         credentialRef: values.credentialRef,
-        /* Whatever this connector calls the thing it connects as — the email client id. Absent for a
-           connector that declares no such field, which is the honest '—' on its row. */
-        account: values.clientId,
+        /*
+         * What this connector calls the thing it connected to, and what it calls the thing in scope
+         * — both **read out of the form by the field the connector names**, so a card cannot state
+         * an account it never asked for. Absent where a connector declares neither, which is the
+         * honest em dash its row already prints.
+         *
+         * This replaced `values.clientId`, a field name **no connector declares** — so the account
+         * cell was `undefined` for every generic source however much the form collected. A payload
+         * field read by name is a contract the compiler cannot check.
+         */
+        account: fieldValue(selected.accountField, values),
+        scope: fieldValue(selected.scopeField, values),
       })
       onConnect(name)
     } catch (err) {
@@ -732,13 +784,18 @@ export default function ConnectSourceWizard({
       {/* ---------- Step 1: pick a connector ---------- */}
       {step === 0 ? (
         <>
-          {/* Names the working connectors rather than counting them: the count would go stale the
-              day a fourth lands, and the list is what a reader is choosing between. */}
+          {/*
+            * Names the connectors rather than counting them, and tells the **two pickable kinds
+            * apart** — see `connectorPickerNote`, which composes it from the directory. It read
+            * "the rest below are product vision only", which stopped being true the moment a
+            * database card could be clicked; a reader who is about to type six connection fields
+            * has to know beforehand that nothing will profile the result.
+            */}
           <Alert
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            title={`${AVAILABLE_CONNECTORS.map((c) => c.name).join(', ')} all have real, working connectors — pick one to continue. The rest below are product vision only — clicking any of them just shows why.`}
+            title={connectorPickerNote(CONNECTORS)}
           />
           {/*
             * The directory: one grid, searchable, still sectioned.
@@ -1465,15 +1522,52 @@ export default function ConnectSourceWizard({
                 label: 'Credential',
                 children: form.getFieldValue('credentialRef') || '—',
               },
+              /*
+               * The two cells the Sources row will print, shown here under the labels this
+               * connector gave them — so what is about to be stored is on screen before Connect,
+               * rather than discovered afterwards from a table with different headings.
+               */
+              ...(selected.accountField
+                ? [
+                  {
+                    key: 'account',
+                    label: labelOfField(selected, selected.accountField),
+                    children: accountValue ?? '—',
+                  },
+                ]
+                : []),
+              ...(selected.scopeField
+                ? [
+                  {
+                    key: 'scope',
+                    label: labelOfField(selected, selected.scopeField),
+                    children: fieldValue(selected.scopeField, form.getFieldsValue()) ?? '—',
+                  },
+                ]
+                : []),
             ]}
           />
 
+          {/*
+            * **The check says what it checked, and it did not open a connection.**
+            *
+            * This button said *Run connection test* and its result said *Connection succeeded* — a
+            * claim about a database, made by a timer. It was harmless while every connector on this
+            * branch was a roadmap stub and the whole step was scenery; it stopped being harmless
+            * the moment a real engine's details were typed above it, because a reader who is told
+            * the connection succeeded has been told their host, port, role and TLS mode are right.
+            *
+            * Nothing here holds a database driver. What this step can honestly do is what the
+            * Google consent screen already says of itself: prove the request is well-formed. So the
+            * button checks the details, the alert says the details are well-formed, and it names
+            * where the connection is actually proven.
+            */}
           {test === 'idle' ? (
-            <Button onClick={runGenericTest}>Run connection test</Button>
+            <Button onClick={runGenericTest}>Check these details</Button>
           ) : null}
           {test === 'running' ? (
             <Button loading disabled>
-              Testing connection…
+              Checking…
             </Button>
           ) : null}
           {test === 'passed' ? (
@@ -1481,19 +1575,16 @@ export default function ConnectSourceWizard({
               type="success"
               showIcon
               icon={<CheckCircleOutlined />}
-              title="Connection succeeded"
+              title="These details are well-formed"
               /*
-               * **Two different reasons for no catalogue, and they must not share a sentence.** This
-               * read "…no discovery until its profiler ships" for every connector on the generic path,
-               * which is true of the five stubbed ones and a promise the mailbox will never keep:
-               * nothing is coming, because there is nothing in a mailbox to profile. Told apart by
-               * `available` — a connector that connects for real and still carries no catalogue is a
-               * decision, not an unfinished feature.
+               * **Two different reasons for no catalogue, and they must not share a sentence.** One
+               * is a decision — a connector that registers a source and profiles nothing — and the
+               * other is an unfinished feature. Told apart by `available`, because a stubbed
+               * connector's row is a placeholder and a credential connector's is a real source.
                */
               description={
                 selected.available
-                  ? 'This source connects for delivery and carries no catalogue: nothing in it is ' +
-                  'profiled, so it is listed on Sources and not in the Data Catalog.'
+                  ? `Nothing has reached ${accountValue ?? selected.name} — this server holds no ${selected.typeLabel} driver, so the connection is proven the first time something reads from it. Connect stores the details by reference and lists the source on Sources; nothing profiles it yet, so it will not appear in the Data Catalog.`
                   : 'Registration is stubbed for this connector — it lands as a bare row with no ' +
                   'discovery until its profiler ships.'
               }

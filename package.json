@@ -34,7 +34,8 @@
     "db:pull": "npm --prefix backend run db:pull",
     "verify:sigv4": "npm --prefix backend run verify:sigv4",
     "verify:export": "npm --prefix backend run verify:export",
-    "preflight": "npm run lint && npm run build && npm run audit && npm run verify:sigv4 && npm run verify:export && npm run check-docs",
+    "verify:schema-import": "npm --prefix backend run verify:schema-import",
+    "preflight": "npm run lint && npm run build && npm run audit && npm run verify:sigv4 && npm run verify:export && npm run verify:schema-import && npm run check-docs",
     "bundle:eb": "npm --prefix backend run bundle:eb",
     "bundle:web": "npm --prefix frontend run bundle:web"
   },

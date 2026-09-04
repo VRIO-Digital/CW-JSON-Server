@@ -1,0 +1,114 @@
+{
+  "_note": [
+    "A sample data dictionary for the Data Catalog's Upload schema or dictionary button.",
+    "Unknown top-level keys are ignored by the reader, so this note travels with the file.",
+    "",
+    "Upload it against the CAPEX dataset, source bigquery:northline_epbcs, dataset plan.",
+    "It does two things on purpose, one per table:",
+    "  plan_scenario_dim     — already in the project. Its 7 columns are catalogued but have no",
+    "                          dictionary, so today they are SYNTHESISED. Applying replaces them",
+    "                          with these, and the count stays 7 — the preview reads 7 -> 7.",
+    "  plan_capital_gate_log — NOT in the project. A table this file declares has to carry a label",
+    "                          and a grain, because validateDb requires both and neither can be",
+    "                          invented; both are below. Its rows stay uncounted, not 0.",
+    "",
+    "What to look for after applying:",
+    "  · every column's derivation reads 'declared in <this filename>'",
+    "  · null%, distinct and the classifier score are all '—'. A dictionary states what a column",
+    "    means and samples nothing, so there is no figure to print and none is invented.",
+    "  · a column with no class takes one from its type: NUMERIC -> measure, DATE -> date,",
+    "    BOOL -> flag, STRING -> text. Nothing infers 'identifier' from a name ending in _id.",
+    "  · gate_notes is a bare string with no type at all, so its type prints '—' and its",
+    "    description status is 'needs review' — nobody has said what it means.",
+    "  · a forced profiling run starts on both tables and the Catalog switches to Profiling jobs.",
+    "",
+    "The preview writes nothing. It also warns if a Data Modeling declaration reads a column this",
+    "file does not name — neither table below is one anything has declarations on."
+  ],
+
+  "dataset": "plan",
+
+  "tables": [
+    {
+      "table": "plan_scenario_dim",
+      "columns": [
+        {
+          "column": "scenario_id",
+          "type": "STRING",
+          "class": "identifier",
+          "description": "The Scenario member key, as the cube stores it. Joins to plan_version_master.scenario."
+        },
+        {
+          "column": "scenario_name",
+          "type": "STRING",
+          "class": "label",
+          "description": "What the scenario is called on screen — Budget, Actual, Forecast."
+        },
+        {
+          "column": "scenario_type",
+          "type": "STRING",
+          "class": "classification",
+          "description": "Whether the member holds a plan, a recorded actual, or a forecast vintage."
+        },
+        {
+          "column": "maps_to_version",
+          "type": "STRING",
+          "description": "The default version this scenario resolves to when a form does not name one. No class stated, so it is read from the type."
+        },
+        {
+          "column": "is_active",
+          "type": "BOOL",
+          "description": "Whether the scenario is open for input. Derived class: flag."
+        },
+        {
+          "column": "effective_from",
+          "type": "DATE",
+          "description": "First period the scenario accepts data for. Derived class: date."
+        },
+        {
+          "column": "owner_email",
+          "type": "STRING",
+          "class": "person",
+          "pii": true,
+          "description": "Who owns the scenario. Marked PII, so it answers the PII chip."
+        }
+      ]
+    },
+    {
+      "table": "plan_capital_gate_log",
+      "label": "Capital gate decisions",
+      "grain": "one row per project and gate decision",
+      "columns": [
+        {
+          "column": "gate_id",
+          "type": "STRING",
+          "class": "identifier",
+          "description": "The gate decision key."
+        },
+        {
+          "column": "project_id",
+          "type": "STRING",
+          "class": "identifier",
+          "description": "The project the decision was made against. Declared as an identifier here, which is what lets the Data Modeling tab suggest the join."
+        },
+        {
+          "column": "gate_number",
+          "type": "INT64",
+          "description": "Which gate in the stage sequence. Derived class: measure."
+        },
+        {
+          "column": "decided_on",
+          "type": "DATE",
+          "description": "When the gate was decided. Derived class: date."
+        },
+        {
+          "column": "approved_amount",
+          "type": "NUMERIC(18, 2)",
+          "class": "measure_commitment",
+          "description": "What the gate released, in dollars."
+        },
+        "gate_notes"
+      ]
+    }
+  ]
+}

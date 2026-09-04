@@ -25,6 +25,7 @@
     "db:pull": "node scripts/s3-sync.js pull",
     "verify:sigv4": "node scripts/verify-sigv4.js",
     "verify:export": "node scripts/verify-report-export.js",
+    "verify:schema-import": "node scripts/verify-schema-import.js",
     "bundle:eb": "node scripts/bundle-eb.js"
   },
   "//start": "Elastic Beanstalk's Node platform runs `npm start` when there is no Procfile, so `start` has to exist and has to be the server. `mock` is kept as the name the docs and every developer already use; both run the same thing, and neither passes a port so the platform's PORT wins.",

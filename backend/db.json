@@ -17004,6 +17004,83 @@
     }
   },
   "data_model": {
-    "entities": []
+    "entities": [],
+    "suggestions": [
+      {
+        "suggestion_id": "sg_manifest_detail",
+        "from_table_key": "epa_hazwaste.e_manifest",
+        "from_column": "manifest_tracking_number",
+        "to_table_key": "epa_hazwaste.e_manifest_all",
+        "to_column": "manifest_tracking_number",
+        "relationship_type": "HAS_MANIFEST_DETAIL",
+        "relationship_type_alternatives": [
+          "ENRICHED_BY",
+          "SAME_SHIPMENT_AS"
+        ],
+        "cardinality_hint": "1:1",
+        "rationale": "The tracking number is unique on both sides, so the enriched view is one row per manifest rather than a fan-out of them. Worth declaring because the generator, receiver and transporter profiles a question needs live on the enriched side while the shipment itself is on this one.",
+        "confidence": 0.97
+      },
+      {
+        "suggestion_id": "sg_facility_compliance_360",
+        "from_table_key": "epa_hazwaste.FRS_Facility_profile",
+        "from_column": "registry_id",
+        "to_table_key": "epa_hazwaste.RCRA_Compliance_Summary",
+        "to_column": "registry_id",
+        "relationship_type": "HAS_COMPLIANCE_SUMMARY",
+        "relationship_type_alternatives": [
+          "SUMMARISED_BY",
+          "HAS_COMPLIANCE_360"
+        ],
+        "cardinality_hint": "1:1",
+        "rationale": "Both views are one row per facility on the same registry id, so this is a profile and its summary rather than a history. Declare it and a facility question can reach the rolled-up compliance standing without walking the line items.",
+        "confidence": 0.94
+      },
+      {
+        "suggestion_id": "sg_facility_compliance_history",
+        "from_table_key": "epa_hazwaste.FRS_Facility_profile",
+        "from_column": "registry_id",
+        "to_table_key": "epa_hazwaste.RCRA_compliance",
+        "to_column": "registry_id",
+        "relationship_type": "HAS_COMPLIANCE_HISTORY",
+        "relationship_type_alternatives": [
+          "HAS_EVALUATIONS",
+          "EVALUATED_BY"
+        ],
+        "cardinality_hint": "1:N",
+        "rationale": "The registry id is unique on the facility view and repeats across the line items, which is one facility to many evaluations, violations and enforcement actions. This is the join every \"what is this facility's compliance record\" question walks.",
+        "confidence": 0.92
+      },
+      {
+        "suggestion_id": "sg_manifest_receiving_facility",
+        "from_table_key": "epa_hazwaste.e_manifest",
+        "from_column": "des_facility_id",
+        "to_table_key": "epa_hazwaste.FRS_Facility_profile",
+        "to_column": "pgm_sys_id",
+        "relationship_type": "SHIPS_TO",
+        "relationship_type_alternatives": [
+          "RECEIVED_BY",
+          "HAS_RECEIVING_FACILITY"
+        ],
+        "cardinality_hint": "N:1",
+        "rationale": "Many manifests to one facility. Note the shape of this extract before accepting it: the receiving id has exactly one distinct value across all 1,200 manifests, so every shipment here goes to the same TSDF — the cardinality is right, and it is right for a narrower reason than a fuller extract would give.",
+        "confidence": 0.88
+      },
+      {
+        "suggestion_id": "sg_manifest_generator_crosswalk",
+        "from_table_key": "epa_hazwaste.e_manifest",
+        "from_column": "generator_id",
+        "to_table_key": "epa_hazwaste.e_manifest_all",
+        "to_column": "generator_id",
+        "relationship_type": "SHARES_GENERATOR_WITH",
+        "relationship_type_alternatives": [
+          "SAME_GENERATOR_AS",
+          "GENERATED_BY"
+        ],
+        "cardinality_hint": "N:N",
+        "rationale": "Both views carry the generator id and neither is unique on it — 36 generators across 1,200 rows on each side — so the join is genuinely many-to-many and would multiply rows if anything traversed it. Offered because the columns match, not because this is the join you want: the generator belongs on the facility view, and re-pointing it there is the likelier answer.",
+        "confidence": 0.61
+      }
+    ]
   }
 }
