@@ -6063,3 +6063,47 @@ is written down in three places now rather than discovered later.
 survives is the one about figures — nothing on screen is a number with nothing behind it — and
 `degraded` remains the honest answer for anything reading the API. Reverting is the badge line, the
 note's `noModel` sentence, its derived clause, and the two claims that guard them.
+
+## The pending-suggestions review, and Accept all (2026-09-04)
+
+**Asked for as "click the 9 suggested, pending tile, show what is pending, then Accept all".** The
+list was the easy half; the accept-all loop is where the real hazard was, and it was found by running
+it against a live server rather than by reading the code.
+
+- **A loop over one snapshot of the entities makes every accept erase the last.**
+  `relationshipWrites` builds its write from the owning entity's *current* relationship array, so
+  iterating a render's `entities` hands the server an entity missing everything the earlier
+  iterations added. Measured, two accepts on one snapshot: **one** relationship survived, plus a 400
+  — *"already declared as … edit that entity rather than declaring a second one on one table"* —
+  because the un-owned branch mints a fresh anchor entity, so the second accept tried to create a
+  second entity for the same table. Re-reading `useDataModelStore.getState().entities` **inside** the
+  loop kept both with no refusal. `saveWrites` already reloads what it wrote; the bug is reading the
+  component's closure instead of the store. *The write chain protects one save from another; it does
+  nothing for a caller that builds nine saves from one stale read.*
+- **The run stops at the first refusal, on purpose.** A later write can depend on an entity an
+  earlier one was meant to create, so pressing on turns one cause into a cascade of refusals that
+  name none of it. Each row leaves the pending list **as it lands**, so a partial run leaves exactly
+  the unreached rows to retry.
+- **The outcome is counted, never assumed.** `acceptAllOutcome` takes what actually landed — the
+  tempting version composes "9 relationships confirmed" from the length of the submitted list, which
+  is a claim about writes that may not have happened, and this file already records a settings toggle
+  that reported a failure for a write the server had committed. A partial run reports both directions
+  and keeps the server's own wording.
+- **One array behind the tile and the modal.** The tile prints `pendingRelationships.length` and the
+  panel lists its rows, so the number a reader clicks and the rows they count cannot diverge. A break
+  test re-introduces a second `filter` for the modal, because that is the natural way to write it.
+- **Two of my own new guards were weak, and the break tests found both.** `/still pending/` over the
+  whole file was satisfied by the *doc comment* that explains the sentence — the comment trap this
+  file has now recorded six times — so it is keyed on `${left} still pending`, the interpolated form
+  only the code has. And `/pendingSuggestionsCopy as COPY/` passes against `as COPY2`, since the
+  needle is a prefix of the mutation: **a rename cannot be caught by a regex the renamed form still
+  contains**, so it is anchored on the trailing comma.
+- **Then the break test itself was wrong twice.** The `still pending` mutation replaced the comment
+  occurrence and reported the claim unbreakable; retargeted at the code, it replaced one of the two
+  branches and the claim was *still* correctly green. The harness uses `replaceAll` now. *When a
+  break test says a claim cannot break, suspect the break first — third time in this file.*
+- **And a heredoc turned `\\b` into a literal backspace byte (0x08).** The regex read
+  `/…as COPY<BS>/`, which matches nothing, so the claim failed with every conjunct true when checked
+  by hand — and it only surfaced because the claim total moved from 16 to 17 stale after an unrelated
+  docs edit. `cat -A` is what found it. *Recorded here for the third time: patch scripts with
+  backslashes go through the Write tool, never a shell heredoc.*

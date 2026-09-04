@@ -1156,6 +1156,74 @@ expect(
   'a silent truncation of a 90-column table is a card that misrepresents its own entity',
 )
 
+
+/*
+ * **The pending count opens what it counts, and Accept all confirms them one at a time.**
+ *
+ * Two things make this more than a list behind a number.
+ *
+ * **The tile and the modal read one array.** `pendingRelationships` is filtered once; the tile
+ * prints its length and the panel lists its rows, so the figure a reader clicks and the rows they
+ * then count cannot disagree — the rule `selectedTableKey` follows for selection, applied to a
+ * count. And the tile is clickable **only** above zero: a `0` that opened an empty dialog is the
+ * button-over-blank-space this repo has fixed once already.
+ *
+ * **Accept all re-reads the entities between writes, and that is load-bearing rather than tidy.**
+ * `relationshipWrites` builds its write from the owning entity's *current* relationship array, so a
+ * loop over one render's `entities` hands the server an entity missing everything the previous
+ * iterations added — each accept erasing the last. Run against a live server, a two-accept loop on
+ * one snapshot kept **one** relationship and took a 400 (*"already declared as … edit that entity
+ * rather than declaring a second one on one table"*, because the un-owned branch mints a fresh
+ * anchor); re-reading per accept kept both with no refusal. So the claim asserts the store is read
+ * inside the loop, not before it.
+ *
+ * The outcome is **counted, never assumed**: `acceptAllOutcome` takes what landed, so a run that
+ * stops at the fourth of nine says so in both directions and keeps the server's own wording. The
+ * panel body is exported apart from its `Modal` because a portal is invisible to `renderToString`.
+ */
+const pendingData = read('frontend/src/data/pendingSuggestions.ts')
+const pendingPanel = read('frontend/src/components/catalog/PendingSuggestionsPanel.tsx')
+const acceptAllRun =
+  /const acceptAllPending = async \(\) => \{[\s\S]*?\n  \}/.exec(dataModelTab)?.[0] ?? ''
+expect(
+  'the pending tile opens its own rows, and Accept all writes them one at a time off a fresh read',
+  /* One array behind both, so the tile's number and the modal's rows are the same fact. */
+  /const pendingRelationships = useMemo\(/.test(dataModelTab) &&
+    /const pendingCount = pendingRelationships\.length/.test(dataModelTab) &&
+    /rows=\{pendingRelationships\}/.test(dataModelTab) &&
+    /* Clickable only where there is something to open. */
+    /onClick=\{\r?\n?\s*pendingCount > 0 \? \(\) => setPendingOpen\(true\) : undefined\r?\n?\s*\}/.test(
+      dataModelTab,
+    ) &&
+    /*
+     * The run exists, and it reads the store *inside* its loop. Sliced rather than searched
+     * whole-file: `useDataModelStore.getState()` could plausibly appear elsewhere, and a claim that
+     * passes on somebody else's call is a claim about the file rather than about this loop.
+     */
+    acceptAllRun.length > 600 &&
+    /for \(const suggestion of queue\)/.test(acceptAllRun) &&
+    /const entitiesNow = useDataModelStore\.getState\(\)\.entities/.test(acceptAllRun) &&
+    acceptAllRun.indexOf('for (const suggestion of queue)') <
+      acceptAllRun.indexOf('useDataModelStore.getState().entities') &&
+    /* It stops at the first refusal rather than cascading, and awaits each write. */
+    /if \(!result\.ok\) \{\r?\n\s*failure = result\.error\r?\n\s*break/.test(acceptAllRun) &&
+    /await saveWrites\(/.test(acceptAllRun) &&
+    /* The outcome is composed from what landed, not from the length of what was submitted. */
+    /export function acceptAllOutcome/.test(pendingData) &&
+    /accepted < attempted/.test(pendingData) &&
+    /* Keyed on the interpolated form: the function's own doc comment says "still pending" too,
+       so a bare search passes over prose while the sentence has stopped saying it. */
+    /\$\{left\} still pending/.test(pendingData) &&
+    /attempted: queue\.length,\r?\n\s*accepted,/.test(acceptAllRun) &&
+    /* The body is reachable by a render test; the dialog around it is not. */
+    /export function PendingSuggestionsPanel/.test(pendingPanel) &&
+    /export default function PendingSuggestionsModal/.test(pendingPanel) &&
+    /* Its copy lives in src/data for the same reason. */
+    /pendingSuggestionsCopy as COPY,/.test(pendingPanel) &&
+    /stops at the first refusal/.test(pendingData),
+  'a loop over one snapshot of the entities makes every accept erase the last',
+)
+
 /* ---------------- recorded relationship suggestions ---------------- */
 
 /*

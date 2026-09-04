@@ -1529,6 +1529,39 @@ an edit that moves the *from* side changes **which entity owns the declaration**
 written **before** the old one is cleaned up, so a failure between them duplicates a declaration —
 visible, and fixable in one click — rather than dropping one, which is invisible.
 
+**The pending count is a control, and it opens what it counts.** *N suggested, pending* in the strip
+above the canvas is clickable above zero and opens the review: every pending row with its name, the
+join it proposes, its cardinality, its provenance badge, the confidence labelled by kind, and the
+run's own reasoning — grouped by kind, because a recorded suggestion and a column-name match are not
+weighed the same way, and a kind with nothing in it draws no heading. **The tile and the list read
+one array**, so the number a reader clicks and the rows they then count cannot disagree; and the tile
+is inert at 0, because a count that opened an empty dialog is the button-over-blank-space this repo
+has fixed once already.
+
+**Accept all confirms every row, one write at a time, off a freshly read set of entities — and that
+last part is load-bearing rather than tidy.** `relationshipWrites` builds its write from the owning
+entity's *current* relationship array, so a loop over one render's `entities` hands the server an
+entity missing everything the previous iterations added: each accept erases the last. Run against a
+live server, a two-accept loop on one snapshot kept **one** relationship and took a 400 — *"already
+declared as … edit that entity rather than declaring a second one on one table"*, because the
+un-owned branch mints a fresh anchor entity — while re-reading per accept kept both with no refusal.
+So the run reads `useDataModelStore.getState().entities` **inside** its loop, and `check-docs`
+asserts the read sits after the `for`.
+
+**It stops at the first refusal, and reports what actually landed.** A later write may depend on an
+entity an earlier one was meant to create, so pressing on produces a cascade of refusals that say
+nothing about the original cause. `acceptAllOutcome` composes the sentence from the count that
+succeeded rather than from the length of what was submitted — a partial run says how many were
+written *and* how many are still pending, keeping the server's own wording for the refusal — and each
+row is dropped from the pending list **as it lands**, so exactly the unreached ones remain. Composing
+that sentence from the submitted list is the settings-toggle mistake one section down: a claim about
+writes that may not have happened.
+
+**The panel body is exported apart from its `Modal`, and its copy lives in `src/data/`.** A `Modal`
+portals out of `renderToString`, so a list written inside one cannot be asserted at all — the reason
+`ConnectSourceWizard` is separate from `ConnectSourceModal`, and `acceptAllOutcome` is a pure
+function rather than a sentence built where it is printed.
+
 **The suggestions run is derived, and the payload says so rather than implying a model.**
 `POST /data-model/suggestions` reads the source's profiled columns and offers the joins a **shared
 identifier column** implies — an identifier on at least one side, because two tables both carrying a

@@ -950,6 +950,33 @@ administrative and dataset-neutral: a subject or filename naming hazardous waste
 claim about EPA's mail that CAPEX's mailbox would repeat, and a figure in one would be content
 nothing has read. `check-docs` asserts the subject pool holds no address and no digit.
 
+### Reviewing what is pending, and accepting it in one act
+
+**The *N suggested, pending* tile opens the review.** Clickable above zero only; the tile and the
+modal are handed the same filtered array, so the figure and the row count are one fact.
+
+| | what it shows |
+|---|---|
+| per row | the relationship's own name, the join (`e_manifest.generator_id → e_manifest_all.generator_id`), the cardinality, the provenance badge, the confidence **labelled by kind**, and the run's reasoning |
+| grouped by | kind — *Recorded in this dataset* and *Curated by AI*, each with its own count and note; a kind with nothing in it draws no heading |
+| per row acts | **Confirm** (writes it) and **Reject** (drops it from the run — nothing is stored, so nothing is deleted) |
+| footer | **Accept all · N**, with the sentence saying it goes one at a time and stops at the first refusal |
+
+**Accept all re-reads the entities between writes.** `relationshipWrites` reads the owning entity's
+current relationship array, so a loop over one snapshot makes every accept erase the last — and where
+the owner is undeclared, the second accept is refused outright because that branch mints a new anchor
+entity. Verified against a live server: one snapshot kept 1 of 2 relationships and took a 400;
+re-reading per accept kept both.
+
+**Where it fails:** the run stops at the first refusal and `acceptAllOutcome` reports what landed —
+`4 relationships confirmed, then the run stopped: <the server's own words> 5 still pending.` Each row
+leaves the pending list as it lands, so the unreached ones are still there to retry. A run that
+confirms nothing is an error and never claims a write.
+
+**Files:** `src/data/pendingSuggestions.ts` (copy, `groupPendingByKind`, `acceptAllOutcome`),
+`src/components/catalog/PendingSuggestionsPanel.tsx` (body exported apart from its `Modal`),
+`DataModelTab.tsx` (`pendingRelationships`, `acceptAllPending`).
+
 ### Suggested relationships — recorded, then derived
 
 **Suggest from schema** serves two kinds and says which is which.

@@ -9,6 +9,7 @@ import { Alert, App, Button, Col, Row, Skeleton, Space, Tooltip, Typography } fr
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ModelTableSuggestion, SourceRow } from '../../api/client'
 import { suggestionRunNote } from '../../data/dataModelSuggestions'
+import { acceptAllOutcome } from '../../data/pendingSuggestions'
 import {
   CARDINALITY_LABELS,
   cardinalityKindFromHint,
@@ -28,6 +29,7 @@ import EntityOverviewPanel from './EntityOverviewPanel'
 import EntityRelationshipsPanel from './EntityRelationshipsPanel'
 import ModelTableList from './ModelTableList'
 import { PanelShell, StatusPill } from './ModelMarks'
+import PendingSuggestionsModal from './PendingSuggestionsPanel'
 import RelationshipModal, { type RelationshipEdit } from './RelationshipModal'
 
 const { Text } = Typography
@@ -40,20 +42,71 @@ const DETAIL_TABS = [
 ] as const
 type DetailTabKey = (typeof DETAIL_TABS)[number]['key']
 
+/**
+ * One figure in the strip above the canvas, and optionally a way into what it counts.
+ *
+ * **`onClick` makes it a real `<button>` rather than a `div` with a handler**, so it is reachable by
+ * keyboard and announced as an act — a count that opens a review is a control, and the alternative
+ * is a number only a mouse can use. Without the prop it renders exactly the static figure it always
+ * did: a tile that looked pressable and did nothing would be worse than one that plainly is not,
+ * which is why the underline and the pointer are on the same condition as the handler.
+ */
 function StatItem({
   value,
   label,
   color,
+  onClick,
+  hint,
 }: {
   value: number
   label: string
   color?: string
+  onClick?: () => void
+  hint?: string
 }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <b style={{ fontSize: 16, lineHeight: 1.1, color: color ?? MT.text }}>{value}</b>
+  const body = (
+    <>
+      <b
+        style={{
+          fontSize: 16,
+          lineHeight: 1.1,
+          color: color ?? MT.text,
+          textDecoration: onClick ? 'underline dotted' : undefined,
+          textUnderlineOffset: 3,
+        }}
+      >
+        {value}
+      </b>
       <span style={{ fontSize: 10.5, color: MT.dim }}>{label}</span>
-    </div>
+    </>
+  )
+  if (!onClick) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>{body}</div>
+    )
+  }
+  return (
+    <Tooltip title={hint}>
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          alignItems: 'flex-start',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          margin: 0,
+          font: 'inherit',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        {body}
+      </button>
+    </Tooltip>
   )
 }
 
@@ -134,6 +187,16 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
   >(null)
   const [createFromTableKey, setCreateFromTableKey] = useState<string | null>(null)
 
+  /*
+   * The pending review, and whether its accept-all run is in flight.
+   *
+   * `acceptingAll` is its own flag rather than the store's `saving`: that one is true for a single
+   * write too, so reusing it would put the run's "Confirming" label and its one-at-a-time notice on
+   * screen every time somebody saved an Overview field.
+   */
+  const [pendingOpen, setPendingOpen] = useState(false)
+  const [acceptingAll, setAcceptingAll] = useState(false)
+
   /* Keep the selection valid as the list arrives or changes underneath. */
   const selectedSource =
     structured.find((s) => s.sourceId === selectedSourceId) ?? structured[0] ?? null
@@ -165,6 +228,9 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     setLastSourceKey(sourceKey)
     setSelectedTableKey(null)
     setDetailTab('overview')
+    /* `pendingBySource` is keyed by source, so leaving this open would swap the rows underneath a
+       reader mid-review — and `Accept all` would then act on a list they never opened. */
+    setPendingOpen(false)
   }
 
   const tableKeys = useMemo(() => tables.map((t) => t.tableKey), [tables])
@@ -196,7 +262,16 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     [tables],
   )
   const confirmedCount = relationships.filter((r) => r.status === 'confirmed').length
-  const pendingCount = relationships.filter((r) => r.status === 'pending').length
+  /*
+   * **One array, two readers.** The tile prints its length and the review modal lists its rows, so
+   * the number a reader clicks and the number of rows they then count cannot disagree — there is no
+   * second count to keep in step, which is the rule `selectedTableKey` follows one level up.
+   */
+  const pendingRelationships = useMemo(
+    () => relationships.filter((r) => r.status === 'pending'),
+    [relationships],
+  )
+  const pendingCount = pendingRelationships.length
 
   const labelFor = (tableKey: string) =>
     tables.find((t) => t.tableKey === tableKey)?.tableId ?? tableKey
@@ -283,6 +358,73 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
       ),
     }))
     message.success('Relationship confirmed and saved.')
+  }
+
+  /**
+   * Confirms every pending suggestion, one at a time, and reports what actually landed.
+   *
+   * **The entities are re-read from the store between writes, and that is load-bearing.**
+   * `relationshipWrites` builds its write from the owning entity's *current* relationship array, so
+   * a loop over one render's `entities` would hand the server an entity whose array is missing
+   * everything the previous iterations added — each accept silently erasing the last. Worse where
+   * the owner is not declared yet: that branch mints a **new** anchor entity, so two suggestions
+   * from the same undeclared table would both try to create one and the second is refused with
+   * "already declared". `saveWrites` reloads the entities it just wrote, so reading the store per
+   * iteration is what makes each write build on the one before it.
+   *
+   * **It stops at the first refusal rather than pressing on.** A later write may depend on an entity
+   * an earlier one was meant to create, so continuing past a failure produces a cascade of refusals
+   * that say nothing about the original cause — and the rows it has not reached are still pending,
+   * which is recoverable.
+   */
+  const acceptAllPending = async () => {
+    if (!selectedSource || pendingRelationships.length === 0) return
+    const queue = [...pendingRelationships]
+    setAcceptingAll(true)
+    let accepted = 0
+    let failure: string | undefined
+
+    for (const suggestion of queue) {
+      const entitiesNow = useDataModelStore.getState().entities
+      const result = await saveWrites(
+        relationshipWrites({
+          rel: {
+            ...suggestion,
+            rationale:
+              suggestion.rationale.trim() || suggestion.suggestionReasoning || '',
+          },
+          entities: entitiesNow,
+          labelFor,
+        }),
+      )
+      if (!result.ok) {
+        failure = result.error
+        break
+      }
+      accepted += 1
+      /* Dropped as it lands, so a partial run leaves exactly the unreached rows pending. */
+      setPendingBySource((prev) => ({
+        ...prev,
+        [selectedSource.sourceId]: (prev[selectedSource.sourceId] ?? []).filter(
+          (r) => r.id !== suggestion.id,
+        ),
+      }))
+    }
+
+    setAcceptingAll(false)
+    const outcome = acceptAllOutcome({
+      attempted: queue.length,
+      accepted,
+      error: failure,
+    })
+    if (outcome.tone === 'success') {
+      message.success(outcome.message)
+      setPendingOpen(false)
+    } else if (outcome.tone === 'warning') {
+      message.warning(outcome.message)
+    } else {
+      message.error(outcome.message)
+    }
   }
 
   /**
@@ -589,7 +731,21 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                   label="relationships confirmed"
                   color={MT.green}
                 />
-                <StatItem value={pendingCount} label="suggested, pending" color={MT.amber} />
+                <StatItem
+                  value={pendingCount}
+                  label="suggested, pending"
+                  color={MT.amber}
+                  /* Clickable only where there is something to show: a tile at 0 that opened an
+                     empty dialog is the button-over-blank-space this repo has fixed once already. */
+                  onClick={
+                    pendingCount > 0 ? () => setPendingOpen(true) : undefined
+                  }
+                  hint={
+                    pendingCount > 0
+                      ? 'Review what is pending, and accept them all if you want to'
+                      : undefined
+                  }
+                />
                 <StatItem value={columnsDescribed} label="columns described" />
               </div>
               <Space size={8}>
@@ -819,6 +975,22 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
         onReject={(id) => void removeRelationship(id)}
         onDelete={(id) => void removeRelationship(id)}
         saving={saving}
+      />
+
+      {/*
+       * The review over the same array the tile counts. It is closed when the source changes with
+       * it — `pendingBySource` is keyed by source, so the rows behind an open dialog would otherwise
+       * be a different source's the moment the rail selection moved.
+       */}
+      <PendingSuggestionsModal
+        open={pendingOpen && pendingCount > 0}
+        rows={pendingRelationships}
+        labelFor={labelFor}
+        accepting={acceptingAll}
+        onAcceptAll={() => void acceptAllPending()}
+        onAccept={(id) => void confirmRelationship(id)}
+        onReject={(id) => void removeRelationship(id)}
+        onClose={() => setPendingOpen(false)}
       />
     </>
   )
