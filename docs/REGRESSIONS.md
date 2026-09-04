@@ -5806,3 +5806,54 @@ identifier reaching the other way is a `ReferenceError` the moment a report reso
 module, not their line order.* "It runs later, so the const is initialised" answers a question about
 time; the question that mattered was about place. And a test harness built by extracting pieces into
 one scope quietly asserts that the pieces share one — which is the very thing worth checking.
+
+---
+
+## A fifth act reused the fourth's guard, and the claim that counted them caught it
+
+**Date:** 2026-09-04 · **Surface:** the Data Modeling tab's suggestions route
+
+**What happened.** `POST /data-model/suggestions` needs to refuse a source it does not serve, so it
+reached for `wrongConnector(source, 'bigquery', 'dictionary')` — the helper nine other catalogue
+guards already use. `npm run check-docs` failed immediately: *"the catalogue routes are declared per
+connector"*, which counts those guards and asserts there are exactly nine — three acts across three
+connectors. There were ten.
+
+**The claim was right, and not for the reason it was written.** It exists to stop a guard being
+written inline again, and it happened to be the only thing standing between a *new act* and the
+wrong refusal. Reusing `dictionary` would have answered a mail source with *"holds mail documents,
+not tables — use GET /sources/<id>/mail-documents"*: a remedy for a different question. A mailbox has
+no schema at all, so there is nothing to model on it however much of it is profiled — the same shape
+as `wrongScope`'s mail case, where the allowlist route genuinely does not exist and pointing at the
+twin would be a remedy that fails the same way. This repo has removed a refusal-with-no-remedy twice.
+
+**The fix.** `wrongModel(source, servedKind)` — a fifth act with its own helper, which states what
+the source holds, says there is no modelling route for it, and names its **catalogue** instead. The
+nine-guard claim stays exactly nine, which is what it is for.
+
+**The general shape.** *A count over a set of guards is a claim about how many acts there are.* When
+adding an act, the question is not "which existing guard is closest" but "does this act have a twin
+at all" — and if it does not, it needs its own refusal rather than a borrowed one. A borrowed guard
+compiles, answers 400, and sends the reader somewhere that cannot help them.
+
+**Two smaller notes from the same session, both cheap and both worth writing down.**
+
+- **A required key is a claim two documents have to satisfy.** Adding `data_model` to `DB_SHAPE`
+  stopped the boot for both datasets until `npm run seed:data-model` had written `{ "entities": [] }`
+  into each. That is the guard working — but it also means the *seed comes first* and the key's
+  refusal has to name it, or the next fresh checkout meets a server that will not start and a message
+  that does not say what to run.
+- **A break test found a threshold pretending to be a check.** The upsert claim asserted
+  `(match(/\?\? existing\?\./g) ?? []).length >= 6`, and deleting one carry-forward left six — so the
+  claim passed over the break. It names each field now. A count is only a check when the number is the
+  fact; here the fact was *which* fields carry forward, and each of them is a field some other panel
+  owns.
+
+- **And a render test found an infinite loop a read would not have.** The tab's
+  adjust-state-during-render reset compared `selectedSource?.sourceId` — `undefined` when nothing is
+  selected — against a `lastSourceKey` initialised to `null`, and then stored `?? null`. The two could
+  never agree, so every render saw a change and set the same `null` back: *"Too many re-renders"*, on
+  the one branch where a tenant has no structured source. **Normalise the key before you compare it,
+  not only before you store it.** `renderToString` over both branches is what caught it, which is the
+  argument for rendering a component rather than reading it: the loop is invisible in the source and
+  instant on screen.

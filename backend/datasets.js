@@ -143,6 +143,16 @@ export const MERGE_PLAN = {
   column_profiles: 'keyed',
   document_extractions: 'keyed',
 
+  /*
+   * The Data Modeling tab's declarations union on the entity, because two datasets genuinely bring
+   * their own: an entity is keyed to a `"<dataset>.<table>"` of its own document, and `projects`
+   * above already unions, so every table a merged entity names is in the merged view too.
+   *
+   * The nested arrays are the entity's own and travel with it rather than being merged themselves —
+   * two datasets cannot hold the same entity, so there is nothing to reconcile inside one.
+   */
+  data_model: { deep: { entities: { union: 'entity_id' } } },
+
   ask_answers: { union: 'answer_id' },
 
   /* One facility, one appetite line, one set of candidate loads — a merged frame is not a frame. */

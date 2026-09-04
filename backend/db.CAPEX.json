@@ -20587,6 +20587,49 @@
   ],
   "graph_use_cases": [
     {
+      "use_case_id": "uc-test-mtmpjn825",
+      "name": "test",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "testdata",
+      "personas": [
+        {
+          "name": "Procurement Lead",
+          "description": "Asks what has been awarded, what has changed since award, and to whom.",
+          "source": "ai"
+        }
+      ],
+      "kpis": [
+        {
+          "name": "Plan-to-Actual Variance",
+          "description": "Actual less period plan.",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Is this overrun scope, escalation, schedule, or estimate error?",
+          "priority": "normal",
+          "source": "ai"
+        },
+        {
+          "text": "What is committed but not yet incurred, by project and by vendor?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 6,
+      "updated_at": "2026-09-04T08:49:52.204Z"
+    },
+    {
       "use_case_id": "uc-test-mtleyosy2",
       "name": "test",
       "status": "committed",
@@ -60879,5 +60922,80 @@
       ],
       "footer": []
     }
+  },
+  "data_model": {
+    "entities": [
+      {
+        "entity_id": "ent-plan-plan-version-master-mtmp9sjv2",
+        "table_key": "plan.plan_version_master",
+        "entity_name": "plan_version_master",
+        "description": "test",
+        "business_purpose": "test",
+        "grain_description": "test",
+        "attributes": [
+          {
+            "name": "ITD Actuals",
+            "type": "numeric",
+            "is_identifier": true
+          }
+        ],
+        "relationships": [
+          {
+            "target_table_key": "plan.plan_project_budget",
+            "from_columns": [
+              "Business Unit"
+            ],
+            "to_columns": [
+              "Asset Class"
+            ],
+            "relationship_type": "test",
+            "cardinality_hint": "1:N",
+            "rationale": "test"
+          }
+        ],
+        "metrics": [],
+        "cross_attributes": [],
+        "updated_at": "2026-09-04T08:37:09.623Z"
+      },
+      {
+        "entity_id": "ent-plan-plan-project-budget-mtmpaekc3",
+        "table_key": "plan.plan_project_budget",
+        "entity_name": "plan_project_budget",
+        "description": "Entity for plan_project_budget, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "metrics": [],
+        "cross_attributes": [],
+        "updated_at": "2026-09-04T08:37:09.564Z"
+      },
+      {
+        "entity_id": "ent-plan-plan-account-dim-mtmpcohv4",
+        "table_key": "plan.plan_account_dim",
+        "entity_name": "plan_account_dim",
+        "description": "Entity for plan_account_dim, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "plan.plan_version_master",
+            "from_columns": [
+              "FY24 Sep Actuals"
+            ],
+            "to_columns": [
+              "ITD Actuals"
+            ],
+            "relationship_type": "testdata",
+            "cardinality_hint": "1:N",
+            "rationale": ""
+          }
+        ],
+        "metrics": [],
+        "cross_attributes": [],
+        "updated_at": "2026-09-04T08:38:55.747Z"
+      }
+    ]
   }
 }

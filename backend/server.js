@@ -1115,6 +1115,65 @@ const DB_SHAPE = {
         typeof e.confidence === 'number',
     ),
   /*
+   * The Data Modeling tab's declarations — one entity per profiled table, holding the Overview a
+   * curator wrote, the identifier they confirmed, the relationships they declared, the metrics they
+   * built on those, and the columns they reassigned from another table.
+   *
+   * **Required, and written through `commitDb`, because this is somebody's work.** That is the same
+   * asymmetry `graph_use_cases` has and a registered source does not: a mock registration is not
+   * worth surviving a restart, a declared relationship is — the graph builders are meant to read it.
+   * And losing the key does not throw: every card goes back to "Not yet declared" and every edge off
+   * the canvas, which reads as a tenant that has modelled nothing rather than as data that is gone.
+   *
+   * `table_key` is `"<dataset>.<table>"`, the same key `column_profiles` uses, and deliberately not a
+   * source id: a registration lives in this process's memory, so an entity keyed by one would dangle
+   * the moment the server restarted. A table is a fact of the document.
+   *
+   * Empty is the honest initial state for every dataset, so there is no non-empty rule here.
+   */
+  data_model: (v) =>
+    isObject(v) &&
+    Array.isArray(v.entities) &&
+    v.entities.every(
+      (e) =>
+        isObject(e) &&
+        typeof e.entity_id === 'string' &&
+        typeof e.table_key === 'string' &&
+        typeof e.entity_name === 'string' &&
+        typeof e.description === 'string' &&
+        Array.isArray(e.attributes) &&
+        e.attributes.every((a) => isObject(a) && typeof a.name === 'string') &&
+        Array.isArray(e.relationships) &&
+        e.relationships.every(
+          (r) =>
+            isObject(r) &&
+            typeof r.target_table_key === 'string' &&
+            Array.isArray(r.from_columns) &&
+            r.from_columns.length > 0 &&
+            Array.isArray(r.to_columns) &&
+            r.to_columns.length > 0 &&
+            typeof r.relationship_type === 'string' &&
+            typeof r.cardinality_hint === 'string',
+        ) &&
+        Array.isArray(e.metrics) &&
+        e.metrics.every(
+          (m) =>
+            isObject(m) &&
+            typeof m.metric_id === 'string' &&
+            typeof m.name === 'string' &&
+            typeof m.category === 'string' &&
+            typeof m.column_1 === 'string',
+        ) &&
+        Array.isArray(e.cross_attributes) &&
+        e.cross_attributes.every(
+          (a) =>
+            isObject(a) &&
+            typeof a.attribute_id === 'string' &&
+            typeof a.source_table_key === 'string' &&
+            typeof a.source_column === 'string',
+        ),
+    ),
+  /*
    * The tenant's written answers. Required for the reason `column_profiles` is:
    * losing it does not throw — `matchAskAnswer` finds nothing and every question
    * falls through to the graph walk, so Ask quietly stops answering anything it
@@ -1417,6 +1476,12 @@ const DB_HINTS = {
   document_extractions:
     'object keyed by document_id, each ' +
     '{ extraction_id, extracted_entity, entity_type, resolved_node, resolved_facility, state, linked_manifests, confidence }',
+  data_model:
+    'object with entities[] of { entity_id, table_key "<dataset>.<table>", entity_name, ' +
+    'description, business_purpose, grain_description, attributes[], relationships[] of ' +
+    '{ target_table_key, from_columns[], to_columns[], relationship_type, cardinality_hint, ' +
+    'rationale }, metrics[], cross_attributes[] } — the Data Modeling declarations. ' +
+    'An empty { "entities": [] } is the initial state, from "npm run seed:data-model"',
   graph_domains: 'non-empty array of { domain_id, name }',
   graph_personas: 'non-empty array of { persona_id, name }',
   graph_kpis: 'non-empty array of { kpi_id, name }',
@@ -1576,6 +1641,57 @@ function validateDb(candidate) {
           }
           seen.add(cursor)
           cursor = own.get(cursor)?.parent_id ?? null
+        }
+      }
+    }
+  }
+
+  /*
+   * **A declaration is about a table, so the table has to exist.**
+   *
+   * `data_model` is a web of `"<dataset>.<table>"` keys into `projects`, and `/db` lets a user edit
+   * both live. Every break here reads as an answer rather than an error: an entity on a table the
+   * document no longer carries is silently dropped from the tab (the reader concludes nobody
+   * declared it), and a relationship pointing at one is dropped from the canvas the same way a
+   * dangling `graph_studio` edge was — the two entities simply appear unconnected. Same class of
+   * fault, same refusal.
+   *
+   * Two entities on one table is the third: the tab resolves a table to its entity by that key, so a
+   * second row would be a declaration nothing can reach and an Overview edit would land on whichever
+   * came first.
+   */
+  if (problems.length === 0) {
+    const tableKeys = new Set(
+      candidate.projects.flatMap((p) =>
+        p.datasets.flatMap((d) => d.tables.map((t) => `${d.dataset_id}.${t.table_id}`)),
+      ),
+    )
+    const claimed = new Map()
+    for (const entity of candidate.data_model.entities) {
+      if (!tableKeys.has(entity.table_key)) {
+        problems.push(
+          `data_model entity "${entity.entity_id}" is declared on table "${entity.table_key}", ` +
+            'which no project in this document carries — it would drop out of Data Modeling, ' +
+            'which reads as a table nobody has declared',
+        )
+      }
+      const already = claimed.get(entity.table_key)
+      if (already) {
+        problems.push(
+          `data_model has two entities on table "${entity.table_key}" ("${already}" and ` +
+            `"${entity.entity_id}") — the tab resolves one per table, so the second is ` +
+            'unreachable and an edit would land on whichever came first',
+        )
+      } else {
+        claimed.set(entity.table_key, entity.entity_id)
+      }
+      for (const rel of entity.relationships) {
+        if (!tableKeys.has(rel.target_table_key)) {
+          problems.push(
+            `data_model entity "${entity.entity_id}" declares "${rel.relationship_type}" onto ` +
+              `"${rel.target_table_key}", which no project in this document carries — the edge ` +
+              'would not be drawn at all',
+          )
         }
       }
     }
@@ -2940,6 +3056,25 @@ function wrongScope(source, servedKind) {
     return `${source.source_id}'s scope is its ${own.scopeUnit}, which are settled by the consent — re-run the connect wizard to change them. There is no allowlist route for a ${source.connector} source.`
   }
   return `${source.source_id} holds ${own.scopeUnit}, not ${served.scopeUnit} — use PUT /sources/${source.source_id}/${own.scope}`
+}
+
+/**
+ * Refuse a modelling request this route does not serve, and say why there is no twin.
+ *
+ * **A fifth act, and the second one where a twin may not exist** — `wrongScope`'s reasoning applied
+ * to the other end of the catalogue. A model is tables, columns, relationships and metrics, all of
+ * which come from a profiled *schema*, so a drive and a mailbox have nothing here at all. Pointing
+ * either at the structured route would be a remedy that fails the same way, which is the
+ * refusal-with-no-remedy this repo has already removed twice; and reusing `wrongConnector` would
+ * name that connector's dictionary, which answers a different question.
+ */
+function wrongModel(source, servedKind) {
+  if (source.kind === servedKind) return null
+  const own = CATALOGUE_ROUTES[source.kind]
+  if (!own) {
+    return `${source.source_id} carries no catalogue — ${source.connector} is connected but never profiled, so there is no schema to model`
+  }
+  return `${source.source_id} holds ${own.holds}, not ${CATALOGUE_ROUTES[servedKind].holds} — a model is drawn over a profiled schema, so there is no modelling route for a ${source.connector} source. Its catalogue is GET /sources/${source.source_id}/${own.dictionary}.`
 }
 
 const pipelineFor = (job) => PROFILERS[job.kind] ?? PIPELINE
@@ -8060,6 +8195,175 @@ const reportView = (report) => {
   }
 }
 
+/* ---------------- Data Modeling ---------------- */
+
+/**
+ * A table's identity across the Data Modeling tab: `"<dataset>.<table>"`.
+ *
+ * The same key `column_profiles` is keyed by, and deliberately not a table id on its own — a project
+ * holds several datasets and nothing guarantees two of them do not name a table the same thing, so a
+ * bare id would silently merge two tables into one entity.
+ */
+const tableKeyOf = (datasetId, tableId) => `${datasetId}.${tableId}`
+
+/** Every `"<dataset>.<table>"` this document carries, for the reference checks below. */
+const documentTableKeys = () =>
+  new Set(
+    db.projects.flatMap((p) =>
+      p.datasets.flatMap((d) => d.tables.map((t) => tableKeyOf(d.dataset_id, t.table_id))),
+    ),
+  )
+
+/**
+ * The tables a source has profiled, with their real dictionaries.
+ *
+ * The same walk `GET /sources/:id/columns` makes, and a function rather than a second copy for the
+ * reason `profiledToday` is one: two readers of "what has this source profiled" is how a canvas and
+ * a dictionary come to disagree about which tables exist.
+ */
+const profiledModelTables = (source) => {
+  const project = findProject(source.project_id)
+  return (source.profiled ?? []).map((entry) => {
+    const meta = project?.datasets
+      .find((d) => d.dataset_id === entry.dataset_id)
+      ?.tables.find((t) => t.table_id === entry.table_id)
+    /* A synthesis input rather than a displayed figure, exactly as in the columns route: `null`
+       means nobody counted, and 0 is a floor for the hashing rather than a claim. */
+    const rows = meta?.rows ?? 0
+    return {
+      table_key: tableKeyOf(entry.dataset_id, entry.table_id),
+      dataset_id: entry.dataset_id,
+      table_id: entry.table_id,
+      label: meta?.label ?? entry.table_id,
+      grain: meta?.grain ?? '',
+      rows: meta?.rows ?? null,
+      columns: tableDictionary(source, entry.dataset_id, entry.table_id, entry.columns, rows),
+    }
+  })
+}
+
+/** The four short codes a declaration may carry. Advisory, but a closed set — see the client. */
+const CARDINALITY_HINTS = ['1:1', '1:N', 'N:1', 'N:N']
+
+/**
+ * How many tables one suggestions run considers.
+ *
+ * A pair-wise column scan is quadratic and CAPEX ships 64 profiled tables, so an uncapped run would
+ * compare a couple of thousand pairs to offer a reviewer a list nobody could read. The cap is
+ * **reported** (`truncated`, `tables_considered`) rather than applied quietly, because a suggestion
+ * list that silently covers a fifth of a source reads as a source with few relationships.
+ */
+const SUGGEST_TABLE_CAP = 12
+
+/**
+ * The relationships a shared identifier column implies, and the descriptions a table's own catalogue
+ * entry already states.
+ *
+ * **There is no model behind this, and the payload says so** — `degraded: true` is the field the tab
+ * already renders as "AI analysis unavailable, showing structural matches only", which is exactly
+ * true here. Every figure in a rationale is read off the profile rather than composed: the distinct
+ * counts are the profiler's, the confidence is the *classifier's own* confidence in the weaker of
+ * the two columns it matched on, and the cardinality is derived from whether each side's distinct
+ * count reaches its row count. Nothing is invented, which is the rule the wizard's suggesters keep —
+ * and every suggestion says why it was suggested.
+ */
+const dataModelSuggestions = (source) => {
+  const all = profiledModelTables(source)
+  const considered = all.slice(0, SUGGEST_TABLE_CAP)
+  const upper = (text) => String(text).replace(/[^a-z0-9]+/gi, '_').toUpperCase()
+
+  const tables = considered.map((t) => ({
+    table_key: t.table_key,
+    table_id: t.table_id,
+    /*
+     * Composed from two authored fields of this table's own catalogue row, never from a template: a
+     * table with neither has nothing to suggest, and a sentence made up here would be words in the
+     * tenant's mouth. Business purpose is `null` for exactly that reason — nothing in the document
+     * states what a table is *for*.
+     */
+    suggested_description: t.grain ? `${t.label} — ${t.grain}.` : null,
+    suggested_business_purpose: null,
+    suggested_grain_description: t.grain || null,
+  }))
+
+  /** A column reaches its row count in distinct values, so one row of this table is one value. */
+  const unique = (column, rows) =>
+    typeof rows === 'number' && rows > 0 && column.distinct >= rows
+  const over = (rows) =>
+    typeof rows === 'number' ? ` over ${rows.toLocaleString('en-US')} rows` : ''
+  const values = (n) => `${n.toLocaleString('en-US')} distinct value${n === 1 ? '' : 's'}`
+
+  const relationships = []
+  for (let i = 0; i < considered.length; i += 1) {
+    for (let j = i + 1; j < considered.length; j += 1) {
+      const a = considered[i]
+      const b = considered[j]
+      for (const ca of a.columns) {
+        const cb = b.columns.find((x) => x.column_id === ca.column_id)
+        if (!cb) continue
+        /* An identifier on at least one side is what makes a shared name a join rather than a
+           coincidence — two tables both carrying a `status` column are not related by it. */
+        if (ca.class !== 'identifier' && cb.class !== 'identifier') continue
+
+        const aUnique = unique(ca, a.rows)
+        const bUnique = unique(cb, b.rows)
+        const hint = aUnique && bUnique ? '1:1' : aUnique ? '1:N' : bUnique ? 'N:1' : 'N:N'
+        relationships.push({
+          from_table_key: a.table_key,
+          from_column: ca.column_id,
+          to_table_key: b.table_key,
+          to_column: cb.column_id,
+          /*
+           * Named after the **column the match was made on**, not after the target table. Two
+           * tables often share three identifiers, and `HAS_E_MANIFEST_ALL` three times in one list
+           * is three suggestions a reviewer cannot tell apart — the name has to say which join it
+           * is. The table-shaped name rides along as an alternative, since it is the one a reviewer
+           * most often wants once they have picked which join to keep.
+           */
+          relationship_type: `LINKED_BY_${upper(ca.column_id)}`,
+          relationship_type_alternatives: [
+            `HAS_${upper(b.table_id)}`,
+            `${upper(a.table_id)}_TO_${upper(b.table_id)}`,
+          ],
+          cardinality_hint: hint,
+          rationale:
+            `Both tables carry ${ca.column_id}, classified as an identifier — ` +
+            `${a.table_id} holds ${values(ca.distinct)}${over(a.rows)}, ` +
+            `${b.table_id} holds ${values(cb.distinct)}${over(b.rows)}.`,
+          confidence: Math.min(ca.confidence, cb.confidence),
+          evidence_kind: 'structural',
+        })
+      }
+    }
+  }
+
+  return {
+    source_id: source.source_id,
+    tables,
+    relationships,
+    /* True, and not a placeholder: there is no LLM behind this server, and the tab's own wording for
+       this flag says exactly that. */
+    degraded: true,
+    truncated: all.length > considered.length,
+    tables_considered: considered.length,
+  }
+}
+
+/** One stored declaration, as the tab reads it. */
+const modelEntityView = (entity) => ({
+  entity_id: entity.entity_id,
+  table_key: entity.table_key,
+  entity_name: entity.entity_name,
+  description: entity.description,
+  business_purpose: entity.business_purpose ?? null,
+  grain_description: entity.grain_description ?? null,
+  attributes: entity.attributes ?? [],
+  relationships: entity.relationships ?? [],
+  metrics: entity.metrics ?? [],
+  cross_attributes: entity.cross_attributes ?? [],
+  updated_at: entity.updated_at,
+})
+
 const routes = [
   /* ---------------- which datasets exist ---------------- */
 
@@ -9506,6 +9810,318 @@ const routes = [
       else delete source.column_notes[key]
 
       send(res, 200, { key, description: description ?? null })
+    },
+  },
+
+  /* ---------------- Data Modeling ----------------
+   *
+   * The Catalog's third act. Browse says what a source holds and the dictionary describes it column
+   * by column; this is where a curator says what a table *is* — the entity it stands for, the column
+   * that identifies a row, the relationships it has to other tables, and the metrics those carry.
+   *
+   * Unlike a registered source these are written to the document through `commitDb`, because they
+   * are somebody's work and the graph builders are meant to read them — the same asymmetry that
+   * keeps a saved graph brief and drops a mock registration.
+   */
+
+  {
+    method: 'GET',
+    match: (p) => p === '/data-model/entities',
+    handle: (_req, res) => {
+      const entities = db.data_model.entities.map(modelEntityView)
+      send(res, 200, { entities, count: entities.length })
+    },
+  },
+
+  /*
+   * Upsert: no `entity_id` creates, an id updates. One route rather than a POST/PATCH pair, because
+   * every write here is a read-modify-write of one entity's own arrays — declaring a relationship
+   * rewrites `relationships` whole, so a partial-update verb would be describing something this tab
+   * never does.
+   *
+   * Absent fields are **carried forward** rather than cleared: the Overview panel sends the four
+   * text fields and the identifier, the relationship editor sends `relationships`, and neither
+   * should erase the other's work. That is the same rule `POST /graph-use-cases` keeps, and for the
+   * same reason — a script that owns a subtree and rewrites its parent is how a subtree gets deleted.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/data-model/entities',
+    handle: async (req, res) => {
+      const body = await readJson(req)
+      const {
+        entity_id,
+        table_key,
+        entity_name,
+        description,
+        business_purpose,
+        grain_description,
+        attributes,
+        relationships,
+        metrics,
+        cross_attributes,
+      } = body
+
+      const existing = entity_id
+        ? db.data_model.entities.find((e) => e.entity_id === entity_id)
+        : null
+      if (entity_id && !existing) {
+        return send(res, 404, { error: `no data-model entity ${entity_id}` })
+      }
+
+      const key = table_key ?? existing?.table_key
+      if (!key) {
+        return send(res, 400, {
+          error: 'table_key is required — a declaration is about one "<dataset>.<table>"',
+        })
+      }
+      const tableKeys = documentTableKeys()
+      if (!tableKeys.has(key)) {
+        return send(res, 400, {
+          error: `${key} is not a table in this dataset — a declaration on a table nobody carries would drop out of Data Modeling silently`,
+        })
+      }
+      /*
+       * One entity per table, checked here as well as at boot. The tab resolves a table to its
+       * entity by this key, so a second row on one table is a declaration nothing can reach — and an
+       * Overview edit would land on whichever came first, which reads as a save that did not take.
+       */
+      const claimant = db.data_model.entities.find(
+        (e) => e.table_key === key && e.entity_id !== existing?.entity_id,
+      )
+      if (claimant) {
+        return send(res, 400, {
+          error: `${key} is already declared as "${claimant.entity_name}" (${claimant.entity_id}) — edit that entity rather than declaring a second one on one table`,
+        })
+      }
+
+      const name = String(entity_name ?? existing?.entity_name ?? '').trim()
+      if (!name) {
+        return send(res, 400, {
+          error: 'entity_name is required — it is what the canvas, the table list and every relationship label print',
+        })
+      }
+      const text = String(description ?? existing?.description ?? '').trim()
+      if (!text) {
+        return send(res, 400, {
+          error: 'description is required — a declaration with nothing said about it is a row, not a declaration',
+        })
+      }
+
+      const attrs = attributes ?? existing?.attributes ?? []
+      if (!Array.isArray(attrs) || attrs.some((a) => !isObject(a) || !a.name)) {
+        return send(res, 400, {
+          error: 'attributes must be an array of { name, type, is_identifier }',
+        })
+      }
+      /*
+       * At most one confirmed identifier. Two would make "the column that identifies a row" a
+       * question with two answers, and the key icon would be drawn on both.
+       */
+      const identifiers = attrs.filter((a) => a.is_identifier)
+      if (identifiers.length > 1) {
+        return send(res, 400, {
+          error: `only one column can be the confirmed identifier — ${identifiers.map((a) => a.name).join(', ')} are all marked`,
+        })
+      }
+
+      const rels = relationships ?? existing?.relationships ?? []
+      if (!Array.isArray(rels)) {
+        return send(res, 400, { error: 'relationships must be an array' })
+      }
+      /* The columns a join is declared on, checked where the document states them. A synthesised
+         table has no `column_profiles` entry, so there is nothing to check it against and the
+         check is skipped rather than guessed at. */
+      const columnsOf = (tk) => {
+        const profiled = db.column_profiles[tk]
+        return Array.isArray(profiled) ? new Set(profiled.map((c) => c.column_id)) : null
+      }
+      for (const r of rels) {
+        if (
+          !isObject(r) ||
+          !r.target_table_key ||
+          !Array.isArray(r.from_columns) ||
+          r.from_columns.length === 0 ||
+          !Array.isArray(r.to_columns) ||
+          r.to_columns.length === 0 ||
+          !String(r.relationship_type ?? '').trim()
+        ) {
+          return send(res, 400, {
+            error: 'every relationship needs a target_table_key, a non-empty from_columns and to_columns, and a relationship_type',
+          })
+        }
+        if (!tableKeys.has(r.target_table_key)) {
+          return send(res, 400, {
+            error: `${r.target_table_key} is not a table in this dataset — an edge onto it would not be drawn at all`,
+          })
+        }
+        if (!CARDINALITY_HINTS.includes(r.cardinality_hint)) {
+          return send(res, 400, {
+            error: `cardinality_hint must be one of ${CARDINALITY_HINTS.join(' | ')} — got "${r.cardinality_hint}"`,
+          })
+        }
+        for (const [tk, cols] of [
+          [key, r.from_columns],
+          [r.target_table_key, r.to_columns],
+        ]) {
+          const known = columnsOf(tk)
+          if (!known) continue
+          const unknown = cols.filter((c) => !known.has(c))
+          if (unknown.length > 0) {
+            return send(res, 400, {
+              error: `${tk} has no column ${unknown.join(', ')} — a join on a column nobody carries resolves to nothing`,
+            })
+          }
+        }
+      }
+
+      const measures = metrics ?? existing?.metrics ?? []
+      if (
+        !Array.isArray(measures) ||
+        measures.some(
+          (m) => !isObject(m) || !m.name || !m.category || !m.column_1 || !m.related_table_key,
+        )
+      ) {
+        return send(res, 400, {
+          error: 'every metric needs a name, a category, a related_table_key and a column_1',
+        })
+      }
+      const crossAttrs = cross_attributes ?? existing?.cross_attributes ?? []
+      if (
+        !Array.isArray(crossAttrs) ||
+        crossAttrs.some(
+          (a) => !isObject(a) || !a.source_table_key || !a.source_column || !a.description,
+        )
+      ) {
+        return send(res, 400, {
+          error: 'every reassigned column needs a source_table_key, a source_column and a description',
+        })
+      }
+      for (const a of crossAttrs) {
+        if (!tableKeys.has(a.source_table_key)) {
+          return send(res, 400, {
+            error: `${a.source_table_key} is not a table in this dataset — the column it names cannot be read`,
+          })
+        }
+      }
+
+      const record = {
+        entity_id: existing?.entity_id ?? `ent-${slugify(key)}-${nextId()}`,
+        table_key: key,
+        entity_name: name,
+        description: text,
+        business_purpose:
+          business_purpose === undefined
+            ? (existing?.business_purpose ?? null)
+            : (String(business_purpose ?? '').trim() || null),
+        grain_description:
+          grain_description === undefined
+            ? (existing?.grain_description ?? null)
+            : (String(grain_description ?? '').trim() || null),
+        attributes: attrs.map((a) => ({
+          name: a.name,
+          type: a.type ?? null,
+          is_identifier: Boolean(a.is_identifier),
+        })),
+        relationships: rels.map((r) => ({
+          target_table_key: r.target_table_key,
+          from_columns: r.from_columns,
+          to_columns: r.to_columns,
+          relationship_type: String(r.relationship_type).trim(),
+          cardinality_hint: r.cardinality_hint,
+          rationale: String(r.rationale ?? '').trim(),
+        })),
+        metrics: measures.map((m, i) => ({
+          metric_id: m.metric_id ?? `met-${slugify(m.name)}-${nextId()}${i}`,
+          name: String(m.name).trim(),
+          category: m.category,
+          relationship_id: m.relationship_id ?? null,
+          related_table_key: m.related_table_key,
+          column_1: m.column_1,
+          operator: m.operator ?? null,
+          column_2: m.column_2 ?? null,
+          aggregation: m.aggregation ?? null,
+          math_function: m.math_function ?? null,
+          math_param: m.math_param ?? null,
+          string_function: m.string_function ?? null,
+          string_column_2: m.string_column_2 ?? null,
+          string_param_1: m.string_param_1 ?? null,
+          string_param_2: m.string_param_2 ?? null,
+        })),
+        cross_attributes: crossAttrs.map((a, i) => ({
+          attribute_id: a.attribute_id ?? `xat-${slugify(a.source_column)}-${nextId()}${i}`,
+          source_table_key: a.source_table_key,
+          source_column: a.source_column,
+          description: String(a.description).trim(),
+        })),
+        updated_at: new Date().toISOString(),
+      }
+
+      await commitDb({
+        ...db,
+        data_model: {
+          ...db.data_model,
+          entities: existing
+            ? db.data_model.entities.map((e) =>
+                e.entity_id === record.entity_id ? record : e,
+              )
+            : [...db.data_model.entities, record],
+        },
+      })
+
+      send(res, existing ? 200 : 201, { saved: true, entity: modelEntityView(record) })
+    },
+  },
+
+  /*
+   * Drops one whole declaration — the entity, its identifier, its relationships and the metrics
+   * built on them. Removing a single relationship is a save of the entity without it, not this: the
+   * arrays belong to the entity, so there is nothing here for a sub-resource to address.
+   */
+  {
+    method: 'DELETE',
+    match: (p) => /^\/data-model\/entities\/[^/]+$/.test(p),
+    handle: async (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/data-model/entities/'.length))
+      if (!db.data_model.entities.some((e) => e.entity_id === id)) {
+        return send(res, 404, { error: `no data-model entity ${id}` })
+      }
+      await commitDb({
+        ...db,
+        data_model: {
+          ...db.data_model,
+          entities: db.data_model.entities.filter((e) => e.entity_id !== id),
+        },
+      })
+      send(res, 200, { deleted: id })
+    },
+  },
+
+  /*
+   * The suggestions run behind the tab's own button. **Paced, and refusals are not** — the same rule
+   * the wizard's suggesters keep: an analysis that returns in 2ms teaches that it is free, and a
+   * four-second 400 on a source with no profiler reads as a hang.
+   *
+   * A source with nothing profiled is refused rather than answered with an empty list, because
+   * "nothing to suggest from" and "no relationships in this schema" are different facts and only one
+   * of them has a fix the reader can carry out.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/data-model/suggestions',
+    handle: async (req, res) => {
+      const { source_id } = await readJson(req)
+      const source = registered.get(source_id)
+      if (!source) return send(res, 404, { error: `no registered source ${source_id}` })
+      const wrong = wrongModel(source, 'bigquery')
+      if (wrong) return send(res, 400, { error: wrong })
+      if ((source.profiled ?? []).length === 0) {
+        return send(res, 400, {
+          error: `${source_id} has nothing profiled yet — browse and profile its tables first, or there is nothing here to read a schema off`,
+        })
+      }
+      const payload = dataModelSuggestions(source)
+      setTimeout(() => send(res, 200, payload), SUGGEST_MS).unref?.()
     },
   },
 

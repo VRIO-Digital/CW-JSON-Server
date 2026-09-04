@@ -18,6 +18,7 @@ import { useBrowseStore, useJobsStore } from '../store/catalogStore'
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import ConnectorIcon from '../components/common/ConnectorIcon'
+import DataModelTab from '../components/catalog/DataModelTab'
 import DocumentBrowsePanel from '../components/catalog/DocumentBrowsePanel'
 import MailBrowsePanel from '../components/catalog/MailBrowsePanel'
 import NoSourceConnected from '../components/common/NoSourceConnected'
@@ -559,6 +560,21 @@ export default function CatalogPage() {
                   onChanged={handleQueued}
                 />
               ),
+            },
+            {
+              /*
+               * **The Catalog's third act, and it comes third for a reason.** Browse says what a
+               * source holds and the dictionary describes it column by column; Data Modeling is
+               * where a curator says what a table *is* — the entity it stands for, the column that
+               * identifies a row, its relationships and the metrics those carry.
+               *
+               * It draws over what a profiling run recorded, so it is downstream of the first tab
+               * rather than beside it, and it says so on a source with nothing profiled instead of
+               * drawing an empty canvas.
+               */
+              key: 'model',
+              label: 'Data Modeling',
+              children: <DataModelTab sources={sources} loading={loading} />,
             },
             {
               key: 'jobs',

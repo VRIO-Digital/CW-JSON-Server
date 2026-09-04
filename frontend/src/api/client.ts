@@ -4193,6 +4193,307 @@ export async function setColumnDescription(
   )
 }
 
+
+/* ---------------- Data Modeling ----------------
+ *
+ * The Catalog's third act, over `db.data_model`. Browse says what a source holds and the dictionary
+ * describes it column by column; this is where a curator says what a table *is*.
+ *
+ * A declaration is keyed by **`table_key`** — `"<dataset>.<table>"`, the key `column_profiles` uses
+ * — rather than by a source id, because a registration lives in the mock server's memory and an
+ * entity naming one would dangle at the next restart. A table is a fact of the document.
+ */
+
+/** One declared attribute. At most one carries `is_identifier` — the server refuses two. */
+export interface ModelAttribute {
+  name: string
+  /** The profiler's type where the declarer had one to record, `null` otherwise. */
+  type: string | null
+  is_identifier: boolean
+}
+
+/**
+ * One declared relationship, stored on the entity anchored to the **from** side.
+ *
+ * `from_columns`/`to_columns` are arrays because a real join can be composite; this tab's editor is
+ * single-column, so it writes one and the panel *says* when it is reading the first pair of a
+ * composite one rather than quietly rendering half a join.
+ */
+export interface ModelRelationshipItem {
+  target_table_key: string
+  from_columns: string[]
+  to_columns: string[]
+  relationship_type: string
+  /** `1:1` | `1:N` | `N:1` | `N:N` — advisory, and a closed set the server checks. */
+  cardinality_hint: string
+  rationale: string
+}
+
+/** One metric built over a related entity through a confirmed relationship. */
+export interface ModelMetric {
+  metric_id: string
+  name: string
+  /** `aggregation` | `math` | `string`. */
+  category: string
+  /**
+   * The relationship it resolves its columns through, as the tab addresses one.
+   *
+   * Nullable because the id is *derived* from the owning entity and the join columns, so a
+   * relationship edited into a different shape leaves a metric pointing at an address that no longer
+   * resolves. The tab drops such a metric when its relationship goes, and a null here reads as
+   * "declared before this was recorded" rather than as a metric on a relationship that exists.
+   */
+  relationship_id: string | null
+  related_table_key: string
+  column_1: string
+  operator: string | null
+  column_2: string | null
+  aggregation: string | null
+  math_function: string | null
+  math_param: number | null
+  string_function: string | null
+  string_column_2: string | null
+  string_param_1: string | null
+  string_param_2: string | null
+}
+
+/**
+ * A column stored on one table whose *meaning* belongs to this entity.
+ *
+ * The whole point of the capability: `receiver_operating_tsdf` sits on the manifest and describes
+ * the facility. Declared here, and stated on the physical table's own column list too — a note
+ * rather than a hidden row, so nobody wonders where a column went.
+ */
+export interface ModelCrossAttribute {
+  attribute_id: string
+  source_table_key: string
+  source_column: string
+  description: string
+}
+
+export interface ModelEntity {
+  entity_id: string
+  /** `"<dataset>.<table>"`. One entity per table — the server refuses a second. */
+  table_key: string
+  entity_name: string
+  description: string
+  business_purpose: string | null
+  grain_description: string | null
+  attributes: ModelAttribute[]
+  relationships: ModelRelationshipItem[]
+  metrics: ModelMetric[]
+  cross_attributes: ModelCrossAttribute[]
+  updated_at: string
+}
+
+export interface DataModelPayload {
+  entities: ModelEntity[]
+  count: number
+}
+
+/**
+ * What a save sends. Every field is optional beyond the first two because the write is an
+ * **upsert that carries absent fields forward**: the Overview panel sends the text fields and the
+ * identifier, the relationship editor sends `relationships`, and neither may erase the other's work.
+ */
+export interface ModelEntityInput {
+  entity_id?: string
+  table_key?: string
+  entity_name?: string
+  description?: string
+  business_purpose?: string | null
+  grain_description?: string | null
+  attributes?: ModelAttribute[]
+  relationships?: ModelRelationshipItem[]
+  metrics?: (Omit<ModelMetric, 'metric_id'> & { metric_id?: string })[]
+  cross_attributes?: (Omit<ModelCrossAttribute, 'attribute_id'> & {
+    attribute_id?: string
+  })[]
+}
+
+/** One table's suggested Overview, composed from that table's own catalogue row. */
+export interface ModelTableSuggestion {
+  table_key: string
+  table_id: string
+  suggested_description: string | null
+  /**
+   * Always `null` today, and the field is here rather than absent because the panel has a slot for
+   * it: nothing in the document states what a table is *for*, so a sentence here would be words in
+   * the tenant's mouth.
+   */
+  suggested_business_purpose: string | null
+  suggested_grain_description: string | null
+}
+
+/** One suggested relationship, from a column two tables share and at least one calls an identifier. */
+export interface ModelRelationshipSuggestion {
+  from_table_key: string
+  from_column: string
+  to_table_key: string
+  to_column: string
+  relationship_type: string
+  relationship_type_alternatives: string[]
+  cardinality_hint: string
+  rationale: string
+  /** The classifier's own confidence in the weaker of the two columns matched on. */
+  confidence: number
+  /** `structural` here always — there is no model behind this server, and `degraded` says so. */
+  evidence_kind: string
+}
+
+export interface ModelSuggestionsPayload {
+  source_id: string
+  tables: ModelTableSuggestion[]
+  relationships: ModelRelationshipSuggestion[]
+  /**
+   * True, and not a placeholder. The tab renders it as "AI analysis unavailable, showing structural
+   * matches only", which is exactly what this run is: shared identifier columns and the figures the
+   * profiler already recorded, with nothing invented to fill a field.
+   */
+  degraded: boolean
+  /** A pair-wise scan is quadratic, so a run considers a capped set — and says when it did. */
+  truncated: boolean
+  tables_considered: number
+}
+
+const MODEL_ENTITY = shape({
+  entity_id: str,
+  table_key: str,
+  entity_name: str,
+  description: str,
+  business_purpose: nullable(str),
+  grain_description: nullable(str),
+  attributes: arrayOf(
+    shape({ name: str, type: nullable(str), is_identifier: bool }),
+  ),
+  relationships: arrayOf(
+    shape({
+      target_table_key: str,
+      from_columns: arrayOf(str),
+      to_columns: arrayOf(str),
+      relationship_type: str,
+      cardinality_hint: str,
+      rationale: str,
+    }),
+  ),
+  metrics: arrayOf(
+    shape({
+      metric_id: str,
+      name: str,
+      category: str,
+      relationship_id: nullable(str),
+      related_table_key: str,
+      column_1: str,
+      operator: nullable(str),
+      column_2: nullable(str),
+      aggregation: nullable(str),
+      math_function: nullable(str),
+      math_param: nullable(num),
+      string_function: nullable(str),
+      string_column_2: nullable(str),
+      string_param_1: nullable(str),
+      string_param_2: nullable(str),
+    }),
+  ),
+  cross_attributes: arrayOf(
+    shape({
+      attribute_id: str,
+      source_table_key: str,
+      source_column: str,
+      description: str,
+    }),
+  ),
+  updated_at: str,
+})
+
+const DATA_MODEL_PAYLOAD = shape({
+  entities: arrayOf(MODEL_ENTITY),
+  count: num,
+})
+
+const MODEL_SAVED_PAYLOAD = shape({ saved: bool, entity: MODEL_ENTITY })
+
+const MODEL_SUGGESTIONS_PAYLOAD = shape({
+  source_id: str,
+  tables: arrayOf(
+    shape({
+      table_key: str,
+      table_id: str,
+      suggested_description: nullable(str),
+      suggested_business_purpose: nullable(str),
+      suggested_grain_description: nullable(str),
+    }),
+  ),
+  relationships: arrayOf(
+    shape({
+      from_table_key: str,
+      from_column: str,
+      to_table_key: str,
+      to_column: str,
+      relationship_type: str,
+      relationship_type_alternatives: arrayOf(str),
+      cardinality_hint: str,
+      rationale: str,
+      confidence: num,
+      evidence_kind: str,
+    }),
+  ),
+  degraded: bool,
+  truncated: bool,
+  tables_considered: num,
+})
+
+/** Every declaration in this dataset. One read — the relationships ride on their entities. */
+export async function listDataModel(): Promise<DataModelPayload> {
+  return validate<DataModelPayload>(
+    'The data model',
+    await request<unknown>('/data-model/entities'),
+    DATA_MODEL_PAYLOAD,
+  )
+}
+
+/**
+ * Creates or updates one declaration, and answers with the stored record.
+ *
+ * The reply is validated like a read, because it is rendered like one: a stale server answers a
+ * write with the old shape as readily as a read.
+ */
+export async function saveDataModelEntity(
+  input: ModelEntityInput,
+): Promise<{ saved: boolean; entity: ModelEntity }> {
+  return validate<{ saved: boolean; entity: ModelEntity }>(
+    'The saved declaration',
+    await request<unknown>('/data-model/entities', { method: 'POST', body: input }),
+    MODEL_SAVED_PAYLOAD,
+  )
+}
+
+/** Drops a whole declaration — its Overview, its identifier, its relationships and their metrics. */
+export async function deleteDataModelEntity(
+  entityId: string,
+): Promise<{ deleted: string }> {
+  return validate<{ deleted: string }>(
+    'The deleted declaration',
+    await request<unknown>(`/data-model/entities/${encodeURIComponent(entityId)}`, {
+      method: 'DELETE',
+    }),
+    shape({ deleted: str }),
+  )
+}
+
+/** The suggestions run behind the tab's own button. Paced on the server, like every suggester here. */
+export async function suggestDataModel(
+  sourceId: string,
+): Promise<ModelSuggestionsPayload> {
+  return validate<ModelSuggestionsPayload>(
+    'The schema suggestions',
+    await request<unknown>('/data-model/suggestions', {
+      method: 'POST',
+      body: { source_id: sourceId },
+    }),
+    MODEL_SUGGESTIONS_PAYLOAD,
+  )
+}
 export async function cancelProfilingJob(jobId: string): Promise<ProfilingJob> {
   return validate<ProfilingJob>(
     'The cancelled job',

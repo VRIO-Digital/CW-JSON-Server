@@ -710,6 +710,237 @@ expect(
   'an endpoint with no schema surfaces as undefined.map deep inside a render',
 )
 
+/* ---------------- Data Modeling: the Catalog's third tab ---------------- */
+
+const dataModelTab = read('frontend/src/components/catalog/DataModelTab.tsx')
+const dataModelStoreSrc = read('frontend/src/store/dataModelStore.ts')
+const dataModelRels = read('frontend/src/data/dataModelRelationships.ts')
+const dataModelCanvasSrc = read('frontend/src/data/dataModelCanvas.ts')
+const entityCanvasSrc = read('frontend/src/components/catalog/EntityCanvas.tsx')
+const metricsPanelSrc = read('frontend/src/components/catalog/EntityMetricsPanel.tsx')
+
+/*
+ * **A declaration persists and a suggestion does not**, and every layer of that has to hold at once.
+ *
+ * The tab is a port, and the one thing a port most easily loses is where its data lives: the build it
+ * came from kept relationships in a `useState` for a while, so a relationship a domain architect drew
+ * reached neither a refresh nor the graph builders. Here they go through `commitDb`, which is why
+ * `data_model` is a required key rather than an optional one — losing it does not throw, it turns
+ * every card back to "Not yet declared", which reads as a tenant that has modelled nothing.
+ */
+expect(
+  'the Data Modeling tab is a Catalog tab over a required, merged db.json key',
+  /key: 'model',[\s\S]{0,80}label: 'Data Modeling'/.test(read('frontend/src/pages/CatalogPage.tsx')) &&
+    /<DataModelTab sources=\{sources\} loading=\{loading\} \/>/.test(
+      read('frontend/src/pages/CatalogPage.tsx'),
+    ) &&
+    /^  data_model: \(v\) =>/m.test(server) &&
+    /data_model: \{ deep: \{ entities: \{ union: 'entity_id' \} \} \}/.test(
+      read('backend/datasets.js'),
+    ) &&
+    /npm run seed:data-model/.test(server),
+  'a tab whose declarations do not persist is a tab whose work is lost at the next restart',
+)
+
+/*
+ * **A declaration is about a table, so the table has to exist — checked across keys, at boot.**
+ *
+ * Three breaks, all silent. An entity on a table this document no longer carries drops out of the tab
+ * (a reader concludes nobody declared it); a relationship onto one is dropped from the canvas exactly
+ * as a dangling `graph_studio` edge was; and two entities on one table leave the second unreachable,
+ * with an Overview edit landing on whichever came first.
+ */
+expect(
+  'a declaration cannot name a table this document does not carry',
+  /data_model entity "\$\{entity\.entity_id\}" is declared on table/.test(server) &&
+    /data_model has two entities on table/.test(server) &&
+    /data_model entity "\$\{entity\.entity_id\}" declares "\$\{rel\.relationship_type\}" onto/.test(
+      server,
+    ) &&
+    /* And the route refuses the same three before a write, so the failure lands in the caller's
+       terminal rather than at the next boot. */
+    /is not a table in this dataset — a declaration on a table nobody carries/.test(server) &&
+    /is already declared as "\$\{claimant\.entity_name\}"/.test(server),
+  'an entity on a table nobody carries reads as a table nobody declared',
+)
+
+/*
+ * **One upsert, and it carries absent fields forward.**
+ *
+ * The Overview panel sends the four text fields and the identifier; the relationship editor sends
+ * `relationships`; the metric builder sends `metrics`. A route that replaced the whole entity would
+ * have each of them silently delete the others' work — the fault `ingest-reports.js` nearly committed
+ * against `governance`, one layer down.
+ */
+const dataModelRoute =
+  /match: \(p\) => p === '\/data-model\/entities',\r?\n\s*handle: async[\s\S]*?\n  \},/.exec(
+    server,
+  )?.[0] ?? ''
+expect(
+  'the data-model write is an upsert that carries what it was not sent',
+  dataModelRoute.length > 2000 &&
+    /*
+     * Each field named, rather than a count of `?? existing?.` — a threshold passes with one of
+     * them deleted, which is the vacuous-assertion failure this repo has recorded twice. Every one
+     * of these is a field some *other* panel owns, so dropping its carry-forward is a save that
+     * silently erases work the reader cannot see from where they are standing.
+     */
+    /table_key \?\? existing\?\.table_key/.test(dataModelRoute) &&
+    /entity_name \?\? existing\?\.entity_name/.test(dataModelRoute) &&
+    /description \?\? existing\?\.description/.test(dataModelRoute) &&
+    /attributes \?\? existing\?\.attributes/.test(dataModelRoute) &&
+    /relationships \?\? existing\?\.relationships/.test(dataModelRoute) &&
+    /metrics \?\? existing\?\.metrics/.test(dataModelRoute) &&
+    /cross_attributes \?\? existing\?\.cross_attributes/.test(dataModelRoute) &&
+    /*
+     * And the two nullable text fields tell *absent* from *cleared*: `undefined` carries the stored
+     * value forward, an empty string clears it. Collapsing the two would make "I did not send this"
+     * and "I deleted this" one act.
+     */
+    /business_purpose === undefined/.test(dataModelRoute) &&
+    /grain_description === undefined/.test(dataModelRoute) &&
+    /only one column can be the confirmed identifier/.test(dataModelRoute) &&
+    /cardinality_hint must be one of \$\{CARDINALITY_HINTS\.join\(' \| '\)\}/.test(dataModelRoute) &&
+    /has no column \$\{unknown\.join\(', '\)\} — a join on a column nobody carries/.test(
+      dataModelRoute,
+    ),
+  'a partial write that clears what it was not sent is how a subtree gets deleted',
+)
+
+/*
+ * **The suggestions run says what it is.**
+ *
+ * There is no model behind this server, so the payload carries `degraded: true` and the tab renders it
+ * as the sentence it means. The badge says *Derived* rather than AI for the same reason: a mark
+ * claiming a model would be the only untrue thing on the page. Every figure in a rationale is read off
+ * the profile — the distinct counts are the profiler's and the confidence is the classifier's own — so
+ * nothing here is a number with nothing behind it.
+ */
+expect(
+  'the derived suggestions claim no model, and the tab prints the claim the server made',
+  /degraded: true,/.test(server) &&
+    /const dataModelSuggestions = \(source\) => \{/.test(server) &&
+    /confidence: Math\.min\(ca\.confidence, cb\.confidence\)/.test(server) &&
+    /* Named after the column it matched on: three identical names in one list is three suggestions a
+       reviewer cannot tell apart. */
+    /relationship_type: `LINKED_BY_\$\{upper\(ca\.column_id\)\}`/.test(server) &&
+    /* Paced like every other suggester here, and the refusals above it are not. */
+    /setTimeout\(\(\) => send\(res, 200, payload\), SUGGEST_MS\)/.test(server) &&
+    /Structural matches only — no model was involved/.test(dataModelTab) &&
+    /'Derived from the schema'/.test(read('frontend/src/components/catalog/ModelMarks.tsx')) &&
+    !/\bAI\b/.test(codeOnly(dataModelTab)),
+  'a badge claiming a model, or a confidence nobody computed, is a figure with nothing behind it',
+)
+
+/*
+ * **Modelling is a fifth act with no twin.**
+ *
+ * `wrongScope`'s reasoning at the other end of the catalogue: a drive and a mailbox have no schema at
+ * all, so pointing either at the structured route would be a remedy that fails the same way, and
+ * reusing `wrongConnector` would name that connector's *dictionary* — which answers a different
+ * question. The nine-guard claim above stays exactly nine because of it.
+ */
+expect(
+  'a drive or a mailbox is refused modelling by a guard that names no twin',
+  /function wrongModel\(source, servedKind\)/.test(server) &&
+    /there is no modelling route for a \$\{source\.connector\} source/.test(server) &&
+    /const wrong = wrongModel\(source, 'bigquery'\)/.test(server) &&
+    /* And the tab leaves them out with the count said in words, rather than listing a dead end. */
+    /s\.kind === 'bigquery' && s\.status === 'connected'/.test(dataModelTab) &&
+    /not modelled here: a drive and a mailbox hold documents rather than tables/.test(dataModelTab),
+  'a refusal pointing at a route that fails the same way is a refusal nobody can act on',
+)
+
+/*
+ * **A relationship save is a sequence, and its order is the whole guarantee.**
+ *
+ * The declaration lives on the entity anchored to its *from* table, so moving that side changes which
+ * entity owns it. Writing the new owner first means a failure between the two writes **duplicates** a
+ * declaration — visible, fixable in one click — rather than dropping one, which is invisible. And the
+ * writes go one at a time: each hands the server a whole entity, so two in parallel would have the
+ * second overwrite the first.
+ */
+expect(
+  'the relationship writes are assembled purely, ordered new-owner-first, and posted in sequence',
+  /export function relationshipWrites\(args: \{/.test(dataModelRels) &&
+    /* The comment explains the order; the code has to actually keep it — the new owner is pushed
+       before the previous one is cleaned up. */
+    dataModelRels.indexOf('writes.push({\n      tableKey: owner.table_key,') <
+      dataModelRels.indexOf('if (editId && previousOwner') &&
+    /for \(const write of writes\) await saveDataModelEntity\(write\.input\)/.test(
+      dataModelStoreSrc,
+    ) &&
+    /* A metric whose relationship is gone has nothing to resolve its columns against. */
+    /metrics: owner\.metrics\.filter\(\(m\) => m\.relationship_id !== id\)/.test(dataModelRels),
+  'dropping a declaration on a failed move is invisible; duplicating one is not',
+)
+
+/*
+ * **The canvas is hand-written and states its own cap.**
+ *
+ * It is not the vendored `graph-viewer` — that draws a settling force layout of identity-only nodes,
+ * and this draws a schema whose cards state their columns. A profiled table here can carry ninety
+ * columns, so the card shows six and *says* how many it left out, the rule this repo keeps for every
+ * other truncation. And a suggested edge is dashed as well as amber, because state is never colour
+ * alone.
+ */
+expect(
+  'the schema canvas caps its column rows in words, and never signals state by colour alone',
+  /export const MAX_COLUMN_ROWS = 6/.test(dataModelCanvasSrc) &&
+    /and \{moreCount\} more/.test(entityCanvasSrc) &&
+    /strokeDasharray=\{confirmed \? undefined : '5 4'\}/.test(entityCanvasSrc) &&
+    /* The geometry is pure and outside the component, so it can be asserted without a measured box. */
+    /export function layoutPositions\(/.test(dataModelCanvasSrc) &&
+    !/layoutPositions =/.test(entityCanvasSrc) &&
+    /* Wheel-zoom needs the native listener: React's onWheel is passive, so preventDefault no-ops. */
+    /addEventListener\('wheel', onWheel, \{ passive: false \}\)/.test(entityCanvasSrc),
+  'a silent truncation of a 90-column table is a card that misrepresents its own entity',
+)
+
+/*
+ * **The metric builder is closed-vocabulary, and a metric is a declaration rather than a computation.**
+ *
+ * Three categories whose controls follow from what each produces — the two per-row ones show no
+ * aggregation picker at all, because there is nothing to roll up. A relationship whose related side
+ * resolves to many rows is offered to them **disabled with the reason** rather than removed: a
+ * shorter list reads as a missing relationship, which is the fault the Library's ungoverned rows
+ * already state in words.
+ */
+expect(
+  'a metric is built from a closed vocabulary and claims to compute nothing',
+  /export const CATEGORY_OPTIONS/.test(read('frontend/src/data/dataModelMetrics.ts')) &&
+    /export function formatMetric/.test(read('frontend/src/data/dataModelMetrics.ts')) &&
+    /* No free-text formula field anywhere in the panel. */
+    !/placeholder="[^"]*formula/i.test(metricsPanelSrc) &&
+    /category === 'aggregation' \? \(/.test(metricsPanelSrc) &&
+    /disabled: !!reason/.test(metricsPanelSrc) &&
+    /Use Aggregation instead/.test(metricsPanelSrc) &&
+    /A metric is a declaration, not a computation/.test(metricsPanelSrc),
+  'a builder that accepts a typed formula is a query surface pretending to be a declaration',
+)
+
+/*
+ * **The tab states its colours and its px directly, and it has no stylesheet to drift into the scale.**
+ *
+ * The vendored-sheet exemption's reasoning, applied to a surface that carries its styles inline: the
+ * fidelity of the build this was ported from *is* the spec. The exemption list itself stays two
+ * entries — that claim is elsewhere and must keep passing — because nothing here is a `.css` file at
+ * all.
+ */
+expect(
+  'the Data Modeling tokens are a module, not a stylesheet joining the spacing exemption',
+  /export const MT = \{/.test(read('frontend/src/data/dataModelTokens.ts')) &&
+    !existsSync(join(root, 'frontend/src/components/catalog/DataModelTab.css')) &&
+    !existsSync(join(root, 'frontend/src/components/catalog/EntityCanvas.css')) &&
+    /* Two colour dimensions kept apart: one mark for both would have to pick a meaning for green. */
+    /purple: '#7c3aed'/.test(read('frontend/src/data/dataModelTokens.ts')) &&
+    /export function ProvenanceBadge/.test(
+      read('frontend/src/components/catalog/ModelMarks.tsx'),
+    ) &&
+    /export function StatusPill/.test(read('frontend/src/components/catalog/ModelMarks.tsx')),
+  'a stylesheet here would be a third entry on a list that holds vendored code only',
+)
+
 /*
  * **A job's connector and its noun come from one declaration.**
  *

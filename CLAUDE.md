@@ -119,6 +119,7 @@ npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secon
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
 npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
 npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
+npm run seed:data-model # gives a dataset the empty data_model key the Data Modeling tab writes to
 npm run scale:capex # rescales the rendered CAPEX reports' capital figures (capex-scale.js's factor)
 npm run narrow:capex # lets those reports re-derive over the rows a reader's filters admit
 npm run ingest:queries # re-seeds CAPEX ask_answers from the query set, at the same money scale
@@ -467,7 +468,7 @@ were files of their own the same fact was expressed by refusing to push them und
 prefix; that refusal is gone with the documents it was about.
 
 **A secondary dataset is seeded, not left empty, and `npm run seed:dataset -- CAPEX` writes it.**
-"Empty" is not a document: `validateDb` requires 27 keys and checks inside most of them, and the two
+"Empty" is not a document: `validateDb` requires 28 keys and checks inside most of them, and the two
 obvious ways out are both wrong — seeding CAPEX with EPA's rows shows EPA's figures under CAPEX's
 name, and leaving it invalid stops the server booting. The seed writes the third thing, the primary's
 *structure* with the primary's *rows* removed, and it decides which is which by reading `MERGE_PLAN`
@@ -701,7 +702,7 @@ Consequences worth knowing before debugging:
   200. The boot read stays synchronous on purpose: nothing may be served before
   `db.json` is loaded.
 - `validateDb` in `server.js` guards the required top-level keys, so the `/db`
-  editor cannot save a document that would crash the app. There are 27 required
+  editor cannot save a document that would crash the app. There are 28 required
   keys, and the newer ones are as required as the originals: removing `drives`
   breaks the connect wizard, and removing `graph_domains` breaks step 1 of New
   Graph — not just a Catalog page. `column_profiles` and
@@ -1205,6 +1206,137 @@ second one, so `profiled_tables` cannot double while `profiled_at` still moves.
 A job's work list is `objects` (`{parent_id, object_id, label, units, state}`)
 with `kind` and `unit` on the job, never `tables` — one board carries both
 connectors' runs, and a re-run posts back to the endpoint its `kind` names.
+
+### Data Modeling — the Catalog's third tab
+
+**Browse says what a source holds, the dictionary describes it column by column, and this is where a
+curator says what a table *is*.** The entity it stands for, the column that identifies a row, the
+relationships it has to other tables, and the metrics those carry. It is a **port of an existing
+build's** three-panel surface — sources and tables on the left, the counts and a schema canvas in the
+middle, the four declaration sub-tabs on the right — over this repo's own JSON rather than that
+build's API.
+
+**It draws over what a profiling run recorded, which is why it is third rather than beside the
+first.** `GET /sources/:id/columns` is the same read the column dictionary makes, so the canvas
+cannot show a table nobody has profiled, and a source with nothing profiled says so in words instead
+of drawing an empty canvas. **Structured sources only**: a model is tables, columns, relationships
+and metrics, all of which come from a profiled schema, so a drive or a mailbox would be a row that
+exists to be a dead end — and the count left out is stated, the rule the Catalog tab's own
+uncatalogued note already follows.
+
+**A declaration persists; a suggestion does not — and that asymmetry is the whole design.** The
+declarations are written to `db.data_model` through `commitDb`, so they survive a restart the way a
+saved graph brief does and not the way a registered source does: this is somebody's work, and the
+graph builders are meant to read it. A **suggestion** lives in the component until somebody confirms
+it, because a suggestion nobody has accepted is not a declaration and must not be stored as one.
+Confirming is the act that writes it.
+
+**A declaration is keyed by `table_key` — `"<dataset>.<table>"`, the key `column_profiles` already
+uses — and deliberately not by a source id.** A registration lives in the mock server's memory, so
+an entity naming one would dangle at the next restart; a table is a fact of the document. `validateDb`
+checks that key across `projects` in both directions — an entity on a table this document no longer
+carries drops out of the tab silently (which reads as a table nobody declared), a relationship onto
+one is dropped from the canvas the same way a dangling `graph_studio` edge was, and **two entities on
+one table** is the third: the tab resolves one per table, so the second is unreachable and an edit
+would land on whichever came first. `data_model` is the **28th required key** and
+`npm run seed:data-model` is what its refusal names; `MERGE_PLAN` unions the entities on `entity_id`,
+because two datasets genuinely bring their own and `projects` above already unions.
+
+**Every write is one upsert that carries absent fields forward.** `POST /data-model/entities` takes
+the whole entity, and the Overview panel sends the text fields while the relationship editor sends
+`relationships` — neither may erase the other's work, which is the rule `POST /graph-use-cases`
+already keeps. The route refuses a table this dataset does not carry, a second entity on one table,
+a cardinality outside the four codes, and **a join on a column `column_profiles` does not list**;
+that last check is skipped rather than guessed at for a synthesised table, which has no profile to
+check against.
+
+**A relationship lives on the entity anchored to its *from* table, so a save is sometimes more than
+one write.** `relationshipWrites` in `src/data/dataModelRelationships.ts` assembles them and the
+store posts them **sequentially** — each write hands the server one whole entity, so two in parallel
+would have the second overwrite the first, the read-modify-write hazard `commitDb`'s own write chain
+exists for one layer up. Two things make it more than a single save: the *to* table is anchored too
+(a relationship between a declared entity and a bare table leaves one end of the edge unnamed), and
+an edit that moves the *from* side changes **which entity owns the declaration**. The new owner is
+written **before** the old one is cleaned up, so a failure between them duplicates a declaration —
+visible, and fixable in one click — rather than dropping one, which is invisible.
+
+**The suggestions run is derived, and the payload says so rather than implying a model.**
+`POST /data-model/suggestions` reads the source's profiled columns and offers the joins a **shared
+identifier column** implies — an identifier on at least one side, because two tables both carrying a
+`status` column are not related by it. Every figure in a rationale is read off the profile: the
+distinct counts are the profiler's, the cardinality is derived from whether each side's distinct
+count reaches its row count, and the confidence is the **classifier's own** confidence in the weaker
+of the two columns matched on. Nothing is invented to fill a field, which is the rule the wizard's
+suggesters keep, and every suggestion says why it was suggested. `degraded: true` rides on the
+payload and the tab renders it as *"Structural matches only — no model was involved"*, because that
+is exactly true here — which is also why the provenance badge says **Derived** rather than AI. It is
+**paced** at `SUGGEST_MS` like every other suggester, and its refusals are not.
+
+**A suggestion is named after the column it matched on, not after the target table.** Two tables
+often share three identifiers, and `HAS_E_MANIFEST_ALL` three times in one list is three suggestions
+a reviewer cannot tell apart. The table-shaped name rides along as an alternative chip.
+
+**The scan is capped, and the cap is reported.** A pair-wise column comparison is quadratic and CAPEX
+ships 64 profiled tables, so a run considers `SUGGEST_TABLE_CAP` (12) of them and sets `truncated`; a
+list that silently covered a fifth of a source would read as a source with few relationships.
+
+**Modelling is a fifth act with no twin, and `wrongModel` is what says so.** `wrongScope`'s reasoning
+applied to the other end of the catalogue: pointing a drive or a mailbox at the structured route would
+be a remedy that fails the same way, and reusing `wrongConnector` would name that connector's
+*dictionary*, which answers a different question. So the refusal states what the source holds, says
+there is no modelling route for it, and names its catalogue instead.
+
+**Selection is one piece of state.** `selectedTableKey` is handed to the table list and to the canvas
+and both call the same setter, so the two can never disagree — there is nothing to sync because there
+is only one value. Pan, zoom and a dragged card are the canvas's own, because they are DOM state
+nobody outside needs to read, which is why **Fit** is passed in as a ref rather than lifted out.
+
+**The canvas is hand-written, and it is not the vendored `graph-viewer`.** That folder draws a
+settling d3-force layout of identity-only nodes; this draws a schema whose cards state their columns,
+their identifier and their relationship counts. Cards are ordinary absolutely-positioned React — SVG
+has no "card with a header and a few rows" primitive — over a bare `<svg>` that draws only the lines,
+which is the one part that needs geometry. A card shows up to `MAX_COLUMN_ROWS` (6) columns and
+**states the cap** as "and N more"; a profiled table here can carry ninety, and a silent truncation
+is the failure this repo refuses everywhere. A suggested edge is amber **and dashed**, because state
+is never colour alone.
+
+**Its geometry is pure and lives in `src/data/dataModelCanvas.ts`**, for the reason `datasetPathFix`
+is a function: a layout rule written inside a component can only be asserted by rendering the
+component, and `renderToString` gives it its initial state with no measured box at all. Row pitch is
+computed per row from that row's tallest card rather than fixed, or a tall card overlaps the one
+below it.
+
+**Its metric builder is closed-vocabulary end to end, never a free-text formula.** Three categories,
+and which controls each shows follows from what it produces: an aggregation rolls a related entity's
+rows up and requires one, while a math or a string function produces a value **per row** and so has
+no aggregation picker at all. Every category resolves its columns through **one confirmed
+relationship** — a metric over a suggestion nobody accepted would be built on a relationship that may
+never exist. A relationship whose related side resolves to many rows is offered to the two per-row
+categories **disabled with the reason** rather than removed: a reviewer told why an option is
+unavailable can act on it, and a silently shorter list reads as a missing relationship. A metric is a
+**declaration and not a computation** — nothing runs it, no figure on any page comes from it, and the
+panel says so.
+
+**Deleting a relationship takes the metrics built on it**, because a metric whose relationship is gone
+has no columns to resolve. Rejecting a suggestion and deleting a declaration are deliberately
+different words on different controls: one drops local state and the other is a write.
+
+**A column's *description* is not part of the declaration.** It is a curator note on the profile,
+written to the same endpoint the dictionary's pencil uses, and it lives in the mock server's memory
+like the registration it belongs to — the existing behaviour of a column note, not something this tab
+changed. What *is* part of the declaration is a **reassigned column**: a column stored on one table
+whose meaning belongs to this entity. A column reassigned away from a table stays on that table's list
+**with a note** rather than disappearing from it, since a hidden row leaves a reader wondering where a
+column went.
+
+**This tab states its colours and its px directly, and it is the one surface that does.**
+`src/data/dataModelTokens.ts` holds them, and the reasoning is the vendored stylesheets' applied to a
+surface that carries its styles inline: the fidelity of the build it was ported from *is* the spec, and
+expressing a 10.5px label or a 1.5px selected border on the `--sp-*` scale would mean redrawing
+somebody else's design rather than reproducing it. The tab has **no stylesheet at all**, so nothing
+here can drift into the scale's own check. Two colour dimensions are kept apart on purpose — status is
+green/amber/red and provenance is green/purple — because one mark for both would have to pick a single
+meaning for green.
 
 ### The New Graph wizard (`/new-graph`)
 
@@ -4049,11 +4181,13 @@ would satisfy a check pointed at the old location. `check-docs` also asserts the
 
 ### State (`src/store/`)
 
-zustand. Thirteen modules (plus `asyncState.ts`, the shared machinery): `authStore`
+zustand. Fourteen modules (plus `asyncState.ts`, the shared machinery): `authStore`
 (who is signed in — the one module persisted to `localStorage`, everything else
 is server-derived), `sourcesStore`, `catalogStore` (browse / columns /
 document browse / documents / jobs — plus `signals`, which nothing reads since
-the Change signals tab was removed), `graphStore` (domains / use
+the Change signals tab was removed), `dataModelStore` (the Data Modeling tab's
+profiled tables and the declarations over them — one store, because a canvas with
+no tables and a declaration list with no canvas are both blank pages), `graphStore` (domains / use
 cases), `graphStudioStore` (the studio's list + one graph's review),
 `askStore` (live graphs + the last answer), `whatifStore` (the What-if frame plus
 one column per admitted load — the *load*, never the figures), `reportsStore` (the
@@ -4350,7 +4484,7 @@ package needs the same argument made again from scratch.
 relevant `SKILLS.md` flow and `docs/REGRESSIONS.md`) → build → verify → **record**.
 The record phase is not optional — it is why the same bug does not land twice.
 
-- **`SKILLS.md`** — the thirteen end-to-end flows, their files, and their failure modes.
+- **`SKILLS.md`** — the fourteen end-to-end flows, their files, and their failure modes.
   Read the section before changing a flow; update it after.
 - **`docs/REGRESSIONS.md`** — every bug that cost real time, with the guard that
   stops it recurring. Append on every fix. Prefer a guard that fails the build

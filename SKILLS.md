@@ -726,6 +726,9 @@ all **206** — ingested from ` _demo_data_package_2026-08-10/02_profiling/`
 `dataset.table` it has an entry for, and `check-docs` asserts the count matches
 what the Catalog claims for each view, so the two cannot drift.
 
+**What a curator does with this dictionary is Flow 14** — the Catalog's third tab reads exactly
+this payload and lets somebody say what each table *is*.
+
 To re-ingest after the workbook changes, re-run the ingestion (a scratch script;
 the reader is ~100 lines of zip + XML rather than a dependency). Rounding
 `null_pct` on the way in is deliberate: the workbook carries
@@ -898,7 +901,7 @@ protection, in order:
 
 1. **Client parse** — `parseDraft` keeps Save disabled until the text is valid
    JSON, so nothing invalid is ever sent.
-2. **Server shape check** — `validateDb` verifies all 27 required keys and
+2. **Server shape check** — `validateDb` verifies all 28 required keys and
    their basic structure. A document that would crash the app is rejected with a
    message per problem.
 3. **Atomic write** — temp file + rename, so a failed write cannot truncate
@@ -2612,6 +2615,102 @@ or unreachable server never empties the sidebar. A persona with no entry -> the 
 rather than serving an undefined sidebar. An unknown navigation key or a non-boolean in a write -> a 400
 naming the real keys.
 
+
+## Flow 14 — Data Modeling: saying what a table is
+
+**Files:** `DataModelTab.tsx` (+ `EntityCanvas`, `ModelTableList`, `EntityOverviewPanel`,
+`EntityColumnsPanel`, `EntityRelationshipsPanel`, `EntityMetricsPanel`, `RelationshipModal`,
+`ModelMarks`) → `dataModelStore.ts` → `GET|POST /data-model/entities`,
+`DELETE /data-model/entities/:id`, `POST /data-model/suggestions`, plus
+`GET /sources/:id/columns` — the same read Flow 4 makes. Pure logic in
+`src/data/dataModelCanvas.ts`, `dataModelRelationships.ts`, `dataModelMetrics.ts`,
+`dataModelTokens.ts`. Stored in `db.data_model`.
+
+**It is the Catalog's third tab, and third for a reason.** Flow 3 browses and profiles, Flow 4
+describes what a run recorded column by column, and this is where a curator says what a *table*
+is — the entity it stands for, the column that identifies a row, its relationships to other
+tables, and the metrics those carry. It draws over the profiled dictionary, so a source with
+nothing profiled says so in words rather than drawing an empty canvas, and a drive or a mailbox is
+left out with the count stated (a model is a schema; a document corpus has none).
+
+### What is on screen
+
+| column | what it answers |
+|---|---|
+| left rail | which structured source, and which of its profiled tables — with a pill per table stating its confirmed relationships, or its pending ones, or an em dash |
+| centre | four counts (tables · relationships confirmed · suggested, pending · columns described), **Suggest from schema**, **Fit**, then the canvas and its legend |
+| right | the one table in hand, over Overview / Columns / Relationships / Metrics |
+
+**Selection is one piece of state.** `selectedTableKey` goes to the rail and to the canvas and both
+call the same setter, so the two cannot disagree about what is selected — there is nothing to sync
+because there is only one value. Pan, zoom and a dragged card belong to the canvas, because they are
+DOM state nobody outside reads; **Fit** is therefore handed in as a ref rather than lifted out.
+
+### What persists, and what deliberately does not
+
+- **A declaration** — the Overview, the confirmed identifier, a relationship, a metric, a reassigned
+  column — goes through `commitDb` into `db.data_model`. It survives a restart the way a saved graph
+  brief does, because it is somebody's work and the graph builders are meant to read it.
+- **A suggestion** lives in the tab until somebody confirms it. A suggestion nobody accepted is not
+  a declaration and must not be stored as one; confirming is the act that writes it, and a failed
+  confirm leaves the suggestion where it can be retried.
+- **A column's description** is a curator note on the *profile*, written to Flow 4's own endpoint, so
+  it lives in the mock server's memory like the registration it belongs to. That is the existing
+  behaviour of a column note, not something this tab changed.
+
+**A declaration is keyed by `table_key` — `"<dataset>.<table>"`** — the key `column_profiles` uses,
+and deliberately not a source id: a registration lives in memory, so an entity naming one would
+dangle at the next restart. `data_model` is the **28th required key**; `npm run seed:data-model`
+writes the empty `{ "entities": [] }` its refusal names, and never rewrites a declaration already
+there.
+
+### The writes
+
+`POST /data-model/entities` is **one upsert that carries absent fields forward**: the Overview panel
+sends the text fields, the relationship editor sends `relationships`, the metric builder sends
+`metrics`, and none of them may erase the others' work. It refuses a table this dataset does not
+carry, a second entity on one table, two confirmed identifiers, a cardinality outside
+`1:1 | 1:N | N:1 | N:N`, and a join on a column `column_profiles` does not list.
+
+**A relationship lives on the entity anchored to its *from* table, so a save is sometimes several
+writes.** `relationshipWrites` assembles them and the store posts them **one at a time** — each hands
+the server a whole entity, so two in parallel would have the second overwrite the first. The *to*
+table is anchored too (a relationship between a declared entity and a bare table leaves one end of
+the edge unnamed), and an edit that moves the *from* side writes the **new owner before** clearing the
+old one: a failure between the two duplicates a declaration, which is visible, rather than dropping
+one, which is not.
+
+### Suggest from schema
+
+`POST /data-model/suggestions` reads the source's profiled columns and offers the joins a **shared
+identifier column** implies — an identifier on at least one side, since two tables both carrying a
+`status` column are not related by it. Every figure in a rationale is read off the profile: the
+distinct counts are the profiler's, the cardinality follows from whether each side's distinct count
+reaches its row count, and the confidence is the **classifier's own** for the weaker of the two
+columns. It is paced at `SUGGEST_MS`; its refusals are not.
+
+**There is no model behind it, and the payload says so.** `degraded: true` rides on every response
+and the tab prints *"Structural matches only — no model was involved"*; the provenance badge reads
+**Derived**, not AI. A run is capped at `SUGGEST_TABLE_CAP` (12) tables and reports `truncated`,
+because a pair-wise scan is quadratic and a list silently covering a fifth of a source would read as
+a source with few relationships. Each suggestion is named after the **column it matched on**, since
+three `HAS_<TABLE>` names in one list are three suggestions nobody can tell apart.
+
+### Failure modes, and what each one looks like
+
+- A source with nothing profiled → the canvas states it and names the Catalog tab, and the
+  suggestions route refuses with the same fix rather than answering an empty list.
+- A drive or a mailbox reaching the suggestions route → `wrongModel` refuses, states what the source
+  holds, says there is no modelling route for it, and names its catalogue. It does **not** point at
+  the structured route, which would fail the same way.
+- An entity on a table the document no longer carries → the server refuses to boot, naming the
+  entity and the table. Same for a relationship onto one, and for two entities on one table.
+- A metric over a one-to-many relationship, in the Math or String category → the option is listed
+  **disabled with the reason**, because a shorter list reads as a missing relationship.
+- Deleting a relationship → the metrics built on it go with it; a metric whose relationship is gone
+  has no columns to resolve.
+- A page that looks stale after an edit → every write re-reads the declarations, so the tab renders
+  the server's copy rather than an optimistic guess at it.
 
 ## When a page is blank: `/doctor`
 
