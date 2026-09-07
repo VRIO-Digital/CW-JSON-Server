@@ -259,7 +259,6 @@ export interface RegisteredGmailSource {
   labels: string[]
   /** The optional Gmail search, exactly as typed, or null. */
   query: string | null
-  attachments: boolean
   status: string
   registered_at: string
   newly_connected: boolean
@@ -547,17 +546,16 @@ export interface MailDocumentBrowseResult {
   labels: BrowseMailLabel[]
   label_count: number
   message_count: number
-  /** The profilable objects — documents, not the mail walked to find them. */
-  object_count: number
   /**
-   * Whether the wizard put attachments in scope.
+   * The profilable objects — documents, not the mail walked to find them.
    *
-   * Served rather than inferred from an empty tree: a source connected with attachments
-   * excluded has no documents at all, which looks exactly like a mailbox that happens to carry
-   * none — one is a decision the reader made and the other is a fact about the mail, and only
-   * the first has a remedy.
+   * **An empty one is now a fact about the mail and nothing else.** It used to have a second
+   * possible cause — a wizard toggle that put attachments out of scope — which is why
+   * `attachments_in_scope` rode beside it: a decision with a remedy had to be distinguishable
+   * from a mailbox that simply carries no files. That toggle is gone, attachments are always in
+   * scope, and the ambiguity went with it.
    */
-  attachments_in_scope: boolean
+  object_count: number
 }
 
 /**
@@ -2247,7 +2245,6 @@ const MAIL_BROWSE_PAYLOAD = shape({
   label_count: num,
   message_count: num,
   object_count: num,
-  attachments_in_scope: bool,
   labels: arrayOf(
     shape({
       label_id: str,
@@ -2686,7 +2683,6 @@ const REGISTERED_GMAIL_PAYLOAD = shape({
   credential_handle: str,
   labels: arrayOf(str),
   query: nullable(str),
-  attachments: bool,
   status: str,
   registered_at: str,
   newly_connected: bool,
@@ -3761,7 +3757,6 @@ export async function registerGmailSource(input: {
   labels: string[]
   /** The optional Gmail search. Sent as typed — the server does not second-guess it. */
   query?: string
-  attachments: boolean
   sourceName: string
 }): Promise<RegisteredGmailSource> {
   return validate<RegisteredGmailSource>(
@@ -3773,7 +3768,6 @@ export async function registerGmailSource(input: {
         credential_handle: input.credentialHandle,
         labels: input.labels,
         query: input.query ?? null,
-        attachments: input.attachments,
         source_name: input.sourceName,
       },
     }),

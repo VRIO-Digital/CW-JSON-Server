@@ -21045,94 +21045,7 @@
       ]
     }
   ],
-  "graph_use_cases": [
-    {
-      "use_case_id": "uc-test-mtmpjn825",
-      "name": "test",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "testdata",
-      "personas": [
-        {
-          "name": "Procurement Lead",
-          "description": "Asks what has been awarded, what has changed since award, and to whom.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Plan-to-Actual Variance",
-          "description": "Actual less period plan.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "bigquery:northline_epbcs",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "Is this overrun scope, escalation, schedule, or estimate error?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What is committed but not yet incurred, by project and by vendor?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 6,
-      "updated_at": "2026-09-04T08:49:52.204Z"
-    },
-    {
-      "use_case_id": "uc-test-mtleyosy2",
-      "name": "test",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
-      "personas": [
-        {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai"
-        }
-      ],
-      "kpis": [
-        {
-          "name": "Plan-to-Actual Variance",
-          "description": "Actual less period plan.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "gmail:adaeze.okonjo@vriodigital.com",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "Show me the change orders with the message that explains each one.",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Which explanations came from correspondence rather than from a person?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 6,
-      "updated_at": "2026-09-03T11:13:57.333Z"
-    }
-  ],
+  "graph_use_cases": [],
   "graph_use_case_templates": [
     {
       "template_id": "capital-programme-intelligence",
@@ -61399,22 +61312,9 @@
             "is_identifier": true
           }
         ],
-        "relationships": [
-          {
-            "target_table_key": "plan.plan_project_budget",
-            "from_columns": [
-              "Business Unit"
-            ],
-            "to_columns": [
-              "ITD Actuals"
-            ],
-            "relationship_type": "test",
-            "cardinality_hint": "1:N",
-            "rationale": "test"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-04T12:43:40.778Z"
+        "updated_at": "2026-09-07T10:50:03.156Z"
       },
       {
         "entity_id": "ent-plan-plan-project-budget-mtmpaekc3",
@@ -61426,18 +61326,6 @@
         "attributes": [],
         "relationships": [
           {
-            "target_table_key": "plan.plan_version_master",
-            "from_columns": [
-              "Project Code"
-            ],
-            "to_columns": [
-              "Project Code"
-            ],
-            "relationship_type": "LINKED_BY_PROJECT_CODE",
-            "cardinality_hint": "N:N",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget holds 0 distinct values, plan_version_master holds 0 distinct values."
-          },
-          {
             "target_table_key": "plan.plan_project_forecast",
             "from_columns": [
               "Project Code"
@@ -61448,10 +61336,22 @@
             "relationship_type": "LINKED_BY_PROJECT_CODE",
             "cardinality_hint": "N:N",
             "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget holds 0 distinct values, plan_project_forecast holds 0 distinct values."
+          },
+          {
+            "target_table_key": "plan.plan_version_master",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "N:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget holds 0 distinct values, plan_version_master holds 0 distinct values."
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-07T08:09:55.194Z"
+        "updated_at": "2026-09-07T12:30:39.096Z"
       },
       {
         "entity_id": "ent-plan-plan-account-dim-mtmpcohv4",
@@ -61461,22 +61361,9 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "plan.plan_version_master",
-            "from_columns": [
-              "FY24 Sep Actuals"
-            ],
-            "to_columns": [
-              "ITD Actuals"
-            ],
-            "relationship_type": "testdata",
-            "cardinality_hint": "1:N",
-            "rationale": ""
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-04T08:38:55.747Z"
+        "updated_at": "2026-09-07T10:50:08.210Z"
       },
       {
         "entity_id": "ent-plan-plan-project-forecast-mtmwszpw4",
@@ -61511,9 +61398,46 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "plan.plan_scenario_dim",
+            "from_columns": [
+              "program_name"
+            ],
+            "to_columns": [
+              "maps_to_version"
+            ],
+            "relationship_type": "testdata",
+            "cardinality_hint": "1:N",
+            "rationale": "testdata"
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-09-07T12:41:18.079Z"
+      },
+      {
+        "entity_id": "ent-plan-plan-period-dim-mtr3t8377",
+        "table_key": "plan.plan_period_dim",
+        "entity_name": "plan_period_dim",
+        "description": "Entity for plan_period_dim, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
         "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-07T08:12:12.643Z"
+        "updated_at": "2026-09-07T12:30:27.331Z"
+      },
+      {
+        "entity_id": "ent-plan-plan-scenario-dim-mtr8bxcn4",
+        "table_key": "plan.plan_scenario_dim",
+        "entity_name": "plan_scenario_dim",
+        "description": "Entity for plan_scenario_dim, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-09-07T12:41:17.975Z"
       }
     ],
     "suggestions": []

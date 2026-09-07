@@ -6220,3 +6220,44 @@ table's declarations at a time, and the canvas draws them as edges with no list 
   and "no Confirm/Reject" pass just as well over a panel that rendered nothing — so the smoke test
   asserts the render had all three rows, both join ends, every heading and every cardinality first.
   Twenty checks, `renderToString` over the exported body, scratch file deleted after.
+
+## Removing the Gmail attachments toggle (2026-09-07)
+
+*Include attachments* on step 3 of the Gmail wizard, **removed on request**. Removing the control was
+one edit; removing everything that read it was nine, across five layers, and skipping any of them is
+the shape this file keeps recording.
+
+- **Two downstream messages became instructions nobody could carry out.** `MailBrowsePanel`'s
+  "attachments are out of scope" alert and `POST …/profile-mail-documents`'s refusal both ended
+  *"re-run the connect wizard to include them"* — pointing at a toggle that is no longer on the step.
+  Word-for-word the fault already recorded for Gmail's removed **name field**, whose Continue gate
+  went on refusing with *"give this source a name of at least 6 characters"* over a step offering
+  nowhere to type one. *Removing a control is removing everything that reads it*, and the tell is a
+  remedy naming the thing that was removed.
+- **The apparatus existed only to resolve an ambiguity the toggle created.** An empty document tree
+  had two possible causes — a decision with a remedy, or a mailbox that carries no files — so
+  `attachments_in_scope` was served rather than inferred, the panel drew the difference, and the
+  profile route refused by name. One cause left, so all of it went: a served flag that is always
+  `true` is a field answering a question nobody can ask.
+- **Its caption had gone stale in the other direction, and the removal caught it.** The toggle's own
+  note read *"Nothing is profiled here — this source carries no catalogue, so the scope is what it
+  stores."* That was true when Gmail had no entry in `PROFILERS`; `MAIL_PIPELINE` gave mail a
+  profiler and a browsable catalogue of its attachments, and the sentence was never revisited. A
+  `check-docs` claim guarded this copy — but it guarded the half about *ingestion* (rightly), not the
+  half about *profiling*, so it passed over the stale clause for as long as it existed. **A claim
+  guards the sentence somebody thought to write it about.**
+- **Verified by driving the real flow, not by reading it**: consent → mailbox → preview → register →
+  browse → profile against a live server. Thirteen checks — the register body carries no flag, the
+  stored row has no `attachments` key, browse serves no `attachments_in_scope`, 19 documents are in
+  scope across 34 messages, 21 messages with nothing attached are still listed, and profiling a
+  document is accepted with no refusal naming the removed toggle.
+- **Two of my own break-test mutations landed inside comments**, which `codeOnly` strips before the
+  claim sees them — so nothing was actually reintroduced and two correct guards were reported
+  unbreakable. Third entry in this file for it: *when a break test says a claim cannot break, suspect
+  the break first.* The harness now refuses a mutation that leaves the file unchanged.
+- **And two absence needles were too broad, each catching an honest unrelated use.**
+  `!/attachments/` over the browse panel matched its *"no attachments"* row label, which is a fact
+  about a message that carries none; `!/re-run the connect wizard/` over the server matched
+  `wrongScope`, where a mailbox's **labels** really are settled by the consent and re-running the
+  wizard really does change them. Both narrowed to the sentence that was removed. *An absence claim
+  has to name the thing that went, not the words it happened to use.*

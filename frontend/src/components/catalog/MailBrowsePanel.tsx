@@ -1,5 +1,4 @@
 import {
-  Alert,
   App,
   Button,
   Flex,
@@ -190,23 +189,6 @@ export default function MailBrowsePanel({
         <Spin />
       ) : (
         <>
-          {/*
-            * Two different facts, and only one of them has a remedy.
-            *
-            * Attachments out of scope is a decision the reader made in the wizard, and the fix
-            * is to re-run it; a mailbox that simply carries none is a fact about the mail. An
-            * empty tree looks identical either way, which is why the server serves the flag
-            * rather than leaving it to be inferred.
-            */}
-          {data && !data.attachments_in_scope ? (
-            <Alert
-              type="info"
-              showIcon
-              title="Attachments are out of scope for this source"
-              description="This mailbox was connected with attachments excluded, so it has no documents to profile. Re-run the connect wizard to include them."
-            />
-          ) : null}
-
           {/* One expression, not `text {expr} text`: React splits that into separate text
               nodes, so the sentence cannot be asserted as the sentence it renders as. */}
           <Typography.Paragraph className="cat-browse-hint">

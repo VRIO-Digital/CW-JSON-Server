@@ -2761,10 +2761,6 @@ function mailboxMessages(source) {
   const people = others.length > 0 ? others : directory
   const owner = directory.find((u) => u.email === mailbox)
   const anchor = Date.parse(source.registered_at ?? '') || Date.now()
-  /* The wizard's toggle, and the one place it is read. Absent on an older registration, which
-     is treated as in scope: the field was recorded long before it decided anything. */
-  const inScope = source.attachments !== false
-
   return (source.labels ?? []).map((label) => {
     const seed = hash(`${mailbox}:${label}`)
     const count = 4 + (seed % 12)
@@ -2811,12 +2807,13 @@ function mailboxMessages(source) {
          * visible. `attachments` is the count and stays on the message so a row can state it
          * without opening; the documents themselves are the profiled objects.
          *
-         * **Empty when the wizard put attachments out of scope.** That toggle used to be
-         * recorded and not acted on; now it decides whether this source has any documents at
-         * all, which is the honest reading once documents are the unit.
+         * **Always in scope now.** These were `inScope ? … : []`, reading a wizard toggle that
+         * let a mailbox be connected with its attachments excluded. The toggle was removed on
+         * request, so the only remaining cause of an empty list is a message that carries no
+         * files — which is a fact about the mail rather than a decision anybody made.
          */
-        documents: inScope ? attachedDocuments(messageId, s) : [],
-        attachments: inScope ? attachedDocuments(messageId, s).length : 0,
+        documents: attachedDocuments(messageId, s),
+        attachments: attachedDocuments(messageId, s).length,
       }
     })
 
@@ -2965,9 +2962,11 @@ const DOC_PIPELINE = [
  * body. So the tree is one level deeper than a drive's — label → message → document — and a
  * message carrying no attachment has nothing here to profile at all.
  *
- * That makes the wizard's attachments toggle **load-bearing**, where it used to be recorded and
- * not acted on: a source connected with attachments out of scope has no documents, which the
- * browse panel says in words rather than showing an empty tree.
+ * **A mailbox with no documents is now a fact about the mail and nothing else.** There was a
+ * wizard toggle that put attachments out of scope, which made an empty tree ambiguous — a decision
+ * with a remedy, or a mailbox that carries no files — and a good deal of machinery existed to tell
+ * the two apart. It was removed on request; attachments are always in scope, so the ambiguity and
+ * everything that resolved it went with it.
  *
  * The stages are a document's work as a result, and the last three are Drive's own — what an
  * extractor does to a PDF does not depend on whether it arrived in a drive or an inbox.
@@ -6097,10 +6096,10 @@ function browsableDocuments(source) {
  * row would say the message does not exist rather than that it has nothing to profile, and
  * knowing which mail carries documents is most of what this panel is for.
  *
- * **And `attachments_in_scope` is served rather than inferred from an empty tree.** A source
- * registered with attachments excluded has no documents at all, which looks exactly like a
- * mailbox that happens to carry none — one is a decision the reader made in the wizard and the
- * other is a fact about the mail, and only the first has a remedy.
+ * **`attachments_in_scope` used to ride on this payload and does not any more.** It said whether
+ * the wizard had put attachments in scope, because an empty tree had two possible causes and only
+ * one of them had a remedy. With the toggle gone there is one cause left, so a served flag that is
+ * always `true` would be a field answering a question nobody can ask.
  */
 function browsableMailDocuments(source) {
   const profiled = source.profiled_mail_docs ?? []
@@ -6143,7 +6142,6 @@ function browsableMailDocuments(source) {
     /* The profilable objects, so the panel's footer counts what a run would act on rather than
        the mail it had to walk to find them. */
     object_count: labels.reduce((sum, l) => sum + l.document_count, 0),
-    attachments_in_scope: source.attachments !== false,
   }
 }
 
@@ -9622,17 +9620,18 @@ const routes = [
    * queues a job, and the profiled counters start at 0 for the reason they do everywhere else.
    *
    * What *is* particular to mail is what it profiles and where that profile may travel. The unit is
-   * the **attached document**, never the message — so `attachments` here is load-bearing rather than
-   * merely recorded, and a source registered with it false has nothing to profile. And `gmail` is in
-   * `PROFILERS` *and* `RUNTIME_KINDS`, so it carries a catalogue while nothing that catalogue holds
-   * becomes a graph element; `CATALOGUE_ONLY_KINDS` is where that pair is declared and checked.
+   * the **attached document**, never the message. There was an `attachments` flag on this body, set
+   * by a wizard toggle, and a source registered with it false had nothing to profile; the toggle was
+   * removed on request and the flag went with it, so every mailbox's attachments are in scope. And
+   * `gmail` is in `PROFILERS` *and* `RUNTIME_KINDS`, so it carries a catalogue while nothing that
+   * catalogue holds becomes a graph element; `CATALOGUE_ONLY_KINDS` is where that pair is declared
+   * and checked.
    */
   {
     method: 'POST',
     match: (p) => p === '/sources/gmail',
     handle: async (req, res) => {
-      const { mailbox, credential_handle, labels, query, attachments, source_name } =
-        await readJson(req)
+      const { mailbox, credential_handle, labels, query, source_name } = await readJson(req)
 
       if (!mailbox || !credential_handle) {
         return send(res, 400, {
@@ -9683,9 +9682,6 @@ const routes = [
          * is nothing, which is checkable — the message count after the first sync.
          */
         query: typeof query === 'string' && query.trim() ? query.trim() : null,
-        /* Recorded rather than acted on, and the panel words it that way: this connector profiles
-           nothing, so what the flag does is state what the connection was pointed at. */
-        attachments: attachments !== false,
         status: 'connected',
         registered_at: new Date().toISOString(),
         newly_connected: !alreadyRegistered,
@@ -10104,15 +10100,6 @@ const routes = [
       const { objects, force } = await readJson(req)
       if (!Array.isArray(objects) || objects.length === 0) {
         return send(res, 400, { error: 'objects must be a non-empty array' })
-      }
-
-      /* Refused before the objects are checked, and named as the decision it is: with
-         attachments out of scope every id below would be "does not exist", which reads as a
-         stale browse rather than as a scope the reader chose in the wizard. */
-      if (source.attachments === false) {
-        return send(res, 400, {
-          error: `${sourceId} was connected with attachments out of scope, so it has no documents to profile — re-run the connect wizard to include them`,
-        })
       }
 
       /* Built once rather than per object: the corpus is synthesised, so a lookup per document

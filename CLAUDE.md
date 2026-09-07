@@ -861,13 +861,19 @@ most of what that panel is read for. Its checkbox is withheld (`checkable: false
 ineffective: antd would let an empty container be ticked and the run would receive nothing for it,
 which reads as a selection that was ignored.
 
-**Which made the wizard's attachments toggle load-bearing.** It was *recorded and not acted on* —
-documented here in those words — and it now decides whether a source has any documents at all. That
-has to be **said**, because a source connected with attachments excluded looks exactly like a mailbox
-that happens to carry none: one is a decision with a remedy and the other is a fact about the mail. So
-`attachments_in_scope` is served rather than inferred from an empty tree, the browse panel draws the
-difference, and `POST …/profile-mail-documents` refuses such a source *naming the decision* instead of
-letting every id come back "does not exist".
+**There was a wizard toggle deciding whether attachments were in scope at all, and it is gone.**
+Removed on request. It had been *recorded and not acted on* until documents became the profiled unit,
+at which point it decided whether a source had any documents — which made an empty tree ambiguous, a
+decision with a remedy against a mailbox that simply carries no files. A good deal of machinery
+existed to tell those apart: `attachments_in_scope` was served rather than inferred, the browse panel
+drew the difference, and `POST …/profile-mail-documents` refused such a source by name. **All of it
+went with the control**, because both messages it printed ended *"re-run the connect wizard to include
+them"* — an instruction nobody can carry out once there is no toggle to re-run it for, which is
+word-for-word the fault Gmail's removed name field left behind in the gate that still validated it.
+Attachments are always in scope now, so an empty list has one cause left and it is a fact about the
+mail. `check-docs` asserts the absence across the server, the payload, the client schema, the panel
+and the wizard **in one claim**, because half a removal is the shape that fails silently — a served
+flag nothing can set, or a refusal naming a control that is not there.
 
 **Its count lives in `profiled_documents`, the same field a drive uses**, because it is the same unit:
 a file somebody attached and a file somebody filed are both documents. A `profiled_messages` beside it
@@ -1038,9 +1044,12 @@ in memory beside the sessions and dies with the process.
 
 **The optional Gmail search is stored as typed and refused by nothing**, which the panel says: guessing
 at Gmail's grammar would reject a query Gmail would have accepted, and what an unmatched one produces is
-checkable — the message count after the first sync. **The attachments toggle is recorded, not acted
-on**, and is worded that way for the same reason: a sentence promising attachments become documents
-through the extraction pipeline would describe a run this connector never makes.
+checkable — the message count after the first sync. **The attachments toggle that sat under it is
+gone** (see above); its caption had been the most carefully worded line on the screen — *records* what
+the connection covers, never a promise of ingestion — and had since gone stale in the other direction,
+still reading *"Nothing is profiled here — this source carries no catalogue"* long after
+`MAIL_PIPELINE` gave mail a profiler and a browsable catalogue of its attachments. Removing the
+control took the stale sentence with it.
 
 **And a generic source is `connected`, not perpetually `syncing`.** That status came from when every
 generic connector was a roadmap stub and described a background job that does not exist — harmless while

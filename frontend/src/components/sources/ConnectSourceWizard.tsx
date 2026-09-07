@@ -23,7 +23,6 @@ import {
   Select,
   Skeleton,
   Space,
-  Switch,
   Steps,
   Typography,
 } from 'antd'
@@ -250,7 +249,6 @@ export default function ConnectSourceWizard({
   const [checkedLabels, setCheckedLabels] = useState<string[]>([])
   const [gmailQuery, setGmailQuery] = useState('')
   /* On by default, which is what the screen shows and what the receipt then states. */
-  const [includeAttachments, setIncludeAttachments] = useState(true)
   const [registeredGmail, setRegisteredGmail] = useState<RegisteredGmailSource | null>(null)
   /*
    * The sign-in window: which of its three phases is showing, and the state `/oauth/start` issued
@@ -483,7 +481,6 @@ export default function ConnectSourceWizard({
         labels: checkedLabels,
         /* Sent as typed, or omitted — an empty box is "no query", not a query matching nothing. */
         query: gmailQuery.trim() || undefined,
-        attachments: includeAttachments,
         /* The tenant's own name for this mailbox, read back from the preview rather than from local
            state: what the server says the mailbox is called is the same fact the row will carry. */
         sourceName: gmailPreview.display_name,
@@ -1365,21 +1362,6 @@ export default function ConnectSourceWizard({
               Any Gmail search expression, applied on top of the labels above. A malformed query is not
               rejected here — it simply matches nothing, so check the message count after the first sync.
             </Typography.Paragraph>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: SP.sm, marginTop: SP.base }}>
-              <Switch checked={includeAttachments} onChange={setIncludeAttachments} />
-              <Typography.Text strong>Include attachments</Typography.Text>
-            </div>
-            {/*
-              * **Stated as scope, not as ingestion.** This connector profiles nothing — it has no
-              * pipeline, and the Catalog leaves it out and says so — so a sentence promising that
-              * attachments become documents would describe a run that never happens. What the toggle
-              * does is record what the connection was pointed at, which is what the receipt shows.
-              */}
-            <Typography.Paragraph type="secondary" style={{ fontSize: 12, margin: '8px 0 0' }}>
-              Records attachments (PDFs, docs, sheets) as part of what this connection covers. Nothing
-              is profiled here — this source carries no catalogue, so the scope is what it stores.
-            </Typography.Paragraph>
           </Card>
 
           <Card size="small" style={{ marginTop: 16 }}>
@@ -1410,7 +1392,6 @@ export default function ConnectSourceWizard({
                     <div>Mailbox: {registeredGmail.mailbox}</div>
                     <div>Labels: {registeredGmail.labels.join(', ')}</div>
                     <div>Query: {registeredGmail.query ?? '(none)'}</div>
-                    <div>Attachments: {registeredGmail.attachments ? 'included' : 'excluded'}</div>
                     <div>Newly connected: {String(registeredGmail.newly_connected)}</div>
                   </div>
                 }

@@ -281,6 +281,7 @@ expect(
  * the component could not be asserted at all.
  */
 const wizardSrc = codeOnly(read('frontend/src/components/sources/ConnectSourceWizard.tsx'))
+const mailBrowsePanel = read('frontend/src/components/catalog/MailBrowsePanel.tsx')
 const dirSrc = codeOnly(read('frontend/src/components/sources/ConnectorDirectory.tsx'))
 const dirDataSrc = codeOnly(read('frontend/src/data/connectorSearch.ts'))
 expect(
@@ -1796,10 +1797,15 @@ expect(
  * - **The count lives in `profiled_documents`**, the same field a drive uses, because it is the
  *   same unit. A `profiled_messages` beside it was two fields for one noun, which is how a tile
  *   and a dictionary come to disagree about a number.
- * - **The wizard's attachments toggle became load-bearing.** It was recorded and not acted on; it
- *   now decides whether a source has any documents at all. That has to be *said*, because a
- *   source connected with attachments excluded looks exactly like a mailbox that happens to carry
- *   none — one is a decision with a remedy and the other is a fact about the mail.
+ * - **The attachments toggle is gone, and its whole apparatus with it.** It once decided whether a
+ *   source had any documents at all, which made an empty tree ambiguous — a decision with a remedy,
+ *   or a mailbox that carries no files — so `attachments_in_scope` was served, the browse panel drew
+ *   the difference, and the profile route refused such a source by name. The toggle was **removed on
+ *   request**, so every mailbox's attachments are in scope and there is one cause of an empty list
+ *   left. Both of the messages that apparatus printed ended *"re-run the connect wizard to include
+ *   them"* — an instruction nobody can carry out once the control is gone, which is the same fault
+ *   this repo already records for Gmail's removed name field and its orphaned gate. Asserted as an
+ *   absence across every layer at once, because half a removal is the shape that fails silently.
  */
 expect(
   'the mail profiler runs over attached documents, never the messages',
@@ -1815,15 +1821,29 @@ expect(
     /* Counted as documents, in the field a drive uses. */
     /source\.profiled_documents = docs\.length/.test(server) &&
     !/profiled_messages: /.test(codeOnly(server)) &&
-    /* The toggle is read, and refused where it excludes everything — named as the decision it is
-       rather than letting every id come back "does not exist". */
-    /const inScope = source\.attachments !== false/.test(server) &&
-    /if \(source\.attachments === false\)/.test(server) &&
-    /was connected with attachments out of scope/.test(server) &&
-    /* Served rather than inferred from an empty tree, and the panel draws the difference. */
-    /attachments_in_scope: source\.attachments !== false,/.test(server) &&
-    /attachments_in_scope: bool,/.test(client) &&
-    /!data\.attachments_in_scope/.test(read('frontend/src/components/catalog/MailBrowsePanel.tsx')),
+    /*
+     * **And nothing reads a scope decision any more, at any layer.** The server stops storing the
+     * flag and stops branching on it, the browse payload stops serving it and the client schema
+     * stops declaring it, and the panel's "attachments are out of scope" branch is gone — along with
+     * the profile route's refusal, whose remedy was the very control that was removed. A revival of
+     * any one of these alone is the half-removal that fails silently: a served flag nothing can set,
+     * or a refusal naming a toggle that is not there.
+     */
+    !/source\.attachments/.test(codeOnly(server)) &&
+    !/attachments_in_scope/.test(codeOnly(server)) &&
+    !/attachments_in_scope/.test(codeOnly(client)) &&
+    !/attachments_in_scope/.test(codeOnly(mailBrowsePanel)) &&
+    !/out of scope/.test(codeOnly(mailBrowsePanel)) &&
+    /* Still prints "no attachments" on a message that carries none — a fact about the mail, and
+       the presence half that stops the absences above passing over a gutted panel. */
+    /'no attachments'/.test(mailBrowsePanel) &&
+    /* Narrowed to the removed sentence: `wrongScope` still says "re-run the connect wizard" of a
+       mailbox's LABELS, which are settled by the consent and really are changed by re-running it.
+       That instruction is carryable-out; the attachments one no longer was. */
+    !/re-run the connect wizard to include them/.test(server) &&
+    /* The documents themselves are unconditional now — the ternary that gated them is gone. */
+    /documents: attachedDocuments\(messageId, s\),/.test(server) &&
+    /attachments: attachedDocuments\(messageId, s\)\.length,/.test(server),
   'a mailbox profiling its messages would sample mail nobody asked it to read',
 )
 
@@ -1934,25 +1954,38 @@ expect(
 )
 
 /*
- * **And what the wizard says about attachments is what the code does.**
+ * **The wizard's attachments toggle is gone, and so is everything that fed or read it.**
  *
- * The toggle is recorded and shown on the receipt; it profiles nothing, because this connector has no
- * profiler. A sentence promising attachments are "ingested as their own documents through the same
- * extraction pipeline Drive files use" would describe a run that never happens — the one claim on this
- * screen that could be false while everything around it is true.
+ * It was the control this screen's copy had to be most careful about — "records attachments as part
+ * of what this connection covers", never a promise that they are ingested — and its own caption had
+ * since gone stale in the other direction, still saying *"Nothing is profiled here — this source
+ * carries no catalogue"* long after `MAIL_PIPELINE` gave mail a profiler. **Removed on request**, and
+ * the stale sentence went with it.
+ *
+ * What is asserted here is the wizard's own layer of that removal: the control, the state behind it,
+ * the field it put on the register call, and the receipt line that read it back. The server and panel
+ * layers are asserted where they live, on the mail-profiler claim above.
  */
 expect(
-  'the attachments toggle is stated as scope, not as ingestion',
-  /Records attachments \(PDFs, docs, sheets\) as part of what this connection covers/.test(wizard) &&
-    !/extraction pipeline Drive files use/.test(wizard) &&
-    /* Read back from the row the server stored rather than from the form. */
-    /registeredGmail\.attachments \? 'included' : 'excluded'/.test(wizard) &&
-    /* The optional query is sent as typed and refused by nothing, which the panel says. Keyed to a
-       fragment that stays on one source line: the sentence wraps, and matching across the wrap failed
-       against copy that was on screen. */
+  'the wizard offers no attachments toggle, and sends no scope decision',
+  !/includeAttachments/.test(codeOnly(wizard)) &&
+    !/Include attachments/.test(codeOnly(wizard)) &&
+    !/Records attachments/.test(codeOnly(wizard)) &&
+    /* The receipt cannot read back a field the row no longer carries. */
+    !/registeredGmail\.attachments/.test(codeOnly(wizard)) &&
+    /* Nor may the fetcher or the stored row declare one. */
+    !/attachments: bool,/.test(codeOnly(client)) &&
+    !/attachments: input\.attachments,/.test(codeOnly(client)) &&
+    /*
+     * **The presence half, in the same run.** Every needle above is an absence, and a wizard whose
+     * Gmail branch had been deleted outright would satisfy all six — the trap this file records for
+     * a `renderToString` that had no data. So the step around it is asserted to be intact: the
+     * optional query is still there, still sent as typed, and still says it refuses nothing.
+     */
     /it simply matches nothing, so check the message count/.test(wizard) &&
-    /query: typeof query === 'string'/.test(server),
-  'a promise of ingestion on a connector with no profiler is a run that never happens',
+    /query: typeof query === 'string'/.test(server) &&
+    /2. Finish — POST \/sources\/gmail \(registers for real\)/.test(wizard),
+  'a removed control that something still reads is the half-removal this repo keeps finding',
 )
 
 

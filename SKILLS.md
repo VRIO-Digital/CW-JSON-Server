@@ -151,7 +151,7 @@ pipeline itself is connector-agnostic and would be reused as-is.
 
 **Gmail is profiled for its catalogue and read at question time.** Connecting proves the
 credential reaches a mailbox and records what it was pointed at: which labels, which
-optional Gmail search, whether attachments are in scope. Profiling is a second act,
+optional Gmail search. Profiling is a second act,
 started from the Data Catalog, exactly as it is for a project or a drive — see Flow 3. It
 runs the same consent → preview → finish path as the other two:
 
@@ -161,7 +161,7 @@ runs the same consent → preview → finish path as the other two:
 | | `GET /sources/oauth/callback` | who signed in, plus a session |
 | | `GET /sources/oauth/mailboxes?session=&as=` | the one mailbox that consent reaches, and a handle for it |
 | preview | `POST /sources/gmail/preview` | the labels this handle can see. Registers nothing |
-| finish | `POST /sources/gmail` | registers `gmail:<mailbox>` with the labels, query and attachment scope |
+| finish | `POST /sources/gmail` | registers `gmail:<mailbox>` with the labels and the query |
 
 The mailbox is the **signed-in person's own**, derived from `settings.users` rather than
 held in a key beside it: a consent reaches the account that granted it, so there is no
@@ -182,11 +182,14 @@ unchanged is where that profile may travel: `gmail` is still the one member of
 its catalogue becomes a graph element. The overlap between the two maps is declared in
 `CATALOGUE_ONLY_KINDS` and both drift directions are refused at boot.
 
-**Which made the attachments toggle load-bearing.** It was *recorded and not acted on* while
-nothing read the attachments; it now decides whether the source has any documents at all. A
-mailbox connected with attachments excluded is refused at the profile route, naming the
-decision, and `attachments_in_scope` is served so the browse panel can tell that apart from
-a mailbox that simply carries none.
+**The attachments toggle is gone — removed on request — and its whole apparatus with it.** It
+was *recorded and not acted on* while nothing read the attachments, then briefly decided whether
+the source had any documents at all; that made an empty tree ambiguous, so the profile route
+refused such a source by name and `attachments_in_scope` was served so the browse panel could
+tell a decision apart from a mailbox that simply carries none. Both messages that apparatus
+printed ended *"re-run the connect wizard to include them"* — impossible to carry out with the
+toggle gone, the same fault as the orphaned name gate above — so attachments are now always in
+scope and an empty list has one cause left.
 
 **Its allowlist cannot be changed afterwards.** Labels are settled by the consent, so there
 is no `PUT /sources/:id/labels`; the Sources row's Edit button is disabled saying so, and
@@ -633,12 +636,13 @@ is keyed `{parent_id, object_id}` with the label as parent, so a message reachab
 two would put its documents in reach of both and commit twice. The others it carries are
 on the row.
 
-**And the wizard's attachments toggle decides whether there is anything here at all** —
-it was recorded and not acted on until documents became the unit. `attachments_in_scope`
-is served rather than left to be inferred from an empty tree, because a source connected
-with attachments excluded looks exactly like a mailbox that carries none: one is a
-decision with a remedy and the other is a fact about the mail. The panel draws the
-difference and the profile route refuses such a source naming the decision.
+**The wizard's attachments toggle is gone (removed on request), so an empty tree here means
+the mail carries no files and nothing else.** While it existed, `attachments_in_scope` was
+served rather than left to be inferred, because a source connected with attachments excluded
+looked exactly like a mailbox that carries none: one was a decision with a remedy and the
+other a fact about the mail. The panel drew the difference and the profile route refused such
+a source by name. All three went with the control — its remedy was to re-run the very wizard
+step that no longer offers it.
 
 Ask the wrong one and you get a **400 naming the right endpoint**, not an empty
 tree — an empty tree reads as "nothing to profile" and sends you debugging the
