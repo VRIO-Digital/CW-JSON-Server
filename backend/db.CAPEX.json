@@ -61326,18 +61326,6 @@
         "attributes": [],
         "relationships": [
           {
-            "target_table_key": "plan.plan_project_forecast",
-            "from_columns": [
-              "Project Code"
-            ],
-            "to_columns": [
-              "Project Code"
-            ],
-            "relationship_type": "LINKED_BY_PROJECT_CODE",
-            "cardinality_hint": "N:N",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget holds 0 distinct values, plan_project_forecast holds 0 distinct values."
-          },
-          {
             "target_table_key": "plan.plan_version_master",
             "from_columns": [
               "Project Code"
@@ -61348,10 +61336,22 @@
             "relationship_type": "LINKED_BY_PROJECT_CODE",
             "cardinality_hint": "N:N",
             "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget holds 0 distinct values, plan_version_master holds 0 distinct values."
+          },
+          {
+            "target_table_key": "plan.plan_project_forecast",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "N:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget holds 0 distinct values, plan_project_forecast holds 0 distinct values."
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-07T12:30:39.096Z"
+        "updated_at": "2026-09-07T14:01:32.825Z"
       },
       {
         "entity_id": "ent-plan-plan-account-dim-mtmpcohv4",
@@ -61388,7 +61388,7 @@
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-04T12:07:34.100Z"
+        "updated_at": "2026-09-07T14:01:33.032Z"
       },
       {
         "entity_id": "ent-plan-cw-program-master-mtqyoymt6",
@@ -61398,22 +61398,9 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [
-          {
-            "target_table_key": "plan.plan_scenario_dim",
-            "from_columns": [
-              "program_name"
-            ],
-            "to_columns": [
-              "maps_to_version"
-            ],
-            "relationship_type": "testdata",
-            "cardinality_hint": "1:N",
-            "rationale": "testdata"
-          }
-        ],
+        "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-07T12:41:18.079Z"
+        "updated_at": "2026-09-07T14:00:23.224Z"
       },
       {
         "entity_id": "ent-plan-plan-period-dim-mtr3t8377",
@@ -61437,7 +61424,19 @@
         "attributes": [],
         "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-07T12:41:17.975Z"
+        "updated_at": "2026-09-07T14:00:45.140Z"
+      },
+      {
+        "entity_id": "ent-plan-plan-monthly-spread-mtrb5dg32",
+        "table_key": "plan.plan_monthly_spread",
+        "entity_name": "plan_monthly_spread",
+        "description": "Entity for plan_monthly_spread, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-09-07T14:00:11.091Z"
       }
     ],
     "suggestions": []

@@ -2,6 +2,7 @@ import { Button, Empty, Modal } from 'antd'
 import {
   confirmedRelationshipsCopy as COPY,
   groupConfirmedByOwner,
+  groupCountLabel,
 } from '../../data/confirmedRelationships'
 import type { DeclaredRelationship } from '../../data/dataModelRelationships'
 import { MT } from '../../data/dataModelTokens'
@@ -141,9 +142,16 @@ export function ConfirmedRelationshipsPanel({
             style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}
           >
             <b style={{ fontSize: 11.5, color: MT.text }}>{labelFor(group.tableKey)}</b>
-            {/* This group's own length, never the total: a heading describing a list the reader is
-                not looking at is the fault `ConnectorDirectory` records. */}
-            <span style={{ fontSize: 10.5, color: MT.dim }}>{group.rows.length}</span>
+            {/*
+             * **Both numbers, labelled, because a bare one collided.** What this group *owns* is
+             * what the rows below add up to; the table list and Entity detail count every
+             * relationship the table is *involved in*, which is the higher figure. A bare `1` next
+             * to a rail reading `2` for the same table read as a miscount — reported as exactly
+             * that, and then the labels were reported as unclear, so they say the two words a
+             * reader asked for. Never the modal's total: a heading describing a list the reader is
+             * not looking at is the fault `ConnectorDirectory` records.
+             */}
+            <span style={{ fontSize: 10.5, color: MT.dim }}>{groupCountLabel(group)}</span>
           </div>
           <div style={{ fontSize: 10.5, color: MT.dim, lineHeight: 1.45 }}>
             {COPY.ownerNote}

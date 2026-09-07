@@ -1305,8 +1305,37 @@ expect(
      * field rather than the word "owner": this module's own prose says "owning" throughout.
      */
     /byKey\.get\(row\.fromTableKey\)/.test(codeOnly(confirmedData)) &&
-    /* And the heading prints its own group's length, never the total. */
-    /\{group\.rows\.length\}/.test(confirmedPanel),
+    /*
+     * **The heading states both of its numbers, and never a bare one.**
+     *
+     * Reported from use: `plan_project_forecast` read `1` here beside a table-list pill and an
+     * Entity detail panel both reading `2`, which looked like a miscount and was two questions.
+     * A group holds what a table **owns** — declarations anchored on its `from` side, which is what
+     * makes the groups sum to the modal's own total — while those two surfaces count every
+     * relationship the table is **involved in**, either end. Equalising them is not available:
+     * involved-counts sum to twice the total, because every relationship involves two tables.
+     *
+     * The two words are the reader's own, chosen after the first pair (`declares` / `touches`) was
+     * reported as not saying what it meant — so they are asserted here, and the field is named for
+     * what the heading calls it rather than left spelled a third way.
+     *
+     * So the heading labels what it counts and adds the other figure where they differ. The bare
+     * number is asserted **absent**, because that is the form that collided; `groupCountLabel` is
+     * asserted present beside it, or a heading with no count at all would satisfy the absence.
+     */
+    /export function groupCountLabel/.test(confirmedData) &&
+    /owns \$\{group\.rows\.length\}/.test(confirmedData) &&
+    /involved in \$\{group\.involved\}/.test(confirmedData) &&
+    /* Computed over the whole list, or it would only ever recount the group it is in. */
+    /r\.fromTableKey === group\.tableKey \|\| r\.toTableKey === group\.tableKey/.test(
+      codeOnly(confirmedData),
+    ) &&
+    /* Only where the two differ — a table owning all it touches reads as one plain figure. */
+    /group\.involved > group\.rows\.length/.test(codeOnly(confirmedData)) &&
+    /\{groupCountLabel\(group\)\}/.test(confirmedPanel) &&
+    !/\{group\.rows\.length\}/.test(codeOnly(confirmedPanel)) &&
+    /* And the note says which surface counts which, so the difference explains itself on screen. */
+    /a table is involved in, either end, so their number is the higher one/.test(confirmedData),
   'a tile that filters and a modal that filters again are two answers to one count',
 )
 

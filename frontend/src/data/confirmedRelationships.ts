@@ -49,13 +49,57 @@ export const confirmedRelationshipsCopy = {
    * table — and the answer is not a display preference: a declaration is stored on the entity
    * anchored to its `from` side, which is why moving that side changes which entity owns it.
    */
-  ownerNote: 'Declared on this entity — a relationship is stored on the table it points from.',
+  /**
+   * **Why a table's number here can be lower than the one beside it everywhere else.**
+   *
+   * Reported from use, and neither number was wrong. A relationship has a direction: it is stored
+   * on the entity its *from* table names, so that table **owns** it. Both of its tables are
+   * **involved in** it, which is what the table list's pill and the Entity detail panel count.
+   * `plan_project_forecast` is involved in two and owns one, so it read 1 next to a rail saying 2
+   * with nothing on screen saying they answer different questions.
+   *
+   * They cannot be reconciled by making them equal: owned-counts sum to the total in the title,
+   * and involved-counts would sum to twice it, because every relationship involves two tables. So
+   * the heading states **both**, and this note says what each is.
+   */
+  ownerNote:
+    'Owned by this entity — a relationship is stored on the table it points from. The table list and Entity detail count every relationship a table is involved in, either end, so their number is the higher one.',
 } as const
 
 /** One heading and the declarations stored under it. */
 export interface ConfirmedGroup {
   tableKey: string
   rows: DeclaredRelationship[]
+  /**
+   * Confirmed relationships with this table at **either** end — what the table list's pill and the
+   * Entity detail panel count, computed here so the modal can state it rather than leaving a reader
+   * to notice it disagrees with them.
+   *
+   * **Named for what the heading calls it.** A field spelled one way and rendered another is how a
+   * maintainer comes to read the wrong number as the wrong thing; `rows.length` is what the table
+   * *owns* and this is what it is *involved in*, on screen and here alike.
+   *
+   * Always at least `rows.length`, since a relationship a table owns also involves it.
+   */
+  involved: number
+}
+
+/**
+ * How a group's heading states its two numbers.
+ *
+ * **The second clause appears only when the two differ**, so a table that owns every relationship it
+ * is involved in reads as one plain figure — the rule `connectorPickerNote` keeps for a group with
+ * nothing in it, applied to a number that would otherwise repeat itself.
+ *
+ * A function rather than a template written in the panel, for two reasons: `renderToString` splits
+ * `text {expr} text` into separate nodes, so a sentence assembled in JSX cannot be asserted as the
+ * sentence it renders as, and this is the one piece of arithmetic on that heading.
+ */
+export function groupCountLabel(group: ConfirmedGroup): string {
+  const owns = `owns ${group.rows.length}`
+  return group.involved > group.rows.length
+    ? `${owns} · involved in ${group.involved}`
+    : owns
 }
 
 /**
@@ -80,11 +124,18 @@ export function groupConfirmedByOwner(rows: DeclaredRelationship[]): ConfirmedGr
   for (const row of rows) {
     let group = byKey.get(row.fromTableKey)
     if (!group) {
-      group = { tableKey: row.fromTableKey, rows: [] }
+      group = { tableKey: row.fromTableKey, rows: [], involved: 0 }
       byKey.set(row.fromTableKey, group)
       groups.push(group)
     }
     group.rows.push(row)
+  }
+  /* Counted over the whole list rather than the group, because the other end of a relationship this
+     table does not own is exactly what the rail is counting and this group does not hold. */
+  for (const group of groups) {
+    group.involved = rows.filter(
+      (r) => r.fromTableKey === group.tableKey || r.toTableKey === group.tableKey,
+    ).length
   }
   return groups
 }

@@ -6261,3 +6261,45 @@ the shape this file keeps recording.
   `wrongScope`, where a mailbox's **labels** really are settled by the consent and re-running the
   wizard really does change them. Both narrowed to the sentence that was removed. *An absence claim
   has to name the thing that went, not the words it happened to use.*
+
+## Two counts for one table, and neither was wrong (2026-09-07)
+
+Reported from use: the confirmed-relationships modal showed `plan_project_forecast 1` while the table
+list's pill and the Entity detail panel both showed **2** for the same table, on the same screen.
+
+**Nothing was miscounted — they answer two questions.** A group in the modal holds what a table
+*owns*: declarations anchored on its `from` side, which is where `relationshipWrites` stores them.
+The rail and the right panel count every relationship *touching* the table, either end.
+`plan_project_forecast` owned one and appeared at the far end of another, so 1 and 2 are both exact.
+
+**They cannot be reconciled by making them equal**, which is the first thing to try and the wrong
+one. Owned-counts sum to the modal's own total; involved-counts sum to twice it, because every
+relationship involves two tables — so a modal titled *"Relationships confirmed · 4"* whose group
+counts read 2 + 2 + 2 + 1 would contradict its own heading. The fix is to state both and say which is
+which: the heading is `owns 1 · involved in 2`, and the second clause appears only where the two
+differ, so a table owning every relationship it is involved in still reads as one plain figure.
+
+**The two words are the reader's, and the first pair was wrong.** It shipped as
+`declares 1 · touches 2` and the next question back was *"what do you mean by declares, what do you
+mean by touches"* — the label failing at the only job it had, since the whole point of the fix was
+that the number could not carry the distinction alone. `owns` / `involved in` came out of that
+exchange. The interface field was renamed with them (`touching` → `involved`): a field spelled one
+way under a heading rendering another is the same drift one layer down, and it is how a maintainer
+comes to read the wrong number as the wrong thing. *A label a reader has to ask about has not
+removed the ambiguity, it has moved it.*
+
+- **A bare number beside a table name is a claim about that table, and the reader will compare it.**
+  Three surfaces printed one; two meant the same thing and the third did not, with nothing on screen
+  distinguishing them. The label is the whole fix — `owns` and `involved in` cannot be misread as
+  each other, where `1` and `2` invite exactly the comparison that was made. *When two surfaces count
+  different things, the number is not the place to disagree — the word beside it is.*
+- **The group note now names the other surfaces**, so the difference explains itself where it is
+  seen rather than in this file.
+- **`groupCountLabel` is a pure function in `src/data/`** and not a template in the panel, for the
+  reason the rest of that module is: `renderToString` splits `text {expr} text` into separate nodes,
+  so a sentence assembled in JSX cannot be asserted as the sentence it renders as.
+- **The absence is asserted with a presence beside it.** `!/\{group\.rows\.length\}/` alone is
+  satisfied by a heading with no count at all, so `groupCountLabel(group)` is asserted present in the
+  same conjunction — the pairing rule this file already records.
+- **Verified against the reported shape**, not a convenient one: a fixture of the four real
+  relationships, with `plan_project_forecast` owning one and touching two. Seventeen checks.
