@@ -1331,6 +1331,27 @@ derived kind**: `recorded` is somebody's authored row, and calling that one AI i
 analysis*, and the confidence is still labelled by what it is a confidence in — relabelling either
 to match the badge would put a model behind a figure the profiler produced.
 
+**The button that starts the run took the same name, on request, and the label is now declared
+once.** It was *Suggest from schema*; it reads `DERIVED_LABEL` from `src/data/dataModelSuggestions.
+ts`, and so do the badge and the heading its group sits under in the review — three surfaces, one
+spelling, the way `CARDINALITY_LABELS` is one map. A rename reaching two of the three would leave a
+control offering an act by a name the rows beside it no longer use, which nothing would catch.
+**The busy label still narrates the act** (*Reading the schema*) rather than repeating the control's
+name, which is the rule every paced run here keeps.
+
+**What the rename cost was two sentences that then denied a model one line from a control crediting
+one**, and both were fixed the way `suggestionRunNote` already was: the button's tooltip read *"No
+model is involved"* and the review's own note for this kind ended *"No model ran."*. That is the
+panel arguing with itself, and of the two the control is what a reader looks at — so each keeps the
+half with teeth, **no figure is invented**, which is falsifiable on screen where a claim about an
+unseen mechanism is not. The mechanism is still stated where a maintainer reads it, on
+`ProvenanceBadge`'s own `kind`, and `degraded` still says `true`.
+
+**And the button names one of the two kinds a run serves, which is the tension to keep in view.**
+Pressing *Curated by AI* returns the recorded suggestions too, and those are never called AI. What
+keeps that honest is the note above the canvas, which states both counts and gives each its own
+clause — so the *result* draws the distinction the *control* cannot.
+
 The two counts beside it are what let the tab say which kind it served rather than implying one:
 `suggestionRunNote` composes that sentence per run, and a kind with nothing in it contributes no
 clause. It has been through three forms, each retirement on record: *"structural matches only"* was
@@ -1424,6 +1445,22 @@ one thing a real profile is worth and would be invisible — every number would 
 reasonable as the measured ones beside it. Fifth in the family after `rows`, `class` and
 `derivation`, and the same lesson: *a declared type is a claim about every column, not the ones it was
 written against.*
+
+**And "every layer that carries them" turned out to include the suggester, which reads all three.**
+`dataModelSuggestions` was written when every profiled column had been sampled, so an uploaded
+dictionary reaching it failed three ways at once and only one was loud: `values(ca.distinct)` called
+`.toLocaleString()` on `null` and **Curated by AI answered a 400 on every uploaded join** — worded as
+a bad request, over a request that was fine. The two quiet ones each shipped a fabricated
+measurement. `Math.min` over an absent score is **`0`**, which prints `Classifier confidence: 0.00`
+beside the measured ones — a classifier that looked and found nothing is a different claim from one
+that never ran — and the cardinality chain falls through to **`N:N`**, which is not the cautious
+answer among the four but the most committal, asserting that both sides repeat. So `confidence` and
+`cardinality_hint` are **nullable on a suggestion** (never on a stored declaration, which always has
+a real one), the rationale states where a declared column was declared instead of a count it has not
+got, and the row says the cardinality is not derivable and the reviewer sets it on confirm.
+`cardinalityKindFromHint` still answers `1:N` for the value the Select opens on — a Select has to
+open on something — but the pill prints `CARDINALITY_UNDETERMINED`, so nothing reads as derived that
+was not. *When a field becomes nullable, grep every **reader**, not every renderer.*
 
 **What a declared column carries instead is its provenance, in the field that already holds one.**
 `derivation` is "how the classification was reached" — EPA's profiler says `llm`, CAPEX's records
@@ -1537,6 +1574,28 @@ weighed the same way, and a kind with nothing in it draws no heading. **The tile
 one array**, so the number a reader clicks and the rows they then count cannot disagree; and the tile
 is inert at 0, because a count that opened an empty dialog is the button-over-blank-space this repo
 has fixed once already.
+
+**The confirmed count is one too, and it was the question this tab could not answer.** *N
+relationships confirmed* opens the stored declarations — Entity detail shows one table's at a time
+and the canvas draws them as edges with no list behind them, so *what are my nineteen* had no
+surface. `ConfirmedRelationshipsModal` is the twin of the pending one and keeps its rules: inert at
+0, body exported apart from its `Modal`, copy and grouping in `src/data/confirmedRelationships.ts`,
+each heading printing its own group's length rather than the total. **Making the tile a control is
+what forced `confirmedRelationships` to become an array** — it was `relationships.filter(…).length`,
+which is right while a number is only printed and is two answers to one count the moment a list
+stands behind it.
+
+**It is grouped by the *from* table, and that is a fact rather than a display choice.**
+`relationshipWrites` anchors a declaration on the entity its `from` side names — which is why an edit
+that moves that side changes which entity owns it — so every other grouping would put a row under a
+heading that does not hold it. Each heading says so.
+
+**And the row hands over rather than acting.** Editing and deleting a stored declaration already live
+on one dialog that the canvas edge and the Entity detail row both open, so a *Delete* in this list
+would be a second surface for one write. Clicking a row **closes this dialog and opens that one** —
+antd stacks two `Modal`s happily, and a dialog behind a dialog leaves the reader two Closes to find
+their way back through. The pending dialog's *Accept all* has no twin here: there is no bulk act on a
+stored declaration, and deleting nineteen at once would be the least reversible button in the tab.
 
 **Accept all confirms every row, one write at a time, off a freshly read set of entities — and that
 last part is load-bearing rather than tidy.** `relationshipWrites` builds its write from the owning

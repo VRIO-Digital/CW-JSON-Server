@@ -38,13 +38,24 @@ export const CARDINALITY_LABELS: Record<CardinalityKind, string> = {
 export const CARDINALITY_KINDS: CardinalityKind[] = ['1:1', '1:N', 'N:1', 'N:N']
 
 /**
+ * What a *suggested* relationship's cardinality reads as when the run could not derive one.
+ *
+ * The four codes are derived from distinct counts, and a column declared in an uploaded data
+ * dictionary has none. `cardinalityKindFromHint` still answers `1:N` for the value the reviewer
+ * will edit — a Select has to open on something — but the pill must not print one of the four as
+ * though the run had worked it out. It is the `—` a declared column's null% and distinct already
+ * print, said in words because this cell is a shape rather than a figure.
+ */
+export const CARDINALITY_UNDETERMINED = 'not determined — set it on confirm'
+
+/**
  * Reads a stored `cardinality_hint` back into a `CardinalityKind`.
  *
  * The server checks the four codes on the way in, so an unknown value here means a document edited
  * through `/db` — it falls back to `1:N` rather than throwing, because a relationship that will not
  * render at all is a worse answer than one whose advisory hint is the least committal of the four.
  */
-export function cardinalityKindFromHint(hint: string | undefined): CardinalityKind {
+export function cardinalityKindFromHint(hint: string | null | undefined): CardinalityKind {
   const trimmed = (hint ?? '').trim().toUpperCase()
   return (CARDINALITY_KINDS as string[]).includes(trimmed)
     ? (trimmed as CardinalityKind)
@@ -118,7 +129,8 @@ export interface DeclaredRelationship {
   provenance: 'human' | 'derived' | 'recorded'
   /** A suggestion's own reasoning, with the figures it read. Pending only. */
   suggestionReasoning?: string
-  confidence?: number
+  /** `null` where a declared column is one end of the join and no classifier ever scored it. */
+  confidence?: number | null
   /** What a confirmed declaration stands on, in words. */
   evidence?: string
   evidenceKind?: string

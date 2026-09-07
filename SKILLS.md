@@ -962,6 +962,24 @@ modal are handed the same filtered array, so the figure and the row count are on
 | per row acts | **Confirm** (writes it) and **Reject** (drops it from the run — nothing is stored, so nothing is deleted) |
 | footer | **Accept all · N**, with the sentence saying it goes one at a time and stops at the first refusal |
 
+### The *N relationships confirmed* tile
+
+**The twin of the tile above, and it answers the question this tab otherwise could not.** Entity
+detail shows one table's declarations at a time and the canvas draws them as edges with no list
+behind them, so *what are my nineteen* had no surface. Same rules: clickable above zero only, the
+tile and the modal handed the same array, the body exported apart from its `Modal`, copy and
+grouping in `src/data/confirmedRelationships.ts`.
+
+| | what it shows |
+|---|---|
+| per row | the relationship's own name, the **confirmed** pill with its tick, the provenance badge, the join, the cardinality, the evidence in words, and the rationale |
+| grouped by | the **from** table — where `relationshipWrites` anchors the declaration, so the heading is a claim about storage rather than a display choice; each heading prints its own count |
+| per row acts | none — the row **opens the relationship dialog** (closing this one first), so editing and deleting stay on the one dialog the canvas edge already opens |
+| footer | Close, and the sentence saying where the acts are. No *Accept all* twin: there is no bulk act on a stored declaration |
+
+**No confidence on a confirmed row.** A declaration is somebody's decision, and a score under it
+would put a classifier behind a person's judgement — the row states its `evidence` in words instead.
+
 **Accept all re-reads the entities between writes.** `relationshipWrites` reads the owning entity's
 current relationship array, so a loop over one snapshot makes every accept erase the last — and where
 the owner is undeclared, the second accept is refused outright because that branch mints a new anchor
@@ -979,7 +997,11 @@ confirms nothing is an error and never claims a write.
 
 ### Suggested relationships — recorded, then derived
 
-**Suggest from schema** serves two kinds and says which is which.
+**Curated by AI** — the button — serves two kinds and says which is which. It takes the *derived*
+kind's own name, which is a product decision rather than a description of the run: the label is
+declared once as `DERIVED_LABEL` and printed by the badge, the review's heading and this button,
+so the three cannot drift. **The name does not spread to the recorded kind**, which the run also
+serves and which is never called AI — the note above the canvas names both counts for that reason.
 
 | | recorded | derived |
 |---|---|---|
@@ -2847,7 +2869,7 @@ left out with the count stated (a model is a schema; a document corpus has none)
 | column | what it answers |
 |---|---|
 | left rail | which structured source, and which of its profiled tables — with a pill per table stating its confirmed relationships, or its pending ones, or an em dash |
-| centre | four counts (tables · relationships confirmed · suggested, pending · columns described), **Suggest from schema**, **Fit**, then the canvas and its legend |
+| centre | four counts (tables · relationships confirmed · suggested, pending · columns described — the middle two open what they count), **Curated by AI**, **Fit**, then the canvas and its legend |
 | right | the one table in hand, over Overview / Columns / Relationships |
 
 **Selection is one piece of state.** `selectedTableKey` goes to the rail and to the canvas and both
@@ -2890,7 +2912,7 @@ the edge unnamed), and an edit that moves the *from* side writes the **new owner
 old one: a failure between the two duplicates a declaration, which is visible, rather than dropping
 one, which is not.
 
-### Suggest from schema
+### Curated by AI (the suggestions run)
 
 `POST /data-model/suggestions` reads the source's profiled columns and offers the joins a **shared
 identifier column** implies — an identifier on at least one side, since two tables both carrying a

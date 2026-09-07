@@ -6,6 +6,24 @@
  * actually returned and it has to be assertable without driving the tab's own state.
  */
 
+/**
+ * What the **derived** kind is called, everywhere it is named as a label.
+ *
+ * Three surfaces print it — the provenance badge on a row, the heading its group sits under in the
+ * review, and the button that starts the run — and a rename that reached two of the three would
+ * leave one control offering an act by a name the rows beside it no longer use. So it is declared
+ * once, the way `CARDINALITY_LABELS` is: a label a reader matches across surfaces has one spelling
+ * or it has none.
+ *
+ * **The relabel stops at `derived` and must not spread to `recorded`.** That kind is somebody's
+ * authored row, and calling it AI is the mistake `evidence_kind` exists to prevent — which is why
+ * this is one constant rather than a map over both kinds.
+ *
+ * The run note below is deliberately *not* built from it: that is a sentence rather than a label,
+ * and its "curated by AI" reads mid-clause where this reads on a control.
+ */
+export const DERIVED_LABEL = 'Curated by AI'
+
 /** How many of each kind the last run served. `null` before one has been made. */
 export interface SuggestionRunCounts {
   recorded: number

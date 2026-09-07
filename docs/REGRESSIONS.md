@@ -6107,3 +6107,116 @@ it against a live server rather than by reading the code.
   by hand — and it only surfaced because the claim total moved from 16 to 17 stale after an unrelated
   docs edit. `cat -A` is what found it. *Recorded here for the third time: patch scripts with
   backslashes go through the Write tool, never a shell heredoc.*
+
+## An uploaded dictionary crashed the suggester it exists to feed (2026-09-07)
+
+Reported from use: uploading a data dictionary in the Data Catalog and then pressing **Curated by
+AI** answered `400 Cannot read properties of null (reading 'toLocaleString')`. Reproduced end to end
+against a live server — register a BigQuery source, `POST …/schema` with a file declaring two tables
+that share an identifier column, wait for the forced run, `POST /data-model/suggestions`.
+
+**The two halves of the feature disagreed about what a column carries.** A schema upload writes
+`confidence`, `null_pct` and `distinct` as **`null`** — the whole point of the feature is that a
+dictionary states what a column *means* and measures nothing, so there is no figure and none is
+invented. `dataModelSuggestions` was written when every profiled column had been sampled, and reads
+all three: `values(ca.distinct)` calls `.toLocaleString()` on it, which throws.
+
+**So the crash was the loud third of it.** The two quiet ones would have shipped a fabricated
+measurement each:
+
+- `confidence: Math.min(ca.confidence, cb.confidence)` — `Math.min(null, 0.9)` is **`0`**, which
+  prints `Classifier confidence: 0.00` beside the measured scores. A classifier that looked and
+  found nothing is a different claim from one that never ran.
+- `cardinality_hint` falls through its chain to **`N:N`** when neither side is unique, and
+  `unique()` is false for an unmeasured column — so every uploaded join arrived asserting that both
+  sides repeat. `N:N` is not the cautious answer among the four; it is the most committal.
+
+Both are now `null`, the rationale states where a declared column was declared (`derivation` already
+carries `declared in <filename>`) instead of a count it does not have, and the row says the
+cardinality is not derivable and the reviewer sets it on confirm. `cardinalityKindFromHint` still
+answers `1:N` for the value the Select opens on — a Select has to open on something — but the pill
+prints `CARDINALITY_UNDETERMINED` rather than one of the four, so nothing on screen reads as derived
+that was not.
+
+- **This is the declared-column family reaching a fourth layer.** CLAUDE.md already records `rows`,
+  `class`, `derivation` and the three statistics as claims that were true only of the dataset in
+  front of whoever declared them. The dictionary, its payload schema and its cells were all made
+  nullable when the upload landed; the *suggester* reads the same three fields and was not. **When a
+  field becomes nullable, grep every reader of it, not every renderer** — this one is neither a
+  component nor a schema.
+- **`!== undefined` is not a null guard, and two of the three readers already knew that.**
+  `RelationshipModal` and `EntityRelationshipsPanel` guard `confidence` with `!= null`;
+  `PendingSuggestionsPanel` used `!== undefined`, which is true for `null` and would have called
+  `.toFixed` on it. A codebase with two spellings of one guard has one of them wrong.
+- **The compiler had nothing to say about any of it.** `confidence: num` in `client.ts` is a *claim*
+  about what the server sends, and the server is JavaScript — so the mismatch surfaced as a 400 from
+  a `try/catch` in the route, worded as though the request were malformed. The same shape as
+  `rows: num` refusing every CAPEX browse.
+- **Found by running it, not by reading it.** The path needs a registered source, an applied upload,
+  a completed forced profiling run and then the suggester — four steps, none of which a unit-level
+  read of `dataModelSuggestions` reaches. Restoring `db.CAPEX.json` from a copy afterwards is part of
+  the procedure: `POST …/schema` commits.
+
+## Renaming the button to "Curated by AI" (2026-09-07)
+
+*Suggest from schema* became **Curated by AI** on request, taking the derived kind's own badge name.
+Two things had to move with it, and neither was the rename.
+
+- **The label is declared once now.** Three surfaces print it — the badge on a row, the heading its
+  group sits under in the review, the button that starts the run — and it was two literals before
+  the button made it three. `DERIVED_LABEL` in `src/data/dataModelSuggestions.ts` is the one
+  declaration, the way `CARDINALITY_LABELS` is one map. A rename reaching two of three leaves a
+  control offering an act by a name the rows beside it no longer use, and nothing catches it: the
+  strings are unrelated as far as the compiler is concerned. The empty-state copy names the button
+  by interpolating the constant for the same reason — it used to spell the old name out.
+- **Two sentences were left denying a model one line from a control crediting one.** The button's
+  tooltip read *"No model is involved"* and `pendingSuggestionsCopy.kindNote.derived` ended *"No
+  model ran."* — the second already sat directly under the *Curated by AI* heading before this
+  change, so it was a live contradiction the rename only made harder to miss. This is the third time
+  the same form has been retired: `suggestionRunNote` went through it when the badge was renamed,
+  and the reasoning is on record — *a note denying a model one line under a badge crediting one is a
+  panel arguing with itself, and of the two the badge is what a reader looks at.* Each keeps the
+  falsifiable half instead, **no figure is invented**, and the mechanism stays stated where a
+  maintainer reads it (`ProvenanceBadge`'s `kind`) with `degraded: true` still the machine-readable
+  answer.
+- **The button names one of the two kinds the run serves, and that is a real cost, stated.** Pressing
+  it returns the recorded suggestions as well, and calling those AI is the mistake `evidence_kind`
+  exists to prevent. What carries the distinction is the run note above the canvas, which states both
+  counts in their own clauses — the *result* draws the line the *control* cannot.
+- **And the claim guarding it had to move before it could read what it needed.** Its new conjuncts
+  read `pendingData` and `pendingPanel`, which were declared 160 lines *below* it — a `const` in the
+  temporal dead zone, which takes the whole run and prints no summary. Moved up beside their
+  siblings. The file is one long script and definition order is execution order; this is the second
+  entry recording it.
+
+## The confirmed count was a number with no list behind it (2026-09-07)
+
+Asked for directly: *"if we click on the 19 count how we are showing the suggestion pending right,
+that we need to show relationships confirmed in the modal."* The pending tile had been a control
+since the review landed; the confirmed tile printed the same kind of figure and opened nothing, so
+the one question this tab could not answer was **what are my nineteen** — Entity detail shows one
+table's declarations at a time, and the canvas draws them as edges with no list behind them.
+
+- **Making a tile a control is what forces its count to become an array.** `confirmedCount` was
+  `relationships.filter((r) => r.status === 'confirmed').length` — correct while the number was only
+  printed, and the wrong shape the moment a list stood behind it, because the modal would then have
+  filtered a second time and there would be **two answers to one count**. The pending tile already
+  records this in a comment; the fix is the same memoised array feeding both readers. *A `.length` is
+  safe exactly until somebody can click it.*
+- **Grouped by the `from` table, which is a fact rather than a display choice.** A relationship
+  touches two tables, so "grouped by table" is ambiguous until it says which — and the answer is not
+  a preference: `relationshipWrites` anchors a declaration on the entity its `from` side names, which
+  is why an edit that moves that side changes which entity owns it. Grouping by the other end would
+  put a row under a heading that does not hold it. The heading says so in its own note.
+- **The row hands over instead of growing acts.** Editing and deleting a stored declaration live on
+  one dialog that the canvas edge and the Entity detail row both open; a *Delete* in this list would
+  be a second surface for one write. Clicking a row **closes this dialog before opening that one** —
+  antd stacks two `Modal`s happily, and a dialog behind a dialog leaves the reader two Closes to find
+  their way back through, with the row they came from hidden behind what they are reading.
+- **No confidence on a confirmed row**, unlike the pending twin. A declaration is somebody's
+  decision; a score under it would put a classifier behind a person's judgement. It states its
+  `evidence` in words.
+- **The absence assertions were paired with presence ones in the same run.** "No Delete in the list"
+  and "no Confirm/Reject" pass just as well over a panel that rendered nothing — so the smoke test
+  asserts the render had all three rows, both join ends, every heading and every cardinality first.
+  Twenty checks, `renderToString` over the exported body, scratch file deleted after.

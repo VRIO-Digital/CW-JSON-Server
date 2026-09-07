@@ -101,6 +101,38 @@
               "columns": 25,
               "size_gb": 0,
               "partitioned": false
+            },
+            {
+              "table_id": "cw_project_master",
+              "label": "Capital projects",
+              "grain": "one row per capital project",
+              "type": "TABLE",
+              "rows": null,
+              "columns": 8
+            },
+            {
+              "table_id": "cw_program_master",
+              "label": "Capital programmes",
+              "grain": "one row per capital programme",
+              "type": "TABLE",
+              "rows": null,
+              "columns": 4
+            },
+            {
+              "table_id": "cw_vendor_master",
+              "label": "Delivery contractors",
+              "grain": "one row per contracting vendor",
+              "type": "TABLE",
+              "rows": null,
+              "columns": 3
+            },
+            {
+              "table_id": "cw_project_gate_log",
+              "label": "Capital gate decisions",
+              "grain": "one row per project and gate decision",
+              "type": "TABLE",
+              "rows": null,
+              "columns": 6
             }
           ]
         }
@@ -10372,6 +10404,266 @@
         "null_pct": 61.1,
         "distinct": 264
       }
+    ],
+    "epa_hazwaste.cw_project_master": [
+      {
+        "column_id": "project_id",
+        "label": "PROJECT ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The capital project key. Joins to cw_project_gate_log.project_id.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "program_id",
+        "label": "PROGRAM ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The programme this project is funded under. Joins to cw_program_master.program_id.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "vendor_id",
+        "label": "VENDOR ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The primary delivery contractor. Joins to cw_vendor_master.vendor_id.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "project_name",
+        "label": "PROJECT NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "What the project is called on a filing and in the portfolio register.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "lifecycle_phase",
+        "label": "LIFECYCLE PHASE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "Where the project sits in the stage-gate sequence: Define, Execute, Commission, Closed.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "authorized_amount",
+        "label": "AUTHORIZED AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "The approved capital envelope for this project, in dollars.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "in_service_date",
+        "label": "IN SERVICE DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "When the asset is expected to go into service. No class stated here so it is read from the type.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "is_active",
+        "label": "IS ACTIVE",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the project is still open for spend. Derived class: flag.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "epa_hazwaste.cw_program_master": [
+      {
+        "column_id": "program_id",
+        "label": "PROGRAM ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The programme key, as the budget cube stores it.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "program_name",
+        "label": "PROGRAM NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "The programme's name - Water Treatment Renewal, Distribution Mains, and so on.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "approved_envelope",
+        "label": "APPROVED ENVELOPE",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "The programme's total approved capital envelope across its projects.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "portfolio_owner_email",
+        "label": "PORTFOLIO OWNER EMAIL",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who owns the programme. Marked PII, so it answers the PII chip in the dictionary.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "epa_hazwaste.cw_vendor_master": [
+      {
+        "column_id": "vendor_id",
+        "label": "VENDOR ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The vendor key as procurement issues it.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "vendor_name",
+        "label": "VENDOR NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "The contracting entity's registered name.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "vendor_region",
+        "label": "VENDOR REGION",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The operating region the vendor is contracted to work in.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "epa_hazwaste.cw_project_gate_log": [
+      {
+        "column_id": "gate_id",
+        "label": "GATE ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The gate decision key.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "project_id",
+        "label": "PROJECT ID",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The project the decision was made against. Declared as an identifier here, which is what lets the tab suggest the join.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "gate_number",
+        "label": "GATE NUMBER",
+        "type": "INT64",
+        "class": "measure",
+        "description": "Which gate in the stage sequence this decision closes. Derived class: measure.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "decided_on",
+        "label": "DECIDED ON",
+        "type": "DATE",
+        "class": "date",
+        "description": "When the gate was decided. Derived class: date.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "released_amount",
+        "label": "RELEASED AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "What the gate released against the envelope, in dollars.",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "gate_notes",
+        "label": "GATE NOTES",
+        "type": null,
+        "class": "text",
+        "description": "",
+        "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
     ]
   },
   "document_extractions": {
@@ -17053,18 +17345,6 @@
           {
             "target_table_key": "epa_hazwaste.RCRA_Compliance_Summary",
             "from_columns": [
-              "target_facility"
-            ],
-            "to_columns": [
-              "target_facility"
-            ],
-            "relationship_type": "LINKED_BY_TARGET_FACILITY",
-            "cardinality_hint": "N:1",
-            "rationale": "Both tables carry target_facility, classified as an identifier — RCRA_compliance holds 49 distinct values over 364 rows, RCRA_Compliance_Summary holds 49 distinct values over 49 rows."
-          },
-          {
-            "target_table_key": "epa_hazwaste.RCRA_Compliance_Summary",
-            "from_columns": [
               "pgm_sys_id"
             ],
             "to_columns": [
@@ -17073,10 +17353,22 @@
             "relationship_type": "LINKED_BY_PGM_SYS_ID",
             "cardinality_hint": "N:1",
             "rationale": "Both tables carry pgm_sys_id, classified as an identifier — RCRA_compliance holds 49 distinct values over 364 rows, RCRA_Compliance_Summary holds 49 distinct values over 49 rows."
+          },
+          {
+            "target_table_key": "epa_hazwaste.RCRA_Compliance_Summary",
+            "from_columns": [
+              "target_facility"
+            ],
+            "to_columns": [
+              "target_facility"
+            ],
+            "relationship_type": "LINKED_BY_TARGET_FACILITY",
+            "cardinality_hint": "N:1",
+            "rationale": "Both tables carry target_facility, classified as an identifier — RCRA_compliance holds 49 distinct values over 364 rows, RCRA_Compliance_Summary holds 49 distinct values over 49 rows."
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-04T14:01:52.944Z"
+        "updated_at": "2026-09-07T07:55:00.301Z"
       },
       {
         "entity_id": "ent-epa-hazwaste-e-manifest-all-mtmzxrp03",
@@ -17116,18 +17408,6 @@
           {
             "target_table_key": "epa_hazwaste.FRS_Facility_profile",
             "from_columns": [
-              "pgm_sys_id"
-            ],
-            "to_columns": [
-              "pgm_sys_id"
-            ],
-            "relationship_type": "LINKED_BY_PGM_SYS_ID",
-            "cardinality_hint": "1:1",
-            "rationale": "Both tables carry pgm_sys_id, classified as an identifier — RCRA_Compliance_Summary holds 49 distinct values over 49 rows, FRS_Facility_profile holds 49 distinct values over 49 rows."
-          },
-          {
-            "target_table_key": "epa_hazwaste.FRS_Facility_profile",
-            "from_columns": [
               "target_facility"
             ],
             "to_columns": [
@@ -17136,10 +17416,22 @@
             "relationship_type": "LINKED_BY_TARGET_FACILITY",
             "cardinality_hint": "1:1",
             "rationale": "Both tables carry target_facility, classified as an identifier — RCRA_Compliance_Summary holds 49 distinct values over 49 rows, FRS_Facility_profile holds 49 distinct values over 49 rows."
+          },
+          {
+            "target_table_key": "epa_hazwaste.FRS_Facility_profile",
+            "from_columns": [
+              "pgm_sys_id"
+            ],
+            "to_columns": [
+              "pgm_sys_id"
+            ],
+            "relationship_type": "LINKED_BY_PGM_SYS_ID",
+            "cardinality_hint": "1:1",
+            "rationale": "Both tables carry pgm_sys_id, classified as an identifier — RCRA_Compliance_Summary holds 49 distinct values over 49 rows, FRS_Facility_profile holds 49 distinct values over 49 rows."
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-04T14:01:53.893Z"
+        "updated_at": "2026-09-07T07:34:15.927Z"
       },
       {
         "entity_id": "ent-epa-hazwaste-frs-facility-profile-mtn00f2i5",
@@ -17238,6 +17530,18 @@
           {
             "target_table_key": "epa_hazwaste.e_manifest_all",
             "from_columns": [
+              "updated_date"
+            ],
+            "to_columns": [
+              "updated_date"
+            ],
+            "relationship_type": "HAS_MANIFEST_DETAIL",
+            "cardinality_hint": "1:1",
+            "rationale": "The tracking number is unique on both sides, so the enriched view is one row per manifest rather than a fan-out of them. Worth declaring because the generator, receiver and transporter profiles a question needs live on the enriched side while the shipment itself is on this one."
+          },
+          {
+            "target_table_key": "epa_hazwaste.e_manifest_all",
+            "from_columns": [
               "manifest_tracking_number"
             ],
             "to_columns": [
@@ -17249,7 +17553,92 @@
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-04T14:01:58.460Z"
+        "updated_at": "2026-09-07T06:45:28.192Z"
+      },
+      {
+        "entity_id": "ent-epa-hazwaste-cw-program-master-mtqwj7532",
+        "table_key": "epa_hazwaste.cw_program_master",
+        "entity_name": "cw_program_master",
+        "description": "Entity for cw_program_master, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-09-07T07:11:01.863Z"
+      },
+      {
+        "entity_id": "ent-epa-hazwaste-cw-project-master-mtqwj76k3",
+        "table_key": "epa_hazwaste.cw_project_master",
+        "entity_name": "cw_project_master",
+        "description": "Entity for cw_project_master, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [
+          {
+            "target_table_key": "epa_hazwaste.cw_vendor_master",
+            "from_columns": [
+              "vendor_id"
+            ],
+            "to_columns": [
+              "vendor_id"
+            ],
+            "relationship_type": "LINKED_BY_VENDOR_ID",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry vendor_id, classified as an identifier — cw_project_master states it in a dictionary (declared in capex-data-dictionary.csv), so nothing is sampled, cw_vendor_master states it in a dictionary (declared in capex-data-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+          },
+          {
+            "target_table_key": "epa_hazwaste.cw_project_gate_log",
+            "from_columns": [
+              "project_id"
+            ],
+            "to_columns": [
+              "project_id"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_ID",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry project_id, classified as an identifier — cw_project_master states it in a dictionary (declared in capex-data-dictionary.csv), so nothing is sampled, cw_project_gate_log states it in a dictionary (declared in capex-data-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+          },
+          {
+            "target_table_key": "epa_hazwaste.cw_program_master",
+            "from_columns": [
+              "program_id"
+            ],
+            "to_columns": [
+              "program_id"
+            ],
+            "relationship_type": "LINKED_BY_PROGRAM_ID",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry program_id, classified as an identifier — cw_project_master states it in a dictionary (declared in capex-data-dictionary.csv), so nothing is sampled, cw_program_master states it in a dictionary (declared in capex-data-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+          }
+        ],
+        "cross_attributes": [],
+        "updated_at": "2026-09-07T07:41:32.844Z"
+      },
+      {
+        "entity_id": "ent-epa-hazwaste-cw-vendor-master-mtqwj8gg4",
+        "table_key": "epa_hazwaste.cw_vendor_master",
+        "entity_name": "cw_vendor_master",
+        "description": "Entity for cw_vendor_master, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-09-07T07:11:03.568Z"
+      },
+      {
+        "entity_id": "ent-epa-hazwaste-cw-project-gate-log-mtqwj8kx5",
+        "table_key": "epa_hazwaste.cw_project_gate_log",
+        "entity_name": "cw_project_gate_log",
+        "description": "Entity for cw_project_gate_log, created to anchor a declared relationship.",
+        "business_purpose": null,
+        "grain_description": null,
+        "attributes": [],
+        "relationships": [],
+        "cross_attributes": [],
+        "updated_at": "2026-09-07T07:11:03.729Z"
       }
     ],
     "suggestions": [

@@ -945,6 +945,13 @@ const entityCanvasSrc = read('frontend/src/components/catalog/EntityCanvas.tsx')
 const suggestionsData = read('frontend/src/data/dataModelSuggestions.ts')
 const relsData = read('frontend/src/data/dataModelRelationships.ts')
 const marksSrc = read('frontend/src/components/catalog/ModelMarks.tsx')
+/* Read here, beside their siblings, rather than beside the accept-all claim that used to own
+   them: the Curated-by-AI claim above reads both, and this file is one long script where
+   definition order is execution order. */
+const pendingData = read('frontend/src/data/pendingSuggestions.ts')
+const pendingPanel = read('frontend/src/components/catalog/PendingSuggestionsPanel.tsx')
+const confirmedData = read('frontend/src/data/confirmedRelationships.ts')
+const confirmedPanel = read('frontend/src/components/catalog/ConfirmedRelationshipsPanel.tsx')
 
 /*
  * **A declaration persists and a suggestion does not**, and every layer of that has to hold at once.
@@ -1055,7 +1062,14 @@ expect(
   'a derived suggestion is a column scan, labelled Curated by AI over a payload that still says no model ran',
   /degraded: true,/.test(server) &&
     /const dataModelSuggestions = \(source\) => \{/.test(server) &&
-    /confidence: Math\.min\(ca\.confidence, cb\.confidence\)/.test(server) &&
+    /*
+     * The confidence is still the classifier's own score for the weaker of the two columns —
+     * **where there is one**. A column declared in an uploaded dictionary was never scored, and
+     * `Math.min` over its `null` is `0`, which prints as a measurement; the guard is asserted by the
+     * declared-column claim above, and what this one keeps is that a *measured* pair still reports
+     * the profiler's own number rather than anything composed here.
+     */
+    /\? Math\.min\(ca\.confidence, cb\.confidence\)\r?\n\s*: null,/.test(server) &&
     /* Named after the column it matched on: three identical names in one list is three suggestions a
        reviewer cannot tell apart. */
     /relationship_type: `LINKED_BY_\$\{upper\(ca\.column_id\)\}`/.test(server) &&
@@ -1067,7 +1081,31 @@ expect(
      * run, so it is composed per run by `suggestionRunNote` — asserted by the claim below this one.
      * What stays here is the badge, and the mechanism stated beside it.
      */
-    /derived: \{ short: 'Curated by AI', long: 'Curated by AI' \}/.test(marksSrc) &&
+    /*
+     * **One declaration, three surfaces.** The label is printed by the badge on a row, the heading
+     * its group sits under in the review, and the button that starts the run — so it is a constant
+     * in `src/data/` rather than three literals, the way `CARDINALITY_LABELS` is. A rename reaching
+     * two of the three would leave one control offering an act by a name the rows beside it no
+     * longer use, which is a drift no compiler sees.
+     */
+    /export const DERIVED_LABEL = 'Curated by AI'/.test(suggestionsData) &&
+    /derived: \{ short: DERIVED_LABEL, long: DERIVED_LABEL \}/.test(marksSrc) &&
+    /\[DERIVED_LABEL, COPY\.kindNote\.derived, derived\]/.test(pendingPanel) &&
+    /* The button that starts the run reads it too, and its busy label still narrates the act. */
+    /\{suggesting \? 'Reading the schema' : DERIVED_LABEL\}/.test(dataModelTab) &&
+    /*
+     * **And the copy around it stopped denying a model**, which is what the rename made necessary:
+     * the tooltip read "No model is involved" and the review's own kind-note ended "No model ran.",
+     * both one line from a control now crediting one. `suggestionRunNote` was narrowed away from
+     * that exact form for that exact reason, so the guarantee with teeth is what all three carry.
+     * The mechanism is still stated on `ProvenanceBadge`'s `kind`, and `degraded` still says `true`.
+     */
+    !/No model is involved/.test(codeOnly(dataModelTab)) &&
+    !/No model ran\./.test(codeOnly(pendingData)) &&
+    /No figure is invented to fill a field/.test(codeOnly(dataModelTab)) &&
+    /No figure here is invented/.test(codeOnly(pendingData)) &&
+    /* Named by the constant, so the empty state cannot send a reader to a button by its old name. */
+    /Run \$\{DERIVED_LABEL\} to look for more/.test(pendingData) &&
     /*
      * The label is a claim about the agent and nothing else: the *evidence* is still called what it
      * is, and the confidence is still labelled by what it is a confidence in. Relabelling either to
@@ -1181,8 +1219,6 @@ expect(
  * stops at the fourth of nine says so in both directions and keeps the server's own wording. The
  * panel body is exported apart from its `Modal` because a portal is invisible to `renderToString`.
  */
-const pendingData = read('frontend/src/data/pendingSuggestions.ts')
-const pendingPanel = read('frontend/src/components/catalog/PendingSuggestionsPanel.tsx')
 const acceptAllRun =
   /const acceptAllPending = async \(\) => \{[\s\S]*?\n  \}/.exec(dataModelTab)?.[0] ?? ''
 expect(
@@ -1222,6 +1258,102 @@ expect(
     /pendingSuggestionsCopy as COPY,/.test(pendingPanel) &&
     /stops at the first refusal/.test(pendingData),
   'a loop over one snapshot of the entities makes every accept erase the last',
+)
+
+/*
+ * **Both counts in the strip are controls, and each opens what it counts.**
+ *
+ * The pending tile has been one since the review landed; the confirmed tile printed the same kind of
+ * number and opened nothing, so the question a reader could not answer from this tab was *what are
+ * my nineteen* — Entity detail shows one table's at a time and the canvas draws edges with no list
+ * behind them.
+ *
+ * The hazard is the one the pending tile already recorded, now in two places: a tile that filters
+ * and a modal that filters again are **two answers to one count**. So `confirmedRelationships` is a
+ * memoised array and both read it — the `.length` it replaced was correct only while nothing stood
+ * behind the number.
+ */
+expect(
+  'the confirmed tile opens the list it counts, off the one array it counts',
+  /* One array, both readers — never a second filter inside the modal. */
+  /const confirmedRelationships = useMemo\(\r?\n\s*\(\) => relationships\.filter\(\(r\) => r\.status === 'confirmed'\),/.test(
+    dataModelTab,
+  ) &&
+    /const confirmedCount = confirmedRelationships\.length/.test(dataModelTab) &&
+    /rows=\{confirmedRelationships\}/.test(dataModelTab) &&
+    /* Inert at 0, exactly as the pending tile is. */
+    /confirmedCount > 0 \? \(\) => setConfirmedOpen\(true\) : undefined/.test(dataModelTab) &&
+    /open=\{confirmedOpen && confirmedCount > 0\}/.test(dataModelTab) &&
+    /*
+     * **A reading surface that hands over.** A row opens the relationship dialog rather than growing
+     * its own Delete — editing and deleting a stored declaration stay on the one dialog the canvas
+     * edge and the Entity detail row already open, and a second write path is the arrangement this
+     * repo refuses from the report audience down. The list closes first, so no dialog stacks.
+     */
+    /setConfirmedOpen\(false\)\r?\n\s*openRelationship\(id\)/.test(dataModelTab) &&
+    !/onDelete/.test(codeOnly(confirmedPanel)) &&
+    /* The body is reachable by a render test; the dialog around it is not. */
+    /export function ConfirmedRelationshipsPanel/.test(confirmedPanel) &&
+    /export default function ConfirmedRelationshipsModal/.test(confirmedPanel) &&
+    /* Its copy and its one decidable rule live in src/data, for the reason the pending twin's do. */
+    /confirmedRelationshipsCopy as COPY,/.test(confirmedPanel) &&
+    /export function groupConfirmedByOwner/.test(confirmedData) &&
+    /*
+     * Grouped on the **from** side, which is where `relationshipWrites` anchors a declaration — the
+     * one grouping that says something true about storage rather than picking an end. Keyed on the
+     * field rather than the word "owner": this module's own prose says "owning" throughout.
+     */
+    /byKey\.get\(row\.fromTableKey\)/.test(codeOnly(confirmedData)) &&
+    /* And the heading prints its own group's length, never the total. */
+    /\{group\.rows\.length\}/.test(confirmedPanel),
+  'a tile that filters and a modal that filters again are two answers to one count',
+)
+
+/*
+ * **A declared column reaches the suggester, and it has no figures for the suggester to read.**
+ *
+ * An uploaded data dictionary writes `confidence`, `null_pct` and `distinct` as `null` — it states
+ * what a column *means* and samples nothing — and `dataModelSuggestions` reads all three. Every one
+ * of the three failed differently and only one of them was loud: `values(ca.distinct)` threw, so
+ * "Curated by AI" over an uploaded dictionary answered a 400 worded as a bad request; `Math.min`
+ * over an absent score is `0`, which prints `0.00` and reads as a classifier that found nothing;
+ * and the cardinality chain falls through to `N:N`, which is the most committal of the four rather
+ * than the cautious one.
+ *
+ * So this asserts the *absences*, per layer, and the presence of what replaced them — because
+ * "no `.toLocaleString` on a null" is satisfied just as well by a suggester that stopped suggesting.
+ */
+expect(
+  'an uploaded dictionary suggests joins without inventing the statistics it does not carry',
+  /* The one test of measured-ness, so three readers cannot disagree about what a null distinct is. */
+  /const measured = \(column\) => typeof column\.distinct === 'number'/.test(server) &&
+    /measured\(column\) && typeof rows === 'number'/.test(server) &&
+    /* The rationale states where a declared column was declared instead of a count it has not got. */
+    /so nothing is sampled/.test(server) &&
+    /\$\{side\(a, ca\)\}, \$\{side\(b, cb\)\}/.test(server) &&
+    /* Null rather than N:N, and null rather than Math.min's zero. */
+    /!measured\(ca\) && !measured\(cb\)\r?\n?\s*\? null/.test(server) &&
+    /* The whole expression, not the guard alone: dropping the `: null` leaves the typeof test in
+       place and the fabricated zero back, which a needle on the guard would pass straight over. */
+    /typeof ca\.confidence === 'number' && typeof cb\.confidence === 'number'\r?\n\s*\? Math\.min\(ca\.confidence, cb\.confidence\)\r?\n\s*: null,/.test(
+      server,
+    ) &&
+    /* Nullable at the boundary too, or the client refuses what the server correctly sends. */
+    /cardinality_hint: nullable\(str\),/.test(client) &&
+    /confidence: nullable\(num\),/.test(client) &&
+    /*
+     * `!== undefined` is true for `null`, so the guard that read it would have called `.toFixed` on
+     * nothing. Keyed on the interpolated render rather than the identifier: this file's own comment
+     * names the spelling it replaced.
+     */
+    !/confidence !== undefined/.test(codeOnly(pendingPanel)) &&
+    /row\.confidence != null/.test(codeOnly(pendingPanel)) &&
+    /* The pill says the run derived nothing; the Select still opens on one of the four. */
+    /export const CARDINALITY_UNDETERMINED/.test(dataModelRels) &&
+    /r\.cardinality_hint === null\r?\n?\s*\? CARDINALITY_UNDETERMINED/.test(codeOnly(dataModelTab)) &&
+    /* And it still suggests: the absences above are satisfied by a run that offers nothing. */
+    /relationship_type: `LINKED_BY_\$\{upper\(ca\.column_id\)\}`/.test(server),
+  'a declared column has no distinct count, no classifier score and no derivable cardinality — and none of the three may be invented',
 )
 
 /* ---------------- recorded relationship suggestions ---------------- */

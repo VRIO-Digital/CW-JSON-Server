@@ -8647,12 +8647,35 @@ const dataModelSuggestions = (source) => {
     suggested_grain_description: t.grain || null,
   }))
 
+  /**
+   * Whether this column was **measured**, which is a different question from whether it exists.
+   *
+   * A profiling run samples: it scores the class, counts the distinct values and the nulls. A
+   * column *declared* in an uploaded data dictionary states what it means and samples nothing, so
+   * `confidence`, `null_pct` and `distinct` are all `null` — the same family as `rows`, `class` and
+   * `derivation`, reaching this suggester rather than the dictionary. Every figure below is read
+   * off a profile, so each one has to ask this first: a declared column has no figure to read, and
+   * the whole rule here is that nothing is invented to fill a field.
+   */
+  const measured = (column) => typeof column.distinct === 'number'
+
   /** A column reaches its row count in distinct values, so one row of this table is one value. */
   const unique = (column, rows) =>
-    typeof rows === 'number' && rows > 0 && column.distinct >= rows
+    measured(column) && typeof rows === 'number' && rows > 0 && column.distinct >= rows
   const over = (rows) =>
     typeof rows === 'number' ? ` over ${rows.toLocaleString('en-US')} rows` : ''
   const values = (n) => `${n.toLocaleString('en-US')} distinct value${n === 1 ? '' : 's'}`
+  /**
+   * What one side of the join contributes to the rationale.
+   *
+   * A measured column states its counts. A declared one states **where it was declared** — which is
+   * what `derivation` already carries (`declared in <filename>`) — because "0 distinct values" and
+   * "no distinct count" are different facts and only the second is true of it.
+   */
+  const side = (table, column) =>
+    measured(column)
+      ? `${table.table_id} holds ${values(column.distinct)}${over(table.rows)}`
+      : `${table.table_id} states it in a dictionary (${column.derivation}), so nothing is sampled`
 
   const relationships = []
   for (let i = 0; i < considered.length; i += 1) {
@@ -8668,7 +8691,23 @@ const dataModelSuggestions = (source) => {
 
         const aUnique = unique(ca, a.rows)
         const bUnique = unique(cb, b.rows)
-        const hint = aUnique && bUnique ? '1:1' : aUnique ? '1:N' : bUnique ? 'N:1' : 'N:N'
+        /*
+         * **Null rather than N:N when neither side was measured.** The cardinality is derived from
+         * whether each side's distinct count reaches its row count, so with no counts there is
+         * nothing to derive it from — and `N:N` is not the cautious answer, it is a claim that both
+         * sides repeat. A reviewer sets it on confirm; the row says so rather than arriving with a
+         * shape somebody has to notice was guessed.
+         */
+        const hint =
+          !measured(ca) && !measured(cb)
+            ? null
+            : aUnique && bUnique
+              ? '1:1'
+              : aUnique
+                ? '1:N'
+                : bUnique
+                  ? 'N:1'
+                  : 'N:N'
         relationships.push({
           from_table_key: a.table_key,
           from_column: ca.column_id,
@@ -8689,9 +8728,22 @@ const dataModelSuggestions = (source) => {
           cardinality_hint: hint,
           rationale:
             `Both tables carry ${ca.column_id}, classified as an identifier — ` +
-            `${a.table_id} holds ${values(ca.distinct)}${over(a.rows)}, ` +
-            `${b.table_id} holds ${values(cb.distinct)}${over(b.rows)}.`,
-          confidence: Math.min(ca.confidence, cb.confidence),
+            `${side(a, ca)}, ${side(b, cb)}.` +
+            (hint === null
+              ? ' Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.'
+              : ''),
+          /*
+           * **Null when either side is declared, never `Math.min`'s zero.** This is the classifier's
+           * confidence in the weaker of the two columns, and a declared column has no classifier
+           * score — `Math.min(null, 0.9)` is `0`, which prints as `0.00` beside the measured scores
+           * and reads as a classifier that looked and found nothing. `confidenceLabel` already tells
+           * a reader which kind of confidence they are looking at; this is the case where there is
+           * no confidence to label.
+           */
+          confidence:
+            typeof ca.confidence === 'number' && typeof cb.confidence === 'number'
+              ? Math.min(ca.confidence, cb.confidence)
+              : null,
           evidence_kind: 'structural',
         })
       }

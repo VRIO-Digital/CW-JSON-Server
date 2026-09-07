@@ -8,6 +8,7 @@
  */
 
 import type { DeclaredRelationship } from './dataModelRelationships'
+import { DERIVED_LABEL } from './dataModelSuggestions'
 
 export const pendingSuggestionsCopy = {
   title: 'Suggested relationships, pending review',
@@ -32,11 +33,21 @@ export const pendingSuggestionsCopy = {
   kindNote: {
     recorded:
       'Written into this dataset — carries the relationship’s own name, the alternatives somebody weighed, and their reasoning.',
+    /*
+     * **The guarantee rather than a denial, because this note sits under the `Curated by AI`
+     * heading.** It ended "No model ran.", which is the form `suggestionRunNote` was narrowed
+     * away from when that badge was renamed: a sentence denying a model directly under a heading
+     * crediting one is the panel arguing with itself, and of the two the heading is what a reader
+     * looks at. The mechanism is still stated on `ProvenanceBadge`'s own `kind`, and the payload's
+     * `degraded` still says `true`.
+     */
     derived:
-      'A shared identifier column this server matched, with the distinct counts the profiler recorded. No model ran.',
+      'A shared identifier column this server matched, with the distinct counts the profiler recorded. No figure here is invented.',
   },
   /** Reachable only if the tile is opened with nothing pending, which the tile does not allow. */
-  empty: 'Nothing is pending. Run Suggest from schema to look for more.',
+  /* Names the control by the constant it prints, so a relabel cannot leave this sentence telling
+     a reader to press a button that is no longer called that. */
+  empty: `Nothing is pending. Run ${DERIVED_LABEL} to look for more.`,
 } as const
 
 /**

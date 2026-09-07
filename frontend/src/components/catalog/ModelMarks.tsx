@@ -1,5 +1,6 @@
 import { CheckOutlined, ThunderboltFilled } from '@ant-design/icons'
 import type { ReactNode } from 'react'
+import { DERIVED_LABEL } from '../../data/dataModelSuggestions'
 import { MT } from '../../data/dataModelTokens'
 
 /**
@@ -48,7 +49,7 @@ const PROVENANCE_WORDS: Record<
   { short: string; long: string }
 > = {
   human: { short: 'You', long: 'Confirmed by you' },
-  derived: { short: 'Curated by AI', long: 'Curated by AI' },
+  derived: { short: DERIVED_LABEL, long: DERIVED_LABEL },
   recorded: { short: 'Recorded', long: 'Recorded in this dataset' },
 }
 

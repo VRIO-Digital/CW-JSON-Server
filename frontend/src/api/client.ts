@@ -4333,7 +4333,16 @@ export interface ModelRelationshipSuggestion {
   to_column: string
   relationship_type: string
   relationship_type_alternatives: string[]
-  cardinality_hint: string
+  /**
+   * `1:1` | `1:N` | `N:1` | `N:N`, or **`null` where it could not be derived**.
+   *
+   * The cardinality comes from whether each side's distinct count reaches its row count, and a
+   * column *declared* in an uploaded data dictionary has no distinct count — a dictionary states
+   * what a column means and samples nothing. `N:N` in that case would not be the cautious answer,
+   * it would be a claim that both sides repeat, so the run says it has none and the reviewer sets
+   * it on confirm.
+   */
+  cardinality_hint: string | null
   rationale: string
   /**
    * How sure the suggestion is — and **the two kinds mean different things by it**, which is why
@@ -4341,8 +4350,11 @@ export interface ModelRelationshipSuggestion {
    *
    * A *derived* suggestion's is the classifier's own confidence in the weaker of the two columns it
    * matched on. A *recorded* one's is a stated opinion, written down beside the suggestion.
+   *
+   * **`null` where a declared column is one of the two**: a classifier never scored it, and
+   * `Math.min` over an absent score is `0.00`, which reads as a measurement rather than its absence.
    */
-  confidence: number
+  confidence: number | null
   /**
    * What the suggestion stands on: `recorded` or `structural`.
    *
@@ -4435,9 +4447,9 @@ const MODEL_SUGGESTIONS_PAYLOAD = shape({
       to_column: str,
       relationship_type: str,
       relationship_type_alternatives: arrayOf(str),
-      cardinality_hint: str,
+      cardinality_hint: nullable(str),
       rationale: str,
-      confidence: num,
+      confidence: nullable(num),
       evidence_kind: str,
     }),
   ),

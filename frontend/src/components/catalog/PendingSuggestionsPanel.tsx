@@ -1,5 +1,6 @@
 import { Alert, Button, Empty, Modal, Space, Tooltip } from 'antd'
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons'
+import { DERIVED_LABEL } from '../../data/dataModelSuggestions'
 import { MT } from '../../data/dataModelTokens'
 import {
   confidenceLabel,
@@ -129,13 +130,16 @@ function SuggestionRow({
        * things: a derived row's is the classifier's score for the weaker column it matched on, a
        * recorded row's is an opinion written down beside it.
        */}
-      {row.evidenceKind || row.confidence !== undefined ? (
+      {/* `!= null` rather than `!== undefined`: a declared column carries no classifier score, so
+          the run sends `null` — and `null !== undefined` is true, which would have printed
+          `.toFixed` on nothing. The other two readers of this figure already guard it this way. */}
+      {row.evidenceKind || row.confidence != null ? (
         <div style={{ fontSize: 10.5, color: MT.mut }}>
           {row.evidenceKind ? (
             <b style={{ color: MT.text }}>{evidenceKindLabel(row.evidenceKind)}</b>
           ) : null}
-          {row.evidenceKind && row.confidence !== undefined ? ' · ' : null}
-          {row.confidence !== undefined
+          {row.evidenceKind && row.confidence != null ? ' · ' : null}
+          {row.confidence != null
             ? `${confidenceLabel(row)}: ${row.confidence.toFixed(2)}`
             : null}
         </div>
@@ -169,7 +173,7 @@ export function PendingSuggestionsPanel({
   const { recorded, derived } = groupPendingByKind(rows)
   const sections: [string, string, DeclaredRelationship[]][] = [
     ['Recorded in this dataset', COPY.kindNote.recorded, recorded],
-    ['Curated by AI', COPY.kindNote.derived, derived],
+    [DERIVED_LABEL, COPY.kindNote.derived, derived],
   ]
 
   return (

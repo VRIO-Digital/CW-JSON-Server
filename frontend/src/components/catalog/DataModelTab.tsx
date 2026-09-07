@@ -8,10 +8,11 @@ import {
 import { Alert, App, Button, Col, Row, Skeleton, Space, Tooltip, Typography } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ModelTableSuggestion, SourceRow } from '../../api/client'
-import { suggestionRunNote } from '../../data/dataModelSuggestions'
+import { DERIVED_LABEL, suggestionRunNote } from '../../data/dataModelSuggestions'
 import { acceptAllOutcome } from '../../data/pendingSuggestions'
 import {
   CARDINALITY_LABELS,
+  CARDINALITY_UNDETERMINED,
   cardinalityKindFromHint,
   declaredRelationshipsFrom,
   relationshipToCanvasEdge,
@@ -29,6 +30,7 @@ import EntityOverviewPanel from './EntityOverviewPanel'
 import EntityRelationshipsPanel from './EntityRelationshipsPanel'
 import ModelTableList from './ModelTableList'
 import { PanelShell, StatusPill } from './ModelMarks'
+import ConfirmedRelationshipsModal from './ConfirmedRelationshipsPanel'
 import PendingSuggestionsModal from './PendingSuggestionsPanel'
 import RelationshipModal, { type RelationshipEdit } from './RelationshipModal'
 
@@ -195,6 +197,7 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
    * screen every time somebody saved an Overview field.
    */
   const [pendingOpen, setPendingOpen] = useState(false)
+  const [confirmedOpen, setConfirmedOpen] = useState(false)
   const [acceptingAll, setAcceptingAll] = useState(false)
 
   /* Keep the selection valid as the list arrives or changes underneath. */
@@ -261,7 +264,18 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
       tables.reduce((n, t) => n + t.columns.filter((c) => !!c.description).length, 0),
     [tables],
   )
-  const confirmedCount = relationships.filter((r) => r.status === 'confirmed').length
+  /*
+   * **An array rather than a `.length`, now that this tile opens what it counts too.** It was
+   * `relationships.filter(…).length` — correct while the number was only printed, and the wrong
+   * shape the moment a list stood behind it, because the modal would then have filtered a second
+   * time and there would be two answers to "how many are confirmed". Same rule as the pending tile
+   * below it, and the reason is the same one `selectedTableKey` follows one level up.
+   */
+  const confirmedRelationships = useMemo(
+    () => relationships.filter((r) => r.status === 'confirmed'),
+    [relationships],
+  )
+  const confirmedCount = confirmedRelationships.length
   /*
    * **One array, two readers.** The tile prints its length and the review modal lists its rows, so
    * the number a reader clicks and the number of rows they then count cannot disagree — there is no
@@ -509,7 +523,12 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
             toColumn: r.to_column,
             name: r.relationship_type,
             nameAlternatives: r.relationship_type_alternatives,
-            cardinality: CARDINALITY_LABELS[kind],
+            /* The *display* says the run derived nothing where it derived nothing; `kind` beside it
+               is what the reviewer's Select opens on, and one of the four has to be. */
+            cardinality:
+              r.cardinality_hint === null
+                ? CARDINALITY_UNDETERMINED
+                : CARDINALITY_LABELS[kind],
             cardinalityKind: kind,
             rationale: '',
             status: 'pending' as const,
@@ -730,6 +749,16 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                   value={confirmedCount}
                   label="relationships confirmed"
                   color={MT.green}
+                  /* Inert at 0, exactly as the pending tile is: a count that opened an empty dialog
+                     is the button-over-blank-space this repo has fixed once already. */
+                  onClick={
+                    confirmedCount > 0 ? () => setConfirmedOpen(true) : undefined
+                  }
+                  hint={
+                    confirmedCount > 0
+                      ? 'See every relationship this source has stored'
+                      : undefined
+                  }
                 />
                 <StatItem
                   value={pendingCount}
@@ -749,7 +778,18 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                 <StatItem value={columnsDescribed} label="columns described" />
               </div>
               <Space size={8}>
-                <Tooltip title="Reads this source's profiled columns and offers the joins a shared identifier implies. No model is involved — every suggestion quotes the figures the profiler recorded.">
+                {/*
+                 * **The guarantee, not a denial of the mechanism.** This read "No model is
+                 * involved", which was right until the button above it took the derived kind's own
+                 * name: a tooltip denying a model one hover under a control crediting one is the
+                 * panel arguing with itself, which is the exact form `suggestionRunNote` was
+                 * narrowed to fix when the badge was renamed. What is kept is the half with teeth
+                 * and the same words that note uses — no figure is invented — because that is
+                 * falsifiable on screen where a claim about an unseen mechanism is not. The
+                 * mechanism is still stated where a maintainer reads it, on `ProvenanceBadge`'s
+                 * `kind`, and the payload's `degraded` still says `true`.
+                 */}
+                <Tooltip title="Reads this source's profiled columns and offers the joins a shared identifier implies. No figure is invented to fill a field: every count and confidence quotes the profile.">
                   <Button
                     size="small"
                     icon={<ThunderboltOutlined />}
@@ -757,7 +797,10 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                     disabled={!selectedSource || tables.length === 0}
                     onClick={() => void runSuggestions()}
                   >
-                    {suggesting ? 'Reading the schema' : 'Suggest from schema'}
+                    {/* The busy label still says what is happening rather than repeating the
+                        control's name: a run that narrates itself is the rule every paced act here
+                        keeps, and "reading the schema" is what this one is doing. */}
+                    {suggesting ? 'Reading the schema' : DERIVED_LABEL}
                   </Button>
                 </Tooltip>
                 <Button
@@ -991,6 +1034,27 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
         onAccept={(id) => void confirmRelationship(id)}
         onReject={(id) => void removeRelationship(id)}
         onClose={() => setPendingOpen(false)}
+      />
+
+      {/*
+       * The confirmed list, over the same array its tile counts.
+       *
+       * **A reading surface that hands over rather than acting.** A row opens the relationship
+       * dialog — the one the canvas edge and the Entity detail row already open — so editing and
+       * deleting a stored declaration stay on one surface. Opening it *closes this dialog first*:
+       * antd will stack two `Modal`s happily, and a dialog behind a dialog leaves the reader two
+       * Closes to find their way back through, with the row they came from hidden behind the one
+       * they are reading.
+       */}
+      <ConfirmedRelationshipsModal
+        open={confirmedOpen && confirmedCount > 0}
+        rows={confirmedRelationships}
+        labelFor={labelFor}
+        onOpen={(id) => {
+          setConfirmedOpen(false)
+          openRelationship(id)
+        }}
+        onClose={() => setConfirmedOpen(false)}
       />
     </>
   )
