@@ -129,7 +129,7 @@ export default function HeroQuestionsStep({
                     The same two lines `DraftedStep` gives a persona: what the
                     question is *for*, then why it was drafted. This step showed
                     neither, so a drafted question arrived unexplained while
-                    personas and KPIs beside it did not — and the brief states a
+                    personas and metrics beside it did not — and the brief states a
                     reason for every one of its questions.
                   */}
                   {s.detail ? (

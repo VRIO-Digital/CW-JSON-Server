@@ -929,7 +929,7 @@ export interface GraphDomainsPayload {
 }
 
 /**
- * A name plus a description, and where it came from. Personas (step 2) and KPIs
+ * A name plus a description, and where it came from. Personas (step 2) and metrics
  * (step 3) are the same shape, so they share one contract end to end.
  *
  * A persona is lightweight — it shapes questions and tone, never access control.
@@ -941,7 +941,7 @@ export interface DraftedItem {
 }
 
 export type Persona = DraftedItem
-export type Kpi = DraftedItem
+export type Metric = DraftedItem
 
 /**
  * A hero question — the graph's contract. `priority` is two-valued on purpose:
@@ -1042,7 +1042,7 @@ export interface GraphUseCase {
   domainId: string | null
   businessNeed: string
   personas: Persona[]
-  kpis: Kpi[]
+  metrics: Metric[]
   sources: SourcePick[]
   heroQuestions: HeroQuestion[]
   gapDecisions: GapChoice[]
@@ -1683,7 +1683,7 @@ export interface SourcePick {
 export interface Suggestion {
   id: string
   name: string
-  /** A persona's focus, a KPI's definition — what the row shows beneath it. */
+  /** A persona's focus, a metric's definition — what the row shows beneath it. */
   detail: string
   /**
    * Hero questions only, and only where a use case stated one. It pre-ticks the
@@ -2534,7 +2534,7 @@ const USE_CASE = shape({
   domain_id: nullable(str),
   business_need: str,
   personas: arrayOf(DRAFTED_ITEM),
-  kpis: arrayOf(DRAFTED_ITEM),
+  metrics: arrayOf(DRAFTED_ITEM),
   sources: arrayOf(SOURCE_PICK),
   hero_questions: arrayOf(HERO_QUESTION),
   gap_decisions: arrayOf(GAP_CHOICE),
@@ -2559,7 +2559,7 @@ const SUGGESTIONS_PAYLOAD = shape({
       name: str,
       detail: str,
       why: str,
-      // Absent on personas, KPIs and formats, and on any question no use case
+      // Absent on personas, metrics and formats, and on any question no use case
       // stated a priority for — nullable checks the type, not the presence.
       priority: nullable(oneOf(['high', 'normal'])),
     }),
@@ -4693,7 +4693,7 @@ interface RawUseCase {
   domain_id: string | null
   business_need: string
   personas: Persona[]
-  kpis: Kpi[]
+  metrics: Metric[]
   sources: { source_id: string; mode: 'all' | 'subset'; objects: string[] }[]
   hero_questions: HeroQuestion[]
   gap_decisions: { element_id: string; decision: GapDecision }[]
@@ -4729,7 +4729,7 @@ function assertCurrentUseCaseShape(raw: unknown) {
 
   throw new Error(
     'The mock server is running an older version of this app, so a saved use ' +
-      'case came back without its personas, KPIs, sources, questions or gap ' +
+      'case came back without its personas, metrics, sources, questions or gap ' +
       'decisions. Restart it with npm run mock and try again — nothing you ' +
       'entered has been lost.',
   )
@@ -4742,7 +4742,7 @@ const toUseCase = (u: RawUseCase): GraphUseCase => ({
   domainId: u.domain_id,
   businessNeed: u.business_need,
   personas: u.personas,
-  kpis: u.kpis,
+  metrics: u.metrics,
   sources: u.sources.map((s) => ({
     sourceId: s.source_id,
     mode: s.mode,
@@ -4904,10 +4904,10 @@ export async function listGraphSources(): Promise<GraphSourcesPayload> {
   }
 }
 
-export const suggestKpis = (input: {
+export const suggestMetrics = (input: {
   domainId: string | null
   businessNeed: string
-}) => fetchSuggestions('/graph-kpis/suggest', 'The KPI suggestions', input)
+}) => fetchSuggestions('/graph-metrics/suggest', 'The metric suggestions', input)
 
 interface RawCoverage {
   title: string
@@ -5072,7 +5072,7 @@ export async function saveUseCase(input: {
   domainId: string | null
   businessNeed: string
   personas: Persona[]
-  kpis: Kpi[]
+  metrics: Metric[]
   sources: SourcePick[]
   heroQuestions: HeroQuestion[]
   gapDecisions: GapChoice[]
@@ -5087,7 +5087,7 @@ export async function saveUseCase(input: {
       domain_id: input.domainId,
       business_need: input.businessNeed,
       personas: input.personas,
-      kpis: input.kpis,
+      metrics: input.metrics,
       sources: input.sources.map((s) => ({
         source_id: s.sourceId,
         mode: s.mode,

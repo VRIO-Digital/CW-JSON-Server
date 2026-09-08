@@ -6303,3 +6303,52 @@ removed the ambiguity, it has moved it.*
   same conjunction — the pairing rule this file already records.
 - **Verified against the reported shape**, not a convenient one: a fixture of the four real
   relationships, with `plan_project_forecast` owning one and touching two. Seventeen checks.
+
+## KPIs became Metrics, and the wizard lost its sixth step (2026-09-08)
+
+Asked for together: rename the New Graph wizard's KPI vocabulary to Metric and migrate both
+documents, remove the *Entities & relationships* tab, and put *Save & build graph* on Hero questions.
+The last two are one change — with step 6 gone the questions are the last step, and the footer
+already renders the build button there rather than *Next*.
+
+- **`kpi` names two unrelated things in this repo, and only one was in scope.** The wizard's measures
+  are one; the Reports section's **summary tiles** are the other — `reports.reports[].blocks[].type
+  === 'kpis'`, `summary_catalog`, `row_model.kpis`, `KpiBlock`, `KpiRow`. They have never shared a
+  definition. The migration is keyed on the graph tokens (`graph_kpis`, `kpi_id`, the template's
+  member list) and asserts the report blocks came through byte-identical; `check-docs` keys its
+  absence on those tokens too, never on the four letters.
+- **The rename went past the label on purpose.** Stopping at the screen would have left `graph_kpis`
+  under a step called Metrics — the drift this file recorded a day earlier for `touching` under a
+  heading reading *involved in*. So the pool is `graph_metrics` keyed `metric_id`, the template's
+  list is `metrics`, the endpoint is `/graph-metrics/suggest`, and a saved brief carries `metrics`.
+- **The removal stops at the surface, on this repo's own precedent.** `/change-signals` records it:
+  a tab removed on request left its endpoint, payload and store in place, with the instruction *do
+  not delete the layers below to "finish" the removal*. So `graphCoverage`, `/graph-coverage`,
+  `/graph-derivations`, both stores and `GAP_CAVEAT` all still work and nothing calls them. What is
+  asserted absent is the **step** — its label, its rule, its pane, and the derivation the page used
+  to start on the way into it.
+- **What the removal costs is stated rather than glossed.** Step 6 carried the build gate: every
+  coverage gap decided before building. That gate is gone; the build's only precondition is now the
+  last step's own rule, one hero question. And Ask's **standing caveats** are gap decisions read
+  back, so a brief built from here contributes none — a brief that already has them keeps them,
+  because the page loads them and sends them back untouched.
+- **Reformatting `WIZARD_STEPS` onto one line silently broke check-docs.** Its parser is
+  `/const WIZARD_STEPS = \[([\s\S]*?)\n\]/` — it needs a newline before the closing bracket — so a
+  one-line array ran the match on to the next `\n]` hundreds of lines below and produced **88
+  "step labels"**. The five real ones were still first, so `stepLabels[4] === 'Hero questions'`
+  passed while `stepLabels.length === 5` failed, and the claim that failed was not the one that
+  looked wrong. The array is multi-line again with a comment saying why. *A formatting change is a
+  change to anything that parses the format.*
+- **A break test that reverts a document key crashed the checker rather than failing a claim.** The
+  template-member loop dereferenced `template[memberKey]` and `db[poolKey]` bare, so a renamed key
+  died on `undefined.filter` — no summary, every other claim looking unrun, which is the shape this
+  file records as "the claim total stops moving". Both sides are guarded now and report the missing
+  key by name. *A checker that cannot reach what it checks says so rather than dying.*
+- **And `metrics` promptly collided with the Data Modeling tab's removed Metrics sub-tab**, whose
+  absence claim searched the whole of `client.ts` for `metrics:`. Narrowed to the `ModelEntity`
+  interface and its schema, the way the server side was already sliced. Same trap as `kpis`, one
+  rename later.
+- **Verified against a live server on both datasets**: thirteen checks — five steps ending on Hero
+  questions, `/graph-metrics/suggest` answering, the old path 404ing, a brief saving and committing
+  from step 5 carrying `metrics` and no `kpis`, step 6 refused with *"step must be an integer from 1
+  to 5"*, and an unnamed metric refused in the new vocabulary.

@@ -30,8 +30,6 @@ import type {
   SourcePick,
 } from '../api/client'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
-import CoverageStep from '../components/graph/CoverageStep'
-import { LlmRunPanel } from '../components/graph/LlmRun'
 import { useGraphBuildStore } from '../store/graphStudioStore'
 import DraftedStep from '../components/graph/DraftedStep'
 import HeroQuestionsStep from '../components/graph/HeroQuestionsStep'
@@ -44,7 +42,7 @@ import {
   useDerivationStore,
   useGraphDomainsStore,
   useGraphSourcesStore,
-  useKpiSuggestStore,
+  useMetricSuggestStore,
   usePersonaSuggestStore,
   useQuestionSuggestStore,
   useUseCasesStore,
@@ -60,15 +58,16 @@ import './NewGraphPage.css'
 import { appPath } from '../api/dataset'
 
 /*
- * The last step — the coverage review, and the build gate.
+ * The last step — Hero questions, which is where *Save & build graph* sits.
  *
- * It is a constant rather than a literal 7 because the count changed once already:
- * 'Answer requirements' was step 6 and is gone (citations and the render format are
- * chosen per question on Ask now), so 'Entities & relationships' moved down one. The
- * server's `WIZARD_STEPS` is the real list and `stepTotal` reads it; this is the
- * fallback and the number the review's own effects key on.
+ * A constant rather than a literal because the count has now changed twice. 'Answer requirements'
+ * was step 6 and went when citations and the render format moved to Ask, which pulled 'Entities &
+ * relationships' down to 6; that step has now gone too, **on request**, so the wizard ends on the
+ * questions. The server's `WIZARD_STEPS` is the real list and `stepTotal` reads it; this is the
+ * fallback, and `savedUseCase` clamps a brief saved on an old step so it opens here rather than
+ * pointing at a step the API would reject.
  */
-const LAST_STEP = 6
+const LAST_STEP = 5
 
 /*
  * What each step after Domain will collect. Step 1 is built; the rest are
@@ -77,11 +76,10 @@ const LAST_STEP = 6
  */
 const STEP_INTENT: Record<string, string> = {
   Personas: 'who asks these questions, and what they already know',
-  KPIs: 'the measures the graph has to be able to compute',
+  Metrics: 'the measures the graph has to be able to compute',
   Sources: 'which connected sources may feed this graph',
   'Hero questions': 'the handful of questions this graph exists to answer',
   'Answer requirements': 'how precise, how fresh, and how explainable an answer must be',
-  'Entities & relationships': 'the entities the AI derived — yours to confirm, not to type',
 }
 
 /** Shown on the first run, before the server has reported its own stages. */
@@ -212,18 +210,10 @@ export default function NewGraphPage() {
   const sourcesLoading = useGraphSourcesStore((s) => s.loading)
   const loadGraphSources = useGraphSourcesStore((s) => s.load)
 
-  const derivation = useDerivationStore((s) => s.run)
   /* Starting the build is the wizard's last act; watching it is the studio's, for every
      graph. The run is not polled here — this page navigates the moment it starts. */
   const startBuild = useGraphBuildStore((s) => s.start)
-  const startingDerivation = useDerivationStore((s) => s.starting)
-  const startDerivationRun = useDerivationStore((s) => s.start)
-  const pollDerivation = useDerivationStore((s) => s.poll)
   const resetDerivation = useDerivationStore((s) => s.reset)
-
-  const coverage = useCoverageStore((s) => s.data)
-  const coverageLoading = useCoverageStore((s) => s.loading)
-  const reviewCoverageNow = useCoverageStore((s) => s.review)
   const resetCoverage = useCoverageStore((s) => s.reset)
 
   const questionSuggestions = useQuestionSuggestStore((s) => s.suggestions)
@@ -234,13 +224,13 @@ export default function NewGraphPage() {
   const questionRun = useQuestionSuggestStore((s) => s.run)
   const resetQuestionSuggestions = useQuestionSuggestStore((s) => s.reset)
 
-  const kpiSuggestions = useKpiSuggestStore((s) => s.suggestions)
-  const suggestingKpis = useKpiSuggestStore((s) => s.suggesting)
-  const kpisAsked = useKpiSuggestStore((s) => s.asked)
-  const suggestKpiList = useKpiSuggestStore((s) => s.suggest)
-  const dismissKpi = useKpiSuggestStore((s) => s.dismiss)
-  const kpiRun = useKpiSuggestStore((s) => s.run)
-  const resetKpiSuggestions = useKpiSuggestStore((s) => s.reset)
+  const metricSuggestions = useMetricSuggestStore((s) => s.suggestions)
+  const suggestingMetrics = useMetricSuggestStore((s) => s.suggesting)
+  const metricsAsked = useMetricSuggestStore((s) => s.asked)
+  const suggestMetricList = useMetricSuggestStore((s) => s.suggest)
+  const dismissMetric = useMetricSuggestStore((s) => s.dismiss)
+  const metricRun = useMetricSuggestStore((s) => s.run)
+  const resetMetricSuggestions = useMetricSuggestStore((s) => s.reset)
 
   // The draft being edited. `useCaseId` is null until it has been saved once.
   const [useCaseId, setUseCaseId] = useState<string | null>(null)
@@ -248,7 +238,7 @@ export default function NewGraphPage() {
   const [domainId, setDomainId] = useState<string | null>(null)
   const [businessNeed, setBusinessNeed] = useState('')
   const [personas, setPersonas] = useState<DraftedItem[]>([])
-  const [kpis, setKpis] = useState<DraftedItem[]>([])
+  const [metrics, setMetrics] = useState<DraftedItem[]>([])
   const [sourcePicks, setSourcePicks] = useState<SourcePick[]>([])
   const [heroQuestions, setHeroQuestions] = useState<HeroQuestion[]>([])
   const [gapDecisions, setGapDecisions] = useState<GapChoice[]>([])
@@ -265,49 +255,21 @@ export default function NewGraphPage() {
     void loadGraphSources()
   }, [load, loadDomains, loadGraphSources])
 
-  /*
-   * The last step shows whatever the derivation produced. Arriving without one — by
-   * clicking the stepper rather than generating a brief — reviews directly, so
-   * the step is never empty just because the run was not started here.
-   */
-  useEffect(() => {
-    if (step !== LAST_STEP || derivation) return
-    void reviewCoverageNow({ name, sources: sourcePicks, heroQuestions })
-  }, [step, derivation, name, sourcePicks, heroQuestions, reviewCoverageNow])
-
-  // Poll only while a run is in flight; the poll that sees it land stops.
-  useEffect(() => {
-    if (derivation?.status !== 'running') return
-    const id = window.setInterval(() => void pollDerivation(), 700)
-    return () => window.clearInterval(id)
-  }, [derivation?.status, pollDerivation])
-
-
   const steps = useMemo(() => data?.steps ?? [], [data])
   const stepTotal = steps.length || LAST_STEP
   const stepLabel = steps[step - 1] ?? ''
   const domains = domainsData?.domains ?? []
   const graphSources = sourcesData?.sources ?? []
 
-  /*
-   * The review's answer comes from the derivation when one ran, and from a direct
-   * review when the user jumped here via the stepper. Both the panel and the
-   * build gate must read the *same* one — reading different sources is how the
-   * button ended up permanently disabled.
-   */
-  const activeCoverage = derivation?.coverage ?? coverage
-
   /** What `stepIssue` judges every step on. */
   const draft: WizardDraft = {
     name,
     domainId,
     personas,
-    kpis,
+    metrics,
     graphSources,
     sourcePicks,
     heroQuestions,
-    coverage: activeCoverage,
-    gapDecisions,
   }
 
   function openUseCase(u: GraphUseCase) {
@@ -316,7 +278,7 @@ export default function NewGraphPage() {
     setDomainId(u.domainId)
     setBusinessNeed(u.businessNeed)
     setPersonas(u.personas)
-    setKpis(u.kpis)
+    setMetrics(u.metrics)
     setSourcePicks(u.sources)
     setHeroQuestions(u.heroQuestions)
     setGapDecisions(u.gapDecisions)
@@ -326,7 +288,7 @@ export default function NewGraphPage() {
     setSavedAt(u.updatedAt)
     // Suggestions belong to the brief that produced them.
     resetPersonaSuggestions()
-    resetKpiSuggestions()
+    resetMetricSuggestions()
     resetQuestionSuggestions()
     resetCoverage()
     resetDerivation()
@@ -334,10 +296,10 @@ export default function NewGraphPage() {
   }
 
   /** Steps 2 and 3 both draft from the domain and the brief. */
-  async function runSuggest(what: 'personas' | 'kpis' | 'questions') {
+  async function runSuggest(what: 'personas' | 'metrics' | 'questions') {
     const ask =
-      what === 'kpis'
-        ? suggestKpiList
+      what === 'metrics'
+        ? suggestMetricList
         : what === 'questions'
           ? suggestQuestionList
           : suggestPersonaList
@@ -362,7 +324,7 @@ export default function NewGraphPage() {
     setDomainId(null)
     setBusinessNeed('')
     setPersonas([])
-    setKpis([])
+    setMetrics([])
     setSourcePicks([])
     setHeroQuestions([])
     setGapDecisions([])
@@ -370,7 +332,7 @@ export default function NewGraphPage() {
     setMaxStep(1)
     setSavedAt(null)
     resetPersonaSuggestions()
-    resetKpiSuggestions()
+    resetMetricSuggestions()
     resetQuestionSuggestions()
     resetCoverage()
     resetDerivation()
@@ -394,7 +356,7 @@ export default function NewGraphPage() {
       domainId,
       businessNeed,
       personas,
-      kpis,
+      metrics,
       sources: sourcePicks,
       heroQuestions,
       gapDecisions,
@@ -418,7 +380,7 @@ export default function NewGraphPage() {
       domainId,
       businessNeed,
       personas,
-      kpis,
+      metrics,
       sources: sourcePicks,
       heroQuestions,
       gapDecisions,
@@ -480,23 +442,6 @@ export default function NewGraphPage() {
     // Advancing is a save point, so a reload never loses the last answer.
     if (!(await saveDraft(nextStep))) return
 
-    /*
-     * Leaving the hero questions is where the answers are handed to the derivation. It
-     * runs async, so the step advances immediately and the review shows it working.
-     */
-    if (step === LAST_STEP - 1) {
-      const started = await startDerivationRun({
-        name,
-        sources: sourcePicks,
-        heroQuestions,
-      })
-      if (!started.ok) {
-        message.error(started.error)
-        return
-      }
-      // A fresh derivation supersedes any decisions made against the old one.
-      setGapDecisions([])
-    }
     setStep(nextStep)
     setMaxStep((furthest) => Math.max(furthest, nextStep))
   }
@@ -660,7 +605,7 @@ export default function NewGraphPage() {
                   placeholder="Maintenance spend on our generation fleet keeps surprising us. We need to understand what drives cost spikes per unit — work orders, contract escalations, outage-driven repairs — and catch them before quarter close."
                 />
                 <span className="ng-help">
-                  You can also drop documents here (strategy memos, KPI definitions) —
+                  You can also drop documents here (strategy memos, metric definitions) —
                   the AI folds them into the brief.
                 </span>
               </div>
@@ -718,32 +663,33 @@ export default function NewGraphPage() {
           <Row gutter={[SP.lg, SP.lg]}>
             <Col xs={24} xl={16}>
               <DraftedStep
-                suggestLabel="Suggest KPIs (LLM)"
-                suggestedLabel="Suggested KPIs"
-                addLabel="Add KPI"
-                namePlaceholder="KPI name — e.g. Maintenance cost per unit"
+                suggestLabel="Suggest metrics (LLM)"
+                suggestedLabel="Suggested metrics"
+                addLabel="Add metric"
+                namePlaceholder="Metric name — e.g. Maintenance cost per unit"
                 descriptionPlaceholder="How it is measured — e.g. spend over units in service"
-                listLabel="KPIs these answers report against"
-                listEmptyText="No KPIs yet — add one above, or use Suggest KPIs (LLM)."
+                listLabel="Metrics these answers report against"
+                listEmptyText="No metrics yet — add one above, or use Suggest metrics (LLM)."
                 hint={
                   <div className="ng-hint">
                     <span aria-hidden="true">✦</span>
                     <span>
-                      A KPI here is what an answer reports against — the graph has to
-                      be able to compute it from the sources you pick next.
+                      A metric here is what an answer reports against — the graph has
+                      to be able to compute it from the sources you pick next, and the
+                      hero questions you write next are asked against these.
                     </span>
                   </div>
                 }
-                items={kpis}
-                onItems={setKpis}
-                suggestions={kpiSuggestions}
-                asked={kpisAsked}
-                suggesting={suggestingKpis}
-                runStages={kpiRun?.stages ?? DEFAULT_RUN_STAGES}
-                runCost={kpiRun?.costUsd}
-                runCap={kpiRun?.costCapUsd}
-                onSuggest={() => void runSuggest('kpis')}
-                onDismiss={dismissKpi}
+                items={metrics}
+                onItems={setMetrics}
+                suggestions={metricSuggestions}
+                asked={metricsAsked}
+                suggesting={suggestingMetrics}
+                runStages={metricRun?.stages ?? DEFAULT_RUN_STAGES}
+                runCost={metricRun?.costUsd}
+                runCap={metricRun?.costCapUsd}
+                onSuggest={() => void runSuggest('metrics')}
+                onDismiss={dismissMetric}
               />
             </Col>
           </Row>
@@ -773,21 +719,6 @@ export default function NewGraphPage() {
                 onSuggest={() => void runSuggest('questions')}
                 onDismiss={dismissQuestion}
               />
-            </Col>
-          </Row>
-        ) : step === LAST_STEP ? (
-          <Row gutter={[SP.lg, SP.lg]}>
-            <Col xs={24} xl={18}>
-              {derivation && derivation.status === 'running' ? (
-                <LlmRunPanel run={derivation} />
-              ) : (
-                <CoverageStep
-                  data={activeCoverage}
-                  loading={coverageLoading || startingDerivation}
-                  decisions={gapDecisions}
-                  onDecisions={setGapDecisions}
-                />
-              )}
             </Col>
           </Row>
         ) : (
@@ -821,19 +752,16 @@ export default function NewGraphPage() {
             ) : null}
             {step < stepTotal ? (
               <Button type="primary" loading={saving} onClick={() => void next()}>
-                {/* The last answered step produces the brief the AI derives the
-                    review from, so it says what it does rather than "Next". */}
-                {step === LAST_STEP - 1 ? 'Generate use-case brief' : 'Next'}{' '}
-                <ArrowRightOutlined />
+                Next <ArrowRightOutlined />
               </Button>
             ) : (
               <>
                 <Button loading={saving} onClick={() => void saveDraft()}>
                   Save Only
                 </Button>
-                {/* Building is blocked until every gap has been decided — an
-                    undecided gap is a question the graph cannot answer. The last
-                    step's rule, read from the same place as every other step's. */}
+                {/* Read from the same place as every other step's rule. On the last step that
+                    rule is "add at least one hero question" — they are the contract the graph is
+                    built against, so there is nothing to build without one. */}
                 <Button
                   type="primary"
                   loading={saving}

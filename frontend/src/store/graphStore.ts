@@ -8,7 +8,7 @@ import {
   reviewCoverage,
   saveUseCase,
   startDerivation,
-  suggestKpis,
+  suggestMetrics,
   suggestPersonas,
   suggestQuestions,
   type CoveragePayload,
@@ -92,7 +92,7 @@ function createSuggestStore(
 }
 
 export const usePersonaSuggestStore = createSuggestStore(suggestPersonas)
-export const useKpiSuggestStore = createSuggestStore(suggestKpis)
+export const useMetricSuggestStore = createSuggestStore(suggestMetrics)
 export const useQuestionSuggestStore = createSuggestStore(suggestQuestions)
 
 interface DerivationState {
@@ -198,7 +198,7 @@ interface UseCasesState {
     domainId: string | null
     businessNeed: string
     personas: DraftedItem[]
-    kpis: DraftedItem[]
+    metrics: DraftedItem[]
     sources: SourcePick[]
     heroQuestions: HeroQuestion[]
     gapDecisions: GapChoice[]

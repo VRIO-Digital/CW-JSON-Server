@@ -1727,11 +1727,31 @@ meaning for green.
 
 ### The New Graph wizard (`/new-graph`)
 
-Six steps — Domain, Personas, KPIs, Sources, Hero questions, Entities &
-relationships — over `NewGraphPage.tsx` → `graphStore`
-→ `/graph-domains`, `/graph-personas/suggest`, `/graph-kpis/suggest`,
-`/graph-sources`, `/graph-questions/suggest`, `/graph-coverage` and `/graph-use-cases`.
-**All six steps are built.**
+Five steps — Domain, Personas, Metrics, Sources, Hero questions — over `NewGraphPage.tsx` →
+`graphStore` → `/graph-domains`, `/graph-personas/suggest`, `/graph-metrics/suggest`,
+`/graph-sources`, `/graph-questions/suggest` and `/graph-use-cases`.
+**All five steps are built**, and **Save & build graph** sits on the last of them.
+
+**'KPIs' is 'Metrics', and the rename went all the way down.** Asked for, and taken past the label
+on purpose: the pool is `graph_metrics` keyed `metric_id`, a template's member list is `metrics`,
+the suggester is `/graph-metrics/suggest`, a saved brief carries `metrics`, and both documents were
+migrated. Stopping at the screen would have left the drift this repo has already had to fix once —
+a field spelled one way under a label rendering another. **The Reports section's own `kpis` are a
+different noun and keep it**: its summary-tile block kind and `row_model.kpis` are report tiles,
+never wizard measures, and `check-docs` keys the absence on the graph tokens (`graph_kpis`,
+`kpi_id`) rather than on the four letters for exactly that reason.
+
+**'Entities & relationships' was step 6 and is gone**, removed on request, which is what puts the
+build button on Hero questions. **What it carried was the coverage review and the gap gate**, and
+that gate is gone with it: a hero question no profiled column covers was a `gap`, and the build
+stayed blocked until every one had a decision. The build's only precondition now is the last step's
+own rule — at least one hero question. Two things follow, both stated rather than left to be found:
+Ask's **standing caveats** are gap decisions read back through `GAP_CAVEAT`, so a brief built from
+here contributes none (a brief that already has them keeps them — the page loads them and sends them
+back untouched); and `graphCoverage`, `/graph-coverage`, `/graph-derivations` and the coverage and
+derivation stores are all **left in place with nothing calling them**, the same waiting-for-a-caller
+state `/change-signals` is in. Do not delete the layers beneath to "finish" the removal, and do not
+read the absence of a caller as the feature being dead.
 
 **'Answer requirements' was step 6 and is gone.** The citation policy and the render
 format were declared once per brief, for every answer the graph would ever give; they
@@ -1782,9 +1802,9 @@ should not make the user re-derive it. It pre-fills rather than decides:
 `highMarks[s.id] ?? s.priority === 'high'` lets an explicit tick or untick win,
 because accepting a question is still the user's act. `priority` is the only
 optional field on a `Suggestion`, so its schema is
-`nullable(oneOf(['high','normal']))` — personas, KPIs and formats never send it.
+`nullable(oneOf(['high','normal']))` — personas, metrics and formats never send it.
 
-**Steps 2 and 3 are one component, not two.** Personas and KPIs are the same
+**Steps 2 and 3 are one component, not two.** Personas and metrics are the same
 interaction — let the AI draft a list, add what fits, type your own, see which is
 which — so `DraftedStep` renders both and they differ only in copy. Server-side,
 `suggestFrom` serves both pools and `normalizeDrafted` stores both lists; the
@@ -1813,7 +1833,7 @@ Two rules the copy on the page promises, and the code has to keep:
   ranking.** `graph_use_case_templates` holds the tenant's use cases as id
   bundles — one today, *Cradle-to-Grave Compliance & Liability Intelligence*,
   ingested from `03_use_case_wizard/Use_Case_Wizard.docx` along with the 4
-  personas, 7 KPIs and 13 hero questions it names.
+  personas, 7 metrics and 13 hero questions it names.
   `matchTemplate` claims one when the brief contains at least
   `TEMPLATE_MIN_PHRASES` (2) of its `match_phrases` — which are drawn from its
   own description, so pasting that description in hits all of them. A match
@@ -1828,7 +1848,7 @@ Two rules the copy on the page promises, and the code has to keep:
   is why `check-docs` asserts every phrase is unique to its own template **and
   present verbatim in it**; two of the current template's phrases were
   paraphrases of its description on the first attempt, and the check caught both.
-  Only personas, KPIs and hero questions are templated — which is now all three
+  Only personas, metrics and hero questions are templated — which is now all three
   suggesters. The answer formats had no `memberKey` and stayed ranked, because a use
   case states what it must answer and never how to render it; that suggester is gone
   with step 6, and the whole pool is offered on Ask instead.
@@ -1837,7 +1857,7 @@ Two rules the copy on the page promises, and the code has to keep:
   are two fields because they answer two questions, and neither may stand in for
   the other — a hero question whose `why` was replaced by its purpose stopped
   saying it had been keyword-matched. A persona's `detail` is its `focus`, a
-  KPI's is its `definition`, and a hero question's is the `rationale` the brief
+  metric's is its `definition`, and a hero question's is the `rationale` the brief
   stated for asking it ("the core liability question — connects inbound manifests
   to generator compliance records"). That slot was empty before, which is why
   drafted questions arrived with a name and nothing else while personas beside
@@ -3674,7 +3694,7 @@ canvas nodes, 908 edges, seven must-review rows, a pivot and five sanity checks 
 the two sections could *never* open, which reads as a broken page rather than as a precondition.
 `npm run ingest:capex` writes one **committed** brief, `uc_capital_programs`, and every field of it is
 derived from the dataset's own use-case template — the id, the name, the description as the business
-need, and the 7 personas, 23 KPIs and 13 hero questions it names by id, each recorded `source: 'ai'`
+need, and the 7 personas, 23 metrics and 13 hero questions it names by id, each recorded `source: 'ai'`
 because that is the provenance the wizard's suggesters record when they draft from a template. **Its
 domain is derived too**, from the domains its own members name (`capital-projects`), because a domain
 picked in the script would be a claim the package never made. It names **no source**: a registration

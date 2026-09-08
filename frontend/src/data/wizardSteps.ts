@@ -1,12 +1,4 @@
-import type {
-  CoveragePayload,
-  DraftedItem,
-  GapChoice,
-  GraphSource,
-  HeroQuestion,
-  SourcePick,
-} from '../api/client'
-import { coverageIsDecided } from './coverage'
+import type { DraftedItem, GraphSource, HeroQuestion, SourcePick } from '../api/client'
 
 /**
  * Everything a step is judged on. One object rather than six signatures, so
@@ -16,14 +8,20 @@ export interface WizardDraft {
   name: string
   domainId: string | null
   personas: DraftedItem[]
-  kpis: DraftedItem[]
+  metrics: DraftedItem[]
   /** What step 4 can offer — its emptiness is a different problem to fix. */
   graphSources: GraphSource[]
   sourcePicks: SourcePick[]
   heroQuestions: HeroQuestion[]
-  coverage: CoveragePayload | null
-  gapDecisions: GapChoice[]
 }
+
+/*
+ * **`coverage` and `gapDecisions` were judged here and are not any more.** They fed the removed
+ * step 6's build gate — every gap decided before building. The step went on request, so nothing
+ * judges them; a brief that already carries gap decisions still keeps them (the page loads them and
+ * sends them back untouched), and Ask still reads them as its standing caveats. What is gone is the
+ * ability to make new ones, which is stated in CLAUDE.md rather than left to be discovered.
+ */
 
 /**
  * Why a step is not finished yet, or `null` when it is.
@@ -51,8 +49,8 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
       return null
 
     case 3:
-      if (draft.kpis.length === 0) {
-        return 'Add at least one KPI — the graph has to be able to compute something.'
+      if (draft.metrics.length === 0) {
+        return 'Add at least one metric — the graph has to be able to compute something.'
       }
       return null
 
@@ -98,20 +96,16 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
       }
       return null
 
+    /*
+     * **The last step, and therefore the build gate.** *Save & build graph* sits here now:
+     * 'Entities & relationships' was step 6 and was removed on request, so nothing is judged after
+     * the questions. What that step gated was the coverage review — every gap decided before
+     * building — and that gate is gone with it, which is stated in CLAUDE.md rather than left to be
+     * discovered. A brief with no hero question still cannot build: they are the contract.
+     */
     case 5:
       if (draft.heroQuestions.length === 0) {
         return 'Add at least one hero question — they are the contract the graph is built against.'
-      }
-      return null
-
-    /*
-     * The build gate, and the last step — it was 7 while 'Answer requirements' sat at
-     * 6. That step is gone: citations and the render format are chosen per question on
-     * Ask, so nothing between hero questions and the coverage review is judged here.
-     */
-    case 6:
-      if (!coverageIsDecided(draft.coverage, draft.gapDecisions)) {
-        return 'Decide every gap in the review before building.'
       }
       return null
 

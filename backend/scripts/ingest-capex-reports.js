@@ -694,7 +694,7 @@ if (template.length === 1) {
   const t = template[0]
   const byId = (list, key) => new Map((list ?? []).map((row) => [row[key], row]))
   const personaById = byId(db.graph_personas, 'persona_id')
-  const kpiById = byId(db.graph_kpis, 'kpi_id')
+  const metricById = byId(db.graph_metrics, 'metric_id')
   const questionById = byId(db.graph_hero_questions, 'question_id')
 
   /* An id that does not resolve would drop a member silently, and the brief would then claim fewer
@@ -707,7 +707,7 @@ if (template.length === 1) {
     })
 
   const personas = resolve(t.personas, personaById, 'persona')
-  const kpis = resolve(t.kpis, kpiById, 'KPI')
+  const metrics = resolve(t.metrics, metricById, 'metric')
   const questions = resolve(t.hero_questions, questionById, 'hero question')
 
   /*
@@ -717,7 +717,7 @@ if (template.length === 1) {
    * two use-case templates matches nothing: an even split means the data does not say.
    */
   const tally = new Map()
-  for (const row of [...personas, ...kpis, ...questions]) {
+  for (const row of [...personas, ...metrics, ...questions]) {
     for (const d of row?.domains ?? []) tally.set(d, (tally.get(d) ?? 0) + 1)
   }
   const ranked = [...tally.entries()].sort((a, b) => b[1] - a[1])
@@ -746,7 +746,9 @@ if (template.length === 1) {
     personas: personas
       .filter(Boolean)
       .map((p) => ({ name: p.name, description: p.focus, source: 'ai' })),
-    kpis: kpis.filter(Boolean).map((k) => ({ name: k.name, description: k.definition, source: 'ai' })),
+    metrics: metrics
+      .filter(Boolean)
+      .map((m) => ({ name: m.name, description: m.definition, source: 'ai' })),
     /*
      * **No sources, and that is the honest value rather than a placeholder.** Step 4 picks from
      * *profiled* sources, and a registration lives in the server's memory and dies with the process —
@@ -770,7 +772,11 @@ if (template.length === 1) {
   if (!brief.name || !brief.business_need || !brief.domain_id) {
     problems.push('the derived brief has no name, business need or domain — Graph Studio would list a blank row')
   }
-  if (brief.personas.length === 0 || brief.kpis.length === 0 || brief.hero_questions.length === 0) {
+  if (
+    brief.personas.length === 0 ||
+    brief.metrics.length === 0 ||
+    brief.hero_questions.length === 0
+  ) {
     problems.push('the derived brief resolved no personas, KPIs or hero questions — its members did not resolve')
   }
 }

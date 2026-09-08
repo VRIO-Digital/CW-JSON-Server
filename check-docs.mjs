@@ -1581,6 +1581,16 @@ expect(
  * The stored key went too: no document carries `metrics` on a declaration, so the shape check's
  * absence is not a loosened validator — there is nothing left for it to be about.
  */
+/*
+ * **Scoped to the model entity, because `metrics:` is two nouns in this file now.** The New Graph
+ * wizard's step 3 was renamed from KPIs to Metrics, so `client.ts` legitimately carries
+ * `metrics: Metric[]` for a *brief* — which a whole-file needle read as the deleted Data Modeling
+ * field coming back. The same trap `kpis` already sets in this repo, one rename later: the four
+ * letters are shared and the definitions never were.
+ */
+const modelEntityClient =
+  (/export interface ModelEntity \{[\s\S]*?\n\}/.exec(client)?.[0] ?? '') +
+  (/const MODEL_ENTITY = shape\(\{[\s\S]*?\n\}\)/.exec(client)?.[0] ?? '')
 const dataModelEntitiesShape =
   /\n  data_model: \(v\) =>[\s\S]*?\n  ask_answers:/.exec(server)?.[0] ?? ''
 expect(
@@ -1589,7 +1599,8 @@ expect(
     !existsSync(join(root, 'frontend/src/data/dataModelMetrics.ts')) &&
     /* The client's type, its schema entry and the two payload fields. */
     !/ModelMetric/.test(client) &&
-    !/\bmetrics[?]?:/.test(codeOnly(client)) &&
+    modelEntityClient.length > 200 &&
+    !/\bmetrics[?]?:/.test(codeOnly(modelEntityClient)) &&
     /* The tab's fourth item, and the section on every card. */
     !/'metrics'/.test(codeOnly(dataModelTab)) &&
     !/CardSection label="Metrics"/.test(entityCanvasSrc) &&
@@ -4500,13 +4511,24 @@ for (const project of db.projects ?? []) {
  */
 for (const [memberKey, poolKey, idKey] of [
   ['personas', 'graph_personas', 'persona_id'],
-  ['kpis', 'graph_kpis', 'kpi_id'],
+  ['metrics', 'graph_metrics', 'metric_id'],
   ['hero_questions', 'graph_hero_questions', 'question_id'],
 ]) {
   for (const template of db.graph_use_case_templates ?? []) {
-    const missing = template[memberKey].filter(
-      (id) => !db[poolKey].some((entry) => entry[idKey] === id),
-    )
+    /*
+     * **Guarded, because a renamed key must fail as a claim rather than as a stack trace.** Both
+     * sides of this were dereferenced bare, so a document whose pool or member list had been
+     * renamed — which is exactly what the KPI-to-Metric migration did — killed the run on
+     * `undefined.filter`, printing no summary and leaving every other claim looking unrun. That is
+     * the failure this file records as "the claim total stops moving", reached from the data side.
+     */
+    const members = template[memberKey]
+    const pool = db[poolKey]
+    const missing = !Array.isArray(members)
+      ? [`(no "${memberKey}" on this template)`]
+      : !Array.isArray(pool)
+        ? [`(no "${poolKey}" in this document)`]
+        : members.filter((id) => !pool.some((entry) => entry[idKey] === id))
     expect(
       `template "${template.template_id}" ${memberKey} all resolve`,
       missing.length === 0,
@@ -5708,28 +5730,75 @@ const wizardRules = read('frontend/src/data/wizardSteps.ts')
 const newGraphPage = read('frontend/src/pages/NewGraphPage.tsx')
 const graphStore = read('frontend/src/store/graphStore.ts')
 
-/* Six steps, and the server's list is the one the stepper renders and the API validates. */
+/* Five steps, and the server's list is the one the stepper renders and the API validates. */
 const wizardSteps = (server.match(/const WIZARD_STEPS = \[([\s\S]*?)\n\]/) ?? [])[1] ?? ''
 const stepLabels = [...wizardSteps.matchAll(/'([^']+)'/g)].map((m) => m[1])
 expect(
-  'the New Graph wizard is six steps, ending on the coverage review',
-  stepLabels.length === 6 && stepLabels[5] === 'Entities & relationships',
+  'the New Graph wizard is five steps, ending on Hero questions',
+  stepLabels.length === 5 && stepLabels[4] === 'Hero questions',
   `${stepLabels.length} step(s): ${stepLabels.join(' · ')}`,
 )
+/*
+ * **Two steps have been removed from this wizard, and each is asserted absent.**
+ *
+ * 'Answer requirements' went when citations and the render format moved to Ask; 'Entities &
+ * relationships' went on request, which is what put *Save & build graph* on the questions. The
+ * layers beneath the second are deliberately left in place — `graphCoverage`, `/graph-coverage`,
+ * `/graph-derivations` and `GAP_CAVEAT` all still work and nothing calls them, the same
+ * waiting-for-a-caller state `/change-signals` is in — so what is asserted here is the *step*,
+ * not the machinery.
+ */
 expect(
-  'and none of them is Answer requirements',
-  !stepLabels.includes('Answer requirements'),
-  'the step is gone — its choice is asked for on Ask',
+  'neither Answer requirements nor Entities & relationships is a step any more',
+  !stepLabels.includes('Answer requirements') &&
+    !stepLabels.includes('Entities & relationships') &&
+    /* The rules module judges nothing after the questions … */
+    !/case 6:/.test(codeOnly(wizardRules)) &&
+    !/coverageIsDecided/.test(codeOnly(wizardRules)) &&
+    /* … and the page draws no pane for it and starts no derivation on the way out. */
+    !/<CoverageStep/.test(codeOnly(newGraphPage)) &&
+    !/startDerivationRun/.test(codeOnly(newGraphPage)),
+  'a step the page draws but the API rejects, or a gate judging a step nobody can reach',
 )
-/* The page's fallback and its effects key on the same last step. A literal 7 left behind
-   would show a locked seventh step the server never sends. */
+/*
+ * **The metric vocabulary is one word, from the pool to the label.** 'KPIs' was step 3 and became
+ * 'Metrics' on request, and the rename went all the way down rather than stopping at the screen:
+ * the pool is `graph_metrics` keyed `metric_id`, a template's member list is `metrics`, the
+ * suggester is `/graph-metrics/suggest`, and a saved brief carries `metrics`. The Reports
+ * section's own `kpis` blocks are a different noun and keep theirs — which is why the absence is
+ * keyed on the graph tokens rather than on the four letters.
+ */
 expect(
-  'the page names the last step once, and derives from it',
-  /const LAST_STEP = 6/.test(newGraphPage) &&
-    /step !== LAST_STEP \|\| derivation/.test(newGraphPage) &&
+  'the wizard measures are metrics, in the data as well as on screen',
+  stepLabels[2] === 'Metrics' &&
+    !/graph_kpis|kpi_id/.test(server) &&
+    !/graph_kpis|kpi_id/.test(read('backend/datasets.js')) &&
+    /const suggestMetrics = /.test(read('frontend/src/api/client.ts')) &&
+    !/suggestKpis|useKpiSuggestStore/.test(codeOnly(graphStore)) &&
+    !/draft\.kpis/.test(codeOnly(wizardRules)) &&
+    /* The pool really is renamed in both documents, not just in the code that reads it. */
+    Array.isArray(datasetDocs.get('EPA')?.graph_metrics) &&
+    Array.isArray(datasetDocs.get('CAPEX')?.graph_metrics) &&
+    datasetDocs.get('EPA').graph_metrics.every((m) => m.metric_id && m.name) &&
+    /* The Reports section's own `kpis` — its summary-tile block kind and the row model's tile
+       list — are a different noun and keep it. Read off the *prototype*: the reports collection
+       drops a `kpis` block at ingest, so asserting there would pass over an empty list. */
+    Array.isArray(datasetDocs.get('EPA')?.reports_prototype?.row_model?.kpis) &&
+    (datasetDocs.get('EPA')?.reports_prototype?.starters ?? []).some((st) =>
+      (st.blocks ?? []).some((b) => b.type === 'kpis'),
+    ),
+  `${datasetDocs.get('EPA')?.graph_metrics?.length} EPA · ${datasetDocs.get('CAPEX')?.graph_metrics?.length} CAPEX metrics`,
+)
+/* The page's fallback keys on the same last step. A literal left behind would show a locked
+   step the server never sends — and the build button hangs off exactly this number. */
+expect(
+  'the page names the last step once, and the build button hangs off it',
+  /const LAST_STEP = 5/.test(newGraphPage) &&
+    stepLabels.length === 5 &&
     /stepIssue\(LAST_STEP, draft\)/.test(newGraphPage) &&
+    !/stepIssue\(6,/.test(codeOnly(newGraphPage)) &&
     !/stepIssue\(7,/.test(codeOnly(newGraphPage)),
-  'a hardcoded 7 renders a step the API would reject',
+  'a hardcoded step count renders a step the API would reject',
 )
 /*
  * And nothing on the wizard side still stores, drafts or judges the old answers.
@@ -9187,7 +9256,7 @@ expect(
     ? 'db.CAPEX.json has no committed brief — Graph Studio lists nothing, so nothing can be published ' +
       'and Reports and What-if can never open. Run npm run ingest:capex'
     : `${capexBrief.use_case_id} · ${capexBrief.domain_id} · ${capexBrief.personas.length} personas, ` +
-      `${capexBrief.kpis.length} KPIs, ${capexBrief.hero_questions.length} hero questions, step ${capexBrief.step}`,
+      `${capexBrief.metrics.length} metrics, ${capexBrief.hero_questions.length} hero questions, step ${capexBrief.step}`,
 )
 
 /*

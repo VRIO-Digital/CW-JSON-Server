@@ -58,7 +58,7 @@
  *   GET    /change-signals
  *   GET    /graph-domains                  step 1 options, ranked by real fit
  *   POST   /graph-personas/suggest         step 2 draft { domain_id, business_need }
- *   POST   /graph-kpis/suggest             step 3 draft { domain_id, business_need }
+ *   POST   /graph-metrics/suggest          step 3 draft { domain_id, business_need }
  *   GET    /graph-sources                  step 4: connected sources + profiled objects
  *   POST   /graph-questions/suggest         step 5 draft { domain_id, business_need }
  *   POST   /graph-coverage                 step 6 review { name, sources, hero_questions }
@@ -1241,8 +1241,10 @@ const DB_SHAPE = {
     Array.isArray(v) &&
     (empty || v.length > 0) &&
     v.every((p) => isObject(p) && p.persona_id && p.name),
-  graph_kpis: (v, empty) =>
-    Array.isArray(v) && (empty || v.length > 0) && v.every((k) => isObject(k) && k.kpi_id && k.name),
+  graph_metrics: (v, empty) =>
+    Array.isArray(v) &&
+    (empty || v.length > 0) &&
+    v.every((m) => isObject(m) && m.metric_id && m.name),
   graph_hero_questions: (v, empty) =>
     Array.isArray(v) &&
     (empty || v.length > 0) &&
@@ -1266,7 +1268,7 @@ const DB_SHAPE = {
         t.name &&
         Array.isArray(t.match_phrases) &&
         Array.isArray(t.personas) &&
-        Array.isArray(t.kpis) &&
+        Array.isArray(t.metrics) &&
         Array.isArray(t.hero_questions),
     ),
   graph_use_cases: (v) =>
@@ -1524,12 +1526,12 @@ const DB_HINTS = {
     'An empty { "entities": [] } is the initial state, from "npm run seed:data-model"',
   graph_domains: 'non-empty array of { domain_id, name }',
   graph_personas: 'non-empty array of { persona_id, name }',
-  graph_kpis: 'non-empty array of { kpi_id, name }',
+  graph_metrics: 'non-empty array of { metric_id, name }',
   graph_hero_questions: 'non-empty array of { question_id, text }',
   graph_answer_formats: 'non-empty array of { format_id, name }',
   graph_use_case_templates:
-    'array of { template_id, name, match_phrases[], personas[], kpis[], hero_questions[] } — ' +
-    'the three member lists hold ids from graph_personas / graph_kpis / graph_hero_questions',
+    'array of { template_id, name, match_phrases[], personas[], metrics[], hero_questions[] } — ' +
+    'the three member lists hold ids from graph_personas / graph_metrics / graph_hero_questions',
   graph_use_cases: 'array of { use_case_id, name }',
   graph_studio:
     'object with review_items[], generated{}, pivot{}, canvas{ nodes[], edges[] }, ' +
@@ -2035,7 +2037,7 @@ function validateDb(candidate) {
     for (const template of candidate.graph_use_case_templates) {
       for (const [memberKey, poolKey, idKey] of [
         ['personas', 'graph_personas', 'persona_id'],
-        ['kpis', 'graph_kpis', 'kpi_id'],
+        ['metrics', 'graph_metrics', 'metric_id'],
         ['hero_questions', 'graph_hero_questions', 'question_id'],
       ]) {
         for (const id of template[memberKey]) {
@@ -3424,13 +3426,31 @@ function queueJob({ sourceId, kind, unit, objects, force }) {
  * relationships': `savedUseCase` clamps the stored number to this list's length, which
  * is the only remap that cannot point at a step that no longer exists.
  */
+/**
+ * The wizard's steps, and the one place they are declared.
+ *
+ * The page renders this list and the commit route validates `step` against it, so a step cannot
+ * exist in the UI that the API would reject.
+ *
+ * **'Entities & relationships' was the sixth and is gone**, removed on request: the wizard now ends
+ * on Hero questions, which is where *Save & build graph* sits. What that step carried was the
+ * coverage review and its gap gate — see `graphCoverage` below, which is left serving `/graph-coverage`
+ * with nothing calling it, the same waiting-for-a-caller state `/change-signals` is in. Do not delete
+ * the layers beneath it to "finish" the removal; re-adding the step is this entry plus the page's
+ * branch. A brief saved on the old step 6 opens on the new last step, because `savedUseCase` clamps.
+ *
+ * **'KPIs' became 'Metrics'**, also on request, and the rename went all the way down: the pool is
+ * `graph_metrics` keyed `metric_id`, a template's member list is `metrics`, and a saved brief
+ * carries `metrics`. The Reports section's own `kpis` blocks are a different noun and keep it.
+ */
+/* Kept one label per line: check-docs parses this array with a regex that ends at a newline
+   before the closing bracket, so a one-line form makes it read on past the array. */
 const WIZARD_STEPS = [
   'Domain',
   'Personas',
-  'KPIs',
+  'Metrics',
   'Sources',
   'Hero questions',
-  'Entities & relationships',
 ]
 
 /** Strongest fit first — this is the ranking step 1 promises. */
@@ -5883,7 +5903,7 @@ const savedUseCase = (u) => ({
   domain_id: u.domain_id ?? null,
   business_need: u.business_need ?? '',
   personas: normalizeDrafted(u.personas),
-  kpis: normalizeDrafted(u.kpis),
+  metrics: normalizeDrafted(u.metrics),
   sources: normalizeSourcePicks(u.sources),
   hero_questions: normalizeQuestions(u.hero_questions),
   gap_decisions: normalizeGapDecisions(u.gap_decisions),
@@ -11061,7 +11081,12 @@ const routes = [
       idKey: 'persona_id',
       memberKey: 'personas',
     },
-    { path: '/graph-kpis/suggest', pool: 'graph_kpis', idKey: 'kpi_id', memberKey: 'kpis' },
+    {
+      path: '/graph-metrics/suggest',
+      pool: 'graph_metrics',
+      idKey: 'metric_id',
+      memberKey: 'metrics',
+    },
     {
       path: '/graph-questions/suggest',
       pool: 'graph_hero_questions',
@@ -11759,7 +11784,7 @@ const routes = [
         domain_id,
         business_need,
         personas,
-        kpis,
+        metrics,
         sources,
         hero_questions,
         gap_decisions,
@@ -11792,11 +11817,11 @@ const routes = [
           error: `step must be an integer from 1 to ${WIZARD_STEPS.length}`,
         })
       }
-      // Personas and KPIs are free text (the user can add their own), so they
+      // Personas and metrics are free text (the user can add their own), so they
       // are only trimmed and de-duplicated — never matched against the pool.
       for (const [label, list] of [
         ['personas', personas],
-        ['kpis', kpis],
+        ['metrics', metrics],
       ]) {
         if (list === undefined) continue
         if (!Array.isArray(list)) {
@@ -11810,13 +11835,13 @@ const routes = [
           )
         ) {
           return send(res, 400, {
-            error: `every ${label === 'kpis' ? 'KPI' : 'persona'} needs a name`,
+            error: `every ${label === 'metrics' ? 'metric' : 'persona'} needs a name`,
           })
         }
       }
       const personaTags =
         personas === undefined ? null : normalizeDrafted(personas)
-      const kpiTags = kpis === undefined ? null : normalizeDrafted(kpis)
+      const metricTags = metrics === undefined ? null : normalizeDrafted(metrics)
 
       if (hero_questions !== undefined) {
         if (!Array.isArray(hero_questions)) {
@@ -11943,7 +11968,7 @@ const routes = [
         domain_id: resolvedDomain,
         business_need: business_need ?? existing?.business_need ?? '',
         personas: personaTags ?? existing?.personas ?? [],
-        kpis: kpiTags ?? existing?.kpis ?? [],
+        metrics: metricTags ?? existing?.metrics ?? [],
         sources: sourcePicks ?? existing?.sources ?? [],
         hero_questions: questions ?? existing?.hero_questions ?? [],
         gap_decisions: decisions ?? existing?.gap_decisions ?? [],

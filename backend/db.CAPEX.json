@@ -19876,350 +19876,6 @@
       ]
     }
   ],
-  "graph_kpis": [
-    {
-      "kpi_id": "budget",
-      "name": "Approved Budget",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "approved",
-        "budget"
-      ],
-      "definition": "Board-approved plan amount for the period.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-001"
-    },
-    {
-      "kpi_id": "forecast",
-      "name": "Forecast",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "forecast"
-      ],
-      "definition": "Re-forecast of period spend at a declared cut of the fiscal year.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-002"
-    },
-    {
-      "kpi_id": "mtp",
-      "name": "Forward Plan (Mid-Term)",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "forward",
-        "plan",
-        "term"
-      ],
-      "definition": "The adopted mid-term plan for a declared forward horizon, by planning round.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-023"
-    },
-    {
-      "kpi_id": "authorized",
-      "name": "Authorized Amount",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "authorized",
-        "amount"
-      ],
-      "definition": "Currently approved amount from the plan-version chain.",
-      "unit": "USD",
-      "source": "ds_psoft_appr",
-      "glossary": "CAPEX-GL-003"
-    },
-    {
-      "kpi_id": "committed",
-      "name": "Open Commitments",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "open",
-        "commitments"
-      ],
-      "definition": "Open purchase-order value not yet invoiced.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-004"
-    },
-    {
-      "kpi_id": "actual",
-      "name": "Actual Spend",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "actual",
-        "spend"
-      ],
-      "definition": "Posted general-ledger spend.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-005"
-    },
-    {
-      "kpi_id": "cwip",
-      "name": "CWIP Balance",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "cwip",
-        "balance"
-      ],
-      "definition": "Construction work in progress at period end.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-006"
-    },
-    {
-      "kpi_id": "capitalized",
-      "name": "Capitalized",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "capitalized"
-      ],
-      "definition": "Cost transferred from CWIP to fixed assets.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-007"
-    },
-    {
-      "kpi_id": "rate-base",
-      "name": "Rate Base Additions",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "rate",
-        "base",
-        "additions"
-      ],
-      "definition": "Capitalised cost admitted to rate base.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-008"
-    },
-    {
-      "kpi_id": "eac",
-      "name": "Estimate at Completion",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "estimate",
-        "completion"
-      ],
-      "definition": "Total expected cost at project completion.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-009"
-    },
-    {
-      "kpi_id": "eac-variance",
-      "name": "EAC Variance",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "variance"
-      ],
-      "definition": "EAC less approved budget, at project completion.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-010"
-    },
-    {
-      "kpi_id": "eac-variance-pct",
-      "name": "EAC Variance %",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "variance"
-      ],
-      "definition": "EAC variance as a percentage of approved budget.",
-      "unit": "PCT",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-011"
-    },
-    {
-      "kpi_id": "gap",
-      "name": "Budget-to-Forecast Gap",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "budget",
-        "forecast"
-      ],
-      "definition": "Forecast less approved budget over the five-year plan horizon.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-012"
-    },
-    {
-      "kpi_id": "gap-pct",
-      "name": "Gap %",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [],
-      "definition": "Gap as a percentage of approved budget.",
-      "unit": "PCT",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-013"
-    },
-    {
-      "kpi_id": "plan-period",
-      "name": "Period Plan",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "period",
-        "plan"
-      ],
-      "definition": "Calendarised plan for a single period.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-014"
-    },
-    {
-      "kpi_id": "variance-period",
-      "name": "Plan-to-Actual Variance",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "plan",
-        "actual",
-        "variance"
-      ],
-      "definition": "Actual less period plan.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-015"
-    },
-    {
-      "kpi_id": "variance-pct",
-      "name": "Variance %",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "variance"
-      ],
-      "definition": "Plan-to-actual variance as a percentage of plan.",
-      "unit": "PCT",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-016"
-    },
-    {
-      "kpi_id": "contingency-alloc",
-      "name": "Contingency Allocated",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "contingency",
-        "allocated"
-      ],
-      "definition": "Contingency held against a project at authorisation.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-017"
-    },
-    {
-      "kpi_id": "contingency-used",
-      "name": "Contingency Drawn",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "contingency",
-        "drawn"
-      ],
-      "definition": "Contingency consumed to date.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-018"
-    },
-    {
-      "kpi_id": "pct-complete",
-      "name": "Percent Complete",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "percent",
-        "complete"
-      ],
-      "definition": "Physical completion. Weighted by budget when aggregated.",
-      "unit": "PCT",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-019"
-    },
-    {
-      "kpi_id": "schedule-variance",
-      "name": "Schedule Variance",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "schedule",
-        "variance"
-      ],
-      "definition": "Forecast in-service date less planned in-service date.",
-      "unit": "MONTHS",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-020"
-    },
-    {
-      "kpi_id": "cwip-age",
-      "name": "CWIP Age",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "cwip"
-      ],
-      "definition": "Days a CWIP balance has been held without transfer to assets.",
-      "unit": "DAYS",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-021"
-    },
-    {
-      "kpi_id": "pis-value",
-      "name": "Capex Placed in Service",
-      "domains": [
-        "capital-projects",
-        "water-wastewater"
-      ],
-      "keywords": [
-        "capex",
-        "placed",
-        "service"
-      ],
-      "definition": "Capex scheduled or recorded as placed in service in the window.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-022"
-    }
-  ],
   "graph_hero_questions": [
     {
       "question_id": "hq1",
@@ -21045,7 +20701,56 @@
       ]
     }
   ],
-  "graph_use_cases": [],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-testdata-mtsdyrc94",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "\nDomains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai"
+        },
+        {
+          "name": "Procurement Lead",
+          "description": "Asks what has been awarded, what has changed since award, and to whom.",
+          "source": "ai"
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Actual Spend",
+          "description": "Posted general-ledger spend.",
+          "source": "ai"
+        },
+        {
+          "name": "Plan-to-Actual Variance",
+          "description": "Actual less period plan.",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Which completed projects are not yet unitized?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 5,
+      "updated_at": "2026-09-08T08:07:17.784Z"
+    }
+  ],
   "graph_use_case_templates": [
     {
       "template_id": "capital-programme-intelligence",
@@ -21070,7 +20775,7 @@
         "rate-case-lead",
         "compliance-lead"
       ],
-      "kpis": [
+      "metrics": [
         "budget",
         "forecast",
         "mtp",
@@ -61388,7 +61093,7 @@
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-07T14:01:33.032Z"
+        "updated_at": "2026-09-08T08:06:33.886Z"
       },
       {
         "entity_id": "ent-plan-cw-program-master-mtqyoymt6",
@@ -61440,5 +61145,349 @@
       }
     ],
     "suggestions": []
-  }
+  },
+  "graph_metrics": [
+    {
+      "metric_id": "budget",
+      "name": "Approved Budget",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "approved",
+        "budget"
+      ],
+      "definition": "Board-approved plan amount for the period.",
+      "unit": "USD",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-001"
+    },
+    {
+      "metric_id": "forecast",
+      "name": "Forecast",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "forecast"
+      ],
+      "definition": "Re-forecast of period spend at a declared cut of the fiscal year.",
+      "unit": "USD",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-002"
+    },
+    {
+      "metric_id": "mtp",
+      "name": "Forward Plan (Mid-Term)",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "forward",
+        "plan",
+        "term"
+      ],
+      "definition": "The adopted mid-term plan for a declared forward horizon, by planning round.",
+      "unit": "USD",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-023"
+    },
+    {
+      "metric_id": "authorized",
+      "name": "Authorized Amount",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "authorized",
+        "amount"
+      ],
+      "definition": "Currently approved amount from the plan-version chain.",
+      "unit": "USD",
+      "source": "ds_psoft_appr",
+      "glossary": "CAPEX-GL-003"
+    },
+    {
+      "metric_id": "committed",
+      "name": "Open Commitments",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "open",
+        "commitments"
+      ],
+      "definition": "Open purchase-order value not yet invoiced.",
+      "unit": "USD",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-004"
+    },
+    {
+      "metric_id": "actual",
+      "name": "Actual Spend",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "actual",
+        "spend"
+      ],
+      "definition": "Posted general-ledger spend.",
+      "unit": "USD",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-005"
+    },
+    {
+      "metric_id": "cwip",
+      "name": "CWIP Balance",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "cwip",
+        "balance"
+      ],
+      "definition": "Construction work in progress at period end.",
+      "unit": "USD",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-006"
+    },
+    {
+      "metric_id": "capitalized",
+      "name": "Capitalized",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "capitalized"
+      ],
+      "definition": "Cost transferred from CWIP to fixed assets.",
+      "unit": "USD",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-007"
+    },
+    {
+      "metric_id": "rate-base",
+      "name": "Rate Base Additions",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "rate",
+        "base",
+        "additions"
+      ],
+      "definition": "Capitalised cost admitted to rate base.",
+      "unit": "USD",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-008"
+    },
+    {
+      "metric_id": "eac",
+      "name": "Estimate at Completion",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "estimate",
+        "completion"
+      ],
+      "definition": "Total expected cost at project completion.",
+      "unit": "USD",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-009"
+    },
+    {
+      "metric_id": "eac-variance",
+      "name": "EAC Variance",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "variance"
+      ],
+      "definition": "EAC less approved budget, at project completion.",
+      "unit": "USD",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-010"
+    },
+    {
+      "metric_id": "eac-variance-pct",
+      "name": "EAC Variance %",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "variance"
+      ],
+      "definition": "EAC variance as a percentage of approved budget.",
+      "unit": "PCT",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-011"
+    },
+    {
+      "metric_id": "gap",
+      "name": "Budget-to-Forecast Gap",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "budget",
+        "forecast"
+      ],
+      "definition": "Forecast less approved budget over the five-year plan horizon.",
+      "unit": "USD",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-012"
+    },
+    {
+      "metric_id": "gap-pct",
+      "name": "Gap %",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [],
+      "definition": "Gap as a percentage of approved budget.",
+      "unit": "PCT",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-013"
+    },
+    {
+      "metric_id": "plan-period",
+      "name": "Period Plan",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "period",
+        "plan"
+      ],
+      "definition": "Calendarised plan for a single period.",
+      "unit": "USD",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-014"
+    },
+    {
+      "metric_id": "variance-period",
+      "name": "Plan-to-Actual Variance",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "plan",
+        "actual",
+        "variance"
+      ],
+      "definition": "Actual less period plan.",
+      "unit": "USD",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-015"
+    },
+    {
+      "metric_id": "variance-pct",
+      "name": "Variance %",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "variance"
+      ],
+      "definition": "Plan-to-actual variance as a percentage of plan.",
+      "unit": "PCT",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-016"
+    },
+    {
+      "metric_id": "contingency-alloc",
+      "name": "Contingency Allocated",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "contingency",
+        "allocated"
+      ],
+      "definition": "Contingency held against a project at authorisation.",
+      "unit": "USD",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-017"
+    },
+    {
+      "metric_id": "contingency-used",
+      "name": "Contingency Drawn",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "contingency",
+        "drawn"
+      ],
+      "definition": "Contingency consumed to date.",
+      "unit": "USD",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-018"
+    },
+    {
+      "metric_id": "pct-complete",
+      "name": "Percent Complete",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "percent",
+        "complete"
+      ],
+      "definition": "Physical completion. Weighted by budget when aggregated.",
+      "unit": "PCT",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-019"
+    },
+    {
+      "metric_id": "schedule-variance",
+      "name": "Schedule Variance",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "schedule",
+        "variance"
+      ],
+      "definition": "Forecast in-service date less planned in-service date.",
+      "unit": "MONTHS",
+      "source": "ds_epbcs_plan",
+      "glossary": "CAPEX-GL-020"
+    },
+    {
+      "metric_id": "cwip-age",
+      "name": "CWIP Age",
+      "domains": [
+        "capital-projects"
+      ],
+      "keywords": [
+        "cwip"
+      ],
+      "definition": "Days a CWIP balance has been held without transfer to assets.",
+      "unit": "DAYS",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-021"
+    },
+    {
+      "metric_id": "pis-value",
+      "name": "Capex Placed in Service",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "capex",
+        "placed",
+        "service"
+      ],
+      "definition": "Capex scheduled or recorded as placed in service in the window.",
+      "unit": "USD",
+      "source": "ds_psoft_gl",
+      "glossary": "CAPEX-GL-022"
+    }
+  ]
 }

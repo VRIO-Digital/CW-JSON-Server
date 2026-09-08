@@ -1209,8 +1209,7 @@ describes a business need and the AI derives the graph.** Nobody types an entity
 name — do not add a field that asks for one.
 
 ```
-1 Domain → 2 Personas → 3 KPIs → 4 Sources → 5 Hero questions
-        → 6 Entities & relationships
+1 Domain → 2 Personas → 3 Metrics → 4 Sources → 5 Hero questions
 ```
 
 Labels come from `WIZARD_STEPS` in `server.js` via the `/graph-use-cases`
@@ -1238,10 +1237,14 @@ user, so each rule names the fix rather than the rule:
 |---|---|
 | 1 Domain | named *and* a domain picked |
 | 2 Personas | at least one persona |
-| 3 KPIs | at least one KPI |
+| 3 Metrics | at least one metric |
 | 4 Sources | the four checks below |
-| 5 Hero questions | at least one question |
-| 6 Entities & relationships | every gap decided — the build gate |
+| 5 Hero questions | at least one question — **and the build gate**, since this is the last step |
+
+**Step 6, 'Entities & relationships', was removed on request** and *Save & build graph* moved here
+with it. The coverage review and its gap gate went too; `graphCoverage`, `/graph-coverage`,
+`/graph-derivations` and both stores are left with nothing calling them, like `/change-signals`.
+Ask's standing caveats read gap decisions, so a brief built from here contributes none.
 
 `maxStep` on the page is how far the draft has been taken, restored from the
 saved `step` when a use case is opened. A step past it renders `is-locked` with a
@@ -1288,7 +1291,7 @@ enforced server-side, because every later step derives from it. The last step's 
 action commits — status `committed`, which is what makes a row read "ready to
 build".
 
-### Steps 2 and 3 · Personas, then KPIs
+### Steps 2 and 3 · Personas, then Metrics
 
 **Both steps are the same component** (`DraftedStep`) over the same server
 machinery — they differ only in copy and which pool they draw from:
@@ -1297,7 +1300,7 @@ machinery — they differ only in copy and which pool they draw from:
 |---|---|---|
 | suggester | `POST /graph-personas/suggest` | `POST /graph-kpis/suggest` |
 | pool | `graph_personas` (`focus`) | `graph_kpis` (`definition`) |
-| list label | Who will ask questions of this graph? | KPIs these answers report against |
+| list label | Who will ask questions of this graph? | Metrics these answers report against |
 | saved as | `personas` | `kpis` |
 
 Both answer `{ suggestions: [{ id, name, detail, why }], count, derived_from }`,
@@ -1342,7 +1345,7 @@ Three things to keep true:
 - **A brief that names a known use case is answered from it, not ranked.** If
   the business need contains two or more of a `graph_use_case_templates` entry's
   `match_phrases` — pasting that use case's description hits all of them — the
-  step drafts exactly that use case's personas, KPIs and hero questions, whole
+  step drafts exactly that use case's personas, metrics and hero questions, whole
   and in its own order, past the four-suggestion limit. The `why` reads "named
   in the … use case" and `derived_from` names it. Two templates tying matches
   neither, and the keyword ranking answers instead.

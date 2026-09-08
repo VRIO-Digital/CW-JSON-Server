@@ -119,7 +119,7 @@ export const MERGE_PLAN = {
   graph_domains: { union: 'domain_id' },
   graph_use_cases: { union: 'use_case_id' },
   graph_personas: { union: 'persona_id' },
-  graph_kpis: { union: 'kpi_id' },
+  graph_metrics: { union: 'metric_id' },
   graph_hero_questions: { union: 'question_id' },
   graph_answer_formats: { union: 'format_id' },
   graph_use_case_templates: { union: 'template_id' },
