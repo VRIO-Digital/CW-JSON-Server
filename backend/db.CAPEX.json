@@ -289,6 +289,30 @@
               "type": "TABLE",
               "rows": null,
               "columns": 6
+            },
+            {
+              "table_id": "capex_plan_dictionary",
+              "label": "capex-plan-dictionary.csv (uploaded)",
+              "grain": "one row per record in the uploaded file",
+              "type": "TABLE",
+              "rows": 186,
+              "columns": 7
+            },
+            {
+              "table_id": "vendor_invoice_sample",
+              "label": "vendor_invoice_sample.pdf (uploaded)",
+              "grain": "one row per record in the uploaded file",
+              "type": "TABLE",
+              "rows": 163,
+              "columns": 1
+            },
+            {
+              "table_id": "query_set_v2_1",
+              "label": "query_set_v2 (1).json (uploaded)",
+              "grain": "one row per record in the uploaded file",
+              "type": "TABLE",
+              "rows": 9552,
+              "columns": 1
             }
           ]
         }
@@ -4832,6 +4856,120 @@
         "confidence": null,
         "null_pct": null,
         "distinct": null
+      }
+    ],
+    "plan.capex_plan_dictionary": [
+      {
+        "column_id": "dataset",
+        "label": "DATASET",
+        "type": "STRING",
+        "class": "text",
+        "description": "",
+        "derivation": "measured from the uploaded file",
+        "pii": false,
+        "confidence": null,
+        "null_pct": 0,
+        "distinct": 1
+      },
+      {
+        "column_id": "table",
+        "label": "TABLE",
+        "type": "STRING",
+        "class": "text",
+        "description": "",
+        "derivation": "measured from the uploaded file",
+        "pii": false,
+        "confidence": null,
+        "null_pct": 0,
+        "distinct": 12
+      },
+      {
+        "column_id": "column",
+        "label": "COLUMN",
+        "type": "STRING",
+        "class": "text",
+        "description": "",
+        "derivation": "measured from the uploaded file",
+        "pii": false,
+        "confidence": null,
+        "null_pct": 0,
+        "distinct": 129
+      },
+      {
+        "column_id": "type",
+        "label": "TYPE",
+        "type": "STRING",
+        "class": "text",
+        "description": "",
+        "derivation": "measured from the uploaded file",
+        "pii": false,
+        "confidence": null,
+        "null_pct": 0,
+        "distinct": 6
+      },
+      {
+        "column_id": "class",
+        "label": "CLASS",
+        "type": "STRING",
+        "class": "text",
+        "description": "",
+        "derivation": "measured from the uploaded file",
+        "pii": false,
+        "confidence": null,
+        "null_pct": 0,
+        "distinct": 13
+      },
+      {
+        "column_id": "pii",
+        "label": "PII",
+        "type": "STRING",
+        "class": "text",
+        "description": "",
+        "derivation": "measured from the uploaded file",
+        "pii": false,
+        "confidence": null,
+        "null_pct": 74.2,
+        "distinct": 7
+      },
+      {
+        "column_id": "description",
+        "label": "DESCRIPTION",
+        "type": "STRING",
+        "class": "text",
+        "description": "",
+        "derivation": "measured from the uploaded file",
+        "pii": false,
+        "confidence": null,
+        "null_pct": 20.4,
+        "distinct": 131
+      }
+    ],
+    "plan.vendor_invoice_sample": [
+      {
+        "column_id": "%PDF-1.4",
+        "label": "%PDF-1.4",
+        "type": "STRING",
+        "class": "text",
+        "description": "",
+        "derivation": "measured from the uploaded file",
+        "pii": false,
+        "confidence": null,
+        "null_pct": 0,
+        "distinct": 122
+      }
+    ],
+    "plan.query_set_v2_1": [
+      {
+        "column_id": "{",
+        "label": "{",
+        "type": "STRING",
+        "class": "text",
+        "description": "",
+        "derivation": "measured from the uploaded file",
+        "pii": false,
+        "confidence": null,
+        "null_pct": 0,
+        "distinct": 2601
       }
     ]
   },
@@ -20702,6 +20840,26 @@
     }
   ],
   "graph_use_cases": [
+    {
+      "use_case_id": "uc-www-mtub7v2v2",
+      "name": "www",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "testsssww",
+      "personas": [
+        {
+          "name": "Project Manager",
+          "description": "Asks where a single project stands against its own plan.",
+          "source": "ai"
+        }
+      ],
+      "metrics": [],
+      "sources": [],
+      "hero_questions": [],
+      "gap_decisions": [],
+      "step": 3,
+      "updated_at": "2026-09-09T16:25:54.743Z"
+    },
     {
       "use_case_id": "uc-testdata-mtsdyrc94",
       "name": "testdata",
@@ -61144,7 +61302,8 @@
         "updated_at": "2026-09-07T14:00:11.091Z"
       }
     ],
-    "suggestions": []
+    "suggestions": [],
+    "uploads": []
   },
   "graph_metrics": [
     {
