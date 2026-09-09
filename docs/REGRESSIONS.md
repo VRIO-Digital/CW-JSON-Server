@@ -6355,6 +6355,104 @@ already renders the build button there rather than *Next*.
 
 ---
 
+## Five badges answering one question, and a "Declared" pill over 14 anchor entities
+
+**Symptom** — Entity detail's Overview showed a `⚡ Curated by AI` beside *What does this table
+represent?* and *Grain*, and a `You` beside three more fields: one question answered five times on a
+form whose every field is saved by one button. Asked for as a single status beside the table name
+instead. On investigating, the header's own pill was worse: it read **Declared** for every table with
+an entity, and all 14 of CAPEX's entities are *anchors* — minted by `relationshipWrites` whenever a
+relationship points at an undeclared table, with `description: "…created to anchor a declared
+relationship"`. Nobody had declared any of them.
+
+**Root cause** — two shapes of the same mistake. The per-field badges took provenance from whether a
+field had a *stored value*; the header took it from whether an *entity existed*. Neither is evidence
+that a person declared anything.
+
+**Fix** — the badges are gone (and `fieldLabel`'s `badge` slot with them — a parameter no caller
+passes invites one back), and the header states one of three from `tableDeclarationState`: *Not yet
+declared*, *Curated by AI* (an entity nobody saved), *Confirmed by you*. It reads an entity-level
+`confirmed_by` that **only Save Overview writes**, mirroring the field added to a relationship.
+
+**Then the replacement was the wrong colour, which is the same mistake one level up.** The header
+drew all three states through `StatusPill`, so *Curated by AI* arrived **amber** there while the
+identical words on every relationship row beside it were **purple**. Reported from use as a colour,
+and it is precisely what `ProvenanceBadge` and `StatusPill` are separate components to prevent:
+status is green/amber/red, provenance is green/purple, and a single mark for both has to pick one
+meaning for green. *Curated by AI* and *Confirmed by you* answer **who**, so they are provenance
+badges; *Not yet declared* is a state and keeps the neutral pill. `TABLE_STATUS_KIND` now declares
+only *which badge* — its first version also held the two labels a second time, beside
+`PROVENANCE_WORDS`, which is the drift `DERIVED_LABEL` is one constant to stop. *Choosing a component
+for a mark is choosing which of two palettes it means.*
+
+**Guard** — mechanical. `check-docs` asserts the rule's three branches, that the header renders the
+two declared states as `ProvenanceBadge`s and the third as a neutral pill, that the module holds
+neither label as a literal, that no `ProvenanceBadge` survives in Overview, that `fieldLabel` takes
+one argument, that Save sends the browser's address, and — the silent half — that the server
+**carries the stored answer forward** when a caller sends none: an anchor write for a new
+relationship hands over the whole entity, so without that it would clear the field and un-declare
+the table. A **second** claim asserts the
+per-row marks on relationships and reassigned columns *survived*, because a broad sweep for
+`ProvenanceBadge` would have taken records that do carry their own provenance. And the absence clause
+needed `codeOnly` — the comments explaining the removal name the thing removed, which is the seventh
+time this file has recorded that trap.
+
+---
+
+## Twelve relationships credited to a reader who had accepted none of them
+
+**Symptom** — the Data Modeling strip read *12 relationships confirmed*, and the dialog behind it
+showed twelve rows each marked **Confirmed by you** with *Evidence: your declaration*. The reader had
+pressed nothing. Reported from use.
+
+**Root cause** — `declaredRelationshipsFrom` set `provenance: 'human'` as a literal for every stored
+declaration: being in the document *was* the evidence that somebody had declared it. Nothing recorded
+**who**, so a declaration written in an earlier session, by another persona, or by a script rendered
+as the current reader's own act — false for all 31 across the two documents. The tile's label made
+the same claim one level up.
+
+**Fix** — a stored relationship carries `confirmed_by`, nullable, and the label is read off it:
+`'human'` (*Confirmed by you*) only where somebody accepted it, otherwise `'derived'` (*Curated by
+AI*) with **Accept** and **Reject** on the row. Accept writes the name through the existing
+`relationshipWrites` path; Reject removes the declaration and returns the row to *suggested,
+pending*. The tile counts **relations**, since that is what it can honestly say.
+
+**Guard** — mechanical, at every layer, because the halves fail differently. `check-docs` asserts the
+server writes the field only for an address, `validateDb` permits absent-or-null, the client declares
+and validates it, `provenance` is computed from it and the literal `'human'` is *gone*, and — the
+silent one — the tab sends the row's own answer back on an edit. A write hands the server the whole
+relationship, so a field left out is a field cleared: without that clause, editing a rationale would
+strip the name off and un-accept the row with nothing on screen saying so. Break-tested four ways.
+
+---
+
+## Six tables looked orphaned because the suggester capped its inputs
+
+**Symptom** — after profiling 18 tables and uploading a dictionary for them, the Data Modeling tab
+reported relationships for 12 and nothing at all for the other 6, which read as six tables this
+schema does not connect. Every one of the 18 shares an identifier column with another. Reported from
+use.
+
+**Root cause** — `SUGGEST_TABLE_CAP` (12) capped the *tables* a run scanned. That made the output a
+claim about the cap rather than about the schema, and the six excluded tables were indistinguishable
+from six the scan had looked at and found nothing for. The cap was reported (`truncated`), but "read
+the first 12 tables" is a sentence about the run, not about the row a reader is looking at.
+
+**Fix** — the cap moved from the inputs to the output: every profiled table is scanned and
+`SUGGEST_RELATIONSHIP_CAP` (80) cuts the returned list, which is the thing a reviewer actually has to
+read. Recorded suggestions are ordered first so a cut takes column-name matches rather than an
+authored row. And the run now *states* which tables nothing joins — `orphan_tables`, computed over
+the whole scan and **before** the cut, with the tab subtracting the tables a stored declaration
+touches.
+
+**Guard** — mechanical. `check-docs` asserts there is no table cap, that the list cap is what slices,
+that `reached` is walked before the slice, and that the tab's orphan tile subtracts declared tables
+and prints an em dash before a run. **The first version of the no-table-cap clause was `/const
+considered = all\b/`, which a re-added `all.slice(0, 12)` satisfies** — it passed over the very cap it
+existed to refuse, and the break test is what found that. It matches to the end of the line now.
+
+---
+
 ## One press of Start Profiling ran two pipelines
 
 **Symptom** — uploading the CAPEX dictionary against `plan` and pressing Start Profiling put **two

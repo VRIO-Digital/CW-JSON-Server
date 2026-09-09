@@ -1665,8 +1665,78 @@ one array**, so the number a reader clicks and the rows they then count cannot d
 is inert at 0, because a count that opened an empty dialog is the button-over-blank-space this repo
 has fixed once already.
 
-**The confirmed count is one too, and it was the question this tab could not answer.** *N
-relationships confirmed* opens the stored declarations — Entity detail shows one table's at a time
+**A table's status is stated once, beside its name — not five times on a form.** Overview carried a
+`ProvenanceBadge` beside *Entity name*, *What does this table represent?*, *Business purpose*, *Grain*
+and *Confirmed identifier*: one question answered five times, on a form whose every field is saved by
+one button. Removed on request, and answered in the Entity detail header instead, because it is a
+fact about the table rather than about a text box. `fieldLabel` lost its `badge` slot with them — a
+parameter no caller passes is an invitation for one to come back.
+
+**Three states there, where the header had two.** It read *Declared* for any existing entity, and an
+entity exists without anybody having declared anything: `relationshipWrites` mints an **anchor**
+whenever a relationship points at an undeclared table, and its own description says so — all 14 of
+CAPEX's exist that way, so all 14 read *Declared*. So `tableDeclarationState` reads an entity-level
+`confirmed_by`, which **only Save Overview writes**: no entity → *Not yet declared*, an entity nobody
+saved → *Curated by AI*, an entity somebody saved → *Confirmed by you*. **A later write must not
+un-declare it** — every write hands the server the whole entity, so an anchor write for a new
+relationship would clear the field, and the server carries the stored answer forward where the caller
+sends none.
+
+**And two of those three wear the *provenance* palette, which the first version got wrong.** All
+three went through `StatusPill`, so *Curated by AI* arrived **amber** in the header while the same
+words on every relationship row beside it were **purple** — reported from use as the wrong colour,
+and it is exactly the confusion `ProvenanceBadge` and `StatusPill` are separate components to
+prevent: status is green/amber/red, provenance is green/purple, and one mark for both has to pick a
+single meaning for green. *Curated by AI* and *Confirmed by you* say **who**, so they are
+`ProvenanceBadge`s; *Not yet declared* is a state, so it keeps the neutral pill. `TABLE_STATUS_KIND`
+therefore declares only *which badge* — the words stay the badge's own, because a second map holding
+"Curated by AI" is the drift `DERIVED_LABEL` is one constant to stop.
+
+**What stays is a mark on a record that carries its own decision.** A relationship's badge and a
+reassigned column's are per-*row*, not per-field: each is its own record with its own provenance, and
+no machinery mints a reassignment. `check-docs` asserts both survived the removal, because a broad
+sweep for `ProvenanceBadge` would have taken them.
+
+**Stored is not confirmed, and the two came apart on request.** `provenance` was the literal
+`'human'` for every stored declaration — being in the document *was* the evidence somebody had
+declared it — so all 31 across the two documents rendered as **Confirmed by you** to whoever was
+looking. That is a claim about the reader, and it was false for every one of them: written in an
+earlier session, or by a script, with no record of which. Reported from use, as twelve relationships
+credited to somebody who had accepted none.
+
+So a stored relationship carries `confirmed_by`:
+
+- **Nullable, and absent on every one written before the field existed.** `null` is the honest
+  answer to "who accepted this", and the label then reads its origin — **Curated by AI** — rather
+  than naming a person. `derived` is right for that branch rather than a guess: a *recorded*
+  suggestion cannot become stored except by being confirmed, so it always carries a name.
+- **The address is the browser's**, because the identity is client-held and a route cannot look up
+  who is signed in — the rule `saved_by` on a saved report established. A malformed one is stored as
+  `null`, never as typed.
+- **It survives an edit**, which is the silent half: every write hands the server the whole
+  relationship, so a field left out is a field cleared — editing a rationale would strip the name off
+  and quietly return the row to undecided. `toRelationshipItem` carries it and the tab sends the
+  row's own answer back.
+- **Accepting a suggestion credits the reader**, on all three paths — the single confirm, Accept all,
+  and a declaration made in the dialog — which is what makes the row read *Confirmed by you*
+  afterwards.
+
+**So the tile counts *relations*, renamed on request.** It read *relationships confirmed* over rows
+nobody had accepted; the count is of what this source **holds**, and each row says for itself whether
+anybody has accepted it. `confirmedRelationshipsCopy.tileLabel` sits beside the dialog's own `title`
+so the control and the thing it opens cannot come to be called two things.
+
+**And the relations dialog offers two decisions per row.** **Accept** records it as the reader's —
+the same `relationshipWrites` path with a name on it, rather than a route of its own, because that
+path already carries absent fields forward and anchors the row on the right entity. **Reject**
+removes the declaration and puts the row back with the **suggestions, pending**, marked `derived`
+again: a rejected relation is not a deletion, it is a question returned to where undecided ones live.
+Accept is withheld where somebody already accepted; Reject stays, as the way back out. Both stop the
+row's own click, or acting would open the edit dialog over the list — the trap the dataset upload
+control fell into one tab over.
+
+**The confirmed count is one too, and it was the question this tab could not answer.** *N relations*
+opens the stored declarations — Entity detail shows one table's at a time
 and the canvas draws them as edges with no list behind them, so *what are my nineteen* had no
 surface. `ConfirmedRelationshipsModal` is the twin of the pending one and keeps its rules: inert at
 0, body exported apart from its `Modal`, copy and grouping in `src/data/confirmedRelationships.ts`,
@@ -1729,9 +1799,43 @@ It is **paced** at `SUGGEST_MS` like every other suggester, and its refusals are
 often share three identifiers, and `HAS_E_MANIFEST_ALL` three times in one list is three suggestions
 a reviewer cannot tell apart. The table-shaped name rides along as an alternative chip.
 
-**The scan is capped, and the cap is reported.** A pair-wise column comparison is quadratic and CAPEX
-ships 64 profiled tables, so a run considers `SUGGEST_TABLE_CAP` (12) of them and sets `truncated`; a
-list that silently covered a fifth of a source would read as a source with few relationships.
+**The run happens on arrival, and the button that started it is gone.** It was labelled *Curated by
+AI* beside the counts, so a reader who had just profiled eighteen tables met a tab reporting no
+relationships at all and had to know to press something to find out otherwise. Removed on request:
+what the profile implies about how these tables join is not a separate act a reader should have to
+ask for. **The narration stayed** — the strip says *Reading the schema* while the run is in flight,
+in the button's own busy words, because a run that returned invisibly would teach that it is free.
+The effect is guarded by `sourceId:tableCount`, not a boolean: the store re-reads its tables after
+every save, and each one would otherwise start a run. **What this costs is a way to ask again for
+the same tables** — a rejected suggestion is gone until the profile changes — and
+`pendingSuggestionsCopy.empty` says that rather than naming a control that no longer exists.
+
+**The *list* is capped, and the tables are not — which is the correction that matters.** A pair-wise
+column comparison is quadratic and CAPEX ships 64 profiled tables, so a run used to consider
+`SUGGEST_TABLE_CAP` (12) of them. Capping the **inputs** makes the output a claim about the cap
+rather than about the schema: an 18-table source came back with 12 joined and 6 that appeared to have
+no relationship at all, when every one of the 18 shares an identifier with another. Reported from
+use, as six orphan tables that were nothing of the kind. So every profiled table is scanned and
+`SUGGEST_RELATIONSHIP_CAP` (80) cuts the returned list, which is the thing a reviewer has to read —
+`truncated` and `relationships_total` report it, and **recorded rows come first so a cut takes
+column-name matches before an authored row** carrying somebody's reasoning.
+
+**And a table nothing joins is stated, in two halves because neither side sees both.**
+`orphan_tables` is computed over the whole scan and **before** the cut — a table whose one suggestion
+was cut would otherwise look orphaned — and the tab subtracts the tables a **stored declaration**
+touches, which the scan cannot know. The tile reads `—` until a run has landed, because "no orphans"
+and "nobody has looked" are different facts and only the first is a 0. It is inert: the table list
+beside it already marks each row, so the tile is the figure and the list is the naming. Over CAPEX's
+18 profiled `plan` tables the honest answer is **0** — all 18 share an identifier with another —
+which is worth knowing before reading a 0 there as a broken count.
+
+**Most of those suggestions arrive with no cardinality, and that is the dictionary's fault rather
+than the suggester's.** The hint is derived from whether each side's distinct count reaches its row
+count, and a column *declared* in an uploaded dictionary has no distinct count at all — so 47 of
+CAPEX's 53 come back `null`, print `CARDINALITY_UNDETERMINED`, and say the reviewer sets it on
+confirm. The six that do carry one are pairs involving `vw_project_plan_capex`, whose columns were
+really profiled. Filling the other 47 with `N:N` would be the most committal of the four codes
+asserted on no evidence.
 
 **Modelling is a fifth act with no twin, and `wrongStructuredOnly` is what says so.** `wrongScope`'s reasoning
 applied to the other end of the catalogue: pointing a drive or a mailbox at the structured route would

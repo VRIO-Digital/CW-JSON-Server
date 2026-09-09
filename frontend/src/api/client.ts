@@ -4251,6 +4251,20 @@ export interface ModelRelationshipItem {
   /** `1:1` | `1:N` | `N:1` | `N:N` — advisory, and a closed set the server checks. */
   cardinality_hint: string
   rationale: string
+  /**
+   * Who accepted this declaration, or `null` — and **being stored is not being confirmed**.
+   *
+   * Every stored declaration used to render as *Confirmed by you*, because the tab took
+   * `provenance: 'human'` from the mere fact of being stored. That is a claim about the reader and
+   * it was false for all 31 across the two documents: written in some earlier session, or by a
+   * script, with no record of which. Reported from use, as twelve relationships credited to
+   * somebody who had accepted none of them.
+   *
+   * Absent on every one written before the field existed, which is why it is nullable rather than
+   * required: `null` is the honest answer to "who accepted this", and the label says *Curated by
+   * AI* instead of naming a person.
+   */
+  confirmed_by?: string | null
 }
 
 /**
@@ -4273,6 +4287,16 @@ export interface ModelEntity {
   table_key: string
   entity_name: string
   description: string
+  /**
+   * Who declared this table, or `null` — the twin of the field on a relationship.
+   *
+   * An entity can exist without anybody having declared anything: the client mints an **anchor**
+   * whenever a relationship points at an undeclared table, and its own description says so in as
+   * many words. So the Entity detail header's pill is read off this rather than off the entity's
+   * mere existence, which used to print *Declared* over all 14 of CAPEX's anchors. Only Save
+   * Overview sends a name.
+   */
+  confirmed_by: string | null
   business_purpose: string | null
   grain_description: string | null
   attributes: ModelAttribute[]
@@ -4293,6 +4317,8 @@ export interface DataModelPayload {
  */
 export interface ModelEntityInput {
   entity_id?: string
+  /** Sent by Save Overview alone. Omitted, the server carries the stored answer forward. */
+  confirmed_by?: string | null
   table_key?: string
   entity_name?: string
   description?: string
@@ -4379,9 +4405,28 @@ export interface ModelSuggestionsPayload {
   recorded_count: number
   /** Found by matching a shared identifier column, for every pair nothing has written down. */
   derived_count: number
-  /** A pair-wise scan is quadratic, so a run considers a capped set — and says when it did. */
+  /**
+   * Whether the **list** was cut — never the tables.
+   *
+   * This meant "only some tables were scanned", which made an unjoined table a claim about the cap
+   * rather than about the schema: an 18-table source reported 12 joined and 6 apparently unrelated,
+   * when all 18 share an identifier with another. Every profiled table is scanned now
+   * (`tables_considered` is all of them) and the returned list is what a run cuts, since that is
+   * what a reviewer has to read.
+   */
   truncated: boolean
   tables_considered: number
+  /** How many the scan found, before the list was cut. */
+  relationships_total: number
+  /**
+   * The profiled tables **no** suggestion reaches, by `table_key`.
+   *
+   * Named rather than counted, because a count with no names leaves a reader working out whether
+   * theirs is in it. It is computed over the whole scan and before the list is cut, so it is a fact
+   * about the schema — a lookup nobody keyed, or a dictionary that has not named its identifier —
+   * and never about a limit. Stored declarations are the client's to subtract: it holds those.
+   */
+  orphan_tables: string[]
 }
 
 const MODEL_ENTITY = shape({
@@ -4389,6 +4434,7 @@ const MODEL_ENTITY = shape({
   table_key: str,
   entity_name: str,
   description: str,
+  confirmed_by: nullable(str),
   business_purpose: nullable(str),
   grain_description: nullable(str),
   attributes: arrayOf(
@@ -4402,6 +4448,9 @@ const MODEL_ENTITY = shape({
       relationship_type: str,
       cardinality_hint: str,
       rationale: str,
+      /* Nullable, and absent on every declaration written before it existed — `nullable()` accepts
+         a missing key as well as `null`, which is exactly the case here. */
+      confirmed_by: nullable(str),
     }),
   ),
   cross_attributes: arrayOf(
@@ -4452,6 +4501,8 @@ const MODEL_SUGGESTIONS_PAYLOAD = shape({
   derived_count: num,
   truncated: bool,
   tables_considered: num,
+  relationships_total: num,
+  orphan_tables: arrayOf(str),
 })
 
 /** Every declaration in this dataset. One read — the relationships ride on their entities. */

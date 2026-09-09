@@ -1190,6 +1190,11 @@ const DB_SHAPE = {
         typeof e.table_key === 'string' &&
         typeof e.entity_name === 'string' &&
         typeof e.description === 'string' &&
+        /* Who declared it, and absent is permitted — an anchor entity has nobody to name, and
+           neither does one written before the field existed. */
+        (e.confirmed_by === undefined ||
+          e.confirmed_by === null ||
+          (typeof e.confirmed_by === 'string' && e.confirmed_by.includes('@'))) &&
         Array.isArray(e.attributes) &&
         e.attributes.every((a) => isObject(a) && typeof a.name === 'string') &&
         Array.isArray(e.relationships) &&
@@ -1202,7 +1207,17 @@ const DB_SHAPE = {
             Array.isArray(r.to_columns) &&
             r.to_columns.length > 0 &&
             typeof r.relationship_type === 'string' &&
-            typeof r.cardinality_hint === 'string',
+            typeof r.cardinality_hint === 'string' &&
+            /*
+             * **Who accepted it, and absent is permitted.** Being stored and being confirmed by a
+             * person are two facts: a declaration written before this field existed, or by a
+             * script, has no answer to the second — and `null` is that answer rather than a name
+             * invented for it. A string has to look like an address, since the label prints it as
+             * the reader's own act.
+             */
+            (r.confirmed_by === undefined ||
+              r.confirmed_by === null ||
+              (typeof r.confirmed_by === 'string' && r.confirmed_by.includes('@'))),
         ) &&
         Array.isArray(e.cross_attributes) &&
         e.cross_attributes.every(
@@ -8637,14 +8652,23 @@ const profiledModelTables = (source) => {
 }
 
 /**
- * How many tables one suggestions run considers.
+ * How many **suggestions** one run returns — and, deliberately, no cap on which tables it looks at.
  *
- * A pair-wise column scan is quadratic and CAPEX ships 64 profiled tables, so an uncapped run would
- * compare a couple of thousand pairs to offer a reviewer a list nobody could read. The cap is
- * **reported** (`truncated`, `tables_considered`) rather than applied quietly, because a suggestion
- * list that silently covers a fifth of a source reads as a source with few relationships.
+ * **It was a cap on the tables (12), and that was the wrong thing to limit.** A pair-wise column
+ * scan is quadratic and CAPEX ships 64 profiled tables, so the concern was real: an uncapped run
+ * offers a reviewer a list nobody can read. But capping the *inputs* makes the output a claim about
+ * the cap rather than about the schema — an 18-table source came back with 12 tables joined and 6
+ * that appeared to have no relationship at all, when every one of the 18 shares an identifier with
+ * another. Reported from use, as six orphan tables that were nothing of the kind.
+ *
+ * That distinction matters more now that the run **states which tables are orphaned**: a table
+ * nothing joins is a fact about the data and a reason to go and look at it, so it must not be
+ * produced by a limit here. So every profiled table is scanned — the scan is string comparison over
+ * column ids, which is cheap even at 64 tables — and the *list* is what gets cut, since that is the
+ * thing a reviewer has to read. The cut is **reported** (`truncated`, `relationships_total`) rather
+ * than applied quietly, and `orphan_tables` is computed before it, over the whole scan.
  */
-const SUGGEST_TABLE_CAP = 12
+const SUGGEST_RELATIONSHIP_CAP = 80
 
 /**
  * The relationships a shared identifier column implies, and the descriptions a table's own catalogue
@@ -8660,7 +8684,9 @@ const SUGGEST_TABLE_CAP = 12
  */
 const dataModelSuggestions = (source) => {
   const all = profiledModelTables(source)
-  const considered = all.slice(0, SUGGEST_TABLE_CAP)
+  /* Every profiled table, because `orphan_tables` below is only honest if nothing was left out of
+     the scan. What a run cuts is the list it returns. */
+  const considered = all
   const upper = (text) => String(text).replace(/[^a-z0-9]+/gi, '_').toUpperCase()
 
   const tables = considered.map((t) => ({
@@ -8829,10 +8855,37 @@ const dataModelSuggestions = (source) => {
 
   const derived = relationships.filter((d) => !recorded.some((r) => covers(r, d)))
 
+  /*
+   * **Which profiled tables nothing joins — computed over the whole scan, before the list is cut.**
+   *
+   * A table no relationship reaches is a fact worth stating: it is either a table this schema really
+   * does not connect (a lookup nobody keyed, an extract that stands alone) or a dictionary that has
+   * not named its identifier yet, and both are reasons to go and look at it. What it must never be
+   * is an artefact of a limit — which is exactly what it was when the *tables* were capped at 12 and
+   * six of an 18-table source came back looking unrelated.
+   *
+   * So this counts against every table the scan saw, and it counts a table as reached by **either**
+   * end of a suggestion. A stored declaration is the client's to add: it holds the confirmed edges,
+   * and a table this run suggests nothing for may already be declared against another. The payload
+   * therefore names the tables rather than only counting them — the rule a skipped profiling run
+   * already follows, because a count with no names leaves a reader to work out whether theirs is in
+   * it.
+   */
+  const reached = new Set()
+  for (const r of [...recorded, ...derived]) {
+    reached.add(r.from_table_key)
+    reached.add(r.to_table_key)
+  }
+  const orphanTables = considered.map((t) => t.table_key).filter((key) => !reached.has(key))
+
+  const served = [...recorded, ...derived]
   return {
     source_id: source.source_id,
     tables,
-    relationships: [...recorded, ...derived],
+    /* Recorded first, so a cut takes derived rows before an authored one: a recorded suggestion
+       carries a name, weighed alternatives and somebody's reasoning, and dropping one to make room
+       for a column-name match would lose the more considered of the two. */
+    relationships: served.slice(0, SUGGEST_RELATIONSHIP_CAP),
     /*
      * True whichever kind was served, because it answers "did a model run" and the answer is no.
      * The two counts beside it are what let the tab say which is which rather than implying one.
@@ -8840,8 +8893,12 @@ const dataModelSuggestions = (source) => {
     degraded: true,
     recorded_count: recorded.length,
     derived_count: derived.length,
-    truncated: all.length > considered.length,
+    /* The cut is on the list now, never on the inputs — `tables_considered` is every profiled
+       table, and a reader is told when suggestions were left out rather than tables. */
+    truncated: served.length > SUGGEST_RELATIONSHIP_CAP,
+    relationships_total: served.length,
     tables_considered: considered.length,
+    orphan_tables: orphanTables,
   }
 }
 
@@ -8851,6 +8908,9 @@ const modelEntityView = (entity) => ({
   table_key: entity.table_key,
   entity_name: entity.entity_name,
   description: entity.description,
+  /* Null rather than absent on the way out, so the client's schema can require the key and the tab
+     does not have to tell "nobody declared it" from "the server is old". */
+  confirmed_by: entity.confirmed_by ?? null,
   business_purpose: entity.business_purpose ?? null,
   grain_description: entity.grain_description ?? null,
   attributes: entity.attributes ?? [],
@@ -10591,6 +10651,7 @@ const routes = [
         attributes,
         relationships,
         cross_attributes,
+        confirmed_by,
       } = body
 
       const existing = entity_id
@@ -10727,6 +10788,20 @@ const routes = [
 
       const record = {
         entity_id: existing?.entity_id ?? `ent-${slugify(key)}-${nextId()}`,
+        /*
+         * **Who declared this table, or `null`.** The twin of the field on a relationship, and for
+         * the same reason: an entity can exist without anybody having declared anything — the
+         * client mints an *anchor* whenever a relationship points at an undeclared table, and its
+         * own description says so. A pill reading "Declared" over one of those credits a reader
+         * with an act they never performed. Only Save Overview sends a name.
+         *
+         * Carried forward where the caller sends none, so an anchor write for a new relationship
+         * cannot un-declare a table somebody has already saved.
+         */
+        confirmed_by:
+          typeof confirmed_by === 'string' && confirmed_by.includes('@')
+            ? confirmed_by.trim()
+            : (existing?.confirmed_by ?? null),
         table_key: key,
         entity_name: name,
         description: text,
@@ -10750,6 +10825,25 @@ const routes = [
           relationship_type: String(r.relationship_type).trim(),
           cardinality_hint: r.cardinality_hint,
           rationale: String(r.rationale ?? '').trim(),
+          /*
+           * **Who accepted this, or `null` — and `null` is the honest default.**
+           *
+           * Every stored declaration used to render as *Confirmed by you*, because the tab derived
+           * `provenance: 'human'` from the mere fact of being stored. That is a claim about the
+           * reader, and it was false for all 31 of them across the two documents: they were written
+           * by whoever was sitting here in some earlier session, or by a script, and this server
+           * kept no record of which. Reported from use — twelve relationships credited to somebody
+           * who had accepted none of them.
+           *
+           * So being *stored* and being *confirmed by a person* are two facts now, and this is the
+           * second one. It is client-held, like every other identity here, so the caller has to
+           * send it: a route cannot look up who is signed in. `null` where nobody has, which is
+           * what the label then says instead — see the tab's `provenance`.
+           */
+          confirmed_by:
+            typeof r.confirmed_by === 'string' && r.confirmed_by.includes('@')
+              ? r.confirmed_by.trim()
+              : null,
         })),
         cross_attributes: crossAttrs.map((a, i) => ({
           attribute_id: a.attribute_id ?? `xat-${slugify(a.source_column)}-${nextId()}${i}`,

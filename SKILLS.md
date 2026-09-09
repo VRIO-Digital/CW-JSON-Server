@@ -966,7 +966,7 @@ modal are handed the same filtered array, so the figure and the row count are on
 | per row acts | **Confirm** (writes it) and **Reject** (drops it from the run — nothing is stored, so nothing is deleted) |
 | footer | **Accept all · N**, with the sentence saying it goes one at a time and stops at the first refusal |
 
-### The *N relationships confirmed* tile
+### The *N relations* tile
 
 **The twin of the tile above, and it answers the question this tab otherwise could not.** Entity
 detail shows one table's declarations at a time and the canvas draws them as edges with no list
@@ -976,10 +976,19 @@ grouping in `src/data/confirmedRelationships.ts`.
 
 | | what it shows |
 |---|---|
-| per row | the relationship's own name, the **confirmed** pill with its tick, the provenance badge, the join, the cardinality, the evidence in words, and the rationale |
+| per row | the relationship's own name, **one** provenance mark — *Confirmed by you* where somebody accepted it, *Curated by AI* where nobody has — the join, the cardinality, the evidence in words, and the rationale |
 | grouped by | the **from** table — where `relationshipWrites` anchors the declaration, so the heading is a claim about storage rather than a display choice; each heading prints its own count |
-| per row acts | none — the row **opens the relationship dialog** (closing this one first), so editing and deleting stay on the one dialog the canvas edge already opens |
-| footer | Close, and the sentence saying where the acts are. No *Accept all* twin: there is no bulk act on a stored declaration |
+| per row acts | **Accept** (records it as yours; withheld where somebody already has) and **Reject** (removes the declaration and puts the row back with the suggestions, **pending**). Clicking the row itself still opens the relationship dialog, so editing and deleting stay on the one dialog the canvas edge already opens — both buttons stop the click |
+| footer | Close, and the sentence saying where the *other* acts are. No *Accept all* twin: there is no bulk act on a stored declaration |
+
+**Stored is not confirmed.** `provenance` was the literal `'human'` for every stored declaration, so
+all 31 across the two documents read *Confirmed by you* to whoever was looking — a claim about the
+reader that was false for every one. A stored relationship carries **`confirmed_by`** now: nullable,
+absent on everything written before it existed, the browser's address (client-held identity, so the
+caller sends it), and **carried through every edit** — a write hands the server the whole
+relationship, so omitting the field would strip the name off and silently un-accept the row.
+Accepting a suggestion credits the reader on all three paths (single confirm, Accept all, the
+dialog).
 
 **No confidence on a confirmed row.** A declaration is somebody's decision, and a score under it
 would put a classifier behind a person's judgement — the row states its `evidence` in words instead.
@@ -2902,8 +2911,22 @@ left out with the count stated (a model is a schema; a document corpus has none)
 | column | what it answers |
 |---|---|
 | left rail | which structured source, and which of its profiled tables — with a pill per table stating its confirmed relationships, or its pending ones, or an em dash |
-| centre | four counts (tables · relationships confirmed · suggested, pending · columns described — the middle two open what they count), **Curated by AI**, **Fit**, then the canvas and its legend |
-| right | the one table in hand, over Overview / Columns / Relationships |
+| centre | five counts (tables · **relations** · suggested, pending · orphan tables · columns described — the middle two open what they count; orphans are inert and read `—` before a run), **Fit**, then the canvas and its legend. The *Curated by AI* button is gone: the run happens on arrival |
+| right | the one table in hand, over Overview / Columns / Relationships — with **one** status pill beside its name: *Not yet declared*, *Curated by AI* (an entity exists but nobody saved it) or *Confirmed by you* |
+
+**The table's status is stated once, in the header.** Overview carried a `ProvenanceBadge` beside
+five of its fields — one question answered five times on a form saved by one button — and they were
+removed on request, along with `fieldLabel`'s `badge` slot. `tableDeclarationState` in
+`src/data/dataModelStatus.ts` is the rule, read off an entity-level **`confirmed_by`** that only
+*Save Overview* writes. The two declared states are `ProvenanceBadge`s — **purple** *Curated by AI*,
+green *Confirmed by you* — and only *Not yet declared* is a `StatusPill`: all three went through the
+status palette at first, so the header's *Curated by AI* was amber while the same words on the rows
+beside it were purple. Status is green/amber/red, provenance is green/purple, and that is why the two
+are separate components. `TABLE_STATUS_KIND` names only which badge; the words are the badge's. It read *Declared* for any existing entity before, which was wrong for all
+14 of CAPEX's: `relationshipWrites` mints an **anchor** entity whenever a relationship points at an
+undeclared table. A later write carries the stored answer forward, so an anchor write cannot
+un-declare a table somebody saved. **The per-row marks stayed** — a relationship's badge and a
+reassigned column's are records with their own provenance, not fields of a form.
 
 **Selection is one piece of state.** `selectedTableKey` goes to the rail and to the canvas and both
 call the same setter, so the two cannot disagree about what is selected — there is nothing to sync
@@ -2958,10 +2981,26 @@ columns. It is paced at `SUGGEST_MS`; its refusals are not.
 `degraded: true` rides on every response; the tab prints *"No figure is invented to fill a field"*;
 and the provenance badge reads **Curated by AI**, renamed on request over a scan no model performs.
 Do not "fix" the disagreement by flipping `degraded` — it is the only honest answer left to that
-question, and `check-docs` fails on it. A run is capped at `SUGGEST_TABLE_CAP` (12) tables and reports `truncated`,
-because a pair-wise scan is quadratic and a list silently covering a fifth of a source would read as
-a source with few relationships. Each suggestion is named after the **column it matched on**, since
-three `HAS_<TABLE>` names in one list are three suggestions nobody can tell apart.
+question, and `check-docs` fails on it. Each suggestion is named after the **column it matched on**,
+since three `HAS_<TABLE>` names in one list are three suggestions nobody can tell apart.
+
+**It runs on arrival; there is no button.** The *Curated by AI* control is gone (removed on request) —
+a reader who had just profiled 18 tables met a tab reporting no relationships until they pressed it.
+The effect is keyed `sourceId:tableCount`, so the store's re-read after a save does not start a run
+and profiling more tables does. The strip narrates it (*Reading the schema*). The cost: no way to ask
+again for the same tables, so a rejected suggestion is gone until the profile changes.
+
+**Every profiled table is scanned; the returned list is what `SUGGEST_RELATIONSHIP_CAP` (80) cuts**,
+reported as `truncated` + `relationships_total`, recorded rows first so a cut takes column-name
+matches before an authored one. It was a **table** cap (12), which made an unjoined table a claim
+about the cap: 6 of an 18-table source looked unrelated when all 18 share an identifier.
+
+**`orphan_tables` names the tables nothing joins** — over the whole scan, before the cut — and the tab
+subtracts the tables a stored declaration touches (the half the scan cannot see). The tile reads `—`
+before a run and is inert; the table list's own em-dash row is the naming. **CAPEX's 18 `plan` tables
+give 0 orphans and 53 suggestions**, of which 47 carry **no cardinality** — a dictionary-declared
+column has no distinct count, so there is nothing to derive one from and the reviewer sets it on
+confirm.
 
 ### Failure modes, and what each one looks like
 

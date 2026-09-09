@@ -14,26 +14,43 @@
 import type { DeclaredRelationship } from './dataModelRelationships'
 
 export const confirmedRelationshipsCopy = {
-  title: 'Relationships confirmed',
   /**
-   * **What a confirmed row *is*, stated where a reader is looking at nineteen of them.**
+   * **"Relations", not "Relationships confirmed" — renamed on request, and the rename is the point.**
    *
-   * The distinction this whole tab rests on is that a declaration persists and a suggestion does
-   * not, and it is the pending dialog that currently says so. A reader who arrives here instead —
-   * by clicking the other tile — is owed the same sentence from the other side: these are stored,
-   * they survive a restart, and the graph builders are meant to read them.
+   * The tile read *relationships confirmed* over twelve rows nobody in the session had accepted,
+   * because being stored was being confirmed. Those two came apart (see `confirmedBy`), so the
+   * count is of **relations this source holds** and each row says for itself whether anybody has
+   * accepted it. A tile claiming twelve confirmations is the kind of figure a reader cannot check
+   * and this one was wrong.
+   */
+  title: 'Relations',
+  /** The tile's label. Declared beside the dialog's title so the two cannot come to disagree. */
+  tileLabel: 'relations',
+  /**
+   * **What a row here *is*, stated where a reader is looking at twelve of them.**
+   *
+   * The distinction this tab rests on is that a declaration persists and a suggestion does not, and
+   * the pending dialog says so from its side. What this one has to add is the second distinction:
+   * stored is not accepted. So it says both — these are in the document, and the ones with nobody's
+   * name on them are waiting for yours.
    */
   lead:
-    'Each of these is stored in this dataset, so it survives a restart and the graph builders read it. A suggestion is not — confirming one is the write that puts it here.',
+    'Each of these is stored in this dataset, so it survives a restart and the graph builders read it — but stored is not accepted. Accept one and it is recorded as yours; reject it and it goes back to the suggestions, pending.',
+  /** The two acts on an undecided row, and what each does. */
+  accept: 'Accept',
+  reject: 'Reject',
+  acceptNote: 'Records this relation as accepted by you.',
+  rejectNote:
+    'Removes the stored declaration and puts it back with the suggestions, pending — nothing about the schema changes.',
   /**
-   * **Where the acts are, said rather than offered.**
+   * **Where the *other* acts are, said rather than offered.**
    *
-   * The row is a link into the relationship dialog and nothing else. Editing and deleting a stored
-   * declaration already live on one dialog that the canvas edge and the Entity detail row both open,
-   * and putting a second Delete in this list would be a second surface for one write — the
-   * arrangement this repo refuses from the report audience down. So the row hands over instead.
+   * Accept and Reject are on the row because they are decisions about this list. Editing and
+   * deleting a stored declaration are not: they live on one dialog that the canvas edge and the
+   * Entity detail row both open, and a second Delete here would be a second surface for one write —
+   * the arrangement this repo refuses from the report audience down. So the row hands those over.
    */
-  rowHint: 'Open it to edit or delete — the same dialog the canvas edge opens.',
+  rowHint: 'Open a row to edit or delete it — the same dialog the canvas edge opens.',
   close: 'Close',
   /**
    * Reachable only if the dialog is opened with nothing confirmed, which the tile does not allow —
@@ -41,7 +58,7 @@ export const confirmedRelationshipsCopy = {
    * unreachable branch is indistinguishable from one that failed.
    */
   empty:
-    'Nothing is confirmed yet. Accept a suggestion, or declare a relationship the schema does not show.',
+    'No relations are stored yet. Accept a suggestion, or declare one the schema does not show.',
   /**
    * **Said under every heading, because the heading is a claim about storage.**
    *
@@ -138,4 +155,18 @@ export function groupConfirmedByOwner(rows: DeclaredRelationship[]): ConfirmedGr
     ).length
   }
   return groups
+}
+
+/**
+ * What a decision on one relation reports.
+ *
+ * A pure function rather than a template in the tab, for the reason `acceptAllOutcome` is one: it
+ * names the relation it acted on, because a bare "accepted" over a list of twelve leaves a reader
+ * checking which row moved. It says *where* a rejected one went, since that is the half nobody
+ * would guess — the row is not deleted, it is undecided again.
+ */
+export function relationDecision(what: 'accepted' | 'rejected', name: string): string {
+  return what === 'accepted'
+    ? `${name} accepted — recorded as yours.`
+    : `${name} rejected — back with the suggestions, pending.`
 }

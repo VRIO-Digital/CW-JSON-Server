@@ -1,10 +1,10 @@
 import { App, Button, Input, Select, Typography } from 'antd'
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import type { ModelEntity, ModelTableSuggestion } from '../../api/client'
 import { confirmedIdentifier } from '../../data/dataModelRelationships'
 import { MT } from '../../data/dataModelTokens'
+import { useAuthStore } from '../../store/authStore'
 import { useDataModelStore, type ModelTable } from '../../store/dataModelStore'
-import { ProvenanceBadge } from './ModelMarks'
 
 const { Text, Paragraph } = Typography
 const { TextArea } = Input
@@ -61,6 +61,9 @@ export default function EntityOverviewPanel({
   const { message } = App.useApp()
   const save = useDataModelStore((s) => s.save)
   const saving = useDataModelStore((s) => s.saving)
+  /* Who is declaring it. Client-held, so this write has to carry it — a route cannot look up who
+     is signed in, the rule the consent callback and `saved_by` on a report both established. */
+  const signedInAs = useAuthStore((s) => s.identity?.email ?? null)
   const [error, setError] = useState<string | null>(null)
 
   /*
@@ -102,11 +105,14 @@ export default function EntityOverviewPanel({
     })
   }
 
+  /*
+   * **One flag left of five.** The other four fed a `ProvenanceBadge` beside each field — five
+   * marks answering one question five times, on a form whose every field is saved by one button.
+   * Removed on request; the question is about the table, so the header answers it once, from
+   * `tableDeclarationState`. This one survives because it drives a *hint* rather than a badge: the
+   * name box says where its value came from when nobody has saved one.
+   */
   const hasHumanName = !!entity
-  const hasHumanDescription = !!entity?.description
-  const hasHumanPurpose = !!entity?.business_purpose
-  const hasHumanGrain = !!entity?.grain_description
-  const hasHumanIdentifier = confirmedIdentifier(entity) !== undefined
 
   const submit = async () => {
     const name = fields.entityName.trim()
@@ -147,6 +153,14 @@ export default function EntityOverviewPanel({
       table_key: table.tableKey,
       entity_name: name,
       description,
+      /*
+       * **This button is what makes a table *declared by somebody*.** Every other way an entity
+       * comes into existence is machinery — an anchor for a relationship, or fields seeded from the
+       * table's own catalogue row — so pressing Save is the one act there is a person behind, and
+       * the header's pill is read off this. The address is the browser's, because the identity is
+       * client-held and a route cannot look up who is signed in.
+       */
+      confirmed_by: signedInAs,
       business_purpose: fields.businessPurpose.trim() || null,
       grain_description: fields.grainDescription.trim() || null,
       attributes,
@@ -155,20 +169,21 @@ export default function EntityOverviewPanel({
     else setError(result.error)
   }
 
-  const fieldLabel = (text: string, badge: ReactNode) => (
+  /*
+   * **A label, and nothing beside it.** It took a `badge` node, which is what carried the
+   * per-field `ProvenanceBadge`. With the status answered once in the header there is nothing to
+   * put on the right, and a parameter no caller passes is a slot inviting one back.
+   */
+  const fieldLabel = (text: string) => (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         fontSize: 11.5,
         fontWeight: 600,
         color: MT.mut,
         marginBottom: 5,
       }}
     >
-      <span>{text}</span>
-      {badge}
+      {text}
     </div>
   )
   const inputStyle = {
@@ -187,7 +202,7 @@ export default function EntityOverviewPanel({
       </Paragraph>
 
       <div>
-        {fieldLabel('Entity name', hasHumanName ? <ProvenanceBadge kind="human" /> : null)}
+        {fieldLabel('Entity name')}
         <Input
           placeholder="e.g. Facility"
           style={inputStyle}
@@ -202,14 +217,7 @@ export default function EntityOverviewPanel({
       </div>
 
       <div>
-        {fieldLabel(
-          'What does this table represent?',
-          hasHumanDescription ? (
-            <ProvenanceBadge kind="human" />
-          ) : suggestion?.suggested_description ? (
-            <ProvenanceBadge kind="derived" />
-          ) : null,
-        )}
+        {fieldLabel('What does this table represent?')}
         <TextArea
           rows={3}
           style={{ ...inputStyle, minHeight: 52, lineHeight: 1.45 }}
@@ -220,10 +228,7 @@ export default function EntityOverviewPanel({
       </div>
 
       <div>
-        {fieldLabel(
-          'Business purpose',
-          hasHumanPurpose ? <ProvenanceBadge kind="human" /> : null,
-        )}
+        {fieldLabel('Business purpose')}
         <TextArea
           rows={2}
           style={{ ...inputStyle, minHeight: 52, lineHeight: 1.45 }}
@@ -240,14 +245,7 @@ export default function EntityOverviewPanel({
       </div>
 
       <div>
-        {fieldLabel(
-          'Grain',
-          hasHumanGrain ? (
-            <ProvenanceBadge kind="human" />
-          ) : suggestion?.suggested_grain_description ? (
-            <ProvenanceBadge kind="derived" />
-          ) : null,
-        )}
+        {fieldLabel('Grain')}
         <TextArea
           rows={2}
           style={{ ...inputStyle, minHeight: 52, lineHeight: 1.45 }}
@@ -266,10 +264,7 @@ export default function EntityOverviewPanel({
       </div>
 
       <div>
-        {fieldLabel(
-          'Confirmed identifier',
-          hasHumanIdentifier ? <ProvenanceBadge kind="human" /> : null,
-        )}
+        {fieldLabel('Confirmed identifier')}
         <Select
           style={{ width: '100%' }}
           allowClear

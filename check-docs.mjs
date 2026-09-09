@@ -949,6 +949,8 @@ const entityCanvasSrc = read('frontend/src/components/catalog/EntityCanvas.tsx')
 const suggestionsData = read('frontend/src/data/dataModelSuggestions.ts')
 const relsData = read('frontend/src/data/dataModelRelationships.ts')
 const marksSrc = read('frontend/src/components/catalog/ModelMarks.tsx')
+const overviewPanel = read('frontend/src/components/catalog/EntityOverviewPanel.tsx')
+const statusData = read('frontend/src/data/dataModelStatus.ts')
 /* Read here, beside their siblings, rather than beside the accept-all claim that used to own
    them: the Curated-by-AI claim above reads both, and this file is one long script where
    definition order is execution order. */
@@ -1095,8 +1097,18 @@ expect(
     /export const DERIVED_LABEL = 'Curated by AI'/.test(suggestionsData) &&
     /derived: \{ short: DERIVED_LABEL, long: DERIVED_LABEL \}/.test(marksSrc) &&
     /\[DERIVED_LABEL, COPY\.kindNote\.derived, derived\]/.test(pendingPanel) &&
-    /* The button that starts the run reads it too, and its busy label still narrates the act. */
-    /\{suggesting \? 'Reading the schema' : DERIVED_LABEL\}/.test(dataModelTab) &&
+    /*
+     * **Two surfaces now, not three: the button that read this label is gone.**
+     *
+     * It started the run, and the run happens on arrival instead — a reader who had just profiled
+     * eighteen tables met a tab reporting no relationships until they knew to press something.
+     * Removed on request. What the button carried that had to survive is the **narration**, which
+     * is the rule every paced act here keeps: the strip still says *Reading the schema* while the
+     * run is in flight, in the same words, as a label rather than a control.
+     */
+    !/ThunderboltOutlined/.test(dataModelTab) &&
+    !/DERIVED_LABEL/.test(dataModelTab) &&
+    /Reading the schema<\/span>/.test(dataModelTab) &&
     /*
      * **And the copy around it stopped denying a model**, which is what the rename made necessary:
      * the tooltip read "No model is involved" and the review's own kind-note ended "No model ran.",
@@ -1106,10 +1118,24 @@ expect(
      */
     !/No model is involved/.test(codeOnly(dataModelTab)) &&
     !/No model ran\./.test(codeOnly(pendingData)) &&
-    /No figure is invented to fill a field/.test(codeOnly(dataModelTab)) &&
+    /*
+     * **The guarantee is on the tab in the run note, not in a tooltip.** It was a literal in the
+     * suggest button's tooltip; that button is gone with the run becoming automatic, so what is
+     * asserted is that the tab prints `suggestionRunNote` — which carries the same sentence, and
+     * carries it per run rather than as a standing claim. The words themselves are asserted where
+     * they are written, one file out.
+     */
+    /title=\{suggestionRunNote\(suggestCounts\)\}/.test(dataModelTab) &&
+    /No figure is invented to fill a field/.test(codeOnly(suggestionsData)) &&
     /No figure here is invented/.test(codeOnly(pendingData)) &&
-    /* Named by the constant, so the empty state cannot send a reader to a button by its old name. */
-    /Run \$\{DERIVED_LABEL\} to look for more/.test(pendingData) &&
+    /*
+     * **And the empty state stopped naming that button.** It read *"Run Curated by AI to look for
+     * more"*, which is an instruction nobody can carry out once the control is gone — the same
+     * fault as Gmail's Continue refusing over a name field its own step no longer had, and the
+     * reason a removal here is a removal of everything that reads it.
+     */
+    !/Run \$\{DERIVED_LABEL\}/.test(pendingData) &&
+    /every suggestion this run found has been confirmed or rejected/.test(pendingData) &&
     /*
      * The label is a claim about the agent and nothing else: the *evidence* is still called what it
      * is, and the confidence is still labelled by what it is a confidence in. Relabelling either to
@@ -1118,6 +1144,232 @@ expect(
     /if \(kind === 'structural'\) return 'Structural analysis'/.test(relsData) &&
     /'Classifier confidence'/.test(relsData),
   'a payload made to agree with the badge would lose the one honest answer about whether a model ran',
+)
+
+/*
+ * **The suggestions run on arrival, and the scan covers every profiled table.**
+ *
+ * Two changes with one cause. A reader who had just profiled eighteen tables met a tab reporting no
+ * relationships at all, and had to know to press *Curated by AI* to find out otherwise — so the run
+ * is automatic and the button is gone. And what it reported was wrong in a worse way: the **tables**
+ * were capped at 12, so six of those eighteen came back with no relationship when every one of them
+ * shares an identifier column with another. Reported from use, as six orphan tables that were
+ * nothing of the kind.
+ *
+ * So the cap moved from the inputs to the output — every table is scanned, the returned *list* is
+ * what gets cut — which is what makes `orphan_tables` a fact about the schema. It is computed over
+ * the whole scan and **before** the cut, for exactly that reason: a table whose one suggestion was
+ * cut would otherwise look orphaned.
+ *
+ * The guard is on the run being fired once per source-and-table-count rather than per render: the
+ * store re-reads its tables after every save, and without that key each save would start a run.
+ */
+expect(
+  'the suggestions run happens on arrival, over every profiled table, and reports the orphans',
+  /* Server: no table cap, the list capped instead, and the orphans read off the whole scan. */
+  !/SUGGEST_TABLE_CAP/.test(server) &&
+    /const SUGGEST_RELATIONSHIP_CAP = \d+/.test(server) &&
+    /* To the end of the line, not `all\b`: a re-added `all.slice(0, 12)` satisfies a word-boundary
+       match, so the first version of this clause passed over the very cap it exists to refuse. */
+    /const considered = all\r?\n/.test(server) &&
+    /relationships: served\.slice\(0, SUGGEST_RELATIONSHIP_CAP\)/.test(server) &&
+    /orphan_tables: orphanTables,/.test(server) &&
+    /* Computed before the cut: `served` is the whole scan, and `reached` is walked over it. */
+    server.indexOf('const reached = new Set()') <
+      server.indexOf('relationships: served.slice(0, SUGGEST_RELATIONSHIP_CAP)') &&
+    /* Client: both new fields declared and validated. */
+    /orphan_tables: string\[\]/.test(client) &&
+    /orphan_tables: arrayOf\(str\),/.test(client) &&
+    /relationships_total: num,/.test(client) &&
+    /* The tab fires it once per source and table count, not per render. */
+    /const suggestedFor = useRef<Set<string>>\(new Set\(\)\)/.test(dataModelTab) &&
+    /if \(suggestedFor\.current\.has\(key\)\) return/.test(dataModelTab) &&
+    /void runSuggestions\(\)/.test(dataModelTab) &&
+    /* And the orphan tile is the served list less the tables a declaration touches, em dash until
+       a run has landed — "no orphans" and "nobody has looked" are different facts. */
+    /const orphanTableKeys = useMemo\(/.test(dataModelTab) &&
+    /if \(suggestOrphans === null\) return null/.test(dataModelTab) &&
+    /!declaredTouch\.has\(key\)/.test(dataModelTab) &&
+    /value=\{orphanTableKeys === null \? '—' : orphanTableKeys\.length\}/.test(dataModelTab) &&
+    /label="orphan tables"/.test(dataModelTab),
+  'an unjoined table has to be a fact about the schema, never about a cap',
+)
+
+/*
+ * **A confirmed relationship carries one mark, and it reads "Confirmed by you".**
+ *
+ * It was a `confirmed` status pill *and* a short `You` provenance badge — two green marks about a
+ * row where the two cannot disagree, since a stored declaration is confirmed *because* somebody
+ * confirmed it. Asked for as one label, and it is the long form of the badge that already existed
+ * rather than new copy.
+ *
+ * **The narrowing stops at the confirmed list**, which is the half worth guarding: a pending row
+ * keeps both marks because there they genuinely differ — `pending review` is the status and
+ * `Curated by AI` is the provenance — and that distinction is why the two are separate components.
+ */
+expect(
+  'a confirmed row reads Confirmed by you, and a pending row still carries both marks',
+  /human: \{ short: 'You', long: 'Confirmed by you' \}/.test(marksSrc) &&
+    /<ProvenanceBadge kind=\{row\.provenance\} full \/>/.test(confirmedPanel) &&
+    !/StatusPill/.test(codeOnly(confirmedPanel)) &&
+    /* The pending row is untouched: status and provenance are two facts there. */
+    /<StatusPill variant="suggested">pending review<\/StatusPill>/.test(pendingPanel) &&
+    /<ProvenanceBadge kind=\{row\.provenance\} \/>/.test(pendingPanel),
+  'one mark for status and provenance is only honest where they cannot disagree',
+)
+
+/*
+ * **Stored is not confirmed, and only an accepted row carries a reader's name.**
+ *
+ * `provenance` was the literal `'human'` for every stored declaration — being in the document *was*
+ * the evidence that somebody had declared it. That is a claim about the reader, and it was false for
+ * all 31 across the two documents: written in some earlier session, or by a script, with no record
+ * of which. Reported from use, as twelve relationships labelled *Confirmed by you* to a reader who
+ * had accepted none of them.
+ *
+ * So a stored relationship records `confirmed_by`, the label is read off it, and the ones with
+ * nobody's name read *Curated by AI* and offer **Accept** and **Reject**. `derived` is the right
+ * fallback rather than a guess: a *recorded* suggestion cannot become stored except by being
+ * confirmed, so it always carries a name, and what is left in that branch is what the scan produced.
+ *
+ * **The field has to survive an edit**, which is the silent half: every write hands the server the
+ * whole relationship, so a field left out is a field cleared — editing a rationale would strip the
+ * name off and quietly return the row to undecided.
+ */
+expect(
+  'a stored relationship records who accepted it, and nobody is credited by default',
+  /* Server: written from the request, nullable, and an address or nothing. */
+  /confirmed_by:\r?\n\s*typeof r\.confirmed_by === 'string' && r\.confirmed_by\.includes\('@'\)/.test(
+    server,
+  ) &&
+    /r\.confirmed_by === undefined \|\|\r?\n\s*r\.confirmed_by === null/.test(server) &&
+    /* Client: declared, validated, and carried through every write. */
+    /confirmed_by\?: string \| null/.test(client) &&
+    /confirmed_by: nullable\(str\),/.test(client) &&
+    /confirmed_by: rel\.confirmedBy \?\? null,/.test(dataModelRels) &&
+    /* The label is read off it — never the literal `'human'` it used to be. */
+    /provenance: confirmedBy \? 'human' : 'derived',/.test(dataModelRels) &&
+    !/provenance: 'human',/.test(codeOnly(dataModelRels)) &&
+    /* And an edit keeps it: the tab sends the row's own answer back rather than dropping the field. */
+    /confirmedBy: existing\?\.confirmedBy \?\? signedInAs,/.test(dataModelTab) &&
+    /* The two acts, and the address they credit is the browser's. */
+    /const signedInAs = useAuthStore\(\(s\) => s\.identity\?\.email \?\? null\)/.test(dataModelTab) &&
+    /rel: \{ \.\.\.row, confirmedBy: signedInAs \},/.test(dataModelTab) &&
+    /const rejectRelation = async \(id: string\) => \{/.test(dataModelTab) &&
+    /status: 'pending',\r?\n\s*provenance: 'derived',\r?\n\s*confirmedBy: null,/.test(dataModelTab),
+  'a label that credits the reader for a write they never made is a claim they cannot check',
+)
+
+/*
+ * **The table's status is answered once, beside its name — not five times on a form.**
+ *
+ * Overview carried a `ProvenanceBadge` beside *Entity name*, *What does this table represent?*,
+ * *Business purpose*, *Grain* and *Confirmed identifier*: one question answered five times, on a
+ * form whose every field is saved by one button. Removed on request, and answered in the Entity
+ * detail header instead, because it is a fact about the table rather than about a text box.
+ *
+ * **Three states, where the header had two.** It read *Declared* for any existing entity, and an
+ * entity exists without anybody having declared anything: `relationshipWrites` mints an **anchor**
+ * whenever a relationship points at an undeclared table, and its own description says so — all 14
+ * of CAPEX's exist that way, so all 14 read *Declared*. So the pill is read off an entity-level
+ * `confirmed_by`, which **only Save Overview writes**, and the same split the relationship field
+ * draws between *stored* and *accepted* now holds for a table.
+ *
+ * **And a later write must not un-declare it.** Every write hands the server the whole entity, so
+ * an anchor write for a new relationship would clear the field — the server carries the stored
+ * answer forward where the caller sends none, which is the silent half of this.
+ */
+expect(
+  'a table states its declaration status once, in the header, and only Save Overview sets it',
+  /* The rule is pure and out of the component, with its three states and their tones. */
+  /export function tableDeclarationState\(entity: ModelEntity \| null\)/.test(statusData) &&
+    /if \(!entity\) return 'undeclared'/.test(statusData) &&
+    /return entity\.confirmed_by \? 'confirmed' : 'derived'/.test(statusData) &&
+    /*
+     * **The two declared states wear the *provenance* palette, and that is a correction the colour
+     * caught.** All three went through `StatusPill` at first, so *Curated by AI* arrived **amber**
+     * while the same words on every relationship row beside it were **purple** — the confusion the
+     * two marks are separate components to prevent, since status is green/amber/red and provenance
+     * is green/purple. Reported from use, as the wrong colour.
+     *
+     * So this module says only *which badge*, and the words stay `ProvenanceBadge`'s own: a
+     * `TABLE_STATUS_LABELS` map holding "Curated by AI" a second time is the drift `DERIVED_LABEL`
+     * is a single constant to stop.
+     */
+    /derived: 'derived',\r?\n\s*confirmed: 'human',/.test(statusData) &&
+    !/'Curated by AI'/.test(statusData) &&
+    !/'Confirmed by you'/.test(statusData) &&
+    /* The header renders it, and no longer prints "Declared" off the entity's existence. */
+    /const tableStatus = tableDeclarationState\(selectedEntity\)/.test(dataModelTab) &&
+    /<ProvenanceBadge kind=\{TABLE_STATUS_KIND\[tableStatus\]!\} full \/>/.test(dataModelTab) &&
+    /<StatusPill variant="mut">\{TABLE_UNDECLARED_LABEL\}<\/StatusPill>/.test(dataModelTab) &&
+    !/>\r?\n?\s*Declared\r?\n?\s*<\/StatusPill>/.test(dataModelTab) &&
+    /* Overview draws no per-field badge, and its label helper has no slot for one to return to.
+       Through `codeOnly`, because the two comments left in that file explaining why there is no
+       badge *name* it — the self-documenting-file trap this file has now recorded seven times, and
+       it caught this clause on its first run. */
+    !/ProvenanceBadge/.test(codeOnly(overviewPanel)) &&
+    /const fieldLabel = \(text: string\) =>/.test(overviewPanel) &&
+    /* Save Overview is the one writer, and it sends the browser's own address. */
+    /confirmed_by: signedInAs,/.test(overviewPanel) &&
+    /const signedInAs = useAuthStore\(\(s\) => s\.identity\?\.email \?\? null\)/.test(
+      overviewPanel,
+    ) &&
+    /* Server: nullable, address-shaped, carried forward when a caller sends none. */
+    /: \(existing\?\.confirmed_by \?\? null\),/.test(server) &&
+    /e\.confirmed_by === undefined \|\|/.test(server) &&
+    /confirmed_by: entity\.confirmed_by \?\? null,/.test(server) &&
+    /* Client: declared and validated, so an old server's missing key is a refusal rather than a
+       silent "nobody declared it". */
+    /confirmed_by: string \| null/.test(client) &&
+    /confirmed_by: nullable\(str\),/.test(client),
+  'a pill reading Declared over an anchor entity credits a reader with an act they never performed',
+)
+
+/*
+ * **The relationship list keeps its per-row mark, and that is not the same thing.**
+ *
+ * The five that went were *fields of one form*, all saved by one button. A relationship is its own
+ * record with its own decision, so its label belongs on its row — and the Columns tab's reassigned
+ * columns are the same: a curator's declaration about one column, which no machinery mints.
+ */
+expect(
+  'the per-row provenance marks survive, on the records that each carry their own decision',
+  /<ProvenanceBadge kind=\{r\.provenance\} full \/>/.test(
+    read('frontend/src/components/catalog/EntityRelationshipsPanel.tsx'),
+  ) &&
+    /<ProvenanceBadge kind="human" \/>/.test(
+      read('frontend/src/components/catalog/EntityColumnsPanel.tsx'),
+    ),
+  'removing a form-level badge must not take the marks off records that have their own provenance',
+)
+
+/*
+ * **The tile counts *relations*, and the word is declared once.**
+ *
+ * It read *relationships confirmed* over twelve rows nobody had accepted. Renamed on request, and
+ * the label lives beside the dialog's own title so the control and the thing it opens cannot come
+ * to be called two things — the rule `DERIVED_LABEL` keeps across its surfaces.
+ */
+expect(
+  'the relations tile and its dialog are named from one declaration',
+  /title: 'Relations',/.test(confirmedData) &&
+    /tileLabel: 'relations',/.test(confirmedData) &&
+    /label=\{CONFIRMED_COPY\.tileLabel\}/.test(dataModelTab) &&
+    !/label="relationships confirmed"/.test(dataModelTab) &&
+    /* The dialog offers both acts, and its copy says where a rejected row goes. */
+    /accept: 'Accept',/.test(confirmedData) &&
+    /reject: 'Reject',/.test(confirmedData) &&
+    /back with the suggestions, pending/.test(confirmedData) &&
+    /onAccept=\{\(id\) => void acceptRelation\(id\)\}/.test(dataModelTab) &&
+    /onReject=\{\(id\) => void rejectRelation\(id\)\}/.test(dataModelTab) &&
+    /* Accept is withheld where somebody already has, so a decided row offers no second one. */
+    /const accepted = Boolean\(row\.confirmedBy\)/.test(confirmedPanel) &&
+    /\{accepted \? null : \(/.test(confirmedPanel) &&
+    /* And the row's own click is stopped, or accepting would open the edit dialog over the list —
+       the trap the dataset upload control fell into one tab over. */
+    /<Space size=\{4\} onClick=\{\(e\) => e\.stopPropagation\(\)\}>/.test(confirmedPanel),
+  'a tile claiming twelve confirmations nobody made is a figure a reader cannot check',
 )
 
 /*
@@ -1408,7 +1660,9 @@ expect(
     /const derived = relationships\.filter\(\(d\) => !recorded\.some\(\(r\) => covers\(r, d\)\)\)/.test(
       server,
     ) &&
-    /relationships: \[\.\.\.recorded, \.\.\.derived\]/.test(server) &&
+    /* Recorded first in the list that is served — and now also first past the list cap, so a cut
+       takes column-name matches before an authored row carrying somebody's reasoning. */
+    /const served = \[\.\.\.recorded, \.\.\.derived\]/.test(server) &&
     /* Both directions of the pair, or the same join arrives twice spelled backwards. */
     /a\.from_table_key === b\.to_table_key/.test(server) &&
     /* Scoped to the tables in front of the reader, like a stored declaration. */
