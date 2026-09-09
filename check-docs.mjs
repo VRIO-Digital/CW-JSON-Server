@@ -648,6 +648,9 @@ for (const key of requiredKeys) {
 /* A local binding, not the component: three claims below read it as `catalogPage`, and a
    whole-file rename of the component caught this declaration and left them behind. */
 const catalogPage = read('frontend/src/pages/CatalogPage.tsx')
+/* Its comments quote the code they replaced, so every claim about what the page no longer does
+   reads this rather than the file. */
+const catalogPageCode = codeOnly(catalogPage)
 expect(
   'the Catalog names each source, not just its id',
   (catalogPage.match(/\{s\.sourceName\}|\{selected\.sourceName\}/g) ?? []).length >= 2,
@@ -1714,6 +1717,9 @@ const mailPanel = read('frontend/src/components/catalog/ProfiledMailDocumentsPan
    script, so definition order is execution order, and a `const` in the temporal dead zone kills
    the run before its summary — the failure where the claim total stops moving. */
 const catalogUnitsSrc = read('frontend/src/data/catalogUnits.ts')
+/* Its own comment explains why there is no third act, and names the two fields that carried
+   one - so every absence claim about them reads this. */
+const catalogUnitsCode = codeOnly(catalogUnitsSrc)
 expect(
   'today’s profiled count is read off the commit stamps and states the day it means',
   /* **One definition, across all three connectors and for the one surface that renders it.** A
@@ -2477,9 +2483,7 @@ expect(
  * panel still rendering a ✕ wired to a prop nobody passes is a button that does nothing, and a
  * toggle with no pressed state is a panel a reader cannot close.
  */
-/* `catalogPage` is already read at the top of this file — one binding, reused. */
 const panelFiles = [
-  'frontend/src/pages/CatalogPage.tsx',
   'frontend/src/components/catalog/ProfiledColumnsPanel.tsx',
   'frontend/src/components/catalog/ProfiledDocumentsPanel.tsx',
   'frontend/src/components/catalog/DocumentBrowsePanel.tsx',
@@ -2496,6 +2500,24 @@ for (const path of panelFiles) {
     'the ✕, its handler and the prop all go together or none of them do',
   )
 }
+/*
+ * **The page's half of that, and it cannot be `!/onClose/` over the whole file.**
+ *
+ * `catalogPage` is already read at the top of this file — one binding, reused. It was in the list
+ * above until the dictionary report became a dialog: a `Modal` has an `onClose`, legitimately, and a
+ * whole-file search for the word turned this red over correct code. The fact being guarded is that
+ * no *panel* takes one — the toggle that opened it is what closes it — so the test is that every
+ * `onClose` in the page belongs to that dialog, which is exact and stays exact when a second dialog
+ * arrives (it will need naming here, which is the point).
+ */
+const catalogOnClose = catalogPageCode.match(/onClose=\{[^}]*\}/g) ?? []
+expect(
+  'CatalogPage passes no close handler to a panel',
+  !/CloseOutlined/.test(catalogPageCode) &&
+    catalogOnClose.length === 1 &&
+    /<DictionaryPlanModal[^>]*onClose=/s.test(catalogPageCode),
+  'the ✕, its handler and the prop all go together or none of them do',
+)
 expect(
   'the open action is the orange one and the closed one is white',
   (catalogPage.match(
@@ -2532,9 +2554,11 @@ expect(
 expect(
   'and the way to close a panel is stated while one is open',
   /Click the same button again to close the panel\./.test(catalogPage) &&
-    /* **Every** panel that can be open, which is now three on BigQuery — the hint is the only thing
-       saying how to close one, so a panel left out of this test opens with no way back stated. */
-    /\{browseOpen \|\| dictionaryOpen \|\| schemaOpen \?/.test(catalogPage),
+    /* **Every** panel that can be open, which is two again — the dictionary upload stopped being a
+       panel of its own when it moved onto the dataset rows inside Browse. The hint is the only
+       thing saying how to close one, so a panel left out of this test opens with no way back
+       stated. */
+    /\{browseOpen \|\| dictionaryOpen \?/.test(catalogPage),
   'the ✕ is gone, so the way back has to be said somewhere',
 )
 /* ---------------- a run that profiled nothing says which objects, and offers the re-run ---------------- */
@@ -2916,7 +2940,32 @@ expect(
 const schemaImport = read('backend/schemaImport.js')
 const schemaImportCode = codeOnly(schemaImport)
 const schemaUploadData = read('frontend/src/data/schemaUpload.ts')
-const schemaPanel = read('frontend/src/components/catalog/SchemaUploadPanel.tsx')
+const dictionaryPanel = read('frontend/src/components/catalog/DatasetDictionaryUpload.tsx')
+
+/**
+ * The columns a dataset's Data Modeling declarations *read* on one table.
+ *
+ * **Reading a column is what makes a declaration strandable**, which is narrower than having an
+ * entity on the table: an anchor entity with no confirmed identifier and no relationships names no
+ * column at all, so no dictionary can strand it. This is the same set `resolveSchemaUpload` walks,
+ * so a claim built on it cannot come to disagree with the refusal it is about.
+ */
+const declarationsReading = (doc, tableKey) => {
+  const out = []
+  for (const entity of doc?.data_model?.entities ?? []) {
+    if (entity.table_key === tableKey) {
+      for (const attribute of entity.attributes ?? []) {
+        if (attribute.is_identifier) out.push(attribute.name)
+      }
+    }
+    for (const relationship of entity.relationships ?? []) {
+      if (entity.table_key === tableKey) out.push(...(relationship.from_columns ?? []))
+      if (relationship.target_table_key === tableKey) out.push(...(relationship.to_columns ?? []))
+    }
+  }
+  return out
+}
+const dictionaryPanelCode = codeOnly(dictionaryPanel)
 
 /*
  * **The reader is pure and in a file of its own, and it is verified offline.**
@@ -3047,32 +3096,79 @@ expect(
 )
 
 /*
- * **Two acts: a preview that writes nothing, then one call that writes and profiles.**
+ * **Two acts: a read that writes nothing, then one call that writes and profiles.**
  *
- * The preview is "seed, check the diff, push" with a screen instead of a terminal, and it earns its
+ * The read is "seed, check the diff, push" with a screen instead of a terminal, and it earns its
  * place because applying *replaces* a table's column list. The write and the run are deliberately
  * **one** call: a dictionary that landed with no run behind it is a Catalog advertising columns
  * nothing has profiled, and splitting them would put that decision in the one place that cannot see
  * whether the first half succeeded. Forced, because the columns are exactly what changed.
+ *
+ * **What moved is who asks for each act, and both halves are asserted here.** Choosing a file reads
+ * it — there is no *Read the file* button, because a reader who has just picked a dictionary has
+ * already asked for it to be read — and **Start Profiling** is the write. So the guard is no longer
+ * "Apply is gated on a preview of this file"; it is that the choose handler reads, and that the
+ * write is the only one of the two calls that commits.
  */
 expect(
-  'the preview writes nothing, and the apply writes and profiles in one call',
+  'the read writes nothing, and the apply writes and profiles in one call',
   /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\\\/preview\$\/\.test\(p\)/.test(server) &&
     /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\$\/\.test\(p\)/.test(server) &&
-    /* One resolver behind both, so what the reader was shown is what lands. */
-    (server.match(/resolveSchemaUpload\(\{ source, parsed, datasetId: dataset_id, filename \}\)/g) ?? [])
-      .length === 2 &&
+    /* One resolver behind both, so what the reader was shown is what lands: one definition and
+       exactly two callers, the preview and the write. Counted rather than matched on the argument
+       list, which the write's own multi-line call and the declaration itself both satisfy — the
+       first version of this counted the declaration as a third caller. */
+    (server.match(/function resolveSchemaUpload\(/g) ?? []).length === 1 &&
+    (server.match(/resolveSchemaUpload\(/g) ?? []).length === 3 &&
     /* The write is the only one of the two that commits, and it queues the run itself. */
     /await commitDb\(\{ \.\.\.db, projects, column_profiles: profiles \}\)/.test(server) &&
-    /force: true,/.test(server) &&
     /* Client: a fetcher and a schema each, validated like a read — a write is rendered like one. */
     /export async function previewSchemaUpload/.test(client) &&
     /export async function applySchemaUpload/.test(client) &&
     /const SCHEMA_PREVIEW_PAYLOAD = shape\(/.test(client) &&
     /const SCHEMA_APPLIED_PAYLOAD = shape\(/.test(client) &&
-    /* And Apply is gated on a preview of *this* file. */
-    /disabled=\{!file \|\| !plan\}/.test(schemaPanel),
+    /* Choosing a file is what reads it, and nothing else does. */
+    /await read\(source\.sourceId, \{/.test(dictionaryPanelCode) &&
+    !/previewLabel|Read the file/.test(dictionaryPanel),
   'a dictionary with no run behind it advertises columns nothing profiled',
+)
+
+/*
+ * **One press of Start Profiling queues one pipeline, over everything it covers.**
+ *
+ * This was two calls and therefore two jobs: the write queued a run over the dictionary's own
+ * tables, and the client then started a second for the rest of the selection. Over one dataset —
+ * CAPEX's `plan`, whose 12 dictionary tables and 6 others are one selection of 18 — that put two
+ * pipelines on the board from a single press, with nothing saying which was which or when
+ * "profiling" had finished. Reported from use.
+ *
+ * The fix is that the reader's selection travels **with the write**, so the server can queue the
+ * union once. Asserted at every layer, because the halves fail differently: the route has to accept
+ * `objects` and dedupe them against the dictionaries (or a table runs twice, which double-counts
+ * `profiled_tables` while `profiled_at` still moves), the client has to send them, and the page
+ * must not make a second call afterwards.
+ */
+const schemaWriteRoute =
+  /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\$\/\.test\(p\)[\s\S]*?\n  \},/.exec(server)?.[0] ??
+  ''
+expect(
+  'one press of Start Profiling is one pipeline, over the dictionaries and the selection together',
+  schemaWriteRoute.length > 2000 &&
+    /const \{ dictionaries, objects, force \} = await readJson\(req\)/.test(schemaWriteRoute) &&
+    /* One job, built from one work list — and the key is what stops a table being queued twice. */
+    (schemaWriteRoute.match(/queueJob\(\{/g) ?? []).length === 1 &&
+    /const work = new Map\(\)/.test(schemaWriteRoute) &&
+    /if \(work\.has\(key\)\) continue/.test(schemaWriteRoute) &&
+    /objects: \[\.\.\.work\.values\(\)\]/.test(schemaWriteRoute) &&
+    /* Client: the selection is part of the write's body. */
+    /dictionaries: \{ filename: string; text: string; dataset_id: string \}\[\]/.test(client) &&
+    /objects: \{ dataset_id: string; table_id: string \}\[\]/.test(client) &&
+    /* Page: one call per press. The plain run is the *else* of the staged branch, never after it. */
+    /await applyStaged\(source\.sourceId, objects, force\)/.test(catalogPageCode) &&
+    /\} else \{\r?\n\s*const result = await startProfilingRun\(source\.sourceId, objects, force\)/.test(
+      catalogPageCode,
+    ),
+  'two jobs from one press leave a reader unable to say when profiling has finished',
 )
 
 /*
@@ -3088,6 +3184,25 @@ expect(
  * catalogued with 24 columns and no dictionary reported `0 → 3` for a 3-column file while the figure
  * on screen went 24 → 3. Accurate, and it told the reader nothing about the change they would see.
  */
+/*
+ * **A stranded declaration is one reading a column the file does not name — not only a dropped one.**
+ *
+ * It tested `dropped`, which is what a *previous dictionary* held and this file does not, so it
+ * covered a table that already had a dictionary and said nothing at all about a table whose columns
+ * were synthesised. That second case is the one that bites: `POST /data-model/entities` skips its
+ * column check for a table with no `column_profiles` entry, so a declaration can legitimately be
+ * written against a synthesised column name, and the **first** dictionary uploaded for that table is
+ * what makes it checkable — and invalid. CAPEX ships three of exactly those on
+ * `plan.plan_version_master`. Dropped is a subset of not-named, so nothing the old test caught is
+ * lost.
+ */
+expect(
+  'a stranded declaration is judged on what the file names, not on what it drops',
+  /if \(attribute\.is_identifier && !afterIds\.has\(attribute\.name\)\)/.test(server) &&
+    /for \(const column of ends\) \{\r?\n\s*if \(!afterIds\.has\(column\)\)/.test(server),
+  'a declaration made against synthesised columns is stranded by the first dictionary, silently',
+)
+
 expect(
   'the preview names what an upload would drop, and both column counts',
   /dropped,/.test(server) &&
@@ -3095,10 +3210,10 @@ expect(
     /stranded_declarations: strandedDeclarations,/.test(server) &&
     /catalogued_column_count: existing\?\.columns \?\? columns\.length,/.test(server) &&
     /* Named in the panel, not counted — the dropped columns and the declarations both. */
-    /\{dropped\.join\(', '\)\}/.test(schemaPanel) &&
-    /stranded_declarations\.map/.test(schemaPanel) &&
+    /\{dropped\.join\(', '\)\}/.test(dictionaryPanel) &&
+    /stranded_declarations\.map/.test(dictionaryPanel) &&
     /* And the before number is the catalogue's, which is the one on screen. */
-    /\$\{row\.catalogued_column_count\} → \$\{row\.column_count\}/.test(schemaPanel),
+    /\$\{row\.catalogued_column_count\} → \$\{row\.column_count\}/.test(dictionaryPanel),
   'a column leaving the dictionary is the one thing a reader has to be able to check before applying',
 )
 
@@ -3116,9 +3231,16 @@ expect(
   /is new to this project, so the file has to give it \$\{missing\}/.test(server) &&
     /a grain is what one row of it is/.test(server) &&
     /rows: null,/.test(server) &&
-    /* The dataset is checked against the source's own allowlist, not typed. */
+    /* The dataset is checked against the source's own allowlist, not typed — and it is no longer
+       *picked* either: the control sits on the dataset's own row, so the id comes from the row the
+       reader uploaded against. A Select asking which dataset, a moment after the reader had been
+       looking at the list of them, is what that replaced. */
     /is not in this source's allowlist/.test(server) &&
-    /options=\{source\.datasets\.map/.test(schemaPanel),
+    /* Keyed on the *request* rather than on a `datasetId=` in the page: the plan report takes one
+       too, so a search for the prop passed either claim's mutation and broke on neither. What this
+       claim is about is that the dataset an upload is made against is the row's own. */
+    /dataset_id: datasetId,/.test(dictionaryPanelCode) &&
+    !/options=\{source\.datasets\.map/.test(dictionaryPanel),
   'a table with a blank label renders as a blank cell rather than raising anything',
 )
 
@@ -3178,16 +3300,171 @@ expect(
     sample.tables.every(
       (t) => !planTables.has(t.table_id) || t.columns.length === planTables.get(t.table_id).columns,
     ) &&
-    /* And it stays clear of the tables anything has Data Modeling declarations on, or applying it
-       would strand somebody's work to demonstrate a feature. */
-    sample.tables.every(
-      (t) =>
-        !(datasetDocs.get('CAPEX')?.data_model?.entities ?? []).some(
-          (e) => e.table_key === `plan.${t.table_id}`,
-        ),
-    ),
+    /* And it strands nobody's Data Modeling work to demonstrate a feature.
+       **Declarations that read a column, not merely entities on the table** — an anchor entity
+       with no confirmed identifier and no relationships names no column, so nothing about it can
+       be stranded, and requiring the sample to avoid one turned this claim red for a table
+       somebody had simply opened in the tab. That is the same over-broad shape recorded five times
+       over in this file, and the narrowing is exactly what `resolveSchemaUpload` itself checks. */
+    sample.tables.every((t) => {
+      const named = new Set(t.columns.map((c) => c.column_id))
+      return !declarationsReading(datasetDocs.get('CAPEX'), `plan.${t.table_id}`).some(
+        (column) => !named.has(column),
+      )
+    }),
   sampleError ||
     `${(sample?.tables ?? []).map((t) => `${t.table_id} ${t.columns.length}/${planTables.get(t.table_id)?.columns ?? 'not catalogued'}`).join(', ')} · declares: ${sampleDeclaring.map((t) => t.table_id).join(', ') || 'nothing'}`,
+)
+
+/*
+ * **The upload is a per-dataset act, and the source-level one is gone at every layer it touched.**
+ *
+ * It was a third button beside Browse and the dictionary, whose panel then *asked* which dataset
+ * from a Select — one upload for a source that may hold three datasets, and a control the reader
+ * met a moment after they had been looking at the list of them. The act now sits on each dataset's
+ * own row inside the browse panel, which settles "BigQuery only" by construction rather than by
+ * declaration: only the structured browse panel lists datasets, and a drive or a mailbox never
+ * reaches it.
+ *
+ * **One cross-layer claim, because half a removal is the shape that fails silently** — a
+ * `schemaLabel` nothing draws is a declared act with no control, and a `'schema'` panel key with no
+ * button is a state nothing can reach. `absentUnderComponents` searches the tree rather than the
+ * old path: a revival landing in its feature folder would satisfy a check pointed at where the file
+ * used to be.
+ */
+expect(
+  'the source-level schema button is gone, and the act is on the dataset rows',
+  absentUnderComponents('SchemaUploadPanel') &&
+    /* The declaration, both halves, and the panel key that carried it — through `codeOnly`,
+       because the comment left in that file explaining why there is no third act *names* both
+       fields. That is the self-documenting-file trap this repo has now recorded six times: it
+       caught this claim on its first run. */
+    !/schemaLabel|schemaPanel/.test(catalogUnitsCode) &&
+    !/'schema'/.test(catalogUnitsCode) &&
+    !/Upload schema or dictionary/.test(catalogPage) &&
+    !/schemaOpen/.test(catalogPageCode) &&
+    /* And the control really is drawn per dataset, in the browse tree — matched across the props,
+       since it grew one when the report became a dialog. */
+    /<DictionaryUploadControl[\s\S]{0,120}?datasetId=\{d\.dataset_id\}/.test(catalogPageCode) &&
+    /export function DictionaryUploadControl/.test(dictionaryPanel),
+  'a declared act with no control, or a button with no panel, is a half-removal',
+)
+
+/*
+ * **The report is a dialog, and the body is exported apart from it.**
+ *
+ * Asked for as a popup, and the inline version had made the reason plain: drawn under the tree, a
+ * twelve-row table and two warnings sat between the dataset rows and the button that acts on them,
+ * so a reader scrolled past what they were deciding about to reach Start Profiling.
+ *
+ * **The separation is the assertable part.** A `Modal` renders through a portal `renderToString`
+ * will not traverse, so a table written inside one cannot be checked at all — the reason
+ * `ConnectSourceWizard` is separate from `ConnectSourceModal`, and the reason the claims above can
+ * read this file for the dropped columns and the two counts. The page renders the dialog, never the
+ * report: two surfaces for one thing is what the move was for.
+ *
+ * **And it opens on a read that landed, not on one that was refused** — there is no report behind a
+ * refusal, and a dialog over one would bury the sentence explaining it.
+ */
+expect(
+  'the dictionary report is a dialog whose body is exported apart from it',
+  /export function DictionaryPlanReport/.test(dictionaryPanel) &&
+    /export function DictionaryPlanModal/.test(dictionaryPanel) &&
+    /* The wrapper renders the body rather than repeating it. */
+    /<DictionaryPlanReport datasetId=\{datasetId\} \/>/.test(dictionaryPanel) &&
+    /* Opened by the panel, one dialog for every row, off one piece of state. */
+    /<DictionaryPlanModal datasetId=\{reportFor\} onClose=\{\(\) => setReportFor\(null\)\} \/>/.test(
+      catalogPageCode,
+    ) &&
+    !/<DictionaryPlanReport/.test(catalogPageCode) &&
+    /* On success only, and the row keeps a way back in. */
+    /if \(result\.ok\) onReport\(datasetId\)/.test(dictionaryPanelCode) &&
+    /schemaUploadCopy\.reviewLabel/.test(dictionaryPanelCode),
+  'a report written inside a Modal cannot be asserted, and one drawn twice is two surfaces',
+)
+
+/*
+ * **A click inside a checkable tree row must not change the selection — and must not be cancelled.**
+ *
+ * The control sits in a `checkable` `blockNode` tree title, where a click anywhere on the row
+ * toggles the checkbox, so the event has to stop here or opening the file dialog would also uncheck
+ * every table in the dataset. Silent, and it would look like antd.
+ *
+ * **The second half is the one that shipped broken.** The handler also called `preventDefault`, and
+ * the hidden `<input type="file">` is a *child* of this span — so the click `inputRef.current.click()`
+ * dispatches bubbles up through it, and cancelling that click cancels the input's default action,
+ * which is opening the picker. The button depressed and nothing opened; it read as a browser
+ * blocking a programmatic file dialog rather than as a handler two elements up. Both halves are
+ * asserted, because either one alone is a working-looking control that does the wrong thing.
+ */
+expect(
+  'the upload control stops the tree row from toggling, and cancels nothing',
+  /className="cat-dict" onClick=\{\(e\) => e\.stopPropagation\(\)\}/.test(dictionaryPanel) &&
+    !/preventDefault/.test(dictionaryPanelCode),
+  'stopPropagation keeps the checkbox still; preventDefault stops the file picker opening at all',
+)
+
+/*
+ * **The CAPEX dictionary is parsed rather than trusted, and held against the document it names.**
+ *
+ * The same reasoning as the sample one directory up: a dictionary file is documentation that can be
+ * *run*, so leaving it unchecked would let it go stale the first time the reader's format changed
+ * or the CAPEX document recatalogued a table — and a reader following it would meet a refusal from
+ * the feature it exists to demonstrate.
+ *
+ * **The column counts are the half worth having.** Applying replaces a table's column list *and*
+ * the count the Catalog advertises, so a file naming 23 columns of a 24-column table quietly
+ * shrinks it — accurate, invisible, and the one thing this file must not do to a dataset that ships
+ * its own catalogue. Every table it names must already be catalogued, too: a table it *declared*
+ * would need a label and a grain, and neither is derivable from a column list.
+ *
+ * What it deliberately does **not** assert is that the file strands no Data Modeling declaration.
+ * It strands three, all on `plan_version_master`, all made against synthesised columns a version
+ * master does not have — the preview names them before anything is written, which is the design.
+ * Pinning that count would make this claim red the moment somebody fixed those declarations, which
+ * is the guard-fails-on-the-feature-working trap the sample claim above already fell into once.
+ */
+const capexDictPath = 'docs/samples/capex-plan-dictionary.csv'
+let capexDict = null
+let capexDictError = ''
+try {
+  capexDict = parseSchemaDocument({
+    filename: 'capex-plan-dictionary.csv',
+    text: read(capexDictPath),
+  })
+} catch (error) {
+  capexDictError = error.message
+}
+const capexDictClasses = new Set(
+  (capexDict?.tables ?? []).flatMap((t) => t.columns.map((c) => c.class)).filter(Boolean),
+)
+/* The union `KNOWN_CLASSES` is built from, read off the two lists that declare it rather than
+   written a third time — the same reason the server reads them instead of listing classes again. */
+const classNamesIn = (block) => [...block.matchAll(/'([a-z_]+)'/g)].map((m) => m[1])
+const knownClasses = new Set([
+  ...classNamesIn(/^const CLASS_FACET = \{([\s\S]*?)^\}/m.exec(server)?.[1] ?? ''),
+  ...classNamesIn(/^const CLASS_UNFACETED = \[([\s\S]*?)^\]/m.exec(server)?.[1] ?? ''),
+])
+expect(
+  'the CAPEX dictionary parses, and describes the plan dataset without changing a count',
+  capexDict !== null &&
+    capexDict.format === 'csv' &&
+    capexDict.dataset_id === 'plan' &&
+    capexDict.tables.length >= 12 &&
+    /* Every table is one the dataset already catalogues, at exactly the count it catalogues. */
+    capexDict.tables.every(
+      (t) => planTables.has(t.table_id) && t.columns.length === planTables.get(t.table_id).columns,
+    ) &&
+    /* And every class it states is one this app has a chip for — the server refuses the rest. */
+    knownClasses.size > 15 &&
+    [...capexDictClasses].every((c) => knownClasses.has(c)),
+  capexDictError ||
+    `${(capexDict?.tables ?? [])
+      .map(
+        (t) =>
+          `${t.table_id} ${t.columns.length}/${planTables.get(t.table_id)?.columns ?? 'not catalogued'}`,
+      )
+      .join(', ')} · classes ${[...capexDictClasses].sort().join(',')}`,
 )
 
 /* ---------------- the canvas ---------------- */

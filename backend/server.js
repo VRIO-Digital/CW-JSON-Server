@@ -8472,18 +8472,30 @@ function resolveSchemaUpload({ source, parsed, datasetId, filename }) {
     const orphanedNotes = dropped.filter((id) => notes[`${chosen}.${table.table_id}.${id}`])
 
     /*
-     * **And a Data Modeling declaration can be stranded by a dropped column**, which is worse than
-     * an orphaned note: a confirmed identifier or a declared join reads a column by name, and
-     * `POST /data-model/entities` *refuses* a join on a column `column_profiles` does not carry. So
-     * an upload that drops one leaves a declaration the write path would no longer accept —
-     * findable only by trying to edit it. Named here, in the preview, while it is still a choice.
+     * **And a Data Modeling declaration can be stranded by a column this file does not name**,
+     * which is worse than an orphaned note: a confirmed identifier or a declared join reads a
+     * column by name, and `POST /data-model/entities` *refuses* a join on a column
+     * `column_profiles` does not carry. So an upload that leaves one out leaves a declaration the
+     * write path would no longer accept — findable only by trying to edit it. Named here, in the
+     * preview, while it is still a choice.
+     *
+     * **Not-named rather than dropped, and the difference is a whole silent case.** It tested
+     * `dropped`, which is what a *previous dictionary* held and this file does not — so it covered
+     * a table that already had one and said nothing at all about a table whose columns were
+     * synthesised. That is the case that bites: `POST /data-model/entities` skips its column check
+     * for a table with no `column_profiles` entry, so a declaration can legitimately be written
+     * against a synthesised column name, and the first dictionary uploaded for that table is what
+     * makes it checkable — and invalid. CAPEX ships two of exactly those, joining
+     * `plan_project_budget` and `plan_project_forecast` onto `plan_version_master."Project Code"`,
+     * a column a version master does not have. Dropped is a subset of not-named, so nothing this
+     * caught before is lost.
      */
     const tableKey = `${chosen}.${table.table_id}`
     const strandedDeclarations = []
     for (const entity of db.data_model.entities) {
       if (entity.table_key === tableKey) {
         for (const attribute of entity.attributes) {
-          if (attribute.is_identifier && dropped.includes(attribute.name)) {
+          if (attribute.is_identifier && !afterIds.has(attribute.name)) {
             strandedDeclarations.push(`${entity.entity_name}: identifier ${attribute.name}`)
           }
         }
@@ -8495,7 +8507,7 @@ function resolveSchemaUpload({ source, parsed, datasetId, filename }) {
           relationship.target_table_key === tableKey ? relationship.to_columns : [],
         ].flat()
         for (const column of ends) {
-          if (dropped.includes(column)) {
+          if (!afterIds.has(column)) {
             strandedDeclarations.push(
               `${entity.entity_name}: ${relationship.relationship_type} on ${column}`,
             )
@@ -10330,16 +10342,32 @@ const routes = [
   },
 
   /*
-   * Applies the plan, then **queues a profiling run over the tables it touched**, forced.
+   * Applies every dictionary the reader has read, then **queues one profiling run** over the
+   * dictionaries' tables *and* whatever else they picked.
    *
    * One call rather than two, because the two are one act: a dictionary that landed and a run that
    * did not is a Catalog advertising columns nothing has profiled, and asking the client to make the
    * second call would put the decision in the one place that cannot see whether the first succeeded.
    *
-   * **Forced, and that is the point.** The normal rule is that an already-profiled table is skipped
-   * unless somebody asks twice — because re-running over unchanged columns does nothing. Here the
-   * columns are exactly what changed, so a skip would leave the tile counting a profile of the
-   * dictionary that has just been replaced.
+   * **And one job rather than two, which is what `objects` is for.** This wrote the dictionary and
+   * queued a run over its own tables; the client then started a *second* run for the tables the
+   * reader had checked outside it. One press of Start Profiling produced two pipelines on the board
+   * — over one dataset, whose 12 dictionary tables and 6 others are one selection — and a reader
+   * watching them cannot tell which of the two is theirs, or when "profiling" is finished. Reported
+   * from use. So the selection travels with the write and the union is queued once: 18 tables, one
+   * run, one thing to watch.
+   *
+   * **Batched, and all-or-nothing.** `dictionaries` is an array because a source with three datasets
+   * can have one read against each, and a per-dataset call would put us back to a job per dataset.
+   * Every plan is resolved *before* anything is written and they land in a single `commitDb`, so a
+   * refusal on the third file leaves the first two unwritten — which is stronger than the loop this
+   * replaced, where a client posting them one at a time could leave half of them applied.
+   *
+   * **A dictionary's own tables always run.** The normal rule is that an already-profiled table is
+   * skipped unless somebody asks twice, because re-running over unchanged columns does nothing —
+   * here the columns are exactly what changed, so a skip would leave the tile counting a profile of
+   * the dictionary that has just been replaced. Everything else in the selection keeps the ordinary
+   * rule, which is why `force` still travels: it belongs to those, not to these.
    */
   {
     method: 'POST',
@@ -10353,17 +10381,49 @@ const routes = [
       const wrong = wrongStructuredOnly(source, 'bigquery', 'a schema upload')
       if (wrong) return send(res, 400, { error: wrong })
 
-      const { filename, text, dataset_id } = await readJson(req)
-      if (!filename || typeof text !== 'string') {
-        return send(res, 400, { error: 'filename and text are both required' })
+      const { dictionaries, objects, force } = await readJson(req)
+      if (!Array.isArray(dictionaries) || dictionaries.length === 0) {
+        return send(res, 400, {
+          error: 'dictionaries must be a non-empty array of { filename, text, dataset_id }',
+        })
+      }
+      if (objects !== undefined && !Array.isArray(objects)) {
+        return send(res, 400, { error: 'objects must be an array of { dataset_id, table_id }' })
+      }
+      for (const entry of dictionaries) {
+        if (!isObject(entry) || !entry.filename || typeof entry.text !== 'string') {
+          return send(res, 400, { error: 'every dictionary needs a filename and text' })
+        }
       }
 
-      let plan
-      try {
-        const parsed = parseSchemaDocument({ filename, text })
-        plan = resolveSchemaUpload({ source, parsed, datasetId: dataset_id, filename })
-      } catch (error) {
-        return send(res, 400, { error: `${filename}: ${error.message}` })
+      /*
+       * Resolved first, all of them, and only then written. A plan is what the reader was shown, so
+       * this is also the one place that guarantees what they read is what lands.
+       */
+      const plans = []
+      for (const entry of dictionaries) {
+        try {
+          const parsed = parseSchemaDocument({ filename: entry.filename, text: entry.text })
+          plans.push(
+            resolveSchemaUpload({
+              source,
+              parsed,
+              datasetId: entry.dataset_id,
+              filename: entry.filename,
+            }),
+          )
+        } catch (error) {
+          return send(res, 400, { error: `${entry.filename}: ${error.message}` })
+        }
+      }
+      /* One dictionary per dataset: two would each replace a table's columns and the last would
+         silently win, which is the two-answers fault this repo refuses everywhere. */
+      const datasets = plans.map((p) => p.dataset_id)
+      const twice = datasets.find((d, i) => datasets.indexOf(d) !== i)
+      if (twice) {
+        return send(res, 400, {
+          error: `two dictionaries name the dataset ${twice} — read one file per dataset, or the second would replace what the first wrote`,
+        })
       }
 
       /*
@@ -10372,13 +10432,15 @@ const routes = [
        * every level of this is a new object — editing `db.projects` in place would change the live
        * document before it had been checked.
        */
-      const byTable = new Map(plan.tables.map((t) => [t.table_id, t]))
+      const planFor = new Map(plans.map((plan) => [plan.dataset_id, plan]))
       const projects = db.projects.map((project) => {
         if (project.project_id !== source.project_id) return project
         return {
           ...project,
           datasets: project.datasets.map((dataset) => {
-            if (dataset.dataset_id !== plan.dataset_id) return dataset
+            const plan = planFor.get(dataset.dataset_id)
+            if (!plan) return dataset
+            const byTable = new Map(plan.tables.map((t) => [t.table_id, t]))
             const updated = dataset.tables.map((table) => {
               const plannedTable = byTable.get(table.table_id)
               /* The advertised column count and the dictionary have to agree — `check-docs` asserts
@@ -10406,30 +10468,79 @@ const routes = [
       })
 
       const profiles = { ...db.column_profiles }
-      for (const table of plan.tables) {
-        profiles[`${plan.dataset_id}.${table.table_id}`] = table.columns
+      for (const plan of plans) {
+        for (const table of plan.tables) {
+          profiles[`${plan.dataset_id}.${table.table_id}`] = table.columns
+        }
       }
 
       await commitDb({ ...db, projects, column_profiles: profiles })
+
+      /*
+       * One work list, dictionaries first. Keyed `dataset::table` so a table the reader also had
+       * checked is not queued twice — the dictionary's entry wins, because it is the one that must
+       * run whatever the ordinary skip rule would say.
+       */
+      const work = new Map()
+      for (const plan of plans) {
+        for (const table of plan.tables) {
+          work.set(`${plan.dataset_id}::${table.table_id}`, {
+            parent_id: plan.dataset_id,
+            object_id: table.table_id,
+            label: table.table_id,
+            units: table.column_count,
+            /* Every one of them runs: the dictionary is what changed. */
+            state: 'pending',
+          })
+        }
+      }
+
+      /* The rest of the selection, under the ordinary rules — the same checks `POST …/profile`
+         makes, because this is that act for the tables no dictionary described. */
+      const project = findProject(source.project_id)
+      const allowed = new Set(source.datasets ?? [])
+      source.profiled = source.profiled ?? []
+      for (const { dataset_id, table_id } of objects ?? []) {
+        const key = `${dataset_id}::${table_id}`
+        if (work.has(key)) continue
+        if (!allowed.has(dataset_id)) {
+          return send(res, 400, {
+            error: `dataset ${dataset_id} is not in this source's allowlist`,
+          })
+        }
+        const table = project?.datasets
+          .find((d) => d.dataset_id === dataset_id)
+          ?.tables.find((t) => t.table_id === table_id)
+        if (!table) {
+          return send(res, 400, { error: `table ${dataset_id}.${table_id} does not exist` })
+        }
+        const already = source.profiled.some(
+          (p) => p.dataset_id === dataset_id && p.table_id === table_id,
+        )
+        work.set(key, {
+          parent_id: dataset_id,
+          object_id: table_id,
+          label: table_id,
+          units: table.columns,
+          state: already && !force ? 'skipped' : 'pending',
+        })
+      }
 
       const job = queueJob({
         sourceId,
         kind: 'bigquery',
         unit: 'table',
-        objects: plan.tables.map((table) => ({
-          parent_id: plan.dataset_id,
-          object_id: table.table_id,
-          label: table.table_id,
-          units: table.column_count,
-          /* Every one of them runs: the dictionary is what changed. */
-          state: 'pending',
-        })),
-        force: true,
+        objects: [...work.values()],
+        /* The caller's, not `true`: it records whether they asked for already-profiled tables to be
+           redone. A dictionary's own tables do not need it — they are `pending` on their own merits,
+           and claiming the run was forced when nobody asked would misreport the one flag the jobs
+           board shows. */
+        force: Boolean(force),
       })
 
       send(res, 202, {
         source_id: sourceId,
-        applied: schemaPlanView(plan, filename),
+        applied: plans.map((plan, i) => schemaPlanView(plan, dictionaries[i].filename)),
         job: jobView(job),
       })
     },

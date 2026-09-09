@@ -4578,8 +4578,16 @@ export interface SchemaPreviewPayload extends SchemaPlan {
 
 export interface SchemaAppliedPayload {
   source_id: string
-  applied: SchemaPlan
-  /** The forced run this queued. The Catalog switches to the jobs board on it. */
+  /** One plan per dictionary written, in the order they were sent. */
+  applied: SchemaPlan[]
+  /**
+   * **The one run this queued** — the dictionaries' tables *and* whatever else the reader had
+   * checked, in a single job.
+   *
+   * It used to be a job over the dictionary's tables alone, with the client starting a second run
+   * for the rest of the selection: one press of Start Profiling, two pipelines on the board, and
+   * nothing saying which was which or when profiling had finished.
+   */
   job: ProfilingJob
 }
 
@@ -4612,7 +4620,7 @@ const SCHEMA_PREVIEW_PAYLOAD = shape({ source_id: str, ...SCHEMA_PLAN_FIELDS })
 
 const SCHEMA_APPLIED_PAYLOAD = shape({
   source_id: str,
-  applied: shape(SCHEMA_PLAN_FIELDS),
+  applied: arrayOf(shape(SCHEMA_PLAN_FIELDS)),
   job: JOB,
 })
 
@@ -4632,15 +4640,31 @@ export async function previewSchemaUpload(
 }
 
 /**
- * Commits the dictionary and queues the run, in one call.
+ * Commits every dictionary and queues **one** run, in one call.
  *
- * One act, because the two halves are one: a dictionary that landed with no run behind it is a
- * Catalog advertising columns nothing has profiled, and splitting them would put the decision in the
- * one place that cannot see whether the first half succeeded.
+ * One act, because the halves are one: a dictionary that landed with no run behind it is a Catalog
+ * advertising columns nothing has profiled, and splitting them would put the decision in the one
+ * place that cannot see whether the first half succeeded.
+ *
+ * **`objects` is the rest of the reader's selection**, and it travels with the write for the same
+ * reason. Without it this returned a job over the dictionary's tables and the caller started a
+ * second one for everything else checked — two pipelines from one press, over one dataset, with
+ * nothing on the board saying which was which.
+ *
+ * **`dictionaries` is an array** because a source with three datasets can have one read against
+ * each, and a call per dataset would put the job count back where it started. They are resolved
+ * before anything is written and land in one commit, so a refusal on the third file leaves the first
+ * two unwritten.
  */
 export async function applySchemaUpload(
   sourceId: string,
-  input: { filename: string; text: string; dataset_id: string },
+  input: {
+    dictionaries: { filename: string; text: string; dataset_id: string }[]
+    /** The checked tables. Ones a dictionary already covers are not queued twice. */
+    objects: { dataset_id: string; table_id: string }[]
+    /** Whether an already-profiled table outside the dictionaries should run again. */
+    force: boolean
+  },
 ): Promise<SchemaAppliedPayload> {
   return validate<SchemaAppliedPayload>(
     'The applied schema',

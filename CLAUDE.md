@@ -1391,29 +1391,100 @@ double duty.
 
 ### Uploading a schema or a data dictionary
 
-**A third act on a BigQuery source, beside Browse and the dictionary: upload a file and its columns
-become that source's column dictionary.** `column_profiles`, keyed `"<dataset>.<table>"` — the same
-place a profiling run reads from, and the same place the demo's own 206 columns came from when they
-were ingested out of a workbook. So the Catalog stops serving synthesised columns for those tables
-and serves what the file said, the Data Modeling tab draws them, and the graph derives over them.
-**It is the ingest script's act, done through a screen**, and it ends by starting a profiling run.
+**An act on each dataset, inside Browse: upload a file and its columns become that dataset's column
+dictionary.** `column_profiles`, keyed `"<dataset>.<table>"` — the same place a profiling run reads
+from, and the same place the demo's own 206 columns came from when they were ingested out of a
+workbook. So the Catalog stops serving synthesised columns for those tables and serves what the file
+said, the Data Modeling tab draws them, and the graph derives over them. **It is the ingest script's
+act, done through a screen**, and it ends by starting a profiling run.
 
-**BigQuery only, and the act is declared rather than tested for.** `catalogUnits`' bigquery row
-carries `schemaLabel` and `schemaPanel`; the other two rows carry neither, so the page draws the
-button only where both halves are declared. A drive holds documents and a mailbox holds mail, and
-neither has columns a dictionary could describe — which is the same reason `wrongStructuredOnly`
-refuses one at the endpoint. That helper **was `wrongModel`**: a schema upload is the second act
-here that is about a schema, the reason a drive and a mailbox have none is word-for-word the same,
-and two copies of one refusal are two places for it to be worded differently. The noun is a
-parameter now.
+**It was a third source-level button, and the dataset is what moved.** *Upload schema or dictionary*
+sat beside Browse and the dictionary, and its panel then **asked** which dataset from a Select — one
+upload for a source that may hold three datasets, and a control the reader met a moment after they
+had been looking at the list of them. `DictionaryUploadControl` now sits on each dataset's row in the
+browse tree, so there is nothing to pick: the id comes from the row it was uploaded against.
+`SchemaUploadPanel` is off disk, `catalogUnits` declares no `schemaLabel`/`schemaPanel` and the
+`'schema'` panel key is gone, all asserted as **one cross-layer claim** — a declared act with no
+control, or a panel key with no button, is a half-removal.
 
-**There is a sample to upload, and `check-docs` parses it.** `docs/samples/schema-upload-example.json`
-demonstrates both halves in one file against CAPEX's `plan`: it replaces `plan_scenario_dim`'s
-synthesised columns **without changing its count**, and *declares* `plan_capital_gate_log` with the
-label and grain a declared table needs. A sample file is the one kind of documentation that can be
-run, so leaving it unchecked would be indefensible — the claim parses it with the real reader, holds
-its tables against the document, and asserts it stays clear of the tables anything has Data Modeling
-declarations on, since applying it must not strand somebody's work to demonstrate a feature.
+**Which settles "BigQuery only" by construction rather than by declaration.** The act used to be
+drawn where both halves of a `catalogUnits` field were declared; it is now inside the *structured*
+browse panel, and only that panel lists datasets — a drive gets `DocumentBrowsePanel` and a mailbox
+`MailBrowsePanel`, neither of which has a dataset row for a control to sit on. The endpoint still
+refuses one anyway, through `wrongStructuredOnly`. That helper **was `wrongModel`**: a schema upload
+is the second act here that is about a schema, the reason a drive and a mailbox have none is
+word-for-word the same, and two copies of one refusal are two places for it to be worded
+differently. The noun is a parameter now.
+
+**Two clicks, and the reader makes both.** Choosing a file **reads it immediately** — there is no
+*Read the file* button, because a reader who has just picked a dictionary has already asked for it to
+be read, and a second click to make anything appear is a step that says nothing. The read still
+writes nothing; what moved is only who asks for it. **Start Profiling is the write**, one control for
+both halves of what a reader means by it.
+
+**The report is a dialog, and it opens itself.** `DictionaryPlanModal` — asked for as a popup, and
+the inline version had made the reason plain: drawn under the tree, a twelve-row table and two
+warnings sat between the dataset rows and the button that acts on them, so a reader scrolled past
+what they were deciding about to reach Start Profiling. It opens when a read **lands** (not when one
+is refused: there is no report behind a refusal, and a dialog over one would bury the sentence
+explaining it), *View report* on the row is the way back in, and `reportFor` in `BrowsePanel` is the
+one piece of state saying which dataset's is showing — a `Modal` per dataset row would be several
+ways to be looking at one thing. **Close is its only act**: a *Start Profiling* on the dialog too
+would be a second control for one write, so the footer states what that button will do instead.
+`DictionaryPlanReport` is exported **apart from** the `Modal`, which is the rule every dialog here
+follows — a portal is not traversed by `renderToString`, so a table written inside one cannot be
+asserted at all.
+
+**And one press is one pipeline, which it was not.** The write used to queue a run over the
+dictionary's own tables and the page then started a *second* run for the rest of the selection — so
+over CAPEX's `plan`, whose 12 dictionary tables and 6 others are one selection of 18, a single press
+put **two jobs on the board** with nothing saying which was which or when profiling had finished.
+Reported from use. The reader's selection travels **with the write** now (`objects` on
+`POST …/schema`), and the server queues the union **once**: one work list keyed `dataset::table`, so
+a table a dictionary covers is not queued twice — which would commit it twice, the double count
+`commitNextObject` updates in place to avoid. The order inside that one request is still the point:
+the dictionary is written *before* the run is queued, because profiling first would profile the
+columns it was about to replace.
+
+**A dictionary's own tables always run; everything else keeps the ordinary rule.** The normal skip is
+right for a table nothing changed, and wrong for one whose columns are exactly what changed — so a
+dictionary's tables are `pending` on their own merits, and `force` still travels on the request
+because it belongs to the *rest* of the selection. That is also why the job's `force` records the
+caller's answer rather than `true`: claiming the run was forced when nobody asked would misreport the
+one flag the jobs board shows.
+
+**A dictionary is staged per dataset**, keyed by dataset id in `useSchemaUploadStore`, because one
+slot would silently replace the previous reader's file with the next one. They are sent **together**,
+as `dictionaries` — an array, because a source with three datasets can have one read against each and
+a call per dataset would put the job count straight back. The server resolves every plan *before* it
+writes anything and lands them in a **single `commitDb`**, so a refusal on the third file leaves the
+first two unwritten: all of them or none, which is stronger than the client-side loop this replaced,
+where posting one at a time could leave half applied. `dictionaryRefused` says so — nothing was
+written and everything is still staged — and `dictionaryRunSummary` names the files that landed and
+then carries `profilingOutcome`'s own text for the run, since that outcome *names* the objects it
+skipped and summarising it into a count would lose exactly what it exists to say. Both are pure and
+both composed from what the server returned rather than from what was submitted.
+
+**Two samples to upload, and `check-docs` parses both.**
+`docs/samples/schema-upload-example.json` demonstrates both halves in one file against CAPEX's
+`plan`: it replaces `plan_scenario_dim`'s synthesised columns **without changing its count**, and
+*declares* `plan_capital_gate_log` with the label and grain a declared table needs.
+`docs/samples/capex-plan-dictionary.csv` is the whole dataset — the 12 `plan_*` cube tables, **186
+columns**, every table already catalogued and every count exactly the count the document carries, so
+nothing shrinks. A sample file is the one kind of documentation that can be *run*, so leaving either
+unchecked would be indefensible: the claims parse them with the real reader and hold what came out
+against the real document, including that every class they state is one this app has a chip for.
+
+**What the CAPEX file deliberately does *not* do is avoid a warning.** It strands three Data
+Modeling declarations on `plan_version_master` — a confirmed identifier and two joins, all made
+against *synthesised* column names, one of them a `Project Code` a table whose grain is "one version"
+does not have. The preview names all three before anything is written, which is the design; the fix
+is a Data Modeling edit, not a column invented into the dictionary to satisfy it. `check-docs`
+therefore asserts nothing about that count — pinning it would turn the claim red the moment somebody
+fixed those declarations, which is the guard-fails-on-the-feature-working trap the JSON sample's own
+claim fell into once already (it required the sample to avoid *any* entity on a table, and an anchor
+entity with no identifier and no relationships names no column, so nothing about it can be
+stranded).
 
 **Three formats, and the fourth is refused with a remedy.** JSON (a document with `tables`, or a flat
 array of column rows), CSV or TSV (one row per column, with a header), and SQL DDL (`CREATE TABLE`).
@@ -1508,6 +1579,16 @@ name** rather than counted: the columns themselves, a curator's note written aga
 and — the worst of the three — a **Data Modeling declaration** reading one. That last is a state
 `POST /data-model/entities` refuses to write, so it would otherwise be found only by somebody trying
 to edit that relationship.
+
+**A declaration is stranded by a column the file does not *name*, not merely by one it drops** — and
+the difference is a whole silent case. The check tested `dropped`, which is what a *previous
+dictionary* held and this file does not, so it covered a table that already had one and said nothing
+at all about a table whose columns were synthesised. That second case is the one that bites:
+`POST /data-model/entities` **skips** its column check for a table with no `column_profiles` entry,
+so a declaration can legitimately be written against a synthesised column name, and the **first**
+dictionary uploaded for that table is what makes it checkable — and invalid. CAPEX ships three of
+exactly those on `plan.plan_version_master`, which is how this was found. `dropped` is a subset of
+not-named, so nothing the old test caught is lost.
 
 **And the preview shows both column counts, which running it is what found.** A table catalogued with
 24 columns and no dictionary reported `0 → 3` for a 3-column file — accurate, and it told the reader
@@ -4912,6 +4993,13 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **Never round-trip a source file through PowerShell `Get-Content`/`Set-Content`.**
   PS 5.1 reads UTF-8 as ANSI and corrupts em dashes and `·` into mojibake. Use the
   Edit tool, or node with explicit `'utf8'`.
+- **And the Bash tool is no safer: it eats non-ASCII *and* backslashes.** A quoted
+  heredoc is not passed through untouched — an em dash arrives as one invalid byte, a
+  right single quote can arrive as `'` and break the quoting outright, and a doubled
+  backslash can arrive single, so `\\r?\\n` in a `check-docs` regex lands as a literal
+  line break. Write anything with non-ASCII or heavy escaping with the **Write/Edit
+  tools**; `chr(92)` is the reliable way for a script to emit a backslash. Full entry
+  in `docs/REGRESSIONS.md`.
 - **Background-started servers on Windows outlive their shell and wedge** — the
   port stays bound while the process stops answering. Check
   `Get-NetTCPConnection -LocalPort 4000` and kill the pid before restarting.

@@ -6352,3 +6352,117 @@ already renders the build button there rather than *Next*.
   questions, `/graph-metrics/suggest` answering, the old path 404ing, a brief saving and committing
   from step 5 carrying `metrics` and no `kpis`, step 6 refused with *"step must be an integer from 1
   to 5"*, and an unnamed metric refused in the new vocabulary.
+
+---
+
+## One press of Start Profiling ran two pipelines
+
+**Symptom** — uploading the CAPEX dictionary against `plan` and pressing Start Profiling put **two
+jobs** on the Profiling jobs board: one of 12 tables and one of 6. The dataset holds 18 and the
+reader had made one selection, so neither job answered "is profiling finished" and nothing on the
+board said which was which. Reported from use.
+
+**Root cause** — the write and the run were split across two calls that each queued their own job.
+`POST …/schema` wrote the dictionary and queued a **forced** run over its own tables, correctly; the
+page then filtered those tables out of the selection and started a *second* run for what was left,
+also correctly. Each half was right and the pair was wrong: one act by the reader, two pipelines.
+
+**Fix** — the selection travels **with the write**. `POST …/schema` takes `objects` beside
+`dictionaries`, builds one work list keyed `dataset::table` (the dictionary's entry wins, so nothing
+is queued twice and `profiled_tables` cannot double while `profiled_at` moves), and queues a single
+job. `dictionaries` became an array in the same change, so several datasets' files land in one
+`commitDb` — which also made the write all-or-nothing, where the client-side loop it replaced could
+leave half of them applied.
+
+**Guard** — mechanical, at every layer, because the halves fail differently: `check-docs` asserts
+the route reads `objects`, calls `queueJob` exactly once, dedupes with `work.has(key)`, that the
+client's body type carries both fields, and that the page's plain run is the **`else`** of the
+staged branch rather than a call after it. Break-tested four ways.
+
+---
+
+## The first dictionary an unprofiled table gets can strand a Data Modeling declaration, silently
+
+**Symptom** — none, which is the point. Uploading `docs/samples/capex-plan-dictionary.csv` against
+CAPEX's `plan` left three declarations on `plan_version_master` reading columns that dataset's
+dictionary no longer lists: a confirmed identifier `ITD Actuals`, and two joins on a `Project Code`
+that a table whose grain is "one version" does not have. The preview said nothing, and the state is
+only discoverable by trying to edit that relationship — `POST /data-model/entities` refuses a join
+on a column `column_profiles` does not carry.
+
+**Root cause** — `resolveSchemaUpload` computed stranded declarations from `dropped`, which is what
+a *previous dictionary* held and the file does not. A table whose columns were **synthesised** has no
+`column_profiles` entry at all, so `dropped` is empty and the check covered nothing — while the
+write path's own column check is *skipped* for exactly that table, which is how a declaration comes
+to name a synthesised column legitimately in the first place. So the first dictionary uploaded for
+such a table is what makes those names checkable, and invalid, in one act nothing reported.
+
+**Fix** — the test is now `!afterIds.has(column)`: a declaration is stranded by a column the file
+does not **name**, whether or not a dictionary held it before. `dropped` is a subset of not-named, so
+nothing the old test caught is lost.
+
+**Guard** — mechanical. `check-docs`: *a stranded declaration is judged on what the file names, not
+on what it drops*, reading both the identifier branch and the relationship branch, and break-tested
+by reverting each to `dropped`.
+
+---
+
+## An upload button that opened nothing, because a handler two elements up cancelled the click
+
+**Symptom** — clicking **Upload dictionary** on a dataset row depressed the button and opened no
+file dialog. It read like a browser refusing a programmatic file picker. Reported from use.
+
+**Root cause** — the wrapper span called `e.preventDefault()` as well as `e.stopPropagation()`. The
+hidden `<input type="file">` is a *child* of that span, so the click `inputRef.current.click()`
+dispatches bubbles back up through the handler, and cancelling it cancels the input's default action
+— which *is* opening the picker. `stopPropagation` was the only part needed, to stop the checkable
+tree row toggling its checkbox under the button.
+
+**Fix** — `onClick={(e) => e.stopPropagation()}`, and nothing else.
+
+**Guard** — mechanical: `check-docs` asserts that exact handler *and* that `preventDefault` appears
+nowhere in the component, break-tested in both directions. Either half alone leaves a control that
+looks fine and does the wrong thing. *A synthetic click you dispatch yourself is an event your own
+ancestors can cancel.*
+
+---
+
+## A check-docs claim keyed on a prop that two components take
+
+**Symptom** — a break test reported the claim *a new table needs a label and a grain* as
+unbreakable. Replacing `datasetId={d.dataset_id}` on the upload control changed nothing it noticed.
+
+**Root cause** — the clause searched the whole page for that prop, and `DictionaryPlanReport` one
+screenful below takes the same prop from the same variable. The claim was satisfied by a site it is
+not about — the broad-claim shape this file already records five times, reached this time by a *prop
+name* rather than by a word in a comment.
+
+**Fix** — the clause reads the **request** instead (`dataset_id: datasetId,` in the control's own
+source), which is the fact the claim is about: the dataset an upload is made against is the row's
+own, not one picked from a Select.
+
+**Guard** — mechanical, and break-tested at the new site. *Two components taking one prop is enough
+to make a prop-name search vacuous; key on the call that carries the fact.*
+
+---
+
+## The Bash tool eats backslashes and non-ASCII, not just PowerShell
+
+**Symptom** — four separate failures in one session. A heredoc writing a `.tsx` file died with
+`unexpected EOF while looking for matching '`; a `python` heredoc wrote `check-docs.mjs` regexes with
+one backslash where two were needed, so node refused the file with *Invalid regular expression
+flags*; `\\r?\\n` in a replacement arrived as a literal line break, producing an unterminated regex;
+and an append to this file wrote every em dash as a single invalid byte.
+
+**Root cause** — this environment's Bash tool does not pass a quoted heredoc through untouched: an
+em dash becomes one non-UTF-8 byte, a right single quote can arrive as `'` (which is what broke the
+heredoc), and a doubled backslash can arrive single. `CLAUDE.md` already records the PowerShell UTF-8
+trap; the same class applies here, and it also applies to **backslashes**, which that note does not
+cover.
+
+**Fix** — write any file containing non-ASCII or heavy escaping with the **Write/Edit tools**, never
+through the shell. Where a script must build a backslash, `chr(92)` is reliable.
+
+**Guard** — documented (this entry, and the pitfall list in `CLAUDE.md`). The tell is a syntax error
+whose quoted text looks exactly like what you meant to write — and, for the silent half, a file that
+reads back with `errors='replace'` showing `?` where a dash should be.

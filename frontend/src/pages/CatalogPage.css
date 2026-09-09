@@ -254,6 +254,30 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * The per-dataset dictionary control, on the dataset row itself.
+ *
+ * `margin-right: auto` rather than a third slot in the row's `space-between`: the row reads
+ * "dataset - upload ......... N object(s)", so the act stays beside the thing it acts on and the
+ * count keeps the right edge it has on every other row.
+ */
+.cat-dict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-right: auto;
+}
+
+/* One staged dictionary's report, under the tree. */
+.cat-dict-report {
+  margin-top: var(--sp-4);
+}
+
+.cat-browse-formats.ant-typography {
+  margin: 0 0 var(--sp-3);
+  font-size: 12.5px;
+}
+
 .cat-browse-foot {
   margin-top: var(--sp-4);
   padding-top: var(--sp-3);

@@ -1046,35 +1046,61 @@ alone.
 
 ### Uploading a schema or a data dictionary
 
-**Files:** the third button on a BigQuery source → `SchemaUploadPanel.tsx` → `useSchemaUploadStore`
-→ `POST /sources/:id/schema/preview` and `POST /sources/:id/schema` → `resolveSchemaUpload` in
-`server.js` over `backend/schemaImport.js`. Copy and file rules in `src/data/schemaUpload.ts`;
-`npm run verify:schema-import` replays the reader offline.
+**Files:** **Upload dictionary**, on each dataset row of a BigQuery source's browse tree →
+`DatasetDictionaryUpload.tsx` (`DictionaryUploadControl` + `DictionaryPlanReport`) →
+`useSchemaUploadStore` → `POST /sources/:id/schema/preview` and `POST /sources/:id/schema` →
+`resolveSchemaUpload` in `server.js` over `backend/schemaImport.js`. The write is triggered by
+**Start Profiling** in `BrowsePanel` (`CatalogPage.tsx`). Copy, file rules and the two outcome
+sentences are in `src/data/schemaUpload.ts`; `npm run verify:schema-import` replays the reader
+offline.
 
-**What it does.** A schema or dictionary file becomes this source's **column dictionary** —
+**What it does.** A schema or dictionary file becomes that **dataset's** column dictionary —
 `column_profiles`, keyed `dataset.table`, the same place a profiling run reads from and the same
 place the demo's own 206 columns were ingested into. Then it starts a run. So it is the ingest
 script's act through a screen, and afterwards the Catalog serves what the file said instead of
 synthesised columns, Data Modeling draws them, and the graph derives over them.
 
-**BigQuery only.** `catalogUnits`' bigquery row declares `schemaLabel`/`schemaPanel` and the other
-two declare neither, so the button is drawn where the act exists rather than tested for by connector
-name. A drive or a mailbox reaching the endpoint is refused by `wrongStructuredOnly` — a schema is
-what neither has.
+**Per dataset, not per source.** It was a third source-level button whose panel then *asked* which
+dataset from a Select — one upload for a source that may hold three, and a control the reader met
+after they had been looking at the list of them. `SchemaUploadPanel.tsx` is deleted and
+`catalogUnits` declares no `schemaLabel`/`schemaPanel`.
+
+**BigQuery only, by construction.** The control lives in the *structured* browse panel, and only
+that panel lists datasets — a drive gets `DocumentBrowsePanel`, a mailbox `MailBrowsePanel`, neither
+of which has a dataset row for it to sit on. A drive or a mailbox reaching the endpoint anyway is
+refused by `wrongStructuredOnly` — a schema is what neither has.
 
 | step | what happens |
 |---|---|
-| choose a file | read in the browser (`File.text()`); the extension and the size are checked against `schemaFileProblem` before anything is sent |
-| **Read the file** | `POST …/schema/preview` — parses, reports, **writes nothing** |
-| **Apply and profile** | `POST …/schema` — commits the dictionary through `commitDb`, then queues a **forced** run over the tables it touched and switches to the jobs board |
+| **Upload dictionary** (on a dataset row) | the file is read in the browser (`File.text()`); `schemaFileProblem` checks the extension and the size before anything is sent |
+| — immediately, no second click | `POST …/schema/preview` — parses, reports into `staged[dataset]`, **writes nothing**; `DictionaryPlanModal` opens on it, with `DictionaryPlanReport` (exported apart from the `Modal`) as its body. *View report* on the row reopens it; Close is its only act |
+| **Start Profiling** | one `POST …/schema` carrying **every** staged dictionary *and* the checked tables: the server resolves all the plans, commits them in a single `commitDb`, then queues **one** job over the union — the dictionaries' tables (always `pending`) plus the rest of the selection (skipped if already profiled, unless `force`) — and the page switches to the jobs board |
 
-**There is a sample to upload: `docs/samples/schema-upload-example.json`.** It is written against
-CAPEX's `bigquery:northline_epbcs` / `plan`, and it demonstrates both halves in one file — it
-replaces the synthesised columns of `plan_scenario_dim` **without changing its count** (`7 -> 7`) and
-*declares* `plan_capital_gate_log`, which is why it carries a label and a grain. Its own `_note` says
-what to look for, and unknown top-level keys are ignored by the reader so that note travels with the
-file. `check-docs` **parses it** and holds it against the real document: a sample that had gone stale
-would refuse in the feature it exists to demonstrate.
+**One press, one pipeline.** This was two calls and two jobs: a forced run over the dictionary's
+tables, then a second for everything else checked. Over `plan` — 12 dictionary tables and 6 others,
+18 in one selection — that read as two pipelines from one press with nothing saying when profiling
+had finished. The work list is keyed `dataset::table` and the dictionary's entry wins, so a table is
+never in the job twice.
+
+**Where it fails:** a refusal writes **nothing** (every plan is resolved before the commit) and
+leaves everything staged — `dictionaryRefused` says exactly that, because "the upload failed" leaves
+open whether some of it took; two dictionaries naming one dataset are refused, since the second would
+replace what the first wrote; and a file whose extension or size the browser refuses never leaves it,
+with the sentence landing in the store's one `error` beside the parser's own.
+
+**Two samples to upload, both parsed by `check-docs`.**
+`docs/samples/schema-upload-example.json` is written against CAPEX's `bigquery:northline_epbcs` /
+`plan` and demonstrates both halves in one file — it replaces the synthesised columns of
+`plan_scenario_dim` **without changing its count** (`7 -> 7`) and *declares* `plan_capital_gate_log`,
+which is why it carries a label and a grain. Its own `_note` says what to look for, and unknown
+top-level keys are ignored by the reader so that note travels with the file.
+`docs/samples/capex-plan-dictionary.csv` is the **whole `plan` dataset** — the 12 `plan_*` cube
+tables, 186 columns, each table already catalogued at exactly the count the document carries, so
+nothing shrinks. It **does** strand three Data Modeling declarations on `plan_version_master`, all
+made against synthesised column names (a confirmed identifier `ITD Actuals`, and two joins on a
+`Project Code` a table whose grain is "one version" does not have) — the preview names all three
+before anything is written, and the fix is a Data Modeling edit rather than a column invented into
+the dictionary. `check-docs` deliberately asserts nothing about that count.
 
 **Three formats:** JSON (a document with `tables`, or a flat array of column rows), CSV/TSV (one row
 per column, with a header — `table` and `column` required, plus `type`, `description`, `class`,

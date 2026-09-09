@@ -1,4 +1,5 @@
 import {
+  Alert,
   App,
   Button,
   Col,
@@ -13,12 +14,16 @@ import {
   type TreeDataNode,
 } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { SourceRow } from '../api/client'
-import { useBrowseStore, useJobsStore } from '../store/catalogStore'
+import type { ProfilingJob, SourceRow } from '../api/client'
+import { useBrowseStore, useJobsStore, useSchemaUploadStore } from '../store/catalogStore'
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import ConnectorIcon from '../components/common/ConnectorIcon'
 import DataModelTab from '../components/catalog/DataModelTab'
+import {
+  DictionaryPlanModal,
+  DictionaryUploadControl,
+} from '../components/catalog/DatasetDictionaryUpload'
 import DocumentBrowsePanel from '../components/catalog/DocumentBrowsePanel'
 import MailBrowsePanel from '../components/catalog/MailBrowsePanel'
 import NoSourceConnected from '../components/common/NoSourceConnected'
@@ -27,10 +32,15 @@ import ProfiledColumnsPanel from '../components/catalog/ProfiledColumnsPanel'
 import ProfiledDocumentsPanel from '../components/catalog/ProfiledDocumentsPanel'
 import ProfiledMailDocumentsPanel from '../components/catalog/ProfiledMailDocumentsPanel'
 import ProfilingJobsTab from '../components/catalog/ProfilingJobsTab'
-import SchemaUploadPanel from '../components/catalog/SchemaUploadPanel'
 import StatusTag from '../components/common/StatusTag'
 import { catalogUnitsFor, type CatalogPanel } from '../data/catalogUnits'
 import { CONFIRM_WIDTH, profilingOutcome } from '../data/profilingOutcome'
+import {
+  dictionaryRefused,
+  dictionaryRunSummary,
+  schemaUploadCopy,
+  type AppliedDictionary,
+} from '../data/schemaUpload'
 import { SP } from '../theme'
 import './CatalogPage.css'
 import { rowCountLabel } from '../data/rowCount'
@@ -79,6 +89,24 @@ function BrowsePanel({
   const loadBrowse = useBrowseStore((s) => s.load)
   const startProfilingRun = useBrowseStore((s) => s.start)
   const [checked, setChecked] = useState<string[]>([])
+  /*
+   * Which dataset's dictionary report is open, or `null`.
+   *
+   * One piece of state for one dialog, held by the panel rather than by each row: a `Modal` per
+   * dataset row would be several ways to be looking at one thing, and the row that opens it is not
+   * the row that has to know whether another one is open.
+   */
+  const [reportFor, setReportFor] = useState<string | null>(null)
+
+  /*
+   * The dictionaries read against this source's datasets, and the two things Start Profiling needs
+   * from them. Selected field by field, so a read of one dataset does not re-render the tree.
+   */
+  const staged = useSchemaUploadStore((s) => s.staged)
+  const applying = useSchemaUploadStore((s) => s.applying)
+  const dictionaryError = useSchemaUploadStore((s) => s.error)
+  const applyStaged = useSchemaUploadStore((s) => s.applyStaged)
+  const resetDictionaries = useSchemaUploadStore((s) => s.reset)
 
   const allLeaves = useMemo(
     () =>
@@ -91,6 +119,17 @@ function BrowsePanel({
   useEffect(() => {
     void loadBrowse(source.sourceId)
   }, [loadBrowse, source.sourceId])
+
+  /*
+   * **A staged dictionary belongs to the source it was read against.** The read resolved its tables
+   * against *this* source's project and allowlist, so carrying one over to another source would
+   * offer to apply a report that was never computed for it. The panel is keyed by source id, so this
+   * runs on arrival either way; it is here rather than left to the key because the store is a
+   * module-level singleton and unmounting a component does not clear one.
+   */
+  useEffect(() => {
+    resetDictionaries()
+  }, [resetDictionaries, source.sourceId])
 
   useEffect(() => {
     if (browseError) message.error(browseError)
@@ -111,6 +150,14 @@ function BrowsePanel({
     title: (
       <span className="cat-tree-row">
         <strong className="cat-tree-dataset">{d.dataset_id}</strong>
+        {/* **The upload sits on the dataset**, because a dictionary lands on one dataset's tables.
+            It used to be a source-level button whose panel then asked which dataset, from a Select
+            the reader met after they had been looking at this very list. */}
+        <DictionaryUploadControl
+          source={source}
+          datasetId={d.dataset_id}
+          onReport={setReportFor}
+        />
         <span className="cat-tree-count">{d.table_count} object(s)</span>
       </span>
     ),
@@ -147,14 +194,51 @@ function BrowsePanel({
    * saying *which* objects were already profiled. Both are answered here instead: the objects are
    * named, and re-profiling is offered as the confirm on that same dialog. `force` still only ever
    * leaves this panel as a **deliberate second act**, never on the first click.
+   *
+   * **Two acts, one job, one thing to watch.** Where a dictionary has been read, the write and the
+   * run are the *same request*: it lands the dictionary and queues one pipeline over its tables
+   * **and** the rest of the selection. This used to be two calls and therefore two jobs — 12
+   * dictionary tables in one and the dataset's other 6 in another, from a single press, with
+   * nothing on the board saying which was which or when profiling had finished. Reported from use.
+   * The order inside that one request still matters and the server keeps it: the dictionary is
+   * written before the run is queued, because profiling first would profile the columns it was
+   * about to replace.
+   *
+   * **One sentence for one job.** `dictionaryRunSummary` names the files that landed and then
+   * carries `profilingOutcome`'s own text for the run, which *names* the objects it skipped.
    */
   async function startProfiling(force = false) {
-    const result = await startProfilingRun(source.sourceId, selected.map(parseLeaf), force)
-    if (!result.ok) {
-      message.warning(result.error)
-      return
+    const objects = selected.map(parseLeaf)
+
+    /*
+     * One call either way, and both of them answer with the one job to watch. Everything checked
+     * travels with the write: the server drops what a dictionary already covers rather than
+     * queueing it twice, which is the double count `commitNextObject` updates in place to avoid.
+     *
+     * The two branches are written out rather than folded into one `await`, because their results
+     * are different shapes and narrowing a union of two by a key in it is how a payload field comes
+     * to be read as `unknown`.
+     */
+    let job: ProfilingJob
+    let applied: AppliedDictionary[] = []
+    if (Object.keys(staged).length > 0) {
+      const result = await applyStaged(source.sourceId, objects, force)
+      if (!result.ok) {
+        /* A refused write left nothing behind and everything staged — a different fact from a run
+           that could not start, and said in different words. */
+        message.error(dictionaryRefused(result.error))
+        return
+      }
+      job = result.job
+      applied = result.applied
+    } else {
+      const result = await startProfilingRun(source.sourceId, objects, force)
+      if (!result.ok) {
+        message.warning(result.error)
+        return
+      }
+      job = result.job
     }
-    const { job } = result
     const outcome = profilingOutcome(job.objects, 'table', job.short_id)
     if (outcome.kind === 'nothing-to-do') {
       modal.confirm({
@@ -172,7 +256,12 @@ function BrowsePanel({
         onOk: () => startProfiling(true),
       })
     } else {
-      message.success(outcome.text)
+      /* One message either way, and the dictionaries are a clause of it rather than a toast of
+         their own: the run they are reported beside is the run they are in. A dictionary's own
+         tables are never skipped, so the confirm branch above cannot be reached with one staged. */
+      message.success(
+        applied.length > 0 ? dictionaryRunSummary(applied, outcome.text) : outcome.text,
+      )
     }
     onProfiled()
   }
@@ -189,6 +278,28 @@ function BrowsePanel({
             this profiling run.
           </Typography.Paragraph>
 
+          {/* The dictionary act, said where its controls are. */}
+          <Typography.Paragraph className="cat-browse-hint">
+            {schemaUploadCopy.lead}
+          </Typography.Paragraph>
+
+          {/*
+            **Said before anything is uploaded, not after** — and above the tree rather than
+            beside a report, because a reader who applies a dictionary and *then* finds a table of
+            em dashes where the statistics go has been surprised by the one thing this panel could
+            have told them.
+          */}
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: SP.base }}
+            title={schemaUploadCopy.measuresNothing}
+          />
+
+          <Typography.Paragraph type="secondary" className="cat-browse-formats">
+            {schemaUploadCopy.formats}
+          </Typography.Paragraph>
+
           <Tree
             checkable
             blockNode
@@ -198,6 +309,35 @@ function BrowsePanel({
             checkedKeys={checked}
             onCheck={(keys) => setChecked(keys as string[])}
           />
+
+          {/* The browser's refusal and the parser's land in one field, because from here they
+              answer one question: why did my file not take. The sentence names its own file. */}
+          {dictionaryError ? (
+            <Alert
+              type="error"
+              showIcon
+              style={{ marginTop: SP.base }}
+              title={dictionaryError}
+            />
+          ) : null}
+
+          {/*
+            **The report is a dialog, and one dialog for the panel.**
+
+            It was drawn here, under the tree, which put a twelve-row table and two warnings between
+            the dataset rows and the button that acts on them — so a reader scrolled past what they
+            were deciding about to reach Start Profiling. It opens itself when a read lands and
+            *View report* on the row reopens it; `reportFor` is the one piece of state saying which
+            dataset's is showing.
+          */}
+          <DictionaryPlanModal datasetId={reportFor} onClose={() => setReportFor(null)} />
+
+          {/* Start Profiling's own promise, stated only while it has a dictionary to keep it. */}
+          {Object.keys(staged).length > 0 ? (
+            <Typography.Paragraph type="secondary" className="cat-browse-formats">
+              {schemaUploadCopy.applyNote}
+            </Typography.Paragraph>
+          ) : null}
 
           <Flex align="center" justify="space-between" wrap gap={10} className="cat-browse-foot">
             <Space wrap>
@@ -210,7 +350,9 @@ function BrowsePanel({
               <Button
                 type="primary"
                 size="small"
-                loading={running}
+                /* Both acts: writing a dictionary is the slower of the two, and a button that
+                   looked idle through it would read as a click that did nothing. */
+                loading={running || applying}
                 onClick={() => void startProfiling()}
               >
                 Start Profiling
@@ -271,15 +413,6 @@ function CatalogTab({
      comes to look pressed with nothing open under it. */
   const browseOpen = panel === units?.browsePanel
   const dictionaryOpen = panel === units?.dictionaryPanel
-  /*
-   * The third act, where the connector declares one. `schemaPanel` is optional and only BigQuery
-   * has it — a drive and a mailbox have no schema a dictionary could describe — so the test is on
-   * the declaration rather than on a connector name, which is the whole reason `catalogUnits`
-   * exists. A `panel` of `'none'` must not read as open, hence the explicit undefined check: the
-   * two above are safe only because every row declares them.
-   */
-  const schemaOpen = units?.schemaPanel !== undefined && panel === units.schemaPanel
-
   // Keep the selection valid when the list changes underneath.
   useEffect(() => {
     if (selected && selected.sourceId !== activeId) setActiveId(selected.sourceId)
@@ -440,23 +573,16 @@ function CatalogTab({
             >
               {units?.dictionaryLabel}
             </Button>
-            {/* Drawn only where the connector declares the act, so a mailbox gets two buttons and
-                not a third one that could do nothing. */}
-            {units?.schemaPanel !== undefined ? (
-              <Button
-                type={schemaOpen ? 'primary' : 'default'}
-                aria-pressed={schemaOpen}
-                onClick={() => setPanel(schemaOpen ? 'none' : (units.schemaPanel ?? 'none'))}
-              >
-                {units.schemaLabel}
-              </Button>
-            ) : null}
+            {/* **And there is no third button.** Uploading a data dictionary was one, with a
+                dataset Select inside its panel; it is a control on each dataset's own row in the
+                browse panel now — see `DatasetDictionaryUpload`. One act per button, and the act
+                that describes a dataset is drawn where the datasets are. */}
           </Space>
 
           {/* Said once, where the panels open. The ✕ that used to sit inside each panel is gone,
               so the way back has to be stated somewhere — and only while something is open, or it
               is an instruction for a state the reader is not in. */}
-          {browseOpen || dictionaryOpen || schemaOpen ? (
+          {browseOpen || dictionaryOpen ? (
             <Typography.Paragraph className="cat-actions-hint">
               Click the same button again to close the panel.
             </Typography.Paragraph>
@@ -475,17 +601,6 @@ function CatalogTab({
 
           {panel === 'columns' ? (
             <ProfiledColumnsPanel key={`${selected.sourceId}-cols`} source={selected} />
-          ) : null}
-
-          {/* `onProfiled` is the queued-run path, the same one Start Profiling takes: it re-reads
-              the board and switches to the jobs tab, because a queued job is otherwise invisible
-              from here. */}
-          {panel === 'schema' ? (
-            <SchemaUploadPanel
-              key={`${selected.sourceId}-schema`}
-              source={selected}
-              onProfiled={onChanged}
-            />
           ) : null}
 
           {panel === 'browse-documents' ? (
