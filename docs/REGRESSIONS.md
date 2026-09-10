@@ -6595,3 +6595,53 @@ through the shell. Where a script must build a backslash, `chr(92)` is reliable.
 **Guard** — documented (this entry, and the pitfall list in `CLAUDE.md`). The tell is a syntax error
 whose quoted text looks exactly like what you meant to write — and, for the silent half, a file that
 reads back with `errors='replace'` showing `?` where a dash should be.
+
+## Narrowing a pool's domains deletes suggestions rather than weakening them
+
+**Symptom** — reported from use as *"drafting persona / drafting metric are not coming up suggested
+by the LLMs"*. Steps 2, 3 and 5 of the New Graph wizard drew an empty *Suggested metrics* box
+reading **"Nothing matched this brief"**. The API was healthy, the mock server was fresh, and
+`POST /graph-metrics/suggest` answered `200 { count: 0 }` — so there was nothing to see in a log and
+nothing to blame but the brief.
+
+**Two independent causes, and only one of them was a bug in the data.**
+
+**(1) A seed narrowed the metric pool's domain coverage.** `seed-capex-metrics.js` derived each
+metric's `domains` as *every domain the pool it replaced shared* — the intersection. CAPEX's 23
+metrics covered `capital-projects` (all 23) and `water-wastewater` (2), so the intersection was
+`capital-projects` alone and the 8 replacements lost water-wastewater. `suggestFrom` **filters an
+entry out entirely** when its `domains` miss the brief's domain and nothing in the brief hits its
+keywords, so a water-wastewater brief went from 2 drafted metrics to **0**. Narrowing a pool's reach
+does not make its suggestions weaker; it deletes them.
+
+**(2) CAPEX declares four domains and its pools cover two.** `schedule-delivery` and `commitments`
+have no persona, no metric and no hero question — so step 1 offered two cards that lead to three
+consecutive steps that can draft nothing. That is a gap in the package, not a code fault, and it
+cannot be fixed by inventing rows: eight finance measures do not belong to Schedule & Delivery
+because a card looked empty.
+
+**What made both invisible was the same sentence.** The steps printed *"Nothing matched this brief"*
+for every empty draft. That is correct for a brief the ranking could not place, and actively
+misleading for a domain the pool has nothing on — it blames the reader's words for a gap in the
+tenant's data and sends them to re-word a business need that was never the problem.
+
+**Fix** — three parts, each aimed at one of the above:
+
+- the seed takes the **union** of the domains it replaces, so replacing a pool can never shrink the
+  set of domains the wizard can draft anything on;
+- `emptyDraftReason` composes the empty-list sentence **on the server**, which is the only side that
+  can tell "the pool holds nothing here" from "the ranking placed nothing", and names where the pool
+  *does* have entries so the instruction is actionable. The steps print what they are given and fall
+  back to the old wording only for a server that predates the field;
+- `/graph-domains` serves `drafts` per domain (personas · metrics · hero questions, from
+  `draftableFor`) and step 1 states it on the card, so a dead-end domain is visible where it is
+  chosen rather than discovered two steps later. It stays selectable — typing your own is a real
+  path — and the line says so.
+
+**Guard** — `check-docs`: *a step cannot draft nothing where the step before it drafts something*.
+It asserts the invariant the intersection broke (every domain with personas has metrics), plus the
+served counts, the served reason, and both steps reading it. Break-tested with eight mutations.
+
+**The lesson worth keeping** is that `fit` and "can this draft anything" are different questions
+about a domain, and the wizard only answered the first. A domain can be a perfect fit for the
+profiled data and have nothing written against it in any pool.

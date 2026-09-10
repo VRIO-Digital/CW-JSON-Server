@@ -1333,10 +1333,11 @@ machinery — they differ only in copy and which pool they draw from:
 
 | | Step 2 | Step 3 |
 |---|---|---|
-| suggester | `POST /graph-personas/suggest` | `POST /graph-kpis/suggest` |
-| pool | `graph_personas` (`focus`) | `graph_kpis` (`definition`) |
+| suggester | `POST /graph-personas/suggest` | `POST /graph-metrics/suggest` |
+| pool | `graph_personas` (`focus`) | `graph_metrics` (`definition`) |
 | list label | Who will ask questions of this graph? | Metrics these answers report against |
-| saved as | `personas` | `kpis` |
+| saved as | `personas` | `metrics` |
+| corrects the pool | — | `PATCH /graph-metrics/:metricId` |
 
 Both answer `{ suggestions: [{ id, name, detail, why }], count, derived_from }`,
 and both lists are stored as `{ name, description, source }`. Adding a step 4–7
@@ -1345,11 +1346,52 @@ a third variant.
 
 `Suggest personas (LLM)` → `POST /graph-personas/suggest { domain_id,
 business_need }` → up to four drafts from the `graph_personas` pool. Each row
-carries an **AI-DRAFTED** tag, its `why`, a **+ Add** button and an ✕ to wave it
+carries an **AI-DRAFTED** tag, its `why`, an **Accept** button and an ✕ to wave it
 away (local only — a suggestion was never saved).
 
-**+ Add** moves it into *Who will ask questions of this graph?*, keeping the
-focus line as its description and `source: 'ai'`.
+**When it drafts nothing, the payload says why** (`empty_reason`, `null` otherwise) and the step
+prints that rather than its own wording. There are two empties and they have different fixes: the
+pool has entries for this domain and the ranking placed none (*re-word the brief*), or the pool has
+nothing on this domain at all (*change the domain, or write your own*). Only the server can tell
+them apart, so it composes the sentence and names where the pool does have entries. **The first
+symptom of getting this wrong is a bug report that the suggesters are broken** — CAPEX declares four
+domains and has personas, metrics and hero questions for two, and every empty draft used to read
+"Nothing matched this brief".
+
+Step 1's cards carry the other half: `drafts` per domain (personas · metrics · hero questions),
+counted off the pools by `draftableFor`, so a domain that can draft nothing is visible where it is
+chosen. It is **not** `fit`, which is about connected data — a domain can be a strong fit and have
+nothing written against it. Such a domain stays selectable, because writing your own is a real path.
+
+And **never narrow a pool's `domains` when replacing it**: `suggestFrom` drops an entry whose
+domains miss the brief's when its keywords miss too, so a narrower pool deletes suggestions rather
+than weakening them. `seed-capex-metrics.js` took the intersection once and cost water-wastewater
+every metric it had.
+
+**Accept** moves it into *Who will ask questions of this graph?*, keeping the
+focus line as its description and `source: 'ai'`. It was labelled *+ Add* and was
+renamed on request: what the button does to a *suggestion* is accept it, while
+**Add persona** / **Add metric** below really does author a new one and keeps its
+name.
+
+**Step 3 has a third button, Edit, and it is the one act here that writes.**
+Accept copies a row into the draft and ✕ filters a list nothing saved; Edit
+corrects the **pool** — `PATCH /graph-metrics/:metricId` through `commitDb` — so a
+corrected title or calculation survives a restart and every later brief drafts
+from it. The row opens in place on two fields (a title input, a `TextArea` for the
+description, because one CAPEX metric is a sixteen-line DAX measure), and the row
+is replaced with **what the server stored** rather than what was submitted.
+
+Its refusals: an empty title (every surface identifies a metric by it), and a
+title another metric already holds (the accepted list is keyed by name, so two
+would be indistinguishable there). A refusal leaves the editor open on what was
+typed — the sentence is what the reader has to act on.
+
+Step 2 has no Edit, and it is **absent rather than disabled**: personas have the
+same shape and no write route, so `DraftedStep` takes `onEdit` as an optional prop
+and `createSuggestStore` takes its writer per pool. Editing a metric that has
+already been accepted also renames it in the list below, since that list holds a
+*copy* keyed by name; saved briefs are deliberately not rewritten.
 
 Below the suggestions, **Add persona** — the same primary button as the
 suggester, because typing your own is not a lesser path — opens a two-field form

@@ -120,6 +120,7 @@ npm run seed:workspaces # adds the extra GCP projects and Drives (with nested fo
 npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
 npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
 npm run seed:data-model # gives a dataset the empty data_model key the Data Modeling tab writes to
+npm run seed:capex-metrics # authors CAPEX's metric pool from the tenant's measure sheet (writes db.CAPEX.json)
 npm run scale:capex # rescales the rendered CAPEX reports' capital figures (capex-scale.js's factor)
 npm run narrow:capex # lets those reports re-derive over the rows a reader's filters admit
 npm run ingest:queries # re-seeds CAPEX ask_answers from the query set, at the same money scale
@@ -2013,12 +2014,83 @@ which — so `DraftedStep` renders both and they differ only in copy. Server-sid
 payload shape is `{ id, name, detail, why }` either way. A later step wanting the
 same pattern should reuse it rather than add a third copy.
 
+**Three acts on a drafted row, and only one of them writes.** *Accept* — renamed from *+ Add* on
+request, because what the button does to a suggestion is accept it, while *Add metric* below it
+really does author a new one and keeps its name — copies the row into the draft; *✕* filters it out
+of a list nothing saved. **Edit is the third and it corrects the pool**, through
+`PATCH /graph-metrics/:metricId` and `commitDb`, so a corrected title survives a restart the way a
+saved brief does and every later brief drafts from it. The row's `why` is deliberately *not*
+rewritten: it records why this suggestion was **drafted**, which an edit does not change.
+
+**It is offered on metrics alone, and by there being no handler.** Personas have the identical
+shape and no write route, so `DraftedStep` takes `onEdit` as an optional prop and draws the button
+only where one was passed — a withheld act is an absent callback, never a disabled control, which
+is the rule the report Library's four acts already keep. The writer is passed into
+`createSuggestStore` per pool for the same reason, so the persona store has no `edit` action at all
+rather than one that would 404. The row is replaced with **what the server stored**, not with what
+was submitted, so a trimmed or refused title cannot leave the screen disagreeing with the document
+— and a refusal keeps the editor open on what was typed, because the sentence explaining it (an
+empty title, a title another metric already holds) is what the reader has to act on.
+
+**An accepted row carries a *copy*, so an edit has to reach it too.** The accepted list is keyed by
+name, so correcting a metric that had already been accepted would otherwise leave the suggestion
+reading *Accepted* above a list still holding the name it replaced. Saved briefs are deliberately
+**not** rewritten: they store copies rather than ids, and editing somebody's finished work to match
+a pool they may have renamed a member of is a wider act than correcting a draft.
+
+**CAPEX's metric pool is the tenant's measure sheet, and a metric there is two columns.** Column 1
+is the measure's name as the finance team writes it (`Total_Anticipated_Cost`, `Overrun amount`),
+column 2 is how it is calculated — their own notation, PowerBI DAX where the measure needs it — and
+those are exactly `name` and `definition`, which is what step 3 renders as the row's title and the
+line beneath it. Neither is paraphrased into a sentence: a formula rewritten into prose is a second
+answer to how a measure is computed and the reader can no longer check it against the sheet. So the
+description renders **`pre-wrap`**, because one of the eight is a sixteen-line DAX expression whose
+indentation is how it is read.
+
+`npm run seed:capex-metrics` authors it, and it is a script rather than an edit for the reason every
+CAPEX change is — the document's `_meta` forbids hand-editing. It **replaces** the 23 generic
+capital measures the demo package shipped rather than adding beside them: the suggester drafts four,
+so 31 entries would have left the measures this tenant actually reports on possibly never surfacing,
+which is a change nobody can see on the screen it was made for. Everything but the two columns is
+**derived** — `metric_id` is the title slugified, `keywords` are the title's own words, `domains` is
+read off the pool being replaced rather than chosen — and `unit`, `source` and `glossary` are
+*omitted*, because the sheet states none of them and a `source` guessed from a formula naming
+PeopleSoft would be an invented claim about which system feeds the measure. `domains` is the
+**union** of what the replaced pool reached, never the intersection — see the wizard's own note
+above for why a narrower pool deletes suggestions instead of weakening them. The use-case template's
+`metrics` list is rewritten **in the same write**, since it is ids into this pool and `validateDb`
+refuses a template naming a metric the pool lacks: both halves or neither, or the boot stops.
+
 Two rules the copy on the page promises, and the code has to keep:
 
 - **The step labels live in `server.js` (`WIZARD_STEPS`) and reach the page in
   the `/graph-use-cases` payload.** The stepper renders that list and the server
   validates `step` against the same one, so a step cannot exist in the UI that the
   API would reject.
+- **A domain also states what the later steps could draft for it, and that is a different fact
+  from `fit`.** `fit` is about the *connected data*; `drafts` on each domain — personas, metrics
+  and hero questions counted off the tenant's own pools by `draftableFor` — is about whether
+  anybody has written anything against this domain. CAPEX declares four and its pools cover two,
+  so picking *Schedule & Delivery* gave three consecutive steps that suggested nothing. Reported
+  from use as the suggesters being broken. The counts sit on the **card**, because step 1 is where
+  the domain is chosen; such a domain stays selectable, since typing your own is a real path and
+  the line says so.
+
+  **And an empty draft says which empty it is.** Steps 2, 3 and 5 printed *"Nothing matched this
+  brief"* for every one, which is right for a brief the ranking could not place and wrong when the
+  pool holds nothing on this domain at all — it blames the reader's words for a gap in the data and
+  sends them to re-word a business need that was never the problem. `emptyDraftReason` composes it
+  **on the server**, the only side that can tell the two apart, and names where the pool *does*
+  have entries; the steps print what they were given and fall back to the old wording only for a
+  server that predates the field.
+
+  **Narrowing a pool's domain coverage deletes suggestions rather than weakening them**, which is
+  the trap behind all of this: `suggestFrom` filters an entry out entirely when its `domains` miss
+  the brief's and its keywords miss too. So a seed that replaces a pool takes the **union** of the
+  domains it replaced — `seed-capex-metrics.js` took the intersection once, collapsing two domains
+  to one, and a water-wastewater brief went from two drafted metrics to none. `check-docs` asserts
+  the metric pool reaches every domain the persona pool reaches, which is the invariant that broke.
+
 - **Domains are ranked by what the connected data supports, not alphabetically.**
   `fit` is seeded per domain in `db.json` but downgraded at request time: a domain
   cannot claim it is "already profiled" while the tenant has profiled nothing, so

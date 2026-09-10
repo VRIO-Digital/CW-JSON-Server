@@ -6348,6 +6348,134 @@ expect(
     ),
   `${datasetDocs.get('EPA')?.graph_metrics?.length} EPA · ${datasetDocs.get('CAPEX')?.graph_metrics?.length} CAPEX metrics`,
 )
+/*
+ * **CAPEX's metrics are the tenant's measure sheet, two columns wide.** `name` is column 1 and
+ * `definition` is column 2 — the calculation in the finance team's own notation — and every other
+ * field is derived by `seed-capex-metrics.js` rather than typed beside it. Asserting the
+ * derivations is what keeps that true: an id typed by hand, or a keyword list authored as a second
+ * description of the measure, is exactly how the pool starts saying two things about one row.
+ */
+const capexMetrics = datasetDocs.get('CAPEX')?.graph_metrics ?? []
+const metricSlug = (title) =>
+  title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+expect(
+  "CAPEX's metric pool is the measure sheet, and everything but its two columns is derived",
+  capexMetrics.length > 0 &&
+    /* The id is the title slugified, so the template's member list can be computed from the pool
+       rather than typed a second time and drifting from it. */
+    capexMetrics.every((m) => m.metric_id === metricSlug(m.name)) &&
+    /* Column 2 is present on every row: a metric drafted with no calculation beneath it is a
+       suggestion the reader cannot judge, which is the state `detail` exists to prevent. */
+    capexMetrics.every((m) => typeof m.definition === 'string' && m.definition.trim() !== '') &&
+    /* The keywords the ranker matches a brief against are the title's own words. One that is not
+       is a hand-authored claim about the measure, and it goes stale when the title is corrected. */
+    capexMetrics.every((m) =>
+      (m.keywords ?? []).every((k) => metricSlug(m.name).split('-').includes(k)),
+    ) &&
+    /* Every row on one domain, which is what the seed read off the pool it replaced rather than
+       choosing — a metric with no domains would be drafted for every brief in the tenant. */
+    capexMetrics.every((m) => (m.domains ?? []).length > 0) &&
+    /* And the template really points at this pool. `validateDb` refuses the mismatch at boot; this
+       catches it before a server is started, and catches the *order* too, so a re-seed that
+       rewrote one and not the other is visible. */
+    (datasetDocs.get('CAPEX')?.graph_use_case_templates ?? []).every(
+      (t) =>
+        (t.metrics ?? []).join(' ') ===
+        capexMetrics.map((m) => m.metric_id).join(' '),
+    ),
+  `${capexMetrics.length} CAPEX metrics · ${capexMetrics
+    .slice(0, 2)
+    .map((m) => m.metric_id)
+    .join(', ')}`,
+)
+/*
+ * **A domain the wizard can draft nothing for says so, on the card and again on the step.**
+ *
+ * Two faults met here, both reported from use as "the suggesters are broken", and they need
+ * different guards because only one is about the data.
+ *
+ * The first is a **regression a seed can cause**: `suggestFrom` drops an entry entirely when its
+ * `domains` do not include the brief's and nothing in the brief hits its keywords — so narrowing a
+ * pool's domain coverage does not weaken a suggestion, it deletes it. `seed-capex-metrics.js` took
+ * the *intersection* of the domains it replaced, collapsing two to one, and a water-wastewater
+ * brief went from two drafted metrics to none. So: the metric pool must reach every domain the
+ * persona pool reaches. Not every declared domain — that is the second fault and it is real data.
+ *
+ * The second is **a gap in the package**: CAPEX declares four domains and has no persona, metric or
+ * hero question on two of them. That cannot be fixed by inventing rows — eight finance measures do
+ * not belong to Schedule & Delivery because a card looked empty — so what is asserted is that the
+ * app *says* so: `/graph-domains` serves the counts, and the suggesters serve `empty_reason` in
+ * place of the old "nothing matched this brief", which blamed the reader's words for the pool.
+ */
+const draftPools = (doc) => ({
+  personas: new Set((doc?.graph_personas ?? []).flatMap((p) => p.domains ?? [])),
+  metrics: new Set((doc?.graph_metrics ?? []).flatMap((m) => m.domains ?? [])),
+  questions: new Set((doc?.graph_hero_questions ?? []).flatMap((q) => q.domains ?? [])),
+})
+const uncoveredMetricDomains = [...datasetDocs.entries()].flatMap(([name, doc]) => {
+  const pools = draftPools(doc)
+  return [...pools.personas]
+    .filter((d) => !pools.metrics.has(d))
+    .map((d) => `${name}:${d}`)
+})
+expect(
+  'a step cannot draft nothing where the step before it drafts something',
+  /* Every domain with personas has metrics too — the invariant the intersection broke. */
+  uncoveredMetricDomains.length === 0 &&
+    /* Step 1 states what each domain has to draft from, counted off the pools rather than from
+       `fit`, which is about profiled sources and answers a different question. */
+    /drafts: draftableFor\(d\.domain_id\)/.test(server) &&
+    /function draftableFor\(domainId\)/.test(server) &&
+    /drafts=\{|d\.drafts\./.test(newGraphPage) &&
+    /* And an empty draft says which empty it is, from the server, since it is the only side that
+       can tell "the pool has nothing here" from "the ranking placed nothing". */
+    /empty_reason:\s*\r?\n?\s*suggestions\.length === 0 \? emptyDraftReason\(/.test(server) &&
+    /function emptyDraftReason\(poolKey, domainId\)/.test(server) &&
+    /emptyReason \?\?/.test(read('frontend/src/components/graph/DraftedStep.tsx')) &&
+    /emptyReason \?\?/.test(read('frontend/src/components/graph/HeroQuestionsStep.tsx')),
+  uncoveredMetricDomains.length > 0
+    ? `${uncoveredMetricDomains.join(', ')} draft personas but no metrics`
+    : 'a pool narrowed to fewer domains deletes suggestions rather than weakening them',
+)
+/*
+ * **Step 3's three acts on a drafted row, and only one of them writes.** Accept copies the row
+ * into the draft and Dismiss filters a list nothing saved; Edit corrects the *pool*, so it goes
+ * through `commitDb` and survives a restart. The button is withheld rather than disabled where
+ * there is no writer — personas have the same shape and no route — which is the rule a Library
+ * row's four acts already keep, so the claim asserts both halves: the metric call site passes a
+ * handler and the persona one does not.
+ */
+const draftedStep = read('frontend/src/components/graph/DraftedStep.tsx')
+const metricsCallSite = newGraphPage.split('suggestLabel="Suggest metrics (LLM)"')[1] ?? ''
+const personasCallSite = (
+  newGraphPage.split('suggestLabel="Suggest personas (LLM)"')[1] ?? ''
+).split('suggestLabel="Suggest metrics (LLM)"')[0]
+expect(
+  'a drafted metric is accepted or corrected, and only correcting it writes the pool',
+  /* Renamed on request. Keyed on the rendered label rather than on the word, because the
+     author-your-own control below is still `Add metric` and must stay that. */
+  /\{added \? 'Accepted' : 'Accept'\}/.test(draftedStep) &&
+    !/'\+ Add'/.test(codeOnly(draftedStep)) &&
+    /addLabel="Add metric"/.test(newGraphPage) &&
+    /* Withheld by there being no handler, never by a disabled button. */
+    /onEdit \?/.test(draftedStep) &&
+    /onEdit=\{editMetric\}/.test(metricsCallSite) &&
+    !/onEdit=/.test(personasCallSite) &&
+    /* The store's writer is passed in per pool, so the persona store has no `edit` at all. */
+    /createSuggestStore\(suggestMetrics, editMetric\)/.test(codeOnly(graphStore)) &&
+    /createSuggestStore\(suggestPersonas\)/.test(codeOnly(graphStore)) &&
+    /* The write really lands in the document rather than in the wizard's own state. */
+    /match: \(p\) => \/\^\\\/graph-metrics\\\/\[\^\/\]\+\$\//.test(server) &&
+    /graph_metrics: db\.graph_metrics\.map/.test(server) &&
+    /* And the reply is validated like every other write's, because a stale server answers a
+       PATCH with the old shape as readily as it answers a GET. */
+    /export async function editMetric/.test(client) &&
+    /METRIC_EDIT_PAYLOAD/.test(client),
+  'an Edit that wrote only the wizard would report a saved correction the pool never took',
+)
 /* The page's fallback keys on the same last step. A literal left behind would show a locked
    step the server never sends — and the build button hangs off exactly this number. */
 expect(

@@ -59,6 +59,7 @@
  *   GET    /graph-domains                  step 1 options, ranked by real fit
  *   POST   /graph-personas/suggest         step 2 draft { domain_id, business_need }
  *   POST   /graph-metrics/suggest          step 3 draft { domain_id, business_need }
+ *   PATCH  /graph-metrics/:metricId        step 3 Edit — corrects the pool { name, definition }
  *   GET    /graph-sources                  step 4: connected sources + profiled objects
  *   POST   /graph-questions/suggest         step 5 draft { domain_id, business_need }
  *   POST   /graph-coverage                 step 6 review { name, sources, hero_questions }
@@ -5987,6 +5988,88 @@ function suggestFrom(pool, idKey, domainId, businessNeed, limit = 4) {
 }
 
 /**
+ * The three pools the wizard's suggesters draft from, keyed by the noun a reader would use.
+ *
+ * One declaration, read by `draftableFor` and by `emptyDraftReason` below, so step 1's counts and
+ * a step's own explanation of an empty list cannot come to disagree about which pool serves which
+ * step.
+ */
+const DRAFT_POOLS = [
+  ['personas', 'graph_personas'],
+  ['metrics', 'graph_metrics'],
+  ['hero_questions', 'graph_hero_questions'],
+]
+
+/**
+ * How many entries each pool holds for a domain — what steps 2, 3 and 5 would have to draft from.
+ *
+ * An entry naming no domain at all fits every one of them, which is the same rule `suggestFrom`
+ * applies (`domainFit` is 1 for an empty `domains`), so the count here cannot promise a draft the
+ * ranking would then filter out.
+ */
+function draftableFor(domainId) {
+  const counts = {}
+  for (const [noun, poolKey] of DRAFT_POOLS) {
+    counts[noun] = (db[poolKey] ?? []).filter((entry) => {
+      const domains = entry.domains ?? []
+      return domains.length === 0 || domains.includes(domainId)
+    }).length
+  }
+  return counts
+}
+
+/**
+ * Why a suggester came back with nothing — `null` whenever it came back with something.
+ *
+ * **An empty list is an answer, and this is which answer it is.** The step used to print
+ * *"Nothing matched this brief"* for every empty draft, which is right for a brief the ranking
+ * could not place and wrong — and misleading — when the pool holds no entry for this domain at
+ * all: it blames the reader's words for a gap in the tenant's data, and sends them to rewrite a
+ * business need that was never the problem. CAPEX is the case that made it visible; two of its
+ * four domains have no persona, metric or hero question written against them.
+ *
+ * Both branches name the fix, and they are different fixes: change the domain (or write your own),
+ * against re-word the brief.
+ */
+function emptyDraftReason(poolKey, domainId) {
+  const pool = db[poolKey] ?? []
+  const noun = (DRAFT_POOLS.find(([, key]) => key === poolKey) ?? ['entries'])[0].replace('_', ' ')
+
+  if (!domainId) {
+    return (
+      `This brief has no domain yet, and the pool is ranked against one — pick a business ` +
+      `domain on step 1 and draft again, or add your own ${noun} below.`
+    )
+  }
+
+  const here = pool.filter((entry) => {
+    const domains = entry.domains ?? []
+    return domains.length === 0 || domains.includes(domainId)
+  })
+  if (here.length > 0) {
+    /* The pool has entries for this domain and the ranking placed none of them — which really is
+       about the brief, and is the only case the old sentence described. */
+    return `Nothing in this dataset's ${pool.length} ${noun} matched this brief.`
+  }
+
+  /*
+   * The gap this exists for. It names where the pool *does* have entries, because "pick another
+   * domain" with no list is an instruction the reader cannot act on without going back and
+   * guessing — the same rule the dataset selector's refusal keeps.
+   */
+  const elsewhere = [...new Set(pool.flatMap((entry) => entry.domains ?? []))]
+    .map((id) => db.graph_domains.find((d) => d.domain_id === id)?.name ?? id)
+    .sort()
+  const domainName =
+    db.graph_domains.find((d) => d.domain_id === domainId)?.name ?? domainId
+
+  return (
+    `This dataset has no ${noun} on ${domainName} — its ${pool.length} are on ` +
+    `${elsewhere.join(' and ')}. Change the domain on step 1, or add your own below.`
+  )
+}
+
+/**
  * One pool entry as the row the wizard renders. Shared by the keyword ranking
  * and the template bundle so a drafted suggestion cannot read differently
  * depending on which path produced it.
@@ -11263,6 +11346,20 @@ const routes = [
           fit,
           note,
           rank: d.rank ?? 99,
+          /*
+           * **What the later steps could draft for this domain**, counted off the three pools the
+           * suggesters rank. `fit` above is about the *connected data*; this is about the
+           * *tenant's own pools*, and they are different facts — a domain can be a strong fit for
+           * profiled data and still have no persona, metric or hero question written against it.
+           *
+           * CAPEX is where that bites: it declares four domains and its pools cover two, so
+           * picking *Schedule & delivery* gave three consecutive steps that drafted nothing while
+           * each said "nothing matched this brief" — which blames the brief for a pool that holds
+           * nothing on that domain at all. Reported from use. Served here because step 1 is where
+           * the decision is made; the suggesters say the same thing again in `empty_reason`, for a
+           * reader who is already past it.
+           */
+          drafts: draftableFor(d.domain_id),
         }
       })
 
@@ -11335,6 +11432,12 @@ const routes = [
         send(res, 200, {
           suggestions,
           count: suggestions.length,
+          /*
+           * Why there are none, when there are none — `null` otherwise, so the step prints a
+           * reason only where there is one to give. A list that is merely empty is not a message.
+           */
+          empty_reason:
+            suggestions.length === 0 ? emptyDraftReason(pool, domain_id ?? null) : null,
           // Says plainly where these came from — there is no model behind them.
           derived_from: template
             ? `the ${template.name} use case`
@@ -11353,6 +11456,91 @@ const routes = [
       }, SUGGEST_MS).unref?.()
     },
   })),
+
+  /*
+   * Step 3's **Edit** — correct a drafted metric's title or its calculation, in the pool.
+   *
+   * **This writes the document, which is what makes it different from Accept and Dismiss.** Those
+   * two are local: accepting copies the row into the draft, waving one away filters it out of a
+   * list nothing saved. A correction is neither — the sheet says a measure is called
+   * `Total_Anticipated_Cost` and computed one way, and a reader who fixes that is fixing the pool
+   * every later brief drafts from. So it goes through `commitDb` and survives a restart, the
+   * asymmetry a saved brief already has against a registered source.
+   *
+   * **The pool is what is edited, never the accepted copy.** A brief stores `{ name, description }`
+   * copies rather than ids, so a correction cannot reach back into briefs already saved; the wizard
+   * carries the new title into the row it is holding, and that is the whole of what changes on
+   * screen. Rewriting saved briefs from here would edit somebody's finished work to match a pool
+   * they may have deliberately renamed a member of.
+   *
+   * Metrics only, and by name. Personas have the same shape and no such control: the request was
+   * for the measure sheet, and a route the wizard never calls is a write path nothing exercises.
+   */
+  {
+    method: 'PATCH',
+    match: (p) => /^\/graph-metrics\/[^/]+$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const metricId = decodeURIComponent(pathname.slice('/graph-metrics/'.length))
+      const metric = (db.graph_metrics ?? []).find((m) => m.metric_id === metricId)
+      if (!metric) {
+        return send(res, 404, {
+          error:
+            `no metric "${metricId}" in this dataset's pool — it holds ` +
+            `${(db.graph_metrics ?? []).length}, and an id that is not one of them would edit ` +
+            'nothing while reporting that it had',
+        })
+      }
+
+      const body = await readJson(req)
+      const name = typeof body.name === 'string' ? body.name.trim() : metric.name
+      const definition =
+        typeof body.definition === 'string' ? body.definition.trim() : (metric.definition ?? '')
+
+      /*
+       * A metric *is* its title on every surface that renders one — the suggestion row, the
+       * accepted list, the brief's own member list — so an empty one leaves a row nobody can
+       * identify rather than a row with a missing field.
+       */
+      if (!name) {
+        return send(res, 400, {
+          error:
+            'a metric has to keep a title — it is what the suggestion row, the accepted list and ' +
+            'the saved brief all identify it by',
+        })
+      }
+      /*
+       * Two metrics under one title is the same fault the report Library refuses for a published
+       * name: the wizard's accepted list is keyed by name, so the second would be unreachable and
+       * accepting one would look like accepting the other.
+       */
+      const clash = (db.graph_metrics ?? []).find(
+        (m) => m.metric_id !== metricId && m.name.trim().toLowerCase() === name.toLowerCase(),
+      )
+      if (clash) {
+        return send(res, 400, {
+          error:
+            `"${name}" is already the title of "${clash.metric_id}" — the accepted list is keyed ` +
+            'by title, so two metrics sharing one would be indistinguishable there',
+        })
+      }
+
+      const next = { ...metric, name, definition }
+      await commitDb({
+        ...db,
+        graph_metrics: db.graph_metrics.map((m) => (m.metric_id === metricId ? next : m)),
+      })
+
+      /*
+       * Answered in the *suggestion's* shape, because that is the row the caller is holding — the
+       * same `asSuggestion` the two suggesters use, so an edited row cannot come to read
+       * differently from a drafted one. `why` is carried by the caller rather than recomputed: it
+       * records why this row was *drafted*, which an edit does not change.
+       */
+      send(res, 200, {
+        metric: asSuggestion(next, 'metric_id', { why: '' }),
+      })
+    },
+  },
 
   // Step 5 → 6. Starts the derivation and returns immediately; the answer
   // arrives by polling, so leaving the page does not lose the run.

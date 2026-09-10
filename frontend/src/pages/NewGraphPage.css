@@ -218,6 +218,18 @@
   line-height: 1.45;
 }
 
+/* What steps 2, 3 and 5 could draft here. Quieter than the note above it — it is a count rather
+   than a judgement — and deliberately *not* a STATUS colour on the nothing-to-draft branch: a
+   domain with an empty pool is a fact about the tenant's data, not a state of this brief, and the
+   sentence itself says what it means. */
+.ng-domain-drafts {
+  display: block;
+  margin-top: var(--sp-2);
+  color: #8994a8;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
 .ng-hint {
   display: flex;
   gap: var(--sp-2);
@@ -308,9 +320,17 @@
   font-size: 13.5px;
 }
 
+/*
+ * `pre-wrap`, because what this line holds is sometimes a calculation rather than a sentence. A
+ * metric's description is column 2 of the tenant's measure sheet — for most rows one line, and for
+ * the overrun measure a sixteen-line DAX expression whose indentation is how it is read. HTML
+ * collapses those newlines by default, which turns the formula into one wrapped paragraph: still
+ * accurate, and no longer checkable against the sheet it was transcribed from.
+ */
 .ng-suggest-focus {
   color: #4b5a75;
   font-size: 12.5px;
+  white-space: pre-wrap;
 }
 
 .ng-suggest-why {
@@ -324,6 +344,32 @@
   align-items: center;
   gap: var(--sp-2);
   flex-shrink: 0;
+}
+
+/* ---- correcting a suggestion in place ---- */
+
+/*
+ * The editor takes the whole row rather than sitting beside the text it replaces: the description
+ * field has to be wide enough for a formula, and a textarea in the leftover space next to three
+ * buttons is narrower than the line it is editing.
+ */
+.ng-suggest-row.is-editing {
+  align-items: stretch;
+}
+
+.ng-suggest-edit {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.ng-suggest-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
 }
 
 /*

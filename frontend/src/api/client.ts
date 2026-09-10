@@ -919,6 +919,15 @@ export interface GraphDomain {
   /** Why it ranks where it does — shown under the domain name. */
   note: string
   rank: number
+  /**
+   * What steps 2, 3 and 5 could draft for this domain, counted off the tenant's own pools.
+   *
+   * A different fact from `fit`, which is about the *connected data*: a domain can be a strong fit
+   * for what has been profiled and still have no persona, metric or hero question written against
+   * it — which is three consecutive steps that draft nothing, and it is why this is on the card
+   * where the domain is chosen rather than discovered two steps later.
+   */
+  drafts: { personas: number; metrics: number; heroQuestions: number }
 }
 
 export interface GraphDomainsPayload {
@@ -1705,6 +1714,16 @@ export interface Suggestions {
   suggestions: Suggestion[]
   count: number
   derivedFrom: string
+  /**
+   * Why nothing was drafted, when nothing was — `null` otherwise.
+   *
+   * An empty list is an answer and this says which one. The step printed *"Nothing matched this
+   * brief"* for every empty draft, which blames the reader's words for what is often a gap in the
+   * tenant's pools: CAPEX declares four domains and has personas, metrics and hero questions for
+   * two, so picking one of the other two drafted nothing three steps running. The two cases have
+   * different fixes and the server is the only side that can tell them apart.
+   */
+  emptyReason: string | null
   run: LlmRun
 }
 
@@ -2422,6 +2441,7 @@ const GRAPH_DOMAINS_PAYLOAD = shape({
       fit: oneOf(['strong', 'partial', 'none']),
       note: str,
       rank: num,
+      drafts: shape({ personas: num, metrics: num, hero_questions: num }),
     }),
   ),
 })
@@ -2552,6 +2572,9 @@ const LLM_RUN = shape({
 const SUGGESTIONS_PAYLOAD = shape({
   count: num,
   derived_from: str,
+  /* Null whenever anything was drafted — nullable checks the type, not the presence, so an older
+     mock server that does not send it at all still validates. */
+  empty_reason: nullable(str),
   run: LLM_RUN,
   suggestions: arrayOf(
     shape({
@@ -2564,6 +2587,21 @@ const SUGGESTIONS_PAYLOAD = shape({
       priority: nullable(oneOf(['high', 'normal'])),
     }),
   ),
+})
+
+/*
+ * Step 3's Edit answers with the row it just stored, in the same shape the suggesters send —
+ * validated like every other write's reply, because a stale server answers a PATCH with the old
+ * shape as readily as it answers a GET.
+ */
+const METRIC_EDIT_PAYLOAD = shape({
+  metric: shape({
+    id: str,
+    name: str,
+    detail: str,
+    why: str,
+    priority: nullable(oneOf(['high', 'normal'])),
+  }),
 })
 
 const DERIVATION_PAYLOAD = shape({
@@ -4759,6 +4797,7 @@ interface RawGraphDomain {
   fit: DomainFit
   note: string
   rank: number
+  drafts: { personas: number; metrics: number; hero_questions: number }
 }
 
 interface RawUseCase {
@@ -4849,6 +4888,11 @@ export async function listGraphDomains(): Promise<GraphDomainsPayload> {
       fit: d.fit,
       note: d.note,
       rank: d.rank,
+      drafts: {
+        personas: d.drafts.personas,
+        metrics: d.drafts.metrics,
+        heroQuestions: d.drafts.hero_questions,
+      },
     })),
     domainCount: raw.domain_count,
     connectedSources: raw.connected_sources,
@@ -4889,6 +4933,7 @@ async function fetchSuggestions(
     suggestions: Suggestion[]
     count: number
     derived_from: string
+    empty_reason: string | null
     run: { stages: string[]; cost_usd: number; cost_cap_usd: number }
   }>(
     what,
@@ -4903,6 +4948,9 @@ async function fetchSuggestions(
     suggestions: raw.suggestions,
     count: raw.count,
     derivedFrom: raw.derived_from,
+    /* `?? null` for an older mock server that predates the field, never a sentence invented here:
+       the step then falls back to its own wording rather than printing a reason nobody computed. */
+    emptyReason: raw.empty_reason ?? null,
     run: {
       stages: raw.run.stages,
       costUsd: raw.run.cost_usd,
@@ -4983,6 +5031,31 @@ export const suggestMetrics = (input: {
   domainId: string | null
   businessNeed: string
 }) => fetchSuggestions('/graph-metrics/suggest', 'The metric suggestions', input)
+
+/**
+ * Step 3's **Edit** — correct a drafted metric's title or its calculation, in the pool.
+ *
+ * The one write behind a wizard suggestion, and it is a write because the pool is the document:
+ * accepting a row copies it into the draft and dismissing one filters a list nothing saved, but a
+ * corrected title is a correction every later brief drafts from. The reply is the suggestion
+ * shape, so the row a caller is holding is replaced with what the server stored rather than with
+ * what was submitted.
+ */
+export async function editMetric(input: {
+  metricId: string
+  name: string
+  definition: string
+}): Promise<Suggestion> {
+  const raw = validate<{ metric: Suggestion }>(
+    'The edited metric',
+    await request<unknown>(`/graph-metrics/${encodeURIComponent(input.metricId)}`, {
+      method: 'PATCH',
+      body: { name: input.name, definition: input.definition },
+    }),
+    METRIC_EDIT_PAYLOAD,
+  )
+  return raw.metric
+}
 
 interface RawCoverage {
   title: string
