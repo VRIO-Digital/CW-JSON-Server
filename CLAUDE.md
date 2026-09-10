@@ -2869,7 +2869,29 @@ does not apply to it.
   A source-scoped answer was not produced by a graph, and naming one would attribute it to content
   that did not answer it.
 
-**On the page it is a `+` beside the question box, and the graph select stays put.** `AskSourcePicker`
+> **There is no `+` any more: a connected source is asked by default.** Removed on request. The
+> picker was a grid of connected sources to tick, and the page required a *pick* before it would
+> ask — on the reasoning that connecting one is not choosing to read this question against it. With
+> the control gone the two states are the same one: a mailbox connected on Sources is one this
+> reader means to ask, its recorded questions appear as openers without anybody choosing anything,
+> and `ask()` sends **every** connected source whenever no graph is selected.
+>
+> **The removal is at every layer, because half of it is what fails silently.** A `+` with no store
+> behind it ticks nothing; a `sourceIds` in state with no control is a scope the reader can neither
+> see nor change, and the one that goes stale as sources come and go. So `AskSourcePicker`,
+> `filterAskSources` and its copy, and the store's `sourceIds` and `toggleSource` went together, and
+> the connected list is read at the moment a question is asked rather than held.
+>
+> **A question is still asked of one thing**, and that rule got *simpler* rather than weaker: it was
+> four writes — a pick cleared the graph, a graph cleared the picks, a dropped graph started a new
+> thread, a reload preserved the picks — and it is now one fact, that sources are in scope exactly
+> when no graph is selected. The graph select carries all of it, and the exclusivity is enforced
+> where the request is built rather than by two writes that could disagree.
+
+**The paragraphs below describe that picker**, which is gone; the rules they state about *what is
+askable* are unchanged, and only the choosing went.
+
+**On the page it was a `+` beside the question box, and the graph select stays put.** `AskSourcePicker`
 lists what `GET /ask` served — a component filtering on a connector name would be a second answer to
 which sources are askable — and the list is exported apart from its dialog, with its words in
 `src/data/askSources.ts`, because a `Modal` portals out of `renderToString`. Its empty state is a
@@ -2933,30 +2955,57 @@ question is asked of — so it lands on a graph only when nothing is picked. Wit
 the select shows a placeholder and the box states `pickPromptWithGraph`, which names both routes
 because with a graph published there are two.
 
-**And the opener chips come from whatever will answer.** A graph offers its brief's hero
-questions, exactly as before. A connected source has no brief, so it offers the recorded answers
-really drawn from it — and the server takes those from the **same pool** `askSourceAnswer`
-matches within (`runtimeAnswerPool`), so a chip cannot be offered that the source would then
-abstain on. Two predicates over one question is how a suggestion becomes a promise nothing
-keeps; CAPEX's mailbox offers 13, and asking every one of them returns a recorded answer.
+**And the opener chips come from everything that will answer, not from whichever one is
+selected.** A graph offers its brief's hero questions, exactly as before. A connected source has
+no brief, so it offers the recorded answers really drawn from it — and the server takes those
+from the **same pool** `askSourceAnswer` matches within (`runtimeAnswerPool`), so a chip cannot be
+offered that the source would then abstain on. Two predicates over one question is how a
+suggestion becomes a promise nothing keeps; CAPEX's mailbox offers 13, and asking every one of
+them returns a recorded answer.
+
+**With a graph selected the row carries both lists, the graph's first.** `askSuggestions` returned
+the hero questions *instead of* a connected source's whenever a graph was selected, so connecting
+a mailbox changed nothing a reader could see until they deselected the graph — which the page
+never asked them to do, and which is not a step a reader should have to guess at. Reported from
+use. The graph's come first because they are what the current selection answers, and a question
+both offer is drawn **once**: the same sentence in two chips reads as two different questions.
+The early return is now the *no graph* case, and `check-docs` asserts the old graph-only return
+has not come back **beside** the merge as well as that the merge is there — a break test that
+prepended it satisfied every other condition in the claim while hiding the source questions
+again.
 
 **A decline is excluded, though it is answerable.** Asking one returns the recorded refusal,
 which is what the set records it for; offering it would put a question in front of a reader this
 dataset is on record as unable to answer — the rule step 5 of the New Graph wizard already keeps.
 
-**And a source merely *connected* offers nothing.** `askSuggestions` reads the **picked** ones,
-because a chip for a question the reader cannot yet ask would refuse when clicked. It is a pure
-function beside `askAvailability` for the same reason, and `check-docs` slices its body rather
-than searching the file — the pick filter is spelled identically in `askAvailability` one
-function up, so a whole-file search passed while the rule it guarded had been deleted.
+**Every chip says what will answer it, and clicking one settles the scope.** An `AskChip` carries
+a `sourceId` — `null` for a hero question — because the route settles a request naming a graph
+*and* sources in the graph's favour: asked with the graph still selected, a mail question would be
+answered by the graph and reported under its version, a mail answer wearing content that did not
+produce it. So the page drops the graph (`select(null)`) before asking a source's chip, and the
+answer belongs to whatever produced it. `askSuggestions` is a pure function beside
+`askAvailability` for the same reason, and `check-docs` slices its body rather than searching the
+file — the source loop reads much like `askAvailability`'s own list one function up, so a
+whole-file search would pass over a rule that had been deleted.
+
+**And the copy that named the `+` went with it.** `pickPrompt` and `pickPromptWithGraph` told a
+reader to *"use the + to pick a connected source"* after the `+` was removed — an instruction
+nobody can carry out, word for word the fault Gmail's removed name field left behind. They name
+Sources now, because connecting is what puts a source in scope. Eight fields that only the picker
+read (`buttonHint`, `modalTitle`, `heading`, `searchPlaceholder`, `noMatch`, `noMatchHint`,
+`emptyTitle`, `emptyDetail`) are gone with it: copy for a control that does not exist is the same
+half-removal one layer down.
 
 **The gate now means "there is nothing here to ask at all".** `askAvailability` is the one
 definition — a pure function in `src/data/` for the reason `datasetPathFix` is, since a test written
 inline in the page could only be asserted by rendering the page's own state, which `renderToString`
 gives its *initial* value. `gated` is `no published graph **and** no connected source`, so a reader
-with a mailbox connected never meets `NoPublishedGraph`; `canAsk` additionally requires a source to
-have been **picked**, because connecting one is not choosing to read this question against it. The
-four-page claim is unchanged — Ask still renders the shared empty state on the branch that remains.
+with a mailbox connected never meets `NoPublishedGraph`; `canAsk` is the same fact the other way up
+(`graphName !== null || sources.length > 0`). It used to require a source to have been **picked**,
+on the reasoning that connecting one is not choosing to read this question against it — there is no
+control left to express that choice with, and a reader looking at a mailbox's own questions has
+plainly chosen it. The four-page claim is unchanged — Ask still renders the shared empty state on
+the branch that remains.
 
 **And the graph select is drawn whether or not anything is published**, stating `No graph published`
 as a disabled option. Hiding it was right while a graph was the only thing this page could ask; it is

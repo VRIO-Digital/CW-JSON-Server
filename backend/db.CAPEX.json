@@ -22873,27 +22873,22 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-testdata-mtvip5p76",
-      "name": "testdata",
+      "use_case_id": "uc-hardzous-mtvljrph7",
+      "name": "hardzous",
       "status": "committed",
       "domain_id": "capital-projects",
-      "business_need": "testdatadescription",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
       "personas": [
         {
-          "name": "Rate-Case Lead",
-          "description": "Asks which assets will be in service in time for the next filing.",
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
           "source": "ai"
-        },
-        {
-          "name": "CFO",
-          "description": "Finanical Officer",
-          "source": "user"
         }
       ],
       "metrics": [
         {
-          "name": "Overrun amount one",
-          "description": "Overrun Amounts =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURNVVVVV\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )",
+          "name": "Total_Anticipated_Cost",
+          "description": "Total_Anticipated_Cost = [Inception to Date (ITD) Actuals] + [Total_Forecast_Remaining_Large_Proj]",
           "source": "ai"
         }
       ],
@@ -22907,33 +22902,56 @@
           "source_id": "bigquery:northline_epbcs",
           "mode": "all",
           "objects": []
-        },
+        }
+      ],
+      "hero_questions": [
         {
-          "source_id": "gdrive:capital-delivery-docs",
+          "text": "Which completed projects are not yet unitized?",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 5,
+      "updated_at": "2026-09-10T14:02:42.542Z"
+    },
+    {
+      "use_case_id": "uc-testdata-mtvlel9h4",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "omains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai"
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Total_Anticipated_Cost",
+          "description": "Total_Anticipated_Cost = [Inception to Date (ITD) Actuals] + [Total_Forecast_Remaining_Large_Proj]",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
           "mode": "all",
           "objects": []
         }
       ],
       "hero_questions": [
         {
-          "text": "How does the forward plan compare with the sum of project-life forecasts?",
+          "text": "Which completed projects are not yet unitized?",
           "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What if materials escalation runs three points above our assumption?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Which explanations came from correspondence rather than from a person?",
-          "priority": "high",
           "source": "ai"
         }
       ],
       "gap_decisions": [],
       "step": 5,
-      "updated_at": "2026-09-10T12:45:31.489Z"
+      "updated_at": "2026-09-10T13:58:43.523Z"
     }
   ],
   "graph_use_case_templates": [

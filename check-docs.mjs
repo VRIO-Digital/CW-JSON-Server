@@ -6527,7 +6527,8 @@ expect(
   'the page’s gate is decided in src/data/, not inside the component',
   /export function askAvailability\(/.test(askSourcesSrc) &&
     /gated: graphName === null && sources\.length === 0/.test(askSourcesSrc) &&
-    /canAsk: graphName !== null \|\| picked\.length > 0/.test(askSourcesSrc) &&
+    /* Connected is enough: the pick this used to require is gone with the `+`. */
+    /canAsk: graphName !== null \|\| sources\.length > 0/.test(askSourcesSrc) &&
     /askAvailability\(/.test(codeOnly(askPageSrc)) &&
     /\) : gated \? \(/.test(codeOnly(askPageSrc)),
   'askAvailability decides it and AskPage renders the answer',
@@ -6563,12 +6564,19 @@ expect(
  * their next question is asked of.
  */
 expect(
-  'a graph and a source are exclusive, and only the switch starts a new thread',
-  /set\(\{ useCaseId, sourceIds: EMPTY_SOURCE_IDS, activeChatId: null \}\)/.test(askStoreSrc) &&
-    /const dropsGraph = on && state\.useCaseId !== null/.test(askStoreSrc) &&
-    /\.\.\.\(dropsGraph \? \{ useCaseId: null, activeChatId: null \} : \{\}\)/.test(askStoreSrc) &&
-    /const hasPicks = get\(\)\.sourceIds\.length > 0/.test(askStoreSrc),
-  'each selection clears the other; the thread resets on the switch alone; a reload keeps the picks',
+  'a graph and a source are exclusive, and selecting a graph is the whole of the switch',
+  /*
+   * **This used to be four rules and is now one, because there is one control.** A source pick
+   * cleared the graph, a graph selection cleared the picks, a *dropped* graph started a new
+   * thread, and a reload preserved the picks. With the `+` gone there is nothing to pick: sources
+   * are in scope exactly when no graph is selected, so the graph select carries all of it — and
+   * the exclusivity is enforced where the request is built rather than by two writes that could
+   * disagree.
+   */
+  /set\(\{ useCaseId, activeChatId: null \}\)/.test(askStoreSrc) &&
+    !/toggleSource/.test(codeOnly(askStoreSrc)) &&
+    /const sourceIds = useCaseId/.test(askStoreSrc),
+  'two writes for one exclusivity is how a ticked source outlives the graph that ignored it',
 )
 expect(
   'a source’s chips come from the pool that answers it, minus the declines',
@@ -6594,124 +6602,85 @@ const askSuggestionsBody =
 expect(
   'and the page picks its chips from one rule in src/data/',
   askSuggestionsBody.length > 0 &&
-    /if \(graphQuestions !== null\) return graphQuestions/.test(askSuggestionsBody) &&
-    /sources\.filter\(\(s\) => sourceIds\.includes\(s\.sourceId\)\)/.test(askSuggestionsBody) &&
+    /* The early return is now the *no graph* case: with one selected both lists are offered,
+       which is the whole of the change. */
+    /if \(graphQuestions === null\) return fromSources/.test(askSuggestionsBody) &&
+    /*
+     * **Asserted as an absence beside it**, because the merge being present does not mean it is
+     * reached: a break test that put the old `return graphQuestions` line back *above* this one
+     * satisfied every other condition here and hid the source questions again.
+     */
+    !/return graphQuestions/.test(askSuggestionsBody) &&
+    /*
+     * **Both, not one or the other.** This returned the hero questions *instead of* a source's
+     * whenever a graph was selected, so connecting a mailbox changed nothing a reader could see
+     * until they deselected the graph — which the page never asked them to do. Reported from use.
+     * The graph's come first, because they are what the current selection answers.
+     */
+    /* Sliced, not matched across lines: a shell-written newline escape ends a regex early. */
+    askSuggestionsBody.includes('...graphQuestions.map((text) => ({ text, sourceId: null }))') &&
+    /fromSources\.filter\(\(c\) => !graphQuestions\.includes\(c\.text\)\)/.test(
+      askSuggestionsBody,
+    ) &&
+    /*
+     * **And each chip says what answers it.** The route settles a request naming a graph *and*
+     * sources in the graph's favour, so a mail question asked under a selected graph would come
+     * back attributed to that graph — a mail answer wearing a version that did not produce it. The
+     * chip carries its source and the page drops the graph before asking one.
+     */
+    /* Asserted in the body that builds it, not only on the interface that types it: a chip
+       pushed with a null id still satisfies the type and answers nothing in particular. */
+    askSuggestionsBody.includes('fromSources.push({ text, sourceId: source.sourceId })') &&
+    /sourceId: string \| null/.test(askSourcesSrc) &&
+    /if \(q\.sourceId && useCaseId\) select\(null\)/.test(codeOnly(askPageSrc)) &&
     /askSuggestions\(/.test(codeOnly(askPageSrc)) &&
     /\{suggestions\.map\(\(q\) => \(/.test(codeOnly(askPageSrc)) &&
     !/graph\.suggestedQuestions\.map/.test(codeOnly(askPageSrc)),
   'askSuggestions decides it; the page renders what it returns',
 )
 /*
- * **The picker lists what the server served.** `GET /ask` says which sources are askable; a
- * component filtering on a connector name would be a second answer to that and would go stale
- * the day a second runtime connector lands — the rule step 4 of the New Graph wizard follows
- * for the same fact. The list is its own exported component because a `Modal` portals out of
- * `renderToString`, and its words are in `src/data/` for the same reason.
- */
-const pickerSrc = codeOnly(read('frontend/src/components/ask/AskSourcePicker.tsx'))
-expect(
-  'and the + picker renders the served sources rather than deciding which are askable',
-  /export function AskSourceList/.test(pickerSrc) &&
-    !/'gmail'/.test(pickerSrc) &&
-    !/kind ===/.test(pickerSrc) &&
-    /askSourceCopy\.emptyTitle/.test(pickerSrc),
-  'the list is exported apart from its Modal and names no connector',
-)
-/*
- * **And the panel is the rows and nothing else.** It carried a heading above them and the
- * observation rule spelled out below; both were removed on request. The rule is not lost — it
- * is in CLAUDE.md, where a decision belongs, and on the page above a thread with no graph
- * behind it, which is where it bears on something the reader is actually reading. Three lines
- * of doctrine over two checkboxes is a paragraph in front of a click.
+ * **Ask has no source picker: a connected source is asked by default.**
  *
- * **The empty branch keeps its sentence**, and that is the half worth asserting alongside: it
- * has no rows to be, so stripping it too would leave a `+` opening onto nothing — the "button
- * over blank space" this repo has already fixed once, on the wizard's own build dialog.
- */
-/*
- * **The `+` opens the connector directory's dialog, asked for as one.** It was a `Dropdown`
- * panel, then a 420px modal holding a column of rows; it is a wide titled dialog with a search
- * and a grid of cards now, the same shape step 1 of the connect wizard already has. The width
- * is asserted to be the *same number* as `ConnectSourceModal`'s rather than a number written
- * here: these are the two dialogs in the app that draw a grid of connector cards, and one of
- * them being narrower would make the same card two sizes.
+ * There was a `+` beside the question box that opened a grid of connected sources to tick, with a
+ * search, an empty state and a count — and the page then required a *pick* before it would ask,
+ * because "connecting one is not choosing to read this question against it". Removed on request:
+ * a mailbox connected on Sources is one this reader means to ask, and its recorded questions now
+ * appear as openers without anybody choosing anything.
  *
- * There is still no footer: ticking a card *is* the act and reaches the store immediately, so an
- * OK would confirm something already done and a Cancel would promise an undo this dialog does
- * not perform.
+ * **The removal is at every layer, because half of it is what fails silently.** A `+` with no
+ * store behind it would tick nothing; a `sourceIds` in state with no control would be a scope the
+ * reader cannot see or change, and the one that goes stale as sources come and go. So the
+ * component, the search, its copy, the store's `sourceIds` and `toggleSource` all went together,
+ * and `ask()` reads the connected list at the moment it asks.
  *
- * **And no filter beside the search**, which the connector directory does have. The only axis
- * available is the connector kind and every askable source is a runtime source, so today the
- * control would be a Select with one option — the fault this repo refuses from the mailbox that
- * has no picker to the drive kind offered with the count that says so.
- */
-const connectModalSrc = codeOnly(read('frontend/src/components/sources/ConnectSourceModal.tsx'))
-const modalWidth = (src) => (src.match(/width=\{(\d+)\}/) ?? [])[1] ?? null
-expect(
-  'the + opens the directory’s own dialog — titled, wide, searchable, with nothing to confirm',
-  /<Modal/.test(pickerSrc) &&
-    /open=\{open\}/.test(pickerSrc) &&
-    /onClick=\{\(\) => setOpen\(true\)\}/.test(pickerSrc) &&
-    /footer=\{null\}/.test(pickerSrc) &&
-    /title=\{askSourceCopy\.modalTitle\}/.test(pickerSrc) &&
-    !/Dropdown/.test(pickerSrc) &&
-    /* The same width as the wizard's dialog, read off both rather than restated. */
-    modalWidth(pickerSrc) !== null &&
-    modalWidth(pickerSrc) === modalWidth(connectModalSrc) &&
-    /* The search is drawn and the filter deliberately is not. */
-    /askSourceCopy\.searchPlaceholder/.test(pickerSrc) &&
-    !/<Select/.test(pickerSrc),
-  `a titled ${modalWidth(pickerSrc) ?? '?'}px Modal, the wizard's own width, with a search and no filter`,
-)
-/*
- * **The grid carries a heading with its count, and that is a deliberate reversal.** Both the
- * dialog's title and the heading over the rows were removed on request when the picker was
- * reduced to a column of checkboxes, and both are back because the shape changed underneath
- * them: a heading over two bare checkboxes was a label nobody needed, while a heading carrying
- * the count above a *searchable* grid is the only thing that tells a narrowed list from the
- * whole one — `ConnectorDirectory`'s own reason for putting one on each section.
- *
- * **What did not come back is the doctrine**, and that is the half worth asserting beside it:
- * `observationNote` still has exactly one reader, the page, where it stands above a thread with
- * no graph behind it. Three lines explaining what an observation is over a picker would be a
- * paragraph in front of a click whatever shape the picker is.
- *
- * **And the empty branch keeps its sentence and draws no search**, because it has no cards to
- * be: a `+` opening onto a search box above "there is nothing to search" is the button-over-
- * blank-space this repo has already fixed once.
+ * **What did not change is that a question is asked of one thing.** The route still settles a
+ * request naming both in the graph's favour, so the store sends sources *only* when no graph is
+ * selected — selecting one takes them out of scope by itself, rather than by a second write that
+ * could disagree with it.
  */
 expect(
-  'and the grid carries a heading and a count, while the doctrine keeps its one reader on the page',
-  /askSourceCopy\.heading/.test(pickerSrc) &&
-    /asp-count/.test(pickerSrc) &&
-    /\{shown\.length\}/.test(pickerSrc) &&
-    !/observationNote/.test(pickerSrc) &&
-    /askSourceCopy\.observationNote/.test(codeOnly(askPageSrc)) &&
-    /asp-empty/.test(pickerSrc) &&
-    /askSourceCopy\.emptyDetail/.test(pickerSrc) &&
-    /askSourceCopy\.noMatch\(query\)/.test(pickerSrc),
-  'a counted heading over the grid, an empty state that names the fix, and a no-match that quotes the query',
-)
-/*
- * **The narrowing is a pure function in `src/data/`, and the component holds no predicate.**
- * The grid lives inside a `Modal`, which `renderToString` will not traverse, so a filter written
- * in the component could not be asserted at all — the reason `filterConnectors` sits beside the
- * directory and `datasetPathFix` beside the gate. It searches what a card prints; it never
- * decides which sources are askable, which is the server's answer and nobody else's.
- */
-const askFilterBody =
-  (askSourcesSrc.match(/export function filterAskSources[\s\S]*?\n\}/) ?? [''])[0]
-expect(
-  'and the picker’s search narrows through one rule in src/data/, deciding nothing about what is askable',
-  askFilterBody.length > 0 &&
-    /if \(!q\) return sources/.test(askFilterBody) &&
-    /toLowerCase\(\)/.test(askFilterBody) &&
-    /* The fields a card prints, plus the connector key the mark stands for. */
-    /s\.name, s\.account \?\? '', s\.scope, s\.connector/.test(askFilterBody) &&
-    /filterAskSources\(sources, query\)/.test(pickerSrc) &&
-    /* … and no second implementation in the component. */
-    !/\.toLowerCase\(\)/.test(pickerSrc),
-  'filterAskSources decides what is shown; the picker renders what it returns',
+  'Ask has no source picker, and a connected source is asked by default',
+  /* The component and its search are gone. */
+  !existsSync(join(root, 'frontend/src/components/ask/AskSourcePicker.tsx')) &&
+    /* `askSourcesSrc` is already `codeOnly`, so the comment recording the removal cannot
+       satisfy this — the self-documenting-file trap, guarded at the source. */
+    !/export function filterAskSources/.test(askSourcesSrc) &&
+    /* `read` inline rather than the file-level `askPage`, which is declared below this claim:
+       a const used above its declaration dies in the temporal dead zone and kills the run. */
+    !/AskSourcePicker/.test(codeOnly(read('frontend/src/pages/AskPage.tsx'))) &&
+    /* Connected is enough — neither rule filters by a pick any more. */
+    /canAsk: graphName !== null \|\| sources\.length > 0/.test(askSourcesSrc) &&
+    !/sourceIds/.test(askSourcesSrc) &&
+    /* The store holds no pick, and sends the connected list only when no graph is selected. */
+    !/toggleSource/.test(codeOnly(askStoreSrc)) &&
+    /* Sliced, not matched across lines: a shell-written newline escape ends a regex early. */
+    (askStoreSrc.split('const sourceIds = useCaseId')[1] ?? '')
+      .slice(0, 160)
+      .includes('(get().data?.sources ?? []).map((s) => s.sourceId)') &&
+    /* And the openers come from the connected sources rather than from a selection — beside the
+       graph's rather than instead of them, which the claim above this one pins. */
+    /fromSources\.push\(\{ text, sourceId: source\.sourceId \}\)/.test(askSourcesSrc),
+  'a + with no store behind it ticks nothing; a scope in state with no control goes stale unseen',
 )
 /*
  * **And the graph select is rendered whether or not anything is published**, stating
@@ -6740,7 +6709,8 @@ expect(
   /subject: string/.test(chatsSrc) &&
     /useCaseId: string \| null/.test(chatsSrc) &&
     /str\(v\.subject\)/.test(chatsSrc) &&
-    /if \(!state\.useCaseId && picked\.length === 0\) return/.test(codeOnly(askStoreSrc)) &&
+    /* No graph and no connected source is the one case with nothing to file a thread under. */
+    /if \(!state\.useCaseId && sources\.length === 0\) return/.test(codeOnly(askStoreSrc)) &&
     /chat\.subject/.test(codeOnly(read('frontend/src/components/ask/AskChatRail.tsx'))),
   'the thread survives an answer no graph produced',
 )

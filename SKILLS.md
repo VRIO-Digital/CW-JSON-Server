@@ -2200,6 +2200,22 @@ Nothing here is page copy dressed as data. A suggestion chip is a hero question
 the brief already committed to; a chip for something the graph was never built
 for would be a trap.
 
+**A graph is not the only thing that can be asked, and the chips say both.** `GET /ask` also
+serves `sources` — the connected runtime sources, `askableSources()` — each with its own
+`suggested_questions`, drawn from the pool `askSourceAnswer` matches within so a chip cannot be
+offered that the source would abstain on. `askSuggestions` merges the two: the selected graph's
+hero questions first (`sourceId: null`), then every connected source's, de-duplicated, with a
+question the graph already offers dropped. There is no picker to tick — connecting is what puts a
+source in scope — so a mailbox connected on Sources shows its questions immediately rather than
+after a step nobody was told to take. **Clicking a source's chip drops the graph first**
+(`select(null)` in `AskPage`), because `POST /ask` settles a request naming both in the graph's
+favour and the answer would otherwise be reported under a graph version that did not produce it.
+
+**Where it fails:** returning the hero questions *instead of* the sources' is the regression this
+replaced, and it is invisible — the row looks full, and only a reader who deselects the graph ever
+sees the difference. `check-docs` asserts the old graph-only return has not come back *beside* the
+merge as well as that the merge is present.
+
 **A graph no longer carries a citations policy.** It was the brief's, declared on the
 removed step 6 and inherited by every answer; it is the reader's per question now, so it
 rides on the *answer* rather than on the graph. A graph-level copy would be a second

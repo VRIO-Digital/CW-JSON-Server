@@ -7,7 +7,6 @@ import AnswerBlocks from '../components/ask/AnswerBlocks'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import AskAnswerView from '../components/ask/AskAnswerView'
 import AskChatRail from '../components/ask/AskChatRail'
-import AskSourcePicker from '../components/ask/AskSourcePicker'
 import NoPublishedGraph from '../components/common/NoPublishedGraph'
 import PageHeader from '../components/common/PageHeader'
 import {
@@ -93,8 +92,6 @@ export default function AskPage() {
   /* The connected sources that can be asked at question time, and which of them this
      question is read against. Served, never filtered on a connector name here. */
   const askSources = useAskStore(selectAskSources)
-  const sourceIds = useAskStore((s) => s.sourceIds)
-  const toggleSource = useAskStore((s) => s.toggleSource)
   /*
    * The Answer requirements tab is **switched off** — the tab item is commented out at the
    * bottom of this file, and these five hooks are commented with it because
@@ -155,21 +152,16 @@ export default function AskPage() {
    * `canAsk` is the one definition, read by the button, the input and the placeholder, so
    * they cannot disagree about whether there is anything to ask.
    */
-  const pickedSources = askSources.filter((s) => sourceIds.includes(s.sourceId))
   const {
     gated,
     canAsk,
     target: askTarget,
-  } = askAvailability(graph ? `${graph.name} ${graph.version}` : null, askSources, sourceIds)
+  } = askAvailability(graph ? `${graph.name} ${graph.version}` : null, askSources)
   /* The openers, from whatever will answer. A graph’s brief, or the picked sources’ own
      recorded questions — one rule, so the two cannot come to disagree about what is offered. */
   /* What to say when nothing is selected — it names both routes where both exist. */
   const pickPrompt = askPickPrompt(graphs.length > 0)
-  const suggestions = askSuggestions(
-    graph ? graph.suggestedQuestions : null,
-    askSources,
-    sourceIds,
-  )
+  const suggestions = askSuggestions(graph ? graph.suggestedQuestions : null, askSources)
 
   if (error) return <ApiErrorAlert error={error} onRetry={() => void load()} />
 
@@ -325,19 +317,17 @@ export default function AskPage() {
                         </>
                       ) : (
                         /*
-                         * No graph is live, so this states what *is* being asked rather than
-                         * a version. The sentence is the observation rule in the query set’s
-                         * own words — one claim in one place, printed here, in the picker and
-                         * on an observation block alike.
+                         * No graph is selected, so this states what *is* being asked rather than
+                         * a version — every connected source, since there is nothing to pick.
+                         * The sentence is the observation rule in the query set’s own words, one
+                         * claim in one place, printed here and on an observation block alike.
                          */
                         <>
                           <Typography.Title level={5} style={{ margin: 0 }}>
-                            {pickedSources.length > 0
-                              ? `Ask ${askTarget}`
-                              : 'Pick a source to ask'}
+                            {askSources.length > 0 ? `Ask ${askTarget}` : pickPrompt}
                           </Typography.Title>
                           <p className="ask-grounding-note">
-                            {pickedSources.length > 0
+                            {askSources.length > 0
                               ? askSourceCopy.observationNote
                               : pickPrompt}
                           </p>
@@ -406,14 +396,10 @@ export default function AskPage() {
 
                 <div className="ask-composer">
                   <div className="ask-box">
-                    {/* Which connected sources this question is read against. Its own
-                        component, because a dropdown's rows cannot be asserted from here. */}
-                    <AskSourcePicker
-                      sources={askSources}
-                      picked={sourceIds}
-                      onToggle={toggleSource}
-                      disabled={asking}
-                    />
+                    {/* **No source picker.** Every connected source is what a question is asked
+                        of when no graph is selected, so there was nothing left for the `+` to
+                        choose — removed on request. The graph select above is the only control
+                        that changes what answers. */}
                     <Input
                       variant="borderless"
                       value={question}
@@ -446,25 +432,35 @@ export default function AskPage() {
                    * standing row of openers under a conversation reads as the app not having
                    * noticed it began.
                    */}
-                  {/* The chips are what *answers* this question: a graph’s hero questions where
-                      one is selected, otherwise the picked sources’ own recorded questions. Both
-                      are promises something already made — neither is invented here. */}
+                  {/* The chips are what *answers* this question: the selected graph's hero
+                      questions **and** every connected source's own recorded ones. Both are
+                      promises something already made — neither is invented here. */}
                   {suggestions.length > 0 && turns.length === 0 ? (
                     <div className="ask-chips">
                       {suggestions.map((q) => (
                         <Button
-                          key={q}
+                          key={`${q.sourceId ?? 'graph'}:${q.text}`}
                           size="small"
                           shape="round"
                           // Truncated in CSS, so the whole sentence lives here.
-                          title={q}
+                          title={q.text}
                           disabled={asking}
                           onClick={() => {
-                            setQuestion(q)
-                            void onAsk(q)
+                            /*
+                             * **A source's question is asked of the source**, which means dropping
+                             * the graph first: the route settles a request naming both in the
+                             * graph's favour, so asking one under a selected graph would return a
+                             * mail answer wearing that graph's version. `select(null)` is
+                             * synchronous, so the `ask` below it already sees the new scope — and
+                             * it starts a new thread, which is the existing rule for a switch
+                             * between two things that answer differently.
+                             */
+                            if (q.sourceId && useCaseId) select(null)
+                            setQuestion(q.text)
+                            void onAsk(q.text)
                           }}
                         >
-                          {q}
+                          {q.text}
                         </Button>
                       ))}
                     </div>

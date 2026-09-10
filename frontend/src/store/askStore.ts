@@ -88,8 +88,12 @@ interface AskState {
    * connected runtime source, or both — the server decides how they combine, which is why
    * the picks travel with every question rather than being dropped when a graph is selected.
    */
-  sourceIds: string[]
-  toggleSource: (sourceId: string, on: boolean) => void
+  /*
+   * **There is no `sourceIds` in state any more.** They were picked with a `+` beside the
+   * question box; that control is gone — removed on request — so a connected source *is* one this
+   * question is asked of, and `ask()` reads the connected list at the moment it asks. Keeping a
+   * copy here would be a second answer to which sources are in scope, and the one that goes stale.
+   */
   setCitations: (citations: Citations) => void
   toggleFormat: (formatId: string, on: boolean) => void
   ask: (question: string) => Promise<Result>
@@ -146,33 +150,20 @@ export const useAskStore = create<AskState>()((set, get) => ({
       const current = get().useCaseId
       const stillLive = data.graphs.some((g) => g.useCaseId === current)
       /*
-       * Landing on a graph is for arrival, not for a reload — and never over a source pick. A
-       * reader asking a mailbox who reloads must not find a graph selected under them, which
-       * would silently change what the next question is asked of.
+       * **Landing on a graph is for arrival, and a reader who left one deselected keeps that.**
+       * `null` means "ask the connected sources" now that there is nothing to pick — so the
+       * arrival default only applies when nothing was chosen at all, which is the first load.
+       *
+       * **There are no source picks left to prune.** They used to be dropped when a registration
+       * had gone, because one could outlive the source it named; what is asked of is now
+       * whatever `data.sources` currently holds, so a source that has gone is simply not in it.
        */
-      const hasPicks = get().sourceIds.length > 0
-      const useCaseId = stillLive
-        ? current
-        : hasPicks
-          ? null
-          : (data.graphs[0]?.useCaseId ?? null)
-      /*
-       * **A source pick that is no longer connected is dropped**, the same rule the graph
-       * selection follows one line up and for the same reason: a registration lives in the
-       * mock server's memory and dies with the process, so a pick can outlive the source it
-       * names. Keeping it would send an id the route refuses with a 404 the reader cannot act
-       * on, over a control that no longer draws the row it came from.
-       */
-      const live = new Set(data.sources.map((r) => r.sourceId))
-      const kept = get().sourceIds.filter((sid) => live.has(sid))
-      const sourceIds =
-        kept.length === get().sourceIds.length ? get().sourceIds : kept
+      const useCaseId = stillLive ? current : (data.graphs[0]?.useCaseId ?? null)
       set({
         data,
         error: null,
         loading: false,
         useCaseId,
-        sourceIds,
         ...(stillLive ? {} : { activeChatId: null }),
       })
       get().syncHistory()
@@ -192,43 +183,22 @@ export const useAskStore = create<AskState>()((set, get) => ({
      * The requirements are the *reader's*, not the graph's, so they stay.
      */
     /*
-     * **And the source picks go, because a question is asked of one thing.** The route already
-     * decided this — a `use_case_id` wins and the sources are ignored — so leaving them ticked
-     * showed a count on the `+` for a mailbox contributing nothing to the answer beside it.
-     * Reported from use. The control now says what the server does.
+     * **A question is asked of one thing**, and selecting a graph is what says which. There are no
+     * source picks left to clear: `ask()` sends the connected sources only when no graph is
+     * selected, so choosing one takes them out of scope by itself rather than by a second write
+     * that could disagree with it.
      */
-    set({ useCaseId, sourceIds: EMPTY_SOURCE_IDS, activeChatId: null })
+    set({ useCaseId, activeChatId: null })
   },
 
   setCitations: (citations) => set({ citations }),
 
   /*
-   * Picking a source does **not** start a new thread, unlike picking a graph. A graph and its
-   * version are what produced an answer, so a thread belongs to them; a source pick is part
-   * of the *next* question, and every answer already records which sources read it.
+   * **`toggleSource` stood here and is gone with the `+`.** It ticked one connected source at a
+   * time, deselected the graph when it did, and started a new thread on that switch. All three
+   * are now carried by the graph select alone: selecting a graph is the switch, and deselecting
+   * one puts every connected source back in scope — which is what `ask()` reads.
    */
-  toggleSource: (sourceId, on) =>
-    set((state) => {
-      const sourceIds = on
-        ? [...state.sourceIds, sourceId]
-        : state.sourceIds.filter((s) => s !== sourceId)
-      /*
-       * **Picking a source deselects the graph, which is the same rule the other way round.**
-       * One question is asked of one thing, and the server settles it by ignoring the sources
-       * whenever a graph is named — so a mailbox ticked beside a selected graph was a control
-       * that changed nothing.
-       *
-       * **It starts a new thread only when a graph was actually dropped**, because that is the
-       * switch: what answers changed from a graph to correspondence, and an answer belongs to
-       * whatever produced it. Adding a second mailbox to a mailbox is not a switch, and
-       * clearing the thread there would throw away a conversation over a widened scope.
-       */
-      const dropsGraph = on && state.useCaseId !== null
-      return {
-        sourceIds,
-        ...(dropsGraph ? { useCaseId: null, activeChatId: null } : {}),
-      }
-    }),
 
   toggleFormat: (formatId, on) =>
     set((state) => ({
@@ -279,7 +249,19 @@ export const useAskStore = create<AskState>()((set, get) => ({
 
   ask: async (question) => {
     const useCaseId = get().useCaseId
-    const sourceIds = get().sourceIds
+    /*
+     * **Every connected source, whenever no graph is selected.** They used to be picked one at a
+     * time with a `+`; that control is gone, so connecting a source *is* choosing it and the
+     * request carries all of them. Read here rather than held in state, so there is no second
+     * answer to "which sources" that could fall out of step with what is connected.
+     *
+     * Never both: the route settles a request naming a graph *and* sources in the graph's favour,
+     * and an answer carrying a graph version and a mailbox would have two accounts of where it
+     * came from.
+     */
+    const sourceIds = useCaseId
+      ? EMPTY_SOURCE_IDS
+      : (get().data?.sources ?? []).map((s) => s.sourceId)
     /*
      * **Either is enough.** This read `!useCaseId` alone, which was right while a graph was
      * the only thing that could be asked and refuses every mailbox question now — with the
@@ -288,7 +270,7 @@ export const useAskStore = create<AskState>()((set, get) => ({
     if (!useCaseId && sourceIds.length === 0) {
       return {
         ok: false,
-        error: 'Pick a published graph, or a connected source with the + button, to ask.',
+        error: 'Publish a graph, or connect a source on Sources, to ask a question.',
       }
     }
     if (!question.trim()) return { ok: false, error: 'Ask a question first.' }
@@ -383,9 +365,8 @@ function appendTurn(asked: string, answer: AskAnswer) {
    * a stream with no memory.
    */
   const sources = state.data?.sources ?? []
-  const picked = sources.filter((r) => state.sourceIds.includes(r.sourceId))
-  const subject = graph?.name ?? picked.map((r) => r.name).join(', ')
-  if (!state.useCaseId && picked.length === 0) return
+  const subject = graph?.name ?? sources.map((r) => r.name).join(', ')
+  if (!state.useCaseId && sources.length === 0) return
 
   const turn: AskTurn = {
     turnId: newId(),

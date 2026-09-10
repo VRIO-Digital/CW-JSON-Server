@@ -7,36 +7,16 @@
  * names are the payload's, read where they are printed.
  */
 export const askSourceCopy = {
-  buttonHint: 'Add a connected source to read this question against',
-
-  /**
-   * The dialog's own title, and the heading over the cards.
-   *
-   * **Both were removed once, and both are back on request** — the picker was reduced to its
-   * rows, then asked for again in the connector directory's shape. What is *not* back is the
-   * doctrine paragraph: `observationNote` still stands on the page, above a thread with no
-   * graph behind it, where it bears on something the reader is looking at. A heading naming a
-   * grid is a label; three lines explaining what an observation is were a paragraph in front of
-   * a click, and only the first belongs over a control.
-   *
-   * The heading earns its place here in a way it did not over two bare checkboxes: it carries
-   * the count, and with a search above it the count is the only thing telling a narrowed grid
-   * from the whole list — the reason `ConnectorDirectory` puts one on each of its sections.
+  /*
+   * **Eight fields stood here and went with the picker that read them.** `buttonHint`,
+   * `modalTitle`, `heading`, `searchPlaceholder`, `noMatch`, `noMatchHint`, `emptyTitle` and
+   * `emptyDetail` were a dialog's title, its search and its empty state — a grid of connected
+   * sources to tick. There is no grid: every connected source is what a question with no graph
+   * selected is asked of, so there is nothing to search and nothing to choose. Copy for a
+   * control that does not exist is the half-removal this repo refuses — the shape that left
+   * Gmail's Continue refusing over a name field its own step no longer had — so they are gone
+   * rather than kept warm for a picker somebody might restore.
    */
-  modalTitle: 'Sources',
-  heading: 'Connected sources',
-
-  searchPlaceholder: 'Search connected sources',
-  /**
-   * Names the query rather than saying "no sources".
-   *
-   * Over a grid the reader has just narrowed, the bare sentence is indistinguishable from a
-   * picker that failed to load — the same reason the connector directory's own no-match state
-   * quotes what was typed.
-   */
-  noMatch: (query: string) => `No connected source matches “${query.trim()}”.`,
-  noMatchHint:
-    'Search matches a source’s name, the account it connected as, and what it has in scope.',
 
   /**
    * Why a mailbox answer is not a graph answer.
@@ -53,17 +33,6 @@ export const askSourceCopy = {
   observationNote:
     'An extraction from a message is an observation — a claim about a subject, attributed to whoever made it. It is read when a question needs it and never merged into the graph.',
 
-  emptyTitle: 'No source can be asked directly yet',
-  /**
-   * Named as a fact about the estate rather than as a failure.
-   *
-   * A connector whose data reaches an answer *through* the graph is not missing from this list;
-   * it belongs on the other side of it. Saying so is what stops a reader with three healthy
-   * BigQuery sources reading this as a broken picker.
-   */
-  emptyDetail:
-    'Connect a Gmail source on Sources to ask it here. BigQuery and Drive sources are not listed: their data reaches an answer through the published graph rather than being read at question time.',
-
   /**
    * What the graph select says when the tenant has published nothing.
    *
@@ -79,66 +48,41 @@ export const askSourceCopy = {
    *
    * The two are exclusive, so a graph left named there would be naming something this question
    * will not be asked of. The control stays enabled: choosing a graph is how a reader switches
-   * back, and doing so drops the source picks.
+   * back, and doing so takes the connected sources out of scope.
    */
   graphPlaceholder: 'Asking a source — pick a graph to switch',
 
   /**
-   * What stands where nothing has been picked and no graph is live.
+   * What stands where no graph is selected and there is nothing connected to read instead.
    *
-   * The page is usable in that state — the box and the picker are both there — so what it
-   * needs is an instruction rather than a gate. It names the control, because the + is the
-   * only way from here to an answer.
+   * **It named the `+`, and the `+` is gone.** An instruction pointing at a control that does
+   * not exist is one nobody can carry out — word for word the fault Gmail's removed name field
+   * left behind in the gate that went on validating it. What is true now is that a source is
+   * asked by being *connected*, so the instruction names the page that connects one.
    */
   pickPrompt:
-    'Use the + to pick a connected source to read this question against.',
+    'Connect a Gmail source on Sources to ask it here — a connected source is read whenever no graph is selected.',
 
   /**
    * The same instruction where a graph is also on offer.
    *
-   * **A question is asked of one thing**, so picking either clears the other, and with neither
-   * picked the reader has two ways forward rather than one. Naming only the `+` would be an
-   * instruction that works and hides the shorter route.
+   * **A question is asked of one thing**, and with no graph selected that thing is every
+   * connected source — so this names both routes rather than only the shorter one. Neither
+   * asks the reader to pick a source: choosing a graph is the one choice on this screen, and
+   * it is what takes the sources out of scope.
    */
   pickPromptWithGraph:
-    'Choose a graph above, or use the + to pick a connected source. A question is asked of one or the other, not both.',
+    'Choose a graph above to ask it, or connect a Gmail source on Sources to be asked directly. A question is asked of one or the other, not both.',
 } as const
 
-/**
- * The fields a row is searched on. Structural rather than `AskSource` itself, like every other
- * function in this file: `src/data/` states what it needs and the payload satisfies it.
+/*
+ * **`filterAskSources` stood here and is gone with the picker it narrowed.** It searched a card's
+ * own words — name, account, scope, connector — so a reader searching for what they could see found
+ * it, and it lived here rather than in the component because a `Modal`'s grid is not traversed by
+ * `renderToString`. There is no grid any more: every connected source is what a question is asked
+ * of, so there is nothing to search and nothing to choose. Restoring the picker is this function,
+ * the copy below it and the component.
  */
-type SearchableSource = {
-  name: string
-  account: string | null
-  scope: string
-  connector: string
-}
-
-/**
- * Narrows the picker's grid.
- *
- * **A pure function here rather than a predicate inside the component**, for the reason
- * `filterConnectors` is one: the grid lives inside a `Modal`, which `renderToString` will not
- * traverse, so a filter written in the component could not be asserted at all — a check about it
- * would render the shut dialog and pass over nothing.
- *
- * **It searches what the card prints, and the connector's own key.** Name, account and scope are
- * the three things on a card, so a reader searching for what they can see finds it; `connector`
- * is included because "gmail" is the word somebody types for a mailbox and the mark is the only
- * place the card states it. It is deliberately *not* a filter on connector kind — that would be
- * the picker deciding which sources are askable, which is the server's answer and nobody else's.
- *
- * Case-insensitive, and an empty or whitespace query narrows nothing rather than matching
- * nothing: a search box that empties the grid the moment it is focused reads as broken.
- */
-export function filterAskSources<T extends SearchableSource>(sources: T[], query: string): T[] {
-  const q = query.trim().toLowerCase()
-  if (!q) return sources
-  return sources.filter((s) =>
-    [s.name, s.account ?? '', s.scope, s.connector].some((f) => f.toLowerCase().includes(q)),
-  )
-}
 
 /**
  * What this page can ask, and therefore what it may render.
@@ -157,15 +101,19 @@ export function filterAskSources<T extends SearchableSource>(sources: T[], query
 export function askAvailability(
   graphName: string | null,
   sources: { sourceId: string; name: string }[],
-  sourceIds: string[],
 ): { gated: boolean; canAsk: boolean; target: string } {
-  const picked = sources.filter((s) => sourceIds.includes(s.sourceId))
   return {
     gated: graphName === null && sources.length === 0,
-    /* A graph answers on its own; a source has to be *picked*, because connecting one is not
-       choosing to read this question against it. */
-    canAsk: graphName !== null || picked.length > 0,
-    target: graphName ?? picked.map((s) => s.name).join(', '),
+    /*
+     * **Connected is enough now, and it was not.** This required a source to have been *picked*
+     * with the `+`, on the reasoning that connecting one is not choosing to read a question
+     * against it. That control is gone — removed on request — so there is nothing left to express
+     * the choice with, and a reader who has connected a mailbox and is looking at its own
+     * questions has plainly chosen it. What answers is: the selected graph, or every connected
+     * source.
+     */
+    canAsk: graphName !== null || sources.length > 0,
+    target: graphName ?? sources.map((s) => s.name).join(', '),
   }
 }
 
@@ -177,20 +125,48 @@ export function askAvailability(
  * own recorded questions are, and the server draws those from the *same pool* its answerer
  * matches within, so a chip cannot be offered that the source would then abstain on.
  *
- * **A source merely connected offers nothing.** Suggesting a question the reader cannot yet ask
- * — because they have not picked the source — would be a chip that refuses when clicked.
+ * **A connected source's questions sit beside the graph's, not instead of them.** This returned the
+ * hero questions alone whenever a graph was selected, so connecting a mailbox changed nothing a
+ * reader could see until they deselected the graph — which is not something the page ever asked
+ * them to do. Both are offered now: connecting a source is what makes its questions appear.
+ *
+ * **Each chip says what will answer it, because the two are not asked of the same thing.** The
+ * route settles a request naming a graph *and* sources in the graph's favour, so a mail question
+ * asked under a selected graph would be answered by the graph and attributed to it — a mail
+ * answer wearing a graph's version. A chip therefore carries the source it came from, and the page
+ * drops the graph before asking one. A hero question carries `null` and is asked of the graph.
  *
  * De-duplicated across sources, because two mailboxes drawing on one recorded set would
- * otherwise offer the same sentence twice, which reads as two different questions.
+ * otherwise offer the same sentence twice, which reads as two different questions. The graph's own
+ * are listed first: they are what the selected thing answers, and a reader scanning the row should
+ * meet those before the correspondence.
  */
+export interface AskChip {
+  text: string
+  /** The source that answers it, or `null` for one the selected graph answers. */
+  sourceId: string | null
+}
+
 export function askSuggestions(
   graphQuestions: string[] | null,
   sources: { sourceId: string; suggestedQuestions: string[] }[],
-  sourceIds: string[],
-): string[] {
-  if (graphQuestions !== null) return graphQuestions
-  const picked = sources.filter((s) => sourceIds.includes(s.sourceId))
-  return [...new Set(picked.flatMap((s) => s.suggestedQuestions))]
+): AskChip[] {
+  const fromSources: AskChip[] = []
+  const seen = new Set<string>()
+  for (const source of sources) {
+    for (const text of source.suggestedQuestions) {
+      if (seen.has(text)) continue
+      seen.add(text)
+      fromSources.push({ text, sourceId: source.sourceId })
+    }
+  }
+  if (graphQuestions === null) return fromSources
+  /* A graph question and a source question can read the same; the graph's wins the slot, because
+     it is what the current selection answers. */
+  return [
+    ...graphQuestions.map((text) => ({ text, sourceId: null })),
+    ...fromSources.filter((c) => !graphQuestions.includes(c.text)),
+  ]
 }
 
 /**
