@@ -244,37 +244,43 @@ export default function PendingSuggestionsModal({
       onCancel={onClose}
       width={720}
       destroyOnHidden
-      footer={
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            flexWrap: 'wrap',
-            textAlign: 'left',
-          }}
-        >
-          <span style={{ flex: 1, fontSize: 10.5, color: MT.dim, lineHeight: 1.4 }}>
-            {COPY.acceptAllNote}
-          </span>
-          <Space size={8}>
-            <Button size="small" onClick={onClose} disabled={accepting}>
-              {COPY.close}
-            </Button>
-            <Button
-              size="small"
-              type="primary"
-              icon={<CheckOutlined />}
-              loading={accepting}
-              disabled={rows.length === 0}
-              onClick={onAcceptAll}
-            >
-              {accepting ? COPY.accepting : `${COPY.acceptAll} · ${rows.length}`}
-            </Button>
-          </Space>
-        </div>
-      }
+      /* Moved out of the footer, on request: `Accept all` now sits above the list it acts on
+         rather than below it, so the row a reader is about to bulk-confirm is not scrolled
+         past a control they had to find at the bottom first. `Close` moved up with it — a
+         footer holding nothing would be a blank bar under the dialog's own scroll. */
+      footer={null}
     >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+          marginBottom: 12,
+          paddingBottom: 12,
+          borderBottom: `1px solid ${MT.line}`,
+        }}
+      >
+        <span style={{ flex: 1, fontSize: 10.5, color: MT.dim, lineHeight: 1.4 }}>
+          {COPY.acceptAllNote}
+        </span>
+        <Space size={8}>
+          <Button size="small" onClick={onClose} disabled={accepting}>
+            {COPY.close}
+          </Button>
+          <Button
+            size="small"
+            type="primary"
+            icon={<CheckOutlined />}
+            loading={accepting}
+            disabled={rows.length === 0}
+            onClick={onAcceptAll}
+          >
+            {accepting ? COPY.accepting : `${COPY.acceptAll} · ${rows.length}`}
+          </Button>
+        </Space>
+      </div>
+
       {accepting ? (
         <Alert
           type="info"
