@@ -11735,8 +11735,16 @@ const routes = [
             idKey,
             domain_id ?? null,
             business_need ?? '',
-            // A hero question is the graph's contract, so more of them are useful.
-            pool === 'graph_hero_questions' ? 5 : 4,
+            /*
+             * A hero question is the graph's contract, so more of them are useful — and a
+             * tenant's own KPI sheet is exactly the case a metrics cap of 4 hid: eight recorded
+             * formulas ranking against a handful of pool defaults left several off the first
+             * page, reachable only by re-running Suggest until jitter surfaced them. 14 is CAPEX's
+             * whole `capital-projects` count today, so nothing in that domain is hidden by the
+             * cap — still a cap, not "everything": a domain that grows past this needs its own
+             * answer, but this is the honest fix for the case reported.
+             */
+            pool === 'graph_hero_questions' ? 5 : pool === 'graph_metrics' ? 14 : 4,
           )
       /*
        * Held briefly on purpose. There is no model here, so the answer is ready

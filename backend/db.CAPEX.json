@@ -63222,7 +63222,6 @@
     "entities": [
       {
         "entity_id": "ent-plan-plan-version-master-mtmp9sjv2",
-        "confirmed_by": null,
         "table_key": "plan.plan_version_master",
         "entity_name": "plan_version_master",
         "description": "test",
@@ -63268,7 +63267,6 @@
       },
       {
         "entity_id": "ent-plan-plan-account-dim-mtmpcohv4",
-        "confirmed_by": null,
         "table_key": "plan.plan_account_dim",
         "entity_name": "plan_account_dim",
         "description": "Entity for plan_account_dim, created to anchor a declared relationship.",
@@ -63281,7 +63279,6 @@
       },
       {
         "entity_id": "ent-plan-plan-project-forecast-mtmwszpw4",
-        "confirmed_by": null,
         "table_key": "plan.plan_project_forecast",
         "entity_name": "plan_project_forecast",
         "description": "Entity for plan_project_forecast, created to anchor a declared relationship.",
@@ -63306,7 +63303,6 @@
       },
       {
         "entity_id": "ent-plan-plan-period-dim-mtr3t8377",
-        "confirmed_by": null,
         "table_key": "plan.plan_period_dim",
         "entity_name": "plan_period_dim",
         "description": "Entity for plan_period_dim, created to anchor a declared relationship.",
@@ -63476,7 +63472,7 @@
   "graph_metrics": [
     {
       "metric_id": "total-forecast-remaining-large-proj",
-      "name": "Total_Forecast_Remaining_Large_Proj",
+      "name": "Total_Forecast_Remaining_Large_Project",
       "domains": [
         "capital-projects",
         "water-wastewater"
@@ -63488,7 +63484,7 @@
         "large",
         "proj"
       ],
-      "definition": "Total_Forecast_Remaining_Large_Proj = [Sum of FY26 Working Forecast]-[Sum of FY26 YearTotal Actual]+[Sum of FY27 Working Budget]+[Sum of FY28 Working Budget]+[Sum of FY29 Working Budget]+[Sum of FY30 Working Budget]+[Sum of FY31 Working Budget]+[Sum of FY32 Working Budget]"
+      "definition": "Total_Forecast_Remaining_Large_Proj = [Sum of FY26 Working Forecast]-[Sum of FY26 YearTotal Actual]+[Sum of FY27 Working Budget]"
     },
     {
       "metric_id": "total-anticipated-cost",
@@ -63581,7 +63577,7 @@
     },
     {
       "metric_id": "overrun-amount",
-      "name": "Overrun amount",
+      "name": "Overrun Amount (edited)",
       "domains": [
         "capital-projects",
         "water-wastewater"
