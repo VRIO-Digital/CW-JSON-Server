@@ -26,8 +26,21 @@ import {
   type UseCasesPayload,
 } from '../api/client'
 import { createReadStore, toMessage, type Result } from './asyncState'
+import {
+  cachedMetricEdit,
+  clearMetricEditLocally,
+  saveMetricEditLocally,
+} from '../data/metricEditCache'
 
 export type { Result }
+
+/**
+ * `edit`'s own result — wider than the shared `Result` only for the one branch that needs it.
+ * `savedLocally` marks the fallback path: the write did not reach the server, but the correction
+ * is not lost, so a caller can treat this as "the reader's text is safe" rather than as the same
+ * refusal a bad title or a name collision produces.
+ */
+export type MetricEditResult = { ok: true } | { ok: false; error: string; savedLocally?: boolean }
 
 /** Step 1's domain options, ranked by what the connected data supports. */
 export const useGraphDomainsStore = createReadStore<GraphDomainsPayload>(listGraphDomains)
@@ -61,7 +74,7 @@ interface SuggestState {
    * refused cannot leave the screen disagreeing with the document. `null` on a store whose pool
    * has no write route, which is what withholds the Edit button.
    */
-  edit: null | ((input: { id: string; name: string; detail: string }) => Promise<Result>)
+  edit: null | ((input: { id: string; name: string; detail: string }) => Promise<MetricEditResult>)
   reset: () => void
 }
 
@@ -97,8 +110,20 @@ function createSuggestStore(
       set({ suggesting: true })
       try {
         const result = await fetcher(input)
+        /*
+         * Only the metric pool has a local fallback (`writer` is what marks that store), and
+         * only over an id the cache actually holds — a reader's still-unsynced correction from
+         * a earlier failed write is what this restores, so a fresh server row wins wherever
+         * nothing local is pending for it.
+         */
+        const suggestions = writer
+          ? result.suggestions.map((s) => {
+              const cached = cachedMetricEdit(s.id)
+              return cached ? { ...s, name: cached.name, detail: cached.detail } : s
+            })
+          : result.suggestions
         set({
-          suggestions: result.suggestions,
+          suggestions,
           asked: true,
           emptyReason: result.emptyReason,
           run: result.run,
@@ -130,9 +155,25 @@ function createSuggestStore(
                 s.id === id ? { ...s, name: stored.name, detail: stored.detail } : s,
               ),
             }))
+            // The pool has this write now — a stale local fallback from an earlier
+            // failed attempt would otherwise keep overriding the server's own row.
+            clearMetricEditLocally(id)
             return { ok: true }
           } catch (error) {
-            return { ok: false, error: toMessage(error) }
+            /*
+             * The write did not land, but what was typed should not vanish with it. Saved
+             * locally and echoed onto the row immediately, so a reload while the mock server is
+             * down still shows the correction rather than the pool's stale one — `suggest`'s own
+             * overlay is what restores this same echo on the next fetch. The error still
+             * surfaces: this is a fallback for the data, not a silent success.
+             */
+            saveMetricEditLocally(id, name, detail)
+            set((state) => ({
+              suggestions: state.suggestions.map((s) =>
+                s.id === id ? { ...s, name, detail } : s,
+              ),
+            }))
+            return { ok: false, error: toMessage(error), savedLocally: true }
           }
         }
       : null,
