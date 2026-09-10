@@ -266,25 +266,29 @@ export default function ConfirmedRelationshipsModal({
       onCancel={onClose}
       width={720}
       destroyOnHidden
-      footer={
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            flexWrap: 'wrap',
-            textAlign: 'left',
-          }}
-        >
-          <span style={{ flex: 1, fontSize: 10.5, color: MT.dim, lineHeight: 1.4 }}>
-            {COPY.rowHint}
-          </span>
-          <Button size="small" onClick={onClose}>
-            {COPY.close}
-          </Button>
-        </div>
-      }
+      /* Moved above the list, matching the pending dialog on request — a reader should not have
+         to scroll past every confirmed row to find Close. */
+      footer={null}
     >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+          marginBottom: 12,
+          paddingBottom: 12,
+          borderBottom: `1px solid ${MT.line}`,
+        }}
+      >
+        <span style={{ flex: 1, fontSize: 10.5, color: MT.dim, lineHeight: 1.4 }}>
+          {COPY.rowHint}
+        </span>
+        <Button size="small" onClick={onClose}>
+          {COPY.close}
+        </Button>
+      </div>
+
       <ConfirmedRelationshipsPanel
         rows={rows}
         labelFor={labelFor}
