@@ -1392,12 +1392,47 @@ double duty.
 
 ### Uploading a schema or a data dictionary
 
-**An act on each dataset, inside Browse: upload a file and its columns become that dataset's column
-dictionary.** `column_profiles`, keyed `"<dataset>.<table>"` — the same place a profiling run reads
-from, and the same place the demo's own 206 columns came from when they were ingested out of a
-workbook. So the Catalog stops serving synthesised columns for those tables and serves what the file
-said, the Data Modeling tab draws them, and the graph derives over them. **It is the ingest script's
-act, done through a screen**, and it ends by starting a profiling run.
+> **Read this first: the upload no longer reads the file.** Asked for directly — *"simply we are
+> showcasing to the user we are uploading the file"*. A reader picks a dictionary on a dataset row,
+> the app **accepts** it, and Start Profiling runs over **every table of that dataset** using the
+> columns this document already holds in `column_profiles`. Nothing about the chosen file is parsed,
+> nothing it contains reaches the document, and **no bytes leave the browser** — only the filename
+> travels.
+>
+> `datasetDictionaryPlan` builds the plan from the dataset's own tables. Three consequences worth
+> stating, because each is a place a plausible-looking lie could have gone instead:
+>
+> - **`added`, `dropped` and `stranded_declarations` come back empty, and they are genuinely
+>   empty** — this upload replaces no column list, so nothing is added, nothing leaves, and no
+>   declaration can be stranded. They are not zeroed to look tidy.
+> - **The panel says *accepted*, never *read as CSV***. A format and a table count attributed to a
+>   parse that never ran is exactly the uncheckable figure this section refuses everywhere. The
+>   counts on screen are the dataset's own.
+> - **Nothing is committed.** The write used to rebuild the document from the parse; the columns it
+>   would write are the columns already there, so a commit would replace every value with itself.
+>   `commitDb` is untouched — this is simply no longer one of its callers.
+>
+> **Every table runs, every time**, all `pending`. The ordinary skip exists because re-running over
+> unchanged columns does nothing, and it is the wrong rule for an act a reader just asked for by
+> name — so CAPEX's `plan` is **18 tables and 407 columns** on every press, not the 12 its sample CSV
+> covered, and the checkbox selection cannot narrow it.
+>
+> **The parser is dormant, not deleted.** `backend/schemaImport.js` and `resolveSchemaUpload` are
+> untouched and still verified offline by `npm run verify:schema-import` — the same
+> waiting-for-a-caller state `/change-signals` is in. Reading a file again is calling them from the
+> two routes. **Do not delete either to "finish" this**; `check-docs` imports the reader, so removing
+> its export fails the build with a message naming it.
+>
+> Everything from here to the end of this section describes **that dormant reader** — the formats it
+> handles, what a declared column carries, what an upload would take away. All of it is still true
+> of `parseSchemaDocument` and `resolveSchemaUpload`, and none of it is on the live path.
+
+**What it used to be, and what the fields still mean.** Upload a file and its columns become that
+dataset's column dictionary: `column_profiles`, keyed `"<dataset>.<table>"` — the same place a
+profiling run reads from, and the same place the demo's own 206 columns came from when they were
+ingested out of a workbook. So the Catalog stops serving synthesised columns for those tables and
+serves what the file said, the Data Modeling tab draws them, and the graph derives over them. **It
+was the ingest script's act, done through a screen**, and it ended by starting a profiling run.
 
 **It was a third source-level button, and the dataset is what moved.** *Upload schema or dictionary*
 sat beside Browse and the dictionary, and its panel then **asked** which dataset from a Select — one
@@ -1417,11 +1452,11 @@ is the second act here that is about a schema, the reason a drive and a mailbox 
 word-for-word the same, and two copies of one refusal are two places for it to be worded
 differently. The noun is a parameter now.
 
-**Two clicks, and the reader makes both.** Choosing a file **reads it immediately** — there is no
-*Read the file* button, because a reader who has just picked a dictionary has already asked for it to
-be read, and a second click to make anything appear is a step that says nothing. The read still
-writes nothing; what moved is only who asks for it. **Start Profiling is the write**, one control for
-both halves of what a reader means by it.
+**Two clicks, and the reader makes both.** Choosing a file **acknowledges it immediately** — there
+is no *Read the file* button, because a reader who has just picked a dictionary has already asked
+for something to happen, and a second click to make anything appear is a step that says nothing.
+That first act still writes nothing (it now reads nothing either). **Start Profiling is the run**,
+one control for both halves of what a reader means by it.
 
 **A dataset row draws the upload control or the staged acts, never both.** With nothing read against
 it the row offers **Upload dictionary**; with a file staged it offers that file's name, **View
@@ -1463,12 +1498,13 @@ a table a dictionary covers is not queued twice — which would commit it twice,
 the dictionary is written *before* the run is queued, because profiling first would profile the
 columns it was about to replace.
 
-**A dictionary's own tables always run; everything else keeps the ordinary rule.** The normal skip is
-right for a table nothing changed, and wrong for one whose columns are exactly what changed — so a
-dictionary's tables are `pending` on their own merits, and `force` still travels on the request
-because it belongs to the *rest* of the selection. That is also why the job's `force` records the
-caller's answer rather than `true`: claiming the run was forced when nobody asked would misreport the
-one flag the jobs board shows.
+**Every table of the dataset runs, and the selection cannot narrow it.** This once read "a
+dictionary's own tables always run; everything else keeps the ordinary rule" — the skip being right
+for a table nothing changed and wrong for one whose columns are exactly what changed. With no file
+read there is no "own tables" any more: the plan **is** the dataset, so all of them are `pending` on
+their own merits. `force` still travels and the job still records the caller's answer rather than
+`true`, because claiming a run was forced when nobody asked would misreport the one flag the jobs
+board shows. `objects` still travels too, and still covers tables in *other* datasets.
 
 **A dictionary is staged per dataset**, keyed by dataset id in `useSchemaUploadStore`, because one
 slot would silently replace the previous reader's file with the next one. They are sent **together**,
@@ -1586,12 +1622,15 @@ would put that decision in the one place that cannot see whether the first half 
 **forced**: the normal rule skips an already-profiled table because re-running over unchanged columns
 does nothing, and here the columns are exactly what changed.
 
-**The file travels as text in a JSON body, not as multipart.** The browser reads it with
-`File.text()`, so this zero-dependency server needs no multipart parser for what is a text file
-either way — and `readJson`'s 1 MB cap then applies to the whole body, which `schemaFileProblem`
-checks against *before* sending so an oversized file is a sentence naming its size rather than a
-request the server drops mid-stream (which surfaces as "failed to fetch" and sends a reader looking
-for a server that is fine).
+**The file no longer travels at all — only its name does.** It used to be posted as text in a JSON
+body (`File.text()`, so this zero-dependency server needed no multipart parser), which put it under
+`readJson`'s 1 MB cap and made `schemaFileProblem` check the size *before* sending so an oversized
+file was a sentence rather than a request dropped mid-stream. **Both the size and the empty check
+are gone with the bytes**: refusing a large file for a body that is never sent would refuse one that
+works, and the sentence "over the … a request carries" would describe a request that no longer
+exists. `SCHEMA_MAX_BYTES` went with them, because a constant nothing reads is an invitation for the
+check to come back. What survives is the **extension** check — a claim about the kind of file the
+control asks for, not about what a parser could digest.
 
 **Three things an upload can take away, and the plan still computes all three** — the columns
 themselves (`dropped`), a curator's note written against one of them (`orphaned_notes`), and, the

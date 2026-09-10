@@ -336,11 +336,17 @@ export const useMailDocumentsStore = create<MailDocumentsState>()((set, get) => 
 
 /* ---------------- Uploading a data dictionary ---------------- */
 
-/** A dictionary that has been read and is waiting for Start Profiling. */
+/** A dictionary that has been picked and is waiting for Start Profiling. */
 export interface StagedDictionary {
   filename: string
-  /** The file's own text, kept so the write sends exactly what the read reported on. */
-  text: string
+  /**
+   * The plan the server answered with — the *dataset's* tables and columns, not the file's.
+   *
+   * **The file's text used to be staged beside it and is not any anymore.** Nothing reads the
+   * file: the upload is a showcase and the run profiles what the document already holds, so
+   * carrying a copy of the bytes through the store would be keeping something no request sends.
+   * It also lifts the 1 MB body cap off the act — the browser no longer posts the file at all.
+   */
   plan: SchemaPreviewPayload
 }
 
@@ -368,7 +374,7 @@ interface SchemaUploadState {
    */
   read: (
     sourceId: string,
-    input: { filename: string; text: string; dataset_id: string },
+    input: { filename: string; dataset_id: string },
   ) => Promise<Result>
   /**
    * Writes every staged dictionary and returns **the one run** it queued.
@@ -432,7 +438,7 @@ export const useSchemaUploadStore = create<SchemaUploadState>()((set, get) => ({
         reading: null,
         staged: {
           ...state.staged,
-          [input.dataset_id]: { filename: input.filename, text: input.text, plan },
+          [input.dataset_id]: { filename: input.filename, plan },
         },
       }))
       return { ok: true }
@@ -452,7 +458,6 @@ export const useSchemaUploadStore = create<SchemaUploadState>()((set, get) => ({
       const result = await applySchemaUpload(sourceId, {
         dictionaries: entries.map(([dataset_id, entry]) => ({
           filename: entry.filename,
-          text: entry.text,
           dataset_id,
         })),
         objects,

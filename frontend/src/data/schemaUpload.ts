@@ -19,36 +19,34 @@ export const SCHEMA_EXTENSIONS = ['.json', '.csv', '.tsv', '.sql', '.ddl', '.txt
 /** What the `<input type="file">` filters on. */
 export const SCHEMA_ACCEPT = SCHEMA_EXTENSIONS.join(',')
 
-/**
- * The largest file this will send, and it is the **server's** limit rather than a number chosen
- * here: `readJson` refuses a body over 1 MB, and the file travels inside a JSON body as a string.
- *
- * Checked before sending, so an oversized file is a sentence naming its size rather than a request
- * the server drops mid-stream — which surfaces as "failed to fetch" and sends a reader looking for a
- * server that is fine. A little under 1 MB, because the JSON envelope and the escaping of the text
- * are part of the body too.
+/*
+ * **`SCHEMA_MAX_BYTES` and its `kb()` formatter stood here and are gone.** They existed because the
+ * file's text was posted inside a JSON body and `readJson` caps that at 1 MB, so an oversized file
+ * had to be refused in the browser rather than dropped mid-stream. The upload sends no bytes at
+ * all now, so the cap has nothing to cap — and a constant nothing reads is an invitation for the
+ * check to come back on a request that could not hit it.
  */
-export const SCHEMA_MAX_BYTES = 900_000
-
-const kb = (bytes: number) => `${Math.round(bytes / 1000).toLocaleString()} KB`
 
 /**
- * Why this file cannot be sent, or `null`.
+ * Why this file cannot be accepted, or `null`.
  *
- * The two things a browser can know without a round trip: whether the extension is one the reader
- * handles, and whether the body would fit. Everything else about the file is the parser's to say,
- * and the preview is where it says it.
+ * **One check, and it is about the kind of file rather than its contents.** The extension is all a
+ * browser can judge without opening the file, and nothing opens it: the upload is a showcase and
+ * the run profiles what the document already holds, so a `.png` is refused because the control says
+ * *Upload dictionary*, not because a parser would choke on it.
+ *
+ * **The size and empty checks went with the parse.** Both existed because the file's bytes were
+ * posted in a JSON body and `readJson` caps that at 1 MB — so an oversized file had to become a
+ * sentence here rather than a request the server dropped mid-stream. No bytes are sent now, so
+ * refusing a large or empty file would be refusing one that works, and the size sentence
+ * ("over the … a request carries") would be describing a request that no longer exists.
  */
 export function schemaFileProblem(file: { name: string; size: number }): string | null {
   const dot = file.name.lastIndexOf('.')
   const extension = dot < 0 ? '' : file.name.slice(dot).toLowerCase()
   if (!SCHEMA_EXTENSIONS.includes(extension)) {
-    return `${extension || 'A file with no extension'} is not a format this reads. It reads ${SCHEMA_EXTENSIONS.join(', ')} — for a spreadsheet, export the sheet as CSV and upload that.`
+    return `${extension || 'A file with no extension'} is not a dictionary format. This takes ${SCHEMA_EXTENSIONS.join(', ')} — for a spreadsheet, export the sheet as CSV and upload that.`
   }
-  if (file.size > SCHEMA_MAX_BYTES) {
-    return `${file.name} is ${kb(file.size)}, over the ${kb(SCHEMA_MAX_BYTES)} a request carries. Split it by dataset, or upload one table's dictionary at a time.`
-  }
-  if (file.size === 0) return `${file.name} is empty.`
   return null
 }
 
