@@ -8,9 +8,23 @@ import { NAV_ITEMS } from './nav'
 import './App.css'
 
 const SIDER_WIDTH = 258
+/**
+ * The rail left behind when the navigation is hidden — wide enough for the one control that brings
+ * it back, and nothing else.
+ *
+ * Not 0: a collapse with no way out is a one-way door, and the place a reader looks for the way back
+ * is where the sidebar was.
+ */
+const COLLAPSED_WIDTH = 48
 
 export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  /*
+   * Whether the navigation is hidden. Component state, not persisted: a reload bringing the
+   * navigation back is the safer default for the only way around the app, and this is the
+   * "lightweight per-viewer convenience" `localStorage` is for rather than something a page needs.
+   */
+  const [navCollapsed, setNavCollapsed] = useState(false)
   const { pathname } = useLocation()
   const screens = Grid.useBreakpoint()
 
@@ -44,20 +58,28 @@ export default function App() {
           closable={false}
           styles={{ body: { padding: 0 } }}
         >
+          {/* No collapse in the drawer: it hides everything by being shut, and two ways to do
+              one thing is what this repo refuses everywhere else. */}
           <Sidebar onNavigate={() => setDrawerOpen(false)} />
         </Drawer>
       ) : (
         <Layout.Sider
-          width={SIDER_WIDTH}
+          /* antd's own `collapsible` draws an icon-only rail, which is the opposite of what was
+             asked for — the width is driven here and the sidebar decides what it renders. */
+          width={navCollapsed ? COLLAPSED_WIDTH : SIDER_WIDTH}
           theme="light"
           style={{
             position: 'sticky',
             top: 0,
             height: '100vh',
             borderInlineEnd: '1px solid #e9ecf1',
+            transition: 'width .18s ease',
           }}
         >
-          <Sidebar />
+          <Sidebar
+            collapsed={navCollapsed}
+            onToggle={() => setNavCollapsed((open) => !open)}
+          />
         </Layout.Sider>
       )}
 

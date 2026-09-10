@@ -2869,6 +2869,16 @@ Still not authentication — the password is length-checked and nothing more.
 - **One place decides visibility.** `visibleNavItems` in `settingsStore`; the sidebar filters through it
   and nothing else does. `App`'s mobile header reads the *unfiltered* list on purpose — it names the page
   you are on, and a hidden page is still reachable.
+- **The sidebar collapses, and collapsed means *absent*.** `Sidebar` returns early on `collapsed`, so
+  the items, the wordmark and the signed-in card leave the markup — antd's `collapsible` is
+  deliberately not used, because an icon-only rail is a menu a reader cannot read and a screen reader
+  still announces. `App` drives the width (258 → `COLLAPSED_WIDTH` 48, never 0) and the 48px rail keeps
+  `SidebarToggle` — exported for assertion, carrying `aria-label` and `aria-expanded`, its two words in
+  `nav.ts`. The mobile drawer takes none: it hides everything by being shut. Not persisted.
+- **The toggle is `MenuFold`/`MenuUnfold` on a filled button**, not a grey chevron: it was
+  discoverable only by hovering the right pixels. Brand tint, brand border, **`BRAND_INK`** glyph
+  (`BRAND` on `BRAND_SOFT` is 2.91:1), inline from `theme.ts` — `Sidebar.css` already hardcodes an
+  orange of its own, so the stylesheet owns only the glyph size and a brightness hover.
 - **Settings belongs to Platform Admin**, on and **fixed** there, off-but-configurable elsewhere. The
   lock is enforced by the **server**, which refuses a change to a fixed key with a sentence rather than
   ignoring it — a disabled switch is a courtesy to whoever is looking at it, and any other path into the

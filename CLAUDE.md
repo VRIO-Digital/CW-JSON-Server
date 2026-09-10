@@ -4993,6 +4993,34 @@ reordering there plus `npm run seed:settings`.
 entries a persona sees — see Settings below. `App`'s mobile header deliberately looks up the
 *unfiltered* list, because it names the page you are on and a hidden page is still reachable by URL.
 
+**The sidebar also hides, and hidden means *absent*.** Asked for as "make sure all the sidebar menu
+are hidden", which rules out antd's `collapsible`: that draws an icon-only rail, so the menu is still
+there, still announced to a screen reader, and merely unreadable. `Sidebar` returns early instead —
+the items, the wordmark and the signed-in card are not in the markup at all, the rule the Ask history
+rail already keeps. `App` drives the width (`SIDER_WIDTH` 258 → `COLLAPSED_WIDTH` 48) and the sidebar
+decides what it renders.
+
+**What is left is the one control that brings it back**, on a 48px rail rather than at width 0: a
+collapse with no way out is a one-way door, and where the sidebar was is where a reader looks for it.
+`SidebarToggle` is exported so it can be asserted apart from the store-connected shell, carries
+`aria-label` and `aria-expanded` because on that rail the label *is* the whole affordance, and its
+two words live in `nav.ts` beside the items.
+
+**It had to be *findable* before it could be used, which took a second pass.** It was
+`LeftOutlined`/`RightOutlined` on a grey text button — a direction with nothing named, discoverable
+only by hovering the right pixels. Reported from use. It is `MenuFoldOutlined`/`MenuUnfoldOutlined`
+now, which draw a menu with an arrow against it and so name the thing being folded, on a **filled**
+button: the brand tint, the brand border and the brand ink at rest, so it reads as a control at a
+glance. `BRAND_INK` rather than `BRAND` for the glyph, because `BRAND` on `BRAND_SOFT` is 2.91:1 and
+the ink clears 4.5 — the rule this file already states for brand text on a brand wash, and
+`check-docs` recomputes both. **The colours are inline from `theme.ts`**: `Sidebar.css` hardcodes an
+orange of its own that predates the token, and a fourth copy of the brand in a stylesheet is what
+"change the brand in `theme.ts`, not in stylesheets" refuses — so the stylesheet owns only the
+glyph's size and a hover expressed as *brightness*, which needs no second palette. **The mobile drawer takes no collapse** — it hides
+everything by being shut, and two ways to do one thing is what this repo refuses everywhere else.
+The state is the component's and is **not persisted**: a reload bringing the navigation back is the
+safer default for the only way around the app.
+
 **`/reports` is one route, not four.** The React section that had a page per report was
 removed; what is there now is the demo package's authoring prototype, vendored into
 `src/reports/`, which owns its own two-tab navigation and its own library. So a report is not

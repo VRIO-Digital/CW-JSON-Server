@@ -22873,6 +22873,26 @@
   ],
   "graph_use_cases": [
     {
+      "use_case_id": "uc-testdata-mtux7jmg2",
+      "name": "testdata",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai"
+        }
+      ],
+      "metrics": [],
+      "sources": [],
+      "hero_questions": [],
+      "gap_decisions": [],
+      "step": 3,
+      "updated_at": "2026-09-10T02:41:11.665Z"
+    },
+    {
       "use_case_id": "uc-testdata-mtsdyrc94",
       "name": "testdata",
       "status": "committed",

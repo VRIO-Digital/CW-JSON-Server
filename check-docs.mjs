@@ -3938,6 +3938,15 @@ const contrast = (a, b) => {
   return (hi + 0.05) / (lo + 0.05)
 }
 
+/*
+ * The theme's own hexes, read by name — hoisted here beside `contrast` because two claims recompute
+ * a brand contrast now and this file is one long script: a `const` used above its declaration dies
+ * in the temporal dead zone, which takes the whole run with it and prints no summary. That is the
+ * "claim total stops moving" failure recorded twice already, and it is what this move avoids.
+ */
+const themeSrc = read('frontend/src/theme.ts')
+const hexOf = (name) => new RegExp(`${name} = '(#[0-9a-f]{6})'`, 'i').exec(themeSrc)?.[1] ?? ''
+
 /* One canvas component, rendered by both surfaces. A full view with its own drawing would
    be a second truth — the thing this surface exists to avoid — and it was a real risk
    while two canvases existed side by side. */
@@ -9353,6 +9362,8 @@ const settingsSeed = read('backend/scripts/seed-settings.js')
 const settingsStore = read('frontend/src/store/settingsStore.ts')
 const personaPanel = read('frontend/src/components/settings/PersonaPermissionsPanel.tsx')
 const sidebarSrc = read('frontend/src/components/shell/Sidebar.tsx')
+/* The app shell, which drives the sider's width. */
+const appSrc = read('frontend/src/App.tsx')
 
 /*
  * **Every sidebar entry sits under a heading, and the headings are built from what a persona can
@@ -9385,6 +9396,71 @@ expect(
   navItemGroups.length === 0
     ? 'no nav item groups parsed — this check cannot run'
     : `${navPaths.length} items across ${navGroupsDeclared.length} groups`,
+)
+
+/*
+ * **The sidebar hides, and hidden means *absent*.**
+ *
+ * Asked for as "make sure all the sidebar menu are hided", which rules out antd's own
+ * `collapsible` — that draws an icon-only rail, so the menu is still there, still announced to a
+ * screen reader, just unreadable. The whole shell returns early instead: the items, the wordmark
+ * and the signed-in card are not in the markup at all, which is the rule the Ask history rail
+ * already keeps ("collapsed means absent, not hidden").
+ *
+ * **And the one thing left is the way back.** A collapse with no way out is a one-way door, so the
+ * rail keeps a real button carrying the act's name — `aria-label` and `aria-expanded`, because on
+ * that rail the label *is* the whole affordance. Its two words are in `nav.ts` beside the items,
+ * not inline, so they can be asserted without rendering the store-connected shell.
+ */
+expect(
+  'the sidebar collapses to one control, with the menu absent rather than hidden',
+  /export const NAV_COLLAPSE_LABEL = 'Hide navigation'/.test(nav) &&
+    /export const NAV_EXPAND_LABEL = 'Show navigation'/.test(nav) &&
+    /export function SidebarToggle\(\{/.test(sidebarSrc) &&
+    /* The early return is what makes it absent: no menu, no brand, no footer. */
+    /if \(collapsed && onToggle\) \{/.test(sidebarSrc) &&
+    /<div className="sidebar is-collapsed">\r?\n\s*<SidebarToggle collapsed onToggle=\{onToggle\} \/>/.test(
+      sidebarSrc,
+    ) &&
+    /* Non-visual halves, since the collapsed rail has no text beside the icon. */
+    /aria-label=\{label\}/.test(sidebarSrc) &&
+    /aria-expanded=\{!collapsed\}/.test(sidebarSrc) &&
+    /*
+     * **The fold icons, and a fill rather than a bare text button.**
+     *
+     * It was `LeftOutlined`/`RightOutlined` on a grey text button: a direction with nothing named,
+     * discoverable only by hovering the right pixels. Reported from use — "make sure it is
+     * highlighted so that user will get to know it is collapseable". `MenuFold`/`MenuUnfold` draw a
+     * menu with an arrow against it, which names the thing being folded, and the brand tint,
+     * border and ink make it a control at rest.
+     */
+    /icon=\{collapsed \? <MenuUnfoldOutlined \/> : <MenuFoldOutlined \/>\}/.test(sidebarSrc) &&
+    /* Through `codeOnly`: the comment explaining the swap *names* the two icons it replaced. The
+       eighth time this file has recorded that trap, and the eighth time it caught a clause on its
+       first run. */
+    !/LeftOutlined|RightOutlined/.test(codeOnly(sidebarSrc)) &&
+    /background: BRAND_SOFT,/.test(sidebarSrc) &&
+    /border: `1px solid \$\{BRAND\}`,/.test(sidebarSrc) &&
+    /color: BRAND_INK,/.test(sidebarSrc) &&
+    /*
+     * **And the glyph is readable on its own fill, recomputed rather than trusted.** `BRAND` on
+     * `BRAND_SOFT` is 2.91:1, so the ink is what a brand-coloured mark on a brand wash has to use —
+     * the same rule the selected persona option follows, applied to the one control the collapsed
+     * rail has. The border only has to separate the button from the white sidebar, which is a 3:1
+     * job.
+     */
+    contrast(hexOf('BRAND_INK'), hexOf('BRAND_SOFT')) >= 4.5 &&
+    contrast(hexOf('BRAND'), '#ffffff') >= 3 &&
+    /* The colours come from the theme, not a fourth orange in the stylesheet. */
+    /import \{ BRAND, BRAND_INK, BRAND_SOFT \} from '\.\.\/\.\.\/theme'/.test(sidebarSrc) &&
+    !/#f4562b|#9e3819|#fdeae4/.test(read('frontend/src/components/shell/Sidebar.css')) &&
+    /* The shell drives the width and antd's own collapse is deliberately not used. */
+    /const COLLAPSED_WIDTH = 48/.test(appSrc) &&
+    /width=\{navCollapsed \? COLLAPSED_WIDTH : SIDER_WIDTH\}/.test(appSrc) &&
+    !/collapsible/.test(codeOnly(appSrc)) &&
+    /* The drawer takes no collapse: it hides everything by being shut. */
+    /<Sidebar onNavigate=\{\(\) => setDrawerOpen\(false\)\} \/>/.test(appSrc),
+  'an icon-only rail is a menu a reader cannot read and a screen reader still announces',
 )
 
 const loginPage = read('frontend/src/pages/LoginPage.tsx')
@@ -11232,8 +11308,6 @@ expect(
  *
  * Weight is asserted too, because colour alone is what this repo refuses everywhere else.
  */
-const themeSrc = read('frontend/src/theme.ts')
-const hexOf = (name) => new RegExp(`${name} = '(#[0-9a-f]{6})'`, 'i').exec(themeSrc)?.[1] ?? ''
 const brandInk = hexOf('BRAND_INK')
 const brandSoft = hexOf('BRAND_SOFT')
 expect(
