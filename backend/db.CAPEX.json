@@ -23011,132 +23011,45 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-waste-management-mtvcucxg3",
+      "use_case_id": "uc-waste-management-mtvfb41u1",
       "name": "Waste Management",
       "status": "draft",
       "domain_id": "capital-projects",
-      "business_need": "sfs",
+      "business_need": "tyy",
       "personas": [
         {
-          "name": "Compliance Lead",
-          "description": "Asks what the regulatory drivers oblige and what they cost.",
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
           "source": "ai"
-        }
-      ],
-      "metrics": [],
-      "sources": [],
-      "hero_questions": [],
-      "gap_decisions": [],
-      "step": 3,
-      "updated_at": "2026-09-10T09:58:50.783Z"
-    },
-    {
-      "use_case_id": "uc-waste-management-mtv6pl9o2",
-      "name": "Waste Management",
-      "status": "draft",
-      "domain_id": "capital-projects",
-      "business_need": "test123",
-      "personas": [
+        },
         {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "name": "Procurement Lead",
+          "description": "Asks what has been awarded, what has changed since award, and to whom.",
           "source": "ai"
-        }
-      ],
-      "metrics": [],
-      "sources": [],
-      "hero_questions": [],
-      "gap_decisions": [],
-      "step": 3,
-      "updated_at": "2026-09-10T07:07:13.815Z"
-    },
-    {
-      "use_case_id": "uc-www-mtub7v2v2",
-      "name": "www",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "testsssww",
-      "personas": [
+        },
         {
-          "name": "Project Manager",
-          "description": "Asks where a single project stands against its own plan.",
+          "name": "Finance Executive",
+          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
+          "source": "ai"
+        },
+        {
+          "name": "Programme Director",
+          "description": "Asks which projects are slipping and what that does to the programme envelope.",
           "source": "ai"
         }
       ],
       "metrics": [
-        {
-          "name": "Forecast Bud Consumed at Completions",
-          "description": "Forecast Bud Consumed at Completion = [Total_Anticipated_Cost] / [Most Recent Budget Plan in PeopleSoft (Value)]",
-          "source": "ai"
-        },
         {
           "name": "Current Month Budget Variance",
           "description": "Variance = Actual(Current Month) − Budget(Current Month)",
           "source": "ai"
         }
       ],
-      "sources": [
-        {
-          "source_id": "bigquery:northline_epbcs",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "Which contractors' projects overrun most often?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "What is committed but not yet incurred, by project and by vendor?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 5,
-      "updated_at": "2026-09-10T07:34:32.374Z"
-    },
-    {
-      "use_case_id": "uc-testsdata-mtv645lj4",
-      "name": "testsdata",
-      "status": "draft",
-      "domain_id": "capital-projects",
-      "business_need": "testdata",
-      "personas": [
-        {
-          "name": "Procurement Lead",
-          "description": "Asks what has been awarded, what has changed since award, and to whom.",
-          "source": "ai"
-        }
-      ],
-      "metrics": [],
       "sources": [],
       "hero_questions": [],
       "gap_decisions": [],
-      "step": 3,
-      "updated_at": "2026-09-10T06:50:29.987Z"
-    },
-    {
-      "use_case_id": "uc-hgjhjh-mtv1j50w3",
-      "name": "hgjhjh",
-      "status": "draft",
-      "domain_id": "capital-projects",
-      "business_need": "hgjhgjhgj",
-      "personas": [
-        {
-          "name": "Finance Executive",
-          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
-          "source": "ai"
-        }
-      ],
-      "metrics": [],
-      "sources": [],
-      "hero_questions": [],
-      "gap_decisions": [],
-      "step": 3,
-      "updated_at": "2026-09-10T04:42:15.007Z"
+      "step": 4,
+      "updated_at": "2026-09-10T12:04:12.681Z"
     }
   ],
   "graph_use_case_templates": [
@@ -63392,7 +63305,7 @@
         ],
         "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:05.270Z"
+        "updated_at": "2026-09-07T10:50:03.156Z"
       },
       {
         "entity_id": "ent-plan-plan-project-budget-mtmpaekc3",
@@ -63405,6 +63318,58 @@
         "attributes": [],
         "relationships": [
           {
+            "target_table_key": "plan.plan_version_master",
+            "from_columns": [
+              "Version"
+            ],
+            "to_columns": [
+              "Version"
+            ],
+            "relationship_type": "LINKED_BY_VERSION",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Version, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_version_master states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_account_dim",
+            "from_columns": [
+              "Account"
+            ],
+            "to_columns": [
+              "Account"
+            ],
+            "relationship_type": "LINKED_BY_ACCOUNT",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Account, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_account_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_phase_dim",
+            "from_columns": [
+              "Phase"
+            ],
+            "to_columns": [
+              "Phase"
+            ],
+            "relationship_type": "LINKED_BY_PHASE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Phase, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_phase_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_calendarization",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_calendarization states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
             "target_table_key": "plan.plan_project_forecast",
             "from_columns": [
               "Project Code"
@@ -63415,11 +63380,89 @@
             "relationship_type": "LINKED_BY_PROJECT_CODE",
             "cardinality_hint": "1:N",
             "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_project_forecast states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
-            "confirmed_by": "adaeze.okonjo@vriodigital.com"
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_mtp_multiyear",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_mtp_multiyear states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.vw_project_plan_capex",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "N:1",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, vw_project_plan_capex holds 4,500 distinct values over 4,500 rows.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_monthly_spread",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_monthly_spread states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_resource_dim",
+            "from_columns": [
+              "Resource"
+            ],
+            "to_columns": [
+              "Resource"
+            ],
+            "relationship_type": "LINKED_BY_RESOURCE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Resource, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_resource_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_optimization_profile",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_optimization_profile states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_monthly_spread",
+            "from_columns": [
+              "Version"
+            ],
+            "to_columns": [
+              "Version"
+            ],
+            "relationship_type": "testdata",
+            "cardinality_hint": "1:N",
+            "rationale": "",
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-10T08:02:09.613Z"
+        "updated_at": "2026-09-10T02:23:12.048Z"
       },
       {
         "entity_id": "ent-plan-plan-account-dim-mtmpcohv4",
@@ -63431,7 +63474,7 @@
         "attributes": [],
         "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:42.432Z"
+        "updated_at": "2026-09-07T10:50:08.210Z"
       },
       {
         "entity_id": "ent-plan-plan-project-forecast-mtmwszpw4",
@@ -63441,9 +63484,22 @@
         "business_purpose": null,
         "grain_description": null,
         "attributes": [],
-        "relationships": [],
+        "relationships": [
+          {
+            "target_table_key": "plan.plan_version_master",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "N:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_forecast holds 0 distinct values, plan_version_master holds 0 distinct values."
+          }
+        ],
         "cross_attributes": [],
-        "updated_at": "2026-09-10T07:59:49.816Z"
+        "updated_at": "2026-09-08T08:06:33.886Z"
       },
       {
         "entity_id": "ent-plan-cw-program-master-mtqyoymt6",
@@ -63467,7 +63523,7 @@
         "attributes": [],
         "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:50.752Z"
+        "updated_at": "2026-09-07T12:30:27.331Z"
       },
       {
         "entity_id": "ent-plan-plan-scenario-dim-mtr8bxcn4",
@@ -63480,7 +63536,7 @@
         "attributes": [],
         "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:52.258Z"
+        "updated_at": "2026-09-10T02:24:26.367Z"
       },
       {
         "entity_id": "ent-plan-plan-monthly-spread-mtrb5dg32",
@@ -63493,134 +63549,6 @@
         "relationships": [],
         "cross_attributes": [],
         "updated_at": "2026-09-07T14:00:11.091Z"
-      },
-      {
-        "entity_id": "ent-plan-plan-phase-dim-mtubtg382",
-        "confirmed_by": null,
-        "table_key": "plan.plan_phase_dim",
-        "entity_name": "plan_phase_dim",
-        "description": "Entity for plan_phase_dim, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:53.337Z"
-      },
-      {
-        "entity_id": "ent-plan-plan-resource-dim-mtubtgre3",
-        "table_key": "plan.plan_resource_dim",
-        "entity_name": "plan_resource_dim",
-        "description": "Entity for plan_resource_dim, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-09T16:42:13.658Z"
-      },
-      {
-        "entity_id": "ent-plan-plan-mtp-multiyear-mtubtht24",
-        "confirmed_by": null,
-        "table_key": "plan.plan_mtp_multiyear",
-        "entity_name": "plan_mtp_multiyear",
-        "description": "Entity for plan_mtp_multiyear, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:54.710Z"
-      },
-      {
-        "entity_id": "ent-plan-plan-calendarization-mtubtioh5",
-        "confirmed_by": null,
-        "table_key": "plan.plan_calendarization",
-        "entity_name": "plan_calendarization",
-        "description": "Entity for plan_calendarization, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:55.684Z"
-      },
-      {
-        "entity_id": "ent-plan-plan-optimization-profile-mtubtjk76",
-        "confirmed_by": null,
-        "table_key": "plan.plan_optimization_profile",
-        "entity_name": "plan_optimization_profile",
-        "description": "Entity for plan_optimization_profile, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:56.109Z"
-      },
-      {
-        "entity_id": "ent-plan-vw-project-plan-capex-mtubtkan7",
-        "table_key": "plan.vw_project_plan_capex",
-        "entity_name": "vw_project_plan_capex",
-        "description": "Entity for vw_project_plan_capex, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-09T16:42:18.239Z"
-      },
-      {
-        "entity_id": "ent-plan-cw-project-master-mtv7cm3n2",
-        "confirmed_by": null,
-        "table_key": "plan.cw_project_master",
-        "entity_name": "cw_project_master",
-        "description": "Entity for cw_project_master, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:56.978Z"
-      },
-      {
-        "entity_id": "ent-plan-plan-capital-gate-log-mtv7cmeb3",
-        "confirmed_by": null,
-        "table_key": "plan.plan_capital_gate_log",
-        "entity_name": "plan_capital_gate_log",
-        "description": "Entity for plan_capital_gate_log, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-10T07:58:58.320Z"
-      },
-      {
-        "entity_id": "ent-plan-cw-project-gate-log-mtv7cmo84",
-        "confirmed_by": null,
-        "table_key": "plan.cw_project_gate_log",
-        "entity_name": "cw_project_gate_log",
-        "description": "Entity for cw_project_gate_log, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-10T07:24:55.880Z"
-      },
-      {
-        "entity_id": "ent-plan-cw-vendor-master-mtv7cob15",
-        "confirmed_by": null,
-        "table_key": "plan.cw_vendor_master",
-        "entity_name": "cw_vendor_master",
-        "description": "Entity for cw_vendor_master, created to anchor a declared relationship.",
-        "business_purpose": null,
-        "grain_description": null,
-        "attributes": [],
-        "relationships": [],
-        "cross_attributes": [],
-        "updated_at": "2026-09-10T07:24:57.997Z"
       }
     ],
     "suggestions": []
