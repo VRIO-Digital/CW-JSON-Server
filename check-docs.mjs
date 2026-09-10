@@ -3476,18 +3476,53 @@ expect(
   'a declaration made against synthesised columns is stranded by the first dictionary, silently',
 )
 
+/*
+ * **The report is four things narrower than it was, all removed on request**, and what the removal
+ * costs is recorded rather than glossed: the `added` and `dropped` columns, the
+ * stranded-declarations alert, the `re-profiled` tag, and the footer line restating what Start
+ * Profiling does. `dropped` was the only place a reader was told *by name* which columns an upload
+ * would take out, and an upload **replaces** a table's column list rather than merging into it.
+ *
+ * **What is asserted instead is that the removal stopped at the component.** Every field is still
+ * computed in `resolveSchemaUpload` and still on the plan — the same waiting-for-a-caller state
+ * `/change-signals` is in — so this is a narrower reading of one payload rather than a payload that
+ * lost its answers, and re-adding any of it is one block in one file. Both halves matter: served
+ * fields nothing renders is deliberate here, while a *rendered* field the server stopped sending
+ * would be a blank column.
+ *
+ * The `orphaned_notes` alert deliberately stays — it was not named in the request, and it is the
+ * remaining warning that an upload is about to take somebody's typing with it.
+ */
 expect(
-  'the preview names what an upload would drop, and both column counts',
-  /dropped,/.test(server) &&
-    /orphaned_notes: orphanedNotes,/.test(server) &&
+  'the dictionary preview still computes what an upload would drop, and no longer draws it',
+  /*
+   * The server half, untouched. Keyed on the plan row's own shorthand property with its
+   * surrounding lines, never a bare `/dropped,/`: three comments in this file say the word, so the
+   * loose form matched prose and passed over the field being emptied — caught by a break test that
+   * landed and reported MISSED. Assert the fact at its site.
+   */
+  /added: columns\.filter\(\(c\) => !beforeIds\.has\(c\.column_id\)\)/.test(server) &&
+    /\r?\n\s*dropped,\r?\n\s*orphaned_notes: orphanedNotes,/.test(server) &&
     /stranded_declarations: strandedDeclarations,/.test(server) &&
     /catalogued_column_count: existing\?\.columns \?\? columns\.length,/.test(server) &&
-    /* Named in the panel, not counted — the dropped columns and the declarations both. */
-    /\{dropped\.join\(', '\)\}/.test(dictionaryPanel) &&
-    /stranded_declarations\.map/.test(dictionaryPanel) &&
-    /* And the before number is the catalogue's, which is the one on screen. */
+    /* …and still carried through the client's schema, so nothing below the component changed. */
+    /dropped: arrayOf\(str\)/.test(client) &&
+    /stranded_declarations: arrayOf\(str\)/.test(client) &&
+    /* The four the report no longer draws. `codeOnly`, because the comments left in their place
+       name every one of them — the self-documenting-file trap this repo has hit six times. */
+    !/title: 'added'/.test(codeOnly(dictionaryPanel)) &&
+    !/title: 'dropped'/.test(codeOnly(dictionaryPanel)) &&
+    !/stranded_declarations\.map/.test(codeOnly(dictionaryPanel)) &&
+    !/re-profiled/.test(codeOnly(dictionaryPanel)) &&
+    !/schemaUploadCopy\.applyNote/.test(codeOnly(dictionaryPanel)) &&
+    /* The curator-note warning is the one that stays. */
+    /orphaned_notes\.map/.test(dictionaryPanel) &&
+    /* Start Profiling's promise did not disappear with the footer line — it is still printed where
+       that button actually is, so it stopped being said twice rather than stopping being said. */
+    /schemaUploadCopy\.applyNote/.test(catalogPageCode) &&
+    /* And the before number is still the catalogue's, which is the one on screen. */
     /\$\{row\.catalogued_column_count\} → \$\{row\.column_count\}/.test(dictionaryPanel),
-  'a column leaving the dictionary is the one thing a reader has to be able to check before applying',
+  'a rendered field the server stopped sending is a blank column; a served one nothing draws is a choice',
 )
 
 /*
@@ -3654,6 +3689,38 @@ expect(
     /if \(result\.ok\) onReport\(datasetId\)/.test(dictionaryPanelCode) &&
     /schemaUploadCopy\.reviewLabel/.test(dictionaryPanelCode),
   'a report written inside a Modal cannot be asserted, and one drawn twice is two surfaces',
+)
+
+/*
+ * **A dataset row offers the upload control or the staged acts, never both — and never neither.**
+ *
+ * The button used to stay on a staged row relabelled *Replace file*; that was removed on request,
+ * so a row with a file read against it offers its name, *View report* and *Discard* and nothing
+ * else. Swapping a file is Discard then Upload now, which is the honest shape of the act: `staged`
+ * holds one file per dataset, so a replace was discarding the previous plan either way.
+ *
+ * **Both halves, because the dangerous one is silent.** Hiding a control behind a condition is one
+ * edit away from hiding it in the state that needs it — a dataset with nothing staged and no upload
+ * button has no way to upload at all, and nothing would throw. So this asserts the button is gone
+ * from the staged branch *and* that `staged ? null :` is what gates it, which is the only shape
+ * that leaves the empty state drawing one. `replaceLabel` is asserted absent from the copy module
+ * too: a label nothing renders is an invitation for the control to come back.
+ */
+expect(
+  'a staged dataset row drops the upload button, and an empty one keeps it',
+  /* The gate is on `staged`, so the empty branch is the one that draws the button. */
+  /\{staged \? null : \(/.test(dictionaryPanelCode) &&
+    /schemaUploadCopy\.uploadLabel\}/.test(dictionaryPanelCode) &&
+    /* The two acts that stay. */
+    /schemaUploadCopy\.reviewLabel/.test(dictionaryPanelCode) &&
+    /schemaUploadCopy\.discardLabel/.test(dictionaryPanelCode) &&
+    /* Removed at both layers — `codeOnly`, since the comments left behind name the button. */
+    !/replaceLabel/.test(dictionaryPanelCode) &&
+    !/replaceLabel/.test(codeOnly(read('frontend/src/data/schemaUpload.ts'))) &&
+    /* The hidden input stays mounted in both states: it is what the button opens, and remounting
+       it per state would lose the ref between renders. */
+    /ref=\{inputRef\}/.test(dictionaryPanelCode),
+  'a control hidden in the state that needs it leaves a dataset with no way to upload, silently',
 )
 
 /*

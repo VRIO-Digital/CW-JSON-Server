@@ -1,5 +1,5 @@
 import { InboxOutlined } from '@ant-design/icons'
-import { Alert, Button, Flex, Modal, Space, Table, Tag, Typography } from 'antd'
+import { Alert, Button, Modal, Space, Table, Tag, Typography } from 'antd'
 import { useRef } from 'react'
 import type { SourceRow } from '../../api/client'
 import {
@@ -10,7 +10,7 @@ import {
 import { useSchemaUploadStore } from '../../store/catalogStore'
 import { SP } from '../../theme'
 
-const { Text, Paragraph } = Typography
+const { Paragraph } = Typography
 
 /**
  * Uploading a data dictionary **against one dataset**, from that dataset's own row in the browse
@@ -107,18 +107,32 @@ export function DictionaryUploadControl({
         onChange={(e) => void choose(e.target.files?.[0])}
       />
       <Space size={SP.xs} wrap>
-        <Button
-          size="small"
-          icon={<InboxOutlined />}
-          loading={reading === datasetId}
-          onClick={() => inputRef.current?.click()}
-        >
-          {reading === datasetId
-            ? schemaUploadCopy.readingLabel
-            : staged
-              ? schemaUploadCopy.replaceLabel
+        {/*
+          **The upload button is the empty state's control, and a staged dataset no longer draws
+          it.** It used to stay and relabel itself *Replace file*; that was **removed on request**,
+          so a row with a file read against it offers its name, *View report* and *Discard* and
+          nothing else.
+
+          What it costs is one click: swapping a file is now Discard then Upload rather than
+          Replace. That is the honest shape of the act anyway — a replace silently threw away a
+          plan the reader may not have read yet, and `staged` is one slot per dataset, so the
+          discard was happening either way and only the saying of it was missing.
+
+          The hidden `<input>` stays mounted regardless: it is what this button opens, and
+          remounting it per state would lose the ref between renders.
+        */}
+        {staged ? null : (
+          <Button
+            size="small"
+            icon={<InboxOutlined />}
+            loading={reading === datasetId}
+            onClick={() => inputRef.current?.click()}
+          >
+            {reading === datasetId
+              ? schemaUploadCopy.readingLabel
               : schemaUploadCopy.uploadLabel}
-        </Button>
+          </Button>
+        )}
         {staged ? (
           <>
             {/* Neutral: a staged file is not a state of the data. */}
@@ -170,11 +184,15 @@ export function DictionaryPlanReport({ datasetId }: { datasetId: string }) {
           {
             title: 'table',
             dataIndex: 'table_id',
+            /* `new` marks a table this file *declares*, which is the one thing about a row that
+               changes what applying means. The `re-profiled` tag beside it was **removed on
+               request**: `profiled` is still served, and every table in a dictionary is re-profiled
+               anyway — forced, because the columns are exactly what changed — so the tag marked the
+               ordinary case rather than the exceptional one. */
             render: (id: string, row) => (
               <span>
                 <span className="cat-tree-table">{id}</span>{' '}
                 {row.exists ? null : <Tag color="processing">new</Tag>}
-                {row.profiled ? <Tag>re-profiled</Tag> : null}
               </span>
             ),
           },
@@ -197,26 +215,15 @@ export function DictionaryPlanReport({ datasetId }: { datasetId: string }) {
               </span>
             ),
           },
-          {
-            title: 'added',
-            dataIndex: 'added',
-            width: 90,
-            render: (added: string[]) => <span className="pc-num">{added.length}</span>,
-          },
-          {
-            /* Named, not counted: a column about to leave the dictionary is the one thing a reader
-               has to be able to check before applying. */
-            title: 'dropped',
-            dataIndex: 'dropped',
-            render: (dropped: string[]) =>
-              dropped.length === 0 ? (
-                <span className="pc-dash">—</span>
-              ) : (
-                <Text type="warning" style={{ fontSize: 12 }}>
-                  {dropped.join(', ')}
-                </Text>
-              ),
-          },
+          /*
+           * **`added` and `dropped` were the third and fourth columns, and both are gone — removed
+           * on request.** What that costs is stated rather than glossed: `dropped` was the only
+           * place a reader was told, *by name*, which columns an upload would take out of the
+           * dictionary, and an upload **replaces** a table's column list rather than merging into
+           * it. Both fields are still computed and still served on the plan — nothing below this
+           * component changed — so the report is a narrower reading of the same payload, not a
+           * weaker one. Do not restore either without being asked.
+           */
         ]}
       />
 
@@ -231,19 +238,20 @@ export function DictionaryPlanReport({ datasetId }: { datasetId: string }) {
         />
       ) : null}
 
-      {plan.tables.some((t) => t.stranded_declarations.length > 0) ? (
-        <Alert
-          type="warning"
-          showIcon
-          style={{ marginTop: SP.base }}
-          /* Its own alert rather than a line beside the notes: a declared join on a dropped column
-             is a state the Data Modeling write path refuses, so it is a thing to fix rather than a
-             thing to know. */
-          title={`Data Modeling declarations read columns this file does not name, and applying would strand them: ${plan.tables
-            .flatMap((t) => t.stranded_declarations.map((d) => `${t.table_id} — ${d}`))
-            .join('; ')}`}
-        />
-      ) : null}
+      {/*
+        **The stranded-declarations alert stood here and is gone — removed on request.**
+
+        What it said, and what its absence costs: a Data Modeling declaration reads a column *by
+        name*, and `POST /data-model/entities` refuses a join on a column `column_profiles` does not
+        carry — so an upload leaving one out leaves a declaration the write path will no longer
+        accept, findable only by somebody trying to edit that relationship. This alert named each
+        one while it was still a choice. CAPEX's own `capex-plan-dictionary.csv` strands three on
+        `plan_version_master`, which is deliberate in that sample.
+
+        `stranded_declarations` is still computed in `resolveSchemaUpload` and still on every plan
+        row, so nothing below this component changed and re-adding the alert is this block again.
+        **Do not restore it without being asked.**
+      */}
 
       {plan.new_table_count > 0 ? (
         <Paragraph type="secondary" style={{ fontSize: 12.5, marginTop: SP.base }}>
@@ -267,8 +275,12 @@ export function DictionaryPlanReport({ datasetId }: { datasetId: string }) {
  * way back in.
  *
  * **Close is its only act.** A *Start Profiling* here as well would be a second control for one
- * write; the footer states what that button will do instead, which is the promise the reader is
- * being asked to check the table against.
+ * write.
+ *
+ * **The footer used to restate what that button would do, and that line is gone — removed on
+ * request.** `schemaUploadCopy.applyNote` is untouched and still printed where the button actually
+ * is, on the browse panel beside Start Profiling, so the promise did not disappear with the
+ * sentence here: it stopped being said twice.
  */
 export function DictionaryPlanModal({
   datasetId,
@@ -294,14 +306,9 @@ export function DictionaryPlanModal({
       width={schemaUploadCopy.reportWidth}
       destroyOnHidden
       footer={
-        <Flex align="center" gap={SP.md} wrap style={{ textAlign: 'left' }}>
-          <Text type="secondary" style={{ flex: 1, fontSize: 12.5 }}>
-            {schemaUploadCopy.applyNote}
-          </Text>
-          <Button size="small" onClick={onClose}>
-            {schemaUploadCopy.closeLabel}
-          </Button>
-        </Flex>
+        <Button size="small" onClick={onClose}>
+          {schemaUploadCopy.closeLabel}
+        </Button>
       }
     >
       {datasetId ? <DictionaryPlanReport datasetId={datasetId} /> : null}
