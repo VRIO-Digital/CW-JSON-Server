@@ -1,9 +1,74 @@
+/*
+ * Two independent cards on a shared page ground, rather than one flush surface split by a
+ * border — the sidebar and the page are visually separate panels, so each gets its own rounded
+ * corners and shadow. The shell is the fixed-height flex row that holds them both; neither card's
+ * own height comes from its content, or a short page would leave the sidebar's card taller than
+ * the content beside it.
+ */
+.app-shell {
+  display: flex;
+  /* The one remaining gap — the seam between the two cards, which is real page ground on
+     both sides of it and the only place left where a rounded corner still makes sense. */
+  gap: var(--sp-5);
+  height: 100vh;
+  /* No inset on any side — both cards run edge-to-edge with the window. The earlier padding
+     on the right and the bottom left the content card floating short of both, which is the
+     gap this removes; top and left were already flush. */
+  padding: 0;
+  background: #eef1f6;
+  box-sizing: border-box;
+}
+
+/* The sidebar's card. Its width still comes from antd's `Sider` (collapsing between
+   `SIDER_WIDTH` and `SIDER_COLLAPSED_WIDTH`); this only gives that box a card's edges and clips
+   `Sidebar`'s own square corners to match. Square all round now: top, left and bottom are flush
+   with the window on every side that used to carry an inset, and the remaining right edge
+   borders the seam rather than open ground — rounding either corner on that edge would still
+   leave a curve cutting into the flush top or bottom line right beside it. */
+.app-sider-card {
+  height: 100%;
+  border-radius: 0;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+  overflow: hidden;
+  transition: width .2s ease;
+}
+
+.app-sider-card .ant-layout-sider-children {
+  height: 100%;
+}
+
+/*
+ * The content card. `overflow: hidden` plus a flex column is what keeps the card itself at a
+ * fixed height matching the shell — the mobile bar sits in that column as a row of its own, and
+ * only `.app-content` beneath it is the scrolling region, so a long page scrolls *inside* the
+ * card rather than growing it (and the sidebar with it).
+ */
+/* Flush against the window on every side but the left, which borders the seam beside the
+   sidebar card rather than open page ground — square for the same reason the sidebar card is:
+   top and bottom being flush forces every corner along them square, on both cards. */
+.app-content-card {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+  overflow: hidden;
+}
+
 .app-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: var(--sp-7) var(--sp-7) var(--sp-9);
 }
 
-/* antd Layout.Header defaults to a tall dark bar — this is a compact light one. */
+/* A compact light bar, pinned above the scrolling content rather than above the whole page — the
+   card's rounded top corners are what it sits inside now, not the browser viewport. */
 .mobile-bar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: var(--sp-3);
@@ -11,9 +76,6 @@
   padding: 0 var(--sp-4);
   background: #fff;
   border-bottom: 1px solid #e9ecf1;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .mobile-menu-btn {

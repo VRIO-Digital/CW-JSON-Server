@@ -232,9 +232,16 @@
 
 .ng-help {
   display: block;
-  margin-top: var(--sp-2);
   color: #8994a8;
   font-size: 12px;
+}
+
+.ng-attach-row {
+  margin-top: var(--sp-3);
+}
+
+.ng-attach-list {
+  margin-top: var(--sp-2);
 }
 
 .ng-foot {

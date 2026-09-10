@@ -8,9 +8,18 @@ import { NAV_ITEMS } from './nav'
 import './App.css'
 
 const SIDER_WIDTH = 258
+/** antd's own floor for a collapsed `Sider` — the icon rail width, not a number chosen here. */
+const SIDER_COLLAPSED_WIDTH = 80
 
 export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  /*
+   * Desktop only — the mobile `Drawer` already has its own open/closed state, and collapsing to an
+   * icon rail is not a thing a drawer that overlays the page needs: closing it already reclaims the
+   * width. Local state and no persistence, on request: the ask was a working toggle, not a
+   * remembered preference.
+   */
+  const [collapsed, setCollapsed] = useState(false)
   const { pathname } = useLocation()
   const screens = Grid.useBreakpoint()
 
@@ -34,7 +43,7 @@ export default function App() {
     'ContextWeave'
 
   return (
-    <Layout hasSider={!isMobile} style={{ minHeight: '100vh' }}>
+    <div className="app-shell">
       {isMobile ? (
         <Drawer
           open={drawerOpen}
@@ -49,21 +58,27 @@ export default function App() {
       ) : (
         <Layout.Sider
           width={SIDER_WIDTH}
+          collapsedWidth={SIDER_COLLAPSED_WIDTH}
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
           theme="light"
-          style={{
-            position: 'sticky',
-            top: 0,
-            height: '100vh',
-            borderInlineEnd: '1px solid #e9ecf1',
-          }}
+          className="app-sider-card"
         >
-          <Sidebar />
+          <Sidebar collapsed={collapsed} />
         </Layout.Sider>
       )}
 
-      <Layout style={{ minWidth: 0 }}>
+      {/*
+        * The content card's own height is fixed to the viewport (via `.app-content-card`), never the
+        * sidebar's collapsed width — the two cards are independent panels side by side, not one
+        * layout that reflows around the other. Only `.app-content` inside it scrolls, so the card's
+        * frame (and anything pinned to its top, like the mobile bar) stays put while a long page
+        * scrolls underneath it.
+        */}
+      <div className="app-content-card">
         {isMobile ? (
-          <Layout.Header className="mobile-bar">
+          <div className="mobile-bar">
             <Button
               icon={<MenuOutlined />}
               onClick={() => setDrawerOpen(true)}
@@ -72,7 +87,7 @@ export default function App() {
             <Typography.Text strong style={{ fontSize: 15 }}>
               {activeLabel}
             </Typography.Text>
-          </Layout.Header>
+          </div>
         ) : null}
 
         {/*
@@ -81,10 +96,10 @@ export default function App() {
           * `<Outlet>` key remounted the components and left the module-level stores holding the
           * previous dataset's rows, which is a mechanism that looks like a guarantee and is not one.
           */}
-        <Layout.Content className="app-content">
+        <div className="app-content scroll-hidden">
           <Outlet />
-        </Layout.Content>
-      </Layout>
-    </Layout>
+        </div>
+      </div>
+    </div>
   )
 }

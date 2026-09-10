@@ -1,3 +1,4 @@
+import { LogoutOutlined } from '@ant-design/icons'
 import { Button, Menu, Typography } from 'antd'
 
 import { useEffect } from 'react'
@@ -21,10 +22,31 @@ import './Sidebar.css'
 export function SidebarFooter({
   identity,
   onSignOut,
+  collapsed,
 }: {
   identity: SessionIdentity
   onSignOut: () => void
+  /** The email, the role and "Sign out"'s label have nowhere to fit in an 80px icon rail — the
+      avatar and a bare icon button are what survive collapsing, not a truncated guess at either. */
+  collapsed?: boolean
 }) {
+  if (collapsed) {
+    return (
+      <div className="sidebar-footer sidebar-footer-collapsed">
+        <span className="sidebar-avatar" aria-hidden="true" title={identity.email}>
+          {identity.initials}
+        </span>
+        <Button
+          type="text"
+          icon={<LogoutOutlined />}
+          onClick={onSignOut}
+          aria-label="Sign out"
+          title="Sign out"
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="sidebar-footer">
       <Typography.Text className="sidebar-footer-label">
@@ -64,10 +86,14 @@ export function SidebarMenu({
   items,
   pathname,
   onPick,
+  collapsed,
 }: {
   items: NavItem[]
   pathname: string
   onPick: (item: NavItem) => void
+  /** antd's own `inlineCollapsed` — an icon rail with no group headings, rather than a second
+      menu this component would have to keep in step with the full one. */
+  collapsed?: boolean
 }) {
   /*
    * Matched against the route *beneath* the dataset segment. `NAV_ITEMS` holds canonical paths
@@ -93,8 +119,9 @@ export function SidebarMenu({
     <Menu
       mode="inline"
       theme="dark"
+      inlineCollapsed={collapsed}
       selectedKeys={selected ? [selected.key] : []}
-      className="sidebar-menu"
+      className="sidebar-menu scroll-hidden"
       items={grouped.map(({ group, members }) => ({
         key: `group:${group}`,
         type: 'group' as const,
@@ -113,7 +140,15 @@ export function SidebarMenu({
   )
 }
 
-export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+export default function Sidebar({
+  onNavigate,
+  collapsed,
+}: {
+  onNavigate?: () => void
+  /** Passed down from `App`'s `Layout.Sider` — absent (never `false`) on the mobile `Drawer`,
+      which has no collapse state of its own to be in. */
+  collapsed?: boolean
+}) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const identity = useAuthStore((s) => s.identity)
@@ -147,18 +182,30 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="sidebar">
       <div className="sidebar-brand">
-        <Typography.Title level={3} className="wordmark">
-          Context<span>Weave</span>
-        </Typography.Title>
+        {collapsed ? (
+          /* "CW" rather than the full wordmark clipped — an 80px rail cannot hold
+             "ContextWeave" at any size worth reading, and a truncated word reads as broken
+             rather than as a deliberately compact mark. */
+          <Typography.Title level={3} className="wordmark wordmark-collapsed" aria-label="ContextWeave">
+            C<span>W</span>
+          </Typography.Title>
+        ) : (
+          <>
+            <Typography.Title level={3} className="wordmark">
+              Context<span>Weave</span>
+            </Typography.Title>
 
-        <Typography.Text className="tagline">
-          FROM DATA TO DECISIONS
-        </Typography.Text>
+            <Typography.Text className="tagline">
+              FROM DATA TO DECISIONS
+            </Typography.Text>
+          </>
+        )}
       </div>
 
       <SidebarMenu
         items={items}
         pathname={pathname}
+        collapsed={collapsed}
         onPick={(item) => {
           navigate(appPath(item.path))
           onNavigate?.()
@@ -170,6 +217,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       {identity ? (
         <SidebarFooter
           identity={identity}
+          collapsed={collapsed}
           onSignOut={() => {
             logout()
             navigate('/login', { replace: true })

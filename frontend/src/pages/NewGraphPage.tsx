@@ -5,6 +5,7 @@ import {
   LockOutlined,
   PlusOutlined,
   SaveOutlined,
+  UploadOutlined,
 } from '@ant-design/icons'
 import {
   App,
@@ -19,6 +20,7 @@ import {
   Spin,
   Tag,
   Typography,
+  Upload,
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -237,6 +239,14 @@ export default function NewGraphPage() {
   const [name, setName] = useState('')
   const [domainId, setDomainId] = useState<string | null>(null)
   const [businessNeed, setBusinessNeed] = useState('')
+  /*
+   * Names only — nothing here is parsed or sent anywhere. There is no endpoint that reads a
+   * document into a brief, so this is the honest version of the sentence beside it: a real
+   * control for attaching a file, kept as a client-side list rather than a promise the mock
+   * server cannot keep. Not part of the saved draft for the same reason: `GraphUseCase` has no
+   * field for it, and inventing one here would silently drop on the next save.
+   */
+  const [attachedFiles, setAttachedFiles] = useState<string[]>([])
   const [personas, setPersonas] = useState<DraftedItem[]>([])
   const [metrics, setMetrics] = useState<DraftedItem[]>([])
   const [sourcePicks, setSourcePicks] = useState<SourcePick[]>([])
@@ -277,6 +287,8 @@ export default function NewGraphPage() {
     setName(u.name)
     setDomainId(u.domainId)
     setBusinessNeed(u.businessNeed)
+    // A saved draft never carried an attachment list — nothing here to restore.
+    setAttachedFiles([])
     setPersonas(u.personas)
     setMetrics(u.metrics)
     setSourcePicks(u.sources)
@@ -323,6 +335,7 @@ export default function NewGraphPage() {
     setName('')
     setDomainId(null)
     setBusinessNeed('')
+    setAttachedFiles([])
     setPersonas([])
     setMetrics([])
     setSourcePicks([])
@@ -604,10 +617,44 @@ export default function NewGraphPage() {
                   onChange={(e) => setBusinessNeed(e.target.value)}
                   placeholder="Maintenance spend on our generation fleet keeps surprising us. We need to understand what drives cost spikes per unit — work orders, contract escalations, outage-driven repairs — and catch them before quarter close."
                 />
-                <span className="ng-help">
-                  You can also drop documents here (strategy memos, metric definitions) —
-                  the AI folds them into the brief.
-                </span>
+
+                <Flex align="center" gap={SP.sm} wrap className="ng-attach-row">
+                  <Upload
+                    multiple
+                    showUploadList={false}
+                    /* No endpoint reads a document into a brief — this records what was
+                       picked and stops there, rather than uploading to nowhere. */
+                    beforeUpload={(file) => {
+                      setAttachedFiles((prev) =>
+                        prev.includes(file.name) ? prev : [...prev, file.name],
+                      )
+                      return Upload.LIST_IGNORE
+                    }}
+                  >
+                    <Button size="small" icon={<UploadOutlined />}>
+                      Upload documents
+                    </Button>
+                  </Upload>
+                  <span className="ng-help">
+                    Strategy memos, metric definitions — the AI folds them into the brief.
+                  </span>
+                </Flex>
+
+                {attachedFiles.length > 0 ? (
+                  <Flex wrap gap={SP.xs} className="ng-attach-list">
+                    {attachedFiles.map((fileName) => (
+                      <Tag
+                        key={fileName}
+                        closable
+                        onClose={() =>
+                          setAttachedFiles((prev) => prev.filter((f) => f !== fileName))
+                        }
+                      >
+                        {fileName}
+                      </Tag>
+                    ))}
+                  </Flex>
+                ) : null}
               </div>
             </Col>
           </Row>

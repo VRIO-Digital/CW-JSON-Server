@@ -34,6 +34,22 @@ body {
   min-height: 100svh;
 }
 
+/*
+ * The app's own scrolling regions (the sidebar menu, the page content, a pinned catalog card)
+ * keep their scroll but not the OS's own scrollbar chrome — a boxy, arrow-capped bar reads as
+ * an untouched browser default sitting on top of an otherwise designed surface. Firefox and
+ * Chromium each need their own property; both just hide the track and thumb, they do not
+ * disable scrolling.
+ */
+.scroll-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 /* Span waterfall bar — an offset duration mark inside an antd Table cell. */
 
 .span-track {

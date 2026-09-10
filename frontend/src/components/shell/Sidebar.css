@@ -16,6 +16,73 @@
   border-bottom: 1px solid #eef2f7;
 }
 
+/* Collapsed rail: the mark centres in the 80px width rather than sitting
+   left-aligned against padding sized for the full-width brand block. */
+.sidebar-brand:has(.wordmark-collapsed) {
+  align-items: center;
+}
+
+.wordmark-collapsed.ant-typography {
+  font-size: 20px !important;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+/* Collapsed rail: antd still renders a group's title node at width 0, but this
+   sheet's own `.ant-menu-item-group-title` rule gives it padding and text —
+   which is what let "E...", "B..." show as clipped labels instead of nothing.
+   A heading with no room for its word is worse than no heading. */
+.sidebar-menu.ant-menu-inline-collapsed .ant-menu-item-group-title {
+  display: none;
+}
+
+/* With the headings gone, the groups need their own separation so the rail
+   does not read as one undifferentiated stack of icons. */
+.sidebar-menu.ant-menu-inline-collapsed .ant-menu-item-group + .ant-menu-item-group {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid #eef2f7;
+}
+
+/* An icon-only item centres in the 80px rail rather than sitting at the
+   full-width row's left inset, and gets a fixed square so the hover/selected
+   wash reads as a button rather than a stretched, off-centre bar. antd's own
+   inline-collapsed rule sets its own width/margin inline, which is why this
+   needs `!important` to actually win rather than losing silently to it. */
+.sidebar-menu.ant-menu-inline-collapsed .ant-menu-item {
+  box-sizing: border-box !important;
+  width: 48px !important;
+  height: 48px !important;
+  line-height: 48px !important;
+  margin: 0 auto !important;
+  padding-inline: 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-menu.ant-menu-inline-collapsed .ant-menu-item .anticon,
+.sidebar-menu.ant-menu-inline-collapsed .ant-menu-item .ant-menu-item-icon {
+  margin-right: 0 !important;
+  margin-inline-end: 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* The list itself defaults to a left inset (antd's own indent for the
+   submenu arrow this menu never has) — zeroed so the 48px squares centre
+   against the rail rather than against an indented row. */
+.sidebar-menu.ant-menu-inline-collapsed .ant-menu-item-group-list,
+.sidebar-menu.ant-menu-inline-collapsed.ant-menu-root {
+  padding-inline-start: 0 !important;
+}
+
+.sidebar-menu.ant-menu-inline-collapsed .ant-menu-title-content {
+  display: none;
+}
+
 .wordmark.ant-typography {
   margin: 0 !important;
   font-size: 30px !important;
@@ -47,6 +114,14 @@
   background: transparent !important;
   border-inline-end: none !important;
   padding: var(--sp-4) var(--sp-3);
+}
+
+/* Collapsed: the rail's own padding is what the 48px item then has to be
+   re-centred inside on top of — dropping it to 0 here is what makes `margin:
+   0 auto` centre against the full 80px width instead of an already-inset box,
+   which is the asymmetry a symmetric inset should not have caused, and did. */
+.sidebar-menu.ant-menu-inline-collapsed {
+  padding-inline: 0 !important;
 }
 
 /* Group heading */
@@ -196,5 +271,16 @@
 .sidebar-identity-role {
   font-size: 12px;
   color: #98a2b3;
+}
+
+/* Collapsed footer: just the avatar and a bare sign-out icon, centred in the
+   80px rail — the email, role and "Sign out" label have nowhere to fit. */
+.sidebar-footer-collapsed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4) 0;
+  border-top: 1px solid #eef2f7;
 }
 
