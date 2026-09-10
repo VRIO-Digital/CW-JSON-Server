@@ -18,7 +18,6 @@ import {
 } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ModelTableSuggestion, SourceRow } from '../../api/client'
-import { suggestionRunNote } from '../../data/dataModelSuggestions'
 import { acceptAllOutcome } from '../../data/pendingSuggestions'
 import {
   confirmedRelationshipsCopy as CONFIRMED_COPY,
@@ -193,25 +192,6 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     Record<string, ModelTableSuggestion>
   >({})
   const [suggesting, setSuggesting] = useState(false)
-  const [suggestError, setSuggestError] = useState<string | null>(null)
-  const [suggestDegraded, setSuggestDegraded] = useState(false)
-  /*
-   * What the last run served, by kind. Held rather than counted off `pending`, because that list is
-   * filtered against what is already declared — a suggestion the run produced and the tab dropped as
-   * already-covered still happened, and a sentence about the run has to describe the run.
-   */
-  const [suggestCounts, setSuggestCounts] = useState<{
-    recorded: number
-    derived: number
-  } | null>(null)
-  /*
-   * What a cut run left out, or `null`. **Both numbers come from the reply** — the total the scan
-   * found and how many rows it actually sent — rather than a copy of the server's cap held here,
-   * which would be a second answer to how long the list is.
-   */
-  const [suggestTruncated, setSuggestTruncated] = useState<
-    { total: number; shown: number } | null
-  >(null)
   /*
    * **Which tables the last run found nothing to join, or `null` before one has been made.**
    *
@@ -702,24 +682,13 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
   const runSuggestions = async () => {
     if (!selectedSource) return
     setSuggesting(true)
-    setSuggestError(null)
-    setSuggestDegraded(false)
-    setSuggestTruncated(null)
-    setSuggestCounts(null)
     const result = await suggest(selectedSource.sourceId)
     setSuggesting(false)
     if (!result.ok) {
-      setSuggestError(result.error)
+      message.error(result.error)
       return
     }
     const data = result.data
-    setSuggestDegraded(data.degraded)
-    setSuggestCounts({ recorded: data.recorded_count, derived: data.derived_count })
-    setSuggestTruncated(
-      data.truncated
-        ? { total: data.relationships_total, shown: data.relationships.length }
-        : null,
-    )
     setSuggestOrphans(data.orphan_tables)
     setTableSuggestions((prev) => {
       const next = { ...prev }
@@ -1079,50 +1048,11 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
               </Space>
             </div>
 
-            {suggestError ? (
-              <Alert
-                type="error"
-                showIcon
-                closable
-                onClose={() => setSuggestError(null)}
-                title={`Suggestions failed: ${suggestError}`}
-                style={{ margin: '0 14px 10px' }}
-              />
-            ) : null}
-            {/*
-              * **The server's own `degraded`, in the words it means — and now naming both kinds.**
-              *
-              * It read "structural matches only", which was true while every suggestion was derived
-              * from a column scan and stopped being true the moment this dataset started carrying
-              * recorded ones: a reader looking at a named relationship with a paragraph of reasoning
-              * would have been told it was a structural match. What has not changed is the half that
-              * matters — **no model ran either way** — so that is still said, and the two counts say
-              * which kind produced what is on screen.
-              */}
-            {!suggestError && suggestDegraded ? (
-              <Alert
-                type="info"
-                showIcon
-                closable
-                onClose={() => setSuggestDegraded(false)}
-                title={suggestionRunNote(suggestCounts)}
-                style={{ margin: '0 14px 10px' }}
-              />
-            ) : null}
-            {!suggestError && suggestTruncated !== null ? (
-              <Alert
-                type="warning"
-                showIcon
-                closable
-                onClose={() => setSuggestTruncated(null)}
-                /* **The list was cut, not the tables** — every profiled table was scanned, which is
-                   what makes the orphan count above a fact about the schema. This said "read the
-                   first N tables", and that was the old cap: it left six tables of an eighteen-table
-                   source looking unrelated when all eighteen share an identifier with another. */
-                title={`The scan found ${suggestTruncated.total} suggestions and the review lists the first ${suggestTruncated.shown} — every profiled table was looked at either way, so the orphan count beside it is a fact about the schema rather than about this cut.`}
-                style={{ margin: '0 14px 10px' }}
-              />
-            ) : null}
+            {/* The three banners this canvas used to draw here (a suggest failure, the
+                degraded/no-model note, and the scan-truncated notice) are removed on request —
+                a reader can still tell a run failed from the empty canvas and the toast `suggest`
+                already raises, and the degraded/truncated facts still ride on the payload for
+                anything that reads it later; nothing here composes copy from them any more. */}
 
             <EntityCanvas
               tables={tables}
