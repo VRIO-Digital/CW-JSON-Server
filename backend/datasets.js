@@ -183,16 +183,12 @@ export const MERGE_PLAN = {
    * corpus at all, dropped CAPEX's mail out of `both` entirely. Exactly the silent drop this table
    * exists to prevent, reached by giving the right rule the wrong shape.
    *
-   * `chunk_chars` is single-valued, so it follows the rule every single-valued key here follows and
-   * takes the primary's. EPA states none, so a merged view has none — and `mailChunkFigures` falls
-   * back to `MAIL_CHUNK_CHARS`, which is the honest answer for a view that is not any one dataset.
+   * **There is no `chunk_chars` any more**, which is what makes this a plain union of one list. It
+   * was a declared chunk width, and the tenant's own chunking export does not work that way — the
+   * figure the tile shows is now summed from the documents themselves, so there is nothing
+   * single-valued left in this key to have a rule of its own.
    */
-  mail_corpus: {
-    deep: {
-      chunk_chars: 'primary',
-      documents: { union: 'document_id' },
-    },
-  },
+  mail_corpus: { deep: { documents: { union: 'document_id' } } },
 
   /*
    * The two documents that used to be files of their own, and both are the **tenant's** rather than

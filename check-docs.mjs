@@ -2304,18 +2304,59 @@ expect(
     /mail_corpus: \{/.test(read('backend/datasets.js')) &&
     Array.isArray(datasetDocs.get('CAPEX')?.mail_corpus?.documents) &&
     datasetDocs.get('CAPEX').mail_corpus.documents.length > 0 &&
-    /* Every shipped row carries what the table states, and its chunk count is derived from its own
-       size and the corpus's chunk width rather than typed beside them. */
-    datasetDocs.get('CAPEX').mail_corpus.documents.every(
-      (d) =>
-        d.pages > 0 &&
-        d.size_chars > 0 &&
-        /* Non-empty: `typeof '' === 'string'` is true, so the loose form passed over a row
-           whose snippet had been emptied — the cell a reader recognises the document by. */
-        d.snippet.trim().length > 0 &&
-        d.chunks ===
-          Math.max(1, Math.ceil(d.size_chars / datasetDocs.get('CAPEX').mail_corpus.chunk_chars)),
-    ) &&
+    /*
+     * **Every row is the chunking export's, checked against it rather than described.**
+     *
+     * The corpus was authored once, with page counts and sizes chosen here and each `chunks`
+     * derived from `size_chars / chunk_chars` — which this claim asserted, correctly, for content
+     * this repo was making up. It is a real chunking run now (`backend/data/capex-mail-chunks.json`),
+     * and that derivation is simply false of one: 4,856 characters became six chunks. So there is
+     * nothing to re-derive and everything to *compare* — the export is the one kind of fixture that
+     * can be re-read, so leaving it unchecked would be indefensible.
+     *
+     * The selector is asserted too: only the `EM-*` thread is this tenant's, and the other 17
+     * documents are EPA's (Denka, PCS Nitrogen, Stericycle). Writing those into `db.CAPEX.json`
+     * would put hazardous-waste correspondence in a capital programme's mailbox.
+     */
+    (() => {
+      const corpus = datasetDocs.get('CAPEX').mail_corpus.documents
+      /* The server's own six, so a label added there needs no edit here. */
+      const gmailLabels = [
+        ...(server.match(/const GMAIL_LABELS = \[([^\]]*)\]/)?.[1] ?? '').matchAll(/'([^']+)'/g),
+      ].map((m) => m[1])
+      const exported = JSON.parse(read('backend/data/capex-mail-chunks.json')).documents
+      const em = exported.filter((d) => /^EM-\d+/i.test(d.filename))
+      const byId = new Map(em.map((d) => [d.document_id, d]))
+      return (
+        corpus.length === em.length &&
+        em.length > 0 &&
+        /* Nothing from the other mailbox came through. */
+        corpus.every((d) => byId.has(d.document_id)) &&
+        corpus.every((d) => {
+          const src = byId.get(d.document_id)
+          return (
+            d.name === src.filename &&
+            d.mime_type === src.mime_type &&
+            d.pages === src.page_count &&
+            d.chunks === src.chunk_count &&
+            d.size_chars === src.char_count &&
+            /* The excerpt, quoted — CR stripped, because a stray carriage return is an invisible
+               character in the middle of a clamped two-line cell. */
+            d.snippet === src.excerpt.split('\r').join('').trim() &&
+            d.snippet.trim().length > 0 &&
+            /*
+             * **Filed under a label Gmail itself has**, read off `GMAIL_LABELS` rather than
+             * written down here. A mail document is only reachable through a source whose
+             * allowlist covers its label, so one filed under a label no mailbox can hold is
+             * invisible in the catalogue and in step 4 — and invisible is exactly what a break
+             * test found this claim missing: changing a row's `label_id` to something Gmail does
+             * not have broke nothing.
+             */
+            gmailLabels.includes(d.label_id)
+          )
+        })
+      )
+    })() &&
     /* The tiles: chunks, counted over what was processed. */
     /function mailChunkFigures\(source\)/.test(server) &&
     /documents_chunked/.test(client) &&

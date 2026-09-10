@@ -906,17 +906,36 @@ drive or an inbox.
 > never over what the mailbox holds — which is what the note beside them says, because mail is read
 > on demand and nothing is mirrored.
 >
-> **And a dataset can ship its mail.** `mail_corpus` in `db.CAPEX.json` — authored by
-> `npm run seed:capex-mail` — carries each document's label, page count, character size, chunk
-> count and the opening line a reader recognises it by. Those are facts a hash may not invent, which
-> is why shipping them is the only way the table can state them: a *synthesised* document has no
-> page count and no snippet, and its cells are em dashes rather than plausible figures.
-> `mailDocuments` reads the corpus where a dataset ships one and falls back to the synthesiser
-> otherwise, exactly as `tableDictionary` falls back to `synthesiseColumns`. The seed derives each
-> `chunks` from that document's own size and the corpus's `chunk_chars` and **refuses to write** a
-> row where the arithmetic disagrees — or one whose snippet states a figure, which would be content
-> this server has never read. `MERGE_PLAN` merges it `deep`: the documents union on `document_id`,
-> and `chunk_chars` takes the primary's like every other single-valued key.
+> **And a dataset can ship its mail — CAPEX's is a real chunking run, ingested.**
+> `npm run seed:capex-mail` reads `backend/data/capex-mail-chunks.json`, the export the chunker
+> produced for that mailbox, and writes `mail_corpus` into `db.CAPEX.json`: per document its id,
+> filename, mime type, page count, chunk count, extracted character count and the opening lines of
+> its text. **Every figure the Catalog and step 4 show comes out of that file** — the seed computes
+> none of them, because they are measurements of a real run and inventing one is the small version
+> of a transcribed report figure. `mailDocuments` reads the corpus where a dataset ships one and
+> falls back to the synthesiser otherwise, exactly as `tableDictionary` falls back to
+> `synthesiseColumns`; a *synthesised* document has no page count and no snippet, and its cells are
+> em dashes rather than plausible figures.
+>
+> **Only the `EM-*` documents, which is a decision about whose mail this is.** The export holds 27;
+> ten are headed *"NORTHLINE WATER GROUP · CAPITAL PROGRAMME MAILBOX EXPORT"* and the rest are
+> EPA's (Denka, PCS Nitrogen, Stericycle). Writing those into `db.CAPEX.json` would put
+> hazardous-waste correspondence into a capital programme's mailbox — the dataset bleed this file
+> refuses in both directions. The prefix is the selector because it is what the export uses to mark
+> them, and `check-docs` **re-reads the export and compares every row**: a sample that can be run is
+> the one kind of fixture it would be indefensible to leave unchecked.
+>
+> **This replaced an authored corpus, and the rules changed with it.** That one chose its own page
+> counts and sizes, derived each `chunks` from `size_chars / chunk_chars`, and refused a snippet
+> containing a figure — all correct for content the seed was making up, and all false of a
+> measurement: a real chunker does not chunk by character count (4,856 characters became six
+> chunks), and a figure inside a real excerpt is quoted rather than invented. So `chunk_chars` is
+> gone, and the tile that read it now sums the **extracted characters of what has been processed**,
+> which the export really carries. What survives is every rule about the file being what it claims —
+> the source mailbox, each required field, and that a label is one Gmail actually has, since a
+> document filed under one it does not is invisible in the catalogue rather than wrong on screen.
+> The label is the seed's single choice: the export states none, and `INBOX` is where received mail
+> goes. `MERGE_PLAN` merges the key `deep`, unioning the documents on `document_id`.
 >
 > **A shipped document states no message**, and the payload says so rather than inventing one:
 > `message_id`, `subject`, `from` and `received` are nullable, because a corpus that states

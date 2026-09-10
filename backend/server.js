@@ -2937,15 +2937,26 @@ function mailChunkFigures(source) {
   )
   let documents = 0
   let chunks = 0
+  let chars = 0
   for (const entry of mailDocuments(source)) {
     if (!processed.has(`${entry.label_id}/${entry.document.document_id}`)) continue
     documents += 1
     chunks += entry.document.chunks ?? chunksFor(entry.document)
+    chars += entry.document.size_chars ?? 0
   }
   return {
     documents_chunked: documents,
     chunks_total: chunks,
-    chunk_chars: db.mail_corpus?.chunk_chars ?? MAIL_CHUNK_CHARS,
+    /*
+     * **The extracted text of what has been processed, summed — not a chunk width.**
+     *
+     * The tile reads *"of extracted chunk text"*, and it used to be served a declared 12,000-
+     * character chunk width from the corpus. A real chunker does not chunk by character count —
+     * 4,856 characters of one document became six chunks — so a declared width was a setting the
+     * tenant's own export does not state, and every row's chunk count disagreed with it. This is a
+     * figure the export really carries, per document, and the rows beneath the tile add up to it.
+     */
+    chunk_chars: chars,
   }
 }
 
