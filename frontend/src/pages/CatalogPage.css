@@ -2,10 +2,77 @@
 
 /* ---- Source list ---- */
 
+/*
+ * A card of its own, matching `.cat-detail` beside it, rather than a bare column of source
+ * buttons floating on the page background — two panels side by side read as one layout only
+ * when both have the same edges.
+ *
+ * Pinned while the detail panel beside it scrolls: `.app-content` (the page's own scroll
+ * container) is what `sticky` resolves against, so this card stays in view as a long profiling
+ * tree or dictionary scrolls underneath it. `height: fit-content` is a cap, never a floor — it
+ * stops one or two sources leaving a card that reserves the whole calc'd height as dead white
+ * space beneath them.
+ */
 .cat-list {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  padding: var(--sp-5);
+  background: #fff;
+  border: 1px solid #e9ecf1;
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+  position: sticky;
+  top: 0;
+  height: fit-content;
+  max-height: calc(100vh - var(--sp-5) * 2 - var(--sp-7) * 2);
+  overflow-y: auto;
+  transition: padding 160ms ease, width 160ms ease;
+}
+
+/* Collapsed: a narrow, fixed-width rail rather than whatever fraction the 24-column grid
+   happens to compute at `xl={2}` — a card that only ever holds a 44px icon column should not
+   flex wider or narrower with the viewport. */
+.cat-list.is-collapsed {
+  align-items: center;
+  width: 76px;
+  max-width: 76px;
+  padding-inline: var(--sp-2);
+}
+
+/* The collapse toggle, pinned top-right of the card in both states so it never moves. */
+.cat-list-collapse-btn {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-bottom: var(--sp-1);
+  border: 1px solid #e9ecf1;
+  border-radius: 8px;
+  background: #fff;
+  color: #8994a8;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.cat-list-collapse-btn:hover {
+  border-color: #f4562b;
+  color: #f4562b;
+}
+
+.cat-list.is-collapsed .cat-list-collapse-btn {
+  align-self: center;
+}
+
+/* Collapsed rows: the same button, holding only the connector mark — the id, the name and the
+   meta line have nowhere to fit in an icon rail, so they move to a tooltip instead of clipping. */
+.cat-source-mini {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
 }
 
 .cat-source {
