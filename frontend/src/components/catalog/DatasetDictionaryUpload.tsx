@@ -72,11 +72,15 @@ export function DictionaryUploadControl({
       refuse(datasetId, problem)
       return
     }
-    /* Read straight away. The refusals below it — the parser's — arrive in the store's `error` and
-       print on the panel, where a dialog would have had to be dismissed to reach them. */
+    /*
+     * **The file is not read, and that is the point.** The upload is a showcase: the server answers
+     * with the *dataset's* own tables and columns out of the document, so nothing about the chosen
+     * file is parsed and nothing it contains can reach `column_profiles`. Only its name travels —
+     * `chosen.text()` used to be posted with it and is gone, which also lifts the 1 MB body cap off
+     * an act that no longer sends any bytes.
+     */
     const result = await read(source.sourceId, {
       filename: chosen.name,
-      text: await chosen.text(),
       dataset_id: datasetId,
     })
     /* And show what it says. Only on success: there is no report behind a refusal, and opening an
@@ -173,7 +177,13 @@ export function DictionaryPlanReport({ datasetId }: { datasetId: string }) {
         type="success"
         showIcon
         style={{ marginBottom: SP.base }}
-        title={`Read ${plan.filename} as ${plan.format.toUpperCase()} — ${plan.table_count} table(s), ${plan.column_count} column(s), into ${plan.dataset_id}.`}
+        /*
+          **"Accepted", never "read as CSV".** Nothing parsed the file, so a sentence claiming a
+          format and a table count *out of it* would be the one kind of figure this section refuses
+          — plausible on screen and impossible to check. The counts are the dataset's own, out of
+          the document, and the sentence says so.
+        */
+        title={`Accepted ${plan.filename}. Profiling will run over all ${plan.table_count} table(s) — ${plan.column_count} column(s) — in ${plan.dataset_id}, from this dataset's own dictionary.`}
       />
       <Table
         size="small"

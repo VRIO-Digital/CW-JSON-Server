@@ -4716,7 +4716,7 @@ const SCHEMA_APPLIED_PAYLOAD = shape({
 /** Reads the file and reports what it would do. Writes nothing. */
 export async function previewSchemaUpload(
   sourceId: string,
-  input: { filename: string; text: string; dataset_id: string },
+  input: { filename: string; dataset_id: string },
 ): Promise<SchemaPreviewPayload> {
   return validate<SchemaPreviewPayload>(
     'The schema preview',
@@ -4748,7 +4748,7 @@ export async function previewSchemaUpload(
 export async function applySchemaUpload(
   sourceId: string,
   input: {
-    dictionaries: { filename: string; text: string; dataset_id: string }[]
+    dictionaries: { filename: string; dataset_id: string }[]
     /** The checked tables. Ones a dictionary already covers are not queued twice. */
     objects: { dataset_id: string; table_id: string }[]
     /** Whether an already-profiled table outside the dictionaries should run again. */

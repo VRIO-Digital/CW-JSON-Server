@@ -1055,6 +1055,14 @@ alone.
 
 ### Uploading a schema or a data dictionary
 
+> **The upload is a showcase — the file is not read.** Picking a dictionary makes the server answer
+> with the *dataset's own* tables and columns out of `column_profiles`, and Start Profiling runs over
+> **every table of that dataset** (CAPEX's `plan`: 18 tables, 407 columns, on every press). No bytes
+> leave the browser, nothing is committed, and `added`/`dropped`/`stranded_declarations` come back
+> empty because they genuinely are — this upload replaces no column list. The panel says *accepted*,
+> never *read as CSV*. `parseSchemaDocument` and `resolveSchemaUpload` are dormant, not deleted, and
+> still verified by `npm run verify:schema-import`; the rest of this flow describes them.
+
 **Files:** **Upload dictionary**, on each dataset row of a BigQuery source's browse tree →
 `DatasetDictionaryUpload.tsx` (`DictionaryUploadControl` + `DictionaryPlanReport`) →
 `useSchemaUploadStore` → `POST /sources/:id/schema/preview` and `POST /sources/:id/schema` →

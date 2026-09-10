@@ -3368,6 +3368,15 @@ expect(
   'a class chip nothing can fill, or an identifier nobody declared, are both silent',
 )
 
+/* The write route's own text, sliced once and read by both claims below.
+   **Declared here rather than beside the second of them**: this file is one long script, so
+   definition order is execution order, and a `const` used above its declaration dies in the
+   temporal dead zone — which kills the whole run before its summary, so every claim reports
+   nothing and a break test sees no failures at all. That is exactly what it did once. */
+const schemaWriteRoute =
+  /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\$\/\.test\(p\)[\s\S]*?\n  \},/.exec(server)?.[0] ??
+  ''
+
 /*
  * **Two acts: a read that writes nothing, then one call that writes and profiles.**
  *
@@ -3387,14 +3396,16 @@ expect(
   'the read writes nothing, and the apply writes and profiles in one call',
   /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\\\/preview\$\/\.test\(p\)/.test(server) &&
     /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\$\/\.test\(p\)/.test(server) &&
-    /* One resolver behind both, so what the reader was shown is what lands: one definition and
+    /* One plan builder behind both, so what the reader was shown is what runs: one definition and
        exactly two callers, the preview and the write. Counted rather than matched on the argument
-       list, which the write's own multi-line call and the declaration itself both satisfy — the
-       first version of this counted the declaration as a third caller. */
-    (server.match(/function resolveSchemaUpload\(/g) ?? []).length === 1 &&
-    (server.match(/resolveSchemaUpload\(/g) ?? []).length === 3 &&
-    /* The write is the only one of the two that commits, and it queues the run itself. */
-    /await commitDb\(\{ \.\.\.db, projects, column_profiles: profiles \}\)/.test(server) &&
+       list, which the write's own multi-line call and the declaration itself both satisfy. */
+    (server.match(/function datasetDictionaryPlan\(/g) ?? []).length === 1 &&
+    (server.match(/datasetDictionaryPlan\(/g) ?? []).length === 3 &&
+    /* **Neither act commits now, and that is the change.** The write used to rebuild the document
+       from the parse; the columns it would write are the columns the document already holds, so a
+       commit would replace every value with itself. `commitDb` is untouched and this is simply no
+       longer one of its callers — asserted as an absence in this route rather than a presence. */
+    !/await commitDb\(/.test(schemaWriteRoute) &&
     /* Client: a fetcher and a schema each, validated like a read — a write is rendered like one. */
     /export async function previewSchemaUpload/.test(client) &&
     /export async function applySchemaUpload/.test(client) &&
@@ -3421,9 +3432,6 @@ expect(
  * `profiled_tables` while `profiled_at` still moves), the client has to send them, and the page
  * must not make a second call afterwards.
  */
-const schemaWriteRoute =
-  /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\$\/\.test\(p\)[\s\S]*?\n  \},/.exec(server)?.[0] ??
-  ''
 expect(
   'one press of Start Profiling is one pipeline, over the dictionaries and the selection together',
   schemaWriteRoute.length > 2000 &&
@@ -3433,8 +3441,9 @@ expect(
     /const work = new Map\(\)/.test(schemaWriteRoute) &&
     /if \(work\.has\(key\)\) continue/.test(schemaWriteRoute) &&
     /objects: \[\.\.\.work\.values\(\)\]/.test(schemaWriteRoute) &&
-    /* Client: the selection is part of the write's body. */
-    /dictionaries: \{ filename: string; text: string; dataset_id: string \}\[\]/.test(client) &&
+    /* Client: the selection is part of the write's body. No `text` on it — the file is not read,
+       so its bytes are not posted; see the showcase claim below. */
+    /dictionaries: \{ filename: string; dataset_id: string \}\[\]/.test(client) &&
     /objects: \{ dataset_id: string; table_id: string \}\[\]/.test(client) &&
     /* Page: one call per press. The plain run is the *else* of the staged branch, never after it. */
     /await applyStaged\(source\.sourceId, objects, force\)/.test(catalogPageCode) &&
@@ -3526,19 +3535,68 @@ expect(
 )
 
 /*
- * **A table the upload *declares* has to carry a label and a grain.**
+ * **The upload is a showcase: the file is not read, and every table of the dataset runs.**
  *
- * `validateDb` requires both on every table and they are read straight through to the browse tree
- * and the dictionary, so a table added without them renders as a blank cell rather than raising
- * anything. Neither can be invented: a label is a name and a grain is the sentence "one row per …".
- * Its row count is `null` rather than 0 for the same reason — a dictionary states no row count, and
- * `0` would say the table is empty.
+ * Asked for directly. A reader picks a dictionary, the app acknowledges it, and profiling runs over
+ * the whole dataset from the columns this document already holds — so CAPEX's `plan` is 18 tables
+ * on every press rather than the 12 its sample CSV happened to cover.
+ *
+ * **Three things have to hold together, and each fails a different silent way.**
+ *
+ *  - *Nothing parses.* The two routes call `datasetDictionaryPlan`, never `parseSchemaDocument` —
+ *    a route that still parsed would put the file's columns back into `column_profiles` while the
+ *    panel said the dataset's own were being used.
+ *  - *Nothing is claimed about the file.* The lead sentence says **accepted**, never "read as CSV":
+ *    a format and a table count attributed to a parse that never ran is the plausible, uncheckable
+ *    figure this section refuses everywhere.
+ *  - *No bytes are sent.* The client stops calling `File.text()`, so `text` is off both fetchers'
+ *    inputs — a body still carrying the file would be capped at 1 MB by `readJson` for a field
+ *    nothing reads, refusing a large file for no reason at all.
+ *
+ * `parseSchemaDocument` and `resolveSchemaUpload` stay on disk, dormant, exactly as `/change-signals`
+ * does: the reader is pure and verified offline by `npm run verify:schema-import`, and reading a
+ * file again is calling it from these two routes. **Do not delete either to "finish" this.**
  */
 expect(
-  'a new table needs a label and a grain, and its rows are uncounted rather than zero',
+  'the dictionary upload reads the document, not the file, and profiles every table',
+  /* Built from `column_profiles` rather than a parse — and neither route parses any more. */
+  /function datasetDictionaryPlan\(\{ source, datasetId, filename \}\)/.test(server) &&
+    /const profiled = db\.column_profiles\[`\$\{chosen\}\.\$\{table\.table_id\}`\]/.test(server) &&
+    !/parseSchemaDocument\(/.test(codeOnly(schemaWriteRoute)) &&
+    /* Every table of the dataset, all pending: the plan *is* the dataset's table list. */
+    /const tables = dataset\.tables\.map\(/.test(server) &&
+    /state: 'pending',/.test(schemaWriteRoute) &&
+    /* The empties are honest rather than tidy — this upload replaces no column list. */
+    /Empty because they are, not to look tidy/.test(server) &&
+    /* Accepted, never "read as CSV". */
+    /Accepted \$\{plan\.filename\}\./.test(dictionaryPanel) &&
+    !/Read \$\{plan\.filename\} as/.test(dictionaryPanel) &&
+    /* No bytes leave the browser, at either layer. */
+    !/chosen\.text\(\)/.test(codeOnly(dictionaryPanel)) &&
+    !/text: string; dataset_id: string/.test(client) &&
+    /* And the reader survives, dormant, with its offline verifier still pointed at it. */
+    /export function parseSchemaDocument/.test(read('backend/schemaImport.js')) &&
+    /function resolveSchemaUpload\(/.test(server),
+  'a route that still parsed would write the file\'s columns while the panel named the dataset\'s',
+)
+
+/*
+ * **A table an upload *declares* has to carry a label and a grain — and nothing declares one now.**
+ *
+ * The rule is `resolveSchemaUpload`'s and is unchanged: a label is a name, a grain is the sentence
+ * "one row per …", neither can be invented, and a table added without them renders as a blank cell
+ * rather than raising anything. What changed is that the upload no longer reads the file, so its
+ * plan is the dataset's own tables and **declares nothing** — `new_table_count` is a literal 0 and
+ * the write route has no add-a-table branch left, which is why the old `rows: null` half of this
+ * has nothing to guard. The refusal is asserted where it lives, dormant beside the parser.
+ */
+expect(
+  'a new table needs a label and a grain, and the live upload declares none',
   /is new to this project, so the file has to give it \$\{missing\}/.test(server) &&
     /a grain is what one row of it is/.test(server) &&
-    /rows: null,/.test(server) &&
+    /* The live plan is the dataset, so it can never add a table. */
+    /A plan over a dataset that already exists declares no new table, ever\./.test(server) &&
+    /new_table_count: 0,/.test(server) &&
     /* The dataset is checked against the source's own allowlist, not typed — and it is no longer
        *picked* either: the control sits on the dataset's own row, so the id comes from the row the
        reader uploaded against. A Select asking which dataset, a moment after the reader had been

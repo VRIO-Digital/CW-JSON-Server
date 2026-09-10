@@ -8664,6 +8664,92 @@ function resolveSchemaUpload({ source, parsed, datasetId, filename }) {
 }
 
 /** The plan as the reader sees it — the columns themselves are the write's business, not the preview's. */
+/**
+ * The plan for an upload that **does not read the file** — built from the dataset's own
+ * `column_profiles`, which is where this document already holds every column.
+ *
+ * **Asked for directly: the upload is a showcase.** A reader picks a dictionary, the app
+ * acknowledges it, and profiling runs over the whole dataset from what the document already says.
+ * Nothing about the chosen file is parsed, so nothing about it can be wrong — and nothing it
+ * contains reaches `column_profiles`.
+ *
+ * **What that means for the honesty of the report is the whole of the design.** `added`, `dropped`
+ * and `stranded_declarations` come back **empty, and they are genuinely empty**: this upload
+ * replaces no column list, so nothing is added, nothing leaves, and no declaration can be stranded.
+ * They are not zeroed to look tidy — a plan that claimed 0 dropped while replacing a dictionary
+ * would be the invented figure this repo refuses everywhere. `previous_column_count` and
+ * `column_count` are the same number for the same reason: the dictionary after is the dictionary
+ * before.
+ *
+ * **`format` is the filename's extension, not a parse's verdict.** Nothing inspected the bytes, so
+ * the panel says the file was *accepted* rather than *read as CSV* — a format claimed by a parser
+ * that never ran is exactly the sort of plausible-looking figure that is impossible to check.
+ *
+ * `parseSchemaDocument` and `resolveSchemaUpload` are untouched and still exported — the reader is
+ * pure, verified offline by `npm run verify:schema-import`, and the same waiting-for-a-caller state
+ * `/change-signals` is in. Reading a file again is calling them from the two routes below.
+ */
+function datasetDictionaryPlan({ source, datasetId, filename }) {
+  const allowed = source.datasets ?? []
+  const chosen = datasetId ?? allowed[0]
+  if (!chosen) {
+    throw new Error(
+      'this source has no dataset in its allowlist, so there is nothing to profile against',
+    )
+  }
+  if (!allowed.includes(chosen)) {
+    throw new Error(
+      `dataset ${chosen} is not in this source's allowlist — it covers ${allowed.join(', ')}`,
+    )
+  }
+
+  const project = findProject(source.project_id)
+  const dataset = project?.datasets.find((d) => d.dataset_id === chosen)
+  if (!dataset) {
+    throw new Error(`dataset ${chosen} is not one this source's project carries`)
+  }
+
+  const tables = dataset.tables.map((table) => {
+    /*
+     * The document's own columns where it has them. A table with no entry has never had a
+     * dictionary and its columns are synthesised at read time, so the catalogue's count is the
+     * honest figure for it rather than 0.
+     */
+    const profiled = db.column_profiles[`${chosen}.${table.table_id}`]
+    const columnCount = profiled ? profiled.length : table.columns
+    return {
+      table_id: table.table_id,
+      /* Every one of them exists: this plan is the dataset, so it declares nothing new. */
+      exists: true,
+      profiled: (source.profiled ?? []).some(
+        (p) => p.dataset_id === chosen && p.table_id === table.table_id,
+      ),
+      label: table.label ?? null,
+      grain: table.grain ?? null,
+      column_count: columnCount,
+      previous_column_count: columnCount,
+      catalogued_column_count: table.columns,
+      /* Empty because they are, not to look tidy — nothing here replaces a column list. */
+      added: [],
+      dropped: [],
+      orphaned_notes: [],
+      stranded_declarations: [],
+      columns: profiled ?? [],
+    }
+  })
+
+  return {
+    dataset_id: chosen,
+    /* The filename's own extension. Nothing parsed it; see the note above. */
+    format: (filename ?? '').split('.').pop()?.toLowerCase() || 'file',
+    tables,
+    table_count: tables.length,
+    column_count: tables.reduce((n, t) => n + t.column_count, 0),
+    /* A plan over a dataset that already exists declares no new table, ever. */
+    new_table_count: 0,
+  }
+}
+
 const schemaPlanView = (plan, filename) => ({
   filename,
   format: plan.format,
@@ -10468,13 +10554,18 @@ const routes = [
       const wrong = wrongStructuredOnly(source, 'bigquery', 'a schema upload')
       if (wrong) return send(res, 400, { error: wrong })
 
-      const { filename, text, dataset_id } = await readJson(req)
-      if (!filename || typeof text !== 'string') {
-        return send(res, 400, { error: 'filename and text are both required' })
+      /*
+       * **`text` is accepted and ignored — the file is not read.** Asked for directly: the upload
+       * is a showcase, and what a run profiles is what this document already holds. The field stays
+       * on the contract rather than being refused, so a client that still sends it is not broken by
+       * the change; nothing looks at it.
+       */
+      const { filename, dataset_id } = await readJson(req)
+      if (!filename) {
+        return send(res, 400, { error: 'filename is required' })
       }
       try {
-        const parsed = parseSchemaDocument({ filename, text })
-        const plan = resolveSchemaUpload({ source, parsed, datasetId: dataset_id, filename })
+        const plan = datasetDictionaryPlan({ source, datasetId: dataset_id, filename })
         send(res, 200, { source_id: sourceId, ...schemaPlanView(plan, filename) })
       } catch (error) {
         /* Sent verbatim: every refusal in the parser and the resolver is written as a sentence to
@@ -10534,23 +10625,23 @@ const routes = [
         return send(res, 400, { error: 'objects must be an array of { dataset_id, table_id }' })
       }
       for (const entry of dictionaries) {
-        if (!isObject(entry) || !entry.filename || typeof entry.text !== 'string') {
-          return send(res, 400, { error: 'every dictionary needs a filename and text' })
+        /* `text` is no longer required, because nothing reads it — see the preview route. */
+        if (!isObject(entry) || !entry.filename) {
+          return send(res, 400, { error: 'every dictionary needs a filename' })
         }
       }
 
       /*
-       * Resolved first, all of them, and only then written. A plan is what the reader was shown, so
-       * this is also the one place that guarantees what they read is what lands.
+       * Resolved first, all of them. A plan is what the reader was shown, so this is still the one
+       * place that guarantees what they read is what runs — the file is simply not what it is built
+       * from any more.
        */
       const plans = []
       for (const entry of dictionaries) {
         try {
-          const parsed = parseSchemaDocument({ filename: entry.filename, text: entry.text })
           plans.push(
-            resolveSchemaUpload({
+            datasetDictionaryPlan({
               source,
-              parsed,
               datasetId: entry.dataset_id,
               filename: entry.filename,
             }),
@@ -10570,59 +10661,25 @@ const routes = [
       }
 
       /*
-       * The whole document, rebuilt rather than mutated. `db` is a Proxy over the dataset this
-       * request selected and `commitDb` validates the candidate before anything touches storage, so
-       * every level of this is a new object — editing `db.projects` in place would change the live
-       * document before it had been checked.
+       * **Nothing is written, and there is nothing to write.** This route used to rebuild the whole
+       * document — the catalogue's column counts from the parse, and `column_profiles` from the
+       * file — through `commitDb`. The upload no longer reads the file, so the columns it would
+       * have written are the columns the document already holds: a commit here would replace every
+       * value with itself, and a write that changes nothing is a write that can still fail, still
+       * validates 28 keys, and still makes a stale process hand back its own copy.
+       *
+       * So the act is now the run alone. `commitDb` is untouched and still the only way anything
+       * reaches storage; this is simply no longer one of its callers.
        */
-      const planFor = new Map(plans.map((plan) => [plan.dataset_id, plan]))
-      const projects = db.projects.map((project) => {
-        if (project.project_id !== source.project_id) return project
-        return {
-          ...project,
-          datasets: project.datasets.map((dataset) => {
-            const plan = planFor.get(dataset.dataset_id)
-            if (!plan) return dataset
-            const byTable = new Map(plan.tables.map((t) => [t.table_id, t]))
-            const updated = dataset.tables.map((table) => {
-              const plannedTable = byTable.get(table.table_id)
-              /* The advertised column count and the dictionary have to agree — `check-docs` asserts
-                 it per table, and a Catalog claiming 12 columns over a dictionary of 47 is the same
-                 two-answers fault everywhere else here refuses. */
-              return plannedTable ? { ...table, columns: plannedTable.column_count } : table
-            })
-            const added = plan.tables
-              .filter((t) => !t.exists)
-              .map((t) => ({
-                table_id: t.table_id,
-                /* Non-null for a new table — `resolveSchemaUpload` refuses one without both. */
-                label: t.label,
-                grain: t.grain,
-                type: 'TABLE',
-                /* **Null, not 0.** Nobody has counted this table's rows: a dictionary states what a
-                   column means and never how many rows there are, and `0` would say the table is
-                   empty. The browse payload already carries `rows` nullable for exactly this. */
-                rows: null,
-                columns: t.column_count,
-              }))
-            return { ...dataset, tables: [...updated, ...added] }
-          }),
-        }
-      })
-
-      const profiles = { ...db.column_profiles }
-      for (const plan of plans) {
-        for (const table of plan.tables) {
-          profiles[`${plan.dataset_id}.${table.table_id}`] = table.columns
-        }
-      }
-
-      await commitDb({ ...db, projects, column_profiles: profiles })
 
       /*
-       * One work list, dictionaries first. Keyed `dataset::table` so a table the reader also had
-       * checked is not queued twice — the dictionary's entry wins, because it is the one that must
-       * run whatever the ordinary skip rule would say.
+       * **Every table of the dataset runs, every time.** Asked for directly — a dictionary upload
+       * profiles the whole dataset rather than the subset a file happened to name, so CAPEX's
+       * `plan` is 18 tables on every press rather than the 12 its sample CSV covered.
+       *
+       * They are all `pending` on their own merits, which is the rule a dictionary's own tables
+       * already had: the ordinary skip exists because re-running over unchanged columns does
+       * nothing, and it is the wrong rule for the act a reader just asked for by name.
        */
       const work = new Map()
       for (const plan of plans) {
@@ -10632,7 +10689,6 @@ const routes = [
             object_id: table.table_id,
             label: table.table_id,
             units: table.column_count,
-            /* Every one of them runs: the dictionary is what changed. */
             state: 'pending',
           })
         }
