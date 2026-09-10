@@ -387,6 +387,14 @@ export interface SourceRow {
   profiledToday: number
   /** The server's own day, so the count above is checkable rather than assumed. */
   profiledTodayDate: string
+  /**
+   * A mailbox's chunk figures, and **null on every other connector** rather than 0 — a project does
+   * not hold chunks, and 0 would say it holds none. Counted over what has been *processed*, never
+   * over what the mailbox holds, which is what the note beside the tiles says.
+   */
+  documentsChunked: number | null
+  chunksTotal: number | null
+  chunkChars: number | null
   datasets: string[]
   /** The folder allowlist. Drive sources only; empty for everything else. */
   folders: string[]
@@ -423,6 +431,9 @@ interface RawSourceRow {
   profiled_today: number
   /** The server's own day, so the count above is checkable rather than assumed. */
   profiled_today_date: string
+  documents_chunked: number | null
+  chunks_total: number | null
+  chunk_chars: number | null
   datasets: string[]
   folders: string[]
   labels: string[]
@@ -603,6 +614,12 @@ export interface ProfilingJob {
   stage_index: number
   stage_total: number
   stage_label: string
+  /**
+   * Every stage this job's connector runs, in order — the server's `MAIL_PIPELINE`/`PIPELINE`/
+   * `DOC_PIPELINE` as `pipelineFor` decides it. Carried so a surface narrating a run lists the
+   * server's stages rather than a copy of its own, which would go stale silently.
+   */
+  stages: string[]
   /** Pre-formatted "3/5: Class inference". */
   pipeline: string
   progress: number
@@ -848,15 +865,26 @@ export interface ProfiledMailDocument {
   mime_type: string
   size_kb: number
   label: string
-  message_id: string
-  subject: string
-  from: string
-  from_name: string
-  to: string
-  to_name: string
-  direction: 'sent' | 'received'
-  received: string
-  /** Chunked off its size, since an attachment states no page count. */
+  /*
+   * **Null where a dataset ships its mail.** `mail_corpus` states the documents and says nothing
+   * about the messages they arrived on; inventing those would synthesise what shipping replaced.
+   */
+  message_id: string | null
+  subject: string | null
+  from: string | null
+  from_name: string | null
+  to: string | null
+  to_name: string | null
+  direction: 'sent' | 'received' | null
+  received: string | null
+  /**
+   * What the Catalog's table states per row, and **null for a synthesised document** — nothing
+   * counted the pages of a document nothing wrote, so the cell is an em dash rather than a figure.
+   */
+  pages: number | null
+  size_chars: number | null
+  snippet: string | null
+  /** The corpus's own where it states one, else chunked off the size. */
   chunks: number
   entity_count: number
   pii_count: number
@@ -1641,8 +1669,18 @@ export interface GraphSourceObject {
    * compiler is satisfied by a value that lies.
    */
   units: number | null
-  /** "columns", "entities", or "messages". */
+  /** "columns", "entities", or "chunks". */
   unitLabel: string
+  /**
+   * What a mail document's row states beside its name.
+   *
+   * **Null on every other connector, and null for a synthesised mail document too** — nothing
+   * counted the pages of a document nothing wrote, so the row prints neither rather than a figure
+   * that looks as reasonable as a measured one.
+   */
+  pages: number | null
+  sizeChars: number | null
+  snippet: string | null
 }
 
 export interface GraphSource {
@@ -2012,6 +2050,9 @@ const SOURCE_ROW = shape({
   profiled_entities: nullable(num),
   profiled_today: num,
   profiled_today_date: str,
+  documents_chunked: nullable(num),
+  chunks_total: nullable(num),
+  chunk_chars: nullable(num),
   datasets: arrayOf(str),
   folders: arrayOf(str),
   labels: arrayOf(str),
@@ -2029,6 +2070,9 @@ const SOURCES_PAYLOAD = shape({
   profiled_entities: num,
   profiled_today: num,
   profiled_today_date: str,
+  documents_chunked: nullable(num),
+  chunks_total: nullable(num),
+  chunk_chars: nullable(num),
 })
 
 const BROWSE_PAYLOAD = shape({
@@ -2102,6 +2146,7 @@ const JOB = shape({
   stage_index: num,
   stage_total: num,
   stage_label: str,
+  stages: arrayOf(str),
   pipeline: str,
   progress: num,
   object_count: num,
@@ -2326,14 +2371,28 @@ const MAIL_DOCUMENTS_PAYLOAD = shape({
           mime_type: str,
           size_kb: num,
           label: str,
-          message_id: str,
-          subject: str,
-          from: str,
-          from_name: str,
-          to: str,
-          to_name: str,
-          direction: oneOf(['sent', 'received']),
-          received: str,
+          /*
+           * **Nullable, because a shipped corpus states documents and not the mail they arrived
+           * on.** A dataset that ships `mail_corpus` says what each document is; inventing the
+           * message it came in would synthesise exactly what shipping it replaced. A synthesised
+           * mailbox still fills all of these.
+           */
+          message_id: nullable(str),
+          subject: nullable(str),
+          from: nullable(str),
+          from_name: nullable(str),
+          to: nullable(str),
+          to_name: nullable(str),
+          direction: nullable(oneOf(['sent', 'received'])),
+          received: nullable(str),
+          /*
+           * What the Catalog's table states per row. **Null for a synthesised document** rather
+           * than a plausible figure: nothing counted the pages of a document nothing wrote, and an
+           * em dash is the honest cell.
+           */
+          pages: nullable(num),
+          size_chars: nullable(num),
+          snippet: nullable(str),
           chunks: num,
           entity_count: num,
           pii_count: num,
@@ -2485,6 +2544,14 @@ const GRAPH_SOURCES_PAYLOAD = shape({
            */
           units: nullable(num),
           unit_label: str,
+          /*
+           * What a document row states beside its name. **Null everywhere but a mailbox**, and
+           * null there too for a synthesised document — nothing counted the pages of a document
+           * nothing wrote, so the row prints neither rather than a plausible figure.
+           */
+          pages: nullable(num),
+          size_chars: nullable(num),
+          snippet: nullable(str),
         }),
       ),
     }),
@@ -2610,6 +2677,7 @@ const DERIVATION_PAYLOAD = shape({
   stage_index: num,
   stage_total: num,
   stage_label: str,
+  stages: arrayOf(str),
   progress: num,
   revealed: arrayOf(str),
   entity_total: num,
@@ -3310,9 +3378,26 @@ export class ApiError extends Error {
  * was tried, and by which method. A GET that works while a PATCH fails is a different fault from a dead
  * server, and only the URL says which.
  */
+/**
+ * What a thrown `fetch` means, and it is deliberately **three** possibilities rather than one.
+ *
+ * **The old wording named only the first** — *"Start it with npm run mock"* — and that is wrong
+ * advice more often than it is right: a browser throws the same `TypeError: Failed to fetch` for a
+ * server that is down, for a request the browser refused to send, and for a CORS preflight the
+ * server answered badly. Two of those are unaffected by starting anything, and a reader following
+ * the sentence restarts a server that was fine and is no closer. Reported from use, twice.
+ *
+ * So it names all three and points at the two places that can actually tell them apart: the mock
+ * server's own log, which prints a line for every write and every refusal — **no line at all means
+ * the request never arrived** — and the browser console, which is the only place the real reason is
+ * written down.
+ */
 const unreachable = (method: string, url: string) =>
   `Cannot reach the mock server — ${method} ${url} did not complete. ` +
-  'Start it with npm run mock (port 4000), check that address is the one you expect, then try again.'
+  'Either it is not running (npm run mock, port 4000), or the browser refused to send the ' +
+  'request, or the CORS preflight failed. The server logs every write and every refusal: if no ' +
+  'line appears there for this call, it never arrived — and the browser console says which of ' +
+  'the two it was.'
 
 async function request<T>(
   path: string,
@@ -3926,6 +4011,8 @@ export async function listSources(): Promise<{
   profiledEntities: number
   profiledToday: number
   profiledTodayDate: string
+  /* No chunk figures here: they are one mailbox's, and a sum across every source would be a
+     tenant-wide chunk count nothing on screen asks for. They ride on the source row instead. */
 }> {
   const payload = await request<unknown>('/sources')
 
@@ -3954,6 +4041,9 @@ export async function listSources(): Promise<{
     profiled_entities: number
     profiled_today: number
     profiled_today_date: string
+  documents_chunked: number | null
+  chunks_total: number | null
+  chunk_chars: number | null
   }>('The sources list', payload, SOURCES_PAYLOAD)
 
   return {
@@ -3971,6 +4061,9 @@ export async function listSources(): Promise<{
       profiledEntities: s.profiled_entities,
       profiledToday: s.profiled_today,
       profiledTodayDate: s.profiled_today_date,
+      documentsChunked: s.documents_chunked,
+      chunksTotal: s.chunks_total,
+      chunkChars: s.chunk_chars,
       datasets: s.datasets,
       folders: s.folders,
       labels: s.labels,
@@ -4184,20 +4277,45 @@ export async function browseMailDocuments(
   )
 }
 
-/** Mail's twin of `profileDocuments`, checked against the same job shape. */
+/**
+ * Mail's twin of `profileDocuments`, checked against the same job shape.
+ *
+ * **`objects` is omitted, and omitting it is what says "the whole mailbox".** Gmail's act is one
+ * *Process documents* button, so there is nothing for a reader to pick and nothing for this to
+ * send. An empty array would not do instead: the route would then have no way to tell "profile
+ * nothing" from "profile everything", and the two are opposite requests.
+ */
 export async function profileMailDocuments(
   sourceId: string,
-  objects: { label_id: string; document_id: string }[],
   force: boolean,
 ): Promise<{ job: ProfilingJob }> {
   return validate<{ job: ProfilingJob }>(
     'The queued profiling job',
     await request<unknown>(
       `/sources/${encodeURIComponent(sourceId)}/profile-mail-documents`,
-      { method: 'POST', body: { objects, force } },
+      { method: 'POST', body: { force } },
     ),
     JOB_STARTED_PAYLOAD,
   )
+}
+
+const MAIL_RUN_PAYLOAD = shape({ source_id: str, job: nullable(JOB) })
+
+/**
+ * The newest mail run for one source — what *Process documents* watches.
+ *
+ * **Its own read rather than a row on the jobs board**, which deliberately excludes `gmail`: a mail
+ * run is narrated on the Catalog surface that started it, and a row on the board as well would be
+ * two places to watch one run. `job` is `null` where nothing has been run, because a reader who has
+ * not pressed the button is not watching anything.
+ */
+export async function getMailRun(sourceId: string): Promise<ProfilingJob | null> {
+  const raw = validate<{ source_id: string; job: ProfilingJob | null }>(
+    'The mail run',
+    await request<unknown>(`/sources/${encodeURIComponent(sourceId)}/mail-run`),
+    MAIL_RUN_PAYLOAD,
+  )
+  return raw.job
 }
 
 export async function getProfiledMailDocuments(
@@ -4987,6 +5105,9 @@ export async function listGraphSources(): Promise<GraphSourcesPayload> {
         /* Null where nothing has counted the object — a Gmail label has no message count. */
         units: number | null
         unit_label: string
+        pages: number | null
+        size_chars: number | null
+        snippet: string | null
       }[]
     }[]
     source_count: number
@@ -5019,6 +5140,9 @@ export async function listGraphSources(): Promise<GraphSourcesPayload> {
         /* Carried through as null, never `?? 0`: nothing counted it, and 0 is a count. */
         units: o.units,
         unitLabel: o.unit_label,
+        pages: o.pages,
+        sizeChars: o.size_chars,
+        snippet: o.snippet,
       })),
     })),
     sourceCount: raw.source_count,
@@ -5026,6 +5150,15 @@ export async function listGraphSources(): Promise<GraphSourcesPayload> {
     runtimeSourceCount: raw.runtime_source_count,
   }
 }
+
+/*
+ * **The mailbox *used-for* fetcher and its payload stood here and are gone.** That description is
+ * kept in the browser now, on request: the `PATCH` never reached the server in the environment this
+ * runs in — four attempts, none transferring a byte, while the same call succeeded from `curl` —
+ * and a value with a home in `localStorage` must not also have one on a source, or the two come to
+ * disagree. `src/data/mailUsedFor.ts` is where it lives; restoring the server path is this fetcher,
+ * its schema, the `used_for` field on the sources payload and the route that writes it.
+ */
 
 export const suggestMetrics = (input: {
   domainId: string | null

@@ -17,7 +17,12 @@ import {
 } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ProfilingJob, SourceRow } from '../api/client'
-import { useBrowseStore, useJobsStore, useSchemaUploadStore } from '../store/catalogStore'
+import {
+  useBrowseStore,
+  useJobsStore,
+  useMailProcessStore,
+  useSchemaUploadStore,
+} from '../store/catalogStore'
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import ConnectorIcon from '../components/common/ConnectorIcon'
@@ -27,7 +32,7 @@ import {
   DictionaryUploadControl,
 } from '../components/catalog/DatasetDictionaryUpload'
 import DocumentBrowsePanel from '../components/catalog/DocumentBrowsePanel'
-import MailBrowsePanel from '../components/catalog/MailBrowsePanel'
+import MailProcessPanel from '../components/catalog/MailProcessPanel'
 import NoSourceConnected from '../components/common/NoSourceConnected'
 import PageHeader from '../components/common/PageHeader'
 import ProfiledColumnsPanel from '../components/catalog/ProfiledColumnsPanel'
@@ -393,6 +398,7 @@ function CatalogTab({
    * `profilable` is the server's answer, derived from whether a pipeline exists for the kind. A list
    * that is simply shorter is not a message, so the count is said in words below the list.
    */
+  const { message } = App.useApp()
   const catalogued = useMemo(
     /* Both halves: the server says whether a pipeline exists, and `catalogUnitsFor` says
        whether *this build* knows what to call what it holds. A row past the first test and not
@@ -415,11 +421,42 @@ function CatalogTab({
   /* Non-null for every row in `catalogued` — that is what the filter above guarantees. */
   const units = selected ? catalogUnitsFor(selected.kind) : null
 
+  /*
+   * Gmail's *Process documents*: no selection, so the whole mailbox, and the page owns only the
+   * call. The store holds the in-flight flag; the outcome is a message and a reload, which is what
+   * `onChanged` already does for every other run.
+   */
+  const processing = useMailProcessStore((s) => s.starting)
+  const processMail = useMailProcessStore((s) => s.process)
+  const processDocuments = useCallback(async () => {
+    if (!selected) return
+    const result = await processMail(selected.sourceId, false)
+    if (!result.ok) {
+      message.error(result.error)
+      return
+    }
+    message.success(
+      `Processing ${result.job.objects.length} document(s) from this mailbox.`,
+    )
+    /*
+     * **Deliberately not `onChanged()`.** That re-reads the sources *and switches to Profiling
+     * jobs* — which is right for every other run and wrong for this one: a mail job is excluded
+     * from that board on purpose, so sending a reader there would land them on a list that does
+     * not contain the run they just started. The run is narrated right below this button instead,
+     * by `MailProcessPanel`, which holds the job the store just kept and polls it from here.
+     */
+  }, [selected, processMail, message])
+
   /* Which of the two actions is currently showing its panel. Derived from `panel`
      rather than tracked beside it: two pieces of state for one fact is how a button
-     comes to look pressed with nothing open under it. */
-  const browseOpen = panel === units?.browsePanel
-  const dictionaryOpen = panel === units?.dictionaryPanel
+     comes to look pressed with nothing open under it. **`browsePanel` is `null` for a
+     connector whose first act is a run, and `panel` is never `null`, so `browseOpen`
+     is correctly false for it rather than accidentally true when nothing is open.** */
+  const browseOpen = units?.browsePanel != null && panel === units.browsePanel
+  /* Null-guarded like `browseOpen`: a connector may declare no second panel, and `panel` is
+     never null, so two absent values must not compare equal into a pressed-looking button. */
+  const dictionaryOpen =
+    units?.dictionaryPanel != null && panel === units.dictionaryPanel
   // Keep the selection valid when the list changes underneath.
   useEffect(() => {
     if (selected && selected.sourceId !== activeId) setActiveId(selected.sourceId)
@@ -561,7 +598,10 @@ function CatalogTab({
               <StatBox
                 label={units?.objectsLabel ?? ''}
                 value={String(units?.objectsCount(selected) ?? 0)}
-                note="for this source"
+                /* The connector's own second figure where it has one — Gmail states its chunk
+                   total here — and "for this source" where it does not. Declared beside the
+                   label rather than chosen here, for the reason the fourth tile's note is. */
+                note={units?.objectsNote?.(selected) ?? 'for this source'}
               />
             </Col>
             {/*
@@ -599,24 +639,48 @@ function CatalogTab({
               which a third profilable connector would have had to be added to by hand, and which drew a
               mailbox as a source whose buttons happened to be broken. */}
           <Space wrap size={SP.sm} className="cat-actions">
-            <Button
-              type={browseOpen ? 'primary' : 'default'}
-              aria-pressed={browseOpen}
-              onClick={() =>
-                setPanel(browseOpen ? 'none' : (units?.browsePanel ?? 'none'))
-              }
-            >
-              {units?.browseLabel}
-            </Button>
-            <Button
-              type={dictionaryOpen ? 'primary' : 'default'}
-              aria-pressed={dictionaryOpen}
-              onClick={() =>
-                setPanel(dictionaryOpen ? 'none' : (units?.dictionaryPanel ?? 'none'))
-              }
-            >
-              {units?.dictionaryLabel}
-            </Button>
+            {/*
+              **One button, two kinds of act, decided by the data rather than by a connector name.**
+              A connector whose `browsePanel` is `null` has no panel to open — its first act is a
+              run — so the button *does* the thing instead of toggling. Gmail is the one: its
+              labels are settled by the consent and its documents are whatever was attached, so
+              there was never a selection worth putting to a reader. Testing the connector name
+              here is the ternary `catalogUnits` exists to stop.
+            */}
+            {units && units.browsePanel === null ? (
+              <Button
+                type="primary"
+                loading={processing}
+                onClick={() => void processDocuments()}
+              >
+                {units.browseLabel}
+              </Button>
+            ) : (
+              <Button
+                type={browseOpen ? 'primary' : 'default'}
+                aria-pressed={browseOpen}
+                onClick={() =>
+                  setPanel(browseOpen ? 'none' : (units?.browsePanel ?? 'none'))
+                }
+              >
+                {units?.browseLabel}
+              </Button>
+            )}
+            {/* Withheld where the connector declares no second panel — Gmail lists its documents
+                on this page, under the run that produced them, so a button opening a second view
+                of them was opening what is already there. An absent control, never a disabled
+                one, which is the rule a Library row's acts already keep. */}
+            {units?.dictionaryPanel ? (
+              <Button
+                type={dictionaryOpen ? 'primary' : 'default'}
+                aria-pressed={dictionaryOpen}
+                onClick={() =>
+                  setPanel(dictionaryOpen ? 'none' : units.dictionaryPanel ?? 'none')
+                }
+              >
+                {units.dictionaryLabel}
+              </Button>
+            ) : null}
             {/* **And there is no third button.** Uploading a data dictionary was one, with a
                 dataset Select inside its panel; it is a control on each dataset's own row in the
                 browse panel now — see `DatasetDictionaryUpload`. One act per button, and the act
@@ -659,12 +723,17 @@ function CatalogTab({
             <ProfiledDocumentsPanel key={`${selected.sourceId}-docs`} source={selected} />
           ) : null}
 
-          {panel === 'browse-mail-documents' ? (
-            <MailBrowsePanel
-              key={`${selected.sourceId}-mail-browse`}
-              source={selected}
-              onProfiled={onChanged}
-            />
+          {/*
+            **Gmail's catalogue is on the page, not behind a button.** Rendered whenever the
+            connector declares no browse panel — the same `null` that turned its first button into
+            an action — so the run it starts is narrated where it was started, and what that run
+            processed is listed underneath. There is nothing to open and nothing to close.
+
+            `ProfiledMailDocumentsPanel` is still on disk with the entity dictionary it draws, and
+            now has no caller: the same waiting-for-a-caller state `/change-signals` is in.
+          */}
+          {units && units.browsePanel === null ? (
+            <MailProcessPanel key={`${selected.sourceId}-mail-run`} source={selected} />
           ) : null}
 
           {panel === 'mail-documents' ? (

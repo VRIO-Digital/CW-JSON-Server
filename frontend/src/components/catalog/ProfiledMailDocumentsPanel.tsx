@@ -274,7 +274,12 @@ export default function ProfiledMailDocumentsPanel({ source }: { source: SourceR
                             </span>
                           </span>
                           <span className="pc-table-meta">
-                            {`${d.entity_count} entities · ${shortDate(d.received)} · ${d.size_kb} KB · ${d.chunks} chunks` +
+                            {/* `received` is null for a shipped corpus, which states documents and not the mail they
+                                arrived on — so the date is dropped from the line rather than printed as
+                                "Invalid Date". */}
+                            {`${d.entity_count} entities` +
+                              (d.received ? ` · ${shortDate(d.received)}` : '') +
+                              ` · ${d.size_kb} KB · ${d.chunks} chunks` +
                               (d.pii_count > 0 ? ` · ${d.pii_count} pii` : '')}
                           </span>
                         </button>

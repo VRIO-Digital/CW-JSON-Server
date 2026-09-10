@@ -49,6 +49,15 @@ export const useGraphDomainsStore = createReadStore<GraphDomainsPayload>(listGra
 export const useGraphSourcesStore =
   createReadStore<GraphSourcesPayload>(listGraphSources)
 
+/*
+ * **There is no store for a mailbox's *used for*, and its absence is the design.** It had one, over
+ * a `PATCH` onto the registered source; the write never reached the server in the environment this
+ * runs in, so on request the value is kept in the browser — read and written directly by
+ * `SourcesStep` through `src/data/mailUsedFor.ts`. Nothing about it is async, so there is no
+ * in-flight state for a store to hold, and putting it in one would be a second home for a value
+ * that already has exactly one.
+ */
+
 interface SuggestState {
   suggestions: Suggestion[]
   /** Distinguishes "not asked yet" from "asked, nothing came back". */

@@ -121,6 +121,7 @@ npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documen
 npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
 npm run seed:data-model # gives a dataset the empty data_model key the Data Modeling tab writes to
 npm run seed:capex-metrics # authors CAPEX's metric pool from the tenant's measure sheet (writes db.CAPEX.json)
+npm run seed:capex-mail # authors CAPEX's mail corpus — pages, chunks, sizes, snippets (writes db.CAPEX.json)
 npm run scale:capex # rescales the rendered CAPEX reports' capital figures (capex-scale.js's factor)
 npm run narrow:capex # lets those reports re-derive over the rows a reader's filters admit
 npm run ingest:queries # re-seeds CAPEX ask_answers from the query set, at the same money scale
@@ -855,6 +856,97 @@ reuses filename stems, so who sent it is how a reader tells two `signed-agreemen
 message carrying no attachment has nothing here to profile at all. `MAIL_PIPELINE`'s last three stages
 are Drive's own, because what an extractor does to a PDF does not depend on whether it arrived in a
 drive or an inbox.
+
+> **Gmail's whole catalogue is one surface, and the run is narrated on it.** Pressing *Process
+> documents* draws a progress bar and the pipeline's stages beneath it — each row done, running or
+> pending — and the documents it processed are listed under that, with their pages, chunks, size
+> and status. There is no second button: *View profiled documents* was **removed on request**,
+> because it opened a second view of what is already on the page. `MailProcessPanel` is that
+> surface and `dictionaryPanel` is `null` on Gmail's row, so the control is withheld by there being
+> no panel rather than by a connector name.
+>
+> **A mail run is not on the Profiling jobs board**, on request. `GET /profiling-jobs` filters
+> `kind !== 'gmail'`, and the surface polls `GET /sources/:id/mail-run` instead — one place to watch
+> one run, which is the two-surfaces-for-one-record rule this file keeps everywhere. Queueing a mail
+> run therefore does **not** switch to the jobs tab the way every other run does: sending a reader
+> to a board that deliberately cannot contain their run is worse than not sending them anywhere. The
+> job is still queued, stepped and committed by exactly the same machinery — only the listing leaves
+> it out, and the panel's one interval is gated on the run being in flight.
+>
+> **The stage list is the server's**: `jobView` sends `stages` off `pipelineFor`, so adding one to
+> `MAIL_PIPELINE` adds a row on screen and a list held in the component could not go stale. The
+> **percentage is the job's own position**, never a timer — a bar filling on a clock is an
+> operation narrating work nobody did.
+>
+> **`MAIL_PIPELINE` is seven stages, and it is the one that is not five.** The other two are kept
+> equal so a job row reads the same on the board; this one is watched stage by stage, so it says
+> more. The seven are the tenant's own words, **given as a list and asserted verbatim** — *Reading
+> documents · Classifying passages · Extracting entities & relations · Building relation vocabulary
+> · Canonicalising relations · Pruning · Assembling the graph* — and they are **Gmail's alone**:
+> `PIPELINE` and `DOC_PIPELINE` are untouched, because a table is sampled and a filed document is
+> extracted, and neither of those is what happens to mail.
+>
+> **The last stage was reworded once and then asked for verbatim, which is worth recording.** It read
+> *Recording observations*, on the reasoning that nothing a mail run lands reaches the published
+> graph — true, and enforced where it lives: `RUNTIME_KINDS` holds `gmail` alone and
+> `selectedProfiledObjects` skips a runtime source **by name**, so step 6 derives nothing from it
+> however a stage is labelled. The rule was never carried by the wording, which is why the wording
+> could go back.
+>
+> **What the label needed was the note beneath it to say *which* graph.** It assembles the
+> document's own entities and relations, held together as an observation of that attachment; none of
+> it is merged into the published knowledge graph, and `mailProcessCopy.note` says exactly that.
+> Without it the panel would argue with itself — a stage crediting a graph and a sentence one line
+> below denying one — which is the fault the *Curated by AI* rename records: each keeps the half
+> with teeth, and here the falsifiable half is the destination (step 4 says this source derives no
+> entities, and the canvas carries no node from it).
+>
+> **The tiles state chunks**: *documents chunked* (with the chunk total beneath it), *chunked
+> today*, and the *chunk size* the corpus declares. All counted over what has been **processed**,
+> never over what the mailbox holds — which is what the note beside them says, because mail is read
+> on demand and nothing is mirrored.
+>
+> **And a dataset can ship its mail.** `mail_corpus` in `db.CAPEX.json` — authored by
+> `npm run seed:capex-mail` — carries each document's label, page count, character size, chunk
+> count and the opening line a reader recognises it by. Those are facts a hash may not invent, which
+> is why shipping them is the only way the table can state them: a *synthesised* document has no
+> page count and no snippet, and its cells are em dashes rather than plausible figures.
+> `mailDocuments` reads the corpus where a dataset ships one and falls back to the synthesiser
+> otherwise, exactly as `tableDictionary` falls back to `synthesiseColumns`. The seed derives each
+> `chunks` from that document's own size and the corpus's `chunk_chars` and **refuses to write** a
+> row where the arithmetic disagrees — or one whose snippet states a figure, which would be content
+> this server has never read. `MERGE_PLAN` merges it `deep`: the documents union on `document_id`,
+> and `chunk_chars` takes the primary's like every other single-valued key.
+>
+> **A shipped document states no message**, and the payload says so rather than inventing one:
+> `message_id`, `subject`, `from` and `received` are nullable, because a corpus that states
+> documents and not the mail they arrived on is not a corpus with missing fields.
+
+> **Gmail's catalogue act is one button now: *Process documents*, over the whole mailbox.** Asked
+> for directly, replacing the label -> message -> document tree with checkboxes. `MailBrowsePanel`
+> is deleted; `browsePanel` is **`null`** on Gmail's `catalogUnits` row, which is what makes the
+> page draw an action instead of a panel toggle — never a connector name in the component, which is
+> the ternary that table exists to stop.
+>
+> **A mailbox is the one connector whose selection was never a real choice**: its labels are settled
+> by the consent, its messages arrive rather than being filed, and its documents are whatever
+> somebody attached. Offering to process a subset of somebody's mail is not a decision the Data
+> Catalog is in a position to put to a reader.
+>
+> **`objects` is optional on `POST …/profile-mail-documents`, and absent means the whole mailbox.**
+> An empty array is deliberately *not* how that is said — "profile nothing" and "profile
+> everything" are opposite requests, and a route that could not tell them apart would answer one
+> with the other. Every document comes back `pending`: the ordinary skip is the wrong rule for an
+> act a reader just asked for by name, exactly as it is for a dictionary's own tables. A mailbox
+> with no attachment anywhere is a refusal rather than an empty job, which would read as a run that
+> finished instantly.
+>
+> **A `force` re-run posts no object list either**, because a mail job *is* the whole mailbox — so
+> re-running one is running the mailbox again, the same set by the same route.
+> `GET /sources/:id/browse-mail-documents` and `browseMailDocuments` survive with no caller, the
+> same waiting-for-a-caller state `/change-signals` is in. **Do not delete them to "finish" this.**
+>
+> The paragraphs below describe the corpus that button runs over, which is unchanged.
 
 **A message with nothing attached is still listed, marked as such.** An absent row would say the
 message does not exist rather than that it has nothing to profile, and which mail carries documents is
@@ -2228,6 +2320,46 @@ Two rules the copy on the page promises, and the code has to keep:
   disabled, because "not profiled yet" and "not connected" are different problems
   and only the user can fix either. `mode: 'all'` is stored rather than expanded,
   so a table profiled later is included without editing the draft.
+
+- **A mailbox picks *documents* at this step, and says what it is used for.** Asked for directly,
+  replacing a label picker. A label is what the consent happened to reach; a **processed document**
+  is what a use case can actually draw on, and the catalogue states its pages, chunks and size — so
+  those are what a reader ticks between, each with the opening line it is recognised by. Ticking
+  every box records **`mode: 'all'`**, not a subset that happens to hold everything: the two look
+  identical and are different promises, since `all` picks up a document processed after the draft
+  was saved.
+
+  **And a mailbox says what it is for**, in a *USED FOR* box with an Edit dialog. Two mailboxes look
+  alike — an address says whose mail it is and nothing about what it holds — so a use case drawing
+  on one has to be able to say which, and the person picking it is who knows. The prompt asks for it
+  *"the way the questions will be asked, not as a job title"*, because that is how a question-time
+  reader will recognise it. Empty **clears** it: refusing that would leave a reader unable to
+  withdraw a description they no longer stand behind.
+
+  **It is kept in the browser, under `contextweave.mailboxUsedFor`, and that was a retreat.** It was
+  a `PATCH` onto the registered source, which is where everything else a reader types against a
+  source lives — and in the environment this runs in that request never reached the server: four
+  attempts, none transferring a byte, while the identical call succeeded from `curl` over both IPv4
+  and IPv6 and the preflight answered 204 with PATCH allowed. Moved to `localStorage` **on
+  request**, and the server half went with it — the route, the served field, the schema entry and
+  the fetcher — because a value with a home in the browser must not also have one on a source, or
+  the two disagree and only one of them is on screen.
+
+  **What that costs is stated on the dialog**, in the words *"Kept in this browser only — it does
+  not travel with the draft"*: another reader of the same brief does not see it, and clearing site
+  data loses it. Every access is wrapped, because `localStorage` throws outright in a private window
+  rather than merely coming back empty — and a refusal is **reported**, since there is no server
+  copy left to fall back on and a silent success would be the one lie this dialog could tell.
+  `USED_FOR_MAX` (1000) stays the server's number restated in `src/data/mailUsedFor.ts`, and
+  `check-docs` still holds the two together: the cap is about what the field is *for*, not about
+  where it happens to be kept.
+
+  **None of this changes where a mail extraction may travel.** The source is still `runtime`, step 6
+  still skips it by name, and the note under the list still says it derives no entities. The old
+  guard here asserted the payload reported *labels with `units: null`* on the reasoning that a real
+  count would imply derivability — that reasoning turned out to be carried by the skip and the
+  served flag rather than by a unit count, which is why the listing could change and the guarantee
+  could not.
 
 - **Except a runtime source, which is selectable the moment it is connected.**
   `RUNTIME_KINDS` is declared beside `PROFILERS` and holds `gmail` alone. The two used to be
@@ -5307,6 +5439,15 @@ Each has a full entry in `docs/REGRESSIONS.md`.
 - **A failing `check-docs` claim is a live fault, not background noise.** The
   `.env` bug above sat in a red claim for a whole session while it was dismissed
   as unrelated. Read the red claims before diagnosing anything else.
+- **`Failed to fetch` has three causes, and only the server's log separates them.** A browser
+  throws the same `TypeError` for a server that is down, a request it refused to send, and a CORS
+  preflight answered badly — and two of the three are unaffected by restarting anything. The mock
+  server logs **every write and every refusal** on one line (reads are silent unless refused, so the
+  writes are not buried), printed on `finish` so the status is the one that really went out,
+  including the dispatcher's own 400s and 404s. **No line for the call means it never arrived**, and
+  the browser console is then the only place the reason is written down. `unreachable()` in
+  `client.ts` names all three rather than promising that `npm run mock` is the fix.
+
 - **A stale mock server answers with the old shape.** Editing `server.js` or a
   payload shape needs a restart, which also clears every registered source. When
   output looks impossibly wrong, check the server's age before your own code —

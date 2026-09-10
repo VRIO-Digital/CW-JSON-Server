@@ -24,6 +24,7 @@
     "seed:prototype-model": "npm --prefix backend run seed:prototype-model",
     "seed:data-model": "npm --prefix backend run seed:data-model",
     "seed:capex-metrics": "npm --prefix backend run seed:capex-metrics",
+    "seed:capex-mail": "npm --prefix backend run seed:capex-mail",
     "ingest:graph": "npm --prefix backend run ingest:graph",
     "ingest:whatif": "npm --prefix backend run ingest:whatif",
     "ingest:reports": "npm --prefix backend run ingest:reports",

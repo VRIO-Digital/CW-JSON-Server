@@ -945,6 +945,18 @@ function sourceRow(source) {
      */
     profiled_today: profiledToday(source),
     profiled_today_date: localDateKey(new Date()),
+    /*
+     * **A mailbox's chunk figures, which are what its tiles now state.** Null on every other
+     * connector rather than 0, for the reason `profiled_documents` is: a project does not hold
+     * chunks, and 0 would say it holds none.
+     *
+     * Counted over what has been **processed**, never over what the mailbox holds — the note
+     * beside the tiles says exactly that, and a tile counting the corpus would report work
+     * nothing has done.
+     */
+    ...(isMail
+      ? mailChunkFigures(source)
+      : { documents_chunked: null, chunks_total: null, chunk_chars: null }),
     datasets: source.datasets ?? [],
     folders: source.folders ?? [],
     /* Mail's allowlist, beside the other two rather than left to be parsed out of `scope` —
@@ -2846,7 +2858,58 @@ function mailboxMessages(source) {
  * hashes of the same corpus is three corpora. Keyed by `document_id`, which carries its own
  * message id, so a profiled record needs the label and this id and nothing more.
  */
+/**
+ * How many characters of extracted text go into one chunk, for a dataset that ships no corpus.
+ *
+ * The shipped one states its own (`mail_corpus.chunk_chars`), so this is only the synthesiser's
+ * answer — and it is a *stated* constant rather than a hashed one, because every row's chunk count
+ * is derived from it and two documents of the same size must chunk the same way.
+ */
+const MAIL_CHUNK_CHARS = 12_000
+
+/** How long a mailbox's *used for* sentence may be — the dialog counts against this too. */
+const USED_FOR_MAX = 1000
+
+/**
+ * The mail documents this source's labels reach.
+ *
+ * **A dataset can ship its mail, and CAPEX does.** `mail_corpus` carries the documents a mailbox
+ * holds with the facts a hash may not invent — how many pages, how many characters of text came
+ * out, and the opening line a reader recognises it by. Where a dataset ships one, that is what the
+ * catalogue shows; where it does not, the synthesiser below is the fallback, exactly as
+ * `tableDictionary` falls back to `synthesiseColumns` for a table with no profile.
+ *
+ * **Filtered by the source's own allowlist either way.** A shipped document filed under a label
+ * this source was not pointed at is not in scope, and serving it would show mail the consent never
+ * reached.
+ */
 function mailDocuments(source) {
+  const shipped = db.mail_corpus
+  if (shipped && Array.isArray(shipped.documents)) {
+    const allowed = new Set(source.labels ?? [])
+    return shipped.documents
+      .filter((d) => allowed.has(d.label_id))
+      .map((d) => ({
+        label_id: d.label_id,
+        /* No message level for a shipped corpus: the document is the unit, and inventing the mail
+           it arrived on would be synthesising exactly what shipping it was meant to replace. */
+        message: null,
+        document: {
+          document_id: d.document_id,
+          name: d.name,
+          mime_type: d.mime_type,
+          /* Read, never derived here — the size is the corpus's and the chunk count is checked
+             against it by the seed that wrote them. */
+          pages: d.pages,
+          size_chars: d.size_chars,
+          chunks: d.chunks,
+          snippet: d.snippet,
+          size_kb: Math.max(1, Math.round(d.size_chars / 1000)),
+          entities: d.entities,
+        },
+      }))
+  }
+
   const out = []
   for (const group of mailboxMessages(source)) {
     for (const msg of group.messages) {
@@ -2857,6 +2920,38 @@ function mailDocuments(source) {
   }
   return out
 }
+
+/**
+ * The chunk figures the Catalog's tiles state, for one mailbox.
+ *
+ * **Counted over what has been *processed*, not over what the mailbox holds** — which is what the
+ * tile's own note says ("these counts describe what has been chunked into the catalogue, not the
+ * size of the mailbox"). A tile counting the corpus would report work nothing has done.
+ *
+ * `chunk_chars` is the corpus's where a dataset ships one, so the figure on the tile and the chunk
+ * counts on the rows beneath it come from one number.
+ */
+function mailChunkFigures(source) {
+  const processed = new Set(
+    (source.profiled_mail_docs ?? []).map((p) => `${p.label_id}/${p.document_id}`),
+  )
+  let documents = 0
+  let chunks = 0
+  for (const entry of mailDocuments(source)) {
+    if (!processed.has(`${entry.label_id}/${entry.document.document_id}`)) continue
+    documents += 1
+    chunks += entry.document.chunks ?? chunksFor(entry.document)
+  }
+  return {
+    documents_chunked: documents,
+    chunks_total: chunks,
+    chunk_chars: db.mail_corpus?.chunk_chars ?? MAIL_CHUNK_CHARS,
+  }
+}
+
+/** A synthesised document's chunk count, from the same rule the shipped corpus is checked against. */
+const chunksFor = (doc) =>
+  Math.max(1, Math.ceil((doc.size_chars ?? (doc.size_kb ?? 1) * 1000) / MAIL_CHUNK_CHARS))
 
 /** One document by id, within a label. Null for one this source's scope does not reach. */
 const findMailDocument = (source, labelId, documentId) =>
@@ -2888,8 +2983,12 @@ function mailDocumentDictionary(source, labelId, msg, doc) {
   const vocab = db.document_vocabulary
   const offset = hash(doc.document_id) % vocab.length
   const notes = source.mail_document_notes ?? {}
-  /* Chunked off its size, since an attachment states no page count. */
-  const chunks = Math.max(1, Math.round(doc.size_kb / 40))
+  /*
+   * **The document's own chunk count where the dataset shipped one**, and the synthesiser's rule
+   * otherwise. One number either way: the tile's total is the sum of these, so a row deriving its
+   * chunks differently from the corpus that states them would make the two disagree.
+   */
+  const chunks = doc.chunks ?? chunksFor(doc)
 
   // Suffixed on collision within this document, for the reason tableDictionary explains.
   const used = new Map()
@@ -2924,15 +3023,28 @@ function mailDocumentDictionary(source, labelId, msg, doc) {
     mime_type: doc.mime_type,
     size_kb: doc.size_kb,
     label: labelId,
-    /* The message it arrived on — the mail equivalent of a folder path. */
-    message_id: msg.message_id,
-    subject: msg.subject,
-    from: msg.from,
-    from_name: msg.from_name,
-    to: msg.to,
-    to_name: msg.to_name,
-    direction: msg.direction,
-    received: msg.received,
+    /*
+     * **The message it arrived on, where there is one.** A synthesised corpus builds the mail and
+     * hangs documents off it; a *shipped* corpus states the documents and says nothing about the
+     * messages, so these are `null` there rather than invented — inventing the mail a shipped
+     * document arrived on is synthesising exactly what shipping it replaced.
+     */
+    message_id: msg?.message_id ?? null,
+    subject: msg?.subject ?? null,
+    from: msg?.from ?? null,
+    from_name: msg?.from_name ?? null,
+    to: msg?.to ?? null,
+    to_name: msg?.to_name ?? null,
+    direction: msg?.direction ?? null,
+    received: msg?.received ?? null,
+    /*
+     * What the Catalog's table states per row. `pages` and `size_chars` are the corpus's own and
+     * are **null for a synthesised document**, never a plausible figure: nothing counted the pages
+     * of a document nothing wrote, and an em dash is the honest cell. `snippet` is the same.
+     */
+    pages: doc.pages ?? null,
+    size_chars: doc.size_chars ?? null,
+    snippet: doc.snippet ?? null,
     chunks,
     entity_count: entities.length,
     pii_count: entities.filter((e) => e.pii).length,
@@ -2989,12 +3101,35 @@ const DOC_PIPELINE = [
  * The stages are a document's work as a result, and the last three are Drive's own — what an
  * extractor does to a PDF does not depend on whether it arrived in a drive or an inbox.
  */
+/*
+ * **Mail's pipeline is seven stages, and it is the one that is not five.**
+ *
+ * The other two are kept equal so a job row reads the same whichever connector ran it; this one is
+ * narrated on the Catalog page itself, stage by stage, while it runs — so its stages are what a
+ * reader watches rather than a row on a board, and there are more of them because there is more to
+ * say about a document than about a table.
+ *
+ * **These seven are the tenant's own words, given as a list, and they are Gmail's alone.** `PIPELINE`
+ * and `DOC_PIPELINE` are untouched: a table is sampled and a filed document is extracted, and
+ * neither of those is what happens to mail.
+ *
+ * **The last stage is "Assembling the graph", and what that graph is matters.** It is the document's
+ * own — the entities and relations this run canonicalised out of one attachment, held together as
+ * an observation of it. It is **not** the tenant's published knowledge graph, and nothing here
+ * reaches one: `RUNTIME_KINDS` holds `gmail` alone and `selectedProfiledObjects` skips a runtime
+ * source *by name*, so step 6 derives no element from any of this however much of it a run lands.
+ * That guarantee is enforced where it lives rather than by what a stage is called, which is why the
+ * label could take the tenant's wording without the rule moving — and `mailProcessCopy.note` states
+ * the destination in words beneath the stages, so a reader is not left inferring it from one.
+ */
 const MAIL_PIPELINE = [
-  'Attachment fetch',
-  'Text extraction',
-  'Entity extraction',
-  'Document PII detection',
-  'Topic classification',
+  'Reading documents',
+  'Classifying passages',
+  'Extracting entities & relations',
+  'Building relation vocabulary',
+  'Canonicalising relations',
+  'Pruning',
+  'Assembling the graph',
 ]
 
 /**
@@ -3250,6 +3385,16 @@ const jobView = (job) => {
     stage_index: job.stage_index,
     stage_total: stages.length,
     stage_label: job.stage_label,
+    /*
+     * **The stage names, so a surface can list them rather than keeping its own copy.**
+     *
+     * `stage_total` says how many there are and `stage_label` says which one is running, which is
+     * all a one-line job row on the board needs. Gmail's Catalog surface narrates the whole
+     * pipeline while it runs, and a list held in that component would be a second answer to what
+     * this connector's stages are — stale the moment `MAIL_PIPELINE` changed, and silently, since
+     * a wrong stage name still renders. Sent from `pipelineFor`, the one place that decides.
+     */
+    stages,
     pipeline: `${job.stage_index}/${stages.length}: ${job.stage_label}`,
     progress: job.progress,
     objects: job.objects,
@@ -4366,20 +4511,45 @@ function graphSources() {
     const drive = isDrive ? findDrive(source.drive_id) : null
 
     /*
-     * A runtime source's objects are what the connection was *pointed at* rather than
-     * what a profiler landed: Gmail's are the labels picked in the wizard. They carry no
-     * `units` — nothing samples the mail, so a message count would be a figure this
-     * server has never read, and `0` would say a label is empty rather than uncounted.
-     * That is the `rows: null` rule the browse schema already learned from CAPEX.
+     * **A mailbox offers its processed documents here, and it used to offer its labels.**
+     *
+     * The old reasoning was that a runtime source's objects are what the connection was *pointed
+     * at* rather than what a profiler landed — labels, with `units: null`, because nothing sampled
+     * the mail and a message count would have been a figure this server had never read. That was
+     * true when connecting a mailbox and processing it were the same act.
+     *
+     * It is not any more: *Process documents* chunks every attachment and the catalogue states each
+     * one's pages, chunks and size. So the honest unit at this step is the **document**, with the
+     * counts the catalogue really holds — and picking is now what a reader means by it, which is
+     * *which documents this use case draws on* rather than which labels the consent reached.
+     *
+     * **What did not change is where any of it may travel.** `runtime` is still true, step 6 still
+     * derives nothing from this source, and the note beside the picker still says so: a document
+     * ticked here is read at question time and becomes no graph element. Listing documents says
+     * what a question may draw on; it says nothing about what the graph asserts.
      */
+    const processed = isMail
+      ? new Set(
+          (source.profiled_mail_docs ?? []).map((d) => `${d.label_id}/${d.document_id}`),
+        )
+      : null
     const objects = isMail
-      ? (source.labels ?? []).map((label) => ({
-          object_id: label,
-          parent_id: source.mailbox ?? '—',
-          label,
-          units: null,
-          unit_label: 'messages',
-        }))
+      ? mailDocuments(source)
+          .filter((d) => processed.has(`${d.label_id}/${d.document.document_id}`))
+          .map((d) => ({
+            object_id: `${d.label_id}.${d.document.document_id}`,
+            parent_id: d.label_id,
+            label: d.document.name,
+            /* Chunks, because that is the unit this connector's own tiles count. */
+            units: d.document.chunks ?? null,
+            unit_label: 'chunks',
+            /* What the row states beside the name — the catalogue's, never derived here. A
+               synthesised document has no page count and no snippet, and the row prints neither
+               rather than a plausible figure. */
+            pages: d.document.pages ?? null,
+            size_chars: d.document.size_chars ?? null,
+            snippet: d.document.snippet ?? null,
+          }))
       : isDrive
       ? (source.profiled_docs ?? []).map((p) => {
           const meta = findDocument(drive, p.folder_id, p.document_id)
@@ -4420,7 +4590,7 @@ function graphSources() {
           : (source.datasets ?? []),
       objects,
       object_count: objects.length,
-      unit_label: isDrive ? 'documents' : isMail ? 'labels' : 'tables',
+      unit_label: isDrive || isMail ? 'documents' : 'tables',
       /*
        * Read at question time, so this source contributes no entities to step 6's
        * derivation. Carried as a flag rather than left to be inferred from `kind`: the
@@ -10359,8 +10529,8 @@ const routes = [
       if (wrong) return send(res, 400, { error: wrong })
 
       const { objects, force } = await readJson(req)
-      if (!Array.isArray(objects) || objects.length === 0) {
-        return send(res, 400, { error: 'objects must be a non-empty array' })
+      if (objects !== undefined && !Array.isArray(objects)) {
+        return send(res, 400, { error: 'objects must be an array of { label_id, document_id }' })
       }
 
       /* Built once rather than per object: the corpus is synthesised, so a lookup per document
@@ -10371,8 +10541,33 @@ const routes = [
       const allowed = new Set(source.labels ?? [])
       source.profiled_mail_docs = source.profiled_mail_docs ?? []
 
+      /*
+       * **`objects` is optional now, and absent means every document in the mailbox.**
+       *
+       * Asked for directly: Gmail's act is a single **Process documents** button rather than a tree
+       * of labels and messages to tick through. There is nothing for a reader to pick, so the
+       * request carries nothing to pick — and an empty `objects` array is *not* how that is said,
+       * because "profile nothing" and "profile everything" would then be the same request.
+       *
+       * A mailbox is the one connector where the selection was never a real choice: its labels are
+       * settled by the consent, its messages arrive rather than being filed, and its documents are
+       * whatever was attached. Picking a subset of somebody's mail to read is not a decision the
+       * Data Catalog is in a position to offer.
+       *
+       * They are all `pending` — the run is the act a reader just asked for by name, which is the
+       * same reason a dictionary's tables never skip. `force` still travels and still records what
+       * the caller asked, because the jobs board shows that flag.
+       */
+      const whole = objects === undefined
+      const picked = whole
+        ? [...corpus.values()].map((d) => ({
+            label_id: d.label_id,
+            document_id: d.document.document_id,
+          }))
+        : objects
+
       const work = []
-      for (const { label_id, document_id } of objects) {
+      for (const { label_id, document_id } of picked) {
         if (!allowed.has(label_id)) {
           return send(res, 400, {
             error: `label ${label_id} is not in this source's allowlist`,
@@ -10391,11 +10586,22 @@ const routes = [
         work.push({
           parent_id: label_id,
           object_id: document_id,
-          /* The filename, because a reader picked it by that — the same choice the Drive
-             browse panel makes with `document.name`. */
+          /* The filename — the same choice the Drive browse panel makes with `document.name`. */
           label: found.document.name,
           units: found.document.entities,
-          state: already && !force ? 'skipped' : 'pending',
+          /* Whole-mailbox runs never skip; a picked subset keeps the ordinary rule. */
+          state: !whole && already && !force ? 'skipped' : 'pending',
+        })
+      }
+
+      /* A mailbox whose labels carry no attachment at all has nothing to process, and says so
+         rather than queueing a job with an empty work list — which reads as a run that finished
+         instantly. */
+      if (work.length === 0) {
+        return send(res, 400, {
+          error:
+            'no documents are attached to the mail under this source\'s labels, so there is ' +
+            'nothing to process. Connect a mailbox whose labels carry attachments.',
         })
       }
 
@@ -10409,6 +10615,49 @@ const routes = [
       send(res, 202, { job: jobView(job) })
     },
   },
+
+  /*
+   * The newest mail run for one source — what *Process documents* watches.
+   *
+   * **Its own endpoint rather than a row on the board**, because a mail run is narrated on the
+   * Catalog surface and nowhere else. The board deliberately excludes `gmail`, so without this a
+   * run would be invisible to the surface that started it.
+   *
+   * `null` when this source has never been run: a reader who has not pressed the button is not
+   * watching anything, and an invented idle job would put a bar at 0% over a mailbox nothing has
+   * touched.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/sources\/.+\/mail-run$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const sourceId = decodeURIComponent(
+        pathname.slice('/sources/'.length, -'/mail-run'.length),
+      )
+      const source = registered.get(sourceId)
+      if (!source) return send(res, 404, { error: `no registered source ${sourceId}` })
+      const wrong = wrongConnector(source, 'gmail', 'profile', 'POST')
+      if (wrong) return send(res, 400, { error: wrong })
+
+      /* Newest first: `profilingJobs` is append-ordered, so the last match is the current run. */
+      const mine = profilingJobs.filter(
+        (j) => j.source_id === sourceId && j.kind === 'gmail',
+      )
+      const job = mine.length > 0 ? mine[mine.length - 1] : null
+      send(res, 200, { source_id: sourceId, job: job ? jobView(job) : null })
+    },
+  },
+
+  /*
+   * **`PATCH /sources/:id/used-for` stood here and is gone.** What a mailbox is used for is kept in
+   * the browser now, on request: the request never reached the server in the environment this runs
+   * in — four attempts, none transferring a byte, while the same call succeeded from `curl` — and a
+   * value with a home in `localStorage` must not also have one here, or the two come to disagree.
+   *
+   * `USED_FOR_MAX` stays, because the client's cap is still meant to be the server's number rather
+   * than one chosen for a text box, and `check-docs` holds them together. Restoring the server path
+   * is this route, the `used_for` field on the sources payload, and the fetcher that wrote it.
+   */
 
   // Backs "View profiled columns" — grouped dataset → table → columns, with
   // the facet counts the filter chips display.
@@ -11323,7 +11572,18 @@ const routes = [
     method: 'GET',
     match: (p) => p === '/profiling-jobs',
     handle: (_req, res) => {
-      const views = profilingJobs.map(jobView)
+      /*
+       * **A mail run is not on this board, on request.** Gmail's pipeline is narrated where it is
+       * started — under *Process documents* on the Catalog surface — and a row here as well would
+       * be a second place to watch one run, which is the two-surfaces-for-one-record fault this
+       * repo refuses everywhere.
+       *
+       * Filtered on the **kind** rather than on a `hidden` flag the queue would have to carry: the
+       * fact is that mail is watched elsewhere, and that is a property of the connector. Its jobs
+       * are still queued, still stepped and still committed by the same machinery — only this
+       * listing leaves them out, and `GET /sources/:id/mail-run` is where they are read instead.
+       */
+      const views = profilingJobs.filter((j) => j.kind !== 'gmail').map(jobView)
       const active = views.filter(
         (j) => j.status === 'queued' || j.status === 'running',
       )
@@ -13999,7 +14259,40 @@ const routes = [
   },
 ]
 
+/*
+ * **Every request that changes something, and every refusal, on one line.**
+ *
+ * Added because a failure this server cannot see is a failure nobody can diagnose: a browser
+ * reporting `TypeError: Failed to fetch` says only that `fetch` threw, and the same message covers
+ * a dead server, a blocked request and a failed CORS preflight — three different faults with three
+ * different fixes. The one question that separates them is *did the request arrive*, and only this
+ * end can answer it.
+ *
+ * **Quiet on purpose.** Reads are the overwhelming majority of the traffic and a line each would
+ * bury the writes, so a `GET` is logged only when it is refused. What is left is what a reader is
+ * usually trying to account for: the write they just made, and anything that failed.
+ *
+ * Logged on `finish` rather than beside `send`, so the status is the one that really went out —
+ * including the dispatcher's own 400 and 404, which never pass through a route at all.
+ */
+const logRequest = (req, res, started) => {
+  const ok = res.statusCode >= 200 && res.statusCode < 300
+  if (ok && req.method === 'GET') return
+  const ms = Math.round(Number(process.hrtime.bigint() - started) / 1e6)
+  console.log(
+    `${ok ? ' ' : '!'} ${String(res.statusCode)} ${req.method.padEnd(6)} ${req.url} ${ms}ms`,
+  )
+}
+
 const server = createServer(async (req, res) => {
+  const started = process.hrtime.bigint()
+  res.on('finish', () => logRequest(req, res, started))
+  /*
+   * The preflight, answered before anything else looks at the request — a browser sends it for
+   * every method but GET/HEAD/POST and for any custom header, so `x-dataset` alone makes even a
+   * GET preflighted. It is logged like any other non-GET, which is what makes "the preflight was
+   * refused" distinguishable from "the request never arrived".
+   */
   if (req.method === 'OPTIONS') return send(res, 204, {})
 
   const url = new URL(req.url ?? '/', `http://localhost:${PORT}`)
