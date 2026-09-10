@@ -1,7 +1,17 @@
 import { CheckOutlined } from '@ant-design/icons'
-import { Alert, Button, Checkbox, Spin, Tag } from 'antd'
+import { Alert, Button, Checkbox, Input, Modal, Spin, Tag } from 'antd'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { GraphSource, SourcePick } from '../../api/client'
+import {
+  mailDocumentMeta,
+  mailUsedForCopy,
+  readUsedFor,
+  usedForKey,
+  usedForProblem,
+  writeUsedFor,
+} from '../../data/mailUsedFor'
+import { currentDataset } from '../../api/dataset'
 import NoSourceConnected from '../common/NoSourceConnected'
 import StatusTag from '../common/StatusTag'
 import ConnectorIcon from '../common/ConnectorIcon'
@@ -30,6 +40,61 @@ export default function SourcesStep({
   picks: SourcePick[]
   onPicks: (picks: SourcePick[]) => void
 }) {
+  /* Which mailbox's description is open for editing, and what has been typed into it. One at a
+     time: two open dialogs would be two unsaved answers to one question. */
+  const [editing, setEditing] = useState<GraphSource | null>(null)
+  const [draft, setDraft] = useState('')
+  const [storeError, setStoreError] = useState<string | null>(null)
+
+  /*
+   * **What each mailbox is used for — derived from storage, never copied into state.**
+   *
+   * This was a `useState` with a lazy initialiser, and that was a real bug: the initialiser runs
+   * **once**, on the first render, when `sources` is still `[]` because the list is loading. It
+   * never ran again, so within a session a save looked fine — the write set the state — and after a
+   * reload the stored value never appeared at all. The card said *"Not described yet"* over a
+   * description that was sitting in `localStorage` the whole time. Reported from use.
+   *
+   * A memo keyed on the sources **and** on the last write recomputes when the list arrives and
+   * again when something is saved, which are the only two moments the answer can change. Storage
+   * stays the single home; nothing here is a second copy of it that can go stale.
+   */
+  const [savedAt, setSavedAt] = useState(0)
+  const usedFor = useMemo(
+    () =>
+      Object.fromEntries(
+        sources
+          .filter((s) => s.runtime)
+          .map((s) => [s.sourceId, readUsedFor(usedForKey(currentDataset(), s.sourceId))]),
+      ),
+    /* `savedAt` is the write, and it is what makes a save visible without a second copy. */
+    [sources, savedAt],
+  )
+
+  /*
+   * **Saving is local, so there is nothing to await and nothing to fail over the network.** It was
+   * a `PATCH` onto the registered source; in the environment this runs in the request never reached
+   * the server — four attempts, none transferring a byte, while the same call succeeded from `curl`
+   * — so on request the browser is where it is kept.
+   *
+   * The one failure left is storage itself refusing, which a private window really does, and that
+   * is reported rather than swallowed: there is no server copy to fall back on, so a silent success
+   * would be the one lie this dialog could tell.
+   */
+  function saveUsedFor() {
+    if (!editing || usedForProblem(draft)) return
+    const trimmed = draft.trim()
+    if (!writeUsedFor(usedForKey(currentDataset(), editing.sourceId), trimmed)) {
+      setStoreError(mailUsedForCopy.storeFailed)
+      return
+    }
+    /* Re-read rather than remember: the card shows what storage now holds, so a write that landed
+       differently from what was typed — trimmed, or cleared by an empty value — cannot leave the
+       screen disagreeing with the store. */
+    setSavedAt((n) => n + 1)
+    setStoreError(null)
+    setEditing(null)
+  }
   const pickFor = (sourceId: string) => picks.find((p) => p.sourceId === sourceId)
 
   function toggleSource(source: GraphSource) {
@@ -50,10 +115,24 @@ export default function SourcesStep({
     )
   }
 
+  /**
+   * Record which objects a source contributes.
+   *
+   * **Everything ticked is stored as `all`, not as a subset that happens to hold everything.** The
+   * two look identical on screen and are different promises: `all` is "this source", and picks up
+   * an object profiled after the draft was saved; a subset freezes today's list. A reader who ticks
+   * every box means the first, and storing the second would quietly drop tomorrow's documents.
+   *
+   * That is the same distinction the mode buttons make explicit for the other two connectors —
+   * Gmail has no mode buttons, so the ticks have to carry it.
+   */
   function setObjects(source: GraphSource, objects: string[]) {
+    const whole = objects.length === source.objectCount && source.objectCount > 0
     onPicks(
       picks.map((p) =>
-        p.sourceId === source.sourceId ? { ...p, mode: 'subset', objects } : p,
+        p.sourceId === source.sourceId
+          ? { ...p, mode: whole ? 'all' : 'subset', objects }
+          : p,
       ),
     )
   }
@@ -133,6 +212,13 @@ export default function SourcesStep({
         const pick = pickFor(source.sourceId)
         const selected = Boolean(pick)
         const empty = source.objectCount === 0
+        /*
+         * Which objects this row shows as ticked. `all` carries no object list — it means "this
+         * source, whatever it holds" — so it renders as every box ticked rather than none, which
+         * is what it means and what the reader chose.
+         */
+        const picked =
+          pick?.mode === 'subset' ? pick.objects : source.objects.map((o) => o.objectId)
 
         return (
           <div
@@ -191,6 +277,95 @@ export default function SourcesStep({
                   ? `Connected, but no ${source.unitLabel} are in scope — reconnect it and pick at least one.`
                   : 'Connected, but the profiler has not run here yet — profile it in the Data Catalog and it becomes selectable.'}
               </div>
+            ) : source.runtime ? (
+              /*
+               * **A mailbox picks documents, and says what it is for.**
+               *
+               * Asked for directly, replacing the label picker. Every processed document is listed
+               * with the counts the catalogue holds, and each is ticked or not — which is what a
+               * reader means by choosing what a use case draws on, where a *label* was only ever
+               * what the consent happened to reach.
+               *
+               * **All-ticked is stored as `all`, not as a subset of everything.** The two look the
+               * same on screen and are different promises: `all` includes a document processed
+               * later, a subset freezes today's list. Ticking every box is a reader saying "this
+               * mailbox", so it is recorded as that.
+               *
+               * Nothing here changes where any of it may travel: `runtime` is still true and step
+               * 6 still derives nothing from this source — the note under the list says so.
+               */
+              <>
+                <div className="ng-source-usedfor">
+                  <span className="ng-source-usedfor-label">
+                    {mailUsedForCopy.fieldLabel}
+                  </span>
+                  <span
+                    className={`ng-source-usedfor-value${
+                      usedFor[source.sourceId] ? '' : ' is-empty'
+                    }`}
+                  >
+                    {usedFor[source.sourceId] ?? mailUsedForCopy.empty}
+                  </span>
+                  <Button
+                    size="small"
+                    disabled={!selected}
+                    onClick={() => {
+                      setEditing(source)
+                      setDraft(usedFor[source.sourceId] ?? '')
+                      setStoreError(null)
+                    }}
+                  >
+                    {mailUsedForCopy.editLabel}
+                  </Button>
+                </div>
+
+                <div className="ng-source-tables">
+                  <Checkbox
+                    checked={picked.length === source.objectCount}
+                    indeterminate={picked.length > 0 && picked.length < source.objectCount}
+                    disabled={!selected}
+                    onChange={(e) =>
+                      setObjects(
+                        source,
+                        e.target.checked ? source.objects.map((o) => o.objectId) : [],
+                      )
+                    }
+                  >
+                    Select all ({source.objectCount})
+                  </Checkbox>
+
+                  {source.objects.map((o) => (
+                    <Checkbox
+                      key={o.objectId}
+                      className="ng-source-table ng-source-doc"
+                      checked={picked.includes(o.objectId)}
+                      disabled={!selected}
+                      onChange={(e) =>
+                        setObjects(
+                          source,
+                          e.target.checked
+                            ? [...picked, o.objectId]
+                            : picked.filter((x) => x !== o.objectId),
+                        )
+                      }
+                    >
+                      <span className="ng-source-doc-name">{o.label}</span>{' '}
+                      {/* Dropped part by part where the catalogue states nothing, never
+                          printed as 0 — see `mailDocumentMeta`. */}
+                      <span className="ng-source-units">{mailDocumentMeta(o)}</span>
+                      {o.snippet ? (
+                        <span className="ng-source-doc-snippet">{o.snippet}</span>
+                      ) : null}
+                    </Checkbox>
+                  ))}
+
+                  {selected && picked.length === 0 ? (
+                    <div className="ng-source-warn">
+                      Pick at least one document — an empty selection can't derive.
+                    </div>
+                  ) : null}
+                </div>
+              </>
             ) : (
               <>
                 <div className="ng-source-modes">
@@ -285,6 +460,46 @@ export default function SourcesStep({
           question needs it, so it derives no entities and needs no profiling.
         </span>
       </div>
+
+      {/*
+        **One dialog for the step, not one per source row.** A `Modal` per mailbox would be several
+        ways to be looking at one thing — the rule the Catalog's dictionary report already keeps —
+        and `editing` is the single piece of state saying whose description is open.
+
+        Its copy lives in `src/data/mailUsedFor.ts` because a `Modal` renders through a portal
+        `renderToString` will not traverse, so a prompt written here could not be asserted at all.
+      */}
+      <Modal
+        open={editing != null}
+        title={editing ? mailUsedForCopy.title(editing.account) : undefined}
+        okText={mailUsedForCopy.saveLabel}
+        cancelText={mailUsedForCopy.cancelLabel}
+        okButtonProps={{ disabled: usedForProblem(draft) != null }}
+        onOk={saveUsedFor}
+        onCancel={() => setEditing(null)}
+        destroyOnHidden
+      >
+        <p className="ng-usedfor-prompt">{mailUsedForCopy.prompt}</p>
+        <Input.TextArea
+          autoFocus
+          value={draft}
+          placeholder={mailUsedForCopy.placeholder}
+          autoSize={{ minRows: 4, maxRows: 10 }}
+          onChange={(e) => setDraft(e.target.value)}
+        />
+        {/* The counter is the **server's** cap restated, so a reader is told at the moment they
+            cross it rather than by a refusal after Save. */}
+        <div className="ng-usedfor-count">
+          {usedForProblem(draft) ?? mailUsedForCopy.counter(draft)}
+        </div>
+        {/* Where it goes, said under the box: a value kept in one browser makes a different
+            promise from one stored against the connection, and the reader is owed the difference
+            before they write it rather than after. */}
+        <div className="ng-usedfor-scope">{mailUsedForCopy.scopeNote}</div>
+        {/* Only when storage really refused — there is no server copy to fall back to, so a
+            silent success would be the one lie this dialog could tell. */}
+        {storeError ? <div className="ng-usedfor-error">{storeError}</div> : null}
+      </Modal>
     </>
   )
 }

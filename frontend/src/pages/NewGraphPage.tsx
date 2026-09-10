@@ -324,6 +324,13 @@ export default function NewGraphPage() {
   }
 
   /*
+   * **Step 4's *used for* is not here, and that is deliberate.** It was a write on this page,
+   * onto the registered source; the request never reached the server in the environment this runs
+   * in, so on request it is kept in the browser instead — `SourcesStep` reads and writes it through
+   * `src/data/mailUsedFor.ts`, with no round trip and nothing for this page to coordinate.
+   */
+
+  /*
    * Step 3's Edit — the one act on this page that writes the pool rather than the draft. The
    * refusal is shown here rather than swallowed in the step, because the server's sentence is what
    * says *why* (an empty title, a title another metric already holds), and the row stays open on

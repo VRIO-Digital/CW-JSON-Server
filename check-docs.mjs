@@ -281,7 +281,9 @@ expect(
  * the component could not be asserted at all.
  */
 const wizardSrc = codeOnly(read('frontend/src/components/sources/ConnectSourceWizard.tsx'))
-const mailBrowsePanel = read('frontend/src/components/catalog/MailBrowsePanel.tsx')
+/* `MailBrowsePanel` was read here. It is deleted — Gmail's act is one Process documents button
+   rather than a tree of labels and messages to tick through — and its absence is asserted by
+   `absentUnderComponents` below rather than by reading a file that is not there. */
 const dirSrc = codeOnly(read('frontend/src/components/sources/ConnectorDirectory.tsx'))
 const dirDataSrc = codeOnly(read('frontend/src/data/connectorSearch.ts'))
 expect(
@@ -697,12 +699,19 @@ expect(
      source holds — a row past the first test and not the second would have to be drawn in another
      connector's nouns, which is the misidentifying default `ConnectorIcon` was fixed for. */
   /sources\.filter\(\(s\) => s\.profilable && catalogUnitsFor\(s\.kind\)\)/.test(catalogPage) &&
-    /* … and the pair of connector names is gone from both buttons. */
+    /* … and no connector name decides a button. The Gmail split is on the declared
+       `browsePanel === null`, never on `kind === 'gmail'`. */
     !/kind !== 'bigquery' && !isDrive/.test(codeOnly(catalogPage)) &&
-    /* A shorter list is not a message: the count is said in words, on both branches — the populated
-       one and the one where a mailbox is the only source connected. */
+    !/kind === 'gmail'/.test(codeOnly(catalogPage)) &&
+    /units && units\.browsePanel === null \?/.test(catalogPage) &&
+    /* A shorter list is not a message: the count is said in words, on **both** branches — the
+       populated list and the collapsed rail. Counted on `uncatalogued > 0` rather than on
+       `{uncatalogued > 0`, because only one of the two starts an expression: the other is
+       `{!listCollapsed && uncatalogued > 0`, so the braced form matched one branch while the
+       comment claimed two. It has read `=== 2` over 1 match since the rail was added. */
     /\{uncatalogued > 0 \?/.test(catalogPage) &&
-    (catalogPage.match(/\{uncatalogued > 0 \?/g) ?? []).length === 2 &&
+    /\{!listCollapsed && uncatalogued > 0 \?/.test(catalogPage) &&
+    (catalogPage.match(/uncatalogued > 0 \?/g) ?? []).length === 2 &&
     /* Validated at the boundary like every other field, so a stale server is named rather than
        rendering every source as uncatalogued. */
     /profilable: bool,/.test(client) &&
@@ -873,10 +882,24 @@ expect(
   /function selectedProfiledObjects\(picks\)[\s\S]*?if \(isRuntimeSource\(source\.kind\)\) continue/.test(
     server,
   ) &&
-    /* And the step-4 payload still reports a mailbox's *labels* with no unit count, rather than the
-       messages a profiler has since landed — `0` would say a label is empty and a real count would
-       say the mail is derivable. */
-    /const objects = isMail[\s\S]{0,320}?units: null,/.test(server) &&
+    /*
+     * **Step 4 now lists a mailbox's processed documents, and that is not this claim's business.**
+     *
+     * It used to assert the payload reported *labels* with `units: null`, on the reasoning that a
+     * real count would say the mail is derivable. The listing changed on request — the catalogue
+     * states each document's pages, chunks and size, so those are what a reader picks between — and
+     * the reasoning turned out to be carried by the wrong thing: what keeps mail out of the graph
+     * is the skip above and the served `runtime` flag, neither of which a unit count touches.
+     *
+     * So what is asserted here is the part that actually bears the weight: the source is still
+     * marked runtime, and the step still says in words that it derives nothing.
+     */
+    /* Sliced rather than matched across lines — the payload's closing lines wrap, and a
+       shell-written newline escape ends a regex early. `graphSources`'s own body carries it. */
+    /runtime,/.test((server.split('function graphSources()')[1] ?? '').slice(0, 8000)) &&
+    /it derives no entities and needs no profiling/.test(
+      read('frontend/src/components/graph/SourcesStep.tsx'),
+    ) &&
     /* One definition of "which picks are runtime", still filtering on connected. */
     /function runtimeSourcesIn\(picks\)[\s\S]{0,400}?isRuntimeSource\(s\.kind\)/.test(server),
   'a runtime source contributing entities would make "where did this figure come from" unanswerable',
@@ -895,12 +918,14 @@ expect(
   'the catalogue routes are declared per connector, so a wrong door names the right one',
   /const CATALOGUE_ROUTES = \{/.test(server) &&
     /function wrongConnector\(source, servedKind, act, method = 'GET'\)/.test(server) &&
-    /* Nine guards read it — three acts across three connectors. */
+    /* **Ten guards read it: the nine-cell matrix — three acts across three connectors — plus
+       Gmail's own `/mail-run`, which is a read of a run rather than a fourth act and so reuses
+       the `profile` twin. Exact rather than `>=`, so a dropped matrix guard still fails. */
     (
       server.match(
         /wrongConnector\(source, '(?:bigquery|gdrive|gmail)', '(?:browse|profile|dictionary)'/g,
       ) ?? []
-    ).length === 9 &&
+    ).length === 10 &&
     /* And the pairs written into those guards are gone. */
     !/holds documents, not tables — use/.test(codeOnly(server)) &&
     !/is not a Drive source — use/.test(codeOnly(server)) &&
@@ -930,10 +955,69 @@ expect(
     /export async function setMailDocumentSummary/.test(client) &&
     /const MAIL_BROWSE_PAYLOAD = shape\(\{/.test(client) &&
     /const MAIL_DOCUMENTS_PAYLOAD = shape\(\{/.test(client) &&
-    /* Store: separate from the other two, for the reason the Drive one is separate. */
-    /export const useMailBrowseStore = create<MailBrowseState>/.test(catalogStoreSrc) &&
+    /* Store: the run and the dictionary, separate for the reason the Drive ones are. The
+       browse-and-tick store went with the panel — `browseMailDocuments` above is still exported
+       and validated, and now has no caller, the same waiting-for-a-caller state
+       `/change-signals` is in. */
+    /export const useMailProcessStore = create<MailProcessState>/.test(catalogStoreSrc) &&
+    !/useMailBrowseStore/.test(codeOnly(catalogStoreSrc)) &&
     /export const useMailDocumentsStore = create<MailDocumentsState>/.test(catalogStoreSrc),
   'an endpoint with no schema surfaces as undefined.map deep inside a render',
+)
+
+/* The mail profile route's own text — see the note inside the claim for why this is sliced. */
+const mailProfileRoute =
+  (server.split("match: (p) => /^\\/sources\\/.+\\/profile-mail-documents$/.test(p)")[1] ?? "").slice(0, 4500)
+
+
+/*
+ * **Gmail's catalogue act is one button: Process documents, over the whole mailbox.**
+ *
+ * Asked for directly, replacing a label -> message -> document tree with checkboxes. A mailbox is
+ * the one connector whose selection was never a real choice — its labels are settled by the
+ * consent, its messages arrive rather than being filed, and its documents are whatever somebody
+ * attached — so there is nothing to tick and nothing to tick it with.
+ *
+ * **Absent `objects` is what says "the whole mailbox", and an empty array is deliberately not.**
+ * Those are opposite requests, and a route that could not tell them apart would answer one with
+ * the other. Every document comes back `pending`: a run a reader just asked for by name is the
+ * same case a dictionary's own tables are, where the ordinary skip is the wrong rule.
+ *
+ * **And the split is declared, never a connector name in the page.** `browsePanel: null` is what
+ * makes the button do the thing instead of opening something, which is the ternary `catalogUnits`
+ * exists to stop. `browseMailDocuments` and its route survive with no caller, the same
+ * waiting-for-a-caller state `/change-signals` is in.
+ */
+expect(
+  'Gmail processes the whole mailbox from one button, with nothing to pick',
+  /*
+   * Server: the object list is optional, and its absence means everything. **Sliced to the mail
+   * route**, because the schema upload route now carries a character-identical optional-array
+   * guard — a whole-file search matched that one and passed while this one had been narrowed back
+   * to requiring a list. Assert the fact at its site.
+   */
+  /const whole = objects === undefined/.test(mailProfileRoute) &&
+    /objects !== undefined && !Array\.isArray\(objects\)/.test(mailProfileRoute) &&
+    /state: !whole && already && !force \? 'skipped' : 'pending',/.test(mailProfileRoute) &&
+    /* A mailbox with no attachment at all says so rather than queueing an empty job, which reads
+       as a run that finished instantly. */
+    /if \(work\.length === 0\)/.test(mailProfileRoute) &&
+    /* Client: the fetcher sends no object list at all. Sliced rather than matched across lines --
+       the signature is wrapped, and a line-break escape written through a shell lands as a real
+       newline and ends the regex early, which is the trap this repo has already recorded. */
+    !/label_id: string; document_id: string \}\[\]/.test(
+      (client.split('export async function profileMailDocuments')[1] ?? '').slice(0, 400),
+    ) &&
+    /body: \{ force \}/.test(client) &&
+    /* The run lives in a store of its own, and the browse-and-tick one is gone with its panel. */
+    /export const useMailProcessStore = create<MailProcessState>/.test(catalogStoreSrc) &&
+    !existsSync(join(root, 'frontend/src/components/catalog/MailBrowsePanel.tsx')) &&
+    /* Declared, not branched on: the page reads the null and renders an action. */
+    /browsePanel: null,/.test(read('frontend/src/data/catalogUnits.ts')) &&
+    /browseLabel: 'Process documents',/.test(read('frontend/src/data/catalogUnits.ts')) &&
+    /units && units\.browsePanel === null \?/.test(catalogPage) &&
+    !/kind === 'gmail'/.test(codeOnly(catalogPage)),
+  'an empty object list and an absent one are opposite requests, and a run over nothing looks instant',
 )
 
 /* ---------------- Data Modeling: the Catalog's third tab ---------------- */
@@ -1965,10 +2049,14 @@ expect(
     /case 'bigquery':/.test(catalogStoreSrc) &&
     /* The default refuses rather than picking a door. */
     /default:[\s\S]{0,60}?return \{[\s\S]{0,40}?ok: false,/.test(catalogStoreSrc) &&
-    /* Each branch posts the field names its own endpoint reads — mail's are the label and the
-       document, and posting a drive's `{folder_id, document_id}` or BigQuery's
-       `{dataset_id, table_id}` here is exactly what the `else` this replaced did. */
-    /label_id: o\.parent_id,[\s\S]{0,40}?document_id: o\.object_id,/.test(catalogStoreSrc),
+    /* Each branch posts what its own endpoint reads. The two that take an object list post the
+       field names that endpoint expects — posting a drive's `{folder_id, document_id}` where
+       BigQuery's `{dataset_id, table_id}` belongs is exactly what the `else` this replaced did.
+       **Mail posts none**, because a mail job *is* the whole mailbox now: re-running one is
+       running the mailbox again, the same set by the same route, with `force` carried through. */
+    /folder_id: o\.parent_id,[\s\S]{0,40}?document_id: o\.object_id,/.test(catalogStoreSrc) &&
+    /dataset_id: o\.parent_id,[\s\S]{0,40}?table_id: o\.object_id,/.test(catalogStoreSrc) &&
+    /await profileMailDocuments\(job\.source_id, force\)/.test(catalogStoreSrc),
   'an else that names one connector’s endpoint is not a fallback for the others',
 )
 
@@ -2017,7 +2105,10 @@ expect(
     /* Rendered as Gmail's fourth tile — the figure *and* its date, both from the payload, and
        the note travels with the label rather than being a literal in the page. */
     /unitsCount: \(s\) => s\.profiledToday,/.test(catalogUnitsSrc) &&
-    /unitsNote: \(s\) => s\.profiledTodayDate,/.test(catalogUnitsSrc) &&
+    /* The date still travels with the label rather than being a literal in the page — the tile
+       now reads "since <day>", because it counts what was chunked rather than what was profiled,
+       and a bare date under "chunked today" said less than the word does. */
+    /unitsNote: \(s\) => `since \$\{s\.profiledTodayDate\}`,/.test(catalogUnitsSrc) &&
     /note=\{units\?\.unitsNote\(selected\) \?\? ''\}/.test(catalogPage) &&
     /* And nothing on either surface invents a day of its own. */
     !/new Date\(\)/.test(codeOnly(catalogPage)) &&
@@ -2044,9 +2135,16 @@ expect(
     /browsePanel: 'browse-documents',[\s\S]{0,240}?dictionaryPanel: 'documents',/.test(
       catalogUnitsSrc,
     ) &&
-    /browsePanel: 'browse-mail-documents',[\s\S]{0,300}?dictionaryPanel: 'mail-documents',/.test(
-      catalogUnitsSrc,
-    ) &&
+    /* **Gmail declares neither panel**: its first act is a run, and its documents are listed on
+       the Catalog surface itself under that run — so *View profiled documents* was a button
+       opening a second view of what is already there. The page reads the two `null`s and draws an
+       action and no second button; a connector name in the component is the ternary this table
+       exists to stop. */
+    /browsePanel: null,[\s\S]{0,200}?dictionaryPanel: null,/.test(catalogUnitsSrc) &&
+    /browsePanel: CatalogPanel \| null/.test(catalogUnitsSrc) &&
+    /dictionaryPanel: CatalogPanel \| null/.test(catalogUnitsSrc) &&
+    /* The button is withheld by there being no panel, never disabled. */
+    /\{units\?\.dictionaryPanel \? \(/.test(catalogPage) &&
     /* Null rather than a misidentifying default. */
     /CATALOG_UNITS\[kind\] \?\? null/.test(catalogUnitsSrc) &&
     /* And the page reads it rather than branching on a connector name. */
@@ -2054,6 +2152,233 @@ expect(
     /units\?\.browseLabel/.test(catalogPage) &&
     /units\?\.foot\(selected\)/.test(catalogPage),
   'a mailbox drawn in BigQuery’s nouns is a default that asserts something false',
+)
+
+/*
+ * **A thrown `fetch` has three causes, and the server can say which.**
+ *
+ * A browser reports `TypeError: Failed to fetch` identically for a server that is down, a request
+ * it refused to send, and a CORS preflight answered badly — three faults with three different
+ * fixes. The old message named only the first (*"Start it with npm run mock"*), which is wrong
+ * advice for two of them and sends a reader to restart a server that was fine. Reported from use,
+ * twice, on two different endpoints.
+ *
+ * **The server logs every write and every refusal**, which is what makes the three separable: no
+ * line for a call means it never arrived. Reads are silent unless refused — a line each would bury
+ * the writes under traffic nobody is trying to account for — and it is logged on `finish` so the
+ * status is the one that really went out, including the dispatcher's own 400s and 404s that never
+ * reach a route.
+ */
+expect(
+  'an unreachable call names all three causes, and the server logs what arrived',
+  /* The message stops promising that starting the server is the fix. */
+  /or the browser refused to send the/.test(client) &&
+    /the CORS preflight failed/.test(client) &&
+    !/Start it with npm run mock \(port 4000\), check that address/.test(client) &&
+    /* The log: on finish, quiet for a healthy read, and the preflight is not exempt from it. */
+    /const logRequest = \(req, res, started\)/.test(server) &&
+    /res\.on\('finish', \(\) => logRequest\(req, res, started\)\)/.test(server) &&
+    /if \(ok && req\.method === 'GET'\) return/.test(server),
+  'one message for three faults sends two readers in three to restart a server that was fine',
+)
+
+/*
+ * **Step 4 picks a mailbox's documents, and asks what the mailbox is for.**
+ *
+ * Asked for from a reference screenshot, replacing a label picker. Two changes, and each carries
+ * its own reasoning:
+ *
+ *  - *Documents, not labels.* A label is what the consent happened to reach; a processed document
+ *    is what a use case can actually draw on, and the catalogue states its pages, chunks and size.
+ *    Ticking every box records `mode: 'all'` rather than a subset that happens to hold everything —
+ *    the two look identical on screen and are different promises, since `all` picks up a document
+ *    processed after the draft was saved.
+ *  - *A mailbox says what it is used for.* Two look alike: an address says whose mail it is and
+ *    nothing about what it holds. Written at the step that picks it, stored on the **registered
+ *    source**, so it lives exactly as long as that registration — not in the document, where it
+ *    would outlive the source it describes.
+ *
+ * **None of it changes where a mail extraction may travel**, which is asserted separately above:
+ * the source is still `runtime`, step 6 still skips it by name, and the note still says so.
+ */
+expect(
+  "step 4 lists a mailbox's processed documents and records what it is used for",
+  /* The payload lists processed documents with the catalogue's own figures. */
+  /const processed = isMail/.test(server) &&
+    /object_id: `\$\{d\.label_id\}\.\$\{d\.document\.document_id\}`/.test(server) &&
+    /unit_label: isDrive \|\| isMail \? 'documents' : 'tables',/.test(server) &&
+    /*
+     * **Used-for is the browser's, and has exactly one home.** It was a `PATCH` onto the registered
+     * source; the request never reached the server in the environment this runs in — four attempts,
+     * none transferring a byte, while the same call succeeded from `curl` — so on request it is
+     * kept in `localStorage`. What is asserted is that the *server half is gone with it*: a value
+     * with a home in the browser must not also have one on a source, or the two disagree and only
+     * one of them is on screen.
+     */
+    !/used_for: isMail/.test(codeOnly(server)) &&
+    !/used-for\$\/\.test\(p\)/.test(codeOnly(server)) &&
+    !/setSourceUsedFor/.test(codeOnly(client)) &&
+    !/used_for: nullable\(str\)/.test(codeOnly(client)) &&
+    /* The cap is still the server's number rather than one chosen for a text box. */
+    /const USED_FOR_MAX = 1000/.test(server) &&
+    /export const USED_FOR_MAX = 1000/.test(read('frontend/src/data/mailUsedFor.ts')) &&
+    /*
+     * **The value is *derived* from storage on every render, never seeded into state once.**
+     *
+     * It was a `useState` with a lazy initialiser reading `sources`, and that initialiser runs on
+     * the **first** render — when `sources` is still `[]`, because the list is in flight. It never
+     * ran again, so a save looked right within the session (the write set the state) and after a
+     * reload the stored description never appeared at all: the card said "Not described yet" over a
+     * value sitting in `localStorage` the whole time.
+     *
+     * **Asserted on the shape rather than by a render test, and that is not laziness.** The fault
+     * needs one mount whose props change from `[]` to `[source]`, and `renderToString` does a
+     * single pass per mount — a test built on it passes on the broken code, which this one did.
+     * What is checkable is that nothing holds the value: a memo over `sources` recomputes when the
+     * list arrives, and `savedAt` is what makes a write visible without a second copy of the store.
+     */
+    /const usedFor = useMemo\(/.test(read('frontend/src/components/graph/SourcesStep.tsx')) &&
+    /\[sources, savedAt\],/.test(read('frontend/src/components/graph/SourcesStep.tsx')) &&
+    !/useState<Record<string, string \| null>>/.test(
+      read('frontend/src/components/graph/SourcesStep.tsx'),
+    ) &&
+    /* Every access is wrapped: `localStorage` throws outright in some contexts, not merely
+       returning nothing, and a description is never worth a broken page. */
+    /const STORAGE_KEY = 'contextweave\.mailboxUsedFor'/.test(
+      read('frontend/src/data/mailUsedFor.ts'),
+    ) &&
+    (read('frontend/src/data/mailUsedFor.ts').match(/\} catch/g) ?? []).length >= 2 &&
+    /* A refusing store reports it rather than claiming success — there is no server copy left to
+       fall back on, so a silent success would be the one lie this dialog could tell. */
+    /mailUsedForCopy\.storeFailed/.test(read('frontend/src/components/graph/SourcesStep.tsx')) &&
+    /* And it says where it is kept, before the reader writes it rather than after. */
+    /scopeNote:/.test(read('frontend/src/data/mailUsedFor.ts')) &&
+    /* All-ticked is `all`, which is what makes tomorrow's documents included. */
+    /const whole = objects\.length === source\.objectCount && source\.objectCount > 0/.test(
+      read('frontend/src/components/graph/SourcesStep.tsx'),
+    ) &&
+    /*
+     * **Edit is always offered now, and that is a consequence rather than a change of mind.** It
+     * used to be withheld where no writer was passed — the rule every optional act here follows —
+     * and there is no writer to be absent any more: the step writes the browser directly, which it
+     * can always do. What it cannot always do is *succeed*, and that is reported instead.
+     */
+    /mailUsedForCopy\.editLabel/.test(read('frontend/src/components/graph/SourcesStep.tsx')) &&
+    !/onUsedFor/.test(codeOnly(read('frontend/src/components/graph/SourcesStep.tsx'))) &&
+    /* An undescribed mailbox is prompted rather than left blank, and the prompt is copy. */
+    /mailUsedForCopy\.empty/.test(read('frontend/src/components/graph/SourcesStep.tsx')) &&
+    /* An absent figure is dropped from the row, never printed as 0. */
+    /if \(o\.pages != null\)/.test(read('frontend/src/data/mailUsedFor.ts')) &&
+    /* Clearing is allowed: refusing it would leave a reader unable to withdraw a description. */
+    /usedForProblem\('/.test(read('frontend/src/data/mailUsedFor.ts')) === false,
+  'a description stored in the document would outlive the registration it describes',
+)
+
+/*
+ * **Gmail's catalogue is one surface: the run, narrated, and what it processed.**
+ *
+ * Asked for from a reference screenshot. Four things had to hold together, and each fails a
+ * different silent way:
+ *
+ *  - *The tiles state chunks*, counted over what has been **processed** rather than over what the
+ *    mailbox holds — the note beside them says exactly that, and a tile counting the corpus would
+ *    report work nothing has done.
+ *  - *The stage list is the server's.* `jobView` sends `stages`, so adding one to `MAIL_PIPELINE`
+ *    adds a row on screen; a list held in the component would be a second answer to what this
+ *    connector does, stale silently since a wrong stage name still renders.
+ *  - *The progress is the job's own position*, never a timer. A bar filling on a clock is an
+ *    operation narrating work nobody did, which is the fault every paced run here avoids.
+ *  - *A document's page count and size are the dataset's*, and **null for a synthesised one** — the
+ *    cell is an em dash, because nothing counted the pages of a document nothing wrote.
+ *
+ * **And the last stage is not "Assembling the graph".** The reference ends there; here it would be
+ * false. A mail extraction is an observation — `RUNTIME_KINDS` holds `gmail` alone and
+ * `selectedProfiledObjects` skips a runtime source by name — so nothing a mail run lands ever
+ * becomes a graph element, and a stage claiming otherwise would be the fact-set merge arriving
+ * quietly through the catalogue.
+ */
+expect(
+  "Gmail's run is narrated on the page from the server's own stages, over the dataset's mail",
+  /* A dataset can ship its mail, and the synthesiser stays the fallback. */
+  /const shipped = db\.mail_corpus/.test(server) &&
+    /mail_corpus: \{/.test(read('backend/datasets.js')) &&
+    Array.isArray(datasetDocs.get('CAPEX')?.mail_corpus?.documents) &&
+    datasetDocs.get('CAPEX').mail_corpus.documents.length > 0 &&
+    /* Every shipped row carries what the table states, and its chunk count is derived from its own
+       size and the corpus's chunk width rather than typed beside them. */
+    datasetDocs.get('CAPEX').mail_corpus.documents.every(
+      (d) =>
+        d.pages > 0 &&
+        d.size_chars > 0 &&
+        /* Non-empty: `typeof '' === 'string'` is true, so the loose form passed over a row
+           whose snippet had been emptied — the cell a reader recognises the document by. */
+        d.snippet.trim().length > 0 &&
+        d.chunks ===
+          Math.max(1, Math.ceil(d.size_chars / datasetDocs.get('CAPEX').mail_corpus.chunk_chars)),
+    ) &&
+    /* The tiles: chunks, counted over what was processed. */
+    /function mailChunkFigures\(source\)/.test(server) &&
+    /documents_chunked/.test(client) &&
+    /objectsLabel: 'documents chunked',/.test(catalogUnitsSrc) &&
+    /unitsLabel: 'chunked today',/.test(catalogUnitsSrc) &&
+    /* The stage names travel from the server, and the panel derives each row's state from one
+       cursor rather than tracking a second counter.
+
+       Keyed on `jobView`'s own two lines rather than a bare `/stages,/`, which matched the
+       suggesters' run block and passed while the job had stopped carrying any — and counted in the
+       client, because **both** job schemas declare it and dropping one left the other satisfying a
+       whole-file search. Two loose conditions, both caught by break-testing them. */
+    /* Sliced, not matched across lines: a shell-written line-break escape lands as a real
+       newline and ends the regex early. `jobView`'s own body is what has to carry it. */
+    /\n    stages,/.test(
+      (server.split('const jobView = (job) => {')[1] ?? '').slice(0, 1600),
+    ) &&
+    /* **Both** job schemas, keyed on the line it follows: a bare `stages: arrayOf(str)` also
+       matches the graph derivation's own run schema, so the count was 3 and dropping one from a
+       job schema still left two. Count the pair, which only a job carries. */
+    (client.match(/stage_label: str,\s*stages: arrayOf\(str\),/g) ?? []).length === 2 &&
+    /i < job\.stage_index \? 'done' : i === job\.stage_index \? 'running' : 'pending'/.test(
+      read('frontend/src/data/mailProcess.ts'),
+    ) &&
+    /*
+     * **A mail run is watched here and nowhere else, on request.** `GET /profiling-jobs` excludes
+     * `gmail` — a row on that board as well would be two places to watch one run — so the panel
+     * polls its own endpoint, and the page deliberately does *not* switch to the jobs tab after
+     * queueing one, which would land a reader on a list that cannot contain their run.
+     */
+    /j\.kind !== 'gmail'/.test(server) &&
+    /mail-run\$\/\.test\(p\)/.test(server) &&
+    /export async function getMailRun/.test(client) &&
+    /* The bar reads the job, and the one interval it owns is gated on the run being in flight. */
+    /if \(!running\) return/.test(read('frontend/src/components/catalog/MailProcessPanel.tsx')) &&
+    /percent=\{job\.progress\}/.test(read('frontend/src/components/catalog/MailProcessPanel.tsx')) &&
+    /* An uncounted page is an em dash, never 0. */
+    /pages == null \? <span className="pc-dash">/.test(
+      read('frontend/src/components/catalog/MailProcessPanel.tsx'),
+    ) &&
+    /*
+     * **The seven stages are the tenant's own, given as a list, and Gmail's alone.** They were
+     * reworded once to avoid ending on *Assembling the graph* — on the reasoning that nothing a
+     * mail run lands reaches the published graph, which is true — and asked for verbatim a second
+     * time. The rule did not move: `selectedProfiledObjects` still skips a runtime source by name,
+     * so the guarantee is enforced where it lives rather than by what a stage is called. What the
+     * label needed was for the note beneath it to say *which* graph is assembled, or the panel
+     * argues with itself — the fault the *Curated by AI* rename records one section over.
+     */
+    (server.match(/const MAIL_PIPELINE = \[([\s\S]*?)\]/)?.[1] ?? '')
+      .match(/'([^']+)'/g)
+      ?.join(' ') ===
+      "'Reading documents' 'Classifying passages' 'Extracting entities & relations' " +
+        "'Building relation vocabulary' 'Canonicalising relations' 'Pruning' " +
+        "'Assembling the graph'" &&
+    /* Gmail's alone: the other two pipelines are untouched. */
+    /* Sliced, not matched across lines: a shell-written newline escape ends a regex early. */
+    (server.split('const PIPELINE = [')[1] ?? '').includes("'Schema fetch'") &&
+    /* And the note says which graph, so the last stage is not left to be read as the tenant's. */
+    /none of it is merged into the published knowledge graph/.test(
+      read('frontend/src/data/mailProcess.ts'),
+    ),
+  'a stage list held in the client, or a bar on a timer, narrates work the server never did',
 )
 
 /*
@@ -2151,11 +2476,10 @@ expect(
     !/source\.attachments/.test(codeOnly(server)) &&
     !/attachments_in_scope/.test(codeOnly(server)) &&
     !/attachments_in_scope/.test(codeOnly(client)) &&
-    !/attachments_in_scope/.test(codeOnly(mailBrowsePanel)) &&
-    !/out of scope/.test(codeOnly(mailBrowsePanel)) &&
-    /* Still prints "no attachments" on a message that carries none — a fact about the mail, and
-       the presence half that stops the absences above passing over a gutted panel. */
-    /'no attachments'/.test(mailBrowsePanel) &&
+    /* The panel that drew the scope branch is deleted outright, which covers its two absences
+       more completely than reading it could. Its "no attachments" line went with it: nothing
+       lists a mailbox's messages any more, because nothing asks a reader to pick between them. */
+    !existsSync(join(root, 'frontend/src/components/catalog/MailBrowsePanel.tsx')) &&
     /* Narrowed to the removed sentence: `wrongScope` still says "re-run the connect wizard" of a
        mailbox's LABELS, which are settled by the consent and really are changed by re-running it.
        That instruction is carryable-out; the attachments one no longer was. */
@@ -2760,9 +3084,9 @@ const panelFiles = [
   'frontend/src/components/catalog/ProfiledColumnsPanel.tsx',
   'frontend/src/components/catalog/ProfiledDocumentsPanel.tsx',
   'frontend/src/components/catalog/DocumentBrowsePanel.tsx',
-  /* Mail's two, listed here rather than left to inherit the guarantee by resemblance: a panel
-     copied from one that has no ✕ is the easiest place for one to come back. */
-  'frontend/src/components/catalog/MailBrowsePanel.tsx',
+  /* Mail's dictionary panel, listed here rather than left to inherit the guarantee by
+     resemblance: a panel copied from one that has no ✕ is the easiest place for one to come back.
+     Its browse twin is deleted — Gmail's act is a button, not a panel. */
   'frontend/src/components/catalog/ProfiledMailDocumentsPanel.tsx',
 ]
 for (const path of panelFiles) {
@@ -2820,8 +3144,15 @@ expect(
 )
 expect(
   'the open state is derived from the panel, not tracked beside it',
-  /const browseOpen = panel === /.test(catalogPage) &&
-    /const dictionaryOpen = panel === /.test(catalogPage),
+  /* Still derived, and now null-guarded: `browsePanel` is `null` for a connector whose first act
+     is a run, and `panel` is never `null`, so the guard keeps `browseOpen` honestly false for it
+     rather than letting two absent values compare equal. */
+  /const browseOpen = units\?\.browsePanel != null && panel === units\.browsePanel/.test(
+    catalogPage,
+  ) &&
+    /* Sliced rather than matched across lines: the declaration is wrapped, and a line-break
+       escape written through a shell lands as a real newline and ends the regex early. */
+    /units\?\.dictionaryPanel != null && panel === units\.dictionaryPanel/.test(catalogPage),
   'two pieces of state for one fact is a pressed button with nothing open under it',
 )
 expect(
@@ -2872,7 +3203,9 @@ expect(
 for (const [label, path] of [
   ['BrowsePanel', 'frontend/src/pages/CatalogPage.tsx'],
   ['DocumentBrowsePanel', 'frontend/src/components/catalog/DocumentBrowsePanel.tsx'],
-  ['MailBrowsePanel', 'frontend/src/components/catalog/MailBrowsePanel.tsx'],
+  /* Mail had a third entry here and has no browse panel now. Its *Process documents* button is
+     unforced too, and that is asserted with the rest of the Gmail change below rather than by
+     this loop, whose shape (a Start Profiling button plus a re-run confirm) it no longer has. */
 ]) {
   const src = codeOnly(read(path))
   expect(

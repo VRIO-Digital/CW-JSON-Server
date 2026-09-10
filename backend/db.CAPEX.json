@@ -289,30 +289,6 @@
               "type": "TABLE",
               "rows": null,
               "columns": 6
-            },
-            {
-              "table_id": "capex_plan_dictionary",
-              "label": "capex-plan-dictionary.csv (uploaded)",
-              "grain": "one row per record in the uploaded file",
-              "type": "TABLE",
-              "rows": 186,
-              "columns": 7
-            },
-            {
-              "table_id": "vendor_invoice_sample",
-              "label": "vendor_invoice_sample.pdf (uploaded)",
-              "grain": "one row per record in the uploaded file",
-              "type": "TABLE",
-              "rows": 163,
-              "columns": 1
-            },
-            {
-              "table_id": "query_set_v2_1",
-              "label": "query_set_v2 (1).json (uploaded)",
-              "grain": "one row per record in the uploaded file",
-              "type": "TABLE",
-              "rows": 9552,
-              "columns": 1
             }
           ]
         }
@@ -7026,120 +7002,6 @@
         "confidence": null,
         "null_pct": null,
         "distinct": null
-      }
-    ],
-    "plan.capex_plan_dictionary": [
-      {
-        "column_id": "dataset",
-        "label": "DATASET",
-        "type": "STRING",
-        "class": "text",
-        "description": "",
-        "derivation": "measured from the uploaded file",
-        "pii": false,
-        "confidence": null,
-        "null_pct": 0,
-        "distinct": 1
-      },
-      {
-        "column_id": "table",
-        "label": "TABLE",
-        "type": "STRING",
-        "class": "text",
-        "description": "",
-        "derivation": "measured from the uploaded file",
-        "pii": false,
-        "confidence": null,
-        "null_pct": 0,
-        "distinct": 12
-      },
-      {
-        "column_id": "column",
-        "label": "COLUMN",
-        "type": "STRING",
-        "class": "text",
-        "description": "",
-        "derivation": "measured from the uploaded file",
-        "pii": false,
-        "confidence": null,
-        "null_pct": 0,
-        "distinct": 129
-      },
-      {
-        "column_id": "type",
-        "label": "TYPE",
-        "type": "STRING",
-        "class": "text",
-        "description": "",
-        "derivation": "measured from the uploaded file",
-        "pii": false,
-        "confidence": null,
-        "null_pct": 0,
-        "distinct": 6
-      },
-      {
-        "column_id": "class",
-        "label": "CLASS",
-        "type": "STRING",
-        "class": "text",
-        "description": "",
-        "derivation": "measured from the uploaded file",
-        "pii": false,
-        "confidence": null,
-        "null_pct": 0,
-        "distinct": 13
-      },
-      {
-        "column_id": "pii",
-        "label": "PII",
-        "type": "STRING",
-        "class": "text",
-        "description": "",
-        "derivation": "measured from the uploaded file",
-        "pii": false,
-        "confidence": null,
-        "null_pct": 74.2,
-        "distinct": 7
-      },
-      {
-        "column_id": "description",
-        "label": "DESCRIPTION",
-        "type": "STRING",
-        "class": "text",
-        "description": "",
-        "derivation": "measured from the uploaded file",
-        "pii": false,
-        "confidence": null,
-        "null_pct": 20.4,
-        "distinct": 131
-      }
-    ],
-    "plan.vendor_invoice_sample": [
-      {
-        "column_id": "%PDF-1.4",
-        "label": "%PDF-1.4",
-        "type": "STRING",
-        "class": "text",
-        "description": "",
-        "derivation": "measured from the uploaded file",
-        "pii": false,
-        "confidence": null,
-        "null_pct": 0,
-        "distinct": 122
-      }
-    ],
-    "plan.query_set_v2_1": [
-      {
-        "column_id": "{",
-        "label": "{",
-        "type": "STRING",
-        "class": "text",
-        "description": "",
-        "derivation": "measured from the uploaded file",
-        "pii": false,
-        "confidence": null,
-        "null_pct": 0,
-        "distinct": 2601
       }
     ]
   },
@@ -23010,6 +22872,116 @@
     }
   ],
   "graph_use_cases": [
+    {
+      "use_case_id": "uc-testdata-mtvgplnf2",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai"
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Year-to-Date (YTD) Budget Variance",
+          "description": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "gmail:adaeze.okonjo@vriodigital.com",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Show me the change orders with the message that explains each one.",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 5,
+      "updated_at": "2026-09-10T11:49:43.148Z"
+    },
+    {
+      "use_case_id": "uc-hardzous-mtvgiqcd5",
+      "name": "hardzous",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "dfssdffdsfd",
+      "personas": [
+        {
+          "name": "Finance Executive",
+          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
+          "source": "ai"
+        },
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai"
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Total_Forecast_Remaining_Large_Proj",
+          "description": "Total_Forecast_Remaining_Large_Proj = [Sum of FY26 Working Forecast]-[Sum of FY26 YearTotal Actual]+[Sum of FY27 Working Budget]+[Sum of FY28 Working Budget]+[Sum of FY29 Working Budget]+[Sum of FY30 Working Budget]+[Sum of FY31 Working Budget]+[Sum of FY32 Working Budget]",
+          "source": "ai"
+        },
+        {
+          "name": "Full Year Budget Variance",
+          "description": "Variance = [Forecast 6+6] - January_Calendarization Budget YTD",
+          "source": "ai"
+        }
+      ],
+      "sources": [],
+      "hero_questions": [],
+      "gap_decisions": [],
+      "step": 4,
+      "updated_at": "2026-09-10T11:41:59.034Z"
+    },
+    {
+      "use_case_id": "uc-dsfsdfsdfd-mtvgcmn84",
+      "name": "dsfsdfsdfd",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "sdfsdfdsfdsfsd",
+      "personas": [
+        {
+          "name": "Compliance Lead",
+          "description": "Asks what the regulatory drivers oblige and what they cost.",
+          "source": "ai"
+        },
+        {
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
+          "source": "ai"
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Year-to-Date (YTD) Budget Variance",
+          "description": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)",
+          "source": "ai"
+        },
+        {
+          "name": "Overrun amounttttt",
+          "description": "Overrun Amount =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURNVVVVV\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )",
+          "source": "ai"
+        }
+      ],
+      "sources": [],
+      "hero_questions": [],
+      "gap_decisions": [],
+      "step": 4,
+      "updated_at": "2026-09-10T11:37:01.936Z"
+    },
     {
       "use_case_id": "uc-waste-management-mtvfb41u1",
       "name": "Waste Management",
@@ -63670,7 +63642,122 @@
         "overrun",
         "amount"
       ],
-      "definition": "edited description"
+      "definition": "Overrun Amount =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURN\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )"
     }
-  ]
+  ],
+  "mail_corpus": {
+    "chunk_chars": 12000,
+    "documents": [
+      {
+        "document_id": "capital-gate-review-pack",
+        "label_id": "INBOX",
+        "name": "capital-gate-review-pack.pdf",
+        "mime_type": "application/pdf",
+        "pages": 18,
+        "size_chars": 26400,
+        "chunks": 3,
+        "snippet": "Gate 3 review pack for the quarter — scope, schedule and the assumptions each project is being held against.",
+        "entities": 2
+      },
+      {
+        "document_id": "contractor-progress-claim",
+        "label_id": "INBOX",
+        "name": "contractor-progress-claim.pdf",
+        "mime_type": "application/pdf",
+        "pages": 6,
+        "size_chars": 9100,
+        "chunks": 1,
+        "snippet": "Progress claim against the current certificate, with the measured quantities the quantity surveyor has certified.",
+        "entities": 2
+      },
+      {
+        "document_id": "variance-explanation-memo",
+        "label_id": "IMPORTANT",
+        "name": "variance-explanation-memo.docx",
+        "mime_type": "application/pdf",
+        "pages": 4,
+        "size_chars": 7300,
+        "chunks": 1,
+        "snippet": "Memo explaining the movement between the working forecast and the approved plan for the projects flagged this period.",
+        "entities": 6
+      },
+      {
+        "document_id": "rate-case-filing-checklist",
+        "label_id": "IMPORTANT",
+        "name": "rate-case-filing-checklist.xlsx",
+        "mime_type": "text/csv",
+        "pages": 2,
+        "size_chars": 3800,
+        "chunks": 1,
+        "snippet": "Checklist of what each jurisdiction requires before the filing window closes, with the certification lead per commission.",
+        "entities": 4
+      },
+      {
+        "document_id": "in-service-notification",
+        "label_id": "INBOX",
+        "name": "in-service-notification.txt",
+        "mime_type": "text/plain",
+        "pages": 1,
+        "size_chars": 1400,
+        "chunks": 1,
+        "snippet": "Notification that the asset has been placed in service and is ready to be transferred out of construction work in progress.",
+        "entities": 3
+      },
+      {
+        "document_id": "scope-change-request",
+        "label_id": "SENT",
+        "name": "scope-change-request.docx",
+        "mime_type": "application/pdf",
+        "pages": 9,
+        "size_chars": 14600,
+        "chunks": 2,
+        "snippet": "Change request describing the added scope, the reason it was raised and the contingency it is being drawn against.",
+        "entities": 5
+      },
+      {
+        "document_id": "commitment-reconciliation",
+        "label_id": "SENT",
+        "name": "commitment-reconciliation.csv",
+        "mime_type": "text/csv",
+        "pages": 3,
+        "size_chars": 5200,
+        "chunks": 1,
+        "snippet": "Reconciliation of open purchase-order commitments against what has been invoiced to date, by project and vendor.",
+        "entities": 5
+      },
+      {
+        "document_id": "programme-status-summary",
+        "label_id": "STARRED",
+        "name": "programme-status-summary.pdf",
+        "mime_type": "application/pdf",
+        "pages": 12,
+        "size_chars": 21900,
+        "chunks": 2,
+        "snippet": "Status summary across the programme — which projects moved a gate this period and which are waiting on a decision.",
+        "entities": 2
+      },
+      {
+        "document_id": "vendor-certification-letter",
+        "label_id": "UNREAD",
+        "name": "vendor-certification-letter.pdf",
+        "mime_type": "application/pdf",
+        "pages": 2,
+        "size_chars": 2900,
+        "chunks": 1,
+        "snippet": "Certification letter from the vendor confirming the delivered works meet the specification the contract sets out.",
+        "entities": 4
+      },
+      {
+        "document_id": "contingency-drawdown-note",
+        "label_id": "YELLOW_STAR",
+        "name": "contingency-drawdown-note.docx",
+        "mime_type": "application/pdf",
+        "pages": 5,
+        "size_chars": 8400,
+        "chunks": 1,
+        "snippet": "Note recording what contingency has been drawn against this project and what remains held at the authorised level.",
+        "entities": 7
+      }
+    ]
+  }
 }

@@ -15,6 +15,7 @@
     "seed:prototype-model": "node scripts/seed-prototype-model.js",
     "seed:data-model": "node scripts/seed-data-model.js",
     "seed:capex-metrics": "node scripts/seed-capex-metrics.js",
+    "seed:capex-mail": "node scripts/seed-capex-mail.js",
     "ingest:graph": "node scripts/ingest-knowledge-graph.js",
     "ingest:whatif": "node scripts/ingest-whatif.js",
     "ingest:reports": "node scripts/ingest-reports.js",

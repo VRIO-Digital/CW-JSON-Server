@@ -1,0 +1,106 @@
+/*
+ * Gmail's Process-documents surface: the run in flight, then what it processed.
+ *
+ * Spacing is on the `--sp-*` scale like everything authored here — the two vendored sheets are the
+ * only exemptions, and this is not one of them. Nothing below carries a status colour: a processed
+ * row is not a state of the data, it is what the table lists.
+ */
+
+.cat-mail-process {
+  margin-top: var(--sp-4);
+}
+
+.cat-mail-run {
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-4);
+  border: 1px solid #e9ecf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.cat-mail-run-caption {
+  display: block;
+  margin-top: var(--sp-1);
+  font-size: 12.5px;
+}
+
+.cat-mail-stages {
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cat-mail-stage {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+  color: #8994a8;
+  font-size: 12.5px;
+}
+
+/* The running stage is the one a reader is looking for, so it is the one that is legible. */
+.cat-mail-stage.is-running {
+  color: #1f2a3d;
+  font-weight: 600;
+}
+
+/* Finished stays readable rather than fading out — a done stage is evidence, not noise. */
+.cat-mail-stage.is-done {
+  color: #4b5a75;
+}
+
+.cat-mail-stage-mark {
+  display: inline-flex;
+  width: 14px;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.cat-mail-stage.is-done .cat-mail-stage-mark {
+  color: #1a7f5a;
+}
+
+.cat-mail-note {
+  margin-bottom: var(--sp-3) !important;
+  font-size: 12.5px;
+}
+
+.cat-mail-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cat-mail-doc-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* The opening line. Clamped rather than truncated at a character count, so a long first sentence
+   ends where the column ends instead of at an arbitrary letter. */
+.cat-mail-doc-snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #8994a8;
+  font-size: 12px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/*
+ * The status mark. Green, and deliberately the only colour in this table: `processed` is a state of
+ * the *row*, which is what `STATUS.good` is for — unlike the tiles above, where a chunk count is a
+ * figure rather than a state and carries no tint at all.
+ */
+.cat-mail-status {
+  display: inline-block;
+  padding: 2px var(--sp-2);
+  border-radius: 4px;
+  background: #e8f5ef;
+  color: #1a7f5a;
+  font-size: 11.5px;
+  font-weight: 600;
+}

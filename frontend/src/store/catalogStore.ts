@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import {
   applySchemaUpload,
   browseDocuments,
-  browseMailDocuments,
   browseSource,
   cancelProfilingJob,
   getProfiledColumns,
@@ -11,6 +10,7 @@ import {
   listChangeSignals,
   listProfilingJobs,
   profileDocuments,
+  getMailRun,
   profileMailDocuments,
   previewSchemaUpload,
   profileTables,
@@ -20,7 +20,6 @@ import {
   type BrowseResult,
   type ChangeSignal,
   type DocumentBrowseResult,
-  type MailDocumentBrowseResult,
   type ProfiledColumnsPayload,
   type ProfiledDocumentsPayload,
   type ProfiledMailDocumentsPayload,
@@ -138,49 +137,51 @@ export const useDocumentBrowseStore = create<DocumentBrowseState>()((set) => ({
   reset: () => set({ data: null, loading: false, error: null, starting: false }),
 }))
 
-/* ---------------- Browse & profile mail documents ---------------- */
+/* ---------------- Process a mailbox's documents ---------------- */
 
-interface MailBrowseState {
-  data: MailDocumentBrowseResult | null
-  loading: boolean
-  error: string | null
+/**
+ * Gmail's one act: **Process documents** runs over every attachment under the source's labels.
+ *
+ * **This replaced a browse-and-tick store**, which held the label → message → document tree, the
+ * checkbox selection and a `start` that posted the picked subset. Removed on request. What it
+ * leaves is a single call and the flag that says it is in flight — there is no `data`, because
+ * nothing is browsed, and no `error` in state, because the one act reports through its `Result`
+ * the way every other action here does.
+ *
+ * `browseMailDocuments` and its endpoint are untouched and now have no caller — the same
+ * waiting-for-a-caller state `/change-signals` is in.
+ */
+interface MailProcessState {
   starting: boolean
-
-  load: (sourceId: string) => Promise<void>
-  start: (
+  /**
+   * The run this surface is watching, or `null` where nothing has been run.
+   *
+   * **Held here rather than read off the jobs board**, which deliberately excludes `gmail`: a mail
+   * run is narrated where it was started and nowhere else, so a row on that board as well would be
+   * two places to watch one thing.
+   */
+  job: ProfilingJob | null
+  /** No object list: omitting it is what tells the route "the whole mailbox". */
+  process: (
     sourceId: string,
-    objects: { label_id: string; document_id: string }[],
     force: boolean,
   ) => Promise<{ ok: true; job: ProfilingJob } | { ok: false; error: string }>
+  /** One read of this source's run. */
+  poll: (sourceId: string) => Promise<void>
   reset: () => void
 }
 
-/**
- * The Gmail twin of `useBrowseStore`, separate for the reason the Drive one is: the three
- * payloads share no fields, so one `data` would be a union every consumer had to narrow.
- */
-export const useMailBrowseStore = create<MailBrowseState>()((set) => ({
-  data: null,
-  loading: false,
-  error: null,
+export const useMailProcessStore = create<MailProcessState>()((set) => ({
   starting: false,
+  job: null,
 
-  load: async (sourceId) => {
-    set({ loading: true })
-    try {
-      set({ data: await browseMailDocuments(sourceId), error: null, loading: false })
-    } catch (error) {
-      set({ error: toMessage(error), loading: false })
-    }
-  },
-
-  start: async (sourceId, objects, force) => {
-    if (objects.length === 0) {
-      return { ok: false, error: 'Select at least one document to profile.' }
-    }
+  process: async (sourceId, force) => {
     set({ starting: true })
     try {
-      const { job } = await profileMailDocuments(sourceId, objects, force)
+      const { job } = await profileMailDocuments(sourceId, force)
+      /* Kept, so the panel narrates from the first frame rather than waiting for the first poll —
+         a bar that appears a second after the click reads as a click that did nothing. */
+      set({ job })
       return { ok: true, job }
     } catch (error) {
       return { ok: false, error: toMessage(error) }
@@ -189,7 +190,17 @@ export const useMailBrowseStore = create<MailBrowseState>()((set) => ({
     }
   },
 
-  reset: () => set({ data: null, loading: false, error: null, starting: false }),
+  /** One read. The panel owns the interval and stops it when the run lands. */
+  poll: async (sourceId) => {
+    try {
+      set({ job: await getMailRun(sourceId) })
+    } catch {
+      /* A failed poll leaves the last known run rather than blanking a bar mid-flight — the same
+         rule the derivation poll keeps. */
+    }
+  },
+
+  reset: () => set({ starting: false, job: null }),
 }))
 
 /* ---------------- Profiled columns ---------------- */
@@ -568,14 +579,9 @@ export const useJobsStore = create<JobsState>()((set, get) => ({
           )
           break
         case 'gmail':
-          await profileMailDocuments(
-            job.source_id,
-            job.objects.map((o) => ({
-              label_id: o.parent_id,
-              document_id: o.object_id,
-            })),
-            force,
-          )
+          /* No object list: a mail job *is* the whole mailbox now, so re-running one is running
+             the mailbox again — the same set, by the same route, with `force` carried through. */
+          await profileMailDocuments(job.source_id, force)
           break
         case 'bigquery':
           await profileTables(

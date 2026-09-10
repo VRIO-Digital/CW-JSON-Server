@@ -10,7 +10,8 @@ export type CatalogPanel =
   | 'columns'
   | 'browse-documents'
   | 'documents'
-  | 'browse-mail-documents'
+  /* `browse-mail-documents` was here and is gone with `MailBrowsePanel` — Gmail's first act is a
+     run, not a panel, so there is no state for it to be in. See `browsePanel` below. */
   | 'mail-documents'
 
 /**
@@ -38,6 +39,14 @@ export interface CatalogUnits {
   objectsLabel: string
   objectsCount: (s: SourceRow) => number
   /**
+   * The line under that tile, where a connector has a second figure to put there.
+   *
+   * Optional, and absent means the tile prints its label alone — Gmail states *"N chunks in
+   * total"* under its document count, and BigQuery and Drive have nothing to add. A default of
+   * "for this source" here would put a note under two tiles that never asked for one.
+   */
+  objectsNote?: (s: SourceRow) => string
+  /**
    * The fourth tile. Not always "what profiling produced": Gmail states **today's runs** here
    * instead, which is what its reader asked to see, so the note travels with it rather than
    * being a literal in the page — "for this source" is wrong under a date.
@@ -48,8 +57,29 @@ export interface CatalogUnits {
   /** The two acts, in this connector's noun. */
   browseLabel: string
   dictionaryLabel: string
-  browsePanel: CatalogPanel
-  dictionaryPanel: CatalogPanel
+  /**
+   * Which panel the first act opens — **`null` where that act is a run rather than a panel**.
+   *
+   * Gmail is the one: its button is *Process documents* and pressing it processes the whole
+   * mailbox, so there is nothing to browse and nothing to hold open. Declared here rather than
+   * tested in the page with a connector name, which is the ternary this whole table exists to
+   * stop; the page reads the `null` and renders an action instead of a toggle.
+   *
+   * **A mailbox's selection was never a real choice**, which is why this is the connector that
+   * lost one: its labels are settled by the consent, its messages arrive rather than being filed,
+   * and its documents are whatever somebody attached. Offering to process a subset of somebody's
+   * mail is not a decision the Data Catalog is in a position to put to a reader.
+   */
+  browsePanel: CatalogPanel | null
+  /**
+   * Which panel the second act opens — **`null` where there is no second act**.
+   *
+   * Gmail's is: its documents are listed on the Catalog surface itself, under the run that
+   * produced them, so *View profiled documents* was a button opening a second view of what is
+   * already on the page. Removed on request. The page withholds the control by there being no
+   * panel, never by a connector name.
+   */
+  dictionaryPanel: CatalogPanel | null
   /*
    * **There is no third act here, and its absence is the design.** Uploading a data dictionary used
    * to be a source-level button beside these two, with a dataset picked from a Select inside the
@@ -127,31 +157,39 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
      * runs over is the attachment, never the message — the message is the container it arrived
      * in — so a "messages profiled" tile would name something nothing here counts.
      */
-    objectsLabel: 'documents profiled',
-    objectsCount: (s) => s.profiledDocuments ?? 0,
     /*
-     * **Today's runs, where the other two report their second unit.**
+     * **The tiles state what has been *chunked*, which is what processing a mailbox does.**
      *
-     * Asked for as a tile rather than a line under them, so it takes the fourth slot; entities
-     * are still extracted and still reported, by the dictionary, which is where a reader is
-     * looking at them. Both the figure and the date are the server's — the count is computed
-     * against the server's day, and a tile reading "today" over another box's midnight is a
-     * claim nobody can check.
+     * Counted over what has been processed rather than over what the mailbox holds — the note
+     * beneath them says exactly that, because mail is read on demand and nothing is mirrored, so a
+     * tile counting the corpus would report work nothing has done.
      */
-    unitsLabel: 'profiled today',
+    objectsLabel: 'documents chunked',
+    objectsCount: (s) => s.documentsChunked ?? 0,
+    objectsNote: (s) => `${s.chunksTotal ?? 0} chunks in total`,
+    /*
+     * **Today's runs, where the other two report their second unit.** Both the figure and the date
+     * are the server's: a tile reading "today" over a box in another timezone is a claim the
+     * reader cannot check, and the date beside it is what makes it checkable.
+     */
+    unitsLabel: 'chunked today',
     unitsCount: (s) => s.profiledToday,
-    unitsNote: (s) => s.profiledTodayDate,
-    browseLabel: 'Browse documents for profiling',
-    dictionaryLabel: 'View profiled documents',
-    browsePanel: 'browse-mail-documents',
-    dictionaryPanel: 'mail-documents',
+    unitsNote: (s) => `since ${s.profiledTodayDate}`,
+    browseLabel: 'Process documents',
+    /* No second act: the documents are listed on the page itself, under the run that produced
+       them, so a button opening a second view of them was opening what is already there. */
+    dictionaryLabel: '',
+    /* A run, not a panel — see `browsePanel` on the interface above. */
+    browsePanel: null,
+    /* Removed on request, and withheld the same way. */
+    dictionaryPanel: null,
     listCount: (s) => `${s.profiledDocuments ?? 0} documents profiled`,
     /* Names the graph rule once, where a reader has just watched a run finish and might
        otherwise expect what it landed to turn up on a canvas. */
     foot: (s) =>
       (s.profiledDocuments ?? 0) === 0
-        ? 'No profiled documents yet for this source. Browse & profile some attached documents first, then watch the Profiling jobs tab.'
-        : `${s.profiledDocuments} document(s) and ${s.profiledEntities} entities profiled from this mailbox's attachments. Re-profile any time from Browse documents for profiling. These extractions are read at question time and never become graph elements.`,
+        ? 'No processed documents yet for this source. Press Process documents to run over every attachment under this mailbox’s labels — the run is narrated here, not on the Profiling jobs board.'
+        : `${s.profiledDocuments} document(s) and ${s.profiledEntities} entities processed from this mailbox's attachments. Process documents runs the whole mailbox again any time. These extractions are read at question time and never become graph elements.`,
   },
 }
 

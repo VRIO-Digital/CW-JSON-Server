@@ -166,6 +166,35 @@ export const MERGE_PLAN = {
   whatif: 'primary',
 
   /*
+   * **The mail a dataset ships, if it ships any.** CAPEX carries `mail_corpus` — the documents its
+   * mailbox holds, with the page counts, character sizes and opening lines a hash may not invent —
+   * and EPA carries none, so its mailbox is synthesised the way both were before.
+   *
+   * `union` on `document_id`, because two datasets genuinely bring their own mail and neither is
+   * an answer to the other's question. It is *not* `primary`: that would mean `both` served EPA's
+   * absence of a corpus and CAPEX's mail vanished from a merged view, which is the silent drop this
+   * whole table exists to prevent. Nothing is lost by unioning either — a source's own allowlist
+   * filters what it can reach, so a document filed under a label this mailbox was never pointed at
+   * stays out of its catalogue whichever dataset shipped it.
+   *
+   * **`deep`, not a bare `union`, because the value is an object rather than a list.** `union` is
+   * applied to the value itself and returns the primary's untouched when the other side is not an
+   * array — so `{ union: 'document_id' }` here would have merged nothing and, with EPA shipping no
+   * corpus at all, dropped CAPEX's mail out of `both` entirely. Exactly the silent drop this table
+   * exists to prevent, reached by giving the right rule the wrong shape.
+   *
+   * `chunk_chars` is single-valued, so it follows the rule every single-valued key here follows and
+   * takes the primary's. EPA states none, so a merged view has none — and `mailChunkFigures` falls
+   * back to `MAIL_CHUNK_CHARS`, which is the honest answer for a view that is not any one dataset.
+   */
+  mail_corpus: {
+    deep: {
+      chunk_chars: 'primary',
+      documents: { union: 'document_id' },
+    },
+  },
+
+  /*
    * The two documents that used to be files of their own, and both are the **tenant's** rather than
    * a dataset's — which is exactly why they are `primary` here and were never copied per prefix.
    *
