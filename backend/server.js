@@ -59,6 +59,7 @@
  *   GET    /graph-domains                  step 1 options, ranked by real fit
  *   POST   /graph-personas/suggest         step 2 draft { domain_id, business_need }
  *   POST   /graph-metrics/suggest          step 3 draft { domain_id, business_need }
+ *   PATCH  /graph-metrics/:metricId        step 3 Edit — corrects the pool { name, definition }
  *   GET    /graph-sources                  step 4: connected sources + profiled objects
  *   POST   /graph-questions/suggest         step 5 draft { domain_id, business_need }
  *   POST   /graph-coverage                 step 6 review { name, sources, hero_questions }
@@ -1190,6 +1191,11 @@ const DB_SHAPE = {
         typeof e.table_key === 'string' &&
         typeof e.entity_name === 'string' &&
         typeof e.description === 'string' &&
+        /* Who declared it, and absent is permitted — an anchor entity has nobody to name, and
+           neither does one written before the field existed. */
+        (e.confirmed_by === undefined ||
+          e.confirmed_by === null ||
+          (typeof e.confirmed_by === 'string' && e.confirmed_by.includes('@'))) &&
         Array.isArray(e.attributes) &&
         e.attributes.every((a) => isObject(a) && typeof a.name === 'string') &&
         Array.isArray(e.relationships) &&
@@ -1202,7 +1208,17 @@ const DB_SHAPE = {
             Array.isArray(r.to_columns) &&
             r.to_columns.length > 0 &&
             typeof r.relationship_type === 'string' &&
-            typeof r.cardinality_hint === 'string',
+            typeof r.cardinality_hint === 'string' &&
+            /*
+             * **Who accepted it, and absent is permitted.** Being stored and being confirmed by a
+             * person are two facts: a declaration written before this field existed, or by a
+             * script, has no answer to the second — and `null` is that answer rather than a name
+             * invented for it. A string has to look like an address, since the label prints it as
+             * the reader's own act.
+             */
+            (r.confirmed_by === undefined ||
+              r.confirmed_by === null ||
+              (typeof r.confirmed_by === 'string' && r.confirmed_by.includes('@'))),
         ) &&
         Array.isArray(e.cross_attributes) &&
         e.cross_attributes.every(
@@ -5972,6 +5988,88 @@ function suggestFrom(pool, idKey, domainId, businessNeed, limit = 4) {
 }
 
 /**
+ * The three pools the wizard's suggesters draft from, keyed by the noun a reader would use.
+ *
+ * One declaration, read by `draftableFor` and by `emptyDraftReason` below, so step 1's counts and
+ * a step's own explanation of an empty list cannot come to disagree about which pool serves which
+ * step.
+ */
+const DRAFT_POOLS = [
+  ['personas', 'graph_personas'],
+  ['metrics', 'graph_metrics'],
+  ['hero_questions', 'graph_hero_questions'],
+]
+
+/**
+ * How many entries each pool holds for a domain — what steps 2, 3 and 5 would have to draft from.
+ *
+ * An entry naming no domain at all fits every one of them, which is the same rule `suggestFrom`
+ * applies (`domainFit` is 1 for an empty `domains`), so the count here cannot promise a draft the
+ * ranking would then filter out.
+ */
+function draftableFor(domainId) {
+  const counts = {}
+  for (const [noun, poolKey] of DRAFT_POOLS) {
+    counts[noun] = (db[poolKey] ?? []).filter((entry) => {
+      const domains = entry.domains ?? []
+      return domains.length === 0 || domains.includes(domainId)
+    }).length
+  }
+  return counts
+}
+
+/**
+ * Why a suggester came back with nothing — `null` whenever it came back with something.
+ *
+ * **An empty list is an answer, and this is which answer it is.** The step used to print
+ * *"Nothing matched this brief"* for every empty draft, which is right for a brief the ranking
+ * could not place and wrong — and misleading — when the pool holds no entry for this domain at
+ * all: it blames the reader's words for a gap in the tenant's data, and sends them to rewrite a
+ * business need that was never the problem. CAPEX is the case that made it visible; two of its
+ * four domains have no persona, metric or hero question written against them.
+ *
+ * Both branches name the fix, and they are different fixes: change the domain (or write your own),
+ * against re-word the brief.
+ */
+function emptyDraftReason(poolKey, domainId) {
+  const pool = db[poolKey] ?? []
+  const noun = (DRAFT_POOLS.find(([, key]) => key === poolKey) ?? ['entries'])[0].replace('_', ' ')
+
+  if (!domainId) {
+    return (
+      `This brief has no domain yet, and the pool is ranked against one — pick a business ` +
+      `domain on step 1 and draft again, or add your own ${noun} below.`
+    )
+  }
+
+  const here = pool.filter((entry) => {
+    const domains = entry.domains ?? []
+    return domains.length === 0 || domains.includes(domainId)
+  })
+  if (here.length > 0) {
+    /* The pool has entries for this domain and the ranking placed none of them — which really is
+       about the brief, and is the only case the old sentence described. */
+    return `Nothing in this dataset's ${pool.length} ${noun} matched this brief.`
+  }
+
+  /*
+   * The gap this exists for. It names where the pool *does* have entries, because "pick another
+   * domain" with no list is an instruction the reader cannot act on without going back and
+   * guessing — the same rule the dataset selector's refusal keeps.
+   */
+  const elsewhere = [...new Set(pool.flatMap((entry) => entry.domains ?? []))]
+    .map((id) => db.graph_domains.find((d) => d.domain_id === id)?.name ?? id)
+    .sort()
+  const domainName =
+    db.graph_domains.find((d) => d.domain_id === domainId)?.name ?? domainId
+
+  return (
+    `This dataset has no ${noun} on ${domainName} — its ${pool.length} are on ` +
+    `${elsewhere.join(' and ')}. Change the domain on step 1, or add your own below.`
+  )
+}
+
+/**
  * One pool entry as the row the wizard renders. Shared by the keyword ranking
  * and the template bundle so a drafted suggestion cannot read differently
  * depending on which path produced it.
@@ -8472,18 +8570,30 @@ function resolveSchemaUpload({ source, parsed, datasetId, filename }) {
     const orphanedNotes = dropped.filter((id) => notes[`${chosen}.${table.table_id}.${id}`])
 
     /*
-     * **And a Data Modeling declaration can be stranded by a dropped column**, which is worse than
-     * an orphaned note: a confirmed identifier or a declared join reads a column by name, and
-     * `POST /data-model/entities` *refuses* a join on a column `column_profiles` does not carry. So
-     * an upload that drops one leaves a declaration the write path would no longer accept —
-     * findable only by trying to edit it. Named here, in the preview, while it is still a choice.
+     * **And a Data Modeling declaration can be stranded by a column this file does not name**,
+     * which is worse than an orphaned note: a confirmed identifier or a declared join reads a
+     * column by name, and `POST /data-model/entities` *refuses* a join on a column
+     * `column_profiles` does not carry. So an upload that leaves one out leaves a declaration the
+     * write path would no longer accept — findable only by trying to edit it. Named here, in the
+     * preview, while it is still a choice.
+     *
+     * **Not-named rather than dropped, and the difference is a whole silent case.** It tested
+     * `dropped`, which is what a *previous dictionary* held and this file does not — so it covered
+     * a table that already had one and said nothing at all about a table whose columns were
+     * synthesised. That is the case that bites: `POST /data-model/entities` skips its column check
+     * for a table with no `column_profiles` entry, so a declaration can legitimately be written
+     * against a synthesised column name, and the first dictionary uploaded for that table is what
+     * makes it checkable — and invalid. CAPEX ships two of exactly those, joining
+     * `plan_project_budget` and `plan_project_forecast` onto `plan_version_master."Project Code"`,
+     * a column a version master does not have. Dropped is a subset of not-named, so nothing this
+     * caught before is lost.
      */
     const tableKey = `${chosen}.${table.table_id}`
     const strandedDeclarations = []
     for (const entity of db.data_model.entities) {
       if (entity.table_key === tableKey) {
         for (const attribute of entity.attributes) {
-          if (attribute.is_identifier && dropped.includes(attribute.name)) {
+          if (attribute.is_identifier && !afterIds.has(attribute.name)) {
             strandedDeclarations.push(`${entity.entity_name}: identifier ${attribute.name}`)
           }
         }
@@ -8495,7 +8605,7 @@ function resolveSchemaUpload({ source, parsed, datasetId, filename }) {
           relationship.target_table_key === tableKey ? relationship.to_columns : [],
         ].flat()
         for (const column of ends) {
-          if (dropped.includes(column)) {
+          if (!afterIds.has(column)) {
             strandedDeclarations.push(
               `${entity.entity_name}: ${relationship.relationship_type} on ${column}`,
             )
@@ -8625,14 +8735,23 @@ const profiledModelTables = (source) => {
 }
 
 /**
- * How many tables one suggestions run considers.
+ * How many **suggestions** one run returns — and, deliberately, no cap on which tables it looks at.
  *
- * A pair-wise column scan is quadratic and CAPEX ships 64 profiled tables, so an uncapped run would
- * compare a couple of thousand pairs to offer a reviewer a list nobody could read. The cap is
- * **reported** (`truncated`, `tables_considered`) rather than applied quietly, because a suggestion
- * list that silently covers a fifth of a source reads as a source with few relationships.
+ * **It was a cap on the tables (12), and that was the wrong thing to limit.** A pair-wise column
+ * scan is quadratic and CAPEX ships 64 profiled tables, so the concern was real: an uncapped run
+ * offers a reviewer a list nobody can read. But capping the *inputs* makes the output a claim about
+ * the cap rather than about the schema — an 18-table source came back with 12 tables joined and 6
+ * that appeared to have no relationship at all, when every one of the 18 shares an identifier with
+ * another. Reported from use, as six orphan tables that were nothing of the kind.
+ *
+ * That distinction matters more now that the run **states which tables are orphaned**: a table
+ * nothing joins is a fact about the data and a reason to go and look at it, so it must not be
+ * produced by a limit here. So every profiled table is scanned — the scan is string comparison over
+ * column ids, which is cheap even at 64 tables — and the *list* is what gets cut, since that is the
+ * thing a reviewer has to read. The cut is **reported** (`truncated`, `relationships_total`) rather
+ * than applied quietly, and `orphan_tables` is computed before it, over the whole scan.
  */
-const SUGGEST_TABLE_CAP = 12
+const SUGGEST_RELATIONSHIP_CAP = 80
 
 /**
  * The relationships a shared identifier column implies, and the descriptions a table's own catalogue
@@ -8648,7 +8767,9 @@ const SUGGEST_TABLE_CAP = 12
  */
 const dataModelSuggestions = (source) => {
   const all = profiledModelTables(source)
-  const considered = all.slice(0, SUGGEST_TABLE_CAP)
+  /* Every profiled table, because `orphan_tables` below is only honest if nothing was left out of
+     the scan. What a run cuts is the list it returns. */
+  const considered = all
   const upper = (text) => String(text).replace(/[^a-z0-9]+/gi, '_').toUpperCase()
 
   const tables = considered.map((t) => ({
@@ -8817,10 +8938,37 @@ const dataModelSuggestions = (source) => {
 
   const derived = relationships.filter((d) => !recorded.some((r) => covers(r, d)))
 
+  /*
+   * **Which profiled tables nothing joins — computed over the whole scan, before the list is cut.**
+   *
+   * A table no relationship reaches is a fact worth stating: it is either a table this schema really
+   * does not connect (a lookup nobody keyed, an extract that stands alone) or a dictionary that has
+   * not named its identifier yet, and both are reasons to go and look at it. What it must never be
+   * is an artefact of a limit — which is exactly what it was when the *tables* were capped at 12 and
+   * six of an 18-table source came back looking unrelated.
+   *
+   * So this counts against every table the scan saw, and it counts a table as reached by **either**
+   * end of a suggestion. A stored declaration is the client's to add: it holds the confirmed edges,
+   * and a table this run suggests nothing for may already be declared against another. The payload
+   * therefore names the tables rather than only counting them — the rule a skipped profiling run
+   * already follows, because a count with no names leaves a reader to work out whether theirs is in
+   * it.
+   */
+  const reached = new Set()
+  for (const r of [...recorded, ...derived]) {
+    reached.add(r.from_table_key)
+    reached.add(r.to_table_key)
+  }
+  const orphanTables = considered.map((t) => t.table_key).filter((key) => !reached.has(key))
+
+  const served = [...recorded, ...derived]
   return {
     source_id: source.source_id,
     tables,
-    relationships: [...recorded, ...derived],
+    /* Recorded first, so a cut takes derived rows before an authored one: a recorded suggestion
+       carries a name, weighed alternatives and somebody's reasoning, and dropping one to make room
+       for a column-name match would lose the more considered of the two. */
+    relationships: served.slice(0, SUGGEST_RELATIONSHIP_CAP),
     /*
      * True whichever kind was served, because it answers "did a model run" and the answer is no.
      * The two counts beside it are what let the tab say which is which rather than implying one.
@@ -8828,8 +8976,12 @@ const dataModelSuggestions = (source) => {
     degraded: true,
     recorded_count: recorded.length,
     derived_count: derived.length,
-    truncated: all.length > considered.length,
+    /* The cut is on the list now, never on the inputs — `tables_considered` is every profiled
+       table, and a reader is told when suggestions were left out rather than tables. */
+    truncated: served.length > SUGGEST_RELATIONSHIP_CAP,
+    relationships_total: served.length,
     tables_considered: considered.length,
+    orphan_tables: orphanTables,
   }
 }
 
@@ -8839,6 +8991,9 @@ const modelEntityView = (entity) => ({
   table_key: entity.table_key,
   entity_name: entity.entity_name,
   description: entity.description,
+  /* Null rather than absent on the way out, so the client's schema can require the key and the tab
+     does not have to tell "nobody declared it" from "the server is old". */
+  confirmed_by: entity.confirmed_by ?? null,
   business_purpose: entity.business_purpose ?? null,
   grain_description: entity.grain_description ?? null,
   attributes: entity.attributes ?? [],
@@ -10330,16 +10485,32 @@ const routes = [
   },
 
   /*
-   * Applies the plan, then **queues a profiling run over the tables it touched**, forced.
+   * Applies every dictionary the reader has read, then **queues one profiling run** over the
+   * dictionaries' tables *and* whatever else they picked.
    *
    * One call rather than two, because the two are one act: a dictionary that landed and a run that
    * did not is a Catalog advertising columns nothing has profiled, and asking the client to make the
    * second call would put the decision in the one place that cannot see whether the first succeeded.
    *
-   * **Forced, and that is the point.** The normal rule is that an already-profiled table is skipped
-   * unless somebody asks twice — because re-running over unchanged columns does nothing. Here the
-   * columns are exactly what changed, so a skip would leave the tile counting a profile of the
-   * dictionary that has just been replaced.
+   * **And one job rather than two, which is what `objects` is for.** This wrote the dictionary and
+   * queued a run over its own tables; the client then started a *second* run for the tables the
+   * reader had checked outside it. One press of Start Profiling produced two pipelines on the board
+   * — over one dataset, whose 12 dictionary tables and 6 others are one selection — and a reader
+   * watching them cannot tell which of the two is theirs, or when "profiling" is finished. Reported
+   * from use. So the selection travels with the write and the union is queued once: 18 tables, one
+   * run, one thing to watch.
+   *
+   * **Batched, and all-or-nothing.** `dictionaries` is an array because a source with three datasets
+   * can have one read against each, and a per-dataset call would put us back to a job per dataset.
+   * Every plan is resolved *before* anything is written and they land in a single `commitDb`, so a
+   * refusal on the third file leaves the first two unwritten — which is stronger than the loop this
+   * replaced, where a client posting them one at a time could leave half of them applied.
+   *
+   * **A dictionary's own tables always run.** The normal rule is that an already-profiled table is
+   * skipped unless somebody asks twice, because re-running over unchanged columns does nothing —
+   * here the columns are exactly what changed, so a skip would leave the tile counting a profile of
+   * the dictionary that has just been replaced. Everything else in the selection keeps the ordinary
+   * rule, which is why `force` still travels: it belongs to those, not to these.
    */
   {
     method: 'POST',
@@ -10353,17 +10524,49 @@ const routes = [
       const wrong = wrongStructuredOnly(source, 'bigquery', 'a schema upload')
       if (wrong) return send(res, 400, { error: wrong })
 
-      const { filename, text, dataset_id } = await readJson(req)
-      if (!filename || typeof text !== 'string') {
-        return send(res, 400, { error: 'filename and text are both required' })
+      const { dictionaries, objects, force } = await readJson(req)
+      if (!Array.isArray(dictionaries) || dictionaries.length === 0) {
+        return send(res, 400, {
+          error: 'dictionaries must be a non-empty array of { filename, text, dataset_id }',
+        })
+      }
+      if (objects !== undefined && !Array.isArray(objects)) {
+        return send(res, 400, { error: 'objects must be an array of { dataset_id, table_id }' })
+      }
+      for (const entry of dictionaries) {
+        if (!isObject(entry) || !entry.filename || typeof entry.text !== 'string') {
+          return send(res, 400, { error: 'every dictionary needs a filename and text' })
+        }
       }
 
-      let plan
-      try {
-        const parsed = parseSchemaDocument({ filename, text })
-        plan = resolveSchemaUpload({ source, parsed, datasetId: dataset_id, filename })
-      } catch (error) {
-        return send(res, 400, { error: `${filename}: ${error.message}` })
+      /*
+       * Resolved first, all of them, and only then written. A plan is what the reader was shown, so
+       * this is also the one place that guarantees what they read is what lands.
+       */
+      const plans = []
+      for (const entry of dictionaries) {
+        try {
+          const parsed = parseSchemaDocument({ filename: entry.filename, text: entry.text })
+          plans.push(
+            resolveSchemaUpload({
+              source,
+              parsed,
+              datasetId: entry.dataset_id,
+              filename: entry.filename,
+            }),
+          )
+        } catch (error) {
+          return send(res, 400, { error: `${entry.filename}: ${error.message}` })
+        }
+      }
+      /* One dictionary per dataset: two would each replace a table's columns and the last would
+         silently win, which is the two-answers fault this repo refuses everywhere. */
+      const datasets = plans.map((p) => p.dataset_id)
+      const twice = datasets.find((d, i) => datasets.indexOf(d) !== i)
+      if (twice) {
+        return send(res, 400, {
+          error: `two dictionaries name the dataset ${twice} — read one file per dataset, or the second would replace what the first wrote`,
+        })
       }
 
       /*
@@ -10372,13 +10575,15 @@ const routes = [
        * every level of this is a new object — editing `db.projects` in place would change the live
        * document before it had been checked.
        */
-      const byTable = new Map(plan.tables.map((t) => [t.table_id, t]))
+      const planFor = new Map(plans.map((plan) => [plan.dataset_id, plan]))
       const projects = db.projects.map((project) => {
         if (project.project_id !== source.project_id) return project
         return {
           ...project,
           datasets: project.datasets.map((dataset) => {
-            if (dataset.dataset_id !== plan.dataset_id) return dataset
+            const plan = planFor.get(dataset.dataset_id)
+            if (!plan) return dataset
+            const byTable = new Map(plan.tables.map((t) => [t.table_id, t]))
             const updated = dataset.tables.map((table) => {
               const plannedTable = byTable.get(table.table_id)
               /* The advertised column count and the dictionary have to agree — `check-docs` asserts
@@ -10406,30 +10611,79 @@ const routes = [
       })
 
       const profiles = { ...db.column_profiles }
-      for (const table of plan.tables) {
-        profiles[`${plan.dataset_id}.${table.table_id}`] = table.columns
+      for (const plan of plans) {
+        for (const table of plan.tables) {
+          profiles[`${plan.dataset_id}.${table.table_id}`] = table.columns
+        }
       }
 
       await commitDb({ ...db, projects, column_profiles: profiles })
+
+      /*
+       * One work list, dictionaries first. Keyed `dataset::table` so a table the reader also had
+       * checked is not queued twice — the dictionary's entry wins, because it is the one that must
+       * run whatever the ordinary skip rule would say.
+       */
+      const work = new Map()
+      for (const plan of plans) {
+        for (const table of plan.tables) {
+          work.set(`${plan.dataset_id}::${table.table_id}`, {
+            parent_id: plan.dataset_id,
+            object_id: table.table_id,
+            label: table.table_id,
+            units: table.column_count,
+            /* Every one of them runs: the dictionary is what changed. */
+            state: 'pending',
+          })
+        }
+      }
+
+      /* The rest of the selection, under the ordinary rules — the same checks `POST …/profile`
+         makes, because this is that act for the tables no dictionary described. */
+      const project = findProject(source.project_id)
+      const allowed = new Set(source.datasets ?? [])
+      source.profiled = source.profiled ?? []
+      for (const { dataset_id, table_id } of objects ?? []) {
+        const key = `${dataset_id}::${table_id}`
+        if (work.has(key)) continue
+        if (!allowed.has(dataset_id)) {
+          return send(res, 400, {
+            error: `dataset ${dataset_id} is not in this source's allowlist`,
+          })
+        }
+        const table = project?.datasets
+          .find((d) => d.dataset_id === dataset_id)
+          ?.tables.find((t) => t.table_id === table_id)
+        if (!table) {
+          return send(res, 400, { error: `table ${dataset_id}.${table_id} does not exist` })
+        }
+        const already = source.profiled.some(
+          (p) => p.dataset_id === dataset_id && p.table_id === table_id,
+        )
+        work.set(key, {
+          parent_id: dataset_id,
+          object_id: table_id,
+          label: table_id,
+          units: table.columns,
+          state: already && !force ? 'skipped' : 'pending',
+        })
+      }
 
       const job = queueJob({
         sourceId,
         kind: 'bigquery',
         unit: 'table',
-        objects: plan.tables.map((table) => ({
-          parent_id: plan.dataset_id,
-          object_id: table.table_id,
-          label: table.table_id,
-          units: table.column_count,
-          /* Every one of them runs: the dictionary is what changed. */
-          state: 'pending',
-        })),
-        force: true,
+        objects: [...work.values()],
+        /* The caller's, not `true`: it records whether they asked for already-profiled tables to be
+           redone. A dictionary's own tables do not need it — they are `pending` on their own merits,
+           and claiming the run was forced when nobody asked would misreport the one flag the jobs
+           board shows. */
+        force: Boolean(force),
       })
 
       send(res, 202, {
         source_id: sourceId,
-        applied: schemaPlanView(plan, filename),
+        applied: plans.map((plan, i) => schemaPlanView(plan, dictionaries[i].filename)),
         job: jobView(job),
       })
     },
@@ -10480,6 +10734,7 @@ const routes = [
         attributes,
         relationships,
         cross_attributes,
+        confirmed_by,
       } = body
 
       const existing = entity_id
@@ -10616,6 +10871,20 @@ const routes = [
 
       const record = {
         entity_id: existing?.entity_id ?? `ent-${slugify(key)}-${nextId()}`,
+        /*
+         * **Who declared this table, or `null`.** The twin of the field on a relationship, and for
+         * the same reason: an entity can exist without anybody having declared anything — the
+         * client mints an *anchor* whenever a relationship points at an undeclared table, and its
+         * own description says so. A pill reading "Declared" over one of those credits a reader
+         * with an act they never performed. Only Save Overview sends a name.
+         *
+         * Carried forward where the caller sends none, so an anchor write for a new relationship
+         * cannot un-declare a table somebody has already saved.
+         */
+        confirmed_by:
+          typeof confirmed_by === 'string' && confirmed_by.includes('@')
+            ? confirmed_by.trim()
+            : (existing?.confirmed_by ?? null),
         table_key: key,
         entity_name: name,
         description: text,
@@ -10639,6 +10908,25 @@ const routes = [
           relationship_type: String(r.relationship_type).trim(),
           cardinality_hint: r.cardinality_hint,
           rationale: String(r.rationale ?? '').trim(),
+          /*
+           * **Who accepted this, or `null` — and `null` is the honest default.**
+           *
+           * Every stored declaration used to render as *Confirmed by you*, because the tab derived
+           * `provenance: 'human'` from the mere fact of being stored. That is a claim about the
+           * reader, and it was false for all 31 of them across the two documents: they were written
+           * by whoever was sitting here in some earlier session, or by a script, and this server
+           * kept no record of which. Reported from use — twelve relationships credited to somebody
+           * who had accepted none of them.
+           *
+           * So being *stored* and being *confirmed by a person* are two facts now, and this is the
+           * second one. It is client-held, like every other identity here, so the caller has to
+           * send it: a route cannot look up who is signed in. `null` where nobody has, which is
+           * what the label then says instead — see the tab's `provenance`.
+           */
+          confirmed_by:
+            typeof r.confirmed_by === 'string' && r.confirmed_by.includes('@')
+              ? r.confirmed_by.trim()
+              : null,
         })),
         cross_attributes: crossAttrs.map((a, i) => ({
           attribute_id: a.attribute_id ?? `xat-${slugify(a.source_column)}-${nextId()}${i}`,
@@ -11058,6 +11346,20 @@ const routes = [
           fit,
           note,
           rank: d.rank ?? 99,
+          /*
+           * **What the later steps could draft for this domain**, counted off the three pools the
+           * suggesters rank. `fit` above is about the *connected data*; this is about the
+           * *tenant's own pools*, and they are different facts — a domain can be a strong fit for
+           * profiled data and still have no persona, metric or hero question written against it.
+           *
+           * CAPEX is where that bites: it declares four domains and its pools cover two, so
+           * picking *Schedule & delivery* gave three consecutive steps that drafted nothing while
+           * each said "nothing matched this brief" — which blames the brief for a pool that holds
+           * nothing on that domain at all. Reported from use. Served here because step 1 is where
+           * the decision is made; the suggesters say the same thing again in `empty_reason`, for a
+           * reader who is already past it.
+           */
+          drafts: draftableFor(d.domain_id),
         }
       })
 
@@ -11130,6 +11432,12 @@ const routes = [
         send(res, 200, {
           suggestions,
           count: suggestions.length,
+          /*
+           * Why there are none, when there are none — `null` otherwise, so the step prints a
+           * reason only where there is one to give. A list that is merely empty is not a message.
+           */
+          empty_reason:
+            suggestions.length === 0 ? emptyDraftReason(pool, domain_id ?? null) : null,
           // Says plainly where these came from — there is no model behind them.
           derived_from: template
             ? `the ${template.name} use case`
@@ -11148,6 +11456,91 @@ const routes = [
       }, SUGGEST_MS).unref?.()
     },
   })),
+
+  /*
+   * Step 3's **Edit** — correct a drafted metric's title or its calculation, in the pool.
+   *
+   * **This writes the document, which is what makes it different from Accept and Dismiss.** Those
+   * two are local: accepting copies the row into the draft, waving one away filters it out of a
+   * list nothing saved. A correction is neither — the sheet says a measure is called
+   * `Total_Anticipated_Cost` and computed one way, and a reader who fixes that is fixing the pool
+   * every later brief drafts from. So it goes through `commitDb` and survives a restart, the
+   * asymmetry a saved brief already has against a registered source.
+   *
+   * **The pool is what is edited, never the accepted copy.** A brief stores `{ name, description }`
+   * copies rather than ids, so a correction cannot reach back into briefs already saved; the wizard
+   * carries the new title into the row it is holding, and that is the whole of what changes on
+   * screen. Rewriting saved briefs from here would edit somebody's finished work to match a pool
+   * they may have deliberately renamed a member of.
+   *
+   * Metrics only, and by name. Personas have the same shape and no such control: the request was
+   * for the measure sheet, and a route the wizard never calls is a write path nothing exercises.
+   */
+  {
+    method: 'PATCH',
+    match: (p) => /^\/graph-metrics\/[^/]+$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const metricId = decodeURIComponent(pathname.slice('/graph-metrics/'.length))
+      const metric = (db.graph_metrics ?? []).find((m) => m.metric_id === metricId)
+      if (!metric) {
+        return send(res, 404, {
+          error:
+            `no metric "${metricId}" in this dataset's pool — it holds ` +
+            `${(db.graph_metrics ?? []).length}, and an id that is not one of them would edit ` +
+            'nothing while reporting that it had',
+        })
+      }
+
+      const body = await readJson(req)
+      const name = typeof body.name === 'string' ? body.name.trim() : metric.name
+      const definition =
+        typeof body.definition === 'string' ? body.definition.trim() : (metric.definition ?? '')
+
+      /*
+       * A metric *is* its title on every surface that renders one — the suggestion row, the
+       * accepted list, the brief's own member list — so an empty one leaves a row nobody can
+       * identify rather than a row with a missing field.
+       */
+      if (!name) {
+        return send(res, 400, {
+          error:
+            'a metric has to keep a title — it is what the suggestion row, the accepted list and ' +
+            'the saved brief all identify it by',
+        })
+      }
+      /*
+       * Two metrics under one title is the same fault the report Library refuses for a published
+       * name: the wizard's accepted list is keyed by name, so the second would be unreachable and
+       * accepting one would look like accepting the other.
+       */
+      const clash = (db.graph_metrics ?? []).find(
+        (m) => m.metric_id !== metricId && m.name.trim().toLowerCase() === name.toLowerCase(),
+      )
+      if (clash) {
+        return send(res, 400, {
+          error:
+            `"${name}" is already the title of "${clash.metric_id}" — the accepted list is keyed ` +
+            'by title, so two metrics sharing one would be indistinguishable there',
+        })
+      }
+
+      const next = { ...metric, name, definition }
+      await commitDb({
+        ...db,
+        graph_metrics: db.graph_metrics.map((m) => (m.metric_id === metricId ? next : m)),
+      })
+
+      /*
+       * Answered in the *suggestion's* shape, because that is the row the caller is holding — the
+       * same `asSuggestion` the two suggesters use, so an edited row cannot come to read
+       * differently from a drafted one. `why` is carried by the caller rather than recomputed: it
+       * records why this row was *drafted*, which an edit does not change.
+       */
+      send(res, 200, {
+        metric: asSuggestion(next, 'metric_id', { why: '' }),
+      })
+    },
+  },
 
   // Step 5 → 6. Starts the derivation and returns immediately; the answer
   // arrives by polling, so leaving the page does not lose the run.

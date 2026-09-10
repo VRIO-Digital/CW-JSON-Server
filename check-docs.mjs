@@ -648,6 +648,9 @@ for (const key of requiredKeys) {
 /* A local binding, not the component: three claims below read it as `catalogPage`, and a
    whole-file rename of the component caught this declaration and left them behind. */
 const catalogPage = read('frontend/src/pages/CatalogPage.tsx')
+/* Its comments quote the code they replaced, so every claim about what the page no longer does
+   reads this rather than the file. */
+const catalogPageCode = codeOnly(catalogPage)
 expect(
   'the Catalog names each source, not just its id',
   (catalogPage.match(/\{s\.sourceName\}|\{selected\.sourceName\}/g) ?? []).length >= 2,
@@ -946,6 +949,8 @@ const entityCanvasSrc = read('frontend/src/components/catalog/EntityCanvas.tsx')
 const suggestionsData = read('frontend/src/data/dataModelSuggestions.ts')
 const relsData = read('frontend/src/data/dataModelRelationships.ts')
 const marksSrc = read('frontend/src/components/catalog/ModelMarks.tsx')
+const overviewPanel = read('frontend/src/components/catalog/EntityOverviewPanel.tsx')
+const statusData = read('frontend/src/data/dataModelStatus.ts')
 /* Read here, beside their siblings, rather than beside the accept-all claim that used to own
    them: the Curated-by-AI claim above reads both, and this file is one long script where
    definition order is execution order. */
@@ -1092,8 +1097,18 @@ expect(
     /export const DERIVED_LABEL = 'Curated by AI'/.test(suggestionsData) &&
     /derived: \{ short: DERIVED_LABEL, long: DERIVED_LABEL \}/.test(marksSrc) &&
     /\[DERIVED_LABEL, COPY\.kindNote\.derived, derived\]/.test(pendingPanel) &&
-    /* The button that starts the run reads it too, and its busy label still narrates the act. */
-    /\{suggesting \? 'Reading the schema' : DERIVED_LABEL\}/.test(dataModelTab) &&
+    /*
+     * **Two surfaces now, not three: the button that read this label is gone.**
+     *
+     * It started the run, and the run happens on arrival instead — a reader who had just profiled
+     * eighteen tables met a tab reporting no relationships until they knew to press something.
+     * Removed on request. What the button carried that had to survive is the **narration**, which
+     * is the rule every paced act here keeps: the strip still says *Reading the schema* while the
+     * run is in flight, in the same words, as a label rather than a control.
+     */
+    !/ThunderboltOutlined/.test(dataModelTab) &&
+    !/DERIVED_LABEL/.test(dataModelTab) &&
+    /Reading the schema<\/span>/.test(dataModelTab) &&
     /*
      * **And the copy around it stopped denying a model**, which is what the rename made necessary:
      * the tooltip read "No model is involved" and the review's own kind-note ended "No model ran.",
@@ -1103,10 +1118,24 @@ expect(
      */
     !/No model is involved/.test(codeOnly(dataModelTab)) &&
     !/No model ran\./.test(codeOnly(pendingData)) &&
-    /No figure is invented to fill a field/.test(codeOnly(dataModelTab)) &&
+    /*
+     * **The guarantee is on the tab in the run note, not in a tooltip.** It was a literal in the
+     * suggest button's tooltip; that button is gone with the run becoming automatic, so what is
+     * asserted is that the tab prints `suggestionRunNote` — which carries the same sentence, and
+     * carries it per run rather than as a standing claim. The words themselves are asserted where
+     * they are written, one file out.
+     */
+    /title=\{suggestionRunNote\(suggestCounts\)\}/.test(dataModelTab) &&
+    /No figure is invented to fill a field/.test(codeOnly(suggestionsData)) &&
     /No figure here is invented/.test(codeOnly(pendingData)) &&
-    /* Named by the constant, so the empty state cannot send a reader to a button by its old name. */
-    /Run \$\{DERIVED_LABEL\} to look for more/.test(pendingData) &&
+    /*
+     * **And the empty state stopped naming that button.** It read *"Run Curated by AI to look for
+     * more"*, which is an instruction nobody can carry out once the control is gone — the same
+     * fault as Gmail's Continue refusing over a name field its own step no longer had, and the
+     * reason a removal here is a removal of everything that reads it.
+     */
+    !/Run \$\{DERIVED_LABEL\}/.test(pendingData) &&
+    /every suggestion this run found has been confirmed or rejected/.test(pendingData) &&
     /*
      * The label is a claim about the agent and nothing else: the *evidence* is still called what it
      * is, and the confidence is still labelled by what it is a confidence in. Relabelling either to
@@ -1115,6 +1144,251 @@ expect(
     /if \(kind === 'structural'\) return 'Structural analysis'/.test(relsData) &&
     /'Classifier confidence'/.test(relsData),
   'a payload made to agree with the badge would lose the one honest answer about whether a model ran',
+)
+
+/*
+ * **The suggestions run on arrival, and the scan covers every profiled table.**
+ *
+ * Two changes with one cause. A reader who had just profiled eighteen tables met a tab reporting no
+ * relationships at all, and had to know to press *Curated by AI* to find out otherwise — so the run
+ * is automatic and the button is gone. And what it reported was wrong in a worse way: the **tables**
+ * were capped at 12, so six of those eighteen came back with no relationship when every one of them
+ * shares an identifier column with another. Reported from use, as six orphan tables that were
+ * nothing of the kind.
+ *
+ * So the cap moved from the inputs to the output — every table is scanned, the returned *list* is
+ * what gets cut — which is what makes `orphan_tables` a fact about the schema. It is computed over
+ * the whole scan and **before** the cut, for exactly that reason: a table whose one suggestion was
+ * cut would otherwise look orphaned.
+ *
+ * The guard is on the run being fired once per source-and-table-count rather than per render: the
+ * store re-reads its tables after every save, and without that key each save would start a run.
+ */
+expect(
+  'the suggestions run happens on arrival, over every profiled table, and reports the orphans',
+  /* Server: no table cap, the list capped instead, and the orphans read off the whole scan. */
+  !/SUGGEST_TABLE_CAP/.test(server) &&
+    /const SUGGEST_RELATIONSHIP_CAP = \d+/.test(server) &&
+    /* To the end of the line, not `all\b`: a re-added `all.slice(0, 12)` satisfies a word-boundary
+       match, so the first version of this clause passed over the very cap it exists to refuse. */
+    /const considered = all\r?\n/.test(server) &&
+    /relationships: served\.slice\(0, SUGGEST_RELATIONSHIP_CAP\)/.test(server) &&
+    /orphan_tables: orphanTables,/.test(server) &&
+    /* Computed before the cut: `served` is the whole scan, and `reached` is walked over it. */
+    server.indexOf('const reached = new Set()') <
+      server.indexOf('relationships: served.slice(0, SUGGEST_RELATIONSHIP_CAP)') &&
+    /* Client: both new fields declared and validated. */
+    /orphan_tables: string\[\]/.test(client) &&
+    /orphan_tables: arrayOf\(str\),/.test(client) &&
+    /relationships_total: num,/.test(client) &&
+    /* The tab fires it once per source and table count, not per render. */
+    /const suggestedFor = useRef<Set<string>>\(new Set\(\)\)/.test(dataModelTab) &&
+    /if \(suggestedFor\.current\.has\(key\)\) return/.test(dataModelTab) &&
+    /void runSuggestions\(\)/.test(dataModelTab) &&
+    /*
+     * **And the orphan tile counts what is *on screen*, not what the scan found.**
+     *
+     * It counted the served list, and that was wrong in a way a reader could see: the scan finds a
+     * shared identifier for every table in CAPEX's `plan`, so the tile read 0 while
+     * `plan_account_dim` sat selected beside it saying "No relationships declared or suggested yet
+     * for this entity" and its rail pill showed an em dash. Reported from use, twice. A suggestion
+     * the tab drops as already-covered, and every row a reader **rejects**, leave a table with
+     * nothing at all — and the scan still says it found that table something.
+     *
+     * So it is counted off `relationships`, which is what the rail's own em dash reads, and the
+     * served list is kept for the half the client cannot know: which of them nothing in the *data*
+     * joins, said in the hint. Em dash until a run has landed either way — before one, most tables
+     * have no suggestion yet and a number would be a claim about a scan that never ran.
+     */
+    /const orphanTableKeys = useMemo\(/.test(dataModelTab) &&
+    /if \(suggestOrphans === null\) return null/.test(dataModelTab) &&
+    /relationships\.flatMap\(\(r\) => \[r\.fromTableKey, r\.toTableKey\]\),/.test(
+      dataModelTab,
+    ) &&
+    /return tableKeys\.filter\(\(key\) => !touched\.has\(key\)\)/.test(dataModelTab) &&
+    /* The served list still has a reader, so it is not a payload field nothing looks at. */
+    /const unjoinedInData = useMemo\(/.test(dataModelTab) &&
+    /because nothing else shares an identifier column with them/.test(dataModelTab) &&
+    /value=\{orphanTableKeys === null \? '—' : orphanTableKeys\.length\}/.test(dataModelTab) &&
+    /label="orphan tables"/.test(dataModelTab),
+  'an unjoined table has to be a fact about the schema, never about a cap',
+)
+
+/*
+ * **A confirmed relationship carries one mark, and it reads "Confirmed by you".**
+ *
+ * It was a `confirmed` status pill *and* a short `You` provenance badge — two green marks about a
+ * row where the two cannot disagree, since a stored declaration is confirmed *because* somebody
+ * confirmed it. Asked for as one label, and it is the long form of the badge that already existed
+ * rather than new copy.
+ *
+ * **The narrowing stops at the confirmed list**, which is the half worth guarding: a pending row
+ * keeps both marks because there they genuinely differ — `pending review` is the status and
+ * `Curated by AI` is the provenance — and that distinction is why the two are separate components.
+ */
+expect(
+  'a confirmed row reads Confirmed by you, and a pending row still carries both marks',
+  /human: \{ short: 'You', long: 'Confirmed by you' \}/.test(marksSrc) &&
+    /<ProvenanceBadge kind=\{row\.provenance\} full \/>/.test(confirmedPanel) &&
+    !/StatusPill/.test(codeOnly(confirmedPanel)) &&
+    /* The pending row is untouched: status and provenance are two facts there. */
+    /<StatusPill variant="suggested">pending review<\/StatusPill>/.test(pendingPanel) &&
+    /<ProvenanceBadge kind=\{row\.provenance\} \/>/.test(pendingPanel),
+  'one mark for status and provenance is only honest where they cannot disagree',
+)
+
+/*
+ * **Stored is not confirmed, and only an accepted row carries a reader's name.**
+ *
+ * `provenance` was the literal `'human'` for every stored declaration — being in the document *was*
+ * the evidence that somebody had declared it. That is a claim about the reader, and it was false for
+ * all 31 across the two documents: written in some earlier session, or by a script, with no record
+ * of which. Reported from use, as twelve relationships labelled *Confirmed by you* to a reader who
+ * had accepted none of them.
+ *
+ * So a stored relationship records `confirmed_by`, the label is read off it, and the ones with
+ * nobody's name read *Curated by AI* and offer **Accept** and **Reject**. `derived` is the right
+ * fallback rather than a guess: a *recorded* suggestion cannot become stored except by being
+ * confirmed, so it always carries a name, and what is left in that branch is what the scan produced.
+ *
+ * **The field has to survive an edit**, which is the silent half: every write hands the server the
+ * whole relationship, so a field left out is a field cleared — editing a rationale would strip the
+ * name off and quietly return the row to undecided.
+ */
+expect(
+  'a stored relationship records who accepted it, and nobody is credited by default',
+  /* Server: written from the request, nullable, and an address or nothing. */
+  /confirmed_by:\r?\n\s*typeof r\.confirmed_by === 'string' && r\.confirmed_by\.includes\('@'\)/.test(
+    server,
+  ) &&
+    /r\.confirmed_by === undefined \|\|\r?\n\s*r\.confirmed_by === null/.test(server) &&
+    /* Client: declared, validated, and carried through every write. */
+    /confirmed_by\?: string \| null/.test(client) &&
+    /confirmed_by: nullable\(str\),/.test(client) &&
+    /confirmed_by: rel\.confirmedBy \?\? null,/.test(dataModelRels) &&
+    /* The label is read off it — never the literal `'human'` it used to be. */
+    /provenance: confirmedBy \? 'human' : 'derived',/.test(dataModelRels) &&
+    !/provenance: 'human',/.test(codeOnly(dataModelRels)) &&
+    /* And an edit keeps it: the tab sends the row's own answer back rather than dropping the field. */
+    /confirmedBy: existing\?\.confirmedBy \?\? signedInAs,/.test(dataModelTab) &&
+    /* The two acts, and the address they credit is the browser's. */
+    /const signedInAs = useAuthStore\(\(s\) => s\.identity\?\.email \?\? null\)/.test(dataModelTab) &&
+    /rel: \{ \.\.\.row, confirmedBy: signedInAs \},/.test(dataModelTab) &&
+    /const rejectRelation = async \(id: string\) => \{/.test(dataModelTab) &&
+    /status: 'pending',\r?\n\s*provenance: 'derived',\r?\n\s*confirmedBy: null,/.test(dataModelTab),
+  'a label that credits the reader for a write they never made is a claim they cannot check',
+)
+
+/*
+ * **The table's status is answered once, beside its name — not five times on a form.**
+ *
+ * Overview carried a `ProvenanceBadge` beside *Entity name*, *What does this table represent?*,
+ * *Business purpose*, *Grain* and *Confirmed identifier*: one question answered five times, on a
+ * form whose every field is saved by one button. Removed on request, and answered in the Entity
+ * detail header instead, because it is a fact about the table rather than about a text box.
+ *
+ * **Three states, where the header had two.** It read *Declared* for any existing entity, and an
+ * entity exists without anybody having declared anything: `relationshipWrites` mints an **anchor**
+ * whenever a relationship points at an undeclared table, and its own description says so — all 14
+ * of CAPEX's exist that way, so all 14 read *Declared*. So the pill is read off an entity-level
+ * `confirmed_by`, which **only Save Overview writes**, and the same split the relationship field
+ * draws between *stored* and *accepted* now holds for a table.
+ *
+ * **And a later write must not un-declare it.** Every write hands the server the whole entity, so
+ * an anchor write for a new relationship would clear the field — the server carries the stored
+ * answer forward where the caller sends none, which is the silent half of this.
+ */
+expect(
+  'a table states its declaration status once, in the header, and only Save Overview sets it',
+  /* The rule is pure and out of the component, with its three states and their tones. */
+  /export function tableDeclarationState\(entity: ModelEntity \| null\)/.test(statusData) &&
+    /if \(!entity\) return 'undeclared'/.test(statusData) &&
+    /return entity\.confirmed_by \? 'confirmed' : 'derived'/.test(statusData) &&
+    /*
+     * **The two declared states wear the *provenance* palette, and that is a correction the colour
+     * caught.** All three went through `StatusPill` at first, so *Curated by AI* arrived **amber**
+     * while the same words on every relationship row beside it were **purple** — the confusion the
+     * two marks are separate components to prevent, since status is green/amber/red and provenance
+     * is green/purple. Reported from use, as the wrong colour.
+     *
+     * So this module says only *which badge*, and the words stay `ProvenanceBadge`'s own: a
+     * `TABLE_STATUS_LABELS` map holding "Curated by AI" a second time is the drift `DERIVED_LABEL`
+     * is a single constant to stop.
+     */
+    /derived: 'derived',\r?\n\s*confirmed: 'human',/.test(statusData) &&
+    !/'Curated by AI'/.test(statusData) &&
+    !/'Confirmed by you'/.test(statusData) &&
+    /* The header renders it, and no longer prints "Declared" off the entity's existence. */
+    /const tableStatus = tableDeclarationState\(selectedEntity\)/.test(dataModelTab) &&
+    /<ProvenanceBadge kind=\{TABLE_STATUS_KIND\[tableStatus\]!\} full \/>/.test(dataModelTab) &&
+    /<StatusPill variant="mut">\{TABLE_UNDECLARED_LABEL\}<\/StatusPill>/.test(dataModelTab) &&
+    !/>\r?\n?\s*Declared\r?\n?\s*<\/StatusPill>/.test(dataModelTab) &&
+    /* Overview draws no per-field badge, and its label helper has no slot for one to return to.
+       Through `codeOnly`, because the two comments left in that file explaining why there is no
+       badge *name* it — the self-documenting-file trap this file has now recorded seven times, and
+       it caught this clause on its first run. */
+    !/ProvenanceBadge/.test(codeOnly(overviewPanel)) &&
+    /const fieldLabel = \(text: string\) =>/.test(overviewPanel) &&
+    /* Save Overview is the one writer, and it sends the browser's own address. */
+    /confirmed_by: signedInAs,/.test(overviewPanel) &&
+    /const signedInAs = useAuthStore\(\(s\) => s\.identity\?\.email \?\? null\)/.test(
+      overviewPanel,
+    ) &&
+    /* Server: nullable, address-shaped, carried forward when a caller sends none. */
+    /: \(existing\?\.confirmed_by \?\? null\),/.test(server) &&
+    /e\.confirmed_by === undefined \|\|/.test(server) &&
+    /confirmed_by: entity\.confirmed_by \?\? null,/.test(server) &&
+    /* Client: declared and validated, so an old server's missing key is a refusal rather than a
+       silent "nobody declared it". */
+    /confirmed_by: string \| null/.test(client) &&
+    /confirmed_by: nullable\(str\),/.test(client),
+  'a pill reading Declared over an anchor entity credits a reader with an act they never performed',
+)
+
+/*
+ * **The relationship list keeps its per-row mark, and that is not the same thing.**
+ *
+ * The five that went were *fields of one form*, all saved by one button. A relationship is its own
+ * record with its own decision, so its label belongs on its row — and the Columns tab's reassigned
+ * columns are the same: a curator's declaration about one column, which no machinery mints.
+ */
+expect(
+  'the per-row provenance marks survive, on the records that each carry their own decision',
+  /<ProvenanceBadge kind=\{r\.provenance\} full \/>/.test(
+    read('frontend/src/components/catalog/EntityRelationshipsPanel.tsx'),
+  ) &&
+    /<ProvenanceBadge kind="human" \/>/.test(
+      read('frontend/src/components/catalog/EntityColumnsPanel.tsx'),
+    ),
+  'removing a form-level badge must not take the marks off records that have their own provenance',
+)
+
+/*
+ * **The tile counts *relations*, and the word is declared once.**
+ *
+ * It read *relationships confirmed* over twelve rows nobody had accepted. Renamed on request, and
+ * the label lives beside the dialog's own title so the control and the thing it opens cannot come
+ * to be called two things — the rule `DERIVED_LABEL` keeps across its surfaces.
+ */
+expect(
+  'the relations tile and its dialog are named from one declaration',
+  /title: 'Relations',/.test(confirmedData) &&
+    /tileLabel: 'relations',/.test(confirmedData) &&
+    /label=\{CONFIRMED_COPY\.tileLabel\}/.test(dataModelTab) &&
+    !/label="relationships confirmed"/.test(dataModelTab) &&
+    /* The dialog offers both acts, and its copy says where a rejected row goes. */
+    /accept: 'Accept',/.test(confirmedData) &&
+    /reject: 'Reject',/.test(confirmedData) &&
+    /back with the suggestions, pending/.test(confirmedData) &&
+    /onAccept=\{\(id\) => void acceptRelation\(id\)\}/.test(dataModelTab) &&
+    /onReject=\{\(id\) => void rejectRelation\(id\)\}/.test(dataModelTab) &&
+    /* Accept is withheld where somebody already has, so a decided row offers no second one. */
+    /const accepted = Boolean\(row\.confirmedBy\)/.test(confirmedPanel) &&
+    /\{accepted \? null : \(/.test(confirmedPanel) &&
+    /* And the row's own click is stopped, or accepting would open the edit dialog over the list —
+       the trap the dataset upload control fell into one tab over. */
+    /<Space size=\{4\} onClick=\{\(e\) => e\.stopPropagation\(\)\}>/.test(confirmedPanel),
+  'a tile claiming twelve confirmations nobody made is a figure a reader cannot check',
 )
 
 /*
@@ -1405,7 +1679,9 @@ expect(
     /const derived = relationships\.filter\(\(d\) => !recorded\.some\(\(r\) => covers\(r, d\)\)\)/.test(
       server,
     ) &&
-    /relationships: \[\.\.\.recorded, \.\.\.derived\]/.test(server) &&
+    /* Recorded first in the list that is served — and now also first past the list cap, so a cut
+       takes column-name matches before an authored row carrying somebody's reasoning. */
+    /const served = \[\.\.\.recorded, \.\.\.derived\]/.test(server) &&
     /* Both directions of the pair, or the same join arrives twice spelled backwards. */
     /a\.from_table_key === b\.to_table_key/.test(server) &&
     /* Scoped to the tables in front of the reader, like a stored declaration. */
@@ -1714,6 +1990,9 @@ const mailPanel = read('frontend/src/components/catalog/ProfiledMailDocumentsPan
    script, so definition order is execution order, and a `const` in the temporal dead zone kills
    the run before its summary — the failure where the claim total stops moving. */
 const catalogUnitsSrc = read('frontend/src/data/catalogUnits.ts')
+/* Its own comment explains why there is no third act, and names the two fields that carried
+   one - so every absence claim about them reads this. */
+const catalogUnitsCode = codeOnly(catalogUnitsSrc)
 expect(
   'today’s profiled count is read off the commit stamps and states the day it means',
   /* **One definition, across all three connectors and for the one surface that renders it.** A
@@ -2477,9 +2756,7 @@ expect(
  * panel still rendering a ✕ wired to a prop nobody passes is a button that does nothing, and a
  * toggle with no pressed state is a panel a reader cannot close.
  */
-/* `catalogPage` is already read at the top of this file — one binding, reused. */
 const panelFiles = [
-  'frontend/src/pages/CatalogPage.tsx',
   'frontend/src/components/catalog/ProfiledColumnsPanel.tsx',
   'frontend/src/components/catalog/ProfiledDocumentsPanel.tsx',
   'frontend/src/components/catalog/DocumentBrowsePanel.tsx',
@@ -2496,6 +2773,24 @@ for (const path of panelFiles) {
     'the ✕, its handler and the prop all go together or none of them do',
   )
 }
+/*
+ * **The page's half of that, and it cannot be `!/onClose/` over the whole file.**
+ *
+ * `catalogPage` is already read at the top of this file — one binding, reused. It was in the list
+ * above until the dictionary report became a dialog: a `Modal` has an `onClose`, legitimately, and a
+ * whole-file search for the word turned this red over correct code. The fact being guarded is that
+ * no *panel* takes one — the toggle that opened it is what closes it — so the test is that every
+ * `onClose` in the page belongs to that dialog, which is exact and stays exact when a second dialog
+ * arrives (it will need naming here, which is the point).
+ */
+const catalogOnClose = catalogPageCode.match(/onClose=\{[^}]*\}/g) ?? []
+expect(
+  'CatalogPage passes no close handler to a panel',
+  !/CloseOutlined/.test(catalogPageCode) &&
+    catalogOnClose.length === 1 &&
+    /<DictionaryPlanModal[^>]*onClose=/s.test(catalogPageCode),
+  'the ✕, its handler and the prop all go together or none of them do',
+)
 expect(
   'the open action is the orange one and the closed one is white',
   (catalogPage.match(
@@ -2532,9 +2827,11 @@ expect(
 expect(
   'and the way to close a panel is stated while one is open',
   /Click the same button again to close the panel\./.test(catalogPage) &&
-    /* **Every** panel that can be open, which is now three on BigQuery — the hint is the only thing
-       saying how to close one, so a panel left out of this test opens with no way back stated. */
-    /\{browseOpen \|\| dictionaryOpen \|\| schemaOpen \?/.test(catalogPage),
+    /* **Every** panel that can be open, which is two again — the dictionary upload stopped being a
+       panel of its own when it moved onto the dataset rows inside Browse. The hint is the only
+       thing saying how to close one, so a panel left out of this test opens with no way back
+       stated. */
+    /\{browseOpen \|\| dictionaryOpen \?/.test(catalogPage),
   'the ✕ is gone, so the way back has to be said somewhere',
 )
 /* ---------------- a run that profiled nothing says which objects, and offers the re-run ---------------- */
@@ -2916,7 +3213,32 @@ expect(
 const schemaImport = read('backend/schemaImport.js')
 const schemaImportCode = codeOnly(schemaImport)
 const schemaUploadData = read('frontend/src/data/schemaUpload.ts')
-const schemaPanel = read('frontend/src/components/catalog/SchemaUploadPanel.tsx')
+const dictionaryPanel = read('frontend/src/components/catalog/DatasetDictionaryUpload.tsx')
+
+/**
+ * The columns a dataset's Data Modeling declarations *read* on one table.
+ *
+ * **Reading a column is what makes a declaration strandable**, which is narrower than having an
+ * entity on the table: an anchor entity with no confirmed identifier and no relationships names no
+ * column at all, so no dictionary can strand it. This is the same set `resolveSchemaUpload` walks,
+ * so a claim built on it cannot come to disagree with the refusal it is about.
+ */
+const declarationsReading = (doc, tableKey) => {
+  const out = []
+  for (const entity of doc?.data_model?.entities ?? []) {
+    if (entity.table_key === tableKey) {
+      for (const attribute of entity.attributes ?? []) {
+        if (attribute.is_identifier) out.push(attribute.name)
+      }
+    }
+    for (const relationship of entity.relationships ?? []) {
+      if (entity.table_key === tableKey) out.push(...(relationship.from_columns ?? []))
+      if (relationship.target_table_key === tableKey) out.push(...(relationship.to_columns ?? []))
+    }
+  }
+  return out
+}
+const dictionaryPanelCode = codeOnly(dictionaryPanel)
 
 /*
  * **The reader is pure and in a file of its own, and it is verified offline.**
@@ -3047,32 +3369,79 @@ expect(
 )
 
 /*
- * **Two acts: a preview that writes nothing, then one call that writes and profiles.**
+ * **Two acts: a read that writes nothing, then one call that writes and profiles.**
  *
- * The preview is "seed, check the diff, push" with a screen instead of a terminal, and it earns its
+ * The read is "seed, check the diff, push" with a screen instead of a terminal, and it earns its
  * place because applying *replaces* a table's column list. The write and the run are deliberately
  * **one** call: a dictionary that landed with no run behind it is a Catalog advertising columns
  * nothing has profiled, and splitting them would put that decision in the one place that cannot see
  * whether the first half succeeded. Forced, because the columns are exactly what changed.
+ *
+ * **What moved is who asks for each act, and both halves are asserted here.** Choosing a file reads
+ * it — there is no *Read the file* button, because a reader who has just picked a dictionary has
+ * already asked for it to be read — and **Start Profiling** is the write. So the guard is no longer
+ * "Apply is gated on a preview of this file"; it is that the choose handler reads, and that the
+ * write is the only one of the two calls that commits.
  */
 expect(
-  'the preview writes nothing, and the apply writes and profiles in one call',
+  'the read writes nothing, and the apply writes and profiles in one call',
   /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\\\/preview\$\/\.test\(p\)/.test(server) &&
     /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\$\/\.test\(p\)/.test(server) &&
-    /* One resolver behind both, so what the reader was shown is what lands. */
-    (server.match(/resolveSchemaUpload\(\{ source, parsed, datasetId: dataset_id, filename \}\)/g) ?? [])
-      .length === 2 &&
+    /* One resolver behind both, so what the reader was shown is what lands: one definition and
+       exactly two callers, the preview and the write. Counted rather than matched on the argument
+       list, which the write's own multi-line call and the declaration itself both satisfy — the
+       first version of this counted the declaration as a third caller. */
+    (server.match(/function resolveSchemaUpload\(/g) ?? []).length === 1 &&
+    (server.match(/resolveSchemaUpload\(/g) ?? []).length === 3 &&
     /* The write is the only one of the two that commits, and it queues the run itself. */
     /await commitDb\(\{ \.\.\.db, projects, column_profiles: profiles \}\)/.test(server) &&
-    /force: true,/.test(server) &&
     /* Client: a fetcher and a schema each, validated like a read — a write is rendered like one. */
     /export async function previewSchemaUpload/.test(client) &&
     /export async function applySchemaUpload/.test(client) &&
     /const SCHEMA_PREVIEW_PAYLOAD = shape\(/.test(client) &&
     /const SCHEMA_APPLIED_PAYLOAD = shape\(/.test(client) &&
-    /* And Apply is gated on a preview of *this* file. */
-    /disabled=\{!file \|\| !plan\}/.test(schemaPanel),
+    /* Choosing a file is what reads it, and nothing else does. */
+    /await read\(source\.sourceId, \{/.test(dictionaryPanelCode) &&
+    !/previewLabel|Read the file/.test(dictionaryPanel),
   'a dictionary with no run behind it advertises columns nothing profiled',
+)
+
+/*
+ * **One press of Start Profiling queues one pipeline, over everything it covers.**
+ *
+ * This was two calls and therefore two jobs: the write queued a run over the dictionary's own
+ * tables, and the client then started a second for the rest of the selection. Over one dataset —
+ * CAPEX's `plan`, whose 12 dictionary tables and 6 others are one selection of 18 — that put two
+ * pipelines on the board from a single press, with nothing saying which was which or when
+ * "profiling" had finished. Reported from use.
+ *
+ * The fix is that the reader's selection travels **with the write**, so the server can queue the
+ * union once. Asserted at every layer, because the halves fail differently: the route has to accept
+ * `objects` and dedupe them against the dictionaries (or a table runs twice, which double-counts
+ * `profiled_tables` while `profiled_at` still moves), the client has to send them, and the page
+ * must not make a second call afterwards.
+ */
+const schemaWriteRoute =
+  /match: \(p\) => \/\^\\\/sources\\\/\.\+\\\/schema\$\/\.test\(p\)[\s\S]*?\n  \},/.exec(server)?.[0] ??
+  ''
+expect(
+  'one press of Start Profiling is one pipeline, over the dictionaries and the selection together',
+  schemaWriteRoute.length > 2000 &&
+    /const \{ dictionaries, objects, force \} = await readJson\(req\)/.test(schemaWriteRoute) &&
+    /* One job, built from one work list — and the key is what stops a table being queued twice. */
+    (schemaWriteRoute.match(/queueJob\(\{/g) ?? []).length === 1 &&
+    /const work = new Map\(\)/.test(schemaWriteRoute) &&
+    /if \(work\.has\(key\)\) continue/.test(schemaWriteRoute) &&
+    /objects: \[\.\.\.work\.values\(\)\]/.test(schemaWriteRoute) &&
+    /* Client: the selection is part of the write's body. */
+    /dictionaries: \{ filename: string; text: string; dataset_id: string \}\[\]/.test(client) &&
+    /objects: \{ dataset_id: string; table_id: string \}\[\]/.test(client) &&
+    /* Page: one call per press. The plain run is the *else* of the staged branch, never after it. */
+    /await applyStaged\(source\.sourceId, objects, force\)/.test(catalogPageCode) &&
+    /\} else \{\r?\n\s*const result = await startProfilingRun\(source\.sourceId, objects, force\)/.test(
+      catalogPageCode,
+    ),
+  'two jobs from one press leave a reader unable to say when profiling has finished',
 )
 
 /*
@@ -3088,6 +3457,25 @@ expect(
  * catalogued with 24 columns and no dictionary reported `0 → 3` for a 3-column file while the figure
  * on screen went 24 → 3. Accurate, and it told the reader nothing about the change they would see.
  */
+/*
+ * **A stranded declaration is one reading a column the file does not name — not only a dropped one.**
+ *
+ * It tested `dropped`, which is what a *previous dictionary* held and this file does not, so it
+ * covered a table that already had a dictionary and said nothing at all about a table whose columns
+ * were synthesised. That second case is the one that bites: `POST /data-model/entities` skips its
+ * column check for a table with no `column_profiles` entry, so a declaration can legitimately be
+ * written against a synthesised column name, and the **first** dictionary uploaded for that table is
+ * what makes it checkable — and invalid. CAPEX ships three of exactly those on
+ * `plan.plan_version_master`. Dropped is a subset of not-named, so nothing the old test caught is
+ * lost.
+ */
+expect(
+  'a stranded declaration is judged on what the file names, not on what it drops',
+  /if \(attribute\.is_identifier && !afterIds\.has\(attribute\.name\)\)/.test(server) &&
+    /for \(const column of ends\) \{\r?\n\s*if \(!afterIds\.has\(column\)\)/.test(server),
+  'a declaration made against synthesised columns is stranded by the first dictionary, silently',
+)
+
 expect(
   'the preview names what an upload would drop, and both column counts',
   /dropped,/.test(server) &&
@@ -3095,10 +3483,10 @@ expect(
     /stranded_declarations: strandedDeclarations,/.test(server) &&
     /catalogued_column_count: existing\?\.columns \?\? columns\.length,/.test(server) &&
     /* Named in the panel, not counted — the dropped columns and the declarations both. */
-    /\{dropped\.join\(', '\)\}/.test(schemaPanel) &&
-    /stranded_declarations\.map/.test(schemaPanel) &&
+    /\{dropped\.join\(', '\)\}/.test(dictionaryPanel) &&
+    /stranded_declarations\.map/.test(dictionaryPanel) &&
     /* And the before number is the catalogue's, which is the one on screen. */
-    /\$\{row\.catalogued_column_count\} → \$\{row\.column_count\}/.test(schemaPanel),
+    /\$\{row\.catalogued_column_count\} → \$\{row\.column_count\}/.test(dictionaryPanel),
   'a column leaving the dictionary is the one thing a reader has to be able to check before applying',
 )
 
@@ -3116,9 +3504,16 @@ expect(
   /is new to this project, so the file has to give it \$\{missing\}/.test(server) &&
     /a grain is what one row of it is/.test(server) &&
     /rows: null,/.test(server) &&
-    /* The dataset is checked against the source's own allowlist, not typed. */
+    /* The dataset is checked against the source's own allowlist, not typed — and it is no longer
+       *picked* either: the control sits on the dataset's own row, so the id comes from the row the
+       reader uploaded against. A Select asking which dataset, a moment after the reader had been
+       looking at the list of them, is what that replaced. */
     /is not in this source's allowlist/.test(server) &&
-    /options=\{source\.datasets\.map/.test(schemaPanel),
+    /* Keyed on the *request* rather than on a `datasetId=` in the page: the plan report takes one
+       too, so a search for the prop passed either claim's mutation and broke on neither. What this
+       claim is about is that the dataset an upload is made against is the row's own. */
+    /dataset_id: datasetId,/.test(dictionaryPanelCode) &&
+    !/options=\{source\.datasets\.map/.test(dictionaryPanel),
   'a table with a blank label renders as a blank cell rather than raising anything',
 )
 
@@ -3178,16 +3573,171 @@ expect(
     sample.tables.every(
       (t) => !planTables.has(t.table_id) || t.columns.length === planTables.get(t.table_id).columns,
     ) &&
-    /* And it stays clear of the tables anything has Data Modeling declarations on, or applying it
-       would strand somebody's work to demonstrate a feature. */
-    sample.tables.every(
-      (t) =>
-        !(datasetDocs.get('CAPEX')?.data_model?.entities ?? []).some(
-          (e) => e.table_key === `plan.${t.table_id}`,
-        ),
-    ),
+    /* And it strands nobody's Data Modeling work to demonstrate a feature.
+       **Declarations that read a column, not merely entities on the table** — an anchor entity
+       with no confirmed identifier and no relationships names no column, so nothing about it can
+       be stranded, and requiring the sample to avoid one turned this claim red for a table
+       somebody had simply opened in the tab. That is the same over-broad shape recorded five times
+       over in this file, and the narrowing is exactly what `resolveSchemaUpload` itself checks. */
+    sample.tables.every((t) => {
+      const named = new Set(t.columns.map((c) => c.column_id))
+      return !declarationsReading(datasetDocs.get('CAPEX'), `plan.${t.table_id}`).some(
+        (column) => !named.has(column),
+      )
+    }),
   sampleError ||
     `${(sample?.tables ?? []).map((t) => `${t.table_id} ${t.columns.length}/${planTables.get(t.table_id)?.columns ?? 'not catalogued'}`).join(', ')} · declares: ${sampleDeclaring.map((t) => t.table_id).join(', ') || 'nothing'}`,
+)
+
+/*
+ * **The upload is a per-dataset act, and the source-level one is gone at every layer it touched.**
+ *
+ * It was a third button beside Browse and the dictionary, whose panel then *asked* which dataset
+ * from a Select — one upload for a source that may hold three datasets, and a control the reader
+ * met a moment after they had been looking at the list of them. The act now sits on each dataset's
+ * own row inside the browse panel, which settles "BigQuery only" by construction rather than by
+ * declaration: only the structured browse panel lists datasets, and a drive or a mailbox never
+ * reaches it.
+ *
+ * **One cross-layer claim, because half a removal is the shape that fails silently** — a
+ * `schemaLabel` nothing draws is a declared act with no control, and a `'schema'` panel key with no
+ * button is a state nothing can reach. `absentUnderComponents` searches the tree rather than the
+ * old path: a revival landing in its feature folder would satisfy a check pointed at where the file
+ * used to be.
+ */
+expect(
+  'the source-level schema button is gone, and the act is on the dataset rows',
+  absentUnderComponents('SchemaUploadPanel') &&
+    /* The declaration, both halves, and the panel key that carried it — through `codeOnly`,
+       because the comment left in that file explaining why there is no third act *names* both
+       fields. That is the self-documenting-file trap this repo has now recorded six times: it
+       caught this claim on its first run. */
+    !/schemaLabel|schemaPanel/.test(catalogUnitsCode) &&
+    !/'schema'/.test(catalogUnitsCode) &&
+    !/Upload schema or dictionary/.test(catalogPage) &&
+    !/schemaOpen/.test(catalogPageCode) &&
+    /* And the control really is drawn per dataset, in the browse tree — matched across the props,
+       since it grew one when the report became a dialog. */
+    /<DictionaryUploadControl[\s\S]{0,120}?datasetId=\{d\.dataset_id\}/.test(catalogPageCode) &&
+    /export function DictionaryUploadControl/.test(dictionaryPanel),
+  'a declared act with no control, or a button with no panel, is a half-removal',
+)
+
+/*
+ * **The report is a dialog, and the body is exported apart from it.**
+ *
+ * Asked for as a popup, and the inline version had made the reason plain: drawn under the tree, a
+ * twelve-row table and two warnings sat between the dataset rows and the button that acts on them,
+ * so a reader scrolled past what they were deciding about to reach Start Profiling.
+ *
+ * **The separation is the assertable part.** A `Modal` renders through a portal `renderToString`
+ * will not traverse, so a table written inside one cannot be checked at all — the reason
+ * `ConnectSourceWizard` is separate from `ConnectSourceModal`, and the reason the claims above can
+ * read this file for the dropped columns and the two counts. The page renders the dialog, never the
+ * report: two surfaces for one thing is what the move was for.
+ *
+ * **And it opens on a read that landed, not on one that was refused** — there is no report behind a
+ * refusal, and a dialog over one would bury the sentence explaining it.
+ */
+expect(
+  'the dictionary report is a dialog whose body is exported apart from it',
+  /export function DictionaryPlanReport/.test(dictionaryPanel) &&
+    /export function DictionaryPlanModal/.test(dictionaryPanel) &&
+    /* The wrapper renders the body rather than repeating it. */
+    /<DictionaryPlanReport datasetId=\{datasetId\} \/>/.test(dictionaryPanel) &&
+    /* Opened by the panel, one dialog for every row, off one piece of state. */
+    /<DictionaryPlanModal datasetId=\{reportFor\} onClose=\{\(\) => setReportFor\(null\)\} \/>/.test(
+      catalogPageCode,
+    ) &&
+    !/<DictionaryPlanReport/.test(catalogPageCode) &&
+    /* On success only, and the row keeps a way back in. */
+    /if \(result\.ok\) onReport\(datasetId\)/.test(dictionaryPanelCode) &&
+    /schemaUploadCopy\.reviewLabel/.test(dictionaryPanelCode),
+  'a report written inside a Modal cannot be asserted, and one drawn twice is two surfaces',
+)
+
+/*
+ * **A click inside a checkable tree row must not change the selection — and must not be cancelled.**
+ *
+ * The control sits in a `checkable` `blockNode` tree title, where a click anywhere on the row
+ * toggles the checkbox, so the event has to stop here or opening the file dialog would also uncheck
+ * every table in the dataset. Silent, and it would look like antd.
+ *
+ * **The second half is the one that shipped broken.** The handler also called `preventDefault`, and
+ * the hidden `<input type="file">` is a *child* of this span — so the click `inputRef.current.click()`
+ * dispatches bubbles up through it, and cancelling that click cancels the input's default action,
+ * which is opening the picker. The button depressed and nothing opened; it read as a browser
+ * blocking a programmatic file dialog rather than as a handler two elements up. Both halves are
+ * asserted, because either one alone is a working-looking control that does the wrong thing.
+ */
+expect(
+  'the upload control stops the tree row from toggling, and cancels nothing',
+  /className="cat-dict" onClick=\{\(e\) => e\.stopPropagation\(\)\}/.test(dictionaryPanel) &&
+    !/preventDefault/.test(dictionaryPanelCode),
+  'stopPropagation keeps the checkbox still; preventDefault stops the file picker opening at all',
+)
+
+/*
+ * **The CAPEX dictionary is parsed rather than trusted, and held against the document it names.**
+ *
+ * The same reasoning as the sample one directory up: a dictionary file is documentation that can be
+ * *run*, so leaving it unchecked would let it go stale the first time the reader's format changed
+ * or the CAPEX document recatalogued a table — and a reader following it would meet a refusal from
+ * the feature it exists to demonstrate.
+ *
+ * **The column counts are the half worth having.** Applying replaces a table's column list *and*
+ * the count the Catalog advertises, so a file naming 23 columns of a 24-column table quietly
+ * shrinks it — accurate, invisible, and the one thing this file must not do to a dataset that ships
+ * its own catalogue. Every table it names must already be catalogued, too: a table it *declared*
+ * would need a label and a grain, and neither is derivable from a column list.
+ *
+ * What it deliberately does **not** assert is that the file strands no Data Modeling declaration.
+ * It strands three, all on `plan_version_master`, all made against synthesised columns a version
+ * master does not have — the preview names them before anything is written, which is the design.
+ * Pinning that count would make this claim red the moment somebody fixed those declarations, which
+ * is the guard-fails-on-the-feature-working trap the sample claim above already fell into once.
+ */
+const capexDictPath = 'docs/samples/capex-plan-dictionary.csv'
+let capexDict = null
+let capexDictError = ''
+try {
+  capexDict = parseSchemaDocument({
+    filename: 'capex-plan-dictionary.csv',
+    text: read(capexDictPath),
+  })
+} catch (error) {
+  capexDictError = error.message
+}
+const capexDictClasses = new Set(
+  (capexDict?.tables ?? []).flatMap((t) => t.columns.map((c) => c.class)).filter(Boolean),
+)
+/* The union `KNOWN_CLASSES` is built from, read off the two lists that declare it rather than
+   written a third time — the same reason the server reads them instead of listing classes again. */
+const classNamesIn = (block) => [...block.matchAll(/'([a-z_]+)'/g)].map((m) => m[1])
+const knownClasses = new Set([
+  ...classNamesIn(/^const CLASS_FACET = \{([\s\S]*?)^\}/m.exec(server)?.[1] ?? ''),
+  ...classNamesIn(/^const CLASS_UNFACETED = \[([\s\S]*?)^\]/m.exec(server)?.[1] ?? ''),
+])
+expect(
+  'the CAPEX dictionary parses, and describes the plan dataset without changing a count',
+  capexDict !== null &&
+    capexDict.format === 'csv' &&
+    capexDict.dataset_id === 'plan' &&
+    capexDict.tables.length >= 12 &&
+    /* Every table is one the dataset already catalogues, at exactly the count it catalogues. */
+    capexDict.tables.every(
+      (t) => planTables.has(t.table_id) && t.columns.length === planTables.get(t.table_id).columns,
+    ) &&
+    /* And every class it states is one this app has a chip for — the server refuses the rest. */
+    knownClasses.size > 15 &&
+    [...capexDictClasses].every((c) => knownClasses.has(c)),
+  capexDictError ||
+    `${(capexDict?.tables ?? [])
+      .map(
+        (t) =>
+          `${t.table_id} ${t.columns.length}/${planTables.get(t.table_id)?.columns ?? 'not catalogued'}`,
+      )
+      .join(', ')} · classes ${[...capexDictClasses].sort().join(',')}`,
 )
 
 /* ---------------- the canvas ---------------- */
@@ -3387,6 +3937,15 @@ const contrast = (a, b) => {
   const [hi, lo] = [relLum(a), relLum(b)].sort((x, y) => y - x)
   return (hi + 0.05) / (lo + 0.05)
 }
+
+/*
+ * The theme's own hexes, read by name — hoisted here beside `contrast` because two claims recompute
+ * a brand contrast now and this file is one long script: a `const` used above its declaration dies
+ * in the temporal dead zone, which takes the whole run with it and prints no summary. That is the
+ * "claim total stops moving" failure recorded twice already, and it is what this move avoids.
+ */
+const themeSrc = read('frontend/src/theme.ts')
+const hexOf = (name) => new RegExp(`${name} = '(#[0-9a-f]{6})'`, 'i').exec(themeSrc)?.[1] ?? ''
 
 /* One canvas component, rendered by both surfaces. A full view with its own drawing would
    be a second truth — the thing this surface exists to avoid — and it was a real risk
@@ -5788,6 +6347,134 @@ expect(
       (st.blocks ?? []).some((b) => b.type === 'kpis'),
     ),
   `${datasetDocs.get('EPA')?.graph_metrics?.length} EPA · ${datasetDocs.get('CAPEX')?.graph_metrics?.length} CAPEX metrics`,
+)
+/*
+ * **CAPEX's metrics are the tenant's measure sheet, two columns wide.** `name` is column 1 and
+ * `definition` is column 2 — the calculation in the finance team's own notation — and every other
+ * field is derived by `seed-capex-metrics.js` rather than typed beside it. Asserting the
+ * derivations is what keeps that true: an id typed by hand, or a keyword list authored as a second
+ * description of the measure, is exactly how the pool starts saying two things about one row.
+ */
+const capexMetrics = datasetDocs.get('CAPEX')?.graph_metrics ?? []
+const metricSlug = (title) =>
+  title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+expect(
+  "CAPEX's metric pool is the measure sheet, and everything but its two columns is derived",
+  capexMetrics.length > 0 &&
+    /* The id is the title slugified, so the template's member list can be computed from the pool
+       rather than typed a second time and drifting from it. */
+    capexMetrics.every((m) => m.metric_id === metricSlug(m.name)) &&
+    /* Column 2 is present on every row: a metric drafted with no calculation beneath it is a
+       suggestion the reader cannot judge, which is the state `detail` exists to prevent. */
+    capexMetrics.every((m) => typeof m.definition === 'string' && m.definition.trim() !== '') &&
+    /* The keywords the ranker matches a brief against are the title's own words. One that is not
+       is a hand-authored claim about the measure, and it goes stale when the title is corrected. */
+    capexMetrics.every((m) =>
+      (m.keywords ?? []).every((k) => metricSlug(m.name).split('-').includes(k)),
+    ) &&
+    /* Every row on one domain, which is what the seed read off the pool it replaced rather than
+       choosing — a metric with no domains would be drafted for every brief in the tenant. */
+    capexMetrics.every((m) => (m.domains ?? []).length > 0) &&
+    /* And the template really points at this pool. `validateDb` refuses the mismatch at boot; this
+       catches it before a server is started, and catches the *order* too, so a re-seed that
+       rewrote one and not the other is visible. */
+    (datasetDocs.get('CAPEX')?.graph_use_case_templates ?? []).every(
+      (t) =>
+        (t.metrics ?? []).join(' ') ===
+        capexMetrics.map((m) => m.metric_id).join(' '),
+    ),
+  `${capexMetrics.length} CAPEX metrics · ${capexMetrics
+    .slice(0, 2)
+    .map((m) => m.metric_id)
+    .join(', ')}`,
+)
+/*
+ * **A domain the wizard can draft nothing for says so, on the card and again on the step.**
+ *
+ * Two faults met here, both reported from use as "the suggesters are broken", and they need
+ * different guards because only one is about the data.
+ *
+ * The first is a **regression a seed can cause**: `suggestFrom` drops an entry entirely when its
+ * `domains` do not include the brief's and nothing in the brief hits its keywords — so narrowing a
+ * pool's domain coverage does not weaken a suggestion, it deletes it. `seed-capex-metrics.js` took
+ * the *intersection* of the domains it replaced, collapsing two to one, and a water-wastewater
+ * brief went from two drafted metrics to none. So: the metric pool must reach every domain the
+ * persona pool reaches. Not every declared domain — that is the second fault and it is real data.
+ *
+ * The second is **a gap in the package**: CAPEX declares four domains and has no persona, metric or
+ * hero question on two of them. That cannot be fixed by inventing rows — eight finance measures do
+ * not belong to Schedule & Delivery because a card looked empty — so what is asserted is that the
+ * app *says* so: `/graph-domains` serves the counts, and the suggesters serve `empty_reason` in
+ * place of the old "nothing matched this brief", which blamed the reader's words for the pool.
+ */
+const draftPools = (doc) => ({
+  personas: new Set((doc?.graph_personas ?? []).flatMap((p) => p.domains ?? [])),
+  metrics: new Set((doc?.graph_metrics ?? []).flatMap((m) => m.domains ?? [])),
+  questions: new Set((doc?.graph_hero_questions ?? []).flatMap((q) => q.domains ?? [])),
+})
+const uncoveredMetricDomains = [...datasetDocs.entries()].flatMap(([name, doc]) => {
+  const pools = draftPools(doc)
+  return [...pools.personas]
+    .filter((d) => !pools.metrics.has(d))
+    .map((d) => `${name}:${d}`)
+})
+expect(
+  'a step cannot draft nothing where the step before it drafts something',
+  /* Every domain with personas has metrics too — the invariant the intersection broke. */
+  uncoveredMetricDomains.length === 0 &&
+    /* Step 1 states what each domain has to draft from, counted off the pools rather than from
+       `fit`, which is about profiled sources and answers a different question. */
+    /drafts: draftableFor\(d\.domain_id\)/.test(server) &&
+    /function draftableFor\(domainId\)/.test(server) &&
+    /drafts=\{|d\.drafts\./.test(newGraphPage) &&
+    /* And an empty draft says which empty it is, from the server, since it is the only side that
+       can tell "the pool has nothing here" from "the ranking placed nothing". */
+    /empty_reason:\s*\r?\n?\s*suggestions\.length === 0 \? emptyDraftReason\(/.test(server) &&
+    /function emptyDraftReason\(poolKey, domainId\)/.test(server) &&
+    /emptyReason \?\?/.test(read('frontend/src/components/graph/DraftedStep.tsx')) &&
+    /emptyReason \?\?/.test(read('frontend/src/components/graph/HeroQuestionsStep.tsx')),
+  uncoveredMetricDomains.length > 0
+    ? `${uncoveredMetricDomains.join(', ')} draft personas but no metrics`
+    : 'a pool narrowed to fewer domains deletes suggestions rather than weakening them',
+)
+/*
+ * **Step 3's three acts on a drafted row, and only one of them writes.** Accept copies the row
+ * into the draft and Dismiss filters a list nothing saved; Edit corrects the *pool*, so it goes
+ * through `commitDb` and survives a restart. The button is withheld rather than disabled where
+ * there is no writer — personas have the same shape and no route — which is the rule a Library
+ * row's four acts already keep, so the claim asserts both halves: the metric call site passes a
+ * handler and the persona one does not.
+ */
+const draftedStep = read('frontend/src/components/graph/DraftedStep.tsx')
+const metricsCallSite = newGraphPage.split('suggestLabel="Suggest metrics (LLM)"')[1] ?? ''
+const personasCallSite = (
+  newGraphPage.split('suggestLabel="Suggest personas (LLM)"')[1] ?? ''
+).split('suggestLabel="Suggest metrics (LLM)"')[0]
+expect(
+  'a drafted metric is accepted or corrected, and only correcting it writes the pool',
+  /* Renamed on request. Keyed on the rendered label rather than on the word, because the
+     author-your-own control below is still `Add metric` and must stay that. */
+  /\{added \? 'Accepted' : 'Accept'\}/.test(draftedStep) &&
+    !/'\+ Add'/.test(codeOnly(draftedStep)) &&
+    /addLabel="Add metric"/.test(newGraphPage) &&
+    /* Withheld by there being no handler, never by a disabled button. */
+    /onEdit \?/.test(draftedStep) &&
+    /onEdit=\{editMetric\}/.test(metricsCallSite) &&
+    !/onEdit=/.test(personasCallSite) &&
+    /* The store's writer is passed in per pool, so the persona store has no `edit` at all. */
+    /createSuggestStore\(suggestMetrics, editMetric\)/.test(codeOnly(graphStore)) &&
+    /createSuggestStore\(suggestPersonas\)/.test(codeOnly(graphStore)) &&
+    /* The write really lands in the document rather than in the wizard's own state. */
+    /match: \(p\) => \/\^\\\/graph-metrics\\\/\[\^\/\]\+\$\//.test(server) &&
+    /graph_metrics: db\.graph_metrics\.map/.test(server) &&
+    /* And the reply is validated like every other write's, because a stale server answers a
+       PATCH with the old shape as readily as it answers a GET. */
+    /export async function editMetric/.test(client) &&
+    /METRIC_EDIT_PAYLOAD/.test(client),
+  'an Edit that wrote only the wizard would report a saved correction the pool never took',
 )
 /* The page's fallback keys on the same last step. A literal left behind would show a locked
    step the server never sends — and the build button hangs off exactly this number. */
@@ -8803,6 +9490,8 @@ const settingsSeed = read('backend/scripts/seed-settings.js')
 const settingsStore = read('frontend/src/store/settingsStore.ts')
 const personaPanel = read('frontend/src/components/settings/PersonaPermissionsPanel.tsx')
 const sidebarSrc = read('frontend/src/components/shell/Sidebar.tsx')
+/* The app shell, which drives the sider's width. */
+const appSrc = read('frontend/src/App.tsx')
 
 /*
  * **Every sidebar entry sits under a heading, and the headings are built from what a persona can
@@ -8835,6 +9524,71 @@ expect(
   navItemGroups.length === 0
     ? 'no nav item groups parsed — this check cannot run'
     : `${navPaths.length} items across ${navGroupsDeclared.length} groups`,
+)
+
+/*
+ * **The sidebar hides, and hidden means *absent*.**
+ *
+ * Asked for as "make sure all the sidebar menu are hided", which rules out antd's own
+ * `collapsible` — that draws an icon-only rail, so the menu is still there, still announced to a
+ * screen reader, just unreadable. The whole shell returns early instead: the items, the wordmark
+ * and the signed-in card are not in the markup at all, which is the rule the Ask history rail
+ * already keeps ("collapsed means absent, not hidden").
+ *
+ * **And the one thing left is the way back.** A collapse with no way out is a one-way door, so the
+ * rail keeps a real button carrying the act's name — `aria-label` and `aria-expanded`, because on
+ * that rail the label *is* the whole affordance. Its two words are in `nav.ts` beside the items,
+ * not inline, so they can be asserted without rendering the store-connected shell.
+ */
+expect(
+  'the sidebar collapses to one control, with the menu absent rather than hidden',
+  /export const NAV_COLLAPSE_LABEL = 'Hide navigation'/.test(nav) &&
+    /export const NAV_EXPAND_LABEL = 'Show navigation'/.test(nav) &&
+    /export function SidebarToggle\(\{/.test(sidebarSrc) &&
+    /* The early return is what makes it absent: no menu, no brand, no footer. */
+    /if \(collapsed && onToggle\) \{/.test(sidebarSrc) &&
+    /<div className="sidebar is-collapsed">\r?\n\s*<SidebarToggle collapsed onToggle=\{onToggle\} \/>/.test(
+      sidebarSrc,
+    ) &&
+    /* Non-visual halves, since the collapsed rail has no text beside the icon. */
+    /aria-label=\{label\}/.test(sidebarSrc) &&
+    /aria-expanded=\{!collapsed\}/.test(sidebarSrc) &&
+    /*
+     * **The fold icons, and a fill rather than a bare text button.**
+     *
+     * It was `LeftOutlined`/`RightOutlined` on a grey text button: a direction with nothing named,
+     * discoverable only by hovering the right pixels. Reported from use — "make sure it is
+     * highlighted so that user will get to know it is collapseable". `MenuFold`/`MenuUnfold` draw a
+     * menu with an arrow against it, which names the thing being folded, and the brand tint,
+     * border and ink make it a control at rest.
+     */
+    /icon=\{collapsed \? <MenuUnfoldOutlined \/> : <MenuFoldOutlined \/>\}/.test(sidebarSrc) &&
+    /* Through `codeOnly`: the comment explaining the swap *names* the two icons it replaced. The
+       eighth time this file has recorded that trap, and the eighth time it caught a clause on its
+       first run. */
+    !/LeftOutlined|RightOutlined/.test(codeOnly(sidebarSrc)) &&
+    /background: BRAND_SOFT,/.test(sidebarSrc) &&
+    /border: `1px solid \$\{BRAND\}`,/.test(sidebarSrc) &&
+    /color: BRAND_INK,/.test(sidebarSrc) &&
+    /*
+     * **And the glyph is readable on its own fill, recomputed rather than trusted.** `BRAND` on
+     * `BRAND_SOFT` is 2.91:1, so the ink is what a brand-coloured mark on a brand wash has to use —
+     * the same rule the selected persona option follows, applied to the one control the collapsed
+     * rail has. The border only has to separate the button from the white sidebar, which is a 3:1
+     * job.
+     */
+    contrast(hexOf('BRAND_INK'), hexOf('BRAND_SOFT')) >= 4.5 &&
+    contrast(hexOf('BRAND'), '#ffffff') >= 3 &&
+    /* The colours come from the theme, not a fourth orange in the stylesheet. */
+    /import \{ BRAND, BRAND_INK, BRAND_SOFT \} from '\.\.\/\.\.\/theme'/.test(sidebarSrc) &&
+    !/#f4562b|#9e3819|#fdeae4/.test(read('frontend/src/components/shell/Sidebar.css')) &&
+    /* The shell drives the width and antd's own collapse is deliberately not used. */
+    /const COLLAPSED_WIDTH = 48/.test(appSrc) &&
+    /width=\{navCollapsed \? COLLAPSED_WIDTH : SIDER_WIDTH\}/.test(appSrc) &&
+    !/collapsible/.test(codeOnly(appSrc)) &&
+    /* The drawer takes no collapse: it hides everything by being shut. */
+    /<Sidebar onNavigate=\{\(\) => setDrawerOpen\(false\)\} \/>/.test(appSrc),
+  'an icon-only rail is a menu a reader cannot read and a screen reader still announces',
 )
 
 const loginPage = read('frontend/src/pages/LoginPage.tsx')
@@ -10682,8 +11436,6 @@ expect(
  *
  * Weight is asserted too, because colour alone is what this repo refuses everywhere else.
  */
-const themeSrc = read('frontend/src/theme.ts')
-const hexOf = (name) => new RegExp(`${name} = '(#[0-9a-f]{6})'`, 'i').exec(themeSrc)?.[1] ?? ''
 const brandInk = hexOf('BRAND_INK')
 const brandSoft = hexOf('BRAND_SOFT')
 expect(

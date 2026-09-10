@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import {
   deleteUseCase,
+  editMetric,
   listGraphDomains,
   listGraphSources,
   listUseCases,
@@ -39,6 +40,11 @@ interface SuggestState {
   suggestions: Suggestion[]
   /** Distinguishes "not asked yet" from "asked, nothing came back". */
   asked: boolean
+  /**
+   * Why nothing came back, when nothing did — the server's sentence, never one composed here.
+   * Only it knows whether the pool held candidates for this domain at all.
+   */
+  emptyReason: string | null
   suggesting: boolean
   /** What the last call was doing and what it cost — null until one has run. */
   run: LlmRun | null
@@ -49,6 +55,13 @@ interface SuggestState {
   }) => Promise<Result>
   /** Waving one away is a local act — nothing about it was ever saved. */
   dismiss: (id: string) => void
+  /**
+   * Correcting one is *not* local, where the pool can be written back — the row is replaced with
+   * what the server stored rather than with what was submitted, so a title the API trimmed or
+   * refused cannot leave the screen disagreeing with the document. `null` on a store whose pool
+   * has no write route, which is what withholds the Edit button.
+   */
+  edit: null | ((input: { id: string; name: string; detail: string }) => Promise<Result>)
   reset: () => void
 }
 
@@ -61,11 +74,22 @@ function createSuggestStore(
   fetcher: (input: {
     domainId: string | null
     businessNeed: string
-  }) => Promise<{ suggestions: Suggestion[]; run: LlmRun }>,
+  }) => Promise<{ suggestions: Suggestion[]; emptyReason: string | null; run: LlmRun }>,
+  /*
+   * How a corrected row is written back, for the one pool that has such a route. Passed in rather
+   * than switched on inside, so a step with no writer has no `edit` action at all and the button
+   * is withheld by there being no handler — the rule the Library's report acts already keep.
+   */
+  writer?: (input: {
+    metricId: string
+    name: string
+    definition: string
+  }) => Promise<Suggestion>,
 ) {
   return create<SuggestState>()((set) => ({
     suggestions: [],
     asked: false,
+    emptyReason: null,
     suggesting: false,
     run: null,
 
@@ -73,7 +97,12 @@ function createSuggestStore(
       set({ suggesting: true })
       try {
         const result = await fetcher(input)
-        set({ suggestions: result.suggestions, asked: true, run: result.run })
+        set({
+          suggestions: result.suggestions,
+          asked: true,
+          emptyReason: result.emptyReason,
+          run: result.run,
+        })
         return { ok: true }
       } catch (error) {
         return { ok: false, error: toMessage(error) }
@@ -87,12 +116,41 @@ function createSuggestStore(
         suggestions: state.suggestions.filter((s) => s.id !== id),
       })),
 
-    reset: () => set({ suggestions: [], asked: false, suggesting: false, run: null }),
+    edit: writer
+      ? async ({ id, name, detail }) => {
+          try {
+            const stored = await writer({ metricId: id, name, definition: detail })
+            /*
+             * The server's row, not the submitted one. `why` is the reason this suggestion was
+             * *drafted* and an edit does not change it, so the route sends it empty and the
+             * existing one is kept rather than blanked.
+             */
+            set((state) => ({
+              suggestions: state.suggestions.map((s) =>
+                s.id === id ? { ...s, name: stored.name, detail: stored.detail } : s,
+              ),
+            }))
+            return { ok: true }
+          } catch (error) {
+            return { ok: false, error: toMessage(error) }
+          }
+        }
+      : null,
+
+    reset: () =>
+      set({
+        suggestions: [],
+        asked: false,
+        emptyReason: null,
+        suggesting: false,
+        run: null,
+      }),
   }))
 }
 
 export const usePersonaSuggestStore = createSuggestStore(suggestPersonas)
-export const useMetricSuggestStore = createSuggestStore(suggestMetrics)
+/* The one pool with a write route behind it — see `editMetric`. */
+export const useMetricSuggestStore = createSuggestStore(suggestMetrics, editMetric)
 export const useQuestionSuggestStore = createSuggestStore(suggestQuestions)
 
 interface DerivationState {

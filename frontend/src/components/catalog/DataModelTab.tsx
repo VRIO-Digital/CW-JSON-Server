@@ -3,13 +3,27 @@ import {
   ExpandOutlined,
   LeftOutlined,
   RightOutlined,
-  ThunderboltOutlined,
 } from '@ant-design/icons'
-import { Alert, App, Button, Col, Row, Skeleton, Space, Tooltip, Typography } from 'antd'
+import {
+  Alert,
+  App,
+  Button,
+  Col,
+  Row,
+  Skeleton,
+  Space,
+  Spin,
+  Tooltip,
+  Typography,
+} from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ModelTableSuggestion, SourceRow } from '../../api/client'
-import { DERIVED_LABEL, suggestionRunNote } from '../../data/dataModelSuggestions'
+import { suggestionRunNote } from '../../data/dataModelSuggestions'
 import { acceptAllOutcome } from '../../data/pendingSuggestions'
+import {
+  confirmedRelationshipsCopy as CONFIRMED_COPY,
+  relationDecision,
+} from '../../data/confirmedRelationships'
 import {
   CARDINALITY_LABELS,
   CARDINALITY_UNDETERMINED,
@@ -20,7 +34,13 @@ import {
   removeRelationshipWrite,
   type DeclaredRelationship,
 } from '../../data/dataModelRelationships'
+import {
+  TABLE_STATUS_KIND,
+  TABLE_UNDECLARED_LABEL,
+  tableDeclarationState,
+} from '../../data/dataModelStatus'
 import { MT } from '../../data/dataModelTokens'
+import { useAuthStore } from '../../store/authStore'
 import { entityForTable, useDataModelStore } from '../../store/dataModelStore'
 import ApiErrorAlert from '../common/ApiErrorAlert'
 import ConnectorIcon from '../common/ConnectorIcon'
@@ -29,7 +49,7 @@ import EntityColumnsPanel from './EntityColumnsPanel'
 import EntityOverviewPanel from './EntityOverviewPanel'
 import EntityRelationshipsPanel from './EntityRelationshipsPanel'
 import ModelTableList from './ModelTableList'
-import { PanelShell, StatusPill } from './ModelMarks'
+import { PanelShell, ProvenanceBadge, StatusPill } from './ModelMarks'
 import ConfirmedRelationshipsModal from './ConfirmedRelationshipsPanel'
 import PendingSuggestionsModal from './PendingSuggestionsPanel'
 import RelationshipModal, { type RelationshipEdit } from './RelationshipModal'
@@ -60,7 +80,9 @@ function StatItem({
   onClick,
   hint,
 }: {
-  value: number
+  /* A string as well as a number, so a figure nobody has computed yet can be an em dash rather
+     than a 0 — the rule a declared column's null statistics already follow. */
+  value: number | string
   label: string
   color?: string
   onClick?: () => void
@@ -182,7 +204,34 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     recorded: number
     derived: number
   } | null>(null)
-  const [suggestTruncated, setSuggestTruncated] = useState<number | null>(null)
+  /*
+   * What a cut run left out, or `null`. **Both numbers come from the reply** — the total the scan
+   * found and how many rows it actually sent — rather than a copy of the server's cap held here,
+   * which would be a second answer to how long the list is.
+   */
+  const [suggestTruncated, setSuggestTruncated] = useState<
+    { total: number; shown: number } | null
+  >(null)
+  /*
+   * **Which tables the last run found nothing to join, or `null` before one has been made.**
+   *
+   * `null` rather than an empty array, because "no orphans" and "nobody has looked" are different
+   * facts and only the first is a 0 — the rule a declared column's absent statistics already
+   * follow. It is the *server's* answer because only the server sees the whole scan: the list it
+   * returns can be cut, so a table whose one suggestion was cut would look orphaned if this were
+   * counted off what is on screen. The tab subtracts the tables a stored declaration touches,
+   * which is the half the scan cannot know.
+   */
+  const [suggestOrphans, setSuggestOrphans] = useState<string[] | null>(null)
+  /*
+   * Sources a run has already been made for, as `sourceId:tableCount`.
+   *
+   * **The run is automatic now — there is no button** — so this is what stops it firing again on
+   * every re-render and every re-read the store makes after a save. The table count is in the key
+   * on purpose: profiling more tables is a different schema and deserves a fresh look, and it is
+   * the one change a reader makes expecting new suggestions to appear.
+   */
+  const suggestedFor = useRef<Set<string>>(new Set())
 
   const [relationshipTarget, setRelationshipTarget] = useState<
     DeclaredRelationship | 'create' | null
@@ -199,6 +248,19 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
   const [pendingOpen, setPendingOpen] = useState(false)
   const [confirmedOpen, setConfirmedOpen] = useState(false)
   const [acceptingAll, setAcceptingAll] = useState(false)
+  /*
+   * True while one relation's Accept or Reject is in flight. Its own flag rather than the store's
+   * `saving`, for the reason `acceptingAll` is one: that is true for a single Overview save too, so
+   * reusing it would disable a whole list while somebody edited a text field.
+   */
+  const [deciding, setDeciding] = useState(false)
+
+  /*
+   * **Who is accepting, from the browser.** The identity is client-held, so a route cannot look up
+   * who is signed in — the rule the consent callback and `saved_by` on a report both established.
+   * Without it there is nobody to credit, and the act says so rather than recording an empty name.
+   */
+  const signedInAs = useAuthStore((s) => s.identity?.email ?? null)
 
   /* Keep the selection valid as the list arrives or changes underneath. */
   const selectedSource =
@@ -215,6 +277,34 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
   useEffect(() => {
     if (selectedSource) void load(selectedSource.sourceId)
   }, [load, selectedSource])
+
+  /*
+   * **The suggestions run on arrival, because the button that started them is gone.**
+   *
+   * It was a control labelled *Curated by AI* beside the counts, so a reader who had just profiled
+   * eighteen tables met a tab reporting no relationships at all and had to know to press something
+   * to find out otherwise. Removed on request: what the profile implies about how these tables join
+   * is not a separate act a reader should have to ask for.
+   *
+   * **The run is still narrated**, which is the rule every paced act here keeps — the strip says
+   * *Reading the schema* while it is in flight, so the pending count appearing is something a reader
+   * watched happen rather than a number that was always there. What is lost is a way to ask again
+   * for the same tables: rejecting a suggestion drops it for good until the profile changes, which
+   * is recorded rather than glossed.
+   *
+   * Guarded by `sourceId:tableCount`, not by a boolean: the store re-reads its tables after every
+   * save, and without the guard each one would start a run.
+   */
+  useEffect(() => {
+    if (!selectedSource || tables.length === 0) return
+    const key = `${selectedSource.sourceId}:${tables.length}`
+    if (suggestedFor.current.has(key)) return
+    suggestedFor.current.add(key)
+    void runSuggestions()
+    /* `runSuggestions` closes over this render's state and is recreated every render, so it is
+       deliberately not a dependency — the guard above is what makes the run happen once. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSource, tables.length])
 
   /*
    * Table and sub-tab selection reset when the source changes — adjust-state-during-render.
@@ -258,6 +348,8 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
   const selectedEntity = selectedTable
     ? entityForTable(entities, selectedTable.tableKey)
     : null
+  /* One rule, in `src/data/` so it can be asserted without rendering this tab's own state. */
+  const tableStatus = tableDeclarationState(selectedEntity)
 
   const columnsDescribed = useMemo(
     () =>
@@ -287,6 +379,46 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
   )
   const pendingCount = pendingRelationships.length
 
+  /**
+   * The tables **no relationship on screen touches** — confirmed or pending.
+   *
+   * **It counted the server's `orphan_tables` instead, and that was wrong in the way a reader could
+   * see.** That list is what the *scan* found nothing for, and the scan finds a shared identifier
+   * for every table in CAPEX's `plan` — so the tile read 0 while `plan_account_dim` sat selected
+   * beside it saying "No relationships declared or suggested yet for this entity" and its rail pill
+   * showed an em dash. Reported from use, twice. A suggestion the tab drops as already-covered, and
+   * every row a reader **rejects**, leave a table with nothing at all; the scan still says it found
+   * that table something.
+   *
+   * So the count is of what is actually there, which is the thing a reader can check by clicking
+   * the table — and it agrees with the rail's own em dash, because both now read `relationships`.
+   *
+   * `null` until a run has landed: before anything has looked, most tables have no *suggestion* yet
+   * and a tile reading 15 would be a claim about a scan that never ran. The em dash is the same
+   * answer a declared column's absent statistics give.
+   */
+  const orphanTableKeys = useMemo(() => {
+    if (suggestOrphans === null) return null
+    const touched = new Set(
+      relationships.flatMap((r) => [r.fromTableKey, r.toTableKey]),
+    )
+    return tableKeys.filter((key) => !touched.has(key))
+  }, [suggestOrphans, relationships, tableKeys])
+
+  /**
+   * Of those, the ones the **scan** also found nothing for.
+   *
+   * The two are different facts and the hint says which: a table in both lists is unjoined *in the
+   * data* — no other table shares an identifier column with it — while one only in the first is
+   * unjoined because its suggestions were rejected. Keeping the served list for this is what stops
+   * it being a payload field nothing reads, and it is the half the client cannot work out.
+   */
+  const unjoinedInData = useMemo(() => {
+    if (orphanTableKeys === null || suggestOrphans === null) return 0
+    const scan = new Set(suggestOrphans)
+    return orphanTableKeys.filter((key) => scan.has(key)).length
+  }, [orphanTableKeys, suggestOrphans])
+
   const labelFor = (tableKey: string) =>
     tables.find((t) => t.tableKey === tableKey)?.tableId ?? tableKey
 
@@ -297,7 +429,14 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     setRelationshipTarget('create')
   }
 
-  /** Persists a declaration, then lets the store's re-read decide what is on screen. */
+  /**
+   * Persists a declaration, then lets the store's re-read decide what is on screen.
+   *
+   * **The acceptance travels with the edit.** Every write hands the server the whole relationship,
+   * so a field left out is a field cleared: without this, editing a rationale would strip the name
+   * of whoever accepted the row and quietly return it to undecided. An edit keeps what the row had;
+   * a **new** declaration is the reader's own act, so it is credited to them.
+   */
   const saveRelationship = async (
     input: Pick<
       DeclaredRelationship,
@@ -311,8 +450,20 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     >,
     editId?: string,
   ) => {
+    const existing = editId ? relationships.find((r) => r.id === editId) : undefined
     const result = await saveWrites(
-      relationshipWrites({ rel: input, editId, entities, labelFor }),
+      relationshipWrites({
+        rel: {
+          ...input,
+          /* An edit keeps the row's own answer; declaring one here is the reader's act. A pending
+             row being confirmed through this dialog has no `confirmedBy` yet, and the person doing
+             it is the person to credit. */
+          confirmedBy: existing?.confirmedBy ?? signedInAs,
+        },
+        editId,
+        entities,
+        labelFor,
+      }),
     )
     if (result.ok) {
       message.success(editId ? 'Relationship updated.' : 'Relationship declared.')
@@ -356,6 +507,9 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
            * already explains, with the figures it read.
            */
           rationale: resolved.rationale.trim() || resolved.suggestionReasoning || '',
+          /* Confirming a suggestion **is** the reader's act, so it is credited to them — which is
+             what makes the row read *Confirmed by you* instead of *Curated by AI* afterwards. */
+          confirmedBy: signedInAs,
         },
         entities,
         labelFor,
@@ -406,6 +560,9 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
             ...suggestion,
             rationale:
               suggestion.rationale.trim() || suggestion.suggestionReasoning || '',
+            /* Accept all is the reader's act too, once per row — so each one lands credited, and
+               the relations list reads *Confirmed by you* rather than *Curated by AI*. */
+            confirmedBy: signedInAs,
           },
           entities: entitiesNow,
           labelFor,
@@ -439,6 +596,85 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     } else {
       message.error(outcome.message)
     }
+  }
+
+  /**
+   * **Accepts a stored relation: the same write, with a name on it.**
+   *
+   * A stored declaration and an accepted one are two facts — see `confirmedBy` — so this is what
+   * turns the first into the second. It reuses `relationshipWrites` with the row's own `editId`
+   * rather than a route of its own: the write path already carries every absent field forward and
+   * already anchors the row on the right entity, and a second endpoint that set one field would be a
+   * second way to write one thing.
+   *
+   * The address is the **browser's**, because the identity is client-held and a route cannot look up
+   * who is signed in — the rule `saved_by` on a report established. Without one there is nobody to
+   * credit, so the act is refused rather than recording an empty name.
+   */
+  const acceptRelation = async (id: string) => {
+    const row = confirmedRelationships.find((r) => r.id === id)
+    if (!row) return
+    if (!signedInAs) {
+      message.warning('Sign in to record who accepted this.')
+      return
+    }
+    setDeciding(true)
+    const result = await saveWrites(
+      relationshipWrites({
+        rel: { ...row, confirmedBy: signedInAs },
+        editId: id,
+        entities,
+        labelFor,
+      }),
+    )
+    setDeciding(false)
+    if (result.ok) message.success(relationDecision('accepted', row.name))
+    else message.error(result.error)
+  }
+
+  /**
+   * **Rejects a stored relation: the declaration goes, and the row goes back to pending.**
+   *
+   * Asked for in those terms — a rejected relation is not a deletion, it is a decision that puts the
+   * question back where undecided things live, so the *suggested, pending* count picks it up. The
+   * write is the ordinary removal; what is new is the local row that replaces it, marked `pending`
+   * and `derived`, which is what it was before anybody stored it.
+   *
+   * The pending copy is added **after** the write lands. Adding it first would show a suggestion
+   * beside a declaration that is still there — the same both-at-once state the accept path avoids.
+   */
+  const rejectRelation = async (id: string) => {
+    const row = confirmedRelationships.find((r) => r.id === id)
+    if (!row || !selectedSource) return
+    const write = removeRelationshipWrite(id, entities)
+    if (!write) return
+    setDeciding(true)
+    const result = await save(write)
+    setDeciding(false)
+    if (!result.ok) {
+      message.error(result.error)
+      return
+    }
+    setPendingBySource((prev) => ({
+      ...prev,
+      [selectedSource.sourceId]: [
+        ...(prev[selectedSource.sourceId] ?? []),
+        {
+          ...row,
+          /* A fresh id: the stored one addresses an entity's relationship array, and that entry has
+             just been removed. */
+          id: `pending-rejected-${row.fromTableKey}-${row.fromColumn}-${row.toTableKey}-${row.toColumn}`,
+          status: 'pending',
+          provenance: 'derived',
+          confirmedBy: null,
+          evidenceKind: 'structural',
+          evidence: undefined,
+          suggestionReasoning: row.rationale,
+          owningEntityId: undefined,
+        },
+      ],
+    }))
+    message.success(relationDecision('rejected', row.name))
   }
 
   /**
@@ -479,7 +715,12 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     const data = result.data
     setSuggestDegraded(data.degraded)
     setSuggestCounts({ recorded: data.recorded_count, derived: data.derived_count })
-    setSuggestTruncated(data.truncated ? data.tables_considered : null)
+    setSuggestTruncated(
+      data.truncated
+        ? { total: data.relationships_total, shown: data.relationships.length }
+        : null,
+    )
+    setSuggestOrphans(data.orphan_tables)
     setTableSuggestions((prev) => {
       const next = { ...prev }
       for (const t of data.tables) next[t.table_key] = t
@@ -745,9 +986,18 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
             >
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                 <StatItem value={tables.length} label="tables" />
+                {/*
+                  * **"relations", renamed on request — it read "relationships confirmed".**
+                  *
+                  * Over twelve rows nobody in the session had accepted, because being stored was
+                  * being confirmed. Those two facts came apart (`confirmedBy`), so the tile counts
+                  * what this source *holds* and each row says whether anybody has accepted it. The
+                  * word is `CONFIRMED_COPY.tileLabel`, declared beside the dialog's own title so
+                  * the control and the thing it opens cannot come to be called two things.
+                  */}
                 <StatItem
                   value={confirmedCount}
-                  label="relationships confirmed"
+                  label={CONFIRMED_COPY.tileLabel}
                   color={MT.green}
                   /* Inert at 0, exactly as the pending tile is: a count that opened an empty dialog
                      is the button-over-blank-space this repo has fixed once already. */
@@ -756,7 +1006,7 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                   }
                   hint={
                     confirmedCount > 0
-                      ? 'See every relationship this source has stored'
+                      ? 'Accept or reject each relation this source has stored'
                       : undefined
                   }
                 />
@@ -775,34 +1025,50 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                       : undefined
                   }
                 />
+                {/*
+                  * **Tables nothing joins, and an em dash until something has looked.**
+                  *
+                  * Inert: the table list beside it already marks each one — a row with no
+                  * relationship shows an em dash where the others carry a count — so this is the
+                  * figure and that is the naming, which is the pair a skipped profiling run
+                  * already uses. It is red rather than amber because it is not a state waiting on
+                  * a decision: a table the schema does not connect is a thing to go and look at.
+                  */}
+                <StatItem
+                  value={orphanTableKeys === null ? '—' : orphanTableKeys.length}
+                  label="orphan tables"
+                  color={
+                    orphanTableKeys && orphanTableKeys.length > 0 ? MT.red : undefined
+                  }
+                  /* Two facts, said apart: unjoined *in the data* is a modelling observation, and
+                     unjoined because the suggestions were rejected is a decision somebody made. */
+                  hint={
+                    orphanTableKeys && orphanTableKeys.length > 0
+                      ? `${orphanTableKeys.length} table(s) have no relationship at all — ${unjoinedInData} because nothing else shares an identifier column with them, the rest because their suggestions were rejected. The table list marks each with an em dash.`
+                      : undefined
+                  }
+                />
                 <StatItem value={columnsDescribed} label="columns described" />
               </div>
               <Space size={8}>
                 {/*
-                 * **The guarantee, not a denial of the mechanism.** This read "No model is
-                 * involved", which was right until the button above it took the derived kind's own
-                 * name: a tooltip denying a model one hover under a control crediting one is the
-                 * panel arguing with itself, which is the exact form `suggestionRunNote` was
-                 * narrowed to fix when the badge was renamed. What is kept is the half with teeth
-                 * and the same words that note uses — no figure is invented — because that is
-                 * falsifiable on screen where a claim about an unseen mechanism is not. The
-                 * mechanism is still stated where a maintainer reads it, on `ProvenanceBadge`'s
-                 * `kind`, and the payload's `degraded` still says `true`.
+                 * **Where the *Curated by AI* button was.** It started the suggestions run, and it
+                 * is gone: the run happens on arrival now, so a reader who has just profiled a
+                 * source is not left in front of a tab reporting no relationships until they know
+                 * to press something. Removed on request.
+                 *
+                 * **What stayed is the narration**, which is the rule every paced act here keeps: a
+                 * run that returned invisibly would teach that it is free. So the strip says what
+                 * is happening while it happens, and says it in the same words the button's busy
+                 * state used. It is a label rather than a disabled control, because there is
+                 * nothing here to press.
                  */}
-                <Tooltip title="Reads this source's profiled columns and offers the joins a shared identifier implies. No figure is invented to fill a field: every count and confidence quotes the profile.">
-                  <Button
-                    size="small"
-                    icon={<ThunderboltOutlined />}
-                    loading={suggesting}
-                    disabled={!selectedSource || tables.length === 0}
-                    onClick={() => void runSuggestions()}
-                  >
-                    {/* The busy label still says what is happening rather than repeating the
-                        control's name: a run that narrates itself is the rule every paced act here
-                        keeps, and "reading the schema" is what this one is doing. */}
-                    {suggesting ? 'Reading the schema' : DERIVED_LABEL}
-                  </Button>
-                </Tooltip>
+                {suggesting ? (
+                  <Space size={6}>
+                    <Spin size="small" />
+                    <span style={{ fontSize: 11, color: MT.dim }}>Reading the schema</span>
+                  </Space>
+                ) : null}
                 <Button
                   size="small"
                   icon={<ExpandOutlined />}
@@ -849,7 +1115,11 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                 showIcon
                 closable
                 onClose={() => setSuggestTruncated(null)}
-                title={`Read the first ${suggestTruncated} tables — this source has more, and a pair-wise scan over all of them would offer a list nobody could read.`}
+                /* **The list was cut, not the tables** — every profiled table was scanned, which is
+                   what makes the orphan count above a fact about the schema. This said "read the
+                   first N tables", and that was the old cap: it left six tables of an eighteen-table
+                   source looking unrelated when all eighteen share an identifier with another. */
+                title={`The scan found ${suggestTruncated.total} suggestions and the review lists the first ${suggestTruncated.shown} — every profiled table was looked at either way, so the orphan count beside it is a fact about the schema rather than about this cut.`}
                 style={{ margin: '0 14px 10px' }}
               />
             ) : null}
@@ -917,12 +1187,36 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                         {displayName}
                       </span>
                     </Tooltip>
-                    {selectedEntity ? (
-                      <StatusPill variant="confirmed" icon>
-                        Declared
-                      </StatusPill>
+                    {/*
+                      * **The table's status, once, beside its name.**
+                      *
+                      * Overview carried a `ProvenanceBadge` beside five of its fields — one
+                      * question answered five times on a form whose every field is saved by one
+                      * button. Removed on request, and answered here instead, because it is a fact
+                      * about the table rather than about a text box.
+                      *
+                      * **Three states, not two.** It read *Declared* for any existing entity, and
+                      * an entity exists without anybody having declared anything: the client mints
+                      * an anchor whenever a relationship points at an undeclared table, and all 14
+                      * of CAPEX's exist that way. So the pill is read off `confirmed_by`, which
+                      * only Save Overview writes — the same split `confirmed_by` on a relationship
+                      * draws between *stored* and *accepted*.
+                      */}
+                    {/*
+                      * **A provenance mark for the two declared states, a status pill for the
+                      * third — and getting that wrong is what the colour showed.**
+                      *
+                      * All three went through `StatusPill` at first, so *Curated by AI* arrived
+                      * amber while the same words on every relationship row beside it were purple.
+                      * That is the confusion the two marks are separate components to prevent:
+                      * status is green/amber/red, provenance is green/purple. *Curated by AI* and
+                      * *Confirmed by you* say **who**, so they wear the provenance palette and its
+                      * own words; *Not yet declared* is a state, so it keeps the neutral pill.
+                      */}
+                    {TABLE_STATUS_KIND[tableStatus] ? (
+                      <ProvenanceBadge kind={TABLE_STATUS_KIND[tableStatus]!} full />
                     ) : (
-                      <StatusPill variant="mut">Not yet declared</StatusPill>
+                      <StatusPill variant="mut">{TABLE_UNDECLARED_LABEL}</StatusPill>
                     )}
                   </h2>
                   <div
@@ -1054,6 +1348,11 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
           setConfirmedOpen(false)
           openRelationship(id)
         }}
+        /* The two decisions this list is for. It stays open through both: a reader working down
+           twelve rows should not have to reopen the dialog after each one. */
+        deciding={deciding}
+        onAccept={(id) => void acceptRelation(id)}
+        onReject={(id) => void rejectRelation(id)}
         onClose={() => setConfirmedOpen(false)}
       />
     </>

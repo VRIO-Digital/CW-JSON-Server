@@ -8,9 +8,6 @@ export type CatalogPanel =
   | 'none'
   | 'browse'
   | 'columns'
-  /* BigQuery's third act — see `schemaLabel`. Not a connector-shaped panel: a drive and a mailbox
-     have no schema, so nothing else declares it. */
-  | 'schema'
   | 'browse-documents'
   | 'documents'
   | 'browse-mail-documents'
@@ -53,17 +50,18 @@ export interface CatalogUnits {
   dictionaryLabel: string
   browsePanel: CatalogPanel
   dictionaryPanel: CatalogPanel
-  /**
-   * A **third** act, where the connector has one — uploading a schema or a data dictionary.
+  /*
+   * **There is no third act here, and its absence is the design.** Uploading a data dictionary used
+   * to be a source-level button beside these two, with a dataset picked from a Select inside the
+   * panel — one upload for a source that may hold several datasets, and a control asking which one
+   * a moment after the reader had already been looking at the list of them.
    *
-   * **Optional, and only BigQuery declares it**, because it is the one connector whose catalogue is
-   * a schema: a drive holds documents and a mailbox holds mail, and neither has columns a dictionary
-   * could describe. A field the whole record does not share is not a required field — the What-if
-   * authoring steps' `help` learned that once — so the page draws the button only where both halves
-   * are declared, and a connector that has no such act simply keeps its two.
+   * It is a per-dataset control inside the **browse** panel now, on the dataset row itself, and that
+   * is why nothing is declared for it: only the structured browse panel lists datasets, and a drive
+   * or a mailbox never reaches it. The act is drawn where the datasets are rather than where a
+   * connector name says it may be — which is the same guarantee `schemaLabel`/`schemaPanel` bought,
+   * by a shorter route and with no field a connector could half-declare.
    */
-  schemaLabel?: string
-  schemaPanel?: CatalogPanel
   /** The one-line summary under a row in the source list. */
   listCount: (s: SourceRow) => string
   /**
@@ -92,11 +90,6 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
     dictionaryLabel: 'View profiled columns',
     browsePanel: 'browse',
     dictionaryPanel: 'columns',
-    /* "Upload", because what it takes is a file — and "schema or dictionary", because both are the
-       same act here: each states what a column is, and both land in the same dictionary a run
-       writes to. */
-    schemaLabel: 'Upload schema or dictionary',
-    schemaPanel: 'schema',
     listCount: (s) => `${s.profiledTables} tables profiled`,
     foot: (s) =>
       s.profiledTables === 0

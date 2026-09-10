@@ -28,6 +28,7 @@ import {
   type ProfilingJobsPayload,
   type SchemaPreviewPayload,
 } from '../api/client'
+import type { AppliedDictionary } from '../data/schemaUpload'
 import { createReadStore, toMessage, type Result } from './asyncState'
 
 export type { Result }
@@ -333,73 +334,163 @@ export const useMailDocumentsStore = create<MailDocumentsState>()((set, get) => 
 }))
 
 
-/* ---------------- Uploading a schema or data dictionary ---------------- */
+/* ---------------- Uploading a data dictionary ---------------- */
+
+/** A dictionary that has been read and is waiting for Start Profiling. */
+export interface StagedDictionary {
+  filename: string
+  /** The file's own text, kept so the write sends exactly what the read reported on. */
+  text: string
+  plan: SchemaPreviewPayload
+}
 
 interface SchemaUploadState {
-  /** What the last preview read, or `null` before one has run. */
-  plan: SchemaPreviewPayload | null
-  reading: boolean
+  /**
+   * What has been read, **keyed by dataset**.
+   *
+   * A map rather than one plan, because the control is per dataset now: a source with three
+   * datasets can have a dictionary staged against each, and one slot would silently replace the
+   * previous reader's file with the next one. The dataset id is the key the write is made with, so
+   * there is nothing to keep in step.
+   */
+  staged: Record<string, StagedDictionary>
+  /** Which dataset is being read right now, or `null` — one at a time, and named so the row says so. */
+  reading: string | null
   applying: boolean
   /** The parser's own refusal, shown verbatim — it is written as a sentence to whoever holds the file. */
   error: string | null
 
-  preview: (
+  /**
+   * Reads a file against one dataset and stages what it would do. **Writes nothing.**
+   *
+   * Called the moment a file is chosen rather than from a button, which is the only change to this
+   * act: the guarantee that a preview writes nothing is the endpoint's, and it is untouched.
+   */
+  read: (
     sourceId: string,
     input: { filename: string; text: string; dataset_id: string },
   ) => Promise<Result>
-  apply: (
+  /**
+   * Writes every staged dictionary and returns **the one run** it queued.
+   *
+   * **One request, not one per dataset.** It used to post them one at a time — each apply hands the
+   * server a whole document through `commitDb`, so two in parallel would have the second overwrite
+   * the first — and each reply carried a job of its own, which is how one press of Start Profiling
+   * came to put two pipelines on the board. The dictionaries and the reader's selection travel
+   * together now: the server resolves every plan before it writes anything, commits once, and
+   * queues a single job over the union.
+   *
+   * So there is nothing partial left to report. A refusal means **nothing was written** and
+   * everything is still staged, which is a stronger guarantee than the loop's "the first two landed"
+   * and needs no sentence about what did.
+   */
+  applyStaged: (
     sourceId: string,
-    input: { filename: string; text: string; dataset_id: string },
-  ) => Promise<{ ok: true; job: ProfilingJob } | { ok: false; error: string }>
+    objects: { dataset_id: string; table_id: string }[],
+    force: boolean,
+  ) => Promise<
+    | { ok: true; applied: AppliedDictionary[]; job: ProfilingJob }
+    | { ok: false; error: string }
+  >
+  /**
+   * A file the browser refused before sending it — the wrong extension, or over the body cap.
+   *
+   * It lands in the same `error` as the parser's own refusal on purpose: from the reader's side both
+   * answer one question, *why did my file not take*, and `schemaFileProblem` writes its sentence to
+   * the same audience. One field means the panel has one place to look and cannot show a stale
+   * refusal beside a fresh one.
+   */
+  refuse: (datasetId: string, problem: string) => void
+  discard: (datasetId: string) => void
   reset: () => void
 }
 
 /**
- * The two acts of a schema upload.
+ * Reading a data dictionary, then writing it.
  *
- * A store rather than calls from the panel, because this is a **write** with two steps: the rule
- * here is that a component may reach `client.ts` directly only for a one-shot read. The refusals are
- * kept in `error` rather than thrown, so the panel prints the parser's sentence where the file was
- * chosen instead of in a toast that outlives the screen.
+ * A store rather than calls from the panel, because this is a **write**: the rule here is that a
+ * component may reach `client.ts` directly only for a one-shot read. The refusals are kept in
+ * `error` rather than thrown, so the panel prints the parser's sentence where the file was chosen
+ * instead of in a toast that outlives the screen.
  *
- * `plan` is cleared by `preview` starting, not just by `reset` — a stale plan under a newly chosen
- * file is the one state this must not show, since Apply acts on the file and the reader would be
- * reading the previous one's report.
+ * A dataset's staged entry is cleared when a new file is chosen for it, not only by `discard` — a
+ * stale report under a newly chosen file is the one state this must not show, since the write acts
+ * on the file and the reader would be reading the previous one's report.
  */
-export const useSchemaUploadStore = create<SchemaUploadState>()((set) => ({
-  plan: null,
-  reading: false,
+export const useSchemaUploadStore = create<SchemaUploadState>()((set, get) => ({
+  staged: {},
+  reading: null,
   applying: false,
   error: null,
 
-  preview: async (sourceId, input) => {
-    set({ reading: true, error: null, plan: null })
+  read: async (sourceId, input) => {
+    const { [input.dataset_id]: _dropped, ...rest } = get().staged
+    set({ reading: input.dataset_id, error: null, staged: rest })
     try {
-      set({ plan: await previewSchemaUpload(sourceId, input), reading: false })
+      const plan = await previewSchemaUpload(sourceId, input)
+      set((state) => ({
+        reading: null,
+        staged: {
+          ...state.staged,
+          [input.dataset_id]: { filename: input.filename, text: input.text, plan },
+        },
+      }))
       return { ok: true }
     } catch (error) {
       const message = toMessage(error)
-      set({ error: message, reading: false })
+      set({ error: message, reading: null })
       return { ok: false, error: message }
     }
   },
 
-  apply: async (sourceId, input) => {
+  applyStaged: async (sourceId, objects, force) => {
+    /* Read once, into the order they are sent: the reply's `applied` comes back in that order, and
+       reading `staged` again afterwards would be reading what this call has just cleared. */
+    const entries = Object.entries(get().staged)
     set({ applying: true, error: null })
     try {
-      const { job } = await applySchemaUpload(sourceId, input)
-      /* The plan goes with the apply: it described a change that has now happened, and leaving it on
-         screen beside "applied" would read as a change still waiting to be made. */
-      set({ applying: false, plan: null })
-      return { ok: true, job }
+      const result = await applySchemaUpload(sourceId, {
+        dictionaries: entries.map(([dataset_id, entry]) => ({
+          filename: entry.filename,
+          text: entry.text,
+          dataset_id,
+        })),
+        objects,
+        force,
+      })
+      /* All of them landed or none did, so the whole staging area clears here. */
+      set({ staged: {}, applying: false })
+      return {
+        ok: true as const,
+        /* Paired positionally with what was sent, which is the order the route replies in. */
+        applied: entries.map(([dataset_id, entry], i) => ({
+          dataset_id,
+          filename: entry.filename,
+          table_count: result.applied[i]?.table_count ?? entry.plan.table_count,
+        })),
+        job: result.job,
+      }
     } catch (error) {
       const message = toMessage(error)
+      /* Nothing was written, so nothing is unstaged: the reader can fix the file and press again. */
       set({ error: message, applying: false })
-      return { ok: false, error: message }
+      return { ok: false as const, error: message }
     }
   },
 
-  reset: () => set({ plan: null, reading: false, applying: false, error: null }),
+  refuse: (datasetId, problem) =>
+    set((state) => {
+      const { [datasetId]: _dropped, ...rest } = state.staged
+      return { staged: rest, error: problem, reading: null }
+    }),
+
+  discard: (datasetId) =>
+    set((state) => {
+      const { [datasetId]: _dropped, ...rest } = state.staged
+      return { staged: rest, error: null }
+    }),
+
+  reset: () => set({ staged: {}, reading: null, applying: false, error: null }),
 }))
 /* ---------------- Profiling jobs ---------------- */
 

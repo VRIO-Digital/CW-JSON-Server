@@ -919,6 +919,15 @@ export interface GraphDomain {
   /** Why it ranks where it does — shown under the domain name. */
   note: string
   rank: number
+  /**
+   * What steps 2, 3 and 5 could draft for this domain, counted off the tenant's own pools.
+   *
+   * A different fact from `fit`, which is about the *connected data*: a domain can be a strong fit
+   * for what has been profiled and still have no persona, metric or hero question written against
+   * it — which is three consecutive steps that draft nothing, and it is why this is on the card
+   * where the domain is chosen rather than discovered two steps later.
+   */
+  drafts: { personas: number; metrics: number; heroQuestions: number }
 }
 
 export interface GraphDomainsPayload {
@@ -1705,6 +1714,16 @@ export interface Suggestions {
   suggestions: Suggestion[]
   count: number
   derivedFrom: string
+  /**
+   * Why nothing was drafted, when nothing was — `null` otherwise.
+   *
+   * An empty list is an answer and this says which one. The step printed *"Nothing matched this
+   * brief"* for every empty draft, which blames the reader's words for what is often a gap in the
+   * tenant's pools: CAPEX declares four domains and has personas, metrics and hero questions for
+   * two, so picking one of the other two drafted nothing three steps running. The two cases have
+   * different fixes and the server is the only side that can tell them apart.
+   */
+  emptyReason: string | null
   run: LlmRun
 }
 
@@ -2422,6 +2441,7 @@ const GRAPH_DOMAINS_PAYLOAD = shape({
       fit: oneOf(['strong', 'partial', 'none']),
       note: str,
       rank: num,
+      drafts: shape({ personas: num, metrics: num, hero_questions: num }),
     }),
   ),
 })
@@ -2552,6 +2572,9 @@ const LLM_RUN = shape({
 const SUGGESTIONS_PAYLOAD = shape({
   count: num,
   derived_from: str,
+  /* Null whenever anything was drafted — nullable checks the type, not the presence, so an older
+     mock server that does not send it at all still validates. */
+  empty_reason: nullable(str),
   run: LLM_RUN,
   suggestions: arrayOf(
     shape({
@@ -2564,6 +2587,21 @@ const SUGGESTIONS_PAYLOAD = shape({
       priority: nullable(oneOf(['high', 'normal'])),
     }),
   ),
+})
+
+/*
+ * Step 3's Edit answers with the row it just stored, in the same shape the suggesters send —
+ * validated like every other write's reply, because a stale server answers a PATCH with the old
+ * shape as readily as it answers a GET.
+ */
+const METRIC_EDIT_PAYLOAD = shape({
+  metric: shape({
+    id: str,
+    name: str,
+    detail: str,
+    why: str,
+    priority: nullable(oneOf(['high', 'normal'])),
+  }),
 })
 
 const DERIVATION_PAYLOAD = shape({
@@ -4251,6 +4289,20 @@ export interface ModelRelationshipItem {
   /** `1:1` | `1:N` | `N:1` | `N:N` — advisory, and a closed set the server checks. */
   cardinality_hint: string
   rationale: string
+  /**
+   * Who accepted this declaration, or `null` — and **being stored is not being confirmed**.
+   *
+   * Every stored declaration used to render as *Confirmed by you*, because the tab took
+   * `provenance: 'human'` from the mere fact of being stored. That is a claim about the reader and
+   * it was false for all 31 across the two documents: written in some earlier session, or by a
+   * script, with no record of which. Reported from use, as twelve relationships credited to
+   * somebody who had accepted none of them.
+   *
+   * Absent on every one written before the field existed, which is why it is nullable rather than
+   * required: `null` is the honest answer to "who accepted this", and the label says *Curated by
+   * AI* instead of naming a person.
+   */
+  confirmed_by?: string | null
 }
 
 /**
@@ -4273,6 +4325,16 @@ export interface ModelEntity {
   table_key: string
   entity_name: string
   description: string
+  /**
+   * Who declared this table, or `null` — the twin of the field on a relationship.
+   *
+   * An entity can exist without anybody having declared anything: the client mints an **anchor**
+   * whenever a relationship points at an undeclared table, and its own description says so in as
+   * many words. So the Entity detail header's pill is read off this rather than off the entity's
+   * mere existence, which used to print *Declared* over all 14 of CAPEX's anchors. Only Save
+   * Overview sends a name.
+   */
+  confirmed_by: string | null
   business_purpose: string | null
   grain_description: string | null
   attributes: ModelAttribute[]
@@ -4293,6 +4355,8 @@ export interface DataModelPayload {
  */
 export interface ModelEntityInput {
   entity_id?: string
+  /** Sent by Save Overview alone. Omitted, the server carries the stored answer forward. */
+  confirmed_by?: string | null
   table_key?: string
   entity_name?: string
   description?: string
@@ -4379,9 +4443,28 @@ export interface ModelSuggestionsPayload {
   recorded_count: number
   /** Found by matching a shared identifier column, for every pair nothing has written down. */
   derived_count: number
-  /** A pair-wise scan is quadratic, so a run considers a capped set — and says when it did. */
+  /**
+   * Whether the **list** was cut — never the tables.
+   *
+   * This meant "only some tables were scanned", which made an unjoined table a claim about the cap
+   * rather than about the schema: an 18-table source reported 12 joined and 6 apparently unrelated,
+   * when all 18 share an identifier with another. Every profiled table is scanned now
+   * (`tables_considered` is all of them) and the returned list is what a run cuts, since that is
+   * what a reviewer has to read.
+   */
   truncated: boolean
   tables_considered: number
+  /** How many the scan found, before the list was cut. */
+  relationships_total: number
+  /**
+   * The profiled tables **no** suggestion reaches, by `table_key`.
+   *
+   * Named rather than counted, because a count with no names leaves a reader working out whether
+   * theirs is in it. It is computed over the whole scan and before the list is cut, so it is a fact
+   * about the schema — a lookup nobody keyed, or a dictionary that has not named its identifier —
+   * and never about a limit. Stored declarations are the client's to subtract: it holds those.
+   */
+  orphan_tables: string[]
 }
 
 const MODEL_ENTITY = shape({
@@ -4389,6 +4472,7 @@ const MODEL_ENTITY = shape({
   table_key: str,
   entity_name: str,
   description: str,
+  confirmed_by: nullable(str),
   business_purpose: nullable(str),
   grain_description: nullable(str),
   attributes: arrayOf(
@@ -4402,6 +4486,9 @@ const MODEL_ENTITY = shape({
       relationship_type: str,
       cardinality_hint: str,
       rationale: str,
+      /* Nullable, and absent on every declaration written before it existed — `nullable()` accepts
+         a missing key as well as `null`, which is exactly the case here. */
+      confirmed_by: nullable(str),
     }),
   ),
   cross_attributes: arrayOf(
@@ -4452,6 +4539,8 @@ const MODEL_SUGGESTIONS_PAYLOAD = shape({
   derived_count: num,
   truncated: bool,
   tables_considered: num,
+  relationships_total: num,
+  orphan_tables: arrayOf(str),
 })
 
 /** Every declaration in this dataset. One read — the relationships ride on their entities. */
@@ -4578,8 +4667,16 @@ export interface SchemaPreviewPayload extends SchemaPlan {
 
 export interface SchemaAppliedPayload {
   source_id: string
-  applied: SchemaPlan
-  /** The forced run this queued. The Catalog switches to the jobs board on it. */
+  /** One plan per dictionary written, in the order they were sent. */
+  applied: SchemaPlan[]
+  /**
+   * **The one run this queued** — the dictionaries' tables *and* whatever else the reader had
+   * checked, in a single job.
+   *
+   * It used to be a job over the dictionary's tables alone, with the client starting a second run
+   * for the rest of the selection: one press of Start Profiling, two pipelines on the board, and
+   * nothing saying which was which or when profiling had finished.
+   */
   job: ProfilingJob
 }
 
@@ -4612,7 +4709,7 @@ const SCHEMA_PREVIEW_PAYLOAD = shape({ source_id: str, ...SCHEMA_PLAN_FIELDS })
 
 const SCHEMA_APPLIED_PAYLOAD = shape({
   source_id: str,
-  applied: shape(SCHEMA_PLAN_FIELDS),
+  applied: arrayOf(shape(SCHEMA_PLAN_FIELDS)),
   job: JOB,
 })
 
@@ -4632,15 +4729,31 @@ export async function previewSchemaUpload(
 }
 
 /**
- * Commits the dictionary and queues the run, in one call.
+ * Commits every dictionary and queues **one** run, in one call.
  *
- * One act, because the two halves are one: a dictionary that landed with no run behind it is a
- * Catalog advertising columns nothing has profiled, and splitting them would put the decision in the
- * one place that cannot see whether the first half succeeded.
+ * One act, because the halves are one: a dictionary that landed with no run behind it is a Catalog
+ * advertising columns nothing has profiled, and splitting them would put the decision in the one
+ * place that cannot see whether the first half succeeded.
+ *
+ * **`objects` is the rest of the reader's selection**, and it travels with the write for the same
+ * reason. Without it this returned a job over the dictionary's tables and the caller started a
+ * second one for everything else checked — two pipelines from one press, over one dataset, with
+ * nothing on the board saying which was which.
+ *
+ * **`dictionaries` is an array** because a source with three datasets can have one read against
+ * each, and a call per dataset would put the job count back where it started. They are resolved
+ * before anything is written and land in one commit, so a refusal on the third file leaves the first
+ * two unwritten.
  */
 export async function applySchemaUpload(
   sourceId: string,
-  input: { filename: string; text: string; dataset_id: string },
+  input: {
+    dictionaries: { filename: string; text: string; dataset_id: string }[]
+    /** The checked tables. Ones a dictionary already covers are not queued twice. */
+    objects: { dataset_id: string; table_id: string }[]
+    /** Whether an already-profiled table outside the dictionaries should run again. */
+    force: boolean
+  },
 ): Promise<SchemaAppliedPayload> {
   return validate<SchemaAppliedPayload>(
     'The applied schema',
@@ -4684,6 +4797,7 @@ interface RawGraphDomain {
   fit: DomainFit
   note: string
   rank: number
+  drafts: { personas: number; metrics: number; hero_questions: number }
 }
 
 interface RawUseCase {
@@ -4774,6 +4888,11 @@ export async function listGraphDomains(): Promise<GraphDomainsPayload> {
       fit: d.fit,
       note: d.note,
       rank: d.rank,
+      drafts: {
+        personas: d.drafts.personas,
+        metrics: d.drafts.metrics,
+        heroQuestions: d.drafts.hero_questions,
+      },
     })),
     domainCount: raw.domain_count,
     connectedSources: raw.connected_sources,
@@ -4814,6 +4933,7 @@ async function fetchSuggestions(
     suggestions: Suggestion[]
     count: number
     derived_from: string
+    empty_reason: string | null
     run: { stages: string[]; cost_usd: number; cost_cap_usd: number }
   }>(
     what,
@@ -4828,6 +4948,9 @@ async function fetchSuggestions(
     suggestions: raw.suggestions,
     count: raw.count,
     derivedFrom: raw.derived_from,
+    /* `?? null` for an older mock server that predates the field, never a sentence invented here:
+       the step then falls back to its own wording rather than printing a reason nobody computed. */
+    emptyReason: raw.empty_reason ?? null,
     run: {
       stages: raw.run.stages,
       costUsd: raw.run.cost_usd,
@@ -4908,6 +5031,31 @@ export const suggestMetrics = (input: {
   domainId: string | null
   businessNeed: string
 }) => fetchSuggestions('/graph-metrics/suggest', 'The metric suggestions', input)
+
+/**
+ * Step 3's **Edit** — correct a drafted metric's title or its calculation, in the pool.
+ *
+ * The one write behind a wizard suggestion, and it is a write because the pool is the document:
+ * accepting a row copies it into the draft and dismissing one filters a list nothing saved, but a
+ * corrected title is a correction every later brief drafts from. The reply is the suggestion
+ * shape, so the row a caller is holding is replaced with what the server stored rather than with
+ * what was submitted.
+ */
+export async function editMetric(input: {
+  metricId: string
+  name: string
+  definition: string
+}): Promise<Suggestion> {
+  const raw = validate<{ metric: Suggestion }>(
+    'The edited metric',
+    await request<unknown>(`/graph-metrics/${encodeURIComponent(input.metricId)}`, {
+      method: 'PATCH',
+      body: { name: input.name, definition: input.definition },
+    }),
+    METRIC_EDIT_PAYLOAD,
+  )
+  return raw.metric
+}
 
 interface RawCoverage {
   title: string

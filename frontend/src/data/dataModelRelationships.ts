@@ -117,16 +117,29 @@ export interface DeclaredRelationship {
   cardinalityKind: CardinalityKind
   /** The declarer's business rationale, carried onto every edge the declaration produces. */
   rationale: string
+  /** Whether it is stored in the document, or only suggested. Not the same as *accepted*. */
   status: 'confirmed' | 'pending'
   /**
    * Where this came from, which is **not** the same question as `status`.
    *
-   * A `confirmed` one is always `human` — it exists because somebody wrote it. A `pending` one is
-   * `recorded` (written into this dataset's document) or `derived` (a shared identifier column this
-   * server matched), and the two are judged differently by a reviewer: one is a stated opinion about
-   * this schema, the other is two columns having the same name.
+   * A `pending` one is `recorded` (written into this dataset's document) or `derived` (a shared
+   * identifier column this server matched), and the two are judged differently by a reviewer: one is
+   * a stated opinion about this schema, the other is two columns having the same name.
+   *
+   * **A `confirmed` one is `human` only where somebody actually accepted it.** It used to be
+   * `human` unconditionally, which made "stored" and "confirmed by you" one fact — and printed a
+   * reader's name over thirty-one declarations nobody in the session had touched. A stored
+   * declaration with no `confirmedBy` is `derived`, and the row offers Accept.
    */
   provenance: 'human' | 'derived' | 'recorded'
+  /**
+   * Who accepted it, or `null`. Confirmed only.
+   *
+   * Kept beside `provenance` rather than folded into it because the two answer different questions —
+   * *what kind of thing is this* and *who agreed to it* — and the acts on a row read this one: a
+   * declaration with nobody's name on it is what Accept is offered for.
+   */
+  confirmedBy?: string | null
   /** A suggestion's own reasoning, with the figures it read. Pending only. */
   suggestionReasoning?: string
   /** `null` where a declared column is one end of the join and no classifier ever scored it. */
@@ -188,6 +201,27 @@ export function declaredRelationshipsFrom(
 
       const kind = cardinalityKindFromHint(item.cardinality_hint)
       const composite = item.from_columns.length > 1
+      /*
+       * **Stored is not confirmed, and this is where the two came apart.**
+       *
+       * `provenance` was the literal `'human'` for every stored declaration — being in the document
+       * *was* the evidence that somebody had declared it. That is a claim about the reader, and it
+       * was false for all 31 across the two documents: written by whoever was sitting here in an
+       * earlier session, or by a script, with no record of which. Reported from use, as twelve
+       * relationships labelled *Confirmed by you* to a reader who had accepted none of them.
+       *
+       * So the label is read off `confirmed_by`. Where nobody has accepted it, the honest answer is
+       * where it came from — `derived`, which prints *Curated by AI* — and the row offers Accept.
+       * **`derived` is right for every unconfirmed one rather than a guess**: a *recorded*
+       * suggestion cannot become stored except by being confirmed, so it always carries a name, and
+       * what is left in this branch is what the column scan produced.
+       *
+       * `evidence` moves with it, because "your declaration" is the same false claim in a sentence.
+       */
+      const confirmedBy = item.confirmed_by ?? null
+      const compositeNote = composite
+        ? ` (composite join on ${item.from_columns.join(' + ')})`
+        : ''
       out.push({
         id: declaredRelationshipId(entity.entity_id, item),
         fromTableKey: entity.table_key,
@@ -199,10 +233,11 @@ export function declaredRelationshipsFrom(
         cardinalityKind: kind,
         rationale: item.rationale,
         status: 'confirmed',
-        provenance: 'human',
-        evidence: composite
-          ? `your declaration (composite join on ${item.from_columns.join(' + ')})`
-          : 'your declaration',
+        provenance: confirmedBy ? 'human' : 'derived',
+        evidence: confirmedBy
+          ? `your declaration${compositeNote}`
+          : `a shared identifier column, stored but not yet accepted${compositeNote}`,
+        confirmedBy,
         owningEntityId: entity.entity_id,
       })
     }
@@ -215,7 +250,7 @@ export function toRelationshipItem(
   rel: Pick<
     DeclaredRelationship,
     'toTableKey' | 'fromColumn' | 'toColumn' | 'name' | 'cardinalityKind' | 'rationale'
-  >,
+  > & { confirmedBy?: string | null },
 ): ModelRelationshipItem {
   return {
     target_table_key: rel.toTableKey,
@@ -224,6 +259,13 @@ export function toRelationshipItem(
     relationship_type: rel.name.trim(),
     cardinality_hint: rel.cardinalityKind,
     rationale: rel.rationale.trim(),
+    /*
+     * **Carried through, so an edit cannot silently un-accept a declaration** — or claim one.
+     * Every write here hands the server the whole relationship, so a field left out is a field
+     * cleared: editing a rationale would drop the name of whoever accepted the row, which is the
+     * absent-fields-carried-forward rule `POST /data-model/entities` already keeps one level up.
+     */
+    confirmed_by: rel.confirmedBy ?? null,
   }
 }
 
@@ -288,7 +330,13 @@ export function relationshipWrites(args: {
     | 'name'
     | 'cardinalityKind'
     | 'rationale'
-  >
+  > & {
+    /**
+     * Who accepted it, where anybody has. Carried through to the stored item, so accepting a row is
+     * this same write with a name on it — and editing one does not quietly strip the name off.
+     */
+    confirmedBy?: string | null
+  }
   /** The `DeclaredRelationship.id` being edited, absent for a new declaration. */
   editId?: string
   entities: ModelEntity[]

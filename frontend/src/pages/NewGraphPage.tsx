@@ -48,6 +48,7 @@ import {
   useUseCasesStore,
 } from '../store/graphStore'
 import {
+  draftableCount,
   firstIncompleteStep,
   stepIssue,
   type WizardDraft,
@@ -201,6 +202,7 @@ export default function NewGraphPage() {
   const personaSuggestions = usePersonaSuggestStore((s) => s.suggestions)
   const suggestingPersonas = usePersonaSuggestStore((s) => s.suggesting)
   const personasAsked = usePersonaSuggestStore((s) => s.asked)
+  const personasEmptyReason = usePersonaSuggestStore((s) => s.emptyReason)
   const suggestPersonaList = usePersonaSuggestStore((s) => s.suggest)
   const dismissPersona = usePersonaSuggestStore((s) => s.dismiss)
   const personaRun = usePersonaSuggestStore((s) => s.run)
@@ -219,6 +221,7 @@ export default function NewGraphPage() {
   const questionSuggestions = useQuestionSuggestStore((s) => s.suggestions)
   const suggestingQuestions = useQuestionSuggestStore((s) => s.suggesting)
   const questionsAsked = useQuestionSuggestStore((s) => s.asked)
+  const questionsEmptyReason = useQuestionSuggestStore((s) => s.emptyReason)
   const suggestQuestionList = useQuestionSuggestStore((s) => s.suggest)
   const dismissQuestion = useQuestionSuggestStore((s) => s.dismiss)
   const questionRun = useQuestionSuggestStore((s) => s.run)
@@ -227,10 +230,12 @@ export default function NewGraphPage() {
   const metricSuggestions = useMetricSuggestStore((s) => s.suggestions)
   const suggestingMetrics = useMetricSuggestStore((s) => s.suggesting)
   const metricsAsked = useMetricSuggestStore((s) => s.asked)
+  const metricsEmptyReason = useMetricSuggestStore((s) => s.emptyReason)
   const suggestMetricList = useMetricSuggestStore((s) => s.suggest)
   const dismissMetric = useMetricSuggestStore((s) => s.dismiss)
   const metricRun = useMetricSuggestStore((s) => s.run)
   const resetMetricSuggestions = useMetricSuggestStore((s) => s.reset)
+  const editMetricRow = useMetricSuggestStore((s) => s.edit)
 
   // The draft being edited. `useCaseId` is null until it has been saved once.
   const [useCaseId, setUseCaseId] = useState<string | null>(null)
@@ -305,6 +310,22 @@ export default function NewGraphPage() {
           : suggestPersonaList
     const result = await ask({ domainId, businessNeed })
     if (!result.ok) message.error(result.error)
+  }
+
+  /*
+   * Step 3's Edit — the one act on this page that writes the pool rather than the draft. The
+   * refusal is shown here rather than swallowed in the step, because the server's sentence is what
+   * says *why* (an empty title, a title another metric already holds), and the row stays open on
+   * what was typed so the reader can correct it.
+   */
+  async function editMetric(input: { id: string; name: string; detail: string }) {
+    if (!editMetricRow) {
+      return { ok: false as const, error: 'This pool has no editable metrics.' }
+    }
+    const result = await editMetricRow(input)
+    if (!result.ok) message.error(result.error)
+    else message.success(`Saved ${input.name}.`)
+    return result
   }
 
   async function removeUseCase(u: GraphUseCase) {
@@ -577,6 +598,19 @@ export default function NewGraphPage() {
                         >
                           <span className="ng-domain-name">{d.name}</span>
                           <span className="ng-domain-note">{d.note}</span>
+                          {/*
+                            What the later steps could draft here, so a domain the tenant has
+                            written nothing against is visible where it is chosen rather than
+                            discovered as three steps that draft nothing. Stated on the card that
+                            has it, never as a shorter list of domains: this one is still
+                            selectable, because typing your own personas and metrics is a real
+                            path and the note beside it says so.
+                          */}
+                          <span className="ng-domain-drafts">
+                            {draftableCount(d) === 0
+                              ? 'Nothing to draft from — you would write the personas, metrics and questions yourself'
+                              : `${d.drafts.personas} personas · ${d.drafts.metrics} metrics · ${d.drafts.heroQuestions} questions to draft from`}
+                          </span>
                         </button>
                       </Col>
                     ))}
@@ -650,6 +684,7 @@ export default function NewGraphPage() {
                 onItems={setPersonas}
                 suggestions={personaSuggestions}
                 asked={personasAsked}
+                emptyReason={personasEmptyReason}
                 suggesting={suggestingPersonas}
                 runStages={personaRun?.stages ?? DEFAULT_RUN_STAGES}
                 runCost={personaRun?.costUsd}
@@ -684,12 +719,14 @@ export default function NewGraphPage() {
                 onItems={setMetrics}
                 suggestions={metricSuggestions}
                 asked={metricsAsked}
+                emptyReason={metricsEmptyReason}
                 suggesting={suggestingMetrics}
                 runStages={metricRun?.stages ?? DEFAULT_RUN_STAGES}
                 runCost={metricRun?.costUsd}
                 runCap={metricRun?.costCapUsd}
                 onSuggest={() => void runSuggest('metrics')}
                 onDismiss={dismissMetric}
+                onEdit={editMetric}
               />
             </Col>
           </Row>
@@ -712,6 +749,7 @@ export default function NewGraphPage() {
                 onQuestions={setHeroQuestions}
                 suggestions={questionSuggestions}
                 asked={questionsAsked}
+                emptyReason={questionsEmptyReason}
                 suggesting={suggestingQuestions}
                 runStages={questionRun?.stages ?? DEFAULT_RUN_STAGES}
                 runCost={questionRun?.costUsd}

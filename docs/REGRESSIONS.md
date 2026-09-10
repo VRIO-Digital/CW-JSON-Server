@@ -6352,3 +6352,296 @@ already renders the build button there rather than *Next*.
   questions, `/graph-metrics/suggest` answering, the old path 404ing, a brief saving and committing
   from step 5 carrying `metrics` and no `kpis`, step 6 refused with *"step must be an integer from 1
   to 5"*, and an unnamed metric refused in the new vocabulary.
+
+---
+
+## Five badges answering one question, and a "Declared" pill over 14 anchor entities
+
+**Symptom** — Entity detail's Overview showed a `⚡ Curated by AI` beside *What does this table
+represent?* and *Grain*, and a `You` beside three more fields: one question answered five times on a
+form whose every field is saved by one button. Asked for as a single status beside the table name
+instead. On investigating, the header's own pill was worse: it read **Declared** for every table with
+an entity, and all 14 of CAPEX's entities are *anchors* — minted by `relationshipWrites` whenever a
+relationship points at an undeclared table, with `description: "…created to anchor a declared
+relationship"`. Nobody had declared any of them.
+
+**Root cause** — two shapes of the same mistake. The per-field badges took provenance from whether a
+field had a *stored value*; the header took it from whether an *entity existed*. Neither is evidence
+that a person declared anything.
+
+**Fix** — the badges are gone (and `fieldLabel`'s `badge` slot with them — a parameter no caller
+passes invites one back), and the header states one of three from `tableDeclarationState`: *Not yet
+declared*, *Curated by AI* (an entity nobody saved), *Confirmed by you*. It reads an entity-level
+`confirmed_by` that **only Save Overview writes**, mirroring the field added to a relationship.
+
+**Then the replacement was the wrong colour, which is the same mistake one level up.** The header
+drew all three states through `StatusPill`, so *Curated by AI* arrived **amber** there while the
+identical words on every relationship row beside it were **purple**. Reported from use as a colour,
+and it is precisely what `ProvenanceBadge` and `StatusPill` are separate components to prevent:
+status is green/amber/red, provenance is green/purple, and a single mark for both has to pick one
+meaning for green. *Curated by AI* and *Confirmed by you* answer **who**, so they are provenance
+badges; *Not yet declared* is a state and keeps the neutral pill. `TABLE_STATUS_KIND` now declares
+only *which badge* — its first version also held the two labels a second time, beside
+`PROVENANCE_WORDS`, which is the drift `DERIVED_LABEL` is one constant to stop. *Choosing a component
+for a mark is choosing which of two palettes it means.*
+
+**Guard** — mechanical. `check-docs` asserts the rule's three branches, that the header renders the
+two declared states as `ProvenanceBadge`s and the third as a neutral pill, that the module holds
+neither label as a literal, that no `ProvenanceBadge` survives in Overview, that `fieldLabel` takes
+one argument, that Save sends the browser's address, and — the silent half — that the server
+**carries the stored answer forward** when a caller sends none: an anchor write for a new
+relationship hands over the whole entity, so without that it would clear the field and un-declare
+the table. A **second** claim asserts the
+per-row marks on relationships and reassigned columns *survived*, because a broad sweep for
+`ProvenanceBadge` would have taken records that do carry their own provenance. And the absence clause
+needed `codeOnly` — the comments explaining the removal name the thing removed, which is the seventh
+time this file has recorded that trap.
+
+---
+
+## Twelve relationships credited to a reader who had accepted none of them
+
+**Symptom** — the Data Modeling strip read *12 relationships confirmed*, and the dialog behind it
+showed twelve rows each marked **Confirmed by you** with *Evidence: your declaration*. The reader had
+pressed nothing. Reported from use.
+
+**Root cause** — `declaredRelationshipsFrom` set `provenance: 'human'` as a literal for every stored
+declaration: being in the document *was* the evidence that somebody had declared it. Nothing recorded
+**who**, so a declaration written in an earlier session, by another persona, or by a script rendered
+as the current reader's own act — false for all 31 across the two documents. The tile's label made
+the same claim one level up.
+
+**Fix** — a stored relationship carries `confirmed_by`, nullable, and the label is read off it:
+`'human'` (*Confirmed by you*) only where somebody accepted it, otherwise `'derived'` (*Curated by
+AI*) with **Accept** and **Reject** on the row. Accept writes the name through the existing
+`relationshipWrites` path; Reject removes the declaration and returns the row to *suggested,
+pending*. The tile counts **relations**, since that is what it can honestly say.
+
+**Guard** — mechanical, at every layer, because the halves fail differently. `check-docs` asserts the
+server writes the field only for an address, `validateDb` permits absent-or-null, the client declares
+and validates it, `provenance` is computed from it and the literal `'human'` is *gone*, and — the
+silent one — the tab sends the row's own answer back on an edit. A write hands the server the whole
+relationship, so a field left out is a field cleared: without that clause, editing a rationale would
+strip the name off and un-accept the row with nothing on screen saying so. Break-tested four ways.
+
+---
+
+## The orphan tile read 0 beside a table with no relationships
+
+**Symptom** — *orphan tables* read **0** while `plan_account_dim` was selected one panel over,
+its Relationships tab saying *"No relationships declared or suggested yet for this entity"* and its
+row in the table list showing an em dash. Reported from use, twice.
+
+**Root cause** — the tile counted the server's `orphan_tables`: the list the *scan* found no shared
+identifier column for. The scan finds one for every table in CAPEX's `plan`, so that list is empty —
+and it stays empty however many relationships leave the screen afterwards. Two things take them
+away: the tab **drops** a suggestion whose pair an existing declaration already covers, and a reader
+**rejects** rows. Either leaves a table with nothing on it while the scan still reports it found that
+table something.
+
+**Fix** — the tile counts the tables no relationship in `relationships` touches — the same array the
+rail's own em dash reads, so the tile and the row cannot disagree, and it is what a reader can check
+by clicking the table. The served list is kept for the tile's hint, which is the half the client
+cannot work out: how many are unjoined *in the data* as against how many had their suggestions
+rejected.
+
+**A declared table was the first fix, and it is reverted.** `plan_data_load_log`, a cube load log
+nothing keys to, was added to `capex-plan-dictionary.csv` so the count would be non-zero — honest as
+an orphan, but the wrong fix twice over: the count was reading the wrong source, and growing the
+tenant's catalogue from 18 tables to 19 to demonstrate a tile is not a fix.
+
+**Guard** — mechanical: `check-docs` asserts the count is computed off `relationships` and
+`tableKeys`, that the em dash survives for "no run yet", and that the served list still has a reader
+so it is not a payload field nothing looks at. Break-tested by making the filter return `[]`.
+*A count and the row it describes must read the same array.*
+
+---
+
+## Six tables looked orphaned because the suggester capped its inputs
+
+**Symptom** — after profiling 18 tables and uploading a dictionary for them, the Data Modeling tab
+reported relationships for 12 and nothing at all for the other 6, which read as six tables this
+schema does not connect. Every one of the 18 shares an identifier column with another. Reported from
+use.
+
+**Root cause** — `SUGGEST_TABLE_CAP` (12) capped the *tables* a run scanned. That made the output a
+claim about the cap rather than about the schema, and the six excluded tables were indistinguishable
+from six the scan had looked at and found nothing for. The cap was reported (`truncated`), but "read
+the first 12 tables" is a sentence about the run, not about the row a reader is looking at.
+
+**Fix** — the cap moved from the inputs to the output: every profiled table is scanned and
+`SUGGEST_RELATIONSHIP_CAP` (80) cuts the returned list, which is the thing a reviewer actually has to
+read. Recorded suggestions are ordered first so a cut takes column-name matches rather than an
+authored row. And the run now *states* which tables nothing joins — `orphan_tables`, computed over
+the whole scan and **before** the cut, with the tab subtracting the tables a stored declaration
+touches.
+
+**Guard** — mechanical. `check-docs` asserts there is no table cap, that the list cap is what slices,
+that `reached` is walked before the slice, and that the tab's orphan tile subtracts declared tables
+and prints an em dash before a run. **The first version of the no-table-cap clause was `/const
+considered = all\b/`, which a re-added `all.slice(0, 12)` satisfies** — it passed over the very cap it
+existed to refuse, and the break test is what found that. It matches to the end of the line now.
+
+---
+
+## One press of Start Profiling ran two pipelines
+
+**Symptom** — uploading the CAPEX dictionary against `plan` and pressing Start Profiling put **two
+jobs** on the Profiling jobs board: one of 12 tables and one of 6. The dataset holds 18 and the
+reader had made one selection, so neither job answered "is profiling finished" and nothing on the
+board said which was which. Reported from use.
+
+**Root cause** — the write and the run were split across two calls that each queued their own job.
+`POST …/schema` wrote the dictionary and queued a **forced** run over its own tables, correctly; the
+page then filtered those tables out of the selection and started a *second* run for what was left,
+also correctly. Each half was right and the pair was wrong: one act by the reader, two pipelines.
+
+**Fix** — the selection travels **with the write**. `POST …/schema` takes `objects` beside
+`dictionaries`, builds one work list keyed `dataset::table` (the dictionary's entry wins, so nothing
+is queued twice and `profiled_tables` cannot double while `profiled_at` moves), and queues a single
+job. `dictionaries` became an array in the same change, so several datasets' files land in one
+`commitDb` — which also made the write all-or-nothing, where the client-side loop it replaced could
+leave half of them applied.
+
+**Guard** — mechanical, at every layer, because the halves fail differently: `check-docs` asserts
+the route reads `objects`, calls `queueJob` exactly once, dedupes with `work.has(key)`, that the
+client's body type carries both fields, and that the page's plain run is the **`else`** of the
+staged branch rather than a call after it. Break-tested four ways.
+
+---
+
+## The first dictionary an unprofiled table gets can strand a Data Modeling declaration, silently
+
+**Symptom** — none, which is the point. Uploading `docs/samples/capex-plan-dictionary.csv` against
+CAPEX's `plan` left three declarations on `plan_version_master` reading columns that dataset's
+dictionary no longer lists: a confirmed identifier `ITD Actuals`, and two joins on a `Project Code`
+that a table whose grain is "one version" does not have. The preview said nothing, and the state is
+only discoverable by trying to edit that relationship — `POST /data-model/entities` refuses a join
+on a column `column_profiles` does not carry.
+
+**Root cause** — `resolveSchemaUpload` computed stranded declarations from `dropped`, which is what
+a *previous dictionary* held and the file does not. A table whose columns were **synthesised** has no
+`column_profiles` entry at all, so `dropped` is empty and the check covered nothing — while the
+write path's own column check is *skipped* for exactly that table, which is how a declaration comes
+to name a synthesised column legitimately in the first place. So the first dictionary uploaded for
+such a table is what makes those names checkable, and invalid, in one act nothing reported.
+
+**Fix** — the test is now `!afterIds.has(column)`: a declaration is stranded by a column the file
+does not **name**, whether or not a dictionary held it before. `dropped` is a subset of not-named, so
+nothing the old test caught is lost.
+
+**Guard** — mechanical. `check-docs`: *a stranded declaration is judged on what the file names, not
+on what it drops*, reading both the identifier branch and the relationship branch, and break-tested
+by reverting each to `dropped`.
+
+---
+
+## An upload button that opened nothing, because a handler two elements up cancelled the click
+
+**Symptom** — clicking **Upload dictionary** on a dataset row depressed the button and opened no
+file dialog. It read like a browser refusing a programmatic file picker. Reported from use.
+
+**Root cause** — the wrapper span called `e.preventDefault()` as well as `e.stopPropagation()`. The
+hidden `<input type="file">` is a *child* of that span, so the click `inputRef.current.click()`
+dispatches bubbles back up through the handler, and cancelling it cancels the input's default action
+— which *is* opening the picker. `stopPropagation` was the only part needed, to stop the checkable
+tree row toggling its checkbox under the button.
+
+**Fix** — `onClick={(e) => e.stopPropagation()}`, and nothing else.
+
+**Guard** — mechanical: `check-docs` asserts that exact handler *and* that `preventDefault` appears
+nowhere in the component, break-tested in both directions. Either half alone leaves a control that
+looks fine and does the wrong thing. *A synthetic click you dispatch yourself is an event your own
+ancestors can cancel.*
+
+---
+
+## A check-docs claim keyed on a prop that two components take
+
+**Symptom** — a break test reported the claim *a new table needs a label and a grain* as
+unbreakable. Replacing `datasetId={d.dataset_id}` on the upload control changed nothing it noticed.
+
+**Root cause** — the clause searched the whole page for that prop, and `DictionaryPlanReport` one
+screenful below takes the same prop from the same variable. The claim was satisfied by a site it is
+not about — the broad-claim shape this file already records five times, reached this time by a *prop
+name* rather than by a word in a comment.
+
+**Fix** — the clause reads the **request** instead (`dataset_id: datasetId,` in the control's own
+source), which is the fact the claim is about: the dataset an upload is made against is the row's
+own, not one picked from a Select.
+
+**Guard** — mechanical, and break-tested at the new site. *Two components taking one prop is enough
+to make a prop-name search vacuous; key on the call that carries the fact.*
+
+---
+
+## The Bash tool eats backslashes and non-ASCII, not just PowerShell
+
+**Symptom** — four separate failures in one session. A heredoc writing a `.tsx` file died with
+`unexpected EOF while looking for matching '`; a `python` heredoc wrote `check-docs.mjs` regexes with
+one backslash where two were needed, so node refused the file with *Invalid regular expression
+flags*; `\\r?\\n` in a replacement arrived as a literal line break, producing an unterminated regex;
+and an append to this file wrote every em dash as a single invalid byte.
+
+**Root cause** — this environment's Bash tool does not pass a quoted heredoc through untouched: an
+em dash becomes one non-UTF-8 byte, a right single quote can arrive as `'` (which is what broke the
+heredoc), and a doubled backslash can arrive single. `CLAUDE.md` already records the PowerShell UTF-8
+trap; the same class applies here, and it also applies to **backslashes**, which that note does not
+cover.
+
+**Fix** — write any file containing non-ASCII or heavy escaping with the **Write/Edit tools**, never
+through the shell. Where a script must build a backslash, `chr(92)` is reliable.
+
+**Guard** — documented (this entry, and the pitfall list in `CLAUDE.md`). The tell is a syntax error
+whose quoted text looks exactly like what you meant to write — and, for the silent half, a file that
+reads back with `errors='replace'` showing `?` where a dash should be.
+
+## Narrowing a pool's domains deletes suggestions rather than weakening them
+
+**Symptom** — reported from use as *"drafting persona / drafting metric are not coming up suggested
+by the LLMs"*. Steps 2, 3 and 5 of the New Graph wizard drew an empty *Suggested metrics* box
+reading **"Nothing matched this brief"**. The API was healthy, the mock server was fresh, and
+`POST /graph-metrics/suggest` answered `200 { count: 0 }` — so there was nothing to see in a log and
+nothing to blame but the brief.
+
+**Two independent causes, and only one of them was a bug in the data.**
+
+**(1) A seed narrowed the metric pool's domain coverage.** `seed-capex-metrics.js` derived each
+metric's `domains` as *every domain the pool it replaced shared* — the intersection. CAPEX's 23
+metrics covered `capital-projects` (all 23) and `water-wastewater` (2), so the intersection was
+`capital-projects` alone and the 8 replacements lost water-wastewater. `suggestFrom` **filters an
+entry out entirely** when its `domains` miss the brief's domain and nothing in the brief hits its
+keywords, so a water-wastewater brief went from 2 drafted metrics to **0**. Narrowing a pool's reach
+does not make its suggestions weaker; it deletes them.
+
+**(2) CAPEX declares four domains and its pools cover two.** `schedule-delivery` and `commitments`
+have no persona, no metric and no hero question — so step 1 offered two cards that lead to three
+consecutive steps that can draft nothing. That is a gap in the package, not a code fault, and it
+cannot be fixed by inventing rows: eight finance measures do not belong to Schedule & Delivery
+because a card looked empty.
+
+**What made both invisible was the same sentence.** The steps printed *"Nothing matched this brief"*
+for every empty draft. That is correct for a brief the ranking could not place, and actively
+misleading for a domain the pool has nothing on — it blames the reader's words for a gap in the
+tenant's data and sends them to re-word a business need that was never the problem.
+
+**Fix** — three parts, each aimed at one of the above:
+
+- the seed takes the **union** of the domains it replaces, so replacing a pool can never shrink the
+  set of domains the wizard can draft anything on;
+- `emptyDraftReason` composes the empty-list sentence **on the server**, which is the only side that
+  can tell "the pool holds nothing here" from "the ranking placed nothing", and names where the pool
+  *does* have entries so the instruction is actionable. The steps print what they are given and fall
+  back to the old wording only for a server that predates the field;
+- `/graph-domains` serves `drafts` per domain (personas · metrics · hero questions, from
+  `draftableFor`) and step 1 states it on the card, so a dead-end domain is visible where it is
+  chosen rather than discovered two steps later. It stays selectable — typing your own is a real
+  path — and the line says so.
+
+**Guard** — `check-docs`: *a step cannot draft nothing where the step before it drafts something*.
+It asserts the invariant the intersection broke (every domain with personas has metrics), plus the
+served counts, the served reason, and both steps reading it. Break-tested with eight mutations.
+
+**The lesson worth keeping** is that `fit` and "can this draft anything" are different questions
+about a domain, and the wizard only answered the first. A domain can be a perfect fit for the
+profiled data and have nothing written against it in any pool.

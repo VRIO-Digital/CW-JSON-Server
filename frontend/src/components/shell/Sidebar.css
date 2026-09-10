@@ -5,6 +5,46 @@
   flex-direction: column;
 }
 
+/*
+ * The rail left when the navigation is hidden: one control, and nothing else in the markup.
+ *
+ * `is-collapsed` only positions it — what is absent is absent because the component returned early,
+ * not because a rule hid it. A menu hidden with CSS is still announced to a screen reader.
+ */
+.sidebar.is-collapsed {
+  align-items: center;
+  padding-top: var(--sp-5);
+}
+
+/*
+ * The toggle. In the brand row it sits top-right, out of the wordmark's way; on the collapsed rail
+ * it is the only thing there. One rule for both, because it is one control.
+ *
+ * **Its colours are inline, from `theme.ts`** — the brand tint, border and ink, so the button reads
+ * as a control at rest rather than only on hover. They are not here because this file already
+ * hardcodes an orange of its own that predates the token, and a fourth copy of the brand in a
+ * stylesheet is what "change the brand in `theme.ts`" refuses.
+ *
+ * So what this rule owns is only what needs no colour: the glyph's size, and feedback expressed as
+ * *brightness* and a lift rather than as a second palette. An inline style beats a stylesheet, so a
+ * hover that named a colour here would have to fight it with `!important` and would then be the
+ * fourth orange after all.
+ */
+.sidebar-toggle.ant-btn {
+  border-radius: var(--radius-inner, 8px);
+  transition: filter .15s ease, box-shadow .15s ease;
+}
+
+.sidebar-toggle.ant-btn .anticon {
+  font-size: 16px;
+}
+
+.sidebar-toggle.ant-btn:hover,
+.sidebar-toggle.ant-btn:focus-visible {
+  filter: brightness(0.96);
+  box-shadow: 0 1px 3px rgba(17, 24, 39, .12);
+}
+
 /* ---------- Brand ---------- */
 
 .sidebar-brand {
@@ -14,11 +54,20 @@
   min-height: 92px;
   padding: var(--sp-6) var(--sp-5);
   border-bottom: 1px solid #eef2f7;
+  /* The toggle is absolutely placed against this row so it cannot push the wordmark's own
+     line-height around — the brand block is a fixed 92px and the button is 24px. */
+  position: relative;
+}
+
+.sidebar-brand .sidebar-toggle.ant-btn {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
 }
 
 .wordmark.ant-typography {
   margin: 0 !important;
-  font-size: 30px !important;
+  font-size: 26px !important;
   font-weight: 800 !important;
   line-height: 1.05;
   letter-spacing: -1px;
@@ -197,4 +246,3 @@
   font-size: 12px;
   color: #98a2b3;
 }
-

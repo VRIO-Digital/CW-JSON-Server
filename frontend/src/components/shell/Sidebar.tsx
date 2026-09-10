@@ -1,12 +1,19 @@
-import { Button, Menu, Typography } from 'antd'
+import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
+import { Button, Menu, Tooltip, Typography } from 'antd'
 
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { appPath, splitDatasetPath } from '../../api/dataset'
 import type { SessionIdentity } from '../../api/client'
-import { NAV_GROUPS, type NavItem } from '../../nav'
+import {
+  NAV_COLLAPSE_LABEL,
+  NAV_EXPAND_LABEL,
+  NAV_GROUPS,
+  type NavItem,
+} from '../../nav'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore, visibleNavItems } from '../../store/settingsStore'
+import { BRAND, BRAND_INK, BRAND_SOFT } from '../../theme'
 import './Sidebar.css'
 
 /**
@@ -113,7 +120,72 @@ export function SidebarMenu({
   )
 }
 
-export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+/**
+ * The one control that hides the navigation, and the only thing left when it is hidden.
+ *
+ * Exported so it can be asserted without rendering the store-connected shell — the reason
+ * `SidebarMenu` and `SidebarFooter` are separate — and because the collapsed rail is *nothing but*
+ * this button: the label is the whole affordance there, so it has to be checkable.
+ *
+ * **The fold icons, not a bare chevron.** It was `LeftOutlined`/`RightOutlined`, which says only
+ * *a direction* — a reader has to guess what moves. `MenuFoldOutlined` and `MenuUnfoldOutlined` draw
+ * a menu with an arrow against it, which is the conventional mark for this act and names the thing
+ * being folded. Asked for as "some user friendly icons".
+ *
+ * **And it is filled rather than a text button, because it had to be found before it could be
+ * used.** A grey glyph on white is discoverable only by hovering the exact pixels; this carries the
+ * brand tint, the brand border and the brand ink at rest, so it reads as a control at a glance.
+ * `BRAND_INK` rather than `BRAND` for the glyph: `BRAND` on `BRAND_SOFT` is 2.91:1 and the darker
+ * ink clears 4.5, which is the rule this repo already states for brand-coloured text on a brand
+ * wash — and `check-docs` recomputes it rather than trusting this sentence.
+ *
+ * **The colours are the theme's, inline.** `Sidebar.css` hardcodes an orange of its own, which
+ * predates the token; adding a fourth copy of the brand to a stylesheet is what "change the brand
+ * in `theme.ts`, not in stylesheets" refuses. Hover is a CSS rule that shifts *brightness* rather
+ * than naming a colour, so the feedback needs no second palette.
+ */
+export function SidebarToggle({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean
+  onToggle: () => void
+}) {
+  const label = collapsed ? NAV_EXPAND_LABEL : NAV_COLLAPSE_LABEL
+  return (
+    <Tooltip title={label} placement="right">
+      <Button
+        type="text"
+        className="sidebar-toggle"
+        aria-label={label}
+        aria-expanded={!collapsed}
+        icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+        onClick={onToggle}
+        style={{
+          background: BRAND_SOFT,
+          border: `1px solid ${BRAND}`,
+          color: BRAND_INK,
+          width: 30,
+          height: 30,
+        }}
+      />
+    </Tooltip>
+  )
+}
+
+export default function Sidebar({
+  onNavigate,
+  collapsed = false,
+  onToggle,
+}: {
+  onNavigate?: () => void
+  /**
+   * Whether the navigation is hidden. Absent on the mobile drawer, which hides everything by being
+   * shut — a collapse inside a drawer would be two ways to do one thing.
+   */
+  collapsed?: boolean
+  onToggle?: () => void
+}) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const identity = useAuthStore((s) => s.identity)
@@ -144,9 +216,27 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   const items = visibleNavItems(settings, activePersonaId)
 
+  /*
+   * **Collapsed means *absent*, not narrow.** Asked for as "make sure all the sidebar menu are
+   * hidden", and the whole shell returns early rather than rendering an icon-only rail: the items,
+   * the brand and the signed-in card are not in the markup at all, which is what the Ask history
+   * rail already does and what a screen reader needs — a hidden-by-CSS menu is still announced.
+   *
+   * What is left is the one control that brings it back. A collapse with no way out would be a
+   * one-way door, and this is the place a reader looks for it because it is where the sidebar was.
+   */
+  if (collapsed && onToggle) {
+    return (
+      <div className="sidebar is-collapsed">
+        <SidebarToggle collapsed onToggle={onToggle} />
+      </div>
+    )
+  }
+
   return (
     <div className="sidebar">
       <div className="sidebar-brand">
+        {onToggle ? <SidebarToggle collapsed={false} onToggle={onToggle} /> : null}
         <Typography.Title level={3} className="wordmark">
           Context<span>Weave</span>
         </Typography.Title>

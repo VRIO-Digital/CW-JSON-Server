@@ -1,4 +1,5 @@
-import { Button, Empty, Modal } from 'antd'
+import { Button, Empty, Modal, Space, Tooltip } from 'antd'
+import { CheckOutlined, CloseOutlined } from '@ant-design/icons'
 import {
   confirmedRelationshipsCopy as COPY,
   groupConfirmedByOwner,
@@ -7,7 +8,7 @@ import {
 import type { DeclaredRelationship } from '../../data/dataModelRelationships'
 import { MT } from '../../data/dataModelTokens'
 import { joinEnd } from '../../data/pendingSuggestions'
-import { ProvenanceBadge, StatusPill } from './ModelMarks'
+import { ProvenanceBadge } from './ModelMarks'
 
 /**
  * What this source has been told, all of it, on one surface.
@@ -32,6 +33,12 @@ interface ConfirmedRelationshipsPanelProps {
   rows: DeclaredRelationship[]
   /** `table_key` → the short label the canvas and the table list use. */
   labelFor: (tableKey: string) => string
+  /** True while a decision is in flight — both acts are writes. */
+  deciding?: boolean
+  /** Records the row as accepted by the signed-in reader. Offered only where nobody has. */
+  onAccept?: (id: string) => void
+  /** Removes the declaration and puts the row back with the suggestions, pending. */
+  onReject?: (id: string) => void
   /**
    * Opens the relationship dialog on this row. Absent leaves the list a reading surface — which is
    * what it is either way: the acts belong to that dialog, and a second Delete here would be a
@@ -44,12 +51,22 @@ function ConfirmedRow({
   row,
   labelFor,
   onOpen,
+  deciding,
+  onAccept,
+  onReject,
 }: {
   row: DeclaredRelationship
   labelFor: (tableKey: string) => string
   onOpen?: (id: string) => void
+  /** True while a decision is in flight, so a row cannot be acted on twice. */
+  deciding?: boolean
+  onAccept?: (id: string) => void
+  onReject?: (id: string) => void
 }) {
   const open = onOpen ? () => onOpen(row.id) : undefined
+  /* Accept is offered only where nobody has accepted it. Reject stays available either way: it is
+     the way back out of a decision, and it is what puts the row into the pending list. */
+  const accepted = Boolean(row.confirmedBy)
   return (
     <div
       role={open ? 'button' : undefined}
@@ -85,12 +102,60 @@ function ConfirmedRow({
         >
           {row.name}
         </b>
-        <StatusPill variant="confirmed" icon>
-          confirmed
-        </StatusPill>
-        {/* The relationship's own provenance, which for a stored declaration is always `human` —
-            drawn rather than assumed, so a row can never say something its own field does not. */}
-        <ProvenanceBadge kind={row.provenance} />
+        {/*
+          * **One mark reading "Confirmed by you", where there were two.**
+          *
+          * It was a `confirmed` status pill *and* a short `You` badge — two green marks saying
+          * overlapping things about a row where they cannot disagree: a stored declaration is
+          * confirmed *because* somebody confirmed it, so `status` and `provenance` are one fact
+          * here. Asked for as a single label, and it is the long form of the badge that already
+          * existed rather than new copy.
+          *
+          * **This narrowing stops at the confirmed list.** A pending row keeps both marks, because
+          * there the two genuinely differ — `pending review` is the status and `Curated by AI` is
+          * where it came from — which is the distinction `ProvenanceBadge` and `StatusPill` are
+          * separate components to protect.
+          *
+          * The kind is still read off the row rather than assumed, so a row can never say
+          * something its own field does not.
+          */}
+        <ProvenanceBadge kind={row.provenance} full />
+        <span style={{ flex: 1 }} />
+        {/*
+          * **The two decisions, on the row.**
+          *
+          * Asked for here because this is the list where they apply: a relation stored with nobody's
+          * name on it is undecided, and the reader needs to be able to say so one row at a time.
+          *
+          * **The clicks are stopped**, because the row itself is a button into the relationship
+          * dialog — without it, accepting would also open that dialog over the list. The same trap
+          * the dataset row's upload control fell into, one tab over.
+          */}
+        <Space size={4} onClick={(e) => e.stopPropagation()}>
+          {accepted ? null : (
+            <Tooltip title={COPY.acceptNote}>
+              <Button
+                size="small"
+                type="primary"
+                icon={<CheckOutlined />}
+                disabled={deciding || !onAccept}
+                onClick={() => onAccept?.(row.id)}
+              >
+                {COPY.accept}
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip title={COPY.rejectNote}>
+            <Button
+              size="small"
+              icon={<CloseOutlined />}
+              disabled={deciding || !onReject}
+              onClick={() => onReject?.(row.id)}
+            >
+              {COPY.reject}
+            </Button>
+          </Tooltip>
+        </Space>
       </div>
 
       <div style={{ fontFamily: MT.mono, fontSize: 10.5, color: MT.mut }}>
@@ -120,6 +185,9 @@ export function ConfirmedRelationshipsPanel({
   rows,
   labelFor,
   onOpen,
+  deciding,
+  onAccept,
+  onReject,
 }: ConfirmedRelationshipsPanelProps) {
   if (rows.length === 0) {
     return (
@@ -157,7 +225,15 @@ export function ConfirmedRelationshipsPanel({
             {COPY.ownerNote}
           </div>
           {group.rows.map((row) => (
-            <ConfirmedRow key={row.id} row={row} labelFor={labelFor} onOpen={onOpen} />
+            <ConfirmedRow
+              key={row.id}
+              row={row}
+              labelFor={labelFor}
+              onOpen={onOpen}
+              deciding={deciding}
+              onAccept={onAccept}
+              onReject={onReject}
+            />
           ))}
         </div>
       ))}
@@ -178,6 +254,9 @@ export default function ConfirmedRelationshipsModal({
   rows,
   labelFor,
   onOpen,
+  deciding,
+  onAccept,
+  onReject,
   onClose,
 }: ConfirmedRelationshipsPanelProps & { open: boolean; onClose: () => void }) {
   return (
@@ -206,7 +285,14 @@ export default function ConfirmedRelationshipsModal({
         </div>
       }
     >
-      <ConfirmedRelationshipsPanel rows={rows} labelFor={labelFor} onOpen={onOpen} />
+      <ConfirmedRelationshipsPanel
+        rows={rows}
+        labelFor={labelFor}
+        onOpen={onOpen}
+        deciding={deciding}
+        onAccept={onAccept}
+        onReject={onReject}
+      />
     </Modal>
   )
 }

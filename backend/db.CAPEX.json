@@ -4440,84 +4440,84 @@
     ],
     "plan.plan_scenario_dim": [
       {
-        "column_id": "scenario_id",
-        "label": "SCENARIO ID",
+        "column_id": "Scenario",
+        "label": "SCENARIO",
         "type": "STRING",
         "class": "identifier",
-        "description": "The Scenario member key, as the cube stores it. Joins to plan_version_master.scenario.",
-        "derivation": "declared in schema-upload-example.json",
+        "description": "The Scenario member key, as the cube stores it.",
+        "derivation": "declared in capex-plan-dictionary.csv",
         "pii": false,
         "confidence": null,
         "null_pct": null,
         "distinct": null
       },
       {
-        "column_id": "scenario_name",
+        "column_id": "Scenario Name",
         "label": "SCENARIO NAME",
         "type": "STRING",
         "class": "label",
-        "description": "What the scenario is called on screen — Budget, Actual, Forecast.",
-        "derivation": "declared in schema-upload-example.json",
+        "description": "What the scenario is called on screen - Budget, Actual, Forecast.",
+        "derivation": "declared in capex-plan-dictionary.csv",
         "pii": false,
         "confidence": null,
         "null_pct": null,
         "distinct": null
       },
       {
-        "column_id": "scenario_type",
+        "column_id": "Scenario Type",
         "label": "SCENARIO TYPE",
         "type": "STRING",
         "class": "classification",
         "description": "Whether the member holds a plan, a recorded actual, or a forecast vintage.",
-        "derivation": "declared in schema-upload-example.json",
+        "derivation": "declared in capex-plan-dictionary.csv",
         "pii": false,
         "confidence": null,
         "null_pct": null,
         "distinct": null
       },
       {
-        "column_id": "maps_to_version",
-        "label": "MAPS TO VERSION",
+        "column_id": "Default Version",
+        "label": "DEFAULT VERSION",
         "type": "STRING",
-        "class": "text",
-        "description": "The default version this scenario resolves to when a form does not name one. No class stated, so it is read from the type.",
-        "derivation": "declared in schema-upload-example.json",
+        "class": "dimension",
+        "description": "The version this scenario resolves to when a form does not name one.",
+        "derivation": "declared in capex-plan-dictionary.csv",
         "pii": false,
         "confidence": null,
         "null_pct": null,
         "distinct": null
       },
       {
-        "column_id": "is_active",
+        "column_id": "Is Active",
         "label": "IS ACTIVE",
         "type": "BOOL",
         "class": "flag",
-        "description": "Whether the scenario is open for input. Derived class: flag.",
-        "derivation": "declared in schema-upload-example.json",
+        "description": "Whether the scenario is open for input.",
+        "derivation": "declared in capex-plan-dictionary.csv",
         "pii": false,
         "confidence": null,
         "null_pct": null,
         "distinct": null
       },
       {
-        "column_id": "effective_from",
+        "column_id": "Effective From",
         "label": "EFFECTIVE FROM",
         "type": "DATE",
         "class": "date",
-        "description": "First period the scenario accepts data for. Derived class: date.",
-        "derivation": "declared in schema-upload-example.json",
+        "description": "First period the scenario accepts data for.",
+        "derivation": "declared in capex-plan-dictionary.csv",
         "pii": false,
         "confidence": null,
         "null_pct": null,
         "distinct": null
       },
       {
-        "column_id": "owner_email",
-        "label": "OWNER EMAIL",
+        "column_id": "Owner",
+        "label": "OWNER",
         "type": "STRING",
         "class": "person",
-        "description": "Who owns the scenario. Marked PII, so it answers the PII chip.",
-        "derivation": "declared in schema-upload-example.json",
+        "description": "Who owns the scenario. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
         "pii": true,
         "confidence": null,
         "null_pct": null,
@@ -4852,6 +4852,2176 @@
         "class": "text",
         "description": "",
         "derivation": "declared in capex-data-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_project_budget": [
+      {
+        "column_id": "Project Code",
+        "label": "PROJECT CODE",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The capital project key. The column the Data Modeling joins on this dataset are declared on.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Version",
+        "label": "VERSION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The budget version this row belongs to. Joins plan_version_master.Version.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Scenario",
+        "label": "SCENARIO",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Scenario member the amounts are held under - Budget for this table.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Fiscal Year",
+        "label": "FISCAL YEAR",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The fiscal year the amounts fall in, as the cube spells it (FY26).",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Entity",
+        "label": "ENTITY",
+        "type": "STRING",
+        "class": "organisation",
+        "description": "The cube Entity member - the business unit that carries the budget.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Account",
+        "label": "ACCOUNT",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Account member. Joins plan_account_dim.Account.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Phase",
+        "label": "PHASE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The project phase the amount is planned in. Joins plan_phase_dim.Phase.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Resource",
+        "label": "RESOURCE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The resource member the amount is planned against. Joins plan_resource_dim.Resource.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Approved Budget",
+        "label": "APPROVED BUDGET",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The approved capital envelope for this project and year, in dollars.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Working Budget",
+        "label": "WORKING BUDGET",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The envelope after in-year moves - what delivery is working to.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Board Approved Amount",
+        "label": "BOARD APPROVED AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "What the board paper released, where one exists for this year.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Carryover Budget",
+        "label": "CARRYOVER BUDGET",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "Unspent authority carried in from the prior year.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Contingency",
+        "label": "CONTINGENCY",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The contingency held inside the working budget.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Escalation",
+        "label": "ESCALATION",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The escalation allowance inside the working budget.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Budget Category",
+        "label": "BUDGET CATEGORY",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The funding category the project draws on - blanket, discrete, or reimbursable.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Asset Class",
+        "label": "ASSET CLASS",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The asset class the finished work is capitalised into.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Business Unit",
+        "label": "BUSINESS UNIT",
+        "type": "STRING",
+        "class": "organisation",
+        "description": "The reporting business unit, as the portfolio register spells it.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Region",
+        "label": "REGION",
+        "type": "STRING",
+        "class": "geography",
+        "description": "The operating region the project sits in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "State",
+        "label": "STATE",
+        "type": "STRING",
+        "class": "geography",
+        "description": "The state the work is performed in, which is what the rate case is filed against.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Project Manager",
+        "label": "PROJECT MANAGER",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who owns delivery. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Budget Locked",
+        "label": "BUDGET LOCKED",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the version is closed to further input for this project.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Last Updated",
+        "label": "LAST UPDATED",
+        "type": "TIMESTAMP",
+        "class": "date",
+        "description": "When the row was last written by the cube.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Updated By",
+        "label": "UPDATED BY",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who last wrote the row. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Source System",
+        "label": "SOURCE SYSTEM",
+        "type": "STRING",
+        "class": "text",
+        "description": "Which system the row came from - EPBCS for planned amounts, PeopleSoft for loaded actuals.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_project_forecast": [
+      {
+        "column_id": "Project Code",
+        "label": "PROJECT CODE",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The capital project key. Joins plan_project_budget.Project Code.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Version",
+        "label": "VERSION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The forecast version this row belongs to. Joins plan_version_master.Version.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Scenario",
+        "label": "SCENARIO",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Scenario member - Forecast for this table.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Forecast Vintage",
+        "label": "FORECAST VINTAGE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "Which vintage produced the number: 3+9, 6+6 or 9+3.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Fiscal Year",
+        "label": "FISCAL YEAR",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The fiscal year the forecast is for.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Entity",
+        "label": "ENTITY",
+        "type": "STRING",
+        "class": "organisation",
+        "description": "The cube Entity member carrying the forecast.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Account",
+        "label": "ACCOUNT",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Account member. Joins plan_account_dim.Account.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Phase",
+        "label": "PHASE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The project phase the forecast is held in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Forecast Amount",
+        "label": "FORECAST AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_projection",
+        "description": "The forecast for the year at this vintage, in dollars.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Prior Vintage Amount",
+        "label": "PRIOR VINTAGE AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_projection",
+        "description": "What the previous vintage forecast for the same year.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Vintage Movement",
+        "label": "VINTAGE MOVEMENT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "Forecast Amount less Prior Vintage Amount - what this vintage changed.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Actuals To Date",
+        "label": "ACTUALS TO DATE",
+        "type": "NUMERIC(18, 2)",
+        "class": "period_accumulation",
+        "description": "Spend recorded against the project up to the vintage cut month.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Remaining Forecast",
+        "label": "REMAINING FORECAST",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_projection",
+        "description": "Forecast Amount less Actuals To Date - what is still expected to be spent.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Forecast vs Working Budget",
+        "label": "FORECAST VS WORKING BUDGET",
+        "type": "NUMERIC(18, 2)",
+        "class": "derived_ratio",
+        "description": "Forecast Amount over the working budget for the same year.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Confidence Band",
+        "label": "CONFIDENCE BAND",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The band the forecaster stated: firm, likely or indicative.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Cut Month",
+        "label": "CUT MONTH",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The month the vintage was cut at, which is what makes it a 3+9 or a 6+6.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Prepared By",
+        "label": "PREPARED BY",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who prepared the forecast. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Reviewed By",
+        "label": "REVIEWED BY",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who reviewed it before submission. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Submitted",
+        "label": "SUBMITTED",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the vintage has been submitted for consolidation.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Submitted On",
+        "label": "SUBMITTED ON",
+        "type": "DATE",
+        "class": "date",
+        "description": "When it was submitted.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Comment",
+        "label": "COMMENT",
+        "type": "STRING",
+        "class": "text",
+        "description": "The forecaster free-text note carried with the row.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Source System",
+        "label": "SOURCE SYSTEM",
+        "type": "STRING",
+        "class": "text",
+        "description": "Which system produced the row.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_monthly_spread": [
+      {
+        "column_id": "Project Code",
+        "label": "PROJECT CODE",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The capital project key.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Version",
+        "label": "VERSION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The version the phasing belongs to.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Scenario",
+        "label": "SCENARIO",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Scenario member the phasing is held under.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Fiscal Year",
+        "label": "FISCAL YEAR",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The fiscal year the months fall in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Period",
+        "label": "PERIOD",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The month member. Joins plan_period_dim.Period.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Month Number",
+        "label": "MONTH NUMBER",
+        "type": "INT64",
+        "class": "classification",
+        "description": "The month ordinal within the fiscal year, 1 to 12.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Account",
+        "label": "ACCOUNT",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Account member.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Phase",
+        "label": "PHASE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The project phase the month is planned in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Monthly Plan",
+        "label": "MONTHLY PLAN",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The planned amount for this month, in dollars.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Monthly Actual",
+        "label": "MONTHLY ACTUAL",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_record",
+        "description": "The amount actually recorded for this month.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Monthly Forecast",
+        "label": "MONTHLY FORECAST",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_projection",
+        "description": "The current forecast for this month.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Monthly Variance",
+        "label": "MONTHLY VARIANCE",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "Monthly Actual less Monthly Plan, in dollars.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Spread Profile",
+        "label": "SPREAD PROFILE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The phasing curve applied - linear, S-curve or manual.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Spread Locked",
+        "label": "SPREAD LOCKED",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the phasing is closed to further input.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Cumulative Plan",
+        "label": "CUMULATIVE PLAN",
+        "type": "NUMERIC(18, 2)",
+        "class": "period_accumulation",
+        "description": "Planned amount accumulated from the start of the fiscal year.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Cumulative Actual",
+        "label": "CUMULATIVE ACTUAL",
+        "type": "NUMERIC(18, 2)",
+        "class": "period_accumulation",
+        "description": "Recorded amount accumulated from the start of the fiscal year.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Last Updated",
+        "label": "LAST UPDATED",
+        "type": "TIMESTAMP",
+        "class": "date",
+        "description": "When the row was last written.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Updated By",
+        "label": "UPDATED BY",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who last wrote it. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Source System",
+        "label": "SOURCE SYSTEM",
+        "type": "STRING",
+        "class": "text",
+        "description": "Which system produced the row.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_version_master": [
+      {
+        "column_id": "Version",
+        "label": "VERSION",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The version key, as every fact table spells it.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Version Name",
+        "label": "VERSION NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "What the version is called on a form - Budget Final FY26, Forecast 6+6.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Version Type",
+        "label": "VERSION TYPE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "Whether the version holds a budget, a forecast vintage or a medium-term plan.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Scenario",
+        "label": "SCENARIO",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The Scenario member this version applies to. Joins plan_scenario_dim.Scenario.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Cut Month",
+        "label": "CUT MONTH",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The month the version was cut at.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Fiscal Year",
+        "label": "FISCAL YEAR",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The fiscal year the version plans.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Status",
+        "label": "STATUS",
+        "type": "STRING",
+        "class": "lifecycle_state",
+        "description": "Where the version is: open, submitted, or locked.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Is Locked",
+        "label": "IS LOCKED",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether input is closed. The fact tables refuse writes against a locked version.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Opened On",
+        "label": "OPENED ON",
+        "type": "DATE",
+        "class": "date",
+        "description": "When the version was opened for input.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Locked On",
+        "label": "LOCKED ON",
+        "type": "DATE",
+        "class": "date",
+        "description": "When it was locked, where it has been.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Owner",
+        "label": "OWNER",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who owns the version. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_account_dim": [
+      {
+        "column_id": "Account",
+        "label": "ACCOUNT",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The Account member key.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Account Name",
+        "label": "ACCOUNT NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "What the account is called in the chart.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Account Type",
+        "label": "ACCOUNT TYPE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "Capital, expense or statistical.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Parent Account",
+        "label": "PARENT ACCOUNT",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The account this one rolls into. Self-join on Account.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Level Number",
+        "label": "LEVEL NUMBER",
+        "type": "INT64",
+        "class": "classification",
+        "description": "Depth in the account hierarchy, with 0 at the root.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Hierarchy Path",
+        "label": "HIERARCHY PATH",
+        "type": "STRING",
+        "class": "text",
+        "description": "The full path from the root, as the cube renders it.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Is Leaf",
+        "label": "IS LEAF",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the member takes input, or only aggregates.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Aggregation Operator",
+        "label": "AGGREGATION OPERATOR",
+        "type": "STRING",
+        "class": "classification",
+        "description": "How the member rolls up: plus, minus or ignore.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Cost Element",
+        "label": "COST ELEMENT",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The cost element the account maps to in PeopleSoft.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Capitalizable",
+        "label": "CAPITALIZABLE",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether spend on this account capitalises into the asset base.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Effective From",
+        "label": "EFFECTIVE FROM",
+        "type": "DATE",
+        "class": "date",
+        "description": "First period the member is valid for.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Effective To",
+        "label": "EFFECTIVE TO",
+        "type": "DATE",
+        "class": "date",
+        "description": "Last period it is valid for, where it has been retired.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_period_dim": [
+      {
+        "column_id": "Period",
+        "label": "PERIOD",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The Period member key, including the accumulation members.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Period Name",
+        "label": "PERIOD NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "What the period is called on a form.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Period Type",
+        "label": "PERIOD TYPE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "Month, YearTotal, YTD or ITD - which is what makes a member an accumulation.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Fiscal Year",
+        "label": "FISCAL YEAR",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The fiscal year the period belongs to.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Quarter",
+        "label": "QUARTER",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The fiscal quarter the period rolls into.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Month Number",
+        "label": "MONTH NUMBER",
+        "type": "INT64",
+        "class": "classification",
+        "description": "The month ordinal within the fiscal year, 1 to 12. Null on an accumulation member.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Is Accumulation",
+        "label": "IS ACCUMULATION",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the member accumulates rather than holding one month.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Period End Date",
+        "label": "PERIOD END DATE",
+        "type": "DATE",
+        "class": "date",
+        "description": "The last calendar day the period covers.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_phase_dim": [
+      {
+        "column_id": "Phase",
+        "label": "PHASE",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The Phase member key.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Phase Name",
+        "label": "PHASE NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "What the phase is called in the stage-gate sequence.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Phase Order",
+        "label": "PHASE ORDER",
+        "type": "INT64",
+        "class": "classification",
+        "description": "Where the phase sits in that sequence.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Gate Required",
+        "label": "GATE REQUIRED",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether leaving the phase needs a gate decision.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Capitalizable",
+        "label": "CAPITALIZABLE",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether spend in this phase capitalises rather than expensing.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Typical Duration Months",
+        "label": "TYPICAL DURATION MONTHS",
+        "type": "INT64",
+        "class": "measure",
+        "description": "The planning assumption for how long the phase runs.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Owner Role",
+        "label": "OWNER ROLE",
+        "type": "STRING",
+        "class": "organisation",
+        "description": "The role accountable for the phase.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Effective From",
+        "label": "EFFECTIVE FROM",
+        "type": "DATE",
+        "class": "date",
+        "description": "First period the member is valid for.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Notes",
+        "label": "NOTES",
+        "type": "STRING",
+        "class": "text",
+        "description": "What the phase covers, in the planners own words.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_resource_dim": [
+      {
+        "column_id": "Resource",
+        "label": "RESOURCE",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The Resource member key.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Resource Name",
+        "label": "RESOURCE NAME",
+        "type": "STRING",
+        "class": "label",
+        "description": "What the resource is called on a form.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Resource Type",
+        "label": "RESOURCE TYPE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "Labour, contractor, material or equipment.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Unit Of Measure",
+        "label": "UNIT OF MEASURE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The unit the standard rate is quoted in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Standard Rate",
+        "label": "STANDARD RATE",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "The planning rate per unit, in dollars.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Currency",
+        "label": "CURRENCY",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The currency the rate is quoted in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Vendor",
+        "label": "VENDOR",
+        "type": "STRING",
+        "class": "organisation",
+        "description": "The contracting vendor, where the resource is external.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Is Internal",
+        "label": "IS INTERNAL",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the resource is own labour rather than contracted.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Effective From",
+        "label": "EFFECTIVE FROM",
+        "type": "DATE",
+        "class": "date",
+        "description": "First period the rate applies from.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Effective To",
+        "label": "EFFECTIVE TO",
+        "type": "DATE",
+        "class": "date",
+        "description": "Last period it applies to, where it has been superseded.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_mtp_multiyear": [
+      {
+        "column_id": "Project Code",
+        "label": "PROJECT CODE",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The capital project key.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "MTP Issue",
+        "label": "MTP ISSUE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "Which issue of the medium-term plan produced the row.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Plan Year",
+        "label": "PLAN YEAR",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The year within the seven-year horizon this row plans.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Version",
+        "label": "VERSION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The version the MTP amounts are held in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Scenario",
+        "label": "SCENARIO",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Scenario member.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Entity",
+        "label": "ENTITY",
+        "type": "STRING",
+        "class": "organisation",
+        "description": "The cube Entity member carrying the plan.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Account",
+        "label": "ACCOUNT",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Account member.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Phase",
+        "label": "PHASE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The project phase the amount is planned in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "MTP Amount",
+        "label": "MTP AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The medium-term plan amount for this project and year, in dollars.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Prior Issue Amount",
+        "label": "PRIOR ISSUE AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "What the previous MTP issue planned for the same year.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Issue Movement",
+        "label": "ISSUE MOVEMENT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "MTP Amount less Prior Issue Amount.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Year 1 Amount",
+        "label": "YEAR 1 AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The first year of the horizon, as this issue plans it.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Year 2 Amount",
+        "label": "YEAR 2 AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The second year of the horizon.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Year 3 Amount",
+        "label": "YEAR 3 AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The third year of the horizon.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Year 4 Amount",
+        "label": "YEAR 4 AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The fourth year of the horizon.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Year 5 Amount",
+        "label": "YEAR 5 AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The fifth year of the horizon.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Year 6 Amount",
+        "label": "YEAR 6 AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The sixth year of the horizon.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Year 7 Amount",
+        "label": "YEAR 7 AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The seventh year of the horizon.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Horizon Total",
+        "label": "HORIZON TOTAL",
+        "type": "NUMERIC(18, 2)",
+        "class": "period_accumulation",
+        "description": "The seven years accumulated - the figure the optimizer preserves.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Approved By",
+        "label": "APPROVED BY",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who approved the issue. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Approved On",
+        "label": "APPROVED ON",
+        "type": "DATE",
+        "class": "date",
+        "description": "When it was approved.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Board Paper Reference",
+        "label": "BOARD PAPER REFERENCE",
+        "type": "STRING",
+        "class": "text",
+        "description": "The board paper the approval is recorded in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Region",
+        "label": "REGION",
+        "type": "STRING",
+        "class": "geography",
+        "description": "The operating region the project sits in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Business Unit",
+        "label": "BUSINESS UNIT",
+        "type": "STRING",
+        "class": "organisation",
+        "description": "The reporting business unit.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Is Committed",
+        "label": "IS COMMITTED",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the year is committed rather than indicative.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Source System",
+        "label": "SOURCE SYSTEM",
+        "type": "STRING",
+        "class": "text",
+        "description": "Which system produced the row.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_calendarization": [
+      {
+        "column_id": "Project Code",
+        "label": "PROJECT CODE",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The capital project key.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Version",
+        "label": "VERSION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The version the annual budget being calendarized belongs to.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Scenario",
+        "label": "SCENARIO",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Scenario member.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Fiscal Year",
+        "label": "FISCAL YEAR",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The fiscal year being spread across months.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Period",
+        "label": "PERIOD",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The month member the amount lands in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Month Number",
+        "label": "MONTH NUMBER",
+        "type": "INT64",
+        "class": "classification",
+        "description": "The month ordinal within the fiscal year, 1 to 12.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Annual Budget",
+        "label": "ANNUAL BUDGET",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "The annual figure being calendarized, in dollars.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Calendarized Amount",
+        "label": "CALENDARIZED AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "What this month takes of it.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Calendarization Percent",
+        "label": "CALENDARIZATION PERCENT",
+        "type": "NUMERIC(18, 2)",
+        "class": "derived_ratio",
+        "description": "Calendarized Amount over Annual Budget.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Profile Applied",
+        "label": "PROFILE APPLIED",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The profile the January run applied - linear, seasonal or manual.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Seasonality Factor",
+        "label": "SEASONALITY FACTOR",
+        "type": "NUMERIC(18, 2)",
+        "class": "derived_ratio",
+        "description": "The factor the profile applied to this month.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Working Days",
+        "label": "WORKING DAYS",
+        "type": "INT64",
+        "class": "measure",
+        "description": "Working days in the month, where the profile is day-weighted.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Account",
+        "label": "ACCOUNT",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Account member.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Phase",
+        "label": "PHASE",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The project phase the month is planned in.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Business Unit",
+        "label": "BUSINESS UNIT",
+        "type": "STRING",
+        "class": "organisation",
+        "description": "The reporting business unit.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Region",
+        "label": "REGION",
+        "type": "STRING",
+        "class": "geography",
+        "description": "The operating region.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Calendarized On",
+        "label": "CALENDARIZED ON",
+        "type": "DATE",
+        "class": "date",
+        "description": "When the January run wrote this row.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Calendarized By",
+        "label": "CALENDARIZED BY",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who ran it. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Is Overridden",
+        "label": "IS OVERRIDDEN",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether a planner has overridden the profile for this month.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Override Reason",
+        "label": "OVERRIDE REASON",
+        "type": "STRING",
+        "class": "text",
+        "description": "Why, where it has been overridden.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      }
+    ],
+    "plan.plan_optimization_profile": [
+      {
+        "column_id": "Project Code",
+        "label": "PROJECT CODE",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The capital project key.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Fiscal Year",
+        "label": "FISCAL YEAR",
+        "type": "STRING",
+        "class": "classification",
+        "description": "The year the re-phasing moves amounts into or out of.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Version",
+        "label": "VERSION",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The version the optimized amounts are written to.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Scenario",
+        "label": "SCENARIO",
+        "type": "STRING",
+        "class": "dimension",
+        "description": "The cube Scenario member.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Original Amount",
+        "label": "ORIGINAL AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "What the year held before the run, in dollars.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Optimized Amount",
+        "label": "OPTIMIZED AMOUNT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure_commitment",
+        "description": "What the run moved it to.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Rephasing Movement",
+        "label": "REPHASING MOVEMENT",
+        "type": "NUMERIC(18, 2)",
+        "class": "measure",
+        "description": "Optimized Amount less Original Amount.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Multi Year Total",
+        "label": "MULTI YEAR TOTAL",
+        "type": "NUMERIC(18, 2)",
+        "class": "period_accumulation",
+        "description": "The multi-year total the run is required to preserve.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Total Preserved",
+        "label": "TOTAL PRESERVED",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether the run preserved that total, which is its one hard constraint.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Optimization Run",
+        "label": "OPTIMIZATION RUN",
+        "type": "STRING",
+        "class": "identifier",
+        "description": "The run key, so a re-phasing can be traced back to the solve that produced it.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Objective",
+        "label": "OBJECTIVE",
+        "type": "STRING",
+        "class": "classification",
+        "description": "What the run optimized for - deliverability, cash or in-service date.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Constraint Set",
+        "label": "CONSTRAINT SET",
+        "type": "STRING",
+        "class": "text",
+        "description": "The constraints the run was given.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Iterations",
+        "label": "ITERATIONS",
+        "type": "INT64",
+        "class": "measure",
+        "description": "How many iterations the solver took.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Solver Status",
+        "label": "SOLVER STATUS",
+        "type": "STRING",
+        "class": "lifecycle_state",
+        "description": "How the solve ended: optimal, feasible or infeasible.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Ran On",
+        "label": "RAN ON",
+        "type": "TIMESTAMP",
+        "class": "date",
+        "description": "When the run executed.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Ran By",
+        "label": "RAN BY",
+        "type": "STRING",
+        "class": "person",
+        "description": "Who ran it. PII.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": true,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Accepted",
+        "label": "ACCEPTED",
+        "type": "BOOL",
+        "class": "flag",
+        "description": "Whether a planner accepted the re-phasing into the working plan.",
+        "derivation": "declared in capex-plan-dictionary.csv",
+        "pii": false,
+        "confidence": null,
+        "null_pct": null,
+        "distinct": null
+      },
+      {
+        "column_id": "Accepted On",
+        "label": "ACCEPTED ON",
+        "type": "DATE",
+        "class": "date",
+        "description": "When it was accepted.",
+        "derivation": "declared in capex-plan-dictionary.csv",
         "pii": false,
         "confidence": null,
         "null_pct": null,
@@ -20861,52 +23031,44 @@
       "updated_at": "2026-09-09T16:25:54.743Z"
     },
     {
-      "use_case_id": "uc-testdata-mtsdyrc94",
-      "name": "testdata",
-      "status": "committed",
+      "use_case_id": "uc-testsdata-mtv645lj4",
+      "name": "testsdata",
+      "status": "draft",
       "domain_id": "capital-projects",
-      "business_need": "\nDomains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "business_need": "testdata",
       "personas": [
-        {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai"
-        },
         {
           "name": "Procurement Lead",
           "description": "Asks what has been awarded, what has changed since award, and to whom.",
           "source": "ai"
         }
       ],
-      "metrics": [
-        {
-          "name": "Actual Spend",
-          "description": "Posted general-ledger spend.",
-          "source": "ai"
-        },
-        {
-          "name": "Plan-to-Actual Variance",
-          "description": "Actual less period plan.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "bigquery:northline_epbcs",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "Which completed projects are not yet unitized?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
+      "metrics": [],
+      "sources": [],
+      "hero_questions": [],
       "gap_decisions": [],
-      "step": 5,
-      "updated_at": "2026-09-08T08:07:17.784Z"
+      "step": 3,
+      "updated_at": "2026-09-10T06:50:29.987Z"
+    },
+    {
+      "use_case_id": "uc-hgjhjh-mtv1j50w3",
+      "name": "hgjhjh",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "hgjhgjhgj",
+      "personas": [
+        {
+          "name": "Finance Executive",
+          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
+          "source": "ai"
+        }
+      ],
+      "metrics": [],
+      "sources": [],
+      "hero_questions": [],
+      "gap_decisions": [],
+      "step": 3,
+      "updated_at": "2026-09-10T04:42:15.007Z"
     }
   ],
   "graph_use_case_templates": [
@@ -20934,29 +23096,14 @@
         "compliance-lead"
       ],
       "metrics": [
-        "budget",
-        "forecast",
-        "mtp",
-        "authorized",
-        "committed",
-        "actual",
-        "cwip",
-        "capitalized",
-        "rate-base",
-        "eac",
-        "eac-variance",
-        "eac-variance-pct",
-        "gap",
-        "gap-pct",
-        "plan-period",
-        "variance-period",
-        "variance-pct",
-        "contingency-alloc",
-        "contingency-used",
-        "pct-complete",
-        "schedule-variance",
-        "cwip-age",
-        "pis-value"
+        "total-forecast-remaining-large-proj",
+        "total-anticipated-cost",
+        "budget-consumed-to-date",
+        "forecast-bud-consumed-at-completion",
+        "full-year-budget-variance",
+        "year-to-date-ytd-budget-variance",
+        "current-month-budget-variance",
+        "overrun-amount"
       ],
       "hero_questions": [
         "hq1",
@@ -61181,6 +63328,7 @@
       },
       {
         "entity_id": "ent-plan-plan-project-budget-mtmpaekc3",
+        "confirmed_by": null,
         "table_key": "plan.plan_project_budget",
         "entity_name": "plan_project_budget",
         "description": "Entity for plan_project_budget, created to anchor a declared relationship.",
@@ -61191,14 +63339,54 @@
           {
             "target_table_key": "plan.plan_version_master",
             "from_columns": [
+              "Version"
+            ],
+            "to_columns": [
+              "Version"
+            ],
+            "relationship_type": "LINKED_BY_VERSION",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Version, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_version_master states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_account_dim",
+            "from_columns": [
+              "Account"
+            ],
+            "to_columns": [
+              "Account"
+            ],
+            "relationship_type": "LINKED_BY_ACCOUNT",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Account, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_account_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_phase_dim",
+            "from_columns": [
+              "Phase"
+            ],
+            "to_columns": [
+              "Phase"
+            ],
+            "relationship_type": "LINKED_BY_PHASE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Phase, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_phase_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_calendarization",
+            "from_columns": [
               "Project Code"
             ],
             "to_columns": [
               "Project Code"
             ],
             "relationship_type": "LINKED_BY_PROJECT_CODE",
-            "cardinality_hint": "N:N",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget holds 0 distinct values, plan_version_master holds 0 distinct values."
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_calendarization states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_project_forecast",
@@ -61209,12 +63397,91 @@
               "Project Code"
             ],
             "relationship_type": "LINKED_BY_PROJECT_CODE",
-            "cardinality_hint": "N:N",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget holds 0 distinct values, plan_project_forecast holds 0 distinct values."
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_project_forecast states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_mtp_multiyear",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_mtp_multiyear states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.vw_project_plan_capex",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "N:1",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, vw_project_plan_capex holds 4,500 distinct values over 4,500 rows.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_monthly_spread",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_monthly_spread states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_resource_dim",
+            "from_columns": [
+              "Resource"
+            ],
+            "to_columns": [
+              "Resource"
+            ],
+            "relationship_type": "LINKED_BY_RESOURCE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Resource, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_resource_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_optimization_profile",
+            "from_columns": [
+              "Project Code"
+            ],
+            "to_columns": [
+              "Project Code"
+            ],
+            "relationship_type": "LINKED_BY_PROJECT_CODE",
+            "cardinality_hint": "1:N",
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_optimization_profile states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
+          },
+          {
+            "target_table_key": "plan.plan_monthly_spread",
+            "from_columns": [
+              "Version"
+            ],
+            "to_columns": [
+              "Version"
+            ],
+            "relationship_type": "testdata",
+            "cardinality_hint": "1:N",
+            "rationale": "",
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-07T14:01:32.825Z"
+        "updated_at": "2026-09-10T02:23:12.048Z"
       },
       {
         "entity_id": "ent-plan-plan-account-dim-mtmpcohv4",
@@ -61279,6 +63546,7 @@
       },
       {
         "entity_id": "ent-plan-plan-scenario-dim-mtr8bxcn4",
+        "confirmed_by": null,
         "table_key": "plan.plan_scenario_dim",
         "entity_name": "plan_scenario_dim",
         "description": "Entity for plan_scenario_dim, created to anchor a declared relationship.",
@@ -61287,7 +63555,7 @@
         "attributes": [],
         "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-07T14:00:45.140Z"
+        "updated_at": "2026-09-10T02:24:26.367Z"
       },
       {
         "entity_id": "ent-plan-plan-monthly-spread-mtrb5dg32",
@@ -61302,8 +63570,7 @@
         "updated_at": "2026-09-07T14:00:11.091Z"
       }
     ],
-    "suggestions": [],
-    "uploads": []
+    "suggestions": []
   },
   "graph_metrics": [
     {
@@ -61397,256 +63664,122 @@
       "glossary": "CAPEX-GL-005"
     },
     {
-      "metric_id": "cwip",
-      "name": "CWIP Balance",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "cwip",
-        "balance"
-      ],
-      "definition": "Construction work in progress at period end.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-006"
-    },
-    {
-      "metric_id": "capitalized",
-      "name": "Capitalized",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "capitalized"
-      ],
-      "definition": "Cost transferred from CWIP to fixed assets.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-007"
-    },
-    {
-      "metric_id": "rate-base",
-      "name": "Rate Base Additions",
+      "metric_id": "total-forecast-remaining-large-proj",
+      "name": "Total_Forecast_Remaining_Large_Project",
       "domains": [
         "capital-projects",
         "water-wastewater"
       ],
       "keywords": [
-        "rate",
-        "base",
-        "additions"
+        "total",
+        "forecast",
+        "remaining",
+        "large",
+        "proj"
       ],
-      "definition": "Capitalised cost admitted to rate base.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-008"
+      "definition": "Total_Forecast_Remaining_Large_Proj = [Sum of FY26 Working Forecast]-[Sum of FY26 YearTotal Actual]+[Sum of FY27 Working Budget]"
     },
     {
-      "metric_id": "eac",
-      "name": "Estimate at Completion",
+      "metric_id": "total-anticipated-cost",
+      "name": "Total_Anticipated_Cost",
       "domains": [
-        "capital-projects"
+        "capital-projects",
+        "water-wastewater"
       ],
       "keywords": [
-        "estimate",
-        "completion"
+        "total",
+        "anticipated",
+        "cost"
       ],
-      "definition": "Total expected cost at project completion.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-009"
+      "definition": "Total_Anticipated_Cost = [Inception to Date (ITD) Actuals] + [Total_Forecast_Remaining_Large_Proj]"
     },
     {
-      "metric_id": "eac-variance",
-      "name": "EAC Variance",
+      "metric_id": "budget-consumed-to-date",
+      "name": "Budget_Consumed_to_Date",
       "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "variance"
-      ],
-      "definition": "EAC less approved budget, at project completion.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-010"
-    },
-    {
-      "metric_id": "eac-variance-pct",
-      "name": "EAC Variance %",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "variance"
-      ],
-      "definition": "EAC variance as a percentage of approved budget.",
-      "unit": "PCT",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-011"
-    },
-    {
-      "metric_id": "gap",
-      "name": "Budget-to-Forecast Gap",
-      "domains": [
-        "capital-projects"
+        "capital-projects",
+        "water-wastewater"
       ],
       "keywords": [
         "budget",
-        "forecast"
+        "consumed",
+        "date"
       ],
-      "definition": "Forecast less approved budget over the five-year plan horizon.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-012"
+      "definition": "Budget_Consumed_to_Date = [Inception to Date (ITD) Actuals] / [Most Recent Budget Plan in PeopleSoft (Value)]"
     },
     {
-      "metric_id": "gap-pct",
-      "name": "Gap %",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [],
-      "definition": "Gap as a percentage of approved budget.",
-      "unit": "PCT",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-013"
-    },
-    {
-      "metric_id": "plan-period",
-      "name": "Period Plan",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "period",
-        "plan"
-      ],
-      "definition": "Calendarised plan for a single period.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-014"
-    },
-    {
-      "metric_id": "variance-period",
-      "name": "Plan-to-Actual Variance",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "plan",
-        "actual",
-        "variance"
-      ],
-      "definition": "Actual less period plan.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-015"
-    },
-    {
-      "metric_id": "variance-pct",
-      "name": "Variance %",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "variance"
-      ],
-      "definition": "Plan-to-actual variance as a percentage of plan.",
-      "unit": "PCT",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-016"
-    },
-    {
-      "metric_id": "contingency-alloc",
-      "name": "Contingency Allocated",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "contingency",
-        "allocated"
-      ],
-      "definition": "Contingency held against a project at authorisation.",
-      "unit": "USD",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-017"
-    },
-    {
-      "metric_id": "contingency-used",
-      "name": "Contingency Drawn",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "contingency",
-        "drawn"
-      ],
-      "definition": "Contingency consumed to date.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-018"
-    },
-    {
-      "metric_id": "pct-complete",
-      "name": "Percent Complete",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "percent",
-        "complete"
-      ],
-      "definition": "Physical completion. Weighted by budget when aggregated.",
-      "unit": "PCT",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-019"
-    },
-    {
-      "metric_id": "schedule-variance",
-      "name": "Schedule Variance",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "schedule",
-        "variance"
-      ],
-      "definition": "Forecast in-service date less planned in-service date.",
-      "unit": "MONTHS",
-      "source": "ds_epbcs_plan",
-      "glossary": "CAPEX-GL-020"
-    },
-    {
-      "metric_id": "cwip-age",
-      "name": "CWIP Age",
-      "domains": [
-        "capital-projects"
-      ],
-      "keywords": [
-        "cwip"
-      ],
-      "definition": "Days a CWIP balance has been held without transfer to assets.",
-      "unit": "DAYS",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-021"
-    },
-    {
-      "metric_id": "pis-value",
-      "name": "Capex Placed in Service",
+      "metric_id": "forecast-bud-consumed-at-completion",
+      "name": "Forecast Bud Consumed at Completion",
       "domains": [
         "capital-projects",
         "water-wastewater"
       ],
       "keywords": [
-        "capex",
-        "placed",
-        "service"
+        "forecast",
+        "bud",
+        "consumed",
+        "completion"
       ],
-      "definition": "Capex scheduled or recorded as placed in service in the window.",
-      "unit": "USD",
-      "source": "ds_psoft_gl",
-      "glossary": "CAPEX-GL-022"
+      "definition": "Forecast Bud Consumed at Completion = [Total_Anticipated_Cost] / [Most Recent Budget Plan in PeopleSoft (Value)]"
+    },
+    {
+      "metric_id": "full-year-budget-variance",
+      "name": "Full Year Budget Variance",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "full",
+        "year",
+        "budget",
+        "variance"
+      ],
+      "definition": "Variance = [Forecast 6+6] - January_Calendarization Budget YTD"
+    },
+    {
+      "metric_id": "year-to-date-ytd-budget-variance",
+      "name": "Year-to-Date (YTD) Budget Variance",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "year",
+        "date",
+        "ytd",
+        "budget",
+        "variance"
+      ],
+      "definition": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)"
+    },
+    {
+      "metric_id": "current-month-budget-variance",
+      "name": "Current Month Budget Variance",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "current",
+        "month",
+        "budget",
+        "variance"
+      ],
+      "definition": "Variance = Actual(Current Month) − Budget(Current Month)"
+    },
+    {
+      "metric_id": "overrun-amount",
+      "name": "Overrun Amount (edited)",
+      "domains": [
+        "capital-projects",
+        "water-wastewater"
+      ],
+      "keywords": [
+        "overrun",
+        "amount"
+      ],
+      "definition": "edited description"
     }
   ]
 }

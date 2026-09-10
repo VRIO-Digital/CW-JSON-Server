@@ -8,7 +8,6 @@
  */
 
 import type { DeclaredRelationship } from './dataModelRelationships'
-import { DERIVED_LABEL } from './dataModelSuggestions'
 
 export const pendingSuggestionsCopy = {
   title: 'Suggested relationships, pending review',
@@ -44,10 +43,17 @@ export const pendingSuggestionsCopy = {
     derived:
       'A shared identifier column this server matched, with the distinct counts the profiler recorded. No figure here is invented.',
   },
-  /** Reachable only if the tile is opened with nothing pending, which the tile does not allow. */
-  /* Names the control by the constant it prints, so a relabel cannot leave this sentence telling
-     a reader to press a button that is no longer called that. */
-  empty: `Nothing is pending. Run ${DERIVED_LABEL} to look for more.`,
+  /**
+   * Reachable only if the tile is opened with nothing pending, which the tile does not allow.
+   *
+   * **It named a button, and the button is gone.** It read *"Run Curated by AI to look for more"*,
+   * which was an instruction nobody can carry out now that the run happens on arrival — the same
+   * fault as Gmail's Continue refusing over a name field its own step no longer had. What is true
+   * instead is stated: the run has happened, and this list empties by being decided.
+   */
+  empty:
+    'Nothing is pending — every suggestion this run found has been confirmed or rejected. ' +
+    'Profiling more tables looks again.',
 } as const
 
 /**

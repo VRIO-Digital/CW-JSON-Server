@@ -1,0 +1,187 @@
+dataset,table,column,type,class,pii,description
+plan,plan_project_budget,Project Code,STRING,identifier,,The capital project key. The column the Data Modeling joins on this dataset are declared on.
+plan,plan_project_budget,Version,STRING,dimension,,The budget version this row belongs to. Joins plan_version_master.Version.
+plan,plan_project_budget,Scenario,STRING,dimension,,The cube Scenario member the amounts are held under - Budget for this table.
+plan,plan_project_budget,Fiscal Year,STRING,classification,,"The fiscal year the amounts fall in, as the cube spells it (FY26)."
+plan,plan_project_budget,Entity,STRING,organisation,,The cube Entity member - the business unit that carries the budget.
+plan,plan_project_budget,Account,STRING,dimension,,The cube Account member. Joins plan_account_dim.Account.
+plan,plan_project_budget,Phase,STRING,dimension,,The project phase the amount is planned in. Joins plan_phase_dim.Phase.
+plan,plan_project_budget,Resource,STRING,dimension,,The resource member the amount is planned against. Joins plan_resource_dim.Resource.
+plan,plan_project_budget,Approved Budget,"NUMERIC(18, 2)",measure_commitment,,"The approved capital envelope for this project and year, in dollars."
+plan,plan_project_budget,Working Budget,"NUMERIC(18, 2)",measure_commitment,,The envelope after in-year moves - what delivery is working to.
+plan,plan_project_budget,Board Approved Amount,"NUMERIC(18, 2)",measure_commitment,,"What the board paper released, where one exists for this year."
+plan,plan_project_budget,Carryover Budget,"NUMERIC(18, 2)",measure_commitment,,Unspent authority carried in from the prior year.
+plan,plan_project_budget,Contingency,"NUMERIC(18, 2)",measure_commitment,,The contingency held inside the working budget.
+plan,plan_project_budget,Escalation,"NUMERIC(18, 2)",measure_commitment,,The escalation allowance inside the working budget.
+plan,plan_project_budget,Budget Category,STRING,classification,,"The funding category the project draws on - blanket, discrete, or reimbursable."
+plan,plan_project_budget,Asset Class,STRING,classification,,The asset class the finished work is capitalised into.
+plan,plan_project_budget,Business Unit,STRING,organisation,,"The reporting business unit, as the portfolio register spells it."
+plan,plan_project_budget,Region,STRING,geography,,The operating region the project sits in.
+plan,plan_project_budget,State,STRING,geography,,"The state the work is performed in, which is what the rate case is filed against."
+plan,plan_project_budget,Project Manager,STRING,person,true,Who owns delivery. PII.
+plan,plan_project_budget,Budget Locked,BOOL,flag,,Whether the version is closed to further input for this project.
+plan,plan_project_budget,Last Updated,TIMESTAMP,date,,When the row was last written by the cube.
+plan,plan_project_budget,Updated By,STRING,person,true,Who last wrote the row. PII.
+plan,plan_project_budget,Source System,STRING,text,,"Which system the row came from - EPBCS for planned amounts, PeopleSoft for loaded actuals."
+plan,plan_project_forecast,Project Code,STRING,identifier,,The capital project key. Joins plan_project_budget.Project Code.
+plan,plan_project_forecast,Version,STRING,dimension,,The forecast version this row belongs to. Joins plan_version_master.Version.
+plan,plan_project_forecast,Scenario,STRING,dimension,,The cube Scenario member - Forecast for this table.
+plan,plan_project_forecast,Forecast Vintage,STRING,classification,,"Which vintage produced the number: 3+9, 6+6 or 9+3."
+plan,plan_project_forecast,Fiscal Year,STRING,classification,,The fiscal year the forecast is for.
+plan,plan_project_forecast,Entity,STRING,organisation,,The cube Entity member carrying the forecast.
+plan,plan_project_forecast,Account,STRING,dimension,,The cube Account member. Joins plan_account_dim.Account.
+plan,plan_project_forecast,Phase,STRING,dimension,,The project phase the forecast is held in.
+plan,plan_project_forecast,Forecast Amount,"NUMERIC(18, 2)",measure_projection,,"The forecast for the year at this vintage, in dollars."
+plan,plan_project_forecast,Prior Vintage Amount,"NUMERIC(18, 2)",measure_projection,,What the previous vintage forecast for the same year.
+plan,plan_project_forecast,Vintage Movement,"NUMERIC(18, 2)",measure,,Forecast Amount less Prior Vintage Amount - what this vintage changed.
+plan,plan_project_forecast,Actuals To Date,"NUMERIC(18, 2)",period_accumulation,,Spend recorded against the project up to the vintage cut month.
+plan,plan_project_forecast,Remaining Forecast,"NUMERIC(18, 2)",measure_projection,,Forecast Amount less Actuals To Date - what is still expected to be spent.
+plan,plan_project_forecast,Forecast vs Working Budget,"NUMERIC(18, 2)",derived_ratio,,Forecast Amount over the working budget for the same year.
+plan,plan_project_forecast,Confidence Band,STRING,classification,,"The band the forecaster stated: firm, likely or indicative."
+plan,plan_project_forecast,Cut Month,STRING,classification,,"The month the vintage was cut at, which is what makes it a 3+9 or a 6+6."
+plan,plan_project_forecast,Prepared By,STRING,person,true,Who prepared the forecast. PII.
+plan,plan_project_forecast,Reviewed By,STRING,person,true,Who reviewed it before submission. PII.
+plan,plan_project_forecast,Submitted,BOOL,flag,,Whether the vintage has been submitted for consolidation.
+plan,plan_project_forecast,Submitted On,DATE,date,,When it was submitted.
+plan,plan_project_forecast,Comment,STRING,text,,The forecaster free-text note carried with the row.
+plan,plan_project_forecast,Source System,STRING,text,,Which system produced the row.
+plan,plan_monthly_spread,Project Code,STRING,identifier,,The capital project key.
+plan,plan_monthly_spread,Version,STRING,dimension,,The version the phasing belongs to.
+plan,plan_monthly_spread,Scenario,STRING,dimension,,The cube Scenario member the phasing is held under.
+plan,plan_monthly_spread,Fiscal Year,STRING,classification,,The fiscal year the months fall in.
+plan,plan_monthly_spread,Period,STRING,dimension,,The month member. Joins plan_period_dim.Period.
+plan,plan_monthly_spread,Month Number,INT64,classification,,"The month ordinal within the fiscal year, 1 to 12."
+plan,plan_monthly_spread,Account,STRING,dimension,,The cube Account member.
+plan,plan_monthly_spread,Phase,STRING,dimension,,The project phase the month is planned in.
+plan,plan_monthly_spread,Monthly Plan,"NUMERIC(18, 2)",measure_commitment,,"The planned amount for this month, in dollars."
+plan,plan_monthly_spread,Monthly Actual,"NUMERIC(18, 2)",measure_record,,The amount actually recorded for this month.
+plan,plan_monthly_spread,Monthly Forecast,"NUMERIC(18, 2)",measure_projection,,The current forecast for this month.
+plan,plan_monthly_spread,Monthly Variance,"NUMERIC(18, 2)",measure,,"Monthly Actual less Monthly Plan, in dollars."
+plan,plan_monthly_spread,Spread Profile,STRING,classification,,"The phasing curve applied - linear, S-curve or manual."
+plan,plan_monthly_spread,Spread Locked,BOOL,flag,,Whether the phasing is closed to further input.
+plan,plan_monthly_spread,Cumulative Plan,"NUMERIC(18, 2)",period_accumulation,,Planned amount accumulated from the start of the fiscal year.
+plan,plan_monthly_spread,Cumulative Actual,"NUMERIC(18, 2)",period_accumulation,,Recorded amount accumulated from the start of the fiscal year.
+plan,plan_monthly_spread,Last Updated,TIMESTAMP,date,,When the row was last written.
+plan,plan_monthly_spread,Updated By,STRING,person,true,Who last wrote it. PII.
+plan,plan_monthly_spread,Source System,STRING,text,,Which system produced the row.
+plan,plan_version_master,Version,STRING,identifier,,"The version key, as every fact table spells it."
+plan,plan_version_master,Version Name,STRING,label,,"What the version is called on a form - Budget Final FY26, Forecast 6+6."
+plan,plan_version_master,Version Type,STRING,classification,,"Whether the version holds a budget, a forecast vintage or a medium-term plan."
+plan,plan_version_master,Scenario,STRING,dimension,,The Scenario member this version applies to. Joins plan_scenario_dim.Scenario.
+plan,plan_version_master,Cut Month,STRING,classification,,The month the version was cut at.
+plan,plan_version_master,Fiscal Year,STRING,classification,,The fiscal year the version plans.
+plan,plan_version_master,Status,STRING,lifecycle_state,,"Where the version is: open, submitted, or locked."
+plan,plan_version_master,Is Locked,BOOL,flag,,Whether input is closed. The fact tables refuse writes against a locked version.
+plan,plan_version_master,Opened On,DATE,date,,When the version was opened for input.
+plan,plan_version_master,Locked On,DATE,date,,"When it was locked, where it has been."
+plan,plan_version_master,Owner,STRING,person,true,Who owns the version. PII.
+plan,plan_scenario_dim,Scenario,STRING,identifier,,"The Scenario member key, as the cube stores it."
+plan,plan_scenario_dim,Scenario Name,STRING,label,,"What the scenario is called on screen - Budget, Actual, Forecast."
+plan,plan_scenario_dim,Scenario Type,STRING,classification,,"Whether the member holds a plan, a recorded actual, or a forecast vintage."
+plan,plan_scenario_dim,Default Version,STRING,dimension,,The version this scenario resolves to when a form does not name one.
+plan,plan_scenario_dim,Is Active,BOOL,flag,,Whether the scenario is open for input.
+plan,plan_scenario_dim,Effective From,DATE,date,,First period the scenario accepts data for.
+plan,plan_scenario_dim,Owner,STRING,person,true,Who owns the scenario. PII.
+plan,plan_account_dim,Account,STRING,identifier,,The Account member key.
+plan,plan_account_dim,Account Name,STRING,label,,What the account is called in the chart.
+plan,plan_account_dim,Account Type,STRING,classification,,"Capital, expense or statistical."
+plan,plan_account_dim,Parent Account,STRING,dimension,,The account this one rolls into. Self-join on Account.
+plan,plan_account_dim,Level Number,INT64,classification,,"Depth in the account hierarchy, with 0 at the root."
+plan,plan_account_dim,Hierarchy Path,STRING,text,,"The full path from the root, as the cube renders it."
+plan,plan_account_dim,Is Leaf,BOOL,flag,,"Whether the member takes input, or only aggregates."
+plan,plan_account_dim,Aggregation Operator,STRING,classification,,"How the member rolls up: plus, minus or ignore."
+plan,plan_account_dim,Cost Element,STRING,classification,,The cost element the account maps to in PeopleSoft.
+plan,plan_account_dim,Capitalizable,BOOL,flag,,Whether spend on this account capitalises into the asset base.
+plan,plan_account_dim,Effective From,DATE,date,,First period the member is valid for.
+plan,plan_account_dim,Effective To,DATE,date,,"Last period it is valid for, where it has been retired."
+plan,plan_period_dim,Period,STRING,identifier,,"The Period member key, including the accumulation members."
+plan,plan_period_dim,Period Name,STRING,label,,What the period is called on a form.
+plan,plan_period_dim,Period Type,STRING,classification,,"Month, YearTotal, YTD or ITD - which is what makes a member an accumulation."
+plan,plan_period_dim,Fiscal Year,STRING,classification,,The fiscal year the period belongs to.
+plan,plan_period_dim,Quarter,STRING,classification,,The fiscal quarter the period rolls into.
+plan,plan_period_dim,Month Number,INT64,classification,,"The month ordinal within the fiscal year, 1 to 12. Null on an accumulation member."
+plan,plan_period_dim,Is Accumulation,BOOL,flag,,Whether the member accumulates rather than holding one month.
+plan,plan_period_dim,Period End Date,DATE,date,,The last calendar day the period covers.
+plan,plan_phase_dim,Phase,STRING,identifier,,The Phase member key.
+plan,plan_phase_dim,Phase Name,STRING,label,,What the phase is called in the stage-gate sequence.
+plan,plan_phase_dim,Phase Order,INT64,classification,,Where the phase sits in that sequence.
+plan,plan_phase_dim,Gate Required,BOOL,flag,,Whether leaving the phase needs a gate decision.
+plan,plan_phase_dim,Capitalizable,BOOL,flag,,Whether spend in this phase capitalises rather than expensing.
+plan,plan_phase_dim,Typical Duration Months,INT64,measure,,The planning assumption for how long the phase runs.
+plan,plan_phase_dim,Owner Role,STRING,organisation,,The role accountable for the phase.
+plan,plan_phase_dim,Effective From,DATE,date,,First period the member is valid for.
+plan,plan_phase_dim,Notes,STRING,text,,"What the phase covers, in the planners own words."
+plan,plan_resource_dim,Resource,STRING,identifier,,The Resource member key.
+plan,plan_resource_dim,Resource Name,STRING,label,,What the resource is called on a form.
+plan,plan_resource_dim,Resource Type,STRING,classification,,"Labour, contractor, material or equipment."
+plan,plan_resource_dim,Unit Of Measure,STRING,classification,,The unit the standard rate is quoted in.
+plan,plan_resource_dim,Standard Rate,"NUMERIC(18, 2)",measure,,"The planning rate per unit, in dollars."
+plan,plan_resource_dim,Currency,STRING,classification,,The currency the rate is quoted in.
+plan,plan_resource_dim,Vendor,STRING,organisation,,"The contracting vendor, where the resource is external."
+plan,plan_resource_dim,Is Internal,BOOL,flag,,Whether the resource is own labour rather than contracted.
+plan,plan_resource_dim,Effective From,DATE,date,,First period the rate applies from.
+plan,plan_resource_dim,Effective To,DATE,date,,"Last period it applies to, where it has been superseded."
+plan,plan_mtp_multiyear,Project Code,STRING,identifier,,The capital project key.
+plan,plan_mtp_multiyear,MTP Issue,STRING,classification,,Which issue of the medium-term plan produced the row.
+plan,plan_mtp_multiyear,Plan Year,STRING,classification,,The year within the seven-year horizon this row plans.
+plan,plan_mtp_multiyear,Version,STRING,dimension,,The version the MTP amounts are held in.
+plan,plan_mtp_multiyear,Scenario,STRING,dimension,,The cube Scenario member.
+plan,plan_mtp_multiyear,Entity,STRING,organisation,,The cube Entity member carrying the plan.
+plan,plan_mtp_multiyear,Account,STRING,dimension,,The cube Account member.
+plan,plan_mtp_multiyear,Phase,STRING,dimension,,The project phase the amount is planned in.
+plan,plan_mtp_multiyear,MTP Amount,"NUMERIC(18, 2)",measure_commitment,,"The medium-term plan amount for this project and year, in dollars."
+plan,plan_mtp_multiyear,Prior Issue Amount,"NUMERIC(18, 2)",measure_commitment,,What the previous MTP issue planned for the same year.
+plan,plan_mtp_multiyear,Issue Movement,"NUMERIC(18, 2)",measure,,MTP Amount less Prior Issue Amount.
+plan,plan_mtp_multiyear,Year 1 Amount,"NUMERIC(18, 2)",measure_commitment,,"The first year of the horizon, as this issue plans it."
+plan,plan_mtp_multiyear,Year 2 Amount,"NUMERIC(18, 2)",measure_commitment,,The second year of the horizon.
+plan,plan_mtp_multiyear,Year 3 Amount,"NUMERIC(18, 2)",measure_commitment,,The third year of the horizon.
+plan,plan_mtp_multiyear,Year 4 Amount,"NUMERIC(18, 2)",measure_commitment,,The fourth year of the horizon.
+plan,plan_mtp_multiyear,Year 5 Amount,"NUMERIC(18, 2)",measure_commitment,,The fifth year of the horizon.
+plan,plan_mtp_multiyear,Year 6 Amount,"NUMERIC(18, 2)",measure_commitment,,The sixth year of the horizon.
+plan,plan_mtp_multiyear,Year 7 Amount,"NUMERIC(18, 2)",measure_commitment,,The seventh year of the horizon.
+plan,plan_mtp_multiyear,Horizon Total,"NUMERIC(18, 2)",period_accumulation,,The seven years accumulated - the figure the optimizer preserves.
+plan,plan_mtp_multiyear,Approved By,STRING,person,true,Who approved the issue. PII.
+plan,plan_mtp_multiyear,Approved On,DATE,date,,When it was approved.
+plan,plan_mtp_multiyear,Board Paper Reference,STRING,text,,The board paper the approval is recorded in.
+plan,plan_mtp_multiyear,Region,STRING,geography,,The operating region the project sits in.
+plan,plan_mtp_multiyear,Business Unit,STRING,organisation,,The reporting business unit.
+plan,plan_mtp_multiyear,Is Committed,BOOL,flag,,Whether the year is committed rather than indicative.
+plan,plan_mtp_multiyear,Source System,STRING,text,,Which system produced the row.
+plan,plan_calendarization,Project Code,STRING,identifier,,The capital project key.
+plan,plan_calendarization,Version,STRING,dimension,,The version the annual budget being calendarized belongs to.
+plan,plan_calendarization,Scenario,STRING,dimension,,The cube Scenario member.
+plan,plan_calendarization,Fiscal Year,STRING,classification,,The fiscal year being spread across months.
+plan,plan_calendarization,Period,STRING,dimension,,The month member the amount lands in.
+plan,plan_calendarization,Month Number,INT64,classification,,"The month ordinal within the fiscal year, 1 to 12."
+plan,plan_calendarization,Annual Budget,"NUMERIC(18, 2)",measure_commitment,,"The annual figure being calendarized, in dollars."
+plan,plan_calendarization,Calendarized Amount,"NUMERIC(18, 2)",measure_commitment,,What this month takes of it.
+plan,plan_calendarization,Calendarization Percent,"NUMERIC(18, 2)",derived_ratio,,Calendarized Amount over Annual Budget.
+plan,plan_calendarization,Profile Applied,STRING,classification,,"The profile the January run applied - linear, seasonal or manual."
+plan,plan_calendarization,Seasonality Factor,"NUMERIC(18, 2)",derived_ratio,,The factor the profile applied to this month.
+plan,plan_calendarization,Working Days,INT64,measure,,"Working days in the month, where the profile is day-weighted."
+plan,plan_calendarization,Account,STRING,dimension,,The cube Account member.
+plan,plan_calendarization,Phase,STRING,dimension,,The project phase the month is planned in.
+plan,plan_calendarization,Business Unit,STRING,organisation,,The reporting business unit.
+plan,plan_calendarization,Region,STRING,geography,,The operating region.
+plan,plan_calendarization,Calendarized On,DATE,date,,When the January run wrote this row.
+plan,plan_calendarization,Calendarized By,STRING,person,true,Who ran it. PII.
+plan,plan_calendarization,Is Overridden,BOOL,flag,,Whether a planner has overridden the profile for this month.
+plan,plan_calendarization,Override Reason,STRING,text,,"Why, where it has been overridden."
+plan,plan_optimization_profile,Project Code,STRING,identifier,,The capital project key.
+plan,plan_optimization_profile,Fiscal Year,STRING,classification,,The year the re-phasing moves amounts into or out of.
+plan,plan_optimization_profile,Version,STRING,dimension,,The version the optimized amounts are written to.
+plan,plan_optimization_profile,Scenario,STRING,dimension,,The cube Scenario member.
+plan,plan_optimization_profile,Original Amount,"NUMERIC(18, 2)",measure_commitment,,"What the year held before the run, in dollars."
+plan,plan_optimization_profile,Optimized Amount,"NUMERIC(18, 2)",measure_commitment,,What the run moved it to.
+plan,plan_optimization_profile,Rephasing Movement,"NUMERIC(18, 2)",measure,,Optimized Amount less Original Amount.
+plan,plan_optimization_profile,Multi Year Total,"NUMERIC(18, 2)",period_accumulation,,The multi-year total the run is required to preserve.
+plan,plan_optimization_profile,Total Preserved,BOOL,flag,,"Whether the run preserved that total, which is its one hard constraint."
+plan,plan_optimization_profile,Optimization Run,STRING,identifier,,"The run key, so a re-phasing can be traced back to the solve that produced it."
+plan,plan_optimization_profile,Objective,STRING,classification,,"What the run optimized for - deliverability, cash or in-service date."
+plan,plan_optimization_profile,Constraint Set,STRING,text,,The constraints the run was given.
+plan,plan_optimization_profile,Iterations,INT64,measure,,How many iterations the solver took.
+plan,plan_optimization_profile,Solver Status,STRING,lifecycle_state,,"How the solve ended: optimal, feasible or infeasible."
+plan,plan_optimization_profile,Ran On,TIMESTAMP,date,,When the run executed.
+plan,plan_optimization_profile,Ran By,STRING,person,true,Who ran it. PII.
+plan,plan_optimization_profile,Accepted,BOOL,flag,,Whether a planner accepted the re-phasing into the working plan.
+plan,plan_optimization_profile,Accepted On,DATE,date,,When it was accepted.

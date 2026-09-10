@@ -180,4 +180,15 @@ export const NAV_ITEMS: NavItem[] = [
  *
  * Dataset-relative: `appPath` and `DatasetRedirect` put the selected dataset's letter on the front.
  */
+/**
+ * The two words on the sidebar's collapse control.
+ *
+ * Here rather than inline in the component for the reason every other pair of act labels is in
+ * `src/data/`: they are the only thing telling a reader what the chevron does, and the collapsed
+ * rail is one button with no text beside it — so the label *is* the affordance, and it has to be
+ * assertable without rendering the shell's own state.
+ */
+export const NAV_COLLAPSE_LABEL = 'Hide navigation'
+export const NAV_EXPAND_LABEL = 'Show navigation'
+
 export const LANDING = '/ask'

@@ -1,4 +1,10 @@
-import type { DraftedItem, GraphSource, HeroQuestion, SourcePick } from '../api/client'
+import type {
+  DraftedItem,
+  GraphDomain,
+  GraphSource,
+  HeroQuestion,
+  SourcePick,
+} from '../api/client'
 
 /**
  * Everything a step is judged on. One object rather than six signatures, so
@@ -128,4 +134,22 @@ export function firstIncompleteStep(
     if (stepIssue(step, draft)) return step
   }
   return null
+}
+
+
+/**
+ * How many entries the tenant's pools hold for a domain — what steps 2, 3 and 5 could draft from.
+ *
+ * **A domain can be a perfect fit for the connected data and still have nothing to draft**, which
+ * is not the same question `fit` answers: `fit` is about profiled sources, this is about whether
+ * anybody has written a persona, a metric or a hero question against this domain. CAPEX declares
+ * four domains and its pools cover two, so two of its cards lead to three consecutive steps that
+ * suggest nothing — reported from use as the suggesters being broken.
+ *
+ * Pure and here rather than in the page for the reason `stepIssue` is: a rule written inline can
+ * only be asserted by rendering the page, and `renderToString` gives it its initial state.
+ */
+export function draftableCount(domain: GraphDomain): number {
+  const { personas, metrics, heroQuestions } = domain.drafts
+  return personas + metrics + heroQuestions
 }

@@ -966,7 +966,7 @@ modal are handed the same filtered array, so the figure and the row count are on
 | per row acts | **Confirm** (writes it) and **Reject** (drops it from the run — nothing is stored, so nothing is deleted) |
 | footer | **Accept all · N**, with the sentence saying it goes one at a time and stops at the first refusal |
 
-### The *N relationships confirmed* tile
+### The *N relations* tile
 
 **The twin of the tile above, and it answers the question this tab otherwise could not.** Entity
 detail shows one table's declarations at a time and the canvas draws them as edges with no list
@@ -976,10 +976,19 @@ grouping in `src/data/confirmedRelationships.ts`.
 
 | | what it shows |
 |---|---|
-| per row | the relationship's own name, the **confirmed** pill with its tick, the provenance badge, the join, the cardinality, the evidence in words, and the rationale |
+| per row | the relationship's own name, **one** provenance mark — *Confirmed by you* where somebody accepted it, *Curated by AI* where nobody has — the join, the cardinality, the evidence in words, and the rationale |
 | grouped by | the **from** table — where `relationshipWrites` anchors the declaration, so the heading is a claim about storage rather than a display choice; each heading prints its own count |
-| per row acts | none — the row **opens the relationship dialog** (closing this one first), so editing and deleting stay on the one dialog the canvas edge already opens |
-| footer | Close, and the sentence saying where the acts are. No *Accept all* twin: there is no bulk act on a stored declaration |
+| per row acts | **Accept** (records it as yours; withheld where somebody already has) and **Reject** (removes the declaration and puts the row back with the suggestions, **pending**). Clicking the row itself still opens the relationship dialog, so editing and deleting stay on the one dialog the canvas edge already opens — both buttons stop the click |
+| footer | Close, and the sentence saying where the *other* acts are. No *Accept all* twin: there is no bulk act on a stored declaration |
+
+**Stored is not confirmed.** `provenance` was the literal `'human'` for every stored declaration, so
+all 31 across the two documents read *Confirmed by you* to whoever was looking — a claim about the
+reader that was false for every one. A stored relationship carries **`confirmed_by`** now: nullable,
+absent on everything written before it existed, the browser's address (client-held identity, so the
+caller sends it), and **carried through every edit** — a write hands the server the whole
+relationship, so omitting the field would strip the name off and silently un-accept the row.
+Accepting a suggestion credits the reader on all three paths (single confirm, Accept all, the
+dialog).
 
 **No confidence on a confirmed row.** A declaration is somebody's decision, and a score under it
 would put a classifier behind a person's judgement — the row states its `evidence` in words instead.
@@ -1046,35 +1055,61 @@ alone.
 
 ### Uploading a schema or a data dictionary
 
-**Files:** the third button on a BigQuery source → `SchemaUploadPanel.tsx` → `useSchemaUploadStore`
-→ `POST /sources/:id/schema/preview` and `POST /sources/:id/schema` → `resolveSchemaUpload` in
-`server.js` over `backend/schemaImport.js`. Copy and file rules in `src/data/schemaUpload.ts`;
-`npm run verify:schema-import` replays the reader offline.
+**Files:** **Upload dictionary**, on each dataset row of a BigQuery source's browse tree →
+`DatasetDictionaryUpload.tsx` (`DictionaryUploadControl` + `DictionaryPlanReport`) →
+`useSchemaUploadStore` → `POST /sources/:id/schema/preview` and `POST /sources/:id/schema` →
+`resolveSchemaUpload` in `server.js` over `backend/schemaImport.js`. The write is triggered by
+**Start Profiling** in `BrowsePanel` (`CatalogPage.tsx`). Copy, file rules and the two outcome
+sentences are in `src/data/schemaUpload.ts`; `npm run verify:schema-import` replays the reader
+offline.
 
-**What it does.** A schema or dictionary file becomes this source's **column dictionary** —
+**What it does.** A schema or dictionary file becomes that **dataset's** column dictionary —
 `column_profiles`, keyed `dataset.table`, the same place a profiling run reads from and the same
 place the demo's own 206 columns were ingested into. Then it starts a run. So it is the ingest
 script's act through a screen, and afterwards the Catalog serves what the file said instead of
 synthesised columns, Data Modeling draws them, and the graph derives over them.
 
-**BigQuery only.** `catalogUnits`' bigquery row declares `schemaLabel`/`schemaPanel` and the other
-two declare neither, so the button is drawn where the act exists rather than tested for by connector
-name. A drive or a mailbox reaching the endpoint is refused by `wrongStructuredOnly` — a schema is
-what neither has.
+**Per dataset, not per source.** It was a third source-level button whose panel then *asked* which
+dataset from a Select — one upload for a source that may hold three, and a control the reader met
+after they had been looking at the list of them. `SchemaUploadPanel.tsx` is deleted and
+`catalogUnits` declares no `schemaLabel`/`schemaPanel`.
+
+**BigQuery only, by construction.** The control lives in the *structured* browse panel, and only
+that panel lists datasets — a drive gets `DocumentBrowsePanel`, a mailbox `MailBrowsePanel`, neither
+of which has a dataset row for it to sit on. A drive or a mailbox reaching the endpoint anyway is
+refused by `wrongStructuredOnly` — a schema is what neither has.
 
 | step | what happens |
 |---|---|
-| choose a file | read in the browser (`File.text()`); the extension and the size are checked against `schemaFileProblem` before anything is sent |
-| **Read the file** | `POST …/schema/preview` — parses, reports, **writes nothing** |
-| **Apply and profile** | `POST …/schema` — commits the dictionary through `commitDb`, then queues a **forced** run over the tables it touched and switches to the jobs board |
+| **Upload dictionary** (on a dataset row) | the file is read in the browser (`File.text()`); `schemaFileProblem` checks the extension and the size before anything is sent |
+| — immediately, no second click | `POST …/schema/preview` — parses, reports into `staged[dataset]`, **writes nothing**; `DictionaryPlanModal` opens on it, with `DictionaryPlanReport` (exported apart from the `Modal`) as its body. *View report* on the row reopens it; Close is its only act |
+| **Start Profiling** | one `POST …/schema` carrying **every** staged dictionary *and* the checked tables: the server resolves all the plans, commits them in a single `commitDb`, then queues **one** job over the union — the dictionaries' tables (always `pending`) plus the rest of the selection (skipped if already profiled, unless `force`) — and the page switches to the jobs board |
 
-**There is a sample to upload: `docs/samples/schema-upload-example.json`.** It is written against
-CAPEX's `bigquery:northline_epbcs` / `plan`, and it demonstrates both halves in one file — it
-replaces the synthesised columns of `plan_scenario_dim` **without changing its count** (`7 -> 7`) and
-*declares* `plan_capital_gate_log`, which is why it carries a label and a grain. Its own `_note` says
-what to look for, and unknown top-level keys are ignored by the reader so that note travels with the
-file. `check-docs` **parses it** and holds it against the real document: a sample that had gone stale
-would refuse in the feature it exists to demonstrate.
+**One press, one pipeline.** This was two calls and two jobs: a forced run over the dictionary's
+tables, then a second for everything else checked. Over `plan` — 12 dictionary tables and 6 others,
+18 in one selection — that read as two pipelines from one press with nothing saying when profiling
+had finished. The work list is keyed `dataset::table` and the dictionary's entry wins, so a table is
+never in the job twice.
+
+**Where it fails:** a refusal writes **nothing** (every plan is resolved before the commit) and
+leaves everything staged — `dictionaryRefused` says exactly that, because "the upload failed" leaves
+open whether some of it took; two dictionaries naming one dataset are refused, since the second would
+replace what the first wrote; and a file whose extension or size the browser refuses never leaves it,
+with the sentence landing in the store's one `error` beside the parser's own.
+
+**Two samples to upload, both parsed by `check-docs`.**
+`docs/samples/schema-upload-example.json` is written against CAPEX's `bigquery:northline_epbcs` /
+`plan` and demonstrates both halves in one file — it replaces the synthesised columns of
+`plan_scenario_dim` **without changing its count** (`7 -> 7`) and *declares* `plan_capital_gate_log`,
+which is why it carries a label and a grain. Its own `_note` says what to look for, and unknown
+top-level keys are ignored by the reader so that note travels with the file.
+`docs/samples/capex-plan-dictionary.csv` is the **whole `plan` dataset** — the 12 `plan_*` cube
+tables, 186 columns, each table already catalogued at exactly the count the document carries, so
+nothing shrinks. It **does** strand three Data Modeling declarations on `plan_version_master`, all
+made against synthesised column names (a confirmed identifier `ITD Actuals`, and two joins on a
+`Project Code` a table whose grain is "one version" does not have) — the preview names all three
+before anything is written, and the fix is a Data Modeling edit rather than a column invented into
+the dictionary. `check-docs` deliberately asserts nothing about that count.
 
 **Three formats:** JSON (a document with `tables`, or a flat array of column rows), CSV/TSV (one row
 per column, with a header — `table` and `column` required, plus `type`, `description`, `class`,
@@ -1298,10 +1333,11 @@ machinery — they differ only in copy and which pool they draw from:
 
 | | Step 2 | Step 3 |
 |---|---|---|
-| suggester | `POST /graph-personas/suggest` | `POST /graph-kpis/suggest` |
-| pool | `graph_personas` (`focus`) | `graph_kpis` (`definition`) |
+| suggester | `POST /graph-personas/suggest` | `POST /graph-metrics/suggest` |
+| pool | `graph_personas` (`focus`) | `graph_metrics` (`definition`) |
 | list label | Who will ask questions of this graph? | Metrics these answers report against |
-| saved as | `personas` | `kpis` |
+| saved as | `personas` | `metrics` |
+| corrects the pool | — | `PATCH /graph-metrics/:metricId` |
 
 Both answer `{ suggestions: [{ id, name, detail, why }], count, derived_from }`,
 and both lists are stored as `{ name, description, source }`. Adding a step 4–7
@@ -1310,11 +1346,52 @@ a third variant.
 
 `Suggest personas (LLM)` → `POST /graph-personas/suggest { domain_id,
 business_need }` → up to four drafts from the `graph_personas` pool. Each row
-carries an **AI-DRAFTED** tag, its `why`, a **+ Add** button and an ✕ to wave it
+carries an **AI-DRAFTED** tag, its `why`, an **Accept** button and an ✕ to wave it
 away (local only — a suggestion was never saved).
 
-**+ Add** moves it into *Who will ask questions of this graph?*, keeping the
-focus line as its description and `source: 'ai'`.
+**When it drafts nothing, the payload says why** (`empty_reason`, `null` otherwise) and the step
+prints that rather than its own wording. There are two empties and they have different fixes: the
+pool has entries for this domain and the ranking placed none (*re-word the brief*), or the pool has
+nothing on this domain at all (*change the domain, or write your own*). Only the server can tell
+them apart, so it composes the sentence and names where the pool does have entries. **The first
+symptom of getting this wrong is a bug report that the suggesters are broken** — CAPEX declares four
+domains and has personas, metrics and hero questions for two, and every empty draft used to read
+"Nothing matched this brief".
+
+Step 1's cards carry the other half: `drafts` per domain (personas · metrics · hero questions),
+counted off the pools by `draftableFor`, so a domain that can draft nothing is visible where it is
+chosen. It is **not** `fit`, which is about connected data — a domain can be a strong fit and have
+nothing written against it. Such a domain stays selectable, because writing your own is a real path.
+
+And **never narrow a pool's `domains` when replacing it**: `suggestFrom` drops an entry whose
+domains miss the brief's when its keywords miss too, so a narrower pool deletes suggestions rather
+than weakening them. `seed-capex-metrics.js` took the intersection once and cost water-wastewater
+every metric it had.
+
+**Accept** moves it into *Who will ask questions of this graph?*, keeping the
+focus line as its description and `source: 'ai'`. It was labelled *+ Add* and was
+renamed on request: what the button does to a *suggestion* is accept it, while
+**Add persona** / **Add metric** below really does author a new one and keeps its
+name.
+
+**Step 3 has a third button, Edit, and it is the one act here that writes.**
+Accept copies a row into the draft and ✕ filters a list nothing saved; Edit
+corrects the **pool** — `PATCH /graph-metrics/:metricId` through `commitDb` — so a
+corrected title or calculation survives a restart and every later brief drafts
+from it. The row opens in place on two fields (a title input, a `TextArea` for the
+description, because one CAPEX metric is a sixteen-line DAX measure), and the row
+is replaced with **what the server stored** rather than what was submitted.
+
+Its refusals: an empty title (every surface identifies a metric by it), and a
+title another metric already holds (the accepted list is keyed by name, so two
+would be indistinguishable there). A refusal leaves the editor open on what was
+typed — the sentence is what the reader has to act on.
+
+Step 2 has no Edit, and it is **absent rather than disabled**: personas have the
+same shape and no write route, so `DraftedStep` takes `onEdit` as an optional prop
+and `createSuggestStore` takes its writer per pool. Editing a metric that has
+already been accepted also renames it in the list below, since that list holds a
+*copy* keyed by name; saved briefs are deliberately not rewritten.
 
 Below the suggestions, **Add persona** — the same primary button as the
 suggester, because typing your own is not a lesser path — opens a two-field form
@@ -2834,6 +2911,16 @@ Still not authentication — the password is length-checked and nothing more.
 - **One place decides visibility.** `visibleNavItems` in `settingsStore`; the sidebar filters through it
   and nothing else does. `App`'s mobile header reads the *unfiltered* list on purpose — it names the page
   you are on, and a hidden page is still reachable.
+- **The sidebar collapses, and collapsed means *absent*.** `Sidebar` returns early on `collapsed`, so
+  the items, the wordmark and the signed-in card leave the markup — antd's `collapsible` is
+  deliberately not used, because an icon-only rail is a menu a reader cannot read and a screen reader
+  still announces. `App` drives the width (258 → `COLLAPSED_WIDTH` 48, never 0) and the 48px rail keeps
+  `SidebarToggle` — exported for assertion, carrying `aria-label` and `aria-expanded`, its two words in
+  `nav.ts`. The mobile drawer takes none: it hides everything by being shut. Not persisted.
+- **The toggle is `MenuFold`/`MenuUnfold` on a filled button**, not a grey chevron: it was
+  discoverable only by hovering the right pixels. Brand tint, brand border, **`BRAND_INK`** glyph
+  (`BRAND` on `BRAND_SOFT` is 2.91:1), inline from `theme.ts` — `Sidebar.css` already hardcodes an
+  orange of its own, so the stylesheet owns only the glyph size and a brightness hover.
 - **Settings belongs to Platform Admin**, on and **fixed** there, off-but-configurable elsewhere. The
   lock is enforced by the **server**, which refuses a change to a fixed key with a sentence rather than
   ignoring it — a disabled switch is a courtesy to whoever is looking at it, and any other path into the
@@ -2876,8 +2963,22 @@ left out with the count stated (a model is a schema; a document corpus has none)
 | column | what it answers |
 |---|---|
 | left rail | which structured source, and which of its profiled tables — with a pill per table stating its confirmed relationships, or its pending ones, or an em dash |
-| centre | four counts (tables · relationships confirmed · suggested, pending · columns described — the middle two open what they count), **Curated by AI**, **Fit**, then the canvas and its legend |
-| right | the one table in hand, over Overview / Columns / Relationships |
+| centre | five counts (tables · **relations** · suggested, pending · orphan tables · columns described — the middle two open what they count; orphans are inert and read `—` before a run), **Fit**, then the canvas and its legend. The *Curated by AI* button is gone: the run happens on arrival |
+| right | the one table in hand, over Overview / Columns / Relationships — with **one** status pill beside its name: *Not yet declared*, *Curated by AI* (an entity exists but nobody saved it) or *Confirmed by you* |
+
+**The table's status is stated once, in the header.** Overview carried a `ProvenanceBadge` beside
+five of its fields — one question answered five times on a form saved by one button — and they were
+removed on request, along with `fieldLabel`'s `badge` slot. `tableDeclarationState` in
+`src/data/dataModelStatus.ts` is the rule, read off an entity-level **`confirmed_by`** that only
+*Save Overview* writes. The two declared states are `ProvenanceBadge`s — **purple** *Curated by AI*,
+green *Confirmed by you* — and only *Not yet declared* is a `StatusPill`: all three went through the
+status palette at first, so the header's *Curated by AI* was amber while the same words on the rows
+beside it were purple. Status is green/amber/red, provenance is green/purple, and that is why the two
+are separate components. `TABLE_STATUS_KIND` names only which badge; the words are the badge's. It read *Declared* for any existing entity before, which was wrong for all
+14 of CAPEX's: `relationshipWrites` mints an **anchor** entity whenever a relationship points at an
+undeclared table. A later write carries the stored answer forward, so an anchor write cannot
+un-declare a table somebody saved. **The per-row marks stayed** — a relationship's badge and a
+reassigned column's are records with their own provenance, not fields of a form.
 
 **Selection is one piece of state.** `selectedTableKey` goes to the rail and to the canvas and both
 call the same setter, so the two cannot disagree about what is selected — there is nothing to sync
@@ -2932,10 +3033,29 @@ columns. It is paced at `SUGGEST_MS`; its refusals are not.
 `degraded: true` rides on every response; the tab prints *"No figure is invented to fill a field"*;
 and the provenance badge reads **Curated by AI**, renamed on request over a scan no model performs.
 Do not "fix" the disagreement by flipping `degraded` — it is the only honest answer left to that
-question, and `check-docs` fails on it. A run is capped at `SUGGEST_TABLE_CAP` (12) tables and reports `truncated`,
-because a pair-wise scan is quadratic and a list silently covering a fifth of a source would read as
-a source with few relationships. Each suggestion is named after the **column it matched on**, since
-three `HAS_<TABLE>` names in one list are three suggestions nobody can tell apart.
+question, and `check-docs` fails on it. Each suggestion is named after the **column it matched on**,
+since three `HAS_<TABLE>` names in one list are three suggestions nobody can tell apart.
+
+**It runs on arrival; there is no button.** The *Curated by AI* control is gone (removed on request) —
+a reader who had just profiled 18 tables met a tab reporting no relationships until they pressed it.
+The effect is keyed `sourceId:tableCount`, so the store's re-read after a save does not start a run
+and profiling more tables does. The strip narrates it (*Reading the schema*). The cost: no way to ask
+again for the same tables, so a rejected suggestion is gone until the profile changes.
+
+**Every profiled table is scanned; the returned list is what `SUGGEST_RELATIONSHIP_CAP` (80) cuts**,
+reported as `truncated` + `relationships_total`, recorded rows first so a cut takes column-name
+matches before an authored one. It was a **table** cap (12), which made an unjoined table a claim
+about the cap: 6 of an 18-table source looked unrelated when all 18 share an identifier.
+
+**The orphan tile counts the tables no relationship on screen touches** — off `relationships`, the
+same array the rail's em dash reads, so the tile and the row cannot disagree. It counted the server's
+`orphan_tables` first and read **0** while a table with nothing on it sat selected beside it: the tab
+drops a suggestion whose pair is already declared, and a reader rejects rows, either of which leaves
+a table bare while the scan still says it found it something. The served list is kept for the hint —
+how many are unjoined *in the data* against how many had their suggestions rejected. `—` before a
+run, and inert; the table list's own em-dash row is the naming. **CAPEX's 18 `plan` tables give 53
+suggestions**, of which 47 carry **no cardinality** — a dictionary-declared column has no distinct
+count, so there is nothing to derive one from and the reviewer sets it on confirm.
 
 ### Failure modes, and what each one looks like
 

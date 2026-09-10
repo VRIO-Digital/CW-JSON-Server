@@ -22,6 +22,9 @@
     "    description status is 'needs review' — nobody has said what it means.",
     "  · a forced profiling run starts on both tables and the Catalog switches to Profiling jobs.",
     "",
+    "Its column names match capex-plan-dictionary.csv on purpose: two samples describing one table",
+    "with different names would mean applying either strands whatever the other had joined on.",
+    "",
     "The preview writes nothing. It also warns if a Data Modeling declaration reads a column this",
     "file does not name — neither table below is one anything has declarations on."
   ],
@@ -33,40 +36,40 @@
       "table": "plan_scenario_dim",
       "columns": [
         {
-          "column": "scenario_id",
+          "column": "Scenario",
           "type": "STRING",
           "class": "identifier",
-          "description": "The Scenario member key, as the cube stores it. Joins to plan_version_master.scenario."
+          "description": "The Scenario member key, as the cube stores it. Joins to plan_version_master.Scenario."
         },
         {
-          "column": "scenario_name",
+          "column": "Scenario Name",
           "type": "STRING",
           "class": "label",
           "description": "What the scenario is called on screen — Budget, Actual, Forecast."
         },
         {
-          "column": "scenario_type",
+          "column": "Scenario Type",
           "type": "STRING",
           "class": "classification",
           "description": "Whether the member holds a plan, a recorded actual, or a forecast vintage."
         },
         {
-          "column": "maps_to_version",
+          "column": "Default Version",
           "type": "STRING",
           "description": "The default version this scenario resolves to when a form does not name one. No class stated, so it is read from the type."
         },
         {
-          "column": "is_active",
+          "column": "Is Active",
           "type": "BOOL",
           "description": "Whether the scenario is open for input. Derived class: flag."
         },
         {
-          "column": "effective_from",
+          "column": "Effective From",
           "type": "DATE",
           "description": "First period the scenario accepts data for. Derived class: date."
         },
         {
-          "column": "owner_email",
+          "column": "Owner",
           "type": "STRING",
           "class": "person",
           "pii": true,

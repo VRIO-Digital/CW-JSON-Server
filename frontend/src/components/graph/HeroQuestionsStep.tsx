@@ -19,6 +19,7 @@ export default function HeroQuestionsStep({
   onQuestions,
   suggestions,
   asked,
+  emptyReason,
   suggesting,
   runStages,
   runCost,
@@ -30,6 +31,8 @@ export default function HeroQuestionsStep({
   onQuestions: (questions: HeroQuestion[]) => void
   suggestions: Suggestion[]
   asked: boolean
+  /** Why the last draft came back empty, when it did — the server's sentence, or null. */
+  emptyReason: string | null
   suggesting: boolean
   runStages: string[]
   runCost?: number
@@ -109,7 +112,10 @@ export default function HeroQuestionsStep({
           {suggestions.length === 0 ? (
             <span className="ng-empty">
               {asked
-                ? 'Nothing matched this brief — write your own below.'
+                ? /* The server's sentence: it is the only side that knows whether this dataset
+                     has any hero questions on this domain at all, and "nothing matched this
+                     brief" blames the reader's words when it does not. */
+                  (emptyReason ?? 'Nothing matched this brief — write your own below.')
                 : 'No suggestions yet — use Suggest questions (LLM).'}
             </span>
           ) : (
