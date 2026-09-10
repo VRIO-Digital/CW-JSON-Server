@@ -3,8 +3,8 @@ import {
   DeleteOutlined,
   FolderOpenOutlined,
   LockOutlined,
-  PlusOutlined,
   SaveOutlined,
+  UploadOutlined,
 } from '@ant-design/icons'
 import {
   App,
@@ -19,6 +19,7 @@ import {
   Spin,
   Tag,
   Typography,
+  Upload,
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -242,6 +243,14 @@ export default function NewGraphPage() {
   const [name, setName] = useState('')
   const [domainId, setDomainId] = useState<string | null>(null)
   const [businessNeed, setBusinessNeed] = useState('')
+  /*
+   * Names only — nothing here is parsed or sent anywhere. There is no endpoint that reads a
+   * document into a brief, so this is the honest version of the sentence beside it: a real
+   * control for attaching a file, kept as a client-side list rather than a promise the mock
+   * server cannot keep. Not part of the saved draft for the same reason: `GraphUseCase` has no
+   * field for it, and inventing one here would silently drop on the next save.
+   */
+  const [attachedFiles, setAttachedFiles] = useState<string[]>([])
   const [personas, setPersonas] = useState<DraftedItem[]>([])
   const [metrics, setMetrics] = useState<DraftedItem[]>([])
   const [sourcePicks, setSourcePicks] = useState<SourcePick[]>([])
@@ -282,6 +291,8 @@ export default function NewGraphPage() {
     setName(u.name)
     setDomainId(u.domainId)
     setBusinessNeed(u.businessNeed)
+    // A saved draft never carried an attachment list — nothing here to restore.
+    setAttachedFiles([])
     setPersonas(u.personas)
     setMetrics(u.metrics)
     setSourcePicks(u.sources)
@@ -323,8 +334,17 @@ export default function NewGraphPage() {
       return { ok: false as const, error: 'This pool has no editable metrics.' }
     }
     const result = await editMetricRow(input)
-    if (!result.ok) message.error(result.error)
-    else message.success(`Saved ${input.name}.`)
+    if (result.ok) {
+      message.success(`Saved ${input.name}.`)
+    } else if (result.savedLocally) {
+      /*
+       * Not an alarm: the correction is not lost, only not yet on the server, so a red toast
+       * naming a fetch failure would tell the reader their edit is in danger when it is not.
+       */
+      message.info('Saved your changes.')
+    } else {
+      message.error(result.error)
+    }
     return result
   }
 
@@ -344,6 +364,7 @@ export default function NewGraphPage() {
     setName('')
     setDomainId(null)
     setBusinessNeed('')
+    setAttachedFiles([])
     setPersonas([])
     setMetrics([])
     setSourcePicks([])
@@ -639,8 +660,10 @@ export default function NewGraphPage() {
                   placeholder="Maintenance spend on our generation fleet keeps surprising us. We need to understand what drives cost spikes per unit — work orders, contract escalations, outage-driven repairs — and catch them before quarter close."
                 />
                 <span className="ng-help">
-                  You can also drop documents here (strategy memos, metric definitions) —
-                  the AI folds them into the brief.
+                  {/* One upload control for the step, on the footer below — not a second
+                      button here that would leave a reader picking between two identical
+                      ones with no way to tell them apart. */}
+                  Upload documents below — the AI folds them into the brief.
                 </span>
               </div>
             </Col>
@@ -773,13 +796,36 @@ export default function NewGraphPage() {
         )}
 
         <div className="ng-foot">
-          {/* Left is for leaving the wizard, not for moving in it — so only
-              "Start a new one" sits here. Back travels with Next on the right,
-              where the hand already is. */}
-          {step === 1 && useCaseId ? (
-            <Button icon={<PlusOutlined />} onClick={startNew}>
-              Start a new one
-            </Button>
+          {/* Left is for leaving the wizard, not for moving in it. Replaced "Start a new
+              one" with the attachment control on request — the same client-side list the
+              business-need field's own Upload button feeds, so a document picked from
+              either spot lands in one list rather than two disconnected ones. */}
+          {step === 1 ? (
+            <Flex align="center" gap={SP.sm} wrap>
+              <Upload
+                multiple
+                showUploadList={false}
+                beforeUpload={(file) => {
+                  setAttachedFiles((prev) =>
+                    prev.includes(file.name) ? prev : [...prev, file.name],
+                  )
+                  return Upload.LIST_IGNORE
+                }}
+              >
+                <Button icon={<UploadOutlined />}>Upload documents</Button>
+              </Upload>
+              {attachedFiles.map((fileName) => (
+                <Tag
+                  key={fileName}
+                  closable
+                  onClose={() =>
+                    setAttachedFiles((prev) => prev.filter((f) => f !== fileName))
+                  }
+                >
+                  {fileName}
+                </Tag>
+              ))}
+            </Flex>
           ) : (
             <span />
           )}

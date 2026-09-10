@@ -73,7 +73,13 @@ export default function DraftedStep({
     id: string
     name: string
     detail: string
-  }) => Promise<{ ok: true } | { ok: false; error: string }>
+  }) => Promise<
+    | { ok: true }
+    /* `savedLocally` is the one refusal that is not really one — the text was kept, just not
+       yet written to the pool, so `saveEdit` below closes the row on it exactly as it would a
+       real success. */
+    | { ok: false; error: string; savedLocally?: boolean }
+  >
 }) {
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
@@ -111,8 +117,10 @@ export default function DraftedStep({
     })
     setSaving(false)
     /* A refused write leaves the editor open on what was typed — the page shows the server's
-       sentence, and closing the row would hide the text the reader has to correct. */
-    if (!result.ok) return
+       sentence, and closing the row would hide the text the reader has to correct. A write that
+       merely failed to *reach* the server is different: the text is safe in the local fallback,
+       so the row closes exactly as it would on a real save. */
+    if (!result.ok && !result.savedLocally) return
     /*
      * A row already accepted carries a *copy* of the old title, and the accepted list is keyed by
      * name — so without this the reader sees the corrected suggestion still marked Accepted while

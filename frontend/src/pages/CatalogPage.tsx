@@ -1,3 +1,4 @@
+import { DoubleLeftOutlined, DoubleRightOutlined } from '@ant-design/icons'
 import {
   Alert,
   App,
@@ -9,6 +10,7 @@ import {
   Spin,
   Tabs,
   Tag,
+  Tooltip,
   Tree,
   Typography,
   type TreeDataNode,
@@ -402,6 +404,11 @@ function CatalogTab({
   const uncatalogued = sources.length - catalogued.length
   const [activeId, setActiveId] = useState<string | null>(null)
   const [panel, setPanel] = useState<CatalogPanel>('none')
+  /* The source list's own collapse, independent of the sidebar's — a reader who has already
+     picked a source may want the detail panel's room back without losing the pinned card
+     entirely, so it narrows to an icon rail rather than disappearing. No persistence, matching
+     the sidebar's own toggle: this is a working control, not a remembered preference. */
+  const [listCollapsed, setListCollapsed] = useState(false)
 
   const selected =
     catalogued.find((s) => s.sourceId === activeId) ?? catalogued[0] ?? null
@@ -435,36 +442,68 @@ function CatalogTab({
 
   return (
     <Row gutter={[SP.lg, SP.lg]} align="top">
-      <Col xs={24} xl={9} xxl={8}>
-        <div className="cat-list">
-          {catalogued.map((s) => (
+      <Col xs={24} xl={listCollapsed ? 2 : 9} xxl={listCollapsed ? 2 : 8}>
+        <div className={`cat-list${listCollapsed ? ' is-collapsed' : ''}`}>
+          {/* The one control that opens and closes this card — colour is never the only
+              signal, so the icon flips direction and the tooltip says which act it is. */}
+          <Tooltip title={listCollapsed ? 'Expand source list' : 'Collapse source list'}>
             <button
               type="button"
-              key={s.sourceId}
-              className={`cat-source${s.sourceId === selected?.sourceId ? ' is-active' : ''}`}
-              onClick={() => {
-                setActiveId(s.sourceId)
-                setPanel('none')
-              }}
+              className="cat-list-collapse-btn"
+              aria-label={listCollapsed ? 'Expand source list' : 'Collapse source list'}
+              aria-pressed={listCollapsed}
+              onClick={() => setListCollapsed((v) => !v)}
             >
-              <span className="cat-source-icon">
-                <ConnectorIcon connector={s.connector} size={20} />
-              </span>
-              <span className="cat-source-body">
-                {/* The id leads because it is what every action acts on; the name
-                    the user typed is what they recognise, so it rides beside it as
-                    a tag. Neutral — a name is not a state. */}
-                <span className="cat-source-head">
-                  <span className="cat-source-id">{s.sourceId}</span>
-                  <span className="cat-source-name">{s.sourceName}</span>
-                </span>
-                <span className="cat-source-meta">
-                  {s.projectAccount} · {catalogUnitsFor(s.kind)?.listCount(s) ?? ''} ·{' '}
-                  {s.status}
-                </span>
-              </span>
+              {listCollapsed ? <DoubleRightOutlined /> : <DoubleLeftOutlined />}
             </button>
-          ))}
+          </Tooltip>
+
+          {listCollapsed
+            ? catalogued.map((s) => (
+                <Tooltip key={s.sourceId} title={`${s.sourceId} · ${s.sourceName}`} placement="right">
+                  <button
+                    type="button"
+                    className={`cat-source cat-source-mini${s.sourceId === selected?.sourceId ? ' is-active' : ''}`}
+                    aria-label={s.sourceId}
+                    onClick={() => {
+                      setActiveId(s.sourceId)
+                      setPanel('none')
+                    }}
+                  >
+                    <span className="cat-source-icon">
+                      <ConnectorIcon connector={s.connector} size={20} />
+                    </span>
+                  </button>
+                </Tooltip>
+              ))
+            : catalogued.map((s) => (
+                <button
+                  type="button"
+                  key={s.sourceId}
+                  className={`cat-source${s.sourceId === selected?.sourceId ? ' is-active' : ''}`}
+                  onClick={() => {
+                    setActiveId(s.sourceId)
+                    setPanel('none')
+                  }}
+                >
+                  <span className="cat-source-icon">
+                    <ConnectorIcon connector={s.connector} size={20} />
+                  </span>
+                  <span className="cat-source-body">
+                    {/* The id leads because it is what every action acts on; the name
+                        the user typed is what they recognise, so it rides beside it as
+                        a tag. Neutral — a name is not a state. */}
+                    <span className="cat-source-head">
+                      <span className="cat-source-id">{s.sourceId}</span>
+                      <span className="cat-source-name">{s.sourceName}</span>
+                    </span>
+                    <span className="cat-source-meta">
+                      {s.projectAccount} · {catalogUnitsFor(s.kind)?.listCount(s) ?? ''} ·{' '}
+                      {s.status}
+                    </span>
+                  </span>
+                </button>
+              ))}
           {/* A list that is merely shorter is not a message — the rule the Library's missing
               governance rows are stated under. A connected source missing from here would
               otherwise show up on Sources and not in the Catalog, with nothing accounting for the
@@ -472,19 +511,24 @@ function CatalogTab({
 
               The reason changed when mail got a profiler: the sources this leaves out are now the
               stubbed connectors, which have no pipeline behind them at all. Mail is catalogued
-              like a project and a drive. */}
-          {uncatalogued > 0 ? (
+              like a project and a drive.
+
+              Neither note is drawn collapsed: a sentence has nowhere to fit in an icon rail, and
+              both are restated the moment the card is expanded again — nothing here is lost. */}
+          {!listCollapsed && uncatalogued > 0 ? (
             <Typography.Text className="cat-list-note">
               {`${uncatalogued} more connected source${uncatalogued === 1 ? '' : 's'} carr${uncatalogued === 1 ? 'ies' : 'y'} no catalogue: there is no profiler behind that connector yet, so there is nothing here to describe. It is listed on Sources.`}
             </Typography.Text>
           ) : null}
-          <Typography.Text className="cat-list-note">
-            Connecting a new source is an Admin action.
-          </Typography.Text>
+          {!listCollapsed ? (
+            <Typography.Text className="cat-list-note">
+              Connecting a new source is an Admin action.
+            </Typography.Text>
+          ) : null}
         </div>
       </Col>
 
-      <Col xs={24} xl={15} xxl={16}>
+      <Col xs={24} xl={listCollapsed ? 22 : 15} xxl={listCollapsed ? 22 : 16}>
         {selected ? (
         <div className="cat-detail">
           <Flex align="center" gap={SP.md} wrap className="cat-detail-head">

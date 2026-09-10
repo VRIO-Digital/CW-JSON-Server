@@ -628,6 +628,12 @@ const PRINT_CSS =
  *   stated is still on the dialog in words one line above it (*"per-reader scope is managed in Audit &
  *   Governance"*), which is why hiding it loses a broken route rather than the sentence. Its trailing
  *   `<br>` goes with it, or the removed line keeps its blank.
+ * - **The page's own content width, widened.** `.wrap` caps itself at `max-width: 1180px; margin: 0
+ *   auto`, which was sized for the document's own standalone window — inside this app's wider content
+ *   card the centred column leaves a slab of unexplained page ground on the right, the same "gap nobody
+ *   can account for" reasoning the bar above already keeps. Raised rather than removed: `.wrap` still
+ *   centres and still keeps its own side padding, so a very wide monitor gets a wider column rather than
+ *   text stretched edge to edge with no margin at all.
  * - **And a document's own top bar.** The Audit & Governance screen this dataset ships draws one: the
  *   ContextWeave wordmark, a breadcrumb, and an avatar naming *Dana Whitfield, Domain Architect*.
  *   Inside this app that is a second wordmark under the first and a second identity beside the one in
@@ -657,4 +663,5 @@ const SEAMLESS_CSS =
   ' .shOv { background: #fff !important }' +
   ' body:has(.shOv.on) { overflow: hidden !important }' +
   ' .shGov, .shGov + br { display: none !important }' +
-  ' body > .top { display: none !important }'
+  ' body > .top { display: none !important }' +
+  ' .wrap { max-width: 1560px !important }'
