@@ -1081,8 +1081,22 @@ refused by `wrongStructuredOnly` — a schema is what neither has.
 
 | step | what happens |
 |---|---|
-| **Upload dictionary** (on a dataset row) | the file is read in the browser (`File.text()`); `schemaFileProblem` checks the extension and the size before anything is sent |
+| **Upload dictionary** (on a dataset row, and **only** while nothing is staged there) | the file is read in the browser (`File.text()`); `schemaFileProblem` checks the extension and the size before anything is sent |
 | — immediately, no second click | `POST …/schema/preview` — parses, reports into `staged[dataset]`, **writes nothing**; `DictionaryPlanModal` opens on it, with `DictionaryPlanReport` (exported apart from the `Modal`) as its body. *View report* on the row reopens it; Close is its only act |
+
+**A staged row offers its filename, *View report* and *Discard* — and no upload button.** It used
+to keep one relabelled *Replace file*; removed on request, so swapping a file is Discard then
+Upload. `check-docs` pins the gate (`staged ? null :`) rather than just the absence, because hiding
+a control is one edit away from hiding it in the state that needs it — an empty dataset with no
+upload button has no way to upload, and nothing throws.
+
+**The report is table name, the two column counts, and a `new` tag — and that is all of it.** The
+`added` and `dropped` columns, the stranded-declarations alert, the `re-profiled` tag and the footer
+line restating what Start Profiling does were all **removed on request**. Every field behind them is
+still computed and still served, so re-adding any of it is one block in `DictionaryPlanReport`; what
+it costs meanwhile is that nothing on screen names the columns an upload will take out. The
+curator-note warning stays. `check-docs` guards both directions in one claim — a served field the
+component draws again, and a drawn field the server stops sending.
 | **Start Profiling** | one `POST …/schema` carrying **every** staged dictionary *and* the checked tables: the server resolves all the plans, commits them in a single `commitDb`, then queues **one** job over the union — the dictionaries' tables (always `pending`) plus the rest of the selection (skipped if already profiled, unless `force`) — and the page switches to the jobs board |
 
 **One press, one pipeline.** This was two calls and two jobs: a forced run over the dictionary's
@@ -1107,9 +1121,11 @@ top-level keys are ignored by the reader so that note travels with the file.
 tables, 186 columns, each table already catalogued at exactly the count the document carries, so
 nothing shrinks. It **does** strand three Data Modeling declarations on `plan_version_master`, all
 made against synthesised column names (a confirmed identifier `ITD Actuals`, and two joins on a
-`Project Code` a table whose grain is "one version" does not have) — the preview names all three
-before anything is written, and the fix is a Data Modeling edit rather than a column invented into
-the dictionary. `check-docs` deliberately asserts nothing about that count.
+`Project Code` a table whose grain is "one version" does not have). The plan still computes all
+three, and the report **no longer draws them**: that alert was removed on request, so the fact lives
+in `stranded_declarations` on the payload rather than on the screen. The fix is still a Data
+Modeling edit rather than a column invented into the dictionary. `check-docs` deliberately asserts
+nothing about that count.
 
 **Three formats:** JSON (a document with `tables`, or a flat array of column rows), CSV/TSV (one row
 per column, with a header — `table` and `column` required, plus `type`, `description`, `class`,

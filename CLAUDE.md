@@ -1423,6 +1423,20 @@ be read, and a second click to make anything appear is a step that says nothing.
 writes nothing; what moved is only who asks for it. **Start Profiling is the write**, one control for
 both halves of what a reader means by it.
 
+**A dataset row draws the upload control or the staged acts, never both.** With nothing read against
+it the row offers **Upload dictionary**; with a file staged it offers that file's name, **View
+report** and **Discard** — the upload button used to stay, relabelled *Replace file*, and was
+**removed on request**. Swapping a file is Discard then Upload now: one more click, and the honest
+shape of the act, since `staged` holds one file per dataset and a replace was discarding the
+previous plan either way with only the saying of it missing. `replaceLabel` went with the button,
+because a label nothing renders is an invitation for the control to come back.
+
+**`check-docs` asserts both branches, and the second is the one that fails silently.** A control
+hidden behind a condition is one edit away from being hidden in the state that needs it — a dataset
+with nothing staged and no upload button has no way to upload at all, and nothing throws. So the
+claim pins `staged ? null :` as the gate rather than merely the button's absence: that is the only
+shape which leaves the empty state drawing one.
+
 **The report is a dialog, and it opens itself.** `DictionaryPlanModal` — asked for as a popup, and
 the inline version had made the reason plain: drawn under the tree, a twelve-row table and two
 warnings sat between the dataset rows and the button that acts on them, so a reader scrolled past
@@ -1431,7 +1445,9 @@ is refused: there is no report behind a refusal, and a dialog over one would bur
 explaining it), *View report* on the row is the way back in, and `reportFor` in `BrowsePanel` is the
 one piece of state saying which dataset's is showing — a `Modal` per dataset row would be several
 ways to be looking at one thing. **Close is its only act**: a *Start Profiling* on the dialog too
-would be a second control for one write, so the footer states what that button will do instead.
+would be a second control for one write. The footer used to restate what that button does and no
+longer does — removed on request; the sentence is still printed beside the button itself, so it
+stopped being said twice rather than stopping being said.
 `DictionaryPlanReport` is exported **apart from** the `Modal`, which is the rule every dialog here
 follows — a portal is not traversed by `renderToString`, so a table written inside one cannot be
 asserted at all.
@@ -1479,8 +1495,10 @@ against the real document, including that every class they state is one this app
 **What the CAPEX file deliberately does *not* do is avoid a warning.** It strands three Data
 Modeling declarations on `plan_version_master` — a confirmed identifier and two joins, all made
 against *synthesised* column names, one of them a `Project Code` a table whose grain is "one version"
-does not have. The preview names all three before anything is written, which is the design; the fix
-is a Data Modeling edit, not a column invented into the dictionary to satisfy it. `check-docs`
+does not have. The plan still computes all three — `stranded_declarations` is unchanged — but the
+report **no longer draws them**, since that alert was removed on request (see above), so the fact is
+in the payload and not on the screen. The fix is still a Data Modeling edit, never a column invented
+into the dictionary to satisfy it. `check-docs`
 therefore asserts nothing about that count — pinning it would turn the claim red the moment somebody
 fixed those declarations, which is the guard-fails-on-the-feature-working trap the JSON sample's own
 claim fell into once already (it required the sample to avoid *any* entity on a table, and an anchor
@@ -1575,11 +1593,28 @@ checks against *before* sending so an oversized file is a sentence naming its si
 request the server drops mid-stream (which surfaces as "failed to fetch" and sends a reader looking
 for a server that is fine).
 
-**Nothing an upload takes away goes unnamed.** Three things can be lost and each is reported **by
-name** rather than counted: the columns themselves, a curator's note written against one of them,
-and — the worst of the three — a **Data Modeling declaration** reading one. That last is a state
-`POST /data-model/entities` refuses to write, so it would otherwise be found only by somebody trying
-to edit that relationship.
+**Three things an upload can take away, and the plan still computes all three** — the columns
+themselves (`dropped`), a curator's note written against one of them (`orphaned_notes`), and, the
+worst of the three, a **Data Modeling declaration** reading one (`stranded_declarations`). That last
+is a state `POST /data-model/entities` refuses to write, so it would otherwise be found only by
+somebody trying to edit that relationship.
+
+**The report used to name all three and now names one — removed on request, and the cost is stated
+rather than glossed.** The `added` and `dropped` columns and the stranded-declarations alert are
+gone from `DictionaryPlanReport`, along with the `re-profiled` tag and the footer line restating
+what Start Profiling does. So the dialog no longer tells a reader, by name, which columns an upload
+will take out of the dictionary — and an upload **replaces** a table's column list rather than
+merging into it. The curator-note warning stays, being the one that was not named in the request.
+
+**The removal stopped at the component, deliberately.** Every field is still computed in
+`resolveSchemaUpload`, still on the plan and still in the client's schema — the same
+waiting-for-a-caller state `/change-signals` is in — so this is a narrower *reading* of one payload
+rather than a payload that lost its answers, and re-adding any of it is one block in one file.
+`check-docs` asserts both halves in one claim, because the two failure directions are opposite: a
+field the component draws that the server stopped sending is a blank column, while a served field
+nothing draws is the choice recorded here. **Do not restore any of it without being asked.**
+Start Profiling's own promise did not go with the footer line: `schemaUploadCopy.applyNote` is
+untouched and still printed where that button actually is, so it stopped being said twice.
 
 **A declaration is stranded by a column the file does not *name*, not merely by one it drops** — and
 the difference is a whole silent case. The check tested `dropped`, which is what a *previous

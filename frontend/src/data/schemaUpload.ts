@@ -99,9 +99,15 @@ export const schemaUploadCopy = {
    * reader who has just picked a dictionary has already asked for it to be read, and a second click
    * to make anything appear is a step that says nothing. The read still writes nothing — that
    * guarantee is the preview's, and it is unchanged; what moved is only who asks for it.
+   *
+   * **And the control is the empty state's alone.** It used to stay on a staged row relabelled
+   * *Replace file*; that button was **removed on request**, so `replaceLabel` went with it — a
+   * label nothing renders is an invitation for the control to come back. Swapping a file is
+   * Discard then Upload now, which is one more click and the honest shape of the act: `staged`
+   * holds one file per dataset, so a replace was discarding the previous plan either way and only
+   * the saying of it was missing.
    */
   uploadLabel: 'Upload dictionary',
-  replaceLabel: 'Replace file',
   readingLabel: 'Reading…',
   discardLabel: 'Discard',
 
@@ -121,7 +127,7 @@ export const schemaUploadCopy = {
     `${filename} — what it would do to ${datasetId}`,
   reviewLabel: 'View report',
   closeLabel: 'Close',
-  /** The width the four-column table and its warning sentences need. */
+  /** The width the table and its warning sentence need. */
   reportWidth: 900,
 
   /**
