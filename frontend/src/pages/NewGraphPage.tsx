@@ -754,8 +754,14 @@ export default function NewGraphPage() {
             </Col>
           </Row>
         ) : step === 4 ? (
+          /*
+           * Full width, not `xl={18}` — that width was sized for the populated list, and
+           * left the empty state's own centered card sitting left-of-page-centre inside the
+           * remaining 75%, rather than centered on the page a reader is actually looking at.
+           * The connected-sources list reads fine at the full width too.
+           */
           <Row gutter={[SP.lg, SP.lg]}>
-            <Col xs={24} xl={18}>
+            <Col xs={24}>
               <SourcesStep
                 sources={graphSources}
                 loading={sourcesLoading}
