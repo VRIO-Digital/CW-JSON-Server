@@ -380,27 +380,44 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
   const pendingCount = pendingRelationships.length
 
   /**
-   * The profiled tables nothing joins — the served list, less the tables a **stored declaration**
-   * touches.
+   * The tables **no relationship on screen touches** — confirmed or pending.
    *
-   * Two halves because neither side sees both: the scan knows every pair of columns and nothing
-   * about what a curator has already declared, and the tab knows the declarations and only the
-   * suggestions that survived the list cut. Subtracting here is what keeps a table from being
-   * called orphaned one line under an edge somebody drew to it.
+   * **It counted the server's `orphan_tables` instead, and that was wrong in the way a reader could
+   * see.** That list is what the *scan* found nothing for, and the scan finds a shared identifier
+   * for every table in CAPEX's `plan` — so the tile read 0 while `plan_account_dim` sat selected
+   * beside it saying "No relationships declared or suggested yet for this entity" and its rail pill
+   * showed an em dash. Reported from use, twice. A suggestion the tab drops as already-covered, and
+   * every row a reader **rejects**, leave a table with nothing at all; the scan still says it found
+   * that table something.
    *
-   * `null` until a run has landed. A tile reading 0 before anything has looked would be a claim,
-   * which is the same reason a declared column prints `—` rather than a plausible figure.
+   * So the count is of what is actually there, which is the thing a reader can check by clicking
+   * the table — and it agrees with the rail's own em dash, because both now read `relationships`.
+   *
+   * `null` until a run has landed: before anything has looked, most tables have no *suggestion* yet
+   * and a tile reading 15 would be a claim about a scan that never ran. The em dash is the same
+   * answer a declared column's absent statistics give.
    */
   const orphanTableKeys = useMemo(() => {
     if (suggestOrphans === null) return null
-    const declaredTouch = new Set(
-      declared.flatMap((r) => [r.fromTableKey, r.toTableKey]),
+    const touched = new Set(
+      relationships.flatMap((r) => [r.fromTableKey, r.toTableKey]),
     )
-    /* Intersected with the tables actually on screen, so a table dropped from the source since the
-       run cannot be counted as an orphan of it. */
-    const onScreen = new Set(tableKeys)
-    return suggestOrphans.filter((key) => onScreen.has(key) && !declaredTouch.has(key))
-  }, [suggestOrphans, declared, tableKeys])
+    return tableKeys.filter((key) => !touched.has(key))
+  }, [suggestOrphans, relationships, tableKeys])
+
+  /**
+   * Of those, the ones the **scan** also found nothing for.
+   *
+   * The two are different facts and the hint says which: a table in both lists is unjoined *in the
+   * data* — no other table shares an identifier column with it — while one only in the first is
+   * unjoined because its suggestions were rejected. Keeping the served list for this is what stops
+   * it being a payload field nothing reads, and it is the half the client cannot work out.
+   */
+  const unjoinedInData = useMemo(() => {
+    if (orphanTableKeys === null || suggestOrphans === null) return 0
+    const scan = new Set(suggestOrphans)
+    return orphanTableKeys.filter((key) => scan.has(key)).length
+  }, [orphanTableKeys, suggestOrphans])
 
   const labelFor = (tableKey: string) =>
     tables.find((t) => t.tableKey === tableKey)?.tableId ?? tableKey
@@ -1022,6 +1039,13 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                   label="orphan tables"
                   color={
                     orphanTableKeys && orphanTableKeys.length > 0 ? MT.red : undefined
+                  }
+                  /* Two facts, said apart: unjoined *in the data* is a modelling observation, and
+                     unjoined because the suggestions were rejected is a decision somebody made. */
+                  hint={
+                    orphanTableKeys && orphanTableKeys.length > 0
+                      ? `${orphanTableKeys.length} table(s) have no relationship at all — ${unjoinedInData} because nothing else shares an identifier column with them, the rest because their suggestions were rejected. The table list marks each with an em dash.`
+                      : undefined
                   }
                 />
                 <StatItem value={columnsDescribed} label="columns described" />

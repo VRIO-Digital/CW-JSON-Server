@@ -2995,12 +2995,15 @@ reported as `truncated` + `relationships_total`, recorded rows first so a cut ta
 matches before an authored one. It was a **table** cap (12), which made an unjoined table a claim
 about the cap: 6 of an 18-table source looked unrelated when all 18 share an identifier.
 
-**`orphan_tables` names the tables nothing joins** — over the whole scan, before the cut — and the tab
-subtracts the tables a stored declaration touches (the half the scan cannot see). The tile reads `—`
-before a run and is inert; the table list's own em-dash row is the naming. **CAPEX's 18 `plan` tables
-give 0 orphans and 53 suggestions**, of which 47 carry **no cardinality** — a dictionary-declared
-column has no distinct count, so there is nothing to derive one from and the reviewer sets it on
-confirm.
+**The orphan tile counts the tables no relationship on screen touches** — off `relationships`, the
+same array the rail's em dash reads, so the tile and the row cannot disagree. It counted the server's
+`orphan_tables` first and read **0** while a table with nothing on it sat selected beside it: the tab
+drops a suggestion whose pair is already declared, and a reader rejects rows, either of which leaves
+a table bare while the scan still says it found it something. The served list is kept for the hint —
+how many are unjoined *in the data* against how many had their suggestions rejected. `—` before a
+run, and inert; the table list's own em-dash row is the naming. **CAPEX's 18 `plan` tables give 53
+suggestions**, of which 47 carry **no cardinality** — a dictionary-declared column has no distinct
+count, so there is nothing to derive one from and the reviewer sets it on confirm.
 
 ### Failure modes, and what each one looks like
 

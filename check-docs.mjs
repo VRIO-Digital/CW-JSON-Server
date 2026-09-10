@@ -1185,11 +1185,30 @@ expect(
     /const suggestedFor = useRef<Set<string>>\(new Set\(\)\)/.test(dataModelTab) &&
     /if \(suggestedFor\.current\.has\(key\)\) return/.test(dataModelTab) &&
     /void runSuggestions\(\)/.test(dataModelTab) &&
-    /* And the orphan tile is the served list less the tables a declaration touches, em dash until
-       a run has landed — "no orphans" and "nobody has looked" are different facts. */
+    /*
+     * **And the orphan tile counts what is *on screen*, not what the scan found.**
+     *
+     * It counted the served list, and that was wrong in a way a reader could see: the scan finds a
+     * shared identifier for every table in CAPEX's `plan`, so the tile read 0 while
+     * `plan_account_dim` sat selected beside it saying "No relationships declared or suggested yet
+     * for this entity" and its rail pill showed an em dash. Reported from use, twice. A suggestion
+     * the tab drops as already-covered, and every row a reader **rejects**, leave a table with
+     * nothing at all — and the scan still says it found that table something.
+     *
+     * So it is counted off `relationships`, which is what the rail's own em dash reads, and the
+     * served list is kept for the half the client cannot know: which of them nothing in the *data*
+     * joins, said in the hint. Em dash until a run has landed either way — before one, most tables
+     * have no suggestion yet and a number would be a claim about a scan that never ran.
+     */
     /const orphanTableKeys = useMemo\(/.test(dataModelTab) &&
     /if \(suggestOrphans === null\) return null/.test(dataModelTab) &&
-    /!declaredTouch\.has\(key\)/.test(dataModelTab) &&
+    /relationships\.flatMap\(\(r\) => \[r\.fromTableKey, r\.toTableKey\]\),/.test(
+      dataModelTab,
+    ) &&
+    /return tableKeys\.filter\(\(key\) => !touched\.has\(key\)\)/.test(dataModelTab) &&
+    /* The served list still has a reader, so it is not a payload field nothing looks at. */
+    /const unjoinedInData = useMemo\(/.test(dataModelTab) &&
+    /because nothing else shares an identifier column with them/.test(dataModelTab) &&
     /value=\{orphanTableKeys === null \? '—' : orphanTableKeys\.length\}/.test(dataModelTab) &&
     /label="orphan tables"/.test(dataModelTab),
   'an unjoined table has to be a fact about the schema, never about a cap',

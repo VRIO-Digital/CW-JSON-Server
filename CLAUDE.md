@@ -1820,14 +1820,31 @@ use, as six orphan tables that were nothing of the kind. So every profiled table
 `truncated` and `relationships_total` report it, and **recorded rows come first so a cut takes
 column-name matches before an authored row** carrying somebody's reasoning.
 
-**And a table nothing joins is stated, in two halves because neither side sees both.**
-`orphan_tables` is computed over the whole scan and **before** the cut — a table whose one suggestion
-was cut would otherwise look orphaned — and the tab subtracts the tables a **stored declaration**
-touches, which the scan cannot know. The tile reads `—` until a run has landed, because "no orphans"
-and "nobody has looked" are different facts and only the first is a 0. It is inert: the table list
-beside it already marks each row, so the tile is the figure and the list is the naming. Over CAPEX's
-18 profiled `plan` tables the honest answer is **0** — all 18 share an identifier with another —
-which is worth knowing before reading a 0 there as a broken count.
+**And a table nothing joins is stated — counted off what is *on screen*, which is a correction.**
+The tile first counted the server's `orphan_tables`, the list the *scan* found nothing for, and that
+read **0** for CAPEX because every one of its 18 `plan` tables shares an identifier with another. A
+reader had `plan_account_dim` selected beside it saying *"No relationships declared or suggested yet
+for this entity"*, with an em dash on its rail row, over a tile reading 0. Reported from use, twice.
+The gap is that the tab **drops** a suggestion whose pair is already declared, and a reader
+**rejects** rows — either leaves a table with nothing at all while the scan still says it found that
+table something.
+
+So `orphanTableKeys` counts the tables no relationship in `relationships` touches — the same array
+the rail's own em dash reads, so the tile and the row cannot disagree, and it is the thing a reader
+can check by clicking the table. The served list is kept for the half the client cannot know and
+said in the tile's hint: how many of them nothing in the *data* joins, as against how many are
+unjoined because their suggestions were rejected. Those are different facts and only the first is a
+modelling observation.
+
+The tile reads `—` until a run has landed, because before one most tables have no suggestion yet and
+a number would be a claim about a scan that never ran. It is inert: the table list beside it already
+marks each row, so the tile is the figure and the list is the naming.
+
+**A table was briefly declared into the dictionary to make the count non-zero, and that is reverted.**
+`plan_data_load_log` — a cube load log nothing keys to — was an honest orphan, but it was the wrong
+fix: the count was reading the wrong thing, and growing the tenant's catalogue from 18 tables to 19
+to demonstrate a tile is not a fix at all. `capex-plan-dictionary.csv` describes the 12 catalogued
+tables and declares nothing.
 
 **Most of those suggestions arrive with no cardinality, and that is the dictionary's fault rather
 than the suggester's.** The hint is derived from whether each side's distinct count reaches its row

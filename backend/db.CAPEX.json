@@ -63193,6 +63193,7 @@
       },
       {
         "entity_id": "ent-plan-plan-project-budget-mtmpaekc3",
+        "confirmed_by": null,
         "table_key": "plan.plan_project_budget",
         "entity_name": "plan_project_budget",
         "description": "Entity for plan_project_budget, created to anchor a declared relationship.",
@@ -63210,19 +63211,8 @@
             ],
             "relationship_type": "LINKED_BY_VERSION",
             "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Version, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_version_master states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
-          },
-          {
-            "target_table_key": "plan.plan_scenario_dim",
-            "from_columns": [
-              "Scenario"
-            ],
-            "to_columns": [
-              "Scenario"
-            ],
-            "relationship_type": "LINKED_BY_SCENARIO",
-            "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Scenario, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_scenario_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+            "rationale": "Both tables carry Version, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_version_master states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_account_dim",
@@ -63234,7 +63224,8 @@
             ],
             "relationship_type": "LINKED_BY_ACCOUNT",
             "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Account, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_account_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+            "rationale": "Both tables carry Account, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_account_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_phase_dim",
@@ -63246,7 +63237,8 @@
             ],
             "relationship_type": "LINKED_BY_PHASE",
             "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Phase, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_phase_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+            "rationale": "Both tables carry Phase, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_phase_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_calendarization",
@@ -63258,7 +63250,8 @@
             ],
             "relationship_type": "LINKED_BY_PROJECT_CODE",
             "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_calendarization states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_calendarization states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_project_forecast",
@@ -63270,7 +63263,8 @@
             ],
             "relationship_type": "LINKED_BY_PROJECT_CODE",
             "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_project_forecast states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_project_forecast states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_mtp_multiyear",
@@ -63282,7 +63276,8 @@
             ],
             "relationship_type": "LINKED_BY_PROJECT_CODE",
             "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_mtp_multiyear states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_mtp_multiyear states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.vw_project_plan_capex",
@@ -63294,7 +63289,8 @@
             ],
             "relationship_type": "LINKED_BY_PROJECT_CODE",
             "cardinality_hint": "N:1",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, vw_project_plan_capex holds 4,500 distinct values over 4,500 rows."
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, vw_project_plan_capex holds 4,500 distinct values over 4,500 rows.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_monthly_spread",
@@ -63306,7 +63302,8 @@
             ],
             "relationship_type": "LINKED_BY_PROJECT_CODE",
             "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_monthly_spread states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_monthly_spread states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_resource_dim",
@@ -63318,7 +63315,8 @@
             ],
             "relationship_type": "LINKED_BY_RESOURCE",
             "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Resource, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_resource_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+            "rationale": "Both tables carry Resource, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_resource_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_optimization_profile",
@@ -63330,7 +63328,8 @@
             ],
             "relationship_type": "LINKED_BY_PROJECT_CODE",
             "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_optimization_profile states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm."
+            "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_optimization_profile states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
+            "confirmed_by": null
           },
           {
             "target_table_key": "plan.plan_monthly_spread",
@@ -63342,11 +63341,12 @@
             ],
             "relationship_type": "testdata",
             "cardinality_hint": "1:N",
-            "rationale": ""
+            "rationale": "",
+            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-09T19:15:01.933Z"
+        "updated_at": "2026-09-10T02:23:12.048Z"
       },
       {
         "entity_id": "ent-plan-plan-account-dim-mtmpcohv4",
@@ -63411,6 +63411,7 @@
       },
       {
         "entity_id": "ent-plan-plan-scenario-dim-mtr8bxcn4",
+        "confirmed_by": null,
         "table_key": "plan.plan_scenario_dim",
         "entity_name": "plan_scenario_dim",
         "description": "Entity for plan_scenario_dim, created to anchor a declared relationship.",
@@ -63419,7 +63420,7 @@
         "attributes": [],
         "relationships": [],
         "cross_attributes": [],
-        "updated_at": "2026-09-07T14:00:45.140Z"
+        "updated_at": "2026-09-10T02:24:26.367Z"
       },
       {
         "entity_id": "ent-plan-plan-monthly-spread-mtrb5dg32",

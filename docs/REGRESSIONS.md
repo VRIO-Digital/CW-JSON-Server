@@ -6426,6 +6426,37 @@ strip the name off and un-accept the row with nothing on screen saying so. Break
 
 ---
 
+## The orphan tile read 0 beside a table with no relationships
+
+**Symptom** — *orphan tables* read **0** while `plan_account_dim` was selected one panel over,
+its Relationships tab saying *"No relationships declared or suggested yet for this entity"* and its
+row in the table list showing an em dash. Reported from use, twice.
+
+**Root cause** — the tile counted the server's `orphan_tables`: the list the *scan* found no shared
+identifier column for. The scan finds one for every table in CAPEX's `plan`, so that list is empty —
+and it stays empty however many relationships leave the screen afterwards. Two things take them
+away: the tab **drops** a suggestion whose pair an existing declaration already covers, and a reader
+**rejects** rows. Either leaves a table with nothing on it while the scan still reports it found that
+table something.
+
+**Fix** — the tile counts the tables no relationship in `relationships` touches — the same array the
+rail's own em dash reads, so the tile and the row cannot disagree, and it is what a reader can check
+by clicking the table. The served list is kept for the tile's hint, which is the half the client
+cannot work out: how many are unjoined *in the data* as against how many had their suggestions
+rejected.
+
+**A declared table was the first fix, and it is reverted.** `plan_data_load_log`, a cube load log
+nothing keys to, was added to `capex-plan-dictionary.csv` so the count would be non-zero — honest as
+an orphan, but the wrong fix twice over: the count was reading the wrong source, and growing the
+tenant's catalogue from 18 tables to 19 to demonstrate a tile is not a fix.
+
+**Guard** — mechanical: `check-docs` asserts the count is computed off `relationships` and
+`tableKeys`, that the em dash survives for "no run yet", and that the served list still has a reader
+so it is not a payload field nothing looks at. Break-tested by making the filter return `[]`.
+*A count and the row it describes must read the same array.*
+
+---
+
 ## Six tables looked orphaned because the suggester capped its inputs
 
 **Symptom** — after profiling 18 tables and uploading a dictionary for them, the Data Modeling tab
