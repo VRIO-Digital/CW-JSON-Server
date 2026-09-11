@@ -9,7 +9,7 @@ import './App.css'
 
 const SIDER_WIDTH = 258
 /**
- * The rail left behind when the navigation is hidden — wide enough for the one control that brings
+ * The rail left behind when the navigation is hidden — wide enough for the one control that bringss
  * it back, and nothing else.
  *
  * Not 0: a collapse with no way out is a one-way door, and the place a reader looks for the way back
