@@ -40,31 +40,6 @@ export const confirmedRelationshipsCopy = {
   accept: 'Accept',
   reject: 'Reject',
   acceptNote: 'Records this relation as accepted by you.',
-  /**
-   * **The bulk accept, asked for at the top of this dialog, and it is the additive half only.**
-   *
-   * This list had no twin for the pending dialog's *Accept all* while it was a reading surface, and
-   * the reason on record was that there is no bulk act on a stored declaration — which was about
-   * **deletion**: nineteen removals in one press would be the least reversible button in the tab.
-   * That still holds, so there is deliberately no *Reject all*. Accepting in bulk is the opposite
-   * shape: it writes a name onto rows that already exist, changes nothing about the schema, and
-   * every row it touches keeps its own *Reject* as the way back out.
-   *
-   * **It acts on the undecided rows and says how many**, never on the whole list: a row somebody
-   * has already accepted needs no write, and a count taken from `rows.length` would promise writes
-   * that do not happen — the settings-toggle fault, in a button label.
-   *
-   * **The note says it happens in one write, because that is what changed.** It ran the row's own
-   * write down the list at first — one request per relation, and a refusal partway through left
-   * half the list accepted with nothing on screen saying which half. The act is the server's now
-   * (`POST /data-model/relationships/accept`), which resolves the scope before writing anything
-   * and commits once: all of them or none. What a reader needs told is the guarantee, not the
-   * round-trip count.
-   */
-  acceptAll: 'Accept all',
-  accepting: 'Accepting',
-  acceptAllNote:
-    'Accept all records every relation nobody has accepted yet as yours, in one write — all of them or none, so a refusal leaves the list exactly as it is. Rows already accepted keep the name on them, and each row keeps its own Reject.',
   rejectNote:
     'Removes the stored declaration and puts it back with the suggestions, pending — nothing about the schema changes.',
   /**
@@ -107,24 +82,6 @@ export const confirmedRelationshipsCopy = {
   ownerNote:
     'Owned by this entity — a relationship is stored on the table it points from. The table list and Entity detail count every relationship a table is involved in, either end, so their number is the higher one.',
 } as const
-
-/**
- * The stored relations nobody has accepted yet — what *Accept all* acts on, and what its count says.
- *
- * **One definition, three readers**: the button's label, the run itself, and whether the button is
- * drawn at all. A control counting one set and writing another is the fault the confirmed tile
- * records one level up, where a tile that filtered and a modal that filtered again were two answers
- * to one count.
- *
- * `confirmedBy` is the test rather than `provenance`, because that is the field the act writes.
- * They agree today — `toRelationshipItem`'s reader maps an unnamed row to `derived` — and reading
- * the derived one would make this a claim about a label instead of about the document.
- */
-export function unacceptedRelations(
-  rows: DeclaredRelationship[],
-): DeclaredRelationship[] {
-  return rows.filter((r) => !r.confirmedBy)
-}
 
 /** One heading and the declarations stored under it. */
 export interface ConfirmedGroup {

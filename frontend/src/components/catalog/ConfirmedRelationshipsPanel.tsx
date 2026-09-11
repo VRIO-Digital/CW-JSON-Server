@@ -4,7 +4,6 @@ import {
   confirmedRelationshipsCopy as COPY,
   groupConfirmedByOwner,
   groupCountLabel,
-  unacceptedRelations,
 } from '../../data/confirmedRelationships'
 import type { DeclaredRelationship } from '../../data/dataModelRelationships'
 import { MT } from '../../data/dataModelTokens'
@@ -245,21 +244,10 @@ export function ConfirmedRelationshipsPanel({
 /**
  * The dialog around it.
  *
- * **`Accept all` is in the top bar, asked for there, and it is the pending dialog's twin at last.**
- * This surface carried no bulk act while it was a reading surface, and the reason on record —
- * *"there is no bulk act on a stored declaration"* — was about **deletion**: nineteen removals
- * behind one press would be the least reversible button in the tab. That reasoning is kept, so
- * there is still no *Reject all*. Accepting in bulk is the other shape entirely: it is the row's
- * own Accept run down the list, additive, and every row it touches keeps its Reject.
- *
- * **It is drawn only where there is something to accept** — an absent control rather than a
- * disabled one, which is the rule the row itself keeps (Accept is withheld where somebody already
- * accepted) and the rule the report Library's four acts keep. A button over a list that is fully
- * decided would write nothing, and a control that does nothing is what this repo refuses from the
- * connector with one option down.
- *
- * **Its count is the undecided rows, never `rows.length`.** `unacceptedRelations` is the one
- * definition, so the number on the button is the number of writes the run makes.
+ * **No footer act, unlike the pending dialog.** That one carries *Accept all* because there is a
+ * bulk decision to make; there is no bulk act on a stored declaration — deleting nineteen at once is
+ * not something anybody asked for and would be the least reversible button in the tab. Close is the
+ * only thing here.
  */
 export default function ConfirmedRelationshipsModal({
   open,
@@ -267,21 +255,10 @@ export default function ConfirmedRelationshipsModal({
   labelFor,
   onOpen,
   deciding,
-  accepting,
   onAccept,
-  onAcceptAll,
   onReject,
   onClose,
-}: ConfirmedRelationshipsPanelProps & {
-  open: boolean
-  /** True while the bulk run is in flight, so the button narrates it and the rows stay locked. */
-  accepting?: boolean
-  /** Accepts every undecided row. Absent leaves the top bar with Close alone. */
-  onAcceptAll?: () => void
-  onClose: () => void
-}) {
-  /* The same array the button counts and the run writes — see `unacceptedRelations`. */
-  const toAccept = unacceptedRelations(rows)
+}: ConfirmedRelationshipsPanelProps & { open: boolean; onClose: () => void }) {
   return (
     <Modal
       open={open}
@@ -305,38 +282,18 @@ export default function ConfirmedRelationshipsModal({
         }}
       >
         <span style={{ flex: 1, fontSize: 10.5, color: MT.dim, lineHeight: 1.4 }}>
-          {/* The note says what the bulk act does while it is offered, and where the other acts
-              live once the list is fully decided and the button is gone. */}
-          {onAcceptAll && toAccept.length > 0 ? COPY.acceptAllNote : COPY.rowHint}
+          {COPY.rowHint}
         </span>
-        <Space size={8}>
-          <Button size="small" onClick={onClose} disabled={accepting}>
-            {COPY.close}
-          </Button>
-          {onAcceptAll && toAccept.length > 0 ? (
-            <Tooltip title={COPY.acceptAllNote}>
-              <Button
-                size="small"
-                type="primary"
-                icon={<CheckOutlined />}
-                loading={accepting}
-                onClick={onAcceptAll}
-              >
-                {accepting ? COPY.accepting : `${COPY.acceptAll} · ${toAccept.length}`}
-              </Button>
-            </Tooltip>
-          ) : null}
-        </Space>
+        <Button size="small" onClick={onClose}>
+          {COPY.close}
+        </Button>
       </div>
 
       <ConfirmedRelationshipsPanel
         rows={rows}
         labelFor={labelFor}
         onOpen={onOpen}
-        /* Locked through the run as well as through one row's write: a row accepted by hand while
-           the bulk run is mid-list would have the run's next write hand the server an entity array
-           built before it. */
-        deciding={deciding || accepting}
+        deciding={deciding}
         onAccept={onAccept}
         onReject={onReject}
       />

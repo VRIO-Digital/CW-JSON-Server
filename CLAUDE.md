@@ -1940,53 +1940,8 @@ heading that does not hold it. Each heading says so.
 on one dialog that the canvas edge and the Entity detail row both open, so a *Delete* in this list
 would be a second surface for one write. Clicking a row **closes this dialog and opens that one** —
 antd stacks two `Modal`s happily, and a dialog behind a dialog leaves the reader two Closes to find
-their way back through.
-
-**The pending dialog's *Accept all* now has a twin here, and the reason it had none turned out to be
-about the other half.** It read *"there is no bulk act on a stored declaration"*, and what stood
-behind that was **deletion** — nineteen removals behind one press is the least reversible button the
-tab could have. So there is still deliberately no *Reject all*, and `check-docs` asserts its absence
-beside the new button. Accepting in bulk is the opposite shape: it is the row's own Accept run down
-the list, it writes a name onto rows that already exist, it changes nothing about the schema, and
-every row it touches keeps its Reject as the way back out.
-
-**It acts on the undecided rows and its count says how many.** `unacceptedRelations` is the one
-definition, read by the run *and* by the button, so the number on the control is the number of
-writes it makes — a count off `rows.length` would promise writes that never happen, which is the
-settings-toggle fault in a button label. It is **drawn only where something is undecided**, an absent
-control rather than a disabled one, which is the rule the row's own Accept already keeps; a fully
-accepted list leaves the top bar with Close alone and the note goes back to saying where the other
-acts live. The dialog **stays open** when it finishes: these rows do not leave the list, they change
-what they say.
-
-**And it is one request rather than a sequence, which is `POST /data-model/relationships/accept`.**
-It ran the row's own write down the list first — 59 requests, 59 validations and 59 document commits
-for one decision, and a refusal partway through left **half the list accepted** with nothing on
-screen saying which half. Reported from use as accepting one by one. So the act moved to the server,
-where the scope is resolved across every entity *before* anything is written and landed in a single
-`commitDb`: all of them or none, the arrangement the multi-dictionary schema upload already has.
-
-**It is not a second way to write a declaration**, which is what would have made a route here wrong.
-`POST /data-model/entities` still owns declaring, editing and deleting every field of a relationship;
-this one writes `confirmed_by` on rows that already exist and touches nothing else. Four rules, each
-guarding something silent: it **fills a null `confirmed_by` and never rewrites one**, so a row
-somebody else accepted keeps their name (the `studioPublishedBy` lesson, mirrored — there the hazard
-was never rewriting, here it is rewriting); **scope is both ends** of a relationship, exactly as
-`declaredRelationshipsFrom` requires for the list, so it cannot accept a row the dialog never showed;
-**absent `table_keys` means every table in the dataset and `[]` is refused**, because accepting
-nothing and accepting everything are opposite requests (the rule `POST …/profile-mail-documents`
-keeps for its `objects`); and **nothing undecided is a refusal naming what it found**, never a 200
-reporting zero. Nobody signed in is refused rather than recorded as an empty name, and the count in
-the message is the **server's** answer read back through `acceptAllOutcome` — the pending dialog's
-own reporter, reused rather than copied, because it counts what landed rather than what was
-submitted. Unpaced, like every other write here: the suggesters are held because an analysis that
-returns instantly teaches that it is free, and this one's result is every badge on screen changing.
-
-**A side effect the sequence had and this does not**: the per-row path went through
-`relationshipWrites`, whose natural-key dedupe treats a re-declared join as an edit of it — correct
-for an edit, and a silent collapse for an accept. CAPEX ships five exact duplicate declarations, so
-accepting its list one row at a time took *Relations · 59* down to 54 as it ran. Writing
-`confirmed_by` in place leaves the document with exactly what it went in with.
+their way back through. The pending dialog's *Accept all* has no twin here: there is no bulk act on a
+stored declaration, and deleting nineteen at once would be the least reversible button in the tab.
 
 **Accept all confirms every row, one write at a time, off a freshly read set of entities — and that
 last part is load-bearing rather than tidy.** `relationshipWrites` builds its write from the owning
