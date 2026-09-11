@@ -979,7 +979,7 @@ grouping in `src/data/confirmedRelationships.ts`.
 | per row | the relationship's own name, **one** provenance mark — *Confirmed by you* where somebody accepted it, *Curated by AI* where nobody has — the join, the cardinality, the evidence in words, and the rationale |
 | grouped by | the **from** table — where `relationshipWrites` anchors the declaration, so the heading is a claim about storage rather than a display choice; each heading prints its own count |
 | per row acts | **Accept** (records it as yours; withheld where somebody already has) and **Reject** (removes the declaration and puts the row back with the suggestions, **pending**). Clicking the row itself still opens the relationship dialog, so editing and deleting stay on the one dialog the canvas edge already opens — both buttons stop the click |
-| footer | Close, and the sentence saying where the *other* acts are. No *Accept all* twin: there is no bulk act on a stored declaration |
+| top bar | **Accept all · N** over the *undecided* rows (`unacceptedRelations`, one definition for the count and the run) — **one request, one commit** (`POST /data-model/relationships/accept`), all of them or none, with the note saying so. Drawn only while something is undecided; otherwise Close alone with the sentence saying where the *other* acts are. **No *Reject all***: what kept a bulk act off this surface was deletion, nineteen removals behind one press, and that reasoning is unchanged |
 
 **Stored is not confirmed.** `provenance` was the literal `'human'` for every stored declaration, so
 all 31 across the two documents read *Confirmed by you* to whoever was looking — a claim about the
@@ -993,11 +993,16 @@ dialog).
 **No confidence on a confirmed row.** A declaration is somebody's decision, and a score under it
 would put a classifier behind a person's judgement — the row states its `evidence` in words instead.
 
-**Accept all re-reads the entities between writes.** `relationshipWrites` reads the owning entity's
-current relationship array, so a loop over one snapshot makes every accept erase the last — and where
-the owner is undeclared, the second accept is refused outright because that branch mints a new anchor
-entity. Verified against a live server: one snapshot kept 1 of 2 relationships and took a 400;
-re-reading per accept kept both.
+**The *pending* dialog's Accept all re-reads the entities between writes.** `relationshipWrites`
+reads the owning entity's current relationship array, so a loop over one snapshot makes every accept
+erase the last — and where the owner is undeclared, the second accept is refused outright because
+that branch mints a new anchor entity. Verified against a live server: one snapshot kept 1 of 2
+relationships and took a 400; re-reading per accept kept both.
+
+**The *relations* dialog's Accept all is a different act and needs none of that** — it is one request
+that writes `confirmed_by` on rows which already exist, resolved whole and committed once, so there
+is no array to rebuild and no anchor to mint. Confirming a suggestion writes a declaration; accepting
+a stored one puts a name on it. Do not merge the two runs.
 
 **Where it fails:** the run stops at the first refusal and `acceptAllOutcome` reports what landed —
 `4 relationships confirmed, then the run stopped: <the server's own words> 5 still pending.` Each row

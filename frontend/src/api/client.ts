@@ -4686,6 +4686,44 @@ export async function saveDataModelEntity(
   )
 }
 
+/** What a bulk accept did, counted by the server over the rows it actually wrote. */
+export interface AcceptedRelationships {
+  /** How many undecided rows this run credited. */
+  accepted: number
+  /** How many in scope already carried somebody's name and were left alone. */
+  already: number
+  /** Every stored relation in scope, whoever accepted it. */
+  total: number
+  accepted_by: string
+}
+
+/**
+ * Accepts every undecided stored relation in one request — the relations dialog's *Accept all*.
+ *
+ * **One call rather than one per row**, which is what it replaced: 59 requests for one decision, and
+ * a refusal partway through leaving half the list accepted. The server resolves the whole scope
+ * before writing and lands it in a single commit, so this is all of them or none.
+ *
+ * `tableKeys` is the source's own tables, so what gets accepted is exactly what the dialog listed —
+ * both ends of a relationship have to be in scope, as they do for the list itself. `as` is the
+ * browser's address, because the identity is client-held and a route cannot look up who is signed
+ * in. The count comes back **from the server**, so the sentence the tab prints is what landed rather
+ * than what was submitted.
+ */
+export async function acceptAllRelationships(args: {
+  tableKeys: string[]
+  as: string
+}): Promise<AcceptedRelationships> {
+  return validate<AcceptedRelationships>(
+    'The accepted relations',
+    await request<unknown>(
+      `/data-model/relationships/accept?as=${encodeURIComponent(args.as)}`,
+      { method: 'POST', body: { table_keys: args.tableKeys } },
+    ),
+    shape({ accepted: num, already: num, total: num, accepted_by: str }),
+  )
+}
+
 /** Drops a whole declaration — its Overview, its identifier and its relationships. */
 export async function deleteDataModelEntity(
   entityId: string,

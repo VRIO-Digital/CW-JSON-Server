@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import {
+  acceptAllRelationships,
   deleteDataModelEntity,
   getProfiledColumns,
   listDataModel,
@@ -62,6 +63,18 @@ interface DataModelState {
   save: (input: ModelEntityInput) => Promise<Result>
   /** Posts a relationship's writes in the order `relationshipWrites` put them in. */
   saveWrites: (writes: RelationshipWrite[]) => Promise<Result>
+  /**
+   * Accepts every undecided stored relation across these tables, in **one** request.
+   *
+   * Its own action rather than a loop over `saveWrites`, because it is one act on the server: the
+   * whole scope is resolved before anything is written and lands in a single commit, so a refusal
+   * leaves the document as it was instead of half-accepted. The count it resolves with is the
+   * server's, so the sentence the tab prints is what landed.
+   */
+  acceptAll: (
+    tableKeys: string[],
+    as: string,
+  ) => Promise<{ ok: true; accepted: number } | { ok: false; error: string }>
   remove: (entityId: string) => Promise<Result>
   suggest: (
     sourceId: string,
@@ -156,6 +169,24 @@ export const useDataModelStore = create<DataModelState>()((set, get) => ({
       return { ok: true }
     } catch (error) {
       /* Whatever landed before the failure is real, so the list is re-read either way. */
+      await get().reloadEntities()
+      return { ok: false, error: toMessage(error) }
+    } finally {
+      set({ saving: false })
+    }
+  },
+
+  acceptAll: async (tableKeys, as) => {
+    set({ saving: true })
+    try {
+      const result = await acceptAllRelationships({ tableKeys, as })
+      /* One path into the state on screen: the list is re-read rather than patched from the reply,
+         which is what the governance section does with its own writes. */
+      await get().reloadEntities()
+      return { ok: true, accepted: result.accepted }
+    } catch (error) {
+      /* Nothing landed — the route commits once, so there is no partial write to re-read for. The
+         list is re-read anyway, because a refusal this caller cannot interpret may be a stale one. */
       await get().reloadEntities()
       return { ok: false, error: toMessage(error) }
     } finally {

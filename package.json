@@ -23,6 +23,7 @@
     "seed:capex-drive": "npm --prefix backend run seed:capex-drive",
     "seed:prototype-model": "npm --prefix backend run seed:prototype-model",
     "seed:data-model": "npm --prefix backend run seed:data-model",
+    "unaccept:data-model": "npm --prefix backend run unaccept:data-model",
     "seed:capex-metrics": "npm --prefix backend run seed:capex-metrics",
     "seed:capex-mail": "npm --prefix backend run seed:capex-mail",
     "ingest:graph": "npm --prefix backend run ingest:graph",

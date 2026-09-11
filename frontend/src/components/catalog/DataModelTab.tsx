@@ -22,6 +22,7 @@ import { acceptAllOutcome } from '../../data/pendingSuggestions'
 import {
   confirmedRelationshipsCopy as CONFIRMED_COPY,
   relationDecision,
+  unacceptedRelations,
 } from '../../data/confirmedRelationships'
 import {
   CARDINALITY_LABELS,
@@ -169,6 +170,7 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
   const load = useDataModelStore((s) => s.load)
   const save = useDataModelStore((s) => s.save)
   const saveWrites = useDataModelStore((s) => s.saveWrites)
+  const acceptAllStored = useDataModelStore((s) => s.acceptAll)
   const suggest = useDataModelStore((s) => s.suggest)
   const saving = useDataModelStore((s) => s.saving)
 
@@ -234,6 +236,12 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
    * reusing it would disable a whole list while somebody edited a text field.
    */
   const [deciding, setDeciding] = useState(false)
+  /*
+   * True while the relations dialog's own `Accept all` is working down the list. Separate from
+   * `acceptingAll`, which is the pending dialog's: the two act on different lists, and one flag
+   * would put this run's "Accepting" label on the other dialog's button.
+   */
+  const [acceptingRelations, setAcceptingRelations] = useState(false)
 
   /*
    * **Who is accepting, from the browser.** The identity is client-held, so a route cannot look up
@@ -610,6 +618,51 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     setDeciding(false)
     if (result.ok) message.success(relationDecision('accepted', row.name))
     else message.error(result.error)
+  }
+
+  /**
+   * **Accepts every undecided stored relation — one request, one commit.**
+   *
+   * Asked for as a bulk act rather than a sequence. It ran the row's own write down the list first,
+   * which was 59 requests for one decision and, worse, a **partial** outcome on a refusal: half the
+   * list accepted, with nothing on screen saying which half. So the act moved to the server —
+   * `POST /data-model/relationships/accept` resolves the whole scope before it writes anything and
+   * lands it in a single `commitDb`, the arrangement the multi-dictionary schema upload already
+   * has. All of them or none.
+   *
+   * **The scope is this source's own tables**, so what the run accepts is exactly what the dialog
+   * listed: both ends of a relationship have to be in scope there, and the route applies the same
+   * rule. Sending the source's keys rather than letting the route default to the dataset is what
+   * keeps the button's count and the run's answer about the same set.
+   *
+   * **The count in the message is the server's**, never `queue.length`: it reports what it wrote,
+   * which is the whole reason `acceptAllOutcome` takes `accepted` separately from `attempted` — a
+   * sentence composed from the submitted list is a claim about writes that may not have happened.
+   *
+   * Nobody signed in is a refusal rather than an empty name, the rule `acceptRelation` keeps.
+   */
+  const acceptAllRelations = async () => {
+    if (!signedInAs) {
+      message.warning('Sign in to record who accepted these.')
+      return
+    }
+    const queue = unacceptedRelations(confirmedRelationships)
+    if (queue.length === 0) return
+
+    setAcceptingRelations(true)
+    const result = await acceptAllStored(tableKeys, signedInAs)
+    setAcceptingRelations(false)
+
+    /* The dialog stays open: these rows do not leave the list, they change what they say — so the
+       reader sees the marks they just made rather than an empty screen. */
+    const outcome = acceptAllOutcome({
+      attempted: queue.length,
+      accepted: result.ok ? result.accepted : 0,
+      error: result.ok ? undefined : result.error,
+    })
+    if (outcome.tone === 'success') message.success(outcome.message)
+    else if (outcome.tone === 'warning') message.warning(outcome.message)
+    else message.error(outcome.message)
   }
 
   /**
@@ -1283,6 +1336,12 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
         deciding={deciding}
         onAccept={(id) => void acceptRelation(id)}
         onReject={(id) => void rejectRelation(id)}
+        /* The bulk half of the row's own Accept, in the top bar. There is deliberately no
+           Reject all beside it: nineteen removals behind one press is the least reversible
+           button this tab could have, which is the reasoning that kept both out until the
+           additive one was asked for. */
+        accepting={acceptingRelations}
+        onAcceptAll={() => void acceptAllRelations()}
         onClose={() => setConfirmedOpen(false)}
       />
     </>

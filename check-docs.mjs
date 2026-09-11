@@ -1698,6 +1698,87 @@ expect(
 )
 
 /*
+ * **`Accept all` in the relations dialog: one commit, the additive act, and only the additive one.**
+ *
+ * Asked for at the top of that dialog, then asked for as a **bulk** act rather than a sequence.
+ *
+ * What had kept a bulk act off this surface was a reason about **deletion** — nineteen removals
+ * behind one press is the least reversible button the tab could have — so *Reject all* is asserted
+ * absent beside it: the argument did not go away, it turned out to be about the other half.
+ *
+ * The sequence it replaced ran the row's own write down the list: 59 requests for one decision, and
+ * a refusal partway through left **half the list accepted**, with nothing on screen saying which
+ * half. So the act is the server's now, and three things make it honest:
+ *
+ *  - **One route, one commit.** The scope is resolved across every entity *before* anything is
+ *    written and landed in a single `commitDb` — the arrangement the multi-dictionary schema upload
+ *    already has. The loop is asserted **absent** from the tab, because a call and a loop can
+ *    coexist and only the absence says the act is atomic.
+ *  - **It fills a null `confirmed_by` and never rewrites one.** A row somebody else accepted keeps
+ *    their name; rewriting would take an acceptance off the person who made it.
+ *  - **Scope is both ends**, so what it accepts is exactly what the dialog listed, and the count on
+ *    the button (`unacceptedRelations`, one definition read by the run and by the control) is the
+ *    number of writes. The message prints the **server's** count, never `queue.length`.
+ */
+const acceptAllRelationsRun =
+  /const acceptAllRelations = async \(\) => \{[\s\S]*?\r?\n  \}/.exec(dataModelTab)?.[0] ?? ''
+const acceptRoute =
+  /match: \(p\) => p === '\/data-model\/relationships\/accept'[\s\S]*?\r?\n  \},/.exec(server)?.[0] ??
+  ''
+expect(
+  'the relations dialog accepts in bulk in one commit, counts the undecided, and has no Reject all',
+  acceptAllRelationsRun.length > 400 &&
+    acceptRoute.length > 800 &&
+    /* One definition of "which rows this acts on", read by the run and by the button. */
+    /export function unacceptedRelations/.test(confirmedData) &&
+    /r\) => !r\.confirmedBy/.test(codeOnly(confirmedData)) &&
+    /const queue = unacceptedRelations\(confirmedRelationships\)/.test(acceptAllRelationsRun) &&
+    /unacceptedRelations\(rows\)/.test(codeOnly(confirmedPanel)) &&
+    /* The button's count is that array's length, never the list's. */
+    /\$\{COPY\.acceptAll\} · \$\{toAccept\.length\}/.test(confirmedPanel) &&
+    !/\$\{COPY\.acceptAll\} · \$\{rows\.length\}/.test(confirmedPanel) &&
+    /* Withheld by there being no control, the rule the row's own Accept keeps. */
+    /onAcceptAll && toAccept\.length > 0 \?/.test(confirmedPanel) &&
+    /* One call — and the per-row sequence it replaced is gone from the tab. */
+    /const result = await acceptAllStored\(tableKeys, signedInAs\)/.test(acceptAllRelationsRun) &&
+    !/for \(const row of queue\)/.test(acceptAllRelationsRun) &&
+    !/relationshipWrites/.test(acceptAllRelationsRun) &&
+    /* The scope travels, so the run and the list are about one set of tables. */
+    /table_keys: args\.tableKeys/.test(client) &&
+    /* The count in the sentence is the server's answer, not the submitted list's length. */
+    /accepted: result\.ok \? result\.accepted : 0/.test(acceptAllRelationsRun) &&
+    /acceptAllOutcome\(\{\r?\n\s*attempted: queue\.length,/.test(acceptAllRelationsRun) &&
+    /* Nobody to credit is a refusal, never an empty name — the rule `acceptRelation` keeps. */
+    /if \(!signedInAs\)/.test(acceptAllRelationsRun) &&
+    /* ---- and the route itself ---- */
+    /* Told who, because the identity is client-held. */
+    /const as = query\.get\('as'\)/.test(acceptRoute) &&
+    /* Fills a null name and counts the ones it left alone. */
+    /already \+= 1/.test(acceptRoute) &&
+    /* Both ends in scope, or it would accept a row the dialog never showed. */
+    /if \(!covered\(r\.target_table_key\)\) return r/.test(codeOnly(acceptRoute)) &&
+    /* Absent scope is every table; an empty array is refused rather than read as "everything". */
+    /scope\.length === 0/.test(acceptRoute) &&
+    /* Resolved first, then exactly one commit — never a commit per entity. */
+    (acceptRoute.match(/await commitDb\(/g) ?? []).length === 1 &&
+    acceptRoute.indexOf('const entities = db.data_model.entities.map(') <
+      acceptRoute.indexOf('await commitDb(') &&
+    /* Nothing to do is a refusal naming what it found, not a 200 reporting zero. */
+    /if \(accepted === 0\)/.test(acceptRoute) &&
+    /*
+     * And the bulk act stops at accepting: no Reject all, on this surface or in its copy.
+     *
+     * **Through `codeOnly`, because both files explain in prose why there is none** — the
+     * self-documenting-file trap this repo has now recorded six times, where an absence claim
+     * matches the comment describing the absence.
+     */
+    !/Reject all/.test(codeOnly(confirmedPanel)) &&
+    !/rejectAll/i.test(codeOnly(confirmedData)) &&
+    !/Reject all/.test(codeOnly(confirmedData)),
+  'a per-row sequence leaves half the list accepted on a refusal, and a count off the whole list promises writes it never makes',
+)
+
+/*
  * **A declared column reaches the suggester, and it has no figures for the suggester to read.**
  *
  * An uploaded data dictionary writes `confidence`, `null_pct` and `distinct` as `null` — it states
@@ -6602,8 +6683,8 @@ const askSuggestionsBody =
 expect(
   'and the page picks its chips from one rule in src/data/',
   askSuggestionsBody.length > 0 &&
-    /* The early return is now the *no graph* case: with one selected both lists are offered,
-       which is the whole of the change. */
+    /* The early return is now the *no graph* case: with one selected both lists are offered,
+       which is the whole of the change. */
     /if \(graphQuestions === null\) return fromSources/.test(askSuggestionsBody) &&
     /*
      * **Asserted as an absence beside it**, because the merge being present does not mean it is
