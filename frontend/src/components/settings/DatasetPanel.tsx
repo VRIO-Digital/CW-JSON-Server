@@ -1,5 +1,5 @@
 /**
- * Settings → Dataset. Which dataset the console reads, and the switch that changes it.
+ * Settingss → Dataset. Which dataset the console reads, and the switch that changes it.
  *
  * **It lives in Settings rather than the sidebar because it is not navigation.** Picking a dataset
  * ends the session — the confirmation says so and the act carries it out — and a control that signs
@@ -70,21 +70,20 @@ export default function DatasetPanel() {
       value: row.dataset,
       label: row.label,
       detail: row.populated
-        ? `${row.projects} source${row.projects === 1 ? '' : 's'} · ${row.reports} report${
-            row.reports === 1 ? '' : 's'
-          }`
+        ? `${row.projects} source${row.projects === 1 ? '' : 's'} · ${row.reports} report${row.reports === 1 ? '' : 's'
+        }`
         : 'no data yet',
       populated: row.populated,
     })),
     ...(both
       ? [
-          {
-            value: both.dataset,
-            label: both.label,
-            detail: 'every dataset, read-only',
-            populated: true,
-          },
-        ]
+        {
+          value: both.dataset,
+          label: both.label,
+          detail: 'every dataset, read-only',
+          populated: true,
+        },
+      ]
       : []),
   ]
 
@@ -227,8 +226,8 @@ export default function DatasetPanel() {
       >
         {switching
           ? datasetSwitchBody(switching).map((line) => (
-              <Typography.Paragraph key={line}>{line}</Typography.Paragraph>
-            ))
+            <Typography.Paragraph key={line}>{line}</Typography.Paragraph>
+          ))
           : null}
       </Modal>
     </div>
