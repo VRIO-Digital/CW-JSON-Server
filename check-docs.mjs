@@ -6742,9 +6742,17 @@ expect(
      */
     /* Sliced, not matched across lines: a shell-written newline escape ends a regex early. */
     askSuggestionsBody.includes('...graphQuestions.map((text) => ({ text, sourceId: null }))') &&
-    /fromSources\.filter\(\(c\) => !graphQuestions\.includes\(c\.text\)\)/.test(
-      askSuggestionsBody,
-    ) &&
+    /*
+     * **A question both offer is drawn once, and the de-duplication moved *before* the count.**
+     *
+     * It was a `.filter` over the finished list, which is equivalent only while a source
+     * contributes everything it has. With `SOURCE_CHIPS_PER_SOURCE` it is not: a shared sentence
+     * would be counted against that source's two and then dropped, so a source holding a dozen
+     * recorded questions could reach the screen with none — indistinguishable from one that has
+     * none, which is the silent-zero shape this file guards everywhere else. Seeding the `seen`
+     * set with the graph's own questions keeps the cap a promise about what is *drawn*.
+     */
+    /const seen = new Set<string>\(graphQuestions \?\? \[\]\)/.test(askSuggestionsBody) &&
     /*
      * **And each chip says what answers it.** The route settles a request naming a graph *and*
      * sources in the graph's favour, so a mail question asked under a selected graph would come
@@ -6760,6 +6768,64 @@ expect(
     /\{suggestions\.map\(\(q\) => \(/.test(codeOnly(askPageSrc)) &&
     !/graph\.suggestedQuestions\.map/.test(codeOnly(askPageSrc)),
   'askSuggestions decides it; the page renders what it returns',
+)
+
+/*
+ * **A connected source offers two openers, and the cap is per source.**
+ *
+ * CAPEX's mailbox records thirteen answers and offered all thirteen — four rows of chips under
+ * the box, which turns a row of examples into a menu and reads as the set of questions that
+ * source can answer. Two, on request.
+ *
+ * **Per source rather than over the row**, because a total is spent by whoever is listed first: a
+ * second mailbox would contribute nothing and look exactly like one with no recorded questions.
+ * Asserted as the cap being counted inside the per-source loop, which is the only shape that
+ * holds — `fromSources.length >= CAP` would be the total cap this is not.
+ */
+expect(
+  'a source offers two openers, counted per source',
+  /export const SOURCE_CHIPS_PER_SOURCE = 2/.test(askSourcesSrc) &&
+    askSuggestionsBody.includes('let taken = 0') &&
+    askSuggestionsBody.includes('if (taken >= SOURCE_CHIPS_PER_SOURCE) break') &&
+    /* The counter is reset inside the source loop, not outside it. */
+    askSuggestionsBody.indexOf('for (const source of sources)') <
+      askSuggestionsBody.indexOf('let taken = 0') &&
+    !/fromSources\.length >= SOURCE_CHIPS_PER_SOURCE/.test(askSuggestionsBody) &&
+    /* And a graph's own hero questions are not capped: the brief said it had to answer them. */
+    !/graphQuestions[\s\S]{0,40}slice\(/.test(askSuggestionsBody),
+  'a cap spent by the first source leaves a second one looking like it has nothing recorded',
+)
+
+/*
+ * **The composer starts in the middle of the page and moves to the foot when a question is asked.**
+ *
+ * Asked for, with the move animated. Three things have to hold together and each fails its own
+ * way: one flag decides both the layout and the grounding card (two tests would let the box be
+ * centred over a thread that had started), the state ends at `asking` rather than at the first
+ * answer (a box still centred while its own reply streams underneath is the page not noticing),
+ * and the move is **CSS** — a `flex-grow` transition on an empty tail — because `justify-content`
+ * is a discrete change that would jump, and doing it in the page would mean a timer, which is what
+ * this page refuses everywhere else.
+ */
+const askCssSrc = read('frontend/src/pages/AskPage.css')
+expect(
+  'the question box opens centred and moves down when a question is asked',
+  /const opening = turns\.length === 0 && !asking/.test(codeOnly(askPageSrc)) &&
+    /* One flag, read by the layout, the grounding card and the openers alike. */
+    /className=\{`ask-main\$\{opening \? ' is-opening' : ''\}`\}/.test(askPageSrc) &&
+    /\{opening \? \(/.test(askPageSrc) &&
+    /suggestions\.length > 0 && opening \?/.test(askPageSrc) &&
+    /* The thing that animates is an interpolable number on an element with nothing in it. */
+    /<div className="ask-tail" aria-hidden="true" \/>/.test(askPageSrc) &&
+    /\.ask-main\.is-opening \.ask-tail \{\r?\n  flex-grow: 1;/.test(askCssSrc) &&
+    /transition: flex-grow /.test(askCssSrc) &&
+    /* Not written the way that would jump. */
+    !/transition:[^;]*justify-content/.test(askCssSrc) &&
+    /* Decoration over a state that is already visible either way. */
+    /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,120}\.ask-tail \{\r?\n    transition: none;/.test(
+      askCssSrc,
+    ),
+  'a centred box that stays centred while its own answer streams is the page not noticing the question',
 )
 /*
  * **Ask has no source picker: a connected source is asked by default.**

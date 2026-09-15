@@ -2218,8 +2218,11 @@ for would be a trap.
 serves `sources` — the connected runtime sources, `askableSources()` — each with its own
 `suggested_questions`, drawn from the pool `askSourceAnswer` matches within so a chip cannot be
 offered that the source would abstain on. `askSuggestions` merges the two: the selected graph's
-hero questions first (`sourceId: null`), then every connected source's, de-duplicated, with a
-question the graph already offers dropped. There is no picker to tick — connecting is what puts a
+hero questions first (`sourceId: null`), then **two per connected source**
+(`SOURCE_CHIPS_PER_SOURCE`), de-duplicated against the graph's own *before* they are counted — a
+`.filter` afterwards would spend a source's two on questions that are then dropped, leaving a
+mailbox with thirteen recorded answers showing none. The graph's are not capped. There is no
+picker to tick — connecting is what puts a
 source in scope — so a mailbox connected on Sources shows its questions immediately rather than
 after a step nobody was told to take. **Clicking a source's chip drops the graph first**
 (`select(null)` in `AskPage`), because `POST /ask` settles a request naming both in the graph's
@@ -2229,6 +2232,15 @@ favour and the answer would otherwise be reported under a graph version that did
 replaced, and it is invisible — the row looks full, and only a reader who deselects the graph ever
 sees the difference. `check-docs` asserts the old graph-only return has not come back *beside* the
 merge as well as that the merge is present.
+
+**The box starts centred and moves to the foot on the first question.** `opening` in `AskPage` —
+`turns.length === 0 && !asking` — is the one flag behind the layout class, the grounding card and
+the chip row, so all three change together; the move is a `flex-grow` transition on `.ask-tail`,
+an empty element below the composer, because `justify-content` is a discrete change that jumps and
+a timer in the page is what every paced surface here refuses. **Where it fails:** gating the chips
+on the thread being empty instead leaves a disabled row of openers under a composer that has
+already moved, and ending `opening` on the first *answer* rather than on `asking` leaves the box
+centred while its own reply streams beneath it.
 
 **A graph no longer carries a citations policy.** It was the brief's, declared on the
 removed step 6 and inherited by every answer; it is the reader's per question now, so it

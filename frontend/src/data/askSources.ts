@@ -147,26 +147,57 @@ export interface AskChip {
   sourceId: string | null
 }
 
+/**
+ * How many openers one connected source contributes.
+ *
+ * **Two, on request.** CAPEX's mailbox records thirteen answers and offered all thirteen, which
+ * filled four rows under the box and made the openers the loudest thing on an empty page — a row
+ * of examples became a menu, and a menu reads as the set of questions this source can answer.
+ *
+ * **Per source rather than a cap on the row**, because a cap on the total is answered by whichever
+ * source happens to be first: a second connected mailbox would contribute nothing and be
+ * indistinguishable from one with no recorded questions at all. Two each keeps every connected
+ * source represented, which is the rule the Data Catalog's own "and the count it left out is
+ * stated" note is about.
+ *
+ * **Nothing on screen states the cap, and that is the deliberate part.** A chip row is an
+ * invitation, not a report of what exists: it makes no claim about how many recorded answers a
+ * source holds, and the box beside it takes any question at all. That is the opposite of a
+ * *truncated* answer or a chart dropping rows, where the missing part is the thing being read.
+ */
+export const SOURCE_CHIPS_PER_SOURCE = 2
+
 export function askSuggestions(
   graphQuestions: string[] | null,
   sources: { sourceId: string; suggestedQuestions: string[] }[],
 ): AskChip[] {
   const fromSources: AskChip[] = []
-  const seen = new Set<string>()
+  /*
+   * **Seeded with the graph's own questions, which is where the de-duplication moved to.**
+   *
+   * It was a `.filter` over the finished list, and that was equivalent only while a source
+   * contributed everything it had: with a cap, a question both offer would be *counted* against
+   * the source's two and then dropped, so a source could contribute nothing while holding a dozen
+   * recorded questions — indistinguishable from one with none. Excluding it before it is counted
+   * keeps "two per source" a promise about what reaches the screen.
+   */
+  const seen = new Set<string>(graphQuestions ?? [])
   for (const source of sources) {
+    /* Counted per source, so the cap cannot be spent by whoever is listed first. */
+    let taken = 0
     for (const text of source.suggestedQuestions) {
+      if (taken >= SOURCE_CHIPS_PER_SOURCE) break
       if (seen.has(text)) continue
       seen.add(text)
+      taken += 1
       fromSources.push({ text, sourceId: source.sourceId })
     }
   }
   if (graphQuestions === null) return fromSources
   /* A graph question and a source question can read the same; the graph's wins the slot, because
-     it is what the current selection answers. */
-  return [
-    ...graphQuestions.map((text) => ({ text, sourceId: null })),
-    ...fromSources.filter((c) => !graphQuestions.includes(c.text)),
-  ]
+     it is what the current selection answers — and the seeding above is what keeps it the only
+     one drawn. */
+  return [...graphQuestions.map((text) => ({ text, sourceId: null })), ...fromSources]
 }
 
 /**

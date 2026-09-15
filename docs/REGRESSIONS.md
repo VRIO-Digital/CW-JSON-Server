@@ -6777,3 +6777,58 @@ re-added `Select all` turns it red, and so does replacing the used-for label wit
 a mailbox has processed, or shows the opening line each is recognised by. All of it is still in the
 catalogue and still on the Data Catalog's Gmail panel. **Do not restore the list without being
 asked.**
+
+---
+
+## A cap on a list changes what a filter after it means
+
+**Asked for**: the Gmail source offered thirteen opener chips under the question box — four rows —
+so keep two.
+
+**The cap is per source, not over the row.** A total is spent by whoever is listed first, so a
+second connected mailbox would contribute nothing and look exactly like one with no recorded
+questions. `SOURCE_CHIPS_PER_SOURCE` is counted inside the per-source loop, and `check-docs`
+asserts that shape rather than the constant — `fromSources.length >= CAP` satisfies a claim about
+the number and is the total cap this is not.
+
+**What the cap broke on the way in, silently.** The graph/source de-duplication was a `.filter`
+over the *finished* list, which is equivalent to filtering first only while a source contributes
+everything it has. With a cap it is not: a sentence both offer is counted against that source's
+two and then dropped, so a mailbox holding thirteen recorded questions can reach the screen with
+none — indistinguishable from one that has none. The `seen` set is seeded with the graph's
+questions instead, so the cap is a promise about what is *drawn*. **When you cap a list, re-read
+every filter that runs after it**: the two orderings are equivalent only at full length, which is
+the length nobody tests.
+
+The `check-docs` claim was updated rather than deleted — the rules it guards (graph first, both
+lists, no early graph-only return, every chip carrying its source) are all still asserted; one
+condition moved from the `.filter` spelling to the seeding that replaced it.
+
+**Nothing on screen states the cap, and that is a decision.** The no-silent-truncation rule is
+about a figure or a list being read — a chart dropping rows, a confirm naming the objects it
+skipped — where the missing part *is* the thing in question. A chip row is an invitation: it
+claims nothing about how many answers a source holds, and the box beside it takes any question.
+
+## A centred-to-bottom move is a flex-grow transition, not a justify-content one
+
+**Asked for**: the question box centred before anything is asked, moving to the foot afterwards,
+animated.
+
+`justify-content: center → flex-end` is the obvious way to write it and is a **discrete**
+change — there is no interpolation between two keywords, so it jumps. The two positions differ by
+how much room is left below the composer, and that is a number: `.ask-tail` is an empty
+`aria-hidden` element below it whose `flex-grow` goes 1 → 0, with the thread above growing by the
+same 1, so at 1 the composer is centred between them and at 0 it drops. Animating it in the page
+instead would have meant a timer, which is what every paced surface here refuses.
+
+**Two details that are not tidiness.** The tail cancels the column's `gap` with a negative margin,
+or the settled layout gains a permanent sp-4 of nothing under an already-padded box; and `opening`
+is **one** flag (`turns.length === 0 && !asking`) read by the layout, the grounding card and the
+chip row, because two tests for one state is how a box ends up centred over a thread that has
+started. It ends at `asking`, not at the first answer: a box still centred while its own reply
+streams underneath is the page not having noticed the question.
+
+**Verified by rendering both states**, with the `useSyncExternalStore` shim, and asserting in the
+same run that the render had its data — `is-opening` and the tail present with the composer drawn
+and two chips, then neither with a question in flight. An absence claim over an empty render is
+the recorded trap this file already states.

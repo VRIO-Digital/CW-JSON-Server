@@ -35,6 +35,63 @@
   min-height: 0;
 }
 
+/*
+ * ---- the opening state: the box in the middle, then on the floor ----
+ *
+ * Before the first question there is no thread to sit under, and a query box pinned to the
+ * bottom of an empty page is a footer. So the composer starts centred — the grounding card
+ * directly above it — and moves to the foot when a question is asked.
+ *
+ * **The move is one interpolated number, and that is why the tail exists.** The two positions
+ * differ by how much room is left below the composer, so an empty element below it with
+ * `flex-grow: 1` centres it (the thread above grows by the same 1) and `flex-grow: 0` drops it.
+ * `flex-grow` is a `<number>` and animates; `justify-content: center` → `flex-end` is a discrete
+ * change and would jump, which is the shape this would have taken if written the obvious way.
+ */
+.ask-tail {
+  flex-grow: 0;
+  /* No basis of its own: the whole of it is the share of the free space it is given. */
+  flex-basis: 0;
+  /*
+   * The column's `gap` would otherwise apply between the composer and this, putting a permanent
+   * sp-4 of nothing under a box that is already padded — so the gap is cancelled and the element
+   * contributes exactly the free space it is grown by, in both states. Cancelling a gap is the one
+   * thing negative margin is for here; the spacing itself still comes from the scale.
+   */
+  margin-top: calc(var(--sp-4) * -1);
+  transition: flex-grow 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.ask-main.is-opening .ask-tail {
+  flex-grow: 1;
+}
+
+/* The grounding card sits at the foot of the thread box, so it stands directly over the
+   composer rather than at the top of the half-page the thread is given. */
+.ask-main.is-opening .ask-thread {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/*
+ * Centred, the composer is not sticking to anything — the page does not scroll in this state,
+ * and a sticky footer that has nothing below it to scroll under is only a way for the gradient
+ * to be mistaken for a rule.
+ */
+.ask-main.is-opening .ask-composer {
+  position: static;
+  background: none;
+}
+
+/* The move is decoration over a state that is already visible: the card above it disappears and
+   the answer begins streaming either way. */
+@media (prefers-reduced-motion: reduce) {
+  .ask-tail {
+    transition: none;
+  }
+}
+
 /* ---- the chat rail ---- */
 
 .ask-rail {

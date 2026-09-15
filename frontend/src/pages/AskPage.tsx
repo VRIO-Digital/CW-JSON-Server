@@ -162,6 +162,19 @@ export default function AskPage() {
   /* What to say when nothing is selected — it names both routes where both exist. */
   const pickPrompt = askPickPrompt(graphs.length > 0)
   const suggestions = askSuggestions(graph ? graph.suggestedQuestions : null, askSources)
+  /*
+   * **Before anything has been asked, the composer is the middle of the page.**
+   *
+   * One flag, read by the layout and by the grounding card, so the box cannot be centred over a
+   * thread that has started or sit at the foot of an empty one. `asking` ends it rather than the
+   * first answer landing: the question has been put, and a box that stayed centred while its own
+   * reply streamed underneath would be the page not having noticed.
+   *
+   * The move itself is CSS — a `flex-grow` transition on the tail below the composer — because
+   * animating it here would mean a timer, and a timer is the thing this page refuses everywhere
+   * else. See `.ask-tail` in AskPage.css.
+   */
+  const opening = turns.length === 0 && !asking
 
   if (error) return <ApiErrorAlert error={error} onRetry={() => void load()} />
 
@@ -274,7 +287,7 @@ export default function AskPage() {
                 onClear={clearHistory}
               />
 
-              <div className="ask-main">
+              <div className={`ask-main${opening ? ' is-opening' : ''}`}>
                 <div className="ask-thread">
                   {/*
                    * The thread: one turn per question, oldest first, the way a conversation
@@ -292,7 +305,7 @@ export default function AskPage() {
                     </div>
                   ))}
 
-                  {turns.length === 0 && !asking ? (
+                  {opening ? (
                     /*
                      * Before the first question: what this graph is, and what asking
                      * it will and will not get you.
@@ -435,7 +448,12 @@ export default function AskPage() {
                   {/* The chips are what *answers* this question: the selected graph's hero
                       questions **and** every connected source's own recorded ones. Both are
                       promises something already made — neither is invented here. */}
-                  {suggestions.length > 0 && turns.length === 0 ? (
+                  {/* Gated on `opening`, not on the thread being empty: the openers go at the
+                      same moment the box leaves the middle of the page, which is when the first
+                      question is *asked* rather than when its answer lands. Left on
+                      `turns.length === 0` they stayed — disabled — under a composer that had
+                      already moved away from them. */}
+                  {suggestions.length > 0 && opening ? (
                     <div className="ask-chips">
                       {suggestions.map((q) => (
                         <Button
@@ -466,6 +484,20 @@ export default function AskPage() {
                     </div>
                   ) : null}
                 </div>
+
+                {/*
+                  * **The space the composer is centred against, and the thing that animates.**
+                  *
+                  * An empty element rather than a rule on the composer itself, because the two
+                  * positions differ by *how much room is left below it* and `flex-grow` is a
+                  * number CSS can interpolate — `justify-content` is not, so a centred-to-bottom
+                  * move written that way would jump. It grows in the opening state and collapses
+                  * to nothing once a question is asked, which carries the composer down with it.
+                  *
+                  * `aria-hidden`, and empty: it is a gap, and a screen reader that announced it
+                  * would be announcing the layout.
+                  */}
+                <div className="ask-tail" aria-hidden="true" />
               </div>
             </div>
               ),

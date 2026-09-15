@@ -3034,8 +3034,21 @@ selected.** A graph offers its brief's hero questions, exactly as before. A conn
 no brief, so it offers the recorded answers really drawn from it — and the server takes those
 from the **same pool** `askSourceAnswer` matches within (`runtimeAnswerPool`), so a chip cannot be
 offered that the source would then abstain on. Two predicates over one question is how a
-suggestion becomes a promise nothing keeps; CAPEX's mailbox offers 13, and asking every one of
+suggestion becomes a promise nothing keeps; CAPEX's mailbox records 13, and asking any one of
 them returns a recorded answer.
+
+**Two of them reach the screen, and the cap is per source.** `SOURCE_CHIPS_PER_SOURCE` is 2, on
+request: all thirteen filled four rows under the box, which turns a row of examples into a menu
+and reads as the set of questions that source can answer. **Per source rather than over the row**
+— a cap on the total is spent by whoever is listed first, so a second mailbox would contribute
+nothing and be indistinguishable from one with nothing recorded, which is the silent zero this
+file refuses everywhere. A graph's hero questions are **not** capped: the brief said it had to
+answer them, and a short list there is the brief under-reported.
+
+**Nothing states the cap, which is the one deliberate silence.** The no-silent-truncation rule is
+about a figure or a list being *read* — a chart dropping rows, a confirm naming objects — where
+the missing part is the thing in question. A chip row is an invitation: it claims nothing about
+how many answers a source holds, and the box beside it takes any question at all.
 
 **With a graph selected the row carries both lists, the graph's first.** `askSuggestions` returned
 the hero questions *instead of* a connected source's whenever a graph was selected, so connecting
@@ -3043,6 +3056,11 @@ a mailbox changed nothing a reader could see until they deselected the graph —
 never asked them to do, and which is not a step a reader should have to guess at. Reported from
 use. The graph's come first because they are what the current selection answers, and a question
 both offer is drawn **once**: the same sentence in two chips reads as two different questions.
+**That de-duplication moved *before* the count when the cap landed** — it was a `.filter` over the
+finished list, which is equivalent only while a source contributes everything it has: a shared
+sentence would be counted against that source's two and then dropped, leaving a source with a
+dozen recorded questions showing none. The `seen` set is seeded with the graph's own instead, so
+two per source is a promise about what is drawn.
 The early return is now the *no graph* case, and `check-docs` asserts the old graph-only return
 has not come back **beside** the merge as well as that the merge is there — a break test that
 prepended it satisfied every other condition in the claim while hiding the source questions
@@ -3154,6 +3172,27 @@ have nothing between them, `answered` is false, `reason` says which, and
 `answer`/`confidence` are `null` — no number is invented to fill the field, and
 the page tags it `warn`, never `crit`. A query engine that always produces a
 paragraph is a search box with better manners.
+
+**The question box opens in the middle of the page and moves to the foot when a question is
+asked.** Asked for, with the move animated. Before the first question there is no thread for the
+box to sit under and a composer pinned to the bottom of an empty page is a footer; once something
+has been asked it belongs at the foot of what it produced. `opening` — `turns.length === 0 &&
+!asking` — is the **one** flag, read by the layout, the grounding card and the openers alike, so
+the box cannot be centred over a thread that has started. It ends at `asking` rather than at the
+first answer landing: the question has been put, and a box still centred while its own reply
+streams underneath is the page not having noticed. The openers go at that same moment, which is
+what they were always for — left on the thread being empty they stayed, disabled, under a
+composer that had moved away from them.
+
+**The move is CSS, and it is one interpolable number.** `.ask-tail` is an empty `aria-hidden`
+element below the composer whose `flex-grow` transitions from 1 to 0 — the thread above grows by
+the same 1, so at 1 the composer sits centred between them and at 0 it drops to the floor.
+`justify-content: center → flex-end` is the obvious way to write it and is a **discrete** change
+that jumps, and doing it in the page would mean a timer, which is what every paced surface here
+refuses: a stage advances when its request returns. The tail cancels the column's own `gap` with
+a negative margin so it contributes exactly the free space it is grown by and nothing in the
+settled state, and the transition yields to `prefers-reduced-motion` — the state is already
+visible either way, since the grounding card goes and the answer begins streaming.
 
 **Ask is a conversation, with New chat and a chat history beside it.** A question becomes a
 **turn** (the question plus the answer it got) appended to the active chat; the last answer is
