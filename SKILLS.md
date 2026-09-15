@@ -1477,6 +1477,14 @@ meaning "everything profiled here"**, so a table profiled after the draft was
 saved is included without reopening the wizard, while `subset` pins an explicit
 list.
 
+**Which means the chooser is not drawn from the mode**, and `chooserIsOpen` in
+`src/data/sourcePicks.ts` is what draws it — the reader's own answer where they have given one,
+the pick's otherwise. **Where it fails:** gate the panel on `mode === 'subset'` and *Select all*
+unmounts the list the instant every box in it is ticked, because an all-ticked selection is
+stored as `all`. The pick is right and the reader sees nothing happen — reported from use as
+Select all not selecting anything. The mode buttons light from the chooser for the same reason,
+each guarded on its own state so pressing the lit one cannot wipe the ticks.
+
 **Two dead ends, two different exits.** Telling someone to connect a source when
 they already have three is useless advice, so the step distinguishes them:
 

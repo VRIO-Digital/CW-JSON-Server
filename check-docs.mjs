@@ -2356,6 +2356,43 @@ expect(
 )
 
 /*
+ * **Select all keeps the table list on screen, because the list is not drawn from the mode.**
+ *
+ * `setObjects` stores an all-ticked selection as `mode: 'all'` — deliberately, and asserted above:
+ * `all` means "this source, whatever it holds" and picks up a table profiled after the draft was
+ * saved. The panel was drawn on `pick.mode === 'subset'`, so pressing *Select all* flipped the
+ * mode and **unmounted the list at the moment every box in it had just been ticked**. The pick was
+ * right the whole time; the reader saw eighteen checkboxes vanish and reported Select all as not
+ * selecting anything.
+ *
+ * The rule is a pure function because the branch that broke is one a click reaches and a render
+ * does not: `renderToString` gives the step its initial state, in which the reader has pressed
+ * nothing. Both halves are asserted — the predicate exists and is what the component calls, and
+ * the old test is gone from the component rather than merely joined by the new one.
+ */
+const sourcesStepSrc = codeOnly(read('frontend/src/components/graph/SourcesStep.tsx'))
+expect(
+  'ticking every table keeps the chooser open — the panel is not gated on the stored mode',
+  /export function chooserIsOpen\(/.test(read('frontend/src/data/sourcePicks.ts')) &&
+    /return reader \?\? mode === 'subset'/.test(read('frontend/src/data/sourcePicks.ts')) &&
+    /* An unpicked source draws none, whatever the reader last opened. */
+    /if \(mode === undefined\) return false/.test(read('frontend/src/data/sourcePicks.ts')) &&
+    /* The component asks it, passing the reader's own answer beside the pick's. */
+    /chooserIsOpen\(chooser\[source\.sourceId\], pick\?\.mode\)/.test(sourcesStepSrc) &&
+    /* And the test it replaced is gone: a second gate on the mode is the bug back. */
+    !/mode === 'subset' \?/.test(sourcesStepSrc) &&
+    !/pick\?\.mode !== 'subset'/.test(sourcesStepSrc) &&
+    /* The storage rule itself is untouched — all-ticked is still `all`. */
+    /const whole = objects\.length === source\.objectCount && source\.objectCount > 0/.test(
+      sourcesStepSrc,
+    ) &&
+    /* Pressing the lit button would re-run `setMode` and wipe the ticks, so each is guarded. */
+    /if \(chooserShown\) openChooser\(source, false\)/.test(sourcesStepSrc) &&
+    /if \(!chooserShown\) openChooser\(source, true\)/.test(sourcesStepSrc),
+  'a list that unmounts as its boxes are ticked reads as a Select all that selected nothing',
+)
+
+/*
  * **Step 4 lists no mail documents: a mailbox is taken whole.**
  *
  * The runtime row listed every processed document with a checkbox and a *Select all* above them,

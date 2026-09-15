@@ -6832,3 +6832,41 @@ streams underneath is the page not having noticed the question.
 same run that the render had its data — `is-opening` and the tail present with the composer drawn
 and two chips, then neither with a question in flight. An absence claim over an empty render is
 the recorded trap this file already states.
+
+---
+
+## One value doing two jobs: Select all unmounted the list it had just ticked
+
+**Reported from use**: on step 4 of New Graph, *Choose tables…* on a BigQuery source with 18
+profiled tables, then *Select all* — and nothing appeared selected.
+
+**The pick was correct the whole time.** `setObjects` stores an all-ticked selection as
+`mode: 'all'`, deliberately: `all` means "this source, whatever it holds" and picks up a table
+profiled after the draft was saved, where a subset freezes today's list. The panel was rendered on
+`pick.mode === 'subset'`, so ticking the last box flipped the mode and **unmounted the list at the
+exact moment all eighteen boxes had been ticked**. The reader clicked a control and the thing it
+acted on disappeared, which reads as the control doing nothing.
+
+**The fix is not to the storage rule, which is right.** `mode` was answering two questions — what
+is stored, and what is on screen — and the second is the reader's, not the pick's.
+`chooserIsOpen(reader, mode)` in `src/data/sourcePicks.ts` decides it: the reader's own answer
+where they have given one, the pick's otherwise, so a draft saved on a subset reopens showing it
+and one saved on `all` does not, with nothing to seed when the step mounts.
+
+**The mode buttons had the same fault one layer up.** Lit from the mode, *All profiled tables*
+would light the instant a reader used *Select all* — contradicting the eighteen ticks beside it —
+so they are lit from the chooser, which is what they now open and close. Each is guarded on its
+own state: pressing the lit one would re-run `setMode` and wipe the selection under a control that
+looks inert, which is the same class of bug in miniature.
+
+**It is a pure function because the broken branch is one a click reaches and a render does not.**
+`renderToString` hands the step its *initial* state, in which the reader has pressed nothing — so
+a test written through the component passes over exactly the case that failed. Proven both ways:
+the function directly across all four combinations (including `chooserIsOpen(true, 'all') ===
+true`, which is the bug), and the component rendered on an `all` pick, a `subset` pick and a
+reloaded all-ticked pick, asserting in the same run that each render had its data.
+
+**The general shape, which is worth more than the fix:** *a value that is both what is stored and
+what is shown will eventually be written by one and read by the other.* The tell is a write that
+legitimately normalises — `objects.length === objectCount → 'all'` — under a view gated on the
+un-normalised value.

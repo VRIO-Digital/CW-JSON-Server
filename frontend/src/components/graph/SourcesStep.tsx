@@ -10,6 +10,7 @@ import {
   usedForProblem,
   writeUsedFor,
 } from '../../data/mailUsedFor'
+import { chooserIsOpen } from '../../data/sourcePicks'
 import { currentDataset } from '../../api/dataset'
 import NoSourceConnected from '../common/NoSourceConnected'
 import StatusTag from '../common/StatusTag'
@@ -58,6 +59,20 @@ export default function SourcesStep({
    * again when something is saved, which are the only two moments the answer can change. Storage
    * stays the single home; nothing here is a second copy of it that can go stale.
    */
+  /*
+   * **Which sources have the table chooser open — view state, and deliberately not the pick.**
+   *
+   * The panel used to be drawn on `pick.mode === 'subset'`, and that is the same bug twice over
+   * because `setObjects` stores an all-ticked selection as `mode: 'all'` — which is right, and
+   * which means *Select all* flipped the mode and **unmounted the list at the moment it should
+   * have shown eighteen ticks**. Reported from use as Select all not selecting anything; the pick
+   * was correct the whole time and the only thing wrong was what the reader could see.
+   *
+   * So the mode buttons open and close this, the ticks inside decide what is *stored*, and the two
+   * stopped being one value doing two jobs. Absent an entry the pick still answers — a draft
+   * loaded in `subset` opens on its list — so nothing has to be seeded when the step mounts.
+   */
+  const [chooser, setChooser] = useState<Record<string, boolean>>({})
   const [savedAt, setSavedAt] = useState(0)
   const usedFor = useMemo(
     () =>
@@ -100,6 +115,14 @@ export default function SourcesStep({
     const existing = pickFor(source.sourceId)
     if (existing) {
       onPicks(picks.filter((p) => p.sourceId !== source.sourceId))
+      /* Dropping the source drops the chooser with it: re-selecting starts from "all of it",
+         which is what a fresh pick means, rather than reopening a list from a decision the
+         reader has since undone. */
+      setChooser((open) => {
+        const next = { ...open }
+        delete next[source.sourceId]
+        return next
+      })
       return
     }
     // Selecting a source takes all of it; narrowing is the deliberate act.
@@ -112,6 +135,19 @@ export default function SourcesStep({
         p.sourceId === source.sourceId ? { ...p, mode, objects: [] } : p,
       ),
     )
+  }
+
+  /**
+   * Open or shut a source's table chooser, and record the pick that act means.
+   *
+   * The two travel together — opening the chooser starts an empty selection, shutting it takes
+   * the whole source — so they are one function rather than two calls a caller could make half
+   * of. Each button is guarded on its own state at the call site: pressing *Choose tables…* while
+   * the list is already open would otherwise clear every tick under a control that looks inert.
+   */
+  function openChooser(source: GraphSource, open: boolean) {
+    setChooser((state) => ({ ...state, [source.sourceId]: open }))
+    setMode(source, open ? 'subset' : 'all')
   }
 
   /**
@@ -211,6 +247,9 @@ export default function SourcesStep({
         const pick = pickFor(source.sourceId)
         const selected = Boolean(pick)
         const empty = source.objectCount === 0
+        /* Whether this source's table chooser is on screen — the rule is in `src/data/`, because
+           a click is the branch a `renderToString` test cannot reach. */
+        const chooserShown = chooserIsOpen(chooser[source.sourceId], pick?.mode)
 
         return (
           <div
@@ -315,27 +354,43 @@ export default function SourcesStep({
               </div>
             ) : (
               <>
+                {/*
+                  * **The buttons say which act is open, not which mode is stored**, and that is
+                  * the distinction the old wiring collapsed. Ticking every box stores `all` — the
+                  * rule that makes tomorrow's tables included — so a button lit from the *mode*
+                  * would jump to *All profiled tables* the moment the reader used *Select all*,
+                  * with the list they were working in disappearing underneath it.
+                  *
+                  * Each is guarded on its own state: pressing the one already lit would otherwise
+                  * re-run `setMode` and wipe the selection under a control that looks inert.
+                  */}
                 <div className="ng-source-modes">
                   <button
                     type="button"
-                    className={`ng-mode${pick?.mode !== 'subset' ? ' is-on' : ''}`}
+                    className={`ng-mode${chooserShown ? '' : ' is-on'}`}
+                    aria-pressed={!chooserShown}
                     disabled={!selected}
-                    onClick={() => setMode(source, 'all')}
+                    onClick={() => {
+                      if (chooserShown) openChooser(source, false)
+                    }}
                   >
                     All {source.runtime ? '' : 'profiled '}
                     {source.unitLabel} ({source.objectCount})
                   </button>
                   <button
                     type="button"
-                    className={`ng-mode${pick?.mode === 'subset' ? ' is-on' : ''}`}
+                    className={`ng-mode${chooserShown ? ' is-on' : ''}`}
+                    aria-pressed={chooserShown}
                     disabled={!selected}
-                    onClick={() => setMode(source, 'subset')}
+                    onClick={() => {
+                      if (!chooserShown) openChooser(source, true)
+                    }}
                   >
                     Choose {source.unitLabel}…
                   </button>
                 </div>
 
-                {selected && pick?.mode === 'subset' ? (
+                {pick && chooserShown ? (
                   <div className="ng-source-tables">
                     <Checkbox
                       checked={pick.objects.length === source.objectCount}

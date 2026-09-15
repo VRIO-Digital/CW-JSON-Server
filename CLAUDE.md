@@ -2397,6 +2397,27 @@ Two rules the copy on the page promises, and the code has to keep:
   and only the user can fix either. `mode: 'all'` is stored rather than expanded,
   so a table profiled later is included without editing the draft.
 
+  **And ticking every box stores `all`, which is why the table list is not drawn from the mode.**
+  A structured source's chooser was rendered on `pick.mode === 'subset'`, so pressing *Select
+  all* flipped the stored mode and **unmounted the list at the moment all eighteen boxes had just
+  been ticked** — the pick was correct throughout, and what the reader saw was a control that
+  emptied the panel. Reported from use as Select all not selecting anything. `chooserIsOpen` in
+  `src/data/sourcePicks.ts` decides it instead: the reader's own answer where they have given
+  one, the pick's otherwise, so a draft saved on a subset reopens showing it and one saved on
+  `all` does not. **The storage rule is untouched** — `all` still means "this source, whatever it
+  holds", and a subset still freezes today's list.
+
+  **The mode buttons say which act is open rather than which mode is stored**, for the same
+  reason: lit from the mode, *All profiled tables* would light up the instant a reader used
+  *Select all*, contradicting the eighteen ticks beside it. Each is guarded on its own state,
+  because pressing the lit one would re-run `setMode` and wipe the selection under a control that
+  looks inert.
+
+  **It is a pure function because the branch that broke is one a click reaches and a render does
+  not.** `renderToString` hands the step its initial state, in which the reader has pressed
+  nothing — so a test written through the component passes over exactly the case that failed. The
+  same reasoning as `datasetPathFix` and `askAvailability`.
+
 - **A mailbox is taken whole at this step, and all it says here is what it is used for.** The row
   is the mailbox: the connector mark, the address, the labels the consent reached, and the *USED
   FOR* box below them. Ticking the source is the whole of the decision, and the pick it records is
