@@ -483,7 +483,24 @@ Four actions, all through the store:
 | Edit folders *(Drive)* | `PUT /sources/:id/folders` | the same, in folders. Same rule |
 | Disconnect | `POST /sources/:id/disconnect` | revokes the credential, **keeps** the registration and everything profiled |
 | Reconnect *(disconnected rows)* | `POST /sources/:id/reconnect` | re-issues the handle **in place** — the undo for Disconnect |
-| Delete | `DELETE /sources/:id` | removes it, its profiled objects and their notes. No undo |
+| Delete | `DELETE /sources/:id` | removes it, its profiled objects and their notes, **and gives back the acceptances its Data Modeling declarations carry** (`releaseDeclarations`). No undo |
+
+**Delete is the only act that can return a relation to *Curated by AI*.**
+`POST /data-model/entities` deliberately carries a stored `confirmed_by` *forward* where the caller
+sends none — so editing a rationale cannot strip somebody's acceptance off a row — which means
+nothing in the ordinary flow can undo one. A deleted source is meant to be profiled, suggested and
+reviewed again from the top, so its declarations' `confirmed_by` is cleared: the entity's and each
+relationship's, scoped to the tables that source had **profiled**, both ends, the way
+`POST /data-model/relationships/accept` scopes the act that granted them. The declarations
+themselves stay — they are keyed by `table_key` because they are facts about the tables.
+
+**Where it fails:** wiring it to Disconnect. That act is advertised as reversible and `Reconnect`
+keeps every profiled object, so clearing a curator's work there breaks its one promise — `check-docs`
+asserts the absence beside the presence. And dropping the registration before the write, which would
+delete a source and then fail on a document the commit refuses. Verified against a live server on a
+scratch copy: 18 tables profiled, delete released `{entities: 1, relationships: 59}` with all 18
+entities and 59 relationships still in the document; a two-table profile released exactly the one
+relation between them; disconnect released nothing.
 
 **Both destructive actions confirm with one question and nothing else** — *"Are you sure
 you want to disconnect / delete this source?"*, the `Popconfirm`'s title, no

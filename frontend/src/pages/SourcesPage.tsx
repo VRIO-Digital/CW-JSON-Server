@@ -20,7 +20,11 @@ import NoSourceConnected from '../components/common/NoSourceConnected'
 import PageHeader from '../components/common/PageHeader'
 import StatCards from '../components/common/StatCards'
 import StatusTag from '../components/common/StatusTag'
-import { confirmSourceAction } from '../data/sourceActions'
+import { confirmSourceAction, deletedSourceOutcome } from '../data/sourceActions'
+
+/* An older server answers the delete without `released`; nothing was cleared in that case, and the
+   sentence then has no clause about it rather than a guessed one. */
+const EMPTY_RELEASE = { entities: 0, relationships: 0 }
 import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import { SP } from '../theme'
 import type { Stat } from '../types'
@@ -95,7 +99,12 @@ export default function SourcesPage() {
 
   async function handleDelete(row: SourceRow) {
     const result = await remove(row.sourceId)
-    if (result.ok) message.success(`${row.sourceName} deleted — connect it again to re-register.`)
+    /* Reported from what the server said it did, never from the row that was submitted — and the
+       sentence is `src/data/`'s, like the confirmation above it. */
+    if (result.ok)
+      message.success(
+        deletedSourceOutcome(row.sourceName, result.released ?? EMPTY_RELEASE),
+      )
     else message.error(result.error)
   }
 

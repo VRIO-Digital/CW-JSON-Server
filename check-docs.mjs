@@ -2393,6 +2393,70 @@ expect(
 )
 
 /*
+ * **Deleting a source gives back the acceptances its declarations carry — and disconnecting does not.**
+ *
+ * Asked for: a BigQuery source deleted and re-connected should be profiled, suggested and reviewed
+ * again from the top, so its relations have to read *Curated by AI* again. Nothing in the ordinary
+ * flow can do that — `POST /data-model/entities` deliberately carries a stored `confirmed_by`
+ * **forward** where the caller sends none, so that editing a rationale cannot strip somebody's
+ * acceptance off a row. Delete is the one act that may undo it, and it is the irreversible one.
+ *
+ * **Disconnect must not**, which is the half that fails silently: `POST /sources/:id/reconnect`
+ * re-issues the handle in place and keeps every profiled object — that is what makes Disconnect
+ * safe to offer as reversible — so clearing a curator's work there would break the one promise
+ * that act makes. Asserted as an absence beside the presence, because "the reset exists" passes
+ * just as well when it has been wired to both.
+ *
+ * **And it clears attributions, never declarations.** A declaration is keyed by `table_key` rather
+ * than by a source id *because it is a fact about the table*, and the registration is the thing
+ * that lives in memory; dropping the entities here would delete work the document owns and no
+ * re-connect could restore.
+ */
+const releaseBody =
+  (server.match(/async function releaseDeclarations\(source\)[\s\S]*?\n\}/) ?? [''])[0]
+const deleteSourceRoute =
+  (server.match(/match: \(p\) => \/\^\\\/sources\\\/\.\+\$\/\.test\(p\)[\s\S]*?\n  \},/) ?? [''])[0]
+expect(
+  'deleting a source gives its declarations back to Curated by AI; disconnecting does not',
+  releaseBody.length > 0 &&
+    deleteSourceRoute.length > 0 &&
+    /* Scope is the source's *profiled* tables — what the Data Modeling tab could ever have drawn
+       for it — so a drive or a mailbox resolves to nothing and writes nothing. */
+    releaseBody.includes("(source.profiled ?? []).map((p) => `${p.dataset_id}.${p.table_id}`)") &&
+    /* Both ends, the same rule `POST /data-model/relationships/accept` resolves scope by. */
+    /if \(!covered\(r\.target_table_key\)\) return r/.test(releaseBody) &&
+    /* Cleared, at both levels — the relationship's and the entity's, which drives the header. */
+    /confirmed_by: null/.test(releaseBody) &&
+    /* Never removed: no entity is filtered out of the list this writes. */
+    !/entities\.filter\(/.test(releaseBody) &&
+    /* One commit, like every other writer here. */
+    /await commitDb\(\{ \.\.\.db, data_model: \{ \.\.\.db\.data_model, entities \} \}\)/.test(
+      releaseBody,
+    ) &&
+    /* Resolved and committed *before* the registration goes, so a refused write leaves the source
+       where it was rather than deleting it and then failing. */
+    deleteSourceRoute.indexOf('await releaseDeclarations(source)') <
+      deleteSourceRoute.indexOf('registered.delete(sourceId)') &&
+    deleteSourceRoute.includes('send(res, 200, { deleted: sourceId, released })') &&
+    /* The reversible act keeps its promise: nothing on the disconnect path calls it. */
+    (server.match(/releaseDeclarations/g) ?? []).length === 2 &&
+    !/disconnect[\s\S]{0,600}releaseDeclarations/.test(server) &&
+    /* A write answers with a shape, and the new field is checked rather than ignored by a shared
+       one — `shape` passes over keys it was not told about. */
+    /const SOURCE_DELETED_PAYLOAD = shape\(\{[\s\S]{0,160}released: shape\(\{ entities: num, relationships: num \}\)/.test(
+      client,
+    ) &&
+    /* And the page reports what the server said it did, not what it submitted. */
+    /deletedSourceOutcome\(row\.sourceName, result\.released/.test(
+      codeOnly(read('frontend/src/pages/SourcesPage.tsx')),
+    ) &&
+    /export function deletedSourceOutcome\(/.test(read('frontend/src/data/sourceActions.ts')) &&
+    /* A delete that released nothing says nothing about releasing. */
+    /if \(parts\.length === 0\) return done/.test(read('frontend/src/data/sourceActions.ts')),
+  'clearing a curator’s acceptances on the act advertised as reversible is the one thing Disconnect promises not to do',
+)
+
+/*
  * **Step 4 lists no mail documents: a mailbox is taken whole.**
  *
  * The runtime row listed every processed document with a checkbox and a *Select all* above them,

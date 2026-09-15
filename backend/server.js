@@ -9252,6 +9252,74 @@ const dataModelSuggestions = (source) => {
   }
 }
 
+/**
+ * Give back the acceptances a deleted source's declarations carry.
+ *
+ * **Deleting a source is the one act that can undo `confirmed_by`, and it has to be**, because
+ * `POST /data-model/entities` deliberately carries a stored name *forward* where the caller sends
+ * none — that rule exists so editing a rationale cannot strip the acceptance off a row, and it
+ * means nothing in the ordinary flow can return a relation to *Curated by AI*. Asked for: a source
+ * deleted and re-connected should profile, suggest and be reviewed again from the top, and a
+ * badge reading *Confirmed by you* over a source this reader has never seen is a claim about them
+ * that is no longer true.
+ *
+ * **What it clears and what it keeps.** Only the *attributions* — the entity's `confirmed_by` and
+ * each relationship's — so the rows read *Curated by AI* again. The declarations themselves stay:
+ * a declaration is keyed by `table_key` rather than by a source id **precisely because it is a
+ * fact about the table rather than about a registration**, and a registration is the thing that
+ * lives in memory and dies with the process. Dropping them here would delete work the document
+ * owns, which no re-connect could restore.
+ *
+ * **Scope is both ends**, exactly as `POST /data-model/relationships/accept` resolves it, so "this
+ * source's relations" means the same set in the act that gives them back as in the act that
+ * granted them. The keys are the source's **profiled** tables, which is what the Data Modeling tab
+ * could ever have drawn for it — so a Drive or a mailbox, which has no `profiled` and no
+ * declarations, resolves to nothing and writes nothing.
+ *
+ * Returns what it cleared; the route reports it rather than the caller inferring it.
+ */
+async function releaseDeclarations(source) {
+  const keys = new Set(
+    (source.profiled ?? []).map((p) => `${p.dataset_id}.${p.table_id}`),
+  )
+  if (keys.size === 0) return { entities: 0, relationships: 0 }
+  const covered = (tableKey) => keys.has(tableKey)
+
+  let entityCount = 0
+  let relCount = 0
+  const entities = db.data_model.entities.map((entity) => {
+    if (!covered(entity.table_key)) return entity
+    let touched = false
+    const relationships = (entity.relationships ?? []).map((r) => {
+      /* Both ends, or this would give back a row the reader was never shown as this source's. */
+      if (!covered(r.target_table_key)) return r
+      if (r.confirmed_by == null) return r
+      relCount += 1
+      touched = true
+      return { ...r, confirmed_by: null }
+    })
+    /* The entity's own acceptance is what *Save Overview* writes, and it drives the header's
+       *Confirmed by you* — a relationship reset with the header left crediting somebody would be
+       half the badge set answering for the other half. */
+    if (entity.confirmed_by != null) {
+      entityCount += 1
+      touched = true
+    }
+    if (!touched) return entity
+    return {
+      ...entity,
+      confirmed_by: null,
+      relationships,
+      updated_at: new Date().toISOString(),
+    }
+  })
+
+  if (entityCount === 0 && relCount === 0) return { entities: 0, relationships: 0 }
+  /* One commit, like every other writer here: the whole reset lands or none of it does. */
+  await commitDb({ ...db, data_model: { ...db.data_model, entities } })
+  return { entities: entityCount, relationships: relCount }
+}
+
 /** One stored declaration, as the tab reads it. */
 const modelEntityView = (entity) => ({
   entity_id: entity.entity_id,
@@ -13125,16 +13193,33 @@ const routes = [
     },
   },
 
+  /*
+   * **Delete takes the registration *and* gives back the acceptances its declarations carry.**
+   *
+   * Disconnect deliberately does neither: `POST /sources/:id/reconnect` re-issues the handle in
+   * place and every profiled object survives, which is the whole reason a disconnected row offers
+   * **Reconnect** — clearing a curator's work on an act advertised as reversible would be the one
+   * thing that act promises not to do. Delete is the irreversible one, and after it a re-connected
+   * source profiles, suggests and is reviewed again from the top.
+   *
+   * **Resolved and committed before the registration goes**, so a document the write would refuse
+   * leaves the source where it was rather than deleting it and then failing — the ordering every
+   * writer here keeps, for the reason `commitDb` validates before it writes.
+   */
   {
     method: 'DELETE',
     match: (p) => /^\/sources\/.+$/.test(p),
-    handle: (_req, res, { pathname }) => {
+    handle: async (_req, res, { pathname }) => {
       const sourceId = decodeURIComponent(pathname.slice('/sources/'.length))
-      if (!registered.has(sourceId)) {
+      const source = registered.get(sourceId)
+      if (!source) {
         return send(res, 404, { error: `no registered source ${sourceId}` })
       }
+      /* Read off the registration while it is still there: its profiled tables are what says
+         which declarations were this source's. */
+      const released = await releaseDeclarations(source)
       registered.delete(sourceId)
-      send(res, 200, { deleted: sourceId })
+      send(res, 200, { deleted: sourceId, released })
     },
   },
 

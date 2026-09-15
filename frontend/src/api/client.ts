@@ -3333,6 +3333,18 @@ const JOB_STARTED_PAYLOAD = shape({ job: JOB })
 
 const DELETED_PAYLOAD = shape({ deleted: str })
 
+/*
+ * Deleting a *source* answers with what the delete gave back as well as what it took: the
+ * acceptances its declarations carried, cleared so the Data Modeling rows read *Curated by AI*
+ * again. Its own schema rather than a widened `DELETED_PAYLOAD` — `shape` ignores keys it is not
+ * told about, so sharing one would leave the new field unchecked while `deleteUseCase`, which
+ * returns nothing of the kind, claimed to carry it.
+ */
+const SOURCE_DELETED_PAYLOAD = shape({
+  deleted: str,
+  released: shape({ entities: num, relationships: num }),
+})
+
 const DOCUMENT_SUMMARY_PAYLOAD = shape({ key: str, summary: nullable(str) })
 
 const COLUMN_DESCRIPTION_PAYLOAD = shape({ key: str, description: nullable(str) })
@@ -4108,13 +4120,21 @@ export async function reconnectSource(sourceId: string): Promise<RawSourceRow> {
   )
 }
 
-export async function deleteSource(sourceId: string): Promise<{ deleted: string }> {
-  return validate<{ deleted: string }>(
+/** What a source delete gave back — see `releaseDeclarations` in the server. */
+export interface ReleasedDeclarations {
+  entities: number
+  relationships: number
+}
+
+export async function deleteSource(
+  sourceId: string,
+): Promise<{ deleted: string; released: ReleasedDeclarations }> {
+  return validate<{ deleted: string; released: ReleasedDeclarations }>(
     'The deleted source',
     await request<unknown>(`/sources/${encodeURIComponent(sourceId)}`, {
       method: 'DELETE',
     }),
-    DELETED_PAYLOAD,
+    SOURCE_DELETED_PAYLOAD,
   )
 }
 

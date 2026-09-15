@@ -6,6 +6,7 @@ import {
   reconnectSource,
   updateSourceDatasets,
   updateSourceFolders,
+  type ReleasedDeclarations,
   type SourceRow,
 } from '../api/client'
 import { toMessage, type Result } from './asyncState'
@@ -33,7 +34,13 @@ interface SourcesState {
   disconnect: (sourceId: string) => Promise<Result>
   /** The undo for `disconnect` — the source keeps everything it had profiled. */
   reconnect: (sourceId: string) => Promise<Result>
-  remove: (sourceId: string) => Promise<Result>
+  /*
+   * Carries back what the delete *released* as well as whether it worked, because the page reports
+   * it — the acceptances the source's declarations held, cleared so those rows read *Curated by AI*
+   * again. A bare `Result` would leave the page composing that sentence from the row it submitted,
+   * which is a claim about writes rather than a report of them.
+   */
+  remove: (sourceId: string) => Promise<Result & { released?: ReleasedDeclarations }>
   setDatasets: (sourceId: string, datasets: string[]) => Promise<Result>
   setFolders: (sourceId: string, folders: string[]) => Promise<Result>
 }
@@ -88,9 +95,9 @@ export const useSourcesStore = create<SourcesState>()((set, get) => ({
   remove: async (sourceId) => {
     set({ pending: sourceId })
     try {
-      await deleteSource(sourceId)
+      const { released } = await deleteSource(sourceId)
       await get().load()
-      return { ok: true }
+      return { ok: true, released }
     } catch (error) {
       return { ok: false, error: toMessage(error) }
     } finally {

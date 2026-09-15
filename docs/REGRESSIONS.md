@@ -6870,3 +6870,51 @@ reloaded all-ticked pick, asserting in the same run that each render had its dat
 what is shown will eventually be written by one and read by the other.* The tell is a write that
 legitimately normalises — `objects.length === objectCount → 'all'` — under a view gated on the
 un-normalised value.
+
+---
+
+## A field nothing can clear needs an act that clears it
+
+**Asked for**: after deleting the BigQuery source on Sources, the Data Modeling relations should
+read *Curated by AI* again, so the profile → suggest → review flow can be run from the top.
+
+**Why nothing already did it.** `POST /data-model/entities` carries a stored `confirmed_by`
+**forward** where the caller sends none — a deliberate rule, because every write hands the server
+the whole relationship and a field left out is a field cleared, so editing a rationale would
+otherwise strip somebody's acceptance off the row. Correct, and it means no ordinary write can
+return a row to undecided. A field that one act sets and nothing can unset needs an act that unsets
+it, chosen on purpose rather than found by accident.
+
+**Delete, never Disconnect — and the asymmetry is the whole of it.** `POST /sources/:id/reconnect`
+re-issues the handle in place and keeps every profiled object; that is what makes Disconnect safe
+to offer as reversible, and it is why a disconnected row offers **Reconnect**. Clearing a curator's
+acceptances there would break the one promise that act makes. `check-docs` asserts the absence
+beside the presence, because "the reset exists" passes just as well when it has been wired to both
+— and a break test that wired it to disconnect turns the claim red.
+
+**It clears attributions, never declarations.** A declaration is keyed by `table_key` rather than by
+a source id *because it is a fact about the table* and the registration is the thing that lives in
+memory and dies with the process. Dropping the entities on delete would destroy work the document
+owns and no re-connect could restore; clearing `confirmed_by` restores the *state of review*, which
+is what was asked for.
+
+**Scope is resolved by the same rule as the act it undoes** — the source's profiled tables, both
+ends, exactly as `POST /data-model/relationships/accept` resolves scope — so "this source's
+relations" cannot come to mean one set when they are granted and another when they are given back.
+
+**Order: resolve and commit, then drop the registration.** The other way round deletes the source
+and then fails on a document the commit refuses. The break test for it first reported MISSED — the
+mutation searched for `\n` in a CRLF file and never landed, for the fifth time on record. Written
+CRLF-aware it turns the claim red at once. **A break test that cannot mutate is the vacuous
+assertion it exists to prevent**; assert the mutation landed before concluding a guard is weak.
+
+**Verified against a live server on a scratch copy of the document**: register → 18 tables profiled
+(407 columns, matching the screen) → profiling left the document untouched → delete returned
+`{entities: 1, relationships: 59}` and the document held 0 confirmed with all 18 entities and 59
+relationships still there → a second delete 404s and writes nothing. Separately: a two-table
+profile released exactly the one relation between those two, and **disconnect released nothing**.
+
+**What it costs, stated rather than glossed.** The `Popconfirm` still asks one sentence and says
+nothing about this — its consequence lines were removed twice over, deliberately, and this entry is
+not a reason to put them back. The consequence is reported *after* the act, in the success toast,
+composed from what the server said it did rather than from the row submitted.

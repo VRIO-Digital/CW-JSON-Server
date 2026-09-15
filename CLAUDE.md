@@ -1918,6 +1918,38 @@ So a stored relationship carries `confirmed_by`:
 - **Accepting a suggestion credits the reader**, on all three paths — the single confirm, Accept all,
   and a declaration made in the dialog — which is what makes the row read *Confirmed by you*
   afterwards.
+- **And deleting the source gives it back**, which is the only act that can. That carry-forward is
+  exactly why: nothing in the ordinary flow can return a row to *Curated by AI*, and a source
+  deleted and re-connected is meant to be profiled, suggested and reviewed again from the top —
+  a badge reading *Confirmed by you* over a source this reader has never seen is a claim about
+  them that is no longer true. Asked for.
+
+**`releaseDeclarations` is that act, on `DELETE /sources/:id`, and four things make it narrow.**
+
+- **Delete, never Disconnect.** `POST /sources/:id/reconnect` re-issues the handle in place and
+  keeps every profiled object, which is what makes Disconnect safe to offer as reversible —
+  clearing a curator's acceptances there would break the one promise that act makes. `check-docs`
+  asserts the absence beside the presence, because "the reset exists" passes just as well when it
+  has been wired to both.
+- **It clears attributions, never declarations.** The entity's `confirmed_by` and each
+  relationship's go to `null`; the entities, identifiers and joins stay. A declaration is keyed by
+  `table_key` rather than by a source id **because it is a fact about the table** and the
+  registration is the thing that lives in memory — so dropping them here would delete work the
+  document owns that no re-connect could restore.
+- **Scope is the source's *profiled* tables, both ends**, resolved the way
+  `POST /data-model/relationships/accept` resolves it, so "this source's relations" means the same
+  set in the act that gives them back as in the act that granted them. A drive or a mailbox has no
+  `profiled` and no declarations, so it resolves to nothing and writes nothing.
+- **Resolved and committed before the registration goes**, so a document the write would refuse
+  leaves the source where it was rather than deleting it and then failing. One `commitDb`: the
+  whole reset lands or none of it does.
+
+**The reply carries what it released and the toast reports it**, composed from the server's answer
+rather than from the row submitted — the rule `acceptAllOutcome` keeps for the same numbers going
+the other way — and a delete that released nothing says nothing about releasing. **The
+confirmation dialog is untouched**: its one sentence was stripped of consequence lines twice over,
+deliberately, so this consequence is stated *after* the act rather than before it. Nothing on
+screen warns that Delete will do this.
 
 **So the tile counts *relations*, renamed on request.** It read *relationships confirmed* over rows
 nobody had accepted; the count is of what this source **holds**, and each row says for itself whether
