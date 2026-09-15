@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { GraphSource, SourcePick } from '../../api/client'
 import {
-  mailDocumentMeta,
   mailUsedForCopy,
   readUsedFor,
   usedForKey,
@@ -212,13 +211,6 @@ export default function SourcesStep({
         const pick = pickFor(source.sourceId)
         const selected = Boolean(pick)
         const empty = source.objectCount === 0
-        /*
-         * Which objects this row shows as ticked. `all` carries no object list — it means "this
-         * source, whatever it holds" — so it renders as every box ticked rather than none, which
-         * is what it means and what the reader chose.
-         */
-        const picked =
-          pick?.mode === 'subset' ? pick.objects : source.objects.map((o) => o.objectId)
 
         return (
           <div
@@ -279,23 +271,26 @@ export default function SourcesStep({
               </div>
             ) : source.runtime ? (
               /*
-               * **A mailbox picks documents, and says what it is for.**
+               * **A mailbox is taken whole, and all it says here is what it is used for.**
                *
-               * Asked for directly, replacing the label picker. Every processed document is listed
-               * with the counts the catalogue holds, and each is ticked or not — which is what a
-               * reader means by choosing what a use case draws on, where a *label* was only ever
-               * what the consent happened to reach.
+               * It listed every processed document with a checkbox and a *Select all* above them,
+               * and that listing was **removed on request**: the row is the mailbox, and picking
+               * the source is the whole of the decision. The pick a runtime source records is
+               * therefore always `mode: 'all'` with no object list — "this mailbox, whatever it
+               * holds", which is what ticking every box already meant and which picks up a document
+               * processed after the draft was saved. A subset of somebody's mail was never a
+               * choice this step was in a position to put to a reader anyway — the same reasoning
+               * that made the Data Catalog's own mail act one button over the whole mailbox.
                *
-               * **All-ticked is stored as `all`, not as a subset of everything.** The two look the
-               * same on screen and are different promises: `all` includes a document processed
-               * later, a subset freezes today's list. Ticking every box is a reader saying "this
-               * mailbox", so it is recorded as that.
+               * The catalogue still states pages, chunks and size per document; the Data Catalog is
+               * where they are read, which is the one-surface-per-record rule this repo keeps
+               * everywhere. `mailDocumentMeta` survives with no caller for that reason — the same
+               * waiting-for-a-caller state `/change-signals` is in.
                *
                * Nothing here changes where any of it may travel: `runtime` is still true and step
                * 6 still derives nothing from this source — the note under the list says so.
                */
-              <>
-                <div className="ng-source-usedfor">
+              <div className="ng-source-usedfor">
                   <span className="ng-source-usedfor-label">
                     {mailUsedForCopy.fieldLabel}
                   </span>
@@ -317,55 +312,7 @@ export default function SourcesStep({
                   >
                     {mailUsedForCopy.editLabel}
                   </Button>
-                </div>
-
-                <div className="ng-source-tables">
-                  <Checkbox
-                    checked={picked.length === source.objectCount}
-                    indeterminate={picked.length > 0 && picked.length < source.objectCount}
-                    disabled={!selected}
-                    onChange={(e) =>
-                      setObjects(
-                        source,
-                        e.target.checked ? source.objects.map((o) => o.objectId) : [],
-                      )
-                    }
-                  >
-                    Select all ({source.objectCount})
-                  </Checkbox>
-
-                  {source.objects.map((o) => (
-                    <Checkbox
-                      key={o.objectId}
-                      className="ng-source-table ng-source-doc"
-                      checked={picked.includes(o.objectId)}
-                      disabled={!selected}
-                      onChange={(e) =>
-                        setObjects(
-                          source,
-                          e.target.checked
-                            ? [...picked, o.objectId]
-                            : picked.filter((x) => x !== o.objectId),
-                        )
-                      }
-                    >
-                      <span className="ng-source-doc-name">{o.label}</span>{' '}
-                      {/* Dropped part by part where the catalogue states nothing, never
-                          printed as 0 — see `mailDocumentMeta`. */}
-                      <span className="ng-source-units">{mailDocumentMeta(o)}</span>
-                      {o.snippet ? (
-                        <span className="ng-source-doc-snippet">{o.snippet}</span>
-                      ) : null}
-                    </Checkbox>
-                  ))}
-
-                  {selected && picked.length === 0 ? (
-                    <div className="ng-source-warn">
-                      Pick at least one document — an empty selection can't derive.
-                    </div>
-                  ) : null}
-                </div>
-              </>
+              </div>
             ) : (
               <>
                 <div className="ng-source-modes">

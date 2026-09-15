@@ -33,7 +33,7 @@ export const SCHEMA_ACCEPT = SCHEMA_EXTENSIONS.join(',')
  * **One check, and it is about the kind of file rather than its contents.** The extension is all a
  * browser can judge without opening the file, and nothing opens it: the upload is a showcase and
  * the run profiles what the document already holds, so a `.png` is refused because the control says
- * *Upload dictionary*, not because a parser would choke on it.
+ * *Upload Files*, not because a parser would choke on it.
  *
  * **The size and empty checks went with the parse.** Both existed because the file's bytes were
  * posted in a JSON body and `readJson` caps that at 1 MB — so an oversized file had to become a
@@ -105,7 +105,7 @@ export const schemaUploadCopy = {
    * holds one file per dataset, so a replace was discarding the previous plan either way and only
    * the saying of it was missing.
    */
-  uploadLabel: 'Upload dictionary',
+  uploadLabel: 'Upload Files',
   readingLabel: 'Reading…',
   discardLabel: 'Discard',
 

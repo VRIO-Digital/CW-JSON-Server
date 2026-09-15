@@ -2356,6 +2356,42 @@ expect(
 )
 
 /*
+ * **Step 4 lists no mail documents: a mailbox is taken whole.**
+ *
+ * The runtime row listed every processed document with a checkbox and a *Select all* above them,
+ * and that was removed on request — the row is the mailbox, the pick is `mode: 'all'`, and the
+ * page counts, chunk counts and snippets are read where they are already read, in the Data
+ * Catalog. Half a removal is the shape that fails silently here in two opposite directions: a
+ * *Select all* left over a list nothing draws is a control that ticks nothing, and a step that
+ * quietly recorded a subset would freeze today's documents into a draft that means "this mailbox".
+ *
+ * **Sliced to the runtime branch, and paired with a presence claim over the same slice**, because
+ * the structured branch a few lines below legitimately draws its own *Select all* and its own
+ * object checkboxes — a whole-file absence search would either pass over the wrong branch or fail
+ * on the right one — and an absence claim over an empty slice is a guard describing itself.
+ */
+const sourcesStep = read('frontend/src/components/graph/SourcesStep.tsx')
+const runtimeRow = (sourcesStep.split(': source.runtime ? (')[1] ?? '').split('\n            ) : (')[0]
+expect(
+  'a mailbox is taken whole at step 4 — no document list, and the used-for box is what is left',
+  /* The slice is the branch, not nothing: its own opening comment and the used-for box are in it. */
+  runtimeRow.length > 0 &&
+    runtimeRow.includes('mailUsedForCopy.fieldLabel') &&
+    runtimeRow.includes('mailUsedForCopy.editLabel') &&
+    /* Nothing in it ticks a document, and nothing offers to tick all of them. */
+    !/Select all \(/.test(runtimeRow) &&
+    !/ng-source-doc/.test(runtimeRow) &&
+    !/source\.objects\.map/.test(runtimeRow) &&
+    /* Selecting the source is the whole decision, and what it records is the whole mailbox. */
+    /mode: 'all', objects: \[\]/.test(codeOnly(sourcesStep)) &&
+    /* The meta renderer is kept rather than deleted — a caller may come back, and the Data
+       Catalog is where those figures are read meanwhile. */
+    !/mailDocumentMeta/.test(codeOnly(sourcesStep)) &&
+    /export function mailDocumentMeta\(/.test(read('frontend/src/data/mailUsedFor.ts')),
+  'a Select all over a list nothing draws ticks nothing, and a recorded subset freezes today’s documents',
+)
+
+/*
  * **Gmail's catalogue is one surface: the run, narrated, and what it processed.**
  *
  * Asked for from a reference screenshot. Four things had to hold together, and each fails a
@@ -2496,8 +2532,14 @@ expect(
     /* Gmail's alone: the other two pipelines are untouched. */
     /* Sliced, not matched across lines: a shell-written newline escape ends a regex early. */
     (server.split('const PIPELINE = [')[1] ?? '').includes("'Schema fetch'") &&
-    /* And the note says which graph, so the last stage is not left to be read as the tenant's. */
-    /none of it is merged into the published knowledge graph/.test(
+    /* And the note says when processing has to be asked for: the first run is manual, a later one
+       is on demand, and the mailbox is picked up nightly in between. It said *which* graph the last
+       stage assembles until that was replaced on request — the guarantee never rode on the wording
+       (`selectedProfiledObjects` skips a runtime source by name, asserted where it lives), so this
+       is keyed on the sentence that is printed now rather than deleted with the one that went. */
+    /every night at 12 am/.test(read('frontend/src/data/mailProcess.ts')) &&
+    /* Break-tested against the half-removal: the replaced sentence must not come back beside it. */
+    !/none of it is merged into the published knowledge graph/.test(
       read('frontend/src/data/mailProcess.ts'),
     ),
   'a stage list held in the client, or a bar on a timer, narrates work the server never did',

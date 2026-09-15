@@ -22873,9 +22873,9 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-hardzous-mtvljrph7",
-      "name": "hardzous",
-      "status": "committed",
+      "use_case_id": "uc-testdata-mu2bfft42",
+      "name": "testdata",
+      "status": "draft",
       "domain_id": "capital-projects",
       "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
       "personas": [
@@ -22883,12 +22883,22 @@
           "name": "Controller",
           "description": "Asks whether the ledger and the plan agree, and where they do not.",
           "source": "ai"
+        },
+        {
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
+          "source": "ai"
         }
       ],
       "metrics": [
         {
-          "name": "Total_Anticipated_Cost",
-          "description": "Total_Anticipated_Cost = [Inception to Date (ITD) Actuals] + [Total_Forecast_Remaining_Large_Proj]",
+          "name": "Year-to-Date (YTD) Budget Variance",
+          "description": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)",
+          "source": "ai"
+        },
+        {
+          "name": "Overrun amount one",
+          "description": "Overrun Amounts =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURNVVVVV\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )",
           "source": "ai"
         }
       ],
@@ -22897,61 +22907,12 @@
           "source_id": "gmail:adaeze.okonjo@vriodigital.com",
           "mode": "all",
           "objects": []
-        },
-        {
-          "source_id": "bigquery:northline_epbcs",
-          "mode": "all",
-          "objects": []
         }
       ],
-      "hero_questions": [
-        {
-          "text": "Which completed projects are not yet unitized?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
+      "hero_questions": [],
       "gap_decisions": [],
-      "step": 5,
-      "updated_at": "2026-09-10T14:02:42.542Z"
-    },
-    {
-      "use_case_id": "uc-testdata-mtvlel9h4",
-      "name": "testdata",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "omains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
-      "personas": [
-        {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai"
-        }
-      ],
-      "metrics": [
-        {
-          "name": "Total_Anticipated_Cost",
-          "description": "Total_Anticipated_Cost = [Inception to Date (ITD) Actuals] + [Total_Forecast_Remaining_Large_Proj]",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "bigquery:northline_epbcs",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "Which completed projects are not yet unitized?",
-          "priority": "normal",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 5,
-      "updated_at": "2026-09-10T13:58:43.523Z"
+      "step": 4,
+      "updated_at": "2026-09-15T07:45:12.558Z"
     }
   ],
   "graph_use_case_templates": [

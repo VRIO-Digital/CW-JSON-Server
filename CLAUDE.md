@@ -893,13 +893,25 @@ drive or an inbox.
 > however a stage is labelled. The rule was never carried by the wording, which is why the wording
 > could go back.
 >
-> **What the label needed was the note beneath it to say *which* graph.** It assembles the
-> document's own entities and relations, held together as an observation of that attachment; none of
-> it is merged into the published knowledge graph, and `mailProcessCopy.note` says exactly that.
-> Without it the panel would argue with itself — a stage crediting a graph and a sentence one line
-> below denying one — which is the fault the *Curated by AI* rename records: each keeps the half
-> with teeth, and here the falsifiable half is the destination (step 4 says this source derives no
-> entities, and the canvas carries no node from it).
+> **The note beneath it said *which* graph, and it now says when to press the button — replaced on
+> request.** `mailProcessCopy.note` used to state that the last stage assembles the document's own
+> entities and relations as an observation of that attachment and that none of it is merged into
+> the published knowledge graph; it now reads *"You need to process the Document for the first time
+> or if you want it 'On Demand' processing. After first time process the process will be scheduled
+> every night at 12 am."* — which answers *why is there a button here at all* for a mailbox nobody
+> files into.
+>
+> **What that costs is stated rather than glossed.** Nothing on the panel now says which graph the
+> last stage assembles, so a reader has a stage crediting a graph and no sentence naming it — the
+> half of the *Curated by AI* arrangement that was carrying the falsifiable claim. **The rule is
+> untouched and is still enforced where it lives**: `RUNTIME_KINDS` holds `gmail` alone and
+> `selectedProfiledObjects` skips a runtime source **by name**, so step 4 derives nothing from a
+> mailbox and the canvas carries no node from one. That is exactly why the wording could go, and it
+> is the same reasoning that let the stage label go back. `check-docs` is re-pointed at the sentence
+> that is printed now rather than deleted with the one that went, and asserts the replaced sentence
+> has not come back beside it. **The nightly schedule is a claim the copy makes and nothing here
+> performs** — no timer, no cron, no server-side run: it describes the product's intent, so do not
+> read it as a scheduler that exists.
 >
 > **The tiles state chunks**: *documents chunked* (with the chunk total beneath it), *chunked
 > today*, and the *chunk size* the corpus declares. All counted over what has been **processed**,
@@ -1570,7 +1582,7 @@ That first act still writes nothing (it now reads nothing either). **Start Profi
 one control for both halves of what a reader means by it.
 
 **A dataset row draws the upload control or the staged acts, never both.** With nothing read against
-it the row offers **Upload dictionary**; with a file staged it offers that file's name, **View
+it the row offers **Upload Files**; with a file staged it offers that file's name, **View
 report** and **Discard** — the upload button used to stay, relabelled *Replace file*, and was
 **removed on request**. Swapping a file is Discard then Upload now: one more click, and the honest
 shape of the act, since `staged` holds one file per dataset and a replace was discarding the
@@ -2385,13 +2397,30 @@ Two rules the copy on the page promises, and the code has to keep:
   and only the user can fix either. `mode: 'all'` is stored rather than expanded,
   so a table profiled later is included without editing the draft.
 
-- **A mailbox picks *documents* at this step, and says what it is used for.** Asked for directly,
-  replacing a label picker. A label is what the consent happened to reach; a **processed document**
-  is what a use case can actually draw on, and the catalogue states its pages, chunks and size — so
-  those are what a reader ticks between, each with the opening line it is recognised by. Ticking
-  every box records **`mode: 'all'`**, not a subset that happens to hold everything: the two look
-  identical and are different promises, since `all` picks up a document processed after the draft
-  was saved.
+- **A mailbox is taken whole at this step, and all it says here is what it is used for.** The row
+  is the mailbox: the connector mark, the address, the labels the consent reached, and the *USED
+  FOR* box below them. Ticking the source is the whole of the decision, and the pick it records is
+  always **`mode: 'all'`** with no object list — "this mailbox, whatever it holds", which picks up a
+  document processed after the draft was saved.
+
+  **It listed every processed document with a checkbox and a *Select all* above them, and that was
+  removed on request.** That listing had itself replaced a label picker, on the reasoning that a
+  label is what the consent happened to reach while a *processed document* is what a use case can
+  actually draw on. What the removal settles is the step above it: a subset of somebody's mail was
+  never a choice this step was in a position to put to a reader — its messages arrive rather than
+  being filed and its documents are whatever somebody attached — which is word for word why the
+  Data Catalog's own mail act is one button over the whole mailbox. The two surfaces now agree, and
+  ticking every box always meant `all` anyway, so nothing a reader could express is lost.
+
+  **The counts did not go with the list, they went back to the one surface that reads them.** A
+  document's pages, chunks, size and opening line are the Data Catalog's — the one-record-one-
+  surface rule this file keeps everywhere — and `mailDocumentMeta` survives with no caller, the
+  same waiting-for-a-caller state `/change-signals` is in. **Do not delete it to "finish" this**,
+  and do not re-add the list without being asked.
+
+  Nothing about where a mail extraction may travel changed with the listing: the source is still
+  `runtime`, `selectedProfiledObjects` still skips it by name, and the note under the list still
+  says it derives no entities.
 
   **And a mailbox says what it is for**, in a *USED FOR* box with an Edit dialog. Two mailboxes look
   alike — an address says whose mail it is and nothing about what it holds — so a use case drawing

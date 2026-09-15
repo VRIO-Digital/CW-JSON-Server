@@ -1068,7 +1068,7 @@ alone.
 > never *read as CSV*. `parseSchemaDocument` and `resolveSchemaUpload` are dormant, not deleted, and
 > still verified by `npm run verify:schema-import`; the rest of this flow describes them.
 
-**Files:** **Upload dictionary**, on each dataset row of a BigQuery source's browse tree →
+**Files:** **Upload Files**, on each dataset row of a BigQuery source's browse tree →
 `DatasetDictionaryUpload.tsx` (`DictionaryUploadControl` + `DictionaryPlanReport`) →
 `useSchemaUploadStore` → `POST /sources/:id/schema/preview` and `POST /sources/:id/schema` →
 `resolveSchemaUpload` in `server.js` over `backend/schemaImport.js`. The write is triggered by
@@ -1094,7 +1094,7 @@ refused by `wrongStructuredOnly` — a schema is what neither has.
 
 | step | what happens |
 |---|---|
-| **Upload dictionary** (on a dataset row, and **only** while nothing is staged there) | the file is read in the browser (`File.text()`); `schemaFileProblem` checks the extension and the size before anything is sent |
+| **Upload Files** (on a dataset row, and **only** while nothing is staged there) | the file is read in the browser (`File.text()`); `schemaFileProblem` checks the extension and the size before anything is sent |
 | — immediately, no second click | `POST …/schema/preview` — parses, reports into `staged[dataset]`, **writes nothing**; `DictionaryPlanModal` opens on it, with `DictionaryPlanReport` (exported apart from the `Modal`) as its body. *View report* on the row reopens it; Close is its only act |
 
 **A staged row offers its filename, *View report* and *Discard* — and no upload button.** It used
@@ -1485,7 +1485,7 @@ they already have three is useless advice, so the step distinguishes them:
 | nothing connected | `NoSourceConnected` — "Connect a source" → `/sources` |
 | connected, nothing profiled | an **error** alert — "No profiled data yet — you cannot select a source", with "Open the Data Catalog to profile a source" → `/catalog`, above the cards, each tagged `nothing profiled` and disabled |
 | something profiled | the selection UI; the alert disappears |
-| a Gmail mailbox connected | selectable straight away, tagged `read at question time`, offering `All labels (N)` — see below |
+| a Gmail mailbox connected | selectable straight away, tagged `read at question time`, and taken whole — the row is the address, its labels and a *USED FOR* box, with no object list to narrow — see below |
 
 **A runtime source is the exception, and it is selectable whatever its catalogue holds.**
 `RUNTIME_KINDS` names the kinds that are read *when a question needs them*; the server
@@ -1503,6 +1503,15 @@ profiled mailbox with nothing in scope is still 0, and a mailbox with labels and
 profiled is still selectable. Had that refusal instead been fixed by testing "is there a
 profiler for this kind", it would now send a reader to the Data Catalog — where profiling
 the mail changes nothing about this step.
+
+**And the row draws no object list at all.** It listed the mailbox's processed documents with
+a checkbox each and a *Select all* above them — itself a replacement for a label picker — and
+that listing was **removed on request**. Ticking the source is the whole decision and records
+`mode: 'all'`, which is what ticking every box already meant; the pages, chunks and snippets
+are read in the Data Catalog, which is the one surface for them. `mailDocumentMeta` is kept
+with no caller — do not delete it, and do not re-add the list without being asked. One
+`check-docs` claim slices the runtime branch and asserts both halves: no *Select all* and no
+document checkbox in it, and the *USED FOR* box still in it.
 
 **What it contributes is an answer, not an entity.** Step 6 derives nothing from it and
 states so (`runtime_sources` and `runtime_note` on the coverage payload, both now carried by

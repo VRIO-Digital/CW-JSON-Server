@@ -6739,3 +6739,41 @@ is the failure mode where every break test reports MISSED and correct guards loo
 wrote LF lines into a CRLF file. **Anything with backslashes or non-ASCII goes through the Write or
 Edit tool**, which is what this file already says and what the next person will also be tempted to
 skip.
+
+---
+
+## Step 4's mail document list is gone, and the removal had to reach three places
+
+**Asked for directly**: on the New Graph wizard's source step, a Gmail row should show the mailbox
+and its *USED FOR* box and nothing else — no *Select all*, no per-document checkboxes.
+
+**Why it was safe rather than a narrowing.** The list was the only control on that row, and every
+state it could express already collapsed to one: ticking every box was stored as `mode: 'all'`, and
+a partial tick is a subset of somebody's mail — which is not a decision this step is in a position
+to put to a reader, for exactly the reason the Data Catalog's own mail act is *one button over the
+whole mailbox* (messages arrive rather than being filed; documents are whatever somebody attached).
+The two surfaces now agree. Selecting the source records `mode: 'all'` with no object list, which
+also keeps a document processed after the draft was saved.
+
+**Three things had to move together, and each fails a different silent way.**
+
+- **The list** went from the runtime branch of `SourcesStep`. Left behind, a *Select all* over a
+  list nothing draws is a control that ticks nothing.
+- **`picked`** went with it — the last reader of it was the list — and `noUnusedLocals` would have
+  failed the build, which is the loud half.
+- **`mailDocumentMeta` stayed**, unimported. Its figures are read in the Data Catalog, which is the
+  one-surface-per-record rule; a `check-docs` claim already asserts its `o.pages != null` guard, so
+  deleting it to "finish" the removal would have turned an unrelated claim red for the wrong reason.
+
+**One cross-layer claim, sliced to the branch.** A whole-file absence search would have been wrong
+in both directions here: the *structured* branch a few lines below legitimately draws its own
+*Select all* and its own object checkboxes. So the claim slices between `: source.runtime ? (` and
+the branch's `) : (`, asserts no *Select all*, no `ng-source-doc` and no `source.objects.map` inside
+it, and — paired, because an absence claim over an empty slice is a guard describing itself —
+asserts the *USED FOR* label and Edit button are still in the same slice. Break-tested twice: a
+re-added `Select all` turns it red, and so does replacing the used-for label with a literal.
+
+**What the removal cost, stated rather than glossed.** Nothing at step 4 now says how many documents
+a mailbox has processed, or shows the opening line each is recognised by. All of it is still in the
+catalogue and still on the Data Catalog's Gmail panel. **Do not restore the list without being
+asked.**

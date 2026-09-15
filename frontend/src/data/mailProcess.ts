@@ -20,25 +20,25 @@ export const mailProcessCopy = {
     `${job.stage_label} · ${job.objects_done} of ${job.object_count} processed`,
 
   /**
-   * What processing does, stated once under the run.
+   * When processing has to be asked for, stated once under the run.
    *
-   * **It says *which* graph the last stage assembles, and that is the whole job of this sentence.**
-   * The pipeline ends on *Assembling the graph* — the tenant's own wording — and what it assembles
-   * is the document's own entities and relations, held together as an observation of that
-   * attachment. It is not the published knowledge graph, and nothing here reaches one.
+   * **It answers "why is there a button here at all", which is what a reader asks of it.** A
+   * mailbox is not a place a reader files things, so a control over somebody's mail needs to say
+   * when pressing it is the act: the first run is manual, a later one is on demand, and between
+   * them the mailbox is picked up on the nightly schedule.
    *
-   * **Without this the panel would argue with itself**, which is the fault the *Curated by AI*
-   * rename records one section over: a label crediting something and a note one line below denying
-   * it. The resolution there was that each keeps the half with teeth, and it is the same here — the
-   * stage keeps the tenant's word, and this states the destination, which is the falsifiable part
-   * (step 4 says this source derives no entities, and the canvas carries no node from it).
+   * **What it no longer says is *which* graph the last stage assembles.** The pipeline still ends
+   * on *Assembling the graph* — the tenant's own wording — and what it assembles is the document's
+   * own entities and relations, held as an observation of that attachment rather than anything
+   * merged into the published knowledge graph. **Replaced on request**, so the panel no longer
+   * states that destination in words; the rule it described is untouched and is enforced where it
+   * lives, which is why the wording could go: `RUNTIME_KINDS` holds `gmail` alone and
+   * `selectedProfiledObjects` skips a runtime source **by name**, so step 4 derives nothing from a
+   * mailbox and the canvas carries no node from one however a stage is labelled.
    */
   note:
-    'Processing chunks and embeds each document, then extracts its entities and relations and ' +
-    'assembles them into that document’s own graph — once per document. Documents are identified ' +
-    'by the mailbox and the label they were filed under, so the same file is processed once ' +
-    'however it arrives. That graph stays with the document as an observation, read at question ' +
-    'time: none of it is merged into the published knowledge graph.',
+    'You need to process the Document for the first time or if you want it “On Demand” ' +
+    'processing. After first time process the process will be scheduled every night at 12 am.',
 
   /** Said where the table has no rows, rather than antd's bare "No data". */
   empty:
