@@ -1582,9 +1582,9 @@ That first act still writes nothing (it now reads nothing either). **Start Profi
 one control for both halves of what a reader means by it.
 
 **A dataset row draws the upload control or the staged acts, never both.** With nothing read against
-it the row offers **Upload Files**; with a file staged it offers that file's name, **View
-report** and **Discard** — the upload button used to stay, relabelled *Replace file*, and was
-**removed on request**. Swapping a file is Discard then Upload now: one more click, and the honest
+it the row offers **Upload Files**; with a file staged it offers that file's name and **Discard** —
+the upload button used to stay, relabelled *Replace file*, and a *View report* sat beside Discard;
+both were **removed on request**. Swapping a file is Discard then Upload now: one more click, and the honest
 shape of the act, since `staged` holds one file per dataset and a replace was discarding the
 previous plan either way with only the saying of it missing. `replaceLabel` went with the button,
 because a label nothing renders is an invitation for the control to come back.
@@ -1595,20 +1595,30 @@ with nothing staged and no upload button has no way to upload at all, and nothin
 claim pins `staged ? null :` as the gate rather than merely the button's absence: that is the only
 shape which leaves the empty state drawing one.
 
-**The report is a dialog, and it opens itself.** `DictionaryPlanModal` — asked for as a popup, and
-the inline version had made the reason plain: drawn under the tree, a twelve-row table and two
-warnings sat between the dataset rows and the button that acts on them, so a reader scrolled past
-what they were deciding about to reach Start Profiling. It opens when a read **lands** (not when one
-is refused: there is no report behind a refusal, and a dialog over one would bury the sentence
-explaining it), *View report* on the row is the way back in, and `reportFor` in `BrowsePanel` is the
-one piece of state saying which dataset's is showing — a `Modal` per dataset row would be several
-ways to be looking at one thing. **Close is its only act**: a *Start Profiling* on the dialog too
-would be a second control for one write. The footer used to restate what that button does and no
-longer does — removed on request; the sentence is still printed beside the button itself, so it
-stopped being said twice rather than stopping being said.
-`DictionaryPlanReport` is exported **apart from** the `Modal`, which is the rule every dialog here
-follows — a portal is not traversed by `renderToString`, so a table written inside one cannot be
-asserted at all.
+**The report is gone, and a landed upload raises a toast — removed on request.** It had two forms,
+each fixing the one before it: drawn inline under the tree, where a twelve-row table and two
+warnings sat between the dataset rows and the button that acts on them; then `DictionaryPlanModal`,
+a popup that opened itself when a read **landed**. Both are deleted, with `DictionaryPlanReport`,
+`reportFor` in `BrowsePanel`, the *View report* button and every word of copy only they printed —
+`reportTitle`, `reviewLabel`, `closeLabel`, `reportWidth` and `newTableNote`. What a reader gets is
+`schemaUploadCopy.uploaded`, one sentence naming the file: *"capex-plan-dictionary.csv uploaded
+successfully."*
+
+**On a landed read only, which is the one rule that survived the surface.** A refusal already has
+its own sentence in the panel's error alert, and a success toast over it would leave the reader two
+opposite answers to one act — exactly why the dialog opened on success alone. The control reports
+the filename and `BrowsePanel` raises the message, because that panel is where every other message
+about this tree is raised from.
+
+**What it costs is stated rather than glossed.** Nothing on screen now says which tables the run
+will cover or what each one's column count does, and nothing warns that an upload strands a
+curator's note — the last of the three "what this would take away" warnings still being drawn, the
+other two having gone earlier for the same reason. **The removal stopped at the components**:
+`datasetDictionaryPlan` still computes every one of those figures, the plan still carries them and
+`client.ts` still validates them, the same waiting-for-a-caller state `/change-signals` is in. Do
+not delete the layers beneath to "finish" it, and **do not restore the dialog without being asked**
+— `check-docs` asserts its absence at every layer in one claim, because a *View report* with no
+dialog or a `reportFor` nothing opens is the half that fails silently.
 
 **And one press is one pipeline, which it was not.** The write used to queue a run over the
 dictionary's own tables and the page then started a *second* run for the rest of the selection — so
@@ -1761,17 +1771,18 @@ worst of the three, a **Data Modeling declaration** reading one (`stranded_decla
 is a state `POST /data-model/entities` refuses to write, so it would otherwise be found only by
 somebody trying to edit that relationship.
 
-**The report used to name all three and now names one — removed on request, and the cost is stated
-rather than glossed.** The `added` and `dropped` columns and the stranded-declarations alert are
-gone from `DictionaryPlanReport`, along with the `re-profiled` tag and the footer line restating
-what Start Profiling does. So the dialog no longer tells a reader, by name, which columns an upload
-will take out of the dictionary — and an upload **replaces** a table's column list rather than
-merging into it. The curator-note warning stays, being the one that was not named in the request.
+**The report used to name all three and now names none, because the report itself is gone.** It
+went in two passes, both on request: first the `added` and `dropped` columns, the
+stranded-declarations alert, the `re-profiled` tag and the footer line restating what Start
+Profiling does — leaving the curator-note warning as the one that had not been named in that
+request; then the dialog entirely, which took that warning with it. So nothing tells a reader, by
+name, which columns an upload will take out of the dictionary or whose note it will strand — and an
+upload **replaces** a table's column list rather than merging into it.
 
-**The removal stopped at the component, deliberately.** Every field is still computed in
+**The removal stopped at the components, deliberately.** Every field is still computed in
 `resolveSchemaUpload`, still on the plan and still in the client's schema — the same
 waiting-for-a-caller state `/change-signals` is in — so this is a narrower *reading* of one payload
-rather than a payload that lost its answers, and re-adding any of it is one block in one file.
+rather than a payload that lost its answers, and re-adding any of it is one file.
 `check-docs` asserts both halves in one claim, because the two failure directions are opposite: a
 field the component draws that the server stopped sending is a blank column, while a served field
 nothing draws is the choice recorded here. **Do not restore any of it without being asked.**

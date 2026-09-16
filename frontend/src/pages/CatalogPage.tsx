@@ -27,10 +27,7 @@ import { selectSources, useSourcesStore } from '../store/sourcesStore'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import ConnectorIcon from '../components/common/ConnectorIcon'
 import DataModelTab from '../components/catalog/DataModelTab'
-import {
-  DictionaryPlanModal,
-  DictionaryUploadControl,
-} from '../components/catalog/DatasetDictionaryUpload'
+import { DictionaryUploadControl } from '../components/catalog/DatasetDictionaryUpload'
 import DocumentBrowsePanel from '../components/catalog/DocumentBrowsePanel'
 import MailProcessPanel from '../components/catalog/MailProcessPanel'
 import NoSourceConnected from '../components/common/NoSourceConnected'
@@ -97,15 +94,6 @@ function BrowsePanel({
   const startProfilingRun = useBrowseStore((s) => s.start)
   const [checked, setChecked] = useState<string[]>([])
   /*
-   * Which dataset's dictionary report is open, or `null`.
-   *
-   * One piece of state for one dialog, held by the panel rather than by each row: a `Modal` per
-   * dataset row would be several ways to be looking at one thing, and the row that opens it is not
-   * the row that has to know whether another one is open.
-   */
-  const [reportFor, setReportFor] = useState<string | null>(null)
-
-  /*
    * The dictionaries read against this source's datasets, and the two things Start Profiling needs
    * from them. Selected field by field, so a read of one dataset does not re-render the tree.
    */
@@ -163,7 +151,9 @@ function BrowsePanel({
         <DictionaryUploadControl
           source={source}
           datasetId={d.dataset_id}
-          onReport={setReportFor}
+          /* The one thing a landed file now produces. Raised here rather than in the control,
+             because this panel is where every other message about this tree is raised from. */
+          onUploaded={(filename) => message.success(schemaUploadCopy.uploaded(filename))}
         />
         <span className="cat-tree-count">{d.table_count} object(s)</span>
       </span>
@@ -329,15 +319,14 @@ function BrowsePanel({
           ) : null}
 
           {/*
-            **The report is a dialog, and one dialog for the panel.**
+            **The dictionary report stood here and is gone — removed on request.**
 
-            It was drawn here, under the tree, which put a twelve-row table and two warnings between
-            the dataset rows and the button that acts on them — so a reader scrolled past what they
-            were deciding about to reach Start Profiling. It opens itself when a read lands and
-            *View report* on the row reopens it; `reportFor` is the one piece of state saying which
-            dataset's is showing.
+            It was drawn inline first and then as a dialog that opened itself on a landed read;
+            both are removed, and a file that lands raises a toast instead. `reportFor` went with
+            it, because a piece of state naming which dialog is open is an invitation for the
+            dialog to come back. What it cost is recorded in `DatasetDictionaryUpload.tsx`, beside
+            the components that drew it.
           */}
-          <DictionaryPlanModal datasetId={reportFor} onClose={() => setReportFor(null)} />
 
           {/* Start Profiling's own promise, stated only while it has a dictionary to keep it. */}
           {Object.keys(staged).length > 0 ? (

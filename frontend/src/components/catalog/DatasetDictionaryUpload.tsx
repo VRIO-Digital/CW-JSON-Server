@@ -1,5 +1,5 @@
 import { InboxOutlined } from '@ant-design/icons'
-import { Alert, Button, Modal, Space, Table, Tag, Typography } from 'antd'
+import { Button, Space, Tag } from 'antd'
 import { useRef } from 'react'
 import type { SourceRow } from '../../api/client'
 import {
@@ -9,8 +9,6 @@ import {
 } from '../../data/schemaUpload'
 import { useSchemaUploadStore } from '../../store/catalogStore'
 import { SP } from '../../theme'
-
-const { Paragraph } = Typography
 
 /**
  * Uploading a data dictionary **against one dataset**, from that dataset's own row in the browse
@@ -45,18 +43,20 @@ const { Paragraph } = Typography
 export function DictionaryUploadControl({
   source,
   datasetId,
-  onReport,
+  onUploaded,
 }: {
   source: SourceRow
   datasetId: string
   /**
-   * Show this dataset's report. Called when a read lands — the reader asked for the file to be
-   * read and the report is the answer — and again from *View report* for one who has closed it.
+   * The file landed. Called on a read that succeeded, never on one that was refused — a refusal
+   * has its own sentence in the panel's error alert, and a success toast over it would say two
+   * opposite things at once.
    *
-   * A callback rather than a `Modal` rendered here: one dialog for the panel, opened by whichever
-   * row wants it, because a dialog per dataset row is several ways to be looking at one thing.
+   * A callback rather than `App.useApp()` here: this control is drawn once per dataset row inside
+   * a tree title, and the toast belongs to the panel that owns the tree — the same place every
+   * other message about a run in this panel is raised from.
    */
-  onReport: (datasetId: string) => void
+  onUploaded: (filename: string) => void
 }) {
   const staged = useSchemaUploadStore((s) => s.staged[datasetId])
   const reading = useSchemaUploadStore((s) => s.reading)
@@ -83,9 +83,9 @@ export function DictionaryUploadControl({
       filename: chosen.name,
       dataset_id: datasetId,
     })
-    /* And show what it says. Only on success: there is no report behind a refusal, and opening an
-       empty dialog over one would bury the sentence that explains it. */
-    if (result.ok) onReport(datasetId)
+    /* And say so. Only on success: a refusal is already stated in the panel's own error alert,
+       and a success toast over it would leave the reader two opposite answers to one act. */
+    if (result.ok) onUploaded(chosen.name)
   }
 
   return (
@@ -114,8 +114,8 @@ export function DictionaryUploadControl({
         {/*
           **The upload button is the empty state's control, and a staged dataset no longer draws
           it.** It used to stay and relabel itself *Replace file*; that was **removed on request**,
-          so a row with a file read against it offers its name, *View report* and *Discard* and
-          nothing else.
+          so a row with a file read against it offers its name and *Discard* and nothing
+          else.
 
           What it costs is one click: swapping a file is now Discard then Upload rather than
           Replace. That is the honest shape of the act anyway — a replace silently threw away a
@@ -141,12 +141,9 @@ export function DictionaryUploadControl({
           <>
             {/* Neutral: a staged file is not a state of the data. */}
             <Tag>{staged.filename}</Tag>
-            {/* The way back into the report, for a reader who has closed the one that opened
-                itself. A link rather than a second default button, because it opens something to
-                read rather than changing anything. */}
-            <Button size="small" type="link" onClick={() => onReport(datasetId)}>
-              {schemaUploadCopy.reviewLabel}
-            </Button>
+            {/* *View report* stood here and went with the dialog it opened. A control whose one
+                act is to show a surface that no longer exists is the half-removal this repo
+                refuses everywhere — so the label went from the copy module too. */}
             <Button size="small" type="text" onClick={() => discard(datasetId)}>
               {schemaUploadCopy.discardLabel}
             </Button>
@@ -157,171 +154,24 @@ export function DictionaryUploadControl({
   )
 }
 
-/**
- * What one staged dictionary would do, per table — the report the reader has to be able to check
- * before Start Profiling writes it.
+/*
+ * **`DictionaryPlanReport` and `DictionaryPlanModal` stood here, and both are gone — removed on
+ * request.**
  *
- * **The body, exported apart from its `Modal`**, which is the rule every dialog here follows: a
- * `Modal` renders through a portal `renderToString` will not traverse, so a table written inside
- * one cannot be asserted at all — the reason `ConnectSourceWizard` is separate from
- * `ConnectSourceModal`. It renders nothing for a dataset with nothing staged.
+ * The read opened a dialog: an *Accepted …* sentence, a row per table with its catalogued column
+ * count against the dictionary's, a warning for curator notes about to be stranded, and a footnote
+ * for a table the file declares. A reader is told the file arrived by a toast instead, and there is
+ * nothing to dismiss.
+ *
+ * **What that costs, stated rather than glossed.** Nothing on screen says which tables the run will
+ * cover, and nothing warns that an upload takes a curator's note with it — which was the last of
+ * the three "what this would take away" warnings still being drawn, the other two having been
+ * removed earlier for the same reason.
+ *
+ * **The removal stopped at the components, deliberately.** `datasetDictionaryPlan` still computes
+ * every one of those figures, the plan still carries them and `client.ts` still validates them, so
+ * this is a narrower reading of one payload rather than a payload that lost its answers — the same
+ * waiting-for-a-caller state `/change-signals` is in. Re-adding the surface is this one file.
+ * **Do not restore it without being asked**, and do not delete the layers beneath to "finish" the
+ * removal.
  */
-export function DictionaryPlanReport({ datasetId }: { datasetId: string }) {
-  const staged = useSchemaUploadStore((s) => s.staged[datasetId])
-  if (!staged) return null
-  const plan = staged.plan
-
-  return (
-    <div className="cat-dict-report">
-      <Alert
-        type="success"
-        showIcon
-        style={{ marginBottom: SP.base }}
-        /*
-          **"Accepted", never "read as CSV".** Nothing parsed the file, so a sentence claiming a
-          format and a table count *out of it* would be the one kind of figure this section refuses
-          — plausible on screen and impossible to check. The counts are the dataset's own, out of
-          the document, and the sentence says so.
-        */
-        title={`Accepted ${plan.filename}. Profiling will run over all ${plan.table_count} table(s) — ${plan.column_count} column(s) — in ${plan.dataset_id}, from this dataset's own dictionary.`}
-      />
-      <Table
-        size="small"
-        pagination={false}
-        rowKey="table_id"
-        dataSource={plan.tables}
-        columns={[
-          {
-            title: 'table',
-            dataIndex: 'table_id',
-            /* `new` marks a table this file *declares*, which is the one thing about a row that
-               changes what applying means. The `re-profiled` tag beside it was **removed on
-               request**: `profiled` is still served, and every table in a dictionary is re-profiled
-               anyway — forced, because the columns are exactly what changed — so the tag marked the
-               ordinary case rather than the exceptional one. */
-            render: (id: string, row) => (
-              <span>
-                <span className="cat-tree-table">{id}</span>{' '}
-                {row.exists ? null : <Tag color="processing">new</Tag>}
-              </span>
-            ),
-          },
-          {
-            title: 'columns',
-            key: 'columns',
-            width: 150,
-            /*
-             * **The number on screen, then the number this file names.** The before value is the
-             * *catalogue's* count rather than the dictionary's previous length, because they are
-             * different questions and the first is the one a reader is looking at: a table
-             * catalogued with 24 columns and no dictionary yet would otherwise read `0 → 3` while
-             * the figure on the Catalog went 24 → 3. Applying replaces both.
-             */
-            render: (_, row) => (
-              <span className="pc-num">
-                {row.exists
-                  ? `${row.catalogued_column_count} → ${row.column_count}`
-                  : row.column_count}
-              </span>
-            ),
-          },
-          /*
-           * **`added` and `dropped` were the third and fourth columns, and both are gone — removed
-           * on request.** What that costs is stated rather than glossed: `dropped` was the only
-           * place a reader was told, *by name*, which columns an upload would take out of the
-           * dictionary, and an upload **replaces** a table's column list rather than merging into
-           * it. Both fields are still computed and still served on the plan — nothing below this
-           * component changed — so the report is a narrower reading of the same payload, not a
-           * weaker one. Do not restore either without being asked.
-           */
-        ]}
-      />
-
-      {plan.tables.some((t) => t.orphaned_notes.length > 0) ? (
-        <Alert
-          type="warning"
-          showIcon
-          style={{ marginTop: SP.base }}
-          title={`${plan.tables.reduce((n, t) => n + t.orphaned_notes.length, 0)} curator note(s) are written against columns this file does not name, and stop applying with them: ${plan.tables
-            .flatMap((t) => t.orphaned_notes.map((c) => `${t.table_id}.${c}`))
-            .join(', ')}`}
-        />
-      ) : null}
-
-      {/*
-        **The stranded-declarations alert stood here and is gone — removed on request.**
-
-        What it said, and what its absence costs: a Data Modeling declaration reads a column *by
-        name*, and `POST /data-model/entities` refuses a join on a column `column_profiles` does not
-        carry — so an upload leaving one out leaves a declaration the write path will no longer
-        accept, findable only by somebody trying to edit that relationship. This alert named each
-        one while it was still a choice. CAPEX's own `capex-plan-dictionary.csv` strands three on
-        `plan_version_master`, which is deliberate in that sample.
-
-        `stranded_declarations` is still computed in `resolveSchemaUpload` and still on every plan
-        row, so nothing below this component changed and re-adding the alert is this block again.
-        **Do not restore it without being asked.**
-      */}
-
-      {plan.new_table_count > 0 ? (
-        <Paragraph type="secondary" style={{ fontSize: 12.5, marginTop: SP.base }}>
-          {schemaUploadCopy.newTableNote}
-        </Paragraph>
-      ) : null}
-    </div>
-  )
-}
-
-/**
- * The report as a dialog.
- *
- * **Asked for as a popup, and it is one for a reason the inline version made obvious**: drawn under
- * the tree, a twelve-row table and two warnings sat between the dataset rows and the button that
- * acts on them, so a reader scrolled past what they were deciding about to reach Start Profiling.
- * A dialog puts the report in front of the decision instead of below it.
- *
- * **It opens by itself when a read lands**, because that is the answer to the act the reader just
- * performed — the same reasoning that made choosing a file read it. *View report* on the row is the
- * way back in.
- *
- * **Close is its only act.** A *Start Profiling* here as well would be a second control for one
- * write.
- *
- * **The footer used to restate what that button would do, and that line is gone — removed on
- * request.** `schemaUploadCopy.applyNote` is untouched and still printed where the button actually
- * is, on the browse panel beside Start Profiling, so the promise did not disappear with the
- * sentence here: it stopped being said twice.
- */
-export function DictionaryPlanModal({
-  datasetId,
-  onClose,
-}: {
-  /** The dataset whose report is open, or `null` for none. */
-  datasetId: string | null
-  onClose: () => void
-}) {
-  const staged = useSchemaUploadStore((s) => (datasetId ? s.staged[datasetId] : undefined))
-
-  return (
-    <Modal
-      /* Open only where there is something to show: a dataset whose file has been discarded, or
-         whose write has landed, has no report and would open an empty dialog. */
-      open={Boolean(datasetId && staged)}
-      title={
-        staged && datasetId
-          ? schemaUploadCopy.reportTitle(datasetId, staged.filename)
-          : undefined
-      }
-      onCancel={onClose}
-      width={schemaUploadCopy.reportWidth}
-      destroyOnHidden
-      footer={
-        <Button size="small" onClick={onClose}>
-          {schemaUploadCopy.closeLabel}
-        </Button>
-      }
-    >
-      {datasetId ? <DictionaryPlanReport datasetId={datasetId} /> : null}
-    </Modal>
-  )
-}

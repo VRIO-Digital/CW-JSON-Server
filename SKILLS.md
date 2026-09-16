@@ -1086,7 +1086,7 @@ alone.
 > still verified by `npm run verify:schema-import`; the rest of this flow describes them.
 
 **Files:** **Upload Files**, on each dataset row of a BigQuery source's browse tree →
-`DatasetDictionaryUpload.tsx` (`DictionaryUploadControl` + `DictionaryPlanReport`) →
+`DatasetDictionaryUpload.tsx` (`DictionaryUploadControl`) →
 `useSchemaUploadStore` → `POST /sources/:id/schema/preview` and `POST /sources/:id/schema` →
 `resolveSchemaUpload` in `server.js` over `backend/schemaImport.js`. The write is triggered by
 **Start Profiling** in `BrowsePanel` (`CatalogPage.tsx`). Copy, file rules and the two outcome
@@ -1112,21 +1112,24 @@ refused by `wrongStructuredOnly` — a schema is what neither has.
 | step | what happens |
 |---|---|
 | **Upload Files** (on a dataset row, and **only** while nothing is staged there) | the file is read in the browser (`File.text()`); `schemaFileProblem` checks the extension and the size before anything is sent |
-| — immediately, no second click | `POST …/schema/preview` — parses, reports into `staged[dataset]`, **writes nothing**; `DictionaryPlanModal` opens on it, with `DictionaryPlanReport` (exported apart from the `Modal`) as its body. *View report* on the row reopens it; Close is its only act |
+| — immediately, no second click | `POST …/schema/preview` — reports into `staged[dataset]`, **writes nothing**; a toast says `schemaUploadCopy.uploaded(filename)` and that is the whole of what a reader is told. On a landed read only: a refusal has its own sentence in the panel's error alert, and a success message over it would answer one act two opposite ways |
 
-**A staged row offers its filename, *View report* and *Discard* — and no upload button.** It used
-to keep one relabelled *Replace file*; removed on request, so swapping a file is Discard then
-Upload. `check-docs` pins the gate (`staged ? null :`) rather than just the absence, because hiding
+**A staged row offers its filename and *Discard* — and no upload button.** It used to keep one
+relabelled *Replace file*, and a *View report* beside Discard; both removed on request, so swapping
+a file is Discard then Upload and there is no report to reopen. `check-docs` pins the gate (`staged ? null :`) rather than just the absence, because hiding
 a control is one edit away from hiding it in the state that needs it — an empty dataset with no
 upload button has no way to upload, and nothing throws.
 
-**The report is table name, the two column counts, and a `new` tag — and that is all of it.** The
-`added` and `dropped` columns, the stranded-declarations alert, the `re-profiled` tag and the footer
-line restating what Start Profiling does were all **removed on request**. Every field behind them is
-still computed and still served, so re-adding any of it is one block in `DictionaryPlanReport`; what
-it costs meanwhile is that nothing on screen names the columns an upload will take out. The
-curator-note warning stays. `check-docs` guards both directions in one claim — a served field the
-component draws again, and a drawn field the server stops sending.
+**There is no report, and it went in two passes — both on request.** First the `added` and
+`dropped` columns, the stranded-declarations alert, the `re-profiled` tag and the footer line
+restating what Start Profiling does, leaving table name, the two column counts, a `new` tag and the
+curator-note warning; then `DictionaryPlanModal` and `DictionaryPlanReport` themselves, with
+`reportFor`, the *View report* button and the four copy fields only they printed. Every field behind
+all of it is still computed and still served — dormant, like `/change-signals` — so re-adding the
+surface is one file. What it costs meanwhile is that nothing on screen names the tables a run will
+cover, the columns an upload will take out, or the curator note it will strand. `check-docs` guards
+both directions: the plan still computes what nothing draws, and the surface is absent at every
+layer in one claim, since a button with no dialog is the half that fails silently.
 | **Start Profiling** | one `POST …/schema` carrying **every** staged dictionary *and* the checked tables: the server resolves all the plans, commits them in a single `commitDb`, then queues **one** job over the union — the dictionaries' tables (always `pending`) plus the rest of the selection (skipped if already profiled, unless `force`) — and the page switches to the jobs board |
 
 **One press, one pipeline.** This was two calls and two jobs: a forced run over the dictionary's

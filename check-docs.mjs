@@ -3405,21 +3405,19 @@ for (const path of panelFiles) {
   )
 }
 /*
- * **The page's half of that, and it cannot be `!/onClose/` over the whole file.**
+ * **The page's half of that, and the count is back to zero.**
  *
- * `catalogPage` is already read at the top of this file — one binding, reused. It was in the list
- * above until the dictionary report became a dialog: a `Modal` has an `onClose`, legitimately, and a
- * whole-file search for the word turned this red over correct code. The fact being guarded is that
- * no *panel* takes one — the toggle that opened it is what closes it — so the test is that every
- * `onClose` in the page belongs to that dialog, which is exact and stays exact when a second dialog
- * arrives (it will need naming here, which is the point).
+ * `catalogPage` is already read at the top of this file — one binding, reused. The fact being
+ * guarded is that no *panel* takes a close handler: the toggle that opened it is what closes it.
+ * For a while the page carried exactly one legitimate `onClose`, the dictionary report's `Modal`,
+ * so this counted to 1 and named it; that dialog was removed on request and a landed upload raises
+ * a toast instead, which nothing closes. Counted rather than `!/onClose/` over the file, because a
+ * second dialog would need naming here — which is the point.
  */
 const catalogOnClose = catalogPageCode.match(/onClose=\{[^}]*\}/g) ?? []
 expect(
   'CatalogPage passes no close handler to a panel',
-  !/CloseOutlined/.test(catalogPageCode) &&
-    catalogOnClose.length === 1 &&
-    /<DictionaryPlanModal[^>]*onClose=/s.test(catalogPageCode),
+  !/CloseOutlined/.test(catalogPageCode) && catalogOnClose.length === 0,
   'the ✕, its handler and the prop all go together or none of them do',
 )
 expect(
@@ -3879,6 +3877,8 @@ const declarationsReading = (doc, tableKey) => {
   return out
 }
 const dictionaryPanelCode = codeOnly(dictionaryPanel)
+/* The copy module beside it — read once, because three claims below ask what it still says. */
+const schemaUploadCopySrc = read('frontend/src/data/schemaUpload.ts')
 
 /*
  * **The reader is pure and in a file of its own, and it is verified offline.**
@@ -4157,20 +4157,21 @@ expect(
     /* …and still carried through the client's schema, so nothing below the component changed. */
     /dropped: arrayOf\(str\)/.test(client) &&
     /stranded_declarations: arrayOf\(str\)/.test(client) &&
-    /* The four the report no longer draws. `codeOnly`, because the comments left in their place
-       name every one of them — the self-documenting-file trap this repo has hit six times. */
+    /* **And now none of it is drawn at all**, the report having been removed on request. It was
+       four fields first (`added`, `dropped`, the stranded-declarations alert, the `re-profiled`
+       tag), then the two counts and the curator-note warning with the dialog itself. `codeOnly`
+       throughout, because the comments left in their place name every one of them — the
+       self-documenting-file trap this repo has hit six times. */
     !/title: 'added'/.test(codeOnly(dictionaryPanel)) &&
     !/title: 'dropped'/.test(codeOnly(dictionaryPanel)) &&
     !/stranded_declarations\.map/.test(codeOnly(dictionaryPanel)) &&
     !/re-profiled/.test(codeOnly(dictionaryPanel)) &&
+    !/orphaned_notes\.map/.test(codeOnly(dictionaryPanel)) &&
+    !/catalogued_column_count/.test(codeOnly(dictionaryPanel)) &&
     !/schemaUploadCopy\.applyNote/.test(codeOnly(dictionaryPanel)) &&
-    /* The curator-note warning is the one that stays. */
-    /orphaned_notes\.map/.test(dictionaryPanel) &&
-    /* Start Profiling's promise did not disappear with the footer line — it is still printed where
-       that button actually is, so it stopped being said twice rather than stopping being said. */
-    /schemaUploadCopy\.applyNote/.test(catalogPageCode) &&
-    /* And the before number is still the catalogue's, which is the one on screen. */
-    /\$\{row\.catalogued_column_count\} → \$\{row\.column_count\}/.test(dictionaryPanel),
+    /* Start Profiling's promise is the one sentence that survived every removal here — still
+       printed where that button actually is, which is why the report could go without it. */
+    /schemaUploadCopy\.applyNote/.test(catalogPageCode),
   'a rendered field the server stopped sending is a blank column; a served one nothing draws is a choice',
 )
 
@@ -4208,9 +4209,16 @@ expect(
     /state: 'pending',/.test(schemaWriteRoute) &&
     /* The empties are honest rather than tidy — this upload replaces no column list. */
     /Empty because they are, not to look tidy/.test(server) &&
-    /* Accepted, never "read as CSV". */
-    /Accepted \$\{plan\.filename\}\./.test(dictionaryPanel) &&
-    !/Read \$\{plan\.filename\} as/.test(dictionaryPanel) &&
+    /* **Nothing on screen claims a parse.** This was *Accepted ${plan.filename}.* on the report's
+       own alert, chosen over "read as CSV" because a format and a table count attributed to a parse
+       that never ran is the uncheckable figure this section refuses. The report is gone and the one
+       sentence left is the toast, so the guard moved to it: it says the file was *uploaded*, and
+       neither it nor anything else here says the file was read, parsed or recognised as a format. */
+    /uploaded: \(filename: string\) => `\$\{filename\} uploaded successfully\.`/.test(
+      schemaUploadCopySrc,
+    ) &&
+    !/read as|parsed|Accepted \$\{/.test(codeOnly(schemaUploadCopySrc)) &&
+    !/Accepted \$\{/.test(dictionaryPanel) &&
     /* No bytes leave the browser, at either layer. */
     !/chosen\.text\(\)/.test(codeOnly(dictionaryPanel)) &&
     !/text: string; dataset_id: string/.test(client) &&
@@ -4357,36 +4365,46 @@ expect(
 )
 
 /*
- * **The report is a dialog, and the body is exported apart from it.**
+ * **The dictionary report is gone, and a landed upload raises a toast — removed on request.**
  *
- * Asked for as a popup, and the inline version had made the reason plain: drawn under the tree, a
- * twelve-row table and two warnings sat between the dataset rows and the button that acts on them,
- * so a reader scrolled past what they were deciding about to reach Start Profiling.
+ * It was drawn under the tree first, which put a twelve-row table and two warnings between the
+ * dataset rows and the button that acts on them; then it became a dialog that opened itself on a
+ * read that landed. Both are removed. A reader who picks a file is told it arrived and there is
+ * nothing to dismiss.
  *
- * **The separation is the assertable part.** A `Modal` renders through a portal `renderToString`
- * will not traverse, so a table written inside one cannot be checked at all — the reason
- * `ConnectSourceWizard` is separate from `ConnectSourceModal`, and the reason the claims above can
- * read this file for the dropped columns and the two counts. The page renders the dialog, never the
- * report: two surfaces for one thing is what the move was for.
+ * **One cross-layer claim, because half a removal is the shape that fails silently.** The pieces
+ * fail in opposite directions: a `DictionaryPlanModal` still rendered by the page with no component
+ * behind it is a build error, but a *View report* button with no dialog, a `reportFor` nothing
+ * opens, or a `reportTitle` nothing prints are all silent — and a label nothing renders is an
+ * invitation for the control to come back, which is the reasoning `replaceLabel` is already on
+ * record for.
  *
- * **And it opens on a read that landed, not on one that was refused** — there is no report behind a
- * refusal, and a dialog over one would bury the sentence explaining it.
+ * **And the toast is on the landed read only.** A refusal has its own sentence in the panel's error
+ * alert, and a success message over it would leave the reader two opposite answers to one act —
+ * which is the same rule the dialog kept when it was the thing that opened.
  */
 expect(
-  'the dictionary report is a dialog whose body is exported apart from it',
-  /export function DictionaryPlanReport/.test(dictionaryPanel) &&
-    /export function DictionaryPlanModal/.test(dictionaryPanel) &&
-    /* The wrapper renders the body rather than repeating it. */
-    /<DictionaryPlanReport datasetId=\{datasetId\} \/>/.test(dictionaryPanel) &&
-    /* Opened by the panel, one dialog for every row, off one piece of state. */
-    /<DictionaryPlanModal datasetId=\{reportFor\} onClose=\{\(\) => setReportFor\(null\)\} \/>/.test(
+  'the dictionary report is gone at every layer, and a landed upload says so in a toast',
+  /* The components, through `codeOnly`: the note left in their place names both of them. */
+  !/export function DictionaryPlanReport|export function DictionaryPlanModal/.test(
+    codeOnly(dictionaryPanel),
+  ) &&
+    !/DictionaryPlan/.test(codeOnly(catalogPageCode)) &&
+    !/reportFor|setReportFor/.test(catalogPageCode) &&
+    /* The copy the dialog needed, gone with it — a label nothing renders brings the control back. */
+    !/reportTitle|reviewLabel|closeLabel|reportWidth|newTableNote/.test(
+      codeOnly(schemaUploadCopySrc),
+    ) &&
+    /* What replaced it: the control reports the file it took, and the panel raises the toast. */
+    /if \(result\.ok\) onUploaded\(chosen\.name\)/.test(dictionaryPanelCode) &&
+    /onUploaded: \(filename: string\) => void/.test(dictionaryPanelCode) &&
+    /onUploaded=\{\(filename\) => message\.success\(schemaUploadCopy\.uploaded\(filename\)\)\}/.test(
       catalogPageCode,
     ) &&
-    !/<DictionaryPlanReport/.test(catalogPageCode) &&
-    /* On success only, and the row keeps a way back in. */
-    /if \(result\.ok\) onReport\(datasetId\)/.test(dictionaryPanelCode) &&
-    /schemaUploadCopy\.reviewLabel/.test(dictionaryPanelCode),
-  'a report written inside a Modal cannot be asserted, and one drawn twice is two surfaces',
+    /* The plan is still computed and still served — see the claim above; this removal stopped at
+       the components, and the note in each file says not to finish it. */
+    /Do not restore it without being asked/.test(dictionaryPanel),
+  'a button with no dialog, or copy with nothing printing it, is a half-removal that fails silently',
 )
 
 /*
@@ -4409,9 +4427,10 @@ expect(
   /* The gate is on `staged`, so the empty branch is the one that draws the button. */
   /\{staged \? null : \(/.test(dictionaryPanelCode) &&
     /schemaUploadCopy\.uploadLabel\}/.test(dictionaryPanelCode) &&
-    /* The two acts that stay. */
-    /schemaUploadCopy\.reviewLabel/.test(dictionaryPanelCode) &&
+    /* The one act that stays. *View report* was the second and went with the dialog it opened —
+       both layers, since a label nothing renders invites the control back. */
     /schemaUploadCopy\.discardLabel/.test(dictionaryPanelCode) &&
+    !/reviewLabel/.test(dictionaryPanelCode) &&
     /* Removed at both layers — `codeOnly`, since the comments left behind name the button. */
     !/replaceLabel/.test(dictionaryPanelCode) &&
     !/replaceLabel/.test(codeOnly(read('frontend/src/data/schemaUpload.ts'))) &&

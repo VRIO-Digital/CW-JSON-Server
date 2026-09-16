@@ -71,7 +71,7 @@ export const schemaUploadCopy = {
     'the same place a profiling run writes to. The file is read the moment you choose it and ' +
     'nothing is written until Start Profiling: applying replaces a table’s column list rather ' +
     'than adding to it, so a file naming 3 columns of a table catalogued with 24 leaves that table ' +
-    'with 3. The report under each dataset shows both numbers.',
+    'with 3.',
 
   /**
    * **The one thing this panel must say out loud.** A dictionary states what a column *means*; it
@@ -110,23 +110,24 @@ export const schemaUploadCopy = {
   discardLabel: 'Discard',
 
   /**
-   * **The report is a dialog, and these are its words.**
+   * **What a reader is told when a file lands, and it is a toast rather than a dialog.**
    *
-   * It was drawn under the tree, which put a twelve-row table and two warnings between the dataset
-   * rows and the button that acts on them — so a reader scrolled past what they were deciding about
-   * to reach the control. It opens **by itself** when a file has been read, because that is the
-   * answer to the act just performed, and `reviewLabel` is the way back in for a reader who has
-   * dismissed it.
+   * The read used to open a report — the accepted sentence, a row per table with its column count
+   * before and after, and the curator-note warning. **Removed on request**: a reader who has just
+   * picked a dictionary is told it arrived, and nothing about the act needs a surface to dismiss.
    *
-   * Its only act is Close. Offering *Start Profiling* here as well would be a second control for
-   * one write, and the one on the panel is where every other run starts.
+   * **What that costs is stated rather than glossed.** Nothing on screen now says which tables the
+   * run will cover or what each one's column count does, so the only account of the act is this
+   * sentence plus `applyNote` beside the button that performs it. Every one of those figures is
+   * still computed and still on the plan — see `DictionaryUploadControl` — so this is a narrower
+   * reading of one payload rather than a payload that lost its answers. Do not restore the dialog
+   * without being asked.
+   *
+   * It names the file, because a reader who has just chosen one is entitled to see which one the
+   * app took — and because a bare "uploaded successfully" says nothing a second upload could be
+   * told apart by.
    */
-  reportTitle: (datasetId: string, filename: string) =>
-    `${filename} — what it would do to ${datasetId}`,
-  reviewLabel: 'View report',
-  closeLabel: 'Close',
-  /** The width the table and its warning sentence need. */
-  reportWidth: 900,
+  uploaded: (filename: string) => `${filename} uploaded successfully.`,
 
   /**
    * What **Start Profiling** does once a dictionary has been read — the second act, and the only
@@ -137,10 +138,6 @@ export const schemaUploadCopy = {
     'Start Profiling writes every dictionary read here, then profiles the tables it touched — ' +
     'forced, because the columns are exactly what changed.',
 
-  /** A table this upload would add rather than describe. */
-  newTableNote:
-    'New to this project. The Catalog will list it, and its rows are uncounted until something ' +
-    'counts them — a dictionary states no row count.',
 } as const
 
 /** One dictionary that actually landed — what the sentence below needs, and nothing more. */
