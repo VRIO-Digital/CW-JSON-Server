@@ -1939,6 +1939,48 @@ expect(
 )
 
 /*
+ * **Opening a relationship seeds its columns, and the reset guard has to be told.**
+ *
+ * The dialog seeds the whole row in one pass, and separately clears a column select when *its own
+ * table* changes - the previous column is not on the new table. Those two fought: the seed set the
+ * table and its column together, then the guard saw the table key move off its initial `undefined`
+ * and wiped the column it had just been handed. Reported from use as every stored relationship
+ * opening with two empty Column selects while the entity beside each was filled in, which reads as
+ * a dialog that never knew the join rather than one that erased it a render later.
+ *
+ * So the seeding block sets the guard's own memory alongside each table key. The claim reads that
+ * *block* rather than the file, because both spellings appear again in the guard below it and a
+ * whole-file search would pass on the guard alone.
+ */
+{
+  const modal = read('frontend/src/components/catalog/RelationshipModal.tsx')
+  const seedFrom = modal.indexOf('targetKey !== lastTargetKey')
+  const seedTo = modal.indexOf('A column select resets when its own table changes')
+  const seed = seedFrom >= 0 && seedTo > seedFrom ? modal.slice(seedFrom, seedTo) : ''
+  expect(
+    'opening a relationship seeds the column-reset guard alongside the table it tracks',
+    seed.length > 0 &&
+      /setFromTableKey\(relationship\.fromTableKey\)\s*\r?\n\s*setLastFromTableKey\(relationship\.fromTableKey\)/.test(
+        seed,
+      ) &&
+      /setToTableKey\(relationship\.toTableKey\)\s*\r?\n\s*setLastToTableKey\(relationship\.toTableKey\)/.test(
+        seed,
+      ) &&
+      /setLastFromTableKey\(createFromTableKey \?\? tables\[0\]\?\.tableKey\)/.test(seed) &&
+      /setLastToTableKey\(undefined\)/.test(seed) &&
+      /* And the guard it feeds is still there, or there was nothing to tell. */
+      /if \(fromTableKey !== lastFromTableKey\) \{\s*\r?\n\s*setLastFromTableKey\(fromTableKey\)\s*\r?\n\s*setFromColumn\(undefined\)/.test(
+        modal,
+      ) &&
+      /if \(toTableKey !== lastToTableKey\) \{\s*\r?\n\s*setLastToTableKey\(toTableKey\)\s*\r?\n\s*setToColumn\(undefined\)/.test(
+        modal,
+      ),
+    'a seeded column is cleared one render later and the relationship opens with no join',
+  )
+}
+
+
+/*
  * **A recorded suggestion has to be confirmable, which means its columns have to exist.**
  *
  * The worst break in this feature, and a silent one: a suggestion on a column nobody carries reaches

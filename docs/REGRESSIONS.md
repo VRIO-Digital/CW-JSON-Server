@@ -6918,3 +6918,51 @@ profile released exactly the one relation between those two, and **disconnect re
 nothing about this — its consequence lines were removed twice over, deliberately, and this entry is
 not a reason to put them back. The consequence is reported *after* the act, in the success toast,
 composed from what the server said it did rather than from the row submitted.
+
+## Seeding a form and a reset guard in one render: the relationship dialog opened with no columns
+
+Clicking any relationship in Data Modeling opened `RelationshipModal` with both **Column** selects
+empty, showing their placeholder, while the **entity** select beside each was correctly filled in.
+Reported from use on CAPEX, where every stored declaration names a real column on both sides
+(`plan_project_forecast.Account = plan_account_dim.Account`), and `column_profiles` carries those
+column ids — so the dropdowns had options and the stored row had values, and neither reached the
+screen.
+
+**Two adjust-state-during-render blocks, each correct alone.** The first re-seeds the whole dialog
+when a different target opens, keyed on the relationship's id — name, both table keys, both columns,
+the cardinality, the rationale. The second is the rule that a column select resets when *its own
+table* changes, because the previous column is not on the new table:
+
+    const [lastFromTableKey, setLastFromTableKey] = useState(fromTableKey)
+    if (fromTableKey !== lastFromTableKey) {
+      setLastFromTableKey(fromTableKey)
+      setFromColumn(undefined)          // <- ate the value the seed had just set
+    }
+
+`lastFromTableKey` was initialised from `fromTableKey`, which is `undefined` before anything opens.
+So opening a relationship set the table and its column together, React re-rendered, the guard saw
+the table key move off `undefined`, and cleared the column one render after it arrived. The entity
+survived because nothing resets *it*, which is exactly why the symptom read as a dialog that had
+never known the join rather than one that erased half of it.
+
+**The fix is to tell the guard about the re-seed.** Both `lastFromTableKey` and `lastToTableKey` are
+declared above the seeding block and set there alongside the table keys they track, so a seed is not
+a change the guard has to react to. Declaring them above is not tidiness: they are `const`
+bindings, so the seeding block referencing them from further up the file would die in the temporal
+dead zone.
+
+**The lesson is general.** *Two derive-from-props blocks in one component are ordered, and the later
+one sees the earlier one's writes as changes.* A guard that watches a value for changes has to be
+given that value whenever something other than the user sets it — a seed, a reset, a hydrate — or it
+reads an authored write as a user edit and undoes it. The tell is a field that is correct in the data
+and blank on screen with nothing thrown.
+
+**The guard is a `check-docs` claim over the *seeding block*, not the file.** Both `setLastFromTableKey`
+and `setLastToTableKey` appear twice over — once in the seed and once in the reset they feed — so a
+whole-file search for either passes on the reset alone, which is the self-satisfying-search shape
+already on record here several times. The claim slices the file between `targetKey !== lastTargetKey`
+and the reset's own comment, asserts each seed sets its table key and its memory *adjacently*, and
+asserts beside it that the reset guard still exists — "X is absent" and "Y is still here" are cheap
+together and worthless apart. Break-tested four ways (drop either seed, drop the create-path seed,
+drop the guard); all four turn it red, and it is green on the fix.
+

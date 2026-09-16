@@ -116,6 +116,13 @@ export default function RelationshipModal({
   const [error, setError] = useState<string | null>(null)
   const [editingColumns, setEditingColumns] = useState(false)
 
+  /* Which table each column select was last populated for. Declared above the seeding block
+     rather than beside its own guard, because the guard has to be told about a re-seed: opening a
+     relationship sets a table and its column in one pass, and a guard that saw only the table
+     change would clear the column that was just seeded. */
+  const [lastFromTableKey, setLastFromTableKey] = useState<string | undefined>(undefined)
+  const [lastToTableKey, setLastToTableKey] = useState<string | undefined>(undefined)
+
   /* Re-seeded whenever a different target opens — adjust-state-during-render, keyed on its id. */
   const targetKey = isCreate
     ? `create:${createFromTableKey ?? ''}`
@@ -128,16 +135,20 @@ export default function RelationshipModal({
     if (relationship) {
       setName(relationship.name)
       setFromTableKey(relationship.fromTableKey)
+      setLastFromTableKey(relationship.fromTableKey)
       setFromColumn(relationship.fromColumn)
       setToTableKey(relationship.toTableKey)
+      setLastToTableKey(relationship.toTableKey)
       setToColumn(relationship.toColumn)
       setCardinality(relationship.cardinalityKind)
       setRationale(relationship.rationale)
     } else {
       setName('')
       setFromTableKey(createFromTableKey ?? tables[0]?.tableKey)
+      setLastFromTableKey(createFromTableKey ?? tables[0]?.tableKey)
       setFromColumn(undefined)
       setToTableKey(undefined)
+      setLastToTableKey(undefined)
       setToColumn(undefined)
       setCardinality('1:N')
       setRationale('')
@@ -145,12 +156,10 @@ export default function RelationshipModal({
   }
 
   /* A column select resets when its own table changes — the previous column is not on the new one. */
-  const [lastFromTableKey, setLastFromTableKey] = useState(fromTableKey)
   if (fromTableKey !== lastFromTableKey) {
     setLastFromTableKey(fromTableKey)
     setFromColumn(undefined)
   }
-  const [lastToTableKey, setLastToTableKey] = useState(toTableKey)
   if (toTableKey !== lastToTableKey) {
     setLastToTableKey(toTableKey)
     setToColumn(undefined)
