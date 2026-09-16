@@ -370,10 +370,25 @@ function CatalogTab({
   sources,
   loading,
   onChanged,
+  onCountsChanged,
 }: {
   sources: SourceRow[]
   loading: boolean
+  /**
+   * A run was **queued**: re-read the sources *and* switch to the jobs board, because a queued job
+   * is otherwise invisible from this tab.
+   */
   onChanged: () => void
+  /**
+   * A run **settled**: re-read the sources and nothing else.
+   *
+   * **Two callbacks because they are two acts, and one of them must not switch tabs.** Gmail's run
+   * is deliberately absent from the Profiling jobs board and is narrated on this tab instead, so
+   * sending a reader there when it lands would put them on a list that cannot contain the run they
+   * were just watching. Wiring `onChanged` here was the obvious one-line fix and is the wrong one
+   * for exactly that reason.
+   */
+  onCountsChanged: () => void
 }) {
   /*
    * **A source with no profiler is left out of the catalogue, and the omission is stated.**
@@ -428,11 +443,16 @@ function CatalogTab({
       `Processing ${result.job.objects.length} document(s) from this mailbox.`,
     )
     /*
-     * **Deliberately not `onChanged()`.** That re-reads the sources *and switches to Profiling
+     * **Deliberately not `handleQueued()`.** That re-reads the sources *and switches to Profiling
      * jobs* — which is right for every other run and wrong for this one: a mail job is excluded
      * from that board on purpose, so sending a reader there would land them on a list that does
      * not contain the run they just started. The run is narrated right below this button instead,
      * by `MailProcessPanel`, which holds the job the store just kept and polls it from here.
+     *
+     * **Nothing is re-read here, because nothing has changed yet.** A queued run has moved no
+     * counter; the figures land when it *completes*, and the panel calls `onProcessed` then. This
+     * comment used to say the outcome was "a message and a reload", and the reload was the half
+     * that did not exist — which left every tile at 0 over a finished run.
      */
   }, [selected, processMail, message])
 
@@ -722,7 +742,14 @@ function CatalogTab({
             now has no caller: the same waiting-for-a-caller state `/change-signals` is in.
           */}
           {units && units.browsePanel === null ? (
-            <MailProcessPanel key={`${selected.sourceId}-mail-run`} source={selected} />
+            <MailProcessPanel
+              key={`${selected.sourceId}-mail-run`}
+              source={selected}
+              /* The tiles are the source row, which only this reload refreshes — see the panel.
+                 `onCountsChanged`, never `onChanged`: the latter switches to the jobs board, which
+                 excludes mail runs on purpose. */
+              onProcessed={onCountsChanged}
+            />
           ) : null}
 
           {panel === 'mail-documents' ? (
@@ -806,6 +833,9 @@ export default function CatalogPage() {
                   sources={sources}
                   loading={loading}
                   onChanged={handleQueued}
+                  /* Sources only: a settled mail run moves the counters and must not move the
+                     reader off the tab narrating it. */
+                  onCountsChanged={handleChanged}
                 />
               ),
             },

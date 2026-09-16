@@ -3266,6 +3266,66 @@ expect(
   )
 }
 
+/*
+ * **A landed mail run re-reads both halves of the screen, and it used to re-read one.**
+ *
+ * Gmail's catalogue is one surface drawn from *two* endpoints: the document table is
+ * `GET /sources/:id/mail-documents`, and every figure above it — *documents chunked*, *chunks in
+ * total*, *chunked today*, the left card's "N documents profiled" and the sentence under the list —
+ * is the source row from `GET /sources`. The panel re-read the table when a run completed and
+ * nothing re-read the row, so the tiles sat at **0** over a list of documents each marked
+ * `processed`. Reported from use. The server had the figures right the whole time; nothing asked.
+ *
+ * **The fix is a second callback, not a second use of the first**, which is the part worth guarding.
+ * `onChanged` on this tab is `handleQueued` — it re-reads the sources *and switches to the
+ * Profiling jobs board*, which deliberately excludes mail runs. Wiring it here is the obvious
+ * one-line fix and would land a reader, at the moment their run finished, on a list that cannot
+ * contain it. So the tab takes `onCountsChanged` (`handleChanged`, sources only) as well.
+ *
+ * **Keyed on `job_id` beside `status`**, or a second run's completion is swallowed as "status was
+ * already complete" and the tiles go stale again from the second run onwards — the same
+ * poll-that-stops fault `handleQueued` exists for one connector over.
+ */
+{
+  const mailPanel = read('frontend/src/components/catalog/MailProcessPanel.tsx')
+  const mailPanelCode = codeOnly(mailPanel)
+  const settled = mailPanelCode.slice(
+    mailPanelCode.indexOf("if (job?.status !== 'complete') return"),
+    mailPanelCode.indexOf('const rows ='),
+  )
+  expect(
+    'a landed mail run re-reads the source row as well as the document table',
+    /* The effect does both, and the slice is the effect rather than the file: `loadDocs` is
+       called on mount too, so a whole-file search for it passes with this branch deleted. */
+    settled.length > 0 &&
+      /void loadDocs\(source\.sourceId\)/.test(settled) &&
+      /onProcessed\(\)/.test(settled) &&
+      /* Both ids in the dependency list, so a second run lands too. */
+      /\[job\?\.status, job\?\.job_id, source\.sourceId, loadDocs, onProcessed\]/.test(
+        mailPanelCode,
+      ) &&
+      /onProcessed: \(\) => void/.test(mailPanelCode) &&
+      /* The page hands it the sources-only reload, never the one that switches tab. */
+      /onProcessed=\{onCountsChanged\}/.test(catalogPageCode) &&
+      !/onProcessed=\{onChanged\}/.test(catalogPageCode) &&
+      /onCountsChanged: \(\) => void/.test(catalogPageCode) &&
+      /onCountsChanged=\{handleChanged\}/.test(catalogPageCode) &&
+      /* …and the two really are different acts: one switches tabs, the other does not. */
+      /const handleChanged = useCallback\(\(\) => \{\s*\r?\n\s*void load\(\)\s*\r?\n\s*\}/.test(
+        catalogPageCode,
+      ) &&
+      /setTab\('jobs'\)/.test(catalogPageCode) &&
+      /* Queueing still re-reads nothing, because a queued run has moved no counter. */
+      !/onCountsChanged\(\)|handleChanged\(\)/.test(
+        codeOnly(catalogPageCode).slice(
+          catalogPageCode.indexOf('const processDocuments'),
+          catalogPageCode.indexOf('const browseOpen'),
+        ),
+      ),
+    'a tile at 0 over a finished run reads as a profiler that did nothing',
+  )
+}
+
 /* ---------------- step 3's two acts are paced, and paced on the server ---------------- */
 
 /*

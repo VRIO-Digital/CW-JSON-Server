@@ -6966,3 +6966,49 @@ asserts beside it that the reset guard still exists — "X is absent" and "Y is 
 together and worthless apart. Break-tested four ways (drop either seed, drop the create-path seed,
 drop the guard); all four turn it red, and it is green on the fix.
 
+## One surface, two endpoints: Gmail's tiles read 0 over a finished run
+
+Pressing **Process documents** on a Gmail source ran the pipeline, listed every attachment with its
+pages, chunks and size, and marked each one `processed` — while the tiles above the list read
+*documents chunked* **0**, *0 chunks in total*, *chunked today* **0**, and the source card beside
+them read *0 documents profiled*. Reported from use.
+
+**The server was right the whole time.** Driven end to end against a live mock — register the
+mailbox, `POST …/profile-mail-documents`, poll to completion, then `GET /sources` — the row came
+back `documents_chunked: 10`, `chunks_total: 36`, `chunk_chars: 31006`, `profiled_today: 10`,
+`profiled_documents: 10`. Nothing in `commitNextObject`, `mailChunkFigures` or `profiledToday` was
+wrong. **Check which endpoint a figure comes from before reading a zero as a broken computation.**
+
+**The cause is that the panel is drawn from two endpoints and re-read one.** The document table is
+`GET /sources/:id/mail-documents`; the tiles, the left card's count and the sentence under the list
+are all the *source row* from `GET /sources`. `MailProcessPanel`'s completion effect called
+`loadDocs` and stopped — so the half a reader is watching updated and the half summarising it did
+not, which reads as a profiler that ran and landed nothing.
+
+**It is the asymmetry mail inherited by being the connector that is not on the jobs board.** Every
+other run goes through `handleQueued`, which re-reads the sources *and* the board; Gmail is
+excluded from that board on purpose and got its own panel, which took the document reload with it
+and left the source reload behind. The comment beside `processDocuments` even said the outcome was
+"a message and a reload" — the reload was the half that did not exist.
+
+**The obvious one-line fix is wrong, and that is the part worth remembering.** `onChanged` was in
+scope in that component and does re-read the sources — it is `handleQueued`, which **also switches
+to the Profiling jobs tab**. Wiring it would have fixed the tiles and, at the moment the run
+finished, moved the reader onto the one board that deliberately cannot contain their run. So the
+tab takes two callbacks: `onChanged` for a *queued* run (re-read and switch) and `onCountsChanged`
+for a *settled* one (re-read only). *A callback that happens to include the effect you want is not
+the callback you want.*
+
+**Queueing still re-reads nothing**, deliberately: a queued run has moved no counter, and the
+figures land when it completes.
+
+**The effect is keyed on `job_id` as well as `status`**, or a second run's completion is swallowed
+as "status was already complete" and the tiles go stale again from the second run onwards.
+
+**Guarded by `check-docs` rather than a render test, and the reason is on record.** The fact is
+"this effect calls both loaders", and `renderToString` runs no effects; shimming `React.useEffect`
+does nothing here because the component imports `useEffect` **by name**, which is the same trap
+already recorded for `useState`. The claim slices the effect (a whole-file search for `loadDocs`
+passes with the branch deleted, since it is also called on mount), asserts both calls, both
+dependencies, and that the page hands it the sources-only reload and not the tab-switching one.
+Break-tested five ways, including re-introducing the original bug; all five turn it red.

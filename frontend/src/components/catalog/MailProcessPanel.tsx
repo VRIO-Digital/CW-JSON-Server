@@ -31,7 +31,23 @@ const RUN_POLL_MS = 3000
  * while a run is in flight**: an interval that kept ticking over a finished job would be asking a
  * question nobody is waiting on.
  */
-export default function MailProcessPanel({ source }: { source: SourceRow }) {
+export default function MailProcessPanel({
+  source,
+  onProcessed,
+}: {
+  source: SourceRow
+  /**
+   * **A run landed, so the source row is stale.** Everything a mail run moves —
+   * `documents_chunked`, `chunks_total`, `profiled_today`, `profiled_documents` — lives on
+   * `GET /sources`, which this panel does not read and cannot refresh on its own.
+   *
+   * The same prop every other panel here takes (`onProfiled`), by the same name the page gives it
+   * (`onChanged`). It is deliberately *not* `handleQueued`: that switches to the Profiling jobs
+   * board, which excludes mail runs on purpose, so it would land a reader on a list that cannot
+   * contain the run they just watched.
+   */
+  onProcessed: () => void
+}) {
   const job = useMailProcessStore((s) => s.job)
   const pollRun = useMailProcessStore((s) => s.poll)
   const documents = useMailDocumentsStore((s) => s.data)
@@ -44,11 +60,25 @@ export default function MailProcessPanel({ source }: { source: SourceRow }) {
     void loadDocs(source.sourceId)
   }, [source.sourceId, pollRun, loadDocs])
 
-  /* Re-read the documents when a run lands, or the table under a finished run is the one from
-     before it — the same reason queueing re-reads the board. */
+  /*
+   * **Re-read both halves when a run lands.** The table under a finished run is otherwise the one
+   * from before it, and the tiles above it are the *row* from before it — and that second half was
+   * missing, which is what made *documents chunked*, *chunks in total* and *chunked today* sit at 0
+   * over a list of documents each marked `processed`. Reported from use.
+   *
+   * They come from two endpoints and only one of them was being asked again: the table is
+   * `GET /sources/:id/mail-documents`, and every figure on the tiles — plus the left card's
+   * "N documents profiled" and the sentence under the list — is `GET /sources`. The server had
+   * them right the whole time; nothing asked.
+   *
+   * **Keyed on `job_id` as well as `status`**, so a second run's completion re-reads too rather
+   * than being swallowed as "status was already complete".
+   */
   useEffect(() => {
-    if (job?.status === 'complete') void loadDocs(source.sourceId)
-  }, [job?.status, job?.job_id, source.sourceId, loadDocs])
+    if (job?.status !== 'complete') return
+    void loadDocs(source.sourceId)
+    onProcessed()
+  }, [job?.status, job?.job_id, source.sourceId, loadDocs, onProcessed])
 
   const rows = (documents?.labels ?? []).flatMap((label) => label.documents)
   const running = job != null && (job.status === 'queued' || job.status === 'running')

@@ -918,6 +918,20 @@ drive or an inbox.
 > never over what the mailbox holds — which is what the note beside them says, because mail is read
 > on demand and nothing is mirrored.
 >
+> **And they are re-read when a run lands, which they were not.** This surface is drawn from *two*
+> endpoints — the document table is `GET /sources/:id/mail-documents` and every figure above it is
+> the source row from `GET /sources` — and the panel re-read only the first when a job completed.
+> So the tiles sat at **0**, and the left card at *0 documents profiled*, over a list of documents
+> each marked `processed`. Reported from use. The server had every figure right; nothing asked for
+> them.
+>
+> **The fix is a second callback, not a second use of the first.** `onChanged` on the Catalog tab
+> is `handleQueued`, which re-reads the sources *and switches to the Profiling jobs board* — the
+> board that deliberately excludes mail runs, so wiring it here would land a reader on a list that
+> cannot contain the run they had just watched finish. `onCountsChanged` (`handleChanged`) is the
+> sources-only twin, and the panel's effect keys on `job_id` as well as `status` so a *second*
+> run's completion is not swallowed as "status was already complete".
+>
 > **And a dataset can ship its mail — CAPEX's is a real chunking run, ingested.**
 > `npm run seed:capex-mail` reads `backend/data/capex-mail-chunks.json`, the export the chunker
 > produced for that mailbox, and writes `mail_corpus` into `db.CAPEX.json`: per document its id,
