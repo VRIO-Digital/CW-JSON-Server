@@ -218,6 +218,21 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * The unit beside a figure — `79k` **chars**.
+ *
+ * Only the *chunk size* tile carries one: the other four say their unit in the label, so their
+ * figure stands alone. Set at the note's weight rather than the value's, because it is the
+ * measure's unit and not part of the magnitude — a `chars` as heavy as the number reads as two
+ * figures.
+ */
+.cat-stat-unit {
+  margin-left: var(--sp-1);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: #475467;
+}
 /* A project id is an identifier, not a magnitude — smaller, monospaced. */
 .cat-stat-value.is-mono {
   font-family: var(--mono, ui-monospace, Consolas, monospace);

@@ -46,14 +46,22 @@ export const mailProcessCopy = {
     "mailbox's labels.",
 
   /**
-   * A character count as the tile states it — `2k chars`, matching *"of extracted chunk text"*.
+   * A character count, without its unit — `2k`.
    *
-   * Rounded to thousands because that is the grain the tile above uses, and a row reading
+   * Rounded to thousands because that is the grain the *chunk size* tile uses, and a row reading
    * `26,400 chars` beside a tile reading `12k` would be two grains for one unit. Under a thousand
    * prints exactly, since `0k` would say a document has no text.
+   *
+   * **Split out because the tile and the row print it differently and must round it the same.**
+   * The tile sets the figure large and `chars` small beside it, the way every other figure on that
+   * strip is set; a table cell says `2k chars` in one run. Two formatters would be two rounding
+   * rules one edit apart — so `size` is composed from this rather than written beside it.
    */
-  size: (chars: number) =>
-    chars < 1000 ? `${chars} chars` : `${Math.round(chars / 1000)}k chars`,
+  sizeValue: (chars: number) =>
+    chars < 1000 ? `${chars}` : `${Math.round(chars / 1000)}k`,
+
+  /** The same count with its unit, as a table cell states it — `2k chars`. */
+  size: (chars: number) => `${mailProcessCopy.sizeValue(chars)} chars`,
 }
 
 /** What a stage row shows: finished, in flight, or not started. */

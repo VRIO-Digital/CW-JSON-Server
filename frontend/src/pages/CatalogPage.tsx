@@ -59,18 +59,30 @@ const parseLeaf = (key: string) => {
 function StatBox({
   label,
   value,
+  suffix,
   note,
   mono,
 }: {
   label: string
   value: string
+  /**
+   * The unit, set small beside the figure — `79k` **chars**.
+   *
+   * Only where the label does not already carry it: *documents chunked* and *labels allowed* say
+   * their unit in the label, so their figure stands alone. *chunk size* names the measure instead,
+   * which leaves the unit belonging to the number.
+   */
+  suffix?: string
   note: string
   mono?: boolean
 }) {
   return (
     <div className="cat-stat">
       <span className="cat-stat-label">{label}</span>
-      <span className={`cat-stat-value${mono ? ' is-mono' : ''}`}>{value}</span>
+      <span className={`cat-stat-value${mono ? ' is-mono' : ''}`}>
+        {value}
+        {suffix ? <span className="cat-stat-unit">{suffix}</span> : null}
+      </span>
       <span className="cat-stat-note">{note}</span>
     </div>
   )
@@ -596,13 +608,21 @@ function CatalogTab({
                 mono
               />
             </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatBox
-                label={units?.scopeLabel ?? ''}
-                value={String(units?.scopeCount(selected) ?? 0)}
-                note="in the allowlist"
-              />
-            </Col>
+            {/*
+              * **The allowlist tile, where the connector declares one.** Gmail does not: its
+              * labels are settled by the consent rather than picked, and nothing narrows a run by
+              * them, so a tile counting them would state a scope that does not exist. Read off
+              * the row like every other tile, and an absent one simply draws no column.
+              */}
+            {units?.scopeTile ? (
+              <Col xs={24} sm={12} lg={6}>
+                <StatBox
+                  label={units.scopeTile.label}
+                  value={String(units.scopeTile.count(selected))}
+                  note={units.scopeTile.note}
+                />
+              </Col>
+            ) : null}
             <Col xs={24} sm={12} lg={6}>
               <StatBox
                 label={units?.objectsLabel ?? ''}
@@ -627,6 +647,33 @@ function CatalogTab({
                 note={units?.unitsNote(selected) ?? ''}
               />
             </Col>
+            {/*
+              * **A further tile where the connector declares one**, and no gap where it does not.
+              *
+              * Gmail states its *chunk size* here — the extracted text of everything it has
+              * processed, which `chunk_chars` has always carried and nothing drew. Rendered from
+              * the same `catalogUnits` row as the rest, so the page still knows nothing about
+              * which connector is which; an absent `extraTile` simply draws no column.
+              *
+              * **The strip is `lg={6}` and stays that way**, which is a correction on record. It
+              * was briefly `flex="1 1 180px"`, on the reasoning that 24 does not divide by five so
+              * a fifth tile would drop to a row of its own and read as one that failed to load.
+              * The render said otherwise: `flex-grow` made the wrapped tile fill its whole line,
+              * so what actually read as broken was a stat card at double width. A quarter-width
+              * card wrapping onto the second row is an ordinary grid and looks like one. Every
+              * connector declares four tiles today in any case — Gmail trades its allowlist for
+              * this one — so the strip is exactly full either way.
+              */}
+            {units?.extraTile ? (
+              <Col xs={24} sm={12} lg={6}>
+                <StatBox
+                  label={units.extraTile.label}
+                  value={units.extraTile.value(selected)}
+                  suffix={units.extraTile.suffix}
+                  note={units.extraTile.note}
+                />
+              </Col>
+            ) : null}
           </Row>
 
           {/* Same two moves either way — browse and profile, then read the

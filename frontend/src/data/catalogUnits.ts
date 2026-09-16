@@ -1,4 +1,5 @@
 import type { SourceRow } from '../api/client'
+import { mailProcessCopy } from './mailProcess'
 
 /**
  * Which panel the Catalog has open. `none` is closed; the rest are one per connector's two
@@ -32,9 +33,25 @@ export interface CatalogUnits {
   /** The account tile: what this source connected *as*. */
   accountLabel: string
   accountNote: string
-  /** The allowlist tile. */
-  scopeLabel: string
-  scopeCount: (s: SourceRow) => number
+  /**
+   * The allowlist tile, **where the connector has an allowlist worth stating**.
+   *
+   * Optional and grouped, for the reason `extraTile` is: a label with no count is a tile with
+   * nothing in it, so absent is the only other state. Declared here rather than tested in the
+   * page, which is the connector-name ternary this whole table exists to stop — the page draws
+   * the tile it is given and no column where it is given none.
+   *
+   * **Gmail declares none, on request.** Its labels are not an allowlist a reader assembled: they
+   * are settled by the consent, the wizard offers no picker, and the run covers the whole mailbox
+   * whatever they are — so *labels allowed · 3 · in the allowlist* described a scope nobody chose
+   * and nothing narrows. BigQuery's datasets and Drive's folders are the opposite: both are ticked
+   * by hand in the connect wizard and both really do bound what a run reaches.
+   */
+  scopeTile?: {
+    label: string
+    count: (s: SourceRow) => number
+    note: string
+  }
   /** The profiled-objects tile — the unit a run commits. */
   objectsLabel: string
   objectsCount: (s: SourceRow) => number
@@ -54,6 +71,26 @@ export interface CatalogUnits {
   unitsLabel: string
   unitsCount: (s: SourceRow) => number
   unitsNote: (s: SourceRow) => string
+  /**
+   * A fifth tile, where a connector has a fifth thing to say. Absent for BigQuery and Drive.
+   *
+   * **One optional object rather than four optional fields**, because the four only ever mean
+   * anything together: a `label` with no `value` is a tile with nothing in it, and four
+   * independently-optional fields make three-quarters of a tile expressible. Absent is the only
+   * other state.
+   *
+   * **`suffix` is why this is not just another `unitsLabel`.** The strip sets a figure large and
+   * its unit small beside it — `79k` then `chars` — which the other four tiles do not need
+   * because their unit is in the label (*documents chunked*, *labels allowed*). Here the label is
+   * the measure (*chunk size*) and the unit belongs to the number.
+   */
+  extraTile?: {
+    label: string
+    value: (s: SourceRow) => string
+    /** Set small beside the figure. Absent prints the value alone. */
+    suffix?: string
+    note: string
+  }
   /** The two acts, in this connector's noun. */
   browseLabel: string
   dictionaryLabel: string
@@ -109,8 +146,11 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
   bigquery: {
     accountLabel: 'project',
     accountNote: 'GCP project',
-    scopeLabel: 'datasets allowed',
-    scopeCount: (s) => s.datasets.length,
+    scopeTile: {
+      label: 'datasets allowed',
+      count: (s) => s.datasets.length,
+      note: 'in the allowlist',
+    },
     objectsLabel: 'tables profiled',
     objectsCount: (s) => s.profiledTables,
     unitsLabel: 'columns profiled',
@@ -129,8 +169,11 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
   gdrive: {
     accountLabel: 'drive',
     accountNote: 'Google Drive',
-    scopeLabel: 'folders allowed',
-    scopeCount: (s) => s.folders.length,
+    scopeTile: {
+      label: 'folders allowed',
+      count: (s) => s.folders.length,
+      note: 'in the allowlist',
+    },
     objectsLabel: 'documents profiled',
     objectsCount: (s) => s.profiledDocuments ?? 0,
     unitsLabel: 'entities extracted',
@@ -149,8 +192,18 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
   gmail: {
     accountLabel: 'mailbox',
     accountNote: 'Gmail',
-    scopeLabel: 'labels allowed',
-    scopeCount: (s) => s.labels.length,
+    /*
+     * **No allowlist tile — removed on request.**
+     *
+     * The other two connectors' scopes are choices a reader made in the connect wizard and they
+     * really bound what a run reaches. A mailbox's labels are neither: the consent settles them,
+     * there is no picker, and *Process documents* covers the whole mailbox regardless — so a tile
+     * reading *labels allowed · 3 · in the allowlist* named a scope nobody chose and nothing
+     * narrows, which is a stronger claim than the data supports.
+     *
+     * **`source.labels` is untouched** and still read by the wizard, the preview, the document
+     * type chips and `GET …/mail-documents`' own facets. This is one tile removed, not a field.
+     */
     /*
      * **Documents, in the same field Drive uses**, because they are the same unit: a file
      * somebody attached and a file somebody filed are both documents. What the mail profiler
@@ -175,6 +228,25 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
     unitsLabel: 'chunked today',
     unitsCount: (s) => s.profiledToday,
     unitsNote: (s) => `since ${s.profiledTodayDate}`,
+    /*
+     * **The extracted text of what has been processed — the figure `chunk_chars` has always
+     * carried, and nothing drew.** It was served, validated and documented ("the tiles state
+     * chunks … and the *chunk size* the corpus declares") while the strip rendered four tiles, so
+     * the one number saying how much text a run actually pulled out was reachable only from the
+     * payload.
+     *
+     * **Summed over what has been processed, never over the mailbox** — the same rule as the two
+     * tiles beside it, which is why it reads 0 before a run rather than reporting the corpus.
+     *
+     * The rounding is `mailProcessCopy`'s, so this tile and the per-document `size` cells beneath
+     * it cannot come to state one unit at two grains.
+     */
+    extraTile: {
+      label: 'chunk size',
+      value: (s) => mailProcessCopy.sizeValue(s.chunkChars ?? 0),
+      suffix: 'chars',
+      note: 'of extracted chunk text',
+    },
     browseLabel: 'Process documents',
     /* No second act: the documents are listed on the page itself, under the run that produced
        them, so a button opening a second view of them was opening what is already there. */

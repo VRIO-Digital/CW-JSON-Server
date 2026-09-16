@@ -3326,6 +3326,102 @@ expect(
   )
 }
 
+/*
+ * **Gmail's fifth tile: the chunk size, which was served all along and drawn by nothing.**
+ *
+ * `chunk_chars` is computed in `mailChunkFigures`, carried on the source row, validated in
+ * `client.ts` and described in CLAUDE.md ("the tiles state chunks … and the *chunk size* the
+ * corpus declares") — while the strip rendered four tiles. The one figure saying how much text a
+ * run actually extracted was reachable only from the payload. `mailProcessCopy.size`'s own comment
+ * had been pointing at the missing tile the whole time.
+ *
+ * **Three things hold it together, and each fails a different way.**
+ *
+ *  - *One rounding rule.* The tile prints `31k` and the per-document cells print `2k chars`, and
+ *    `size` is **composed from** `sizeValue` rather than written beside it — two formatters is two
+ *    grains for one unit, one edit apart, with the tile and the rows beneath it disagreeing.
+ *  - *One optional object, not four optional fields.* A `label` with no `value` is a tile with
+ *    nothing in it; grouped, absent is the only other state, and BigQuery and Drive declare none.
+ *  - *The strip stays on the 24-column grid.* It was briefly `Col flex`, on the reasoning that a
+ *    fifth tile could not fit a grid 24 does not divide by five. The render said otherwise:
+ *    `flex-grow` made the wrapped tile fill its whole line, so what read as broken was a stat card
+ *    at double width, where a quarter-width card on a second row is an ordinary grid. Reverted, and
+ *    moot in any case — every connector declares four, Gmail having traded its allowlist tile for
+ *    this one.
+ */
+{
+  const units = read('frontend/src/data/catalogUnits.ts')
+  const mailCopy = read('frontend/src/data/mailProcess.ts')
+  expect(
+    'Gmail states its chunk size, and the strip fits a fifth tile',
+    /* Declared once, on the row, with the unit beside the figure rather than in the label. */
+    /extraTile\?: \{/.test(units) &&
+      /label: 'chunk size',/.test(units) &&
+      /value: \(s\) => mailProcessCopy\.sizeValue\(s\.chunkChars \?\? 0\)/.test(units) &&
+      /suffix: 'chars',/.test(units) &&
+      /note: 'of extracted chunk text',/.test(units) &&
+      /* One rounding rule: the cell's formatter is built out of the tile's. */
+      /sizeValue: \(chars: number\) =>/.test(mailCopy) &&
+      /size: \(chars: number\) => `\$\{mailProcessCopy\.sizeValue\(chars\)\} chars`/.test(
+        mailCopy,
+      ) &&
+      /* The page draws it from the row, and draws nothing where a connector declares none. */
+      /\{units\?\.extraTile \? \(/.test(catalogPageCode) &&
+      /suffix=\{units\.extraTile\.suffix\}/.test(catalogPageCode) &&
+      /suffix\?: string/.test(catalogPageCode) &&
+      /* …and the strip is the 24-column grid, five declared columns of which every connector
+         draws four. `flex` here is the reverted experiment, so its absence is asserted too. */
+      (catalogPageCode.match(/<Col xs=\{24\} sm=\{12\} lg=\{6\}>/g) ?? []).length === 5 &&
+      !/flex="1 1 180px"/.test(catalogPageCode) &&
+      /* The unit is set apart from the figure, or `chars` reads as part of the number. */
+      /\.cat-stat-unit \{/.test(read('frontend/src/pages/CatalogPage.css')),
+    'a figure nothing draws is a payload field, and two formatters are two grains for one unit',
+  )
+}
+
+/*
+ * **Gmail draws no allowlist tile, and the other two do — removed on request.**
+ *
+ * *labels allowed · 3 · in the allowlist* named a scope nobody chose and nothing narrows: a
+ * mailbox's labels are settled by the consent, the wizard offers no picker, and *Process
+ * documents* covers the whole mailbox whatever they are. BigQuery's datasets and Drive's folders
+ * are the opposite — both are ticked by hand in the connect wizard and both really do bound what a
+ * run reaches — so this is one connector's tile, not the tile.
+ *
+ * **Withheld by declaring none, never by a connector name in the page**, which is the ternary
+ * `catalogUnits` exists to stop and the same shape as `browsePanel: null` and `dictionaryPanel:
+ * null` on the same row.
+ *
+ * **And `source.labels` survives**, which is the half that would fail silently: the wizard, the
+ * preview, the document type chips and `GET …/mail-documents`' own label facets all read it. A
+ * sweep that removed the field with the tile would empty the type chips on a page nobody looked at.
+ */
+{
+  const units = read('frontend/src/data/catalogUnits.ts')
+  const gmailRow = units.slice(units.indexOf('  gmail: {'), units.indexOf('\n}\n'))
+  expect(
+    'the allowlist tile is declared per connector, and Gmail declares none',
+    gmailRow.length > 0 &&
+      /* Optional and grouped, so a label can never be declared without its count. */
+      /scopeTile\?: \{/.test(units) &&
+      /* The two that keep it. */
+      /label: 'datasets allowed',/.test(units) &&
+      /label: 'folders allowed',/.test(units) &&
+      (units.match(/note: 'in the allowlist',/g) ?? []).length === 2 &&
+      /* Gmail's is gone at both layers — `codeOnly`, because the note left in its place names it. */
+      !/scopeTile/.test(codeOnly(gmailRow)) &&
+      !/labels allowed/.test(codeOnly(units)) &&
+      /* The page reads the row rather than testing a kind. */
+      /\{units\?\.scopeTile \? \(/.test(catalogPageCode) &&
+      /label=\{units\.scopeTile\.label\}/.test(catalogPageCode) &&
+      !/scopeLabel|scopeCount/.test(catalogPageCode) &&
+      /* …and the field itself is untouched: the chips and the facets still read it. */
+      /s\.labels/.test(codeOnly(units)) === false &&
+      /source\.labels/.test(read('backend/server.js')),
+    'a tile counting a scope nobody chose claims a narrowing that does not happen',
+  )
+}
+
 /* ---------------- step 3's two acts are paced, and paced on the server ---------------- */
 
 /*

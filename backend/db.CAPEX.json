@@ -63152,19 +63152,6 @@
             "confirmed_by": null
           },
           {
-            "target_table_key": "plan.plan_account_dim",
-            "from_columns": [
-              "Account"
-            ],
-            "to_columns": [
-              "Account"
-            ],
-            "relationship_type": "LINKED_BY_ACCOUNT",
-            "cardinality_hint": "1:N",
-            "rationale": "Both tables carry Account, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_account_dim states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
-            "confirmed_by": null
-          },
-          {
             "target_table_key": "plan.plan_phase_dim",
             "from_columns": [
               "Phase"
@@ -63306,23 +63293,10 @@
             "cardinality_hint": "1:N",
             "rationale": "Both tables carry Project Code, classified as an identifier — plan_project_budget states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled, plan_optimization_profile states it in a dictionary (declared in capex-plan-dictionary.csv), so nothing is sampled. Neither side has been sampled, so the cardinality is not derivable here — set it when you confirm.",
             "confirmed_by": null
-          },
-          {
-            "target_table_key": "plan.plan_monthly_spread",
-            "from_columns": [
-              "Version"
-            ],
-            "to_columns": [
-              "Version"
-            ],
-            "relationship_type": "testdata",
-            "cardinality_hint": "1:N",
-            "rationale": "",
-            "confirmed_by": null
           }
         ],
         "cross_attributes": [],
-        "updated_at": "2026-09-15T09:33:22.212Z"
+        "updated_at": "2026-09-16T14:43:52.871Z"
       },
       {
         "entity_id": "ent-plan-plan-account-dim-mtmpcohv4",

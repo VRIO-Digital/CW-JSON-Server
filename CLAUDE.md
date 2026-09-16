@@ -914,9 +914,39 @@ drive or an inbox.
 > read it as a scheduler that exists.
 >
 > **The tiles state chunks**: *documents chunked* (with the chunk total beneath it), *chunked
-> today*, and the *chunk size* the corpus declares. All counted over what has been **processed**,
-> never over what the mailbox holds — which is what the note beside them says, because mail is read
-> on demand and nothing is mirrored.
+> today*, and *chunk size* — the extracted text of everything that has been processed, set as a
+> figure with its unit small beside it (`31k` **chars**) under the note *of extracted chunk text*.
+> All counted over what has been **processed**, never over what the mailbox holds, which is what
+> the note beside them says: mail is read on demand and nothing is mirrored.
+>
+> **That third one is a fifth tile, and for a while it was a sentence here and nothing on screen.**
+> `chunk_chars` was computed in `mailChunkFigures`, carried on the source row, validated in
+> `client.ts` and described in this paragraph, while the strip rendered four tiles — so the one
+> figure saying how much text a run actually extracted was reachable only from the payload.
+> `mailProcessCopy.size`'s own comment had been pointing at the missing tile the whole time.
+>
+> Two things hold it together. **One rounding rule**: the tile prints `31k` and the per-document
+> cells print `2k chars`, and `size` is *composed from* `sizeValue` rather than written beside it,
+> because two formatters are two grains for one unit one edit apart. **One optional object**
+> (`extraTile` on the `catalogUnits` row) rather than four optional fields, since a label with no
+> value is a tile with nothing in it — BigQuery and Drive declare none and draw no column.
+>
+> **And the strip trades a tile rather than growing one.** *labels allowed* is gone from Gmail,
+> **removed on request**: a mailbox's labels are settled by the consent, the wizard offers no
+> picker, and *Process documents* covers the whole mailbox whatever they are — so *labels allowed ·
+> 3 · in the allowlist* named a scope nobody chose and nothing narrows. BigQuery's datasets and
+> Drive's folders are the opposite, both ticked by hand in the wizard and both really bounding what
+> a run reaches, so `scopeTile` is optional and grouped exactly as `extraTile` is, withheld by
+> being undeclared rather than by a connector name in the page. **`source.labels` is untouched** —
+> the wizard, the preview, the document type chips and the label facets all still read it; one tile
+> went, not a field.
+>
+> **The strip is `lg={6}` on the 24-column grid, and that is a correction on record.** It was
+> briefly `Col flex`, on the reasoning that 24 does not divide by five so a fifth tile would drop
+> to a row of its own and read as one that failed to load. The render said otherwise: `flex-grow`
+> made the wrapped tile fill its whole line, so what read as broken was a stat card at double
+> width, where a quarter-width card on a second row is an ordinary grid. Reverted — and moot in any
+> case, since every connector now declares four.
 >
 > **And they are re-read when a run lands, which they were not.** This surface is drawn from *two*
 > endpoints — the document table is `GET /sources/:id/mail-documents` and every figure above it is
