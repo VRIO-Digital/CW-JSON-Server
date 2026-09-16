@@ -31,8 +31,9 @@
  *   GET    /projects/:projectId/datasets
  *   GET    /drives
  *   GET    /drives/:driveId/folders
- *   GET    /sources/oauth/start?provider=bigquery|drive
+ *   GET    /sources/oauth/start?provider=bigquery|drive   scopes + the accounts to choose from
  *   GET    /sources/oauth/callback?state=...&provider=bigquery|drive&as=email
+ *          → the account, a session, and who that account is in this tenant's directory
  *   GET    /sources/oauth/projects?session=...  projects the account can read
  *   GET    /sources/oauth/drives?session=...    drives the account can read
  *   POST   /sources/preview                { project_id, credential_handle }
@@ -3653,6 +3654,43 @@ function emailInitials(email) {
       ? segments[0][0] + segments[segments.length - 1][0]
       : local.slice(0, 2)
   return initials.toUpperCase() || '?'
+}
+
+/**
+ * **Who an address is in this tenant, or `null`.** The whole of a console session, minus the moment
+ * it began.
+ *
+ * **One definition, because two callers now need it.** `POST /auth/login` resolves an address to a
+ * person and their persona; `GET /sources/oauth/callback` has to resolve the *same* address the
+ * same way, because the account a reader picks in the sign-in window becomes the account the console
+ * is showing. Two copies of this lookup is how a consent comes to report a persona the login would
+ * not have given the same person — and nothing would throw, because both answers are well-formed.
+ *
+ * Matched case-insensitively, exactly as the login always did: an email address is not
+ * case-sensitive to the person typing it.
+ *
+ * `null` for an address the directory does not hold, and for one whose `role_id` is not a persona
+ * this tenant declares. The login turns each of those into its own sentence, which is right there
+ * and wrong on a consent: a reader who has just granted one is told what *connected*, not what a
+ * settings file is missing.
+ */
+function identityFor(email) {
+  const address = String(email ?? '').trim()
+  if (!address) return null
+  const user = (settings.users ?? []).find(
+    (u) => String(u.email).toLowerCase() === address.toLowerCase(),
+  )
+  if (!user) return null
+  const role = db.auth_roles.find((r) => r.role_id === user.role_id)
+  if (!role) return null
+  return {
+    email: user.email,
+    name: user.name,
+    role_id: role.role_id,
+    role_label: role.label,
+    access_note: role.access_note ?? '',
+    initials: emailInitials(user.email),
+  }
 }
 
 /**
@@ -9525,14 +9563,14 @@ const routes = [
        * **Still not authentication.** There is no credential store: the password is length-checked and
        * nothing more, exactly as before. What changed is that the *persona* is now looked up rather than
        * claimed. Nothing built on this should read it as a verified identity.
+       *
+       * **The session itself is `identityFor`'s**, not assembled here, because the consent callback
+       * answers with one too — the account picked in the sign-in window becomes the account the console
+       * shows. The two refusals above stay: this route can say *why* an address is not a session, and a
+       * consent cannot. Only the shape is shared, and sharing it is what stops the two drifting.
        */
       send(res, 200, {
-        email: user.email,
-        name: user.name,
-        role_id: role.role_id,
-        role_label: role.label,
-        access_note: role.access_note ?? '',
-        initials: emailInitials(user.email),
+        ...identityFor(user.email),
         signed_in_at: new Date().toISOString(),
       })
     },
@@ -9794,15 +9832,41 @@ const routes = [
 
       const state = `state-${nextId()}`
       oauthStates.set(state, provider)
+
+      /*
+       * **The accounts the chooser may offer, served for the same reason the scopes are.**
+       *
+       * A real Google sign-in opens on the accounts the browser is signed into; this window offered
+       * exactly one and said it had no directory to offer. It has one — `db.settings.users`, the
+       * tenant's own people, which is already this app's single answer to *who exists*: what the
+       * login authenticates against, what a report audience is picked from, what the What-if publish
+       * dialog lists. So nobody here is invented, which was the whole objection to a chooser.
+       *
+       * **Served rather than held in the window**, exactly as the scope list is: a component with a
+       * copy of the directory can offer an account the callback then refuses, which is precisely how
+       * the client-side scope list came to describe fewer permissions than were being asked for. It
+       * is the *same* pool `/sources/oauth/mailboxes` refuses an unknown address against, so a row
+       * on this screen can never be one the handshake would turn down.
+       *
+       * `initials` comes from `emailInitials`, the login's own derivation, so the avatar in the
+       * chooser and the avatar in the sidebar cannot come to disagree about one person.
+       */
+      const accounts = (db.settings?.users ?? []).map((user) => ({
+        email: user.email,
+        name: user.name,
+        initials: emailInitials(user.email),
+      }))
+
       // Paced like the suggesters: a consent handshake that completes in 2ms
       // gives the wizard nowhere to show that anything was asked of Google, and
-      // teaches that signing in is instant. See CONSENT_MS.
+      // teaches that signing in is instant. See CONSENT_START_MS.
       setTimeout(() => {
         send(res, 200, {
           state,
           provider,
           auth_url: `https://accounts.google.com/o/oauth2/v2/auth?state=${state}&scope=${scopes.join(' ')}`,
           scopes,
+          accounts,
         })
       }, CONSENT_START_MS).unref?.()
     },
@@ -9851,6 +9915,26 @@ const routes = [
         : db.google_account
 
       /*
+       * **Who that account is in this tenant — and it is what the console becomes.**
+       *
+       * The sign-in window offers the tenant's directory, so a reader can grant this consent as
+       * somebody other than whoever the browser signed in as. The wizard used to be the only surface
+       * that knew: it said *Connected as Rei Nakamura* while the sidebar, the Library's buttons, Ask's
+       * chat history and every "who did this" field went on saying Adaeze Okonjo. One act, two answers.
+       *
+       * So the callback reports the **whole** identity, resolved by `identityFor` — the same function
+       * the login uses, so a consent cannot report a persona the login would not have given the same
+       * person. `null` for an address the directory does not hold (a `curl`, the API docs, a caller
+       * that names nobody): the consent still succeeds and the console simply does not change hands,
+       * which is the honest answer when there is no directory row to change it to.
+       *
+       * **It is a fact about the grant, not an authentication.** This login authenticates by shape and
+       * so does this screen; what the field says is *which directory row granted this consent*, and the
+       * client decides what to do with that.
+       */
+      const identity = identityFor(account.email)
+
+      /*
        * The consent ends here, and *only* the consent: it returns who signed in
        * plus a session, and what that account can see is a separate call. Two
        * reasons. It is what a real handshake does — a code is exchanged for a
@@ -9868,7 +9952,7 @@ const routes = [
        * because making an error wait teaches nothing and reads as a hang.
        */
       setTimeout(
-        () => send(res, 200, { account, session, provider }),
+        () => send(res, 200, { account, session, provider, identity }),
         CONSENT_MS,
       ).unref?.()
     },

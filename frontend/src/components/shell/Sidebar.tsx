@@ -42,9 +42,19 @@ export function SidebarFooter({
         <span className="sidebar-avatar" aria-hidden="true">
           {identity.initials}
         </span>
+        {/*
+          **The persona line under the address was here and is gone — removed on request.**
+
+          `identity.roleLabel` is untouched and still read where a persona is the *subject* rather
+          than a caption: the report author line, the governance rule editor, the What-if reader
+          roster and the Settings user table. This card just stops repeating it.
+
+          The wrapper stays around the one remaining line. It is not an inert box: `min-width: 0`
+          is what lets the address ellipsis inside the flex row beside the avatar, and dropping it
+          would let a long address push the row wider than the rail instead of truncating.
+        */}
         <span className="sidebar-identity-text">
           <span className="sidebar-identity-email">{identity.email}</span>
-          <span className="sidebar-identity-role">{identity.roleLabel}</span>
         </span>
       </div>
 

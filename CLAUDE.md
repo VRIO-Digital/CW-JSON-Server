@@ -1340,12 +1340,75 @@ Six things the mirror deliberately does *not* make identical:
   reported, so a window that opened first could only open blank or guess, and Drive
   asks for two. **Allow is what spends the consent**: the callback and the discovery
   call run from that button, `GoogleConsentPanel` shows its row per call inside the
-  window, and Cancel grants nothing and connects nobody. The account it offers is the
-  browser's own and it says so — an account chooser listing invented people would be
-  a claim about who has signed in to Google — and the window states in its own footer
-  that it proves a request is well-formed rather than that a real Google account is
-  behind it. It keeps no scope list of its own; `CONSENT_GRANT_COPY` supplies wording
+  window, and Cancel grants nothing and connects nobody. The window states in its own
+  footer that it proves a request is well-formed rather than that a real Google account
+  is behind it. It keeps no scope list of its own; `CONSENT_GRANT_COPY` supplies wording
   only, and `check-docs` fails if one comes back.
+
+  **And it offers the accounts `/sources/oauth/start` returned, which is the same rule as the
+  scopes.** It offered exactly one — the browser's own — and said in as many words that it had no
+  directory to offer. **The objection behind that is unchanged and still met**: an account chooser
+  listing *invented* people would be a claim about who has signed in to Google, and nobody on this
+  list is invented. It is `db.settings.users`, this app's single answer to who exists — what the
+  login authenticates against, what a report audience is picked from, what the What-if publish
+  dialog lists — and the *same* pool `/sources/oauth/mailboxes` refuses an unknown address against,
+  so a row here can never be one the handshake would then turn down. A directory held in the
+  component could, which is exactly how the client-side scope list came to describe fewer
+  permissions than were being asked for.
+
+  **The row a reader picks is what the connection is made as, and `connectingAs` is the one
+  definition of it.** `chosenAs ?? signedInAs` — the chooser's answer, or the browser's before one
+  is given — read by the `as=` on all three callbacks, by the mailbox match on Gmail, and by the
+  *Connected as …* alert. Three answers to one question is how that alert comes to name somebody the
+  handshake did not connect. The rule that alert already kept is untouched: the **client's** answer
+  beats the one the payload echoed, because this login authenticates by shape and the server has
+  nothing to look an identity up from; what changed is only that the client now has somewhere to say
+  *which* account. A new handshake clears the pick, so a cancelled sign-in cannot leave a stale
+  account for the next one to connect as.
+
+  **And granting the consent as somebody else moves the whole console to them.** Asked for
+  directly, after the chooser landed and only the wizard knew: it said *Connected as Rei Nakamura*
+  while the sidebar, which pages the sidebar listed, what a Library row offered, whose chat history
+  Ask showed and every "who did this" field went on saying Adaeze Okonjo. One act, two answers.
+
+  So `/sources/oauth/callback` answers with `identity` — **the directory row that granted it**,
+  resolved by `identityFor`, which is the *same* function `POST /auth/login` answers with, so a
+  consent can never report a persona the login would not have given the same person. The wizard's
+  `adoptConsentIdentity` hands it to `useAuthStore.adoptIdentity`, and all fifteen readers of that
+  store move at once — there is nothing per-surface to keep in step.
+
+  **Four rules, each guarding something silent.** It adopts the **whole** identity, persona included:
+  swapping the email alone leaves one person's name under another's navigation, which renders
+  perfectly and is worse than not switching. `identity` is **nullable and never defaulted** — an
+  address the directory does not hold (a `curl`, a caller naming nobody) resolves to `null` and the
+  console does not change hands, because defaulting to the current session would claim the consent
+  resolved to the reader when it resolved to nobody. It **moves the active persona too**, which
+  nothing else would: `syncActivePersona` adopts a role only when none is active, so on a live
+  session the sidebar would keep the previous persona's navigation. And **re-adopting the account
+  already signed in is a no-op**, so nothing announces a switch that did not happen.
+
+  **It is announced, in words naming both people** — `IDENTITY_SWITCH` in `src/data/consentStages.ts`,
+  copy rather than a sentence built where it is printed, for the reason `sourceActions` is. This is
+  the same class of act as changing dataset, which this app confirms in words; it stops short of that
+  dialog because a consent is already a deliberate two-step grant, but it must not be silent. The
+  sentence states the way back, because the persona it lands on may have **less** navigation than the
+  reader started with — `/settings` is routed unconditionally and the page warns, so nobody is
+  stranded, but "sign out and back in" is what makes that certain.
+
+  **It is still not authentication.** This login authenticates by shape and the consent screen proves
+  a request is well-formed; what the field records is *which directory row granted this consent*.
+  Nothing built on it should read it as verified.
+
+  **Which row is the reader's own is marked, not sorted to the top** — a list that reorders itself
+  per reader is a different list for each of them, and the mark is what actually answers the
+  question. **There is no *Use another account*.** Google's chooser ends in one; this window cannot
+  create an account, and a row that opens nothing is worse than no row.
+
+  **And the window is told which connector it is standing in for.** It was `isDrive ? 'drive' :
+  'bigquery'`, so Gmail's sign-in narrated *Granting read-only access to BigQuery* over a mailbox
+  consent — a consent screen describing a grant that is not being made. The same two-branch fault
+  `CATALOGUE_ROUTES` and `OAUTH_SCOPES` were each written to stop, reached by the third connector
+  exactly as they were.
 - **Step 3's two acts are paced too, at `CONNECT_STEP_MS` (5s).** `1. Run preview` and
   `2. Finish` are the calls that would really reach Google, and both answered before
   their spinner drew a frame. The hold is on the four endpoints — `/sources/preview`,
@@ -3746,8 +3809,9 @@ components, and that is the point: it was imported rather than reimplemented.
 Four things were changed to make it a page instead of an app, and nothing else:
 
 - **Its `main.tsx` and its `Sidebar` were dropped.** This app draws the sidebar, the wordmark and
-  the signed-in persona; the prototype's named a *different* persona, so keeping it would have
-  put two identities and two nav rails on one screen.
+  the signed-in identity; the prototype's named a *different* person, so keeping it would have
+  put two identities and two nav rails on one screen. (This app's card names the address only —
+  see § Identity; the reason is unchanged either way.)
 - **Its `ToastProvider` and `MenuProvider` wrap the page, not the app.** They are the
   prototype's own toast host and popover host, mounted at its root. At the app's root they would
   sit above every other page.
@@ -5213,6 +5277,15 @@ session, and the Persona Configuration tab now prints it beside the persona bein
 configured — the first surface to render it. The sidebar's "My data access" card is
 still gone; do not re-add one on the assumption that a signed-in user has been told
 what their role can reach.
+
+**And the sidebar card names the address and nothing else.** It printed the persona label under
+the email; **removed on request**, along with its stylesheet rule — a rule with nothing to style
+is an invitation for the line to come back. `roleLabel` itself is untouched and still read
+wherever a persona is the *subject* rather than a caption: the report author line, the governance
+rule editor, the What-if reader roster, the Settings user table. The one-line wrapper around the
+address stays, and is not inert — its `min-width: 0` is what makes a long address ellipsis inside
+the flex row beside the avatar, and dropping it lets the address push the row wider than the rail,
+which reads as a broken sidebar rather than as a deleted line. `check-docs` asserts both halves.
 
 **The identity is client-held, not server state.** `useAuthStore` persists
 `{ email, name, roleId, roleLabel, accessNote, initials, signedInAt }` to

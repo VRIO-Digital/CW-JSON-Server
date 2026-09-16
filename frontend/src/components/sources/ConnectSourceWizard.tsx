@@ -44,8 +44,10 @@ import {
   registerSource,
   type DriveInfo,
   type DrivePreviewResult,
+  type ConsentIdentity,
   type GcpProject,
   type GmailPreview,
+  type GoogleSignInAccount,
   type MailboxInfo,
   type GoogleAccount,
   type PreviewResult,
@@ -62,6 +64,7 @@ import FolderTreePicker from './FolderTreePicker'
 import GoogleSignInWindow, { type SignInPhase } from './GoogleSignInWindow'
 import { toMessage } from '../../store/asyncState'
 import { useAuthStore } from '../../store/authStore'
+import { IDENTITY_SWITCH } from '../../data/consentStages'
 import { BRAND, BRAND_SOFT, SP } from '../../theme'
 import ConnectorDirectory from './ConnectorDirectory'
 import { CONNECTORS } from '../../data/connectors'
@@ -210,10 +213,14 @@ export default function ConnectSourceWizard({
    * that re-renders the wizard.
    */
   const signedInAs = useAuthStore((s) => s.identity?.email)
-  /* The sign-in window names the account it is about to connect, so it needs what the browser
-     knows about that person — and nothing more. Primitive selectors, as above. */
-  const signedInName = useAuthStore((s) => s.identity?.name)
-  const signedInInitials = useAuthStore((s) => s.identity?.initials)
+  /*
+   * **What makes the rest of the console agree with this wizard.** A consent granted as somebody
+   * else used to change the *alert on this screen* and nothing else, so the sidebar, the Library's
+   * buttons, Ask's history and every "who did this" field went on naming whoever signed in.
+   * `adoptIdentity` replaces the whole identity — persona included, as the server resolved it — and
+   * every one of the fifteen readers of this store moves with it.
+   */
+  const adoptIdentity = useAuthStore((s) => s.adoptIdentity)
   const [step, setStep] = useState(0)
   const [selected, setSelected] = useState<Connector | null>(null)
   const [blocked, setBlocked] = useState<Connector | null>(null)
@@ -258,6 +265,19 @@ export default function ConnectSourceWizard({
    */
   const [signInPhase, setSignInPhase] = useState<SignInPhase | null>(null)
   const [oauthState, setOauthState] = useState('')
+  /*
+   * The accounts `/oauth/start` reported, and the one the reader picked out of them.
+   *
+   * **Held rather than derived**, for the reason `oauthScopes` is: the window renders what that call
+   * returned, and a directory kept here could offer an account the callback would refuse.
+   *
+   * `chosenAs` is `null` until a row is picked and is cleared with every new handshake, so a
+   * cancelled sign-in cannot leave a stale account behind for the next one to connect as. What it
+   * settles is the whole of *who* is connecting: the identity is client-held, so the browser's
+   * signed-in address is the default rather than the answer.
+   */
+  const [signInAccounts, setSignInAccounts] = useState<GoogleSignInAccount[]>([])
+  const [chosenAs, setChosenAs] = useState<string | null>(null)
 
   // ---- BigQuery test & finish state ----
   const [preview, setPreview] = useState<PreviewResult | null>(null)
@@ -282,16 +302,29 @@ export default function ConnectSourceWizard({
   const [registeredDrive, setRegisteredDrive] =
     useState<RegisteredDriveSource | null>(null)
 
-  /*
-   * Who the consent connected. The signed-in email wins over the one the
-   * callback echoed back, and deliberately: this login authenticates by *shape*
-   * and the consent screen proves a request is well-formed rather than that a
-   * real Google account sits behind it (CLAUDE.md § Identity), so the only fact
-   * about *who* is connecting lives in the browser. Reading it locally also means
-   * an older or deployed mock server — one that still answers with
-   * `db.google_account` — cannot make this alert name a stranger.
+  /**
+   * **Who this consent is being granted by** — the row picked in the sign-in window, falling back to
+   * the browser's own before one has been picked.
+   *
+   * One definition, because it is sent as `as=` on every callback, matched against the mailbox list
+   * on Gmail, and printed as *Connected as …*: three answers to one question is how the alert comes
+   * to name somebody the handshake did not connect.
    */
-  const connectedAs = account ? (signedInAs ?? account.email) : null
+  const connectingAs = chosenAs ?? signedInAs
+  /** The picked row itself, for the window's consent phase. Resolved out of the served list. */
+  const chosenAccount =
+    signInAccounts.find((a) => a.email === connectingAs) ?? null
+  /*
+   * Who the consent connected. The *client's* answer wins over the one the callback echoed back,
+   * and deliberately: this login authenticates by *shape* and the consent screen proves a request
+   * is well-formed rather than that a real Google account sits behind it (CLAUDE.md § Identity), so
+   * the only fact about *who* is connecting lives in the browser. It used to be `signedInAs`
+   * outright, which was the same rule while the window had one account to offer; the chooser is
+   * where the client now says which, so this reads that instead. Reading it locally also means an
+   * older or deployed mock server — one that still answers with `db.google_account` — cannot make
+   * this alert name a stranger.
+   */
+  const connectedAs = account ? (connectingAs ?? account.email) : null
 
   /* One rule, shared with the server (`sourceNameProblem` in server.mjs) so the
      wizard refuses what the API would refuse, before the round trip. */
@@ -340,10 +373,14 @@ export default function ConnectSourceWizard({
     setBusy('login')
     setLoginStage(0)
     setOauthScopes([])
+    /* A fresh handshake picks a fresh account: leaving the last one selected would open the
+       consent step already naming somebody the reader chose for a connection they cancelled. */
+    setChosenAs(null)
     try {
       // The consent is scoped to the connector, so the state is issued for it.
       const start = await oauthStart(isDrive ? 'drive' : isGmail ? 'gmail' : 'bigquery')
       setOauthScopes(start.scopes)
+      setSignInAccounts(start.accounts)
       setOauthState(start.state)
       setSignInPhase('account')
     } catch (err) {
@@ -358,6 +395,27 @@ export default function ConnectSourceWizard({
     setSignInPhase(null)
     setOauthState('')
     setLoginStage(0)
+    setChosenAs(null)
+  }
+
+  /**
+   * **The console becomes whoever granted the consent.**
+   *
+   * Called by all three connectors rather than written into each: a branch left out would connect
+   * as one person and go on showing another, which is the split this exists to close and which looks
+   * entirely correct on the screen that asked.
+   *
+   * `identity` is `null` for an address the directory does not hold, and then nothing changes —
+   * there is no row to change hands to, and defaulting to the current session would be a claim that
+   * the consent resolved to the reader when it resolved to nobody. `adoptIdentity` reports whether
+   * anything actually moved, so the message describes a switch that happened.
+   */
+  function adoptConsentIdentity(identity: ConsentIdentity | null) {
+    if (!identity) return
+    const before = signedInAs
+    if (adoptIdentity(identity) && before) {
+      message.success(IDENTITY_SWITCH(before, identity.email))
+    }
   }
 
   /**
@@ -376,20 +434,24 @@ export default function ConnectSourceWizard({
         /* The consent says who signed in; the session is then spent on the mailbox it reaches. The
            signed-in address goes with it for the reason the callback takes one: the identity is
            client-held, so the server has nothing to look the mailbox up from. */
-        const granted = await gmailOauthCallback(oauthState, signedInAs)
+        const granted = await gmailOauthCallback(oauthState, connectingAs)
         setAccount(granted.account)
+        adoptConsentIdentity(granted.identity)
         setLoginStage(2)
-        const reachable = await listOauthMailboxes(granted.session, signedInAs)
+        const reachable = await listOauthMailboxes(granted.session, connectingAs)
         setMailboxes(reachable)
-        /* The reader's own where the tenant ships it, otherwise the first. With no picker this is the
-           whole choice, so it is made on the one fact available rather than on list order alone. */
-        const own = reachable.find((m) => m.mailbox === signedInAs)
+        /* The consenting account's own where the tenant ships it, otherwise the first. With no
+           picker this is the whole choice, so it is made on the one fact available rather than on
+           list order alone — and that fact is the account the chooser settled, not the browser's,
+           because a consent reaches the mailbox of whoever granted it. */
+        const own = reachable.find((m) => m.mailbox === connectingAs)
         const chosen = own ?? reachable[0]
         if (chosen) selectMailbox(chosen.mailbox, reachable)
       } else if (isDrive) {
         // The consent says who signed in; the session says what they can see.
-        const granted = await driveOauthCallback(oauthState, signedInAs)
+        const granted = await driveOauthCallback(oauthState, connectingAs)
         setAccount(granted.account)
+        adoptConsentIdentity(granted.identity)
         setLoginStage(2)
         const readable = await listOauthDrives(granted.session)
         setDrives(readable)
@@ -401,8 +463,9 @@ export default function ConnectSourceWizard({
         const first = readable.find((d) => d.kind === kind)
         if (first) selectDrive(first.drive_id, readable)
       } else {
-        const granted = await oauthCallback(oauthState, signedInAs)
+        const granted = await oauthCallback(oauthState, connectingAs)
         setAccount(granted.account)
+        adoptConsentIdentity(granted.identity)
         setLoginStage(2)
         const readable = await listOauthProjects(granted.session)
         setProjects(readable)
@@ -698,17 +761,26 @@ export default function ConnectSourceWizard({
       {signInPhase !== null ? (
         <GoogleSignInWindow
           open
-          provider={isDrive ? 'drive' : 'bigquery'}
-          /* Who is signing in is the browser's fact, not the server's — the same reason the
-             "Connected as …" alert below prefers the store. The fallbacks are only for a session
-             that predates those fields. */
-          email={signedInAs ?? ''}
-          name={signedInName ?? signedInAs ?? ''}
-          initials={signedInInitials ?? '—'}
+          /* Three connectors reach this window, so the provider is a lookup rather than a pair:
+             `isDrive ? 'drive' : 'bigquery'` drew Gmail's sign-in narrating BigQuery's stages —
+             *Granting read-only access to BigQuery* over a mailbox consent. The same two-branch
+             fault `CATALOGUE_ROUTES` and `OAUTH_SCOPES` were each written to stop. */
+          provider={isGmail ? 'gmail' : isDrive ? 'drive' : 'bigquery'}
+          /* The accounts that call reported, rendered as returned — the window keeps no list, for
+             the reason it keeps no scope list. `signedInEmail` only says which row is this
+             browser's, so the chooser can mark it; it does not decide what is offered. */
+          accounts={signInAccounts}
+          signedInEmail={signedInAs ?? ''}
+          chosen={chosenAccount}
           phase={signInPhase}
           scopes={oauthScopes}
           stage={loginStage}
-          onChooseAccount={() => setSignInPhase('consent')}
+          /* Picking a row *is* signing in as it: the account is recorded and the window moves to
+             the grants, which is what the single row's click already did. */
+          onChooseAccount={(email) => {
+            setChosenAs(email)
+            setSignInPhase('consent')
+          }}
           onAllow={() => void grantGoogleConsent()}
           onCancel={cancelGoogleSignIn}
         />

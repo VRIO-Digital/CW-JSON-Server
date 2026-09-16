@@ -3043,6 +3043,8 @@ expect(
  * comments name the constant it must not read from.
  */
 const signInWindow = read('frontend/src/components/sources/GoogleSignInWindow.tsx')
+/* The auth store, `codeOnly`: its own comments name the fields and calls asserted below. */
+const authStoreCode = codeOnly(read('frontend/src/store/authStore.ts'))
 const signInCode = codeOnly(signInWindow)
 expect(
   'the sign-in window renders the scopes the endpoint returned',
@@ -3084,13 +3086,185 @@ expect(
   'it renders start.scopes, so it cannot open before that call returns',
 )
 expect(
-  'and Allow is what spends the consent',
-  /driveOauthCallback\(oauthState, signedInAs\)/.test(grantFn) &&
-    /gmailOauthCallback\(oauthState, signedInAs\)/.test(grantFn) &&
-    /oauthCallback\(oauthState, signedInAs\)/.test(grantFn) &&
+  'and Allow is what spends the consent, as the account the chooser settled',
+  /* `connectingAs`, not `signedInAs`: the window offers the tenant's directory now, so the browser's
+     own address is the *default* rather than the answer. One name across all three, because a
+     connector left on the old binding would connect a reader's own account under a row that said
+     somebody else's — and it would look exactly right on the screen that asked. */
+  /driveOauthCallback\(oauthState, connectingAs\)/.test(grantFn) &&
+    /gmailOauthCallback\(oauthState, connectingAs\)/.test(grantFn) &&
+    /oauthCallback\(oauthState, connectingAs\)/.test(grantFn) &&
+    !/OauthCallback\(oauthState, signedInAs\)/.test(grantFn) &&
     /onAllow=\{\(\) => void grantGoogleConsent\(\)\}/.test(wizard),
   'cancelling grants nothing and connects nobody',
 )
+
+/*
+ * **The account chooser is the served directory, and the same rule binds it as the scopes.**
+ *
+ * The window offered exactly one account — the browser's own — and said in as many words that it
+ * had no directory to offer. It has one: `db.settings.users`, this app's single answer to who
+ * exists, which is what the login authenticates against and what `/sources/oauth/mailboxes` refuses
+ * an unknown address against. So a row on this screen can never be one the handshake would then
+ * turn down, and **nobody on it is invented** — which was the whole objection the single row
+ * existed to answer, and is the half of it that must not be lost.
+ *
+ * **Every layer, because the ways this breaks are opposite and all quiet.** A window that filtered
+ * or hard-coded the list is the client-side scope list all over again; a wizard that kept sending
+ * `signedInAs` would connect the reader's own account under a row naming a colleague; and a server
+ * that stopped sending `accounts` is refused loudly by the schema, which is why that field is
+ * required rather than nullable.
+ */
+expect(
+  'the sign-in window renders the accounts the endpoint returned',
+  /* Server: the tenant's own users, with the login's own initials derivation so two avatars for one
+     person cannot disagree. Sliced to the route, not searched over the file. */
+  /const accounts = \(db\.settings\?\.users \?\? \[\]\)\.map\(\(user\) => \(\{/.test(server) &&
+    /* …and it really reaches the reply, rather than being computed and dropped. */
+    /\r?\n\s*scopes,\r?\n\s*accounts,\r?\n/.test(server) &&
+    /initials: emailInitials\(user\.email\),/.test(server) &&
+    /* Client: typed and validated. Required, so a server predating the chooser is refused with the
+       restart message rather than opening a window with nothing to pick. */
+    /accounts: arrayOf\(GOOGLE_SIGN_IN_ACCOUNT\)/.test(client) &&
+    /export interface GoogleSignInAccount/.test(client) &&
+    /* Window: one row per served account, and no list of its own. `codeOnly`, because this file's
+       comments name the directory it must not keep. */
+    /accounts\.map\(\(account\)/.test(signInCode) &&
+    /accounts: GoogleSignInAccount\[\]/.test(signInCode) &&
+    !/settings\.users|@vriodigital/.test(signInCode) &&
+    /* The reader's own row is marked rather than the list reordered — a chooser that sorts per
+       reader is a different list for each of them. One expression, or React splits the sentence
+       into text nodes and nothing can assert it. */
+    /signed in to \$\{app\}`\}/.test(signInCode) &&
+    /* And the retired sentence is gone: a window that still said it had no directory while drawing
+       four accounts would be arguing with itself. */
+    !/no directory of its own/.test(signInWindow) &&
+    /* Wizard: it holds what the call returned and forgets the pick on every new handshake, so a
+       cancelled sign-in cannot leave a stale account for the next one to connect as. */
+    /setSignInAccounts\(start\.accounts\)/.test(openFn) &&
+    /setChosenAs\(null\)/.test(openFn) &&
+    /* Picking a row is what signs in as it — the act the single row's click already was. */
+    /onChooseAccount=\{\(email\) => \{\r?\n\s*setChosenAs\(email\)\r?\n\s*setSignInPhase\('consent'\)/.test(
+      wizard,
+    ),
+  'a window holding its own directory can offer an account the handshake refuses',
+)
+
+/*
+ * **And the window is told which connector it is standing in for.**
+ *
+ * It was `isDrive ? 'drive' : 'bigquery'`, so Gmail's sign-in narrated BigQuery's stages — *Granting
+ * read-only access to BigQuery* over a mailbox consent, which is a consent screen describing a
+ * grant that is not being made. The same two-branch fault `CATALOGUE_ROUTES` and `OAUTH_SCOPES`
+ * were each written to stop, reached by the third connector exactly as they were.
+ */
+expect(
+  'the sign-in window names the connector whose consent it is showing',
+  /provider=\{isGmail \? 'gmail' : isDrive \? 'drive' : 'bigquery'\}/.test(wizard) &&
+    !/provider=\{isDrive \? 'drive' : 'bigquery'\}/.test(wizard) &&
+    /* All three have stages to narrate, which is what makes the third branch reachable. */
+    /gmail: \[/.test(read('frontend/src/data/consentStages.ts')),
+  'a two-branch provider reads every connector that is not Drive as BigQuery',
+)
+
+/*
+ * **A consent granted as somebody else moves the whole console to them, not just this wizard.**
+ *
+ * The chooser made it possible to connect a source as another directory account, and for a while
+ * only the wizard knew: it said *Connected as Rei Nakamura* while the sidebar, which pages the
+ * sidebar listed, what a Library row offered, whose chat history Ask showed and every "who did this"
+ * field went on saying Adaeze Okonjo. One act, two answers — the split this repo refuses everywhere.
+ *
+ * **Five layers, and each one fails a different quiet way.**
+ *
+ *  - *One resolution.* `identityFor` is the login's lookup, and the callback answers with it. Two
+ *    copies is how a consent comes to report a persona the login would not have given the same
+ *    person, with both answers well-formed and nothing thrown.
+ *  - *Nullable, never defaulted.* An address the directory does not hold resolves to `null` and the
+ *    console does not change hands. Falling back to the current session would claim the consent
+ *    resolved to the reader when it resolved to nobody.
+ *  - *The whole identity.* Swapping the email alone leaves one person's name under another's
+ *    navigation — worse than not switching, and invisible, because both halves render perfectly.
+ *  - *The active persona moves too.* `syncActivePersona` adopts a role only when none is active, so
+ *    on a live session it would keep the previous persona's sidebar. That is the whole complaint
+ *    reappearing one layer down.
+ *  - *All three connectors.* A branch left out connects as one person and goes on showing another.
+ */
+expect(
+  'a consent resolves a directory row, and adopting it moves every surface',
+  /* Server: one lookup, shared. The login spreads it rather than listing the fields again. */
+  /function identityFor\(email\) \{/.test(server) &&
+    (server.match(/identityFor\(/g) ?? []).length === 3 &&
+    /\.\.\.identityFor\(user\.email\),\r?\n\s*signed_in_at:/.test(server) &&
+    /const identity = identityFor\(account\.email\)/.test(server) &&
+    /send\(res, 200, \{ account, session, provider, identity \}\)/.test(server) &&
+    /* Client: nullable at the boundary, and mapped out of snake_case once for all three. */
+    /identity: nullable\(CONSENT_IDENTITY\)/.test(client) &&
+    /export type ConsentIdentity = Omit<SessionIdentity, 'signedInAt'>/.test(client) &&
+    (client.match(/toOAuthCallback\(raw, '/g) ?? []).length === realConnectorCount &&
+    /roleId: row\.role_id/.test(client) &&
+    /* Store: the whole row, a stamped session, and the persona moved with it. */
+    /adoptIdentity: \(identity: ConsentIdentity\) => boolean/.test(authStoreCode) &&
+    /set\(\{ identity: \{ \.\.\.next, signedInAt: new Date\(\)\.toISOString\(\) \} \}\)/.test(
+      authStoreCode,
+    ) &&
+    /useSettingsStore\.getState\(\)\.setActivePersona\(next\.roleId\)/.test(authStoreCode) &&
+    /* …and re-adopting the account already signed in is a no-op, so nothing announces a switch
+       that did not happen. Case-insensitive, like every other address match here. */
+    /current\.email\.toLowerCase\(\) === next\.email\.toLowerCase\(\)\) return false/.test(
+      authStoreCode,
+    ) &&
+    /* Wizard: one adopter, called by every connector's branch. */
+    /function adoptConsentIdentity\(identity: ConsentIdentity \| null\)/.test(wizard) &&
+    (wizard.match(/adoptConsentIdentity\(granted\.identity\)/g) ?? []).length ===
+      realConnectorCount &&
+    /* And it is announced, naming both people, from copy rather than a string built inline. */
+    /export const IDENTITY_SWITCH = \(from: string, to: string\)/.test(
+      read('frontend/src/data/consentStages.ts'),
+    ) &&
+    /message\.success\(IDENTITY_SWITCH\(before, identity\.email\)\)/.test(wizard),
+  'connecting as one person while the sidebar names another is one act with two answers',
+)
+
+/*
+ * **The sidebar's signed-in card names the address and nothing else — the persona line is gone.**
+ *
+ * Removed on request. `identity.roleLabel` is *not* removed: it is still read where a persona is
+ * the subject rather than a caption — the report author line, the governance rule editor, the
+ * What-if reader roster, the Settings user table — so a sweep for the field would take four working
+ * surfaces with it. The claim is about this one card.
+ *
+ * **Both halves, because they fail in opposite directions.** The line coming back is the removal
+ * undone; the *wrapper* going too is the quiet one — `sidebar-identity-text` carries the
+ * `min-width: 0` that lets a long address ellipsis inside the flex row, and without it the address
+ * pushes the row wider than the rail instead of truncating, which reads as a broken sidebar rather
+ * than as a deleted line. The stylesheet rule goes with the markup, since a rule with nothing to
+ * style is an invitation for the line to come back.
+ */
+{
+  const sidebar = read('frontend/src/components/shell/Sidebar.tsx')
+  const sidebarCss = read('frontend/src/components/shell/Sidebar.css')
+  const footer = sidebar.slice(
+    sidebar.indexOf('export function SidebarFooter'),
+    sidebar.indexOf('The navigation the active persona may see'),
+  )
+  expect(
+    'the sidebar card names the address, and no longer the persona',
+    footer.length > 0 &&
+      /* Gone from the markup and from the sheet. `codeOnly`, because the note left in its place
+         names both. */
+      !/sidebar-identity-role/.test(codeOnly(footer)) &&
+      !/identity\.roleLabel/.test(codeOnly(footer)) &&
+      !/\.sidebar-identity-role\s*\{/.test(sidebarCss) &&
+      /* …and the address is still drawn, inside the wrapper that makes it truncate. */
+      /<span className="sidebar-identity-text">/.test(footer) &&
+      /<span className="sidebar-identity-email">\{identity\.email\}<\/span>/.test(footer) &&
+      /\.sidebar-identity-text \{[^}]*min-width: 0/.test(sidebarCss) &&
+      /* The field itself survives where a persona is the subject rather than a caption. */
+      /identity\.roleLabel/.test(codeOnly(read('frontend/src/pages/ReportsPage.tsx'))),
+    'a card that lost its wrapper stops truncating, which reads as broken rather than as removed',
+  )
+}
 
 /* ---------------- step 3's two acts are paced, and paced on the server ---------------- */
 
@@ -6089,15 +6263,21 @@ expect(
   'every real connector’s callback goes through callbackPath',
 )
 expect(
-  'the connect wizard takes that email from the auth store',
+  'the connect wizard takes the default from the auth store, and the chooser may override it',
   /useAuthStore\(\(s\) => s\.identity\?\.email\)/.test(wizard) &&
+    /* **One definition of who is connecting**, which is the whole of this guard now that there is
+       more than one possible answer. It is the chooser's row where one was picked and the browser's
+       otherwise — so the address sent as `as=`, the mailbox matched on, and the *Connected as* line
+       cannot come to disagree. Three answers to one question is how the alert names somebody the
+       handshake did not connect. */
+    /const connectingAs = chosenAs \?\? signedInAs/.test(wizard) &&
     /* Matched on the argument, not on the local holding the state: the wizard
        renamed `start.state` to `oauthState` when the consent became a
        click-through, and this failed for a variable name while the fact it
-       guards — both connectors send the signed-in email — was still true. */
-    (wizard.match(/(?:drive)?[oO]authCallback\([\w.]+, signedInAs\)/g) ?? []).length ===
+       guards — every connector sends the connecting account — was still true. */
+    (wizard.match(/(?:drive)?[oO]authCallback\([\w.]+, connectingAs\)/g) ?? []).length ===
       realConnectorCount,
-  'every real connector passes signedInAs to its callback',
+  'every real connector passes connectingAs to its callback',
 )
 /*
  * **Every alert that names the connecting account names the client-held one.**
@@ -6113,8 +6293,14 @@ expect(
 const wizardCode = codeOnly(wizard)
 const namedAlerts = (wizardCode.match(/Connected as/g) ?? []).length
 expect(
-  `every "Connected as" alert renders the signed-in email: ${namedAlerts} of them`,
-  /signedInAs \?\? account\.email/.test(wizard) &&
+  `every "Connected as" alert renders the client-held account: ${namedAlerts} of them`,
+  /* `connectingAs`, which is the chooser's row or the browser's own. The rule is untouched — the
+     *client's* answer beats the one the payload echoed, because this login authenticates by shape
+     and the server has nothing to look an identity up from. What changed is only that the client
+     now has somewhere to say which account, so the fallback reads that instead of the store
+     directly. */
+  /connectingAs \?\? account\.email/.test(wizard) &&
+    !/signedInAs \?\? account\.email/.test(wizard) &&
     namedAlerts >= 2 &&
     (wizardCode.match(/Connected as <strong>\{connectedAs\}<\/strong>/g) ?? []).length ===
       namedAlerts &&

@@ -34,6 +34,27 @@ export const CONSENT_STAGES = {
 export const CONSENT_SCOPE_LABEL = (scope: string): string =>
   scope.replace('https://www.googleapis.com/auth/', '')
 
+/**
+ * **What a reader is told when a consent changes who the console is showing.**
+ *
+ * The sign-in window offers the tenant's directory, so granting a consent as somebody else moves the
+ * whole console to them — the sidebar, which pages are listed, what a Library row offers, whose chat
+ * history Ask shows. That is not a thing to do silently: it is the same class of act as switching
+ * dataset, which this app confirms in words and signs you out for.
+ *
+ * It names **both** people, for the reason the dataset dialog does: *"now signed in as X"* alone
+ * leaves a reader working out what they were before, and the pair is what makes an accidental pick
+ * obvious. And it states the remedy, because the persona it lands on may be one with less
+ * navigation than the reader started with — `/settings` is routed unconditionally and the sidebar
+ * always lists a way out, but "sign out and sign back in" is the sentence that makes that certain.
+ *
+ * Copy rather than a sentence built where it is printed, for the reason `sourceActions` is: the
+ * wizard's own dialog portals out of `renderToString`, so a string written inline cannot be checked.
+ */
+export const IDENTITY_SWITCH = (from: string, to: string): string =>
+  `Signed in as ${to} — this consent was granted by that account, so the console now shows their ` +
+  `persona everywhere, not ${from}'s. Sign out and back in to return.`
+
 export const CONSENT_SCOPES = {
   bigquery: 'bigquery.readonly',
   drive: 'drive.metadata.readonly',

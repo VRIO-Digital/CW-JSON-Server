@@ -231,7 +231,7 @@ earlier one was built and removed; it was asked for again, and this is it.)
 
 ```
 Login with Google  → GET /sources/oauth/start        the window opens on this response
-  [account step]   → the signed-in account, and why there is no second one
+  [account step]   → one row per account THAT RESPONSE reported; picking one signs in as it
   [consent step]   → one row per scope THAT RESPONSE reported
   Allow            → GET /sources/oauth/callback     the consent is spent here
                    → GET /sources/oauth/projects|drives
@@ -247,12 +247,36 @@ rather than offering Allow again, because the state has been spent either way an
 second press could only return "invalid or expired state" — the button underneath
 starts a fresh handshake, which is the real retry.
 
-**The account it offers is the browser's, and it says so.** `email`, `name` and
-`initials` come from `useAuthStore`; there is no second account and the window
-explains why rather than showing a greyed-out row that reads as something that
-failed to load. Its footer states that it proves the request is well-formed, not
-that a real Google account is behind it — the same honesty the login page carries.
-`check-docs` asserts the window keeps no scope list of its own.
+**The accounts it offers are `start.accounts`, the tenant's own directory.** It offered exactly
+one — the browser's, out of `useAuthStore` — and explained why there was no second. There is a
+second now, and a third: `db.settings.users`, served on the same response as the scopes and
+rendered as returned. The objection the single row answered is unchanged and still met — a chooser
+listing *invented* people would be a claim about who has signed in to Google — and this is the same
+pool `/sources/oauth/mailboxes` refuses an unknown address against, so no row here is one the
+handshake would turn down. The reader's own is **marked**, never sorted to the top; there is no
+*Use another account*, because this window cannot create one.
+
+**Picking a row is what the connection is made as.** `connectingAs` (`chosenAs ?? signedInAs`) is
+the single definition, read by the `as=` on all three callbacks, by Gmail's mailbox match, and by
+the *Connected as …* alert — and a new handshake clears the pick, so a cancelled sign-in leaves no
+stale account behind. The alert's own rule is untouched: the **client's** answer beats the payload's,
+since the login authenticates by shape and the server has nothing to look an identity up from.
+
+**And the console becomes that person.** The callback answers with `identity`, the directory row it
+resolved through `identityFor` — the login's own lookup, so the two can never report different
+personas for one address — and `adoptConsentIdentity` hands it to `useAuthStore.adoptIdentity`.
+Every reader of that store moves at once: the sidebar's address, avatar and persona, which pages it
+lists, what a Library row offers, whose chat history Ask shows, and every `saved_by` /
+`published_by` / `?as=` field. It takes the **whole** identity (an email without its persona is one
+person's name under another's navigation), it moves `activePersonaId` as well (`syncActivePersona`
+adopts only when none is active, so a live session would keep the old sidebar), it does nothing for
+an address the directory does not hold, and it is announced by `IDENTITY_SWITCH` naming both people
+and the way back. `check-docs` asserts all five layers in one claim.
+
+Its footer states that it proves the request is well-formed, not that a real Google account is
+behind it — the same honesty the login page carries. `check-docs` asserts the window keeps no scope
+list and no directory of its own, and that the `provider` it is given is a three-way lookup: as a
+pair (`isDrive ? 'drive' : 'bigquery'`) it drew Gmail's sign-in narrating BigQuery's stages.
 
 **The panel lists the scopes `/sources/oauth/start` returned**, not a per-provider
 constant. Drive asks for **two** (`drive.metadata.readonly` *and* `drive.readonly`

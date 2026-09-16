@@ -32,6 +32,27 @@
   color: #5f6368;
 }
 
+/*
+ * The chooser: one bordered list, rows divided by a hairline — Google's own arrangement, and not a
+ * stack of separate cards. The difference matters at four or five accounts, where bordered cards
+ * read as five unrelated controls rather than as one list to pick from.
+ *
+ * The border is on the list and the radius is clipped, so the first and last rows round with it
+ * and no row needs a corner rule of its own.
+ */
+.gsi-accounts {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  list-style: none;
+}
+
+.gsi-accounts > li + li {
+  border-top: 1px solid #e8eaed;
+}
+
 /* The account row is a button because choosing it is what advances the window. */
 .gsi-account {
   display: flex;
@@ -39,8 +60,7 @@
   align-items: center;
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
-  border: 1px solid #dadce0;
-  border-radius: 8px;
+  border: none;
   background: #fff;
   cursor: pointer;
   text-align: left;
@@ -48,6 +68,26 @@
 
 .gsi-account:hover {
   background: #f8f9fa;
+}
+
+/* Keyboard focus has to be visible on a row whose only other affordance is hover. */
+.gsi-account:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: -2px;
+}
+
+/*
+ * Which row is the reader's own. A mark rather than a reordering: a list that sorts itself per
+ * reader is a different list for each of them, and it is the mark that actually answers the
+ * question. Neutral grey, never a STATUS tint — being signed in is not a state of the connection.
+ */
+.gsi-account-mine {
+  margin-left: auto;
+  padding-left: var(--sp-3);
+  flex: none;
+  font-size: 11.5px;
+  color: #5f6368;
+  white-space: nowrap;
 }
 
 .gsi-avatar {
@@ -66,6 +106,7 @@
 .gsi-account-text {
   display: flex;
   min-width: 0;
+  flex: 1 1 auto;
   flex-direction: column;
 }
 

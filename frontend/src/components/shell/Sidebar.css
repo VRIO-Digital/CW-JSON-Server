@@ -242,7 +242,5 @@
   color: #111827;
 }
 
-.sidebar-identity-role {
-  font-size: 12px;
-  color: #98a2b3;
-}
+/* `.sidebar-identity-role` stood here and went with the line it styled — a rule with nothing to
+   style is an invitation for the line to come back. */

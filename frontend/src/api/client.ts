@@ -192,11 +192,31 @@ export interface GcpProject {
 export const OAUTH_PROVIDERS = ['bigquery', 'drive', 'gmail'] as const
 export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number]
 
+/**
+ * One account the sign-in window may offer.
+ *
+ * **The tenant's directory, served — never a list the window keeps.** These are `db.settings.users`,
+ * this app's single answer to who exists, which is also the pool `/sources/oauth/mailboxes` refuses
+ * an unknown address against: so the chooser can never offer a row the handshake would then turn
+ * down. A copy held in the component is exactly how the consent screen once came to describe fewer
+ * scopes than were being asked for.
+ *
+ * `initials` is the server's `emailInitials`, the same derivation the login session carries, so the
+ * avatar here and the avatar in the sidebar cannot disagree about one person.
+ */
+export interface GoogleSignInAccount {
+  email: string
+  name: string
+  initials: string
+}
+
 export interface OAuthStart {
   state: string
   provider: OAuthProvider
   auth_url: string
   scopes: string[]
+  /** Who the chooser may sign in as. Rendered as returned, like `scopes`. */
+  accounts: GoogleSignInAccount[]
 }
 
 /**
@@ -204,10 +224,40 @@ export interface OAuthStart {
  * call spent with `session` — the same shape a real handshake has, and what
  * gives the wizard a discovery stage backed by a real request.
  */
+/**
+ * A directory row a consent resolved — everything a session is except the moment it started.
+ *
+ * `Omit` rather than a second field list: these *are* the login's fields, resolved by the login's own
+ * `identityFor`, and writing them out again is how one of them comes to be spelled differently on the
+ * two paths a reader can arrive by.
+ */
+export type ConsentIdentity = Omit<SessionIdentity, 'signedInAt'>
+
 export interface OAuthCallback {
   account: GoogleAccount
   session: string
   provider: OAuthProvider
+  /**
+   * **Who that account is in this tenant's directory** — the row `identityFor` resolved, which is the
+   * same function `POST /auth/login` answers with.
+   *
+   * The sign-in window offers the directory, so a consent can be granted as somebody other than
+   * whoever the browser signed in as, and this is what lets the console follow: the wizard adopts it
+   * and every surface reading `useAuthStore` moves at once. Without it the wizard's own alert said
+   * one person and the sidebar said another.
+   *
+   * **A `ConsentIdentity`, not a `SessionIdentity`: there is no `signedInAt`.** A consent is not a
+   * sign-in, so the server has no such moment to report, and inventing one here would date a session
+   * that had not begun. The store stamps it when it adopts the row, which is when the session really
+   * does begin.
+   *
+   * `null` for an address the directory does not hold — a caller that names nobody, or one naming a
+   * stranger. The consent still succeeds; the console simply does not change hands, which is the
+   * honest answer when there is no row to change it to. **Nullable at every layer for that reason**,
+   * and never defaulted to the current session: "nobody resolved" and "the person who was already
+   * signed in" are different facts.
+   */
+  identity: ConsentIdentity | null
 }
 
 /* ---------------- Connect a Drive source ---------------- */
@@ -2821,10 +2871,22 @@ const DRIVE_FOLDERS_PAYLOAD = shape({
   ),
 })
 
+/* The directory row a consent resolved — the login's own session shape, minus the moment it began:
+   a consent is not a sign-in and has no `signed_in_at` of its own to report. */
+const CONSENT_IDENTITY = shape({
+  email: str,
+  name: str,
+  role_id: str,
+  role_label: str,
+  access_note: str,
+  initials: str,
+})
+
 const OAUTH_CALLBACK_PAYLOAD = shape({
   account: shape({ email: str, name: str }),
   session: str,
   provider: oneOf([...OAUTH_PROVIDERS]),
+  identity: nullable(CONSENT_IDENTITY),
 })
 
 const OAUTH_PROJECTS_PAYLOAD = shape({
@@ -3275,11 +3337,20 @@ const ASK_ANSWER_PAYLOAD = shape({
  * a boundary check; a missing field surfaced as `undefined` in a table instead
  * of a message naming the field.
  */
+const GOOGLE_SIGN_IN_ACCOUNT = shape({
+  email: str,
+  name: str,
+  initials: str,
+})
+
 const OAUTH_START_PAYLOAD = shape({
   state: str,
   provider: oneOf([...OAUTH_PROVIDERS]),
   auth_url: str,
   scopes: arrayOf(str),
+  /* Required, not `nullable`: a server that predates the chooser should be refused loudly with the
+     restart message rather than opening a window with one account and no way to tell why. */
+  accounts: arrayOf(GOOGLE_SIGN_IN_ACCOUNT),
 })
 
 const REGISTERED_SOURCE_PAYLOAD = shape({
@@ -3800,12 +3871,51 @@ function callbackPath(state: string, provider: OAuthProvider, signedInAs?: strin
   return `/sources/oauth/callback?state=${encodeURIComponent(state)}&provider=${provider}${as}`
 }
 
+/**
+ * The consent's directory row, in this layer's spelling.
+ *
+ * **One mapper for all three connectors**, because the API is snake_case and the app is camelCase and
+ * that translation belongs here rather than in a component — the rule `last_sync` → `lastSync`
+ * already follows. Three copies of it is three chances for `role_id` to reach the auth store
+ * unmapped, where it reads as a persona of `undefined` and every navigation permission silently
+ * falls back to "not configured".
+ */
+function toConsentIdentity(raw: unknown): ConsentIdentity | null {
+  if (raw === null || raw === undefined) return null
+  const row = raw as {
+    email: string
+    name: string
+    role_id: string
+    role_label: string
+    access_note: string
+    initials: string
+  }
+  return {
+    email: row.email,
+    name: row.name,
+    roleId: row.role_id,
+    roleLabel: row.role_label,
+    accessNote: row.access_note,
+    initials: row.initials,
+  }
+}
+
+/** Validated, then mapped — so no caller sees the wire spelling. */
+function toOAuthCallback(raw: unknown, label: string): OAuthCallback {
+  const checked = validate<Omit<OAuthCallback, 'identity'> & { identity: unknown }>(
+    label,
+    raw,
+    OAUTH_CALLBACK_PAYLOAD,
+  )
+  return { ...checked, identity: toConsentIdentity(checked.identity) }
+}
+
 export async function oauthCallback(
   state: string,
   signedInAs?: string,
 ): Promise<OAuthCallback> {
   const raw = await request<unknown>(callbackPath(state, 'bigquery', signedInAs))
-  return validate<OAuthCallback>('The Google sign-in result', raw, OAUTH_CALLBACK_PAYLOAD)
+  return toOAuthCallback(raw, 'The Google sign-in result')
 }
 
 export async function driveOauthCallback(
@@ -3813,11 +3923,7 @@ export async function driveOauthCallback(
   signedInAs?: string,
 ): Promise<DriveOAuthCallback> {
   const raw = await request<unknown>(callbackPath(state, 'drive', signedInAs))
-  return validate<DriveOAuthCallback>(
-    'The Google Drive sign-in result',
-    raw,
-    OAUTH_CALLBACK_PAYLOAD,
-  )
+  return toOAuthCallback(raw, 'The Google Drive sign-in result')
 }
 
 /** Spends the session on what the account can see. Twin: `listOauthDrives`. */
@@ -3849,7 +3955,7 @@ export async function gmailOauthCallback(
   signedInAs?: string,
 ): Promise<OAuthCallback> {
   const raw = await request<unknown>(callbackPath(state, 'gmail', signedInAs))
-  return validate<OAuthCallback>('The Gmail sign-in result', raw, OAUTH_CALLBACK_PAYLOAD)
+  return toOAuthCallback(raw, 'The Gmail sign-in result')
 }
 
 /**

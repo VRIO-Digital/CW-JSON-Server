@@ -1,4 +1,5 @@
 import { Modal } from 'antd'
+import type { GoogleSignInAccount } from '../../api/client'
 import GoogleConsentPanel from './GoogleConsentPanel'
 import {
   CONSENT_GRANT_COPY,
@@ -18,10 +19,21 @@ import './GoogleSignInWindow.css'
  *   list. Drive asks for two and BigQuery for one; a window with a copy of the list can describe
  *   fewer permissions than are being requested, which is the one thing a consent screen exists to
  *   prevent. `CONSENT_GRANT_COPY` supplies wording only, and an unmapped scope still renders.
- * - **The account is the browser's**, because the identity here is client-held (CLAUDE.md
- *   § Identity). The window offers the signed-in user and says plainly that it cannot offer
- *   anybody else — an account chooser listing invented people would be a claim about who has
- *   signed in to Google.
+ * - **The accounts are the ones `/sources/oauth/start` returned**, for the same reason the scopes
+ *   are. It offered exactly one — the browser's own — and said it had no directory to offer; it has
+ *   one, `db.settings.users`, which is this app's single answer to who exists. **The objection the
+ *   single row was protecting against is unchanged and still met**: an account chooser listing
+ *   *invented* people would be a claim about who has signed in to Google, and nobody here is
+ *   invented. It is the same pool `/sources/oauth/mailboxes` refuses an unknown address against, so
+ *   a row on this screen can never be one the handshake would then turn down.
+ * - **The row a reader picks is what the connection is made as.** The identity is still client-held
+ *   (CLAUDE.md § Identity) — the server has nothing to look it up from — so the chooser is where the
+ *   client says which account, and the signed-in one is only the default. Which row that is is
+ *   marked, because a list of colleagues with nothing distinguishing the reader's own is a chooser
+ *   that invites the wrong pick.
+ * - **There is no *Use another account*.** Google's chooser ends in one; this window cannot create
+ *   an account, and a row that opens nothing is worse than no row — the rule every withheld control
+ *   here follows. The note says where the list comes from instead.
  * - **Allow is what makes the request.** Nothing is granted while this is open; the callback and
  *   the discovery call run when the button is pressed, and the stage rows below are the same
  *   `GoogleConsentPanel` the wizard used before — each row advances when its request returns.
@@ -58,10 +70,12 @@ export type SignInPhase = 'account' | 'consent' | 'granting'
 
 export function GoogleSignInPanel({
   provider,
-  /** Who the browser says is signed in. Never guessed, never a list of invented accounts. */
-  email,
-  name,
-  initials,
+  /** The accounts `/sources/oauth/start` reported. Rendered as returned, never filtered here. */
+  accounts,
+  /** Which of them is the console's own, so the chooser can mark it. */
+  signedInEmail,
+  /** The row picked. `null` until one is, which is the account phase. */
+  chosen,
   phase,
   /** The scopes `/sources/oauth/start` reported. Empty only before that call has returned. */
   scopes,
@@ -72,13 +86,13 @@ export function GoogleSignInPanel({
   onCancel,
 }: {
   provider: ConsentProvider
-  email: string
-  name: string
-  initials: string
+  accounts: GoogleSignInAccount[]
+  signedInEmail: string
+  chosen: GoogleSignInAccount | null
   phase: SignInPhase
   scopes: string[]
   stage: number
-  onChooseAccount: () => void
+  onChooseAccount: (email: string) => void
   onAllow: () => void
   onCancel: () => void
 }) {
@@ -96,29 +110,54 @@ export function GoogleSignInPanel({
       {phase === 'account' ? (
         <>
           <div className="gsi-lead">Choose an account to continue to {app}</div>
-          <button type="button" className="gsi-account" onClick={onChooseAccount}>
-            <span className="gsi-avatar" aria-hidden="true">
-              {initials}
-            </span>
-            <span className="gsi-account-text">
-              <span className="gsi-account-name">{name}</span>
-              <span className="gsi-account-email">{email}</span>
-            </span>
-          </button>
           {/*
-            No second account, and it says why rather than offering a greyed-out row that looks
-            like a feature that failed to load. The console's identity is the browser's own, so
-            this window has exactly one account to offer.
+            One row per account the endpoint returned, in the order it returned them — the reader's
+            own marked rather than moved, because a list that reorders itself per reader is a
+            different list for each of them, and the mark is what actually answers "which one is
+            me". A row is the whole act: picking is signing in as that account, so there is no OK
+            to press afterwards, exactly as ticking a connector card in the Ask picker is the act.
+          */}
+          <ul className="gsi-accounts">
+            {accounts.map((account) => (
+              <li key={account.email}>
+                <button
+                  type="button"
+                  className="gsi-account"
+                  onClick={() => onChooseAccount(account.email)}
+                >
+                  <span className="gsi-avatar" aria-hidden="true">
+                    {account.initials}
+                  </span>
+                  <span className="gsi-account-text">
+                    <span className="gsi-account-name">{account.name}</span>
+                    <span className="gsi-account-email">{account.email}</span>
+                  </span>
+                  {account.email === signedInEmail ? (
+                    /* One expression, never `signed in to {app}`: React splits an interpolation
+                        into its own text node, so a sentence a reader sees as one string cannot be
+                        asserted on as one — the rule the permission-count note below already keeps. */
+                    <span className="gsi-account-mine">{`signed in to ${app}`}</span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {/*
+            Where the list comes from, said plainly. There is deliberately no *Use another account*
+            row: this window cannot create one, and a control that opens nothing is worse than an
+            absent one — the rule every withheld act in this repo keeps.
           */}
           <div className="gsi-note">
-            This is the account signed in to {app}. Signing in as somebody else means signing out
-            of {app} first — this window has no directory of its own to offer.
+            {`These are the ${app} directory's accounts — the same people the sign-in page ` +
+              'authenticates. Connecting as one of the others does not change who is signed in ' +
+              'to this browser; it records that account as the one that granted this consent. ' +
+              'There is no way to add an account from here.'}
           </div>
         </>
       ) : (
         <>
           <div className="gsi-lead">
-            <strong>{email}</strong>
+            <strong>{chosen?.email ?? ''}</strong>
           </div>
           <div className="gsi-grants-lead">
             {app} will be able to:
@@ -201,13 +240,13 @@ export default function GoogleSignInWindow({
 }: {
   open: boolean
   provider: ConsentProvider
-  email: string
-  name: string
-  initials: string
+  accounts: GoogleSignInAccount[]
+  signedInEmail: string
+  chosen: GoogleSignInAccount | null
   phase: SignInPhase
   scopes: string[]
   stage: number
-  onChooseAccount: () => void
+  onChooseAccount: (email: string) => void
   onAllow: () => void
   onCancel: () => void
 }) {
