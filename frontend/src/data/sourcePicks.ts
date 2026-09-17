@@ -1,5 +1,5 @@
 /**
- * Step 4's own rules about a source pick — the decidable parts, out where they can be asserted.
+ * Step 2's own rules about a source pick — the decidable parts, out where they can be asserted.
  *
  * A predicate written inside `SourcesStep` can only be checked by rendering the component, and
  * `renderToString` gives it its *initial* state: the reader has pressed nothing, so exactly the

@@ -905,7 +905,7 @@ drive or an inbox.
 > last stage assembles, so a reader has a stage crediting a graph and no sentence naming it — the
 > half of the *Curated by AI* arrangement that was carrying the falsifiable claim. **The rule is
 > untouched and is still enforced where it lives**: `RUNTIME_KINDS` holds `gmail` alone and
-> `selectedProfiledObjects` skips a runtime source **by name**, so step 4 derives nothing from a
+> `selectedProfiledObjects` skips a runtime source **by name**, so nothing derived from a brief's picks comes from a
 > mailbox and the canvas carries no node from one. That is exactly why the wording could go, and it
 > is the same reasoning that let the stage label go back. `check-docs` is re-pointed at the sentence
 > that is printed now rather than deleted with the one that went, and asserts the replaced sentence
@@ -966,7 +966,7 @@ drive or an inbox.
 > `npm run seed:capex-mail` reads `backend/data/capex-mail-chunks.json`, the export the chunker
 > produced for that mailbox, and writes `mail_corpus` into `db.CAPEX.json`: per document its id,
 > filename, mime type, page count, chunk count, extracted character count and the opening lines of
-> its text. **Every figure the Catalog and step 4 show comes out of that file** — the seed computes
+> its text. **Every figure the Catalog and step 2 show comes out of that file** — the seed computes
 > none of them, because they are measurements of a real run and inventing one is the small version
 > of a transcribed report figure. `mailDocuments` reads the corpus where a dataset ships one and
 > falls back to the synthesiser otherwise, exactly as `tableDictionary` falls back to
@@ -1101,9 +1101,9 @@ that would fail the same way, and the Sources tooltip says the same thing in the
 `PUT /datasets` had no kind guard before this, which read as a project with no datasets.
 
 **Not profilable was never the same as not usable, and `RUNTIME_KINDS` is still what says which.** A
-runtime source feeds step 4 while deriving nothing in step 6 — see *The New Graph wizard* below — and
+runtime source feeds step 2 while deriving nothing on the canvas — see *The New Graph wizard* below — and
 its answers reach a reader as `observation` blocks on an Ask answer, never as a node on the canvas.
-Step 4's `object_count` for a mailbox is still its **labels**, with `units: null`, and not the messages
+Step 2's `object_count` for a mailbox is still its **labels**, with `units: null`, and not the messages
 a profiler has since landed: `0` would say a label is empty and a real count would say the mail is
 derivable. So the refusal there is still worded from what is true of a runtime source — nothing in
 scope — rather than "profile it first", which for a mailbox is an instruction the Data Catalog cannot
@@ -1304,7 +1304,7 @@ an unhandled kind falls through to a plain text input, which is silent and wrong
 
 **And what these connectors *cannot* do is the same shape as everything else that cannot.** Asking
 one for a model is refused by `wrongStructuredOnly` naming what it holds; the Data Catalog leaves it out and
-counts it in words; step 4 of the New Graph wizard never lists it, because that step lists profiled
+counts it in words; step 2 of the New Graph wizard never lists it, because that step lists profiled
 state. Adding a profiler for one of these engines means a `PROFILERS` entry, a `CATALOGUE_ROUTES` row
 and flipping `profiles` — at which point `connectorGroup` moves the card into *Available now* on its
 own, which is the point of deriving it.
@@ -2322,10 +2322,25 @@ meaning for green.
 
 ### The New Graph wizard (`/new-graph`)
 
-Five steps — Domain, Personas, Metrics, Sources, Hero questions — over `NewGraphPage.tsx` →
+Five steps — Domain, Sources, Personas, Metrics, Hero questions — over `NewGraphPage.tsx` →
 `graphStore` → `/graph-domains`, `/graph-personas/suggest`, `/graph-metrics/suggest`,
 `/graph-sources`, `/graph-questions/suggest` and `/graph-use-cases`.
 **All five steps are built**, and **Save & build graph** sits on the last of them.
+
+**Sources is second, moved there on request, and the move is the order rather than a screen.** It
+was fourth, behind Personas and Metrics; the wizard now settles the data a graph draws on before
+the people who ask of it, so the brief is answered in the order it is built out of. **Nothing else
+moved with it**: `WIZARD_STEPS` is the one list (the stepper renders it and the API validates
+against it), `stepIssue`'s rules travelled with their steps unchanged — the sources rule is `case 2`
+and reads exactly as it did at 4, because it is about the picks rather than about what was answered
+before them — and the page's branches are in the order a reader meets them rather than left at their
+old numbers. **The suggesters are unaffected**, which is what made this safe: personas, metrics and
+hero questions are drafted from the business need and the domain, never from the source picks, so no
+step now reads an answer given after it. A brief saved under the old order keeps every answer — they
+are stored by name (`personas`, `sources`, …) rather than by step — and reopens at the number it left
+on, which is a different screen than before but never a lost answer. One copy needed correcting: the
+metrics hint pointed at "the sources you pick next", which after the move named a screen the reader
+had already been through.
 
 **'KPIs' is 'Metrics', and the rename went all the way down.** Asked for, and taken past the label
 on purpose: the pool is `graph_metrics` keyed `metric_id`, a template's member list is `metrics`,
@@ -2399,7 +2414,7 @@ because accepting a question is still the user's act. `priority` is the only
 optional field on a `Suggestion`, so its schema is
 `nullable(oneOf(['high','normal']))` — personas, metrics and formats never send it.
 
-**Steps 2 and 3 are one component, not two.** Personas and metrics are the same
+**Steps 3 and 4 are one component, not two.** Personas and metrics are the same
 interaction — let the AI draft a list, add what fits, type your own, see which is
 which — so `DraftedStep` renders both and they differ only in copy. Server-side,
 `suggestFrom` serves both pools and `normalizeDrafted` stores both lists; the
@@ -2433,7 +2448,7 @@ a pool they may have renamed a member of is a wider act than correcting a draft.
 **CAPEX's metric pool is the tenant's measure sheet, and a metric there is two columns.** Column 1
 is the measure's name as the finance team writes it (`Total_Anticipated_Cost`, `Overrun amount`),
 column 2 is how it is calculated — their own notation, PowerBI DAX where the measure needs it — and
-those are exactly `name` and `definition`, which is what step 3 renders as the row's title and the
+those are exactly `name` and `definition`, which is what step 4 renders as the row's title and the
 line beneath it. Neither is paraphrased into a sentence: a formula rewritten into prose is a second
 answer to how a measure is computed and the reader can no longer check it against the sheet. So the
 description renders **`pre-wrap`**, because one of the eight is a sixteen-line DAX expression whose
@@ -2539,7 +2554,7 @@ Two rules the copy on the page promises, and the code has to keep:
   string an older draft holds, but a persona with no name is a 400, not a silent
   drop.
 
-- **Step 4 lists profiled state, not registrations.** `/graph-sources` walks the
+- **Step 2 lists profiled state, not registrations.** `/graph-sources` walks the
   connected sources' committed `profiled` / `profiled_docs` and reports each
   object in the connector's unit (`columns` / `entities`). A source with nothing
   profiled is returned with `object_count: 0` and refused if picked — listed but
@@ -2671,7 +2686,7 @@ every other brief's gate reads exactly as it did.
 `toCoverage` mapped neither, so the one surface meant to say why a deliberately-picked source
 contributed nothing could not say it. Both are carried now and printed as the server worded
 them; the empty state survives for a brief that really picked nothing, because "go back to
-step 4" is the right instruction there and only there.
+step 2" is the right instruction there and only there.
 
 **Step 6 derives nothing from it, and says so.** `selectedProfiledObjects` skips a runtime
   source **by name** rather than letting it fall through the structured branch and contribute
@@ -2689,7 +2704,7 @@ step 4" is the right instruction there and only there.
   is what found the cost: dropping the "still connected" test from one copy broke nothing,
   because the claim guarding it was pointed at the other.
 
-- **Step 4 is the one step that cannot be skipped empty.** Nothing connected
+- **Step 2 is the one step that cannot be skipped empty.** Nothing connected
   shows `NoSourceConnected`; connected-but-unprofiled shows an error linking to
   the Data Catalog; and `Next` refuses with the fix for whichever case applies,
   because every later step derives from this selection. **"Nothing profiled" had to become
@@ -3088,7 +3103,7 @@ does not apply to it.
 
 - **`GET /ask` serves `sources`**, the connected sources that can be asked: `askableSources()` is
   `connectedSources()` filtered by **`isRuntimeSource`**, never by a connector name, so a second
-  runtime connector needs no edit — the rule step 4 of the New Graph wizard already keeps. A
+  runtime connector needs no edit — the rule step 2 of the New Graph wizard already keeps. A
   BigQuery or Drive source is deliberately absent, because its data reaches an answer *through*
   the published graph and a pick here would answer nothing; sending one is a 400 that says so
   rather than an empty answer.
@@ -5373,7 +5388,7 @@ current user.
 **Grouped by feature, one folder per area, and nothing sits flat at the top.** The folder held 47
 components in a single flat list, which is readable at a dozen and is a scroll at forty-seven: the
 name was the only thing saying which page a component belonged to, so `SourcesStep` (the New Graph
-wizard's step 4) sorted next to `Sidebar` and nothing grouped the four What-if drawings that only
+wizard's step 2) sorted next to `Sidebar` and nothing grouped the four What-if drawings that only
 ever render together. Eleven folders now, and a component's path states its area:
 
 | folder | what is in it |
@@ -5400,7 +5415,7 @@ from outside its own folder", and both halves of that were learned by writing th
 assumed:
 
 - **Pages are the wrong denominator.** Only `CatalogPage` imports `ConnectorIcon` *directly*, so
-  counted by pages it looked like Catalog's private mark — but the New Graph wizard's step 4 and the
+  counted by pages it looked like Catalog's private mark — but the New Graph wizard's step 2 and the
   connect wizard import it too, from two other groups. Filed under `catalog/` on that reading it
   became a component two other areas reach across for, which is the arrangement `common/` exists to
   avoid. A sibling importer counts.

@@ -476,7 +476,7 @@ not advance. `Connect source` stays disabled until the check has run — the sam
 `force` is on a profiling run.
 
 **And what a registered database source cannot do, it cannot do loudly.** Nothing profiles it: the
-Data Catalog leaves the row out and counts it in words, step 4 of the New Graph wizard never lists it
+Data Catalog leaves the row out and counts it in words, step 2 of the New Graph wizard never lists it
 (that step lists profiled state), and asking it for a model is refused by `wrongStructuredOnly` naming what it
 holds. Giving one a profiler is a `PROFILERS` entry, a `CATALOGUE_ROUTES` row and flipping
 `profiles` — and `connectorGroup` then moves the card into *Available now* by itself.
@@ -1312,17 +1312,26 @@ between `message.success` and `message.error`. No component contains a
 **Files:** `NewGraphPage.tsx` → `graphStore.ts` → `GET /graph-domains`,
 `GET|POST /graph-use-cases`, `DELETE /graph-use-cases/:id`
 
-Six steps, and the premise is inverted from every other flow: **the user
+Five steps, and the premise is inverted from every other flow: **the user
 describes a business need and the AI derives the graph.** Nobody types an entity
 name — do not add a field that asks for one.
 
 ```
-1 Domain → 2 Personas → 3 Metrics → 4 Sources → 5 Hero questions
+1 Domain → 2 Sources → 3 Personas → 4 Metrics → 5 Hero questions
 ```
 
 Labels come from `WIZARD_STEPS` in `server.js` via the `/graph-use-cases`
 payload, so the stepper and the server's `step` validation are the same list.
-**All six steps are built.**
+**All five steps are built.**
+
+**Sources was fourth and is second, moved on request** — the data a graph draws on is settled
+before the people who ask of it. Three places moved together and nothing else did: the label in
+`WIZARD_STEPS`, the rule in `stepIssue` (`case 2` now, reading exactly as it did at 4 — it judges
+the picks, not what was answered before them), and the page's branch, kept in the order a reader
+meets it rather than left at its old number. The suggesters were unaffected, which is what made
+the move safe: personas, metrics and questions draft from the business need and the domain, never
+from the source picks. A brief saved under the old order keeps every answer — they are stored by
+name, not by step — and reopens at the number it left on.
 
 **'Answer requirements' was step 6 and is gone — see Flow 7 (Ask).** The citation policy
 and the render format were declared once per brief; they are asked for per question on
@@ -1344,9 +1353,9 @@ user, so each rule names the fix rather than the rule:
 | Step | Complete when |
 |---|---|
 | 1 Domain | named *and* a domain picked |
-| 2 Personas | at least one persona |
-| 3 Metrics | at least one metric |
-| 4 Sources | the four checks below |
+| 2 Sources | the four checks below |
+| 3 Personas | at least one persona |
+| 4 Metrics | at least one metric |
 | 5 Hero questions | at least one question — **and the build gate**, since this is the last step |
 
 **Step 6, 'Entities & relationships', was removed on request** and *Save & build graph* moved here
@@ -1362,7 +1371,7 @@ answers with what is missing, where a disabled button would just read as broken.
 Going **back is always free** and keeps the answers, so a cleared step can be
 reopened and edited. Going forward re-checks every step in between
 (`firstIncompleteStep`), because an answer can be deleted after it was given —
-emptying step 3 relocks step 5. Jumping does not save; `Next` is the save point.
+emptying step 4 relocks step 5. Jumping does not save; `Next` is the save point.
 
 Server-side, only step 1's rule is enforced (`step > 1` or `status:
 'committed'` without a domain → 400, checked on the merged value so an upsert
@@ -1399,114 +1408,7 @@ enforced server-side, because every later step derives from it. The last step's 
 action commits — status `committed`, which is what makes a row read "ready to
 build".
 
-### Steps 2 and 3 · Personas, then Metrics
-
-**Both steps are the same component** (`DraftedStep`) over the same server
-machinery — they differ only in copy and which pool they draw from:
-
-| | Step 2 | Step 3 |
-|---|---|---|
-| suggester | `POST /graph-personas/suggest` | `POST /graph-metrics/suggest` |
-| pool | `graph_personas` (`focus`) | `graph_metrics` (`definition`) |
-| list label | Who will ask questions of this graph? | Metrics these answers report against |
-| saved as | `personas` | `metrics` |
-| corrects the pool | — | `PATCH /graph-metrics/:metricId` |
-
-Both answer `{ suggestions: [{ id, name, detail, why }], count, derived_from }`,
-and both lists are stored as `{ name, description, source }`. Adding a step 4–7
-list of the same kind means reusing `DraftedStep` and `suggestFrom`, not writing
-a third variant.
-
-`Suggest personas (LLM)` → `POST /graph-personas/suggest { domain_id,
-business_need }` → up to four drafts from the `graph_personas` pool. Each row
-carries an **AI-DRAFTED** tag, its `why`, an **Accept** button and an ✕ to wave it
-away (local only — a suggestion was never saved).
-
-**When it drafts nothing, the payload says why** (`empty_reason`, `null` otherwise) and the step
-prints that rather than its own wording. There are two empties and they have different fixes: the
-pool has entries for this domain and the ranking placed none (*re-word the brief*), or the pool has
-nothing on this domain at all (*change the domain, or write your own*). Only the server can tell
-them apart, so it composes the sentence and names where the pool does have entries. **The first
-symptom of getting this wrong is a bug report that the suggesters are broken** — CAPEX declares four
-domains and has personas, metrics and hero questions for two, and every empty draft used to read
-"Nothing matched this brief".
-
-Step 1's cards carry the other half: `drafts` per domain (personas · metrics · hero questions),
-counted off the pools by `draftableFor`, so a domain that can draft nothing is visible where it is
-chosen. It is **not** `fit`, which is about connected data — a domain can be a strong fit and have
-nothing written against it. Such a domain stays selectable, because writing your own is a real path.
-
-And **never narrow a pool's `domains` when replacing it**: `suggestFrom` drops an entry whose
-domains miss the brief's when its keywords miss too, so a narrower pool deletes suggestions rather
-than weakening them. `seed-capex-metrics.js` took the intersection once and cost water-wastewater
-every metric it had.
-
-**Accept** moves it into *Who will ask questions of this graph?*, keeping the
-focus line as its description and `source: 'ai'`. It was labelled *+ Add* and was
-renamed on request: what the button does to a *suggestion* is accept it, while
-**Add persona** / **Add metric** below really does author a new one and keeps its
-name.
-
-**Step 3 has a third button, Edit, and it is the one act here that writes.**
-Accept copies a row into the draft and ✕ filters a list nothing saved; Edit
-corrects the **pool** — `PATCH /graph-metrics/:metricId` through `commitDb` — so a
-corrected title or calculation survives a restart and every later brief drafts
-from it. The row opens in place on two fields (a title input, a `TextArea` for the
-description, because one CAPEX metric is a sixteen-line DAX measure), and the row
-is replaced with **what the server stored** rather than what was submitted.
-
-Its refusals: an empty title (every surface identifies a metric by it), and a
-title another metric already holds (the accepted list is keyed by name, so two
-would be indistinguishable there). A refusal leaves the editor open on what was
-typed — the sentence is what the reader has to act on.
-
-Step 2 has no Edit, and it is **absent rather than disabled**: personas have the
-same shape and no write route, so `DraftedStep` takes `onEdit` as an optional prop
-and `createSuggestStore` takes its writer per pool. Editing a metric that has
-already been accepted also renames it in the list below, since that list holds a
-*copy* keyed by name; saved briefs are deliberately not rewritten.
-
-Below the suggestions, **Add persona** — the same primary button as the
-suggester, because typing your own is not a lesser path — opens a two-field form
-(**name**, **description**) with `✓ Add` disabled until the name is filled, and ✕
-to cancel. It sits *above* the list it adds to.
-
-*Who will ask questions of this graph?* renders in the same tabular form as the
-suggestions: name over description, then the provenance tag — **AI-DRAFTED**
-(brand tint) or **USER-DRAFTED** (neutral) — and ✕ to remove. Provenance stays
-visible after adding; without it a drafted persona and a typed one are
-indistinguishable the moment they land in the list.
-
-A persona is `{ name, description, source }`. The server trims, de-duplicates by
-name (case-insensitive), caps at 12, and **rejects a persona with no name** rather
-than dropping it silently. A bare string is still accepted and normalised, because
-that is what earlier drafts hold — an old draft opens instead of rendering
-`undefined` in the chip.
-
-Three things to keep true:
-
-- **Suggestions are not the draft.** They live in `usePersonaSuggestStore` and
-  are never saved until adopted, and opening another use case clears them —
-  suggestions belong to the brief that produced them.
-- **Every suggestion explains itself.** The ranking is keywords found in the
-  business need, then domain fit, then a hash of the brief; the `why` states
-  which it was ("matches your brief on cost, spend, escalation" vs "typical for
-  this domain"), and it is deterministic for the same brief.
-- **A brief that names a known use case is answered from it, not ranked.** If
-  the business need contains two or more of a `graph_use_case_templates` entry's
-  `match_phrases` — pasting that use case's description hits all of them — the
-  step drafts exactly that use case's personas, metrics and hero questions, whole
-  and in its own order, past the four-suggestion limit. The `why` reads "named
-  in the … use case" and `derived_from` names it. Two templates tying matches
-  neither, and the keyword ranking answers instead.
-- **Personas are tags, not permissions.** The panel says so, and the server never
-  validates a persona against the suggestion pool — the user may add their own.
-
-With no brief the suggester falls back to domain only and says so
-(`derived_from`). Omitting `personas` from a save leaves them untouched; sending
-`[]` clears them.
-
-### Step 4 · Sources
+### Step 2 · Sources
 
 **Files:** `SourcesStep.tsx` → `useGraphSourcesStore` → `GET /graph-sources`
 
@@ -1532,7 +1434,7 @@ each guarded on its own state so pressing the lit one cannot wipe the ticks.
 **Two dead ends, two different exits.** Telling someone to connect a source when
 they already have three is useless advice, so the step distinguishes them:
 
-| State | What step 4 shows |
+| State | What step 2 shows |
 |---|---|
 | nothing connected | `NoSourceConnected` — "Connect a source" → `/sources` |
 | connected, nothing profiled | an **error** alert — "No profiled data yet — you cannot select a source", with "Open the Data Catalog to profile a source" → `/catalog`, above the cards, each tagged `nothing profiled` and disabled |
@@ -1579,7 +1481,7 @@ waits for the Publish button now, and **Save & build routes every brief to Graph
 which is where a build is watched. A mailbox is still askable the moment it is connected: Ask
 can be pointed at a connected source directly, with no graph named and nothing to publish.
 
-**`Next` refuses to leave step 4 empty** (its rule lives with every other step's,
+**`Next` refuses to leave step 2 empty** (its rule lives with every other step's,
 in `wizardSteps.ts`), and names the fix for each case: no
 sources connected → go to Sources; connected but unprofiled → go to the Data
 Catalog; profiled but nothing selected → select a source; a `subset` with no
@@ -1602,6 +1504,113 @@ build time:
 
 Disconnecting a source removes it from what this step offers, so a stale pick
 cannot survive quietly.
+
+### Steps 3 and 4 · Personas, then Metrics
+
+**Both steps are the same component** (`DraftedStep`) over the same server
+machinery — they differ only in copy and which pool they draw from:
+
+| | Step 3 | Step 4 |
+|---|---|---|
+| suggester | `POST /graph-personas/suggest` | `POST /graph-metrics/suggest` |
+| pool | `graph_personas` (`focus`) | `graph_metrics` (`definition`) |
+| list label | Who will ask questions of this graph? | Metrics these answers report against |
+| saved as | `personas` | `metrics` |
+| corrects the pool | — | `PATCH /graph-metrics/:metricId` |
+
+Both answer `{ suggestions: [{ id, name, detail, why }], count, derived_from }`,
+and both lists are stored as `{ name, description, source }`. Adding another
+list of the same kind means reusing `DraftedStep` and `suggestFrom`, not writing
+a third variant.
+
+`Suggest personas (LLM)` → `POST /graph-personas/suggest { domain_id,
+business_need }` → up to four drafts from the `graph_personas` pool. Each row
+carries an **AI-DRAFTED** tag, its `why`, an **Accept** button and an ✕ to wave it
+away (local only — a suggestion was never saved).
+
+**When it drafts nothing, the payload says why** (`empty_reason`, `null` otherwise) and the step
+prints that rather than its own wording. There are two empties and they have different fixes: the
+pool has entries for this domain and the ranking placed none (*re-word the brief*), or the pool has
+nothing on this domain at all (*change the domain, or write your own*). Only the server can tell
+them apart, so it composes the sentence and names where the pool does have entries. **The first
+symptom of getting this wrong is a bug report that the suggesters are broken** — CAPEX declares four
+domains and has personas, metrics and hero questions for two, and every empty draft used to read
+"Nothing matched this brief".
+
+Step 1's cards carry the other half: `drafts` per domain (personas · metrics · hero questions),
+counted off the pools by `draftableFor`, so a domain that can draft nothing is visible where it is
+chosen. It is **not** `fit`, which is about connected data — a domain can be a strong fit and have
+nothing written against it. Such a domain stays selectable, because writing your own is a real path.
+
+And **never narrow a pool's `domains` when replacing it**: `suggestFrom` drops an entry whose
+domains miss the brief's when its keywords miss too, so a narrower pool deletes suggestions rather
+than weakening them. `seed-capex-metrics.js` took the intersection once and cost water-wastewater
+every metric it had.
+
+**Accept** moves it into *Who will ask questions of this graph?*, keeping the
+focus line as its description and `source: 'ai'`. It was labelled *+ Add* and was
+renamed on request: what the button does to a *suggestion* is accept it, while
+**Add persona** / **Add metric** below really does author a new one and keeps its
+name.
+
+**Step 4 has a third button, Edit, and it is the one act here that writes.**
+Accept copies a row into the draft and ✕ filters a list nothing saved; Edit
+corrects the **pool** — `PATCH /graph-metrics/:metricId` through `commitDb` — so a
+corrected title or calculation survives a restart and every later brief drafts
+from it. The row opens in place on two fields (a title input, a `TextArea` for the
+description, because one CAPEX metric is a sixteen-line DAX measure), and the row
+is replaced with **what the server stored** rather than what was submitted.
+
+Its refusals: an empty title (every surface identifies a metric by it), and a
+title another metric already holds (the accepted list is keyed by name, so two
+would be indistinguishable there). A refusal leaves the editor open on what was
+typed — the sentence is what the reader has to act on.
+
+Step 3 has no Edit, and it is **absent rather than disabled**: personas have the
+same shape and no write route, so `DraftedStep` takes `onEdit` as an optional prop
+and `createSuggestStore` takes its writer per pool. Editing a metric that has
+already been accepted also renames it in the list below, since that list holds a
+*copy* keyed by name; saved briefs are deliberately not rewritten.
+
+Below the suggestions, **Add persona** — the same primary button as the
+suggester, because typing your own is not a lesser path — opens a two-field form
+(**name**, **description**) with `✓ Add` disabled until the name is filled, and ✕
+to cancel. It sits *above* the list it adds to.
+
+*Who will ask questions of this graph?* renders in the same tabular form as the
+suggestions: name over description, then the provenance tag — **AI-DRAFTED**
+(brand tint) or **USER-DRAFTED** (neutral) — and ✕ to remove. Provenance stays
+visible after adding; without it a drafted persona and a typed one are
+indistinguishable the moment they land in the list.
+
+A persona is `{ name, description, source }`. The server trims, de-duplicates by
+name (case-insensitive), caps at 12, and **rejects a persona with no name** rather
+than dropping it silently. A bare string is still accepted and normalised, because
+that is what earlier drafts hold — an old draft opens instead of rendering
+`undefined` in the chip.
+
+Three things to keep true:
+
+- **Suggestions are not the draft.** They live in `usePersonaSuggestStore` and
+  are never saved until adopted, and opening another use case clears them —
+  suggestions belong to the brief that produced them.
+- **Every suggestion explains itself.** The ranking is keywords found in the
+  business need, then domain fit, then a hash of the brief; the `why` states
+  which it was ("matches your brief on cost, spend, escalation" vs "typical for
+  this domain"), and it is deterministic for the same brief.
+- **A brief that names a known use case is answered from it, not ranked.** If
+  the business need contains two or more of a `graph_use_case_templates` entry's
+  `match_phrases` — pasting that use case's description hits all of them — the
+  step drafts exactly that use case's personas, metrics and hero questions, whole
+  and in its own order, past the four-suggestion limit. The `why` reads "named
+  in the … use case" and `derived_from` names it. Two templates tying matches
+  neither, and the keyword ranking answers instead.
+- **Personas are tags, not permissions.** The panel says so, and the server never
+  validates a persona against the suggestion pool — the user may add their own.
+
+With no brief the suggester falls back to domain only and says so
+(`derived_from`). Omitting `personas` from a save leaves them untouched; sending
+`[]` clears them.
 
 ### Step 5 · Hero questions
 
@@ -1726,7 +1735,7 @@ the graph cannot answer, and shipping it silently is the failure this step exist
 to prevent.
 
 The review is **re-derived on every arrival**, never cached — narrowing a source
-pick on step 4 immediately narrows what step 6 reports.
+pick on step 2 immediately narrows what step 6 reports.
 
 **The click lands in one place, for every graph.** The commit and the build start here and the
 reader goes to `/graph-studio/:id` on the Build tab, because a graph is built more than once
@@ -2182,7 +2191,7 @@ wizard went — see Flow 6. Both sit behind the one publish gate; only `PageHead
 graph picker are outside it.
 
 **The dropdown lists published versions and only those — including the ones that published
-themselves.** A graph drawing on a **runtime** source (a Gmail mailbox; see Flow 7 step 4)
+themselves.** A graph drawing on a **runtime** source (a Gmail mailbox; see Flow 7 step 2)
 is published by its own build the moment the build completes, so it appears here without
 anybody pressing Publish. The gate itself is unchanged: `GET /ask` still lists what
 `publishedVersion()` returns a row for, and the version, content hash, timestamp and

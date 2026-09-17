@@ -60,7 +60,7 @@ export default function CoverageStep({
    * **"Nothing profiled" and "nothing at all" are two different screens.**
    *
    * A brief that picked only a runtime source legitimately derives no objects, and this
-   * branch told it to go back to step 4 and pick some — an instruction the reader had
+   * branch told it to go back to step 2 and pick some — an instruction the reader had
    * already carried out. Worse, it returned *before* the element list, so the hero questions
    * routed to that source were invisible: with the old server marking each of them a gap,
    * `Save & build graph` sat disabled over a screen with no control to decide the thing
@@ -71,7 +71,7 @@ export default function CoverageStep({
     return (
       <Empty
         image={null}
-        description="No profiled objects are selected, so there is nothing to derive from. Step 4 is where a use case picks the tables and documents it draws on."
+        description="No profiled objects are selected, so there is nothing to derive from. Step 2 is where a use case picks the tables and documents it draws on."
       />
     )
   }

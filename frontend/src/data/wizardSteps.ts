@@ -15,7 +15,7 @@ export interface WizardDraft {
   domainId: string | null
   personas: DraftedItem[]
   metrics: DraftedItem[]
-  /** What step 4 can offer — its emptiness is a different problem to fix. */
+  /** What step 2 can offer — its emptiness is a different problem to fix. */
   graphSources: GraphSource[]
   sourcePicks: SourcePick[]
   heroQuestions: HeroQuestion[]
@@ -48,24 +48,16 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
       if (!draft.domainId) return 'Pick a business domain before continuing.'
       return null
 
-    case 2:
-      if (draft.personas.length === 0) {
-        return 'Add at least one persona — or use Suggest personas (LLM).'
-      }
-      return null
-
-    case 3:
-      if (draft.metrics.length === 0) {
-        return 'Add at least one metric — the graph has to be able to compute something.'
-      }
-      return null
-
     /*
-     * Step 4 is the one step that cannot be answered with nothing: every later
+     * Step 2 is the one step that cannot be answered with nothing: every later
      * step derives from the data selected here, so advancing empty would build a
      * graph over no data at all. The four cases need four different fixes.
+     *
+     * **It was step 4 and moved on request**, which changed its number and nothing else — the
+     * rule is about the picks rather than about what has been answered before them, so it
+     * reads exactly as it did one position later.
      */
-    case 4:
+    case 2:
       if (draft.graphSources.length === 0) {
         return 'Connect a data source on Sources first — there is nothing to select here yet.'
       }
@@ -99,6 +91,18 @@ export function stepIssue(step: number, draft: WizardDraft): string | null {
           const all = source?.runtime ? `all ${unit}` : `all profiled ${unit}`
           return `Pick at least one ${unit.replace(/s$/, '')} for ${emptyPick.sourceId}, or switch it back to ${all}.`
         }
+      }
+      return null
+
+    case 3:
+      if (draft.personas.length === 0) {
+        return 'Add at least one persona — or use Suggest personas (LLM).'
+      }
+      return null
+
+    case 4:
+      if (draft.metrics.length === 0) {
+        return 'Add at least one metric — the graph has to be able to compute something.'
       }
       return null
 

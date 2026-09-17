@@ -21,7 +21,7 @@ import '../../pages/NewGraphPage.css'
 import { appPath } from '../../api/dataset'
 
 /*
- * Step 4 of New Graph: which connected sources feed the graph, and how much of
+ * Step 2 of New Graph: which connected sources feed the graph, and how much of
  * each.
  *
  * The list is the Data Catalog's *profiled* state, not the registration — a

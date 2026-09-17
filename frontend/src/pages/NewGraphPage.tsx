@@ -49,6 +49,11 @@ import {
   useUseCasesStore,
 } from '../store/graphStore'
 import {
+  documentReadings,
+  readingFootnote,
+  readingsTitle,
+} from '../data/documentReadings'
+import {
   draftableCount,
   firstIncompleteStep,
   stepIssue,
@@ -251,6 +256,13 @@ export default function NewGraphPage() {
    * field for it, and inventing one here would silently drop on the next save.
    */
   const [attachedFiles, setAttachedFiles] = useState<string[]>([])
+  /*
+   * What the step says it read out of those documents. Synthesised from the filename — nothing
+   * opens the file, exactly as nothing parses a dictionary on the schema upload — so this is
+   * derived rather than held: a document removed takes its readings with it, and one attached
+   * again reads the same way it did before.
+   */
+  const readings = useMemo(() => documentReadings(attachedFiles), [attachedFiles])
   const [personas, setPersonas] = useState<DraftedItem[]>([])
   const [metrics, setMetrics] = useState<DraftedItem[]>([])
   const [sourcePicks, setSourcePicks] = useState<SourcePick[]>([])
@@ -324,14 +336,14 @@ export default function NewGraphPage() {
   }
 
   /*
-   * **Step 4's *used for* is not here, and that is deliberate.** It was a write on this page,
+   * **Step 2's *used for* is not here, and that is deliberate.** It was a write on this page,
    * onto the registered source; the request never reached the server in the environment this runs
    * in, so on request it is kept in the browser instead — `SourcesStep` reads and writes it through
    * `src/data/mailUsedFor.ts`, with no round trip and nothing for this page to coordinate.
    */
 
   /*
-   * Step 3's Edit — the one act on this page that writes the pool rather than the draft. The
+   * Step 4's Edit — the one act on this page that writes the pool rather than the draft. The
    * refusal is shown here rather than swallowed in the step, because the server's sentence is what
    * says *why* (an empty title, a title another metric already holds), and the row stays open on
    * what was typed so the reader can correct it.
@@ -673,9 +685,73 @@ export default function NewGraphPage() {
                   Upload documents below — the AI folds them into the brief.
                 </span>
               </div>
+
+              {/*
+                What was read out of the attached documents, as an accordion rather than a
+                paragraph: it is the longest thing on the step and the reader has already told
+                the AI what they want in words above it. Open by default, because a panel that
+                appeared shut the moment a document landed would read as an upload that did
+                nothing; drawn only where something is attached, since an empty one would be a
+                heading over blank space.
+              */}
+              {readings.length > 0 ? (
+                <div className="ng-field">
+                  <Collapse
+                    className="ng-read"
+                    defaultActiveKey={['read']}
+                    items={[
+                      {
+                        key: 'read',
+                        label: (
+                          <span className="ng-read-title">
+                            <span className="ng-read-mark" aria-hidden="true">
+                              ✦
+                            </span>
+                            <strong>{readingsTitle(readings.length)}</strong>
+                          </span>
+                        ),
+                        children: (
+                          <div>
+                            {readings.map((r) => (
+                              <div key={r.id} className="ng-read-row">
+                                <div className="ng-read-headline">{r.headline}</div>
+                                {/* One expression: the passage and the document it is
+                                    attributed to are composed in `src/data/`, so the
+                                    sentence is one string rather than three text nodes. */}
+                                <div className="ng-read-extract">{readingFootnote(r)}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
+              ) : null}
             </Col>
           </Row>
         ) : step === 2 ? (
+          /*
+           * Sources, second — moved here on request, so the data the graph draws on is settled
+           * before the people who will ask of it. The branches are kept in the order a reader
+           * meets them, rather than left at their old numbers with the chain reading 1, 3, 4, 2.
+           *
+           * Full width, not `xl={18}` — that width was sized for the populated list, and
+           * left the empty state's own centered card sitting left-of-page-centre inside the
+           * remaining 75%, rather than centered on the page a reader is actually looking at.
+           * The connected-sources list reads fine at the full width too.
+           */
+          <Row gutter={[SP.lg, SP.lg]}>
+            <Col xs={24}>
+              <SourcesStep
+                sources={graphSources}
+                loading={sourcesLoading}
+                picks={sourcePicks}
+                onPicks={setSourcePicks}
+              />
+            </Col>
+          </Row>
+        ) : step === 3 ? (
           <Row gutter={[SP.lg, SP.lg]}>
             <Col xs={24} xl={16}>
               <DraftedStep
@@ -724,7 +800,7 @@ export default function NewGraphPage() {
               />
             </Col>
           </Row>
-        ) : step === 3 ? (
+        ) : step === 4 ? (
           <Row gutter={[SP.lg, SP.lg]}>
             <Col xs={24} xl={16}>
               <DraftedStep
@@ -739,9 +815,12 @@ export default function NewGraphPage() {
                   <div className="ng-hint">
                     <span aria-hidden="true">✦</span>
                     <span>
-                      A metric here is what an answer reports against — the graph has
-                      to be able to compute it from the sources you pick next, and the
-                      hero questions you write next are asked against these.
+                      {/* "the sources you pick next" until Sources moved ahead of this
+                          step — a hint pointing at a screen the reader has already been
+                          through is the same fault as an instruction nobody can carry out. */}
+                      A metric here is what an answer reports against — the graph has to
+                      be able to compute it from the sources you picked, and the hero
+                      questions you write next are asked against these.
                     </span>
                   </div>
                 }
@@ -757,23 +836,6 @@ export default function NewGraphPage() {
                 onSuggest={() => void runSuggest('metrics')}
                 onDismiss={dismissMetric}
                 onEdit={editMetric}
-              />
-            </Col>
-          </Row>
-        ) : step === 4 ? (
-          /*
-           * Full width, not `xl={18}` — that width was sized for the populated list, and
-           * left the empty state's own centered card sitting left-of-page-centre inside the
-           * remaining 75%, rather than centered on the page a reader is actually looking at.
-           * The connected-sources list reads fine at the full width too.
-           */
-          <Row gutter={[SP.lg, SP.lg]}>
-            <Col xs={24}>
-              <SourcesStep
-                sources={graphSources}
-                loading={sourcesLoading}
-                picks={sourcePicks}
-                onPicks={setSourcePicks}
               />
             </Col>
           </Row>

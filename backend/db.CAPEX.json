@@ -22871,7 +22871,70 @@
       ]
     }
   ],
-  "graph_use_cases": [],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-testdata-mu57ybpf3",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
+      "personas": [
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai"
+        },
+        {
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
+          "source": "ai"
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Year-to-Date (YTD) Budget Variance",
+          "description": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)",
+          "source": "ai"
+        },
+        {
+          "name": "Overrun amount one",
+          "description": "Overrun Amounts =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURNVVVVV\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )",
+          "source": "ai"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Show me the change orders with the message that explains each one.",
+          "priority": "normal",
+          "source": "ai"
+        }
+      ],
+      "gap_decisions": [],
+      "step": 5,
+      "updated_at": "2026-09-17T07:39:59.915Z"
+    },
+    {
+      "use_case_id": "uc-testdata-mu57xqo62",
+      "name": "testdata",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "sadsad",
+      "personas": [],
+      "metrics": [],
+      "sources": [],
+      "hero_questions": [],
+      "gap_decisions": [],
+      "step": 2,
+      "updated_at": "2026-09-17T07:39:02.598Z"
+    }
+  ],
   "graph_use_case_templates": [
     {
       "template_id": "capital-programme-intelligence",

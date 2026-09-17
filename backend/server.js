@@ -3615,14 +3615,24 @@ function queueJob({ sourceId, kind, unit, objects, force }) {
  * **'KPIs' became 'Metrics'**, also on request, and the rename went all the way down: the pool is
  * `graph_metrics` keyed `metric_id`, a template's member list is `metrics`, and a saved brief
  * carries `metrics`. The Reports section's own `kpis` blocks are a different noun and keep it.
+ *
+ * **Sources is second, moved there on request**, so the order is what the brief is built out of
+ * rather than what is easiest to answer: the domain, then the data it will draw on, then who asks
+ * of it and what they measure. It also makes the one step that cannot be answered with nothing the
+ * one a reader meets first — `stepIssue` keeps that rule and it simply moved with the step. The
+ * suggesters are unaffected: personas, metrics and questions are drafted from the business need
+ * and the domain, never from the source picks, so nothing later reads a step that now comes
+ * earlier. A brief saved under the old order keeps its answers — they are stored by name
+ * (`personas`, `sources`, …) rather than by step — and reopens at the number it left on, which is
+ * a different screen than before but never a lost answer.
  */
 /* Kept one label per line: check-docs parses this array with a regex that ends at a newline
    before the closing bracket, so a one-line form makes it read on past the array. */
 const WIZARD_STEPS = [
   'Domain',
+  'Sources',
   'Personas',
   'Metrics',
-  'Sources',
   'Hero questions',
 ]
 

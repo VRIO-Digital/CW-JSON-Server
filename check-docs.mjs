@@ -883,7 +883,7 @@ expect(
     server,
   ) &&
     /*
-     * **Step 4 now lists a mailbox's processed documents, and that is not this claim's business.**
+     * **Step 2 now lists a mailbox's processed documents, and that is not this claim's business.**
      *
      * It used to assert the payload reported *labels* with `units: null`, on the reasoning that a
      * real count would say the mail is derivable. The listing changed on request — the catalogue
@@ -2306,7 +2306,7 @@ expect(
 )
 
 /*
- * **Step 4 picks a mailbox's documents, and asks what the mailbox is for.**
+ * **Step 2 picks a mailbox's documents, and asks what the mailbox is for.**
  *
  * Asked for from a reference screenshot, replacing a label picker. Two changes, and each carries
  * its own reasoning:
@@ -2325,7 +2325,7 @@ expect(
  * the source is still `runtime`, step 6 still skips it by name, and the note still says so.
  */
 expect(
-  "step 4 lists a mailbox's processed documents and records what it is used for",
+  "step 2 lists a mailbox's processed documents and records what it is used for",
   /* The payload lists processed documents with the catalogue's own figures. */
   /const processed = isMail/.test(server) &&
     /object_id: `\$\{d\.label_id\}\.\$\{d\.document\.document_id\}`/.test(server) &&
@@ -2499,7 +2499,7 @@ expect(
 )
 
 /*
- * **Step 4 lists no mail documents: a mailbox is taken whole.**
+ * **Step 2 lists no mail documents: a mailbox is taken whole.**
  *
  * The runtime row listed every processed document with a checkbox and a *Select all* above them,
  * and that was removed on request — the row is the mailbox, the pick is `mode: 'all'`, and the
@@ -2516,7 +2516,7 @@ expect(
 const sourcesStep = read('frontend/src/components/graph/SourcesStep.tsx')
 const runtimeRow = (sourcesStep.split(': source.runtime ? (')[1] ?? '').split('\n            ) : (')[0]
 expect(
-  'a mailbox is taken whole at step 4 — no document list, and the used-for box is what is left',
+  'a mailbox is taken whole at step 2 — no document list, and the used-for box is what is left',
   /* The slice is the branch, not nothing: its own opening comment and the used-for box are in it. */
   runtimeRow.length > 0 &&
     runtimeRow.includes('mailUsedForCopy.fieldLabel') &&
@@ -2608,7 +2608,7 @@ expect(
              * **Filed under a label Gmail itself has**, read off `GMAIL_LABELS` rather than
              * written down here. A mail document is only reachable through a source whose
              * allowlist covers its label, so one filed under a label no mailbox can hold is
-             * invisible in the catalogue and in step 4 — and invisible is exactly what a break
+             * invisible in the catalogue and in step 2 — and invisible is exactly what a break
              * test found this claim missing: changing a row's `label_id` to something Gmail does
              * not have broke nothing.
              */
@@ -5880,7 +5880,7 @@ expect(
 /*
  * The step has to *show* the runtime rows, which is the half that made the old bug a dead
  * end rather than a wrong sentence — and it has to keep the empty state for a brief that
- * really picked nothing, or "go back to step 4" disappears for the reader who needs it.
+ * really picked nothing, or "go back to step 2" disappears for the reader who needs it.
  */
 expect(
   'the coverage step renders the runtime rows and keeps the empty state for an empty brief',
@@ -6514,7 +6514,7 @@ expect(
  *
  * **Pages alone is the wrong denominator, and writing this claim proved it.** Counted that way
  * `ConnectorIcon` looked like Catalog's private mark, because only `CatalogPage` imports it
- * *directly* — the wizard's step 4 and the connect wizard import it too, from two other groups.
+ * *directly* — the wizard's step 2 and the connect wizard import it too, from two other groups.
  * Moved to `catalog/` on that reading it became a component two other areas reach across for, which
  * is the arrangement `common/` exists to avoid. So a sibling importer counts: what matters is how
  * many places depend on it, not how many of them happen to be routed pages.
@@ -7460,6 +7460,69 @@ expect(
   `${stepLabels.length} step(s): ${stepLabels.join(' · ')}`,
 )
 /*
+ * **And each step draws the screen its label names, and is judged by the rule that belongs to it.**
+ *
+ * Sources moved from fourth to second on request, which is three edits in three files — the label
+ * in `WIZARD_STEPS`, the branch in the page, the `case` in `stepIssue` — and **two of the three
+ * fail silently**: a label that moved without its branch puts "Sources" over the personas form,
+ * and a rule left at its old number refuses *Next* with the wrong sentence while the screen it is
+ * about is complete. Neither throws, and the stepper looks right in both.
+ *
+ * Keyed to the *label* rather than to a step number, so the order may change again and this claim
+ * follows it — the fact is that position n renders and judges the thing the server calls step n.
+ */
+const stepPane = (n) => {
+  const code = codeOnly(newGraphPage)
+  const start = code.indexOf(`step === ${n} ? (`)
+  if (start < 0) return ''
+  const rest = code.slice(start)
+  /*
+   * Cut at the next branch, found by the next `step === ` of any number — never at the chain's
+   * `) : (`, which a first attempt used and which appears *inside* step 1's own pane (the domains
+   * error ternary). That truncation reported the Domain step as drawing something else, which is
+   * this claim describing its own slice rather than the page.
+   */
+  const end = rest.slice(1).indexOf('step === ')
+  return end < 0 ? rest : rest.slice(0, end + 1)
+}
+const stepRule = (n) => {
+  const code = codeOnly(wizardRules)
+  const start = code.indexOf(`case ${n}:`)
+  if (start < 0) return ''
+  const rest = code.slice(start)
+  const end = rest.slice(1).search(/\n {4}case \d+:|\n {4}default:/)
+  return end < 0 ? rest : rest.slice(0, end + 1)
+}
+/* What the step's own screen and its own rule are recognised by. A marker no other step's pane
+   carries, so a pane matching two labels cannot pass twice. */
+const STEP_MARKS = {
+  Domain: { pane: 'ng-domain', rule: 'draft.domainId' },
+  Sources: { pane: '<SourcesStep', rule: 'draft.sourcePicks' },
+  Personas: { pane: 'suggestLabel="Suggest personas (LLM)"', rule: 'draft.personas' },
+  Metrics: { pane: 'suggestLabel="Suggest metrics (LLM)"', rule: 'draft.metrics' },
+  'Hero questions': { pane: '<HeroQuestionsStep', rule: 'draft.heroQuestions' },
+}
+const misplaced = stepLabels.flatMap((label, i) => {
+  const n = i + 1
+  const mark = STEP_MARKS[label]
+  if (!mark) return [`${n} ${label}: no marker declared for this label`]
+  const pane = stepPane(n)
+  const rule = stepRule(n)
+  const bad = []
+  if (!pane.includes(mark.pane)) bad.push(`${n} ${label}: the page draws something else`)
+  if (!rule.includes(mark.rule)) bad.push(`${n} ${label}: stepIssue judges something else`)
+  return bad
+})
+expect(
+  'every step draws the screen its label names, and is judged by its own rule',
+  /* The panes and rules really were read — an empty slice satisfies neither `includes` above,
+     but it would satisfy a claim written the other way round, so the denominator is stated. */
+  stepLabels.length > 0 && misplaced.length === 0,
+  misplaced.length > 0
+    ? misplaced.join(' · ')
+    : 'a label that moved without its branch puts one step’s heading over another’s form',
+)
+/*
  * **Two steps have been removed from this wizard, and each is asserted absent.**
  *
  * 'Answer requirements' went when citations and the render format moved to Ask; 'Entities &
@@ -7489,9 +7552,17 @@ expect(
  * section's own `kpis` blocks are a different noun and keep theirs — which is why the absence is
  * keyed on the graph tokens rather than on the four letters.
  */
+/*
+ * **Keyed on the label being in the list rather than on its position**, which is what this claim
+ * is actually about: Sources moved from fourth to second on request, and `stepLabels[2]` turned
+ * this red over a step order that is allowed to change while the vocabulary it guards had not
+ * moved at all. The old spelling is asserted absent beside it, or "includes Metrics" would pass a
+ * list that had grown a KPIs step back.
+ */
 expect(
   'the wizard measures are metrics, in the data as well as on screen',
-  stepLabels[2] === 'Metrics' &&
+  stepLabels.includes('Metrics') &&
+    !stepLabels.includes('KPIs') &&
     !/graph_kpis|kpi_id/.test(server) &&
     !/graph_kpis|kpi_id/.test(read('backend/datasets.js')) &&
     /const suggestMetrics = /.test(read('frontend/src/api/client.ts')) &&
