@@ -109,6 +109,7 @@ import {
   chunkEvidence,
   conceptsFor,
   corpusDocuments,
+  dataModelStory,
   deriveLanes,
   dgbClasses,
   dgbCounts,
@@ -9036,6 +9037,14 @@ const DGB_STAGES = [
 /**
  * The Bridge's own run. Three stages, because forming a Bridge is genuinely short: it reads each
  * lane's finished contract surface and decides one thing per pair.
+ *
+ * **The unit it is paced in is a model call, and a call is one Concept.** Each Concept is put to the
+ * model against every Entity Type the corpus holds, so one call decides a whole row of the grid and
+ * the links a run has written is the product rather than a second count kept beside it — which is
+ * why the panel can say *8 of 24 model calls · 24 Concepts × 13 Entity Types · 104 links written*
+ * off one cursor. The three stages below are the narrative over that same cursor: a stage index kept
+ * beside a call index is two counters that can disagree, and the symptom is a stage reading complete
+ * while its own calls are still out.
  */
 const BRIDGE_STAGES = [
   { key: 'read_lanes', label: 'Read both lanes' },
@@ -9052,7 +9061,9 @@ const BRIDGE_STAGES = [
  */
 const SGB_STEP_MS = 1_400
 const DGB_STAGE_MS = 1_600
-const BRIDGE_STAGE_MS = 1_500
+/* One model call, rather than one stage: the Bridge's cursor counts calls, and a run is as long as
+   the use case has Concepts. Faster than a build step because there are many more of them. */
+const BRIDGE_CALL_MS = 700
 
 const sgbBuilds = liveContainer('sgbBuilds')
 const dgbJobs = liveContainer('dgbJobs')
@@ -9189,6 +9200,10 @@ function runSgbBuild(run, useCase) {
       run.table_count = counts.table_count
       run.column_count = counts.column_count
       run.concept_count = counts.concept_count
+      /* A Bridge is formed FROM two finished graphs, so the lane that finishes second is what forms
+         it. **This publishes nothing** — it adds the third artifact the version will name, and
+         approving all three is still a button somebody presses. */
+      maybeAutoFormBridge(run.use_case_config_id)
       return
     }
     setTimeout(step, SGB_STEP_MS).unref?.()
@@ -9204,7 +9219,7 @@ function runSgbBuild(run, useCase) {
  * at length, and the reason a run that published itself was reported as a graph that "automatically
  * got published".
  */
-function startSgbBuild(useCase, story) {
+function startSgbBuild(useCase, story, autoBridge = false) {
   refuseStudioWriteUnderBoth('start a build')
   const id = useCase.use_case_id
   const history = listFor(sgbBuilds, id)
@@ -9214,6 +9229,9 @@ function startSgbBuild(useCase, story) {
     version_id: `${id}:v1`,
     status: 'running',
     cursor: 0,
+    /* Set only by the combined build, and only where the use case has both lanes: forming a Bridge
+       is the combined act's last step, and a lane triggered on its own is still its own act. */
+    auto_bridge: autoBridge,
     build_number: history.length + 1,
     node_count: null,
     relation_count: null,
@@ -9355,6 +9373,8 @@ function runDgbJob(job, useCase) {
         superseded_by_graph_version: null,
       })
       dgbBuilds.set(job.use_case_config_id, history)
+      /* The same call the structured lane makes: whichever lane lands second forms the Bridge. */
+      maybeAutoFormBridge(job.use_case_config_id)
       return
     }
     setTimeout(step, DGB_STAGE_MS).unref?.()
@@ -9362,7 +9382,7 @@ function runDgbJob(job, useCase) {
   setTimeout(step, DGB_STAGE_MS).unref?.()
 }
 
-function startDgbJob(useCase) {
+function startDgbJob(useCase, autoBridge = false) {
   refuseStudioWriteUnderBoth('start a build')
   const lanes = deriveLanes(db, useCase)
   const corpusId = lanes.documentPicks[0]?.source_id ?? null
@@ -9373,6 +9393,8 @@ function startDgbJob(useCase) {
     document_corpus_id: useCase.use_case_id,
     status: 'running',
     cursor: 0,
+    /* Its half of the same flag — whichever lane lands second reads both. */
+    auto_bridge: autoBridge,
     documents_processed: 0,
     document_total: corpusDocuments(db, useCase).length,
     counts: null,
@@ -9388,36 +9410,61 @@ function startDgbJob(useCase) {
 
 /* ---------------- the Bridge ---------------- */
 
-const bridgeView = (build) => ({
-  bridge_build_id: build.bridge_build_id,
-  use_case_config_id: build.use_case_config_id,
-  build_number: build.build_number,
-  sgb_build_id: build.sgb_build_id,
-  document_corpus_id: build.document_corpus_id,
-  dgb_graph_version: build.dgb_graph_version,
-  status: build.status,
-  created_at: build.created_at,
-  updated_at: build.updated_at,
-  stage_ms: BRIDGE_STAGE_MS,
-  stages: BRIDGE_STAGES.map((stage, i) => ({
-    stage: stage.key,
-    label: stage.label,
-    state: build.cursor > i ? 'complete' : build.cursor === i ? 'running' : 'pending',
-  })),
-})
+const bridgeView = (build) => {
+  const done = Math.min(build.cursor, build.model_calls_total)
+  const settled = build.status === 'succeeded' || build.status === 'failed'
+  return {
+    bridge_build_id: build.bridge_build_id,
+    use_case_config_id: build.use_case_config_id,
+    build_number: build.build_number,
+    sgb_build_id: build.sgb_build_id,
+    document_corpus_id: build.document_corpus_id,
+    dgb_graph_version: build.dgb_graph_version,
+    status: build.status,
+    created_at: build.created_at,
+    updated_at: build.updated_at,
+    stage_ms: BRIDGE_CALL_MS,
+    /*
+     * The run's own position, in the unit it really works in. `links_written` is the *product* of
+     * the two rather than a third figure incremented beside them, so a panel reading it cannot
+     * report links a call never wrote.
+     */
+    model_calls_done: settled ? build.model_calls_total : done,
+    model_calls_total: build.model_calls_total,
+    concept_count: build.concept_count,
+    entity_type_count: build.entity_type_count,
+    links_written: (settled ? build.model_calls_total : done) * build.entity_type_count,
+    stages: BRIDGE_STAGES.map((stage, i) => ({
+      stage: stage.key,
+      label: stage.label,
+      /* Derived from the one cursor: reading the lanes and pairing their types both happen before
+         the first call goes out, and `decide` *is* the calls. */
+      state:
+        i < 2
+          ? build.cursor > 0 || settled
+            ? 'complete'
+            : 'running'
+          : settled
+            ? 'complete'
+            : build.cursor > 0
+              ? 'running'
+              : 'pending',
+    })),
+  }
+}
 
 function runBridgeBuild(build) {
   const step = () => {
     if (build.status !== 'running') return
     build.cursor += 1
     build.updated_at = new Date().toISOString()
-    if (build.cursor >= BRIDGE_STAGES.length) {
+    if (build.cursor >= build.model_calls_total) {
       build.status = 'succeeded'
       return
     }
-    setTimeout(step, BRIDGE_STAGE_MS).unref?.()
+    setTimeout(step, BRIDGE_CALL_MS).unref?.()
   }
-  setTimeout(step, BRIDGE_STAGE_MS).unref?.()
+  setTimeout(step, BRIDGE_CALL_MS).unref?.()
 }
 
 /**
@@ -9451,6 +9498,17 @@ function formBridge(useCase) {
     }
   }
   const history = listFor(bridgeBuilds, useCase.use_case_id)
+  /*
+   * The grid this run walks, counted from the same two derivations `typeLinks` pairs — so the panel
+   * cannot report a call count the list of correspondences then disagrees with. One call per
+   * Concept, each against every Entity Type.
+   */
+  const conceptCount = conceptsFor(db, useCase).length
+  const entityTypeCount = new Set(
+    dgbEntities(db, useCase)
+      .filter((e) => e.kind === 'resolved')
+      .map((e) => e.entity_type),
+  ).size
   const build = {
     bridge_build_id: crypto.randomUUID(),
     use_case_config_id: useCase.use_case_id,
@@ -9460,6 +9518,9 @@ function formBridge(useCase) {
     dgb_graph_version: dgb.graph_version,
     status: 'running',
     cursor: 0,
+    concept_count: conceptCount,
+    entity_type_count: entityTypeCount,
+    model_calls_total: conceptCount,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }
@@ -9467,6 +9528,43 @@ function formBridge(useCase) {
   bridgeBuilds.set(useCase.use_case_id, history)
   runBridgeBuild(build)
   return { build }
+}
+
+/**
+ * Form the Bridge once both lanes have finished, where the build that started them asked for it.
+ *
+ * **A Bridge is formed FROM two finished graphs**, so it cannot run beside them — which is why this
+ * is called at each lane's completion rather than queued alongside them at the trigger. Both lanes
+ * carry the flag, so whichever finishes second is the one that forms it and the first finds the
+ * other still running and does nothing.
+ *
+ * Three refusals are silent here on purpose: a lane that failed, a use case with one lane, and a
+ * Bridge already formed for this pair. Each is a reason there is nothing to form rather than a fault
+ * — and this runs inside a timer, where a throw is an unhandled rejection rather than a message
+ * anybody reads.
+ */
+function maybeAutoFormBridge(useCaseId) {
+  try {
+    const useCase = (db.graph_use_cases ?? []).find((u) => u.use_case_id === useCaseId)
+    if (!useCase) return
+    const lanes = deriveLanes(db, useCase)
+    if (!lanes.hasStructured || !lanes.hasDocuments) return
+    const sgb = listFor(sgbBuilds, useCaseId)[0] ?? null
+    const dgb = [...dgbJobs.values()]
+      .filter((j) => j.use_case_config_id === useCaseId)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0] ?? null
+    if (!sgb?.auto_bridge || !dgb?.auto_bridge) return
+    if (sgb.status !== 'complete' || dgb.status !== 'complete') return
+    /* Once per pair: the second lane to land forms it, and a re-poll must not mint another. */
+    const already = listFor(bridgeBuilds, useCaseId).some(
+      (b) => b.sgb_build_id === sgb.build_id && b.dgb_graph_version === listFor(dgbBuilds, useCaseId)[0]?.graph_version,
+    )
+    if (already) return
+    formBridge(useCase)
+  } catch {
+    /* A Bridge that could not be formed leaves the Bridge tab's own button as the way to form it,
+       which is the state a single-lane use case is in anyway. */
+  }
 }
 
 /**
@@ -12652,6 +12750,13 @@ const routes = [
    * Draft a story from the declared data model. **Writes nothing** — no build row, no job — so a
    * draft the reader discards leaves no trace. Paced like every other suggester here, because an
    * analysis that returns instantly teaches that it is free.
+   *
+   * **What it drafts is the data model, which is what the button says.** It read `sgbStory` — the
+   * use case's own business need — so *Draft from my data model* produced the brief back, which is
+   * the one thing on that screen the reader had already written. `dataModelStory` describes the
+   * tables in scope, the grain each states, the columns profiled against them and the joins Data
+   * Modeling holds; every clause is read out of this dataset's own document, so nothing here knows
+   * the name of either tenant and a dataset shipping a capital-plan cube drafts about that.
    */
   {
     method: 'POST',
@@ -12660,7 +12765,7 @@ const routes = [
       const { use_case_config_id } = await readJson(req)
       const found = findStudioUseCase(use_case_config_id)
       if (found.error) return send(res, found.status, { error: found.error })
-      const story = sgbStory(db, found.useCase)
+      const story = dataModelStory(db, found.useCase)
       const counts = sgbCounts(db, found.useCase)
       const payload = {
         story: story.story,
@@ -13115,12 +13220,22 @@ const routes = [
             'Graph — a graph with no inputs can answer nothing.',
         })
       }
-      const sgb = lanes.hasStructured ? startSgbBuild(found.useCase, story) : null
-      const dgb = lanes.hasDocuments ? startDgbJob(found.useCase) : null
+      /*
+       * **Both lanes at once, and the Bridge once both have finished.** A Bridge is formed FROM two
+       * finished graphs, so it cannot run beside them — the lane that lands second forms it, which
+       * is what `auto_bridge` asks for. A lane that fails does not stop the other, and no Bridge is
+       * formed unless both succeed.
+       */
+      const bridgeAfter = lanes.hasStructured && lanes.hasDocuments
+      const sgb = lanes.hasStructured ? startSgbBuild(found.useCase, story, bridgeAfter) : null
+      const dgb = lanes.hasDocuments ? startDgbJob(found.useCase, bridgeAfter) : null
       send(res, 202, {
         use_case_config_id: id,
         sgb_build_id: sgb?.build_id ?? null,
         dgb_job_id: dgb?.job_id ?? null,
+        /* Whether a Bridge follows this run, so the Build tab can say so while the lanes are still
+           going rather than discovering it when one appears. */
+        bridge_follows: bridgeAfter,
         status: 'running',
       })
     },
@@ -13385,6 +13500,30 @@ const routes = [
          */
         if (as && !/^[^@\s]+@[^@\s]+$/.test(as)) {
           return send(res, 400, { error: `"${as}" is not an email address, so nobody can be credited with this publication.` })
+        }
+        /*
+         * **The review gate, enforced where it is real.** The Bridge tab withholds the button while
+         * anything is outstanding, and a disabled control is a courtesy to whoever is looking at it:
+         * any other path into this route — a stale tab, a `curl`, a second window — would otherwise
+         * approve a Bridge nobody had finished reviewing. The count is the same `needsReview` the
+         * tab's own number is served from, so the screen and the refusal cannot disagree.
+         *
+         * Rejects are not counted, because publishing approves what a Bridge *asserts* and a reject
+         * asserts nothing — the rule the predicate itself carries.
+         */
+        if (version.bridge_build_id) {
+          const outstanding = typeLinkRows(found.useCase, version.bridge_build_id).filter(
+            needsReview,
+          ).length
+          if (outstanding > 0) {
+            return send(res, 409, {
+              error:
+                `${outstanding} correspondence${outstanding === 1 ? '' : 's'} on this Bridge ` +
+                'still have nobody’s decision, and publishing approves every one it asserts. Decide ' +
+                'them on the Bridge tab, or accept the model’s verdicts there in one act, then ' +
+                'publish.',
+            })
+          }
         }
         publishVersion(found.useCase, version, as)
       } else {

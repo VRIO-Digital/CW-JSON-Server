@@ -10187,6 +10187,13 @@ export interface BridgeBuild {
   createdAt: string
   updatedAt: string
   stageMs: number
+  /** One model call is one Concept, put to the model against every Entity Type the corpus holds —
+   *  so `linksWritten` is the product rather than a third figure counted beside them. */
+  modelCallsDone: number
+  modelCallsTotal: number
+  conceptCount: number
+  entityTypeCount: number
+  linksWritten: number
   stages: BridgeStage[]
 }
 
@@ -10534,6 +10541,14 @@ const BRIDGE_BUILD = shape({
   created_at: str,
   updated_at: str,
   stage_ms: num,
+  /* The run's position in the unit it works in — one model call per Concept, each put against every
+     Entity Type. `links_written` is the product of the two, so a panel cannot report links a call
+     never wrote. */
+  model_calls_done: num,
+  model_calls_total: num,
+  concept_count: num,
+  entity_type_count: num,
+  links_written: num,
   stages: arrayOf(shape({ stage: str, label: str, state: STAGE_STATE })),
 })
 
@@ -10545,6 +10560,9 @@ const COMBINED_TRIGGERED = shape({
   use_case_config_id: str,
   sgb_build_id: nullable(str),
   dgb_job_id: nullable(str),
+  /* Whether a Bridge follows once both lanes land, so the Build tab can say so while they are still
+     running rather than discovering it when one appears. */
+  bridge_follows: bool,
   status: str,
 })
 
@@ -10678,6 +10696,11 @@ const toBridgeBuild = (raw: Record<string, unknown>): BridgeBuild => ({
   createdAt: raw.created_at as string,
   updatedAt: raw.updated_at as string,
   stageMs: raw.stage_ms as number,
+  modelCallsDone: raw.model_calls_done as number,
+  modelCallsTotal: raw.model_calls_total as number,
+  conceptCount: raw.concept_count as number,
+  entityTypeCount: raw.entity_type_count as number,
+  linksWritten: raw.links_written as number,
   stages: raw.stages as BridgeStage[],
 })
 
@@ -11046,8 +11069,12 @@ export async function listCorpusDocuments(useCaseId: string): Promise<CorpusDocu
 export async function triggerCombinedBuild(input: {
   useCaseId: string
   story?: string
-}): Promise<{ sgbBuildId: string | null; dgbJobId: string | null }> {
-  const raw = validate<{ sgb_build_id: string | null; dgb_job_id: string | null }>(
+}): Promise<{ sgbBuildId: string | null; dgbJobId: string | null; bridgeFollows: boolean }> {
+  const raw = validate<{
+    sgb_build_id: string | null
+    dgb_job_id: string | null
+    bridge_follows: boolean
+  }>(
     'The combined build',
     await request<unknown>(`${ucPath(input.useCaseId)}/combined-builds`, {
       method: 'POST',
@@ -11055,7 +11082,11 @@ export async function triggerCombinedBuild(input: {
     }),
     COMBINED_TRIGGERED,
   )
-  return { sgbBuildId: raw.sgb_build_id, dgbJobId: raw.dgb_job_id }
+  return {
+    sgbBuildId: raw.sgb_build_id,
+    dgbJobId: raw.dgb_job_id,
+    bridgeFollows: raw.bridge_follows,
+  }
 }
 
 /* ---- Bridge ---- */

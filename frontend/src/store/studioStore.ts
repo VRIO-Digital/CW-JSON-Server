@@ -92,6 +92,10 @@ interface StudioState {
   versions: StudioVersion[]
 
   building: boolean
+  /** Does a Bridge follow the run in flight? **The server's answer, from the trigger** — a use case
+   *  with both lanes forms one when the second lands, and a page that worked this out for itself
+   *  would be a second answer to whether a Bridge is coming. Cleared when that formation settles. */
+  bridgeFollows: boolean
   busy: boolean
 
   load: () => Promise<void>
@@ -140,6 +144,25 @@ export const selectOutputReadable = (s: StudioState) =>
   (s.sgbBuilds.some((b) => b.status === 'complete') || s.dgbBuilds.length > 0) &&
   !selectBuildRunning(s)
 
+/** The Bridge formation in flight, or null. The open one rather than any of them: a reader watching
+ *  a run is watching the Bridge the selector holds. */
+export const selectFormingBridge = (s: StudioState) => {
+  const open = s.bridges.find((b) => b.bridgeBuildId === s.bridgeId) ?? null
+  return open !== null && open.status === 'running' ? open : null
+}
+
+/**
+ * Is the combined act still going?
+ *
+ * **The lanes and the Bridge are one run, and this is what says so.** A Bridge is formed FROM two
+ * finished graphs, so it starts exactly when the lanes stop — and a watch that ended with the lanes
+ * would leave the formation to be discovered by a reader pressing reload. It stays true across the
+ * gap between the lanes settling and the formation appearing in the list, which is why it reads
+ * `bridgeFollows` as well as the list itself.
+ */
+export const selectBridgeForming = (s: StudioState) =>
+  selectFormingBridge(s) !== null || (s.bridgeFollows && !selectBuildRunning(s))
+
 export const useStudioStore = create<StudioState>()((set, get) => ({
   useCases: [],
   connectedSources: null,
@@ -164,6 +187,7 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   sweeping: false,
   versions: [],
   building: false,
+  bridgeFollows: false,
   busy: false,
 
   load: async () => {
@@ -202,6 +226,7 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
       typeLinks: [],
       unreviewedCount: 0,
       versions: [],
+      bridgeFollows: false,
       error: null,
     })
     if (useCaseId) void get().refresh()
@@ -252,12 +277,15 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
     if (!id) return { ok: false, error: 'Pick a use case first.' }
     set({ building: true })
     try {
-      const { sgbBuildId, dgbJobId } = await triggerCombinedBuild({ useCaseId: id, story })
+      const { sgbBuildId, dgbJobId, bridgeFollows } = await triggerCombinedBuild({
+        useCaseId: id,
+        story,
+      })
       /* Read the run back immediately rather than waiting for the first poll, so the panel draws its
          stage list on arrival instead of a blank second. */
       const sgbBuild = sgbBuildId ? await getSgbBuild(sgbBuildId) : null
       const dgbJob = dgbJobId ? await getDgbJob(dgbJobId) : null
-      set({ sgbBuild, dgbJob, building: false, error: null })
+      set({ sgbBuild, dgbJob, bridgeFollows, building: false, error: null })
       return { ok: true }
     } catch (error) {
       const message = toMessage(error)
@@ -270,21 +298,54 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
    *  whichever runs are in flight. */
   poll: async () => {
     const { sgbBuild, dgbJob, useCaseId } = get()
+    if (!useCaseId) return
     try {
-      const next: Partial<StudioState> = {}
-      if (sgbBuild && sgbBuild.status === 'running') {
-        next.sgbBuild = await getSgbBuild(sgbBuild.buildId)
+      const lanesRunning =
+        sgbBuild?.status === 'running' || dgbJob?.status === 'running'
+      if (lanesRunning) {
+        const next: Partial<StudioState> = {}
+        if (sgbBuild && sgbBuild.status === 'running') {
+          next.sgbBuild = await getSgbBuild(sgbBuild.buildId)
+        }
+        if (dgbJob && dgbJob.status === 'running') {
+          next.dgbJob = await getDgbJob(dgbJob.jobId)
+        }
+        set(next)
+        const settled =
+          (!next.sgbBuild || next.sgbBuild.status !== 'running') &&
+          (!next.dgbJob || next.dgbJob.status !== 'running')
+        /* A finished run changes what every other tab shows, so the whole studio is re-read once —
+           which is also what records the version, and what picks up the Bridge the server formed at
+           the moment the second lane landed. A poll that stops is not a subscription. */
+        if (settled) await get().refresh()
+        return
       }
-      if (dgbJob && dgbJob.status === 'running') {
-        next.dgbJob = await getDgbJob(dgbJob.jobId)
+
+      /*
+       * The lanes are done, and the run is not: **a Bridge is formed FROM two finished graphs**, so
+       * the formation starts exactly where they stop and the same watch follows it. Re-read through
+       * `selectBridge`, which is the one path that reads a Bridge and its links together — a second
+       * reader here would be a second answer to how many correspondences are still outstanding.
+       */
+      const forming = selectFormingBridge(get())
+      if (forming) {
+        await get().selectBridge(forming.bridgeBuildId)
+        if (selectFormingBridge(get()) === null) {
+          /* Landed. The version that names all three is recorded by the same refresh every other
+             finished run goes through. */
+          set({ bridgeFollows: false })
+          await get().refresh()
+        }
+        return
       }
-      set(next)
-      const settled =
-        (!next.sgbBuild || next.sgbBuild.status !== 'running') &&
-        (!next.dgbJob || next.dgbJob.status !== 'running')
-      /* A finished run changes what every other tab shows, so the whole studio is re-read once —
-         which is also what records the version. A poll that stops is not a subscription. */
-      if (settled && useCaseId) await get().refresh()
+
+      /* Settled a beat before the formation appeared in the list — re-read once. A run that forms no
+         Bridge (a lane failed, or the pair was already formed) clears the flag rather than leaving
+         the watch ticking against nothing. */
+      if (get().bridgeFollows) {
+        await get().refresh()
+        if (selectFormingBridge(get()) === null) set({ bridgeFollows: false })
+      }
     } catch (error) {
       set({ error: toMessage(error) })
     }

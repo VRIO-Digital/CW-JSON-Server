@@ -2342,6 +2342,17 @@ Five steps — Domain, Sources, Personas, Metrics, Hero questions — over `NewG
 `/graph-sources`, `/graph-questions/suggest` and `/graph-use-cases`.
 **All five steps are built**, and **Save & build graph** sits on the last of them.
 
+**It commits, and the studio builds — which it did not.** That button used to trigger the run too, so
+a reader arrived at Graph Studio on a pipeline already a second in, with the story box empty
+underneath it: the one input a build takes, asked for on the screen they had just been taken past.
+*Draft from my data model* and then *Build graph* is the order the studio's own screen states, and a
+run started here skipped both. So it commits the brief, points the studio's selector at it and
+navigates to Build with **nothing running** — the lanes read `not started`, the description is empty
+and waiting, and the same button that rebuilds is the one that builds the first time. A graph is
+built more than once; there was never a reason for the first run to live somewhere else. `check-docs`
+asserts the page holds no binding to the store's `build` at all, because a binding left behind is an
+invitation for the run to come back and `noUnusedLocals` catches it only while nothing reads it.
+
 **Sources is second, moved there on request, and the move is the order rather than a screen.** It
 was fourth, behind Personas and Metrics; the wizard now settles the data a graph draws on before
 the people who ask of it, so the brief is answered in the order it is built out of. **Nothing else
@@ -2926,6 +2937,13 @@ set whether the person confirmed the derivation or changed it.
 expression of the gate's predicate is a screen reading "nothing left" over a server that refuses the
 publish.
 
+**And the publish route refuses on that same predicate, not only the button.** The Bridge tab
+withholds the button while anything is outstanding, and a disabled control is a courtesy to whoever
+is looking at it — a stale tab, a second window or a `curl` would otherwise approve a Bridge nobody
+had finished reviewing, which is the one thing a gate exists to prevent. Both sides read the same
+`needsReview`, so the screen and the 409 cannot disagree about what is left; rejects are excluded on
+both, because publishing approves what a Bridge *asserts*.
+
 **The review list is a queue and a record at once, and the filter is load-bearing rather than a
 convenience.** Every (entity type × concept) pair gets a row, so a list is `types × concepts` and the
 large majority are rejects — the default view hides them and the count line says how many, so nobody
@@ -2965,10 +2983,35 @@ matching on the concept *name* would be wrong, since two concepts can share a di
 
 #### Building
 
-`POST /use-cases/:id/combined-builds` builds every lane the use case has, in order, and the **Bridge
-stage is skipped rather than failed** for a single-lane use case — no bridge id comes back, because
-the Bridge does not exist yet. Each lane is also its own route, because re-forming a Bridge without
-rebuilding either graph is a different act.
+`POST /use-cases/:id/combined-builds` runs every lane the use case has **at the same time, and forms
+the Bridge once both have finished** — which is the only order available: a Bridge is formed FROM two
+finished graphs, so it cannot run beside them. A lane that fails does not stop the other, and no
+Bridge is formed unless both succeed. Each lane is also its own route, because re-forming a Bridge
+without rebuilding either graph is a different act.
+
+**The formation is the server's, and it is asked for rather than inferred.** `auto_bridge` rides on
+*both* run rows and whichever lands second calls `maybeAutoFormBridge` — so a lane triggered on its
+own still forms nothing, which a hook that fired on every completed build would get wrong in the
+other direction. `bridge_follows` comes back on the trigger, so the Build tab can say a Bridge is
+coming while the lanes are still going rather than discovering it when one appears. Three states are
+refused silently, because each is a reason there is nothing to form rather than a fault: a lane that
+failed, a use case with one lane, and a pair already formed. **It publishes nothing** — forming adds
+the third artifact a version will name, and approving all three is still a button.
+
+**The formation is paced in model calls, and a call is one Concept.** Each Concept is put to the
+model against every Entity Type the corpus holds, so one call decides a whole row of the grid and
+`links_written` is the *product* of the two rather than a third figure counted beside them — which is
+what lets the Build tab say *8 of 24 model calls · 24 Concepts × 13 Entity Types · 104 links written*
+off **one cursor**. The three stages are the narrative over that same cursor: a stage index kept
+beside a call index is two counters that can disagree. `BRIDGE_CALL_MS` is faster than a build step
+because there are many more of them, and both counts come from the same two derivations `typeLinks`
+pairs, or the strip would promise a grid the list of correspondences then disagrees with.
+
+**And the run ends on the Bridge tab**, because that is where the next act is: every correspondence
+has to be decided before a version can be published, and a reader left on Build would be looking at a
+finished pipeline with nothing left to do on it. Only after a formation *this reader watched* — a ref
+says so — since arriving at a studio whose Bridge succeeded last week must not yank them off the tab
+they opened.
 
 Both runs are stepped on the server and polled by the page. The structured lane is six stages over 15
 substeps at `SGB_STEP_MS`; the document lane is seven stages at `DGB_STAGE_MS`. **One cursor, not
@@ -3011,9 +3054,28 @@ the cursor goes back to the start and the same stepper walks it, so the Build ta
 as it narrates a first build. A **published build refuses the edit**, naming the fix — unpublish the
 version first.
 
-**A poll that stops is not a subscription.** The watch runs only while a lane is in flight, and the
-store re-reads the whole studio once the last one settles, which is what records the version and
-unlocks the other tabs.
+**And *Draft from my data model* drafts the data model, which it did not.** It called `sgbStory` —
+the use case's own business need — so the button handed the reader back the one thing on that screen
+they had already written, which reads as a draft that did nothing and is invisible, since a brief and
+a description of a schema are both prose. `dataModelStory` is the derivation now: the tables in
+scope, the grain each states, the columns profiled against them, the identifier a curator confirmed
+(over the one a profiler classified, and the sentence says which it read), and the joins Data
+Modeling holds. **Every clause is read and a fact the document does not hold is left out rather than
+filled in** — a table with no stated grain contributes no grain clause, a `rows: null` is absent
+rather than 0 (which would say the table is empty), and a dataset with no declared join says that
+instead of naming one. So the prose is the selected dataset's own: CAPEX's reads about its capital
+plan cube because that is what its document says, and nothing in the derivation knows the name of
+either tenant — a transcribed sentence per dataset would be the small version of a transcribed
+figure. Both caps state themselves (`STORY_TABLES_DESCRIBED`, `STORY_JOINS_NAMED`), because a
+description that named six of eighteen tables in silence is a claim about the scope. **No model
+runs**, and `degraded: true` still says so. `sgbStory` stays where it is: the *stored* story is the
+brief until somebody drafts over it.
+
+**A poll that stops is not a subscription.** The watch runs only while something is in flight, and
+the store re-reads the whole studio once it settles, which is what records the version and unlocks
+the other tabs. **"Something" is the lanes *and* the Bridge**, because they are one run: the
+formation starts exactly where the lanes stop, so a watch that ended with them would leave it to be
+found by a reader pressing reload.
 
 #### The canvas — one viewer, three frames
 

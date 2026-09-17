@@ -363,6 +363,162 @@ export function sgbStory(doc, useCase) {
   }
 }
 
+/** How many tables a drafted description names one by one before it states the rest as a count.
+ *  Stated on the prose rather than truncated, which is the rule every capped list here keeps. */
+const STORY_TABLES_DESCRIBED = 6
+
+/** And how many declared joins it names before doing the same. */
+const STORY_JOINS_NAMED = 8
+
+const count = (n) => Number(n).toLocaleString('en-US')
+
+/**
+ * The other answer to "what words is this graph extracted from" — **the declared data model, rather
+ * than the brief.**
+ *
+ * `sgbStory` stays what it is: the use case's own business need, which is what a story is before
+ * anybody has drafted one. This is what *Draft from my data model* produces — a description of the
+ * data itself: the tables in scope, the grain each one states, the columns profiled against it, the
+ * identifier a curator confirmed, and the joins the Data Modeling tab holds.
+ *
+ * **Every clause is read, and a fact the document does not hold is left out rather than filled in.**
+ * A table with no stated grain contributes no grain clause; a row count nobody has measured is
+ * absent rather than 0 — which would say the table is empty; a dataset with no declared join says
+ * that instead of naming one. So the prose is this dataset's own: CAPEX's reads about its capital
+ * plan cube because that is what its document says, and nothing here knows the name of either
+ * tenant. A transcribed sentence per dataset would be the small version of a transcribed figure.
+ *
+ * **No model runs.** The draft route says so with `degraded: true`, and this is the whole of what
+ * produces the words.
+ */
+export function dataModelStory(doc, useCase) {
+  const rows = selectedTables(doc, useCase)
+  if (rows.length === 0) {
+    return {
+      story:
+        'No structured table is in scope for this use case, so there is no data model to describe ' +
+        'yet. Pick a BigQuery source on step 2 of New Graph, then draft again.',
+      uncertainties: ['No structured table is in scope for this use case.'],
+      tables_described: 0,
+    }
+  }
+
+  const profiles = doc.column_profiles ?? {}
+  const entities = (doc.data_model?.entities ?? []).filter((e) =>
+    rows.some((r) => r.key === e.table_key),
+  )
+  const inScope = new Set(rows.map((r) => r.key))
+
+  /* The identifier a person confirmed wins over the one a profiler classified: the first is a
+     decision and the second is a measurement, and the sentence says which it read. */
+  const identifierOf = (row) => {
+    const declared = entities.find((e) => e.table_key === row.key)
+    const confirmed = (declared?.attributes ?? []).find((a) => a.is_identifier)
+    if (confirmed?.name) return { name: confirmed.name, confirmed: true }
+    const profiled = (profiles[row.key] ?? []).find((c) => c.class === 'identifier')
+    return profiled ? { name: profiled.column_id, confirmed: false } : null
+  }
+
+  const datasets = [...new Set(rows.map((r) => r.dataset.dataset_id))]
+  const projects = [...new Set(rows.map((r) => r.project.display_name ?? r.project.project_id))]
+  const profiledColumns = rows.reduce((n, r) => n + (profiles[r.key] ?? []).length, 0)
+
+  const paragraphs = []
+  paragraphs.push(
+    `This data set holds ${count(rows.length)} table${rows.length === 1 ? '' : 's'} in ` +
+      `${datasets.join(', ')}, on ${projects.join(' and ')}` +
+      (profiledColumns > 0
+        ? `, with ${count(profiledColumns)} column${profiledColumns === 1 ? '' : 's'} profiled across them.`
+        : '. Nothing has been profiled against them yet.'),
+  )
+
+  for (const row of rows.slice(0, STORY_TABLES_DESCRIBED)) {
+    const table = row.table
+    const columns = profiles[row.key] ?? []
+    const id = identifierOf(row)
+    const clauses = []
+    clauses.push(
+      `The ${row.key} ${String(table.type ?? 'TABLE').toLowerCase() === 'view' ? 'view' : 'table'} ` +
+        (table.label ? `is ${table.label}` : 'is carried by this source'),
+    )
+    if (table.grain) clauses.push(`with one row per ${String(table.grain).replace(/^one /, '')}`)
+    const size = []
+    const declaredColumns = table.columns ?? columns.length
+    if (declaredColumns) size.push(`${count(declaredColumns)} column${declaredColumns === 1 ? '' : 's'}`)
+    /* A row count the document does not carry is simply not stated — `rows: null` is "nobody has
+       counted this", and 0 would say the table is empty. */
+    if (typeof table.rows === 'number') size.push(`${count(table.rows)} row${table.rows === 1 ? '' : 's'}`)
+    let sentence = `${clauses.join(', ')}.`
+    if (size.length > 0) sentence += ` It carries ${size.join(' over ')}.`
+    if (id) {
+      sentence += ` A row is identified by ${id.name}, ${
+        id.confirmed ? 'confirmed in Data Modeling' : 'classified as an identifier by the profiler'
+      }.`
+    }
+    /* `carries` often opens with the label verbatim — printed as well as the label it repeats, the
+       paragraph says the same thing twice. What is kept is whatever it adds beyond it. */
+    const carries = String(table.carries ?? '').trim()
+    const label = String(table.label ?? '').trim()
+    const adds = carries.startsWith(label) ? carries.slice(label.length).replace(/^[.\s]+/, '') : carries
+    if (adds) sentence += ` ${adds.replace(/\.?$/, '.')}`
+    paragraphs.push(sentence)
+  }
+  const hidden = rows.length - STORY_TABLES_DESCRIBED
+  if (hidden > 0) {
+    /* The cap is stated rather than the list quietly stopping — a description that named six of
+       eighteen without saying so is a claim about the scope. */
+    paragraphs.push(
+      `${count(hidden)} further table${hidden === 1 ? '' : 's'} in scope are not described one by ` +
+        'one here; the build reads all of them.',
+    )
+  }
+
+  /* The joins, from the tenant's own declarations — both ends in scope, or the sentence would name
+     a table this graph does not hold. */
+  const joins = []
+  for (const entity of entities) {
+    for (const rel of entity.relationships ?? []) {
+      if (!inScope.has(rel.target_table_key)) continue
+      joins.push(
+        `${entity.table_key} ${rel.relationship_type} ${rel.target_table_key} on ` +
+          `${(rel.from_columns ?? []).join(', ')}${
+            rel.cardinality_hint ? ` (${rel.cardinality_hint})` : ''
+          }`,
+      )
+    }
+  }
+  const uncertainties = []
+  if (joins.length > 0) {
+    const shown = joins.slice(0, STORY_JOINS_NAMED)
+    paragraphs.push(
+      `They relate to each other through ${count(joins.length)} declared join` +
+        `${joins.length === 1 ? '' : 's'}: ${shown.join('; ')}` +
+        /* Named to the cap and then counted, never cut in silence. */
+        (joins.length > shown.length
+          ? `; and ${count(joins.length - shown.length)} more the build reads.`
+          : '.'),
+    )
+  } else {
+    paragraphs.push(
+      'No relationship between these tables has been declared in Data Modeling yet, so the build ' +
+        'derives none from one.',
+    )
+    uncertainties.push('No declared join between the tables in scope.')
+  }
+  const undescribed = rows.filter((r) => !r.table.grain)
+  if (undescribed.length > 0) {
+    uncertainties.push(
+      `${count(undescribed.length)} table${undescribed.length === 1 ? '' : 's'} state no grain.`,
+    )
+  }
+
+  return {
+    story: paragraphs.join('\n\n'),
+    uncertainties,
+    tables_described: Math.min(rows.length, STORY_TABLES_DESCRIBED),
+  }
+}
+
 /* ---------------- the document lane ---------------- */
 
 /** The documents this use case's drive and mailbox picks admit. */

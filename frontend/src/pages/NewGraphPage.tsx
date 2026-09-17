@@ -225,15 +225,15 @@ export default function NewGraphPage() {
   const loadGraphSources = useGraphSourcesStore((s) => s.load)
 
   /*
-   * Starting the build is the wizard's last act; watching it is the studio's, for every graph. The
-   * run is not polled here — this page navigates the moment it starts.
+   * Committing is the wizard's last act; **building is the studio's**, for every graph — so this
+   * page points the studio's selector at the brief it just committed and navigates, and nothing here
+   * starts a run. It used to, which handed a reader a pipeline already going over an empty story
+   * box: the one input a build takes, asked for on the screen they had just been taken past.
    *
-   * **It builds every lane the use case has**, which is what the studio's own button does: a brief
-   * that attached a warehouse and a document set gets both graphs from one press, rather than one
-   * lane built here and the other discovered to be missing a screen later.
+   * `select` and not `build`, therefore. A binding to `build` left behind would be an invitation for
+   * the run to come back here, which `noUnusedLocals` would not catch if anything still read it.
    */
   const selectStudioUseCase = useStudioStore((s) => s.select)
-  const startBuild = useStudioStore((s) => s.build)
   const resetDerivation = useDerivationStore((s) => s.reset)
   const resetCoverage = useCoverageStore((s) => s.reset)
 
@@ -539,39 +539,24 @@ export default function NewGraphPage() {
     setSavedAt(result.useCase.updatedAt)
 
     /*
-     * Committing pins the inputs; the build is the run that follows.
+     * **Committing pins the inputs; starting the run is the studio's act, not this one.**
      *
-     * It is started here, at the click, so the pipeline the studio shows is
-     * genuinely this button's run rather than something the next page kicked off on
-     * arrival. The studio then owns it — a graph is built more than once, so the
-     * pipeline lives where rebuilding does.
+     * This button used to trigger the build too, so a reader arrived at a pipeline already a
+     * second in — with the story box empty underneath it, which is the one input a build takes
+     * and the one thing they had no chance to give. *Draft from my data model* and then *Build
+     * graph* is the order the studio's own screen states, and a run started here skipped both.
+     *
+     * So the studio is opened on Build with **nothing running**: the lanes read `not started`,
+     * the description is empty and waiting, and the same button that rebuilds is the button that
+     * builds the first time. A graph is built more than once; there is no reason the first run
+     * should live somewhere else.
+     *
+     * The store is still pointed at the use case just committed, so the studio opens already on
+     * it rather than on whichever one the selector happened to hold.
      */
-    /* The store builds whichever use case it holds, so it is pointed at the one just committed
-       before the run starts — and the studio then opens already on it. */
     selectStudioUseCase(result.useCase.useCaseId)
-    const started = await startBuild()
-    if (!started.ok) {
-      // The brief *is* committed; saying otherwise would be worse than the failure.
-      message.warning(`Saved and committed, but the build did not start: ${started.error}`)
-      navigate(appPath(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`))
-      return
-    }
 
-    /*
-     * **Every brief lands in Graph Studio, and the build is watched there.**
-     *
-     * The wizard briefly forked here, keeping a runtime-answered graph behind a dialog of its
-     * own that watched the run and handed the reader to Ask — on the reasoning that such a
-     * graph publishes itself, so the studio's one remaining act had already happened. Removed
-     * on request: the studio is where a build is watched, for every graph, and a second place
-     * to watch one is a second answer to where a run lives.
-     *
-     * **The server still publishes a runtime-answered graph when its build lands** — that is a
-     * fact about the graph rather than about this button, and nothing here decided it. Such a
-     * reader now watches the same pipeline as everybody else and finds the version already
-     * live when it finishes.
-     */
-    message.success('Built — watch the pipeline in Graph Studio.')
+    message.success('Committed — build it in Graph Studio.')
     navigate(appPath(`/graph-studio/${encodeURIComponent(result.useCase.useCaseId)}`), {
       state: { tab: 'build' },
     })

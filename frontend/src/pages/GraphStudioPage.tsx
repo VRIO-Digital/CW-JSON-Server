@@ -11,7 +11,9 @@ import StudioCanvasTab from '../components/studio/StudioCanvasTab'
 import StudioVersionsTab from '../components/studio/StudioVersionsTab'
 import { useAuthStore } from '../store/authStore'
 import {
+  selectBridgeForming,
   selectBuildRunning,
+  selectFormingBridge,
   selectOutputReadable,
   selectUseCase,
   useStudioStore,
@@ -68,6 +70,8 @@ export default function GraphStudioPage() {
 
   const useCase = useStudioStore(selectUseCase)
   const buildRunning = useStudioStore(selectBuildRunning)
+  const bridgeForming = useStudioStore(selectBridgeForming)
+  const formingBridge = useStudioStore(selectFormingBridge)
   const outputReadable = useStudioStore(selectOutputReadable)
 
   const load = useStudioStore((s) => s.load)
@@ -114,10 +118,32 @@ export default function GraphStudioPage() {
    * is what records the version and unlocks the other tabs.
    */
   useEffect(() => {
-    if (!buildRunning) return
+    /* **The lanes and the Bridge are one run**, so the watch spans both: a Bridge is formed FROM two
+       finished graphs, and a poll that stopped with the lanes would leave the formation to be found
+       by a reader pressing reload. */
+    if (!buildRunning && !bridgeForming) return
     const id = window.setInterval(() => void poll(), 1200)
     return () => window.clearInterval(id)
-  }, [buildRunning, poll])
+  }, [buildRunning, bridgeForming, poll])
+
+  /*
+   * **Where the run ends is the Bridge tab**, because that is where the next act is: every
+   * correspondence has to be decided before a version can be published, and a reader left on Build
+   * would be looking at a finished pipeline with nothing left to do on it.
+   *
+   * Only after a formation this reader actually watched — the ref is what says so. Arriving at a
+   * studio whose Bridge succeeded last week must not yank them off the tab they opened.
+   */
+  const watchedFormation = useRef(false)
+  useEffect(() => {
+    if (bridgeForming) {
+      watchedFormation.current = true
+      return
+    }
+    if (!watchedFormation.current) return
+    watchedFormation.current = false
+    setTab('bridge')
+  }, [bridgeForming])
 
   const report = async (run: () => Promise<{ ok: true } | { ok: false; error: string }>) => {
     const result = await run()
@@ -224,6 +250,32 @@ export default function GraphStudioPage() {
           </Space>
 
           {/*
+           * **What happens between the lanes finishing and the Bridge tab opening**, said where the
+           * reader is watching rather than left as a tab that lights up on its own.
+           *
+           * It states the two things a formation decides on their behalf: that a model is asked once
+           * per Concept, and that what it produces is recorded **unpublished** — because a build
+           * never publishes, and a reader who was not told would meet a live graph they never
+           * approved.
+           */}
+          {bridgeForming ? (
+            <Alert
+              type="info"
+              showIcon
+              title="Both graphs are built. Forming the Bridge between them."
+              description={
+                <Typography.Text style={{ fontSize: 12.5 }}>
+                  A model is asked, once per Concept, which of the document graph&rsquo;s Entity Types
+                  correspond to it. The version naming all three is recorded once it lands — so they
+                  can be approved together rather than as two graphs that know nothing about each
+                  other. It is recorded <strong>unpublished</strong>: you review the correspondences
+                  in the Bridge tab and publish from there.
+                </Typography.Text>
+              }
+            />
+          ) : null}
+
+          {/*
            * The three output tabs read a build's output, so they are locked until one exists — and
            * locked again while a rebuild runs, because what they would otherwise show is the previous
            * build's output with nothing saying so. Settling a correspondence against a canvas that is
@@ -261,6 +313,8 @@ export default function GraphStudioPage() {
                       useCase={useCase}
                       sgbBuild={sgbBuild}
                       dgbJob={dgbJob}
+                      formingBridge={formingBridge}
+                      bridgeFollows={bridgeForming}
                       story={story}
                       storyDraft={storyDraft}
                       drafting={drafting}

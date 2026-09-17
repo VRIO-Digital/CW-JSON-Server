@@ -1821,15 +1821,28 @@ keeps its state.
 
 ```
 New Graph · Save & build graph
-        → POST /graph-use-cases                commits the brief
-        → POST /use-cases/:id/combined-builds  202 · every lane it has, in order
-        → /graph-studio/:useCaseId             lands on Build, watching both lanes
+        → POST /graph-use-cases                commits the brief — and starts NO run
+        → /graph-studio/:useCaseId             lands on Build, both lanes `not started`
 
 /graph-studio          a use-case selector, and four tabs under it
-        → Build          both lanes' pipelines · the story · Build this use case
+        → Build          both lanes' pipelines · the story · Draft from my data model · Build graph
         → Bridge         EntityType ⇔ Concept, decided one row at a time
         → Canvas         Structured · Documents · Combined (+ Full view ↗)
         → Versions       what was approved together · Publish · Unpublish
+
+the run, end to end, from the Build tab:
+   Draft from my data model
+        → POST /structured-graph-builder/story-drafts   the tables, grains, columns, joins
+   Build graph
+        → POST /use-cases/:id/combined-builds  202 · both lanes at once · bridge_follows
+        → both lanes step on the server, polled at 1200ms
+        → the lane that lands second forms the Bridge   (maybeAutoFormBridge, server-side)
+        → "Asking the model · N of M model calls · C Concepts × E Entity Types"
+        → at 100% the page hands the reader to the Bridge tab
+   Accept all (N)
+        → POST …/bridge-builds/:id/type-links/accept-outstanding?as=
+   Publish
+        → POST …/graph-versions/:id/publish?as=   409 while anything is undecided
 ```
 
 **Two dead ends, two exits.** No source connected at all → the shared `NoSourceConnected` (fix:
@@ -1870,11 +1883,29 @@ while blaming the server. `check-docs` holds the offline half: every fetcher mus
 
 ### Build
 
-One press builds every lane, in order; the Bridge stage is **skipped, not failed**, for a single-lane
-use case. Both runs are stepped on the server and polled by the page — **one cursor, not two**, so a
-stage cannot read complete while one of its substeps spins. The stage list and the pace are the
-server's (`step_ms` rides on the payload), so adding a stage adds a row and changing the pace moves
-the "about N left" sentence rather than contradicting it.
+One press runs every lane **at the same time**, then forms the Bridge once both have finished — the
+only order available, since a Bridge is formed FROM two finished graphs. A lane that fails does not
+stop the other, and no Bridge is formed unless both succeed; for a single-lane use case none is, and
+the Bridge tab says so rather than offering a correspondence there is nothing to form. Both runs are
+stepped on the server and polled by the page — **one cursor, not two**, so a stage cannot read
+complete while one of its substeps spins. The stage list and the pace are the server's (`step_ms`
+rides on the payload), so adding a stage adds a row and changing the pace moves the "about N left"
+sentence rather than contradicting it.
+
+**The formation is asked for, not inferred.** `auto_bridge` rides on *both* run rows and whichever
+lands second calls `maybeAutoFormBridge`, so a lane triggered on its own still forms nothing. It is
+paced in **model calls, and a call is one Concept** put against every Entity Type — so
+`links_written` is the product of the two rather than a third count, and the strip reads *8 of 24
+model calls · 24 Concepts × 13 Entity Types · 104 links* off one cursor. At 100% the page hands the
+reader to the **Bridge tab**, where the next act is; only after a formation *this reader watched*, so
+arriving at a studio whose Bridge succeeded last week does not move them off the tab they opened.
+
+**Draft from my data model** composes the description from `dataModelStory` — the tables in scope,
+the grain each states, the profiled columns, the confirmed identifier and the declared joins. It read
+`sgbStory` (the business need) once, which handed the reader back what they had already written; the
+failure was silent, because a brief and a description of a schema are both prose. Every clause is
+read out of the selected dataset's own document, an absent fact is left out rather than filled (a
+`rows: null` is not 0), and both caps state themselves.
 
 **Each lane draws its own panel, in its own register.** Structured is a build *trace* —
 `trigger_accepted` (`202 accepted`) · `structured_passes` (naming the pass in flight) ·
@@ -1942,6 +1973,11 @@ One "stale" boolean would make those read the same.
 Publishing approves every artifact it names **or none of them**, and must be told who did it — the
 identity is client-held, so a route has nothing to look a publisher up from. The tab withholds the
 button when nobody is signed in.
+
+**The review gate is enforced, not only disabled.** The Bridge tab greys Publish while anything is
+outstanding, and the route answers **409** on the same `needsReview` — a disabled control is a
+courtesy to whoever is looking at it, and a stale tab or a `curl` would otherwise approve a Bridge
+nobody had finished reviewing. One predicate, so the screen and the refusal cannot disagree.
 
 **`publishedVersion` is the one seam** Ask, Reports, the What-if lens and Audit & Governance all read.
 That is why replacing the studio reached all four without editing any of them. Do not let a surface

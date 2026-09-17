@@ -6044,16 +6044,182 @@ expect(
 )
 
 /*
- * **A poll that stops is not a subscription.** The watch runs only while a lane is in flight, and the
- * store re-reads the whole studio once the last one settles — which is what records the version and
+ * **A poll that stops is not a subscription.** The watch runs only while something is in flight, and
+ * the store re-reads the whole studio once it settles — which is what records the version and
  * unlocks the other tabs.
+ *
+ * **"Something" is the lanes *and* the Bridge**, because they are one run: a Bridge is formed FROM
+ * two finished graphs, so the formation starts exactly where the lanes stop, and a watch that ended
+ * with them would leave it to be found by a reader pressing reload. The gate reads both, which is
+ * what this claim pins — keyed on `bridgeForming` being in the condition rather than merely defined,
+ * since a selector nothing gates on is a watch that stops one stage early.
  */
 expect(
   'the build watch runs only while something is in flight, and re-reads when it settles',
-  /if \(!buildRunning\) return/.test(studioPageCode) &&
+  /if \(!buildRunning && !bridgeForming\) return/.test(studioPageCode) &&
     /window\.setInterval\(\(\) => void poll\(\)/.test(studioPageCode) &&
-    /if \(settled && useCaseId\) await get\(\)\.refresh\(\)/.test(studioStoreCode2),
+    /if \(settled\) await get\(\)\.refresh\(\)/.test(studioStoreCode2),
   'a finished run changes what every other tab shows',
+)
+
+/*
+ * **The Bridge is the combined run's last stage, and the server forms it.**
+ *
+ * A Bridge is formed FROM two finished graphs, so it cannot run beside them — which is why the flag
+ * rides on both lanes and whichever lands second is what forms it. The failure this guards is
+ * silent in the exact way this repo keeps catching: a reader watches two pipelines finish, nothing
+ * forms, and the Bridge tab's own button is the only way on — with nothing on screen saying a step
+ * was missed rather than skipped.
+ *
+ * Both halves are asserted, because either alone passes the wrong way: a caller with no flag forms a
+ * Bridge after *every* lane build, including one triggered on its own, and a flag no lane reads
+ * forms nothing at all.
+ */
+const sgbRunBody2 = (server.match(/function runSgbBuild\([\s\S]*?\n\}/) ?? [''])[0]
+const dgbRunBody2 = (server.match(/function runDgbJob\([\s\S]*?\n\}/) ?? [''])[0]
+expect(
+  'both lanes call the auto-formation when they land, and the combined build is what asks for it',
+  /maybeAutoFormBridge\(run\.use_case_config_id\)/.test(sgbRunBody2) &&
+    /maybeAutoFormBridge\(job\.use_case_config_id\)/.test(dgbRunBody2) &&
+    /const bridgeAfter = lanes\.hasStructured && lanes\.hasDocuments/.test(server) &&
+    /startSgbBuild\(found\.useCase, story, bridgeAfter\)/.test(server) &&
+    /startDgbJob\(found\.useCase, bridgeAfter\)/.test(server),
+  'the lane that finishes second forms it; a lane triggered on its own still forms nothing',
+)
+/*
+ * And it forms **at most one per pair**, and refuses the three states where there is nothing to form
+ * — a failed lane, one lane, or a Bridge already formed. Silently, because this runs inside a timer
+ * where a throw is an unhandled rejection rather than a message anybody reads.
+ */
+const autoBody = (server.match(/function maybeAutoFormBridge\([\s\S]*?\n\}/) ?? [''])[0]
+expect(
+  'the auto-formation refuses a lane that failed, a single lane and a pair already formed',
+  /if \(!lanes\.hasStructured \|\| !lanes\.hasDocuments\) return/.test(autoBody) &&
+    /if \(sgb\.status !== 'complete' \|\| dgb\.status !== 'complete'\) return/.test(autoBody) &&
+    /if \(already\) return/.test(autoBody) &&
+    /* Still publishes nothing: forming adds the third artifact a version will name, and approving
+       all three is a button. The `runSgbBuild` claim above covers the lane; this covers what it
+       now calls. */
+    !/published_at = new Date|publishVersion\(/.test(autoBody),
+  'a run that formed a second Bridge per poll would litter the list a reader finds their draft in',
+)
+
+/*
+ * **The formation's progress is the server's, in the unit it really runs in.**
+ *
+ * One model call is one Concept, put against every Entity Type — so `links_written` is the *product*
+ * of the two rather than a third figure counted beside them, and a panel cannot report links a call
+ * never wrote. The counts come from the same two derivations `typeLinks` pairs, or the strip would
+ * promise a grid the list of correspondences then disagrees with.
+ */
+expect(
+  'the Bridge reports model calls over Concepts, and the links figure is their product',
+  /model_calls_total: conceptCount/.test(server) &&
+    /const conceptCount = conceptsFor\(db, useCase\)\.length/.test(server) &&
+    /links_written: \(settled \? build\.model_calls_total : done\) \* build\.entity_type_count/.test(server) &&
+    /model_calls_total: num/.test(client) &&
+    /links_written: num/.test(client),
+  'a client working out how long a grid takes would be a second answer to that',
+)
+expect(
+  'and the Build tab draws that progress from the payload rather than computing a grid',
+  /bridge\.modelCallsDone \/ bridge\.modelCallsTotal/.test(buildTab) &&
+    /\$\{bridge\.conceptCount\} Concepts × \$\{bridge\.entityTypeCount\} Entity Types/.test(buildTab) &&
+    /bridge\.linksWritten\.toLocaleString\(\)/.test(buildTab) &&
+    /* One cursor drives the stages too — a stage index kept beside a call index is two counters
+       that can disagree, and the symptom is a stage complete while its own calls are still out. */
+    !/useState<number>|setInterval/.test(codeOnly(buildTab)),
+  'every figure on the strip is one the run reported',
+)
+
+/*
+ * **Where the run ends is the Bridge tab**, because that is where the next act is — every
+ * correspondence decided before a version can be published. Only after a formation this reader
+ * watched, which the ref is what says: arriving at a studio whose Bridge succeeded last week must
+ * not yank them off the tab they opened.
+ */
+expect(
+  'a formation this reader watched hands them to the Bridge tab, and an old one does not',
+  /watchedFormation\.current = true/.test(studioPageCode) &&
+    /if \(!watchedFormation\.current\) return/.test(studioPageCode) &&
+    /setTab\('bridge'\)/.test(studioPageCode),
+  'a tab that lit up on its own would leave the queue to be found',
+)
+
+/*
+ * **The review gate is enforced, not only disabled.**
+ *
+ * The Bridge tab withholds the button while anything is outstanding, and a disabled control is a
+ * courtesy to whoever is looking at it: a stale tab, a second window or a `curl` would otherwise
+ * approve a Bridge nobody finished reviewing. Both sides read the same `needsReview`, so the screen
+ * and the refusal cannot disagree about what is outstanding — which is the rule the served
+ * `unreviewed_count` already keeps for the number itself.
+ */
+const publishRouteBody = (
+  server.match(/graph-versions\\\/\[\^\/\]\+\\\/\(publish\|unpublish\)[\s\S]*?\n  \},/) ?? ['']
+)[0]
+expect(
+  'publishing is refused server-side while a correspondence is undecided, on the same predicate',
+  /typeLinkRows\(found\.useCase, version\.bridge_build_id\)\.filter\(\s*needsReview,?\s*\)\.length/.test(
+    publishRouteBody,
+  ) &&
+    /if \(outstanding > 0\)/.test(publishRouteBody) &&
+    /* And the button is still withheld, so the refusal is the backstop rather than the first thing
+       a reader meets. */
+    /disabled=\{unreviewedCount > 0\}/.test(bridgeTab),
+  'a disabled button is a courtesy to whoever is looking at it, not a gate',
+)
+
+/*
+ * **"Draft from my data model" drafts the data model.**
+ *
+ * It read `sgbStory` — the use case's own business need — so the button handed the reader back the
+ * one thing on that screen they had already written, which reads as a draft that did nothing. The
+ * failure is silent: a brief and a description of a schema are both prose, and only somebody who
+ * knew what the button claimed would notice. `sgbStory` stays where it is, because the *stored*
+ * story is still the brief until somebody drafts over it.
+ */
+expect(
+  'the draft route composes from the declared data model, and the button says that is what it does',
+  /const story = dataModelStory\(db, found\.useCase\)/.test(server) &&
+    /export function dataModelStory\(doc, useCase\)/.test(studioLanesCode) &&
+    /Draft from my data model/.test(buildTab) &&
+    /* Still the brief where nothing has been drafted — two answers to "what words is this graph
+       extracted from", and the route above picks the one its button names. */
+    /const derived = sgbStory\(db, found\.useCase\)/.test(server),
+  'handing back the brief is a draft that did nothing',
+)
+expect(
+  'and it invents no figure: every clause is read, and both caps state themselves',
+  /const STORY_TABLES_DESCRIBED = \d+/.test(studioLanesCode) &&
+    /const STORY_JOINS_NAMED = \d+/.test(studioLanesCode) &&
+    /are not described one by/.test(studioLanes) &&
+    /more the build reads/.test(studioLanes) &&
+    /* A row count nobody measured is absent rather than 0, which would say the table is empty —
+       the rule `rows: null` carries everywhere else in this repo. */
+    /if \(typeof table\.rows === 'number'\)/.test(studioLanesCode) &&
+    /* No model runs, and the payload still says so. */
+    /degraded: true/.test(server),
+  'a described table is this document’s own; a silent cut is a claim about the scope',
+)
+
+/*
+ * **The wizard commits and the studio builds**, which is where the build button already is.
+ *
+ * *Save & build graph* used to trigger the run too, so a reader arrived at a pipeline a second in
+ * with the story box empty underneath it — the one input a build takes, asked for on the screen they
+ * had just been taken past. The absence is checked on the page's binding as well as the call: a
+ * `build` still selected from the store is an invitation for the run to come back here, and
+ * `noUnusedLocals` catches it only while nothing reads it.
+ */
+const newGraphCode = codeOnly(read('frontend/src/pages/NewGraphPage.tsx'))
+expect(
+  'the wizard starts no run, and hands the studio a use case with nothing in flight',
+  !/startBuild/.test(newGraphCode) &&
+    !/useStudioStore\(\(s\) => s\.build\)/.test(newGraphCode) &&
+    /selectStudioUseCase\(result\.useCase\.useCaseId\)/.test(newGraphCode) &&
+    /state: \{ tab: 'build' \}/.test(newGraphCode),
+  'a run started here skips the description the studio asks for',
 )
 
 /* ---------------- Ask's recorded answers are renderable ---------------- */

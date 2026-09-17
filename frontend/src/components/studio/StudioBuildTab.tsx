@@ -1,7 +1,7 @@
 import { BuildOutlined, ThunderboltOutlined } from '@ant-design/icons'
-import { Alert, Button, Card, Col, Input, Row, Space, Tag, Typography } from 'antd'
+import { Alert, Button, Card, Col, Input, Progress, Row, Space, Tag, Typography } from 'antd'
 import { useEffect, useState } from 'react'
-import type { DgbJob, SgbBuild, StudioUseCase } from '../../api/client'
+import type { BridgeBuild, DgbJob, SgbBuild, StudioUseCase } from '../../api/client'
 import { SP } from '../../theme'
 import DocumentPipeline from './DocumentPipeline'
 import StructuredPipeline from './StructuredPipeline'
@@ -55,10 +55,52 @@ function LaneCard({
   )
 }
 
+/**
+ * The Bridge formation, narrated in the unit it really runs in.
+ *
+ * **One model call is one Concept**, put to the model against every Entity Type the corpus holds —
+ * so the percentage is over calls, a denominator that exists, and the links figure is the product of
+ * the two rather than a third number counted beside them. Every figure is the server's: a client
+ * that worked out how many calls a grid needs would be a second answer to how long this takes.
+ */
+function BridgeFormation({ bridge }: { bridge: BridgeBuild }) {
+  const pct =
+    bridge.modelCallsTotal > 0
+      ? Math.round((bridge.modelCallsDone / bridge.modelCallsTotal) * 100)
+      : 0
+  return (
+    <Alert
+      type="info"
+      showIcon
+      title={
+        <Space wrap size={SP.sm} align="center">
+          <Typography.Text strong>Asking the model</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+            {`${bridge.modelCallsDone} of ${bridge.modelCallsTotal} model calls · ${bridge.conceptCount} Concepts × ${bridge.entityTypeCount} Entity Types`}
+          </Typography.Text>
+        </Space>
+      }
+      description={
+        <>
+          <Progress percent={pct} status="active" />
+          <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+            {/* Said because it is otherwise read as a run that is deciding nothing: the
+                correspondences are committed together at the end, so the list stays empty
+                throughout however far the bar has gone. */}
+            {`${bridge.linksWritten.toLocaleString()} links written so far — they appear below all at once when the run commits.`}
+          </Typography.Text>
+        </>
+      }
+    />
+  )
+}
+
 export default function StudioBuildTab({
   useCase,
   sgbBuild,
   dgbJob,
+  formingBridge,
+  bridgeFollows,
   story,
   storyDraft,
   drafting,
@@ -71,6 +113,11 @@ export default function StudioBuildTab({
   useCase: StudioUseCase
   sgbBuild: SgbBuild | null
   dgbJob: DgbJob | null
+  /** The Bridge formation in flight, where one is — the run's own last stage. */
+  formingBridge: BridgeBuild | null
+  /** True across the whole of it, including the beat between the lanes landing and the formation
+   *  appearing: a strip that blinked out there would read as a run that stopped. */
+  bridgeFollows: boolean
   story: { story: string; editedByUser: boolean; uncertainties: string[] } | null
   storyDraft: string | null
   drafting: boolean
@@ -92,8 +139,10 @@ export default function StudioBuildTab({
   }, [storyDraft, story?.story, useCase.useCaseId])
 
   const nothingAttached = !useCase.hasStructured && !useCase.hasDocuments
+  /* The Bridge formation counts: it is the same act's last stage, and a button offering a rebuild
+     while the model is still being asked would start a run that discards the one in flight. */
   const running =
-    (sgbBuild?.status === 'running') || (dgbJob?.status === 'running') || building
+    sgbBuild?.status === 'running' || dgbJob?.status === 'running' || building || bridgeFollows
 
   return (
     <Space direction="vertical" size={SP.base} style={{ width: '100%' }}>
@@ -114,6 +163,19 @@ export default function StudioBuildTab({
        * a reader expected and does not have is the question this tab has to answer, and a missing
        * card is not an answer.
        */}
+      {/* The run's last stage, above the lanes it was formed from. Drawn for the whole formation —
+          `bridgeFollows` covers the beat before the build row exists, where a strip that waited for
+          it would blink out between the lanes landing and the model being asked. */}
+      {formingBridge ? (
+        <BridgeFormation bridge={formingBridge} />
+      ) : bridgeFollows ? (
+        <Alert
+          type="info"
+          showIcon
+          title="Both lanes have landed. Forming the Bridge between them."
+        />
+      ) : null}
+
       <Space size={SP.sm} wrap>
         <Tag color={useCase.hasStructured ? 'blue' : 'default'}>
           {useCase.hasStructured
@@ -216,7 +278,9 @@ export default function StudioBuildTab({
               loading={drafting}
               onClick={onDraft}
             >
-              {drafting ? 'Reading your brief' : 'Draft from the brief'}
+              {/* The busy label narrates the act rather than repeating the control's name, which is
+                  the rule every paced run here keeps. */}
+              {drafting ? 'Reading the data model' : 'Draft from my data model'}
             </Button>
           }
         >
@@ -226,7 +290,10 @@ export default function StudioBuildTab({
             the stages above narrate it again.{' '}
             {story?.editedByUser
               ? 'These are your own words.'
-              : 'Nothing has been typed here yet, so this is composed from the use case’s business need — no model wrote it.'}
+              : 'Nothing has been typed here yet, so this is composed from the use case’s business need. ' +
+                '“Draft from my data model” replaces it with a description of the data itself — the tables in ' +
+                'scope, the grain each states, the columns profiled against them and the joins Data Modeling ' +
+                'holds. No model wrote either: every clause is read out of this dataset’s own document.'}
           </Typography.Paragraph>
           <Input.TextArea
             value={text}
@@ -268,15 +335,13 @@ export default function StudioBuildTab({
           disabled={nothingAttached}
           onClick={() => onBuild(text.trim() || undefined)}
         >
-          {running
-            ? 'Building'
-            : sgbBuild || dgbJob
-              ? 'Rebuild this use case'
-              : 'Build this use case'}
+          {running ? 'Building' : sgbBuild || dgbJob ? 'Rebuild graph' : 'Build graph'}
         </Button>
         <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-          Builds every lane this use case has, in order. Nothing is published by building — that is a
-          button on Versions.
+          Runs every lane this use case has at the same time, then forms the Bridge once both have
+          finished — a Bridge is formed FROM two finished graphs, so it cannot run beside them. A lane
+          that fails does not stop the other, and no Bridge is formed unless both succeed.
+          Nothing is published by building: publishing approves all three together, on the Bridge tab.
         </Typography.Text>
       </Space>
     </Space>

@@ -7213,3 +7213,62 @@ its own line.
 *A `flex-basis: 100%` is a request for a line, not a line. Without `flex-wrap` on the parent it is a
 request to take the width off whatever is beside it.*
 
+
+## Four gaps between the studio's flow and the flow it describes (2026-09-18)
+
+Reported from use as one walkthrough, and they are four faults rather than one preference. Each is
+invisible in the sense this file keeps recording: the screen renders perfectly and the reader is the
+only thing that knows a step was skipped.
+
+**A run started on the screen before the one that asks for its input.** *Save & build graph* committed
+the brief *and* triggered the combined build, then navigated — so a reader arrived at Graph Studio
+watching a pipeline already a second in, with the story box empty underneath it. That box is the one
+input a build takes, and *Draft from my data model* sits beside it: both were on a screen the reader
+had just been taken past. The wizard now commits, points the studio's selector at the brief and
+navigates to Build with nothing running.
+
+**A button that drafted the thing the reader had just written.** *Draft from my data model* called
+`sgbStory`, which is the use case's own business need rearranged — so pressing it returned the brief.
+Nothing errors, and a brief and a description of a schema are both prose, so only somebody who knew
+what the button claimed would notice. `dataModelStory` is the derivation now, and every clause of it
+is read out of the selected dataset's own document.
+
+**A Bridge that never formed.** The combined build ran the lanes and stopped; forming the Bridge was
+a button on a tab the reader had no reason to open yet, so two pipelines finished and the run
+appeared to end with nothing to publish. It forms itself now, when the second lane lands.
+
+**A gate that was only a disabled button.** Publishing was refused by the Bridge tab's `disabled` and
+by nothing else — so a stale tab, a second window or a `curl` could approve a Bridge nobody had
+finished reviewing, which is the one thing that gate exists to prevent.
+
+**Fix** — the wizard starts no run; `dataModelStory` composes the description from the tables in
+scope, their grain, their profiled columns, the confirmed identifier and the declared joins;
+`auto_bridge` rides on both lane rows and whichever lands second calls `maybeAutoFormBridge`; the
+publish route refuses with a 409 on the same `needsReview` the tab's own count is served from.
+
+**Guard** — nine `check-docs` claims, all break-tested. The two worth naming: the auto-formation is
+asserted on **both** halves (a caller with no flag forms a Bridge after every lane build, including
+one triggered alone; a flag no lane reads forms nothing at all — either alone passes the wrong way),
+and the wizard's absence is asserted on its **binding** as well as the call, because a `build`
+selected from the store and left unread is an invitation for the run to come back and
+`noUnusedLocals` catches it only while nothing reads it.
+
+*A flow is not the sum of the screens that can perform it. Every step that a reader has to know to
+take is a step the product has not taken.*
+
+## One cursor for the Bridge, counted in the unit the run works in (2026-09-18)
+
+Not a bug that shipped — a shape refused while adding the formation, and recorded because it is the
+same shape this repo has already been bitten by twice.
+
+The Bridge's run had a three-stage cursor, and the panel wanted to report model calls. The obvious
+build is a stage index beside a call index, and they can disagree: the symptom is a stage reading
+complete while its own calls are still out, which is exactly the fault `SGB_STEPS` and the document
+lane's `job.cursor` are each one counter to avoid. So the cursor **is** the call count, and the three
+stages are derived from it — reading the lanes and pairing their types both happen before the first
+call goes out, and `decide` *is* the calls.
+
+The same rule one level up: `links_written` is `model_calls_done × entity_type_count` rather than a
+figure incremented beside them, so a panel cannot report links a call never wrote.
+
+*Two counters over one run is two answers to how far it has got.*
