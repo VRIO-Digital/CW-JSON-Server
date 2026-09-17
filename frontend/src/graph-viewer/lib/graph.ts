@@ -26,6 +26,14 @@ import type {
  */
 export const TYPE_COLORS: Record<string, string> = {
   Concept: "#1a7f37",
+  /*
+   * **The structured lane draws tables, which no ingest ever put on a canvas.** It is the one type
+   * the Graph Studio added: a table node stands beside the concepts its columns realise, and without
+   * a hue every table on that lane fell through to the grey default — the whole canvas one colour.
+   * Slate-blue, a hue-step away from Facility so the two are told apart at a 4.5px disc, and walked
+   * down to clear the same contrast bar the nine above it clear.
+   */
+  Table: "#3f5fbf",
   Facility: "#0969da",
   Document: "#8250df",
   Manifest: "#a16207",

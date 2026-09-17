@@ -1,680 +1,340 @@
-import { ArrowLeftOutlined, WarningOutlined } from '@ant-design/icons'
-import {
-  Alert,
-  App,
-  Button,
-  Col,
-  Input,
-  Progress,
-  Row,
-  Space,
-  Spin,
-  Tabs,
-  Tag,
-  Typography,
-} from 'antd'
+import { App, Alert, Select, Space, Spin, Tabs, Tag, Typography } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import type { ReviewChoice } from '../api/client'
+import type { TypeLinkDecision } from '../api/client'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
-import BuildTab from '../components/studio/BuildTab'
-import GraphViewer from '../graph-viewer/App'
-import { answerPath, fromCanvas } from '../graph-viewer/fromCanvas'
+import NoSourceConnected from '../components/common/NoSourceConnected'
 import PageHeader from '../components/common/PageHeader'
-import ReviewQueueItem from '../components/studio/ReviewQueueItem'
-import StatCards from '../components/common/StatCards'
-import StatusTag from '../components/common/StatusTag'
-import VersionsTab from '../components/studio/VersionsTab'
+import StudioBridgeTab from '../components/studio/StudioBridgeTab'
+import StudioBuildTab from '../components/studio/StudioBuildTab'
+import StudioCanvasTab from '../components/studio/StudioCanvasTab'
+import StudioVersionsTab from '../components/studio/StudioVersionsTab'
+import { useAuthStore } from '../store/authStore'
 import {
-  selectMustReview,
-  useGraphBuildStore,
-  useGraphStudioStore,
-} from '../store/graphStudioStore'
-import { SP } from '../theme'
-import type { Stat } from '../types'
-import './GraphStudioPage.css'
+  selectBuildRunning,
+  selectOutputReadable,
+  selectUseCase,
+  useStudioStore,
+} from '../store/studioStore'
 import { appPath } from '../api/dataset'
+import { SP } from '../theme'
 
+/**
+ * Graph Studio — **one studio for a use case, whichever lanes it has.**
+ *
+ * This replaces a split between a structured studio and a document studio, which forced a reader to
+ * know which screen a use case belonged to and could not show that two graphs answer one business
+ * question. What the studio offers follows from what the use case has *attached* — never from a
+ * declared kind, which would be single-valued (so "both lanes" is unexpressible) and frozen at
+ * commit (so a use case could not grow into a second one).
+ *
+ * **One selector governs the whole page.** Every tab reads the use case held in the store, so no tab
+ * carries a picker that could disagree with the one above it.
+ *
+ * **The two graphs remain two graphs** — separate builds, separate canvases, and neither resolving
+ * entities against the other. What is unified is the use case and its *approval*: a version names
+ * the artifacts published together, in one act.
+ */
 export default function GraphStudioPage() {
   const { message } = App.useApp()
   const navigate = useNavigate()
-  /* Named, because `location` is also a global and reading that one would silently
-     return undefined instead of the router's state. */
+  /* Named, because `location` is also a global and reading that one would silently return undefined
+     rather than the router's state. */
   const routerLocation = useLocation()
-  const { useCaseId } = useParams<{ useCaseId: string }>()
+  const { useCaseId: routeUseCaseId } = useParams<{ useCaseId?: string }>()
 
-  const data = useGraphStudioStore((s) => s.data)
-  const loading = useGraphStudioStore((s) => s.loading)
-  const error = useGraphStudioStore((s) => s.error)
-  const pending = useGraphStudioStore((s) => s.pending)
-  const canvas = useGraphStudioStore((s) => s.canvas)
-  const canvasLoading = useGraphStudioStore((s) => s.canvasLoading)
-  const answer = useGraphStudioStore((s) => s.answer)
-  const asking = useGraphStudioStore((s) => s.asking)
-  const loadCanvas = useGraphStudioStore((s) => s.loadCanvas)
-  const ask = useGraphStudioStore((s) => s.ask)
-  const open = useGraphStudioStore((s) => s.open)
-  const decide = useGraphStudioStore((s) => s.decide)
-  const choosePivot = useGraphStudioStore((s) => s.choosePivot)
-  const publish = useGraphStudioStore((s) => s.publish)
-  const unpublish = useGraphStudioStore((s) => s.unpublish)
-  const mustReview = useGraphStudioStore(selectMustReview)
+  const useCases = useStudioStore((s) => s.useCases)
+  const connectedSources = useStudioStore((s) => s.connectedSources)
+  const useCaseId = useStudioStore((s) => s.useCaseId)
+  const loading = useStudioStore((s) => s.loading)
+  const error = useStudioStore((s) => s.error)
+  const sgbBuild = useStudioStore((s) => s.sgbBuild)
+  const dgbJob = useStudioStore((s) => s.dgbJob)
+  const sgbGraph = useStudioStore((s) => s.sgbGraph)
+  const story = useStudioStore((s) => s.story)
+  const storyDraft = useStudioStore((s) => s.storyDraft)
+  const drafting = useStudioStore((s) => s.drafting)
+  const entities = useStudioStore((s) => s.entities)
+  const relations = useStudioStore((s) => s.relations)
+  const bridges = useStudioStore((s) => s.bridges)
+  const bridgeId = useStudioStore((s) => s.bridgeId)
+  const typeLinks = useStudioStore((s) => s.typeLinks)
+  const unreviewedCount = useStudioStore((s) => s.unreviewedCount)
+  const versions = useStudioStore((s) => s.versions)
+  const building = useStudioStore((s) => s.building)
+  const busy = useStudioStore((s) => s.busy)
+  const sweeping = useStudioStore((s) => s.sweeping)
+  const savingLinkId = useStudioStore((s) => s.savingLinkId)
 
-  /*
-   * Land on Build when arriving from the wizard's "Save & build graph" — the run
-   * it just started is the thing to watch. Every other arrival lands on the queue,
-   * which is what the studio is for.
-   */
+  const useCase = useStudioStore(selectUseCase)
+  const buildRunning = useStudioStore(selectBuildRunning)
+  const outputReadable = useStudioStore(selectOutputReadable)
+
+  const load = useStudioStore((s) => s.load)
+  const select = useStudioStore((s) => s.select)
+  const build = useStudioStore((s) => s.build)
+  const poll = useStudioStore((s) => s.poll)
+  const draft = useStudioStore((s) => s.draft)
+  const saveStory = useStudioStore((s) => s.saveStory)
+  const formBridge = useStudioStore((s) => s.formBridge)
+  const selectBridge = useStudioStore((s) => s.selectBridge)
+  const decide = useStudioStore((s) => s.decide)
+  const acceptAll = useStudioStore((s) => s.acceptAll)
+  const publish = useStudioStore((s) => s.publish)
+  const recordVersion = useStudioStore((s) => s.recordVersion)
+  const unpublish = useStudioStore((s) => s.unpublish)
+
+  const signedInAs = useAuthStore((s) => s.identity?.email ?? null)
+
+  /* Land on Build when arriving from the wizard's last step — the run it just started is the thing
+     to watch. Every other arrival lands there too, because a studio with nothing built has nothing
+     else to show. */
   const [tab, setTab] = useState(
-    () => (routerLocation.state as { tab?: string } | null)?.tab ?? 'queue',
+    () => (routerLocation.state as { tab?: string } | null)?.tab ?? 'build',
   )
-  /* No `selectedNode` here any more: selection, its neighbourhood dimming and the
-     inspector all live inside the vendored viewer, which owns that state. */
-  const [question, setQuestion] = useState('')
-
-  const builds = useGraphBuildStore((s) => s.history)
-  const shownBuild = useGraphBuildStore((s) => s.shown)
-  const buildsLoading = useGraphBuildStore((s) => s.loading)
-  const buildStarting = useGraphBuildStore((s) => s.starting)
-  const loadBuilds = useGraphBuildStore((s) => s.load)
-  const triggerBuild = useGraphBuildStore((s) => s.start)
-  const showBuild = useGraphBuildStore((s) => s.show)
-  const pollBuild = useGraphBuildStore((s) => s.poll)
 
   useEffect(() => {
-    if (useCaseId) void open(useCaseId)
-  }, [useCaseId, open])
+    void load()
+  }, [load])
 
-  // The canvas is a second request, so it is fetched when its tab is first
-  // opened rather than on every page load.
+  /* A use case named in the URL wins over the store's default, so New Graph can hand a reader
+     straight to the graph they just committed. Only honoured once it is really in the list, so a
+     stale or hand-edited address leaves the selector where it was rather than emptying the page. */
+  const claimed = useRef<string | null>(null)
   useEffect(() => {
-    if ((tab === 'canvas' || tab === 'query') && useCaseId) void loadCanvas()
-  }, [tab, useCaseId, loadCanvas])
+    if (!routeUseCaseId || claimed.current === routeUseCaseId) return
+    if (!useCases.some((u) => u.useCaseId === routeUseCaseId)) return
+    claimed.current = routeUseCaseId
+    select(routeUseCaseId)
+  }, [routeUseCaseId, useCases, select])
 
-  /* The history is loaded on arrival rather than on first opening the tab: a build
-     started by the wizard is already running, and it should be found in flight. */
+  /*
+   * The build watch. **A poll that stops is not a subscription**, so it runs only while something is
+   * in flight and the store's own `poll` re-reads the whole studio once the last lane settles — which
+   * is what records the version and unlocks the other tabs.
+   */
   useEffect(() => {
-    if (useCaseId) void loadBuilds(useCaseId)
-  }, [useCaseId, loadBuilds])
-
-  // Polls only while a run is in flight, at half its stage interval so no stage
-  // is missed; the poll that sees it land stops.
-  useEffect(() => {
-    if (shownBuild?.status !== 'running') return
-    const id = window.setInterval(() => void pollBuild(), 350)
+    if (!buildRunning) return
+    const id = window.setInterval(() => void poll(), 1200)
     return () => window.clearInterval(id)
-  }, [shownBuild?.status, pollBuild])
+  }, [buildRunning, poll])
 
-  /*
-   * A finished build has produced a version, and the version rows live in the
-   * studio payload — which is otherwise fetched once, on arrival. Without this
-   * the build you just watched would not appear on Versions until the page was
-   * reloaded: the run says "complete" and the list still shows the ones before it.
-   *
-   * Keyed on the build id so it refreshes once per run, not on every render while
-   * a completed run is on screen.
-   */
-  const refreshedForBuild = useRef<string | null>(null)
-  useEffect(() => {
-    if (!useCaseId || shownBuild?.status !== 'complete') return
-    if (refreshedForBuild.current === shownBuild.buildId) return
-    refreshedForBuild.current = shownBuild.buildId
-    void open(useCaseId)
-  }, [useCaseId, shownBuild?.status, shownBuild?.buildId, open])
-
-  /*
-   * **Build first: every other tab is locked until a build has completed.**
-   *
-   * Reviewing a queue, reading a canvas or publishing a version all describe *a build's
-   * output*, so offering them before one has finished offers a reading of nothing — and
-   * the queue is the loudest case, because it looks populated either way (its rows are
-   * the package's, not the run's). The gate is a completed run in this graph's history,
-   * which is also what mints a version, so Versions cannot be empty behind an unlocked
-   * tab.
-   *
-   * Note what this reverses: settling review rows changes what a build produces, so
-   * **Rebuild stays the normal case** — this only says a graph has to have been built
-   * once before its output can be read.
-   */
-  const builtOnce = builds.some((b) => b.status === 'complete')
-  /* A build run is only ever `running` or `complete` — unlike a profiling job, it has no
-     queued state, so there is no third case for the sentence to cover. */
-  const buildRunning = builds.some((b) => b.status === 'running')
-
-  /*
-   * **And a rebuild locks them again, for the same reason the first build does.**
-   *
-   * A run in flight is producing the output these tabs read, so what they show while it
-   * runs is the *previous* build's — a canvas and a version list that the run is in the
-   * act of superseding, with nothing on them saying so. That reads as this run's result
-   * arriving early, which is the one thing a reviewer must not be shown; settling a queue
-   * row against a superseded canvas is a decision made on stale evidence. So the lock is
-   * "a completed build and no run in flight", not "has ever been built".
-   */
-  const outputReadable = builtOnce && !buildRunning
-
-  /* A locked tab cannot be the active one, or antd renders its pane with the tab
-     unselectable — a blank page with no way back. Arrivals default to the queue, so this
-     is the normal path on a graph whose build has not run, not an edge case — and a
-     rebuild started from another tab has to move the reader the same way. */
-  useEffect(() => {
-    if (!outputReadable && tab !== 'build') setTab('build')
-  }, [outputReadable, tab])
-
-  const back = (
-    <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(appPath('/graph-studio'))}>
-      All graphs
-    </Button>
-  )
-
-  if (error && !data) {
-    return (
-      <>
-        <ApiErrorAlert error={error} onRetry={() => useCaseId && void open(useCaseId)} />
-        <div style={{ marginTop: SP.base }}>{back}</div>
-      </>
-    )
-  }
-  if (!data) return <Spin />
-
-  const { pivot, publish: gate } = data
-
-  // Every figure is the length of something the server returned, not a headline
-  // kept in step by hand.
-  const stats: Stat[] = [
-    {
-      label: 'Must review',
-      value: String(data.mustReviewOutstanding),
-      tone: data.mustReviewOutstanding > 0 ? 'warn' : 'good',
-      note: 'floor items — block publish',
-    },
-    {
-      label: 'Pivot',
-      value: String(data.pivotCount),
-      tone: data.pivotCount > 0 ? 'crit' : 'good',
-      note: pivot.open ? 'blocking the build now' : `settled as ${pivot.chosen}`,
-    },
-    {
-      label: 'Confirmed FYI',
-      value: String(data.confirmedCount),
-      note: '0.85–0.95 — spot-check',
-    },
-    {
-      label: 'Auto-approved',
-      value: String(data.autoApprovedCount),
-      note: '≥0.95 — show all',
-    },
-  ]
-
-  async function onDecide(itemId: string, choice: ReviewChoice, justification: string) {
-    const result = await decide({ itemId, choice, justification })
+  const report = async (run: () => Promise<{ ok: true } | { ok: false; error: string }>) => {
+    const result = await run()
     if (!result.ok) message.error(result.error)
+    return result
   }
 
-  async function onPivot(optionId: string) {
-    const result = await choosePivot(optionId)
-    if (!result.ok) {
-      message.error(result.error)
-      return
-    }
-    message.success(`Pivot settled as ${optionId}. The queue now means one thing.`)
-  }
-
-  /*
-   * Publishing names a version, so it happens on that version's row. There is no
-   * header publish button any more: "publish" without saying *which build* is the
-   * ambiguity this list exists to remove.
-   */
-  async function onPublish(sha256: string) {
-    const result = await publish(sha256)
-    if (!result.ok) {
-      message.error(result.error)
-      return
-    }
-    message.success('Published — Ask now queries this version.')
-  }
-
-  async function onUnpublish(sha256: string) {
-    const result = await unpublish(sha256)
-    if (!result.ok) {
-      message.error(result.error)
-      return
-    }
-    message.success('Unpublished — Ask no longer serves this graph.')
-  }
-
-  const reviewQueue = (
-    <>
-      <StatCards stats={stats} />
-
-      <div className="gs-batch">
-        <Progress
-          percent={Math.round((data.batchResolved / data.batchTotal) * 100)}
-          showInfo={false}
-          strokeColor="#0f7b4f"
-          className="gs-batch-bar"
-        />
-        <span className="gs-batch-text">
-          batch progress · {data.batchResolved} of {data.batchTotal} resolved · save
-          &amp; resume anytime
-        </span>
-        <Tag className="gs-memory">decision memory · {data.decisionMemory}</Tag>
-      </div>
-
-      {/* The pivot sits above the rows because it changes what they mean — it
-          cannot be worked around by clearing the queue. */}
-      {pivot.open ? (
-        <div className="gs-pivot">
-          <div className="gs-pivot-head">
-            <WarningOutlined aria-hidden="true" />
-            <strong>
-              Pivot · {pivot.pivotId} / {pivot.alternativeId} — {pivot.title}
-            </strong>
-          </div>
-          <div className="gs-pivot-detail">{pivot.detail}</div>
-          {/* Why it is a pivot and not a queue row. The server's sentence, because
-              this is the whole justification for the extra gate. */}
-          <div className="gs-pivot-why">{pivot.whyPivot}</div>
-          {/* Same evidence a queue row carries — a pivot is a review decision with a
-              wider blast radius, not a different kind of claim. */}
-          {pivot.evidence.length > 0 ? (
-            <ul className="gs-pivot-evidence">
-              {pivot.evidence.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          ) : null}
-          <div className="gs-pivot-options">
-            {pivot.options.map((o) => (
-              <button
-                key={o.optionId}
-                type="button"
-                className="gs-pivot-option"
-                onClick={() => void onPivot(o.optionId)}
-                disabled={pending === o.optionId}
-              >
-                <span className="gs-pivot-label">
-                  {o.optionId} · {o.label}
-                </span>
-                <span className="gs-pivot-consequence">{o.consequence}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {mustReview.map((item) => (
-        <ReviewQueueItem
-          key={item.itemId}
-          item={item}
-          pending={pending === item.itemId}
-          onDecide={(choice, justification) =>
-            void onDecide(item.itemId, choice, justification)
-          }
-        />
-      ))}
-
-      {gate.blocked ? (
-        <Alert
-          className="gs-gate"
-          type="warning"
-          showIcon
-          title="Publish is blocked."
-          description={`${gate.reasons.join(' · ')}. ${gate.explanation}`}
-        />
-      ) : (
-        <Alert
-          className="gs-gate"
-          type="success"
-          showIcon
-          title="Ready to publish."
-          description={`Every floor item is decided and the pivot is settled as ${pivot.chosen}.`}
-        />
-      )}
-    </>
-  )
-
-  /* `asked` is passed by a chip, which must not wait for the state it just set —
-     setQuestion is asynchronous, so reading `question` here would ask the previous
-     one. Typing still falls through to the box's value. */
-  async function onAsk(asked?: string) {
-    const text = (asked ?? question).trim()
-    if (!text) {
-      message.warning('Type a question to ask the draft graph.')
-      return
-    }
-    const result = await ask(text)
-    if (!result.ok) message.error(result.error)
-  }
-
-
-  /*
-   * The canvas is the **vendored viewer** — `src/graph-viewer`, a d3-force graph with its
-   * own sidebar, legend, search and inspector. It replaced a hand-written inline SVG that
-   * drew the server's precomputed positions: 189 nodes in a fixed arrangement read as a
-   * hairball, and no amount of palette work fixes a layout nobody can pull apart.
-   *
-   * There is **one** canvas component in the app now. The full-view route renders this same
-   * viewer on this same payload, so a bigger frame is all that differs — a full view with
-   * its own drawing would be a second truth, which is the thing this surface exists to
-   * avoid. The viewer brings its own inspector, so the studio's `NodeInspector` column is
-   * gone with it rather than sitting beside a panel that says the same things.
-   */
+  /* The whole-window canvas, addressed from here because the dataset prefix is the page's to add —
+     a tab that built its own in-app URL would be a second place the dataset letter lives. */
   const fullViewHref = appPath(`/graph-studio/${encodeURIComponent(useCaseId ?? '')}/canvas`)
 
-  const canvasTab =
-    canvasLoading && !canvas ? (
-      <Spin />
-    ) : canvas ? (
-      <>
-        {/*
-          The way to the full window, above the viewer rather than inside it.
-          `src/graph-viewer` is vendored, and app chrome does not belong in it — the
-          folder knows nothing about this app's routes. It is still the only way to
-          reach `…/canvas` besides typing the URL, which is why it cannot be dropped:
-          the route has no nav entry, by the same rule as `/db`.
-        */}
-        <div className="gs-viewer-bar">
-          <span className="gs-viewer-hint">
-            Drag a node · scroll to zoom · click one to inspect it · click a legend row to
-            filter
-          </span>
-          <a
-            className="gs-viewer-full"
-            href={fullViewHref}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Full view ↗
-          </a>
-        </div>
-        <div className="gs-viewer">
-          <GraphViewer
-            graph={fromCanvas(canvas, data.graphName)}
-            /* The Query tab promises the answer's evidence lights up here, and this is
-               that: the same `on_answer_path` marks the drawing already carries. */
-            highlight={answerPath(canvas)}
-          />
-        </div>
-      </>
-    ) : (
-      <div className="gs-todo">The canvas could not be loaded.</div>
+  const publishedBridgeId =
+    versions.find((v) => v.publishedAt !== null)?.bridgeBuildId ?? null
+
+  /* The version this Bridge would publish as, where one is already recorded — `null` for a draft,
+     which is normal: a version is minted when somebody approves, not on their first edit. */
+  const pendingVersion = versions.find((v) => v.bridgeBuildId === bridgeId) ?? null
+
+  /* Publishing from the Bridge tab records the version first where there is not one yet, which is
+     the normal case for a draft. One path, so the two tabs cannot approve different things. */
+  const publishThisBridge = async () => {
+    const existing = versions.find((v) => v.bridgeBuildId === bridgeId)
+    if (existing) return publish(existing.graphVersionId, signedInAs)
+    const recorded = await recordVersion()
+    if (!recorded.ok) return recorded
+    const next = useStudioStore.getState().versions.find((v) => v.bridgeBuildId === bridgeId)
+    if (!next) {
+      return { ok: false as const, error: 'No version names this Bridge yet — rebuild it and try again.' }
+    }
+    return publish(next.graphVersionId, signedInAs)
+  }
+
+  if (loading && useCases.length === 0) {
+    return (
+      <div style={{ padding: SP.xl, textAlign: 'center' }}>
+        <Spin />
+      </div>
     )
-
-  const queryTab = (
-    <Row gutter={[SP.base, SP.base]}>
-      <Col xs={24} xl={17}>
-        <div className="gs-query">
-          <Space.Compact style={{ width: '100%' }}>
-            <Input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onPressEnter={() => void onAsk()}
-              placeholder="e.g. What did Interruption #88 cost us?"
-              aria-label="Ask the draft graph"
-            />
-            <Button type="primary" loading={asking} onClick={() => void onAsk()}>
-              Ask the draft
-            </Button>
-          </Space.Compact>
-          <div className="gs-query-hint">
-            Asked of the <strong>draft</strong>, before anyone commits to it. The
-            path an answer travels is the answer’s evidence — it lights up on the
-            Canvas tab.
-          </div>
-
-          {/* The brief's own hero questions, as chips. Each one is a recorded
-              sanity check, so a chip is a promise the use case already made rather
-              than a suggestion written on this page. */}
-          {data.sanityChecks.length > 0 ? (
-            <div className="gs-query-chips">
-              {data.sanityChecks.map((c) => (
-                <Button
-                  key={c.checkId}
-                  size="small"
-                  disabled={asking}
-                  onClick={() => {
-                    setQuestion(c.question)
-                    void onAsk(c.question)
-                  }}
-                >
-                  <span className="gs-chip-label">{c.question}</span>
-                </Button>
-              ))}
-            </div>
-          ) : null}
-
-          {answer ? (
-            <div className="gs-answer">
-              <Space size={SP.sm} wrap>
-                <StatusTag tone={answer.answerable ? 'good' : 'crit'}>
-                  {answer.answerable
-                    ? `answered over ${answer.hops} hop(s)`
-                    : 'cannot be answered'}
-                </StatusTag>
-                {/* Which route answered. A written verdict must never be read as
-                    something the walk derived, so the provenance is on the answer
-                    and not in a tooltip. Neutral: "recorded" is not a state. */}
-                {answer.recorded ? (
-                  <Tag variant="outlined">
-                    recorded check {answer.checkId}
-                    {answer.heroQuestionId ? ` · ${answer.heroQuestionId}` : ''}
-                  </Tag>
-                ) : (
-                  <Tag variant="outlined">derived from the draft</Tag>
-                )}
-                {answer.costUsd !== null ? (
-                  <Tag variant="outlined">
-                    ${answer.costUsd.toFixed(2)} of ${answer.budgetUsd?.toFixed(2)} budget
-                  </Tag>
-                ) : null}
-              </Space>
-
-              <div className="gs-answer-reason">{answer.reason}</div>
-              {answer.verdictBody ? (
-                <div className="gs-answer-body">{answer.verdictBody}</div>
-              ) : null}
-              {/* How a recorded check was matched, because "the same question" and
-                  "it shared four words" are different claims. */}
-              {answer.matchedHow ? (
-                <div className="gs-answer-match">Matched: {answer.matchedHow}</div>
-              ) : null}
-
-              {/* Context the check states beside its verdict. `ok: false` is a
-                  caveat rather than a confirmation, and reads as one. */}
-              {answer.context.length > 0 ? (
-                <ul className="gs-answer-context">
-                  {answer.context.map((c) => (
-                    <li key={`${c.chip}:${c.label}`} className={c.ok ? '' : 'is-pending'}>
-                      <span className="gs-context-chip">{c.chip}</span>
-                      <span className="gs-context-label">{c.label}</span>
-                      <span className="gs-context-meta">{c.meta}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-
-              {/* A chain only where the walk found one. A recorded traversal is a
-                  sub-graph, so its hops are listed instead of arrow-joined — three
-                  generators meeting at one TSDF is not a route. */}
-              {answer.pathLabels.length > 0 ? (
-                <div className="gs-answer-path">{answer.pathLabels.join('  →  ')}</div>
-              ) : null}
-              {answer.edgesUsed.length > 0 ? (
-                <ul className="gs-answer-hops">
-                  {answer.edgesUsed.map((h) => (
-                    <li key={h.edgeId} className={h.proposed ? 'is-proposed' : ''}>
-                      {h.fromLabel} <span className="gs-hop-rel">{h.label}</span>{' '}
-                      {h.toLabel}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-
-              {/* What the engine would run. Shown because a plan nobody can read is
-                  an answer taken on trust. */}
-              {answer.plan ? (
-                <pre className="gs-answer-plan">{answer.plan}</pre>
-              ) : null}
-
-              {/* An answer resting on an undecided edge is answerable *and*
-                  provisional. Publishing would change it — and a recorded check is
-                  not exempt: it is flagged from the edges it actually used. */}
-              {answer.caveats.length > 0 ? (
-                <Alert
-                  style={{ marginTop: SP.md }}
-                  type="warning"
-                  showIcon
-                  title="This answer rests on decisions you have not taken yet."
-                  description={answer.caveats.join(' · ')}
-                />
-              ) : null}
-            </div>
-          ) : (
-            <div className="gs-todo" style={{ marginTop: SP.base }}>
-              <strong>Nothing asked yet</strong>
-              <div style={{ marginTop: SP.sm }}>
-                A sanity check is one question you already know the answer to. If
-                the draft cannot answer it, the graph is not finished — better to
-                learn that here than after publishing.
-              </div>
-            </div>
-          )}
-        </div>
-      </Col>
-    </Row>
-  )
+  }
 
   return (
     <>
       <PageHeader
         title="Graph Studio"
-        subtitle="Where the drafted graph becomes the trusted graph. Review what the builder wasn’t sure about, shape the ontology, prove it answers — then publish."
-        actions={
-          <>
-            {back}
-            {/* Only what is live. The draft version is on the Publish button,
-                which is the one place it means something — two tags for two
-                versions read as a version history nobody asked for. */}
-            {data.liveVersion ? (
-              <Tag color="success">{`live ${data.liveVersion}`}</Tag>
-            ) : null}
-            {/*
-              * Nothing else in this header.
-              *
-              * **No publish button**: publishing names a specific build, so it
-              * belongs on that build's row in Versions. A header "Publish v2…"
-              * could not say which of six builds it meant.
-              *
-              * What is here instead is the build the page is showing, so the run
-              * and the graph are never separated.
-              */}
-            {shownBuild ? (
-              <span className="gs-job">
-                job <code>{shownBuild.buildId.slice(0, 8)}…</code> ·{' '}
-                {shownBuild.status}
-              </span>
-            ) : null}
-          </>
-        }
+        subtitle="Build a use case's graphs, review what the Bridge found between them, and publish the version that answers questions."
       />
 
-      <Typography.Paragraph type="secondary" style={{ fontSize: 13, marginTop: -SP.base }}>
-        <strong>{data.graphName}</strong>
-        {data.domainId ? ` · ${data.domainId}` : ''} ·{' '}
-        {loading ? 'refreshing…' : `${data.queueCount} item(s) still need a human`}
-      </Typography.Paragraph>
+      {error ? <ApiErrorAlert error={error} onRetry={() => void load()} /> : null}
 
-      {/* Said once, above the tabs, and only while they are locked — a row of disabled
-          tabs with no sentence beside them reads as a broken page. It names the act that
-          unlocks them, and while a run is in flight it says that instead, because "run a
-          build" is the wrong instruction for somebody already watching one — which is
-          also the only sentence a *rebuild* can carry, since the act is already underway. */}
-      {outputReadable ? null : (
+      {/*
+        * **Two dead ends, and they need different exits.**
+        *
+        * Nothing connected at all is the outer one: every lane derives from a source somebody
+        * connected, so the studio has nothing to build *from* and the fix is on Sources. Connected
+        * but no use case is the inner one, and the fix is New Graph. Telling a reader to connect a
+        * source when they already have three would be useless advice, and telling them to write a
+        * brief when there is no data behind it sends them to a wizard that cannot finish.
+        *
+        * `connectedSources === 0` rather than falsy: it is null until the first load lands, and
+        * treating that as zero would flash "no data source is connected" over a tenant that has some.
+        */}
+      {connectedSources === 0 ? (
+        <NoSourceConnected detail="A graph is built from data this tenant has connected. Connect a BigQuery project, a Google Drive or a Gmail mailbox — its tables, documents and mail become the lanes a use case is built from here." />
+      ) : useCases.length === 0 ? (
         <Alert
           type="info"
           showIcon
-          style={{ marginBottom: SP.base }}
-          title={
-            buildRunning
-              ? 'Building — the review queue, canvas, query and versions open when this run completes.'
-              : 'Build this graph first. The other tabs read a build’s output, so they stay locked until a run completes — start one below.'
+          title="No use case to build yet"
+          description="Create one in New Graph — a studio is where a committed brief becomes a graph, so there is nothing here until one exists."
+          action={
+            <Typography.Link onClick={() => navigate(appPath('/new-graph'))}>
+              Open New Graph
+            </Typography.Link>
           }
         />
-      )}
+      ) : (
+        <Space direction="vertical" size={SP.base} style={{ width: '100%' }}>
+          <Space wrap size={SP.sm} align="center">
+            <Typography.Text type="secondary">Use case</Typography.Text>
+            <Select
+              style={{ minWidth: 320 }}
+              value={useCaseId ?? undefined}
+              onChange={select}
+              options={useCases.map((u) => ({
+                value: u.useCaseId,
+                label: u.name ?? u.useCaseId,
+              }))}
+            />
+            {useCase ? (
+              <>
+                {/* The lanes, stated on the selector as well as on the Build tab — "why does this
+                    one offer no document build" is the question a shortened list cannot answer. */}
+                <Tag color={useCase.hasStructured ? 'blue' : 'default'}>
+                  {useCase.hasStructured ? 'structured' : 'no structured lane'}
+                </Tag>
+                <Tag color={useCase.hasDocuments ? 'purple' : 'default'}>
+                  {useCase.hasDocuments ? 'documents' : 'no document lane'}
+                </Tag>
+                <Tag color={useCase.status === 'committed' ? 'green' : 'default'}>
+                  {useCase.status}
+                </Tag>
+              </>
+            ) : null}
+          </Space>
 
-      <Tabs
-        activeKey={tab}
-        onChange={setTab}
-        items={[
-          {
-            key: 'build',
-            label: 'Build',
-            children: (
-              <BuildTab
-                graphName={`${data.graphName}${data.domainId ? ` · ${data.domainId}` : ''}`}
-                liveVersion={data.liveVersion}
-                builds={builds}
-                shown={shownBuild}
-                starting={buildStarting}
-                loading={buildsLoading}
-                onTrigger={() => {
-                  if (!useCaseId) return
-                  void triggerBuild(useCaseId).then((r) => {
-                    if (!r.ok) message.error(r.error)
-                  })
-                }}
-                onShow={showBuild}
-                onReload={() => {
-                  if (useCaseId) void loadBuilds(useCaseId)
-                }}
-              />
-            ),
-          },
-          /* Every tab below reads a build's output, so each carries the same
-             `disabled` — one flag, so none of them can open while the others are shut. */
-          {
-            key: 'queue',
-            label: (
-              <span>
-                Review queue
-              </span>
-            ),
-            disabled: !outputReadable,
-            children: reviewQueue,
-          },
-          { key: 'canvas', label: 'Canvas', disabled: !outputReadable, children: canvasTab },
-          {
-            key: 'query',
-            label: 'Query & sanity-check',
-            disabled: !outputReadable,
-            children: queryTab,
-          },
-          {
-            key: 'versions',
-            label: 'Versions',
-            disabled: !outputReadable,
-            children: (
-              <VersionsTab
-                versions={data.versions}
-                graphName={data.graphName}
-                loadedJob={shownBuild?.buildId ?? null}
-                pending={pending}
-                gateBlocked={gate.blocked}
-                gateReasons={gate.reasons}
-                onPublish={(sha) => void onPublish(sha)}
-                onUnpublish={(sha) => void onUnpublish(sha)}
-                onLoadJob={(buildId) => {
-                  // Show that run on the Build tab and go there — "load this
-                  // version's job" is a navigation, so it navigates.
-                  showBuild(buildId)
-                  setTab('build')
-                }}
-              />
-            ),
-          },
-        ]}
-      />
+          {/*
+           * The three output tabs read a build's output, so they are locked until one exists — and
+           * locked again while a rebuild runs, because what they would otherwise show is the previous
+           * build's output with nothing saying so. Settling a correspondence against a canvas that is
+           * being superseded is a decision made on stale evidence. The lock says why, and says it
+           * differently while a run is in flight: "start one" is the wrong instruction for somebody
+           * already watching one.
+           */}
+          {useCase && !outputReadable ? (
+            <Alert
+              type="info"
+              showIcon
+              title={
+                buildRunning
+                  ? 'A build is running'
+                  : 'Nothing has been built for this use case yet'
+              }
+              description={
+                buildRunning
+                  ? 'The Bridge, the canvas and Versions read a build’s output, so they stay closed until this run lands — what they would show until then is the previous build’s, with nothing saying so.'
+                  : 'The Bridge, the canvas and Versions all read a build’s output. Build this use case first.'
+              }
+            />
+          ) : null}
+
+          {useCase ? (
+            <Tabs
+              activeKey={tab}
+              onChange={setTab}
+              items={[
+                {
+                  key: 'build',
+                  label: 'Build',
+                  children: (
+                    <StudioBuildTab
+                      useCase={useCase}
+                      sgbBuild={sgbBuild}
+                      dgbJob={dgbJob}
+                      story={story}
+                      storyDraft={storyDraft}
+                      drafting={drafting}
+                      building={building}
+                      busy={busy}
+                      onBuild={(text) => void report(() => build(text))}
+                      onDraft={() => void report(() => draft())}
+                      onSaveStory={(text) => void report(() => saveStory(text))}
+                    />
+                  ),
+                },
+                {
+                  key: 'bridge',
+                  label: 'Bridge',
+                  disabled: !outputReadable,
+                  children: (
+                    <StudioBridgeTab
+                      bridges={bridges}
+                      bridgeId={bridgeId}
+                      typeLinks={typeLinks}
+                      unreviewedCount={unreviewedCount}
+                      busy={busy}
+                      canForm={useCase.hasStructured && useCase.hasDocuments}
+                      laneNote={null}
+                      publishedBridgeId={publishedBridgeId}
+                      onSelectBridge={(id) => void selectBridge(id)}
+                      onForm={() => void report(() => formBridge())}
+                      sweeping={sweeping}
+                      savingLinkId={savingLinkId}
+                      publishing={busy}
+                      pendingVersionNumber={pendingVersion?.versionNumber ?? null}
+                      onDecide={(link, decision: TypeLinkDecision) =>
+                        void report(() => decide(link, decision, signedInAs))
+                      }
+                      onAcceptAll={() => void report(() => acceptAll(signedInAs))}
+                      onPublish={() => void report(publishThisBridge)}
+                    />
+                  ),
+                },
+                {
+                  key: 'canvas',
+                  label: 'Canvas',
+                  disabled: !outputReadable,
+                  children: (
+                    <StudioCanvasTab
+                      structured={sgbGraph}
+                      entities={entities}
+                      relations={relations}
+                      typeLinks={typeLinks}
+                      hasStructured={useCase.hasStructured}
+                      hasDocuments={useCase.hasDocuments}
+                      fullViewHref={fullViewHref}
+                    />
+                  ),
+                },
+                {
+                  key: 'versions',
+                  label: 'Versions',
+                  disabled: !outputReadable,
+                  children: (
+                    <StudioVersionsTab
+                      versions={versions}
+                      busy={busy}
+                      signedInAs={signedInAs}
+                      onPublish={(id) => void report(() => publish(id, signedInAs))}
+                      onUnpublish={(id) => void report(() => unpublish(id))}
+                    />
+                  ),
+                },
+              ]}
+            />
+          ) : null}
+        </Space>
+      )}
     </>
   )
 }

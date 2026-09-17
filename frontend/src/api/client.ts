@@ -9867,3 +9867,1398 @@ export async function unpublishGovernanceArtifact(input: {
     ),
   )
 }
+
+/* ================= Graph Studio — one studio, whichever lanes a use case has =================
+ *
+ * **Two graphs, one approval.** A use case's structured lane and its document lane build separately,
+ * draw separately and never resolve their entities against each other; what is unified is the use
+ * case and its *publication* — a version names the artifacts approved together, so "publish this use
+ * case" is one act with one outcome rather than two calls that can half-succeed.
+ *
+ * Every payload below is validated at this boundary like every other one here. That matters more on
+ * this surface than most: a build is polled, so a shape the server stopped sending would otherwise
+ * surface as a spinner that never resolves rather than as an error naming the field.
+ */
+
+/** Which lanes a use case has — **derived from what is attached, never declared.** A single-valued
+ *  kind field could not express "both", and frozen at commit it could not grow into a second lane. */
+export interface StudioUseCase {
+  useCaseId: string
+  name: string | null
+  domain: string | null
+  status: string
+  hasStructured: boolean
+  hasDocuments: boolean
+  documentCount: number
+  structuredTableCount: number
+  /** Truthy means "a graph can be built from it". Deliberately read as truthiness rather than
+   *  `!== null`: a row whose version id is absent must never reach the picker, and `undefined` is not
+   *  `null` — that exact gap put unbuildable drafts in the list once. */
+  latestCommittedVersionId: string | null
+  updatedAt: string | null
+}
+
+export interface StudioUseCaseDetail extends StudioUseCase {
+  businessNeed: string | null
+  requiredSources: string[]
+}
+
+export interface StudioSource {
+  sourceId: string
+  sourceType: string
+  name: string
+  connector: string
+}
+
+/* ---------------- the structured lane ---------------- */
+
+export interface SgbStageStep {
+  step: string
+  state: 'pending' | 'running' | 'complete'
+}
+
+export interface SgbStage {
+  stage: string
+  label: string
+  state: 'pending' | 'running' | 'complete'
+  steps: SgbStageStep[]
+}
+
+/**
+ * One structured build.
+ *
+ * `nodeCount` deliberately excludes columns: the canvas folds a column into its table's card, so
+ * counting them would report a number the drawing never draws. Both counts are **nullable** — a build
+ * that has not finished has not counted anything, and 0 would say the graph is empty.
+ */
+export interface SgbBuild {
+  buildId: string
+  useCaseId: string
+  status: string
+  buildNumber: number
+  name: string
+  nodeCount: number | null
+  relationCount: number | null
+  tableCount: number | null
+  columnCount: number | null
+  conceptCount: number | null
+  createdAt: string
+  updatedAt: string
+  publishedAt: string | null
+  publishedBy: string | null
+  errorMessage: string | null
+  cursor: number
+  stepTotal: number
+  /** The server's pace, so the panel's "about N left" derives from it rather than restating a
+   *  number. Change it on the server and the page follows. */
+  stepMs: number
+  stages: SgbStage[]
+}
+
+export interface SgbTable {
+  tableRef: string
+  tableId: string
+  sourceId: string
+  schemaName: string | null
+  tableName: string
+  rowCountEstimate: number | null
+  tableKind: string
+  selected: boolean
+  comment: string | null
+}
+
+export interface SgbColumn {
+  columnRef: string
+  tableRef: string
+  columnName: string
+  ordinalPosition: number | null
+  dataType: string
+  description: string | null
+  semanticRole: string | null
+  conceptName: string | null
+  profile: {
+    distinctCountInSample: number | null
+    nullRatio: number | null
+    isSampleClaim: boolean
+  }
+}
+
+export interface SgbConcept {
+  conceptRef: string
+  name: string
+  description: string | null
+  declared: boolean
+}
+
+export interface SgbEdge {
+  edgeType: string
+  srcKind: string
+  srcRef: string
+  dstKind: string
+  dstRef: string
+  declared: boolean
+}
+
+export interface SgbStory {
+  storyGroupId: string
+  story: string
+  grain: Record<string, unknown>
+  uncertainties: string[]
+  /** True only where somebody really typed it, so the tenant's own words are distinguishable from
+   *  the ones the server composed out of their brief. */
+  editedByUser: boolean
+}
+
+export interface SgbGraph {
+  buildId: string
+  tables: SgbTable[]
+  columns: SgbColumn[]
+  concepts: SgbConcept[]
+  edges: SgbEdge[]
+  storyGroup: SgbStory | null
+}
+
+export interface StoryDraft {
+  story: string
+  /** Whether a model produced this. **False would be a claim**, and none ran here: the prose is the
+   *  use case's own business need rearranged. */
+  degraded: boolean
+  degradeReason: string | null
+  tablesConsidered: number
+  columnsConsidered: number
+  declaredRelationshipsConsidered: number
+  intentConsidered: boolean
+  heroQuestionsConsidered: number
+}
+
+/* ---------------- the document lane ---------------- */
+
+export interface DgbStage {
+  stage: string
+  label: string
+  state: 'pending' | 'running' | 'complete'
+  counts: Record<string, unknown> | null
+}
+
+export interface DgbJob {
+  jobId: string
+  status: string
+  documentsProcessed: number
+  documentTotal: number
+  createdAt: string | null
+  completedAt: string | null
+  stageMs: number
+  stages: DgbStage[]
+  /** What the running stage is doing, in words. The long stages have no honest denominator, so they
+   *  report a phrase rather than a percentage nobody measures. */
+  /** What the running stage is doing, in words, and the unix second it began — the panel turns
+   *  `since` into an elapsed timer. The long stages have no honest denominator, so they report a
+   *  phrase rather than a percentage nobody measures. */
+  phase: { stage: string; phase: string; since: number } | null
+}
+
+export interface DgbBuild {
+  buildId: string
+  documentCorpusId: string
+  graphVersion: number
+  documentCount: number
+  entityCount: number
+  relationCount: number
+  classCount: number
+  completedAt: string
+  /** `superseded` is distinct from `unpublished` on purpose: "a newer version took over" and "a
+   *  human withdrew this" are different facts and a history that conflates them lies. */
+  publishStatus: 'unpublished' | 'published' | 'superseded'
+  publishedAt: string | null
+  /** Server-derived, so the UI never re-implements the rule. */
+  isQueryable: boolean
+}
+
+export interface DgbEntity {
+  entityId: string
+  canonicalName: string
+  entityType: string
+  aliases: string[]
+  mentionCount: number
+  /** A document, or the thing a document was found to be about. */
+  kind?: string
+  resolvedType?: string | null
+}
+
+export interface DgbRelation {
+  relationId: string
+  subjectEntityId: string
+  objectEntityId: string
+  relationType: string
+  chunkId: string
+  documentId: string | null
+  classes: string[]
+  confidence: number | null
+}
+
+/**
+ * The passage a relation was asserted from.
+ *
+ * **`chunkText` is nullable and is null in this tenant**, because no document here stores its body.
+ * The panel prints that rather than a sentence: text composed by the server and labelled "what this
+ * was extracted from" is the one invention a reader could not catch, and checking exactly that is
+ * what an evidence panel is for.
+ */
+export interface ChunkEvidence {
+  chunkId: string
+  documentId: string
+  chunkText: string | null
+  documentName: string
+  docTypeLabel: string | null
+  linkedEntity: string | null
+  pageStart: number | null
+  pageEnd: number | null
+}
+
+export interface CorpusDocument {
+  documentId: string
+  filename: string
+  mimeType: string | null
+  docType: string | null
+  docTypeLabel: string | null
+  linkedEntity: string | null
+  pages: number | null
+  folder: string
+  drive: string
+}
+
+/* ---------------- the Bridge ---------------- */
+
+export type TypeLinkDecision = 'identity' | 'attribute' | 'reject'
+
+/**
+ * One correspondence between a document entity type and a structured concept.
+ *
+ * **The Bridge stops at the type level.** It names no column, projects onto no individual entity and
+ * queries no warehouse — so nothing here can become a `WHERE` clause and no screen may imply
+ * otherwise. `reject` rows are carried, not dropped: the list records what was *considered*, so a
+ * pair the deriver declined is distinguishable from one it never saw.
+ */
+export interface TypeLink {
+  typeLinkId: string
+  bridgeBuildId: string
+  entityType: string
+  conceptRef: string
+  conceptName: string
+  conceptDeclared: boolean
+  decision: TypeLinkDecision
+  /** Categorical — `high` | `low` — never a numeric score, which would invite being read as a
+   *  measurement when nothing measured it. */
+  confidence: string
+  reason: string
+  /** `llm` for a derived row, `human` once somebody decided it. */
+  decidedBy: string
+  originalDecision: string | null
+  originalConfidence: string | null
+  originalReason: string | null
+  decidedByUser: string | null
+  decidedAt: string | null
+  updatedAt: string
+}
+
+export interface BridgeStage {
+  stage: string
+  label: string
+  state: 'pending' | 'running' | 'complete'
+}
+
+export interface BridgeBuild {
+  bridgeBuildId: string
+  useCaseId: string
+  buildNumber: number
+  sgbBuildId: string
+  documentCorpusId: string
+  dgbGraphVersion: number
+  status: string
+  createdAt: string
+  updatedAt: string
+  stageMs: number
+  stages: BridgeStage[]
+}
+
+export interface TypeLinkList {
+  typeLinks: TypeLink[]
+  /** The server's own count of what still blocks publishing. **Never derived here**: a second
+   *  expression of the gate's predicate is a screen reading "nothing left" over a server that
+   *  refuses the publish. */
+  unreviewedCount: number
+}
+
+/**
+ * Does this Type Link still block publishing?
+ *
+ * **The criterion, and the whole of it:** it asserts a correspondence (`decision !== 'reject'`) and
+ * no person has decided it. Rejects are excluded because publishing approves what a Bridge
+ * *asserts*, and a reject asserts nothing. Confidence is excluded deliberately — it is the deriver's
+ * own self-report, so gating on it would let the deriver choose which rows a human must look at, and
+ * a confidently-wrong `identity`, the one that does damage, is exactly the row that would escape.
+ * Confidence *orders* the queue; it does not define it. Agreement is a decision, so a row leaves this
+ * set whether the person confirmed or changed it.
+ */
+export const typeLinkNeedsReview = (link: TypeLink): boolean =>
+  link.decision !== 'reject' && link.decidedBy === 'llm'
+
+/* ---------------- versions ---------------- */
+
+/** One Combined Graph Version — the artifacts approved **together**. It records an approval; it is
+ *  never a merged or copied graph. */
+export interface StudioVersion {
+  graphVersionId: string
+  useCaseId: string
+  versionNumber: number
+  sgbBuildId: string | null
+  documentCorpusId: string | null
+  dgbGraphVersion: number | null
+  bridgeBuildId: string | null
+  publishedAt: string | null
+  publishedBy: string | null
+  createdAt: string
+}
+
+/** One version plus the two staleness questions, **reported separately and never fused.** A
+ *  mismatched Bridge triple is a *defect*; a newer lane build is just a new *candidate* the published
+ *  version is entitled to ignore until somebody adopts it. One "stale" boolean would make those read
+ *  the same. Nothing is stored, so neither answer can drift. */
+export interface StudioVersionDetail {
+  version: StudioVersion
+  bridgeMatchesNamedTriple: boolean | null
+  bridgeStatus: string | null
+  newerSgbBuildId: string | null
+  newerDgbGraphVersion: number | null
+}
+
+export interface PublishedBridge {
+  bridgeBuildId: string
+  buildNumber: number
+  status: string
+}
+
+/* ---------------- schemas ---------------- */
+
+const STAGE_STATE = oneOf(['pending', 'running', 'complete'])
+
+const STUDIO_USE_CASE = shape({
+  use_case_config_id: str,
+  name: nullable(str),
+  domain: nullable(str),
+  status: str,
+  has_structured: bool,
+  has_documents: bool,
+  document_count: num,
+  structured_table_count: num,
+  latest_committed_version_id: nullable(str),
+  updated_at: nullable(str),
+})
+
+const STUDIO_USE_CASES = shape({
+  configs: arrayOf(STUDIO_USE_CASE),
+  connected_sources: num,
+})
+
+const STUDIO_USE_CASE_DETAIL = shape({
+  use_case_config_id: str,
+  name: nullable(str),
+  domain: nullable(str),
+  status: str,
+  business_need: nullable(str),
+  required_sources: arrayOf(str),
+  has_structured: bool,
+  has_documents: bool,
+  document_count: num,
+  structured_table_count: num,
+})
+
+const STUDIO_SOURCES = shape({
+  sources: arrayOf(
+    shape({ source_id: str, source_type: str, name: str, connector: str }),
+  ),
+})
+
+const SGB_BUILD = shape({
+  build_id: str,
+  use_case_config_id: str,
+  status: str,
+  build_number: num,
+  name: str,
+  /* Nullable because an unfinished build has counted nothing — and `?? 0` at a reader would say the
+     graph is empty, which is the `rows: num` pitfall this repo has already been bitten by twice. */
+  node_count: nullable(num),
+  relation_count: nullable(num),
+  table_count: nullable(num),
+  column_count: nullable(num),
+  concept_count: nullable(num),
+  created_at: str,
+  updated_at: str,
+  published_at: nullable(str),
+  published_by_user_id: nullable(str),
+  error_message: nullable(str),
+  cursor: num,
+  step_total: num,
+  step_ms: num,
+  stages: arrayOf(
+    shape({
+      stage: str,
+      label: str,
+      state: STAGE_STATE,
+      steps: arrayOf(shape({ step: str, state: STAGE_STATE })),
+    }),
+  ),
+})
+
+const SGB_BUILDS = shape({ builds: arrayOf(SGB_BUILD) })
+
+const SGB_TRIGGERED = shape({ build_id: str, status: str })
+
+/**
+ * The story group, as the **graph** carries it.
+ *
+ * **It has no `build_id`, and sharing one schema with the story *endpoint* was a real bug.** A story
+ * group is a thing the graph contains, so it is identified by `story_group_id`; `GET …/builds/:id/
+ * story` answers *about a build*, so that reply names one. Declared together, every structured graph
+ * was refused with `story_group.build_id should be a string, got undefined` — under the message that
+ * tells a reader to restart the mock server, which was answering perfectly.
+ *
+ * Two shapes, two schemas. `SGB_STORY` below is this plus the build it was read for.
+ */
+const SGB_STORY_GROUP = shape({
+  story_group_id: str,
+  story: str,
+  grain: shape({}),
+  uncertainties: arrayOf(str),
+  edited_by_user: bool,
+})
+
+/** The story endpoint's own reply: the group, plus the build it answers about. */
+const SGB_STORY = shape({
+  build_id: str,
+  story_group_id: str,
+  story: str,
+  grain: shape({}),
+  uncertainties: arrayOf(str),
+  edited_by_user: bool,
+})
+
+const SGB_GRAPH = shape({
+  build_id: str,
+  tables: arrayOf(
+    shape({
+      table_ref: str,
+      table_id: str,
+      source_id: str,
+      schema_name: nullable(str),
+      table_name: str,
+      row_count_estimate: nullable(num),
+      table_kind: str,
+      selected: bool,
+      comment: nullable(str),
+    }),
+  ),
+  columns: arrayOf(
+    shape({
+      column_ref: str,
+      table_ref: str,
+      column_name: str,
+      ordinal_position: nullable(num),
+      data_type: str,
+      description: nullable(str),
+      semantic_role: nullable(str),
+      concept_name: nullable(str),
+      profile: shape({
+        distinct_count_in_sample: nullable(num),
+        null_ratio: nullable(num),
+        is_sample_claim: bool,
+      }),
+    }),
+  ),
+  concepts: arrayOf(
+    shape({ concept_ref: str, name: str, description: nullable(str), declared: bool }),
+  ),
+  edges: arrayOf(
+    shape({
+      edge_type: str,
+      src_kind: str,
+      src_ref: str,
+      dst_kind: str,
+      dst_ref: str,
+      declared: bool,
+    }),
+  ),
+  story_group: nullable(SGB_STORY_GROUP),
+})
+
+const STORY_DRAFT = shape({
+  story: str,
+  degraded: bool,
+  degrade_reason: nullable(str),
+  tables_considered: num,
+  columns_considered: num,
+  declared_relationships_considered: num,
+  intent_considered: bool,
+  hero_questions_considered: num,
+})
+
+const DGB_JOB = shape({
+  job_id: str,
+  status: str,
+  documents_processed: num,
+  document_total: num,
+  created_at: nullable(str),
+  completed_at: nullable(str),
+  stage_ms: num,
+  stages: arrayOf(
+    shape({ stage: str, label: str, state: STAGE_STATE, counts: nullable(shape({})) }),
+  ),
+  phase: nullable(shape({ stage: str, phase: str, since: num })),
+})
+
+const DGB_BUILD = shape({
+  build_id: str,
+  document_corpus_id: str,
+  graph_version: num,
+  document_count: num,
+  entity_count: num,
+  relation_count: num,
+  class_count: num,
+  completed_at: str,
+  publish_status: oneOf(['unpublished', 'published', 'superseded']),
+  published_at: nullable(str),
+  is_queryable: bool,
+})
+
+const DGB_BUILDS = shape({ builds: arrayOf(DGB_BUILD) })
+
+const DGB_ENTITY = shape({
+  entity_id: str,
+  canonical_name: str,
+  entity_type: str,
+  aliases: arrayOf(str),
+  mention_count: num,
+})
+
+const DGB_RELATION = shape({
+  relation_id: str,
+  subject_entity_id: str,
+  object_entity_id: str,
+  relation_type: str,
+  chunk_id: str,
+  document_id: nullable(str),
+  classes: arrayOf(str),
+  confidence: nullable(num),
+})
+
+const DGB_PAGE = (item: FieldCheck) =>
+  shape({ items: arrayOf(item), limit: num, offset: num, has_more: bool })
+
+const DGB_CLASSES = shape({ classes: arrayOf(str) })
+
+const CHUNK_EVIDENCE = shape({
+  chunk_id: str,
+  document_id: str,
+  /* Nullable, and null in this tenant: no document here stores its body. A string would be a
+     fabricated quotation sitting under a heading that says it is verbatim. */
+  chunk_text: nullable(str),
+  document_name: str,
+  doc_type_label: nullable(str),
+  linked_entity: nullable(str),
+  page_start: nullable(num),
+  page_end: nullable(num),
+})
+
+const CORPUS_DOCUMENTS = shape({
+  documents: arrayOf(
+    shape({
+      document_id: str,
+      filename: str,
+      mime_type: nullable(str),
+      doc_type: nullable(str),
+      doc_type_label: nullable(str),
+      linked_entity: nullable(str),
+      pages: nullable(num),
+      folder: str,
+      drive: str,
+    }),
+  ),
+})
+
+const TYPE_LINK = shape({
+  type_link_id: str,
+  bridge_build_id: str,
+  entity_type: str,
+  concept_ref: str,
+  concept_name: str,
+  concept_declared: bool,
+  decision: oneOf(['identity', 'attribute', 'reject']),
+  confidence: str,
+  reason: str,
+  decided_by: str,
+  original_decision: nullable(str),
+  original_confidence: nullable(str),
+  original_reason: nullable(str),
+  decided_by_user_id: nullable(str),
+  decided_at: nullable(str),
+  /* The row's own stamp, read by the decision control to reset itself after a save: without it
+     the next edit starts from whatever the person chose last time rather than from what now
+     stands. */
+  updated_at: str,
+})
+
+const TYPE_LINKS = shape({ type_links: arrayOf(TYPE_LINK), unreviewed_count: num })
+
+const ACCEPT_OUTSTANDING = shape({ accepted_count: num, unreviewed_count: num })
+
+const BRIDGE_BUILD = shape({
+  bridge_build_id: str,
+  use_case_config_id: str,
+  build_number: num,
+  sgb_build_id: str,
+  document_corpus_id: str,
+  dgb_graph_version: num,
+  status: str,
+  created_at: str,
+  updated_at: str,
+  stage_ms: num,
+  stages: arrayOf(shape({ stage: str, label: str, state: STAGE_STATE })),
+})
+
+const BRIDGE_BUILDS = shape({ bridge_builds: arrayOf(BRIDGE_BUILD) })
+
+const BRIDGE_TRIGGERED = shape({ bridge_build_id: str, build_number: num, status: str })
+
+const COMBINED_TRIGGERED = shape({
+  use_case_config_id: str,
+  sgb_build_id: nullable(str),
+  dgb_job_id: nullable(str),
+  status: str,
+})
+
+const PUBLISHED_BRIDGE = shape({
+  published_bridge: nullable(
+    shape({ bridge_build_id: str, build_number: num, status: str }),
+  ),
+})
+
+const GRAPH_VERSION = shape({
+  graph_version_id: str,
+  use_case_config_id: str,
+  version_number: num,
+  sgb_build_id: nullable(str),
+  document_corpus_id: nullable(str),
+  dgb_graph_version: nullable(num),
+  bridge_build_id: nullable(str),
+  published_at: nullable(str),
+  published_by_user_id: nullable(str),
+  created_at: str,
+})
+
+const GRAPH_VERSIONS = shape({ versions: arrayOf(GRAPH_VERSION) })
+const ONE_GRAPH_VERSION = shape({ version: nullable(GRAPH_VERSION) })
+
+const GRAPH_VERSION_DETAIL = shape({
+  version: GRAPH_VERSION,
+  bridge_matches_named_triple: nullable(bool),
+  bridge_status: nullable(str),
+  newer_sgb_build_id: nullable(str),
+  newer_dgb_graph_version: nullable(num),
+})
+
+/* ---------------- mappers ---------------- */
+
+const toStudioUseCase = (raw: {
+  use_case_config_id: string
+  name: string | null
+  domain: string | null
+  status: string
+  has_structured: boolean
+  has_documents: boolean
+  document_count: number
+  structured_table_count: number
+  latest_committed_version_id: string | null
+  updated_at: string | null
+}): StudioUseCase => ({
+  useCaseId: raw.use_case_config_id,
+  name: raw.name,
+  domain: raw.domain,
+  status: raw.status,
+  hasStructured: raw.has_structured,
+  hasDocuments: raw.has_documents,
+  documentCount: raw.document_count,
+  structuredTableCount: raw.structured_table_count,
+  latestCommittedVersionId: raw.latest_committed_version_id,
+  updatedAt: raw.updated_at,
+})
+
+const toSgbBuild = (raw: Record<string, unknown>): SgbBuild => ({
+  buildId: raw.build_id as string,
+  useCaseId: raw.use_case_config_id as string,
+  status: raw.status as string,
+  buildNumber: raw.build_number as number,
+  name: raw.name as string,
+  nodeCount: raw.node_count as number | null,
+  relationCount: raw.relation_count as number | null,
+  tableCount: raw.table_count as number | null,
+  columnCount: raw.column_count as number | null,
+  conceptCount: raw.concept_count as number | null,
+  createdAt: raw.created_at as string,
+  updatedAt: raw.updated_at as string,
+  publishedAt: raw.published_at as string | null,
+  publishedBy: raw.published_by_user_id as string | null,
+  errorMessage: raw.error_message as string | null,
+  cursor: raw.cursor as number,
+  stepTotal: raw.step_total as number,
+  stepMs: raw.step_ms as number,
+  stages: raw.stages as SgbStage[],
+})
+
+const toSgbStory = (raw: Record<string, unknown>): SgbStory => ({
+  storyGroupId: raw.story_group_id as string,
+  story: raw.story as string,
+  grain: raw.grain as Record<string, unknown>,
+  uncertainties: raw.uncertainties as string[],
+  editedByUser: raw.edited_by_user as boolean,
+})
+
+const toDgbBuild = (raw: Record<string, unknown>): DgbBuild => ({
+  buildId: raw.build_id as string,
+  documentCorpusId: raw.document_corpus_id as string,
+  graphVersion: raw.graph_version as number,
+  documentCount: raw.document_count as number,
+  entityCount: raw.entity_count as number,
+  relationCount: raw.relation_count as number,
+  classCount: raw.class_count as number,
+  completedAt: raw.completed_at as string,
+  publishStatus: raw.publish_status as DgbBuild['publishStatus'],
+  publishedAt: raw.published_at as string | null,
+  isQueryable: raw.is_queryable as boolean,
+})
+
+const toTypeLink = (raw: Record<string, unknown>): TypeLink => ({
+  typeLinkId: raw.type_link_id as string,
+  bridgeBuildId: raw.bridge_build_id as string,
+  entityType: raw.entity_type as string,
+  conceptRef: raw.concept_ref as string,
+  conceptName: raw.concept_name as string,
+  conceptDeclared: raw.concept_declared as boolean,
+  decision: raw.decision as TypeLinkDecision,
+  confidence: raw.confidence as string,
+  reason: raw.reason as string,
+  decidedBy: raw.decided_by as string,
+  originalDecision: raw.original_decision as string | null,
+  originalConfidence: raw.original_confidence as string | null,
+  originalReason: raw.original_reason as string | null,
+  decidedByUser: raw.decided_by_user_id as string | null,
+  decidedAt: raw.decided_at as string | null,
+  updatedAt: raw.updated_at as string,
+})
+
+const toBridgeBuild = (raw: Record<string, unknown>): BridgeBuild => ({
+  bridgeBuildId: raw.bridge_build_id as string,
+  useCaseId: raw.use_case_config_id as string,
+  buildNumber: raw.build_number as number,
+  sgbBuildId: raw.sgb_build_id as string,
+  documentCorpusId: raw.document_corpus_id as string,
+  dgbGraphVersion: raw.dgb_graph_version as number,
+  status: raw.status as string,
+  createdAt: raw.created_at as string,
+  updatedAt: raw.updated_at as string,
+  stageMs: raw.stage_ms as number,
+  stages: raw.stages as BridgeStage[],
+})
+
+const toGraphVersion = (raw: Record<string, unknown>): StudioVersion => ({
+  graphVersionId: raw.graph_version_id as string,
+  useCaseId: raw.use_case_config_id as string,
+  versionNumber: raw.version_number as number,
+  sgbBuildId: raw.sgb_build_id as string | null,
+  documentCorpusId: raw.document_corpus_id as string | null,
+  dgbGraphVersion: raw.dgb_graph_version as number | null,
+  bridgeBuildId: raw.bridge_build_id as string | null,
+  publishedAt: raw.published_at as string | null,
+  publishedBy: raw.published_by_user_id as string | null,
+  createdAt: raw.created_at as string,
+})
+
+/* ---------------- fetchers ---------------- */
+
+const ucPath = (useCaseId: string) => `/use-cases/${encodeURIComponent(useCaseId)}`
+
+/**
+ * Every use case, with the lanes it has.
+ *
+ * **Not filtered to the committed ones.** A draft can already have been built, so a shortened list
+ * would hide graphs that exist; the selector states each row's lanes instead, which is the answer to
+ * "why does this one offer no document build" that a missing row cannot give.
+ */
+export async function listStudioUseCases(): Promise<{
+  useCases: StudioUseCase[]
+  /** How many sources this tenant has connected. **The studio's outer precondition**: every lane
+   *  derives from one, so with none connected there is nothing to build from — a different dead end
+   *  from "no use case yet", and fixed on a different page. */
+  connectedSources: number
+}> {
+  const raw = validate<{
+    configs: Parameters<typeof toStudioUseCase>[0][]
+    connected_sources: number
+  }>('The use cases', await request<unknown>('/use-case-configs'), STUDIO_USE_CASES)
+  return {
+    useCases: raw.configs.map(toStudioUseCase),
+    connectedSources: raw.connected_sources,
+  }
+}
+
+export async function getStudioUseCase(useCaseId: string): Promise<StudioUseCaseDetail> {
+  const raw = validate<Record<string, unknown>>(
+    'The use case',
+    await request<unknown>(`/use-case-configs/${encodeURIComponent(useCaseId)}`),
+    STUDIO_USE_CASE_DETAIL,
+  )
+  return {
+    ...toStudioUseCase(raw as never),
+    latestCommittedVersionId: null,
+    updatedAt: null,
+    businessNeed: raw.business_need as string | null,
+    requiredSources: raw.required_sources as string[],
+  }
+}
+
+export async function listStudioSources(): Promise<StudioSource[]> {
+  const raw = validate<{
+    sources: { source_id: string; source_type: string; name: string; connector: string }[]
+  }>('The sources', await request<unknown>('/metadata-profiler/sources'), STUDIO_SOURCES)
+  return raw.sources.map((s) => ({
+    sourceId: s.source_id,
+    sourceType: s.source_type,
+    name: s.name,
+    connector: s.connector,
+  }))
+}
+
+/* ---- structured lane ---- */
+
+export async function draftStory(useCaseId: string): Promise<StoryDraft> {
+  const raw = validate<Record<string, unknown>>(
+    'The drafted story',
+    await request<unknown>('/structured-graph-builder/story-drafts', {
+      method: 'POST',
+      body: { use_case_config_id: useCaseId },
+    }),
+    STORY_DRAFT,
+  )
+  return {
+    story: raw.story as string,
+    degraded: raw.degraded as boolean,
+    degradeReason: raw.degrade_reason as string | null,
+    tablesConsidered: raw.tables_considered as number,
+    columnsConsidered: raw.columns_considered as number,
+    declaredRelationshipsConsidered: raw.declared_relationships_considered as number,
+    intentConsidered: raw.intent_considered as boolean,
+    heroQuestionsConsidered: raw.hero_questions_considered as number,
+  }
+}
+
+export async function triggerSgbBuild(input: {
+  useCaseId: string
+  story?: string
+}): Promise<{ buildId: string; status: string }> {
+  const raw = validate<{ build_id: string; status: string }>(
+    'The queued build',
+    await request<unknown>('/structured-graph-builder/builds', {
+      method: 'POST',
+      body: { use_case_config_id: input.useCaseId, story: input.story },
+    }),
+    SGB_TRIGGERED,
+  )
+  return { buildId: raw.build_id, status: raw.status }
+}
+
+export async function listSgbBuilds(useCaseId: string): Promise<SgbBuild[]> {
+  const raw = validate<{ builds: Record<string, unknown>[] }>(
+    'The structured builds',
+    await request<unknown>(
+      `/structured-graph-builder/builds?use_case_config_id=${encodeURIComponent(useCaseId)}`,
+    ),
+    SGB_BUILDS,
+  )
+  return raw.builds.map(toSgbBuild)
+}
+
+export async function getSgbBuild(buildId: string): Promise<SgbBuild> {
+  return toSgbBuild(
+    validate<Record<string, unknown>>(
+      'The build',
+      await request<unknown>(`/structured-graph-builder/builds/${encodeURIComponent(buildId)}`),
+      SGB_BUILD,
+    ),
+  )
+}
+
+/** The typed graph. **200 with an empty graph while the build runs**, so callers gate on the build's
+ *  own status rather than on this being non-empty. */
+export async function getSgbGraph(buildId: string): Promise<SgbGraph> {
+  const raw = validate<Record<string, unknown>>(
+    'The structured graph',
+    await request<unknown>(
+      `/structured-graph-builder/builds/${encodeURIComponent(buildId)}/graph`,
+    ),
+    SGB_GRAPH,
+  )
+  return {
+    buildId: raw.build_id as string,
+    tables: (raw.tables as Record<string, unknown>[]).map((t) => ({
+      tableRef: t.table_ref as string,
+      tableId: t.table_id as string,
+      sourceId: t.source_id as string,
+      schemaName: t.schema_name as string | null,
+      tableName: t.table_name as string,
+      rowCountEstimate: t.row_count_estimate as number | null,
+      tableKind: t.table_kind as string,
+      selected: t.selected as boolean,
+      comment: t.comment as string | null,
+    })),
+    columns: (raw.columns as Record<string, unknown>[]).map((c) => ({
+      columnRef: c.column_ref as string,
+      tableRef: c.table_ref as string,
+      columnName: c.column_name as string,
+      ordinalPosition: c.ordinal_position as number | null,
+      dataType: c.data_type as string,
+      description: c.description as string | null,
+      semanticRole: c.semantic_role as string | null,
+      conceptName: c.concept_name as string | null,
+      profile: {
+        distinctCountInSample: (c.profile as Record<string, unknown>)
+          .distinct_count_in_sample as number | null,
+        nullRatio: (c.profile as Record<string, unknown>).null_ratio as number | null,
+        isSampleClaim: (c.profile as Record<string, unknown>).is_sample_claim as boolean,
+      },
+    })),
+    concepts: (raw.concepts as Record<string, unknown>[]).map((c) => ({
+      conceptRef: c.concept_ref as string,
+      name: c.name as string,
+      description: c.description as string | null,
+      declared: c.declared as boolean,
+    })),
+    edges: (raw.edges as Record<string, unknown>[]).map((e) => ({
+      edgeType: e.edge_type as string,
+      srcKind: e.src_kind as string,
+      srcRef: e.src_ref as string,
+      dstKind: e.dst_kind as string,
+      dstRef: e.dst_ref as string,
+      declared: e.declared as boolean,
+    })),
+    storyGroup: raw.story_group ? toSgbStory(raw.story_group as Record<string, unknown>) : null,
+  }
+}
+
+export async function getSgbStory(buildId: string): Promise<SgbStory> {
+  return toSgbStory(
+    validate<Record<string, unknown>>(
+      'The story',
+      await request<unknown>(`/structured-graph-builder/builds/${encodeURIComponent(buildId)}/story`),
+      SGB_STORY,
+    ),
+  )
+}
+
+/** Edit the story. The build goes back to `running` while it re-extracts — re-poll exactly as for a
+ *  fresh trigger. A published build refuses: nothing may change under an approval without a version
+ *  moving to say so. */
+export async function editSgbStory(input: {
+  buildId: string
+  story: string
+}): Promise<{ status: string }> {
+  const raw = validate<{ status: string }>(
+    'The story edit',
+    await request<unknown>(
+      `/structured-graph-builder/builds/${encodeURIComponent(input.buildId)}/story`,
+      { method: 'PUT', body: { story: input.story } },
+    ),
+    shape({ build_id: str, story_group_id: str, status: str }),
+  )
+  return { status: raw.status }
+}
+
+/* ---- document lane ---- */
+
+export async function triggerDgbBuild(useCaseId: string): Promise<{ jobId: string; status: string }> {
+  const raw = validate<{ job_id: string; status: string }>(
+    'The queued document build',
+    await request<unknown>(
+      `/document-graph-builder/corpora/${encodeURIComponent(useCaseId)}/build`,
+      { method: 'POST' },
+    ),
+    shape({ job_id: str, status: str, report: shape({}) }),
+  )
+  return { jobId: raw.job_id, status: raw.status }
+}
+
+export async function getDgbJob(jobId: string): Promise<DgbJob> {
+  const raw = validate<Record<string, unknown>>(
+    'The document build',
+    await request<unknown>(`/document-graph-builder/jobs/${encodeURIComponent(jobId)}`),
+    DGB_JOB,
+  )
+  return {
+    jobId: raw.job_id as string,
+    status: raw.status as string,
+    documentsProcessed: raw.documents_processed as number,
+    documentTotal: raw.document_total as number,
+    createdAt: raw.created_at as string | null,
+    completedAt: raw.completed_at as string | null,
+    stageMs: raw.stage_ms as number,
+    stages: raw.stages as DgbStage[],
+    phase: raw.phase as DgbJob['phase'],
+  }
+}
+
+export async function listDgbBuilds(useCaseId: string): Promise<DgbBuild[]> {
+  const raw = validate<{ builds: Record<string, unknown>[] }>(
+    'The document graph versions',
+    await request<unknown>(
+      `/document-graph-builder/graph/builds?document_corpus_id=${encodeURIComponent(useCaseId)}`,
+    ),
+    DGB_BUILDS,
+  )
+  return raw.builds.map(toDgbBuild)
+}
+
+export async function listDgbEntities(input: {
+  useCaseId: string
+  limit?: number
+}): Promise<DgbEntity[]> {
+  const raw = validate<{ items: Record<string, unknown>[] }>(
+    'The document entities',
+    await request<unknown>(
+      `/document-graph-builder/graph/entities?document_corpus_id=${encodeURIComponent(input.useCaseId)}` +
+        `&limit=${input.limit ?? 500}`,
+    ),
+    DGB_PAGE(DGB_ENTITY),
+  )
+  return raw.items.map((e) => ({
+    entityId: e.entity_id as string,
+    canonicalName: e.canonical_name as string,
+    entityType: e.entity_type as string,
+    aliases: e.aliases as string[],
+    mentionCount: e.mention_count as number,
+    kind: e.kind as string | undefined,
+    resolvedType: (e.resolved_type as string | null) ?? null,
+  }))
+}
+
+export async function listDgbRelations(input: {
+  useCaseId: string
+  limit?: number
+}): Promise<DgbRelation[]> {
+  const raw = validate<{ items: Record<string, unknown>[] }>(
+    'The document relations',
+    await request<unknown>(
+      `/document-graph-builder/graph/relations?document_corpus_id=${encodeURIComponent(input.useCaseId)}` +
+        `&limit=${input.limit ?? 500}`,
+    ),
+    DGB_PAGE(DGB_RELATION),
+  )
+  return raw.items.map((r) => ({
+    relationId: r.relation_id as string,
+    subjectEntityId: r.subject_entity_id as string,
+    objectEntityId: r.object_entity_id as string,
+    relationType: r.relation_type as string,
+    chunkId: r.chunk_id as string,
+    documentId: r.document_id as string | null,
+    classes: r.classes as string[],
+    confidence: r.confidence as number | null,
+  }))
+}
+
+export async function listDgbClasses(useCaseId: string): Promise<string[]> {
+  return validate<{ classes: string[] }>(
+    'The document classes',
+    await request<unknown>(
+      `/document-graph-builder/graph/classes?document_corpus_id=${encodeURIComponent(useCaseId)}`,
+    ),
+    DGB_CLASSES,
+  ).classes
+}
+
+export async function getChunkEvidence(input: {
+  useCaseId: string
+  chunkId: string
+}): Promise<ChunkEvidence> {
+  const raw = validate<Record<string, unknown>>(
+    'The evidence',
+    await request<unknown>(
+      `/document-graph-builder/graph/evidence/${encodeURIComponent(input.chunkId)}` +
+        `?document_corpus_id=${encodeURIComponent(input.useCaseId)}`,
+    ),
+    CHUNK_EVIDENCE,
+  )
+  return {
+    chunkId: raw.chunk_id as string,
+    documentId: raw.document_id as string,
+    chunkText: raw.chunk_text as string | null,
+    documentName: raw.document_name as string,
+    docTypeLabel: raw.doc_type_label as string | null,
+    linkedEntity: raw.linked_entity as string | null,
+    pageStart: raw.page_start as number | null,
+    pageEnd: raw.page_end as number | null,
+  }
+}
+
+export async function listCorpusDocuments(useCaseId: string): Promise<CorpusDocument[]> {
+  const raw = validate<{ documents: Record<string, unknown>[] }>(
+    'The corpus documents',
+    await request<unknown>(
+      `/document-graph-builder/corpora/${encodeURIComponent(useCaseId)}/documents`,
+    ),
+    CORPUS_DOCUMENTS,
+  )
+  return raw.documents.map((d) => ({
+    documentId: d.document_id as string,
+    filename: d.filename as string,
+    mimeType: d.mime_type as string | null,
+    docType: d.doc_type as string | null,
+    docTypeLabel: d.doc_type_label as string | null,
+    linkedEntity: d.linked_entity as string | null,
+    pages: d.pages as number | null,
+    folder: d.folder as string,
+    drive: d.drive as string,
+  }))
+}
+
+/* ---- combined build ---- */
+
+/** Build everything this use case has, in order. The Bridge stage is **skipped, not failed**, for a
+ *  single-lane use case — no bridge id comes back because the Bridge does not exist yet. */
+export async function triggerCombinedBuild(input: {
+  useCaseId: string
+  story?: string
+}): Promise<{ sgbBuildId: string | null; dgbJobId: string | null }> {
+  const raw = validate<{ sgb_build_id: string | null; dgb_job_id: string | null }>(
+    'The combined build',
+    await request<unknown>(`${ucPath(input.useCaseId)}/combined-builds`, {
+      method: 'POST',
+      body: { story: input.story },
+    }),
+    COMBINED_TRIGGERED,
+  )
+  return { sgbBuildId: raw.sgb_build_id, dgbJobId: raw.dgb_job_id }
+}
+
+/* ---- Bridge ---- */
+
+export async function triggerBridgeBuild(useCaseId: string): Promise<{ bridgeBuildId: string }> {
+  const raw = validate<{ bridge_build_id: string }>(
+    'The Bridge',
+    await request<unknown>(`${ucPath(useCaseId)}/bridge-builds`, { method: 'POST' }),
+    BRIDGE_TRIGGERED,
+  )
+  return { bridgeBuildId: raw.bridge_build_id }
+}
+
+export async function listBridgeBuilds(useCaseId: string): Promise<BridgeBuild[]> {
+  const raw = validate<{ bridge_builds: Record<string, unknown>[] }>(
+    'The Bridges',
+    await request<unknown>(`${ucPath(useCaseId)}/bridge-builds`),
+    BRIDGE_BUILDS,
+  )
+  return raw.bridge_builds.map(toBridgeBuild)
+}
+
+export async function getBridgeBuild(input: {
+  useCaseId: string
+  bridgeBuildId: string
+}): Promise<BridgeBuild> {
+  return toBridgeBuild(
+    validate<Record<string, unknown>>(
+      'The Bridge',
+      await request<unknown>(
+        `${ucPath(input.useCaseId)}/bridge-builds/${encodeURIComponent(input.bridgeBuildId)}`,
+      ),
+      BRIDGE_BUILD,
+    ),
+  )
+}
+
+export async function listTypeLinks(input: {
+  useCaseId: string
+  bridgeBuildId: string
+}): Promise<TypeLinkList> {
+  const raw = validate<{ type_links: Record<string, unknown>[]; unreviewed_count: number }>(
+    'The Type Links',
+    await request<unknown>(
+      `${ucPath(input.useCaseId)}/bridge-builds/${encodeURIComponent(input.bridgeBuildId)}/type-links`,
+    ),
+    TYPE_LINKS,
+  )
+  return { typeLinks: raw.type_links.map(toTypeLink), unreviewedCount: raw.unreviewed_count }
+}
+
+/** Override one decision. The deriver's own recommendation is preserved beside it, never replaced —
+ *  which is what lets the deriver be measured rather than silently corrected. */
+export async function overrideTypeLink(input: {
+  useCaseId: string
+  bridgeBuildId: string
+  typeLinkId: string
+  decision: TypeLinkDecision
+  as?: string | null
+}): Promise<TypeLink> {
+  return toTypeLink(
+    validate<Record<string, unknown>>(
+      'The decision',
+      await request<unknown>(
+        `${ucPath(input.useCaseId)}/bridge-builds/${encodeURIComponent(input.bridgeBuildId)}` +
+          `/type-links/${encodeURIComponent(input.typeLinkId)}${asQuery(input.as)}`,
+        { method: 'PATCH', body: { decision: input.decision } },
+      ),
+      TYPE_LINK,
+    ),
+  )
+}
+
+/** Accept every still-undecided correspondence as derived, in one attributed act. Accepting nothing
+ *  is a success, not an error. */
+export async function acceptOutstandingTypeLinks(input: {
+  useCaseId: string
+  bridgeBuildId: string
+  as?: string | null
+}): Promise<{ acceptedCount: number; unreviewedCount: number }> {
+  const raw = validate<{ accepted_count: number; unreviewed_count: number }>(
+    'The accepted correspondences',
+    await request<unknown>(
+      `${ucPath(input.useCaseId)}/bridge-builds/${encodeURIComponent(input.bridgeBuildId)}` +
+        `/type-links/accept-outstanding${asQuery(input.as)}`,
+      { method: 'POST' },
+    ),
+    ACCEPT_OUTSTANDING,
+  )
+  return { acceptedCount: raw.accepted_count, unreviewedCount: raw.unreviewed_count }
+}
+
+/** Copy this Bridge into a new, editable one over the same pair — the supported way out of a frozen
+ *  published Bridge. No re-derivation and no lane rebuild: every decision travels, so it opens with
+ *  nothing outstanding. */
+export async function reviseBridgeBuild(input: {
+  useCaseId: string
+  bridgeBuildId: string
+}): Promise<BridgeBuild> {
+  return toBridgeBuild(
+    validate<Record<string, unknown>>(
+      'The revised Bridge',
+      await request<unknown>(
+        `${ucPath(input.useCaseId)}/bridge-builds/${encodeURIComponent(input.bridgeBuildId)}/revise`,
+        { method: 'POST' },
+      ),
+      BRIDGE_BUILD,
+    ),
+  )
+}
+
+export async function getPublishedBridge(useCaseId: string): Promise<PublishedBridge | null> {
+  const raw = validate<{
+    published_bridge: { bridge_build_id: string; build_number: number; status: string } | null
+  }>(
+    'The published Bridge',
+    await request<unknown>(`${ucPath(useCaseId)}/published-bridge`),
+    PUBLISHED_BRIDGE,
+  )
+  return raw.published_bridge
+    ? {
+        bridgeBuildId: raw.published_bridge.bridge_build_id,
+        buildNumber: raw.published_bridge.build_number,
+        status: raw.published_bridge.status,
+      }
+    : null
+}
+
+/* ---- versions ---- */
+
+export async function listGraphVersions(useCaseId: string): Promise<StudioVersion[]> {
+  const raw = validate<{ versions: Record<string, unknown>[] }>(
+    'The versions',
+    await request<unknown>(`${ucPath(useCaseId)}/graph-versions`),
+    GRAPH_VERSIONS,
+  )
+  return raw.versions.map(toGraphVersion)
+}
+
+export async function getPublishedGraphVersion(useCaseId: string): Promise<StudioVersion | null> {
+  const raw = validate<{ version: Record<string, unknown> | null }>(
+    'The published version',
+    await request<unknown>(`${ucPath(useCaseId)}/graph-versions/published`),
+    ONE_GRAPH_VERSION,
+  )
+  return raw.version ? toGraphVersion(raw.version) : null
+}
+
+/** Name this use case's finished builds with a version if they are not already. **Idempotent** — safe
+ *  on every studio load, and `null` rather than an invented version when nothing has finished. */
+export async function reconcileGraphVersions(useCaseId: string): Promise<StudioVersion | null> {
+  const raw = validate<{ version: Record<string, unknown> | null }>(
+    'The version',
+    await request<unknown>(`${ucPath(useCaseId)}/graph-versions/reconcile`, { method: 'POST' }),
+    ONE_GRAPH_VERSION,
+  )
+  return raw.version ? toGraphVersion(raw.version) : null
+}
+
+export async function getGraphVersionDetail(input: {
+  useCaseId: string
+  graphVersionId: string
+}): Promise<StudioVersionDetail> {
+  const raw = validate<Record<string, unknown>>(
+    'The version',
+    await request<unknown>(
+      `${ucPath(input.useCaseId)}/graph-versions/${encodeURIComponent(input.graphVersionId)}`,
+    ),
+    GRAPH_VERSION_DETAIL,
+  )
+  return {
+    version: toGraphVersion(raw.version as Record<string, unknown>),
+    bridgeMatchesNamedTriple: raw.bridge_matches_named_triple as boolean | null,
+    bridgeStatus: raw.bridge_status as string | null,
+    newerSgbBuildId: raw.newer_sgb_build_id as string | null,
+    newerDgbGraphVersion: raw.newer_dgb_graph_version as number | null,
+  }
+}
+
+/**
+ * Approve a version — **every artifact it names, or none of them.**
+ *
+ * `as` is required in practice and validated by the server: the identity is client-held, so a route
+ * has nothing to look a publisher up from, and a publication credited to the seeded account would
+ * name somebody who did not press the button.
+ */
+export async function publishGraphVersion(input: {
+  useCaseId: string
+  graphVersionId: string
+  as?: string | null
+}): Promise<StudioVersion> {
+  const raw = validate<{ version: Record<string, unknown> }>(
+    'The publication',
+    await request<unknown>(
+      `${ucPath(input.useCaseId)}/graph-versions/${encodeURIComponent(input.graphVersionId)}/publish${asQuery(input.as)}`,
+      { method: 'POST' },
+    ),
+    shape({ version: GRAPH_VERSION }),
+  )
+  return toGraphVersion(raw.version)
+}
+
+/** Withdraw the approval — both lanes' gates clear with it, so the use case answers from nothing
+ *  rather than silently falling back to an older version. Idempotent, and never refused. */
+export async function unpublishGraphVersion(input: {
+  useCaseId: string
+  graphVersionId: string
+}): Promise<StudioVersion> {
+  const raw = validate<{ version: Record<string, unknown> }>(
+    'The withdrawal',
+    await request<unknown>(
+      `${ucPath(input.useCaseId)}/graph-versions/${encodeURIComponent(input.graphVersionId)}/unpublish`,
+      { method: 'POST' },
+    ),
+    shape({ version: GRAPH_VERSION }),
+  )
+  return toGraphVersion(raw.version)
+}

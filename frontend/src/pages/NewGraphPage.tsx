@@ -31,7 +31,7 @@ import type {
   SourcePick,
 } from '../api/client'
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
-import { useGraphBuildStore } from '../store/graphStudioStore'
+import { useStudioStore } from '../store/studioStore'
 import DraftedStep from '../components/graph/DraftedStep'
 import FoundInDocuments from '../components/graph/FoundInDocuments'
 import HeroQuestionsStep from '../components/graph/HeroQuestionsStep'
@@ -225,9 +225,16 @@ export default function NewGraphPage() {
   const sourcesLoading = useGraphSourcesStore((s) => s.loading)
   const loadGraphSources = useGraphSourcesStore((s) => s.load)
 
-  /* Starting the build is the wizard's last act; watching it is the studio's, for every
-     graph. The run is not polled here — this page navigates the moment it starts. */
-  const startBuild = useGraphBuildStore((s) => s.start)
+  /*
+   * Starting the build is the wizard's last act; watching it is the studio's, for every graph. The
+   * run is not polled here — this page navigates the moment it starts.
+   *
+   * **It builds every lane the use case has**, which is what the studio's own button does: a brief
+   * that attached a warehouse and a document set gets both graphs from one press, rather than one
+   * lane built here and the other discovered to be missing a screen later.
+   */
+  const selectStudioUseCase = useStudioStore((s) => s.select)
+  const startBuild = useStudioStore((s) => s.build)
   const resetDerivation = useDerivationStore((s) => s.reset)
   const resetCoverage = useCoverageStore((s) => s.reset)
 
@@ -539,7 +546,10 @@ export default function NewGraphPage() {
      * arrival. The studio then owns it — a graph is built more than once, so the
      * pipeline lives where rebuilding does.
      */
-    const started = await startBuild(result.useCase.useCaseId)
+    /* The store builds whichever use case it holds, so it is pointed at the one just committed
+       before the run starts — and the studio then opens already on it. */
+    selectStudioUseCase(result.useCase.useCaseId)
+    const started = await startBuild()
     if (!started.ok) {
       // The brief *is* committed; saying otherwise would be worse than the failure.
       message.warning(`Saved and committed, but the build did not start: ${started.error}`)

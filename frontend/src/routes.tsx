@@ -10,7 +10,6 @@ import CatalogPage from './pages/CatalogPage'
 import DbEditorPage from './pages/DbEditorPage'
 import DoctorPage from './pages/DoctorPage'
 import GraphCanvasFullPage from './pages/GraphCanvasFullPage'
-import GraphStudioListPage from './pages/GraphStudioListPage'
 import GraphStudioPage from './pages/GraphStudioPage'
 import LoginPage from './pages/LoginPage'
 import NewGraphPage from './pages/NewGraphPage'
@@ -130,8 +129,14 @@ export const routes: RouteObject[] = [
           { index: true, element: <DatasetRedirect to={LANDING} /> },
           { path: 'sources', element: <SourcesPage /> },
           { path: 'new-graph', element: <NewGraphPage /> },
-          // The studio lists built graphs; a graph's own review lives under its id.
-          { path: 'graph-studio', element: <GraphStudioListPage /> },
+          /*
+           * **One studio, one route, and the use case is a segment rather than a second page.**
+           * The list page this replaced existed because the old studio was per-graph; this one
+           * holds a selector at the top that governs every tab, so a list of graphs beside it
+           * would be a second answer to which use case is open. The optional `:useCaseId` is how
+           * New Graph hands a reader straight to the brief it just committed.
+           */
+          { path: 'graph-studio', element: <GraphStudioPage /> },
           { path: 'graph-studio/:useCaseId', element: <GraphStudioPage /> },
           // Ask queries a *published* graph, so it lists none until one is live.
           { path: 'ask', element: <AskPage /> },

@@ -7012,3 +7012,113 @@ already recorded for `useState`. The claim slices the effect (a whole-file searc
 passes with the branch deleted, since it is also called on mount), asserts both calls, both
 dependencies, and that the page hands it the sources-only reload and not the tab-switching one.
 Break-tested five ways, including re-introducing the original bug; all five turn it red.
+
+## `readOnly` guards the container, not the rows inside it — `both` could write to a real dataset (2026-09-17)
+
+**Found while replacing Graph Studio**, by running the flow under `dataset=both` rather than by
+reading the code, which is the only reason it was found at all.
+
+`liveContainer` wraps a merged container in `readOnly`, which throws on `set`/`delete`/`push` — so a
+write that *adds* a build or a version under `both` is refused by name, with the fix in the sentence.
+That is where the reasoning stopped, and it is one case short.
+
+**Publishing does not add a row; it sets a field on a row that is already there.** `version.published_at
+= …` mutates the object, and the merged view holds every dataset's objects **by reference**. So under
+`both` that write would sail past `readOnly`, reach the primary's real container, and take effect
+against a dataset the reader had not selected. That is worse than the lost write `readOnly` exists to
+prevent: a lost write is invisible and *nothing happens*; this is invisible and *something happens
+somewhere else*.
+
+**The fix is on the mutators, not the containers**, because that is where the fact lives and a route
+added later cannot forget it: `refuseStudioWriteUnderBoth(act)` at the top of each of the six
+functions that change studio state. Reads are untouched — `both` is a reading view and the studio is
+fully readable under it.
+
+**`reconcileVersions` guards only the branch that writes**, and that distinction is the point:
+returning a version that already names these artifacts is a *read*, and refusing it would refuse a
+call the studio makes on every load.
+
+**Guarded by `check-docs`**, which asserts the helper exists and that at least five mutators call it —
+break-tested by renaming the helper.
+
+*The lesson generalises past this repo: a proxy that guards a collection's methods does not guard the
+objects it hands out.*
+
+## A claim made by an absence: the canvas marked everything "proposed" once its writer was removed (2026-09-17)
+
+`studioCanvas` computed each element's review state from `studioDecisions`, a map the old studio's
+review queue wrote: no decision meant `proposed: true`, which is correct while a queue exists and a
+reviewer has not got to that row yet.
+
+Deleting the queue left the *reader* in place with no writer. `decisionFor` then returned `null` for
+every element, so every node on every canvas — including the one Ask's answers carry — would have come
+back marked provisional.
+
+**Nothing would have thrown, and the page would have looked plausible.** A whole canvas of proposals
+reads as a graph mid-review, which is a *claim*, and one nobody made. It is the mirror of the usual
+half-removal: not a surface reading a field the server stopped sending, but a surface reading a field
+the server never stops sending and that has quietly stopped meaning anything.
+
+**The fix is to stop claiming it**: the canvas reports what the build produced, and the two lanes' own
+review surface is the Bridge — where a correspondence reaches the drawing only once a person has
+decided it. Same rule, moved to where the decisions now live.
+
+*When you delete a writer, grep the readers — and ask what the default they fall back to now asserts.*
+
+## Brace-balanced dead-code removal ate a live helper two lines above its target (2026-09-17)
+
+Removing the retired studio's ~460 lines of orphaned helpers was done with a script that walked back
+over each declaration's doc comment and forward to its brace-balanced end. It removed twenty
+declarations correctly and took `builtGraphs` — four lines, live, read by Ask and the report section —
+along with one of them.
+
+**Node said nothing.** The server booted, the studio worked end to end, and the fault surfaced only as
+`GET /ask` answering `400 builtGraphs is not defined` — three surfaces down from the edit, in a route
+nothing about the change had touched.
+
+**What caught it was re-running the whole flow, not the syntax check.** `node --check` passed, the
+studio's own endpoints passed, and the four downstream gates (Ask, Reports, What-if, Governance) were
+the only thing that failed. *A dead-code removal is verified by exercising what you did not remove.*
+
+**Two things to do differently**: take the backup first (done, and it is what made the diff readable),
+and after the removal grep every name the script *reported* removing plus every name defined in the
+lines it spanned — the report said `studioItems 4789..4851`, and `builtGraphs` at 4785 was inside the
+comment walk-back of the next one along.
+
+## One schema over two shapes: every structured graph refused, blaming the server (2026-09-17)
+
+**Reported from use**, on a screen where every other panel was drawing correctly:
+
+> No data — the JSON server is not responding. Details: `story_group.build_id should be a string, got undefined`
+
+The server was answering perfectly. `SGB_STORY` was declared once and used twice — for `GET
+…/builds/:id/story`, whose reply answers *about a build* and therefore names one, and for the
+`story_group` **embedded in the graph**, which is a thing the graph *contains* and is identified by
+`story_group_id` alone. So `getSgbGraph` was refused at the validator for a field that payload never
+had, and the Canvas tab went dark behind an error blaming the mock server.
+
+**The wording made it worse, and that is worth noticing rather than excusing.** `ValidationError`
+leads with "restarting the mock server usually fixes it", which is right far more often than not —
+and here it sent a reader to restart a process that was correct, while the field path underneath
+(the part that actually names the cause) read like noise. *A diagnostic tuned for the common case
+misdirects hardest on the uncommon one.*
+
+**Why three separate verification passes all missed it.** The server was driven end to end with raw
+`fetch` — every route answered 200, because the server was right. The components were rendered with
+`renderToString` against fabricated payloads — every panel drew, because the fabricated data matched
+the schema. `check-docs` asserted every fetcher *calls* `validate()` — which it did. **None of those
+runs a validator against a real response**, and that is exactly and only where this bug lived.
+
+**The fix is two schemas** (`SGB_STORY_GROUP`, and `SGB_STORY` as that plus `build_id`), and a new
+verification pass that closes the gap: `npm run verify:studio-contract` calls every studio fetcher
+against a running server through the real validators. Break-tested by re-introducing the field —
+`getSgbGraph` goes red and the run reports 30/31.
+
+**It cannot be in `preflight`**, because it needs a server and preflight runs offline; that is why
+the other verifiers are pure. So `check-docs` holds the half that *is* statically checkable: every
+exported studio fetcher must appear in `contract.ts`. That claim earned itself immediately — it
+failed on first run naming `triggerSgbBuild`, `editSgbStory` and `triggerDgbBuild`, three routes the
+contract script had not been exercising.
+
+*A schema is a claim about what the server sends. Asserting that the claim exists is not checking it.*
+

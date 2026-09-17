@@ -13,6 +13,7 @@
     "audit": "node scripts/audit-gate.mjs low",
     "audit:fix": "npm audit fix",
     "bundle:web": "node scripts/bundle-web.mjs",
+    "verify:studio-contract": "vite build --ssr contract.ts --outDir dist-ssr --logLevel warn && node dist-ssr/contract.js",
     "postinstall": "node scripts/audit-gate.mjs low"
   },
   "dependencies": {

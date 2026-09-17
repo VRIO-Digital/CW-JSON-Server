@@ -3962,6 +3962,9 @@ const connectionGated = [
   ['Data Catalog', 'frontend/src/pages/CatalogPage.tsx'],
   ['Traces', 'frontend/src/pages/TracePage.tsx'],
   ['Validation', 'frontend/src/pages/ValidationPage.tsx'],
+  /* Graph Studio derives every lane from a connected source, so it closes on the same precondition —
+     and deliberately *not* on publication: it is the page you publish *from*. */
+  ['Graph Studio', 'frontend/src/pages/GraphStudioPage.tsx'],
 ]
 for (const [label, path] of connectionGated) {
   expect(
@@ -3970,6 +3973,36 @@ for (const [label, path] of connectionGated) {
     'its data comes from the source, so it has nothing to show without one',
   )
 }
+/*
+ * **And the studio's two dead ends stay distinct**, because they are fixed on different pages: no
+ * source at all sends a reader to Sources, no use case sends them to New Graph. Telling somebody to
+ * connect a source when they already have three is useless advice, and telling them to write a brief
+ * with no data behind it sends them to a wizard that cannot finish.
+ *
+ * The count is the **server's**, for the reason `/ask` serves its own askable sources — and it is
+ * read as `=== 0` rather than as falsy, or the null it holds before the first load lands would flash
+ * the empty state over a tenant that has sources.
+ */
+/*
+ * Sliced to the studio's own handler, which a break test is what found: `connected_sources:
+ * connectedSources().length` appears in three routes, so a whole-file search passed while the one
+ * route this claim is about had lost it. *A claim that any route serves a field is not a claim that
+ * this one does.*
+ */
+const useCaseConfigsRoute = (() => {
+  const at = server.indexOf("match: (p) => p === '/use-case-configs',")
+  return at === -1 ? '' : server.slice(at, at + 1400)
+})()
+expect(
+  'the studio tells "nothing connected" apart from "nothing built yet"',
+  /connected_sources: connectedSources\(\)\.length/.test(useCaseConfigsRoute) &&
+    /connected_sources: num/.test(client) &&
+    /connectedSources === 0 \? \(/.test(
+      codeOnly(read('frontend/src/pages/GraphStudioPage.tsx')),
+    ) &&
+    /No use case to build yet/.test(read('frontend/src/pages/GraphStudioPage.tsx')),
+  'two dead ends with one exit sends half the readers to the wrong page',
+)
 /*
  * A disconnected source has no credential, so its allowlist cannot be edited — and the refusal is
  * the server's, not just a greyed-out button. Both halves are asserted: the button alone leaves
@@ -4227,7 +4260,9 @@ expect(
     !/\breq\b/.test(schemaImportCode) &&
     /verify-schema-import\.js/.test(read('backend/package.json')) &&
     /npm run verify:schema-import/.test(read('package.json')) &&
-    /verify:schema-import && npm run check-docs/.test(read('package.json')),
+    /* Keyed to it being *in* the chain rather than to what follows it: pinning the next command
+       makes this claim fail the day another verifier is added, which is a guard crying wolf. */
+    /npm run verify:schema-import &&/.test(read('package.json')),
   'a parser nothing replays is a parser whose failures are invisible',
 )
 
@@ -5067,12 +5102,14 @@ const hexOf = (name) => new RegExp(`${name} = '(#[0-9a-f]{6})'`, 'i').exec(theme
 const viewerApp = read('frontend/src/graph-viewer/App.tsx')
 const studioPageSrc = read('frontend/src/pages/GraphStudioPage.tsx')
 const fullPageSrc = read('frontend/src/pages/GraphCanvasFullPage.tsx')
+const canvasTabSrc = read('frontend/src/components/studio/StudioCanvasTab.tsx')
 expect(
-  'the studio tab and the full view render one viewer, on one payload',
-  /<GraphViewer/.test(studioPageSrc) &&
+  'the studio tab and the full view render one viewer, on one adapter',
+  /<GraphViewer/.test(canvasTabSrc) &&
     /<GraphViewer/.test(fullPageSrc) &&
-    [studioPageSrc, fullPageSrc].every((p) => /fromCanvas\(canvas/.test(p)),
-  'both read GET /graph-studio/:id/canvas and hand it to the same component',
+    /fromCombined\(/.test(canvasTabSrc) &&
+    /fromCombined\(/.test(fullPageSrc),
+  'both build their graph with src/data/studioCanvas and hand it to the same component',
 )
 expect(
   'and the retired drawing is gone from disk, not left unrendered',
@@ -5216,13 +5253,22 @@ expect(
 /* The Query tab promises an answer's evidence lights up on the canvas. It is the same
    `on_answer_path` the payload already carries, fed to the highlight the viewer's paint
    pass already had — not a second highlight with its own rules. */
+/*
+ * **The answer-path highlight survives with no caller**, which is a state this repo already has a
+ * name for — the same one `/change-signals` is in.
+ *
+ * It lit an answer's evidence on the studio's Query tab, and that tab went with the review-queue
+ * studio. The mechanism is untouched at every layer beneath it: the payload still carries
+ * `on_answer_path`, `fromCanvas` still maps it, `answerPath` still builds the highlight set, and the
+ * viewer's own dim/highlight pass still reads one. **Do not delete the layers below to "finish" the
+ * removal** — re-adding a surface that lights up an answer is wiring one prop.
+ */
 expect(
-  'the answer path still lights up, through the viewer’s own dim/highlight pass',
+  'the answer-path highlight is intact beneath its removed caller',
   /onAnswerPath/.test(adapter) &&
-    /highlight=\{answerPath\(canvas\)\}/.test(studioPageSrc) &&
-    /highlight=\{answerPath\(canvas\)\}/.test(fullPageSrc) &&
+    /export function answerPath/.test(read('frontend/src/graph-viewer/fromCanvas.ts')) &&
     /highlight && highlight\.nodes\.size > 0/.test(read('frontend/src/graph-viewer/hooks/useForceGraph.ts')),
-  'the Query tab’s hint is a promise about this',
+  'the mechanism is whole; only the surface that fed it is gone',
 )
 /* It is fed a graph rather than importing one: the folder shipped with a demo dataset, and
    a viewer still reading that would draw a graph nobody published. */
@@ -5287,24 +5333,34 @@ expect(
     `must-review ${db.graph_studio.generated.must_review_total} (all authored, none padded)`,
 )
 /*
- * A row states its buttons in its own terms, and every label still resolves to one
- * of the recorded choices. A row offering a fourth outcome would be a button the
- * server refuses, which is the failure `action_set` was introduced to stop.
+ * **The authored review rows are still in the document, and nothing serves them any more.**
+ *
+ * They were the old studio's queue: a row stated its own buttons, and every label resolved to one of
+ * the recorded choices. That studio was replaced by the two-lane one, whose review surface is the
+ * Bridge — so these rows are in the same waiting-for-a-caller state `/change-signals` is in, and this
+ * claim records that rather than pretending either way.
+ *
+ * **They are not deleted, deliberately.** `npm run ingest:graph` writes them out of the package
+ * alongside the canvas and the sanity checks in one pass, and `validateDb` still requires the block;
+ * dropping the rows would mean editing the ingest to stop writing what the package ships. What the
+ * claim holds is that they stay *well-formed* — a malformed row is a boot refusal whether or not
+ * anything reads it — and that nothing has quietly started serving them again.
  */
 const CHOICES = ['approve', 'correct', 'reject', 'approve-causal', 'downgrade-correlational']
 expect(
-  'every row offers its own labels, and every label maps to a recorded choice',
+  'the authored review rows stay well-formed, whatever reads them',
   db.graph_studio.review_items.every(
     (i) => i.actions.length > 0 && i.actions.every((a) => CHOICES.includes(a.choice)),
-  ) && /item\.actions\s*\n?\s*\? item\.actions\.map\(\(a\) => a\.choice\)/.test(server),
+  ),
   db.graph_studio.review_items
     .map((i) => `${i.item_id}: ${i.actions.map((a) => a.label).join(' / ')}`)
     .join(' · '),
 )
 expect(
-  'and the page reads the row’s actions rather than a list of its own',
-  /item\.actions\.length > 0 \? item\.actions/.test(read('frontend/src/components/studio/ReviewQueueItem.tsx')),
-  'a page that kept its own list could offer a button the API refuses',
+  'and no route serves them, since the queue they belonged to is gone',
+  !/item\.actions\s*\n?\s*\? item\.actions\.map\(\(a\) => a\.choice\)/.test(codeOnly(server)) &&
+    !/must_review_outstanding/.test(codeOnly(server)),
+  'a revived half — rows served to a page that cannot decide them — is the silent shape',
 )
 
 /*
@@ -5433,527 +5489,533 @@ expect(
   'they seed the simulation — d3 reads a node’s existing x/y as its initial position',
 )
 
-/* ---------------- a version per build ---------------- */
+/* ---------------- Graph Studio: one studio, whichever lanes a use case has ---------------- */
 
 /*
- * **Every build takes the next number — v1, v2, v3 — and keeps it.**
- *
- * Two halves, and the second is the one the previous scheme existed to protect. The counter
- * moves at `startBuildFor`, so each run has its own label; and the label is *stored on the run*
- * rather than derived, so a published `v2` cannot be recomputed into something else by a later
- * rebuild. A counter read at render time would relabel history the moment the fourth build
- * finished.
- *
- * The third claim is the one that would have caught the old bug in reverse: committing a brief
- * must not bump anything. Two counters over one label is how a published version comes to be
- * called by a number nothing built.
+ * The studio was replaced wholesale: a review queue over one authored bucket of rows became two
+ * lanes, a Bridge between them, and a version that approves both together. The claims below are the
+ * invariants that hold it up, and each one guards something that fails *silently* — an empty canvas
+ * reads as "this use case has no data", a Bridge that corresponds nothing reads as two unrelated
+ * graphs, and a figure invented to fill a field is indistinguishable from a measured one.
  */
-expect(
-  'a build takes the next version number, once, when it starts',
-  /function nextBuildVersion\(useCaseId\)/.test(server) &&
-    /studioBuildCount\.set\(useCaseId, next\)/.test(server) &&
-    /config_version: nextBuildVersion\(id\)/.test(server),
-  'assigned at the start of the run, so the label is the build’s own',
-)
-expect(
-  'and every surface reads the stored label rather than recomputing one',
-  /config_version: run\.config_version/.test(server) &&
-    /version: published\.config_version/.test(server) &&
-    !/config_version: configVersion\(/.test(server),
-  'a label derived at render time would relabel a published version on the next build',
-)
-expect(
-  'committing a brief moves no version, so there is only one counter',
-  !/bumpConfigVersion/.test(codeOnly(server)),
-  'two counters over one label is how a published v2 gets called v3',
-)
 
-/* ---------------- the build pipeline ---------------- */
+const studioLanes = read('backend/studioLanes.js')
+const studioLanesCode = codeOnly(studioLanes)
+const studioPageSrc2 = read('frontend/src/pages/GraphStudioPage.tsx')
+const studioPageCode = codeOnly(studioPageSrc2)
+const studioStore = read('frontend/src/store/studioStore.ts')
+const studioStoreCode2 = codeOnly(studioStore)
+const studioCanvasSrc = read('frontend/src/data/studioCanvas.ts')
+const studioCanvasCode = codeOnly(studioCanvasSrc)
+const buildTab = read('frontend/src/components/studio/StudioBuildTab.tsx')
+const bridgeTab = read('frontend/src/components/studio/StudioBridgeTab.tsx')
+const versionsTab = read('frontend/src/components/studio/StudioVersionsTab.tsx')
 
 /*
- * `BUILD_STAGES` is what the Build tab renders verbatim and what SKILLS.md lists.
- * A stage added to the server without being documented shows up on screen as an
- * unexplained row — and printing the platform's own names is the whole reason they
- * can be looked up.
+ * **The lanes are derived from what is attached, never declared.**
+ *
+ * A single-valued kind field cannot express "a use case with both a warehouse and a document set",
+ * and frozen at commit it cannot grow into a second lane. Both were live faults in the build this
+ * was ported from. `codeOnly` first, because the module's own comment explains the field it refuses
+ * to have — the self-documenting-file trap this repo has recorded five times.
  */
-const buildStagesBlock = server.match(/const BUILD_STAGES = \[([\s\S]*?)\r?\n\]/)
-const buildStageEntries = buildStagesBlock
-  ? [...buildStagesBlock[1].matchAll(/\{ key: '(\w+)', steps: \[([^\]]*)\] \}/g)].map((m) => ({
-      key: m[1],
-      steps: [...m[2].matchAll(/'(\w+)'/g)].map((s) => s[1]),
-    }))
-  : []
-const buildStages = buildStageEntries.map((s) => s.key)
 expect(
-  'the build pipeline has stages',
-  buildStages.length > 0,
-  `${buildStages.length}: ${buildStages.join(' → ')}`,
+  'which lanes a use case has is derived from its source picks',
+  /export function deriveLanes\(doc, useCase\)/.test(studioLanesCode) &&
+    /STRUCTURED_KINDS\.includes\(pickKind\(p\.source_id\)\)/.test(studioLanesCode) &&
+    /DOCUMENT_KINDS\.includes\(pickKind\(p\.source_id\)\)/.test(studioLanesCode),
+  'the picks are the fact; a stored discriminator would be a second answer',
 )
-for (const stage of buildStages) {
-  expect(
-    `build stage \`${stage}\` documented`,
-    skills.includes(stage),
-    'name it in SKILLS.md flow 8',
-  )
-}
+expect(
+  'and no layer carries a graph_kind to branch on instead',
+  !/graph_kind/.test(studioLanesCode) &&
+    !/graph_kind/.test(codeOnly(server)) &&
+    !/graphKind|graph_kind/.test(studioPageCode) &&
+    !/graphKind|graph_kind/.test(studioStoreCode2),
+  'single-valued and frozen: the two properties that made it wrong',
+)
+
 /*
- * Every stage owns inner work, and no substep name is reused.
- *
- * A stage with no substeps renders as a row claiming work nobody can see — the
- * thing the substeps were added to fix. A duplicated name is worse than cosmetic:
- * the substep rows are keyed by it, so two rows in one stage would collide in
- * React and one of them would silently stop updating.
+ * **The derivation is pure**, which is what lets `npm run verify:studio-lanes` replay it against both
+ * documents with nothing running. A module that reached for `db` or the filesystem could only be
+ * checked by building a graph and looking at it, which is a derivation nobody checks.
  */
-const buildSteps = buildStageEntries.flatMap((s) => s.steps)
 expect(
-  'every build stage names its own substeps',
-  buildStageEntries.length > 0 && buildStageEntries.every((s) => s.steps.length > 0),
-  `${buildSteps.length} substeps across ${buildStageEntries.length} stages`,
+  'the lane derivation touches no db, no filesystem and no request',
+  !/\bdb\./.test(studioLanesCode) &&
+    !/require\(|node:fs|readFile|writeFile/.test(studioLanesCode) &&
+    !/\breq\b|\bres\b/.test(studioLanesCode),
+  'pure, for the reason reportExport.js is pure',
 )
 expect(
-  'no two build substeps share a name',
-  new Set(buildSteps).size === buildSteps.length,
-  'the rows are keyed by it',
+  'and it is replayed offline, in preflight',
+  existsSync(join(root, 'backend/scripts/verify-studio-lanes.js')) &&
+    /"verify:studio-lanes"/.test(read('backend/package.json')) &&
+    /"verify:studio-lanes"/.test(read('package.json')) &&
+    /verify:studio-lanes/.test(JSON.parse(read('package.json')).scripts.preflight),
+  'a pure derivation that nothing replays is a pure derivation nobody checks',
+)
+
+/*
+ * **Every studio fetcher validates**, which matters more on this surface than most: a build is
+ * polled, so a shape the server stopped sending surfaces as a spinner that never resolves rather
+ * than as an error naming the field.
+ */
+const studioFetchers = [
+  'listStudioUseCases',
+  'listStudioSources',
+  'triggerSgbBuild',
+  'listSgbBuilds',
+  'getSgbBuild',
+  'getSgbGraph',
+  'getSgbStory',
+  'editSgbStory',
+  'triggerDgbBuild',
+  'getDgbJob',
+  'listDgbBuilds',
+  'listDgbEntities',
+  'listDgbRelations',
+  'getChunkEvidence',
+  'triggerCombinedBuild',
+  'triggerBridgeBuild',
+  'listBridgeBuilds',
+  'getBridgeBuild',
+  'listTypeLinks',
+  'overrideTypeLink',
+  'acceptOutstandingTypeLinks',
+  'reviseBridgeBuild',
+  'listGraphVersions',
+  'reconcileGraphVersions',
+  'publishGraphVersion',
+  'unpublishGraphVersion',
+]
+/*
+ * Sliced by index rather than by a regex built from the name: a pattern assembled out of a template
+ * string is one escaping mistake away from matching nothing, and a claim that finds no body reports
+ * every fetcher as unvalidated — which is a guard describing itself rather than the code.
+ */
+const unvalidatedStudio = studioFetchers.filter((name) => {
+  const at = client.indexOf(`export async function ${name}(`)
+  if (at === -1) return true
+  const next = client.indexOf('\nexport ', at + 1)
+  const body = client.slice(at, next === -1 ? client.length : next)
+  return !body.includes('validate<')
+})
+expect(
+  'every studio fetcher validates its payload at the boundary',
+  unvalidatedStudio.length === 0,
+  unvalidatedStudio.length
+    ? `unvalidated: ${unvalidatedStudio.join(', ')}`
+    : `${studioFetchers.length} fetchers`,
+)
+
+/*
+ * **And every one of them is called against a real server by `npm run verify:studio-contract`.**
+ *
+ * That a schema *exists* and that it *matches what the server sends* are different facts, and only
+ * the second one caught the bug this claim was written for: `SGB_STORY` required a `build_id` that
+ * the story group embedded in the graph does not carry, so every structured graph was refused at the
+ * boundary — under a message telling the reader to restart a mock server that was answering
+ * perfectly. The server had been driven end to end with raw `fetch` (every route 200) and the
+ * components rendered against fabricated payloads (every panel drew); neither runs the validator
+ * against a real response.
+ *
+ * It is **not in `preflight`**, because it needs a running server and preflight must work offline —
+ * the same reason the other verifiers are pure. This claim is the offline half: it cannot check that
+ * the payloads match, but it can check that a fetcher added later did not quietly escape coverage.
+ */
+const contractSrc = existsSync(join(root, 'frontend/contract.ts'))
+  ? read('frontend/contract.ts')
+  : ''
+const uncovered = studioFetchers.filter((name) => !contractSrc.includes(name))
+expect(
+  'every studio fetcher is exercised against a live server by the contract check',
+  contractSrc.length > 0 &&
+    uncovered.length === 0 &&
+    /"verify:studio-contract"/.test(read('frontend/package.json')) &&
+    /"verify:studio-contract"/.test(read('package.json')) &&
+    /* Deliberately absent from preflight: it needs a server, and preflight runs offline. */
+    !/verify:studio-contract/.test(JSON.parse(read('package.json')).scripts.preflight),
+  uncovered.length ? `not exercised: ${uncovered.join(', ')}` : `${studioFetchers.length} fetchers`,
+)
+
+/*
+ * **Route order is load-bearing, twice.** `/graph-versions/published` and `/graph-versions/reconcile`
+ * would both be swallowed by `/graph-versions/:id`, and `/graph/builds` by `/graph/builds/:version` —
+ * each answering `no version "published"`, which is a 404 naming something the caller never asked
+ * for. The same hazard `/reports/prototype` has, and the indices are compared rather than trusted.
+ */
+const idx = (needle) => server.indexOf(needle)
+expect(
+  'the published and reconcile routes are declared before the parametric version route',
+  idx('graph-versions' + String.raw`\/published$/`) > 0 &&
+    idx('graph-versions' + String.raw`\/published$/`) <
+      idx('graph-versions' + String.raw`\/[^/]+$/`) &&
+    idx('graph-versions' + String.raw`\/reconcile$/`) <
+      idx('graph-versions' + String.raw`\/[^/]+$/`),
+  'declared after, they answer a 404 naming a version nobody asked about',
 )
 expect(
-  'the substeps are what advances, driven by one cursor',
-  /const BUILD_STEPS = BUILD_STAGES\.flatMap/.test(server) &&
-    /run\.cursor \+= 1/.test(server) &&
-    !/run\.stage_index \+= 1[\s\S]{0,200}BUILD_STAGES\.length/.test(server),
-  'a stage index kept alongside a step index is two counters that can disagree',
+  'and the document graph’s build list before its parametric one',
+  idx("p === '/document-graph-builder/graph/builds'") > 0 &&
+    idx("p === '/document-graph-builder/graph/builds'") <
+      idx(String.raw`document-graph-builder\/graph\/builds\/[^/]+$/`),
+  'the same swallow, one prefix over',
+)
+
+/*
+ * **A build never publishes.** It records what it produced and stops; putting a version in front of
+ * readers is a button somebody presses, for every graph. A run that published itself was reported
+ * from use as a graph that "automatically got published", and it stepped around the gate rather than
+ * through it.
+ */
+const sgbRunBody = (server.match(/function runSgbBuild\([\s\S]*?\n\}/) ?? [''])[0]
+const dgbRunBody = (server.match(/function runDgbJob\([\s\S]*?\n\}/) ?? [''])[0]
+expect(
+  'no build path publishes anything',
+  sgbRunBody.length > 0 &&
+    !/published_at = new Date|publishVersion\(/.test(sgbRunBody) &&
+    !/publishVersion\(/.test(dgbRunBody),
+  'a build that publishes itself hands a reader a live graph and a byline they never earned',
+)
+expect(
+  'and the Build tab says so where the button is',
+  /Nothing is published by building/.test(buildTab),
+  'the one consequence a reader cannot undo by pressing it again',
+)
+
+/*
+ * **The pace is the server's, and the panel derives from it.** A build takes long enough that an
+ * unexplained spinner reads as wedged, so the wait on screen has to come from the server's own
+ * number rather than a figure typed into the component.
+ */
+const sgbStepMs = Number(
+  ((server.match(/const SGB_STEP_MS = ([\d_]+)/) ?? [])[1] ?? '0').replace(/_/g, ''),
+)
+expect(
+  'the build tab reports the server’s pace rather than hardcoding one',
+  sgbStepMs > 0 &&
+    /step_ms: SGB_STEP_MS/.test(server) &&
+    /step_ms: num/.test(client) &&
+    /build\.stepTotal - build\.cursor\) \* build\.stepMs/.test(buildTab) &&
+    /import \{ dur \}/.test(buildTab),
+  `SGB_STEP_MS ${sgbStepMs} — one formatter, derived from the payload`,
+)
+expect(
+  'and a stage list on screen is the server’s list',
+  /stages: SGB_STAGES\.map/.test(server) &&
+    /stages: DGB_STAGES\.map/.test(server) &&
+    /stages: arrayOf\(/.test(client) &&
+    /stages=\{sgbBuild\.stages\}/.test(buildTab) &&
+    /* The document lane draws its own panel — a percentage over stages, a running count over the
+       corpus and a live phrase under whichever stage is in flight — but it maps the served list just
+       the same, which is the fact this claim is about. */
+    /job\.stages\.map/.test(read('frontend/src/components/studio/DocumentPipeline.tsx')),
+  'a list held in the component could not go stale; one held on the server cannot',
+)
+
+/*
+ * **The Bridge stops at the type level, and its review predicate is one definition.**
+ *
+ * Deriving the outstanding count at the edge would be a second expression of the publish gate, and
+ * the moment the two differ the screen says "nothing left" over a server that refuses the publish.
+ */
+expect(
+  'the outstanding count is the server’s own, not derived at the edge',
+  /unreviewed_count: rows\.filter\(needsReview\)\.length/.test(server) &&
+    /unreviewedCount: raw\.unreviewed_count/.test(client) &&
+    /unreviewedCount=\{unreviewedCount\}/.test(studioPageCode),
+  'two expressions of one gate is a screen that disagrees with the refusal',
+)
+expect(
+  'and the review predicate excludes rejects and ignores confidence',
+  /decision !== 'reject' && link\.decided_by === 'llm'/.test(studioLanesCode) &&
+    /link\.decision !== 'reject' && link\.decidedBy === 'llm'/.test(client),
+  'gating on confidence would let the deriver choose which rows a person must look at',
+)
+expect(
+  'reject rows are served rather than dropped',
+  /decision = resolvedCount > 0 \? 'identity' : echo \? 'attribute' : 'reject'/.test(studioLanesCode) &&
+    !/\.filter\(\(l\) => l\.decision !== 'reject'\)/.test(codeOnly(server)),
+  'the list records what was considered, not only what corresponded',
+)
+expect(
+  'an identity link is grounded in a resolution rather than in two names matching',
+  /resolutions\.get\(`\$\{entityType\}::\$\{concept\.name\}`\)/.test(studioLanesCode),
+  'matching the strings called "Generator (facility)" an attribute of Facility, which is backwards',
+)
+
+/*
+ * **The Bridge's review surface states what it is and what it is not.**
+ *
+ * Each of these is a rule rather than a phrasing preference, and each fails silently if it goes: a
+ * hidden reject makes "the deriver declined this" indistinguishable from "nobody asked"; a replaced
+ * original recommendation means the deriver can never be measured; and a progress bar counting
+ * rejects would report a queue as unfinished that nothing is waiting on.
+ */
+const typeLinksSrc = read('frontend/src/components/studio/BridgeTypeLinks.tsx')
+const bridgeTabSrc = read('frontend/src/components/studio/StudioBridgeTab.tsx')
+expect(
+  'the review list keeps rejects, and says they are the record rather than gaps',
+  /the record of what it declined, not gaps/.test(typeLinksSrc) &&
+    /value: 'reject', label: `Rejected/.test(typeLinksSrc),
+  'the list is what was considered, not only what corresponded',
+)
+expect(
+  'and the original recommendation is kept beside an override rather than replacing it',
+  /link\.originalDecision !== null/.test(typeLinksSrc) &&
+    /The deriver originally said/.test(typeLinksSrc),
+  'otherwise the deriver is silently corrected and can never be measured',
+)
+expect(
+  'review progress is measured over what publishing approves, not over every pair',
+  /const corresponding = counts\.identity \+ counts\.attribute/.test(typeLinksSrc) &&
+    /Rejected pairs assert nothing/.test(typeLinksSrc),
+  'counting rejects would report a queue as unfinished that nothing waits on',
+)
+/* One control, not an Accept beside a Change: they write the identical record, and splitting them
+   would imply accepting is the lesser act. */
+expect(
+  'accepting and changing are one act, and the button says which the selection amounts to',
+  /changed \? \(frozen \? 'Change in a draft' : 'Save change'\) : outstanding \? 'Accept' : 'Revise'/.test(
+    typeLinksSrc,
+  ) &&
+    /disabled=\{!changed && !outstanding\}/.test(typeLinksSrc),
+  'an outstanding row’s unchanged selection is not a no-op — accepting it is what the gate waits for',
 )
 /*
- * **Build first: the studio's other four tabs are locked until a build has completed —
- * and locked again while any run is in flight.**
- *
- * They all read a build's output, and the review queue is the loudest case — its rows are
- * the package's, so it looks populated whether or not anything has been built. A *rebuild*
- * has the same problem one level up: while it runs, those tabs show the previous build's
- * output with nothing saying so, which reads as this run's result arriving early. So the
- * flag is `builtOnce && !buildRunning`, and the two halves are asserted separately —
- * dropping the second is the silent half, because the tabs still lock on a fresh graph.
- *
- * The active-tab redirect is the half that fails worst: a *disabled* tab that is also the
- * *active* one renders its pane with no way to leave it, and the studio's default arrival
- * tab is the queue, so that is the normal path rather than an edge case.
+ * **The fork happens on the edit, and the version on the publish.** Both orderings came from the same
+ * mistake: creating something durable before the user had finished saying what they wanted. A Revise
+ * button pressed before changing anything mints a Bridge identical to its parent, and a version minted
+ * on the first edit leaves an orphan behind when somebody reconsiders.
  */
-const studioPage = read('frontend/src/pages/GraphStudioPage.tsx')
-const studioCode = codeOnly(studioPage)
-const lockedTabs = ['queue', 'canvas', 'query', 'versions']
 expect(
-  'every studio tab but Build is locked until a build completes',
-  /const builtOnce = builds\.some\(\(b\) => b\.status === 'complete'\)/.test(studioCode) &&
-    (studioCode.match(/disabled: !outputReadable/g) ?? []).length === lockedTabs.length,
-  `${(studioCode.match(/disabled: !outputReadable/g) ?? []).length} of ${lockedTabs.length} tabs carry the flag`,
+  'changing a decision on a published Bridge forks it rather than being refused',
+  /const clone = await reviseBridgeBuild/.test(codeOnly(studioStore)) &&
+    /l\.entityType === link\.entityType && l\.conceptRef === link\.conceptRef/.test(
+      codeOnly(studioStore),
+    ),
+  'the counterpart is found by the pair, not the id: a clone’s rows are new rows',
 )
 expect(
-  'and a run in flight locks them again, so a rebuild cannot be read as its own result',
-  /const buildRunning = builds\.some\(\(b\) => b\.status === 'running'\)/.test(studioCode) &&
-    /const outputReadable = builtOnce && !buildRunning/.test(studioCode),
-  'without the second half these tabs show the superseded build while the new one runs',
+  'and no button creates a copy before anything has changed',
+  !/onRevise/.test(codeOnly(bridgeTabSrc)) && !/'Revise into a new Bridge'/.test(bridgeTabSrc),
+  'one exploratory click would leave a Bridge identical to its parent in the list',
+)
+
+/*
+ * **The combined canvas merges nothing**, and an undecided correspondence is not drawn. A line on a
+ * canvas reads as a fact, and a proposal is the one thing a reviewer must not mistake for one.
+ */
+expect(
+  'the combined canvas draws a correspondence only once a person has decided it',
+  /if \(link\.decision === 'reject'\) continue/.test(studioCanvasCode) &&
+    /if \(link\.decidedBy === 'llm'\) continue/.test(studioCanvasCode),
+  'an undecided row is a proposal; drawing it asserts it',
+)
+expect(
+  'and it keeps both lanes whole rather than resolving across them',
+  /nodes: \[\.\.\.sgb\.nodes, \.\.\.dgb\.nodes\]/.test(studioCanvasCode),
+  'the two graphs remain two graphs; only the approval is joint',
+)
+expect(
+  'the column fold states its cap rather than truncating silently',
+  /const COLUMNS_SHOWN = \d+/.test(studioCanvasCode) &&
+    /and \$\{names\.length - COLUMNS_SHOWN\} more/.test(studioCanvasSrc),
+  'a table here carries ninety columns; a silent cut is the failure this repo refuses',
+)
+/* Paired with a presence claim, because an absence claim alone passes over an empty adapter. */
+expect(
+  'and the adapters really build both lanes',
+  /export function fromSgbGraph/.test(studioCanvasCode) &&
+    /export function fromDgbGraph/.test(studioCanvasCode) &&
+    /export function fromCombined/.test(studioCanvasCode),
+  'three frames, one viewer',
+)
+
+/*
+ * **One viewer, not two.** The reference this was ported from brings its own 2,400-line force graph;
+ * rendering it beside the vendored one would be two drawings of one graph, and the one nobody is
+ * looking at is the one that goes wrong.
+ */
+expect(
+  'every studio canvas renders the vendored viewer',
+  /import GraphViewer from '\.\.\/\.\.\/graph-viewer\/App'/.test(
+    read('frontend/src/components/studio/StudioCanvasTab.tsx'),
+  ) &&
+    /import GraphViewer from '\.\.\/graph-viewer\/App'/.test(read('frontend/src/pages/GraphCanvasFullPage.tsx')) &&
+    !existsSync(join(root, 'frontend/src/components/studio/ForceGraph.tsx')),
+  'a second force graph is a second answer to what the graph looks like',
+)
+/* Every type the studio draws has to have a hue, or the legend is rows of one grey — the
+   "honest but silent" failure the palette claim exists to catch. */
+expect(
+  'the type the structured lane added has a hue of its own',
+  /Table: "#[0-9a-f]{6}"/.test(read('frontend/src/graph-viewer/lib/graph.ts')) &&
+    /type: 'Table'/.test(studioCanvasCode),
+  'without it every table on that canvas falls through to the grey default',
+)
+
+/*
+ * **No passage is invented.** This is the one lie the document lane could tell that a reader could
+ * not catch, and checking exactly that is what an evidence panel is for.
+ */
+expect(
+  'the evidence carries no fabricated passage',
+  /chunk_text: null/.test(studioLanesCode) &&
+    /chunk_text: nullable\(str\)/.test(client),
+  'a sentence composed here and labelled verbatim is uncheckable by definition',
+)
+expect(
+  'and a story draft says no model wrote it',
+  /degraded: true/.test(server) && /degrade_reason: 'no_llm_provider'/.test(server),
+  'the prose is the use case’s own business need, rearranged',
+)
+
+/*
+ * **Publishing approves both lanes at once, and it has to be told who did it.** The identity is
+ * client-held, so a route has nothing to look a publisher up from — a publication credited to the
+ * seeded account would name somebody who did not press the button.
+ */
+expect(
+  'publishing names the publisher and refuses a malformed one',
+  /is not an email address, so nobody can be credited/.test(server) &&
+    /version\.published_by_user_id = as \?\? null/.test(server),
+  'written on every publish, or an anonymous re-publish keeps crediting whoever went last',
+)
+expect(
+  'and the Versions tab withholds the button when nobody is signed in',
+  /Nobody is signed in/.test(versionsTab) && /disabled=\{signedInAs === null\}/.test(versionsTab),
+  'a publication with nothing to credit is a byline this app would have to invent',
+)
+
+/*
+ * **`publishedVersion` is the one seam every downstream surface reads.** Ask, the report section, the
+ * What-if lens and Audit & Governance all ask it what is live; that is why replacing the studio
+ * reached all four without editing any of them, and a surface that learned to read the version store
+ * for itself would be a second answer to what is published.
+ */
+expect(
+  'what is published is answered in exactly one place',
+  /function publishedVersion\(useCaseId\) \{[\s\S]{0,200}studioGraphVersions\.get\(useCaseId\)/.test(server) &&
+    (codeOnly(server).match(/\.find\(\(v\) => v\.published_at\)/g) ?? []).length === 1,
+  'fifteen call sites read this one function; a second reader is a second truth',
+)
+expect(
+  'and a version carries the fields those surfaces already read',
+  /config_version: `v\$\{versionNumber\}`/.test(server) &&
+    /sha256: /.test(server) &&
+    /entities: \(sgb\?\.node_count \?\? 0\)/.test(server),
+  'the shape a published version presents is unchanged; only where it comes from moved',
+)
+
+/*
+ * **`both` refuses a studio write at the mutator, not at the container.** `readOnly` catches a write
+ * that adds a row; it cannot catch one that mutates a row already inside the merge — and publishing
+ * sets a field on the version object itself, which the merge holds by reference. That write would
+ * reach the primary's real container and take effect against a dataset the reader did not select,
+ * which is worse than a lost write.
+ */
+expect(
+  'every studio mutator refuses while both is selected',
+  /function refuseStudioWriteUnderBoth\(act\)/.test(server) &&
+    (server.match(/refuseStudioWriteUnderBoth\('/g) ?? []).length >= 5,
+  'a write applied to a dataset nobody selected is silent and wrong',
+)
+
+/*
+ * **The studio this replaced is gone at every layer**, which is one cross-layer claim rather than one
+ * per file: a page reading a payload the server stopped sending renders a row with no actions, which
+ * is the shape that fails silently. Re-adding any of it deliberately means deleting this claim in the
+ * same commit.
+ */
+expect(
+  'the review-queue studio is gone from the server, the client, the store and the components',
+  !/\/graph-studio\\\/\[\^\/\]\+\\\/decisions\$/.test(server) &&
+    !/\/graph-studio\\\/\[\^\/\]\+\\\/pivot\$/.test(server) &&
+    !/function graphStudio\(|function studioItems\(|function startBuildFor\(/.test(server) &&
+    !/studioLive|studioPivotChoice/.test(codeOnly(server)) &&
+    !existsSync(join(root, 'frontend/src/store/graphStudioStore.ts')) &&
+    !existsSync(join(root, 'frontend/src/pages/GraphStudioListPage.tsx')) &&
+    !existsSync(join(root, 'frontend/src/components/studio/ReviewQueueItem.tsx')) &&
+    !existsSync(join(root, 'frontend/src/components/studio/BuildTab.tsx')) &&
+    !existsSync(join(root, 'frontend/src/components/studio/VersionsTab.tsx')),
+  'half a removal is the shape that fails silently',
+)
+/* Paired with the presence half: the machinery the old routes *shared* with the rest of the app was
+   deliberately kept, and an absence claim alone passes just as well when it took Ask down with it. */
+expect(
+  'and what Ask shares with it was deliberately kept',
+  /function studioCanvas\(useCaseId/.test(server) &&
+    /function studioQuery\(useCaseId, question\)/.test(server) &&
+    /function liveVersion\(useCaseId\)/.test(server) &&
+    /const builtGraphs = \(\)/.test(server) &&
+    /graph_studio/.test(Object.keys(JSON.parse(read('backend/db.json'))).join(' ')),
+  'removing those would have taken Ask down with the studio',
+)
+/* The canvas no longer claims anything is under review, because nothing records a decision now.
+   Left as it was, `decisionFor` would have returned null for every element and marked the entire
+   canvas proposed — a claim made by an absence. */
+expect(
+  'the canvas stopped claiming a review state once nothing recorded one',
+  /const state = \(\) => \(\{ proposed: false, origin: 'derived', rejected: false \}\)/.test(server),
+  'a graph where everything reads provisional is worse than one that says nothing',
+)
+
+/*
+ * **The tabs that read a build's output are locked until one exists — and again while a rebuild
+ * runs.** What they would otherwise show is the previous build's output with nothing saying so, and
+ * settling a correspondence against a canvas being superseded is a decision made on stale evidence.
+ */
+expect(
+  'the three output tabs are locked until a build lands, and while one runs',
+  /export const selectOutputReadable/.test(studioStoreCode2) &&
+    /!selectBuildRunning\(s\)/.test(studioStoreCode2) &&
+    (studioPageCode.match(/disabled: !outputReadable/g) ?? []).length === 3,
+  `${(studioPageCode.match(/disabled: !outputReadable/g) ?? []).length} of 3 tabs carry the flag`,
 )
 expect(
   'and Build itself never is',
-  !/key: 'build',\s*label: 'Build',\s*disabled/.test(studioCode),
+  !/key: 'build',\s*label: 'Build',\s*disabled/.test(studioPageCode),
   'locking the one tab that unlocks the others is a dead end',
 )
 expect(
-  'a locked tab cannot stay the active one',
-  /if \(!outputReadable && tab !== 'build'\) setTab\('build'\)/.test(studioCode),
-  'the default arrival tab is the queue, so this is the normal path',
-)
-/* And it says why, where the tabs are, only while they are locked — and it says something
-   different while a run is in flight, because "start one" is the wrong instruction for
-   somebody already watching one. That in-flight sentence is now the only one a rebuild can
-   carry, so the gate has to be the same flag the tabs use. */
-expect(
-  'the lock explains itself and names the act that lifts it',
-  /\{outputReadable \? null : \(/.test(studioPage) &&
-    /Build this graph first/.test(studioPage) &&
-    /buildRunning\s*\?/.test(studioPage),
-  'a row of disabled tabs with no sentence beside them reads as a broken page',
+  'the lock says why, and says something different while a run is in flight',
+  /A build is running/.test(studioPageSrc2) &&
+    /Nothing has been built for this use case yet/.test(studioPageSrc2),
+  '"start one" is the wrong instruction for somebody already watching one',
 )
 
 /*
- * **The Quality report tab is gone, on every layer at once.**
- *
- * It recomputed the three preconditions `publish.blocked` already reports, so it was a
- * second surface for one gate. Half a removal is the shape that fails silently — a store
- * still holding `report` behind a page that cannot show it, or a `POST …/quality-check`
- * nothing calls — so this is one claim over the server, the client, the store, the page
- * and the stylesheet rather than one per file. `codeOnly` first: the paragraphs above
- * name the tab in explaining its removal.
+ * **One selector governs the page.** Every tab reads the use case the store holds, so no tab carries
+ * a picker that could disagree with the one above it — the fault the two studios this replaced had
+ * between them.
  */
-const studioStoreCode = codeOnly(read('frontend/src/store/graphStudioStore.ts'))
-const studioCssCode = read('frontend/src/pages/GraphStudioPage.css')
 expect(
-  'the Quality report tab is gone from every layer',
-  !/quality-check/.test(codeOnly(server)) &&
-    !/QUALITY_CHECK_MS/.test(server) &&
-    !/runQualityCheck|QualityReport|QUALITY_REPORT_PAYLOAD/.test(codeOnly(client)) &&
-    !/runQualityCheck|checking|report:/.test(studioStoreCode) &&
-    !/key: 'quality'/.test(studioCode) &&
-    !/\.gs-check|\.gs-quality-head/.test(studioCssCode),
-  'a store field behind a page that cannot show it is the shape that fails silently',
-)
-/* Paired with a presence claim over the same region: the gate the tab reported on is
-   untouched, and an absence claim alone passes just as well over a deleted file. */
-expect(
-  'and the publish gate it duplicated still states those checks',
-  /gate\.blocked \?/.test(studioCode) &&
-    /gate\.reasons\.join/.test(studioCode) &&
-    /publish: \{ blocked/.test(client) &&
-    /must_review_outstanding/.test(server),
-  'the gate is computed once on the server and read by the banner and the refusal',
-)
-
-/*
- * The pace is documented, and the page derives from it rather than restating it.
- *
- * A build now takes minutes, not seconds, so the duration on screen is load-bearing:
- * a five-minute spinner with no estimate reads as wedged. That figure has to come
- * from the server's own number — the earlier band check asserted a total instead,
- * and a deliberate change to the pace would have failed it as if it were a bug.
- */
-const buildStepMs = Number(
-  ((server.match(/const BUILD_STEP_MS = ([\d_]+)/) ?? [])[1] ?? '0').replace(/_/g, ''),
-)
-const buildRunSecs = (buildStepMs * buildSteps.length) / 1000
-/* "2m 35s" — the same shape `dur()` prints, so the docs quote the page. */
-const buildRunLabel =
-  buildRunSecs < 60
-    ? `${buildRunSecs}s`
-    : `${Math.floor(buildRunSecs / 60)}m${buildRunSecs % 60 ? ` ${buildRunSecs % 60}s` : ''}`
-/* `\b` on the pace, because plain `includes('5s')` is satisfied by the "35s" in the
-   total beside it — a claim that passes for the wrong reason is not a claim. */
-const pacePattern = new RegExp(`\\b${buildStepMs / 1000}s\\b`)
-expect(
-  'the substep pace and the run length are documented as the server has them',
-  buildStepMs > 0 &&
-    [claude, skills].every((doc) => pacePattern.test(doc) && doc.includes(buildRunLabel)),
-  `BUILD_STEP_MS ${buildStepMs} · ${buildSteps.length} substeps ≈ ${buildRunLabel}`,
-)
-/* Comments stripped first: the `dur()` doc comment shows "5m 10s" as an example of
-   its own output, and a claim that read that as a hardcoded pace would cry wolf —
-   which is how a real red claim gets ignored. */
-const buildTabCode = read('frontend/src/components/studio/BuildTab.tsx')
-  .replace(/\/\*[\s\S]*?\*\//g, '')
-  .replace(/\/\/.*/g, '')
-/* The Build tab is the one surface that prints a build's pace now: the wizard's hand-off
-   holds on a constant of its own instead — see the claims beside it below. */
-expect(
-  'and the tab reports the pace rather than hardcoding it',
-  /step_ms: BUILD_STEP_MS/.test(server) &&
-    /step_ms: num/.test(client) &&
-    /shown\.stepTotal \* shown\.stepMs/.test(buildTabCode) &&
-    !/\d+\s?s\b/.test(buildTabCode) &&
-    /import \{ dur \} from '\.\.\/\.\.\/data\/duration'/.test(buildTabCode),
-  'a duration on screen is derived from what the server sent, by one formatter',
+  'no studio tab carries a use-case picker of its own',
+  ![buildTab, bridgeTab, versionsTab, read('frontend/src/components/studio/StudioCanvasTab.tsx')].some(
+    (src) => /listStudioUseCases|useStudioStore/.test(codeOnly(src)),
+  ),
+  'the tabs are prop-driven; the one selector is the page’s',
 )
 expect(
-  'and the panel renders the substeps under their stage',
-  /className="bt-steps"/.test(read('frontend/src/components/studio/BuildTab.tsx')) &&
-    /stage\.steps\.map/.test(read('frontend/src/components/studio/BuildTab.tsx')),
-  'BuildTab nests them rather than flattening the pipeline',
-)
-expect(
-  'a build is a run the page polls, not an instant commit',
-  /match: \(p\) => \/\^\\\/graph-studio\\\/\[\^\/\]\+\\\/builds\$\/\.test\(p\)/.test(server) &&
-    /send\(res, 202, buildView\(startBuildFor/.test(server),
-  '202 + a queued run, like a profiling job',
-)
-expect(
-  'the build lives in the studio, where rebuilding does',
-  /BuildTab/.test(read('frontend/src/pages/GraphStudioPage.tsx')) &&
-    /useGraphBuildStore/.test(read('frontend/src/store/graphStudioStore.ts')),
-  'the tab and its store are the studio’s',
-)
-expect(
-  'and the wizard starts it at the click rather than committing and leaving',
-  /startBuild\(result\.useCase\.useCaseId\)/.test(read('frontend/src/pages/NewGraphPage.tsx')) &&
+  'and the wizard hands its committed brief straight to it',
+  /selectStudioUseCase\(result\.useCase\.useCaseId\)/.test(read('frontend/src/pages/NewGraphPage.tsx')) &&
     /state: \{ tab: 'build' \}/.test(read('frontend/src/pages/NewGraphPage.tsx')),
-  'Save & build starts the run, then hands over to the Build tab',
-)
-/*
- * A version *is* a build: every finished run records one, and building must never
- * publish. `studioLive` is the publish pointer, so a build touching it would mean
- * a rebuild silently went live.
- */
-const startBuildBody = (server.match(/function startBuildFor[\s\S]*?\n\}/) ?? [''])[0]
-const runBuildBody = (server.match(/function runGraphBuild[\s\S]*?\n\}/) ?? [''])[0]
-/*
- * The build payload's field names, server against client schema.
- *
- * TypeScript cannot see across this boundary: `RawGraphBuild` is a *claim* about
- * what the server sends, so renaming a field in `buildView` compiles cleanly and
- * fails at runtime instead — `draft_version should be a string, got undefined`,
- * which reads like a stale server and is not one. This compares the two lists.
- */
-const buildViewBody = (server.match(/const buildView = \(run\) => \(\{[\s\S]*?\n\}\)/) ?? [''])[0]
-const serverBuildFields = [...buildViewBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1])
-const buildSchemaBody = (client.match(/const GRAPH_BUILD = shape\(\{[\s\S]*?\n\}\)/) ?? [''])[0]
-const clientBuildFields = [...buildSchemaBody.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1])
-expect(
-  'the build payload and its schema name the same fields',
-  serverBuildFields.length > 0 &&
-    JSON.stringify([...serverBuildFields].sort()) ===
-      JSON.stringify([...clientBuildFields].sort()),
-  `server ${serverBuildFields.join(',')} · schema ${clientBuildFields.join(',')}`,
-)
-
-expect(
-  'a finished build records a version',
-  /recordVersion\(run,/.test(runBuildBody),
-  'runGraphBuild records one on completion, not on start',
-)
-/*
- * **A BUILD NEVER PUBLISHES. Publishing is a button, for every graph.**
- *
- * A runtime-answered graph used to publish itself when its build landed, on the reasoning that
- * it had nothing for a reviewer to settle: the review queue and the pivot decide what the
- * *canvas* asserts, and a runtime source puts nothing on the canvas. **Removed on request** —
- * reported from use as a graph that "automatically got published".
- *
- * The reasoning was about what a reviewer owes the canvas, and publishing is not only that. It
- * puts a version in front of readers, it names who did it, and Versions offers to undo it — so
- * a reader who never pressed it met a live graph, a byline in their name, and an Unpublish
- * button explaining an act they had not performed. It also stepped around the gate rather than
- * through it: that `studioLive.set` consulted no `publish.blocked`, so a build could put a graph
- * in Ask with must-review rows still open.
- *
- * **Asserted as an absence across every layer at once**, because half a removal is the shape
- * that fails silently. The write, the guard it sat in, the one-line helper that fed the guard,
- * the `?as=` the route validated so the auto-publish could credit somebody, the run field it
- * was carried on, and the client and store that sent it — all of them, in one claim. A layer
- * left behind is not a compile error: node reports nothing for an uncalled function, and a
- * route that still validates an address it throws away still returns 202.
- *
- * **And what survives is asserted beside it**, or this passes just as happily on a server that
- * cannot publish at all: `studioLive.set` still exists on the publish route, that route still
- * takes and validates `?as=`, and `publishVersion` still sends it.
- */
-/* Sliced from the *version* publish route — `/publish$/.test(p)` alone appears three times, the
-   What-if scenario's among them, so the anchor carries the segment that tells them apart. */
-const publishRouteAt = server.indexOf('versions\\/[0-9a-f]+\\/publish$')
-const publishRouteBody =
-  publishRouteAt < 0 ? '' : server.slice(publishRouteAt, server.indexOf('\n    },', publishRouteAt))
-/* studioStoreCode is declared above, with the quality-report absence claim. */
-expect(
-  'a build never publishes — every graph waits for the Publish button',
-  /* The write is gone from the build, and so is everything that fed it. Through `codeOnly`,
-     because the comment that replaced the behaviour explains what it used to do and names
-     `studioLive.set` doing it — the self-documenting-file trap, met here by an absence claim
-     for the sixth time in this file's history. */
-  !/studioLive\.set/.test(codeOnly(runBuildBody)) &&
-    !/studioLive\.set/.test(codeOnly(startBuildBody)) &&
-    !/runtimeSourcesFor/.test(codeOnly(server)) &&
-    !/started_by/.test(codeOnly(server)) &&
-    /* The route asks for nobody, and passes nobody. */
-    /startBuildFor\(found\.useCase\)\)/.test(server) &&
-    /function startBuildFor\(useCase\) \{/.test(server) &&
-    /* Nor does the client offer one. */
-    /export async function startGraphBuild\(useCaseId: string\): Promise<GraphBuild>/.test(client) &&
-    !/startGraphBuild\(\s*useCaseId,/.test(studioStoreCode) &&
-    /* What survives: publishing is still an act, still gated, and still names somebody. */
-    /studioLive\.set\(id, sha\)/.test(publishRouteBody) &&
-    /if \(gate\.blocked\)/.test(publishRouteBody) &&
-    /const as = query\.get\('as'\)/.test(publishRouteBody) &&
-    /publishVersion\(/.test(studioStoreCode),
-  'no studioLive.set in the build path; the publish route keeps its gate, its ?as= and its write',
+  'arriving on an empty selector is what made the wizard grow a build button of its own',
 )
 
 /*
- * **One definition of "which picked sources are runtime", not two.**
- *
- * Step 6's coverage note and the build's auto-publish both need the answer, and it was
- * written out twice for a day. A break test is what found the cost: dropping the "still
- * connected" test from one copy broke nothing, because the claim was pointed at the other —
- * so a disconnected mailbox would have been named as a runtime source on the step while the
- * build correctly ignored it. Both callers go through `runtimeSourcesIn` now, and this
- * asserts the predicate lives there and that neither caller has grown its own copy back.
- */
-const runtimeSourcesBody = (server.match(/function runtimeSourcesIn\(picks\) \{[\s\S]*?\n\}/) ?? [
-  '',
-])[0]
-expect(
-  'and the picks decide it, checked against what is still connected',
-  /isRuntimeSource\(s\.kind\)/.test(runtimeSourcesBody) &&
-    /status === 'connected'/.test(runtimeSourcesBody) &&
-    /normalizeSourcePicks\(picks \?\? \[\]\)/.test(runtimeSourcesBody) &&
-    /* `runtimeSourcesFor` used to be asserted here as the build's way in. It was a one-line
-       wrapper whose only caller was the auto-publish, and it went with it — so the coverage
-       step is the one caller now, and asserting a second would be asserting a helper back
-       into existence. */
-    !/runtimeSourcesFor/.test(codeOnly(server)) &&
-    /*
-     * And no third copy of the *picks* filter anywhere else.
-     *
-     * `askableSources` is cut out first rather than counted, because it answers a different
-     * question with the same words: which **connected** sources may be asked directly, taking
-     * no picks at all. Counting the bare token made this claim a claim about a spelling —
-     * the fault this file records more than once — and it went red on a helper that could not
-     * possibly disagree with `runtimeSourcesIn`, having no picks to disagree about.
-     */
-    server
-      .replace(/function askableSources\(\) \{[\s\S]*?\n\}/, '')
-      .split('isRuntimeSource(s.kind)').length -
-      1 ===
-      1,
-  'runtimeSourcesIn is the one definition; the coverage step and the build both call it',
-)
-/*
- * **Every brief lands in Graph Studio, and the wizard's runtime hand-off is gone.**
- *
- * It forked here for a while: a runtime-answered brief stayed in the wizard behind
- * `RuntimeBuildDialog`, which watched the run and handed the reader to Ask, on the reasoning
- * that such a graph publishes itself and the studio's one remaining act had therefore already
- * happened. **Removed on request** — the studio is where a build is watched, for every graph,
- * and a second place to watch one is a second answer to where a run lives.
- *
- * **What did not change is the server.** `runGraphBuild` still publishes a runtime-answered
- * graph when its build lands: that is a fact about the graph rather than about this button,
- * and the claim asserting it sits with the route. Such a reader now watches the same pipeline
- * as everybody else and finds the version live when it finishes.
- *
- * **Asserted as an absence across every layer at once**, because half a removal is the shape
- * that fails silently — a page still holding the poll and the read-back with no dialog to
- * render them is dead state that looks like a feature. Both deleted files are checked off
- * disk, and the page is checked for the state, the effects and the fork that fed them.
- */
-const newGraphCode = codeOnly(read('frontend/src/pages/NewGraphPage.tsx'))
-expect(
-  'every brief lands in Graph Studio — the wizard keeps no build hand-off of its own',
-  /navigate\(appPath\(`\/graph-studio\/\$\{encodeURIComponent\(result\.useCase\.useCaseId\)\}`\), \{\s*state: \{ tab: 'build' \}/.test(
-    newGraphCode,
-  ) &&
-    !/isRuntimeAnswered/.test(newGraphCode) &&
-    !/handoffId|checkingAsk|RuntimeBuildDialog/.test(newGraphCode) &&
-    !/pollBuild|loadAskGraphs/.test(newGraphCode) &&
-    !existsSync(join(root, 'frontend/src/components/graph/RuntimeBuildDialog.tsx')) &&
-    !existsSync(join(root, 'frontend/src/data/runtimeBuild.ts')),
-  'the fork, the dialog, its poll and its copy are all gone, and the studio branch is the only one',
-)
-/*
- * And the *server* half changed after all: a build publishes nothing now, for any graph. The
- * claim asserting that — and the removal of everything that fed the auto-publish — sits with the
- * build route above, because it is a fact about the server rather than about this button. What
- * matters here is unchanged: every brief lands in the studio, and the reader watches the same
- * pipeline. They now press Publish at the end of it, like everybody else.
- */
-/*
- * **An uncovered hero question is a gap only where nothing will answer it.**
- *
- * A mailbox-only brief derives no objects, so every hero question fell through to the gap
- * branch — and the gate on step 6 refuses to build while a gap is undecided, over a step
- * whose object-count-zero branch returned before the element list and so drew no decision
- * controls at all. Disabled button, no way to enable it. The status is its own now, counted
- * apart from `gap_count` so the gate is unchanged for every other brief.
- *
- * Four halves, because each failure here is silent: the branch must be *inside* the runtime
- * test (an unconditional one turns real gaps into runtime rows and lets an unanswerable
- * question ship), the count must stay out of `gap_count`, the client must carry the third
- * status, and the step must fall through to the list rather than the empty state.
- */
-const coverageQuestionLoop = (server.match(
-  /for \(const q of questions\) \{[\s\S]*?\n {2}\}/,
-) ?? [''])[0]
-const coverageStepCode = codeOnly(read('frontend/src/components/graph/CoverageStep.tsx'))
-expect(
-  'a hero question a runtime source will answer is not a gap',
-  /if \(runtimeSources\.length > 0\) \{[\s\S]*?status: 'runtime',[\s\S]*?continue\s*\}/.test(
-    coverageQuestionLoop,
-  ) &&
-    /status: 'gap',/.test(coverageQuestionLoop) &&
-    /gap_count: gaps\.length/.test(server) &&
-    /runtime_question_count: runtimeQuestions\.length/.test(server) &&
-    /e\.status === 'runtime'/.test(server),
-  'the runtime branch is inside the runtime test, and its count is not gap_count',
-)
-expect(
-  'and the build gate still counts only gaps',
-  /\.filter\(\(e\) => e\.status === 'gap'\)/.test(
-    codeOnly(read('frontend/src/data/coverage.ts')),
-  ) &&
-    /status: oneOf\(\['backed', 'gap', 'runtime'\]\)/.test(client),
-  'coverageIsDecided is untouched; a runtime row simply is not a gap',
-)
-/*
- * The step has to *show* the runtime rows, which is the half that made the old bug a dead
- * end rather than a wrong sentence — and it has to keep the empty state for a brief that
- * really picked nothing, or "go back to step 2" disappears for the reader who needs it.
+ * **A poll that stops is not a subscription.** The watch runs only while a lane is in flight, and the
+ * store re-reads the whole studio once the last one settles — which is what records the version and
+ * unlocks the other tabs.
  */
 expect(
-  'the coverage step renders the runtime rows and keeps the empty state for an empty brief',
-  /data\.objectCount === 0 && data\.runtimeSources\.length === 0/.test(coverageStepCode) &&
-    /\{data\.runtimeNote \?/.test(coverageStepCode) &&
-    /runtime \? null : \(/.test(coverageStepCode) &&
-    !/'No profiled objects are selected/.test(
-      coverageStepCode.replace(/description="[^"]*"/g, ''),
-    ),
-  'only a brief with no runtime source gets "pick the tables and documents"',
-)
-/*
- * The note is the server's sentence, printed rather than paraphrased — the rule the What-if
- * page learned when two Alerts restated a tenant note the payload already carried. The
- * client dropped both fields for as long as they had existed, so the step could not say why
- * a source the reader deliberately picked had contributed nothing.
- */
-expect(
-  'and the runtime note reaches the step from the payload',
-  /runtime_note:\s*\n?\s*runtimeSources\.length > 0/.test(server) &&
-    /runtime_note: nullable\(str\)/.test(client) &&
-    /runtimeNote: raw\.runtime_note/.test(client) &&
-    /\{data\.runtimeNote\}/.test(coverageStepCode),
-  "the words are the payload's, printed once",
-)
-expect(
-  'a runtime connector is never also profilable',
-  /const RUNTIME_KINDS = new Set\(\['gmail'\]\)/.test(server) &&
-    /for \(const kind of RUNTIME_KINDS\) \{[\s\S]*?isProfilable\(kind\)[\s\S]*?throw new Error/.test(
-      server,
-    ),
-  'refused at boot — a kind that both profiles and answers at question time makes "where did this figure come from" unanswerable',
-)
-expect(
-  'publishing names a content hash, and unpublishing exists',
-  /versions\\\/\[0-9a-f\]\+\\\/publish/.test(server) &&
-    /versions\\\/\[0-9a-f\]\+\\\/unpublish/.test(server),
-  'a version is identified by what it contains, not by a counter',
-)
-expect(
-  'the version rows are never rewritten',
-  !/studioVersions\.get\([^)]*\)\[[^\]]*\]\s*=/.test(server) &&
-    /published: v\.sha256 === studioLive\.get\(id\)/.test(server),
-  'publishing flips a pointer, it does not mutate a row',
-)
-expect(
-  'Ask serves the published version and nothing else',
-  /const published = publishedVersion\(useCase\.use_case_id\)/.test(server) &&
-    /if \(!published\) return null/.test(server),
-  'unpublishing takes the graph out of Ask',
-)
-/*
- * A finished build has to *appear* on Versions.
- *
- * The rows come from the studio payload, which is otherwise fetched once on
- * arrival — so without a refresh keyed to the completed run, the build a user just
- * watched finish is absent from the list until they reload. Nothing errors; the
- * list is simply one run behind, which is the kind of staleness nobody reports.
- */
-expect(
-  'a completed build refreshes the version list',
-  /refreshedForBuild/.test(read('frontend/src/pages/GraphStudioPage.tsx')) &&
-    /shownBuild\?\.status !== 'complete'/.test(read('frontend/src/pages/GraphStudioPage.tsx')),
-  'the row appears without a reload, once per run',
-)
-
-/* The header must not carry a publish button: it could not say which build it
-   meant, which is the whole reason publishing moved onto the rows. */
-expect(
-  'publishing happens on a version row, not in the header',
-  /onPublish\(sha256: string\)/.test(read('frontend/src/pages/GraphStudioPage.tsx')) &&
-    !/Publish \{data\.version\}/.test(read('frontend/src/pages/GraphStudioPage.tsx')),
-  'the header shows the loaded job instead',
+  'the build watch runs only while something is in flight, and re-reads when it settles',
+  /if \(!buildRunning\) return/.test(studioPageCode) &&
+    /window\.setInterval\(\(\) => void poll\(\)/.test(studioPageCode) &&
+    /if \(settled && useCaseId\) await get\(\)\.refresh\(\)/.test(studioStoreCode2),
+  'a finished run changes what every other tab shows',
 )
 
 /* ---------------- Ask's recorded answers are renderable ---------------- */
@@ -6575,10 +6637,23 @@ for (const g of componentGroups) {
      *
      * A total would promote `LlmRun`, which three files import — its two sibling wizard steps and
      * the wizard's page, all of them `graph/`. Three uses inside one area is what a feature folder
-     * is *for*; what earns `common/` is being reached for from elsewhere. `EmptyState` stays by the
-     * other half of the rule: three importers, one of them a page outside `common/`.
+     * is *for*; what earns `common/` is being reached for from elsewhere.
+     *
+     * **A primitive two `common/` wrappers share is the one exception, and it had to be stated.**
+     * `EmptyState` used to clear the bar outright — three importers, one of them a page. Replacing
+     * the studio deleted that page, and the count fell to the two wrappers built on it,
+     * `NoSourceConnected` and `NoPublishedGraph`. Demoting it would have meant moving a shell those
+     * two share into one of their feature folders, which is not where either of them lives: it has
+     * no feature. So a component whose importers are *all* inside `common/` earns its place by being
+     * the thing they are made of, and the bar for that is two — a single wrapper around a shell is
+     * just the shell, and that is still flagged.
      */
-    if (g === 'common' && users.length < 3) underUsedInsideCommon.push(`${name} (${users.length})`)
+    const sharedPrimitive =
+      g === 'common' &&
+      users.length >= 2 &&
+      users.every((rel) => rel.startsWith('frontend/src/components/common/'))
+    if (g === 'common' && users.length < 3 && !sharedPrimitive)
+      underUsedInsideCommon.push(`${name} (${users.length})`)
     if (g !== 'common' && external.length >= 3) overSharedOutsideCommon.push(`${name} (${external.length})`)
   }
 }
@@ -6846,7 +6921,7 @@ expect(
   !/^html,?\s*$/m.test(viewerCssCode) &&
     !/^#root/m.test(viewerCssCode) &&
     !/height:\s*100vh/.test(viewerCssCode) &&
-    /\.gs-viewer \{[\s\S]*?height:/.test(read('frontend/src/pages/GraphStudioPage.css')),
+    /height: 620/.test(read('frontend/src/components/studio/StudioCanvasTab.tsx')),
   'the same component renders in a tab and full-window, so the frame sets the height',
 )
 
@@ -8636,17 +8711,20 @@ expect(
 expect(
   'the in-memory state is per dataset, and no container is shared',
   /* All twelve, named in one place rather than each declaring its own container. */
+  /* The list moved with the studio: the review queue's six containers went with the routes that
+     wrote them, and the two-lane studio's seven took their place. What the claim asserts is unchanged
+     — every container is per dataset, because none of them is keyed by one. */
   [
     'registered',
     'profilingJobs',
-    'graphBuildsByUseCase',
     'derivations',
-    'studioVersions',
-    'studioBuildCount',
-    'studioDecisions',
-    'studioPivotChoice',
-    'studioLive',
-    'studioPublishedBy',
+    'sgbBuilds',
+    'sgbStories',
+    'dgbJobs',
+    'dgbBuilds',
+    'bridgeBuilds',
+    'bridgeDecisions',
+    'studioGraphVersions',
     'whatifSaved',
     'governanceLog',
   ].every(
@@ -8655,7 +8733,7 @@ expect(
       new RegExp(`const ${name} = liveContainer\\('${name}'\\)`).test(server),
   ) &&
     /* And none is a bare container any more, which is what sharing would look like. */
-    !/const (registered|studioLive|whatifSaved|studioDecisions) = new Map\(\)/.test(
+    !/const (registered|sgbBuilds|whatifSaved|bridgeDecisions) = new Map\(\)/.test(
       codeOnly(server),
     ),
   'a registration keyed by source id shows under every dataset if the Map is shared',
@@ -8917,7 +8995,6 @@ expect(
      present on most routes and missing on one — which is a page that loads and then jumps. `/login` is
      deliberately outside, being the one address that exists without a dataset. */
   [
-    'frontend/src/pages/GraphStudioListPage.tsx',
     'frontend/src/pages/GraphStudioPage.tsx',
     'frontend/src/pages/NewGraphPage.tsx',
     'frontend/src/pages/GraphCanvasFullPage.tsx',
@@ -10426,27 +10503,28 @@ expect(
 )
 
 /*
- * **And so does publishing.** Every "published by" line in the app — Ask, a report's footer,
- * the wizard's graph cards, the section's graph list — used to read `db.google_account`, the
- * seeded account, with no way for a reader to know it was not the person who pressed the
- * button. The publish route is now told `?as=`, keeps it per `useCaseId:sha`, and one helper
- * reports it: a second place deriving a publisher would be a second answer to "who".
+ * **And so does publishing.** Every "published by" line in the app — Ask, a report's footer, the
+ * section's graph list — used to read `db.google_account`, the seeded account, with no way for a
+ * reader to know it was not the person who pressed the button.
+ *
+ * **Where the record lives moved with the studio, and the rule did not.** It was a `useCaseId:sha256`
+ * map beside the publication; the publisher is now a field on the version that *is* the publication,
+ * which is strictly closer to the thing it describes. The two halves that matter are unchanged: the
+ * route is told `?as=` rather than guessing, and it is written on **every** publish — merging would
+ * credit the previous publisher for an anonymous re-publish, which a smoke run caught it doing.
  */
 expect(
   'publishing records who did it, and every line reads that one record',
-  /* One record per dataset — a publication is keyed by `useCaseId:sha256`, never by dataset, so a
-     shared Map would let a CAPEX graph report an EPA publisher. See LIVE_SHAPE. */
-  /const studioPublishedBy = liveContainer\('studioPublishedBy'\)/.test(server) &&
-    /studioPublishedBy: 'map'/.test(server) &&
+  /version\.published_by_user_id = as \?\? null/.test(server) &&
     /const publishedByFor = \(useCaseId\)/.test(server) &&
-    /* Set *or cleared* on every publish: merging would credit the previous publisher for
-       an anonymous re-publish, which a smoke run caught it doing. */
-    /studioPublishedBy\.set\(`\$\{id\}:\$\{sha\}`, as\)/.test(server) &&
-    /studioPublishedBy\.delete\(`\$\{id\}:\$\{sha\}`\)/.test(server) &&
+    /* One helper reports it; a second place deriving a publisher is a second answer to "who". */
     !/published_by: db\.google_account\.email/.test(server) &&
     (server.match(/published_by: publishedByFor\(/g) ?? []).length >= 2 &&
+    /* And the browser sends its own signed-in address, because the server has nothing to look one
+       up from — the rule the consent callback established. */
     client.includes('as ? `${path}?as=${encodeURIComponent(as)}`') &&
-    read('frontend/src/store/graphStudioStore.ts').includes('useAuthStore.getState().identity?.email'),
+    /publish\(id, signedInAs\)/.test(read('frontend/src/pages/GraphStudioPage.tsx')) &&
+    read('frontend/src/pages/GraphStudioPage.tsx').includes("useAuthStore((s) => s.identity?.email ?? null)"),
   'told at publish time, with the tenant account as the fallback for an untold one',
 )
 
@@ -12996,7 +13074,8 @@ expect(
   'and it is URL-only, reached by the Full view button rather than the sidebar',
   !navPaths.some((p) => p.includes('/canvas')) &&
     /const fullViewHref = appPath\(`\/graph-studio\//.test(read('frontend/src/pages/GraphStudioPage.tsx')) &&
-    /href=\{fullViewHref\}/.test(read('frontend/src/pages/GraphStudioPage.tsx')),
+    /fullViewHref=\{fullViewHref\}/.test(read('frontend/src/pages/GraphStudioPage.tsx')) &&
+    /href=\{fullViewHref\}/.test(read('frontend/src/components/studio/StudioCanvasTab.tsx')),
   'the same rule as /db: routed, not advertised',
 )
 /*
@@ -13006,15 +13085,22 @@ expect(
  */
 expect(
   'the full view reuses the viewer rather than copying it',
+  /* The studio reaches the viewer through its Canvas *tab* now rather than inline, so the pair is the
+     tab and the full view — and both build their graph with the same adapter, which is the half that
+     stops them drifting. `fromCanvas` survives with no caller — see the claim on it below. */
   [
-    read('frontend/src/pages/GraphCanvasFullPage.tsx'),
-    read('frontend/src/pages/GraphStudioPage.tsx'),
-  ].every(
-    (page) =>
-      page.includes("from '../graph-viewer/App'") &&
-      page.includes("from '../graph-viewer/fromCanvas'"),
-  ),
-  'both views import one component, so neither can drift — and the inspector is inside it',
+    {
+      src: read('frontend/src/pages/GraphCanvasFullPage.tsx'),
+      viewer: "from '../graph-viewer/App'",
+      adapter: "from '../data/studioCanvas'",
+    },
+    {
+      src: read('frontend/src/components/studio/StudioCanvasTab.tsx'),
+      viewer: "from '../../graph-viewer/App'",
+      adapter: "from '../../data/studioCanvas'",
+    },
+  ].every(({ src, viewer, adapter }) => src.includes(viewer) && src.includes(adapter)),
+  'both views import one component and one adapter, so neither can drift',
 )
 /*
  * Keyed to the prop being *passed* (`fullViewHref=`), not to the word appearing. The

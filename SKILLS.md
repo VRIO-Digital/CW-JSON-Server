@@ -1812,424 +1812,159 @@ keeps its state.
 
 ---
 
-## Flow 8 — Graph Studio: a built graph becomes a published one
+## Flow 8 — Graph Studio: a use case's graphs get built, bridged and published
 
-**Files:** `GraphStudioListPage.tsx` · `GraphStudioPage.tsx` →
-`ReviewQueueItem.tsx` → `graphStudioStore.ts` → `GET /graph-studio`,
-`GET|POST /graph-studio/:useCaseId…`
+**Files:** `GraphStudioPage.tsx` → `StudioBuildTab` · `StudioBridgeTab` · `StudioCanvasTab` ·
+`StudioVersionsTab` → `studioStore.ts` → `backend/studioLanes.js` (the pure derivation) →
+`/use-case-configs`, `/structured-graph-builder/*`, `/document-graph-builder/*`,
+`/use-cases/:id/bridge-builds`, `/use-cases/:id/graph-versions`
 
 ```
-New Graph step 6 · Save & build graph
-        → POST /graph-use-cases              commits the brief (pin_inputs)
-        → POST /graph-studio/:id/builds?as=  202 + a queued run, credited to the reader
-        → /graph-studio/:useCaseId            lands on Build, watching that run
-          …unless the brief drew on a runtime source, which stays in the wizard
-           and lands on /ask — the build published it, see Flow 7
-/graph-studio                                every graph you have built
-        → click one → Build · Review queue (6) · Canvas · Query & sanity-check
-                      · Versions
+New Graph · Save & build graph
+        → POST /graph-use-cases                commits the brief
+        → POST /use-cases/:id/combined-builds  202 · every lane it has, in order
+        → /graph-studio/:useCaseId             lands on Build, watching both lanes
+
+/graph-studio          a use-case selector, and four tabs under it
+        → Build          both lanes' pipelines · the story · Build this use case
+        → Bridge         EntityType ⇔ Concept, decided one row at a time
+        → Canvas         Structured · Documents · Combined (+ Full view ↗)
+        → Versions       what was approved together · Publish · Unpublish
 ```
 
-### The Build tab
+**Two dead ends, two exits.** No source connected at all → the shared `NoSourceConnected` (fix:
+Sources). Connected but no use case → "No use case to build yet" (fix: New Graph). The count comes
+from the server on `GET /use-case-configs` and is read `=== 0`, because the store holds `null` until
+the first load and falsy would flash the empty state over a tenant that has sources.
 
-**Files:** `GraphStudioPage.tsx` → `useGraphBuildStore` → `BuildTab.tsx` →
-`POST|GET /graph-studio/:id/builds`, `GET …/builds/:buildId`
+**One selector governs the page.** Every tab is prop-driven off the use case the store holds, so no
+tab carries a picker that could disagree with the one above it — the fault the two studios this
+replaced had between them.
 
-Eleven stages, in dependency order — `pin_inputs`, `a01_schema_parsing`,
-`join_matrix`, `entity_nomination`, `a03_relationship_inference`,
-`a02_document_entity_extraction`, `a02b_document_relationship_mining`,
-`a03b_cross_pipeline_reconciliation`, `a04_entity_resolution`,
-`a015_comprehension`, `a05_graph_construction`.
+**The lanes are derived from what is attached, never declared.** `deriveLanes` reads the brief's
+source picks: a BigQuery project gives a structured lane, a drive or mailbox a document lane, and a
+use case can have both. There is no `graph_kind` and there must not be — single-valued, so "both" is
+unexpressible; frozen at commit, so a use case could not grow into a second lane.
 
-**Each stage names its own substeps, and they are what advances.** A stage carries
-2–3 (`pin_inputs` → `resolve_use_case`, `seal_coverage_evidence`,
-`pin_source_versions`) — 31 in total at `BUILD_STEP_MS` (**3s**) each, so a run
-takes about **1m 33s**. That is slow on purpose: a substep is paced to be narrated
-while it runs, not merely to prove the work was not free.
+### Where a lane's content comes from
 
-**Build first — the other four tabs are locked until a run completes, and again while one
-is in flight.** Review queue,
-Canvas, Query & sanity-check and Versions read a build's output, so they
-are `disabled` while this graph's history holds no `complete` run **or while a run is
-running**, and one flag (`outputReadable` = `builtOnce && !buildRunning`) drives all four.
-The second half matters for a rebuild: those tabs would otherwise show the *previous*
-build's canvas and version list while the new run supersedes them, with nothing saying so,
-and a queue row settled against a superseded canvas is a decision made on stale evidence.
-The lock states itself above the tabs while it holds, in
-different words while a run is in flight — which is the only sentence a rebuild can carry,
-since the act is already underway. Two failure modes it avoids: the studio's
-default arrival tab is the queue, so a locked tab has to be pushed off `activeKey` or antd
-renders an unreachable pane (and a rebuild started from another tab moves the reader the
-same way); and the queue's rows are the package's, so it looks
-populated before anything has been built — which is the whole reason the gate is worth
-having. Rebuilding after settling rows is still the normal case; only the reading of its
-output waits.
+`backend/studioLanes.js`, and it is **pure** — the document in, plain data out. `npm run
+verify:studio-lanes` replays it over both documents with nothing running, which is what makes it
+checkable at all; it is in `preflight`.
 
-**Because it takes minutes, the panel states the pace and the time left.** Both come
-from `step_ms` in the payload, never from a number typed into the component — a
-multi-minute spinner with no estimate reads as a wedged process, and an estimate the
-client invented would be wrong the moment the server's pace changed.
+Nothing there authors graph content. The structured lane reads `projects` + `column_profiles`; the
+document lane reads the drive's documents + `document_extractions`; the concepts are the canvas's own
+seven. So a dataset that ships data ships a studio with it — **CAPEX gets its lanes for free.**
 
-**One cursor drives both levels.** `BUILD_STEPS` is the pipeline flattened, and a
-run keeps nothing but an index into it: a substep is complete before the cursor,
-running at it, pending after, and a stage is `running` exactly while the cursor
-sits inside it. A stage index kept alongside a step index is two counters that can
-disagree, and the screen would show a stage complete while one of its substeps
-still spun. The server drives the cursor and the page polls every 350ms; a row
-turns green when the server says it did, never on a timer of its own.
+Where the document answers nothing, the answer is synthesised from the tenant's own words or
+**refused**. The story is the business need rearranged (`degraded: true` — no model ran); a chunk of
+document text nobody stored comes back `chunk_text: null` with the document named, because a
+fabricated quotation under a heading that says "verbatim" is the one lie a reader could not catch.
 
-**Every stage and every substep is listed from the first response**, `pending`
-until it runs: a list that grew a row at a time would hide how much is left, which
-is the only thing the panel is for. Substeps stay visible on a stage that has not
-started for the same reason. The names are printed **verbatim** so a row on screen
-is greppable in a log — do not prettify them.
+**Checking it:** `npm run verify:studio-lanes` (pure, in preflight) replays the derivation over both
+documents. `npm run verify:studio-contract` (needs `npm run mock`, so **not** in preflight) calls
+every studio fetcher against a live server through the real validators — the only thing that checks a
+schema against a real payload, added after one schema over two shapes refused every structured graph
+while blaming the server. `check-docs` holds the offline half: every fetcher must appear in
+`contract.ts`.
 
-**Why here and not in the wizard.** A graph is built more than once: settling review
-rows changes what a build produces, so **Rebuild** is the normal case. Every run is
-kept in that graph's history and an earlier one stays loadable from the picker.
-The wizard's job ends at starting the first one.
+### Build
 
-**Building is not publishing.** The footer names the draft version the run produced
-and says to publish it from Versions; the publish gate is untouched and still
-refuses while the queue or the pivot is open. `package_id` and `graph_version` are
-minted per run, so a rebuild is visibly a different package.
+One press builds every lane, in order; the Bridge stage is **skipped, not failed**, for a single-lane
+use case. Both runs are stepped on the server and polled by the page — **one cursor, not two**, so a
+stage cannot read complete while one of its substeps spins. The stage list and the pace are the
+server's (`step_ms` rides on the payload), so adding a stage adds a row and changing the pace moves
+the "about N left" sentence rather than contradicting it.
 
-**Where it fails:** a draft → 400 from `findBuiltGraph` naming "finish it in New
-Graph"; a build the server has forgotten → 404 saying builds live in memory and a
-restart clears them. If the wizard's build fails to start, the brief is still
-committed and the message says both.
+**A build never publishes.** It records what it produced and stops. A run that published itself was
+reported from use as a graph that "automatically got published", and it stepped around the gate
+rather than through it.
 
-Every tab is built. The header carries only what is live — each tab owns its own
-actions, so publishing runs from a version's own row in Versions, where the version
-being published is the one you are looking at.
+Editing the story re-runs the extraction — the cursor resets and the same stepper narrates it. A
+**published** build refuses the edit and names the fix.
 
-**There was a Quality report tab, and it is gone** — removed on request, with
-`POST /graph-studio/:id/quality-check`, `runQualityCheck`, the `QualityReport` types
-and the store's `report` / `checking` / `check`. It recomputed the three preconditions
-`publish.blocked` already reports, so it was a second surface for one gate. The gate
-is untouched: the banner over the review queue and the refusal on publish still state
-those three checks.
+### Bridge
 
-### The list
+`EntityType ⇔ Concept`, three-way: `identity` (a thing of this type **is** what one row of the
+concept represents) · `attribute` (a **value** of an attribute of such a row) · `reject`. It names no
+column and queries no warehouse — **nothing here can become a `WHERE` clause.**
 
-Only graphs that have been **built** — a use case committed on the last step. Each row
-carries its name, domain, `draft v15` / `published`, when it was built, and the
-one number that decides whether it can ship: how many items still need a human.
+The decision is grounded in the **resolution**, not in the two names: when every "Transporter"
+resolved to a `Facility` node, that is the evidence. Matching strings called "Generator (facility)" an
+*attribute* of Facility because the word is inside it — exactly backwards.
 
-A use case still in the wizard is not listed, and opening its id is **refused
-with a 400 naming the fix** rather than a 404 — "not built yet" is a different
-problem from "no such graph". The draft count is still shown, because that is
-the answer to "where did my graph go?".
-
-### One graph's review
-
-Four buckets, split by confidence and by whether a *floor* was hit:
-
-| Card | Meaning |
-|---|---|
-| **Must review** | below 0.85 and on a floor — these block publish |
-| **Pivot** | an entity-resolution question that blocks the build outright |
-| **Confirmed FYI** | 0.85–0.95, spot-checked |
-| **Auto-approved** | ≥0.95, listed for the record |
-
-**Every figure is the length of something returned.** `db.json` holds the queue, the
-pivot and the totals, all ingested from the package's **trust lanes** (`autoApprove`
-398 · `confirmedFyi` 12 · `mustReview` 6 · `pivot` 1, summing to its
-`elements_total`). The must-review lane is entirely authored — `must_review_total`
-equals the ingested row count, so nothing synthesised pads the lane a reviewer must
-clear. The two spot-check buckets *are* synthesised by `studioItems` from a hash that
-includes the use case id, so each built graph has its own sample and repeats agree,
-and confidence is generated inside each bucket's band so a card cannot lie about its
-own filter. Those return a named `*_sample`; 398 is a count, not a list.
-
-**Five rows plus the pivot.** The package ships six must-review decisions and `rq1`
-is the identity merge (Texas Molecular LP ⇄ VLS Texas Molecular), which is the one
-that changes what every other row *means* — so it is ingested as the pivot and the
-queue holds the other five. The arithmetic still matches the package's
-`mustReviewTotal`, and `check-docs` asserts the merge is in exactly one of the two:
-in both, a reviewer could answer one question two ways.
-
-**A row's buttons are its own labels.** Each states three in its own terms — "Keep
-distinct", "Declare basis = manifest", "Leave orphaned" — while the *choice* behind
-each stays one of the fixed set, because what a decision means to the canvas has to be
-identical on every row. The server validates against the row's own `actions` and names
-them in the refusal (`"approve-causal" is not one of the choices rq4 offers — it
-takes: approve, correct, reject`), and the page reads that same list, so it cannot
-offer a button the API rejects. `action_set` is the fallback family for a row stating
-none, and where the causal pair still lives: **Approve as causal / Downgrade to
-correlational / Reject**, never a plain "Approve", because only one keeps the causal
-edge. A `schema-changing` row cannot be resolved without a justification, refused
-server-side.
-
-**A row's `graph_refs` are not what it makes provisional.** Refs are what the row is
-*about*; the provisional set is what its decision still governs, mapped explicitly in
-the ingest. rq5 and rq6 deliberately mark nothing — rq5 declines a promotion so there
-is no node to dash, and rq6 concerns three attachments below the floor that were never
-drawn.
-
-Every action answers with the whole studio, so the cards, the gate and the row
-move together and no second fetch can leave them disagreeing.
-
-### The publish gate
-
-**The pivot is a separate precondition from the queue.** Resolving all five rows
-still leaves publish blocked while it is open, because settling it changes what
-the already-decided rows mean — which is why the pivot sits *above* the rows
-rather than in them.
-
-`publish.blocked` and its `reasons` are computed once, on the server. The
-button's `disabled`, its tooltip, the banner and the `POST …/publish` refusal all
-read that one list, so a UI that forgot to disable still cannot publish.
-Publishing makes the **draft's own** version live — `draft v15` publishes as
-`v15`, and the next draft becomes v16.
-
-**Where it fails:** a plain approve on a causal row → 400 naming the three legal
-choices; a schema-changing row with no justification → 400; an unknown item →
-404; an unknown pivot option → 400 naming the two; publish while blocked → 400
-listing the same reasons the banner shows; opening an unbuilt draft → 400 telling
-you to finish the wizard.
-
-Decisions and the pivot live **in memory**, keyed `useCaseId:itemId` so two
-graphs cannot answer each other's rows — a review pass is a working session, not
-something a mock writes back over its seed.
+- **Reject rows are listed**, because the table records what was *considered*.
+- **What blocks publishing**: it asserts a correspondence and no person has decided it. Confidence is
+  deliberately **not** in the predicate — it is the deriver's self-report, so gating on it would let
+  the deriver choose which rows a human must look at, and a confidently-wrong `identity` is exactly
+  the row that would escape. It *orders* the queue (low first); it does not define it.
+- **Agreement is a decision.** A row leaves the set whether the person confirmed or changed it.
+- **Accept-all** sweeps only what is still outstanding — a gate nobody can clear gets switched off.
+- **A published Bridge is frozen**; `revise` clones it with every decision carried, so the one row you
+  came for is one edit away and the published one keeps answering until you publish the clone.
 
 ### Canvas
 
-**Files:** `src/graph-viewer/` (vendored) + `fromCanvas.ts` → `GET /graph-studio/:id/canvas`
+**Files:** `src/graph-viewer/` (vendored) + `src/data/studioCanvas.ts` (pure adapters)
 
-The ontology as nodes and edges, drawn by the **vendored graph viewer** — a d3-force
-graph with its own simulation, drag, zoom, search box, type legend and inspector sidebar.
-It was vendored the same way `src/reports/` was: its hook, its lib, its types and its
-stylesheet are its own, and it was imported rather than reimplemented. The standalone app it
-came from lived at `vendor/graph-viewer-source/` until 2026-08-18, when it was deleted —
-nothing imported it, so it was a second copy of the viewer with nothing keeping it in step.
-`src/graph-viewer` is the only copy; the original is in git history.
+Three frames, one viewer. A second force graph is what this repo refuses everywhere: two drawings of
+one graph are two answers to what it looks like.
 
-**It replaced a hand-written inline SVG, and that is why d3 is here.** The old canvas drew
-the ingest's precomputed positions: 189 nodes in a fixed arrangement, which reads as a
-hairball whatever the palette does. "Prefer ~100 lines to a package" still holds elsewhere
-— the answer charts and the What-if drawings are still hand-written — but a settling force
-layout with drag and zoom is not 100 lines. `npm audit` was 0 advisories before and after.
+- **Structured** — tables and the concepts their columns realise. Columns fold into their table
+  (206 discs around five tables says less than five tables do), capped **and saying so**; nine
+  `REALISES` edges between one pair fold to one relationship carrying the count.
+- **Documents** — the corpus and what each document was found to be about. Two documents about one
+  facility **share a node**: that is entity resolution, and the mention count says so.
+- **Combined** — both, plus the Bridge drawn between them. **Nothing is merged**, and a correspondence
+  reaches the drawing only once a person has decided it: a line on a canvas reads as a fact.
 
-**What went with it, so nobody looks for it:** the four-hue origin-class fill and the
-ontology ring inside it, `LABEL_AT_ZOOM` label gating, the `getScreenCTM` pan/zoom and its
-non-passive wheel listener, `src/components/GraphCanvas.tsx`, `NodeInspector.tsx` and
-`src/data/canvasLegend.ts`. The payload still carries `group` (the origin class) and
-`validateDb` still checks it — it is the graph's own account of how an element was built —
-but the drawing no longer encodes it.
-
-**Four changes were made to the folder, and no others.**
-
-| change | why |
-|---|---|
-| it takes its graph as a **prop** | the folder shipped with a synthetic demo dataset; the graph here is the tenant's, and that data was dropped rather than ported so it cannot render by accident — `check-docs` asserts `src/graph-viewer/data` does not exist |
-| its root carries **`cw-graph`** | its stylesheet is scoped under that class. Unscoped, `.link`, `.tab`, `.dot`, `.side` and its *dark* `:root` tokens restyle the whole app — the report prototype's trap, with worse selectors |
-| `useForceGraph` gained **`highlight`** | the Query tab promises an answer's evidence lights up on the canvas. The dim/highlight mechanism already existed for the clicked neighbourhood, so the answer path feeds that rather than a second highlight with its own rules |
-| it **fills a container**, not a document | the root was the document's flex root at `100vw` and declared no width, so in the full view's flex row it sized to content: the drawing collapsed to min-content beside the 360px panel and two thirds of the page went blank. `width: 100%` *and* `flex: 1 1 auto` + `min-width: 0`, so it fills a block container and a flex one — and the simulation measures its box (`clientWidth` is 0 before layout, which piles every node into the corner) with a `ResizeObserver` re-centring it after |
-
-**`fromCanvas` renames; it does not invent.** The shapes were already close, which is what
-made vendoring possible: `element_class` is exactly the viewer's three classes (only
-`measure_element` → `measure`), our ontology `type` is the key its `TYPE_COLORS` is written
-against, `source` becomes the `provenance` its inspector prints, `sublabel` becomes its
-`subtype`, and the studio's review state becomes its amber L2 note — **only where there is
-something to say**, because an absence has no note. `r` is deliberately not passed: the
-viewer sizes a node by element class and degree, and two radius rules disagree silently.
-
-**The ingest's positions still do work.** `x`/`y` are handed over as each node's *starting*
-position, which is how d3 reads an existing `x`/`y`, so a run settles from the arrangement
-`npm run ingest:graph` wrote rather than from a random scatter. That is why the picture is
-recognisably the same graph each time, and why re-running the ingest is still how the
-layout changes.
-
-**It draws the demo package's knowledge graph**, ingested from
-`05_knowledge_graph/knowledge_graph.json`: **189 nodes, 241 edges**, one hub (VLS
-Texas Molecular, 61 relationships), 49 facilities, 40 evaluations, 38 violations, 31
-enforcements, 11 sampled manifests, 7 enforcement documents, 7 concepts, 3 measure
-elements and 3 aliases.
-
-**The graph is an index, not a copy.** Spec-faithful AGB Layer 1, three element
-classes: `concept` (type-level, one node however many rows), `thin_instance`
-(identity + provenance *only* — no attributes, no measures, no dates) and
-`measure_element`. Every figure on a sublabel or an edge tooltip comes from the
-package's `demo_display` block, its cache of what Layer 2 would federate at query
-time. Do not move a value onto a node to make rendering easier: the separation is what
-is being demonstrated.
-
-**Column values are not nodes, by decision.** The earlier graph promoted 13
-`WasteCode`, 9 `ViolationType` and 5 `EnforcementType`; the package's `not_nodes`
-lists all three with `was_wrongly` beside them — a code on a row is an attribute of
-the shipment. The events those columns described are nodes instead. `check-docs`
-fails if a retired type reappears, and rq5 in the queue is the standing offer to
-promote them anyway, declined by default.
-
-**Colour is the ontology type now.** Nine hues rather than four — a categorical palette stops
-being reliably distinguishable past four when any two nodes can end up adjacent. The ground is
-**white**, matching every other surface in the app; the viewer arrived dark and was turned over,
-which meant retoning all nine (the dark set measured 1.95:1–3.36:1 on white) to their ~5:1 shades
-in one luminance band, so they separate by hue and not by lightness. `check-docs` asserts every
-type the canvas draws has a hue (`colorFor` otherwise falls through to grey, honestly but
-silently) and recomputes each against `--bg` as the stylesheet declares it, at 3:1 — so the ground
-is stated once and the guard follows it. Size is the viewer's own rule: `radiusFor` by element
-class, then degree, so the hub is biggest because 61 edges land on it.
-
-**Reading it:** drag a node, scroll to zoom, drag the background to pan, **Reset view**
-returns. Clicking a node dims everything outside its neighbourhood — the interaction that
-makes 189 nodes readable, since "which of these lines are mine" is not answerable by
-looking. The search box narrows by label or id; the legend rows filter by type, each with
-its count. The sidebar's two tabs are the viewer's own: **Inspect** (the node, its
-provenance, its relations, its L2 note) and **How it's built**.
-
-**Full view** opens the same graph in a **new tab** at
-`/graph-studio/:useCaseId/canvas`, using the whole window — the studio tab keeps its
-place, its queue and whatever the reader had zoomed to. It is the **same viewer on the
-same payload**; only the frame differs, because a full view that drew its own graph would
-be a second truth about it. Three things about the route:
-
-- It is declared **before** the `App` tree. `graph-studio/:useCaseId` matches the
-  parent segment, so declared after it the studio page would render at the full view's
-  URL — a wrong page with no error anywhere.
-- It sits **outside** `App`, the only page besides `/login` that does, and for the
-  opposite reason: `/login` has nothing to navigate to yet and this has nothing to
-  spare. Still inside `RequireAuth`.
-- It is **URL-only**, like `/audit`, `/trace`, `/validation` and `/db` — reached by the
-  button, never advertised in the sidebar.
-
-The button lives on the studio's canvas tab, not inside the viewer: `src/graph-viewer` is
-vendored and knows nothing about this app's routes. The full view does **not** render one —
-a link to the page you are already on is a dead control, and the absence is what makes it
-impossible rather than merely unlikely.
-
-**The canvas and the review queue are the same truth.** A node or edge carrying a
-`review_item_id` is *proposed* exactly while that row is undecided — approve rq2 and
-the Chemours `DESCRIBED_BY` edge un-dashes, correct rq4 and the `quantity_tons`
-measure element becomes `studio-authored` (which is what the fourth filter chip
-counts). The inspector says so and links back to the queue.
-
-The one state shown is "proposed", and it carries a dashed outline and the word as
-well as a colour. Filter chips show counts, so an empty result reads as "none match"
-and not as a broken chip.
-
-**An edge whose endpoint is not a node fails the boot.** An earlier package shipped 20
-such edges — three alias names and an unitemised enforcement type its node roster
-omitted — and the symptom was silence: those relationships were skipped while drawing,
-so 17 facilities looked like they had no enforcement. `validateDb` checks canvas
-endpoints across keys. **This build resolves cleanly**, so the ingest materialises
-nothing and throws if it would have to, and `check-docs` asserts the canvas is exactly
-the roster — a canvas larger than the package means something is being invented.
-
-### Query & sanity-check
-
-**Files:** `GraphStudioPage.tsx` → `POST /graph-studio/:id/query`
-
-A question asked of the **draft**, before anyone commits to it — by one of two
-routes, and the payload always says which. The answer comes back as a canvas with the
-walk marked, which is what the glow on the Canvas tab is; there is no second request
-and no second truth.
-
-**A recorded check wins, and names itself.** `graph_studio.sanity_checks` holds the
-five the package wrote in `graph_studio.json`: a hero question (`hq4`, `hq2`, `hq1`,
-`hq13`, `hq10`), a verdict, the context chips, the Cypher the engine would plan, its
-cost against the budget, and the sub-graph it walks. They are offered as chips under
-the box, because a chip is a promise the brief already made. Matched exactly as
-`ask_answers` are and at **the same `ASK_MATCH_MIN`** — two thresholds over one
-tenant's questions would let the studio pass what Ask declines — with `recorded: true`
-and `check_id` on the payload, so a written verdict is never read as something the
-walk derived. A recorded check names its hops by `edge_id`, so the highlight is exactly
-the relationships it used.
-
-**A recorded traversal is a sub-graph, not a chain.** `pathLabels` is empty on one and
-the hops are listed from `edgesUsed` instead: sc3 walks three generators and three
-enforcement actions that all meet at the receiving TSDF, and arrow-joining those seven
-ids would claim a route nobody walked.
-
-Anything unrecognised falls through to **the walk**. There is no engine: the entities
-named are matched to nodes and the path between them is walked over the edges that
-actually exist, so the path *is* the evidence.
-
-Three honest failures, and they are the point:
-
-- a question naming **no** entity in the graph → not answerable
-- naming **one** → "a question needs two things to relate"
-- naming two that **nothing connects** → says so rather than inventing a hop
-
-An answer crossing an undecided edge is answerable **and provisional**, and says
-which decision it is resting on — publishing would change it. **A recorded check is
-not exempt**: its caveats come from the edges it actually used, so sc1, which rides
-the Chemours `DESCRIBED_BY` edge that rq2 has open, is answerable and flagged.
-
-Matching requires the whole label or a word that is **rare and not a type name**.
-Three ways a bare shared word answers a question nobody asked:
-
-- it is a *kind* — "which facility do we accept waste from" holds "facility" and
-  "waste", which name the type `Facility` and an edge label, so no instance may claim
-  them. The stoplist is read off the graph's own `type` and edge-label vocabulary, so
-  a new node type stops its own word without anyone remembering to.
-- it is common — "texas" is in five labels here, so it names none of them.
-- **it is the whole label of a concept node.** The rebuild put 7 type-level nodes on
-  the canvas labelled exactly "Facility", "Manifest", "Document" — and the whole-label
-  shortcut bypassed the stoplist, so "tell me about the Denka facility" resolved to
-  `CONCEPT:Facility` and reported the two had nothing between them. A concept *is* the
-  type, so concepts are excluded from instance matching and the shortcut clears the
-  stoplist too.
-
-The rule was once "unique to one node", and it broke the moment a facility and the
-consent decree about it shared a name: "what does the chemours consent decree say
-about the facility we accept waste from" matched nothing, and that question is the
-whole point of the graph. Rarity replaced uniqueness — a word naming at most 5% of
-the nodes is taken as naming them deliberately — and the word floor is four
-characters, because "the" is rare across these labels and matched *The* Chemours
-Company Fayetteville Works on the article.
+`Table` is the one type the studio added to the palette; without a hue every table fell through to
+grey. **Full view ↗** opens the combined frame in a new tab — href built by the page, because the
+dataset prefix is the page's.
 
 ### Versions
 
-**Files:** `GraphStudioPage.tsx` → `VersionsTab.tsx` →
-`POST …/versions/:sha/publish`, `POST …/versions/:sha/unpublish`
+A version is **the artifacts approved together** — it records an approval, never a merged graph.
+`reconcile` names whatever finished (idempotent, `null` rather than an invented version), and
+**creating is not publishing**: it lands unpublished so it can be inspected.
 
-**A version is a build.** Every run that finishes records one row, newest first:
+Each carries two staleness questions, **reported separately**: whether its Bridge was formed from the
+triple it names (a **defect**) and whether a lane has built something newer (just a **candidate**).
+One "stale" boolean would make those read the same.
 
-```
-facility manifest · v2   loaded  gate passed  published   11/08/2026, 14:57
-8 entities · 4 relationships · graph 9ff33f44… · sha256 67da70212ac5… · from job d2aee040…
-[ Load this version's job ]  [ Unpublish ]   immutable — content-addressed; …
-```
+Publishing approves every artifact it names **or none of them**, and must be told who did it — the
+identity is client-held, so a route has nothing to look a publisher up from. The tab withholds the
+button when nobody is signed in.
 
-**Content-addressed and immutable.** `sha256` is the identity — two builds of one
-brief differ there and nowhere else. **Each build also takes its own number — v1, v2, v3**,
-assigned when the run starts and never recomputed, so a published `v2` stays `v2` however many
-builds follow. The number names the build; the hash is still the identity. (It used to name the
-brief's *config* and moved when the brief was committed, so several rows read `v2` — the wrong
-reading of a list of builds.)
-Publishing flips a pointer (`studioLive`, one content hash per graph); it never
-rewrites a row, and unpublishing clears the pointer. The sentence on every row says
-so, so it must stay true.
+**`publishedVersion` is the one seam** Ask, Reports, the What-if lens and Audit & Governance all read.
+That is why replacing the studio reached all four without editing any of them. Do not let a surface
+learn to read the version store for itself.
 
-**Two acts, not three:**
+### What is locked
 
-| Act | Endpoint | What it means |
-|---|---|---|
-| publish | `POST …/versions/:sha/publish` | Ask may query **this** build |
-| unpublish | `POST …/versions/:sha/unpublish` | take it out of Ask; the row survives |
+Bridge, Canvas and Versions read a build's output, so they are locked until one exists **and again
+while a rebuild runs** — otherwise they show the previous build's output with nothing saying so, and
+settling a correspondence against a superseded canvas is a decision on stale evidence. One flag
+(`selectOutputReadable`) drives all three. **Build is never locked.**
 
-**Publishing an older row is the rollback**, and it works because any row may be
-published. This replaced an earlier publish → approve → activate chain, and the
-cost is stated plainly: there is **no recorded human sign-off** any more, and no
-separate activate step. The gate is unchanged — an unreviewed graph is refused
-whichever row is chosen.
+### In memory, per dataset
 
-**Publish is offered even when the gate is blocked**, because the refusal names
-what is outstanding; that is more use than a disabled button with no reason. The
-tooltip says it before the click.
+Builds, jobs, Bridges, decisions and versions all live in the server's memory, per dataset, because
+none is keyed by one. A restart clears them and the 404 says so.
 
-The badges are facts about a row, so only two are `STATUS` coloured: `gate passed`
-and `published`. `gate unknown` is neutral — it means nobody had reviewed the graph
-when that build finished, which is not a failure. `loaded` marks the row the Build
-tab is showing and takes a brand tint, because being loaded is navigational.
+**`both` refuses a studio write at the mutator, not the container** — `readOnly` catches a write that
+*adds* a row but not one that mutates a row already inside the merge, and the merge holds those by
+reference, so publishing under `both` would take effect against a dataset the reader did not select.
 
-**Where it fails:** publishing while the gate is blocked → 400 naming every reason;
-publishing or unpublishing an unknown hash → 404 saying versions live in memory;
-unpublishing a row that is not the published one → 400.
+### What the previous studio left behind
 
----
+The review queue, the pivot, the per-graph build history and the sha256 publish pointer went with the
+page. **Kept deliberately**: `studioCanvas`, `studioQuery` and `graph_studio.sanity_checks`, which Ask
+reads, and `db.graph_studio.canvas`, the roster the document lane resolves against.
+
+**Waiting for a caller** (the `/change-signals` state — do not delete to "finish" the removal):
+`db.graph_studio.review_items` and its pivot, still written by `npm run ingest:graph`; and
+`fromCanvas`/`answerPath`, whose highlight mechanism is whole beneath a surface that no longer exists.
 
 ## Flow 9 — Ask: querying a published graph
 

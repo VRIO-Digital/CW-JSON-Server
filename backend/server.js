@@ -104,6 +104,25 @@ import {
 } from './datasets.js'
 import { exportKey, FORMATS } from './reportExport.js'
 import { classForType, parseSchemaDocument } from './schemaImport.js'
+import {
+  chunkEvidence,
+  conceptsFor,
+  corpusDocuments,
+  deriveLanes,
+  dgbClasses,
+  dgbCounts,
+  dgbEntities,
+  dgbMentions,
+  dgbRelations,
+  needsReview,
+  selectedTables,
+  sgbCounts,
+  sgbGraph,
+  sgbStory,
+  studioSources,
+  studioUseCases,
+  typeLinks,
+} from './studioLanes.js'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -406,15 +425,20 @@ const LIVE_SHAPE = {
      document to point at, and a restart clears the handles with the sessions. */
   gmailHandles: 'map',
   profilingJobs: 'array',
-  graphBuildsByUseCase: 'map',
   derivations: 'map',
-  studioVersions: 'map',
-  studioBuildCount: 'map',
-  studioDecisions: 'map',
-  studioPivotChoice: 'map',
-  studioLive: 'map',
-  studioPublishedBy: 'map',
   whatifSaved: 'map',
+  /*
+   * The two-lane studio's runtime. All per dataset, because none of it is keyed by one: a build
+   * is keyed by use case and a type-link decision by bridge build, so one shared Map would show
+   * an EPA build while CAPEX was selected.
+   */
+  sgbBuilds: 'map',
+  sgbStories: 'map',
+  dgbJobs: 'map',
+  dgbBuilds: 'map',
+  bridgeBuilds: 'map',
+  bridgeDecisions: 'map',
+  studioGraphVersions: 'map',
   governanceLog: 'array',
 }
 
@@ -4108,64 +4132,8 @@ const DERIVATION_STAGES = [
   'Checking coverage against the Catalog',
 ]
 
-/**
- * The graph build pipeline — what turns a committed brief into a graph.
- *
- * Named as the platform names them, so a row on screen matches a row in a log,
- * and ordered by what depends on what: inputs are pinned first, the structured
- * side is parsed and joined before entities can be nominated, the document side is
- * mined separately, the two are reconciled, then resolved, comprehended, and
- * finally constructed.
- *
- * This lives in Graph Studio rather than in the wizard because a graph is built
- * more than once. Rebuilding after settling review rows is the normal case, so the
- * runs are kept per graph and the last one stays readable.
- */
-const BUILD_STAGES = [
-  { key: 'pin_inputs', steps: ['resolve_use_case', 'seal_coverage_evidence', 'pin_source_versions'] },
-  { key: 'a01_schema_parsing', steps: ['read_column_profiles', 'infer_column_semantics', 'validate_grain'] },
-  { key: 'join_matrix', steps: ['enumerate_shared_keys', 'score_join_candidates', 'prune_weak_joins'] },
-  { key: 'entity_nomination', steps: ['nominate_from_tables', 'dedupe_nominations', 'bind_to_hero_questions'] },
-  { key: 'a03_relationship_inference', steps: ['pair_entities', 'test_shared_identifiers', 'rank_by_evidence'] },
-  { key: 'a02_document_entity_extraction', steps: ['chunk_documents', 'extract_entities', 'score_extraction_confidence'] },
-  { key: 'a02b_document_relationship_mining', steps: ['mine_cooccurrence', 'link_document_entities'] },
-  { key: 'a03b_cross_pipeline_reconciliation', steps: ['align_structured_and_document', 'resolve_conflicts', 'merge_evidence'] },
-  { key: 'a04_entity_resolution', steps: ['blocking_pass', 'pairwise_match', 'assign_canonical_ids'] },
-  { key: 'a015_comprehension', steps: ['summarise_entities', 'draft_relationship_labels'] },
-  { key: 'a05_graph_construction', steps: ['materialise_nodes', 'materialise_edges', 'seal_package'] },
-]
 
-/**
- * The pipeline flattened to its substeps, which is what actually advances.
- *
- * **One cursor, not two.** A stage index and a step index kept in step by hand is
- * two counters that can disagree; a single cursor over this list makes every state
- * on screen derivable — a substep is complete before the cursor, running at it,
- * pending after, and a stage is whatever its substeps say it is.
- */
-const BUILD_STEPS = BUILD_STAGES.flatMap((stage, stageIndex) =>
-  stage.steps.map((step) => ({ stage: stage.key, step, stageIndex })),
-)
 
-/*
- * 3s per substep — 31 of them, so a whole build is ≈1m 33s.
- *
- * Deliberately far slower than PIPELINE or DERIVATION_STAGE_MS. Those pace an
- * operation so it cannot read as free; this one is paced so each substep can be
- * *narrated* — a build is watched over someone's shoulder, and a row that finishes
- * in a quarter of a second is gone before it can be pointed at. The cost is that a
- * run outlives a demo segment, which is why the Build tab states the expected
- * duration: without it, minutes of spinner read as wedged. Change this number and
- * the sentence on the page follows from it rather than repeating it — `step_ms` is
- * in the payload for exactly that reason.
- */
-const BUILD_STEP_MS = 3_000
-
-/**
- * Every build ever run, newest first, keyed by use case. In memory like every
- * other run here, so a restart clears the history and the 404 says so.
- */
-const graphBuildsByUseCase = liveContainer('graphBuildsByUseCase')
 
 /** Runs in flight, keyed by id. In memory, like every other run in this mock. */
 const derivations = liveContainer('derivations')
@@ -4237,80 +4205,10 @@ const derivationView = (run) => ({
   coverage: run.status === 'complete' ? run.coverage : null,
 })
 
-/**
- * A version is a build.
- *
- * Every completed build records one immutable, content-addressed row: the graph it
- * produced, its sha256, what it contains, the config version it was built from, and
- * the job it came from. Rebuilding the same config produces *another* version of
- * that config — which is why several rows share `v2` and differ by content hash.
- *
- * Nothing here is ever mutated. Publishing flips a pointer to one of these rows; it
- * does not rewrite the row, and unpublishing puts the pointer back. That is what
- * "immutable — content-addressed; publishing gates Ask access, it does not mutate
- * this graph" means on screen, and it has to stay true.
- */
-const studioVersions = liveContainer('studioVersions')
 
-/**
- * **A version per build: v1, v2, v3.** The number is the count of builds this graph has
- * started, so every run — first build or tenth rebuild — gets its own label.
- *
- * This replaced a *config* version that moved when the brief was committed and stayed put
- * across rebuilds, so several rows legitimately read `v2` and were told apart by content
- * hash alone. Content addressing is still the identity (`sha256`, unchanged); what changed is
- * that the label now names the build rather than the brief, which is what a reader means by
- * "version" on a list of builds.
- *
- * **It is still assigned once, at the start of a run, and never recomputed.** That is the
- * property the old scheme was protecting: a counter that moved on publish would relabel
- * history, so a published `v2` must stay `v2` however many builds follow it. Assigning at
- * `startBuildFor` and reading the stored value everywhere keeps that true.
- */
-const studioBuildCount = liveContainer('studioBuildCount')
 
-/** The next label for this graph, and the count that produced it. Called once per run. */
-function nextBuildVersion(useCaseId) {
-  const next = (studioBuildCount.get(useCaseId) ?? 0) + 1
-  studioBuildCount.set(useCaseId, next)
-  return `v${next}`
-}
 
-/**
- * The newest label this graph has reached — what the studio header and the wizard's card
- * show as its draft version. `v1` before anything has been built, because that is the
- * version the first build will produce, not a claim that one exists.
- */
-const configVersion = (useCaseId) => `v${studioBuildCount.get(useCaseId) || 1}`
 
-/** Records the version a finished build produced. */
-function recordVersion(run, gatePassed) {
-  const rows = studioVersions.get(run.use_case_id) ?? []
-  const gen = db.graph_studio.generated
-  rows.unshift({
-    /* The content hash *is* the identity — two builds of one config differ here
-       and nowhere else, which is the point of content addressing. */
-    sha256: `${(hash(`sha:${run.build_id}`) % 0xfffffffffff).toString(16)}${(hash(`sha2:${run.build_id}`) % 0xfffffff).toString(16)}`,
-    graph_id: run.graph_version,
-    config_version: run.config_version,
-    entities: gen.entity_total ?? studioCanvas(run.use_case_id).node_count,
-    relationships: studioCanvas(run.use_case_id).edge_count,
-    from_job: run.build_id,
-    created_at: run.finished_at,
-    /*
-     * Whether the publish gate was clear when this build finished. `unknown` is
-     * not a failure — it means nobody had settled the queue and the pivot yet, so
-     * nothing has checked this content. Publishing re-checks; this only reports
-     * what was true at build time.
-     */
-    gate: gatePassed ? 'passed' : 'unknown',
-  })
-  studioVersions.set(run.use_case_id, rows)
-  /* The row it just wrote. Returned rather than re-found by hash, so a caller that has to
-     act on this version acts on the one this call created and not on whatever now sits at
-     the head of the list. */
-  return rows[0]
-}
 
 /**
  * Public shape of a build.
@@ -4323,53 +4221,7 @@ function recordVersion(run, gatePassed) {
  * rebuild produces a new graph version, which is the point of rebuilding. They are
  * *reported*, never derived on the client.
  */
-/**
- * Which stage the cursor is in. `BUILD_STAGES.length` once the run is past the
- * end — a finished run must not point at a real stage, or its last row would read
- * as still running.
- */
-const stageIndexAt = (cursor) =>
-  BUILD_STEPS[cursor]?.stageIndex ?? BUILD_STAGES.length
 
-const buildView = (run) => ({
-  build_id: run.build_id,
-  use_case_id: run.use_case_id,
-  status: run.status,
-  /*
-   * Every state below is derived from `run.cursor`, the one number the run keeps.
-   * A stage is `running` while the cursor sits inside it — not merely because some
-   * of its substeps are done — so the header and the rows cannot disagree.
-   */
-  stage_index: stageIndexAt(run.cursor),
-  stage_total: BUILD_STAGES.length,
-  step_index: run.cursor,
-  step_total: BUILD_STEPS.length,
-  /* The pace, reported rather than assumed: the page states how long a build takes
-     and how much is left, and neither figure may be a number the client invented. */
-  step_ms: BUILD_STEP_MS,
-  stages: BUILD_STAGES.map((stage, i) => {
-    const flat = BUILD_STEPS.map((s, index) => ({ ...s, index })).filter(
-      (s) => s.stageIndex === i,
-    )
-    const done = flat.every((s) => s.index < run.cursor)
-    const started = flat.some((s) => s.index < run.cursor)
-    return {
-      key: stage.key,
-      state: done ? 'complete' : started || i === stageIndexAt(run.cursor) ? 'running' : 'pending',
-      steps: flat.map((s) => ({
-        key: s.step,
-        state:
-          s.index < run.cursor ? 'complete' : s.index === run.cursor ? 'running' : 'pending',
-      })),
-    }
-  }),
-  package_id: run.package_id,
-  graph_version: run.graph_version,
-  /* The config version this build is of — the label its version row carries. */
-  config_version: run.config_version,
-  started_at: run.started_at,
-  finished_at: run.finished_at,
-})
 
 /**
  * Whether a graph draws on a source that is read at question time.
@@ -4403,86 +4255,7 @@ function runtimeSourcesIn(picks) {
  * brief's picked sources are read at question time.
  */
 
-function runGraphBuild(run, useCase) {
-  const step = () => {
-    if (run.status !== 'running') return
-    run.cursor += 1
-    if (run.cursor >= BUILD_STEPS.length) {
-      /* One past the last substep leaves every row `complete`: the running row is
-         the cursor, so a finished run must not point at a real substep. */
-      run.status = 'complete'
-      run.finished_at = new Date().toISOString()
-      // The version exists because the build finished — not because it started.
-      const version = recordVersion(run, studioSummary(useCase).queue_count === 0)
 
-      /*
-       * **A BUILD NEVER PUBLISHES. Publishing is a button, for every graph.**
-       *
-       * A runtime-answered graph used to publish itself here, on the reasoning that it had
-       * nothing for a reviewer to settle: the review queue and the pivot decide what the
-       * *canvas* asserts, and a runtime source puts nothing on the canvas. **Removed on
-       * request** — reported from use as a graph that "automatically got published".
-       *
-       * The reasoning was about what a *reviewer* owes the canvas, and publishing is not
-       * only that. It is the act that puts a version in front of readers, it names who
-       * did it, and Versions offers to undo it — so a reader who never pressed it is left
-       * with a live graph, a byline in their name and an Unpublish button explaining an
-       * act they did not perform. Two surfaces then disagree about what the button is for:
-       * every other graph waits, and this one had already gone.
-       *
-       * It also stepped around the gate rather than through it. `studioLive.set` here
-       * consulted no `publish.blocked`, so a build could put a graph in Ask with must-review
-       * rows still open — which the queue exists to prevent, whatever the canvas holds.
-       *
-       * So the build records a version and stops. Ask still queries the published version
-       * and only that one; what changed is that somebody has to press Publish first.
-       */
-      return
-    }
-    setTimeout(step, BUILD_STEP_MS).unref?.()
-  }
-  setTimeout(step, BUILD_STEP_MS).unref?.()
-}
-
-/**
- * Starts a build for a graph and records it in that graph's history.
- *
- * **It takes no `startedBy`, and that is a removal rather than an omission.** The route used to
- * accept `?as=` and the run carried `started_by`, both for one reader: the auto-publish that
- * credited whoever started a runtime-answered build. With that gone nothing reads either, and a
- * field with no reader is dead state that reads as a feature — so the parameter went with the
- * behaviour it existed for. Publishing still takes `?as=`, because a publication still has to
- * name somebody; a build is not a publication.
- */
-function startBuildFor(useCase) {
-  const id = useCase.use_case_id
-  const buildId = crypto.randomUUID()
-  const run = {
-    build_id: buildId,
-    use_case_id: id,
-    status: 'running',
-    /* The only progress the run keeps: an index into BUILD_STEPS. Every stage and
-       substep state on screen is derived from it, so they cannot disagree. */
-    cursor: 0,
-    /* Per run, not per graph: two builds of the same brief are two packages, and
-       reporting one id for both would say a rebuild changed nothing. */
-    package_id: `a${(hash(`package:${buildId}`) % 0xfffffff).toString(16).padStart(7, '0')}`,
-    graph_version: `${(hash(`version:${buildId}`) % 0xfffffff).toString(16).padStart(7, '0')}f`,
-    /*
-     * This build's version — v1, v2, v3 — taken once, here, and carried on the run. Every
-     * surface reads it from the run or from the version row the run produced, so a published
-     * label can never be recomputed into a different number by a later rebuild.
-     */
-    config_version: nextBuildVersion(id),
-    started_at: new Date().toISOString(),
-    finished_at: null,
-  }
-  const history = graphBuildsByUseCase.get(id) ?? []
-  history.unshift(run)
-  graphBuildsByUseCase.set(id, history)
-  runGraphBuild(run, useCase)
-  return run
-}
 
 function runDerivation(run) {
   const names = run.coverage.elements
@@ -4679,55 +4452,30 @@ function graphSources() {
 
 /* ---------------- Graph Studio ---------------- */
 
-/*
- * A review pass, per built graph.
- *
- * Keyed by use case id, and in memory like a registered source: reviewing is a
- * working session, not something a mock writes back over its seed. `decisions`
- * is keyed `useCaseId:itemId` so two graphs cannot answer each other's rows.
- */
-const studioDecisions = liveContainer('studioDecisions')
-const studioPivotChoice = liveContainer('studioPivotChoice')
-/*
- * Which version is published, keyed by use case — the **content hash** of one
- * build, not a number. One pointer: publishing sets it, unpublishing clears it, and
- * publishing a different row moves it. The version rows themselves are never
- * touched, which is what makes them immutable.
- */
-const studioLive = liveContainer('studioLive')
 
-const FLOORS = ['schema-changing', 'causal', 'new entity type']
 
 /**
  * The published version — the one Ask may query, or null.
  *
- * **One pointer, not a chain.** Publishing points here and unpublishing clears it;
- * there is no separate approve or activate step. That is a deliberate narrowing of
- * an earlier three-act model (publish → approve → activate), and the cost is
- * explicit: there is no recorded human sign-off and no rollback to an older
- * version other than publishing it again. What survives is the part that matters
- * for correctness — a gate that refuses to publish unreviewed content, and Ask
- * refusing anything unpublished.
+ * **One pointer, not a chain.** Publishing marks a version and unpublishing clears it; there is no
+ * separate approve or activate step. That is a deliberate narrowing of an earlier three-act model
+ * (publish → approve → activate), and the cost is explicit: there is no recorded human sign-off, and
+ * a rollback is publishing an older version again rather than activating an approved one. What
+ * survives is the part that matters for correctness — Ask refuses anything unpublished.
+ *
+ * **What a version *is* moved with the studio, and this function is the seam that absorbed it.** It
+ * used to be a sha256 pointer into one lane's build history; a version is now the *Combined Graph
+ * Version* — the artifacts of both lanes approved together, so "publish this use case" is one act
+ * with one outcome rather than two calls that can half-succeed. Every downstream reader (Ask, the
+ * report section, the What-if lens, Audit & Governance) asks this same question and reads the same
+ * six fields off the answer, which is why the replacement reached all four without touching any of
+ * them. Keep it that way: a surface that learns to read `studioGraphVersions` for itself is a second
+ * answer to what is live.
  */
 function publishedVersion(useCaseId) {
-  const sha = studioLive.get(useCaseId)
-  if (!sha) return null
-  return (studioVersions.get(useCaseId) ?? []).find((v) => v.sha256 === sha) ?? null
+  return (studioGraphVersions.get(useCaseId) ?? []).find((v) => v.published_at) ?? null
 }
 
-/*
- * Who published what, keyed `useCaseId:sha256`.
- *
- * **The server has to be told.** The identity is client-held — there is no session here to
- * look a user up from — so the publish route takes `as=<email>` exactly as the consent
- * callback does, and this is where it is kept. Before this, every "published by" line in
- * the app read `db.google_account`, the seeded account, and a reader had no way to know it
- * was not the person who pressed the button.
- *
- * In memory, like publication itself: a restart forgets both together, which is the only
- * consistent thing it could do.
- */
-const studioPublishedBy = liveContainer('studioPublishedBy')
 
 /**
  * The account to name as publisher: whoever published it, or the seeded account when
@@ -4735,10 +4483,8 @@ const studioPublishedBy = liveContainer('studioPublishedBy')
  * no identity. The fallback is the tenant's own account rather than a blank, because
  * "published by nobody" is not true of a live version.
  */
-const publishedByFor = (useCaseId) => {
-  const sha = studioLive.get(useCaseId)
-  return (sha && studioPublishedBy.get(`${useCaseId}:${sha}`)) || db.google_account.email
-}
+const publishedByFor = (useCaseId) =>
+  publishedVersion(useCaseId)?.published_by_user_id || db.google_account.email
 
 /**
  * The label of what is serving, for the pages that print it. Null before anything
@@ -4751,219 +4497,6 @@ function liveVersion(useCaseId) {
 /** A graph is in the studio once it has been built — committed on the last step. */
 const builtGraphs = () =>
   db.graph_use_cases.filter((u) => u.status === 'committed')
-
-/*
- * The queue for one graph.
- *
- * db.json carries the four evidence-rich rows and each bucket's total; the rest
- * are synthesised here the way `tableDictionary` synthesises columns — sliced by
- * a hash that includes the **use case id**, so every built graph gets its own
- * queue and repeat requests agree. Confidence is generated inside each bucket's
- * band, because the cards promise "0.85–0.95" and "≥0.95" and a card must not
- * lie about its own filter.
- */
-function studioItems(useCaseId, bucket, total, authored = []) {
-  const { subjects, predicates } = db.graph_studio.generated
-  const items = [...authored]
-
-  for (let i = authored.length; i < total; i += 1) {
-    const seed = hash(`${useCaseId}:${bucket}:${i}`)
-    const subjectIndex = seed % subjects.length
-    // A relationship to itself reads as a bug in the deriver, so the object is
-    // nudged along rather than skipped — skipping would return fewer rows than
-    // the count on the card promises.
-    let objectIndex = (seed >> 7) % subjects.length
-    if (objectIndex === subjectIndex) objectIndex = (objectIndex + 1) % subjects.length
-
-    const spread = (seed >> 11) % 100
-    const confidence =
-      bucket === 'auto_approved'
-        ? 0.95 + spread / 2000
-        : bucket === 'confirmed'
-          ? 0.85 + spread / 1000
-          : 0.7 + spread / 700
-
-    const floor = bucket === 'must_review' ? FLOORS[seed % FLOORS.length] : null
-    const score = Number(confidence.toFixed(2))
-    items.push({
-      item_id: `rv-${bucket}-${i}`,
-      kind: 'relationship',
-      title: `${subjects[subjectIndex]} → ${predicates[(seed >> 3) % predicates.length]} → ${subjects[objectIndex]}`,
-      detail:
-        `L/S/T match — lexical ${(0.7 + ((seed >> 2) % 30) / 100).toFixed(2)} · ` +
-        `structural ${(0.6 + ((seed >> 5) % 35) / 100).toFixed(2)} · ` +
-        `evidence: the join holds on ${(80 + ((seed >> 9) % 20)).toFixed(1)}% of sampled rows.`,
-      confidence: score,
-      /* The triage lane, from the bucket's own confidence band rather than a fourth
-         number — a sampled row is in the band its bucket promised. */
-      band: score >= 0.95 ? 'High' : score >= 0.85 ? 'Medium' : 'Low',
-      floor,
-      action_set: 'standard',
-      /* Same three choices as an ingested standard row. A sampled row has no
-         hand-written labels, so it carries the plain ones. */
-      actions: [
-        { choice: 'approve', label: 'Approve' },
-        { choice: 'correct', label: 'Correct…' },
-        { choice: 'reject', label: 'Reject' },
-      ],
-      /* A sampled row's evidence is its own match scores, already in `detail`.
-         Repeating them as bullets would look like a second source. */
-      evidence: [],
-      graph_refs: [],
-      justification: floor === 'schema-changing',
-    })
-  }
-  return items
-}
-
-/*
- * Every row leaves here with the same keys, whether it was ingested or synthesised.
- * A row that simply omitted `evidence` would fail the client's schema at the
- * boundary with `evidence should be an array, got undefined`, which reads as a
- * stale server and is not one.
- */
-const withDecision = (useCaseId) => (item) => ({
-  ...item,
-  floor: item.floor ?? null,
-  band: item.band ?? null,
-  evidence: item.evidence ?? [],
-  graph_refs: item.graph_refs ?? [],
-  actions: item.actions ?? [
-    { choice: 'approve', label: 'Approve' },
-    { choice: 'correct', label: 'Correct…' },
-    { choice: 'reject', label: 'Reject' },
-  ],
-  decision: studioDecisions.get(`${useCaseId}:${item.item_id}`) ?? null,
-})
-
-/** How far along one graph's review is — the row in the studio's list. */
-function studioSummary(useCase) {
-  const gen = db.graph_studio.generated
-  const outstanding = studioItems(
-    useCase.use_case_id,
-    'must_review',
-    gen.must_review_total,
-    db.graph_studio.review_items,
-  ).filter((i) => !studioDecisions.get(`${useCase.use_case_id}:${i.item_id}`)).length
-  const pivotOpen = !studioPivotChoice.has(useCase.use_case_id)
-  const versions = studioVersions.get(useCase.use_case_id) ?? []
-
-  return {
-    use_case_id: useCase.use_case_id,
-    name: useCase.name,
-    domain_id: useCase.domain_id ?? null,
-    business_need: useCase.business_need ?? '',
-    /*
-     * The newest version label this graph has reached. **A build takes the next number**
-     * (v1, v2, v3), so this moves when a build starts — not when the brief is committed and
-     * not when something is published. Before the first build it reads `v1`, which is what
-     * that build will produce rather than a claim that a version exists.
-     */
-    version: configVersion(useCase.use_case_id),
-    // What is serving, or null. Never a number invented to fill the tag.
-    live_version: liveVersion(useCase.use_case_id),
-    // "draft" until one of this graph's versions is published.
-    state: publishedVersion(useCase.use_case_id) ? 'published' : 'draft',
-    queue_count: outstanding + (pivotOpen ? 1 : 0),
-    must_review_outstanding: outstanding,
-    must_review_count: gen.must_review_total,
-    /* Builds that produced a version — the length of the Versions list, not a
-       count of publishes. A graph has many versions and at most one published. */
-    version_count: versions.length,
-    published_count: publishedVersion(useCase.use_case_id) ? 1 : 0,
-    built_at: useCase.updated_at ?? null,
-  }
-}
-
-/** Everything one graph's studio page reads. */
-function graphStudio(useCase) {
-  const studio = db.graph_studio
-  const gen = studio.generated
-  const id = useCase.use_case_id
-  const decorate = withDecision(id)
-
-  const mustReview = studioItems(
-    id,
-    'must_review',
-    gen.must_review_total,
-    studio.review_items,
-  ).map(decorate)
-  const confirmed = studioItems(id, 'confirmed', gen.sample_size).map(decorate)
-  const autoApproved = studioItems(id, 'auto_approved', gen.sample_size).map(decorate)
-
-  const outstanding = mustReview.filter((i) => !i.decision).length
-  const pivotOpen = !studioPivotChoice.has(id)
-
-  /*
-   * The pivot is a *separate* precondition from the queue. Clearing every row
-   * still leaves publish blocked while it is open, because settling it changes
-   * what the rows already decided mean.
-   */
-  const reasons = []
-  if (outstanding > 0) {
-    reasons.push(`${outstanding} must-review relationship(s) unresolved`)
-  }
-  if (pivotOpen) {
-    reasons.push(
-      `1 pivot decision open (${studio.pivot.pivot_id} / ${studio.pivot.alternative_id})`,
-    )
-  }
-
-  const decided = mustReview.length - outstanding
-
-  return {
-    ...studioSummary(useCase),
-    graph_name: useCase.name,
-    status: 'draft',
-    decision_memory: 'synced',
-
-    must_review: mustReview,
-    must_review_count: mustReview.length,
-    must_review_outstanding: outstanding,
-
-    // A sample, and named one: these buckets are spot-checked, not listed.
-    confirmed_sample: confirmed,
-    confirmed_count: gen.confirmed_total,
-    auto_approved_sample: autoApproved,
-    auto_approved_count: gen.auto_approved_total,
-
-    pivot: { ...studio.pivot, open: pivotOpen, chosen: studioPivotChoice.get(id) ?? null },
-    pivot_count: pivotOpen ? 1 : 0,
-
-    /*
-     * The questions the Query tab offers as chips — the recorded sanity checks, each
-     * naming the hero question it is a check on. A chip is a promise the brief
-     * already made, so they are read from the set rather than written on the page;
-     * the answers themselves stay behind the request.
-     */
-    sanity_checks: studio.sanity_checks.map((c) => ({
-      check_id: c.check_id,
-      hero_question_id: c.hero_question_id,
-      question: c.question,
-    })),
-
-    batch_resolved: decided + (pivotOpen ? 0 : 1),
-    batch_total: gen.must_review_total + 1 + gen.spot_check_quota,
-
-    publish: {
-      blocked: reasons.length > 0,
-      reasons,
-      explanation:
-        'The pivot is a separate precondition from the queue — resolving every row still leaves publish blocked while an entity-resolution pivot is open, because a pivot changes what the other decisions mean.',
-    },
-
-    /*
-     * One row per build that finished — every version this graph has ever had,
-     * newest first. The rows are immutable: `published` is a pointer, so
-     * publishing a different one flips exactly one boolean here and rewrites
-     * nothing.
-     */
-    versions: (studioVersions.get(id) ?? []).map((v) => ({
-      ...v,
-      published: v.sha256 === studioLive.get(id),
-    })),
-  }
-}
 
 /**
  * Resolves the `:useCaseId` in a studio path.
@@ -5016,23 +4549,24 @@ const CANVAS_GROUPS = ['row', 'schema', 'document', 'alias']
  * because a corrected element is no longer purely what the deriver produced.
  */
 function studioCanvas(useCaseId, answerPath = [], answerEdges = null) {
-  const decisionFor = (id) =>
-    id ? (studioDecisions.get(`${useCaseId}:${id}`) ?? null) : null
-
-  const state = (reviewItemId) => {
-    if (!reviewItemId) return { proposed: false, origin: 'derived' }
-    const decision = decisionFor(reviewItemId)
-    if (!decision) return { proposed: true, origin: 'derived' }
-    return {
-      proposed: false,
-      // A corrected element is the studio's, not the deriver's.
-      origin: decision.choice === 'correct' ? 'studio-authored' : 'derived',
-      rejected: decision.choice === 'reject',
-    }
-  }
+  /*
+   * **Nothing reviews a canvas element any more, so nothing here claims one is under review.**
+   *
+   * This used to read a per-element decision recorded by the studio's review queue: an element was
+   * *proposed* until somebody settled its row, and *studio-authored* once they corrected it. That
+   * queue went with the studio it belonged to, and the important part is what had to change here
+   * rather than what was deleted — with no writer left, `decisionFor` would have returned null for
+   * every element and marked the **entire canvas** proposed. A graph where everything reads as
+   * provisional is worse than one that says nothing: it is a claim, made by an absence.
+   *
+   * So the canvas reports what the build produced, which is the only thing still true of it. The two
+   * lanes' own review surface is the Bridge, and a correspondence there is drawn on the combined
+   * canvas only once a person has decided it — the same rule, moved to where the decisions now live.
+   */
+  const state = () => ({ proposed: false, origin: 'derived', rejected: false })
 
   const nodes = db.graph_studio.canvas.nodes.map((n) => {
-    const s = state(n.review_item_id)
+    const s = state()
     return {
       node_id: n.node_id,
       label: n.label,
@@ -5084,7 +4618,7 @@ function studioCanvas(useCaseId, answerPath = [], answerEdges = null) {
   })
 
   const edges = db.graph_studio.canvas.edges.map((e) => {
-    const s = state(e.review_item_id)
+    const s = state()
     return {
       /* The package's own edge id. It is what a recorded sanity check names, so the
          highlight can be the exact hops the answer used rather than every edge that
@@ -9385,6 +8919,720 @@ const modelEntityView = (entity) => ({
   updated_at: entity.updated_at,
 })
 
+/* ================= Graph Studio — one studio, whichever lanes a use case has =================
+ *
+ * **One studio for a use case, not one per kind of graph.** What this offers follows from what the
+ * use case has *attached* — `deriveLanes` reads its source picks — never from a declared kind. A kind
+ * field would be single-valued, so "a use case with both a warehouse and a document set" would be
+ * unexpressible, and frozen at commit, so a use case could not grow into a second lane.
+ *
+ * **The two graphs remain two graphs.** Separate builds, separate canvases, and neither resolving its
+ * entities against the other. What is unified is the use case and, since versions, its *approval*: a
+ * version names the lane artifacts published together, in one act, so "publish this use case" has one
+ * outcome rather than several calls that can half-succeed.
+ *
+ * Every row a lane draws is derived in `studioLanes.js` from the document this request selected —
+ * nothing here authors graph content. What lives in this file is the *runtime*: which builds have been
+ * run, which type links a person has decided, which version is published. All of it in memory, per
+ * dataset, like every other run in this mock, so a restart clears it and the empty state says so.
+ */
+
+/**
+ * The structured lane's passes, and the substeps that actually advance.
+ *
+ * **One cursor, not two**, for the reason the old build stepper gives: a stage index kept beside a
+ * step index is two counters that can disagree, and the symptom is a stage reading complete while one
+ * of its own substeps still spins. A substep is complete before the cursor, running at it, pending
+ * after, and a stage is whatever its substeps say it is.
+ */
+const SGB_STAGES = [
+  { key: 'pin_inputs', label: 'Pin the inputs', steps: ['resolve_use_case', 'pin_source_versions'] },
+  { key: 'read_schema', label: 'Read the schema', steps: ['read_tables', 'read_column_profiles'] },
+  { key: 'draft_story', label: 'Draft the story', steps: ['read_business_need', 'compose_story', 'state_grain'] },
+  { key: 'assign_columns', label: 'Assign columns to concepts', steps: ['nominate_concepts', 'classify_columns', 'bind_identifiers'] },
+  { key: 'infer_relations', label: 'Infer relationships', steps: ['read_declared_joins', 'rank_by_evidence'] },
+  { key: 'assemble', label: 'Assemble the graph', steps: ['materialise_nodes', 'materialise_edges', 'seal_build'] },
+]
+
+const SGB_STEPS = SGB_STAGES.flatMap((stage, stageIndex) =>
+  stage.steps.map((step) => ({ stage: stage.key, step, stageIndex })),
+)
+
+/**
+ * The document lane's pipeline, in the shape the reference's progress panel reads.
+ *
+ * Seven stages rather than the structured lane's six, because a document corpus really does do more:
+ * a table is *sampled* and a filed document is *extracted*, and the extraction half has no counterpart
+ * on the other side. `pending` covers two cases a reader must not confuse with failure — not reached
+ * yet, and legitimately skipped, which is why a stage that had nothing to do still reports its counts.
+ */
+const DGB_STAGES = [
+  {
+    key: 'use_case_frame',
+    label: 'Reading the business use case',
+    /* The phrase the stage reports while it runs. The long stages have no honest denominator — a
+       percentage over them would be a number nobody measured — so each says what it is doing
+       instead, which is the same rule the graph build's substeps keep. */
+    phase: 'Framing the corpus against the brief',
+  },
+  { key: 'intake', label: 'Reading documents', phase: 'Reading each document in the corpus' },
+  { key: 'classification', label: 'Classifying passages', phase: 'Sorting passages by what they assert' },
+  {
+    key: 'extraction',
+    label: 'Extracting entities & relations',
+    phase: 'Resolving entities across the corpus',
+  },
+  {
+    key: 'relation_vocabulary',
+    label: 'Building relation vocabulary',
+    phase: 'Collecting the relation names the corpus uses',
+  },
+  {
+    key: 'relation_canonicalization',
+    label: 'Canonicalising relations',
+    phase: 'Folding synonymous relations together',
+  },
+  { key: 'pruning', label: 'Pruning', phase: 'Dropping assertions below the floor' },
+  { key: 'graph_build', label: 'Assembling the graph', phase: 'Materialising nodes and edges' },
+]
+
+/**
+ * The Bridge's own run. Three stages, because forming a Bridge is genuinely short: it reads each
+ * lane's finished contract surface and decides one thing per pair.
+ */
+const BRIDGE_STAGES = [
+  { key: 'read_lanes', label: 'Read both lanes' },
+  { key: 'pair_types', label: 'Pair entity types with concepts' },
+  { key: 'decide', label: 'Decide each correspondence' },
+]
+
+/*
+ * A step is paced so it can be *read*, which is the rule every run in this repo keeps: an operation
+ * that returns instantly and shows nothing teaches that it is free, and none of these are. Slower than
+ * `SUGGEST_MS` because a build is watched rather than waited on, and the panels state the expected
+ * duration from these numbers rather than repeating a figure — `step_ms` rides on every payload for
+ * exactly that reason.
+ */
+const SGB_STEP_MS = 1_400
+const DGB_STAGE_MS = 1_600
+const BRIDGE_STAGE_MS = 1_500
+
+const sgbBuilds = liveContainer('sgbBuilds')
+const dgbJobs = liveContainer('dgbJobs')
+const dgbBuilds = liveContainer('dgbBuilds')
+const bridgeBuilds = liveContainer('bridgeBuilds')
+const bridgeDecisions = liveContainer('bridgeDecisions')
+const studioGraphVersions = liveContainer('studioGraphVersions')
+const sgbStories = liveContainer('sgbStories')
+
+/** The use case a studio request names, or a refusal that says which ones exist. */
+function findStudioUseCase(useCaseId) {
+  const useCase = (db.graph_use_cases ?? []).find((u) => u.use_case_id === useCaseId)
+  if (useCase) return { useCase }
+  const known = (db.graph_use_cases ?? []).map((u) => u.use_case_id)
+  return {
+    status: 404,
+    error:
+      `no use case "${useCaseId}" in this dataset. ` +
+      (known.length > 0
+        ? `This dataset has: ${known.join(', ')}.`
+        : 'This dataset has none — create one in New Graph.'),
+  }
+}
+
+/** A list held per use case, newest first. */
+const listFor = (container, useCaseId) => container.get(useCaseId) ?? []
+
+/**
+ * Why a build id does not resolve, said in a way somebody can act on.
+ *
+ * **Builds live in this process's memory**, like every other run in this mock, so the overwhelmingly
+ * likely cause of a 404 here is a restart rather than a wrong id — and "not found" alone sends a
+ * reader looking for a typo that is not there.
+ */
+const noSuchBuild = (buildId) =>
+  `no build ${buildId}. Builds live in this server's memory, so restarting it clears every run — ` +
+  'build the lane again from the Build tab.'
+
+/**
+ * Refuse a studio act while `both` is selected.
+ *
+ * **`readOnly` is not enough here, and the gap is worth stating.** It wraps the *merged container* and
+ * throws on `set`/`delete`, which catches a write that adds a build or a version. It cannot catch a
+ * write that mutates a row already inside the merge — publishing a version sets `published_at` on the
+ * object itself, and the merge holds those **by reference**, so under `both` that write would reach
+ * the primary's real container and take effect against a dataset the reader did not select. That is
+ * worse than a lost write: it is a write applied somewhere else, silently.
+ *
+ * So the refusal sits on the mutators rather than on the containers, where it cannot be forgotten by
+ * a route added later, and it names the fix the way `commitDb`'s does. Reads are untouched: `both` is
+ * a reading view and the studio is fully readable under it.
+ */
+function refuseStudioWriteUnderBoth(act) {
+  if (activeDataset() !== BOTH) return
+  throw new Error(
+    `cannot ${act} while dataset=${BOTH} is selected — it merges every dataset for reading, so this ` +
+      `would be written against whichever dataset happens to own the row. Select ${DATASETS.join(' or ')} first.`,
+  )
+}
+
+/* ---------------- the structured lane ---------------- */
+
+const sgbView = (run) => ({
+  build_id: run.build_id,
+  tenant_id: 'vrio',
+  use_case_config_id: run.use_case_config_id,
+  version_id: run.version_id,
+  metadata_package_version_id: null,
+  status: run.status,
+  build_number: run.build_number,
+  name: `Build v${run.build_number}`,
+  node_count: run.node_count,
+  relation_count: run.relation_count,
+  table_count: run.table_count,
+  column_count: run.column_count,
+  concept_count: run.concept_count,
+  created_at: run.created_at,
+  updated_at: run.updated_at,
+  published_at: run.published_at ?? null,
+  published_by_user_id: run.published_by_user_id ?? null,
+  error_message: run.error_message ?? null,
+  /* The run's own position, so every stage row on screen derives from one cursor. */
+  cursor: run.cursor,
+  step_total: SGB_STEPS.length,
+  step_ms: SGB_STEP_MS,
+  stages: SGB_STAGES.map((stage, i) => {
+    const steps = stage.steps.map((step, j) => {
+      const index = SGB_STEPS.findIndex((s) => s.stage === stage.key && s.step === step)
+      return {
+        step,
+        state: run.cursor > index ? 'complete' : run.cursor === index ? 'running' : 'pending',
+      }
+    })
+    const runningHere = SGB_STEPS[run.cursor]?.stageIndex === i && run.status === 'running'
+    return {
+      stage: stage.key,
+      label: stage.label,
+      state: runningHere
+        ? 'running'
+        : steps.every((s) => s.state === 'complete')
+          ? 'complete'
+          : 'pending',
+      steps,
+    }
+  }),
+})
+
+function runSgbBuild(run, useCase) {
+  const step = () => {
+    if (run.status !== 'running') return
+    run.cursor += 1
+    run.updated_at = new Date().toISOString()
+    if (run.cursor >= SGB_STEPS.length) {
+      /* One past the last substep leaves every row complete: the running row *is* the cursor, so a
+         finished run must not point at a real substep. */
+      run.status = 'complete'
+      const counts = sgbCounts(db, useCase)
+      run.node_count = counts.node_count
+      run.relation_count = counts.relation_count
+      run.table_count = counts.table_count
+      run.column_count = counts.column_count
+      run.concept_count = counts.concept_count
+      return
+    }
+    setTimeout(step, SGB_STEP_MS).unref?.()
+  }
+  setTimeout(step, SGB_STEP_MS).unref?.()
+}
+
+/**
+ * Start a structured build.
+ *
+ * **A build never publishes.** It records what it produced and stops; putting a version in front of
+ * readers is a button somebody presses, for every graph — the rule the old studio's own stepper states
+ * at length, and the reason a run that published itself was reported as a graph that "automatically
+ * got published".
+ */
+function startSgbBuild(useCase, story) {
+  refuseStudioWriteUnderBoth('start a build')
+  const id = useCase.use_case_id
+  const history = listFor(sgbBuilds, id)
+  const run = {
+    build_id: crypto.randomUUID(),
+    use_case_config_id: id,
+    version_id: `${id}:v1`,
+    status: 'running',
+    cursor: 0,
+    build_number: history.length + 1,
+    node_count: null,
+    relation_count: null,
+    table_count: null,
+    column_count: null,
+    concept_count: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    published_at: null,
+    published_by_user_id: null,
+    error_message: null,
+  }
+  /* A story given at trigger time is the user's own and is kept verbatim — never a channel for
+     selecting tables, which still comes only from the use case's picks. */
+  if (typeof story === 'string' && story.trim()) sgbStories.set(run.build_id, story)
+  history.unshift(run)
+  sgbBuilds.set(id, history)
+  runSgbBuild(run, useCase)
+  return run
+}
+
+/* ---------------- the document lane ---------------- */
+
+const dgbJobView = (job) => ({
+  job_id: job.job_id,
+  tenant_id: 'vrio',
+  source_id: job.source_id,
+  document_corpus_id: job.document_corpus_id,
+  status: job.status,
+  documents_processed: job.documents_processed,
+  /* What the corpus holds, so the figure beside the bar reads as a fraction rather than a bare
+     count with nothing to measure it against. */
+  document_total: job.document_total,
+  documents_skipped: 0,
+  documents_failed: 0,
+  documents_unchanged: 0,
+  documents_reused: 0,
+  report: null,
+  /* When the run was *asked for*, distinct from when a worker picked it up: a queued job shown from
+     `started_at` alone renders a dash beside a spinner and reads as stuck. */
+  created_at: job.created_at,
+  started_at: job.started_at,
+  completed_at: job.completed_at,
+  stage_ms: DGB_STAGE_MS,
+  /* Every stage in run order, including ones not started, so the whole pipeline renders on the first
+     poll instead of appearing a row at a time. */
+  stages: DGB_STAGES.map((stage, i) => ({
+    stage: stage.key,
+    label: stage.label,
+    state: job.cursor > i ? 'complete' : job.cursor === i ? 'running' : 'pending',
+    started_at: job.cursor >= i ? job.created_at : null,
+    completed_at: job.cursor > i ? job.completed_at ?? job.created_at : null,
+    counts: job.cursor > i ? job.counts : null,
+  })),
+  progress: null,
+  /*
+   * What the running stage is *doing*, in words, and when it started — the page turns `since` into
+   * an elapsed timer. The phrase is the stage's own rather than its label repeated, because a line
+   * that restates the heading above it tells a reader nothing they cannot already see.
+   */
+  phase:
+    job.status === 'running' && DGB_STAGES[job.cursor]
+      ? {
+          stage: DGB_STAGES[job.cursor].key,
+          phase: DGB_STAGES[job.cursor].phase,
+          since: Math.floor(Date.parse(job.stage_started_at ?? job.created_at) / 1000),
+        }
+      : null,
+  degraded_stages: [],
+})
+
+const dgbBuildView = (build) => ({
+  build_id: build.build_id,
+  tenant_id: 'vrio',
+  source_id: build.source_id,
+  document_corpus_id: build.document_corpus_id,
+  document_count: build.document_count,
+  entity_count: build.entity_count,
+  relation_count: build.relation_count,
+  class_count: build.class_count,
+  graph_version: build.graph_version,
+  schema_version: 1,
+  completed_at: build.completed_at,
+  publish_status: build.publish_status,
+  published_at: build.published_at,
+  published_by_user_id: build.published_by_user_id,
+  superseded_at: build.superseded_at,
+  superseded_by_graph_version: build.superseded_by_graph_version,
+  /* Server-derived, so the UI never re-implements the rule. */
+  is_queryable: build.publish_status === 'published',
+})
+
+function runDgbJob(job, useCase) {
+  const step = () => {
+    if (job.status !== 'running') return
+    job.cursor += 1
+    /* Per stage, not per job: an elapsed timer counting the whole run would say 4m beside a
+       stage that started ten seconds ago, which reads as a stage that is stuck. */
+    job.stage_started_at = new Date().toISOString()
+    /* Documents are read by the first stages, so the count advances with them rather than
+       landing all at once at the end — a figure that sits at 0 for a minute reads as a run that
+       is doing nothing. It is the real corpus size scaled by how far in the run is, never a
+       number invented past what the corpus holds. */
+    job.documents_processed = Math.min(
+      job.document_total,
+      Math.round((job.document_total * job.cursor) / DGB_STAGES.length),
+    )
+    if (job.cursor >= DGB_STAGES.length) {
+      job.status = 'complete'
+      job.completed_at = new Date().toISOString()
+      const counts = dgbCounts(db, useCase)
+      job.counts = counts
+      job.documents_processed = counts.document_count
+
+      /* A finished run produces the NEXT version of the same graph rather than a separate graph — so
+         the list of these is a version history, and the previous one is *superseded* rather than
+         unpublished: "a newer version took over" and "a human withdrew this" are different facts. */
+      const history = listFor(dgbBuilds, job.use_case_config_id)
+      const previous = history[0]
+      if (previous && previous.publish_status === 'published') {
+        previous.publish_status = 'superseded'
+        previous.superseded_at = job.completed_at
+        previous.superseded_by_graph_version = (previous.graph_version ?? 0) + 1
+      }
+      history.unshift({
+        build_id: crypto.randomUUID(),
+        source_id: job.source_id,
+        document_corpus_id: job.document_corpus_id,
+        graph_version: (previous?.graph_version ?? 0) + 1,
+        document_count: counts.document_count,
+        entity_count: counts.entity_count,
+        relation_count: counts.relation_count,
+        class_count: counts.class_count,
+        completed_at: job.completed_at,
+        publish_status: 'unpublished',
+        published_at: null,
+        published_by_user_id: null,
+        superseded_at: null,
+        superseded_by_graph_version: null,
+      })
+      dgbBuilds.set(job.use_case_config_id, history)
+      return
+    }
+    setTimeout(step, DGB_STAGE_MS).unref?.()
+  }
+  setTimeout(step, DGB_STAGE_MS).unref?.()
+}
+
+function startDgbJob(useCase) {
+  refuseStudioWriteUnderBoth('start a build')
+  const lanes = deriveLanes(db, useCase)
+  const corpusId = lanes.documentPicks[0]?.source_id ?? null
+  const job = {
+    job_id: crypto.randomUUID(),
+    use_case_config_id: useCase.use_case_id,
+    source_id: corpusId,
+    document_corpus_id: useCase.use_case_id,
+    status: 'running',
+    cursor: 0,
+    documents_processed: 0,
+    document_total: corpusDocuments(db, useCase).length,
+    counts: null,
+    created_at: new Date().toISOString(),
+    stage_started_at: new Date().toISOString(),
+    started_at: new Date().toISOString(),
+    completed_at: null,
+  }
+  dgbJobs.set(job.job_id, job)
+  runDgbJob(job, useCase)
+  return job
+}
+
+/* ---------------- the Bridge ---------------- */
+
+const bridgeView = (build) => ({
+  bridge_build_id: build.bridge_build_id,
+  use_case_config_id: build.use_case_config_id,
+  build_number: build.build_number,
+  sgb_build_id: build.sgb_build_id,
+  document_corpus_id: build.document_corpus_id,
+  dgb_graph_version: build.dgb_graph_version,
+  status: build.status,
+  created_at: build.created_at,
+  updated_at: build.updated_at,
+  stage_ms: BRIDGE_STAGE_MS,
+  stages: BRIDGE_STAGES.map((stage, i) => ({
+    stage: stage.key,
+    label: stage.label,
+    state: build.cursor > i ? 'complete' : build.cursor === i ? 'running' : 'pending',
+  })),
+})
+
+function runBridgeBuild(build) {
+  const step = () => {
+    if (build.status !== 'running') return
+    build.cursor += 1
+    build.updated_at = new Date().toISOString()
+    if (build.cursor >= BRIDGE_STAGES.length) {
+      build.status = 'succeeded'
+      return
+    }
+    setTimeout(step, BRIDGE_STAGE_MS).unref?.()
+  }
+  setTimeout(step, BRIDGE_STAGE_MS).unref?.()
+}
+
+/**
+ * Form a Bridge from the two lanes' newest finished builds.
+ *
+ * **Refuses before anything is written**, and each refusal names what is missing rather than the
+ * generic one: a use case without both lanes cannot have a Bridge at all, and one whose lane has
+ * never finished a build has nothing to form a Bridge *from*. A Bridge is formed from two finished
+ * graphs, so "build the other lane first" is the fix and the message says so.
+ */
+function formBridge(useCase) {
+  refuseStudioWriteUnderBoth('form a Bridge')
+  const lanes = deriveLanes(db, useCase)
+  if (!lanes.hasStructured || !lanes.hasDocuments) {
+    return {
+      status: 409,
+      error:
+        `this use case has only ${lanes.hasStructured ? 'a structured' : 'a document'} lane, and a ` +
+        'Bridge holds the correspondences BETWEEN two lanes. Attach the other kind of source in New ' +
+        'Graph if this use case should have one.',
+    }
+  }
+  const sgb = listFor(sgbBuilds, useCase.use_case_id).find((b) => b.status === 'complete')
+  const dgb = listFor(dgbBuilds, useCase.use_case_id)[0]
+  if (!sgb || !dgb) {
+    return {
+      status: 409,
+      error:
+        `a Bridge is formed from two finished graphs, and ${!sgb ? 'the structured lane' : 'the document lane'} ` +
+        'has not completed a build yet. Build both lanes first — the Build tab runs them in order.',
+    }
+  }
+  const history = listFor(bridgeBuilds, useCase.use_case_id)
+  const build = {
+    bridge_build_id: crypto.randomUUID(),
+    use_case_config_id: useCase.use_case_id,
+    build_number: history.length + 1,
+    sgb_build_id: sgb.build_id,
+    document_corpus_id: dgb.document_corpus_id,
+    dgb_graph_version: dgb.graph_version,
+    status: 'running',
+    cursor: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+  history.unshift(build)
+  bridgeBuilds.set(useCase.use_case_id, history)
+  runBridgeBuild(build)
+  return { build }
+}
+
+/**
+ * This Bridge's Type Links, with any decision a person has recorded laid over the derived row.
+ *
+ * **The derivation is re-read every time and the override is stored separately**, so correcting a
+ * correspondence never rewrites what the deriver said: `original_*` keeps the machine's own
+ * recommendation for as long as the row exists, which is what lets the deriver be measured over time
+ * rather than silently corrected. Overriding to the same decision it reached is still recorded,
+ * because agreement is a decision too.
+ */
+function typeLinkRows(useCase, bridgeBuildId) {
+  return typeLinks(db, useCase, bridgeBuildId).map((link) => {
+    const decided = bridgeDecisions.get(`${bridgeBuildId}:${link.type_link_id}`)
+    if (!decided) return link
+    return {
+      ...link,
+      decision: decided.decision,
+      decided_by: 'human',
+      original_decision: link.decision,
+      original_confidence: link.confidence,
+      original_reason: link.reason,
+      decided_by_user_id: decided.by,
+      decided_at: decided.at,
+    }
+  })
+}
+
+/* ---------------- versions ---------------- */
+
+const versionView = (version) => ({
+  graph_version_id: version.graph_version_id,
+  use_case_config_id: version.use_case_config_id,
+  version_number: version.version_number,
+  sgb_build_id: version.sgb_build_id,
+  document_corpus_id: version.document_corpus_id,
+  dgb_graph_version: version.dgb_graph_version,
+  bridge_build_id: version.bridge_build_id,
+  published_at: version.published_at,
+  published_by_user_id: version.published_by_user_id,
+  created_at: version.created_at,
+  created_by_user_id: version.created_by_user_id,
+})
+
+/**
+ * Name this use case's finished builds with a version if they are not already.
+ *
+ * Safe to call on every studio load and **idempotent**: a use case whose newest artifacts are already
+ * named returns the existing version untouched, and one with nothing finished returns `null` rather
+ * than inventing a version over nothing.
+ */
+function reconcileVersions(useCase) {
+  const id = useCase.use_case_id
+  const history = listFor(studioGraphVersions, id)
+  const sgb = listFor(sgbBuilds, id).find((b) => b.status === 'complete') ?? null
+  const dgb = listFor(dgbBuilds, id)[0] ?? null
+  const bridge = listFor(bridgeBuilds, id).find((b) => b.status === 'succeeded') ?? null
+  if (!sgb && !dgb) return null
+
+  const names = (version) =>
+    version.sgb_build_id === (sgb?.build_id ?? null) &&
+    version.dgb_graph_version === (dgb?.graph_version ?? null) &&
+    version.bridge_build_id === (bridge?.bridge_build_id ?? null)
+
+  const existing = history.find(names)
+  if (existing) return existing
+
+  /* Only here, because reconciling is idempotent: returning a version that already names these
+     artifacts is a read, and `both` is a reading view. Minting a new one is the write. */
+  refuseStudioWriteUnderBoth('record a version')
+
+  const versionNumber = history.length + 1
+  /*
+   * **Content-addressed, which is what makes a version immutable.** The hash is over the triple this
+   * version names, so two versions of one use case differ here and nowhere else, and re-recording the
+   * same artifacts gives the same identity rather than a new row. The number is a *name* a person says
+   * out loud ("we answer from v3"); the hash is the *identity*.
+   */
+  const triple = `${sgb?.build_id ?? ''}|${dgb?.graph_version ?? ''}|${bridge?.bridge_build_id ?? ''}`
+  const version = {
+    graph_version_id: crypto.randomUUID(),
+    use_case_config_id: id,
+    version_number: versionNumber,
+    sgb_build_id: sgb?.build_id ?? null,
+    document_corpus_id: dgb?.document_corpus_id ?? null,
+    dgb_graph_version: dgb?.graph_version ?? null,
+    bridge_build_id: bridge?.bridge_build_id ?? null,
+    /* **Creating is not publishing.** The version lands unpublished so it can be inspected before it
+       answers anything. */
+    published_at: null,
+    published_by_user_id: null,
+    created_at: new Date().toISOString(),
+    created_by_user_id: null,
+
+    /*
+     * **The fields every surface downstream of publication already reads.**
+     *
+     * Ask, Reports, the What-if lens and Audit & Governance all ask `publishedVersion()` what is live
+     * and read `config_version`, `sha256`, `created_at`, `graph_id`, `entities` and `relationships`
+     * off the answer. Carrying them here is what let this studio replace the old one without editing
+     * fifteen call sites — the shape a published version presents is unchanged, only where it comes
+     * from moved. A second mapping at each reader would have been fifteen places for the two to drift.
+     *
+     * The two counts are **both lanes added together**, because a combined version is what is
+     * published and a reader asking "how big is the graph that answered me" means all of it.
+     */
+    config_version: `v${versionNumber}`,
+    sha256: `${(hash(triple) % 0xfffffff).toString(16).padStart(7, '0')}${(hash(`salt:${triple}`) % 0xfffffff).toString(16).padStart(7, '0')}`,
+    graph_id: `g${(hash(`graph:${id}:${versionNumber}`) % 0xfffffff).toString(16).padStart(7, '0')}`,
+    entities: (sgb?.node_count ?? 0) + (dgb?.entity_count ?? 0),
+    relationships: (sgb?.relation_count ?? 0) + (dgb?.relation_count ?? 0),
+  }
+  history.unshift(version)
+  studioGraphVersions.set(id, history)
+  return version
+}
+
+/** One version with the two staleness questions, **derived at read time and reported separately.**
+ *  A mismatched Bridge triple is a *defect*; a newer lane build is just a new *candidate* the
+ *  published version is entitled to ignore until somebody adopts it. Fusing them into one "stale"
+ *  boolean would make those read the same. Nothing is stored, so neither answer can drift. */
+function versionDetail(useCase, version) {
+  const id = useCase.use_case_id
+  const bridge = listFor(bridgeBuilds, id).find((b) => b.bridge_build_id === version.bridge_build_id)
+  const newestSgb = listFor(sgbBuilds, id).find((b) => b.status === 'complete')
+  const newestDgb = listFor(dgbBuilds, id)[0]
+  return {
+    version: versionView(version),
+    bridge_matches_named_triple: version.bridge_build_id
+      ? Boolean(
+          bridge &&
+            bridge.sgb_build_id === version.sgb_build_id &&
+            bridge.dgb_graph_version === version.dgb_graph_version,
+        )
+      : null,
+    bridge_status: bridge?.status ?? null,
+    newer_sgb_build_id:
+      newestSgb && newestSgb.build_id !== version.sgb_build_id ? newestSgb.build_id : null,
+    newer_dgb_graph_version:
+      newestDgb && newestDgb.graph_version > (version.dgb_graph_version ?? 0)
+        ? newestDgb.graph_version
+        : null,
+  }
+}
+
+/**
+ * Approve a version — **every artifact it names, or none of them.**
+ *
+ * This is the one act that replaced a per-lane publish button on each tab. The lanes still build
+ * independently, but a use case answers from one approved set, so a publish that put the structured
+ * lane live and left the document lane behind would leave a reader asking one graph a question the
+ * other half of the answer came from.
+ */
+function publishVersion(useCase, version, as) {
+  refuseStudioWriteUnderBoth('publish a version')
+  const id = useCase.use_case_id
+  /* At most one version per use case answers at a time, so approving this one withdraws the last —
+     the whole point of a version being the unit of approval. */
+  for (const other of listFor(studioGraphVersions, id)) {
+    if (other.graph_version_id === version.graph_version_id) continue
+    other.published_at = null
+    other.published_by_user_id = null
+  }
+  version.published_at = new Date().toISOString()
+  /* Written on **every** publish rather than only when absent: an anonymous re-publish that kept the
+     previous name would go on crediting whoever went last. */
+  version.published_by_user_id = as ?? null
+
+  for (const build of listFor(sgbBuilds, id)) {
+    const mine = build.build_id === version.sgb_build_id
+    build.published_at = mine ? version.published_at : null
+    build.published_by_user_id = mine ? version.published_by_user_id : null
+  }
+  for (const build of listFor(dgbBuilds, id)) {
+    const mine = build.graph_version === version.dgb_graph_version
+    if (mine) {
+      build.publish_status = 'published'
+      build.published_at = version.published_at
+      build.published_by_user_id = version.published_by_user_id
+    } else if (build.publish_status === 'published') {
+      build.publish_status = 'superseded'
+      build.superseded_at = version.published_at
+    }
+  }
+  return version
+}
+
+/** Withdraw the approval — both lanes' own gates clear with it, so the use case answers from nothing
+ *  rather than silently falling back to an older version. Idempotent, and never refused: an approval
+ *  can always be removed. */
+function unpublishVersion(useCase, version) {
+  refuseStudioWriteUnderBoth('withdraw a publication')
+  const id = useCase.use_case_id
+  version.published_at = null
+  version.published_by_user_id = null
+  for (const build of listFor(sgbBuilds, id)) {
+    if (build.build_id === version.sgb_build_id) {
+      build.published_at = null
+      build.published_by_user_id = null
+    }
+  }
+  for (const build of listFor(dgbBuilds, id)) {
+    if (build.graph_version === version.dgb_graph_version && build.publish_status === 'published') {
+      build.publish_status = 'unpublished'
+      build.published_at = null
+      build.published_by_user_id = null
+    }
+  }
+  return version
+}
+
+/*
+ * "Which version answers for this use case" is `publishedVersion` and only that, declared above with
+ * the readers that share it. A second helper here would be a second answer to the one question this
+ * whole section gates on — and the two would agree right up until somebody changed one.
+ */
+
 const routes = [
   /* ---------------- which datasets exist ---------------- */
 
@@ -12237,333 +12485,887 @@ const routes = [
     handle: (_req, res) => send(res, 200, graphSources()),
   },
 
+  /* ---------------- Graph Studio: the use cases and the sources behind their lanes ---------------- */
+
+  /*
+   * Every use case, with the lanes it has. **Not filtered to the committed ones**: a draft can
+   * already have been built, so a shortened list would hide graphs that exist. The selector states
+   * each row's lanes instead, which is the answer to "why does this one offer no document build"
+   * that a missing row cannot give.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/use-case-configs',
+    handle: (_req, res) =>
+      send(res, 200, {
+        configs: studioUseCases(db),
+        /*
+         * **The studio's outer precondition, served rather than counted in the page.**
+         *
+         * Every lane derives from a source somebody connected, so with none connected the studio has
+         * nothing to build from — and that is a different dead end from "no use case yet", which is
+         * fixed in New Graph rather than on Sources. It rides here for the reason `/ask` serves its
+         * own askable sources: a page counting for itself would be a second answer to whether this
+         * tenant has anything connected, and it would go stale the day a connector changes what
+         * counts as connected.
+         */
+        connected_sources: connectedSources().length,
+      }),
+  },
+
+  /* One use case, with the picks its lanes are derived from. */
+  {
+    method: 'GET',
+    match: (p) => /^\/use-case-configs\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/use-case-configs/'.length))
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const lanes = deriveLanes(db, found.useCase)
+      send(res, 200, {
+        use_case_config_id: found.useCase.use_case_id,
+        name: found.useCase.name ?? null,
+        domain: found.useCase.domain_id ?? null,
+        status: found.useCase.status ?? 'draft',
+        business_need: found.useCase.business_need ?? null,
+        required_sources: (found.useCase.sources ?? []).map((s) => s.source_id),
+        has_structured: lanes.hasStructured,
+        has_documents: lanes.hasDocuments,
+        document_count: lanes.documentCount,
+        structured_table_count: selectedTables(db, found.useCase).length,
+      })
+    },
+  },
+
+  /*
+   * The tenant's sources, as the lane derivation reads them. Served from the document rather than
+   * from `registered`, which lives in this process's memory: a lane must not disappear because the
+   * server restarted while the use case that named it survived.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/metadata-profiler/sources',
+    handle: (_req, res) => send(res, 200, { sources: studioSources(db) }),
+  },
+
+  /* ---------------- Graph Studio: the structured lane ---------------- */
+
+  /*
+   * Draft a story from the declared data model. **Writes nothing** — no build row, no job — so a
+   * draft the reader discards leaves no trace. Paced like every other suggester here, because an
+   * analysis that returns instantly teaches that it is free.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/structured-graph-builder/story-drafts',
+    handle: async (req, res) => {
+      const { use_case_config_id } = await readJson(req)
+      const found = findStudioUseCase(use_case_config_id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const story = sgbStory(db, found.useCase)
+      const counts = sgbCounts(db, found.useCase)
+      const payload = {
+        story: story.story,
+        /*
+         * **`degraded` says whether a model ran, and the honest answer here is that none did.** The
+         * prose is the use case's own business need, rearranged — every sentence in it came from
+         * what somebody typed into the wizard. Saying otherwise would be the one claim on this
+         * screen a reader could not check.
+         */
+        degraded: true,
+        degrade_reason: 'no_llm_provider',
+        model: null,
+        tables_considered: counts.table_count,
+        columns_considered: counts.column_count,
+        declared_relationships_considered: (db.data_model?.entities ?? []).reduce(
+          (n, e) => n + (e.relationships ?? []).length,
+          0,
+        ),
+        intent_considered: Boolean(found.useCase.business_need),
+        hero_questions_considered: (found.useCase.hero_questions ?? []).length,
+      }
+      /* Held so the drafting state can be seen, the way every suggester here is. Refusals above are
+         immediate — a refusal is not work. */
+      setTimeout(() => send(res, 200, payload), SUGGEST_MS).unref?.()
+    },
+  },
+
+  /*
+   * Trigger a structured build. **202, and the row is committed before this answers**, so the very
+   * next `GET .../builds/{id}` succeeds rather than 404ing while a worker is busy — which a polling
+   * caller reads as a failed build.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/structured-graph-builder/builds',
+    handle: async (req, res) => {
+      const { use_case_config_id, story } = await readJson(req)
+      const found = findStudioUseCase(use_case_config_id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      if (!deriveLanes(db, found.useCase).hasStructured) {
+        return send(res, 409, {
+          error:
+            'this use case has no structured lane — it names no BigQuery source, so there is no ' +
+            'schema to build a graph from. Attach one in New Graph.',
+        })
+      }
+      const run = startSgbBuild(found.useCase, story)
+      send(res, 202, { build_id: run.build_id, status: run.status })
+    },
+  },
+
+  /* This use case's structured builds, newest first. */
+  {
+    method: 'GET',
+    match: (p) => p === '/structured-graph-builder/builds',
+    handle: (_req, res, { query }) => {
+      const id = query.get('use_case_config_id')
+      const builds = id
+        ? listFor(sgbBuilds, id)
+        : [...sgbBuilds.values()].flat()
+      send(res, 200, { builds: builds.map(sgbView) })
+    },
+  },
+
+  /*
+   * One build's graph. **200 with an empty graph while the build is still running**, never an
+   * error — the caller gates on the build's own status, which is what `sgbView` reports.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/structured-graph-builder\/builds\/[^/]+\/graph$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const buildId = decodeURIComponent(
+        pathname.slice('/structured-graph-builder/builds/'.length, -'/graph'.length),
+      )
+      const run = [...sgbBuilds.values()].flat().find((b) => b.build_id === buildId)
+      if (!run) return send(res, 404, { error: noSuchBuild(buildId) })
+      if (run.status !== 'complete') {
+        return send(res, 200, {
+          build_id: buildId,
+          tables: [],
+          columns: [],
+          concepts: [],
+          story_group: null,
+          edges: [],
+        })
+      }
+      const found = findStudioUseCase(run.use_case_config_id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      send(res, 200, sgbGraph(db, found.useCase, buildId))
+    },
+  },
+
+  /* One build's story. The human-in-the-loop surface of this lane: edit the prose and the build
+     re-extracts from it. */
+  {
+    method: 'GET',
+    match: (p) => /^\/structured-graph-builder\/builds\/[^/]+\/story$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const buildId = decodeURIComponent(
+        pathname.slice('/structured-graph-builder/builds/'.length, -'/story'.length),
+      )
+      const run = [...sgbBuilds.values()].flat().find((b) => b.build_id === buildId)
+      if (!run) return send(res, 404, { error: noSuchBuild(buildId) })
+      const found = findStudioUseCase(run.use_case_config_id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const derived = sgbStory(db, found.useCase)
+      const edited = sgbStories.get(buildId)
+      send(res, 200, {
+        build_id: buildId,
+        story_group_id: derived.story_group_id,
+        story: edited ?? derived.story,
+        grain: derived.grain,
+        join_warning: derived.join_warning,
+        uncertainties: derived.uncertainties,
+        /* True only where somebody really typed it, so a reader can tell the tenant's own words from
+           the ones this server composed out of their brief. */
+        edited_by_user: typeof edited === 'string',
+      })
+    },
+  },
+
+  /*
+   * Edit the story. The build flips back to `running` while it re-extracts — re-poll exactly as for
+   * a fresh trigger. **A published build refuses**, because nothing may change underneath an
+   * approval without a version number moving to say so; unpublish first.
+   */
+  {
+    method: 'PUT',
+    match: (p) => /^\/structured-graph-builder\/builds\/[^/]+\/story$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const buildId = decodeURIComponent(
+        pathname.slice('/structured-graph-builder/builds/'.length, -'/story'.length),
+      )
+      const run = [...sgbBuilds.values()].flat().find((b) => b.build_id === buildId)
+      if (!run) return send(res, 404, { error: noSuchBuild(buildId) })
+      if (run.published_at) {
+        return send(res, 409, {
+          error:
+            'this build is published, and a published graph cannot be edited in place — the version ' +
+            'that names it would then describe something else. Unpublish it on the Versions tab first.',
+        })
+      }
+      const { story } = await readJson(req)
+      if (typeof story !== 'string' || !story.trim()) {
+        return send(res, 400, {
+          error: 'a story is the words this graph is extracted from, so it cannot be empty.',
+        })
+      }
+      sgbStories.set(buildId, story)
+      const found = findStudioUseCase(run.use_case_config_id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      /* Re-extraction is a real re-run rather than a flag: the cursor goes back to the start and the
+         same stepper walks it, so the Build tab narrates it exactly as it narrates a first build. */
+      run.status = 'running'
+      run.cursor = 0
+      run.updated_at = new Date().toISOString()
+      runSgbBuild(run, found.useCase)
+      send(res, 200, {
+        build_id: buildId,
+        story_group_id: sgbStory(db, found.useCase).story_group_id,
+        status: run.status,
+      })
+    },
+  },
+
+  /* One build. */
+  {
+    method: 'GET',
+    match: (p) => /^\/structured-graph-builder\/builds\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const buildId = decodeURIComponent(pathname.slice('/structured-graph-builder/builds/'.length))
+      const run = [...sgbBuilds.values()].flat().find((b) => b.build_id === buildId)
+      if (!run) return send(res, 404, { error: noSuchBuild(buildId) })
+      send(res, 200, sgbView(run))
+    },
+  },
+
+  /* ---------------- Graph Studio: the document lane ---------------- */
+
+  /* Build this use case's document corpus into the next version of its graph. */
+  {
+    method: 'POST',
+    match: (p) => /^\/document-graph-builder\/corpora\/[^/]+\/build$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/document-graph-builder/corpora/'.length, -'/build'.length),
+      )
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      if (!deriveLanes(db, found.useCase).hasDocuments) {
+        return send(res, 409, {
+          error:
+            'this use case has no document lane — it names no drive or mailbox, so there is no ' +
+            'corpus to build a graph from. Attach one in New Graph.',
+        })
+      }
+      const job = startDgbJob(found.useCase)
+      send(res, 202, { job_id: job.job_id, status: job.status, report: {} })
+    },
+  },
+
+  /* The documents this use case's corpus holds. */
+  {
+    method: 'GET',
+    match: (p) => /^\/document-graph-builder\/corpora\/[^/]+\/documents$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/document-graph-builder/corpora/'.length, -'/documents'.length),
+      )
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      send(res, 200, {
+        documents: corpusDocuments(db, found.useCase).map((row) => ({
+          document_id: row.document.document_id,
+          filename: row.document.name ?? row.document.document_id,
+          mime_type: row.document.mime_type ?? null,
+          doc_type: row.document.doc_type ?? null,
+          doc_type_label: row.document.doc_type_label ?? null,
+          linked_entity: row.document.linked_entity ?? null,
+          pages: typeof row.document.pages === 'number' ? row.document.pages : null,
+          folder: row.folder.name ?? row.folder.folder_id,
+          drive: row.drive.display_name ?? row.drive.drive_id,
+        })),
+      })
+    },
+  },
+
+  /* One ingest job, polled while it runs. */
+  {
+    method: 'GET',
+    match: (p) => /^\/document-graph-builder\/jobs\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const jobId = decodeURIComponent(pathname.slice('/document-graph-builder/jobs/'.length))
+      const job = dgbJobs.get(jobId)
+      if (!job) {
+        return send(res, 404, {
+          error:
+            `no ingest job ${jobId}. Jobs live in this server's memory, so a restart clears them — ` +
+            'run the document lane again from the Build tab.',
+        })
+      }
+      send(res, 200, dgbJobView(job))
+    },
+  },
+
+  /*
+   * This corpus's graph versions, newest first.
+   *
+   * **Declared before `/graph/builds/:version`**, and the order is load-bearing: that matcher would
+   * swallow this path and answer `no graph version "builds"`, which is a 404 naming something the
+   * caller never asked for. The same hazard `/reports/prototype` has.
+   */
+  {
+    method: 'GET',
+    match: (p) => p === '/document-graph-builder/graph/builds',
+    handle: (_req, res, { query }) => {
+      const id = query.get('document_corpus_id')
+      const builds = id ? listFor(dgbBuilds, id) : [...dgbBuilds.values()].flat()
+      send(res, 200, { builds: builds.map(dgbBuildView) })
+    },
+  },
+
+  /* One version's retained graph — the entities and relations as that version left them. */
+  {
+    method: 'GET',
+    match: (p) => /^\/document-graph-builder\/graph\/builds\/[^/]+\/snapshot$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const version = Number(
+        decodeURIComponent(
+          pathname.slice('/document-graph-builder/graph/builds/'.length, -'/snapshot'.length),
+        ),
+      )
+      const id = query.get('document_corpus_id')
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const build = listFor(dgbBuilds, id).find((b) => b.graph_version === version)
+      send(res, 200, {
+        graph_version: version,
+        document_corpus_id: id,
+        /*
+         * **Whether this version's graph was retained, which is not the same as its graph being
+         * empty.** A version built before snapshots existed has none, and showing current state in
+         * its place would render something that looks like history and is not.
+         */
+        available: Boolean(build),
+        entities: build ? dgbEntities(db, found.useCase) : [],
+        relations: build ? dgbRelations(db, found.useCase) : [],
+      })
+    },
+  },
+
+  /* Approve one document graph version. */
+  {
+    method: 'POST',
+    match: (p) => /^\/document-graph-builder\/graph\/builds\/[^/]+\/(publish|unpublish)$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const publishing = pathname.endsWith('/publish')
+      const version = Number(
+        decodeURIComponent(
+          pathname.slice(
+            '/document-graph-builder/graph/builds/'.length,
+            -(publishing ? '/publish' : '/unpublish').length,
+          ),
+        ),
+      )
+      const id = query.get('document_corpus_id')
+      const build = listFor(dgbBuilds, id).find((b) => b.graph_version === version)
+      if (!build) return send(res, 404, { error: `no document graph version ${version}` })
+      if (publishing) {
+        for (const other of listFor(dgbBuilds, id)) {
+          if (other !== build && other.publish_status === 'published') {
+            other.publish_status = 'superseded'
+            other.superseded_at = new Date().toISOString()
+          }
+        }
+        build.publish_status = 'published'
+        build.published_at = new Date().toISOString()
+      } else {
+        build.publish_status = 'unpublished'
+        build.published_at = null
+      }
+      send(res, 200, dgbBuildView(build))
+    },
+  },
+
+  /* One document graph version. */
+  {
+    method: 'GET',
+    match: (p) => /^\/document-graph-builder\/graph\/builds\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const version = Number(
+        decodeURIComponent(pathname.slice('/document-graph-builder/graph/builds/'.length)),
+      )
+      const id = query.get('document_corpus_id')
+      const build = listFor(dgbBuilds, id).find((b) => b.graph_version === version)
+      if (!build) return send(res, 404, { error: `no document graph version ${version}` })
+      send(res, 200, dgbBuildView(build))
+    },
+  },
+
+  /*
+   * The document graph's entities, relations and mentions — every listing paginated, because a real
+   * corpus carries thousands and there is deliberately no "fetch everything" route.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/document-graph-builder\/graph\/(entities|relations|mentions)$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const kind = pathname.slice('/document-graph-builder/graph/'.length)
+      const id = query.get('document_corpus_id')
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const all =
+        kind === 'entities'
+          ? dgbEntities(db, found.useCase)
+          : kind === 'relations'
+            ? dgbRelations(db, found.useCase)
+            : dgbMentions(db, found.useCase)
+      const limit = Math.min(Number(query.get('limit') ?? 200) || 200, 1000)
+      const offset = Number(query.get('offset') ?? 0) || 0
+      const items = all.slice(offset, offset + limit)
+      send(res, 200, { items, limit, offset, has_more: offset + items.length < all.length })
+    },
+  },
+
+  /* The corpus's own document classes — the tenant's filing taxonomy, not one invented here. */
+  {
+    method: 'GET',
+    match: (p) => p === '/document-graph-builder/graph/classes',
+    handle: (_req, res, { query }) => {
+      const found = findStudioUseCase(query.get('document_corpus_id'))
+      if (found.error) return send(res, found.status, { error: found.error })
+      send(res, 200, { classes: dgbClasses(db, found.useCase) })
+    },
+  },
+
+  /*
+   * The passage a relation was asserted from.
+   *
+   * **This corpus stores no passage text, and the reply says so rather than inventing one.**
+   * `chunk_text` comes back `null` with the document named beside it, because a sentence composed
+   * here and labelled "the text this was extracted from" is the one invention a reader could not
+   * catch — and checking exactly that is what an evidence panel is for.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/document-graph-builder\/graph\/evidence\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const chunkId = decodeURIComponent(
+        pathname.slice('/document-graph-builder/graph/evidence/'.length),
+      )
+      const found = findStudioUseCase(query.get('document_corpus_id'))
+      if (found.error) return send(res, found.status, { error: found.error })
+      const evidence = chunkEvidence(db, found.useCase, chunkId)
+      if (!evidence) return send(res, 404, { error: `no chunk ${chunkId} in this corpus` })
+      send(res, 200, evidence)
+    },
+  },
+
+  /* ---------------- Graph Studio: the Bridge ---------------- */
+
+  /*
+   * Which Bridge the published version names — `null` when none is, carried as a null body rather
+   * than a 404, because "no Bridge answers right now" is a normal answer.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/use-cases\/[^/]+\/published-bridge$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/use-cases/'.length, -'/published-bridge'.length),
+      )
+      const version = publishedVersion(id)
+      const build = version?.bridge_build_id
+        ? listFor(bridgeBuilds, id).find((b) => b.bridge_build_id === version.bridge_build_id)
+        : null
+      send(res, 200, {
+        published_bridge: build
+          ? {
+              bridge_build_id: build.bridge_build_id,
+              use_case_config_id: id,
+              build_number: build.build_number,
+              status: build.status,
+            }
+          : null,
+      })
+    },
+  },
+
+  /*
+   * Build everything this use case has — structured, then documents, then the Bridge, strictly in
+   * that order. A convenience over the standalone triggers rather than a replacement: re-forming a
+   * Bridge without rebuilding either lane is still its own call.
+   *
+   * **The Bridge stage is skipped, not failed, for a single-lane use case.** No bridge id comes
+   * back, because the Bridge does not exist yet — poll the list once the lanes report done.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/use-cases\/[^/]+\/combined-builds$/.test(p),
+    handle: async (req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/use-cases/'.length, -'/combined-builds'.length))
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const { story } = await readJson(req)
+      const lanes = deriveLanes(db, found.useCase)
+      if (!lanes.hasStructured && !lanes.hasDocuments) {
+        return send(res, 409, {
+          error:
+            'this use case has nothing attached, so there is nothing to build. Pick a source in New ' +
+            'Graph — a graph with no inputs can answer nothing.',
+        })
+      }
+      const sgb = lanes.hasStructured ? startSgbBuild(found.useCase, story) : null
+      const dgb = lanes.hasDocuments ? startDgbJob(found.useCase) : null
+      send(res, 202, {
+        use_case_config_id: id,
+        sgb_build_id: sgb?.build_id ?? null,
+        dgb_job_id: dgb?.job_id ?? null,
+        status: 'running',
+      })
+    },
+  },
+
+  /* Form a Bridge from the two lanes' newest finished builds. 202 — the row is committed before the
+     run is dispatched, so the returned id is addressable immediately. */
+  {
+    method: 'POST',
+    match: (p) => /^\/use-cases\/[^/]+\/bridge-builds$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/use-cases/'.length, -'/bridge-builds'.length))
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const formed = formBridge(found.useCase)
+      if (formed.error) return send(res, formed.status, { error: formed.error })
+      send(res, 202, {
+        bridge_build_id: formed.build.bridge_build_id,
+        build_number: formed.build.build_number,
+        status: formed.build.status,
+      })
+    },
+  },
+
+  /* This use case's Bridge builds, newest first. An empty list is a first-class answer, including
+     for a use case that cannot form one at all. */
+  {
+    method: 'GET',
+    match: (p) => /^\/use-cases\/[^/]+\/bridge-builds$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/use-cases/'.length, -'/bridge-builds'.length))
+      send(res, 200, { bridge_builds: listFor(bridgeBuilds, id).map(bridgeView) })
+    },
+  },
+
+  /*
+   * Accept every still-undecided correspondence as derived, in one attributed act.
+   *
+   * **The gate exists so nothing publishes which no person decided; it does not exist to make
+   * somebody click two hundred times**, and a gate nobody can clear is a gate that gets switched
+   * off. This sweeps only what is *still* outstanding, so deciding a few by hand and accepting the
+   * tail is a supported flow rather than a race. Accepting nothing is a success, not an error.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/use-cases\/[^/]+\/bridge-builds\/[^/]+\/type-links\/accept-outstanding$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const [, , id, , bridgeId] = pathname.split('/')
+      const found = findStudioUseCase(decodeURIComponent(id))
+      if (found.error) return send(res, found.status, { error: found.error })
+      const version = publishedVersion(found.useCase.use_case_id)
+      if (version?.bridge_build_id === bridgeId) {
+        return send(res, 409, {
+          error:
+            'this Bridge is the published one, and a published Bridge is frozen — nothing may change ' +
+            'underneath an approval without a version moving to say so. Revise it into a new Bridge first.',
+        })
+      }
+      const as = query.get('as')
+      let accepted = 0
+      for (const link of typeLinkRows(found.useCase, bridgeId)) {
+        if (!needsReview(link)) continue
+        bridgeDecisions.set(`${bridgeId}:${link.type_link_id}`, {
+          decision: link.decision,
+          by: as ?? null,
+          at: new Date().toISOString(),
+        })
+        accepted += 1
+      }
+      /* Read back rather than assumed to be zero: what this swept need not match what the screen
+         last showed, since a row decided individually in between was already out of the set. */
+      const outstanding = typeLinkRows(found.useCase, bridgeId).filter(needsReview).length
+      send(res, 200, { accepted_count: accepted, unreviewed_count: outstanding })
+    },
+  },
+
+  /*
+   * Override one decision. The derivation's own recommendation is **preserved** on the row rather
+   * than replaced, and overriding to the same decision it reached is still recorded — agreement is
+   * a decision too, and a row leaves the review set the instant a person makes one either way.
+   */
+  {
+    method: 'PATCH',
+    match: (p) => /^\/use-cases\/[^/]+\/bridge-builds\/[^/]+\/type-links\/[^/]+$/.test(p),
+    handle: async (req, res, { pathname, query }) => {
+      const parts = pathname.split('/')
+      const id = decodeURIComponent(parts[2])
+      const bridgeId = decodeURIComponent(parts[4])
+      const typeLinkId = decodeURIComponent(parts.slice(6).join('/'))
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const { decision } = await readJson(req)
+      const allowed = ['identity', 'attribute', 'reject']
+      if (!allowed.includes(decision)) {
+        return send(res, 400, {
+          error: `"${decision}" is not a Type Link decision. It is one of ${allowed.join(', ')}.`,
+        })
+      }
+      const rows = typeLinkRows(found.useCase, bridgeId)
+      const row = rows.find((r) => r.type_link_id === typeLinkId)
+      if (!row) return send(res, 404, { error: `no Type Link ${typeLinkId} on this Bridge` })
+      bridgeDecisions.set(`${bridgeId}:${typeLinkId}`, {
+        decision,
+        by: query.get('as') ?? null,
+        at: new Date().toISOString(),
+      })
+      const updated = typeLinkRows(found.useCase, bridgeId).find(
+        (r) => r.type_link_id === typeLinkId,
+      )
+      send(res, 200, updated)
+    },
+  },
+
+  /*
+   * This Bridge's Type Links, **low-confidence first** — so attention goes where the judgement was
+   * closest. Never re-sorted at the edge. `reject` rows are included: the list is a record of what
+   * was *considered*, not only of what corresponded.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/use-cases\/[^/]+\/bridge-builds\/[^/]+\/type-links$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const parts = pathname.split('/')
+      const id = decodeURIComponent(parts[2])
+      const bridgeId = decodeURIComponent(parts[4])
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const rows = typeLinkRows(found.useCase, bridgeId)
+      send(res, 200, {
+        type_links: rows,
+        /* The server's own number, not one derived at the edge: a count computed twice is a screen
+           that says "nothing left" over a server that refuses the publish. */
+        unreviewed_count: rows.filter(needsReview).length,
+      })
+    },
+  },
+
+  /*
+   * Copy this Bridge into a new, editable one over the same pair. **No re-derivation and no lane
+   * rebuild**: the clone carries every decision and its attribution, so it opens with nothing
+   * outstanding — change the one row you came for and publish. The published Bridge keeps answering
+   * until you do.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/use-cases\/[^/]+\/bridge-builds\/[^/]+\/revise$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const parts = pathname.split('/')
+      const id = decodeURIComponent(parts[2])
+      const bridgeId = decodeURIComponent(parts[4])
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const history = listFor(bridgeBuilds, id)
+      const source = history.find((b) => b.bridge_build_id === bridgeId)
+      if (!source) return send(res, 404, { error: `no Bridge ${bridgeId} for this use case` })
+      const clone = {
+        ...source,
+        bridge_build_id: crypto.randomUUID(),
+        build_number: history.length + 1,
+        status: 'succeeded',
+        cursor: BRIDGE_STAGES.length,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      /* Every decision travels, attribution included — that is the whole point of revising rather
+         than re-forming, which would spend a run *and* discard the human decisions, so in practice a
+         wrong correspondence would never get corrected. */
+      for (const link of typeLinkRows(found.useCase, bridgeId)) {
+        const decided = bridgeDecisions.get(`${bridgeId}:${link.type_link_id}`)
+        if (!decided) continue
+        bridgeDecisions.set(
+          `${clone.bridge_build_id}:${link.type_link_id.replace(bridgeId, clone.bridge_build_id)}`,
+          decided,
+        )
+      }
+      history.unshift(clone)
+      bridgeBuilds.set(id, history)
+      send(res, 201, bridgeView(clone))
+    },
+  },
+
+  /* One Bridge build. */
+  {
+    method: 'GET',
+    match: (p) => /^\/use-cases\/[^/]+\/bridge-builds\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const parts = pathname.split('/')
+      const id = decodeURIComponent(parts[2])
+      const bridgeId = decodeURIComponent(parts[4])
+      const build = listFor(bridgeBuilds, id).find((b) => b.bridge_build_id === bridgeId)
+      if (!build) return send(res, 404, { error: `no Bridge ${bridgeId} for this use case` })
+      send(res, 200, bridgeView(build))
+    },
+  },
+
+  /* ---------------- Graph Studio: versions ---------------- */
+
+  /*
+   * The version this use case answers from, or `null`.
+   *
+   * **Declared before `/graph-versions/:id`**, like `reconcile` below it, and the order is
+   * load-bearing: that matcher would otherwise swallow both and answer `no version "published"`.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/use-cases\/[^/]+\/graph-versions\/published$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/use-cases/'.length, -'/graph-versions/published'.length),
+      )
+      const version = publishedVersion(id)
+      send(res, 200, { version: version ? versionView(version) : null })
+    },
+  },
+
+  /*
+   * Name this use case's finished builds with a version if they are not already. Safe to call on
+   * every studio load, and **idempotent** — a use case whose artifacts are already named returns the
+   * existing version untouched, and one with nothing finished returns `null` rather than inventing
+   * a version over nothing.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/use-cases\/[^/]+\/graph-versions\/reconcile$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(
+        pathname.slice('/use-cases/'.length, -'/graph-versions/reconcile'.length),
+      )
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const version = reconcileVersions(found.useCase)
+      send(res, 200, { version: version ? versionView(version) : null })
+    },
+  },
+
+  /*
+   * Approve a version — **every artifact it names, or none of them.** One act with one outcome,
+   * which is what replaced publishing each lane on its own tab: a use case answers from one approved
+   * set, so half a publish would leave a reader asking one graph a question the other half of the
+   * answer came from.
+   */
+  {
+    method: 'POST',
+    match: (p) => /^\/use-cases\/[^/]+\/graph-versions\/[^/]+\/(publish|unpublish)$/.test(p),
+    handle: (_req, res, { pathname, query }) => {
+      const publishing = pathname.endsWith('/publish')
+      const parts = pathname.split('/')
+      const id = decodeURIComponent(parts[2])
+      const versionId = decodeURIComponent(parts[4])
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const version = listFor(studioGraphVersions, id).find((v) => v.graph_version_id === versionId)
+      if (!version) return send(res, 404, { error: `no version ${versionId} for this use case` })
+
+      if (publishing) {
+        const as = query.get('as')
+        /*
+         * **Naming the publisher is the one thing this server cannot decide.** The identity is
+         * client-held, so a route has nothing to look it up from — a publication credited to the
+         * seeded account would name somebody who did not press the button. Refused rather than
+         * defaulted, exactly as the consent callback refuses a malformed `as`.
+         */
+        if (as && !/^[^@\s]+@[^@\s]+$/.test(as)) {
+          return send(res, 400, { error: `"${as}" is not an email address, so nobody can be credited with this publication.` })
+        }
+        publishVersion(found.useCase, version, as)
+      } else {
+        unpublishVersion(found.useCase, version)
+      }
+      send(res, 200, { version: versionView(version) })
+    },
+  },
+
+  /* One version, with the two staleness questions derived at read time and reported separately. */
+  {
+    method: 'GET',
+    match: (p) => /^\/use-cases\/[^/]+\/graph-versions\/[^/]+$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const parts = pathname.split('/')
+      const id = decodeURIComponent(parts[2])
+      const versionId = decodeURIComponent(parts[4])
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const version = listFor(studioGraphVersions, id).find((v) => v.graph_version_id === versionId)
+      if (!version) return send(res, 404, { error: `no version ${versionId} for this use case` })
+      send(res, 200, versionDetail(found.useCase, version))
+    },
+  },
+
+  /* Record the artifacts a reader just looked at as the next version. **Creating is not
+     publishing** — the version lands unpublished so it can be inspected before it answers anything. */
+  {
+    method: 'POST',
+    match: (p) => /^\/use-cases\/[^/]+\/graph-versions$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/use-cases/'.length, -'/graph-versions'.length))
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const version = reconcileVersions(found.useCase)
+      if (!version) {
+        return send(res, 409, {
+          error:
+            'neither lane of this use case has finished a build, so there are no artifacts to record ' +
+            'as a version. Build it first from the Build tab.',
+        })
+      }
+      send(res, 200, { version: versionView(version) })
+    },
+  },
+
+  /* This use case's versions, newest first. An empty list is a normal answer: a use case can be
+     built many times before anybody records a version of it. */
+  {
+    method: 'GET',
+    match: (p) => /^\/use-cases\/[^/]+\/graph-versions$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/use-cases/'.length, -'/graph-versions'.length))
+      send(res, 200, { versions: listFor(studioGraphVersions, id).map(versionView) })
+    },
+  },
+
   /* ---------------- Graph Studio ---------------- */
 
   /*
-   * The studio's front door: the graphs that have actually been built. A draft
-   * is not listed — there is nothing to review until the wizard commits one.
+   * **The studio's own routes are the two-lane ones above**, under `/use-case-configs`,
+   * `/structured-graph-builder`, `/document-graph-builder`, `/use-cases/:id/bridge-builds` and
+   * `/use-cases/:id/graph-versions`.
+   *
+   * What stood here was the previous studio: a review queue over one authored bucket of rows, a
+   * pivot, a per-graph build history and a publish that flipped a sha256 pointer. All of it went
+   * with the page that read it — **a route with no caller is dead code that reads as a feature**,
+   * and node reports nothing for one, so nothing else would have said so.
+   *
+   * **What deliberately did NOT go with it** is the machinery those routes shared with the rest of
+   * the app: `studioCanvas`, `studioQuery` and the recorded `graph_studio.sanity_checks` are read
+   * by Ask, and `db.graph_studio.canvas` is the roster the document lane's entities resolve
+   * against. Removing those would have taken Ask down with the studio, which is a wider act than
+   * replacing a screen.
+   *
+   * `publishedVersion` is the seam that absorbed the change: it answers the same question it
+   * always did and is read by Ask, Reports, the What-if lens and Audit & Governance unchanged —
+   * only what a version *is* moved underneath it.
    */
-  {
-    method: 'GET',
-    match: (p) => p === '/graph-studio',
-    handle: (_req, res) => {
-      const graphs = builtGraphs()
-        .map(studioSummary)
-        .sort((a, b) => Date.parse(b.built_at ?? 0) - Date.parse(a.built_at ?? 0))
-      send(res, 200, {
-        graphs,
-        count: graphs.length,
-        draft_count: db.graph_use_cases.length - graphs.length,
-      })
-    },
-  },
-
-  // One built graph's review queue, pivot and publish gate.
-  {
-    method: 'GET',
-    match: (p) => /^\/graph-studio\/[^/]+$/.test(p),
-    handle: (_req, res, { pathname }) => {
-      const id = decodeURIComponent(pathname.slice('/graph-studio/'.length))
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-      send(res, 200, graphStudio(found.useCase))
-    },
-  },
-
-  // One decision on one row of one graph.
-  {
-    method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/decisions$/.test(p),
-    handle: async (req, res, { pathname }) => {
-      const id = decodeURIComponent(
-        pathname.slice('/graph-studio/'.length, -'/decisions'.length),
-      )
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-
-      const { item_id, choice, justification } = await readJson(req)
-      const gen = db.graph_studio.generated
-      const all = [
-        ...studioItems(id, 'must_review', gen.must_review_total, db.graph_studio.review_items),
-        ...studioItems(id, 'confirmed', gen.sample_size),
-        ...studioItems(id, 'auto_approved', gen.sample_size),
-      ]
-      const item = all.find((i) => i.item_id === item_id)
-      if (!item) return send(res, 404, { error: `no review item ${item_id}` })
-
-      /*
-       * The choices are the item's own, and the row is the authority on them.
-       *
-       * A row states its buttons in its own terms — "Keep distinct", "Declare basis
-       * = manifest", "Leave orphaned" — but each one still resolves to one of the
-       * recorded choices, because what a decision *means* to the canvas has to be
-       * the same on every row: `approve` keeps the element, `correct` marks it
-       * studio-authored, `reject` drops it. So the labels vary and the choices do
-       * not, and this refuses anything the row does not offer. The page cannot
-       * present a button the API would reject, because both read this one list.
-       */
-      const allowed = item.actions
-        ? item.actions.map((a) => a.choice)
-        : item.action_set === 'causal'
-          ? ['approve-causal', 'downgrade-correlational', 'reject']
-          : ['approve', 'correct', 'reject']
-      if (!allowed.includes(choice)) {
-        return send(res, 400, {
-          error:
-            `"${choice}" is not one of the choices ${item_id} offers — ` +
-            `it takes: ${allowed.join(', ')}`,
-        })
-      }
-
-      // A schema-changing floor is exactly where the reason has to outlive the
-      // click, so the row cannot be cleared without one.
-      if (item.justification && !String(justification ?? '').trim()) {
-        return send(res, 400, {
-          error:
-            'this decision changes the schema — record a justification before resolving it',
-        })
-      }
-
-      studioDecisions.set(`${id}:${item_id}`, {
-        choice,
-        justification: String(justification ?? '').trim() || null,
-        decided_at: new Date().toISOString(),
-      })
-      send(res, 200, { item_id, studio: graphStudio(found.useCase) })
-    },
-  },
-
-  // The ontology as a graph. Proposed elements are whatever the queue has not
-  // decided yet, so this and the review queue can never tell different stories.
-  {
-    method: 'GET',
-    match: (p) => /^\/graph-studio\/[^/]+\/canvas$/.test(p),
-    handle: (_req, res, { pathname }) => {
-      const id = decodeURIComponent(
-        pathname.slice('/graph-studio/'.length, -'/canvas'.length),
-      )
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-      send(res, 200, studioCanvas(id))
-    },
-  },
-
-  // Ask the draft graph a question before anyone commits to it.
-  {
-    method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/query$/.test(p),
-    handle: async (req, res, { pathname }) => {
-      const id = decodeURIComponent(
-        pathname.slice('/graph-studio/'.length, -'/query'.length),
-      )
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-
-      const { question } = await readJson(req)
-      if (!question || !String(question).trim()) {
-        return send(res, 400, { error: 'ask a question first' })
-      }
-      const answer = studioQuery(id, String(question).trim())
-      // Paced like the suggesters: an answer that returns instantly reads as a
-      // lookup, and this is meant to read as the graph being asked.
-      /* The marked canvas travels back with the answer, so there is no second
-         request and no second truth. A recorded check names its hops, so the
-         highlight is exactly those; a derived walk can only say which nodes it
-         crossed. */
-      setTimeout(
-        () =>
-          send(res, 200, {
-            ...answer,
-            canvas: studioCanvas(
-              id,
-              answer.path,
-              answer.recorded ? answer.edges_used.map((e) => e.edge_id) : null,
-            ),
-          }),
-        SUGGEST_MS,
-      ).unref?.()
-    },
-  },
-
-  /*
-   * Publishing a version, and unpublishing it.
-   *
-   * **One pointer, and it names a content hash.** Publishing does not mutate the
-   * version it points at — the rows are content-addressed and immutable — it
-   * decides which one Ask may query. Unpublishing clears the pointer, which takes
-   * the graph out of Ask without deleting anything.
-   *
-   * The gate is unchanged: an unreviewed graph cannot be published, whichever
-   * version is chosen. A row may still *offer* Publish while its `gate` reads
-   * `unknown` — the refusal explains what is outstanding, which is more use than a
-   * disabled button with no reason.
-   */
-  {
-    method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/versions\/[0-9a-f]+\/publish$/.test(p),
-    handle: (_req, res, { pathname, query }) => {
-      const [, , rawId, , sha] = pathname.split('/')
-      const id = decodeURIComponent(rawId)
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-
-      const row = (studioVersions.get(id) ?? []).find((v) => v.sha256 === sha)
-      if (!row) {
-        return send(res, 404, {
-          error:
-            `no version ${sha} for ${id} — versions live in memory, so restarting ` +
-            'the mock server clears them. Build the graph again.',
-        })
-      }
-
-      const gate = graphStudio(found.useCase).publish
-      if (gate.blocked) {
-        return send(res, 400, {
-          error: `publish is blocked — ${gate.reasons.join(' · ')}`,
-          reasons: gate.reasons,
-        })
-      }
-
-      /*
-       * Who is publishing. Sent as `as=<email>` because the identity is client-held and
-       * this server has nothing to look it up from — the rule the consent callback set. A
-       * malformed one is refused rather than recorded: every "published by" line in the app
-       * reads this, and a name nobody can be is worse than the seeded fallback.
-       */
-      const as = query.get('as')
-      if (as !== null && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(as)) {
-        return send(res, 400, {
-          error: `"${as}" is not an email — send the signed-in address as ?as=, or nothing`,
-        })
-      }
-
-      studioLive.set(id, sha)
-      /*
-       * Written on every publish, never merged into what was there. This records *this*
-       * publish act, so a publish that names nobody has to fall back to the tenant account
-       * rather than inherit the last publisher's name — which is what it did until a smoke
-       * run unpublished and republished anonymously and the page still credited the
-       * previous person.
-       */
-      if (as) studioPublishedBy.set(`${id}:${sha}`, as)
-      else studioPublishedBy.delete(`${id}:${sha}`)
-      send(res, 200, { published: sha, studio: graphStudio(found.useCase) })
-    },
-  },
-
-  {
-    method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/versions\/[0-9a-f]+\/unpublish$/.test(p),
-    handle: (_req, res, { pathname }) => {
-      const [, , rawId, , sha] = pathname.split('/')
-      const id = decodeURIComponent(rawId)
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-
-      if (studioLive.get(id) !== sha) {
-        return send(res, 400, {
-          error: `version ${sha} is not the published one — nothing to unpublish`,
-        })
-      }
-      /* Ask loses this graph the moment the pointer clears, which is the point:
-         unpublishing is how a graph is taken out of service. */
-      studioLive.delete(id)
-      send(res, 200, { published: null, studio: graphStudio(found.useCase) })
-    },
-  },
-
-  /*
-   * Building the graph, and rebuilding it.
-   *
-   * 202 with a queued run — the same contract as a profiling job, deliberately,
-   * rather than a third pattern for "a run the page watches". A build is repeatable
-   * on purpose: settling review rows changes what a build produces, so the normal
-   * case is running it again, and every run is kept so the last one stays readable.
-   *
-   * A draft is refused by `findBuiltGraph`, which is exactly the precondition —
-   * the first stage is `pin_inputs`, and there is nothing to pin until the brief
-   * is committed. Its message already says how to fix it.
-   */
-  {
-    method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/builds$/.test(p),
-    handle: (_req, res, { pathname, query }) => {
-      const id = decodeURIComponent(
-        pathname.slice('/graph-studio/'.length, -'/builds'.length),
-      )
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-      /*
-       * **No `?as=` here, and it is not an oversight.** This route validated one, because a
-       * runtime-answered build *was* the publish act and a malformed address would have
-       * reached every "published by" line. A build publishes nothing now, so there is
-       * nobody for it to name — and a route that went on accepting an address it never
-       * recorded would be asking the client for something it throws away.
-       */
-      send(res, 202, buildView(startBuildFor(found.useCase)))
-    },
-  },
-
-  // This graph's build history, newest first — what the run picker lists.
-  {
-    method: 'GET',
-    match: (p) => /^\/graph-studio\/[^/]+\/builds$/.test(p),
-    handle: (_req, res, { pathname }) => {
-      const id = decodeURIComponent(
-        pathname.slice('/graph-studio/'.length, -'/builds'.length),
-      )
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-      const history = graphBuildsByUseCase.get(id) ?? []
-      send(res, 200, {
-        use_case_id: id,
-        builds: history.map(buildView),
-        count: history.length,
-      })
-    },
-  },
-
-  // One run, polled while it is in flight.
-  {
-    method: 'GET',
-    match: (p) => /^\/graph-studio\/[^/]+\/builds\/[^/]+$/.test(p),
-    handle: (_req, res, { pathname }) => {
-      const rest = pathname.slice('/graph-studio/'.length)
-      const cut = rest.indexOf('/builds/')
-      const id = decodeURIComponent(rest.slice(0, cut))
-      const buildId = decodeURIComponent(rest.slice(cut + '/builds/'.length))
-      const run = (graphBuildsByUseCase.get(id) ?? []).find(
-        (b) => b.build_id === buildId,
-      )
-      if (!run) {
-        return send(res, 404, {
-          error: `no build ${buildId} for ${id} — builds live in memory, so restarting the mock server clears them. Trigger a build again.`,
-        })
-      }
-      send(res, 200, buildView(run))
-    },
-  },
-
-  // Settling the pivot. Its own endpoint because it is its own precondition.
-  {
-    method: 'POST',
-    match: (p) => /^\/graph-studio\/[^/]+\/pivot$/.test(p),
-    handle: async (req, res, { pathname }) => {
-      const id = decodeURIComponent(
-        pathname.slice('/graph-studio/'.length, -'/pivot'.length),
-      )
-      const found = findBuiltGraph(id)
-      if (found.error) return send(res, found.status, { error: found.error })
-
-      const { option_id } = await readJson(req)
-      const options = db.graph_studio.pivot.options.map((o) => o.option_id)
-      if (!options.includes(option_id)) {
-        return send(res, 400, { error: `option_id must be one of: ${options.join(', ')}` })
-      }
-      studioPivotChoice.set(id, option_id)
-      send(res, 200, { chosen: option_id, studio: graphStudio(found.useCase) })
-    },
-  },
 
   /*
    * The graphs Ask can query: the ones that are live.
