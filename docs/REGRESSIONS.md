@@ -7122,3 +7122,94 @@ contract script had not been exercising.
 
 *A schema is a claim about what the server sends. Asserting that the claim exists is not checking it.*
 
+## A vacuous clause, and a harness that read a crash as a run (2026-09-17)
+
+Two failures of *verification* rather than of code, found within minutes of each other while adding
+the hero questions' SQL box. Both made a green result meaningless, which is worse than a red one.
+
+**The clause matched nothing.** A new purity claim was written through a shell heredoc as
+`!/db\./`, and the heredoc ate the backslash — what landed in the file was a literal **backspace
+byte** followed by `db`. That regex matches nothing, so `!match` was always true and the clause could
+never fail. `check-docs` was green, and the claim was a comment. **The break test is the only thing
+that found it**, which is exactly what CLAUDE.md says break tests are for.
+
+**Then the harness said every claim was worthless.** Its "did the run happen" test was
+`/claims are stale|check-docs/` — and `check-docs` appears in the *file path* inside a stack trace, so
+a run that **crashed** looked like a run that completed and every claim reported `MISSED`. A harness
+lying in that direction is the expensive one: it tells you thirty working guards are broken.
+
+**And the crash was invisible to the other check too.** The way regressions were being verified was
+`npm run check-docs | grep ✗ | diff` against a baseline — and a crash prints no `✗` at all, so the
+diff came back empty and read as **clean**. A false green from the guard *and* from the check on the
+guard, at the same time. The fix is to read the claim **total**: it went 854 → 861 when the new claims
+landed, and a crash prints no total at all.
+
+**Three habits out of it**, all now in the harness: match the summary line and nothing looser; treat a
+run with no summary as a crash rather than a pass; and write anything with a backslash through the
+Edit tool rather than a heredoc — which CLAUDE.md already said, and which cost an hour anyway.
+
+*A guard that cannot fail is a comment. A harness that cannot tell a crash from a pass is worse than
+no harness, because it launders both.*
+
+## A paced reply wrote the list back from the array it captured (2026-09-17)
+
+Reported from use: *"when we click on the add the dummy sql is not generating and it is not adding
+also in the your questions"*. **Two symptoms, one cause** — and the pair is what made it look like
+two features failing rather than one closure.
+
+`HeroQuestionsStep`'s Add did both halves correctly: it appended the question, then kicked off
+`writeSql`, which is paced at `SUGGEST_MS` (~1.1s) like every other suggester here. When the reply
+landed, `writeSql` wrote the list back as `onQuestions(questions.map(…))` — and `questions` was the
+prop **from the render in which `add` ran**, so it was the array from *before* the new question
+existed. That one call did both things at once: it overwrote the list with the older snapshot, which
+**deleted the question that had just been added**, and its `.map` never matched the new text, so no
+SQL was ever set. Add appeared to do nothing, twice over.
+
+**It is invisible in the fast case and only appears because the call is paced.** Nothing here returns
+instantly on purpose — an operation that returns in 2ms teaches that it is free — so the window
+between the add and the write-back is over a second wide and a reader is certain to be inside it.
+Pacing did not cause the bug; it is what made a latent stale closure reachable every single time.
+
+**The fix is the updater form, at every write and not only the broken one.** `onQuestions` now takes
+`HeroQuestion[] | ((previous: HeroQuestion[]) => HeroQuestion[])`, and all five list writes in the
+step go through the function — accepting a suggestion, adding, editing, removing, toggling High.
+Converting only `writeSql` would leave four call sites one paced reply away from the same fault, and
+the next one to acquire an async neighbour would fail the same way with nothing to notice it.
+
+**The refusal reason moved into the box with it.** A question nothing matches comes back `sql: null`
+with a reason; that was a toast, which outlives the row it is about and says nothing about *which*
+question. It is `sqlNote`, printed under that question's own box.
+
+**The guard is a claim about the shape, not the symptom.** `check-docs` asserts the step writes the
+list through `onQuestions((previous) =>` at least four times and that neither `onQuestions(questions.`
+nor `onQuestions([...questions` appears anywhere in its code — a single re-introduced capture brings
+the whole bug back, compiles cleanly, and throws nothing. It is broken by putting the original line
+back verbatim: the mutation still type-checks, because `questions` is a prop and in scope, which is
+precisely why a compiler was never going to catch this.
+
+*A captured array is a snapshot. Writing state back from one is only safe while nothing can change it
+in between — and pacing an operation guarantees that something can.*
+
+## A 100% flex basis in a row that could not wrap (2026-09-17)
+
+Reported from use, as a screenshot: every question in *Your questions* was set **one word per line**
+down a narrow column, with its AI-DRAFTED tag and High checkbox stranded in the middle of the text
+and the SQL box beside it.
+
+`.ng-question.is-added` is a flex row — the question, then its marks — and the query box was added to
+it as a third child carrying `flex-basis: 100%`. That basis is the right intent and only half the
+rule: **the parent had no `flex-wrap`**, so the box could not drop to a line of its own and instead
+sat in the row asking for the full width, which the sentence beside it then had to give up. Flex
+resolves that by shrinking the text to `min-content` — the width of its longest word.
+
+**Nothing failed, and nothing could have.** A layout that is merely wrong still renders, and
+`renderToString` measures nothing, so no assertion written through the component could have seen it;
+the stylesheet shipped this way from the day the query box landed. The guard is therefore on the
+**rule** rather than on the render: `check-docs` slices the two blocks out of `NewGraphPage.css` and
+asserts the wrap on the parent beside the `flex: 0 0 100%` on the child. `0 0` rather than a bare
+basis, because the failure state is exactly an item that grows into the header row or shrinks out of
+its own line.
+
+*A `flex-basis: 100%` is a request for a line, not a line. Without `flex-wrap` on the parent it is a
+request to take the width off whatever is beside it.*
+

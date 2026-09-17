@@ -1120,6 +1120,10 @@ export interface HeroQuestion {
   text: string
   priority: "high" | "normal"
   source: "ai" | "user"
+  /** The query this question would be answered by, or `null` where nothing has been composed.
+   *  Carried on the brief rather than re-derived on load: a reader can edit it, so it is their
+   *  text once they have. */
+  sql?: string | null
 }
 
 export interface GraphUseCase {
@@ -2612,6 +2616,9 @@ const HERO_QUESTION = shape({
   text: str,
   priority: oneOf(["high", "normal"]),
   source: oneOf(["ai", "user"]),
+  /* Nullable: a question nothing matched keeps none, and a brief saved before this field existed
+     carries none either — `nullable` accepts an absent key as well as a null. */
+  sql: nullable(str),
 })
 
 const ANSWER_FORMAT = shape({ format_id: str, name: str, format: str })
@@ -11266,4 +11273,64 @@ export async function unpublishGraphVersion(input: {
     shape({ version: GRAPH_VERSION }),
   )
   return toGraphVersion(raw.version)
+}
+
+/* ---------------- a hero question's query ---------------- */
+
+/**
+ * The query a hero question would be answered by.
+ *
+ * **`sql` is nullable and a null is an answer**, not a failure: a question whose words reach no
+ * profiled column has no query that could be written without naming a table this tenant may not
+ * have, and `reason` says so. The box prints that rather than sitting blank.
+ */
+export interface QuestionSql {
+  sql: string | null
+  reason: string | null
+  /** The table it composed against, and the columns it matched on — the falsifiable part, so a
+   *  reader can check the query against the Data Catalog rather than taking it on trust. */
+  table: string | null
+  columns: string[]
+  /** Whether a model produced it. **Always true here**: this is a scan over the profiled columns,
+   *  and a payload implying otherwise is the one claim on that box nobody could check. */
+  degraded: boolean
+  tablesConsidered: number
+}
+
+const QUESTION_SQL = shape({
+  sql: nullable(str),
+  reason: nullable(str),
+  table: nullable(str),
+  columns: arrayOf(str),
+  degraded: bool,
+  tables_considered: num,
+})
+
+export async function questionSql(input: {
+  useCaseId: string
+  question: string
+}): Promise<QuestionSql> {
+  const raw = validate<{
+    sql: string | null
+    reason: string | null
+    table: string | null
+    columns: string[]
+    degraded: boolean
+    tables_considered: number
+  }>(
+    'The query',
+    await request<unknown>('/graph-questions/sql', {
+      method: 'POST',
+      body: { use_case_id: input.useCaseId, question: input.question },
+    }),
+    QUESTION_SQL,
+  )
+  return {
+    sql: raw.sql,
+    reason: raw.reason,
+    table: raw.table,
+    columns: raw.columns,
+    degraded: raw.degraded,
+    tablesConsidered: raw.tables_considered,
+  }
 }

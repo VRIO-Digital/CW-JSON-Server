@@ -956,9 +956,14 @@
   margin-top: var(--sp-2);
 }
 
-/* An added question fits one row — it is already agreed, not being weighed. */
+/* An added question is a header row — the sentence, then its marks — with the query beneath it.
+   `flex-wrap` is what makes that two lines rather than three columns: `.ng-sql` asks for a whole
+   line with `flex-basis: 100%`, and without the wrap it stays in the row and takes the width out
+   of the sentence beside it, which collapses the question to min-content and sets it one word per
+   line. The basis was there from the day the query was added; the wrap was not. */
 .ng-question.is-added {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-2);
 }
@@ -1237,4 +1242,84 @@
   color: #b42318;
   font-size: 12px;
   line-height: 1.45;
+}
+
+/*
+ * The query under a hero question.
+ *
+ * It sits inside the question's own row rather than beside it, because it belongs to that question —
+ * a column of queries next to a column of questions would leave a reader matching them up by
+ * position, which is the arrangement a reordered list breaks silently.
+ */
+/* `0 0` rather than a bare basis: the query must never grow into the header row nor shrink out of
+   its own line, which is the state that squeezed the question text. The rule is what separates the
+   sentence from the query it would be answered by; the space above it is the parent's row gap. */
+.ng-sql {
+  flex: 0 0 100%;
+  border-top: 1px solid #eef1f5;
+  padding-top: var(--sp-3);
+}
+
+.ng-sql-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
+}
+
+.ng-sql-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8994a8;
+}
+
+.ng-sql-regen {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: #8994a8;
+  line-height: 1;
+}
+
+.ng-sql-regen:hover:not(:disabled) {
+  color: #f4562b;
+}
+
+.ng-sql-regen:disabled {
+  cursor: default;
+}
+
+/* Monospace, because every character in a query is significant and a proportional font hides the
+   difference between two identifiers that differ by one. */
+.ng-sql-box.ng-sql-box {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ng-sql-generating {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: #8994a8;
+  font-style: italic;
+  padding-block: var(--sp-2);
+}
+
+/* Why a question has no query, in the box it is about. Amber rather than red: nothing failed — the
+   schema simply does not answer this question, which is a finding rather than an error. */
+.ng-sql-note {
+  font-size: 12px;
+  color: #8a5a00;
+  background: #fff8e6;
+  border: 1px solid #f0dca8;
+  border-radius: 6px;
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.ng-sql-note-hint {
+  color: #8994a8;
+  margin-block: var(--sp-1) var(--sp-2);
 }

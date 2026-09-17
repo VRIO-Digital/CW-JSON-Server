@@ -51,15 +51,14 @@ import {
 } from '../store/graphStore'
 import {
   documentMetrics,
-  documentQuestions,
   documentReadings,
   foundMetricsCopy,
-  foundQuestionsCopy,
   metricFoundItems,
-  questionFoundItems,
   readingFootnote,
   readingsTitle,
 } from '../data/documentReadings'
+import { questionSql as questionSqlRequest } from '../api/client'
+import { toMessage } from '../store/asyncState'
 import {
   draftableCount,
   firstIncompleteStep,
@@ -296,10 +295,6 @@ export default function NewGraphPage() {
    * the question it answers are one authored row, so a question offered here is always one the
    * measures panel two steps back can account for.
    */
-  const foundQuestions = useMemo(
-    () => documentQuestions(attachedFiles).filter((q) => !rejectedFoundIds.includes(q.id)),
-    [attachedFiles, rejectedFoundIds],
-  )
   const reject = (id: string) => setRejectedFoundIds((prev) => [...prev, id])
   const [personas, setPersonas] = useState<DraftedItem[]>([])
   const [metrics, setMetrics] = useState<DraftedItem[]>([])
@@ -428,26 +423,31 @@ export default function NewGraphPage() {
     message.success(`Added ${m.name} to your metrics.`)
   }
 
-  /*
-   * Approving a question an attached document states: it joins the draft's hero questions at the
-   * priority the document implies, which the panel's note says out loud — High is the graph's
-   * contract, so a row that arrived High in silence would be this panel deciding what the graph
-   * must answer. It stays editable in the list below, where the step already settles it.
+  /**
+   * Compose the query for one hero question, against this use case's own profiled tables.
    *
-   * Keyed by text, the way `HeroQuestionsStep` keys its own list, so approving a question somebody
-   * has already typed cannot put a second copy of it there.
+   * **Owned by the page**, for the reason every other ask here is: which use case is open, and which
+   * tables its picks admit, is the page's to know — a step fetching for itself would be a second
+   * answer to which draft is being edited.
+   *
+   * A draft with no id yet has nothing to compose against, and that is *said* rather than silently
+   * returning an empty box: the reader would otherwise read "no SQL" as the schema having nothing,
+   * when the cause is that nothing has been saved.
    */
-  const questionIsIn = (text: string) =>
-    heroQuestions.some((q) => q.text.toLowerCase() === text.toLowerCase())
-
-  function approveFoundQuestion(id: string) {
-    const q = foundQuestions.find((x) => x.id === id)
-    if (!q || questionIsIn(q.question)) return
-    setHeroQuestions([
-      ...heroQuestions,
-      { text: q.question, priority: q.priority, source: 'ai' },
-    ])
-    message.success('Added the question to your list.')
+  async function writeQuestionSql(question: string) {
+    if (!useCaseId) {
+      return {
+        ok: false as const,
+        error:
+          'Save this draft first — a query is composed against the tables this use case picked, and ' +
+          'an unsaved draft has not picked any yet.',
+      }
+    }
+    try {
+      return { ok: true as const, value: await questionSqlRequest({ useCaseId, question }) }
+    } catch (error) {
+      return { ok: false as const, error: toMessage(error) }
+    }
   }
 
   async function removeUseCase(u: GraphUseCase) {
@@ -948,20 +948,21 @@ export default function NewGraphPage() {
               <HeroQuestionsStep
                 questions={heroQuestions}
                 onQuestions={setHeroQuestions}
-                /* The questions the attached documents state — the same authored rows step 4
-                   offered as measures, so the two steps cannot disagree about what was read. */
-                found={
-                  <FoundInDocuments
-                    items={questionFoundItems(foundQuestions)}
-                    copy={foundQuestionsCopy}
-                    approved={(id) => {
-                      const q = foundQuestions.find((x) => x.id === id)
-                      return q !== undefined && questionIsIn(q.question)
-                    }}
-                    onApprove={approveFoundQuestion}
-                    onReject={reject}
-                  />
-                }
+                /*
+                 * The query each question would be answered by, composed from this use case's own
+                 * profiled tables. Asked here rather than in the step because which use case is open
+                 * is the page's to know.
+                 */
+                onWriteSql={async (question) => {
+                  const result = await writeQuestionSql(question)
+                  /*
+                   * A refusal is an answer, and it is handed back rather than thrown as a toast: it
+                   * is a fact about *this* question, so the box it belongs to is where it says so.
+                   * A toast outlives the row it is about and stacks one per question on a step where
+                   * adding several in a row is the normal thing to do.
+                   */
+                  return result.ok ? result.value : { sql: null, reason: result.error }
+                }}
                 suggestions={questionSuggestions}
                 asked={questionsAsked}
                 emptyReason={questionsEmptyReason}

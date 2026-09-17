@@ -104,6 +104,7 @@ import {
 } from './datasets.js'
 import { exportKey, FORMATS } from './reportExport.js'
 import { classForType, parseSchemaDocument } from './schemaImport.js'
+import { questionSql } from './questionSql.js'
 import {
   chunkEvidence,
   conceptsFor,
@@ -3796,6 +3797,16 @@ function normalizeQuestions(list) {
       text,
       priority: raw.priority === 'high' ? 'high' : 'normal',
       source: raw.source === 'ai' ? 'ai' : 'user',
+      /*
+       * The query this question would be answered by, where one has been composed or typed.
+       *
+       * **Nullable, and carried rather than derived at read time.** A reader can edit it, so it is
+       * their text once they have — re-deriving on load would throw that away, which is a box that
+       * silently discards what was typed into it. A question nothing matched keeps `null`, because
+       * the empty state is the honest answer there and a composed-looking query naming a table this
+       * tenant may not have is the one thing this field must not hold.
+       */
+      sql: typeof raw.sql === 'string' && raw.sql.trim() ? raw.sql : null,
     })
     if (out.length >= 20) break
   }
@@ -12523,6 +12534,53 @@ const routes = [
     method: 'GET',
     match: (p) => p === '/graph-sources',
     handle: (_req, res) => send(res, 200, graphSources()),
+  },
+
+  /*
+   * The query a hero question would be answered by, over this use case's own profiled tables.
+   *
+   * **Derived from the schema, and every identifier in it is read rather than invented** — see
+   * `questionSql.js`. A plausible query naming a column this tenant does not have is worse than no
+   * query, because it reads as an answer and fails only when somebody runs it. So a question nothing
+   * matches comes back `sql: null` with the reason, and the box shows its empty state.
+   *
+   * **Paced like every other suggester here**, because a query that appears instantly teaches that
+   * composing one is free. The refusals above the hold are immediate: a refusal is not work.
+   */
+  {
+    method: 'POST',
+    match: (p) => p === '/graph-questions/sql',
+    handle: async (req, res) => {
+      const { use_case_id, question } = await readJson(req)
+      if (typeof question !== 'string' || !question.trim()) {
+        return send(res, 400, { error: 'a question is needed before a query can be written for it' })
+      }
+      const found = findStudioUseCase(use_case_id)
+      if (found.error) return send(res, found.status, { error: found.error })
+
+      const tables = selectedTables(db, found.useCase).map((row) => ({
+        ref: row.key,
+        columns: (db.column_profiles ?? {})[row.key] ?? [],
+      }))
+      const out = questionSql(question, tables)
+      const payload = {
+        sql: out.sql,
+        /* Why there is none, where there is none — the box prints it rather than sitting blank. */
+        reason: out.reason ?? null,
+        table: out.table ?? null,
+        /* The columns it matched on: the falsifiable part, so a reader can check the query against
+           the Data Catalog rather than taking it on trust. */
+        columns: out.columns ?? [],
+        /*
+         * **No model ran, and the payload says so.** This is a scan over the profiled columns, the
+         * same honest answer the story draft gives — a reply implying a model wrote the query is the
+         * one claim on that box a reader could not check.
+         */
+        degraded: true,
+        tables_considered: tables.length,
+      }
+      setTimeout(() => send(res, 200, payload), SUGGEST_MS).unref?.()
+    },
   },
 
   /* ---------------- Graph Studio: the use cases and the sources behind their lanes ---------------- */

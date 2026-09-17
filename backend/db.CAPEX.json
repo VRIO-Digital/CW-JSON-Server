@@ -22873,7 +22873,7 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-testdata-mu5mlpap4",
+      "use_case_id": "uc-testdata-mu5tzrkt4",
       "name": "testdata",
       "status": "committed",
       "domain_id": "capital-projects",
@@ -22888,32 +22888,17 @@
           "name": "Rate-Case Lead",
           "description": "Asks which assets will be in service in time for the next filing.",
           "source": "ai"
-        },
-        {
-          "name": "dsfsdf",
-          "description": "dsfsdf",
-          "source": "user"
         }
       ],
       "metrics": [
         {
+          "name": "Cost per Work Order by Vendor",
+          "description": "Mean cost of a completed work order, grouped by the vendor that carried it out and normalised by work-order class.",
+          "source": "ai"
+        },
+        {
           "name": "Spend Against Authorised Envelope",
           "description": "Committed plus actual spend on a capital project as a share of its authorised envelope.",
-          "source": "ai"
-        },
-        {
-          "name": "Maintenance Cost per Unit (MCU)",
-          "description": "Total maintenance spend booked against a generating unit for a calendar month, divided by that unit's installed capacity.",
-          "source": "ai"
-        },
-        {
-          "name": "Year-to-Date (YTD) Budget Variance",
-          "description": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)",
-          "source": "ai"
-        },
-        {
-          "name": "Overrun amount one",
-          "description": "Overrun Amounts =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURNVVVVV\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )",
           "source": "ai"
         }
       ],
@@ -22922,96 +22907,25 @@
           "source_id": "bigquery:northline_epbcs",
           "mode": "all",
           "objects": []
-        },
-        {
-          "source_id": "gdrive:my-drive-capital-delivery",
-          "mode": "all",
-          "objects": []
         }
       ],
       "hero_questions": [
         {
           "text": "Show me the change orders with the message that explains each one.",
           "priority": "normal",
-          "source": "ai"
+          "source": "ai",
+          "sql": "SELECT Phase Order\nFROM `plan`.`plan_phase_dim`\nLIMIT 1000"
+        },
+        {
+          "text": "Where do our systems disagree about the same thing?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT Source System\nFROM `plan`.`plan_project_budget`\nLIMIT 1000"
         }
       ],
       "gap_decisions": [],
       "step": 5,
-      "updated_at": "2026-09-17T14:32:30.305Z"
-    },
-    {
-      "use_case_id": "uc-testdata-mu5mc84d2",
-      "name": "testdata",
-      "status": "committed",
-      "domain_id": "capital-projects",
-      "business_need": "Domains are ranked by what your connected data can actually support — not alphabetically. A domain with no backing data would produce a graph that can’t answer anything.",
-      "personas": [
-        {
-          "name": "Controller",
-          "description": "Asks whether the ledger and the plan agree, and where they do not.",
-          "source": "ai"
-        },
-        {
-          "name": "Rate-Case Lead",
-          "description": "Asks which assets will be in service in time for the next filing.",
-          "source": "ai"
-        }
-      ],
-      "metrics": [
-        {
-          "name": "Year-to-Date (YTD) Budget Variance",
-          "description": "FY26 YearTotal Actual (Actual YTD) - FY26 January_Calendarization Budget YTD (Budget YTD)",
-          "source": "ai"
-        },
-        {
-          "name": "Overrun amount one",
-          "description": "Overrun Amounts =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURNVVVVV\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )",
-          "source": "ai"
-        },
-        {
-          "name": "Spend Against Authorised Envelope",
-          "description": "Committed plus actual spend on a capital project as a share of its authorised envelope.",
-          "source": "ai"
-        },
-        {
-          "name": "Maintenance Cost per Unit (MCU)",
-          "description": "Total maintenance spend booked against a generating unit for a calendar month, divided by that unit's installed capacity.",
-          "source": "ai"
-        }
-      ],
-      "sources": [
-        {
-          "source_id": "gdrive:my-drive-capital-delivery",
-          "mode": "all",
-          "objects": []
-        }
-      ],
-      "hero_questions": [
-        {
-          "text": "Show me the change orders with the message that explains each one.",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Which explanations came from correspondence rather than from a person?",
-          "priority": "normal",
-          "source": "ai"
-        },
-        {
-          "text": "Which projects will cross 90% of their authorised envelope before their midpoint milestone?",
-          "priority": "high",
-          "source": "ai"
-        },
-        {
-          "text": "Which units are driving this month's maintenance cost per unit, and by how much?",
-          "priority": "high",
-          "source": "ai"
-        }
-      ],
-      "gap_decisions": [],
-      "step": 5,
-      "updated_at": "2026-09-17T14:22:40.257Z"
+      "updated_at": "2026-09-17T17:57:21.057Z"
     }
   ],
   "graph_use_case_templates": [

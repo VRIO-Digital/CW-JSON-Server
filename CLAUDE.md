@@ -2369,22 +2369,42 @@ the sentence it explained the calculation with**, behind a *How it's calculated*
 would let one screen quote a definition the other never offers, one step apart and with nothing
 failing, so `check-docs` asserts there is one.
 
-**Step 5 is the third surface, and a question is a field on the measure that answers it.** *Found
-in your documents* there offers the questions a document states, each marked with who asks it and,
-behind *What answers it*, the measure and the query that do — because a hero question nothing can
-compute is precisely the gap this step's contract exists to avoid. Keeping the question **on the
-definition** rather than in a pool of its own is what makes the guarantee cheap: a memo defines a
-measure because somebody asks something, so step 5 can never offer a question step 4 has not
-accounted for, and step 1's passage quotes both. Approving adds it to the reader's list at **the
-priority the document implies** — marked `HIGH` on the row and said in the note, because High is
-the graph's contract and a row that arrived High in silence would be the panel deciding what the
-graph must answer; it stays editable in the list below, where the step already settles it.
+**Step 5 carries the query that would answer each question, and the documents panel is gone from
+it.** Removed on request: the step now states, per accepted question, the SQL that answers it.
 
-**One component draws both**, `FoundInDocuments`, the way `DraftedStep` serves two steps: the
-interaction is identical and only the noun and the effect of Approve differ, so each step passes
-its own copy block and its own callback. The rows themselves are built in `src/data/` by
-`metricFoundItems` / `questionFoundItems`, so what a panel draws can be asserted without rendering
-a step that has nothing attached.
+**Every identifier in that query is read rather than invented.** `backend/questionSql.js` matches
+the question's words against `column_profiles` for the tables this use case's own picks admit, and
+composes a SELECT from what it found — so the query names a table and columns a reader can check in
+the Data Catalog. A plausible query naming a column this tenant does not have is worse than no query
+at all: it reads as an answer and fails only when somebody runs it. So **a question nothing matches
+is a refusal** — `sql: null` with the reason — and the box shows *No SQL yet — write your own or
+click regenerate* rather than a `SELECT *` composed to fill the space.
+
+**No model runs, and the payload says so** (`degraded: true`), the same honest answer the story
+draft gives. What it does is a scan: the aggregate comes from the question’s own words (*average*,
+*how many*, *longest*), and the GROUP BY comes from what the question says it wants one row **per**
+— read from the phrase rather than inferred from scores, because *“for each transporter”* states the
+grain outright, and without it a question asking for one row per generator came back grouped by
+manifest: the right columns, the wrong question.
+
+**The query is carried on the brief rather than re-derived on load.** A reader can edit it, so it is
+their text once they have — re-deriving when the step re-opens would be a box that silently discards
+what was typed into it. It is composed **when the question is added**, not behind a second click: a
+reader who has just accepted a question has already asked for it, and an empty box under every new
+row reads as a feature that did not run. Regenerate is for changing their mind.
+
+**What the removal cost is stated rather than glossed.** Step 5 no longer offers the questions an
+attached document states, so a document is now read once and shown **twice** — step 1 quotes what
+was read, step 4 offers the measures it defines. The pool’s question-panel helpers
+(`documentQuestions`, `questionFoundItems`, `foundQuestionsCopy`, `questionAskedIn`) went with the
+panel rather than being left uncalled, because exported helpers with no caller read as a feature;
+**the `question` field on a definition stays**, because step 1 quotes it and it is what keeps the
+remaining guarantee cheap — a memo defines a measure *because* somebody asks something.
+
+**`FoundInDocuments` is now drawn on one step, not two.** `found` is a slot on `DraftedStep`, passed
+at the metrics call site and nowhere else, so no other step can grow a *Found in your documents*
+heading over a pass that did not happen. The rows are still built in `src/data/` by
+`metricFoundItems`, so what the panel draws can be asserted without rendering the step.
 
 **Approve adds the measure to the draft; Reject drops the row.** Approving carries the document's
 own definition into the metrics list rather than making the reader retype it, and marks it

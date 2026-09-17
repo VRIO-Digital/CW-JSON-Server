@@ -7800,22 +7800,119 @@ const personasCallSite = (
   newGraphPage.split('suggestLabel="Suggest personas (LLM)"')[1] ?? ''
 ).split('suggestLabel="Suggest metrics (LLM)"')[0]
 /*
- * **A document attached to a brief is read once and shown three times**, and the surfaces must be
- * three readings of one pass rather than three pools. Step 1 quotes what was read; step 4 offers
- * the measures it defines, with the query and the calculation note as evidence; step 5 offers the
- * questions it states, with the measure and query that answer them. Nothing opens the file — only
- * the filename travels, exactly as on the schema upload — so all of it is synthesised from the
- * name, and a *second* pool authored beside the first would let one screen quote a definition, or
- * a question, that the others never mention: one step apart, and with nothing failing.
+ * **Every hero question carries the query that would answer it, and every identifier in it is read.**
  *
- * **A question is a field on the measure it answers**, which is what makes that guarantee cheap: a
- * memo defines a measure because somebody asks something, so there is one authored row and both
- * panels slice it through the same `definitionsFor(file)`.
+ * A query naming a column this tenant does not have is worse than no query: it reads as an answer and
+ * fails only when somebody runs it. So the composer matches the question's words against
+ * `column_profiles` for the tables the use case's own picks admit, and a question nothing matches
+ * comes back `sql: null` with the reason rather than a `SELECT *` invented to fill the box.
  *
- * The other half is where the panels are drawn: `found` is a slot, passed at the metrics call site
- * and on the Hero questions step, and nowhere else — so the personas step cannot grow a *Found in
- * your documents* heading over a pass that did not happen, which is the withheld-act-is-an-absent-
- * prop rule `onEdit` keeps one claim down.
+ * **No model runs**, and the payload says so — the same honest answer the story draft gives.
+ */
+const questionSqlSrc = read('backend/questionSql.js')
+const questionSqlCode = codeOnly(questionSqlSrc)
+expect(
+  'a hero question’s query is composed from the profiled schema, and refuses rather than guessing',
+  /export function questionSql\(question, tables\)/.test(questionSqlCode) &&
+    /sql: null/.test(questionSqlCode) &&
+    /No profiled column matches this question/.test(questionSqlSrc) &&
+    !/SELECT \*/.test(questionSqlCode) &&
+    /degraded: true/.test(server),
+  'a plausible query over a table nobody has fails only when somebody runs it',
+)
+/* Pure, so it can be replayed with nothing running — the rule every derivation here keeps. */
+expect(
+  'and the composer touches no db, no filesystem and no request',
+  !/\bdb\./.test(questionSqlCode) &&
+    !/readFile|writeFile|node:fs/.test(questionSqlCode) &&
+    /* Word-bounded on purpose. Bare `req|res` matches `result`, which this file is full of, so
+       the clause would go red against correct code — and it arrived here as a literal backspace
+       once, because a heredoc ate the backslash, which matches nothing and made the clause
+       *vacuous*. Both directions of that mistake are why every claim gets broken once. */
+    !/\breq\b|\bres\b/.test(questionSqlCode),
+  'a composer that can only be checked by typing into a wizard is one nobody checks',
+)
+/*
+ * **The query is carried on the brief rather than re-derived on load**, because a reader can edit it
+ * and re-deriving would throw away what they typed — a box that silently discards its own contents.
+ */
+expect(
+  'a question’s query is stored on it, and what was typed survives a reload',
+  /sql: typeof raw\.sql === 'string'/.test(server) &&
+    /sql: nullable\(str\)/.test(client) &&
+    /sql\?: string \| null/.test(client),
+  're-deriving on load would discard the reader’s own text',
+)
+/*
+ * **Every write to the question list is an updater, and that is a bug fix rather than a style.**
+ *
+ * Composing a query is asynchronous and paced, so the reply lands about a second after the question
+ * was added. A handler that closed over `questions` wrote back the array as it stood *before* the
+ * add — which deleted the question it was meant to be filling in, and produced both symptoms at
+ * once: nothing appeared in the list, and no SQL ever arrived. Reported from use.
+ *
+ * The claim is on the **absence of the stale form** as well as the presence of the updater, because
+ * a single re-introduced `questions.map` is enough to bring it back, and nothing would throw.
+ */
+const heroStepCode = codeOnly(read('frontend/src/components/graph/HeroQuestionsStep.tsx'))
+expect(
+  'the question list is written through an updater, never from a captured array',
+  heroStepCode.includes('onQuestions((previous) =>') &&
+    heroStepCode.split('onQuestions((previous) =>').length - 1 >= 4 &&
+    !heroStepCode.includes('onQuestions(questions.') &&
+    !heroStepCode.includes('onQuestions([...questions'),
+  'a paced reply writing back a captured array deletes what was added while it was in flight',
+)
+/* Composed when a question is added rather than behind a second click: a reader who just accepted a
+   question has already asked for it, and an empty box under every new row reads as a broken feature. */
+const heroStep = read('frontend/src/components/graph/HeroQuestionsStep.tsx')
+expect(
+  'the query is composed on add, and regenerating is the second act rather than the first',
+  /void writeSql\(text\)/.test(codeOnly(heroStep)) &&
+    /Regenerate the query for/.test(heroStep) &&
+    /No SQL yet — write your own or click regenerate\./.test(heroStep),
+  'an empty box under every new question would read as a feature that did not run',
+)
+
+/*
+ * **The query gets its own line by the row wrapping, never by being a third column.** `.ng-sql`
+ * asks for a whole line with a 100% basis, and a basis is only half the rule: in a flex row that
+ * cannot wrap it stays beside the question and takes the width out of it, which collapses the
+ * sentence to min-content and sets it one word per line. That shipped — the basis was written when
+ * the query box was added and the wrap was not — and nothing failed, because a layout that is
+ * merely wrong renders. `renderToString` measures nothing, so the rule itself is what is asserted.
+ */
+const newGraphCss = read('frontend/src/pages/NewGraphPage.css')
+const cssBlock = (sheet, selector) => {
+  const at = sheet.indexOf(`${selector} {`)
+  return at === -1 ? '' : sheet.slice(at, sheet.indexOf('}', at))
+}
+expect(
+  'an added question wraps, so its query takes a line of its own rather than the question’s width',
+  cssBlock(newGraphCss, '.ng-question.is-added').includes('flex-wrap: wrap') &&
+    cssBlock(newGraphCss, '.ng-sql').includes('flex: 0 0 100%'),
+  'a full-width basis in a row that cannot wrap squeezes the question beside it to one word per line',
+)
+
+/*
+ * **A document attached to a brief is read once and shown twice**, and the surfaces must be two
+ * readings of one pass rather than two pools. Step 1 quotes what was read; step 4 offers the
+ * measures it defines, with the query and the calculation note as evidence. Nothing opens the file —
+ * only the filename travels, exactly as on the schema upload — so all of it is synthesised from the
+ * name, and a *second* pool authored beside the first would let one screen quote a definition the
+ * other never mentions: one step apart, and with nothing failing.
+ *
+ * **It was three surfaces, and step 5's went on request.** The Hero questions step offered the
+ * questions a document states, for approval; it now carries a query box per question instead. The
+ * removal reached the pool's question-panel helpers (`documentQuestions`, `questionFoundItems`,
+ * `foundQuestionsCopy`, `questionAskedIn`) rather than leaving them uncalled, because three exported
+ * helpers with no caller read as a feature. **The `question` field on a definition stays**, and this
+ * claim still asserts it: step 1 quotes it, and it is what makes the remaining guarantee cheap — a
+ * memo defines a measure *because* somebody asks something, so there is one authored row.
+ *
+ * The other half is where the panel is drawn: `found` is a slot, passed at the metrics call site and
+ * nowhere else — so no other step can grow a *Found in your documents* heading over a pass that did
+ * not happen, which is the withheld-act-is-an-absent-prop rule `onEdit` keeps one claim down.
  */
 const readingsSrc = read('frontend/src/data/documentReadings.ts')
 const foundSrc = read('frontend/src/components/graph/FoundInDocuments.tsx')
@@ -7824,33 +7921,31 @@ const sliceFn = (name) =>
   (readingsSrc.split(`export function ${name}(`)[1] ?? '').split('\n}')[0]
 const readingsFn = sliceFn('documentReadings')
 const metricsFn = sliceFn('documentMetrics')
-const questionsFn = sliceFn('documentQuestions')
 /* The Hero questions call site, cut at the props that follow it on the same element. */
 const heroCallSite = (newGraphPage.split('<HeroQuestionsStep')[1] ?? '').split('/>')[0]
-/* The note step 5's panel prints, read out of the copy block rather than restated here. */
-const foundQuestionsNote =
-  /note:\s*'([^']*)'/.exec(readingsSrc.split('foundQuestionsCopy')[1] ?? '')?.[1] ?? ''
 expect(
-  'an attached document is read once and shown three times, from one pool',
+  'an attached document is read once and shown twice, from one pool',
   /* One authored pool, and every surface resolves a document through the same slice of it. */
   readingsFn.includes('definitionsFor(file)') &&
     metricsFn.includes('definitionsFor(file)') &&
-    questionsFn.includes('definitionsFor(file)') &&
     /* `\b(?!_)` so `DEFINITIONS_PER_DOC` beside it is not counted as a second pool — a claim
        that counts its own neighbour is describing the file rather than the fact. */
     (codeOnly(readingsSrc).match(/const DEFINITIONS\b(?!_)/g) ?? []).length === 1 &&
-    /* The question is a field on the definition rather than a list of its own. */
+    /* The question is still a field on the definition rather than a list of its own — which is
+       what step 1 quotes, and what a re-added step-5 panel would slice rather than author again. */
     /question: string/.test(readingsSrc) &&
-    /question: d\.question/.test(questionsFn) &&
     /* And step 1 quotes it, so the three surfaces cannot come to disagree about what was read. */
     /Answers: "\$\{d\.question\}"/.test(readingsFn) &&
     /* Pure: no request behind any of it, so nothing can claim the file was opened. */
     !/fetch\(|from '\.\.\/api\/client'/.test(codeOnly(readingsSrc)) &&
-    /* One panel, two steps — and a slot on each of those two and nowhere else. */
+    /* One panel, one step — the slot is on `DraftedStep`, passed at the metrics call site and
+       nowhere else. The Hero questions step carries no slot at all now, which is the removal being
+       complete rather than a prop left behind for one to come back through. */
     /\{found\}/.test(codeOnly(draftedStep)) &&
-    /\{found\}/.test(codeOnly(heroStepSrc)) &&
+    !/\{found\}/.test(codeOnly(heroStepSrc)) &&
+    !/found\?: ReactNode/.test(heroStepSrc) &&
     /found=\{/.test(metricsCallSite) &&
-    /found=\{/.test(heroCallSite) &&
+    !/found=\{/.test(heroCallSite) &&
     !/found=\{/.test(personasCallSite) &&
     /* Approved is read off the list below rather than held beside it — two answers to "is this
        in the list" is how a row comes to read Approved over a list that no longer has it. */
@@ -7862,22 +7957,20 @@ expect(
     (codeOnly(foundSrc).match(/= useState/g) ?? []).length === 1 &&
     /const \[open, setOpen\] = useState<string\[\]>/.test(foundSrc) &&
     /metricIsIn\(m\.name\)/.test(newGraphPage) &&
-    /questionIsIn\(q\.question\)/.test(newGraphPage) &&
     /* An empty list draws nothing at all, heading included. */
     /if \(items\.length === 0\) return null/.test(foundSrc) &&
     /* The evidence is the document's, printed rather than summarised: a query keeps its own
        layout, and the rows are built in `src/data/` where they can be read without a render. */
     /<pre className="ng-found-query">\{d\.text\}<\/pre>/.test(foundSrc) &&
     /export function metricFoundItems/.test(readingsSrc) &&
-    /export function questionFoundItems/.test(readingsSrc) &&
-    /* A found question arrives at the priority the document implies, marked on the row rather
-       than applied in silence — and that priority is the row's, never a literal. */
-    /priority: q\.priority/.test(newGraphPage) &&
-    /badge: q\.priority === 'high' \? 'HIGH' : undefined/.test(readingsSrc) &&
-    foundQuestionsNote.includes('High stays editable'),
-  readingsFn === '' || metricsFn === '' || questionsFn === ''
-    ? 'documentReadings.ts no longer exports all three surfaces'
-    : 'a second pool would let one step offer what the others never mention',
+    /* And the question panel's own helpers went with the panel rather than being left uncalled —
+       three exported helpers with no caller read as a feature. */
+    !/export function questionFoundItems/.test(readingsSrc) &&
+    !/export function documentQuestions/.test(readingsSrc) &&
+    !/export const foundQuestionsCopy/.test(readingsSrc),
+  readingsFn === '' || metricsFn === ''
+    ? 'documentReadings.ts no longer exports both surfaces'
+    : 'a second pool would let one step offer what the other never mentions',
 )
 expect(
   'a drafted metric is accepted or corrected, and only correcting it writes the pool',

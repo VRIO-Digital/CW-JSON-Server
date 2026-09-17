@@ -315,47 +315,6 @@ export function documentMetrics(files: string[]): DocumentMetric[] {
 /* ---------------------------------------------------------------- step 5 */
 
 /**
- * A question an attached document states, offered on the Hero questions step for approval.
- *
- * **The same row a measure comes from**, because a memo defines a measure *because* somebody asks
- * something: the question is a field on the definition rather than a pool of its own, so step 5
- * can never offer a question step 4 never mentioned, and step 1 quotes both.
- */
-export type DocumentQuestion = {
-  /** Stable for a given file and slot — `${file}#q${n}`. */
-  id: string
-  /** The question, as the document phrases it. */
-  question: string
-  /** What the document says it is answered with, and what that measure means. */
-  measure: string
-  measureDefinition: string
-  /** The query behind it, as the document laid it out. */
-  query: string
-  /** Who asks it, in the document's own words. */
-  usedFor: string
-  /** What it arrives as. High stays editable in the list below, which is where it is settled. */
-  priority: 'high' | 'normal'
-  /** The document it was read from. */
-  file: string
-}
-
-/** The questions the attached documents state, in the order they were attached. */
-export function documentQuestions(files: string[]): DocumentQuestion[] {
-  return files.flatMap((file) =>
-    definitionsFor(file).map((d, i) => ({
-      id: `${file}#q${i + 1}`,
-      question: d.question,
-      measure: d.name,
-      measureDefinition: d.description,
-      query: d.query,
-      usedFor: d.usedFor,
-      priority: d.priority,
-      file,
-    })),
-  )
-}
-
-/**
  * The found-metrics panel's words.
  *
  * Copy rather than sentences written where they are printed, for the reason `sourceActions` is:
@@ -383,41 +342,10 @@ export const foundMetricsCopy = {
   note: 'Approving adds the measure to the list below, with the definition the document gave it. Rejecting drops it from this list and changes nothing else.',
 }
 
-/**
- * The found-questions panel's words — step 5's twin of the block above.
- *
- * **Its own object rather than one with the nouns parameterised.** The two panels share a
- * component and nothing else: *How it's calculated* is right over a measure and wrong over a
- * question, and the note has to say what approving adds *here*. A single block with `{noun}` in it
- * would make one sentence answer for two screens, which is how copy comes to fit neither.
- */
-export const foundQuestionsCopy = {
-  heading: 'Found in your documents',
-  /** On a row, above the measure it is answered with. */
-  measureLabel: 'Answered with',
-  /** On a row, above the query. */
-  queryLabel: 'Query found in the document',
-  /** The toggle, shut and open. */
-  showLabel: 'What answers it',
-  hideLabel: 'Hide',
-  approveLabel: 'Approve',
-  approvedLabel: 'Approved',
-  rejectLabel: 'Reject',
-  /**
-   * **It says the priority comes from the document and stays editable**, because approving here
-   * sets the one flag on this step that is not cosmetic: High is the graph's contract. A row that
-   * silently arrived High would be this panel deciding what the graph must answer.
-   */
-  note: 'Approving adds the question to your list below, with the priority the document implies — High stays editable there. Rejecting drops it from this list and changes nothing else.',
-}
-
-/** The line under a found question: who the document says asks it. */
-export const questionAskedIn = (q: DocumentQuestion) => `Asked in ${q.usedFor}`
-
-/* ------------------------------------------------- the rows both panels draw */
+/* ------------------------------------------------- the rows the panel draws */
 
 /*
- * The two shapes above, as the rows `FoundInDocuments` draws.
+ * The shape above, as the rows `FoundInDocuments` draws.
  *
  * **Here rather than in the page** for the reason the pools are: a row assembled inside a
  * component can only be checked by rendering that component, and `renderToString` gives the step
@@ -437,31 +365,6 @@ export function metricFoundItems(metrics: DocumentMetric[]) {
     details: [
       { label: foundMetricsCopy.queryLabel, text: m.query, code: true },
       { label: foundMetricsCopy.noteLabel, text: m.note },
-    ],
-  }))
-}
-
-/**
- * A found question, as a panel row.
- *
- * **The evidence is what answers it** — the measure and the query behind it — because that is what
- * a reader judges a hero question on: a question the document states but nothing computes is
- * exactly the gap this step's contract is supposed to avoid. The `HIGH` mark is the document's own
- * framing, said on the row rather than applied silently at approval.
- */
-export function questionFoundItems(questions: DocumentQuestion[]) {
-  return questions.map((q) => ({
-    id: q.id,
-    title: q.question,
-    source: `from ${q.file}`,
-    summary: questionAskedIn(q),
-    badge: q.priority === 'high' ? 'HIGH' : undefined,
-    details: [
-      {
-        label: foundQuestionsCopy.measureLabel,
-        text: `${q.measure} — ${q.measureDefinition}`,
-      },
-      { label: foundQuestionsCopy.queryLabel, text: q.query, code: true },
     ],
   }))
 }
