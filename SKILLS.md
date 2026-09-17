@@ -2762,7 +2762,7 @@ sentence and the toast that repeated it are gone, and `check-docs` asserts neith
 | It asks | Stored as | Source |
 |---|---|---|
 | a **name** | `SavedReport.name` | reserved across the whole list by `nameProblem`, checked as you type |
-| **who can open it** — people, from Settings' four users | `viewerRoles` (role ids) | `governance.people`, served |
+| **who can open it** — people, from Settings' five users | `viewerRoles` (role ids) | `governance.people`, served |
 | **how fresh** the figures stay | `SavedReport.freshness` (a preset id) | `governance.publishing.freshness` |
 
 **People are picked; their role is what is stored.** `viewer_roles` is the audience model the
@@ -3037,7 +3037,7 @@ naming that command.
 
 ### What it stores and what it does not
 
-**Stores:** the four users, the live permissions, the authored defaults, and the read-only rule.
+**Stores:** the five users, the live permissions, the authored defaults, and the read-only rule.
 
 **Does not store:** persona labels. `db.auth_roles` / `GET /auth/roles` is the one place the four are
 declared, and the server resolves labels on the way out — so a rename reaches every surface at once.

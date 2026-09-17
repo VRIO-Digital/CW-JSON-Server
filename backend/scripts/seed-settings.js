@@ -85,19 +85,56 @@ const NAV_KEYS = [
 ]
 
 /**
- * The four prototype users, one per persona.
+ * The tenant's five users.
  *
  * **This is what the login reads.** Signing in takes an email and a password; the role is *this* user's
  * role rather than something the form asks for, which is why there is no role picker any more. The
  * names are the tenant's own — Dana Whitfield and Ellis Hargrove author report definitions, Rei
  * Nakamura the custody report — so the section reads as part of the same demo.
+ *
+ * **It was one user per persona and is not any more**: Nishant Srivastav was added on request as a
+ * second Domain Architect. Nothing here required the pairing to be one-to-one — `DEFAULTS` below is
+ * keyed by *persona*, so two people on one persona share its access rather than needing a row of
+ * their own — and the only rule about the list is the one checked below: every role must resolve in
+ * `db.auth_roles`, and no two people may share an address, because the login resolves a role by it.
+ *
+ * That address is also `db.google_account`'s, the account a consent falls back to when a caller
+ * names nobody. It resolved to no directory row until now, so `identityFor` answered `null` for it
+ * and the console did not change hands; with the row here it resolves like anybody else's.
  */
 const USERS = [
   { id: 1, role_id: 'business_user_executive', name: 'Ellis Hargrove', email: 'ellis.hargrove@vriodigital.com' },
   { id: 2, role_id: 'domain_architect', name: 'Dana Whitfield', email: 'dana.whitfield@vriodigital.com' },
   { id: 3, role_id: 'business_user_project', name: 'Rei Nakamura', email: 'rei.nakamura@vriodigital.com' },
   { id: 4, role_id: 'platform_admin', name: 'Adaeze Okonjo', email: 'adaeze.okonjo@vriodigital.com' },
+  { id: 5, role_id: 'domain_architect', name: 'Nishant Srivastav', email: 'nishant.srivastav@vriodigital.com' },
 ]
+
+/**
+ * People to make sure exist in a **secondary** dataset's own directory, keyed by dataset.
+ *
+ * A secondary dataset's users are another tenant's, which is why the branch below re-authors none
+ * of them — replacing one directory with the primary's constants would swap one company's people
+ * for another's. Adding *one named person* is a different act, and it is the only way there is:
+ * these documents are generated, their `_meta` forbids hand-editing, and their generator is not in
+ * this repo — so a re-runnable step here is the honest stand-in, the same arrangement
+ * `npm run scale:capex` and `npm run narrow:capex` are for the CAPEX reports.
+ *
+ * **The persona is that dataset's own**, never the primary's: CAPEX calls its Domain Architect
+ * `architect`, and a `role_id` from EPA's pool would be refused by its own `validateSettings`. The
+ * step is idempotent and never rewrites a row that is already there — if the address exists, it is
+ * left exactly as the document has it, because changing somebody's persona is not what "make sure
+ * this person exists" means.
+ */
+const ADDITIONAL_USERS = {
+  CAPEX: [
+    {
+      role_id: 'architect',
+      name: 'Nishant Srivastav',
+      email: 'nishant.srivastav@vriodigital.com',
+    },
+  ],
+}
 
 const on = (keys) => Object.fromEntries(NAV_KEYS.map((k) => [k, keys.includes(k)]))
 const allExcept = (off) => Object.fromEntries(NAV_KEYS.map((k) => [k, !off.includes(k)]))
@@ -221,6 +258,30 @@ if (secondary) {
     derived[roleId] = reportAccess(REPORT_ACTIONS)
   }
 
+  /*
+   * The declared people, added to this dataset's own list — and checked against this dataset's own
+   * personas, which is the lesson `validateSettings` learned the hard way: at seed time as at boot,
+   * a document has to be judged on its own terms rather than against the primary's pool.
+   */
+  const users = [...(settingsBlock.users ?? [])]
+  const addedUsers = []
+  for (const person of ADDITIONAL_USERS[dataset] ?? []) {
+    const email = String(person.email).toLowerCase()
+    /* Already there: left alone, because this step makes sure somebody exists rather than saying
+       what their persona is — rewriting it would silently move a person between roles. */
+    if (users.some((u) => String(u.email).toLowerCase() === email)) continue
+    if (!roleIds.includes(person.role_id)) {
+      problems.push(
+        `additional user "${person.email}" is role "${person.role_id}", which ${dataset}'s ` +
+          `auth_roles does not have — it has ${roleIds.join(', ')}`,
+      )
+      continue
+    }
+    const nextId = Math.max(0, ...users.map((u) => Number(u.id) || 0)) + 1
+    users.push({ id: nextId, role_id: person.role_id, name: person.name, email: person.email })
+    addedUsers.push(`${person.email} (${person.role_id})`)
+  }
+
   if (problems.length > 0) {
     console.error('\nseed-settings: refusing to write —')
     for (const pr of problems) console.error('  · ' + pr)
@@ -245,6 +306,7 @@ if (secondary) {
 
   const next = {
     ...existing,
+    users,
     report_defaults: existing.report_defaults ?? derived,
     report_permissions: keptReports,
   }
@@ -255,7 +317,10 @@ if (secondary) {
       roleIds
         .map((r) => `${r}=${REPORT_ACTIONS.filter((a) => keptReports[r][a]).join('/') || 'none'}`)
         .join(', ') +
-      '\n  users, navigation and the locked row are this dataset’s own and were not touched.',
+      (addedUsers.length > 0
+        ? `\n  added to the directory: ${addedUsers.join(', ')}.`
+        : '\n  the directory was already complete — nobody was added.') +
+      '\n  navigation, the locked row and every existing user are this dataset’s own and were not touched.',
   )
   process.exit(0)
 }

@@ -12768,6 +12768,51 @@ expect(
     ? 'the document route was not parsed — this check cannot run'
     : `frontend/public/${docRoutePath}`,
 )
+/*
+ * **And the roster it prints is the tenant's, not a copy that has drifted from it.**
+ *
+ * That page is a standalone document — it holds its own `users` array and its own `roleNames` map,
+ * because nothing in it calls the API — which makes it a *second* answer to who exists, the
+ * duplication this repo refuses everywhere it can. Here it cannot be removed without giving a
+ * signed-out description page an API origin, so the copy is checked against `db.settings` instead.
+ *
+ * It had already drifted twice by the time this was written: a user added to the directory did not
+ * appear here, and `business_user_project` read *Business User — Project* against the pool's
+ * *Business User — Project Level*. Both are silent — the page renders perfectly either way, and a
+ * reader takes it for the directory.
+ */
+const docSrc = docRoutePath ? read(`frontend/public/${docRoutePath}`) : ''
+const docUsers = [
+  ...(docSrc.split('const data = {')[1] ?? '')
+    .split('};')[0]
+    .matchAll(/role_id:\s*"([^"]+)",\s*name:\s*"([^"]+)",\s*email:\s*"([^"]+)"/g),
+].map((m) => ({ role_id: m[1], name: m[2], email: m[3] }))
+const docRoleLabels = Object.fromEntries(
+  [
+    ...(docSrc.split('const roleNames = {')[1] ?? '')
+      .split('};')[0]
+      .matchAll(/(\w+):\s*"([^"]+)"/g),
+  ].map((m) => [m[1], m[2]]),
+)
+const settingsUsers = db.settings?.users ?? []
+expect(
+  'the /login/data document prints the tenant directory, not a stale copy of it',
+  /* Read, rather than reported empty: a claim that parses nothing passes every `every` below. */
+  docUsers.length > 0 &&
+    settingsUsers.length > 0 &&
+    docUsers.length === settingsUsers.length &&
+    settingsUsers.every((u, i) =>
+      ['role_id', 'name', 'email'].every((k) => docUsers[i][k] === u[k]),
+    ) &&
+    /* And every persona it can print a label for is labelled the way the pool labels it. */
+    (db.auth_roles ?? []).every((r) => docRoleLabels[r.role_id] === r.label) &&
+    Object.keys(docRoleLabels).length === (db.auth_roles ?? []).length,
+  docUsers.length === 0
+    ? 'the document’s users array was not parsed — this check cannot run'
+    : `document: ${docUsers.map((u) => u.email).join(', ')} · directory: ${settingsUsers
+        .map((u) => u.email)
+        .join(', ')}`,
+)
 
 /*
  * **The landing page is one place, named twice, and the two must agree.**

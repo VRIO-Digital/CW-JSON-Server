@@ -15509,6 +15509,12 @@
         "role_id": "platform_admin",
         "name": "Adaeze Okonjo",
         "email": "adaeze.okonjo@vriodigital.com"
+      },
+      {
+        "id": 5,
+        "role_id": "domain_architect",
+        "name": "Nishant Srivastav",
+        "email": "nishant.srivastav@vriodigital.com"
       }
     ],
     "defaults": {
@@ -15608,7 +15614,7 @@
         "settings": true
       }
     },
-    "report_permissions": {
+    "report_defaults": {
       "business_user_executive": {
         "open": true,
         "edit": false,
@@ -15630,7 +15636,7 @@
         "delete": true
       }
     },
-    "report_defaults": {
+    "report_permissions": {
       "business_user_executive": {
         "open": true,
         "edit": false,

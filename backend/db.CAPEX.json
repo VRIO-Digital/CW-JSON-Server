@@ -22917,7 +22917,7 @@
       "hero_questions": [],
       "gap_decisions": [],
       "step": 5,
-      "updated_at": "2026-09-17T07:58:51.491Z"
+      "updated_at": "2026-09-17T08:02:31.835Z"
     }
   ],
   "graph_use_case_templates": [
@@ -62364,6 +62364,12 @@
         "role_id": "admin",
         "name": "Adaeze Okonjo",
         "email": "adaeze.okonjo@vriodigital.com"
+      },
+      {
+        "id": 6,
+        "role_id": "architect",
+        "name": "Nishant Srivastav",
+        "email": "nishant.srivastav@vriodigital.com"
       }
     ],
     "defaults": {

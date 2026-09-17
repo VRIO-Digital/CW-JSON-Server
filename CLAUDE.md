@@ -405,6 +405,18 @@ users were checked against EPA's personas and the boot refused a document that w
 `DB_SHAPE`'s checks now receive the whole candidate. **Every cross-key check inside `validateDb` must read
 `candidate`, never `db`**, because it runs once per document.
 
+**A person can be added to a secondary dataset's directory, and only that way.** `ADDITIONAL_USERS`
+in `seed-settings.js` declares people to make sure exist, keyed by dataset; the secondary branch
+adds any that are missing and **never rewrites a row that is already there**, because "make sure
+this person exists" is not "set their persona". The persona is that dataset's **own** — CAPEX calls
+its Domain Architect `architect` — and a `role_id` the document's pool lacks refuses the write
+naming the ones it has, which is `validateSettings`' lesson applied at seed time: a document is
+judged on its own terms, never against the primary's. It is a script rather than an edit for the
+reason every CAPEX change is — the document is generated and its `_meta` forbids hand-editing — and
+it is the only route, since re-authoring the directory from the primary's constants would replace
+one tenant's people with another's. **A user added to the primary does not appear here**: the two
+directories are two tenants, so somebody who should sign in to both is declared in both.
+
 **And `npm run seed:settings -- CAPEX` fills what a generated document could not know.**
 `report_defaults` / `report_permissions` were added to `validateSettings` after CAPEX's document was
 built, so for a **secondary** dataset the seed writes only the missing blocks and leaves the users,
@@ -5710,8 +5722,20 @@ been commented out of `NAV_ITEMS` rather than deleted: `/trace`,
 `/validation` and `/db`. `/audit` was the fourth until Audit & Governance got a page. Two more are URL-only by design and were never in the list. **`/login/data`** frames
 the settings/users/connectors description from `public/` — a document, so it sits outside `App` *and*
 outside `RequireAuth`, because behind the gate a typed URL would bounce to the login and never show it.
-Nothing on it is tenant data. `check-docs` asserts the file it names is really in `public/`, since a rename
-would leave the path answering with a blank frame and no error. The others are
+`check-docs` asserts the file it names is really in `public/`, since a rename
+would leave the path answering with a blank frame and no error.
+
+**It holds its own copy of the directory, and that copy is checked against the real one.** The
+sentence here used to read *"nothing on it is tenant data"*, which was never true: the page prints
+the tenant's users, their addresses and their persona labels from a `users` array and a `roleNames`
+map of its own, because nothing in a signed-out static document calls the API. So it is a second
+answer to who exists — the duplication this file refuses everywhere it can, and one that cannot be
+removed here without giving a description page an API origin. It had already drifted twice: a user
+added to `db.settings` never appeared here, and one persona read *Business User — Project* against
+the pool's *Business User — Project Level*. Both render perfectly, and a reader takes the page for
+the directory. `check-docs` now holds the array and the map against `db.settings.users` and
+`db.auth_roles` — same people in the same order, same labels — so the copy can go stale only with
+the build red. The others are
 `/graph-studio/:useCaseId/canvas`, the full-window canvas, which the **Full view**
 button on the Canvas tab opens in a new tab, and **`/doctor`** — see below.
 
