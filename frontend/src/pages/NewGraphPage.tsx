@@ -33,6 +33,7 @@ import type {
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import { useGraphBuildStore } from '../store/graphStudioStore'
 import DraftedStep from '../components/graph/DraftedStep'
+import FoundMetrics from '../components/graph/FoundMetrics'
 import HeroQuestionsStep from '../components/graph/HeroQuestionsStep'
 import SourcesStep from '../components/graph/SourcesStep'
 import PageHeader from '../components/common/PageHeader'
@@ -49,9 +50,11 @@ import {
   useUseCasesStore,
 } from '../store/graphStore'
 import {
+  documentMetrics,
   documentReadings,
   readingFootnote,
   readingsTitle,
+  type DocumentMetric,
 } from '../data/documentReadings'
 import {
   draftableCount,
@@ -263,6 +266,20 @@ export default function NewGraphPage() {
    * again reads the same way it did before.
    */
   const readings = useMemo(() => documentReadings(attachedFiles), [attachedFiles])
+  /*
+   * The measures those documents define, and the ones a reader has turned down.
+   *
+   * Rejections are kept by id rather than by filtering a stored list, because the list is derived:
+   * a document removed and re-attached comes back as itself, and a row rejected stays rejected
+   * only for as long as this draft is open. Nothing is saved either way — a rejection is a
+   * decision about a suggestion nobody has accepted, which is the asymmetry the Data Modeling tab
+   * already keeps between a suggestion and a declaration.
+   */
+  const [rejectedMetricIds, setRejectedMetricIds] = useState<string[]>([])
+  const foundMetrics = useMemo(
+    () => documentMetrics(attachedFiles).filter((m) => !rejectedMetricIds.includes(m.id)),
+    [attachedFiles, rejectedMetricIds],
+  )
   const [personas, setPersonas] = useState<DraftedItem[]>([])
   const [metrics, setMetrics] = useState<DraftedItem[]>([])
   const [sourcePicks, setSourcePicks] = useState<SourcePick[]>([])
@@ -365,6 +382,25 @@ export default function NewGraphPage() {
       message.error(result.error)
     }
     return result
+  }
+
+  /*
+   * Approving a measure an attached document defines: it joins the draft's metrics carrying the
+   * document's own definition, so nothing is retyped and the list says what the document said.
+   *
+   * **`source: 'ai'` is the honest one of the two values there are.** A `DraftedItem` records
+   * whether the list entry was drafted for the reader or typed by them, and this was drafted — by
+   * the pass over the document rather than by the suggester, which is a distinction the tag has no
+   * third value for. What makes the origin checkable is the row it came from, which stays on
+   * screen above the list with the document named on it.
+   *
+   * The name check is `DraftedStep`'s own: approving a measure the reader has already added by
+   * hand must not put a second copy of it in the list.
+   */
+  function approveFoundMetric(m: DocumentMetric) {
+    if (metrics.some((i) => i.name.toLowerCase() === m.name.toLowerCase())) return
+    setMetrics([...metrics, { name: m.name, description: m.description, source: 'ai' }])
+    message.success(`Added ${m.name} to your metrics.`)
   }
 
   async function removeUseCase(u: GraphUseCase) {
@@ -836,6 +872,21 @@ export default function NewGraphPage() {
                 onSuggest={() => void runSuggest('metrics')}
                 onDismiss={dismissMetric}
                 onEdit={editMetric}
+                /* The measures the attached documents define. Passed on this step alone — the
+                   personas call site declares no slot — and the panel draws nothing where
+                   nothing is attached, so the heading cannot stand over an empty list. */
+                found={
+                  <FoundMetrics
+                    metrics={foundMetrics}
+                    /* Approved *is* being in the list below, read from it rather than held
+                       beside it: removing a metric there puts its Approve back. */
+                    approved={(m) =>
+                      metrics.some((i) => i.name.toLowerCase() === m.name.toLowerCase())
+                    }
+                    onApprove={approveFoundMetric}
+                    onReject={(id) => setRejectedMetricIds((prev) => [...prev, id])}
+                  />
+                }
               />
             </Col>
           </Row>

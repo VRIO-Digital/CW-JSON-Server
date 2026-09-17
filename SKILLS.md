@@ -1408,6 +1408,21 @@ enforced server-side, because every later step derives from it. The last step's 
 action commits — status `committed`, which is what makes a row read "ready to
 build".
 
+**Attached documents, and what the step says it read from them.** *Upload documents* keeps a
+client-side list of **filenames** — nothing is parsed, nothing is posted, no endpoint reads a
+document into a brief, and the attachments are not part of the saved draft (`GraphUseCase` has
+no field for them). Under the business need, *What we read from your documents (N)* draws one
+row per reading: the sentence, then the passage it came from with the document named at its end.
+It is **synthesised from the filename** in `src/data/documentReadings.ts` — one context line plus
+three measure definitions per document, sliced at a hash of the name, so the same file always
+reads the same way and two files read differently. Open by default (a panel that appeared shut
+the moment a document landed reads as an upload that did nothing) and absent entirely with
+nothing attached.
+
+**The same pool is what step 4 offers as found measures** — see below. Two pools would let this
+panel quote a definition the Metrics step never offers; one `check-docs` claim asserts both
+surfaces resolve a document through the same `definitionsFor(file)`.
+
 ### Step 2 · Sources
 
 **Files:** `SourcesStep.tsx` → `useGraphSourcesStore` → `GET /graph-sources`
@@ -1571,6 +1586,27 @@ same shape and no write route, so `DraftedStep` takes `onEdit` as an optional pr
 and `createSuggestStore` takes its writer per pool. Editing a metric that has
 already been accepted also renames it in the list below, since that list holds a
 *copy* keyed by name; saved briefs are deliberately not rewritten.
+
+**And step 4 alone has a second list: *Found in your documents*.** It is what the files attached
+on step 1 were read as defining — the same pool that panel quotes, through the same
+`definitionsFor(file)`, so a measure approved here is the definition the reader saw two steps
+back. A row states the measure's name, the document it came from, and its one-sentence
+definition; behind **How it's calculated** sit the two things a metric pool does not hold — the
+**query the document printed**, in the document's own layout, and the sentence it explained the
+calculation with.
+
+**Approve** adds it to *Metrics these answers report against* with the document's own definition
+and `source: 'ai'` (drafted by the pass, not typed — the honest one of the two values there are).
+**Reject** drops the row; nothing was saved, so nothing is deleted, and Reject stays offered after
+an approval as the way back out. **Approved is read off the metric list**, never held in the panel,
+so removing the metric below puts Approve back — a flag beside it would be a second answer to the
+same question.
+
+`FoundMetrics.tsx` is its own component, and it reaches `DraftedStep` as the optional `found`
+slot, passed at the metrics call site only: a suggestion is two columns and three acts, this is a
+definition plus its evidence, and a *Found in your documents* heading on the personas step would
+describe a pass that did not happen. An empty list renders **nothing at all**, heading included.
+One `check-docs` claim covers the pool, the slot, the derived Approve and the empty branch.
 
 Below the suggestions, **Add persona** — the same primary button as the
 suggester, because typing your own is not a lesser path — opens a two-field form

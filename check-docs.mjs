@@ -7686,6 +7686,62 @@ const metricsCallSite = newGraphPage.split('suggestLabel="Suggest metrics (LLM)"
 const personasCallSite = (
   newGraphPage.split('suggestLabel="Suggest personas (LLM)"')[1] ?? ''
 ).split('suggestLabel="Suggest metrics (LLM)"')[0]
+/*
+ * **A document attached to a brief is read once and shown twice**, and the two surfaces must be
+ * two readings of one pass rather than two pools. Step 1 quotes what was read; step 4 offers the
+ * measures it defines, with the query and the calculation note as the evidence a reader approves
+ * or rejects on. Nothing opens the file — only the filename travels, exactly as on the schema
+ * upload — so both are synthesised from the name, and a *second* pool authored beside the first
+ * would let one screen quote a definition the other never offers, one step apart and with nothing
+ * failing.
+ *
+ * The other half is where the panel is drawn: `found` is a slot on `DraftedStep`, passed at the
+ * metrics call site alone, so the personas step cannot grow a *Found in your documents* heading
+ * over a pass that did not happen — the withheld-act-is-an-absent-prop rule `onEdit` keeps one
+ * claim down.
+ */
+const readingsSrc = read('frontend/src/data/documentReadings.ts')
+const foundMetricsSrc = read('frontend/src/components/graph/FoundMetrics.tsx')
+const readingsFn = (readingsSrc.split('export function documentReadings(')[1] ?? '').split(
+  '\n}',
+)[0]
+const metricsFn = (readingsSrc.split('export function documentMetrics(')[1] ?? '').split(
+  '\n}',
+)[0]
+expect(
+  'an attached document is read once and shown twice, from one pool',
+  /* One authored pool, and both surfaces resolve a document through the same slice of it. */
+  readingsFn.includes('definitionsFor(file)') &&
+    metricsFn.includes('definitionsFor(file)') &&
+    /* `\b(?!_)` so `DEFINITIONS_PER_DOC` beside it is not counted as a second pool — a claim
+       that counts its own neighbour is describing the file rather than the fact. */
+    (codeOnly(readingsSrc).match(/const DEFINITIONS\b(?!_)/g) ?? []).length === 1 &&
+    /* Pure: no request behind either, so nothing can claim the file was opened. */
+    !/fetch\(|from '\.\.\/api\/client'/.test(codeOnly(readingsSrc)) &&
+    /* The panel is a slot on the metrics step only. */
+    /\{found\}/.test(codeOnly(draftedStep)) &&
+    /found=\{/.test(metricsCallSite) &&
+    !/found=\{/.test(personasCallSite) &&
+    /* Approved is read off the metric list rather than held beside it — two answers to "is this
+       in the list" is how a row comes to read Approved over a list that no longer has it. */
+    /approved: \(metric: DocumentMetric\) => boolean/.test(foundMetricsSrc) &&
+    /* The panel holds exactly one piece of state, and it is which rows are open. A second
+       `useState` here would be a local copy of "is this approved", which the metric list already
+       answers. The first attempt tested `useState … approved` across the file and matched the
+       open-rows state against the word three lines further down — a guard describing the file. */
+    (codeOnly(foundMetricsSrc).match(/= useState/g) ?? []).length === 1 &&
+    /const \[open, setOpen\] = useState<string\[\]>/.test(foundMetricsSrc) &&
+    /approved=\{\(m\) =>\s*\r?\n?\s*metrics\.some\(/.test(newGraphPage) &&
+    /* An empty list draws nothing at all, heading included. */
+    /if \(metrics\.length === 0\) return null/.test(foundMetricsSrc) &&
+    /* And the evidence is the document's, printed rather than summarised: the query keeps its
+       own layout, and the note is the sentence the document explained the calculation with. */
+    /<pre className="ng-found-query">\{m\.query\}<\/pre>/.test(foundMetricsSrc) &&
+    /foundMetricsCopy\.noteLabel/.test(foundMetricsSrc),
+  readingsFn === '' || metricsFn === ''
+    ? 'documentReadings.ts no longer exports both surfaces'
+    : 'two pools would let step 1 quote a measure step 4 never offers',
+)
 expect(
   'a drafted metric is accepted or corrected, and only correcting it writes the pool',
   /* Renamed on request. Keyed on the rendered label rather than on the word, because the

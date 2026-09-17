@@ -294,6 +294,146 @@
   overflow-wrap: anywhere;
 }
 
+/*
+ * ---- what the attached documents were read as defining (the Metrics step) ----
+ *
+ * A row is tinted with the brand wash rather than left white like a suggestion row: these are
+ * not drafted from the tenant's pool, they are quoted out of a file the reader attached, and the
+ * ground is what says at a glance which list is which. It is a wash and not a status tint —
+ * nothing here is good, warning or critical, and the two acts are on buttons where they belong.
+ */
+.ng-found {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.ng-found-row {
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid #f6d3c6;
+  border-radius: 10px;
+  background: #fdf6f3;
+}
+
+.ng-found-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+/*
+ * Monospace, because the name is how the measure is written in the document — the same reason
+ * its query keeps the document's own layout below.
+ */
+.ng-found-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 600;
+  font-size: 13px;
+  color: #0f1729;
+}
+
+.ng-found-source {
+  color: #8994a8;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Pushed to the right of the row, and allowed to wrap onto its own line on a narrow screen —
+   a flex row shrinks its items before it wraps, which is how three controls come to break
+   mid-label. */
+.ng-found-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/*
+ * A flex row, so the chevron centres on the label rather than sitting where the font happens to
+ * put it — which is what the two arrowhead glyphs this replaced did, one low and one high.
+ */
+.ng-found-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #4b5a75;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.ng-found-toggle:hover {
+  color: #0f1729;
+}
+
+/* One icon for both states: open turns it over, so the mark and the label change together. */
+.ng-found-chevron {
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+
+.ng-found-row.is-open .ng-found-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ng-found-chevron {
+    transition: none;
+  }
+}
+
+.ng-found-desc {
+  margin-top: var(--sp-1);
+  color: #4b5a75;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.ng-found-body {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid #f6d3c6;
+}
+
+.ng-found-label {
+  display: block;
+  margin-bottom: var(--sp-1);
+  color: #8994a8;
+  font-size: 11.5px;
+}
+
+.ng-found-label + .ng-found-query {
+  margin-bottom: var(--sp-3);
+}
+
+/*
+ * The query as the document laid it out. It scrolls rather than wraps: a broken line in SQL reads
+ * as a different statement, which is the same reason a custody chain renders in order.
+ */
+.ng-found-query {
+  margin: 0;
+  padding: var(--sp-3);
+  border-radius: 8px;
+  background: #fff;
+  color: #0f1729;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+.ng-found-note {
+  color: #0f1729;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
 .ng-foot {
   display: flex;
   align-items: center;

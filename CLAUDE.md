@@ -2342,6 +2342,30 @@ on, which is a different screen than before but never a lost answer. One copy ne
 metrics hint pointed at "the sources you pick next", which after the move named a screen the reader
 had already been through.
 
+**A document attached on step 1 is read once and shown twice, and nothing opens the file.** The
+attachment control is a showcase — only the filename travels, no bytes leave the browser, the same
+arrangement the schema upload has — so what a document "contains" is **synthesised from its name**,
+deterministically, the way `synthesiseColumns` synthesises a column list. `src/data/
+documentReadings.ts` holds the one authored pool and both surfaces slice it through the same
+`definitionsFor(file)`: step 1 draws *What we read from your documents (N)*, a shut-by-default
+accordion quoting each reading and the passage it came from, and step 4 draws *Found in your
+documents* — the measures those documents define, each with **the query the document printed and
+the sentence it explained the calculation with**, behind a *How it's calculated* toggle. Two pools
+would let one screen quote a definition the other never offers, one step apart and with nothing
+failing, so `check-docs` asserts there is one.
+
+**Approve adds the measure to the draft; Reject drops the row.** Approving carries the document's
+own definition into the metrics list rather than making the reader retype it, and marks it
+`source: 'ai'` — the honest one of the two values a `DraftedItem` has, since it was drafted by the
+pass rather than typed. **Approved is *being in the list below***, read from the metrics rather
+than held beside them, so removing a metric there puts its Approve back — one answer to "is this
+in", where a flag in the panel would be a second that could disagree. A rejection is local and
+saved nowhere: it is a decision about a suggestion nobody accepted, the asymmetry the Data
+Modeling tab already keeps. `FoundMetrics` is its own component rather than a fourth branch of
+`DraftedStep` — a suggestion is two columns and three acts, this is a definition plus the evidence
+it was read from — and it reaches the step as `found`, a **slot passed at the metrics call site
+alone**, so the personas step cannot grow that heading over a pass that did not happen.
+
 **'KPIs' is 'Metrics', and the rename went all the way down.** Asked for, and taken past the label
 on purpose: the pool is `graph_metrics` keyed `metric_id`, a template's member list is `metrics`,
 the suggester is `/graph-metrics/suggest`, a saved brief carries `metrics`, and both documents were

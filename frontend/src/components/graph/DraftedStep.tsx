@@ -16,6 +16,7 @@ import '../../pages/NewGraphPage.css'
  */
 export default function DraftedStep({
   intro,
+  found,
   suggestLabel,
   suggestedLabel,
   addLabel,
@@ -38,6 +39,16 @@ export default function DraftedStep({
   onEdit,
 }: {
   intro?: ReactNode
+  /**
+   * What the attached documents were read as defining, between the drafted list and the add row.
+   *
+   * **A slot, and absent means there is no section** — never an empty heading — which is the rule
+   * `onEdit` above keeps for a withheld act: only the metrics step has documents to read measures
+   * out of, and a *Found in your documents* heading over nothing on the personas step would
+   * describe a pass that did not happen. The panel is passed in rather than built here because
+   * what a document contains is the page's to say, not this component's.
+   */
+  found?: ReactNode
   /** "Suggest personas (LLM)" — also quoted in the empty state. */
   suggestLabel: string
   suggestedLabel: string
@@ -300,6 +311,10 @@ export default function DraftedStep({
           )}
         </div>
       </div>
+
+      {/* Between the drafted suggestions and the add row: both are ways into the list below, and
+          this is the one the reader did not ask for — it is here because they attached a file. */}
+      {found}
 
       {/* Adding sits above the list it adds to, at the same button weight as
           the suggester: typing your own is not a lesser path. */}
