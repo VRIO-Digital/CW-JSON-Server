@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { DgbJob, SgbBuild, StudioUseCase } from '../../api/client'
 import { SP } from '../../theme'
 import DocumentPipeline from './DocumentPipeline'
-import LaneStages from './LaneStages'
+import StructuredPipeline from './StructuredPipeline'
 import { dur } from '../../data/duration'
 
 /**
@@ -143,14 +143,17 @@ export default function StudioBuildTab({
             >
               {sgbBuild ? (
                 <>
-                  <LaneStages
-                    stages={sgbBuild.stages}
-                    note={
-                      sgbBuild.status === 'running'
-                        ? `About ${remaining(sgbBuild)} left, at the server's own pace.`
-                        : undefined
-                    }
-                  />
+                  {/* The lane's own trace, not the shared stage list: these are phases of a build
+                      rather than things done to a corpus, so they read as a log. */}
+                  <StructuredPipeline build={sgbBuild} />
+                  {sgbBuild.status === 'running' ? (
+                    <Typography.Text
+                      type="secondary"
+                      style={{ display: 'block', marginTop: SP.sm, fontSize: 12.5 }}
+                    >
+                      {`About ${remaining(sgbBuild)} left, at the server's own pace.`}
+                    </Typography.Text>
+                  ) : null}
                   {sgbBuild.status === 'complete' ? (
                     <Space size={SP.sm} wrap style={{ marginTop: SP.md }}>
                       {/* Nullable counts are printed as an em dash rather than 0: an unfinished

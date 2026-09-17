@@ -9921,6 +9921,8 @@ export interface SgbStage {
   stage: string
   label: string
   state: 'pending' | 'running' | 'complete'
+  /** What the trace prints beyond the state — `202 accepted`, or the substep in flight. */
+  detail: string | null
   steps: SgbStageStep[]
 }
 
@@ -10305,6 +10307,9 @@ const SGB_BUILD = shape({
       stage: str,
       label: str,
       state: STAGE_STATE,
+      /* What the trace prints on the right beyond the state — `202 accepted` on the trigger, the
+         substep in flight on the running phase. Null where the state says it all. */
+      detail: nullable(str),
       steps: arrayOf(shape({ step: str, state: STAGE_STATE })),
     }),
   ),

@@ -8945,13 +8945,39 @@ const modelEntityView = (entity) => ({
  * of its own substeps still spins. A substep is complete before the cursor, running at it, pending
  * after, and a stage is whatever its substeps say it is.
  */
+/**
+ * The structured lane's lifecycle: **trigger accepted → the generation passes → persist & coverage.**
+ *
+ * **The three names are the lane's own vocabulary, and the label is the key.** They are rendered in
+ * monospace as a build trace rather than as prose stage headings, because that is what they are — the
+ * document lane reads as sentences because its stages really are things done to a corpus, and this
+ * one reads as a trace because its stages are phases of a build. Two lanes, two registers, and
+ * neither borrowed from the other.
+ *
+ * **The substeps are real and stay underneath.** The lane this was ported from could only derive
+ * these three rows from a single build status, because its backend published nothing finer — so its
+ * middle row says `running` and stops. This server genuinely steps, so each phase keeps the substeps
+ * it actually walks and the panel can name the one in flight. Showing less than is known would be as
+ * wrong as showing more.
+ */
 const SGB_STAGES = [
-  { key: 'pin_inputs', label: 'Pin the inputs', steps: ['resolve_use_case', 'pin_source_versions'] },
-  { key: 'read_schema', label: 'Read the schema', steps: ['read_tables', 'read_column_profiles'] },
-  { key: 'draft_story', label: 'Draft the story', steps: ['read_business_need', 'compose_story', 'state_grain'] },
-  { key: 'assign_columns', label: 'Assign columns to concepts', steps: ['nominate_concepts', 'classify_columns', 'bind_identifiers'] },
-  { key: 'infer_relations', label: 'Infer relationships', steps: ['read_declared_joins', 'rank_by_evidence'] },
-  { key: 'assemble', label: 'Assemble the graph', steps: ['materialise_nodes', 'materialise_edges', 'seal_build'] },
+  {
+    key: 'trigger_accepted',
+    label: 'trigger_accepted',
+    /* The row is committed before the trigger answers, which is what `202 accepted` reports. */
+    steps: ['resolve_use_case', 'pin_source_versions'],
+  },
+  {
+    key: 'structured_passes',
+    label: 'structured_passes',
+    /* P1 story · P2 assign · P3 relate — the three passes, named as the lane names them. */
+    steps: ['p1_story', 'p2_assign_columns', 'p3_relate'],
+  },
+  {
+    key: 'persist_and_coverage',
+    label: 'persist_and_coverage',
+    steps: ['materialise_nodes', 'materialise_edges', 'seal_build'],
+  },
 ]
 
 const SGB_STEPS = SGB_STAGES.flatMap((stage, stageIndex) =>
@@ -9110,14 +9136,28 @@ const sgbView = (run) => ({
       }
     })
     const runningHere = SGB_STEPS[run.cursor]?.stageIndex === i && run.status === 'running'
+    const state = runningHere
+      ? 'running'
+      : steps.every((s) => s.state === 'complete')
+        ? 'complete'
+        : 'pending'
     return {
       stage: stage.key,
       label: stage.label,
-      state: runningHere
-        ? 'running'
-        : steps.every((s) => s.state === 'complete')
-          ? 'complete'
-          : 'pending',
+      state,
+      /*
+       * What the trace prints on the right, where the phase has something to say beyond its state.
+       * `202 accepted` is the trigger's own answer — the build row is committed before the request
+       * returns, which is exactly what that status code reports and why the next read succeeds
+       * immediately rather than 404ing. The running phase names the substep it is on rather than
+       * repeating `running`, which the state column already says.
+       */
+      detail:
+        stage.key === 'trigger_accepted' && state === 'complete'
+          ? '202 accepted'
+          : state === 'running'
+            ? SGB_STEPS[run.cursor]?.step ?? null
+            : null,
       steps,
     }
   }),

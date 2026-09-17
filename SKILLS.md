@@ -1876,6 +1876,13 @@ stage cannot read complete while one of its substeps spins. The stage list and t
 server's (`step_ms` rides on the payload), so adding a stage adds a row and changing the pace moves
 the "about N left" sentence rather than contradicting it.
 
+**Each lane draws its own panel, in its own register.** Structured is a build *trace* —
+`trigger_accepted` (`202 accepted`) · `structured_passes` (naming the pass in flight) ·
+`persist_and_coverage` — monospace, status right-aligned. Document is a corpus *pipeline* — *Reading
+documents* … *Pruning* · *Assembling the graph* — sentences under a percent bar, with a phrase and an
+elapsed timer under the running stage. Borrowing either register for the other loses the glance-level
+answer to "which lane am I looking at".
+
 **A build never publishes.** It records what it produced and stops. A run that published itself was
 reported from use as a graph that "automatically got published", and it stepped around the gate
 rather than through it.

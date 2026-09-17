@@ -5706,12 +5706,50 @@ expect(
   /stages: SGB_STAGES\.map/.test(server) &&
     /stages: DGB_STAGES\.map/.test(server) &&
     /stages: arrayOf\(/.test(client) &&
-    /stages=\{sgbBuild\.stages\}/.test(buildTab) &&
+    /* Each lane draws its own panel — a build trace for the structured one, a staged progress
+       bar for the document one — because their stages are different kinds of thing. Both map
+       the served list, which is the fact this claim is about. */
+    /build\.stages\.map/.test(read('frontend/src/components/studio/StructuredPipeline.tsx')) &&
     /* The document lane draws its own panel — a percentage over stages, a running count over the
        corpus and a live phrase under whichever stage is in flight — but it maps the served list just
        the same, which is the fact this claim is about. */
     /job\.stages\.map/.test(read('frontend/src/components/studio/DocumentPipeline.tsx')),
   'a list held in the component could not go stale; one held on the server cannot',
+)
+
+/*
+ * **Each lane names its stages in its own vocabulary, and the two must not drift into one.**
+ *
+ * The structured lane's stages are phases of a *build* — `trigger_accepted`, `structured_passes`,
+ * `persist_and_coverage` — rendered as a monospace trace with the status right-aligned, the way a
+ * build log reads. The document lane's are things done to a *corpus* — *Reading documents*,
+ * *Pruning* — rendered as sentences under a progress bar. Borrowing either register for the other
+ * would leave a reader unable to tell at a glance which lane they are looking at, and the keys are
+ * what each lane's own pipeline actually calls its phases.
+ */
+const sgbStageKeys = (server.match(/key: '(trigger_accepted|structured_passes|persist_and_coverage)'/g) ?? [])
+const dgbStageLabels = ['Reading documents', 'Extracting entities & relations', 'Pruning', 'Assembling the graph']
+expect(
+  'the structured lane keeps its build-trace vocabulary',
+  sgbStageKeys.length === 3 &&
+    /label: 'trigger_accepted'/.test(server) &&
+    /'202 accepted'/.test(server),
+  `${sgbStageKeys.length} of 3 phases, with the trigger reporting its own 202`,
+)
+expect(
+  'and the document lane keeps its corpus vocabulary, in sentences',
+  dgbStageLabels.every((label) => server.includes(label)) &&
+    /phase: 'Resolving entities across the corpus'/.test(server),
+  'the long stages report a phrase, because they have no honest denominator',
+)
+/* One register each, and the panels are separate so neither can quietly adopt the other's. */
+expect(
+  'and each lane draws its own panel rather than sharing one',
+  existsSync(join(root, 'frontend/src/components/studio/StructuredPipeline.tsx')) &&
+    existsSync(join(root, 'frontend/src/components/studio/DocumentPipeline.tsx')) &&
+    /<StructuredPipeline build=/.test(buildTab) &&
+    /<DocumentPipeline job=/.test(buildTab),
+  'a shared panel would have to pick one register for two different kinds of stage',
 )
 
 /*

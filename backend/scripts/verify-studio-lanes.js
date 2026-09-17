@@ -56,6 +56,23 @@ for (const file of ['db.json', 'db.CAPEX.json']) {
   console.log(`\n${file}`)
 
   const cases = studioUseCases(doc)
+
+  /*
+   * **A document with no use case is skipped, not failed.**
+   *
+   * This script checks whether the *derivation* is right, and a document with nothing to derive from
+   * gives it nothing to be right about — so failing here would be a lane verifier reporting a data
+   * state. Whether a dataset *ought* to ship a committed brief is a different question with an owner
+   * already: `check-docs` asserts it per dataset and names `npm run ingest:capex` as the fix. Two
+   * guards over one fact is how they come to disagree.
+   *
+   * Said out loud rather than passed silently, because "0 checks, 0 failed" reads as a clean run.
+   */
+  if (cases.length === 0) {
+    console.log('  — no use case in this document, so there is no lane to derive. Skipped.')
+    console.log('    (whether it should ship one is check-docs’ claim, not this script’s)')
+    continue
+  }
   expect('the studio lists this document’s use cases', cases.length > 0, `${cases.length}`)
 
   /* Every use case is listed, not only the committed ones: a draft can already have been built, so a

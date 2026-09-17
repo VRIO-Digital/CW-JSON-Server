@@ -2958,13 +2958,28 @@ so adding a stage adds a row on screen and a list held in the component could no
 remaining wait is `stepTotal − cursor` times the served `stepMs`, so changing the pace on the server
 moves the sentence on the page rather than contradicting it.
 
-**The document lane reports differently from the structured one, because it has different facts.** Its
-panel is a percentage over *stages* — a denominator that exists — with a running count over the corpus
-beside it, and under whichever stage is in flight, a line saying what that stage is *doing* with an
-elapsed timer: *Resolving entities across the corpus · 43s*. The long stages have no honest
-denominator, so they report a phrase rather than a percentage nobody measures, and the timer is per
-**stage** rather than per job: counting the whole run would say 4m beside a stage that started ten
-seconds ago, which reads as a stage that is stuck.
+**Each lane names its stages in its own vocabulary, and draws its own panel.** They are different
+kinds of thing, so borrowing one register for the other would leave a reader unable to tell at a
+glance which lane they are looking at.
+
+- **The structured lane's stages are phases of a build** — `trigger_accepted` · `structured_passes` ·
+  `persist_and_coverage` — so it reads as a build trace: the keys in monospace on a dot-and-connector
+  timeline, status right-aligned. `trigger_accepted` reports **`202 accepted`**, which is the
+  trigger's own answer: the build row is committed before the request returns, which is why the next
+  read succeeds immediately rather than 404ing. The running phase names the pass it is on (`p1_story`
+  · `p2_assign_columns` · `p3_relate`) rather than repeating `running`, which the status column
+  already says. **The substeps are real**: the build this was ported from could derive these three
+  rows only from a single status, because its backend published nothing finer — this server steps, so
+  showing less than it knows would be as wrong as showing more.
+- **The document lane's stages are things done to a corpus** — *Reading the business use case* ·
+  *Reading documents* · *Classifying passages* · *Extracting entities & relations* · *Building
+  relation vocabulary* · *Canonicalising relations* · *Pruning* · *Assembling the graph* — so it reads
+  as sentences under a progress bar. The bar is a percentage over **stages**, a denominator that
+  exists, with a running count over the corpus beside it; under whichever stage is in flight, a line
+  says what it is *doing* with an elapsed timer (*Resolving entities across the corpus · 43s*). The
+  long stages have no honest denominator, so they report a phrase rather than a percentage nobody
+  measures, and the timer is per **stage** rather than per job: counting the whole run would say 4m
+  beside a stage that started ten seconds ago, which reads as a stage that is stuck.
 
 **A build never publishes.** It records what it produced and stops; putting a version in front of
 readers is a button somebody presses, for every graph. A run that published itself was reported from
