@@ -225,10 +225,7 @@ export function GoogleSignInPanel({
         Said plainly, and last: this stands in for Google, it is not Google. The login it sits
         behind authenticates by shape, and so does this.
       */}
-      <div className="gsi-foot">
-        Demo consent screen — it proves the request is well-formed, not that a real Google account
-        is behind it.
-      </div>
+
     </div>
   )
 }
