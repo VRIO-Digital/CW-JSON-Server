@@ -43,6 +43,24 @@ type MetricDefinition = {
   note: string
   /** The query the document prints for it, as the document lays it out. */
   query: string
+  /**
+   * The question this measure exists to answer, as the document phrases it.
+   *
+   * On the same row as the measure rather than in a pool of its own, because that is the fact:
+   * a memo defines a measure *because* somebody asks something, and step 5 offering a question
+   * step 4 never mentioned would be two reads of one file that do not agree.
+   */
+  question: string
+  /**
+   * Whether the document frames it as one of the few that matter — a headline figure, or a
+   * threshold something is escalated on.
+   *
+   * Authored rather than derived: a hero question's priority is the graph's contract, and
+   * defaulting every one of them to `normal` would be as much of a claim as marking them all High.
+   * It is what the row **arrives** as; High stays editable in the list below, which is where the
+   * step already says the contract gets settled.
+   */
+  priority: 'high' | 'normal'
 }
 
 /**
@@ -72,6 +90,9 @@ const DEFINITIONS: MetricDefinition[] = [
   JOIN ops.units u ON u.unit_id = w.unit_id
  GROUP BY 1, u.unit_id
  ORDER BY 1;`,
+    question:
+      "Which units are driving this month's maintenance cost per unit, and by how much?",
+    priority: 'high',
   },
   {
     name: 'Unplanned Outage Share',
@@ -86,6 +107,9 @@ const DEFINITIONS: MetricDefinition[] = [
              / NULLIF(SUM(w.hours), 0), 1) AS unplanned_share
   FROM ops.work_orders w
  WHERE w.closed_at >= date_trunc('quarter', CURRENT_DATE);`,
+    question:
+      'How much of our maintenance effort went to unplanned, outage-driven work this quarter?',
+    priority: 'normal',
   },
   {
     name: 'Contract Escalation Exposure',
@@ -99,6 +123,9 @@ const DEFINITIONS: MetricDefinition[] = [
              / NULLIF(SUM(c.contract_value), 0), 1) AS escalation_pct
   FROM ops.contract_lines c
  WHERE c.period = to_char(CURRENT_DATE, 'YYYY"Q"Q');`,
+    question:
+      'Which vendor agreements are carrying the escalation exposure we close the quarter on?',
+    priority: 'high',
   },
   {
     name: 'Work Order Backlog Age',
@@ -113,6 +140,9 @@ const DEFINITIONS: MetricDefinition[] = [
   FROM ops.work_orders w
  WHERE w.status = 'open'
    AND w.scheduled_start < CURRENT_DATE;`,
+    question:
+      'Which open work orders are furthest past their scheduled start?',
+    priority: 'normal',
   },
   {
     name: 'Cost per Work Order by Vendor',
@@ -128,6 +158,9 @@ const DEFINITIONS: MetricDefinition[] = [
   JOIN ops.vendors v ON v.vendor_id = w.closed_by_vendor
  GROUP BY 1
  ORDER BY 2 DESC;`,
+    question:
+      'Which vendors cost us most per work order, once class is taken into account?',
+    priority: 'normal',
   },
   {
     name: 'Spend Against Authorised Envelope',
@@ -141,6 +174,9 @@ const DEFINITIONS: MetricDefinition[] = [
        ROUND(100.0 * (p.committed + p.actual) / NULLIF(p.authorized, 0), 1) AS pct_envelope
   FROM capital.projects p
  ORDER BY 2 DESC;`,
+    question:
+      'Which projects will cross 90% of their authorised envelope before their midpoint milestone?',
+    priority: 'high',
   },
 ]
 
@@ -206,7 +242,7 @@ export function documentReadings(files: string[]): DocumentReading[] {
            used for, the caveat, and the query run together on one line. The query keeps its
            own layout where it is *read* — on step 4 — and is flattened here, because this is
            a quotation of the page rather than a code block. */
-        extract: `${i + 1}. ${d.name} ${d.description} Used for: ${d.usedFor} ${d.note} ${d.query.replace(/\s+/g, ' ')}`,
+        extract: `${i + 1}. ${d.name} ${d.description} Used for: ${d.usedFor} ${d.note} Answers: "${d.question}" ${d.query.replace(/\s+/g, ' ')}`,
         file,
       })
     })
@@ -276,6 +312,49 @@ export function documentMetrics(files: string[]): DocumentMetric[] {
   )
 }
 
+/* ---------------------------------------------------------------- step 5 */
+
+/**
+ * A question an attached document states, offered on the Hero questions step for approval.
+ *
+ * **The same row a measure comes from**, because a memo defines a measure *because* somebody asks
+ * something: the question is a field on the definition rather than a pool of its own, so step 5
+ * can never offer a question step 4 never mentioned, and step 1 quotes both.
+ */
+export type DocumentQuestion = {
+  /** Stable for a given file and slot — `${file}#q${n}`. */
+  id: string
+  /** The question, as the document phrases it. */
+  question: string
+  /** What the document says it is answered with, and what that measure means. */
+  measure: string
+  measureDefinition: string
+  /** The query behind it, as the document laid it out. */
+  query: string
+  /** Who asks it, in the document's own words. */
+  usedFor: string
+  /** What it arrives as. High stays editable in the list below, which is where it is settled. */
+  priority: 'high' | 'normal'
+  /** The document it was read from. */
+  file: string
+}
+
+/** The questions the attached documents state, in the order they were attached. */
+export function documentQuestions(files: string[]): DocumentQuestion[] {
+  return files.flatMap((file) =>
+    definitionsFor(file).map((d, i) => ({
+      id: `${file}#q${i + 1}`,
+      question: d.question,
+      measure: d.name,
+      measureDefinition: d.description,
+      query: d.query,
+      usedFor: d.usedFor,
+      priority: d.priority,
+      file,
+    })),
+  )
+}
+
 /**
  * The found-metrics panel's words.
  *
@@ -302,6 +381,89 @@ export const foundMetricsCopy = {
    * *Approve* is the one control whose effect is on another part of the screen: the list below.
    */
   note: 'Approving adds the measure to the list below, with the definition the document gave it. Rejecting drops it from this list and changes nothing else.',
+}
+
+/**
+ * The found-questions panel's words — step 5's twin of the block above.
+ *
+ * **Its own object rather than one with the nouns parameterised.** The two panels share a
+ * component and nothing else: *How it's calculated* is right over a measure and wrong over a
+ * question, and the note has to say what approving adds *here*. A single block with `{noun}` in it
+ * would make one sentence answer for two screens, which is how copy comes to fit neither.
+ */
+export const foundQuestionsCopy = {
+  heading: 'Found in your documents',
+  /** On a row, above the measure it is answered with. */
+  measureLabel: 'Answered with',
+  /** On a row, above the query. */
+  queryLabel: 'Query found in the document',
+  /** The toggle, shut and open. */
+  showLabel: 'What answers it',
+  hideLabel: 'Hide',
+  approveLabel: 'Approve',
+  approvedLabel: 'Approved',
+  rejectLabel: 'Reject',
+  /**
+   * **It says the priority comes from the document and stays editable**, because approving here
+   * sets the one flag on this step that is not cosmetic: High is the graph's contract. A row that
+   * silently arrived High would be this panel deciding what the graph must answer.
+   */
+  note: 'Approving adds the question to your list below, with the priority the document implies — High stays editable there. Rejecting drops it from this list and changes nothing else.',
+}
+
+/** The line under a found question: who the document says asks it. */
+export const questionAskedIn = (q: DocumentQuestion) => `Asked in ${q.usedFor}`
+
+/* ------------------------------------------------- the rows both panels draw */
+
+/*
+ * The two shapes above, as the rows `FoundInDocuments` draws.
+ *
+ * **Here rather than in the page** for the reason the pools are: a row assembled inside a
+ * component can only be checked by rendering that component, and `renderToString` gives the step
+ * its initial state — nothing attached, so nothing to assert. These are pure and can be called.
+ * They are also what keeps the labels on one side of the boundary: the panel knows a detail has a
+ * label and some text, and nothing about measures or queries.
+ */
+
+/** A found measure, as a panel row: its name as the document writes it, then its evidence. */
+export function metricFoundItems(metrics: DocumentMetric[]) {
+  return metrics.map((m) => ({
+    id: m.id,
+    title: m.name,
+    titleMono: true,
+    source: foundMetricSource(m),
+    summary: m.description,
+    details: [
+      { label: foundMetricsCopy.queryLabel, text: m.query, code: true },
+      { label: foundMetricsCopy.noteLabel, text: m.note },
+    ],
+  }))
+}
+
+/**
+ * A found question, as a panel row.
+ *
+ * **The evidence is what answers it** — the measure and the query behind it — because that is what
+ * a reader judges a hero question on: a question the document states but nothing computes is
+ * exactly the gap this step's contract is supposed to avoid. The `HIGH` mark is the document's own
+ * framing, said on the row rather than applied silently at approval.
+ */
+export function questionFoundItems(questions: DocumentQuestion[]) {
+  return questions.map((q) => ({
+    id: q.id,
+    title: q.question,
+    source: `from ${q.file}`,
+    summary: questionAskedIn(q),
+    badge: q.priority === 'high' ? 'HIGH' : undefined,
+    details: [
+      {
+        label: foundQuestionsCopy.measureLabel,
+        text: `${q.measure} — ${q.measureDefinition}`,
+      },
+      { label: foundQuestionsCopy.queryLabel, text: q.query, code: true },
+    ],
+  }))
 }
 
 /** `revops-metrics.pdf` → `from revops-metrics.pdf`, as one string for the row's attribution. */

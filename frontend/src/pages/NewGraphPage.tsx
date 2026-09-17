@@ -33,7 +33,7 @@ import type {
 import ApiErrorAlert from '../components/common/ApiErrorAlert'
 import { useGraphBuildStore } from '../store/graphStudioStore'
 import DraftedStep from '../components/graph/DraftedStep'
-import FoundMetrics from '../components/graph/FoundMetrics'
+import FoundInDocuments from '../components/graph/FoundInDocuments'
 import HeroQuestionsStep from '../components/graph/HeroQuestionsStep'
 import SourcesStep from '../components/graph/SourcesStep'
 import PageHeader from '../components/common/PageHeader'
@@ -51,10 +51,14 @@ import {
 } from '../store/graphStore'
 import {
   documentMetrics,
+  documentQuestions,
   documentReadings,
+  foundMetricsCopy,
+  foundQuestionsCopy,
+  metricFoundItems,
+  questionFoundItems,
   readingFootnote,
   readingsTitle,
-  type DocumentMetric,
 } from '../data/documentReadings'
 import {
   draftableCount,
@@ -275,11 +279,21 @@ export default function NewGraphPage() {
    * decision about a suggestion nobody has accepted, which is the asymmetry the Data Modeling tab
    * already keeps between a suggestion and a declaration.
    */
-  const [rejectedMetricIds, setRejectedMetricIds] = useState<string[]>([])
+  const [rejectedFoundIds, setRejectedFoundIds] = useState<string[]>([])
   const foundMetrics = useMemo(
-    () => documentMetrics(attachedFiles).filter((m) => !rejectedMetricIds.includes(m.id)),
-    [attachedFiles, rejectedMetricIds],
+    () => documentMetrics(attachedFiles).filter((m) => !rejectedFoundIds.includes(m.id)),
+    [attachedFiles, rejectedFoundIds],
   )
+  /*
+   * And the questions those same documents state — step 5's half of the one pass. A measure and
+   * the question it answers are one authored row, so a question offered here is always one the
+   * measures panel two steps back can account for.
+   */
+  const foundQuestions = useMemo(
+    () => documentQuestions(attachedFiles).filter((q) => !rejectedFoundIds.includes(q.id)),
+    [attachedFiles, rejectedFoundIds],
+  )
+  const reject = (id: string) => setRejectedFoundIds((prev) => [...prev, id])
   const [personas, setPersonas] = useState<DraftedItem[]>([])
   const [metrics, setMetrics] = useState<DraftedItem[]>([])
   const [sourcePicks, setSourcePicks] = useState<SourcePick[]>([])
@@ -397,10 +411,36 @@ export default function NewGraphPage() {
    * The name check is `DraftedStep`'s own: approving a measure the reader has already added by
    * hand must not put a second copy of it in the list.
    */
-  function approveFoundMetric(m: DocumentMetric) {
-    if (metrics.some((i) => i.name.toLowerCase() === m.name.toLowerCase())) return
+  const metricIsIn = (name: string) =>
+    metrics.some((i) => i.name.toLowerCase() === name.toLowerCase())
+
+  function approveFoundMetric(id: string) {
+    const m = foundMetrics.find((x) => x.id === id)
+    if (!m || metricIsIn(m.name)) return
     setMetrics([...metrics, { name: m.name, description: m.description, source: 'ai' }])
     message.success(`Added ${m.name} to your metrics.`)
+  }
+
+  /*
+   * Approving a question an attached document states: it joins the draft's hero questions at the
+   * priority the document implies, which the panel's note says out loud — High is the graph's
+   * contract, so a row that arrived High in silence would be this panel deciding what the graph
+   * must answer. It stays editable in the list below, where the step already settles it.
+   *
+   * Keyed by text, the way `HeroQuestionsStep` keys its own list, so approving a question somebody
+   * has already typed cannot put a second copy of it there.
+   */
+  const questionIsIn = (text: string) =>
+    heroQuestions.some((q) => q.text.toLowerCase() === text.toLowerCase())
+
+  function approveFoundQuestion(id: string) {
+    const q = foundQuestions.find((x) => x.id === id)
+    if (!q || questionIsIn(q.question)) return
+    setHeroQuestions([
+      ...heroQuestions,
+      { text: q.question, priority: q.priority, source: 'ai' },
+    ])
+    message.success('Added the question to your list.')
   }
 
   async function removeUseCase(u: GraphUseCase) {
@@ -876,15 +916,17 @@ export default function NewGraphPage() {
                    personas call site declares no slot — and the panel draws nothing where
                    nothing is attached, so the heading cannot stand over an empty list. */
                 found={
-                  <FoundMetrics
-                    metrics={foundMetrics}
+                  <FoundInDocuments
+                    items={metricFoundItems(foundMetrics)}
+                    copy={foundMetricsCopy}
                     /* Approved *is* being in the list below, read from it rather than held
                        beside it: removing a metric there puts its Approve back. */
-                    approved={(m) =>
-                      metrics.some((i) => i.name.toLowerCase() === m.name.toLowerCase())
-                    }
+                    approved={(id) => {
+                      const m = foundMetrics.find((x) => x.id === id)
+                      return m !== undefined && metricIsIn(m.name)
+                    }}
                     onApprove={approveFoundMetric}
-                    onReject={(id) => setRejectedMetricIds((prev) => [...prev, id])}
+                    onReject={reject}
                   />
                 }
               />
@@ -896,6 +938,20 @@ export default function NewGraphPage() {
               <HeroQuestionsStep
                 questions={heroQuestions}
                 onQuestions={setHeroQuestions}
+                /* The questions the attached documents state — the same authored rows step 4
+                   offered as measures, so the two steps cannot disagree about what was read. */
+                found={
+                  <FoundInDocuments
+                    items={questionFoundItems(foundQuestions)}
+                    copy={foundQuestionsCopy}
+                    approved={(id) => {
+                      const q = foundQuestions.find((x) => x.id === id)
+                      return q !== undefined && questionIsIn(q.question)
+                    }}
+                    onApprove={approveFoundQuestion}
+                    onReject={reject}
+                  />
+                }
                 suggestions={questionSuggestions}
                 asked={questionsAsked}
                 emptyReason={questionsEmptyReason}

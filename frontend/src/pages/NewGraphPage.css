@@ -333,6 +333,20 @@
   color: #0f1729;
 }
 
+/*
+ * A question's title is prose, so it is *not* monospaced: the measure name above is written the
+ * way the document writes it, and a sentence in a code face would claim the same thing about a
+ * sentence nobody wrote as code. It wraps rather than pushing the row wide.
+ */
+.ng-found-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #0f1729;
+}
+
 .ng-found-source {
   color: #8994a8;
   font-size: 11px;
@@ -408,8 +422,9 @@
   font-size: 11.5px;
 }
 
-.ng-found-label + .ng-found-query {
-  margin-bottom: var(--sp-3);
+/* One block per piece of evidence, so a query and the sentence beside it do not run together. */
+.ng-found-body > div + div {
+  margin-top: var(--sp-3);
 }
 
 /*

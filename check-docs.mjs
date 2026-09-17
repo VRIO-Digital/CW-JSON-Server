@@ -7687,60 +7687,84 @@ const personasCallSite = (
   newGraphPage.split('suggestLabel="Suggest personas (LLM)"')[1] ?? ''
 ).split('suggestLabel="Suggest metrics (LLM)"')[0]
 /*
- * **A document attached to a brief is read once and shown twice**, and the two surfaces must be
- * two readings of one pass rather than two pools. Step 1 quotes what was read; step 4 offers the
- * measures it defines, with the query and the calculation note as the evidence a reader approves
- * or rejects on. Nothing opens the file — only the filename travels, exactly as on the schema
- * upload — so both are synthesised from the name, and a *second* pool authored beside the first
- * would let one screen quote a definition the other never offers, one step apart and with nothing
- * failing.
+ * **A document attached to a brief is read once and shown three times**, and the surfaces must be
+ * three readings of one pass rather than three pools. Step 1 quotes what was read; step 4 offers
+ * the measures it defines, with the query and the calculation note as evidence; step 5 offers the
+ * questions it states, with the measure and query that answer them. Nothing opens the file — only
+ * the filename travels, exactly as on the schema upload — so all of it is synthesised from the
+ * name, and a *second* pool authored beside the first would let one screen quote a definition, or
+ * a question, that the others never mention: one step apart, and with nothing failing.
  *
- * The other half is where the panel is drawn: `found` is a slot on `DraftedStep`, passed at the
- * metrics call site alone, so the personas step cannot grow a *Found in your documents* heading
- * over a pass that did not happen — the withheld-act-is-an-absent-prop rule `onEdit` keeps one
- * claim down.
+ * **A question is a field on the measure it answers**, which is what makes that guarantee cheap: a
+ * memo defines a measure because somebody asks something, so there is one authored row and both
+ * panels slice it through the same `definitionsFor(file)`.
+ *
+ * The other half is where the panels are drawn: `found` is a slot, passed at the metrics call site
+ * and on the Hero questions step, and nowhere else — so the personas step cannot grow a *Found in
+ * your documents* heading over a pass that did not happen, which is the withheld-act-is-an-absent-
+ * prop rule `onEdit` keeps one claim down.
  */
 const readingsSrc = read('frontend/src/data/documentReadings.ts')
-const foundMetricsSrc = read('frontend/src/components/graph/FoundMetrics.tsx')
-const readingsFn = (readingsSrc.split('export function documentReadings(')[1] ?? '').split(
-  '\n}',
-)[0]
-const metricsFn = (readingsSrc.split('export function documentMetrics(')[1] ?? '').split(
-  '\n}',
-)[0]
+const foundSrc = read('frontend/src/components/graph/FoundInDocuments.tsx')
+const heroStepSrc = read('frontend/src/components/graph/HeroQuestionsStep.tsx')
+const sliceFn = (name) =>
+  (readingsSrc.split(`export function ${name}(`)[1] ?? '').split('\n}')[0]
+const readingsFn = sliceFn('documentReadings')
+const metricsFn = sliceFn('documentMetrics')
+const questionsFn = sliceFn('documentQuestions')
+/* The Hero questions call site, cut at the props that follow it on the same element. */
+const heroCallSite = (newGraphPage.split('<HeroQuestionsStep')[1] ?? '').split('/>')[0]
+/* The note step 5's panel prints, read out of the copy block rather than restated here. */
+const foundQuestionsNote =
+  /note:\s*'([^']*)'/.exec(readingsSrc.split('foundQuestionsCopy')[1] ?? '')?.[1] ?? ''
 expect(
-  'an attached document is read once and shown twice, from one pool',
-  /* One authored pool, and both surfaces resolve a document through the same slice of it. */
+  'an attached document is read once and shown three times, from one pool',
+  /* One authored pool, and every surface resolves a document through the same slice of it. */
   readingsFn.includes('definitionsFor(file)') &&
     metricsFn.includes('definitionsFor(file)') &&
+    questionsFn.includes('definitionsFor(file)') &&
     /* `\b(?!_)` so `DEFINITIONS_PER_DOC` beside it is not counted as a second pool — a claim
        that counts its own neighbour is describing the file rather than the fact. */
     (codeOnly(readingsSrc).match(/const DEFINITIONS\b(?!_)/g) ?? []).length === 1 &&
-    /* Pure: no request behind either, so nothing can claim the file was opened. */
+    /* The question is a field on the definition rather than a list of its own. */
+    /question: string/.test(readingsSrc) &&
+    /question: d\.question/.test(questionsFn) &&
+    /* And step 1 quotes it, so the three surfaces cannot come to disagree about what was read. */
+    /Answers: "\$\{d\.question\}"/.test(readingsFn) &&
+    /* Pure: no request behind any of it, so nothing can claim the file was opened. */
     !/fetch\(|from '\.\.\/api\/client'/.test(codeOnly(readingsSrc)) &&
-    /* The panel is a slot on the metrics step only. */
+    /* One panel, two steps — and a slot on each of those two and nowhere else. */
     /\{found\}/.test(codeOnly(draftedStep)) &&
+    /\{found\}/.test(codeOnly(heroStepSrc)) &&
     /found=\{/.test(metricsCallSite) &&
+    /found=\{/.test(heroCallSite) &&
     !/found=\{/.test(personasCallSite) &&
-    /* Approved is read off the metric list rather than held beside it — two answers to "is this
+    /* Approved is read off the list below rather than held beside it — two answers to "is this
        in the list" is how a row comes to read Approved over a list that no longer has it. */
-    /approved: \(metric: DocumentMetric\) => boolean/.test(foundMetricsSrc) &&
+    /approved: \(id: string\) => boolean/.test(foundSrc) &&
     /* The panel holds exactly one piece of state, and it is which rows are open. A second
-       `useState` here would be a local copy of "is this approved", which the metric list already
-       answers. The first attempt tested `useState … approved` across the file and matched the
+       `useState` here would be a local copy of "is this approved", which the lists already
+       answer. The first attempt tested `useState … approved` across the file and matched the
        open-rows state against the word three lines further down — a guard describing the file. */
-    (codeOnly(foundMetricsSrc).match(/= useState/g) ?? []).length === 1 &&
-    /const \[open, setOpen\] = useState<string\[\]>/.test(foundMetricsSrc) &&
-    /approved=\{\(m\) =>\s*\r?\n?\s*metrics\.some\(/.test(newGraphPage) &&
+    (codeOnly(foundSrc).match(/= useState/g) ?? []).length === 1 &&
+    /const \[open, setOpen\] = useState<string\[\]>/.test(foundSrc) &&
+    /metricIsIn\(m\.name\)/.test(newGraphPage) &&
+    /questionIsIn\(q\.question\)/.test(newGraphPage) &&
     /* An empty list draws nothing at all, heading included. */
-    /if \(metrics\.length === 0\) return null/.test(foundMetricsSrc) &&
-    /* And the evidence is the document's, printed rather than summarised: the query keeps its
-       own layout, and the note is the sentence the document explained the calculation with. */
-    /<pre className="ng-found-query">\{m\.query\}<\/pre>/.test(foundMetricsSrc) &&
-    /foundMetricsCopy\.noteLabel/.test(foundMetricsSrc),
-  readingsFn === '' || metricsFn === ''
-    ? 'documentReadings.ts no longer exports both surfaces'
-    : 'two pools would let step 1 quote a measure step 4 never offers',
+    /if \(items\.length === 0\) return null/.test(foundSrc) &&
+    /* The evidence is the document's, printed rather than summarised: a query keeps its own
+       layout, and the rows are built in `src/data/` where they can be read without a render. */
+    /<pre className="ng-found-query">\{d\.text\}<\/pre>/.test(foundSrc) &&
+    /export function metricFoundItems/.test(readingsSrc) &&
+    /export function questionFoundItems/.test(readingsSrc) &&
+    /* A found question arrives at the priority the document implies, marked on the row rather
+       than applied in silence — and that priority is the row's, never a literal. */
+    /priority: q\.priority/.test(newGraphPage) &&
+    /badge: q\.priority === 'high' \? 'HIGH' : undefined/.test(readingsSrc) &&
+    foundQuestionsNote.includes('High stays editable'),
+  readingsFn === '' || metricsFn === '' || questionsFn === ''
+    ? 'documentReadings.ts no longer exports all three surfaces'
+    : 'a second pool would let one step offer what the others never mention',
 )
 expect(
   'a drafted metric is accepted or corrected, and only correcting it writes the pool',

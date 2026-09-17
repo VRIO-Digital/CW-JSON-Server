@@ -1602,11 +1602,17 @@ an approval as the way back out. **Approved is read off the metric list**, never
 so removing the metric below puts Approve back — a flag beside it would be a second answer to the
 same question.
 
-`FoundMetrics.tsx` is its own component, and it reaches `DraftedStep` as the optional `found`
-slot, passed at the metrics call site only: a suggestion is two columns and three acts, this is a
-definition plus its evidence, and a *Found in your documents* heading on the personas step would
-describe a pass that did not happen. An empty list renders **nothing at all**, heading included.
-One `check-docs` claim covers the pool, the slot, the derived Approve and the empty branch.
+`FoundInDocuments.tsx` is its own component — a suggestion is two columns and three acts, this is a
+definition plus its evidence — and it reaches a step as the optional `found` slot, passed at the
+metrics call site and on Hero questions and nowhere else: a *Found in your documents* heading on
+the personas step would describe a pass that did not happen. An empty list renders **nothing at
+all**, heading included. One `check-docs` claim covers the pool, the slots, the derived Approve and
+the empty branch.
+
+**Step 5 has the same list, of questions rather than measures** — see below. One component draws
+both, the way `DraftedStep` draws steps 3 and 4: each step passes its own copy block and its own
+Approve. The rows are built in `src/data/` (`metricFoundItems`, `questionFoundItems`), so what a
+panel draws is assertable without rendering a step that has nothing attached.
 
 Below the suggestions, **Add persona** — the same primary button as the
 suggester, because typing your own is not a lesser path — opens a two-field form
@@ -1677,9 +1683,19 @@ drafted rather than four, because a contract wants a little more to choose from.
   make you say it again — and ticking or unticking still wins over that default.
   **The current use case states no priorities**, so nothing arrives ticked; that
   is the brief being silent, not a bug to fix by inventing them.
+- **Found in your documents** — present only where a document was attached on step 1, and the
+  twin of step 4's list, drawn by the same `FoundInDocuments`. A row is the question as the
+  document phrases it, who the document says asks it, and behind **What answers it** the measure
+  and the query that do — because a hero question nothing can compute is exactly the gap this
+  step's contract exists to avoid. **A question is a field on the measure that answers it** in
+  `documentReadings.ts`, so step 5 can never offer a question step 4 has not accounted for, and
+  step 1's passage quotes both. **Approve** adds it to *Your questions* at the priority the
+  document implies — marked `HIGH` on the row and stated in the note, never applied in silence,
+  since High is the contract — and **Reject** drops the row, saving nothing.
 - **Your questions** — one row each: a `HIGH` badge on the left when marked,
   the text, then `AI-DRAFTED`/`USER`, a still-editable **High** checkbox, and ✕.
-  Nobody gets a contract right first time, so priority stays changeable.
+  Nobody gets a contract right first time, so priority stays changeable — which is what lets an
+  approved document question arrive High and still be settled here.
 - **+ Add question** opens a High checkbox, a pill input and `✓ Add` (disabled
   until there is text) with a round ✕ to cancel.
 

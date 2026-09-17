@@ -2354,7 +2354,7 @@ on, which is a different screen than before but never a lost answer. One copy ne
 metrics hint pointed at "the sources you pick next", which after the move named a screen the reader
 had already been through.
 
-**A document attached on step 1 is read once and shown twice, and nothing opens the file.** The
+**A document attached on step 1 is read once and shown three times, and nothing opens the file.** The
 attachment control is a showcase — only the filename travels, no bytes leave the browser, the same
 arrangement the schema upload has — so what a document "contains" is **synthesised from its name**,
 deterministically, the way `synthesiseColumns` synthesises a column list. `src/data/
@@ -2366,6 +2366,23 @@ the sentence it explained the calculation with**, behind a *How it's calculated*
 would let one screen quote a definition the other never offers, one step apart and with nothing
 failing, so `check-docs` asserts there is one.
 
+**Step 5 is the third surface, and a question is a field on the measure that answers it.** *Found
+in your documents* there offers the questions a document states, each marked with who asks it and,
+behind *What answers it*, the measure and the query that do — because a hero question nothing can
+compute is precisely the gap this step's contract exists to avoid. Keeping the question **on the
+definition** rather than in a pool of its own is what makes the guarantee cheap: a memo defines a
+measure because somebody asks something, so step 5 can never offer a question step 4 has not
+accounted for, and step 1's passage quotes both. Approving adds it to the reader's list at **the
+priority the document implies** — marked `HIGH` on the row and said in the note, because High is
+the graph's contract and a row that arrived High in silence would be the panel deciding what the
+graph must answer; it stays editable in the list below, where the step already settles it.
+
+**One component draws both**, `FoundInDocuments`, the way `DraftedStep` serves two steps: the
+interaction is identical and only the noun and the effect of Approve differ, so each step passes
+its own copy block and its own callback. The rows themselves are built in `src/data/` by
+`metricFoundItems` / `questionFoundItems`, so what a panel draws can be asserted without rendering
+a step that has nothing attached.
+
 **Approve adds the measure to the draft; Reject drops the row.** Approving carries the document's
 own definition into the metrics list rather than making the reader retype it, and marks it
 `source: 'ai'` — the honest one of the two values a `DraftedItem` has, since it was drafted by the
@@ -2373,10 +2390,11 @@ pass rather than typed. **Approved is *being in the list below***, read from the
 than held beside them, so removing a metric there puts its Approve back — one answer to "is this
 in", where a flag in the panel would be a second that could disagree. A rejection is local and
 saved nowhere: it is a decision about a suggestion nobody accepted, the asymmetry the Data
-Modeling tab already keeps. `FoundMetrics` is its own component rather than a fourth branch of
+Modeling tab already keeps. `FoundInDocuments` is its own component rather than a fourth branch of
 `DraftedStep` — a suggestion is two columns and three acts, this is a definition plus the evidence
-it was read from — and it reaches the step as `found`, a **slot passed at the metrics call site
-alone**, so the personas step cannot grow that heading over a pass that did not happen.
+it was read from — and it reaches a step as `found`, a **slot passed on the metrics and Hero
+questions steps and nowhere else**, so the personas step cannot grow that heading over a pass that
+did not happen.
 
 **'KPIs' is 'Metrics', and the rename went all the way down.** Asked for, and taken past the label
 on purpose: the pool is `graph_metrics` keyed `metric_id`, a template's member list is `metrics`,

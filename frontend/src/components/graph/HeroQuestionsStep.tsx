@@ -1,6 +1,6 @@
 import { CheckOutlined, CloseOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { Button, Checkbox, Input } from 'antd'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { HeroQuestion, Suggestion } from '../../api/client'
 import { LlmRunInline } from './LlmRun'
 import { SP } from '../../theme'
@@ -16,6 +16,7 @@ import '../../pages/NewGraphPage.css'
  */
 export default function HeroQuestionsStep({
   questions,
+  found,
   onQuestions,
   suggestions,
   asked,
@@ -28,6 +29,15 @@ export default function HeroQuestionsStep({
   onDismiss,
 }: {
   questions: HeroQuestion[]
+  /**
+   * What the attached documents were read as asking, between the drafted list and your own.
+   *
+   * **A slot, and absent means there is no section** — the same arrangement step 4 has for the
+   * measures it found: only a brief with documents attached has anything to put here, and a
+   * heading over nothing would describe a pass that did not happen. The panel is passed in rather
+   * than built here, because what a document contains is the page's to say.
+   */
+  found?: ReactNode
   onQuestions: (questions: HeroQuestion[]) => void
   suggestions: Suggestion[]
   asked: boolean
@@ -182,6 +192,10 @@ export default function HeroQuestionsStep({
           )}
         </div>
       </div>
+
+      {/* Between the drafted questions and the reader's own: both are ways into the list below,
+          and this is the one they did not ask for — it is here because they attached a file. */}
+      {found}
 
       <div className="ng-field">
         <span className="ng-label">Your questions</span>
