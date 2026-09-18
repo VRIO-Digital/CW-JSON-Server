@@ -3755,7 +3755,13 @@ function displayNameFromEmail(email) {
  * hand-edited db.json) hold — normalising on read means an old draft opens
  * rather than rendering `undefined` in the row.
  */
-function normalizeDrafted(list) {
+/** How many personas or metrics a brief keeps, and how many hero questions. Named rather than
+ *  written into the loops, because the Playground has to *state* them when it refuses one more —
+ *  a cap that truncates in silence is a claim about how many the reader asked for. */
+const DRAFTED_MAX = 12
+const QUESTION_MAX = 20
+
+function normalizeDrafted(list, { withSql = false } = {}) {
   const seen = new Set()
   const out = []
 
@@ -3766,13 +3772,30 @@ function normalizeDrafted(list) {
     const key = name.toLowerCase()
     if (seen.has(key)) continue
     seen.add(key)
-    out.push({
+    const drafted = {
       name,
       description: String(raw.description ?? '').trim(),
       // Provenance is kept so the UI can say which ones the AI drafted.
       source: raw.source === 'ai' ? 'ai' : 'user',
-    })
-    if (out.length >= 12) break
+      /*
+       * **Where it came from, where that is narrower than who drafted it.**
+       *
+       * `source` is two-valued and cannot tell a measure read out of an attached document from
+       * one the suggester ranked out of the tenant's pool — both are `ai`, which is the honest
+       * answer to *who drafted this* and no answer at all to *what it was drafted from*. Only the
+       * document pass sets this, so a row without one is never **claimed** to have come from a
+       * document: `null` is honest and the Playground's tag reads AI-DRAFTED for it.
+       */
+      origin: raw.origin === 'document' ? 'document' : null,
+    }
+    /*
+     * **Only a metric carries a query.** A persona is somebody to answer *for*, not something a
+     * warehouse can be asked — and a field that is null for half its rows by construction is a
+     * field the reader has to learn to ignore.
+     */
+    if (withSql) drafted.sql = typeof raw.sql === 'string' && raw.sql.trim() ? raw.sql : null
+    out.push(drafted)
+    if (out.length >= DRAFTED_MAX) break
   }
   return out
 }
@@ -3809,7 +3832,7 @@ function normalizeQuestions(list) {
        */
       sql: typeof raw.sql === 'string' && raw.sql.trim() ? raw.sql : null,
     })
-    if (out.length >= 20) break
+    if (out.length >= QUESTION_MAX) break
   }
   return out
 }
@@ -5694,7 +5717,9 @@ const savedUseCase = (u) => ({
   domain_id: u.domain_id ?? null,
   business_need: u.business_need ?? '',
   personas: normalizeDrafted(u.personas),
-  metrics: normalizeDrafted(u.metrics),
+  /* `withSql`, so a query written on the Playground survives the wizard reading the brief and
+     saving it back — the read-modify-write this repo keeps having to put back. */
+  metrics: normalizeDrafted(u.metrics, { withSql: true }),
   sources: normalizeSourcePicks(u.sources),
   hero_questions: normalizeQuestions(u.hero_questions),
   gap_decisions: normalizeGapDecisions(u.gap_decisions),
@@ -9407,6 +9432,60 @@ function startDgbJob(useCase, autoBridge = false) {
   runDgbJob(job, useCase)
   return job
 }
+
+/* ---------------- the Playground ---------------- */
+
+/** How many attachments a use case's golden queries keep. */
+const QUERY_FILES_MAX = 20
+
+/**
+ * A file somebody attached to this use case's golden queries — **its name, and nothing else.**
+ *
+ * No bytes travel: the control posts the filename the way the dictionary upload does, and the panel
+ * says so in words. A parser that read the file and produced questions would be inventing this
+ * tenant's questions, which is the one thing the golden-query list must not hold; a name recorded
+ * beside the list is a fact about what somebody supplied.
+ */
+function normalizeQueryFiles(list, as) {
+  const seen = new Set()
+  const out = []
+  for (const entry of Array.isArray(list) ? list : []) {
+    const raw = typeof entry === 'string' ? { name: entry } : (entry ?? {})
+    const name = String(raw.name ?? '').trim()
+    if (!name) continue
+    const key = name.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({
+      name,
+      /* Kept where the row already has one, so re-saving the list does not restamp every file with
+         the time of the most recent upload. */
+      uploaded_at: typeof raw.uploaded_at === 'string' ? raw.uploaded_at : new Date().toISOString(),
+      /* Told, never guessed: the identity is client-held, so a route has nothing to look it up
+         from — the rule `saved_by` and the publish route's `as` both keep. */
+      uploaded_by:
+        typeof raw.uploaded_by === 'string' && /^[^@\s]+@[^@\s]+$/.test(raw.uploaded_by)
+          ? raw.uploaded_by
+          : (as ?? null),
+    })
+    if (out.length >= QUERY_FILES_MAX) break
+  }
+  return out
+}
+
+const playgroundView = (useCase) => ({
+  use_case_config_id: useCase.use_case_id,
+  /* The brief's own lists, normalised on the way out exactly as they are on the way in — so a
+     hand-edited `db.json` cannot serve a row the Playground would then refuse to save. */
+  metrics: normalizeDrafted(useCase.metrics, { withSql: true }),
+  golden_queries: normalizeQuestions(useCase.hero_questions),
+  files: normalizeQueryFiles(useCase.golden_query_files ?? [], null),
+  /* Served rather than restated in the component, because the refusal above quotes them: a cap the
+     page held its own copy of would let Add offer a row the save then turns down. */
+  metric_cap: DRAFTED_MAX,
+  query_cap: QUESTION_MAX,
+  file_cap: QUERY_FILES_MAX,
+})
 
 /* ---------------- the Bridge ---------------- */
 
@@ -13166,6 +13245,115 @@ const routes = [
     },
   },
 
+  /* ---------------- Graph Studio: the Playground ---------------- */
+
+  /*
+   * What the use case settled, in the two forms a graph is asked to answer in: its **metrics** and
+   * its **golden queries**.
+   *
+   * **They are the brief's own, not a second copy.** The metrics are the ones accepted on step 4 of
+   * New Graph and the golden queries are the hero questions accepted on step 5 — read straight off
+   * `graph_use_cases`, so the Playground cannot come to disagree with the wizard about what this use
+   * case asked for. That is the whole reason this is a read of the brief rather than a table of its
+   * own: two homes for one list is how a metric comes to exist on one screen and not the other.
+   *
+   * What the Playground adds is the **query** each one is answered by. A hero question already
+   * carried `sql`; a metric now does too.
+   */
+  {
+    method: 'GET',
+    match: (p) => /^\/use-cases\/[^/]+\/playground$/.test(p),
+    handle: (_req, res, { pathname }) => {
+      const id = decodeURIComponent(pathname.slice('/use-cases/'.length, -'/playground'.length))
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      send(res, 200, playgroundView(found.useCase))
+    },
+  },
+
+  /*
+   * Write one or both lists back. **Absent means unchanged**, which is the rule every upsert here
+   * keeps: the Metrics tab sends metrics and the Golden Queries tab sends questions, and neither may
+   * erase the other's work by not mentioning it.
+   *
+   * It goes through `commitDb`, so what a curator writes here survives a restart the way a saved
+   * brief does and not the way a registered source does — this is somebody's work.
+   */
+  {
+    method: 'PATCH',
+    match: (p) => /^\/use-cases\/[^/]+\/playground$/.test(p),
+    handle: async (req, res, { pathname, query }) => {
+      const id = decodeURIComponent(pathname.slice('/use-cases/'.length, -'/playground'.length))
+      const found = findStudioUseCase(id)
+      if (found.error) return send(res, found.status, { error: found.error })
+      const body = await readJson(req)
+      const { metrics, golden_queries, files } = body
+
+      const as = query.get('as')
+      if (as && !/^[^@\s]+@[^@\s]+$/.test(as)) {
+        return send(res, 400, {
+          error: `"${as}" is not an email address, so nobody can be credited with this.`,
+        })
+      }
+
+      for (const [label, list, needs, cap] of [
+        ['metric', metrics, 'a name', DRAFTED_MAX],
+        ['golden query', golden_queries, 'text', QUESTION_MAX],
+      ]) {
+        if (list === undefined) continue
+        if (!Array.isArray(list)) {
+          return send(res, 400, { error: `${label}s must be an array` })
+        }
+        const blank = list.some((row) =>
+          !String(
+            typeof row === 'string' ? row : (row?.name ?? row?.text ?? ''),
+          ).trim(),
+        )
+        if (blank) return send(res, 400, { error: `every ${label} needs ${needs}.` })
+        /*
+         * **Refused rather than truncated.** `normalizeDrafted` and `normalizeQuestions` stop at
+         * their cap, which is right for a document being read and wrong for a list somebody just
+         * pressed Add on: a row that vanished on save is the silent cut this repo refuses
+         * everywhere. The refusal states the cap, so the reader knows what to remove.
+         */
+        if (list.length > cap) {
+          return send(res, 400, {
+            error: `a use case keeps at most ${cap} ${label}s, and this is ${list.length}. Remove one before adding another.`,
+          })
+        }
+      }
+      if (files !== undefined && !Array.isArray(files)) {
+        return send(res, 400, { error: 'files must be an array of { name }' })
+      }
+
+      const record = {
+        /* Spread first, so every field this route says nothing about — the brief's name, its
+           domain, its source picks, its step — comes through untouched. */
+        ...found.useCase,
+        metrics:
+          metrics === undefined
+            ? found.useCase.metrics
+            : normalizeDrafted(metrics, { withSql: true }),
+        hero_questions:
+          golden_queries === undefined
+            ? found.useCase.hero_questions
+            : normalizeQuestions(golden_queries),
+        golden_query_files:
+          files === undefined
+            ? (found.useCase.golden_query_files ?? [])
+            : normalizeQueryFiles(files, as),
+        updated_at: new Date().toISOString(),
+      }
+      await commitDb({
+        ...db,
+        graph_use_cases: db.graph_use_cases.map((u) =>
+          u.use_case_id === record.use_case_id ? record : u,
+        ),
+      })
+      send(res, 200, playgroundView(record))
+    },
+  },
+
   /* ---------------- Graph Studio: the Bridge ---------------- */
 
   /*
@@ -13882,7 +14070,8 @@ const routes = [
       }
       const personaTags =
         personas === undefined ? null : normalizeDrafted(personas)
-      const metricTags = metrics === undefined ? null : normalizeDrafted(metrics)
+      const metricTags =
+        metrics === undefined ? null : normalizeDrafted(metrics, { withSql: true })
 
       if (hero_questions !== undefined) {
         if (!Array.isArray(hero_questions)) {
@@ -14013,6 +14202,12 @@ const routes = [
         sources: sourcePicks ?? existing?.sources ?? [],
         hero_questions: questions ?? existing?.hero_questions ?? [],
         gap_decisions: decisions ?? existing?.gap_decisions ?? [],
+        /*
+         * Carried forward explicitly, because this record is **rebuilt from a key list** and a key
+         * missing from it is deleted rather than left alone — the `ingest-reports.js` regression,
+         * one object over. The wizard never sends these; the Playground owns them.
+         */
+        golden_query_files: existing?.golden_query_files ?? [],
         step: stepNumber,
         updated_at: new Date().toISOString(),
       }

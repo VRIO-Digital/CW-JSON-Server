@@ -19,6 +19,7 @@ import {
   getBridgeBuild,
   getChunkEvidence,
   getDgbJob,
+  getPlayground,
   getPublishedBridge,
   getSgbBuild,
   getSgbGraph,
@@ -40,6 +41,7 @@ import {
   publishGraphVersion,
   reconcileGraphVersions,
   reviseBridgeBuild,
+  savePlayground,
   triggerBridgeBuild,
   triggerCombinedBuild,
   triggerDgbBuild,
@@ -94,6 +96,27 @@ await check('listBridgeBuilds (before)', () => listBridgeBuilds(id))
 await check('listGraphVersions (before)', () => listGraphVersions(id))
 await check('getPublishedBridge', () => getPublishedBridge(id))
 await check('listCorpusDocuments', () => listCorpusDocuments(id))
+
+/*
+ * The Playground reads and writes the **brief**, not a build, so it is checked here before anything
+ * is triggered — a use case with nothing built still has metrics and hero questions to serve.
+ *
+ * The write sends the lists straight back, which is the round trip worth checking: what the server
+ * normalised on the way out has to be something it accepts on the way in, or the first edit a reader
+ * makes is refused for a row they never touched.
+ */
+const playground = await check('getPlayground', () => getPlayground(id))
+if (playground) {
+  await check('savePlayground', () =>
+    savePlayground({
+      useCaseId: id,
+      metrics: playground.metrics,
+      goldenQueries: playground.goldenQueries,
+      files: playground.files,
+      as: 'contract@example.com',
+    }),
+  )
+}
 
 const triggered = await check('triggerCombinedBuild', () =>
   triggerCombinedBuild({ useCaseId: id, story: 'A contract run.' }),

@@ -1824,9 +1824,10 @@ New Graph · Save & build graph
         → POST /graph-use-cases                commits the brief — and starts NO run
         → /graph-studio/:useCaseId             lands on Build, both lanes `not started`
 
-/graph-studio          a use-case selector, and four tabs under it
+/graph-studio          a use-case selector, and five tabs under it
         → Build          both lanes' pipelines · the story · Draft from my data model · Build graph
         → Bridge         EntityType ⇔ Concept, decided one row at a time
+        → Playground     Metrics · Golden Queries — the brief's own, with the SQL each is answered by
         → Canvas         Structured · Documents · Combined (+ Full view ↗)
         → Versions       what was approved together · Publish · Unpublish
 
@@ -1940,6 +1941,33 @@ resolved to a `Facility` node, that is the evidence. Matching strings called "Ge
 - **Accept-all** sweeps only what is still outstanding — a gate nobody can clear gets switched off.
 - **A published Bridge is frozen**; `revise` clones it with every decision carried, so the one row you
   came for is one edit away and the published one keeps answering until you publish the clone.
+
+### Playground
+
+**Files:** `StudioPlaygroundTab` → `PlaygroundMetrics` · `PlaygroundGoldenQueries` · `PlaygroundRow`
+→ `src/data/playground.ts` (copy + rules, pure) → `GET`/`PATCH /use-cases/:id/playground`
+
+Two nested tabs over **the brief's own rows**: the metrics accepted on step 4 of New Graph and the
+hero questions accepted on step 5, read straight off `graph_use_cases`. Not a copy — two homes for
+one list is how a metric comes to exist on one screen and not the other. What it adds is the **query
+each is answered by**, plus add, edit and remove.
+
+- **Absent means unchanged** on the PATCH, and the record **spreads** the use case: the Metrics tab
+  must not delete the golden queries by not mentioning them, and neither may drop the brief's name,
+  domain or picks.
+- **The wizard carries both additions**: `golden_query_files` is in its carry-forward list, and both
+  writers normalise metrics `withSql` — otherwise a wizard save drops a query written here.
+- **FROM DOCUMENT is keyed on `origin`**, set by the document pass alone. `source` is two-valued and
+  cannot tell a document-read measure from a pool-ranked one, so the other rows read AI-DRAFTED or
+  MANUAL. An edit keeps the row's provenance.
+- **Caps refuse rather than truncate** (12 metrics, 20 questions), state the number, and are served
+  rather than restated in the page.
+- **An upload takes the filename and nothing else** — no parser, no invented questions, and the note
+  above the list says so. Who uploaded it comes from `?as=`.
+- **Not locked on `outputReadable`**: the brief exists the moment the use case does.
+- **Rules and copy in `src/data/`**, list bodies exported apart from their dialogs — a `Modal` portals
+  out of `renderToString`, and a refusal decided in a component is only reachable after somebody
+  types, which a render never does.
 
 ### Canvas
 

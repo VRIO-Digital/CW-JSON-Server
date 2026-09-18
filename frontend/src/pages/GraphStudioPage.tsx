@@ -8,6 +8,7 @@ import PageHeader from '../components/common/PageHeader'
 import StudioBridgeTab from '../components/studio/StudioBridgeTab'
 import StudioBuildTab from '../components/studio/StudioBuildTab'
 import StudioCanvasTab from '../components/studio/StudioCanvasTab'
+import StudioPlaygroundTab from '../components/studio/StudioPlaygroundTab'
 import StudioVersionsTab from '../components/studio/StudioVersionsTab'
 import { useAuthStore } from '../store/authStore'
 import {
@@ -63,6 +64,8 @@ export default function GraphStudioPage() {
   const typeLinks = useStudioStore((s) => s.typeLinks)
   const unreviewedCount = useStudioStore((s) => s.unreviewedCount)
   const versions = useStudioStore((s) => s.versions)
+  const playground = useStudioStore((s) => s.playground)
+  const playgroundLoading = useStudioStore((s) => s.playgroundLoading)
   const building = useStudioStore((s) => s.building)
   const busy = useStudioStore((s) => s.busy)
   const sweeping = useStudioStore((s) => s.sweeping)
@@ -87,6 +90,7 @@ export default function GraphStudioPage() {
   const publish = useStudioStore((s) => s.publish)
   const recordVersion = useStudioStore((s) => s.recordVersion)
   const unpublish = useStudioStore((s) => s.unpublish)
+  const savePlaygroundLists = useStudioStore((s) => s.savePlaygroundLists)
 
   const signedInAs = useAuthStore((s) => s.identity?.email ?? null)
 
@@ -351,6 +355,35 @@ export default function GraphStudioPage() {
                       }
                       onAcceptAll={() => void report(() => acceptAll(signedInAs))}
                       onPublish={() => void report(publishThisBridge)}
+                    />
+                  ),
+                },
+                {
+                  /*
+                   * **Not locked on `outputReadable`, unlike the three below it.** Those read a
+                   * *build's* output, and what they would show before one exists is the previous
+                   * build's with nothing saying so. The Playground reads the **brief** — the metrics
+                   * and hero questions the wizard accepted — which exist the moment a use case does.
+                   * Locking it would hide a list that is ready behind a build that has not run.
+                   */
+                  key: 'playground',
+                  label: 'Playground',
+                  children: (
+                    <StudioPlaygroundTab
+                      playground={playground}
+                      loading={playgroundLoading}
+                      busy={busy}
+                      signedInAs={signedInAs}
+                      onSaveMetrics={(metrics) =>
+                        void report(() => savePlaygroundLists({ metrics }, signedInAs))
+                      }
+                      onSaveQueries={(goldenQueries) =>
+                        void report(() => savePlaygroundLists({ goldenQueries }, signedInAs))
+                      }
+                      onSaveFiles={(files) =>
+                        void report(() => savePlaygroundLists({ files }, signedInAs))
+                      }
+                      onError={(text) => message.error(text)}
                     />
                   ),
                 },

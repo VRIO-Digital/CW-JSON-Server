@@ -2848,7 +2848,9 @@ disagreed with that.
 **One selector governs the page.** Every tab reads the use case the store holds, so no tab carries a
 picker that could disagree with the one above it — the fault the two studios this replaced had
 between them, where a reader had to know which screen a use case belonged to and nothing said that
-two graphs answer one business question. Four tabs: **Build · Bridge · Canvas · Versions**.
+two graphs answer one business question. Five tabs: **Build · Bridge · Playground · Canvas ·
+Versions**, in the order the work is done — build the two graphs, settle what corresponds between
+them, then say what you will ask of the result.
 
 #### Everything a lane draws is derived from the document
 
@@ -3076,6 +3078,65 @@ the store re-reads the whole studio once it settles, which is what records the v
 the other tabs. **"Something" is the lanes *and* the Bridge**, because they are one run: the
 formation starts exactly where the lanes stop, so a watch that ended with them would leave it to be
 found by a reader pressing reload.
+
+#### The Playground
+
+**What the use case asked for, in the two forms a graph is asked to answer in** — two nested tabs,
+**Metrics** and **Golden Queries**, sitting between Bridge and Canvas.
+
+**They are the brief's own rows, not a copy.** The metrics are the ones accepted on step 4 of New
+Graph and the golden queries are the hero questions accepted on step 5, read straight off
+`graph_use_cases` — so this screen and the wizard cannot come to list different measures. A table of
+its own would be two homes for one record, which is the duplication this file refuses from the report
+audience to the mailbox's used-for note, and `check-docs` asserts no `db` key exists behind it. What
+the Playground *adds* is the **query each one is answered by**: a hero question already carried `sql`,
+and a metric now does too.
+
+**`GET`/`PATCH /use-cases/:id/playground` are the two routes, and absent means unchanged.** The
+Metrics tab sends metrics and the Golden Queries tab sends questions; a record rebuilt from a body
+that did not carry the other list would delete it silently, with the screen still showing it until
+the next read — the `ingest-reports.js` regression one object over. The write **spreads the use
+case** rather than listing its keys, so the brief's name, domain, source picks and step survive a
+write that is about neither, and it goes through `commitDb`, so what a curator writes here survives a
+restart the way a saved brief does.
+
+**Two things the wizard had to be taught to carry.** It rebuilds its record from a fixed key list, so
+`golden_query_files` is carried forward explicitly; and `savedUseCase` and the save route both
+normalise metrics `withSql`, or a wizard save would silently drop a query written on this screen.
+Both are asserted, because both are read-modify-write faults that render perfectly.
+
+**The provenance tag never claims a document the row does not have.** `source` is two-valued and
+cannot tell a measure read out of an attached document from one the suggester ranked out of the
+tenant's pool — both are `ai`. So `origin` is a third field set by the **document pass and by nothing
+else**, and `provenanceTag` reads it: *FROM DOCUMENT* only where one exists, *MANUAL* for a row
+somebody typed, *AI-DRAFTED* for the rest. Printing FROM DOCUMENT off `source` would be a claim about
+where a figure came from, which is `evidence_kind`'s lesson in miniature — and **an edit keeps the
+row's provenance**, because rewriting a drafted metric's wording does not make it something the
+reader drafted.
+
+**The caps refuse rather than truncate.** `normalizeDrafted` and `normalizeQuestions` stop at
+`DRAFTED_MAX` (12) and `QUESTION_MAX` (20), which is right for a document being read and wrong for a
+list somebody just pressed Add on: a row that vanished on save is the silent cut this repo refuses
+everywhere. So the route refuses a longer list **naming the number**, the caps are **served** rather
+than restated in the page — a page holding its own copy would let Add offer a row the save then turns
+down — and Add is withheld at the cap rather than refusing after the reader has typed.
+
+**A file can be attached, and only its name travels.** No parser reads it and no question is added
+from it, because questions invented out of a file would be indistinguishable from the ones the brief
+really accepted — so the panel says that in words rather than leaving a reader waiting for rows that
+are never coming. Who uploaded it is **told, never guessed** (`?as=`), the rule `saved_by` and the
+publish route both keep.
+
+**The tab is not locked on `outputReadable`, unlike the three below it.** Those read a *build's*
+output, and what they would show before one exists is the previous build's with nothing saying so.
+The Playground reads the **brief**, which exists the moment a use case does — locking it would hide a
+list that is ready behind a build that has not run.
+
+**Its rules and its copy are in `src/data/playground.ts`**, and the two list bodies are exported apart
+from the components that open the dialogs: an Add or Edit surface is a `Modal`, which portals out of
+`renderToString`, and a refusal decided inside a component has the same problem one level down — the
+render gets its *initial* state, in which nobody has typed anything, so the branch that matters is
+exactly the one a render never reaches. The same reasoning as `datasetPathFix` and `askAvailability`.
 
 #### The canvas — one viewer, three frames
 

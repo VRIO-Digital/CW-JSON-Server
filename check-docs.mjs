@@ -5577,6 +5577,10 @@ const studioFetchers = [
   'listDgbRelations',
   'getChunkEvidence',
   'triggerCombinedBuild',
+  /* The Playground's two. They read and write the brief rather than a build, which is why the
+     contract check exercises them before it triggers anything. */
+  'getPlayground',
+  'savePlayground',
   'triggerBridgeBuild',
   'listBridgeBuilds',
   'getBridgeBuild',
@@ -6220,6 +6224,165 @@ expect(
     /selectStudioUseCase\(result\.useCase\.useCaseId\)/.test(newGraphCode) &&
     /state: \{ tab: 'build' \}/.test(newGraphCode),
   'a run started here skips the description the studio asks for',
+)
+
+/*
+ * ---------------- the Playground ----------------
+ *
+ * **It reads the brief, and that is the whole design.** The metrics are the ones accepted on step 4
+ * of New Graph and the golden queries are the hero questions accepted on step 5, read straight off
+ * `graph_use_cases` — so this screen and the wizard cannot come to list different measures. A table
+ * of its own would be two homes for one record, which is the fault this repo refuses everywhere from
+ * the report audience to the mailbox's used-for note.
+ */
+const playgroundData = read('frontend/src/data/playground.ts')
+const playgroundDataCode = codeOnly(playgroundData)
+const playgroundTab = read('frontend/src/components/studio/StudioPlaygroundTab.tsx')
+const metricsPanel = read('frontend/src/components/studio/PlaygroundMetrics.tsx')
+const queriesPanel = read('frontend/src/components/studio/PlaygroundGoldenQueries.tsx')
+
+expect(
+  'the Playground serves the brief’s own metrics and hero questions, not a copy',
+  /metrics: normalizeDrafted\(useCase\.metrics, \{ withSql: true \}\)/.test(server) &&
+    /golden_queries: normalizeQuestions\(useCase\.hero_questions\)/.test(server) &&
+    /* And no second collection behind it: a `db` key of its own is exactly what would drift. */
+    !/db\.playground|playground_metrics|playground_queries/.test(codeOnly(server)),
+  'two homes for one list is how a metric exists on one screen and not the other',
+)
+expect(
+  'and the two nested tabs are the two things a use case asked for',
+  /key: 'metrics'/.test(playgroundTab) &&
+    /key: 'golden-queries'/.test(playgroundTab) &&
+    /label: 'Playground'/.test(studioPageCode) &&
+    /* Not locked on `outputReadable` like the three tabs that read a build's output: the brief
+       exists the moment the use case does, and locking it would hide a ready list behind a build
+       that has not run. */
+    !/key: 'playground',\s*label: 'Playground',\s*disabled:/.test(studioPageCode),
+  'Metrics and Golden Queries, over the brief rather than over a build',
+)
+
+/*
+ * **Absent means unchanged**, on both sides of the write. The Metrics tab sends metrics and the
+ * Golden Queries tab sends questions; if either list were rebuilt from a body that did not carry it,
+ * saving a metric would delete every golden query — silently, and with the screen still showing them
+ * until the next read.
+ */
+expect(
+  'a Playground write carries every list it was not given, and every field it says nothing about',
+  /metrics === undefined\s*\?\s*found\.useCase\.metrics/.test(server) &&
+    /golden_queries === undefined\s*\?\s*found\.useCase\.hero_questions/.test(server) &&
+    /files === undefined/.test(server) &&
+    /* The record spreads the use case first, so the brief's name, domain, picks and step survive a
+       write that is about neither. */
+    /\.\.\.found\.useCase,\r?\n\s*metrics:/.test(server) &&
+    /if \(input\.metrics\) body\.metrics = input\.metrics/.test(client),
+  'a rebuilt record is the ingest-reports regression, one object over',
+)
+/*
+ * Sliced to `DRAFTED_ITEM`'s own body rather than searched for across the file. `sql: nullable(str)`
+ * appears in three schemas here — the drafted item, the Playground's metric and the hero question —
+ * so a whole-file test passes with the wizard's own schema stripped of it, which is exactly the case
+ * this claim is about. A break test is what found that; it is the same "token the file mentions
+ * twice" trap recorded five times over in `docs/REGRESSIONS.md`.
+ */
+const draftedItemSchema = (client.match(/const DRAFTED_ITEM = shape\(\{[\s\S]*?\n\}\)/) ?? [''])[0]
+expect(
+  'and the wizard carries the Playground’s two additions rather than dropping them',
+  /golden_query_files: existing\?\.golden_query_files \?\? \[\]/.test(server) &&
+    /* Both writers of a metric keep its query, or a wizard save silently drops what was written on
+       the other screen — the read-modify-write this repo keeps having to put back. */
+    /metrics: normalizeDrafted\(u\.metrics, \{ withSql: true \}\)/.test(server) &&
+    /normalizeDrafted\(metrics, \{ withSql: true \}\)/.test(server) &&
+    draftedItemSchema.length > 0 &&
+    /sql: nullable\(str\)/.test(draftedItemSchema) &&
+    /origin: nullable\(str\)/.test(draftedItemSchema),
+  'the wizard rebuilds this record from a key list, so a key missing from it is deleted',
+)
+
+/*
+ * **The cap refuses rather than truncating.** `normalizeDrafted` and `normalizeQuestions` stop at
+ * their cap, which is right for a document being read and wrong for a list somebody just pressed Add
+ * on: a row that vanished on save is the silent cut this repo refuses everywhere. And the number is
+ * the server's, served rather than restated, or Add would offer a row the save then turns down.
+ */
+expect(
+  'the caps are named, served, and refused against rather than silently applied',
+  /const DRAFTED_MAX = \d+/.test(server) &&
+    /const QUESTION_MAX = \d+/.test(server) &&
+    /if \(list\.length > cap\)/.test(server) &&
+    /a use case keeps at most \$\{cap\}/.test(server) &&
+    /metric_cap: DRAFTED_MAX/.test(server) &&
+    /metricCap: raw\.metric_cap/.test(client) &&
+    /cap=\{playground\.metricCap\}/.test(playgroundTab),
+  'a row that vanished on save is a silent cut',
+)
+
+/*
+ * **The provenance tag never claims a document the row does not have.**
+ *
+ * `source` is two-valued and cannot tell a measure read out of an attachment from one the suggester
+ * ranked out of the pool — both are `ai`. So FROM DOCUMENT is keyed on `origin`, which only the
+ * document pass sets, and a row without one reads AI-DRAFTED. Printing FROM DOCUMENT off `source`
+ * would be a claim about where a figure came from, which is the `evidence_kind` lesson in miniature.
+ */
+expect(
+  'FROM DOCUMENT is keyed on origin, and a manual row is credited to the reader',
+  /if \(row\.origin === 'document'\) return 'FROM DOCUMENT'/.test(playgroundDataCode) &&
+    /return row\.source === 'user' \? 'MANUAL' : 'AI-DRAFTED'/.test(playgroundDataCode) &&
+    /origin: raw\.origin === 'document' \? 'document' : null/.test(server) &&
+    /* A row typed here is the reader's own: never `ai`, never an origin it did not come from. */
+    /source: 'user',\r?\n\s*origin: null,/.test(playgroundDataCode),
+  'crediting a pass with a sentence somebody typed is the same lie in reverse',
+)
+/* An edit must not re-credit the row either — rewriting a drafted metric's wording does not make it
+   something the reader drafted. Both editors spread the previous row rather than re-minting it. */
+expect(
+  'and an edit keeps the row’s provenance rather than marking it MANUAL',
+  /\.\.\.previous,\r?\n\s*name: name\.trim\(\)/.test(metricsPanel) &&
+    /\.\.\.previous,\r?\n\s*text: text\.trim\(\)/.test(queriesPanel),
+  'an edited draft is still a draft',
+)
+
+/*
+ * **The upload takes the filename and nothing else**, which is what the note beside it promises. A
+ * parser that read the file and produced questions would be inventing this tenant's questions, and
+ * they would be indistinguishable from the ones the brief really accepted.
+ */
+expect(
+  'the attachment control reads no bytes, and says so where the control is',
+  /chosen\.name/.test(queriesPanel) &&
+    !/\.text\(\)|FileReader|readAsText|arrayBuffer/.test(codeOnly(queriesPanel)) &&
+    /no bytes leave this browser and nothing is read out of the/.test(playgroundData) &&
+    /* Told who, never guessed: the identity is client-held, the rule `saved_by` established. */
+    /uploaded_by:/.test(server) &&
+    /uploadedBy: signedInAs/.test(queriesPanel),
+  'questions invented out of a file are what this list must not hold',
+)
+
+/*
+ * **The rules and the copy live in `src/data/`**, because the Add and Edit surfaces are `Modal`s and
+ * a `Modal` portals out of `renderToString`. A refusal decided inside a component has the same
+ * problem one level down: the render gets its *initial* state, in which nobody has typed anything, so
+ * the branch that matters is exactly the one a render never reaches — the reason `datasetPathFix` and
+ * `askAvailability` are pure functions.
+ */
+expect(
+  'the Playground’s refusals and copy are pure and assertable apart from their dialogs',
+  /export function metricProblem\(/.test(playgroundDataCode) &&
+    /export function queryProblem\(/.test(playgroundDataCode) &&
+    /export function fileProblem\(/.test(playgroundDataCode) &&
+    /export const playgroundCopy = \{/.test(playgroundDataCode) &&
+    /* And the list bodies are exported apart from the component that opens the dialog. */
+    /export function MetricsPanel\(/.test(metricsPanel) &&
+    /export function GoldenQueriesPanel\(/.test(queriesPanel),
+  'a sentence written inside a Modal cannot be asserted at all',
+)
+expect(
+  'and a row with no query says where to write one rather than drawing an empty block',
+  /No SQL yet \\u2014 click edit to add it\.|No SQL yet — click edit to add it\./.test(playgroundData) &&
+    /noSql=\{playgroundCopy\.metrics\.noSql\}/.test(metricsPanel) &&
+    /noSql=\{playgroundCopy\.queries\.noSql\}/.test(queriesPanel),
+  'a blank code frame reads as a query that failed to load',
 )
 
 /* ---------------- Ask's recorded answers are renderable ---------------- */
@@ -10711,7 +10874,15 @@ expect(
  * silently — the same rule the What-if library follows, and the reason both are stored as
  * ids rather than results.
  */
-const savedRow = /const row = \{([\s\S]*?)\n      \}/.exec(server)?.[1] ?? ''
+/*
+ * Anchored on `saved_id`, which only this literal declares — **not on the first `const row = {` in
+ * the file**, which is what it read before. That slice was a claim about *where* the saved-report
+ * route happens to sit: a `const row` added anywhere above it silently re-pointed the check at
+ * somebody else's object, and the symptom was this claim failing over code that was correct. It has
+ * now happened once, which is exactly the "keyed to the spelling rather than the fact" trap
+ * `docs/REGRESSIONS.md` records.
+ */
+const savedRow = /const row = \{\s*\r?\n\s*saved_id:([\s\S]*?)\n      \}/.exec(server)?.[1] ?? ''
 expect(
   'a saved report stores its frame and no figures',
   savedRow.length > 0 &&

@@ -7272,3 +7272,53 @@ The same rule one level up: `links_written` is `model_calls_done × entity_type_
 figure incremented beside them, so a panel cannot report links a call never wrote.
 
 *Two counters over one run is two answers to how far it has got.*
+
+## A claim sliced by "the first `const row = {`" in a 16,000-line file (2026-09-18)
+
+**Symptom** — *a saved report stores its frame and no figures* turned red while the saved-report route
+was untouched. The Playground had added a `const row = {` inside `normalizeDrafted`, 12,000 lines
+above it.
+
+**Root cause** — the claim sliced its subject with `/const row = \{([\s\S]*?)\n      \}/`, which is a
+claim about *where that route happens to sit in the file* rather than about the route. Any `const
+row` added above it silently re-points the check at somebody else's object — and the failure reads as
+the guarded code being broken, which is how a genuine red claim comes to be dismissed.
+
+**Fix** — the slice is anchored on `saved_id:`, which only that literal declares. The Playground's
+local was renamed to `drafted` as well, which it should have been anyway.
+
+**Guard** — the anchored regex, plus the note beside it. This is the sixth time a claim keyed to a
+spelling rather than to the fact has cost time, and the first where the spelling was *position*.
+
+*A slice taken from the top of a file is an assertion about everything above it.*
+
+## The Playground: one list, two screens, and the three ways that goes wrong (2026-09-18)
+
+Not bugs that shipped — three faults refused while building the Playground, each the same shape this
+file already records, and each caught by a break test rather than by reading.
+
+**A second home for the metrics.** The obvious build is a `playground` key holding its own metrics
+and queries. They are already on the brief, accepted on steps 4 and 5 of New Graph, so a second copy
+is two answers to what this use case asked for — and it drifts the first time somebody edits one
+screen. The Playground reads and writes `graph_use_cases` instead, and `check-docs` asserts no `db`
+key exists behind it.
+
+**A record rebuilt from a key list.** `POST /graph-use-cases` builds its record field by field, so a
+new key on the use case is *deleted* by the next wizard save — the `ingest-reports.js` regression
+exactly. `golden_query_files` had to be carried forward by name, and metrics had to normalise
+`withSql` in **both** writers or a wizard save would silently drop a query written on the Playground.
+Both are asserted; both render perfectly when broken.
+
+**A tag that claimed a provenance the data does not carry.** The design called for FROM DOCUMENT on a
+metric read out of an attachment. `source` is two-valued — a pool-ranked metric and a
+document-read one are both `ai` — so keying the tag on it would have printed FROM DOCUMENT over rows
+that came from a keyword ranking. `origin` is a third field, set by the document pass and nothing
+else, and a row without one reads AI-DRAFTED. The same reasoning as `evidence_kind` never saying
+`llm` for a recorded suggestion.
+
+**And one gap a break test found in the guard itself**: the claim about metrics keeping their SQL
+tested `/sql: nullable\(str\)/` against the whole of `client.ts`, where three schemas carry that line
+— so stripping it from `DRAFTED_ITEM`, the one case the claim is about, still passed. It slices
+`DRAFTED_ITEM`'s own body now.
+
+*When a list appears on a second screen, the question is not how to store it twice.*

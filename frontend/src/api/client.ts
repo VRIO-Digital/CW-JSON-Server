@@ -1025,6 +1025,15 @@ export interface DraftedItem {
   name: string
   description: string
   source: 'ai' | 'user'
+  /** What it was drafted *from*, where that is narrower than who drafted it — `'document'` only,
+   *  set by the document pass and by nothing else. `source` is two-valued and cannot tell a measure
+   *  read out of an attachment from one the suggester ranked out of the pool, so a row without this
+   *  is never claimed to have come from a document. */
+  origin?: 'document' | null
+  /** The query this metric is answered by, or `null`. **Metrics only** — a persona is somebody to
+   *  answer for, not something a warehouse can be asked. Carried through the wizard as well as the
+   *  Playground, or a wizard save would drop what was written on the other screen. */
+  sql?: string | null
 }
 
 export type Persona = DraftedItem
@@ -2563,6 +2572,10 @@ const DRAFTED_ITEM = shape({
   name: str,
   description: str,
   source: oneOf(['ai', 'user']),
+  /* Both nullable, and `nullable` accepts an absent key as well as a null — a brief saved before
+     either field existed carries neither, and a persona never carries `sql` at all. */
+  origin: nullable(str),
+  sql: nullable(str),
 })
 
 const GRAPH_SOURCES_PAYLOAD = shape({
@@ -10197,6 +10210,54 @@ export interface BridgeBuild {
   stages: BridgeStage[]
 }
 
+/* ---------------- the Playground ---------------- */
+
+/**
+ * A metric on the Playground — **one of the ones accepted on step 4 of New Graph**, with the query
+ * it is answered by.
+ *
+ * It is the brief's own row rather than a copy: the Playground reads and writes
+ * `graph_use_cases[].metrics`, so it cannot come to disagree with the wizard about what this use
+ * case asked for.
+ */
+export interface PlaygroundMetric {
+  name: string
+  description: string
+  source: 'ai' | 'user'
+  origin: 'document' | null
+  /** `null` until somebody writes one. The row says so in words rather than showing an empty code
+   *  block, because a blank query box reads as a query that failed to load. */
+  sql: string | null
+}
+
+/** A golden query — a hero question accepted on step 5, with the SQL that answers it. */
+export interface GoldenQuery {
+  text: string
+  priority: 'high' | 'normal'
+  source: 'ai' | 'user'
+  sql: string | null
+}
+
+/** A file attached to this use case's golden queries. **Its name, and nothing else** — no bytes
+ *  travel, and the panel says so. */
+export interface PlaygroundFile {
+  name: string
+  uploadedAt: string
+  uploadedBy: string | null
+}
+
+export interface Playground {
+  useCaseId: string
+  metrics: PlaygroundMetric[]
+  goldenQueries: GoldenQuery[]
+  files: PlaygroundFile[]
+  /** The server's caps, served rather than restated here: a cap the page held its own copy of would
+   *  let Add offer a row the save then refuses. */
+  metricCap: number
+  queryCap: number
+  fileCap: number
+}
+
 export interface TypeLinkList {
   typeLinks: TypeLink[]
   /** The server's own count of what still blocks publishing. **Never derived here**: a second
@@ -10553,6 +10614,26 @@ const BRIDGE_BUILD = shape({
 })
 
 const BRIDGE_BUILDS = shape({ bridge_builds: arrayOf(BRIDGE_BUILD) })
+
+const PLAYGROUND = shape({
+  use_case_config_id: str,
+  metrics: arrayOf(
+    shape({
+      name: str,
+      description: str,
+      source: oneOf(['ai', 'user']),
+      origin: nullable(str),
+      sql: nullable(str),
+    }),
+  ),
+  /* The same `HERO_QUESTION` shape the wizard validates, because these are the same rows — a second
+     schema over one list is how the two screens come to disagree about what a question carries. */
+  golden_queries: arrayOf(HERO_QUESTION),
+  files: arrayOf(shape({ name: str, uploaded_at: str, uploaded_by: nullable(str) })),
+  metric_cap: num,
+  query_cap: num,
+  file_cap: num,
+})
 
 const BRIDGE_TRIGGERED = shape({ bridge_build_id: str, build_number: num, status: str })
 
@@ -11087,6 +11168,79 @@ export async function triggerCombinedBuild(input: {
     dgbJobId: raw.dgb_job_id,
     bridgeFollows: raw.bridge_follows,
   }
+}
+
+/* ---- the Playground ---- */
+
+const toPlayground = (raw: Record<string, unknown>): Playground => ({
+  useCaseId: raw.use_case_config_id as string,
+  metrics: (raw.metrics as Record<string, unknown>[]).map((m) => ({
+    name: m.name as string,
+    description: m.description as string,
+    source: m.source as 'ai' | 'user',
+    /* Narrowed here rather than passed through: the schema accepts any string, and only
+       `'document'` means anything to a reader. */
+    origin: m.origin === 'document' ? 'document' : null,
+    sql: (m.sql as string | null) ?? null,
+  })),
+  goldenQueries: (raw.golden_queries as Record<string, unknown>[]).map((q) => ({
+    text: q.text as string,
+    priority: q.priority as 'high' | 'normal',
+    source: q.source as 'ai' | 'user',
+    sql: (q.sql as string | null) ?? null,
+  })),
+  files: (raw.files as Record<string, unknown>[]).map((f) => ({
+    name: f.name as string,
+    uploadedAt: f.uploaded_at as string,
+    uploadedBy: (f.uploaded_by as string | null) ?? null,
+  })),
+  metricCap: raw.metric_cap as number,
+  queryCap: raw.query_cap as number,
+  fileCap: raw.file_cap as number,
+})
+
+export async function getPlayground(useCaseId: string): Promise<Playground> {
+  return toPlayground(
+    validate<Record<string, unknown>>(
+      'The Playground',
+      await request<unknown>(`${ucPath(useCaseId)}/playground`),
+      PLAYGROUND,
+    ),
+  )
+}
+
+/**
+ * Write one or both lists back. **Absent means unchanged** — the Metrics tab sends metrics and the
+ * Golden Queries tab sends questions, and neither may erase the other's work by not mentioning it,
+ * which is the rule `POST /data-model/entities` already keeps.
+ */
+export async function savePlayground(input: {
+  useCaseId: string
+  metrics?: PlaygroundMetric[]
+  goldenQueries?: GoldenQuery[]
+  files?: PlaygroundFile[]
+  as: string | null
+}): Promise<Playground> {
+  const body: Record<string, unknown> = {}
+  if (input.metrics) body.metrics = input.metrics
+  if (input.goldenQueries) body.golden_queries = input.goldenQueries
+  if (input.files) {
+    body.files = input.files.map((f) => ({
+      name: f.name,
+      uploaded_at: f.uploadedAt,
+      uploaded_by: f.uploadedBy,
+    }))
+  }
+  return toPlayground(
+    validate<Record<string, unknown>>(
+      'The Playground',
+      await request<unknown>(
+        `${ucPath(input.useCaseId)}/playground${input.as ? `?as=${encodeURIComponent(input.as)}` : ''}`,
+        { method: 'PATCH', body },
+      ),
+      PLAYGROUND,
+    ),
+  )
 }
 
 /* ---- Bridge ---- */

@@ -5,6 +5,7 @@ import {
   editSgbStory,
   getBridgeBuild,
   getDgbJob,
+  getPlayground,
   getSgbBuild,
   getSgbGraph,
   getSgbStory,
@@ -20,6 +21,7 @@ import {
   publishGraphVersion,
   reconcileGraphVersions,
   reviseBridgeBuild,
+  savePlayground,
   triggerBridgeBuild,
   triggerCombinedBuild,
   unpublishGraphVersion,
@@ -30,6 +32,10 @@ import type {
   DgbEntity,
   DgbJob,
   DgbRelation,
+  GoldenQuery,
+  Playground,
+  PlaygroundFile,
+  PlaygroundMetric,
   SgbBuild,
   SgbGraph,
   SgbStory,
@@ -88,6 +94,14 @@ interface StudioState {
   savingLinkId: string | null
   sweeping: boolean
 
+  /* the Playground — the brief's own metrics and hero questions, with the queries that answer them.
+   *
+   * **`null` until the first read lands**, and the tab draws that as a spinner rather than as an
+   * empty list: "no metric has been accepted" and "the metrics have not arrived" are opposite facts
+   * about a brief, and only one of them is news. */
+  playground: Playground | null
+  playgroundLoading: boolean
+
   /* versions */
   versions: StudioVersion[]
 
@@ -118,6 +132,24 @@ interface StudioState {
   recordVersion: () => Promise<Result>
   publish: (versionId: string, as: string | null) => Promise<Result>
   unpublish: (versionId: string) => Promise<Result>
+  /** Read the brief's metrics and hero questions. Its own call rather than part of `refresh`,
+   *  because it reads the *brief* while everything else there reads a **build** — a use case with
+   *  nothing built still has metrics to show. */
+  loadPlayground: () => Promise<void>
+  /** Write one or both lists back. **Absent means unchanged**: the Metrics tab sends metrics and the
+   *  Golden Queries tab sends questions, and neither may erase the other's work by not mentioning
+   *  it. The reply is adopted rather than the submitted list, so what is on screen is what landed —
+   *  a normalised or refused row cannot leave the two disagreeing. */
+  savePlaygroundLists: (
+    patch: {
+      metrics?: PlaygroundMetric[]
+      goldenQueries?: GoldenQuery[]
+      files?: PlaygroundFile[]
+    },
+    /** Told, never guessed — the identity is client-held, so a route has nothing to look an
+     *  uploader up from. The same parameter `publish` and `decide` take, for the same reason. */
+    as: string | null,
+  ) => Promise<Result>
 }
 
 /** The selected use case's row, or null. */
@@ -185,6 +217,8 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
   unreviewedCount: 0,
   savingLinkId: null,
   sweeping: false,
+  playground: null,
+  playgroundLoading: false,
   versions: [],
   building: false,
   bridgeFollows: false,
@@ -227,9 +261,15 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
       unreviewedCount: 0,
       versions: [],
       bridgeFollows: false,
+      /* Cleared rather than left to be overwritten: the previous use case's metrics under this
+         one's name is the exact fault clearing the rest of this block exists to prevent. */
+      playground: null,
       error: null,
     })
-    if (useCaseId) void get().refresh()
+    if (useCaseId) {
+      void get().refresh()
+      void get().loadPlayground()
+    }
   },
 
   refresh: async () => {
@@ -521,6 +561,37 @@ export const useStudioStore = create<StudioState>()((set, get) => ({
       await publishGraphVersion({ useCaseId: id, graphVersionId: versionId, as })
       const versions = await listGraphVersions(id)
       set({ versions, busy: false, error: null })
+      return { ok: true }
+    } catch (error) {
+      const message = toMessage(error)
+      set({ busy: false, error: message })
+      return { ok: false, error: message }
+    }
+  },
+
+  loadPlayground: async () => {
+    const id = get().useCaseId
+    if (!id) return
+    set({ playgroundLoading: true })
+    try {
+      const playground = await getPlayground(id)
+      /* Guarded on the selector still holding the use case this read was for: switching while a
+         read is in flight would otherwise land one brief's metrics under another's name, which is
+         the race `reportsStore` keeps the requested id beside its report for. */
+      if (get().useCaseId !== id) return
+      set({ playground, playgroundLoading: false, error: null })
+    } catch (error) {
+      set({ playgroundLoading: false, error: toMessage(error) })
+    }
+  },
+
+  savePlaygroundLists: async (patch, as) => {
+    const id = get().useCaseId
+    if (!id) return { ok: false, error: 'Pick a use case first.' }
+    set({ busy: true })
+    try {
+      const playground = await savePlayground({ useCaseId: id, ...patch, as })
+      set({ playground, busy: false, error: null })
       return { ok: true }
     } catch (error) {
       const message = toMessage(error)

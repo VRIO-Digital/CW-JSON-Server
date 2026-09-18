@@ -1,0 +1,90 @@
+/*
+ * The Playground's rows. Spacing is the `--sp-*` scale, like everything authored in this repo —
+ * only the two vendored stylesheets are exempt from it, and this is not one of them.
+ */
+
+.pg-heading {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(0, 0, 0, 0.45);
+  margin-bottom: var(--sp-2);
+}
+
+.pg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pg-row-main {
+  /* Without this a long query stretches the row past the panel instead of scrolling inside it. */
+  min-width: 0;
+  flex: 1;
+}
+
+.pg-row-title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13.5px;
+}
+
+/* Provenance, not status — letterspaced grey rather than a tinted pill, because a tinted one beside
+   a status tag would have to pick a meaning for green. */
+.pg-row-tag {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+.pg-row-detail {
+  margin-top: var(--sp-2);
+  margin-bottom: 0;
+  font-size: 12.5px;
+}
+
+.pg-row-sql {
+  margin-top: var(--sp-2);
+  margin-bottom: 0;
+  padding: var(--sp-3);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.03);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  /* A query is written in lines and read in them; wrapping one silently re-lineates it. */
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.pg-row-nosql {
+  display: block;
+  margin-top: var(--sp-2);
+  font-size: 12.5px;
+}
+
+.pg-row-acts {
+  flex: 0 0 auto;
+}
+
+.pg-file {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.pg-file-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
