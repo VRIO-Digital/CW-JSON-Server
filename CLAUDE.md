@@ -118,6 +118,8 @@ npm run seed:settings   # re-authors db.settings — users and persona navigatio
 npm run seed:dataset -- CAPEX # writes an empty-but-servable db.json for a secondary dataset
 npm run seed:workspaces # adds the extra GCP projects and Drives (with nested folders) to db.json
 npm run seed:capex-drive # authors CAPEX's My Drive from its own shipped documents (writes db.CAPEX.json)
+npm run seed:capex-extractions # re-derives CAPEX's document_extractions from its own canvas, one hop
+                       # from each document's subject (run it AFTER seed:capex-drive)
 npm run seed:prototype-model # authors the primary's report-authoring row model (writes db.json)
 npm run seed:data-model # gives a dataset the empty data_model key the Data Modeling tab writes to
 npm run seed:capex-metrics # authors CAPEX's metric pool from the tenant's measure sheet (writes db.CAPEX.json)
@@ -313,8 +315,38 @@ of inbound manifests that node already carries. `documentDictionary` reports it 
 the document's `resolution` (null when nothing matched) and **does not fold it into
 the synthesised entity list** — a read fact and a hashed one must not sit in one
 column looking alike. Two documents about one facility share a node; that is
-entity resolution, not duplication. The entity *list* stays synthesised because the
+entity resolution, not duplication. The entity *list* stays synthesised because EPA's
 map describes one entity per file, not the dozens a 96-page decree holds.
+
+**And a row is one object *or a list of them*, because a document names more than one thing.** "One
+entity per file" was true of EPA's extract and read as a rule; CAPEX's corpus is contracts, and every
+one of its 41 documents resolved to a `Project` — so its document lane derived a single entity type
+and the Bridge had **one** correspondence to review, which teaches that the gate is a formality.
+Both shapes are valid, EPA's map is untouched, and `validateDb` checks each row of a list exactly as
+strictly as a lone object: widening what can be recorded must not weaken what is required of a
+record. Every lane reader goes through **`extractionsFor`**, because a second reader is how one lane
+comes to see rows another does not. `documentDictionary`'s `resolution` stays singular and takes the
+first — a file's resolution is what it *is about*, and what it goes on to name is the document lane's
+business.
+
+**CAPEX's own map is walked from its canvas, by `npm run seed:capex-extractions`.** A contract's row
+names its project and its contract number; the canvas states what that contract is `AWARDED_TO`,
+`ENGINEERED_BY`, `AMENDS`-ed by and `DELIVERS` to, and what the project it delivers is `MANAGED_BY`,
+`ROLLS_UP_TO`, `CLASSIFIED_AS` and `DRIVEN_BY`. Each extraction is **one of those stated edges, one
+hop from the document's own subject**, and carries that edge in `method` — so the claim is checkable
+against the canvas rather than taken on trust. Two hops would reach the whole graph and stop being
+about the document; `BudgetPlanVersion` and `Measure` are excluded as the graph's own bookkeeping,
+and `Document` because the lane already adds every corpus document in its own right. The seed
+**refuses to write** a resolution the canvas lacks, a type no concept pairs with, or a map so narrow
+that fewer than ten correspondences would reach the review queue.
+
+**Which is also why My Drive carries one scope document.** A contract names its project, its vendor
+and its change orders and stops there — four entity types — so a use case picking the personal drive
+got a four-row queue. A scope document's subject is the *project*, whose neighbours are its
+programme, business unit, state, manager, classification, regulatory driver and in-service asset. One
+copy takes the queue to eleven, over a document a delivery manager plainly keeps. Five would not:
+five files named `Project_Scope_Document.pdf` in one drive is a drive nobody can read, which is why
+the seed takes exactly one.
 
 **A view states its `label` and its `grain`; a document states its
 `doc_type_label` and its `linked_entity`.** These are not decoration: `e_manifest`

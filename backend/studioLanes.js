@@ -557,9 +557,30 @@ export function corpusDocuments(doc, useCase) {
  * resolved entity, because an unresolved extraction is a *finding* rather than an entity with a
  * missing field, and dropping the document with it would hide the finding entirely.
  */
+/**
+ * What a document was found to be about — **as a list, because a document names more than one
+ * thing.**
+ *
+ * `document_extractions[id]` began as one object per file, on the reasoning that the map "describes
+ * one entity per file, not the dozens a 96-page decree holds". That is true of EPA's extract, and it
+ * is a fact about *that extract* rather than a rule: CAPEX's corpus is contracts, and a contract
+ * names its project, its contract number, the vendor it was awarded to, the engineer and the change
+ * orders that amend it — every one of which its own canvas already states. Read as one entity each,
+ * all 41 of its documents resolved to a `Project`, so the Bridge derived a single entity type and
+ * had one correspondence to review.
+ *
+ * So the value is an object **or** an array of them, and every reader goes through here. Both shapes
+ * stay valid and EPA's map is untouched, which is the point: this widens what can be recorded
+ * without changing what has been.
+ */
+export function extractionsFor(doc, documentId) {
+  const value = (doc.document_extractions ?? {})[documentId]
+  if (!value) return []
+  return (Array.isArray(value) ? value : [value]).filter((e) => e && e.resolved_node)
+}
+
 export function dgbEntities(doc, useCase) {
   const documents = corpusDocuments(doc, useCase)
-  const extractions = doc.document_extractions ?? {}
   const byNode = new Map()
 
   for (const row of documents) {
@@ -583,8 +604,7 @@ export function dgbEntities(doc, useCase) {
       kind: 'document',
     })
 
-    const extracted = extractions[row.document.document_id]
-    if (!extracted || !extracted.resolved_node) continue
+    for (const extracted of extractionsFor(doc, row.document.document_id)) {
     const nodeId = extracted.resolved_node
     const existing = byNode.get(nodeId)
     if (existing) {
@@ -609,6 +629,7 @@ export function dgbEntities(doc, useCase) {
       mention_count: 1,
       kind: 'resolved',
     })
+    }
   }
   return [...byNode.values()]
 }
@@ -625,17 +646,17 @@ export function dgbEntities(doc, useCase) {
  */
 export function dgbRelations(doc, useCase) {
   const documents = corpusDocuments(doc, useCase)
-  const extractions = doc.document_extractions ?? {}
   const entityIds = new Set(dgbEntities(doc, useCase).map((e) => e.entity_id))
   const out = []
   const documentForNode = new Map()
 
   for (const row of documents) {
-    const extracted = extractions[row.document.document_id]
-    if (!extracted || !extracted.resolved_node) continue
+    /* One relation per extraction: a document naming three things asserts three times, and the id
+       carries the node so two of them cannot collide on one key. */
+    for (const extracted of extractionsFor(doc, row.document.document_id)) {
     documentForNode.set(extracted.resolved_node, row.document.document_id)
     out.push({
-      relation_id: `rel:${row.document.document_id}`,
+      relation_id: `rel:${row.document.document_id}:${extracted.resolved_node}`,
       subject_entity_id: row.document.document_id,
       object_entity_id: extracted.resolved_node,
       relation_type: 'DESCRIBES',
@@ -646,6 +667,7 @@ export function dgbRelations(doc, useCase) {
       classes: [row.document.doc_type].filter(Boolean),
       confidence: typeof extracted.confidence === 'number' ? extracted.confidence : null,
     })
+    }
   }
 
   for (const edge of doc.graph_studio?.canvas?.edges ?? []) {
@@ -668,16 +690,14 @@ export function dgbRelations(doc, useCase) {
 
 /** One mention per extraction, which is what the map records: this document, this chunk, this node. */
 export function dgbMentions(doc, useCase) {
-  const extractions = doc.document_extractions ?? {}
   const out = []
   for (const row of corpusDocuments(doc, useCase)) {
-    const extracted = extractions[row.document.document_id]
-    if (!extracted || !extracted.resolved_node) continue
+    for (const extracted of extractionsFor(doc, row.document.document_id)) {
     const node = (doc.graph_studio?.canvas?.nodes ?? []).find(
       (n) => n.node_id === extracted.resolved_node,
     )
     out.push({
-      mention_id: `mention:${row.document.document_id}`,
+      mention_id: `mention:${row.document.document_id}:${extracted.resolved_node}`,
       entity_id: extracted.resolved_node,
       chunk_id: `chunk:${row.document.document_id}`,
       document_id: row.document.document_id,
@@ -687,6 +707,7 @@ export function dgbMentions(doc, useCase) {
       salience: Number((0.55 + (hash(`${row.document.document_id}:${extracted.extracted_entity}`) % 45) / 100).toFixed(2)),
       classes: [row.document.doc_type].filter(Boolean),
     })
+    }
   }
   return out
 }

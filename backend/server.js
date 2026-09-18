@@ -1169,14 +1169,27 @@ const DB_SHAPE = {
   document_extractions: (v, empty) =>
     isObject(v) &&
     (empty || Object.keys(v).length > 0) &&
-    Object.values(v).every(
-      (e) =>
-        isObject(e) &&
-        typeof e.extracted_entity === 'string' &&
-        typeof e.resolved_node === 'string' &&
-        typeof e.linked_manifests === 'number' &&
-        typeof e.confidence === 'number',
-    ),
+    Object.values(v).every((entry) => {
+      /*
+       * **One object, or a list of them** — a document names more than one thing. EPA's extract
+       * records one entity per file and stays an object; CAPEX's contracts name their project, their
+       * contract, the vendor they were awarded to and the change orders that amend them, so its rows
+       * are lists. Both shapes are checked identically row by row, which is the point: widening what
+       * can be recorded must not weaken what is required of each record.
+       */
+      const rows = Array.isArray(entry) ? entry : [entry]
+      return (
+        rows.length > 0 &&
+        rows.every(
+          (e) =>
+            isObject(e) &&
+            typeof e.extracted_entity === 'string' &&
+            typeof e.resolved_node === 'string' &&
+            typeof e.linked_manifests === 'number' &&
+            typeof e.confidence === 'number',
+        )
+      )
+    }),
   /*
    * The Data Modeling tab's declarations — one entity per profiled table, holding the Overview a
    * curator wrote, the identifier they confirmed, the relationships they declared, and the columns
@@ -1571,8 +1584,9 @@ const DB_HINTS = {
     'non-empty array of { answer_id, question, summary, blocks[], evidence[], confidence } — ' +
     'the recorded answers Ask serves',
   document_extractions:
-    'object keyed by document_id, each ' +
-    '{ extraction_id, extracted_entity, entity_type, resolved_node, resolved_facility, state, linked_manifests, confidence }',
+    'object keyed by document_id, each one — or a LIST of them, since a document names more than ' +
+    'one thing — of { extraction_id, extracted_entity, entity_type, resolved_node, ' +
+    'resolved_facility, state, linked_manifests, confidence }',
   data_model:
     'object with entities[] of { entity_id, table_key "<dataset>.<table>", entity_name, ' +
     'description, business_purpose, grain_description, attributes[], relationships[] of ' +
@@ -2731,8 +2745,18 @@ function documentDictionary(source, folderId, doc) {
      * invent, because it is what joins them to the structured side.
      */
     linked_entity: doc.linked_entity,
-    /** Where that entity landed in the graph. Null when nothing resolved. */
-    resolution: db.document_extractions?.[doc.document_id] ?? null,
+    /**
+     * Where that entity landed in the graph. Null when nothing resolved.
+     *
+     * **The document's own subject where the map holds a list**, which is its first row: a file's
+     * resolution is what it *is about*, and the entities it goes on to name are the document lane's
+     * business rather than this column's. Widening this cell to a list is a change to the Data
+     * Catalog nobody asked for; reading `[0]` off an array is not.
+     */
+    resolution: (() => {
+      const found = db.document_extractions?.[doc.document_id] ?? null
+      return Array.isArray(found) ? (found[0] ?? null) : found
+    })(),
     pages: doc.pages,
     size_mb: doc.size_mb,
     modified: doc.modified,

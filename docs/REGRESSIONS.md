@@ -7374,3 +7374,43 @@ rather than on the table it names, which would go stale at the next re-profile.
 
 *A refusal is only honest when the thing refused is genuinely absent. Matching one spelling of a
 concept and calling the rest missing is a claim about the schema that the schema does not make.*
+
+## A review queue of one row (2026-09-18)
+
+**Symptom** — reported from a screenshot of the Bridge tab under CAPEX: *1 of 1 correspondence still
+to decide*, with **Accept all (1)** beside it. The gate worked; there was nothing in it.
+
+**Root cause** — `document_extractions` recorded one entity per document, and for this corpus that
+entity was always the project: all 41 documents resolved to a `PRJ:*` node. The Bridge pairs every
+resolved **entity type** with every concept, so one type is one correspondence however many documents
+or concepts there are. Nothing was broken — the shape was a fact about EPA's extract that had been
+read as a rule.
+
+**Fix** — the map's value is now an object **or a list of them**. EPA's is untouched and still means
+what it meant. CAPEX's is re-derived by `npm run seed:capex-extractions`, which walks **one hop from
+each document's own subject** across the canvas the dataset already ships: a contract is `AWARDED_TO`
+a vendor, `AMENDS`-ed by its change orders, `DELIVERS` to a project which is `MANAGED_BY` a person and
+`ROLLS_UP_TO` a business unit. Each extraction carries the edge it was read from in `method`, so it is
+checkable against the canvas. Eleven entity types, eleven rows to review.
+
+**Two things that fell out.**
+
+- **A contracts-only corpus cannot reach the project-side types**, and the personal drive is
+  contracts-only — so a use case picking it still got four rows. `seed-capex-drive.js` now takes one
+  scope document as well, whose subject *is* a project. Not five: five files named
+  `Project_Scope_Document.pdf` in one drive is the reason they were left out originally, and that is
+  still true.
+- **The validator caught the shape change on boot**, exactly as designed, and said so by name before
+  anything served a wrong answer. Widening it was deliberate work rather than a surprise, and each row
+  of a list is checked as strictly as a lone object ever was.
+
+**Guard** — five `check-docs` claims, all break-tested: `extractionsFor` exists and all three lane
+readers go through it (counted, and the old direct indexing asserted absent); the validator checks
+list rows; the seed records its edge, refuses an unresolvable node and refuses a map too narrow to
+review; My Drive carries a scope document; and — separately from all of those — **the shipped document
+really does resolve ten or more types, each pairing with a concept its own canvas declares**. That
+last one is the claim that matters: the others are about the machinery, and only this one is about
+what a reader actually meets. It is broken by collapsing the shipped map back to one entity each.
+
+*A shape that fits the only data you have is not a rule. It is a fact about that data, and it will be
+read as a rule by whoever ships the second dataset.*

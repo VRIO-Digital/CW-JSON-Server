@@ -3628,12 +3628,19 @@ expect(
     /* Nested, because a flat personal drive does not exercise the tree the wizard draws from
        `parent_id` — which is the control this dataset would otherwise never render. */
     (capexMyDrive?.folders ?? []).some((f) => f.parent_id) &&
-    /* Nothing invented: every document resolves, and to a node this canvas has. */
+    /* Nothing invented: every document resolves, and **every entity it names** resolves to a node
+       this canvas has. Read as a list, because a document names more than one thing — and checked
+       over all of them rather than the first, since it is the later rows a widened map adds. */
     capexMyDriveDocs.every((d) => {
-      const row = capexDoc.value?.document_extractions?.[d.document_id]
+      const found = capexDoc.value?.document_extractions?.[d.document_id]
+      const rows = Array.isArray(found) ? found : found ? [found] : []
       return (
-        row &&
-        (capexDoc.value?.graph_studio?.canvas?.nodes ?? []).some((n) => n.node_id === row.resolved_node)
+        rows.length > 0 &&
+        rows.every((row) =>
+          (capexDoc.value?.graph_studio?.canvas?.nodes ?? []).some(
+            (n) => n.node_id === row.resolved_node,
+          ),
+        )
       )
     }),
   capexDriveKinds.has('my_drive')
@@ -5757,6 +5764,85 @@ expect(
 )
 
 /*
+ * **A document names more than one thing, and the Bridge's queue is the consequence.**
+ *
+ * `document_extractions[id]` was one object per file. EPA's extract genuinely records one entity per
+ * file, so that read as a rule rather than as a fact about that extract — and CAPEX's corpus is
+ * contracts, every one of which resolved to a `Project`. One entity type is **one** (entity type ×
+ * concept) correspondence to review, and a review queue of one row teaches that the gate is a
+ * formality. The value is an object *or* a list of them now, both shapes valid, and every reader goes
+ * through `extractionsFor` — a second reader is how one lane comes to see rows another does not.
+ */
+expect(
+  'an extraction map holds one entity or a list, and every reader goes through one function',
+  /export function extractionsFor\(doc, documentId\)/.test(studioLanesCode) &&
+    /Array\.isArray\(value\) \? value : \[value\]/.test(studioLanesCode) &&
+    /* All three lane readers, and none of them still indexing the map itself. */
+    (studioLanesCode.match(/extractionsFor\(doc, row\.document\.document_id\)/g) ?? []).length === 3 &&
+    !/const extractions = doc\.document_extractions/.test(studioLanesCode) &&
+    /* And the validator checks each row of a list exactly as strictly as a lone object: widening what
+       can be recorded must not weaken what is required of a record. */
+    /const rows = Array\.isArray\(entry\) \? entry : \[entry\]/.test(codeOnly(server)),
+  'one entity per file was a fact about EPA’s extract, not a rule',
+)
+/*
+ * **And what CAPEX's map records is read, one hop, from its own canvas.**
+ *
+ * A contract's own row names its project and its contract number; the canvas states what that
+ * contract is `AWARDED_TO`, `ENGINEERED_BY`, `AMENDS`-ed by and `DELIVERS` to. Each extraction the
+ * seed writes is one of those stated edges, and carries it in `method` — so the claim is checkable
+ * against the canvas rather than taken on trust. The seed refuses to write a resolution the canvas
+ * does not have, a type no concept pairs with, or a map so narrow the Bridge has nothing to review.
+ */
+const capexExtractSeed = existsSync(join(root, 'backend/scripts/seed-capex-extractions.js'))
+  ? read('backend/scripts/seed-capex-extractions.js')
+  : ''
+expect(
+  'CAPEX’s extractions are walked from its canvas, and the seed refuses a map that reviews nothing',
+  capexExtractSeed.length > 0 &&
+    /const FOLLOWED = new Set\(\[/.test(capexExtractSeed) &&
+    /method: entry\.method/.test(capexExtractSeed) &&
+    /const MIN_TYPES = 10/.test(capexExtractSeed) &&
+    /which the canvas does not have/.test(capexExtractSeed) &&
+    /resolved types with no concept on the canvas/.test(capexExtractSeed) &&
+    /"seed:capex-extractions"/.test(read('package.json')) &&
+    /"seed:capex-extractions"/.test(read('backend/package.json')),
+  'a review queue of one row teaches that the gate is a formality',
+)
+/*
+ * **And the document it wrote really does give the Bridge something to review.** The claims above are
+ * about the script; this is about the shipped document, which is what a reader meets. Counted the way
+ * the Bridge counts it — distinct resolved entity types, since each is one correspondence per concept
+ * — over the drive a use case can actually pick.
+ */
+const capexResolvedTypes = new Set(
+  Object.values(capexDoc.value?.document_extractions ?? {})
+    .flatMap((v) => (Array.isArray(v) ? v : [v]))
+    .map((e) => e?.entity_type)
+    .filter(Boolean),
+)
+const capexConceptNames = new Set(
+  (capexDoc.value?.graph_studio?.canvas?.nodes ?? [])
+    .filter((n) => n.element_class === 'concept')
+    .map((n) => n.label),
+)
+expect(
+  'CAPEX resolves at least 10 entity types, each pairing with a concept its canvas declares',
+  capexResolvedTypes.size >= 10 &&
+    [...capexResolvedTypes].every((t) => capexConceptNames.has(t)),
+  `${capexResolvedTypes.size} types: ${[...capexResolvedTypes].sort().join(', ')}`,
+)
+/* The personal drive is the one a use case is likeliest to pick, and a contracts-only drive cannot
+   reach the project-side types — so its seed takes one scope document as well, and says why. */
+expect(
+  'and My Drive carries a scope document, which is what reaches the project’s own neighbours',
+  /doc_type === 'scope_document'/.test(read('backend/scripts/seed-capex-drive.js')) &&
+    /four entity types and the Bridge/.test(read('backend/scripts/seed-capex-drive.js')) &&
+    (capexMyDriveDocs ?? []).some((d) => d.doc_type === 'scope_document'),
+  `My Drive: ${(capexMyDriveDocs ?? []).map((d) => d.doc_type).join(', ')}`,
+)
+
+/*
  * **The Bridge stops at the type level, and its review predicate is one definition.**
  *
  * Deriving the outstanding count at the edge would be a second expression of the publish gate, and
@@ -6484,10 +6570,16 @@ expect(
  * skipped a row. So every seeded document must have one.
  */
 const extractions = db.document_extractions ?? {}
+/** One object or a list of them — a document names more than one thing. The **first** is its own
+ *  subject, which is what these claims are about; the rest are what it goes on to name. */
+const firstExtraction = (map, id) => {
+  const found = (map ?? {})[id]
+  return Array.isArray(found) ? (found[0] ?? null) : (found ?? null)
+}
 for (const drive of db.drives ?? []) {
   for (const folder of drive.folders ?? []) {
     for (const doc of folder.documents ?? []) {
-      const resolution = extractions[doc.document_id]
+      const resolution = firstExtraction(extractions, doc.document_id)
       expect(
         `document "${doc.document_id}" resolves to a graph node`,
         Boolean(resolution?.resolved_node),
@@ -6514,9 +6606,18 @@ expect(
   ),
   `${Object.keys(extractions).length} extractions`,
 )
+/*
+ * **Served, not synthesised — and the document's own subject where the map holds a list.**
+ *
+ * `document_extractions[id]` is one object or an array of them, since a document names more than one
+ * thing. The Catalog's cell stays singular on purpose: a file's *resolution* is what it is about, and
+ * the rest of what it names is the document lane's business. Reading `[0]` is that decision; widening
+ * the cell to a list would be a Catalog change nobody asked for.
+ */
 expect(
   'the resolution is served, not synthesised',
-  /resolution: db\.document_extractions\?\.\[doc\.document_id\] \?\? null/.test(server),
+  /const found = db\.document_extractions\?\.\[doc\.document_id\] \?\? null/.test(server) &&
+    /Array\.isArray\(found\) \? \(found\[0\] \?\? null\) : found/.test(server),
   'documentDictionary reads it from db.json',
 )
 

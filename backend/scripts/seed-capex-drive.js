@@ -65,13 +65,24 @@ if (!packageDrive) {
  * here would still name `DOC:qdn-2025-c01` after the package renamed it, and the seed would refuse to
  * write with no clue which end had moved.
  *
- * Scope documents are deliberately not copied. Every project folder holds exactly one, it is the
- * project's own record rather than a working paper, and five files all named
- * `Project_Scope_Document.pdf` in one personal drive is a drive nobody can read.
+ * **Plus exactly one scope document, and one is the whole point.** All five were left out originally
+ * because five files named `Project_Scope_Document.pdf` in one personal drive is a drive nobody can
+ * read — which is still true, and is why this takes the first project's only. What it buys is the
+ * thing a contracts-only drive cannot have: a contract names its project, its vendor and its change
+ * orders, and stops there, so a use case picking this drive derived four entity types and the Bridge
+ * had four correspondences to review. A scope document's subject is the *project*, which the canvas
+ * connects to its programme, its business unit, its state, its manager, its classification, its
+ * regulatory driver and its in-service asset — so one of them takes the review queue from four rows
+ * to eleven, over a document a delivery manager plainly keeps a copy of.
  */
-const sources = packageDrive.folders
-  .map((folder) => folder.documents.find((d) => d.doc_type === 'contract'))
-  .filter(Boolean)
+const sources = [
+  ...packageDrive.folders
+    .map((folder) => folder.documents.find((d) => d.doc_type === 'contract'))
+    .filter(Boolean),
+  packageDrive.folders
+    .flatMap((folder) => folder.documents)
+    .find((d) => d.doc_type === 'scope_document'),
+].filter(Boolean)
 
 if (sources.length < 3) {
   problems.push(
@@ -162,28 +173,34 @@ const newDocs = folders.flatMap((f) => f.documents)
  */
 const extractions = {}
 for (const doc of newDocs) {
-  const source = db.document_extractions?.[doc._source_id]
-  if (!source) {
+  /* **A list, because a document names more than one thing** — `document_extractions` carries either
+     one object or an array of them, and a copy resolves to everything its original resolved to. An
+     older map holding a single object is read as a list of one, so both shapes carry forward. */
+  const raw = db.document_extractions?.[doc._source_id]
+  const source = raw ? (Array.isArray(raw) ? raw : [raw]) : []
+  if (source.length === 0) {
     problems.push(
       `${doc._source_id} has no document_extractions row, so its copy would resolve to nothing`,
     )
     continue
   }
-  extractions[doc.document_id] = {
-    ...source,
-    extraction_id: `ex_my_${doc.document_id.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}`,
+  extractions[doc.document_id] = source.map((row, i) => ({
+    ...row,
+    extraction_id: `ex_my_${doc.document_id.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${i + 1}`,
     document_id: doc.document_id,
     source_file: doc.name,
-  }
+  }))
 }
 
 /* A node this canvas has never heard of is the one thing a seed must not add. It is carried from the
    source, so this holds by construction — asserted because "by construction" is exactly what stops
    being true when somebody edits the copy rule above. */
 const nodeIds = new Set((db.graph_studio?.canvas?.nodes ?? []).map((n) => n.node_id))
-for (const [id, row] of Object.entries(extractions)) {
-  if (!nodeIds.has(row.resolved_node)) {
-    problems.push(`${id} resolves to ${row.resolved_node}, which is not a node on this canvas`)
+for (const [id, rows] of Object.entries(extractions)) {
+  for (const row of rows) {
+    if (!nodeIds.has(row.resolved_node)) {
+      problems.push(`${id} resolves to ${row.resolved_node}, which is not a node on this canvas`)
+    }
   }
 }
 

@@ -12,6 +12,7 @@
     "seed:dataset": "node scripts/seed-dataset.js",
     "seed:workspaces": "node scripts/seed-workspaces.js",
     "seed:capex-drive": "node scripts/seed-capex-drive.js",
+    "seed:capex-extractions": "node scripts/seed-capex-extractions.js",
     "seed:prototype-model": "node scripts/seed-prototype-model.js",
     "seed:data-model": "node scripts/seed-data-model.js",
     "unaccept:data-model": "node scripts/unaccept-data-model.js",
