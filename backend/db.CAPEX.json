@@ -22871,7 +22871,75 @@
       ]
     }
   ],
-  "graph_use_cases": [],
+  "graph_use_cases": [
+    {
+      "use_case_id": "uc-testdata-mu6s7d6k4",
+      "name": "testdata",
+      "status": "committed",
+      "domain_id": "capital-projects",
+      "business_need": "testdata",
+      "personas": [
+        {
+          "name": "Procurement Lead",
+          "description": "Asks what has been awarded, what has changed since award, and to whom.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Compliance Lead",
+          "description": "Asks what the regulatory drivers oblige and what they cost.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [
+        {
+          "name": "Current Month Budget Variance",
+          "description": "Variance = Actual(Current Month) − Budget(Current Month)",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        },
+        {
+          "name": "Spend Against Authorised Envelope",
+          "description": "Committed plus actual spend on a capital project as a share of its authorised envelope.",
+          "source": "ai",
+          "origin": null,
+          "sql": null
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        },
+        {
+          "source_id": "gdrive:my-drive-capital-delivery",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [
+        {
+          "text": "Is this overrun scope, escalation, schedule, or estimate error?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT `Estimated In Service Date`, `Remediation Cost Estimate`, `Project Description`, In_Phase, `WIN Approval Date`, `Start Date`\nFROM `plan`.`vw_project_plan_capex`\nLIMIT 1000"
+        },
+        {
+          "text": "What is committed but not yet incurred, by project and by vendor?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT `Project Code`, `Is Committed`, Entity, Phase, `MTP Amount`, Region\nFROM `plan`.`plan_mtp_multiyear`\nLIMIT 1000"
+        }
+      ],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 5,
+      "updated_at": "2026-09-18T09:54:50.232Z"
+    }
+  ],
   "graph_use_case_templates": [
     {
       "template_id": "capital-programme-intelligence",

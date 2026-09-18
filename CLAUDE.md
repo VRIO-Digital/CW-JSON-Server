@@ -131,9 +131,10 @@ npm run verify:sigv4 # checks the S3 signing against AWS's published vector; no 
 npm run verify:export # checks the report HTML/CSV renderers; pure, so no bucket needed
 npm run verify:schema-import # checks the schema/dictionary reader against fixtures; pure, nothing running
 npm run verify:studio-lanes # replays Graph Studio's lane derivation over both documents; pure, nothing running
+npm run verify:question-sql # replays the hero-question SQL composer over both documents; pure, nothing running
 npm run verify:studio-contract # every studio fetcher against a LIVE server, through the real validators
                        # (needs npm run mock, so deliberately NOT in preflight; CONTRACT_DATASET=CAPEX for the other one)
-npm run preflight   # lint + build + audit + verify:sigv4 + verify:export + verify:schema-import + verify:studio-lanes + check-docs — run before calling work done
+npm run preflight   # lint + build + audit + verify:sigv4 + verify:export + verify:schema-import + verify:studio-lanes + verify:question-sql + check-docs — run before calling work done
 ```
 
 **Two processes are required.** `npm run dev` alone renders empty pages: there is no
@@ -2390,6 +2391,52 @@ the Data Catalog. A plausible query naming a column this tenant does not have is
 at all: it reads as an answer and fails only when somebody runs it. So **a question nothing matches
 is a refusal** — `sql: null` with the reason — and the box shows *No SQL yet — write your own or
 click regenerate* rather than a `SELECT *` composed to fill the space.
+
+**What it matches on is three things, ranked.** A question's word in a column's **name** is the
+strongest signal there is; the same word in the **description** the tenant wrote about that column is
+real evidence and weaker; and a **vocabulary** entry — the words a reader asks in, mapped to the
+words a schema is written in — is this module's reading of what they meant, so it is weaker still.
+Reading names alone refused questions the schema answers: CAPEX has `Comment`, `Source System` and
+`Prepared By`, and *"Which explanations came from correspondence rather than from a person?"* reached
+none of them. Reported from use. `SYNONYMS` is the one place that vocabulary lives, and **it reaches
+a real column and never invents one** — the guarantee above is untouched, and the query names the
+column it settled on, which is the check: a reader who disagrees that *explanation* means `Comment`
+can see that it did.
+
+**The stoplist's filler half is load-bearing once descriptions are read.** A description is a
+*sentence*, so "came", "rather" and "than" scored against nearly every long one and the widest table
+won on filler alone. A word no schema would ever be written in is not evidence about which table
+answers a question.
+
+**And a table is chosen by how much of the question it answers, not by how many columns it has.**
+Summing every matching column was the obvious rule and the wrong one — a 96-column view accumulates
+more total score than a 22-column table matching better per column, so every CAPEX question composed
+against `vw_project_plan_capex`. The rank is **how many of the asked words the table reaches**, then
+**the best score any single column achieves for each**: an extra column only helps if it answers some
+part of the question *better* than everything already there, which is what makes it un-gameable by
+width.
+
+**The composed SQL has to parse, and three ways it did not have been fixed.** CAPEX's columns are
+called `Project Code` and `Phase Order`, so a bare `SELECT Phase Order` is two identifiers rather
+than one — every name is quoted now where it is not a plain identifier, and the alias the module
+composes itself (`AS sum_forecast_amount`) is sanitised for the same reason. A `GROUP BY` is emitted
+only where the SELECT really aggregates, and `ORDER BY 2` only where there is a second selected
+expression. Each of those reads as English in a box and fails when somebody runs it, which is the
+same failure the refusal exists to prevent one level down.
+
+**Both datasets' class vocabularies are read.** EPA profiles a place as `geo` and CAPEX as
+`geography`; CAPEX names its measures `measure_commitment`, `measure_projection`, `measure_record`,
+so a set naming only `measure` found none of them and no CAPEX question ever composed a SUM — the
+same shape as the `rows: num` failure. `derived_ratio` is deliberately **not** aggregatable: the sum
+of sixty variance percentages is not the population's variance, which the report section already
+states.
+
+**`npm run verify:question-sql` replays all of it over both documents, in preflight** — the script
+this module's own docstring had promised since it was written and which did not exist, so its one
+guarantee was checked by typing a question into a wizard and looking at the box. It re-parses every
+composed query and holds every identifier in it against `column_profiles`, and it pins the reported
+case on what the query **covers** rather than on the table it names: reverting the ranking puts the
+wrong table back, and every identifier in *that* query is real too, so nothing else catches it.
 
 **No model runs, and the payload says so** (`degraded: true`), the same honest answer the story
 draft gives. What it does is a scan: the aggregate comes from the question’s own words (*average*,

@@ -7322,3 +7322,55 @@ tested `/sql: nullable\(str\)/` against the whole of `client.ts`, where three sc
 `DRAFTED_ITEM`'s own body now.
 
 *When a list appears on a second screen, the question is not how to store it twice.*
+
+## A hero question with no SQL, over a schema that answers it (2026-09-18)
+
+**Symptom** — reported from a screenshot of step 5: *"Which explanations came from correspondence
+rather than from a person?"* sat under an amber *No profiled column matches this question*, between
+two questions that had composed fine.
+
+**Root cause** — the composer matched a question's words against column **names** only. CAPEX's
+`plan_project_forecast` carries `Comment`, `Source System`, `Prepared By` and `Reviewed By` — a
+column for each of the question's three words — and not one of them contains the word the reader
+used. The refusal was correct code giving the wrong answer.
+
+**Fix** — three signals instead of one, ranked: a word in a column's **name** (4), the same word in
+the **description** the tenant wrote about it (2), and a **vocabulary** entry mapping the words
+readers ask in to the words schemas are written in (2 in the name, 1 in a description). Nothing
+invents an identifier; what changed is which real column a question is found to be about.
+
+**Three faults fell out of running it**, and each was worse than the one reported:
+
+- **The widest table won every question.** Ranking a table by the sum of every matching column's
+  score means a 96-column view beats a 22-column one that matches better per column — so every CAPEX
+  question composed against `vw_project_plan_capex`. It ranks on coverage, then on the best score any
+  single column achieves for each asked word: an extra column only helps if it answers part of the
+  question *better*, which cannot be gamed by width.
+- **The composed SQL did not parse.** `SELECT Phase Order FROM …` is two identifiers; it had been
+  shipping that way for every CAPEX column, all of which have spaces. A `GROUP BY` was also emitted
+  beside projections that did not aggregate, and `ORDER BY 2` over a single selected expression.
+- **No CAPEX question could ever aggregate.** Measures were found with `class === 'measure'`, and
+  CAPEX names its measures `measure_commitment`, `measure_projection`, `measure_record`. Its places
+  are `geography` where EPA's are `geo`, so dimensions were missed too and "the total forecast by
+  region" grouped by `Project Code` — the right shape, the wrong question. Same shape as the
+  `rows: num` failure: a declaration checked against the one document that does not exercise it.
+
+**And the stoplist had to grow with the descriptions.** A description is a sentence, so "came",
+"rather" and "than" scored against nearly every long one — the widest table was winning on filler
+before any of the above was fixed.
+
+**Guard** — `npm run verify:question-sql`, new, in preflight, over both real documents: it re-parses
+every composed query and holds every identifier against `column_profiles`, and checks the quoting,
+the GROUP BY, the `ORDER BY 2` and that no aggregate is taken over a `derived_ratio`. The module's
+own docstring had promised this script since it was written and it did not exist — the one guarantee
+it rests on was being checked by typing into a wizard. Plus five `check-docs` claims, all
+break-tested.
+
+**Two of its own checks were vacuous until broken.** "No aggregate over a derived ratio" passed over
+nothing, because no question in the set asked for one — a probe was added that does. And the width
+regression passed *every* check and *every* claim, because the identifiers in the wrong table's query
+are real too; it is pinned now on what the query **covers** — an explanation, a source and a person —
+rather than on the table it names, which would go stale at the next re-profile.
+
+*A refusal is only honest when the thing refused is genuinely absent. Matching one spelling of a
+concept and calling the rest missing is a claim about the schema that the schema does not make.*

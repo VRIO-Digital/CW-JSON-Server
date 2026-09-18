@@ -8149,6 +8149,104 @@ expect(
     /degraded: true/.test(server),
   'a plausible query over a table nobody has fails only when somebody runs it',
 )
+/*
+ * **It reads the tenant's own words for a column, and a vocabulary for the reader's.**
+ *
+ * Matching column *names* alone refused questions this schema answers: CAPEX has `Comment`,
+ * `Source System` and `Prepared By`, and "Which explanations came from correspondence rather than
+ * from a person?" reached none of them. Reported from use. So a column's **description** is read
+ * too — the tenant's own sentence about it, which is evidence — and `SYNONYMS` maps the words a
+ * reader asks in to the words a schema is written in.
+ *
+ * **The tiers are the claim**, because collapsing them is what breaks it: a name beats a
+ * description beats a vocabulary reading, or six glancing hits on a wide view outrank six columns
+ * named for exactly what was asked. Nothing here invents an identifier — that guarantee is
+ * unchanged and is what `verify:question-sql` checks against both real documents.
+ */
+expect(
+  'the composer reads descriptions and a vocabulary, and ranks a name above both',
+  /const SYNONYMS = \{/.test(questionSqlCode) &&
+    /explanation: \[/.test(questionSqlCode) &&
+    /correspondence: \[/.test(questionSqlCode) &&
+    /const described = partsOf\(column\.description\)/.test(questionSqlCode) &&
+    /if \(parts\.includes\(word\)\) gained = 4/.test(questionSqlCode) &&
+    /else if \(described\.includes\(word\)\) gained = 2/.test(questionSqlCode) &&
+    /meanings\.some\(\(m\) => parts\.includes\(singular\(m\)\)\)\) gained = 2/.test(questionSqlCode) &&
+    /meanings\.some\(\(m\) => described\.includes\(singular\(m\)\)\)\) gained = 1/.test(questionSqlCode),
+  'a vocabulary reaches a real column; it never invents one',
+)
+/*
+ * **A table is ranked by how much of the question it answers, not by how many columns it has.**
+ * Summing every matching column made the widest view win every question — a 96-column view
+ * accumulates more total score than a 22-column table that matches better per column, which is how
+ * every CAPEX question composed against `vw_project_plan_capex`.
+ */
+expect(
+  'the table is chosen on coverage and per-word strength, never on width',
+  /const bestPerWord = new Map\(\)/.test(questionSqlCode) &&
+    /Math\.max\(bestPerWord\.get\(word\) \?\? 0, gained\)/.test(questionSqlCode) &&
+    /covered > best\.covered/.test(questionSqlCode) &&
+    /* And the filler half of the stoplist, which is what let a description sentence score at all. */
+    /'came', 'come', 'comes', 'coming', 'rather', 'than'/.test(questionSqlCode),
+  'an extra column only helps if it answers some part of the question better',
+)
+/*
+ * **The composed SQL has to parse**, and three of these shipped not parsing. CAPEX's columns are
+ * called `Project Code` and `Phase Order`: a bare `SELECT Phase Order` is two identifiers. A GROUP
+ * BY beside a projection that does not aggregate is not valid either, nor is `ORDER BY 2` over a
+ * single selected expression. Each looks fine in a box and fails when somebody runs it — which is
+ * the exact failure this module's own refusal exists to prevent, one level down.
+ */
+expect(
+  'identifiers are quoted where they need it, and a clause is emitted only when it is valid',
+  /^[^\n]*\/\^\[A-Za-z_\]\[A-Za-z0-9_\]\*\$\/\.test\(String\(name\)\)/m.test(questionSqlCode) &&
+    /let aggregated = false/.test(questionSqlCode) &&
+    /if \(groupBy && aggregated\)/.test(questionSqlCode) &&
+    /if \(aggregated && fn !== 'COUNT' && groupBy && measures\.length > 0\)/.test(questionSqlCode) &&
+    /* The alias is the one identifier this module composes rather than reads, so it is the one it
+       must sanitise: `AS sum_Forecast Amount` is broken in the same way a bare name is. */
+    /const alias = \(prefix, name\)/.test(questionSqlCode),
+  'a query that reads as an answer and does not parse is the worst of both',
+)
+/*
+ * **Both datasets' class vocabularies**, because a class is one document's fact. EPA profiles a
+ * place as `geo` and CAPEX as `geography`; CAPEX names its measures `measure_commitment`,
+ * `measure_projection`, `measure_record`, so a set naming only `measure` found none of them and no
+ * CAPEX question ever composed a SUM. The same shape as the `rows: num` failure — a declaration
+ * checked against the one document that happens not to exercise it.
+ */
+expect(
+  'the class vocabularies cover both documents, and a ratio is not a quantity',
+  /'geo', 'geography', 'organisation', 'lifecycle_state'/.test(questionSqlCode) &&
+    /const isMeasureClass = \(cls\) => \/\^measure\/\.test/.test(questionSqlCode) &&
+    !/derived_ratio/.test(questionSqlCode.replace(/^.*isMeasureClass.*$/gm, '')) &&
+    /measures = matched\.filter\(\(c\) => isMeasureClass\(c\.class\)\)/.test(questionSqlCode),
+  'the sum of sixty variance percentages is not the population’s variance',
+)
+/*
+ * **And it is replayed over both real documents, in preflight** — the script its own docstring has
+ * promised since it was written, and which did not exist: the module's one guarantee was checked by
+ * typing a question into a wizard and looking at the box.
+ */
+expect(
+  'the composer is replayed offline against both documents, in preflight',
+  existsSync(join(root, 'backend/scripts/verify-question-sql.js')) &&
+    /"verify:question-sql"/.test(read('backend/package.json')) &&
+    /"verify:question-sql"/.test(read('package.json')) &&
+    /verify:question-sql/.test(JSON.parse(read('package.json')).scripts.preflight) &&
+    /* What it is for: the promise, not the prose. */
+    /every identifier in the query is a column of that table/.test(
+      read('backend/scripts/verify-question-sql.js'),
+    ) &&
+    /* And the reported case, pinned on what the query *covers* rather than on the table it names —
+       a table name goes stale at the next re-profile. Without it, reverting the ranking to a sum
+       over every matched column passes every other check here and every claim above, because the
+       identifiers in the wrong table's query are real too. */
+    /and it reaches an explanation, a source and a person/.test(
+      read('backend/scripts/verify-question-sql.js'),
+    ),
+  'a composer that can only be checked by typing into a wizard is one nobody checks',
+)
 /* Pure, so it can be replayed with nothing running — the rule every derivation here keeps. */
 expect(
   'and the composer touches no db, no filesystem and no request',
