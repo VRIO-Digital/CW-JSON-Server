@@ -123,8 +123,8 @@
         },
         {
             "document_id": "fcb6d0c9-4aa7-5979-a161-61cfe48def68",
-            "filename": "EM-04_C25B315_658_quarrydown-post-contactor-hydraulic-grade-line-at.csv",
-            "mime_type": "text/csv",
+            "filename": "EM-04_C25B315_658_quarrydown-post-contactor-hydraulic-grade-line-at.xlsx",
+            "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "page_count": 1,
             "chunk_count": 4,
             "char_count": 2919,
