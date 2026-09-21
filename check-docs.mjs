@@ -3136,7 +3136,35 @@ expect(
   'the sign-in window renders the accounts the endpoint returned',
   /* Server: the tenant's own users, with the login's own initials derivation so two avatars for one
      person cannot disagree. Sliced to the route, not searched over the file. */
-  /const accounts = \(db\.settings\?\.users \?\? \[\]\)\.map\(\(user\) => \(\{/.test(server) &&
+  /const directory = db\.settings\?\.users \?\? \[\]/.test(server) &&
+    /*
+     * **Capped, and the cap is a presentation decision that must not become a correctness one.**
+     * Six rows is a roster rather than a chooser, so the list is cut to `OAUTH_ACCOUNT_LIMIT` — but
+     * two rows have to survive it or the window starts lying: `db.google_account`, which is the
+     * address the callback falls back to when a caller names nobody, and the reader's own, which is
+     * the default `connectingAs` and therefore who the *Connected as …* alert will name.
+     *
+     * The reader's own arrives as `as=`, sent by the client because the identity is client-held —
+     * the same reason the callback takes one. Without it the cap could drop the very account the
+     * wizard then connects as.
+     */
+    /const OAUTH_ACCOUNT_LIMIT = \d+/.test(server) &&
+    /\.slice\(0, OAUTH_ACCOUNT_LIMIT\)/.test(server) &&
+    /db\.google_account\?\.email, query\.get\('as'\)/.test(server) &&
+    /* `.email`, never the object: the seeded account is `{ email, name, picture }`. */
+    !/\[db\.google_account,/.test(server) &&
+    /* The client sends it, and the wizard sends the browser's own address. */
+    /as\?: string \| null/.test(client) &&
+    /&as=\$\{encodeURIComponent\(as\)\}/.test(client) &&
+    /oauthStart\(\r?\n\s*isDrive \? 'drive' : isGmail \? 'gmail' : 'bigquery',[\s\S]{0,200}?signedInAs,/.test(
+      wizard,
+    ) &&
+    /* **Nobody is reordered to survive the cap**: the rows stay in directory order, because the
+       reader's own is marked rather than moved. Built by filtering the directory, not by
+       concatenating the kept rows. */
+    /const accounts = directory\r?\n?\s*\.filter\(\(user\) => offered\.includes\(user\)\)/.test(
+      server,
+    ) &&
     /* …and it really reaches the reply, rather than being computed and dropped. */
     /\r?\n\s*scopes,\r?\n\s*accounts,\r?\n/.test(server) &&
     /initials: emailInitials\(user\.email\),/.test(server) &&
@@ -7789,9 +7817,11 @@ const askSuggestionsBody =
 expect(
   'and the page picks its chips from one rule in src/data/',
   askSuggestionsBody.length > 0 &&
-    /* The early return is now the *no graph* case: with one selected both lists are offered,
-       which is the whole of the change. */
-    /if \(graphQuestions === null\) return fromSources/.test(askSuggestionsBody) &&
+    /* The *no graph* case still yields the sources alone; with one selected both lists are
+       offered, which is the whole of the change. It was an early `return` and is a ternary now,
+       because the result goes on to be ordered and capped rather than handed straight back. */
+    askSuggestionsBody.includes('graphQuestions === null') &&
+    askSuggestionsBody.includes('? fromSources') &&
     /*
      * **Asserted as an absence beside it**, because the merge being present does not mean it is
      * reached: a break test that put the old `return graphQuestions` line back *above* this one
@@ -7824,8 +7854,9 @@ expect(
      * chip carries its source and the page drops the graph before asking one.
      */
     /* Asserted in the body that builds it, not only on the interface that types it: a chip
-       pushed with a null id still satisfies the type and answers nothing in particular. */
-    askSuggestionsBody.includes('fromSources.push({ text, sourceId: source.sourceId })') &&
+       pushed with a null id still satisfies the type and answers nothing in particular. Built
+       into the per-source list `mine`, which the interleave then draws from in turn. */
+    askSuggestionsBody.includes('mine.push({ text, sourceId: source.sourceId })') &&
     /sourceId: string \| null/.test(askSourcesSrc) &&
     /if \(q\.sourceId && useCaseId\) select\(null\)/.test(codeOnly(askPageSrc)) &&
     /askSuggestions\(/.test(codeOnly(askPageSrc)) &&
@@ -7847,15 +7878,38 @@ expect(
  * holds — `fromSources.length >= CAP` would be the total cap this is not.
  */
 expect(
-  'a source offers two openers, counted per source',
+  'a source offers two openers, counted per source, under a total cap of four',
   /export const SOURCE_CHIPS_PER_SOURCE = 2/.test(askSourcesSrc) &&
-    askSuggestionsBody.includes('let taken = 0') &&
-    askSuggestionsBody.includes('if (taken >= SOURCE_CHIPS_PER_SOURCE) break') &&
-    /* The counter is reset inside the source loop, not outside it. */
+    /* Still per source: the list is built one source at a time and each is cut on its own length,
+       so the row cannot be spent by whoever is listed first. */
+    askSuggestionsBody.includes('if (mine.length >= SOURCE_CHIPS_PER_SOURCE) break') &&
     askSuggestionsBody.indexOf('for (const source of sources)') <
-      askSuggestionsBody.indexOf('let taken = 0') &&
+      askSuggestionsBody.indexOf('if (mine.length >= SOURCE_CHIPS_PER_SOURCE) break') &&
     !/fromSources\.length >= SOURCE_CHIPS_PER_SOURCE/.test(askSuggestionsBody) &&
-    /* And a graph's own hero questions are not capped: the brief said it had to answer them. */
+    /*
+     * **And a total cap over the top of it**, asked for as three or four: six chips over two lines
+     * read as the set of questions the app can answer rather than a way in.
+     *
+     * The two caps are not the same guard. `SOURCE_CHIPS_PER_SOURCE` stops one mailbox filling the
+     * row; `ASK_CHIPS_MAX` stops three mailboxes filling it twice. With only the second, a
+     * concatenate-then-slice hands every slot to the first sources and a third contributes
+     * nothing — indistinguishable from one with nothing recorded, which is the silent zero this
+     * module already refuses. So the sources are **interleaved**: one each before any gets two.
+     */
+    /export const ASK_CHIPS_MAX = 4/.test(askSourcesSrc) &&
+    askSuggestionsBody.includes('for (let round = 0; round < SOURCE_CHIPS_PER_SOURCE; round += 1)') &&
+    /*
+     * **The simple opener is chosen before the cap, not after it.** Slicing first promoted the
+     * shortest of what survived, which picked a taxonomy question over the plainly easier
+     * *"Which contractors' projects overrun most often?"* — cut one slot earlier for being a
+     * source's second rather than its first.
+     */
+    /simplestFirst\(all\)\.slice\(0, ASK_CHIPS_MAX\)/.test(askSuggestionsBody) &&
+    !/all\.slice\(0, ASK_CHIPS_MAX\)\s*\)/.test(askSuggestionsBody) &&
+    /* Length is the proxy, and only the opener moves — the order behind it survives. */
+    /function simplestFirst\(chips: AskChip\[\]\): AskChip\[\]/.test(askSourcesSrc) &&
+    /* And a graph's own hero questions are not capped *per source*: the brief said it had to
+       answer them, so they lead the list before the total cap applies. */
     !/graphQuestions[\s\S]{0,40}slice\(/.test(askSuggestionsBody),
   'a cap spent by the first source leaves a second one looking like it has nothing recorded',
 )
@@ -7875,10 +7929,18 @@ const askCssSrc = read('frontend/src/pages/AskPage.css')
 expect(
   'the question box opens centred and moves down when a question is asked',
   /const opening = turns\.length === 0 && !asking/.test(codeOnly(askPageSrc)) &&
-    /* One flag, read by the layout, the grounding card and the openers alike. */
+    /*
+     * One flag, read by the layout and the openers alike.
+     *
+     * **It used to have a third reader, the grounding card, which is gone** — removed on request
+     * along with the mailbox section it drew above the box. So `{opening ? (` no longer appears;
+     * what remains is the layout class and the opener row, and both still read the one flag rather
+     * than testing the thread for themselves.
+     */
     /className=\{`ask-main\$\{opening \? ' is-opening' : ''\}`\}/.test(askPageSrc) &&
-    /\{opening \? \(/.test(askPageSrc) &&
     /suggestions\.length > 0 && opening \?/.test(askPageSrc) &&
+    /* The card really is gone, at the markup as well as in prose. */
+    !/ask-grounding/.test(codeOnly(askPageSrc)) &&
     /* The thing that animates is an interpolable number on an element with nothing in it. */
     /<div className="ask-tail" aria-hidden="true" \/>/.test(askPageSrc) &&
     /\.ask-main\.is-opening \.ask-tail \{\r?\n  flex-grow: 1;/.test(askCssSrc) &&
@@ -7932,7 +7994,7 @@ expect(
       .includes('(get().data?.sources ?? []).map((s) => s.sourceId)') &&
     /* And the openers come from the connected sources rather than from a selection — beside the
        graph's rather than instead of them, which the claim above this one pins. */
-    /fromSources\.push\(\{ text, sourceId: source\.sourceId \}\)/.test(askSourcesSrc),
+    /mine\.push\(\{ text, sourceId: source\.sourceId \}\)/.test(askSourcesSrc),
   'a + with no store behind it ticks nothing; a scope in state with no control goes stale unseen',
 )
 /*

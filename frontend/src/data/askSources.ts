@@ -167,6 +167,17 @@ export interface AskChip {
  */
 export const SOURCE_CHIPS_PER_SOURCE = 2
 
+/**
+ * How many opener chips reach the screen in total.
+ *
+ * **A row of examples, not a menu.** Six chips over two lines under the box read as the set of
+ * questions the app can answer; four on one line read as a way in. Asked for as three or four.
+ *
+ * It sits *over* `SOURCE_CHIPS_PER_SOURCE` rather than replacing it: that one stops a single
+ * mailbox spending the whole row, and this one stops three mailboxes filling it twice over.
+ */
+export const ASK_CHIPS_MAX = 4
+
 export function askSuggestions(
   graphQuestions: string[] | null,
   sources: { sourceId: string; suggestedQuestions: string[] }[],
@@ -182,22 +193,73 @@ export function askSuggestions(
    * keeps "two per source" a promise about what reaches the screen.
    */
   const seen = new Set<string>(graphQuestions ?? [])
+  /*
+   * Per source first, so the total cap below cannot be spent by whoever is listed first — the
+   * failure `SOURCE_CHIPS_PER_SOURCE` exists to prevent, one layer up.
+   */
+  const perSource: AskChip[][] = []
   for (const source of sources) {
-    /* Counted per source, so the cap cannot be spent by whoever is listed first. */
-    let taken = 0
+    const mine: AskChip[] = []
     for (const text of source.suggestedQuestions) {
-      if (taken >= SOURCE_CHIPS_PER_SOURCE) break
+      if (mine.length >= SOURCE_CHIPS_PER_SOURCE) break
       if (seen.has(text)) continue
       seen.add(text)
-      taken += 1
-      fromSources.push({ text, sourceId: source.sourceId })
+      mine.push({ text, sourceId: source.sourceId })
+    }
+    if (mine.length > 0) perSource.push(mine)
+  }
+  /*
+   * **Interleaved, so every source is represented before any is represented twice.**
+   *
+   * Concatenating them and slicing would hand all four slots to the first two mailboxes, and a
+   * mailbox contributing nothing is indistinguishable on screen from one with nothing recorded —
+   * the silent zero this file already refuses when it counts per source rather than over the row.
+   */
+  for (let round = 0; round < SOURCE_CHIPS_PER_SOURCE; round += 1) {
+    for (const mine of perSource) {
+      if (mine[round]) fromSources.push(mine[round])
     }
   }
-  if (graphQuestions === null) return fromSources
+
   /* A graph question and a source question can read the same; the graph's wins the slot, because
      it is what the current selection answers — and the seeding above is what keeps it the only
      one drawn. */
-  return [...graphQuestions.map((text) => ({ text, sourceId: null })), ...fromSources]
+  const all =
+    graphQuestions === null
+      ? fromSources
+      : [...graphQuestions.map((text) => ({ text, sourceId: null })), ...fromSources]
+
+  /*
+   * **The opener is chosen before the cap, not after it.**
+   *
+   * Slicing first and then promoting the shortest of what survived picked a taxonomy question over
+   * *"Which contractors' projects overrun most often?"* — which is plainly the simpler way in, and
+   * had been cut one slot earlier for being a source's second rather than its first. The easy
+   * question is the one thing on this row that has to be there, so it is taken from everything
+   * available and the remaining slots are filled in order behind it.
+   */
+  return simplestFirst(all).slice(0, ASK_CHIPS_MAX)
+}
+
+/**
+ * Puts the shortest question first and leaves the rest in the order they were chosen.
+ *
+ * **The opener should be the easy one.** A reader meeting *"Is this overrun scope, escalation,
+ * schedule, or estimating?"* first has been asked to parse a taxonomy before they have asked
+ * anything; *"Which contractors' projects overrun most often?"* is a way in. Length is the proxy —
+ * it is the one property of a question this module can read, and it is honest about being a proxy:
+ * nothing here understands what a question means, so ranking by anything else would be a claim.
+ *
+ * **Stable**: only the chosen opener moves, so the ordering the cap produced — graph first, then
+ * one per source — survives underneath it.
+ */
+function simplestFirst(chips: AskChip[]): AskChip[] {
+  if (chips.length < 2) return chips
+  let pick = 0
+  for (let i = 1; i < chips.length; i += 1) {
+    if (chips[i].text.length < chips[pick].text.length) pick = i
+  }
+  return [chips[pick], ...chips.filter((_, i) => i !== pick)]
 }
 
 /**

@@ -459,11 +459,21 @@
   font-size: 14px;
 }
 
+/*
+ * The openers, **above** the box rather than under it — moved on request, with the grounding card
+ * that used to sit there removed.
+ *
+ * `margin-bottom` rather than `margin-top`: they lead into the box now, so the gap belongs beneath
+ * them. One row is the intent, and the cap is what delivers it — `ASK_CHIPS_MAX` is 4, so at the
+ * width below they fit a line at ordinary window sizes. `flex-wrap` stays, because a narrow window
+ * is not a reason to push a chip off screen: wrapping is the honest degradation, where `nowrap`
+ * would clip an opener rather than move it.
+ */
 .ask-chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-2);
-  margin-top: var(--sp-3);
+  margin-bottom: var(--sp-3);
 }
 
 /*
@@ -478,7 +488,9 @@
  * middle of a sentence with no "…" anywhere.
  */
 .ask-chips .ant-btn {
-  max-width: 340px;
+  /* Four across a row rather than two: with a total cap, 340px left the last chip wrapping on its
+     own, which reads as one that failed to fit rather than as a row. */
+  max-width: 260px;
   overflow: hidden;
 }
 

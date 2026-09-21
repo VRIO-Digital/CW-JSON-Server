@@ -762,6 +762,19 @@ const DISCOVERY_MS = 800
  * request returns, not on a timer**, so the hold is here rather than in the
  * component, and every refusal above it answers immediately.
  */
+/**
+ * How many accounts the Google chooser offers.
+ *
+ * A browser is signed into a few accounts, not a staff directory, so a window listing every person
+ * the tenant employs reads as a roster rather than a chooser. Three is the shape a real one has.
+ *
+ * It is a **cap on what is shown and never on who may connect**: `/sources/oauth/mailboxes` and the
+ * callback still resolve against the whole of `db.settings.users`, so an address that is not on
+ * this list is still a valid one to connect as — which is what keeps the cap a presentation
+ * decision. The rows that must survive it are named where it is applied.
+ */
+const OAUTH_ACCOUNT_LIMIT = 3
+
 const CONNECT_STEP_MS = 5000
 
 /**
@@ -10432,11 +10445,47 @@ const routes = [
        * `initials` comes from `emailInitials`, the login's own derivation, so the avatar in the
        * chooser and the avatar in the sidebar cannot come to disagree about one person.
        */
-      const accounts = (db.settings?.users ?? []).map((user) => ({
-        email: user.email,
-        name: user.name,
-        initials: emailInitials(user.email),
-      }))
+      /*
+       * **At most `OAUTH_ACCOUNT_LIMIT`, and two of them are not free choices.**
+       *
+       * A real Google chooser lists the accounts that browser is signed into, which is a handful
+       * rather than a staff directory — CAPEX's has six, and six rows is a roster. Capping it is a
+       * presentation decision and it must not become a *correctness* one, so two rows are kept
+       * whatever the cap:
+       *
+       *  - **The tenant's own account**, `db.google_account` — the address the callback falls back
+       *    to when a caller names nobody, so a chooser that could not offer it would hide the one
+       *    account the handshake treats as the default. Read from the document rather than written
+       *    down here: it is `{ email, name, picture }`, and `.email` is the unwrapping this repo
+       *    has got wrong once already.
+       *  - **Whoever is signed in**, passed as `as=`. The window's default `connectingAs` is the
+       *    browser's own address, so dropping that row would leave the reader unable to connect as
+       *    themselves and the *Connected as …* alert naming somebody the chooser never showed.
+       *
+       * **Nobody is invented to reach the cap and nobody is reordered to survive it.** The rows
+       * stay in directory order — the reader's own is *marked* rather than moved, which is the rule
+       * the window already keeps — and a directory shorter than the cap simply serves fewer. A
+       * `google_account` the directory does not hold contributes nothing rather than a row the
+       * mailbox lookup would then refuse.
+       */
+      const directory = db.settings?.users ?? []
+      const required = new Set(
+        [db.google_account?.email, query.get('as')]
+          .filter((email) => typeof email === 'string' && email)
+          .map((email) => email.trim().toLowerCase()),
+      )
+      const isRequired = (user) => required.has(user.email.trim().toLowerCase())
+      const offered = [
+        ...directory.filter(isRequired),
+        ...directory.filter((user) => !isRequired(user)),
+      ].slice(0, OAUTH_ACCOUNT_LIMIT)
+      const accounts = directory
+        .filter((user) => offered.includes(user))
+        .map((user) => ({
+          email: user.email,
+          name: user.name,
+          initials: emailInitials(user.email),
+        }))
 
       // Paced like the suggesters: a consent handshake that completes in 2ms
       // gives the wizard nowhere to show that anything was asked of Google, and

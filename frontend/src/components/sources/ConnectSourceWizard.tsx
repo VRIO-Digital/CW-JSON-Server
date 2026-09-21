@@ -378,7 +378,11 @@ export default function ConnectSourceWizard({
     setChosenAs(null)
     try {
       // The consent is scoped to the connector, so the state is issued for it.
-      const start = await oauthStart(isDrive ? 'drive' : isGmail ? 'gmail' : 'bigquery')
+      const start = await oauthStart(
+        isDrive ? 'drive' : isGmail ? 'gmail' : 'bigquery',
+        /* The browser's own address, so the capped chooser always offers the reader themselves. */
+        signedInAs,
+      )
       setOauthScopes(start.scopes)
       setSignInAccounts(start.accounts)
       setOauthState(start.state)

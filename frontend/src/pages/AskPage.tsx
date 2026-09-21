@@ -1,5 +1,5 @@
 import { ArrowUpOutlined, QuestionCircleOutlined } from '@ant-design/icons'
-import { Button, Input, Select, Spin, Tabs, Typography, message } from 'antd'
+import { Button, Input, Select, Spin, Tabs, message } from 'antd'
 import { useEffect, useState } from 'react'
 import AnswerBlocks from '../components/ask/AnswerBlocks'
 // Commented with the tab it renders — see the note beside the hooks below.
@@ -29,8 +29,8 @@ import {
 } from '../data/askSources'
 import './AskPage.css'
 
-const shortDate = (iso: string | null) =>
-  iso ? new Date(iso).toISOString().slice(0, 10) : null
+/* `shortDate` went with the grounding card — it formatted the publication date that card
+   printed, and nothing else on this page states one. */
 
 /** Stable reference for a thread with nothing in it yet. */
 const EMPTY_TURNS: AskTurn[] = []
@@ -305,49 +305,23 @@ export default function AskPage() {
                     </div>
                   ))}
 
-                  {opening ? (
-                    /*
-                     * Before the first question: what this graph is, and what asking
-                     * it will and will not get you.
-                     */
-                    <div className="ask-grounding">
-                      {graph ? (
-                        <>
-                          <Typography.Title level={5} style={{ margin: 0 }}>
-                            Ask against {graph.name}
-                          </Typography.Title>
-                          <p className="ask-grounding-note">
-                            Answers are grounded in graph <strong>{graph.version}</strong>
-                            {graph.publishedAt && graph.publishedBy
-                              ? `, published ${shortDate(graph.publishedAt)} by ${graph.publishedBy}`
-                              : ''}
-                            . {graph.entityCount} entities · {graph.relationshipCount}{' '}
-                            relationships.
-                            {graph.caveats.length > 0 ? ` ${graph.caveats.join('. ')}.` : ''}{' '}
-                            Every number carries its source; every answer carries its
-                            confidence — or the reason it abstains.
-                          </p>
-                        </>
-                      ) : (
-                        /*
-                         * No graph is selected, so this states what *is* being asked rather than
-                         * a version — every connected source, since there is nothing to pick.
-                         * The sentence is the observation rule in the query set’s own words, one
-                         * claim in one place, printed here and on an observation block alike.
-                         */
-                        <>
-                          <Typography.Title level={5} style={{ margin: 0 }}>
-                            {askSources.length > 0 ? `Ask ${askTarget}` : pickPrompt}
-                          </Typography.Title>
-                          <p className="ask-grounding-note">
-                            {askSources.length > 0
-                              ? askSourceCopy.observationNote
-                              : pickPrompt}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  ) : null}
+                  {/*
+                    **The grounding card is gone — removed on request.** It stood above the box
+                    before the first question and named what would answer: the graph and its
+                    version, or, with no graph selected, the mailboxes in scope and the sentence
+                    saying an extraction is an observation. What is left is the box and its
+                    openers.
+
+                    **What that costs is stated rather than glossed.** Nothing on this page now
+                    says which graph version an answer will be grounded in, who published it, or
+                    that a mail extraction is a claim attributed to whoever made it and never
+                    merged into the graph. Every one of those facts is still *true* and still
+                    enforced where it lives — the answer itself still reports its version and its
+                    citations, and `RUNTIME_KINDS` still keeps a mail extraction off the canvas —
+                    but the reader is no longer told before they ask. `askSourceCopy.observationNote`
+                    now has no reader; it is left in place, the same waiting-for-a-caller state
+                    `/change-signals` is in. **Do not restore this without being asked.**
+                  */}
 
                   {/*
                     The answer as it composes — the agent working, in its own words.
@@ -408,34 +382,6 @@ export default function AskPage() {
                 </div>
 
                 <div className="ask-composer">
-                  <div className="ask-box">
-                    {/* **No source picker.** Every connected source is what a question is asked
-                        of when no graph is selected, so there was nothing left for the `+` to
-                        choose — removed on request. The graph select above is the only control
-                        that changes what answers. */}
-                    <Input
-                      variant="borderless"
-                      value={question}
-                      onChange={(e) => setQuestion(e.target.value)}
-                      onPressEnter={() => void onAsk(question)}
-                      placeholder="Ask anything about your operations..."
-                      aria-label={canAsk ? `Ask ${askTarget}` : pickPrompt}
-                      disabled={asking}
-                    />
-                    <Button
-                      type="primary"
-                      icon={<ArrowUpOutlined />}
-                      loading={asking}
-                      /* Nothing to ask is as much a reason to withhold the act as an empty
-                         box: with no graph live and no source picked, the request would be
-                         refused by the server for a reason the reader can fix here. */
-                      disabled={!question.trim() || !canAsk}
-                      onClick={() => void onAsk(question)}
-                    >
-                      Ask
-                    </Button>
-                  </div>
-
                   {/*
                    * The chips are this graph's hero questions — the ones the brief
                    * said it had to answer. Nothing else belongs here: a suggestion
@@ -483,6 +429,34 @@ export default function AskPage() {
                       ))}
                     </div>
                   ) : null}
+                  <div className="ask-box">
+                    {/* **No source picker.** Every connected source is what a question is asked
+                        of when no graph is selected, so there was nothing left for the `+` to
+                        choose — removed on request. The graph select above is the only control
+                        that changes what answers. */}
+                    <Input
+                      variant="borderless"
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
+                      onPressEnter={() => void onAsk(question)}
+                      placeholder="Ask anything about your operations..."
+                      aria-label={canAsk ? `Ask ${askTarget}` : pickPrompt}
+                      disabled={asking}
+                    />
+                    <Button
+                      type="primary"
+                      icon={<ArrowUpOutlined />}
+                      loading={asking}
+                      /* Nothing to ask is as much a reason to withhold the act as an empty
+                         box: with no graph live and no source picked, the request would be
+                         refused by the server for a reason the reader can fix here. */
+                      disabled={!question.trim() || !canAsk}
+                      onClick={() => void onAsk(question)}
+                    >
+                      Ask
+                    </Button>
+                  </div>
+
                 </div>
 
                 {/*

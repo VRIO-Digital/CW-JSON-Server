@@ -3891,12 +3891,23 @@ export async function resetPersonaNav(roleId: string): Promise<SettingsPayload> 
 }
 
 /** The scope depends on the connector, so the provider goes out with the start. */
+/**
+ * Opens the handshake and reports what the chooser may offer.
+ *
+ * **`as` is who is signed in**, sent for the same reason the callback sends it: the identity is
+ * client-held, so the server cannot look it up. The chooser is capped, and this is what keeps the
+ * reader's own account on it — without it they could not connect as themselves, and the
+ * *Connected as …* alert would name somebody the window never showed. Omitted where nobody is
+ * signed in, which is a state this window can legitimately open in.
+ */
 export async function oauthStart(
   provider: OAuthProvider = 'bigquery',
+  as?: string | null,
 ): Promise<OAuthStart> {
+  const who = as ? `&as=${encodeURIComponent(as)}` : ''
   return validate<OAuthStart>(
     'The Google sign-in',
-    await request<unknown>(`/sources/oauth/start?provider=${provider}`),
+    await request<unknown>(`/sources/oauth/start?provider=${provider}${who}`),
     OAUTH_START_PAYLOAD,
   )
 }
