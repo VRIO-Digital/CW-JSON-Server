@@ -203,6 +203,72 @@ export const useMailProcessStore = create<MailProcessState>()((set) => ({
   reset: () => set({ starting: false, job: null }),
 }))
 
+/* ---------------- Process a drive's documents ---------------- */
+
+/**
+ * A drive's one act, the twin of `useMailProcessStore`: **Process documents** runs over every
+ * document under the source's folders.
+ *
+ * **Asked for directly — the browse-and-tick tree is gone from the Catalog.** What that cost is
+ * worth stating: a drive's folders were a real choice a reader made, and picking a subset of them
+ * is no longer expressible from this surface. `POST …/profile-documents` still accepts an explicit
+ * `objects` list, and `DocumentBrowsePanel` is still on disk — the same waiting-for-a-caller state
+ * `/change-signals` is in. Do not delete either to "finish" this.
+ *
+ * **The run is watched here *and* on the Profiling jobs board**, which is the one way this differs
+ * from mail. `GET /profiling-jobs` excludes `gmail` on purpose so a mail run has exactly one
+ * surface; a drive run has always been on that board, and taking it off would hide it from the one
+ * place every other connector's runs are listed. So this polls the board and picks out its own
+ * source's newest run rather than keeping a second record of it.
+ */
+interface DriveProcessState {
+  starting: boolean
+  /** The run this surface is watching, or `null` where nothing has been run in this session. */
+  job: ProfilingJob | null
+  /** No object list: omitting it is what tells the route "the whole drive". */
+  process: (
+    sourceId: string,
+    force: boolean,
+  ) => Promise<{ ok: true; job: ProfilingJob } | { ok: false; error: string }>
+  poll: (sourceId: string) => Promise<void>
+  reset: () => void
+}
+
+export const useDriveProcessStore = create<DriveProcessState>()((set) => ({
+  starting: false,
+  job: null,
+
+  process: async (sourceId, force) => {
+    set({ starting: true })
+    try {
+      const { job } = await profileDocuments(sourceId, undefined, force)
+      /* Kept, so the panel narrates from the first frame rather than waiting for the first poll. */
+      set({ job })
+      return { ok: true, job }
+    } catch (error) {
+      return { ok: false, error: toMessage(error) }
+    } finally {
+      set({ starting: false })
+    }
+  },
+
+  poll: async (sourceId) => {
+    try {
+      const { active, recent } = await listProfilingJobs()
+      /* This source's newest run, **active before recent**: the board serves them as two lists, and
+         a finished run of the same source must not win over one in flight. Filtered by source
+         because the board is every source's, so taking the first would show whichever happened to
+         be queued last. */
+      const mine = [...active, ...recent].filter((j) => j.source_id === sourceId)
+      if (mine.length > 0) set({ job: mine[0] })
+    } catch {
+      /* A failed poll leaves the last known run rather than blanking a bar mid-flight. */
+    }
+  },
+
+  reset: () => set({ starting: false, job: null }),
+}))
+
 /* ---------------- Profiled columns ---------------- */
 
 interface ColumnsState {

@@ -981,9 +981,19 @@ function sourceRow(source) {
      * beside the tiles says exactly that, and a tile counting the corpus would report work
      * nothing has done.
      */
+    /*
+     * **A drive reports the same three, over the documents a run has profiled.**
+     *
+     * The same unit and the same rule as a mailbox's — a file somebody filed and a file somebody
+     * attached are both documents, which is why they already share `profiled_documents`. What
+     * differs is only where the profiler found it. Still `null` on BigQuery, because a project
+     * holds no documents and 0 would say it holds none.
+     */
     ...(isMail
       ? mailChunkFigures(source)
-      : { documents_chunked: null, chunks_total: null, chunk_chars: null }),
+      : isDrive
+        ? driveChunkFigures(source)
+        : { documents_chunked: null, chunks_total: null, chunk_chars: null }),
     datasets: source.datasets ?? [],
     folders: source.folders ?? [],
     /* Mail's allowlist, beside the other two rather than left to be parsed out of `scope` —
@@ -2695,7 +2705,17 @@ function documentDictionary(source, folderId, doc) {
   const vocab = db.document_vocabulary
   const offset = hash(doc.document_id) % vocab.length
   const notes = source.document_notes ?? {}
-  const chunks = Math.max(1, Math.round(doc.pages * 2.5))
+  /*
+   * **The scale the synthesised entity list is spread over, which is not a chunk count.**
+   *
+   * `pages * 2.5` is a shape for `occurrences` and `coverage_pct` to be drawn against, and it was
+   * *also* served as `chunks` — so every drive document reported a chunk figure nothing had
+   * counted. That is the derivation the mail corpus abandoned when it became a real run: a chunker
+   * does not chunk by a ratio, and 4,856 characters became six chunks rather than the twelve a
+   * formula would have promised. It stays here because the spread still needs a denominator; what
+   * it must not do is leave this function wearing the name of a measurement.
+   */
+  const spread = Math.max(1, Math.round(doc.pages * 2.5))
 
   // Suffixed on collision within this document, for the reason tableDictionary
   // explains: a "_2" whose "_1" is nowhere reads as missing data.
@@ -2713,7 +2733,7 @@ function documentDictionary(source, folderId, doc) {
       v.class === 'identifier'
         ? 1 + (seed % 2)
         : v.class === 'text'
-          ? Math.max(1, (seed % chunks) + 1)
+          ? Math.max(1, (seed % spread) + 1)
           : Math.max(1, (seed % 9) + 1)
 
     return {
@@ -2724,7 +2744,7 @@ function documentDictionary(source, folderId, doc) {
       pii: Boolean(v.pii),
       occurrences,
       coverage_pct: Number(
-        Math.min(100, ((occurrences / chunks) * 100)).toFixed(1),
+        Math.min(100, ((occurrences / spread) * 100)).toFixed(1),
       ),
     }
   })
@@ -2760,7 +2780,17 @@ function documentDictionary(source, folderId, doc) {
     pages: doc.pages,
     size_mb: doc.size_mb,
     modified: doc.modified,
-    chunks,
+    /*
+     * **What the chunker really read, or nothing.**
+     *
+     * A dataset ships these on the document where it has run one — the same arrangement
+     * `mailDocuments` has with `mail_corpus`, and the same rule: a document nobody chunked reports
+     * `null` and the cell is an em dash, never a plausible figure sitting in a column beside
+     * measured ones where nothing on screen tells the two apart.
+     */
+    chunks: Number.isInteger(doc.chunk_count) ? doc.chunk_count : null,
+    size_chars: Number.isInteger(doc.char_count) ? doc.char_count : null,
+    snippet: typeof doc.excerpt === 'string' && doc.excerpt.trim() ? doc.excerpt : null,
     entity_count: entities.length,
     pii_count: entities.filter((e) => e.pii).length,
     summary,
@@ -2982,6 +3012,42 @@ function mailDocuments(source) {
  * `chunk_chars` is the corpus's where a dataset ships one, so the figure on the tile and the chunk
  * counts on the rows beneath it come from one number.
  */
+/**
+ * A drive's chunk figures, over the documents this source has **profiled**.
+ *
+ * The twin of `mailChunkFigures`, and it keeps that function's one load-bearing rule: the figures
+ * count what a run has processed rather than what the drive holds, because a tile counting the
+ * corpus reports work nothing has done.
+ *
+ * **A document nobody chunked contributes nothing rather than an estimate.** Mail's twin falls back
+ * to `chunksFor`, a width-based guess that is right for a *synthesised* corpus it invented itself;
+ * a drive's documents are read from the document, so the honest total here is the sum of what was
+ * actually measured. That is also what keeps the tile and the rows beneath it agreeing: the table
+ * dashes those cells, and a total larger than its own visible column would be unaccountable.
+ */
+function driveChunkFigures(source) {
+  /* `folder_id`/`document_id`, which is what `profiled_docs` records — `parent_id`/`object_id` are
+     a *job object's* field names, and reading those here matched nothing, so every tile sat at 0
+     over a table listing the very documents it was meant to be counting. */
+  const profiled = new Set(
+    (source.profiled_docs ?? []).map((p) => `${p.folder_id}/${p.document_id}`),
+  )
+  let documents = 0
+  let chunks = 0
+  let chars = 0
+  for (const drive of db.drives ?? []) {
+    for (const folder of drive.folders ?? []) {
+      for (const doc of folder.documents ?? []) {
+        if (!profiled.has(`${folder.folder_id}/${doc.document_id}`)) continue
+        documents += 1
+        if (Number.isInteger(doc.chunk_count)) chunks += doc.chunk_count
+        if (Number.isInteger(doc.char_count)) chars += doc.char_count
+      }
+    }
+  }
+  return { documents_chunked: documents, chunks_total: chunks, chunk_chars: chars }
+}
+
 function mailChunkFigures(source) {
   const processed = new Set(
     (source.profiled_mail_docs ?? []).map((p) => `${p.label_id}/${p.document_id}`),
@@ -6010,6 +6076,11 @@ function browsableDocuments(source) {
       size_mb: d.size_mb,
       entities: d.entities,
       modified: d.modified,
+      /* What a chunking run measured, or nothing — the same pair the dictionary serves, so the
+         browse row and the profiled row state one document's figures identically. Null rather
+         than 0 on a document nobody has chunked: 0 would say it produced no text. */
+      chunks: Number.isInteger(d.chunk_count) ? d.chunk_count : null,
+      size_chars: Number.isInteger(d.char_count) ? d.char_count : null,
       profiled: profiled.some(
         (p) => p.folder_id === folderId && p.document_id === d.document_id,
       ),
@@ -11125,7 +11196,16 @@ const routes = [
       if (wrong) return send(res, 400, { error: wrong })
 
       const { objects, force } = await readJson(req)
-      if (!Array.isArray(objects) || objects.length === 0) {
+      /*
+       * **Absent means the whole drive; `[]` is still refused.**
+       *
+       * The rule `POST …/profile-mail-documents` already keeps, and for the same reason: "profile
+       * nothing" and "profile everything" are opposite requests, so a route that could not tell
+       * them apart would answer one with the other. An explicit list still narrows the run — the
+       * browse tree is gone from the Catalog, but the endpoint is unchanged for any caller that
+       * has one.
+       */
+      if (objects !== undefined && (!Array.isArray(objects) || objects.length === 0)) {
         return send(res, 400, { error: 'objects must be a non-empty array' })
       }
 
@@ -11133,8 +11213,39 @@ const routes = [
       const allowed = new Set(source.folders ?? [])
       source.profiled_docs = source.profiled_docs ?? []
 
+      /*
+       * Every document the allowlist reaches, in folder order, where the caller named none.
+       *
+       * **A whole-drive run never skips**, which is the rule `POST …/profile-mail-documents` keeps
+       * and the reason a dictionary's own tables never skip either: the ordinary skip is right for
+       * a table nothing changed, and wrong for an act a reader just asked for by name. Without it
+       * the second press of *Process documents* found all six already profiled, marked every
+       * object `skipped`, and an all-skipped job completes instantly — so the panel had no run to
+       * narrate and the button read as doing nothing. Reported from use.
+       *
+       * `force` still travels and the job still records what the caller asked rather than `true`,
+       * because that flag is what the jobs board shows: claiming a run was forced when nobody
+       * asked would misreport it.
+       */
+      const whole = objects === undefined
+      const requested =
+        objects ??
+        (source.folders ?? []).flatMap((folderId) =>
+          (findFolder(drive, folderId)?.documents ?? []).map((d) => ({
+            folder_id: folderId,
+            document_id: d.document_id,
+          })),
+        )
+      if (requested.length === 0) {
+        return send(res, 400, {
+          error:
+            'this drive has no documents under the folders it was connected with — ' +
+            'there is nothing to process',
+        })
+      }
+
       const work = []
-      for (const { folder_id, document_id } of objects) {
+      for (const { folder_id, document_id } of requested) {
         if (!allowed.has(folder_id)) {
           return send(res, 400, {
             error: `folder ${folder_id} is not in this source's allowlist`,
@@ -11155,7 +11266,9 @@ const routes = [
           object_id: document_id,
           label: document.name,
           units: document.entities,
-          state: already && !force ? 'skipped' : 'pending',
+          /* `whole` runs everything: see the note above. A caller that named its objects keeps the
+             ordinary rule, so nothing about an explicit subset changed. */
+          state: already && !force && !whole ? 'skipped' : 'pending',
         })
       }
 

@@ -175,6 +175,13 @@
   color: #5f6368;
 }
 
+/* The two policy phrases. Marked in the window's own accent blue and weighted, never an `<a>`:
+   this app publishes no policy page, so a link here could only lead nowhere. */
+.gsi-note-mark {
+  color: #1a73e8;
+  font-weight: 500;
+}
+
 .gsi-actions {
   display: flex;
   justify-content: flex-end;

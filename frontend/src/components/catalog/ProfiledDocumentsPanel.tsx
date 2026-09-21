@@ -14,6 +14,9 @@ import {
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import type { ProfiledDocument, ProfiledEntity, SourceRow } from '../../api/client'
+/* The chunk-size formatter, reused rather than rewritten: the mail table and this one state the
+   same unit, and two roundings one edit apart is how `2k chars` here becomes `2,054` there. */
+import { mailProcessCopy } from '../../data/mailProcess'
 import { fileKind } from '../../data/mimeTypes'
 import { useDocumentsStore } from '../../store/catalogStore'
 import './ProfiledColumnsPanel.css'
@@ -221,7 +224,18 @@ export default function ProfiledDocumentsPanel({
                   No documents in this folder match this filter.
                 </Typography.Paragraph>
               ) : (
-                visible.map((d) => {
+                <>
+                {/* The column row the cells below line up under. Drawn per folder rather than once
+                    at the top, because each folder is its own block and a single header would
+                    scroll away from the rows it names. */}
+                <div className="pc-doc-cols" aria-hidden="true">
+                  <span className="pc-doc-col-name">Document</span>
+                  <span className="pc-doc-col">Pages</span>
+                  <span className="pc-doc-col">Chunks</span>
+                  <span className="pc-doc-col is-size">Size</span>
+                  <span className="pc-doc-col is-status">Status</span>
+                </div>
+                {visible.map((d) => {
                   const key = `${f.folder_id}.${d.document_id}`
                   const isOpen = open.has(key)
                   return (
@@ -240,10 +254,46 @@ export default function ProfiledDocumentsPanel({
                               and who it is about are categories, not state. */}
                           <Tag className="pc-class-tag">{d.doc_type_label}</Tag>
                           <span className="pc-linked">{d.linked_entity}</span>
+                          {/* What the figures used to be stated in prose beside. Kept under the
+                              name rather than dropped: the columns report the run, and these
+                              report what came out of the document. */}
+                          <span className="pc-doc-sub">
+                            {`${d.entity_count} entities` +
+                              (d.pii_count > 0 ? ` · ${d.pii_count} pii` : '')}
+                          </span>
                         </span>
-                        <span className="pc-table-meta">
-                          {`${d.entity_count} entities · ${d.pages} pages · ${d.chunks} chunks` +
-                            (d.pii_count > 0 ? ` · ${d.pii_count} pii` : '')}
+                        {/*
+                          The run's own figures, one cell each, so a drive document reads the way a
+                          mail document does. **An em dash where nothing counted**, never 0 and
+                          never a figure derived from the page count: `chunks` was `pages * 2.5`
+                          for every document until this row started reporting a measurement.
+                        */}
+                        {/* Every drive document states its own page count — it is read from the
+                            corpus, not from the run, which is why this one cell never dashes. */}
+                        <span className="pc-doc-col">
+                          <span className="pc-num">{d.pages}</span>
+                        </span>
+                        <span className="pc-doc-col">
+                          {d.chunks == null ? (
+                            <span className="pc-dash">—</span>
+                          ) : (
+                            <span className="pc-num">{d.chunks}</span>
+                          )}
+                        </span>
+                        <span className="pc-doc-col is-size">
+                          {d.size_chars == null ? (
+                            <span className="pc-dash">—</span>
+                          ) : (
+                            /* The mail table's own formatter, not a second one: two roundings for
+                               one unit would print `2k chars` on one surface and `2,054` on the
+                               other, one edit apart. */
+                            <span className="pc-num">{mailProcessCopy.size(d.size_chars)}</span>
+                          )}
+                        </span>
+                        {/* Every document in this list has been profiled — it is the list of what
+                            the run committed, so there is no other state a row here could be in. */}
+                        <span className="pc-doc-col is-status">
+                          <span className="pc-doc-status">processed</span>
                         </span>
                       </button>
 
@@ -321,7 +371,8 @@ export default function ProfiledDocumentsPanel({
                       ) : null}
                     </div>
                   )
-                })
+                })}
+                </>
               )}
             </div>
           )

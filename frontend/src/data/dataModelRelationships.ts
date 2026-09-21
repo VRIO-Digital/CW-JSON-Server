@@ -154,6 +154,36 @@ export interface DeclaredRelationship {
 }
 
 /**
+ * The two ends of a join, in whichever order they were written.
+ *
+ * `A.x = B.y` and `B.y = A.x` are one join, so a pair test that reads the sides positionally answers
+ * "no" to half the duplicates it exists to find.
+ */
+export interface RelationshipPair {
+  fromTableKey: string
+  fromColumn: string
+  toTableKey: string
+  toColumn: string
+}
+
+/**
+ * Whether two relationships describe the **same join**, in either direction.
+ *
+ * One definition, because the two callers are the two halves of one rule: the suggestion run skips a
+ * pair something already tracks, and the merge below drops a suggestion whose pair is declared. Two
+ * copies of "the same join" is how one surface comes to hide a duplicate the other still draws.
+ */
+export const samePair = (a: RelationshipPair, b: RelationshipPair): boolean =>
+  (a.fromTableKey === b.fromTableKey &&
+    a.fromColumn === b.fromColumn &&
+    a.toTableKey === b.toTableKey &&
+    a.toColumn === b.toColumn) ||
+  (a.fromTableKey === b.toTableKey &&
+    a.fromColumn === b.toColumn &&
+    a.toTableKey === b.fromTableKey &&
+    a.toColumn === b.fromColumn)
+
+/**
  * A stable address for a stored declaration: its owning entity plus its own natural key.
  *
  * Deliberately **not** an array index. An index shifts the moment a sibling is deleted, which would

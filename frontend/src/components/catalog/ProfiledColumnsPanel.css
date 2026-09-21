@@ -252,3 +252,67 @@
 .pc-doc-summary {
   padding: var(--sp-2) var(--sp-4);
 }
+
+/*
+ * The document row's figure columns — Pages · Chunks · Size · Status.
+ *
+ * Fixed widths rather than a grid, because the row is a flex `<button>` whose left cell has to keep
+ * shrinking to the filename: a grid track would make the name column the one that refuses to
+ * shrink, and a long contract filename would then push the figures off the card. The widths match
+ * the mail table's own columns so the two surfaces line up at a glance.
+ */
+.pc-doc-cols {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-bottom: 1px solid #eef1f5;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8994a8;
+}
+
+.pc-doc-col-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pc-doc-col {
+  flex: 0 0 auto;
+  width: 72px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-doc-col.is-size {
+  width: 92px;
+}
+
+.pc-doc-col.is-status {
+  width: 96px;
+  text-align: left;
+}
+
+/* The counts the prose line used to carry, set under the filename the way the mail table sets its
+   snippet — a second line in the name cell rather than a sixth column. */
+.pc-doc-sub {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: #aab2c0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The same pill the mail table draws. Restated here rather than imported from `MailProcessPanel.css`
+   because a component pulling in another panel's sheet would bring that panel's whole layout with
+   it — and these two rules are all that is shared. */
+.pc-doc-status {
+  display: inline-block;
+  padding: 2px var(--sp-2);
+  border-radius: 4px;
+  background: #e8f5ef;
+  color: #1a7f5a;
+  font-size: 11.5px;
+  font-weight: 600;
+}

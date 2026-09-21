@@ -11,6 +11,8 @@ import {
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import type { SourceRow } from '../../api/client'
+/* One rounding rule for the unit, shared with the mail table and the profiled list. */
+import { mailProcessCopy } from '../../data/mailProcess'
 import { fileKind } from '../../data/mimeTypes'
 import { useDocumentBrowseStore } from '../../store/catalogStore'
 import { CONFIRM_WIDTH, profilingOutcome } from '../../data/profilingOutcome'
@@ -97,9 +99,22 @@ export default function DocumentBrowsePanel({
               {d.doc_type_label} · {d.linked_entity}
             </span>
           </span>
-          <span className="cat-tree-count">
-            {d.pages} page(s)
-            {d.profiled ? ' · profiled' : ''}
+          {/*
+            The run's figures as columns, the way the mail table states them, rather than one prose
+            cell. **Em dash where nothing counted** — a document this drive has never chunked has no
+            chunk count and no extracted text, and 0 would say it produced none.
+          */}
+          <span className="cat-tree-figs">
+            <span className="cat-tree-fig">{d.pages} pages</span>
+            <span className="cat-tree-fig">
+              {d.chunks == null ? '—' : `${d.chunks} chunks`}
+            </span>
+            <span className="cat-tree-fig is-size">
+              {d.size_chars == null ? '—' : mailProcessCopy.size(d.size_chars)}
+            </span>
+            <span className="cat-tree-fig is-status">
+              {d.profiled ? <span className="pc-doc-status">processed</span> : null}
+            </span>
           </span>
         </span>
       ),

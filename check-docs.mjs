@@ -2253,17 +2253,34 @@ expect(
 expect(
   'each connector states its own catalogue nouns, and an unknown kind gets none',
   /export const CATALOG_UNITS: Record<string, CatalogUnits> = \{/.test(catalogUnitsSrc) &&
-    /* All three, each with the pair of panels its two acts open. */
+    /* BigQuery is the one that still browses, with the pair of panels its two acts open. */
     /browsePanel: 'browse',[\s\S]{0,240}?dictionaryPanel: 'columns',/.test(catalogUnitsSrc) &&
-    /browsePanel: 'browse-documents',[\s\S]{0,240}?dictionaryPanel: 'documents',/.test(
-      catalogUnitsSrc,
-    ) &&
-    /* **Gmail declares neither panel**: its first act is a run, and its documents are listed on
-       the Catalog surface itself under that run — so *View profiled documents* was a button
-       opening a second view of what is already there. The page reads the two `null`s and draws an
-       action and no second button; a connector name in the component is the ternary this table
-       exists to stop. */
-    /browsePanel: null,[\s\S]{0,200}?dictionaryPanel: null,/.test(catalogUnitsSrc) &&
+    /*
+     * **Two connectors declare neither panel now**: their first act is a run, and their documents
+     * are listed on the Catalog surface itself under that run — so *View profiled documents* was a
+     * button opening a second view of what is already there. Gmail was the first; **Drive joined
+     * it on request** (*"it should look like this view, not existing view"*), which retired its
+     * browse-and-tick tree from this surface.
+     *
+     * What that costs is on record in `catalogUnits.ts` and `DriveProcessPanel`: a drive's folders
+     * are a real choice a reader made in the wizard, so picking a subset of documents is no longer
+     * expressible here. The allowlist still bounds every run, the endpoint still takes an explicit
+     * `objects` list, and `DocumentBrowsePanel` is still on disk with no caller.
+     */
+    (catalogUnitsSrc.match(/browsePanel: null,/g) ?? []).length === 2 &&
+    (catalogUnitsSrc.match(/dictionaryPanel: null,/g) ?? []).length === 2 &&
+    /*
+     * **And a run connector says *which* run surface, so the page never asks the kind.** With two
+     * of them, `browsePanel: null` no longer identifies one — the page briefly told them apart with
+     * `kind === 'gdrive'`, which is the connector-name ternary this whole table exists to stop and
+     * which a third run connector would have to be added to by hand.
+     */
+    /runPanel\?: 'mail-run' \| 'drive-run'/.test(catalogUnitsSrc) &&
+    /runPanel: 'drive-run',/.test(catalogUnitsSrc) &&
+    /runPanel: 'mail-run',/.test(catalogUnitsSrc) &&
+    /units\?\.runPanel === 'drive-run'/.test(catalogPage) &&
+    /units\?\.runPanel === 'mail-run'/.test(catalogPage) &&
+    !/selected\.kind === 'gdrive'|selected\.kind === 'gmail'/.test(codeOnly(catalogPage)) &&
     /browsePanel: CatalogPanel \| null/.test(catalogUnitsSrc) &&
     /dictionaryPanel: CatalogPanel \| null/.test(catalogUnitsSrc) &&
     /* The button is withheld by there being no panel, never disabled. */

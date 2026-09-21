@@ -111,9 +111,9 @@
         },
         {
             "document_id": "a79e4b2a-2b65-5aa2-a7a1-c995a63de9c5",
-            "filename": "EM-03_C25B315_658_qdn-2025-c01-change-order-request-co.pdf",
-            "mime_type": "application/pdf",
-            "page_count": 2,
+            "filename": "EM-03_C25B315_658_qdn-2025-c01-change-order-request-co.docx",
+            "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "page_count": 1,
             "chunk_count": 4,
             "char_count": 3821,
             "excerpt": "NORTHLINE WATER GROUP  ·  CAPITAL PROGRAMME MAILBOX EXPORT\nPROJECT CONTROLS\nEM-03  ·  2 messages  ·  pulled 2026-08-14\npage 1\nC25B315_658 QDN-2025-C01 — Change Order Request CO-002, 118\ndays extended general conditions\nThread\nEM-03\nProject\nC25B315_658 — PFAS Treatment Facility — Quarrydown Water Tre",
@@ -123,9 +123,9 @@
         },
         {
             "document_id": "fcb6d0c9-4aa7-5979-a161-61cfe48def68",
-            "filename": "EM-04_C25B315_658_quarrydown-post-contactor-hydraulic-grade-line-at.pdf",
-            "mime_type": "application/pdf",
-            "page_count": 2,
+            "filename": "EM-04_C25B315_658_quarrydown-post-contactor-hydraulic-grade-line-at.csv",
+            "mime_type": "text/csv",
+            "page_count": 1,
             "chunk_count": 4,
             "char_count": 2919,
             "excerpt": "NORTHLINE WATER GROUP  ·  CAPITAL PROGRAMME MAILBOX EXPORT\nCONSTRUCTION DELIVERY\nEM-04  ·  3 messages  ·  pulled 2026-08-14\npage 1\nQuarrydown — post-contactor hydraulic grade line at design flow\nThread\nEM-04\nProject\nC25B315_658 — PFAS Treatment Facility — Quarrydown Water Treatment Plant\nContract\nQD",
@@ -147,8 +147,8 @@
         },
         {
             "document_id": "dd6e7c3b-981b-519d-839a-70cb3ae01202",
-            "filename": "EM-06_C25B315_658_re-quarrydown-pump-station-change-order-or.pdf",
-            "mime_type": "application/pdf",
+            "filename": "EM-06_C25B315_658_re-quarrydown-pump-station-change-order-or.txt",
+            "mime_type": "text/plain",
             "page_count": 1,
             "chunk_count": 3,
             "char_count": 2544,
@@ -159,8 +159,8 @@
         },
         {
             "document_id": "8402dd18-737d-5dcc-8831-2e4018d1b4a1",
-            "filename": "EM-07_C25B315_658_qdn-2025-e01-amendment-no-1-hydraulic.pdf",
-            "mime_type": "application/pdf",
+            "filename": "EM-07_C25B315_658_qdn-2025-e01-amendment-no-1-hydraulic.docx",
+            "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "page_count": 1,
             "chunk_count": 2,
             "char_count": 2054,
@@ -183,9 +183,9 @@
         },
         {
             "document_id": "3f99abc4-1c47-594e-8e02-50605650a8d3",
-            "filename": "EM-09_C25B315_658_quarrydown-q1-influent-pfas-results-above-the.pdf",
-            "mime_type": "application/pdf",
-            "page_count": 2,
+            "filename": "EM-09_C25B315_658_quarrydown-q1-influent-pfas-results-above-the.csv",
+            "mime_type": "text/csv",
+            "page_count": 1,
             "chunk_count": 3,
             "char_count": 2736,
             "excerpt": "NORTHLINE WATER GROUP  ·  CAPITAL PROGRAMME MAILBOX EXPORT\nCONSTRUCTION DELIVERY\nEM-09  ·  2 messages  ·  pulled 2026-08-14\npage 1\nQuarrydown — Q1 influent PFAS results above the design basis\nThread\nEM-09\nProject\nC25B315_658 — PFAS Treatment Facility — Quarrydown Water Treatment Plant\nMailbox\nConstr",
@@ -195,9 +195,9 @@
         },
         {
             "document_id": "9bd7bd23-1e07-57d0-bb0a-35753ea7e545",
-            "filename": "EM-10_C25B315_658_belmara-deq-quarrydown-compliance-schedule-request-to.pdf",
-            "mime_type": "application/pdf",
-            "page_count": 2,
+            "filename": "EM-10_C25B315_658_belmara-deq-quarrydown-compliance-schedule-request-to.txt",
+            "mime_type": "text/plain",
+            "page_count": 1,
             "chunk_count": 3,
             "char_count": 2944,
             "excerpt": "NORTHLINE WATER GROUP  ·  CAPITAL PROGRAMME MAILBOX EXPORT\nCAPITAL PROGRAMME DIRECTOR\nEM-10  ·  2 messages  ·  pulled 2026-08-14\npage 1\nBelmara DEQ — Quarrydown compliance schedule, request to extend\nMilestone 4\nThread\nEM-10\nProject\nC25B315_658 — PFAS Treatment Facility — Quarrydown Water Treatment",
@@ -325,6 +325,7 @@
             "source_modified_at": "2026-09-03T10:09:12+00:00",
             "chunked_at": "2026-09-09T12:31:41.115621+00:00"
         }
+        
     ],
     "document_count": 27,
     "chunk_count": 68,

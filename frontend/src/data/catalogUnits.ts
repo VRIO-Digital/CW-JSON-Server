@@ -109,6 +109,18 @@ export interface CatalogUnits {
    */
   browsePanel: CatalogPanel | null
   /**
+   * **Which run surface the page draws where `browsePanel` is `null`.**
+   *
+   * A key, never a component, for the same reason `browsePanel` is one: this module is data and
+   * the page owns what a key renders as. It exists because there are now *two* connectors whose
+   * first act is a run, and the page was telling them apart with `kind === 'gdrive'` — a connector
+   * name written into a component, which is the exact ternary this table was introduced to stop
+   * and which a third such connector would have to be added to by hand.
+   *
+   * Absent wherever `browsePanel` is set: a connector that browses has no run panel to draw.
+   */
+  runPanel?: 'mail-run' | 'drive-run'
+  /**
    * Which panel the second act opens — **`null` where there is no second act**.
    *
    * Gmail's is: its documents are listed on the Catalog surface itself, under the run that
@@ -174,15 +186,52 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
       count: (s) => s.folders.length,
       note: 'in the allowlist',
     },
-    objectsLabel: 'documents profiled',
-    objectsCount: (s) => s.profiledDocuments ?? 0,
-    unitsLabel: 'entities extracted',
-    unitsCount: (s) => s.profiledEntities ?? 0,
-    unitsNote: () => 'for this source',
-    browseLabel: 'Browse documents for profiling',
-    dictionaryLabel: 'View profiled documents',
-    browsePanel: 'browse-documents',
-    dictionaryPanel: 'documents',
+    /*
+     * **The same three figures a mailbox states, because a run does the same thing to both.**
+     *
+     * A file somebody filed and a file somebody attached are the same unit — which is why they
+     * already share `profiled_documents` — so the strip states what has been *chunked*, how many
+     * chunks that came to, and how much text came out. Counted over what has been **processed**,
+     * never over what the drive holds: a tile counting the corpus reports work nothing has done.
+     *
+     * **`entities extracted` moved rather than went.** It is on each document's own row, under the
+     * name, which is where a reader looking at a document is looking — the strip answers "what has
+     * this run done" and the row answers "what came out of this file".
+     */
+    objectsLabel: 'documents chunked',
+    objectsCount: (s) => s.documentsChunked ?? 0,
+    objectsNote: (s) => `${s.chunksTotal ?? 0} chunks in total`,
+    unitsLabel: 'chunked today',
+    unitsCount: (s) => s.profiledToday,
+    unitsNote: (s) => `since ${s.profiledTodayDate}`,
+    /* `mailProcessCopy`'s rounding, so this tile and the per-document `size` cells beneath it
+       cannot state one unit at two grains — the same reason Gmail's reads it. */
+    extraTile: {
+      label: 'chunk size',
+      value: (s) => mailProcessCopy.sizeValue(s.chunkChars ?? 0),
+      suffix: 'chars',
+      note: 'of extracted chunk text',
+    },
+    /*
+     * **One act over the whole drive, asked for directly** — *"it should look like this view, not
+     * existing view"*, of Gmail's surface. The browse-and-tick tree and the *View profiled
+     * documents* panel are both gone from this surface: the run is the button, and everything it
+     * did is listed underneath it.
+     *
+     * **What that costs is on record.** A drive's folders are a real choice a reader made in the
+     * connect wizard — which is precisely why Gmail has no picker and this one did — so picking a
+     * subset of documents can no longer be expressed here. The allowlist still bounds every run,
+     * `POST …/profile-documents` still takes an explicit `objects` list, and `DocumentBrowsePanel`
+     * is still on disk with no caller. Do not delete it to "finish" this.
+     */
+    browseLabel: 'Process documents',
+    /* No second act: the documents are listed on the page itself, under the run that produced
+       them, so a button opening a second view of them opens what is already there. */
+    dictionaryLabel: '',
+    /* A run, not a panel — which is what makes the page draw an action here. */
+    browsePanel: null,
+    runPanel: 'drive-run',
+    dictionaryPanel: null,
     listCount: (s) => `${s.profiledDocuments ?? 0} documents profiled`,
     foot: (s) =>
       (s.profiledDocuments ?? 0) === 0
@@ -253,6 +302,7 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
     dictionaryLabel: '',
     /* A run, not a panel — see `browsePanel` on the interface above. */
     browsePanel: null,
+    runPanel: 'mail-run',
     /* Removed on request, and withheld the same way. */
     dictionaryPanel: null,
     listCount: (s) => `${s.profiledDocuments ?? 0} documents profiled`,

@@ -32,6 +32,7 @@ import {
   relationshipToCanvasEdge,
   relationshipWrites,
   removeRelationshipWrite,
+  samePair,
   type DeclaredRelationship,
 } from '../../data/dataModelRelationships'
 import {
@@ -323,7 +324,28 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     () => (selectedSource ? (pendingBySource[selectedSource.sourceId] ?? []) : []),
     [selectedSource, pendingBySource],
   )
-  const relationships = useMemo(() => [...declared, ...pending], [declared, pending])
+  /*
+   * **A suggestion whose pair is already declared is dropped here, not only where it was inserted.**
+   *
+   * `runSuggestions` already skips a covered pair, and that is not enough: it fires from the arrival
+   * effect and closes over the `relationships` of the render that started it, while `declared`
+   * derives from `entities`, which `load()` fetches separately. So the run routinely tests against
+   * an empty declared list, every pair looks new, and the declaration arriving a moment later lands
+   * *beside* its own suggestion — one join asked twice, which is exactly the two-answers-to-one-
+   * question this tab refuses. Reported from use.
+   *
+   * Filtering at the merge is what makes it hold whatever order the two fetches land in, and it
+   * covers the later writes the insert-time test cannot see at all: a save, an accept, or another
+   * table's declaration arriving after the run.
+   *
+   * **Declared wins**, because it is the ground truth a reviewer already settled. Reject stays
+   * correct: it removes the declaration *before* adding the pending copy, so there is nothing left
+   * here to drop it against.
+   */
+  const relationships = useMemo(
+    () => [...declared, ...pending.filter((p) => !declared.some((d) => samePair(d, p)))],
+    [declared, pending],
+  )
   const edges = useMemo(
     () => relationships.map(relationshipToCanvasEdge),
     [relationships],
@@ -760,16 +782,13 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
       to_table_key: string
       to_column: string
     }) =>
-      relationships.some(
-        (e) =>
-          (e.fromTableKey === r.from_table_key &&
-            e.fromColumn === r.from_column &&
-            e.toTableKey === r.to_table_key &&
-            e.toColumn === r.to_column) ||
-          (e.fromTableKey === r.to_table_key &&
-            e.fromColumn === r.to_column &&
-            e.toTableKey === r.from_table_key &&
-            e.toColumn === r.from_column),
+      relationships.some((e) =>
+        samePair(e, {
+          fromTableKey: r.from_table_key,
+          fromColumn: r.from_column,
+          toTableKey: r.to_table_key,
+          toColumn: r.to_column,
+        }),
       )
 
     setPendingBySource((prev) => {
@@ -808,7 +827,10 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
          listing each of them twice. */
       const keep = existing.filter((e) => !fresh.some((f) => f.id === e.id))
       if (fresh.length === 0) {
-        message.info('Nothing new — every shared identifier is already declared or suggested.')
+        /* Silent: a run that derives nothing leaves the list exactly as it was, and the pending
+           count above the canvas already says what is in it. The toast that stood here also fired
+           from inside this updater, which React invokes twice in dev — so it announced a non-event
+           twice over. */
         return prev
       }
       return { ...prev, [selectedSource.sourceId]: [...keep, ...fresh] }

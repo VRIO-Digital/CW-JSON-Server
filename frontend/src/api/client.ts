@@ -534,6 +534,9 @@ export interface BrowseDocument {
   size_mb: number
   entities: number
   modified: string
+  /** What a chunking run measured, or `null` where none has read this document. */
+  chunks: number | null
+  size_chars: number | null
   profiled: boolean
 }
 
@@ -846,7 +849,18 @@ export interface ProfiledDocument {
   pages: number
   size_mb: number
   modified: string
-  chunks: number
+  /**
+   * What a chunking run measured, or `null` where none has read this document.
+   *
+   * Nullable rather than 0 for the reason the mail corpus's are: 0 says a document produced no
+   * chunks and no text, where the truth is that nothing counted. `chunks` was a served number for
+   * every document while it was `pages * 2.5`; it reports a measurement now, so it reports nothing
+   * where there is none.
+   */
+  chunks: number | null
+  size_chars: number | null
+  /** The opening lines the chunker extracted. Never composed here — an unread document has none. */
+  snippet: string | null
   entity_count: number
   pii_count: number
   /** Curator-written; the unit under review for an unstructured file. */
@@ -2190,6 +2204,9 @@ const DOCUMENT_BROWSE_PAYLOAD = shape({
           size_mb: num,
           entities: num,
           modified: str,
+          /* Measured or absent — see the dictionary's own pair. */
+          chunks: nullable(num),
+          size_chars: nullable(num),
           profiled: bool,
         }),
       ),
@@ -2343,7 +2360,12 @@ const DOCUMENTS_PAYLOAD = shape({
           pages: num,
           size_mb: num,
           modified: str,
-          chunks: num,
+          /* Measured or absent, exactly as the mail row above: `pages * 2.5` used to make this a
+             number for every document, and a served figure nothing counted is the one thing a
+             dictionary must not carry. */
+          chunks: nullable(num),
+          size_chars: nullable(num),
+          snippet: nullable(str),
           entity_count: num,
           pii_count: num,
           summary: nullable(str),
@@ -4356,16 +4378,24 @@ export async function browseDocuments(
 }
 
 /** Drive's twin of `profileTables`, checked against the same job shape. */
+/**
+ * Queues a run over a drive's documents.
+ *
+ * **`objects` is optional, and leaving it out runs the whole drive** — the rule
+ * `profileMailDocuments` already keeps. An empty array is deliberately not how that is said: the
+ * server refuses one, because "profile nothing" and "profile everything" are opposite requests.
+ * The key is omitted rather than sent as `undefined` so the body carries no ambiguous field.
+ */
 export async function profileDocuments(
   sourceId: string,
-  objects: { folder_id: string; document_id: string }[],
+  objects: { folder_id: string; document_id: string }[] | undefined,
   force: boolean,
 ): Promise<{ job: ProfilingJob }> {
   return validate<{ job: ProfilingJob }>(
     'The queued profiling job',
     await request<unknown>(
       `/sources/${encodeURIComponent(sourceId)}/profile-documents`,
-      { method: 'POST', body: { objects, force } },
+      { method: 'POST', body: objects === undefined ? { force } : { objects, force } },
     ),
     JOB_STARTED_PAYLOAD,
   )

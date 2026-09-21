@@ -20,6 +20,7 @@ import type { ProfilingJob, SourceRow } from '../api/client'
 import {
   useBrowseStore,
   useJobsStore,
+  useDriveProcessStore,
   useMailProcessStore,
   useSchemaUploadStore,
 } from '../store/catalogStore'
@@ -29,11 +30,11 @@ import ConnectorIcon from '../components/common/ConnectorIcon'
 import DataModelTab from '../components/catalog/DataModelTab'
 import { DictionaryUploadControl } from '../components/catalog/DatasetDictionaryUpload'
 import DocumentBrowsePanel from '../components/catalog/DocumentBrowsePanel'
+import DriveProcessPanel from '../components/catalog/DriveProcessPanel'
 import MailProcessPanel from '../components/catalog/MailProcessPanel'
 import NoSourceConnected from '../components/common/NoSourceConnected'
 import PageHeader from '../components/common/PageHeader'
 import ProfiledColumnsPanel from '../components/catalog/ProfiledColumnsPanel'
-import ProfiledDocumentsPanel from '../components/catalog/ProfiledDocumentsPanel'
 import ProfiledMailDocumentsPanel from '../components/catalog/ProfiledMailDocumentsPanel'
 import ProfilingJobsTab from '../components/catalog/ProfilingJobsTab'
 import StatusTag from '../components/common/StatusTag'
@@ -442,17 +443,30 @@ function CatalogTab({
    * call. The store holds the in-flight flag; the outcome is a message and a reload, which is what
    * `onChanged` already does for every other run.
    */
-  const processing = useMailProcessStore((s) => s.starting)
+  const processingMail = useMailProcessStore((s) => s.starting)
   const processMail = useMailProcessStore((s) => s.process)
+  const processingDrive = useDriveProcessStore((s) => s.starting)
+  const processDrive = useDriveProcessStore((s) => s.process)
+  /* Either run may be the one in flight, and only one connector is selected at a time. */
+  const processing = processingMail || processingDrive
   const processDocuments = useCallback(async () => {
     if (!selected) return
-    const result = await processMail(selected.sourceId, false)
+    /*
+     * **Which run, from the row's own `runPanel`** — never `kind`, which is the connector-name
+     * ternary this table exists to stop. Both acts are the same shape: no selection, so the whole
+     * mailbox or the whole drive, and the page owns only the call.
+     */
+    const units = catalogUnitsFor(selected.kind)
+    const drive = units?.runPanel === 'drive-run'
+    const result = drive
+      ? await processDrive(selected.sourceId, false)
+      : await processMail(selected.sourceId, false)
     if (!result.ok) {
       message.error(result.error)
       return
     }
     message.success(
-      `Processing ${result.job.objects.length} document(s) from this mailbox.`,
+      `Processing ${result.job.objects.length} document(s) from this ${drive ? 'drive' : 'mailbox'}.`,
     )
     /*
      * **Deliberately not `handleQueued()`.** That re-reads the sources *and switches to Profiling
@@ -466,7 +480,7 @@ function CatalogTab({
      * comment used to say the outcome was "a message and a reload", and the reload was the half
      * that did not exist — which left every tile at 0 over a finished run.
      */
-  }, [selected, processMail, message])
+  }, [selected, processMail, processDrive, message])
 
   /* Which of the two actions is currently showing its panel. Derived from `panel`
      rather than tracked beside it: two pieces of state for one fact is how a button
@@ -775,10 +789,6 @@ function CatalogTab({
             />
           ) : null}
 
-          {panel === 'documents' ? (
-            <ProfiledDocumentsPanel key={`${selected.sourceId}-docs`} source={selected} />
-          ) : null}
-
           {/*
             **Gmail's catalogue is on the page, not behind a button.** Rendered whenever the
             connector declares no browse panel — the same `null` that turned its first button into
@@ -788,7 +798,17 @@ function CatalogTab({
             `ProfiledMailDocumentsPanel` is still on disk with the entity dictionary it draws, and
             now has no caller: the same waiting-for-a-caller state `/change-signals` is in.
           */}
-          {units && units.browsePanel === null ? (
+          {/* Which run surface, read off the row rather than switched on a connector name — the
+              ternary `catalogUnits` exists to stop, and there are two of these now. */}
+          {units?.runPanel === 'drive-run' ? (
+            <DriveProcessPanel
+              key={`${selected.sourceId}-drive-run`}
+              source={selected}
+              onProcessed={onCountsChanged}
+            />
+          ) : null}
+
+          {units?.runPanel === 'mail-run' ? (
             <MailProcessPanel
               key={`${selected.sourceId}-mail-run`}
               source={selected}
@@ -805,6 +825,22 @@ function CatalogTab({
               source={selected}
             />
           ) : null}
+
+          {/*
+            **A drive lists what it has profiled on the page, the way a mailbox does.**
+
+            It sat behind *View profiled documents* — a toggle opening a second view of the
+            documents the tiles above were already counting, which is the two-surfaces-for-one-
+            record split this repo refuses everywhere. `dictionaryPanel` is `null` on the drive row
+            now, so the button is withheld by there being no panel to open rather than by a
+            connector name in this page.
+
+            **Keyed on the row's own declarations, never on `kind`.** `browsePanel != null` is what
+            separates a drive from a mailbox here: a mailbox's first act is a run and it draws
+            `MailProcessPanel` above, a drive still browses its folders — which is a real choice a
+            reader makes, and the reason the browse button stays.
+          */}
+
 
           <Typography.Paragraph className="cat-detail-foot">
             {units?.foot(selected)}

@@ -143,15 +143,18 @@ export function GoogleSignInPanel({
             ))}
           </ul>
           {/*
-            Where the list comes from, said plainly. There is deliberately no *Use another account*
-            row: this window cannot create one, and a control that opens nothing is worse than an
-            absent one — the rule every withheld act in this repo keeps.
+            The policy line a real consent screen carries under its account list. There is
+            deliberately no *Use another account* row: this window cannot create one, and a control
+            that opens nothing is worse than an absent one — the rule every withheld act in this
+            repo keeps. The two phrases are marked rather than linked for the same reason: this app
+            publishes no policy page, so an anchor here could only go nowhere.
           */}
           <div className="gsi-note">
-            {`These are the ${app} directory's accounts — the same people the sign-in page ` +
-              'authenticates. Connecting as one of the others does not change who is signed in ' +
-              'to this browser; it records that account as the one that granted this consent. ' +
-              'There is no way to add an account from here.'}
+            {`Before using this app, you can review ${app}'s `}
+            <span className="gsi-note-mark">Privacy Policy</span>
+            {' and '}
+            <span className="gsi-note-mark">Terms of Service</span>
+            {'.'}
           </div>
         </>
       ) : (
