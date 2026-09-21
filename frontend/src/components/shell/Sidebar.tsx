@@ -1,4 +1,4 @@
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
+import { LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
 import { Button, Menu, Tooltip, Typography } from 'antd'
 
 import { useEffect } from 'react'
@@ -183,6 +183,103 @@ export function SidebarToggle({
   )
 }
 
+/**
+ * The collapsed navigation: one icon per item the persona may see.
+ *
+ * **This replaced an empty rail, and the reversal is on record.** Collapsing used to return
+ * *nothing* but the toggle — asked for then as "make sure all the sidebar menu are hidden", and
+ * argued for on the grounds that a hidden-by-CSS menu is still announced to a screen reader. Asked
+ * for the other way now: the icons stay, which is what a collapsed sidebar conventionally is.
+ *
+ * **What the old argument was right about is kept.** A rail of unlabelled glyphs is only usable if
+ * each one still says what it is, so every button carries its label as `aria-label` — the text is
+ * *visually* hidden, never dropped — and a `Tooltip` gives sighted readers the same words on hover.
+ * `title` is deliberately not used for that: it does not appear on keyboard focus.
+ *
+ * **Exported, and given its items**, for the reason `SidebarMenu` and `SidebarFooter` are: a
+ * store-connected component renders zustand's *initial* state under `renderToString`, so a filtered
+ * list is only assertable when it is passed in.
+ *
+ * The group headings do not survive the collapse, and nothing stands in for them: three words of
+ * heading do not fit a 64px rail, and a divider between groups would be decoration a reader cannot
+ * read. The order is still `NAV_GROUPS`' then `NAV_ITEMS`', so the icons appear in the order their
+ * labels do when expanded.
+ */
+export function SidebarRail({
+  items,
+  pathname,
+  onPick,
+  onToggle,
+  identity,
+  onSignOut,
+}: {
+  items: NavItem[]
+  pathname: string
+  onPick: (item: NavItem) => void
+  onToggle: () => void
+  identity: SessionIdentity | null
+  onSignOut: () => void
+}) {
+  /* The same match the expanded menu makes, and for the same reason: `NAV_ITEMS` holds canonical
+     paths while the URL carries the dataset letter, so a raw `startsWith` selects nothing. */
+  const route = splitDatasetPath(pathname).rest
+  const selected = items.find((item) => route.startsWith(item.path))
+
+  const ordered = NAV_GROUPS.flatMap((group) => items.filter((item) => item.group === group))
+
+  return (
+    <div className="sidebar is-collapsed">
+      <SidebarToggle collapsed onToggle={onToggle} />
+
+      <nav className="sidebar-rail" aria-label="Main">
+        {ordered.map((item) => {
+          const Icon = item.icon
+          const active = selected?.key === item.key
+          return (
+            <Tooltip key={item.key} title={item.label} placement="right">
+              <button
+                type="button"
+                className={`sidebar-rail-item${active ? ' is-active' : ''}`}
+                /* From the theme, never a hex here: `BRAND` on `BRAND_SOFT` is 2.91:1, so an
+                   active glyph has to be `BRAND_INK` to clear 4.5. */
+                style={active ? { background: BRAND_SOFT, color: BRAND_INK } : undefined}
+                /* The label, not the icon, is what this control is — so it is announced even
+                   though it is not drawn. */
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => onPick(item)}
+              >
+                <Icon />
+              </button>
+            </Tooltip>
+          )
+        })}
+      </nav>
+
+      {/* The signed-in account, reduced to its initials — the one thing the footer draws that is
+          legible at this width. The address is on the tooltip rather than dropped, so who is
+          signed in is still answerable without expanding. */}
+      {identity ? (
+        <div className="sidebar-rail-foot">
+          <Tooltip title={identity.email} placement="right">
+            <span className="sidebar-avatar">{identity.initials}</span>
+          </Tooltip>
+          <Tooltip title="Sign out" placement="right">
+            <button
+              type="button"
+              className="sidebar-rail-item"
+              aria-label="Sign out"
+              onClick={onSignOut}
+            >
+              <LogoutOutlined />
+            </button>
+          </Tooltip>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export default function Sidebar({
   onNavigate,
   collapsed = false,
@@ -227,19 +324,31 @@ export default function Sidebar({
   const items = visibleNavItems(settings, activePersonaId)
 
   /*
-   * **Collapsed means *absent*, not narrow.** Asked for as "make sure all the sidebar menu are
-   * hidden", and the whole shell returns early rather than rendering an icon-only rail: the items,
-   * the brand and the signed-in card are not in the markup at all, which is what the Ask history
-   * rail already does and what a screen reader needs — a hidden-by-CSS menu is still announced.
+   * **Collapsed is an icon rail — reversed on request.** It used to return *nothing* but the
+   * toggle, on the reasoning that a hidden-by-CSS menu is still announced to a screen reader. The
+   * icons stay now, which is what a collapsed sidebar conventionally is, and the accessibility half
+   * of that old argument is kept where it belongs: `SidebarRail` gives every button its label as
+   * `aria-label`, so nothing is hidden from a reader that is not also hidden from the eye.
    *
-   * What is left is the one control that brings it back. A collapse with no way out would be a
-   * one-way door, and this is the place a reader looks for it because it is where the sidebar was.
+   * The toggle is still the first thing on it. A collapse with no way out would be a one-way door,
+   * and this is where a reader looks for it, because it is where the sidebar was.
    */
   if (collapsed && onToggle) {
     return (
-      <div className="sidebar is-collapsed">
-        <SidebarToggle collapsed onToggle={onToggle} />
-      </div>
+      <SidebarRail
+        items={items}
+        pathname={pathname}
+        onPick={(item) => {
+          navigate(appPath(item.path))
+          onNavigate?.()
+        }}
+        onToggle={onToggle}
+        identity={identity}
+        onSignOut={() => {
+          logout()
+          navigate('/login')
+        }}
+      />
     )
   }
 

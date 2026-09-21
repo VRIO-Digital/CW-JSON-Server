@@ -188,14 +188,21 @@ export function GoogleSignInPanel({
               )
             })}
           </ul>
-          {/* One expression, not `{n} permission{s}` around literal text: React splits an
-              interpolation into its own text node, so the sentence a reader sees as one string
-              cannot be asserted on as one. */}
-          <div className="gsi-note">
-            {`${scopes.length} permission${scopes.length === 1 ? '' : 's'}, all read-only. ` +
-              'Nothing is written, updated or deleted, and no key file is downloaded or stored. ' +
-              'You can remove this access from your Google Account at any time.'}
-          </div>
+          {/*
+            **The note under the scopes is gone — removed on request.** It read *"N permissions,
+            all read-only. Nothing is written, updated or deleted, and no key file is downloaded or
+            stored. You can remove this access from your Google Account at any time."*
+
+            **What it said is still on the screen, per scope rather than summarised.** Each row
+            above states its own grant in plain English and prints the scope it is asking for —
+            `bigquery.readonly` — which is the falsifiable form of "all read-only": a reader can
+            see the `.readonly` on every line rather than take a footer's word for the set. The
+            count it stated is likewise visible as the length of the list it stood under.
+
+            **The rule it described is untouched and is not carried by this copy.** The scopes are
+            the ones `/sources/oauth/start` returned, never a list held here, which is what stops
+            this window describing fewer permissions than are being asked for.
+          */}
 
           {phase === 'granting' ? (
             <GoogleConsentPanel provider={provider} stage={stage} scopes={scopes} />

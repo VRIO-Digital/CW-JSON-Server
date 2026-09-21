@@ -17,6 +17,78 @@
 }
 
 /*
+ * The collapsed rail: one icon per item, the toggle above them, the account below.
+ *
+ * **It used to be empty.** Collapsing returned the toggle and nothing else; the icons were asked
+ * for, so the rail is now a real navigation and is styled as one — an active item, a hover state
+ * and a focus ring, because a glyph a reader can click is a control whatever its width.
+ *
+ * `flex: 1` on the nav is what pushes the account to the foot without a fixed height anywhere, so
+ * a persona with three items and one with nine both sit correctly.
+ */
+.sidebar-rail {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  width: 100%;
+  margin-top: var(--sp-4);
+}
+
+.sidebar-rail-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #22355c;
+  font-size: 17px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.sidebar-rail-item:hover {
+  background: rgba(242, 105, 29, 0.1);
+  color: #f2691d;
+}
+
+/*
+ * The selected item's **colours come from `theme.ts`, inline** — not from here.
+ *
+ * `BRAND` on `BRAND_SOFT` is 2.91:1, under the 4.5 a glyph needs, so the active mark has to be
+ * `BRAND_INK`; writing that hex into this stylesheet is the fourth orange in the codebase that
+ * "change the brand in theme.ts, not in stylesheets" exists to refuse, and `check-docs` bans those
+ * three values here by name. So the rule owns only the shape, and `SidebarRail` passes the fill and
+ * the ink — exactly as `SidebarToggle` already does for its own.
+ */
+.sidebar-rail-item.is-active {
+  font-weight: 600;
+}
+
+/* The rail is keyboard-navigable, so the ring has to be as loud as the hover. */
+.sidebar-rail-item:focus-visible {
+  outline: 2px solid #f2691d;
+  outline-offset: 2px;
+}
+
+.sidebar-rail-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-3) 0;
+  border-top: 1px solid #eef1f5;
+}
+
+/*
  * The toggle. In the brand row it sits top-right, out of the wordmark's way; on the collapsed rail
  * it is the only thing there. One rule for both, because it is one control.
  *

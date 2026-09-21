@@ -120,6 +120,32 @@ export const confirmedRelationshipsCopy = {
  * They agree today — `toRelationshipItem`'s reader maps an unnamed row to `derived` — and reading
  * the derived one would make this a claim about a label instead of about the document.
  */
+/**
+ * The stored relations somebody has actually accepted — what the strip's `relations` tile counts.
+ *
+ * **The tile starts at zero and grows as a reader approves, which it did not.** It printed every
+ * stored declaration, so a source that ships 50 opened at 50 and approving one moved nothing: the
+ * number said what the *document* holds, and a reader watching it had no way to see their own work
+ * land. Asked for the other way round.
+ *
+ * **It is the exact complement of `unacceptedRelations`**, derived from it rather than written
+ * beside it — `confirmedBy` is read in one place, so the tile, the *Accept all* button and the run
+ * cannot come to disagree about what "accepted" means. The same reason that function has one
+ * definition and three readers.
+ *
+ * The **dialog still lists every stored relation**, accepted or not, because that is where the
+ * accepting happens: a list filtered to the tile's number would leave the unaccepted rows with no
+ * surface and *Accept all* with nothing to act on. That is why the tile states its denominator in
+ * its hint rather than standing as a bare figure — the count and the list describe the same array,
+ * and the tile says which part of it it is counting.
+ */
+export function acceptedRelations(
+  rows: DeclaredRelationship[],
+): DeclaredRelationship[] {
+  const pending = new Set(unacceptedRelations(rows))
+  return rows.filter((r) => !pending.has(r))
+}
+
 export function unacceptedRelations(
   rows: DeclaredRelationship[],
 ): DeclaredRelationship[] {

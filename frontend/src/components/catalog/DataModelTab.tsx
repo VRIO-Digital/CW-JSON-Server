@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ModelTableSuggestion, SourceRow } from '../../api/client'
 import { acceptAllOutcome } from '../../data/pendingSuggestions'
 import {
+  acceptedRelations,
   confirmedRelationshipsCopy as CONFIRMED_COPY,
   relationDecision,
   unacceptedRelations,
@@ -378,6 +379,15 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
     [relationships],
   )
   const confirmedCount = confirmedRelationships.length
+  /*
+   * **What the tile counts: the ones somebody has accepted, so it opens at zero and grows.**
+   *
+   * It printed `confirmedCount` — every stored declaration — so CAPEX's source opened at 50 and
+   * approving a relation moved nothing on screen. Asked for the other way round. The dialog still
+   * lists all of them, because that is where accepting happens, so the tile states its denominator
+   * in the hint rather than leaving two numbers to be reconciled.
+   */
+  const acceptedCount = acceptedRelations(confirmedRelationships).length
   /*
    * **One array, two readers.** The tile prints its length and the review modal lists its rows, so
    * the number a reader clicks and the number of rows they then count cannot disagree — there is no
@@ -1040,17 +1050,24 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
                   * the control and the thing it opens cannot come to be called two things.
                   */}
                 <StatItem
-                  value={confirmedCount}
+                  value={acceptedCount}
                   label={CONFIRMED_COPY.tileLabel}
                   color={MT.green}
-                  /* Inert at 0, exactly as the pending tile is: a count that opened an empty dialog
-                     is the button-over-blank-space this repo has fixed once already. */
+                  /*
+                    Inert while there is nothing stored to open — not while the *count* is 0, which
+                    is now the ordinary state of a source nobody has reviewed. Gating the click on
+                    `acceptedCount` would hide the dialog exactly when a reader needs it: with 50
+                    relations stored and none accepted, the one act available is to open it and
+                    accept some.
+                  */
                   onClick={
                     confirmedCount > 0 ? () => setConfirmedOpen(true) : undefined
                   }
+                  /* The denominator, so the tile and the list it opens cannot read as contradicting
+                     each other: `0` of `50` stored is one fact stated in two halves. */
                   hint={
                     confirmedCount > 0
-                      ? 'Accept or reject each relation this source has stored'
+                      ? `${acceptedCount} of ${confirmedCount} stored — accept or reject each one`
                       : undefined
                   }
                 />

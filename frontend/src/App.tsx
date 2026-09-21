@@ -15,7 +15,9 @@ const SIDER_WIDTH = 258
  * Not 0: a collapse with no way out is a one-way door, and the place a reader looks for the way back
  * is where the sidebar was.
  */
-const COLLAPSED_WIDTH = 48
+/* Wide enough for a 40px icon button with a gutter each side — the rail draws the navigation now
+   rather than the toggle alone, so 48 left the icons touching both edges. */
+const COLLAPSED_WIDTH = 64
 
 export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)

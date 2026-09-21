@@ -11664,27 +11664,50 @@ expect(
 )
 
 /*
- * **The sidebar hides, and hidden means *absent*.**
+ * **The sidebar collapses to an icon rail — reversed on request.**
  *
- * Asked for as "make sure all the sidebar menu are hided", which rules out antd's own
- * `collapsible` — that draws an icon-only rail, so the menu is still there, still announced to a
- * screen reader, just unreadable. The whole shell returns early instead: the items, the wordmark
- * and the signed-in card are not in the markup at all, which is the rule the Ask history rail
- * already keeps ("collapsed means absent, not hidden").
+ * It used to collapse to *nothing* but the toggle. That was asked for as "make sure all the sidebar
+ * menu are hided", and argued on a real point: antd's `collapsible` draws an icon rail, so the menu
+ * is still in the markup and still announced to a screen reader while being unreadable on screen.
+ * The icons were then asked for directly — which is what a collapsed sidebar conventionally is —
+ * so the shell renders `SidebarRail` instead of returning early.
  *
- * **And the one thing left is the way back.** A collapse with no way out is a one-way door, so the
- * rail keeps a real button carrying the act's name — `aria-label` and `aria-expanded`, because on
- * that rail the label *is* the whole affordance. Its two words are in `nav.ts` beside the items,
- * not inline, so they can be asserted without rendering the store-connected shell.
+ * **The accessibility half of the old argument is kept rather than dropped**, and that is what this
+ * claim is mostly for: every rail button carries its label as `aria-label`, so the text is hidden
+ * from the eye and from nothing else, and the current item is marked with `aria-current` rather
+ * than by colour alone. A rail of unlabelled glyphs would be the thing the original request was
+ * right to refuse.
+ *
+ * **And the way back is still the first thing on it.** A collapse with no way out is a one-way
+ * door. Its two words live in `nav.ts` beside the items, so they can be asserted without rendering
+ * the store-connected shell — which is also why `SidebarRail` takes its items as a prop.
  */
 expect(
-  'the sidebar collapses to one control, with the menu absent rather than hidden',
+  'the sidebar collapses to an icon rail that keeps every label for a screen reader',
   /export const NAV_COLLAPSE_LABEL = 'Hide navigation'/.test(nav) &&
     /export const NAV_EXPAND_LABEL = 'Show navigation'/.test(nav) &&
     /export function SidebarToggle\(\{/.test(sidebarSrc) &&
-    /* The early return is what makes it absent: no menu, no brand, no footer. */
     /if \(collapsed && onToggle\) \{/.test(sidebarSrc) &&
+    /*
+     * The rail is a component of its own and is given its items, so a filtered list is assertable
+     * — `renderToString` hands a store-connected shell zustand's *initial* state.
+     */
+    /export function SidebarRail\(\{/.test(sidebarSrc) &&
+    /<SidebarRail\r?\n\s*items=\{items\}/.test(sidebarSrc) &&
+    /* The toggle still leads it, so the collapse is never a one-way door. */
     /<div className="sidebar is-collapsed">\r?\n\s*<SidebarToggle collapsed onToggle=\{onToggle\} \/>/.test(
+      sidebarSrc,
+    ) &&
+    /*
+     * **Every icon still says what it is.** The label is not drawn at this width, so it is carried
+     * on the button — and on a `Tooltip` for sighted readers, which `title` would not give on
+     * keyboard focus. The empty rail this replaced needed neither; a rail of bare glyphs would.
+     */
+    /aria-label=\{item\.label\}/.test(sidebarSrc) &&
+    /<Tooltip key=\{item\.key\} title=\{item\.label\} placement="right">/.test(sidebarSrc) &&
+    /aria-current=\{active \? 'page' : undefined\}/.test(sidebarSrc) &&
+    /* Order is the expanded menu's, so the icons are where their labels were. */
+    /NAV_GROUPS\.flatMap\(\(group\) => items\.filter\(\(item\) => item\.group === group\)\)/.test(
       sidebarSrc,
     ) &&
     /* Non-visual halves, since the collapsed rail has no text beside the icon. */
@@ -11719,8 +11742,13 @@ expect(
     /* The colours come from the theme, not a fourth orange in the stylesheet. */
     /import \{ BRAND, BRAND_INK, BRAND_SOFT \} from '\.\.\/\.\.\/theme'/.test(sidebarSrc) &&
     !/#f4562b|#9e3819|#fdeae4/.test(read('frontend/src/components/shell/Sidebar.css')) &&
-    /* The shell drives the width and antd's own collapse is deliberately not used. */
-    /const COLLAPSED_WIDTH = 48/.test(appSrc) &&
+    /*
+     * The shell drives the width and antd's own collapse is deliberately not used.
+     *
+     * **64 rather than 48**, since the rail draws the navigation now rather than the toggle alone:
+     * a 40px icon button needs a gutter each side, and at 48 the icons touched both edges.
+     */
+    /const COLLAPSED_WIDTH = 64/.test(appSrc) &&
     /width=\{navCollapsed \? COLLAPSED_WIDTH : SIDER_WIDTH\}/.test(appSrc) &&
     !/collapsible/.test(codeOnly(appSrc)) &&
     /* The drawer takes no collapse: it hides everything by being shut. */
