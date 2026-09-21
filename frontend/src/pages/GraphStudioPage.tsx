@@ -83,7 +83,6 @@ export default function GraphStudioPage() {
   const poll = useStudioStore((s) => s.poll)
   const draft = useStudioStore((s) => s.draft)
   const saveStory = useStudioStore((s) => s.saveStory)
-  const formBridge = useStudioStore((s) => s.formBridge)
   const selectBridge = useStudioStore((s) => s.selectBridge)
   const decide = useStudioStore((s) => s.decide)
   const acceptAll = useStudioStore((s) => s.acceptAll)
@@ -262,47 +261,39 @@ export default function GraphStudioPage() {
            * never publishes, and a reader who was not told would meet a live graph they never
            * approved.
            */}
-          {bridgeForming ? (
-            <Alert
-              type="info"
-              showIcon
-              title="Both graphs are built. Forming the Bridge between them."
-              description={
-                <Typography.Text style={{ fontSize: 12.5 }}>
-                  A model is asked, once per Concept, which of the document graph&rsquo;s Entity Types
-                  correspond to it. The version naming all three is recorded once it lands — so they
-                  can be approved together rather than as two graphs that know nothing about each
-                  other. It is recorded <strong>unpublished</strong>: you review the correspondences
-                  in the Bridge tab and publish from there.
-                </Typography.Text>
-              }
-            />
-          ) : null}
+          {/*
+           * **The formation notice stood here and is gone — removed on request.** While a Bridge
+           * was forming it said *Both graphs are built. Forming the Bridge between them.*, and
+           * stated the two things a formation decides on a reader's behalf: that a model is asked
+           * once per Concept, and that what it produces is recorded **unpublished**.
+           *
+           * **Neither fact changed, only the saying of it.** `maybeAutoFormBridge` still forms the
+           * Bridge once both lanes land, a build still publishes nothing, and the run is still
+           * narrated on the Build tab — which keeps its own *Both lanes have landed* notice, so a
+           * reader watching the run is not left with nothing.
+           *
+           * **What it costs is stated rather than glossed**: a reader on another tab no longer
+           * learns that a formation is in flight, or that a model is involved in it.
+           * **Do not restore it without being asked.**
+           */}
 
           {/*
-           * The three output tabs read a build's output, so they are locked until one exists — and
-           * locked again while a rebuild runs, because what they would otherwise show is the previous
-           * build's output with nothing saying so. Settling a correspondence against a canvas that is
-           * being superseded is a decision made on stale evidence. The lock says why, and says it
-           * differently while a run is in flight: "start one" is the wrong instruction for somebody
-           * already watching one.
+           * **The lock notice stood here and is gone — removed on request.** It was an Alert above
+           * the tabs saying either *Nothing has been built for this use case yet* or, while a run
+           * was in flight, *A build is running*, each naming the three tabs that read a build's
+           * output and what to do about it.
+           *
+           * **The lock itself is untouched**: `selectOutputReadable` still closes Bridge, Canvas
+           * and Versions until a build lands and again while one runs, because what they would
+           * otherwise show is the previous build's output with nothing saying so, and settling a
+           * correspondence against a canvas being superseded is a decision made on stale evidence.
+           *
+           * **What it costs is stated rather than glossed**: three tabs are now disabled with
+           * nothing on screen saying why or which act opens them. Both branches went together,
+           * because a notice that appeared only mid-run would read as a fault rather than as the
+           * one state it still covered. `check-docs` asserts the absence of both.
+           * **Do not restore either without being asked.**
            */}
-          {useCase && !outputReadable ? (
-            <Alert
-              type="info"
-              showIcon
-              title={
-                buildRunning
-                  ? 'A build is running'
-                  : 'Nothing has been built for this use case yet'
-              }
-              description={
-                buildRunning
-                  ? 'The Bridge, the canvas and Versions read a build’s output, so they stay closed until this run lands — what they would show until then is the previous build’s, with nothing saying so.'
-                  : 'The Bridge, the canvas and Versions all read a build’s output. Build this use case first.'
-              }
-            />
-          ) : null}
 
           {useCase ? (
             <Tabs
@@ -340,12 +331,10 @@ export default function GraphStudioPage() {
                       bridgeId={bridgeId}
                       typeLinks={typeLinks}
                       unreviewedCount={unreviewedCount}
-                      busy={busy}
                       canForm={useCase.hasStructured && useCase.hasDocuments}
                       laneNote={null}
                       publishedBridgeId={publishedBridgeId}
                       onSelectBridge={(id) => void selectBridge(id)}
-                      onForm={() => void report(() => formBridge())}
                       sweeping={sweeping}
                       savingLinkId={savingLinkId}
                       publishing={busy}

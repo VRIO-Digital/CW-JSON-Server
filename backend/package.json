@@ -13,6 +13,7 @@
     "seed:workspaces": "node scripts/seed-workspaces.js",
     "seed:capex-drive": "node scripts/seed-capex-drive.js",
     "seed:capex-drive-chunks": "node scripts/seed-capex-drive-chunks.js",
+    "seed:capex-drive-trim": "node scripts/seed-capex-drive-trim.js",
     "seed:capex-extractions": "node scripts/seed-capex-extractions.js",
     "seed:prototype-model": "node scripts/seed-prototype-model.js",
     "seed:data-model": "node scripts/seed-data-model.js",

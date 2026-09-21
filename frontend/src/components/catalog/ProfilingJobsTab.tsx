@@ -8,7 +8,7 @@ import {
   Progress,
   Space,
   Table,
-  // Tag,
+  Tag,
   Typography,
   type TableColumnsType,
 } from 'antd'
@@ -180,15 +180,28 @@ export default function ProfilingJobsTab({
 
   const shared: TableColumnsType<ProfilingJob> = [
     {
+      /* The id and what the run is *over*, together — the unit is a property of the job rather
+         than a column of its own, and at seven columns every one that can be folded should be. */
       title: 'job',
       dataIndex: 'short_id',
-      width: 130,
-      render: (id: string) => <Typography.Text code>{id}</Typography.Text>,
+      width: 190,
+      render: (id: string, job) => (
+        <span className="pj-job">
+          <Typography.Text code>{id}</Typography.Text>
+          <Tag className="pj-unit">{job.unit}s</Tag>
+        </span>
+      ),
     },
     {
-      title: 'pipeline',
-      dataIndex: 'pipeline',
-      render: (p: string) => <span className="pj-pipeline">{p}</span>,
+      /*
+        **What it runs on, not which pipeline it is.** `pipeline` named the internal stage list;
+        `source_id` is the thing a reader is looking for when they scan this board — which of their
+        connected sources this run belongs to. The pipeline is still visible where it means
+        something, as the stage label under the progress bar.
+      */
+      title: 'runs on',
+      dataIndex: 'source_id',
+      render: (id: string) => <span className="pj-source">{id}</span>,
     },
     {
       title: 'status',
@@ -199,8 +212,11 @@ export default function ProfilingJobsTab({
       ),
     },
     {
-      title: 'selected',
+      /* Renamed from *selected*: what the cell states is how much of the run has been **committed**,
+         which is a scope that shrinks as the job goes rather than the list that was picked. */
+      title: 'scope',
       key: 'objects',
+      width: 120,
       render: (_, job) => <ObjectsSelected job={job} />,
     },
     {
@@ -220,11 +236,23 @@ export default function ProfilingJobsTab({
   const activeColumns: TableColumnsType<ProfilingJob> = [
     ...shared,
     {
+      /*
+        **A bar, and the stage under it.** It read `3/6`, which is the same fact the *scope* column
+        already states and is the one thing a running job can show that a finished one cannot. The
+        percentage is the **job's own** `progress`, never a timer — a bar filling on a clock is an
+        operation narrating work nobody did, which is the rule every paced surface here keeps.
+      */
       title: 'progress / error',
       key: 'progress',
-      width: 160,
-      render: (_, job) =>
-        `${job.objects_done}/${units(job, job.object_count)}`,
+      width: 240,
+      render: (_, job) => (
+        <div className="pj-progress">
+          <Progress percent={job.progress} size="small" status="active" />
+          <span className="pj-progress-note">
+            {`${job.stage_label} · ${job.objects_done} ${units(job, job.objects_done)} processed`}
+          </span>
+        </div>
+      ),
     },
     {
       title: '',
@@ -246,14 +274,30 @@ export default function ProfilingJobsTab({
   const recentColumns: TableColumnsType<ProfilingJob> = [
     ...shared,
     {
+      /*
+        **A finished bar and what it landed**, so a completed row reads as the same object the
+        active row above it was rather than as a bare fraction. An error still replaces the whole
+        cell: a run that failed has no result to report, and a green bar beside a failure would be
+        two answers to whether it worked.
+      */
       title: 'result / error',
       key: 'result',
-      width: 130,
+      width: 240,
       render: (_, job) =>
         job.error ? (
           <Typography.Text type="danger">{job.error}</Typography.Text>
         ) : (
-          `${job.objects_done}/${units(job, job.object_count)}`
+          <div className="pj-progress">
+            <Progress
+              percent={100}
+              size="small"
+              status={job.status === 'cancelled' ? 'exception' : 'success'}
+            />
+            <span className="pj-progress-note">
+              {`${job.status === 'cancelled' ? 'Cancelled' : 'Processing complete'} · ` +
+                `${job.objects_done} ${units(job, job.objects_done)} processed`}
+            </span>
+          </div>
         ),
     },
     {

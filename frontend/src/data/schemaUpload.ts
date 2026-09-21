@@ -73,17 +73,19 @@ export const schemaUploadCopy = {
     'than adding to it, so a file naming 3 columns of a table catalogued with 24 leaves that table ' +
     'with 3.',
 
-  /**
-   * **The one thing this panel must say out loud.** A dictionary states what a column *means*; it
-   * measures nothing. So the null%, distinct and confidence a profiling run produces are absent for
-   * every declared column, and the panel says so before the reader wonders why the table is full of
-   * em dashes — rather than filling them with figures that would look exactly as plausible.
+  /*
+   * **`measuresNothing` stood here and is gone — removed on request**, with the Alert above the
+   * browse tree that was its one reader. It said that a declared column carries no null%, no
+   * distinct count and no classifier score, so each cell prints an em dash rather than a plausible
+   * figure.
+   *
+   * **The fact is unchanged and the guarantee is untouched**: `resolveSchemaUpload` still leaves
+   * all three `null` for a declared column, the payload still carries them nullable, and the
+   * dictionary still draws an em dash. What went is the sentence warning a reader in advance, so a
+   * table of em dashes is now met without having been explained first. The copy went with the
+   * control for the reason `replaceLabel` did: a string nothing renders is an invitation for the
+   * Alert to come back. **Do not restore either without being asked.**
    */
-  measuresNothing:
-    'A dictionary states what a column means, and samples nothing — so a declared column carries ' +
-    'no null%, no distinct count and no classifier score. Each says “—” rather than a plausible ' +
-    'figure. Its class comes from the type where the file names one, and the file it was declared ' +
-    'in is recorded against every column.',
 
   formats:
     'JSON (a document with “tables”, or a flat array of column rows), CSV or TSV (one row per ' +

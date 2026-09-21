@@ -1736,19 +1736,35 @@ for something to happen, and a second click to make anything appear is a step th
 That first act still writes nothing (it now reads nothing either). **Start Profiling is the run**,
 one control for both halves of what a reader means by it.
 
-**A dataset row draws the upload control or the staged acts, never both.** With nothing read against
-it the row offers **Upload Files**; with a file staged it offers that file's name and **Discard** —
-the upload button used to stay, relabelled *Replace file*, and a *View report* sat beside Discard;
-both were **removed on request**. Swapping a file is Discard then Upload now: one more click, and the honest
-shape of the act, since `staged` holds one file per dataset and a replace was discarding the
-previous plan either way with only the saying of it missing. `replaceLabel` went with the button,
-because a label nothing renders is an invitation for the control to come back.
+**A dataset row takes several dictionaries, and lists every one.** `staged.filenames` is an array
+and `read` appends to it, de-duplicated by name, so the row draws **one chip per file** in the
+order they were chosen. The picker is `multiple`, because a list the reader can only add to one
+file at a time is a list in the store and not on the screen — and a single chip would render the
+last file read and silently drop the rest, which is the no-silent-truncation rule on the one
+surface that says what is staged.
 
-**`check-docs` asserts both branches, and the second is the one that fails silently.** A control
-hidden behind a condition is one edit away from being hidden in the state that needs it — a dataset
-with nothing staged and no upload button has no way to upload at all, and nothing throws. So the
-claim pins `staged ? null :` as the gate rather than merely the button's absence: that is the only
-shape which leaves the empty state drawing one.
+**The upload button is drawn in both states, and that is a reversal on record.** It used to be
+withheld once a file had been read — *Replace file*, removed on request, so a staged row offered
+its name and **Discard** and nothing else. The reasoning was that `staged` held **one** file per
+dataset, so the button could only have meant a replace, and a replace silently threw away a plan
+the reader may not have looked at; Discard-then-Upload was the honest shape of that act.
+
+**That reasoning went when the slot became a list.** Pressing the button now *adds* a dictionary
+and can no longer replace one, so withholding it would leave a reader able to stage a second file
+only by discarding the first — the opposite of what a list is for, and it would leave *Upload
+Files*, plural, labelling a control that takes one. `replaceLabel` stays gone from the copy module
+either way, because this button is still not a replace.
+
+**The input's value is cleared after every pick**, which is not tidiness: an `<input type="file">`
+fires no `change` when the same file is chosen twice running, so discarding a row and re-picking
+that file would do nothing at all and read as a dead button.
+
+**`check-docs` asserts the shape, and the concern it was written for is met more strongly than
+before.** A control hidden behind a condition is one edit away from being hidden in the state that
+needs it — a dataset with no upload button has no way to upload at all, and nothing throws. The
+claim used to pin `staged ? null :` as the gate; it now pins the *absence* of any `staged` gate
+around the button, which is a state that failure cannot reach, together with the `.map` over
+`filenames` and the `multiple` on the input.
 
 **The report is gone, and a landed upload raises a toast — removed on request.** It had two forms,
 each fixing the one before it: drawn inline under the tree, where a twelve-row table and two
@@ -1794,10 +1810,15 @@ their own merits. `force` still travels and the job still records the caller's a
 `true`, because claiming a run was forced when nobody asked would misreport the one flag the jobs
 board shows. `objects` still travels too, and still covers tables in *other* datasets.
 
-**A dictionary is staged per dataset**, keyed by dataset id in `useSchemaUploadStore`, because one
-slot would silently replace the previous reader's file with the next one. They are sent **together**,
-as `dictionaries` — an array, because a source with three datasets can have one read against each and
-a call per dataset would put the job count straight back. The server resolves every plan *before* it
+**Dictionaries are staged per dataset**, keyed by dataset id in `useSchemaUploadStore`, because one
+slot for the whole source would silently replace the previous reader's file with the next one. Each
+dataset's entry holds a **list** of filenames — `read` appends and de-duplicates by name — since a
+reader can drop several on one row; the `plan` beside it stays singular, because it describes the
+*dataset's* own tables rather than the file, so there is one of it however many files were dropped.
+They are sent **together**, as `dictionaries` — an array with **one entry per file**, because a
+source with three datasets can have several read against each and a call per dataset would put the
+job count straight back. Repeating a dataset across entries queues nothing twice: the run is a union
+keyed `dataset::table`, so what a second file adds is a name in the reply for the summary to state. The server resolves every plan *before* it
 writes anything and lands them in a **single `commitDb`**, so a refusal on the third file leaves the
 first two unwritten: all of them or none, which is stronger than the client-side loop this replaced,
 where posting one at a time could leave half applied. `dictionaryRefused` says so — nothing was
@@ -1868,6 +1889,21 @@ one thing a real profile is worth and would be invisible — every number would 
 reasonable as the measured ones beside it. Fifth in the family after `rows`, `class` and
 `derivation`, and the same lesson: *a declared type is a claim about every column, not the ones it was
 written against.*
+**The panel used to say that out loud before anybody uploaded anything, and no longer does —
+removed on request.** An Alert above the browse tree carried `schemaUploadCopy.measuresNothing`:
+that a dictionary states what a column means and samples nothing, so null%, distinct and the
+classifier score each print an em dash rather than a plausible figure. Both halves went together,
+the Alert and the copy, because a string nothing renders is an invitation for the control to come
+back — the rule `replaceLabel` already follows.
+
+**What it costs is stated rather than glossed.** A reader now meets a table of em dashes without
+having been told in advance why the statistics are absent, which is the one thing that panel could
+have told them. **The guarantee itself is untouched and is still asserted at every layer**: the
+server writes all three `null`, the document permits it, the payload declares them nullable, and
+`ProfiledColumnsPanel` still draws the dash. `check-docs` kept that claim and re-pointed its last
+two legs at the *absence* of `measuresNothing` in both the copy module and `CatalogPage`, because
+half this removal is the shape that fails silently — copy with no reader, or an Alert with no copy
+behind it. **Do not restore either without being asked.**
 
 **And "every layer that carries them" turned out to include the suggester, which reads all three.**
 `dataModelSuggestions` was written when every profiled column had been sampled, so an uploaded

@@ -415,7 +415,19 @@ export const useMailDocumentsStore = create<MailDocumentsState>()((set, get) => 
 
 /** A dictionary that has been picked and is waiting for Start Profiling. */
 export interface StagedDictionary {
-  filename: string
+  /**
+   * Every file read against this dataset, in the order they were chosen.
+   *
+   * **A list rather than one name — asked for: a reader can pick several at once.** It was a single
+   * slot, on the reasoning that two dictionaries for one dataset would each replace that dataset's
+   * columns and the last would silently win. **That reasoning went when the parse did**: the upload
+   * reads nothing, the plan is the *dataset's* own tables either way, and the run is a union keyed
+   * `dataset::table` — so a second file adds a name to report and changes nothing about what runs.
+   *
+   * The plan below stays singular for exactly that reason. It describes the dataset, not the file,
+   * so there is one of it however many files were dropped on the row.
+   */
+  filenames: string[]
   /**
    * The plan the server answered with — the *dataset's* tables and columns, not the file's.
    *
@@ -507,17 +519,29 @@ export const useSchemaUploadStore = create<SchemaUploadState>()((set, get) => ({
   error: null,
 
   read: async (sourceId, input) => {
-    const { [input.dataset_id]: _dropped, ...rest } = get().staged
-    set({ reading: input.dataset_id, error: null, staged: rest })
+    /* **Appends rather than replaces.** The previous read's file is kept: choosing a second file
+       for a dataset adds it, which is what "upload multiple" means. Discarding is still the one way
+       to clear them, and it clears the row. */
+    set({ reading: input.dataset_id, error: null })
     try {
       const plan = await previewSchemaUpload(sourceId, input)
-      set((state) => ({
-        reading: null,
-        staged: {
-          ...state.staged,
-          [input.dataset_id]: { filename: input.filename, plan },
-        },
-      }))
+      set((state) => {
+        const already = state.staged[input.dataset_id]?.filenames ?? []
+        return {
+          reading: null,
+          staged: {
+            ...state.staged,
+            [input.dataset_id]: {
+              /* De-duplicated by name: choosing the same file twice is one file, and two identical
+                 chips would read as two dictionaries where there is one. */
+              filenames: already.includes(input.filename)
+                ? already
+                : [...already, input.filename],
+              plan,
+            },
+          },
+        }
+      })
       return { ok: true }
     } catch (error) {
       const message = toMessage(error)
@@ -533,10 +557,12 @@ export const useSchemaUploadStore = create<SchemaUploadState>()((set, get) => ({
     set({ applying: true, error: null })
     try {
       const result = await applySchemaUpload(sourceId, {
-        dictionaries: entries.map(([dataset_id, entry]) => ({
-          filename: entry.filename,
-          dataset_id,
-        })),
+        /* **One entry per file, not per dataset.** A dataset may now carry several, and the run is
+           a union keyed `dataset::table`, so repeating a dataset queues nothing twice — what it
+           does is put every filename in the reply, which is what the summary names. */
+        dictionaries: entries.flatMap(([dataset_id, entry]) =>
+          entry.filenames.map((filename) => ({ filename, dataset_id })),
+        ),
         objects,
         force,
       })
@@ -544,12 +570,26 @@ export const useSchemaUploadStore = create<SchemaUploadState>()((set, get) => ({
       set({ staged: {}, applying: false })
       return {
         ok: true as const,
-        /* Paired positionally with what was sent, which is the order the route replies in. */
-        applied: entries.map(([dataset_id, entry], i) => ({
-          dataset_id,
-          filename: entry.filename,
-          table_count: result.applied[i]?.table_count ?? entry.plan.table_count,
-        })),
+        /*
+          Paired positionally with what was sent, which is the order the route replies in — and
+          what was sent is now **one entry per file**, so this flattens the same way `dictionaries`
+          did. A running index rather than the entry's, because a dataset with two files occupies
+          two slots in the reply.
+        */
+        applied: (() => {
+          const rows: { dataset_id: string; filename: string; table_count: number }[] = []
+          for (const [dataset_id, entry] of entries) {
+            for (const filename of entry.filenames) {
+              rows.push({
+                dataset_id,
+                filename,
+                table_count:
+                  result.applied[rows.length]?.table_count ?? entry.plan.table_count,
+              })
+            }
+          }
+          return rows
+        })(),
         job: result.job,
       }
     } catch (error) {

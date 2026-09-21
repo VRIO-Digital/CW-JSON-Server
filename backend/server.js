@@ -773,6 +773,16 @@ const DISCOVERY_MS = 800
  * this list is still a valid one to connect as — which is what keeps the cap a presentation
  * decision. The rows that must survive it are named where it is applied.
  */
+/**
+ * The shared account the Google chooser offers beside the tenant's own.
+ *
+ * A group address rather than a colleague — the account a team connects a warehouse as. It is
+ * **in `db.settings.users`**, which is not optional: the window offers the directory and nothing
+ * else, so that `/sources/oauth/mailboxes` and `identityFor` can never refuse a row it showed.
+ * Declared here rather than typed into the window for the same reason the scopes are served.
+ */
+const OAUTH_SHARED_ACCOUNT = 'contextweave.group@vriodigital.com'
+
 const OAUTH_ACCOUNT_LIMIT = 3
 
 const CONNECT_STEP_MS = 5000
@@ -3217,61 +3227,64 @@ const PIPELINE = [
   'Candidate keys',
 ]
 
-const DOC_PIPELINE = [
-  'Text extraction',
-  'Chunking',
-  'Entity extraction',
-  'Document PII detection',
-  'Topic classification',
-]
+/*
+ * **Both document profilers narrate the same two stages, and each still runs at its own length.**
+ *
+ * Asked for: a drive run and a mail run now say *Reading documents* and then *Extracting entities
+ * & relations*, and nothing else. Drive listed five (Text extraction, Chunking, Entity extraction,
+ * Document PII detection, Topic classification) and mail listed the tenant's seven; both are
+ * reduced to these two, which are the two the work actually divides into once a reader is watching
+ * rather than auditing.
+ *
+ * **They are one list because it is one job.** What an extractor does to a PDF does not depend on
+ * whether it arrived in a drive or an inbox — that was already the reasoning for mail's last three
+ * stages being Drive's own — so two lists holding the same two strings would be two answers to what
+ * that work is called, a rename away from disagreeing.
+ *
+ * **The pacing did not come with it**, which is what `PIPELINE_STEPS` keeps separate: Drive still
+ * ticks five times and mail seven, so both bars climb as they did and `commitNextObject` still
+ * lands documents across the run. Collapsing the list *and* the run would finish a mail job in two
+ * ticks with the bar jumping, which says a fifteen-document extraction is instant.
+ *
+ * **`PIPELINE` is untouched**: a table is sampled, not read and extracted, so BigQuery keeps its
+ * own five.
+ */
+const DOCUMENT_STAGES = ['Reading documents', 'Extracting entities & relations']
+const DOC_PIPELINE = DOCUMENT_STAGES
 
 /*
- * The mail profiler. Five stages, like the other two, so a job row reads the same on one board.
+ * The mail profiler.
  *
  * **What it profiles is the attachment, not the message.** A mailbox's *documents* are the files
  * that arrived in it; the mail itself is the container they came in, and nothing samples a message
  * body. So the tree is one level deeper than a drive's — label → message → document — and a
  * message carrying no attachment has nothing here to profile at all.
  *
- * **A mailbox with no documents is now a fact about the mail and nothing else.** There was a
- * wizard toggle that put attachments out of scope, which made an empty tree ambiguous — a decision
- * with a remedy, or a mailbox that carries no files — and a good deal of machinery existed to tell
- * the two apart. It was removed on request; attachments are always in scope, so the ambiguity and
+ * **A mailbox with no documents is a fact about the mail and nothing else.** There was a wizard
+ * toggle that put attachments out of scope, which made an empty tree ambiguous — a decision with a
+ * remedy, or a mailbox that carries no files — and a good deal of machinery existed to tell the two
+ * apart. It was removed on request; attachments are always in scope, so the ambiguity and
  * everything that resolved it went with it.
  *
- * The stages are a document's work as a result, and the last three are Drive's own — what an
- * extractor does to a PDF does not depend on whether it arrived in a drive or an inbox.
+ * **Its stages are Drive's, which is `DOCUMENT_STAGES` above, and that is the point.** It narrated
+ * seven of the tenant's own words — Reading documents · Classifying passages · Extracting entities
+ * & relations · Building relation vocabulary · Canonicalising relations · Pruning · Assembling the
+ * graph — and was **reduced to two on request**, the same two a drive run now says. What an
+ * extractor does to a PDF does not depend on whether it arrived in a drive or an inbox, which was
+ * already the reasoning for the old list's last three stages being Drive's own; the rest follows.
+ *
+ * **It still runs in seven ticks** (`PIPELINE_STEPS`), so the bar climbs exactly as it did and the
+ * documents still land across the run rather than all at the end.
+ *
+ * **What went with the seventh stage is a label, never a rule.** *Assembling the graph* named the
+ * document's own graph — the entities and relations canonicalised out of one attachment, held
+ * together as an observation of it — and never the tenant's published one. Nothing here reaches
+ * that graph: `RUNTIME_KINDS` holds `gmail` alone and `selectedProfiledObjects` skips a runtime
+ * source *by name*, so step 6 derives no element from any of this however much a run lands. That
+ * guarantee is enforced where it lives rather than by what a stage is called, which is exactly why
+ * the label could go — as it is why it could be reworded and then restored before that.
  */
-/*
- * **Mail's pipeline is seven stages, and it is the one that is not five.**
- *
- * The other two are kept equal so a job row reads the same whichever connector ran it; this one is
- * narrated on the Catalog page itself, stage by stage, while it runs — so its stages are what a
- * reader watches rather than a row on a board, and there are more of them because there is more to
- * say about a document than about a table.
- *
- * **These seven are the tenant's own words, given as a list, and they are Gmail's alone.** `PIPELINE`
- * and `DOC_PIPELINE` are untouched: a table is sampled and a filed document is extracted, and
- * neither of those is what happens to mail.
- *
- * **The last stage is "Assembling the graph", and what that graph is matters.** It is the document's
- * own — the entities and relations this run canonicalised out of one attachment, held together as
- * an observation of it. It is **not** the tenant's published knowledge graph, and nothing here
- * reaches one: `RUNTIME_KINDS` holds `gmail` alone and `selectedProfiledObjects` skips a runtime
- * source *by name*, so step 6 derives no element from any of this however much of it a run lands.
- * That guarantee is enforced where it lives rather than by what a stage is called, which is why the
- * label could take the tenant's wording without the rule moving — and `mailProcessCopy.note` states
- * the destination in words beneath the stages, so a reader is not left inferring it from one.
- */
-const MAIL_PIPELINE = [
-  'Reading documents',
-  'Classifying passages',
-  'Extracting entities & relations',
-  'Building relation vocabulary',
-  'Canonicalising relations',
-  'Pruning',
-  'Assembling the graph',
-]
+const MAIL_PIPELINE = DOCUMENT_STAGES
 
 /**
  * Which kinds of source there is a profiler for, and the pipeline each one runs.
@@ -3283,6 +3296,43 @@ const MAIL_PIPELINE = [
  * rather than listed with two disabled buttons and no explanation.
  */
 const PROFILERS = { bigquery: PIPELINE, gdrive: DOC_PIPELINE, gmail: MAIL_PIPELINE }
+
+/*
+ * **How many ticks a run takes, where that is not simply how many stages it narrates.**
+ *
+ * A pipeline's stage list is two things at once — the words on screen and the length of the run —
+ * and they came apart when Drive was reduced to a single stage. A job's progress is its position
+ * (`stage_index / steps`) and never a timer, which is the rule every paced surface here keeps; so
+ * the honest way to narrate coarsely without finishing instantly is to say the step count
+ * separately rather than to pad the list with words nobody asked for.
+ *
+ * **A kind absent here paces at one tick per stage**, which is what BigQuery and Gmail do and what
+ * every kind did before this existed.
+ */
+const PIPELINE_STEPS = { gdrive: 5, gmail: 7 }
+
+/*
+ * Both halves are checked at boot, because each fails quietly. Fewer steps than stages would leave
+ * the tail of the list unreachable — a stage that can never run and never tick over from pending —
+ * and an entry for a kind with no profiler is a pace for a run that cannot happen, the same waiver
+ * -that-waives-nothing the audit gate nags about.
+ */
+for (const [kind, steps] of Object.entries(PIPELINE_STEPS)) {
+  if (!Object.hasOwn(PROFILERS, kind)) {
+    throw new Error(
+      `PIPELINE_STEPS declares '${kind}', which has no profiler — remove it or add one to PROFILERS.`,
+    )
+  }
+  if (steps < PROFILERS[kind].length) {
+    throw new Error(
+      `PIPELINE_STEPS['${kind}'] is ${steps} but its pipeline narrates ${PROFILERS[kind].length} ` +
+        'stages — the last of them could never run.',
+    )
+  }
+}
+
+/** How many ticks a job of this kind takes. Defaults to one per narrated stage. */
+const stepsFor = (job) => PIPELINE_STEPS[job.kind] ?? PROFILERS[job.kind]?.length ?? PIPELINE.length
 
 /** Whether the profiler has anything to run against a source of this kind. */
 const isProfilable = (kind) => Object.hasOwn(PROFILERS, kind)
@@ -3516,6 +3566,9 @@ const elapsedSeconds = (job) => {
  */
 const jobView = (job) => {
   const stages = pipelineFor(job)
+  /* Steps, not stages: `stage_index` counts ticks, so a total taken from the list would read
+     'stage 4 of 1' on a drive run. */
+  const steps = stepsFor(job)
   return {
     job_id: job.job_id,
     short_id: job.short_id,
@@ -3524,7 +3577,7 @@ const jobView = (job) => {
     unit: job.unit,
     status: job.status,
     stage_index: job.stage_index,
-    stage_total: stages.length,
+    stage_total: steps,
     stage_label: job.stage_label,
     /*
      * **The stage names, so a surface can list them rather than keeping its own copy.**
@@ -3536,7 +3589,7 @@ const jobView = (job) => {
      * a wrong stage name still renders. Sent from `pipelineFor`, the one place that decides.
      */
     stages,
-    pipeline: `${job.stage_index}/${stages.length}: ${job.stage_label}`,
+    pipeline: `${job.stage_index}/${steps}: ${job.stage_label}`,
     progress: job.progress,
     objects: job.objects,
     object_count: job.objects.length,
@@ -3645,22 +3698,28 @@ function commitNextObject(job) {
 /** Drive a queued job through its connector's pipeline on timers. */
 function runJob(job) {
   const stages = pipelineFor(job)
+  /* **The run's length is its steps, not its stage count** — Drive narrates one stage over five
+     ticks, so every figure below counts steps and only the label reads the list. */
+  const steps = stepsFor(job)
   job.status = 'running'
   job.started_at = new Date().toISOString()
 
   const step = () => {
     if (job.status === 'cancelled') return
     job.stage_index += 1
-    job.stage_label = stages[job.stage_index - 1]
-    job.progress = Math.round((job.stage_index / stages.length) * 100)
+    /* Which narrated stage this step falls in. Identity where there is one stage per step, which
+       is what BigQuery and Gmail have; for a coarser list it holds the same label across its own
+       span of steps rather than running off the end into `undefined`. */
+    job.stage_label = stages[Math.min(stages.length - 1, Math.floor(((job.stage_index - 1) * stages.length) / steps))]
+    job.progress = Math.round((job.stage_index / steps) * 100)
 
     // Spread commits across the run so counters climb as it progresses.
-    const target = Math.floor((job.objects.length * job.stage_index) / stages.length)
+    const target = Math.floor((job.objects.length * job.stage_index) / steps)
     while (job.objects.filter((o) => o.state === 'profiled').length < target) {
       commitNextObject(job)
     }
 
-    if (job.stage_index >= stages.length) {
+    if (job.stage_index >= steps) {
       while (job.objects.some((o) => o.state === 'pending')) commitNextObject(job)
       job.status = 'complete'
       job.progress = 100
@@ -3702,7 +3761,7 @@ function queueJob({ sourceId, kind, unit, objects, force }) {
   if (objects.every((o) => o.state === 'skipped')) {
     // Nothing to do — finish immediately rather than faking a pipeline run.
     job.status = 'complete'
-    job.stage_index = pipelineFor(job).length
+    job.stage_index = stepsFor(job)
     job.stage_label = 'nothing to profile'
     job.progress = 100
     job.started_at = job.triggered_at
@@ -9147,24 +9206,12 @@ const DGB_STAGES = [
     phase: 'Framing the corpus against the brief',
   },
   { key: 'intake', label: 'Reading documents', phase: 'Reading each document in the corpus' },
-  { key: 'classification', label: 'Classifying passages', phase: 'Sorting passages by what they assert' },
+  
   {
     key: 'extraction',
     label: 'Extracting entities & relations',
     phase: 'Resolving entities across the corpus',
-  },
-  {
-    key: 'relation_vocabulary',
-    label: 'Building relation vocabulary',
-    phase: 'Collecting the relation names the corpus uses',
-  },
-  {
-    key: 'relation_canonicalization',
-    label: 'Canonicalising relations',
-    phase: 'Folding synonymous relations together',
-  },
-  { key: 'pruning', label: 'Pruning', phase: 'Dropping assertions below the floor' },
-  { key: 'graph_build', label: 'Assembling the graph', phase: 'Materialising nodes and edges' },
+  }
 ]
 
 /**
@@ -10470,15 +10517,24 @@ const routes = [
        */
       const directory = db.settings?.users ?? []
       const required = new Set(
-        [db.google_account?.email, query.get('as')]
+        [db.google_account?.email, OAUTH_SHARED_ACCOUNT, query.get('as')]
           .filter((email) => typeof email === 'string' && email)
           .map((email) => email.trim().toLowerCase()),
       )
       const isRequired = (user) => required.has(user.email.trim().toLowerCase())
-      const offered = [
-        ...directory.filter(isRequired),
-        ...directory.filter((user) => !isRequired(user)),
-      ].slice(0, OAUTH_ACCOUNT_LIMIT)
+      /*
+       * **Exactly the required rows, and nobody else.**
+       *
+       * The chooser offered the required accounts and then *filled* to the cap from the rest of the
+       * directory, which put whoever happened to be listed next in front of a reader as somebody
+       * they might connect as. Asked for as the tenant account and the shared one — so the list is
+       * now the required set itself: two rows, or three when the reader is neither of them.
+       *
+       * The cap stays as the ceiling rather than the target, because the required set is what
+       * decides the length now. It still bounds the list if a fourth required address is ever
+       * declared.
+       */
+      const offered = directory.filter(isRequired).slice(0, OAUTH_ACCOUNT_LIMIT)
       const accounts = directory
         .filter((user) => offered.includes(user))
         .map((user) => ({
@@ -12520,17 +12576,23 @@ const routes = [
     match: (p) => p === '/profiling-jobs',
     handle: (_req, res) => {
       /*
-       * **A mail run is not on this board, on request.** Gmail's pipeline is narrated where it is
-       * started — under *Process documents* on the Catalog surface — and a row here as well would
-       * be a second place to watch one run, which is the two-surfaces-for-one-record fault this
-       * repo refuses everywhere.
+       * **Every run, mail included — the `kind !== 'gmail'` filter is gone, on request.**
        *
-       * Filtered on the **kind** rather than on a `hidden` flag the queue would have to carry: the
-       * fact is that mail is watched elsewhere, and that is a property of the connector. Its jobs
-       * are still queued, still stepped and still committed by the same machinery — only this
-       * listing leaves them out, and `GET /sources/:id/mail-run` is where they are read instead.
+       * It was there because a mail run is narrated where it is started, under *Process documents*
+       * on the Catalog surface, and a row here as well is a second place to watch one run. That
+       * objection is real and is simply not the one that was chosen: Drive has had both since it
+       * got `DriveProcessPanel`, so the board already listed a run with a panel of its own, and
+       * mail being the one connector missing from the board read as a run that failed to queue.
+       *
+       * **The two surfaces answer different questions**, which is what makes them bearable: the
+       * panel narrates *this* run for somebody who just started it, and the board is every run
+       * across every source. They read one record — `jobView` over the same `profilingJobs` — so
+       * they cannot disagree about it, which was the actual hazard.
+       *
+       * Nothing else moved: mail jobs were always queued, stepped and committed by this same
+       * machinery, and `GET /sources/:id/mail-run` still serves the panel.
        */
-      const views = profilingJobs.filter((j) => j.kind !== 'gmail').map(jobView)
+      const views = profilingJobs.map(jobView)
       const active = views.filter(
         (j) => j.status === 'queued' || j.status === 'running',
       )

@@ -374,10 +374,36 @@ expect(
  * Composed from the directory so it cannot go stale, and a group with nothing in it contributes no
  * sentence.
  */
+/*
+ * **And none of it is drawn any more — the wizard's explanatory banners were removed on request.**
+ *
+ * This note went with them, along with the product-vision paragraph that stood on all six step-2
+ * branches and the three *"Click below to sign in…"* alerts. What matters is that the *facts* did
+ * not go with the prose: each database card still carries *"registers a connection — no profiler
+ * yet"* in its own blurb, which the claim below asserts on every one of them, and the two section
+ * headings still separate what is pickable from what is not.
+ *
+ * `connectorPickerNote` is kept with no caller — the waiting-for-a-caller state `/change-signals`
+ * is in — so this still asserts the function and its rules, and asserts *beside* them that nothing
+ * renders it. Half a removal is the shape that fails silently: a wizard still importing it would
+ * fail the build, and a banner restored without its reasoning is what this guard is for.
+ */
 expect(
-  'the connector note names each group from the data, and no longer calls the rest "the rest"',
+  'the connector note names each group from the data, and is no longer drawn above the grid',
   /export function connectorPickerNote\(connectors: Connector\[\]\): string/.test(dirDataSrc) &&
-    /title=\{connectorPickerNote\(CONNECTORS\)\}/.test(wizardSrc) &&
+    /* Gone from the wizard, at the render and at the import. */
+    !/connectorPickerNote/.test(codeOnly(wizardSrc)) &&
+    /* …and so are the other banners removed with it. */
+    !/VISION_NOTE\}/.test(codeOnly(wizardSrc)) &&
+    !/Click below to sign in/.test(codeOnly(wizardSrc)) &&
+    /*
+     * **The two that stay, because a rule elsewhere depends on each.** The credentials promise is
+     * what makes "no connector asks for a password" meaningful — a password box under it would
+     * make the sentence false — and a vision card must still explain why it cannot be connected,
+     * which is the only reason it is clickable at all.
+     */
+    /Credentials are stored by reference only/.test(wizardSrc) &&
+    /is not available yet/.test(wizardSrc) &&
     !/The rest below are product vision only/.test(wizard) &&
     /* Names, not a count, on both pickable groups — the rule since the third connector landed. */
     /\$\{profiling\.join\(', '\)\}/.test(dirDataSrc) &&
@@ -783,12 +809,17 @@ expect(
     /match: \(p\) => p === '\/sources\/oauth\/mailboxes'/.test(server) &&
     /match: \(p\) => p === '\/sources\/gmail\/preview'/.test(server) &&
     /match: \(p\) => p === '\/sources\/gmail'/.test(server) &&
-    /* And a profiler of its own, whose stages are mail's work rather than a reused pipeline —
-       reading `PROFILERS` itself rather than a spelling, because the guard this replaced tested
-       `!/gmail: (?:PIPELINE|DOC_PIPELINE)/` and would have passed unchanged over `gmail:
-       MAIL_PIPELINE`. A claim keyed to two constant names is a claim about the names. */
+    /* And a profiler of its own — reading `PROFILERS` itself rather than a spelling, because the
+       guard this replaced tested `!/gmail: (?:PIPELINE|DOC_PIPELINE)/` and would have passed
+       unchanged over `gmail: MAIL_PIPELINE`. A claim keyed to two constant names is a claim about
+       the names.
+
+       **Its stages are deliberately Drive's now**, which this leg no longer denies: it asserted
+       they were mail's own work `rather than a reused pipeline`, and both connectors were reduced
+       to one `DOCUMENT_STAGES` pair on request. Having a profiler is the fact here; which words it
+       narrates is the stage claim's, further down. */
     /gmail/.test(serverProfilers) &&
-    /const MAIL_PIPELINE = \[/.test(server) &&
+    /const MAIL_PIPELINE = DOCUMENT_STAGES/.test(server) &&
     /* The wizard has its own branch rather than falling through the generic field loop. */
     /const isGmail = selected\?\.key === 'gmail'/.test(wizard) &&
     /const isGoogle = isBigQuery \|\| isDrive \|\| isGmail/.test(wizard) &&
@@ -2655,7 +2686,11 @@ expect(
        matches the graph derivation's own run schema, so the count was 3 and dropping one from a
        job schema still left two. Count the pair, which only a job carries. */
     (client.match(/stage_label: str,\s*stages: arrayOf\(str\),/g) ?? []).length === 2 &&
-    /i < job\.stage_index \? 'done' : i === job\.stage_index \? 'running' : 'pending'/.test(
+    /* Still one cursor, now read as a **span**: a stage can cover several steps since Drive and
+       Gmail narrate two over five and seven. It was `i === job.stage_index`, which marked the
+       first row done on the first tick and left the panel reading complete at 20%. The spans are
+       identity when a pipeline paces one tick per stage, so BigQuery is unchanged. */
+    /job\.stage_index >= end \? 'done' : job\.stage_index >= start \? 'running' : 'pending'/.test(
       read('frontend/src/data/mailProcess.ts'),
     ) &&
     /*
@@ -2675,21 +2710,43 @@ expect(
       read('frontend/src/components/catalog/MailProcessPanel.tsx'),
     ) &&
     /*
-     * **The seven stages are the tenant's own, given as a list, and Gmail's alone.** They were
-     * reworded once to avoid ending on *Assembling the graph* — on the reasoning that nothing a
-     * mail run lands reaches the published graph, which is true — and asked for verbatim a second
-     * time. The rule did not move: `selectedProfiledObjects` still skips a runtime source by name,
-     * so the guarantee is enforced where it lives rather than by what a stage is called. What the
-     * label needed was for the note beneath it to say *which* graph is assembled, or the panel
-     * argues with itself — the fault the *Curated by AI* rename records one section over.
+     * **Mail and Drive narrate the same two stages, and each still runs at its own length.**
+     *
+     * Mail listed the tenant's seven (Reading documents · Classifying passages · Extracting
+     * entities & relations · Building relation vocabulary · Canonicalising relations · Pruning ·
+     * Assembling the graph) and Drive its own five; both were **reduced to these two on request**.
+     * One `DOCUMENT_STAGES` rather than two equal lists, because what an extractor does to a PDF
+     * does not depend on whether it arrived in a drive or an inbox — two copies of one pair of
+     * strings is a rename away from two answers to what that work is called.
+     *
+     * **The pacing is asserted beside the list, and that is the half that fails silently.** A
+     * stage list is two things at once — the words and the length of the run — so collapsing it
+     * would have finished a mail job in two ticks with the bar jumping and every document landing
+     * at the end. `PIPELINE_STEPS` keeps them apart; without these legs it could be dropped and
+     * nothing on screen would look broken, it would merely be instant.
+     *
+     * **Losing *Assembling the graph* cost a label and no rule**: `RUNTIME_KINDS` holds `gmail`
+     * alone and `selectedProfiledObjects` skips a runtime source by name, both asserted where they
+     * live, so nothing a mail run lands reaches the published graph however a stage is called.
      */
-    (server.match(/const MAIL_PIPELINE = \[([\s\S]*?)\]/)?.[1] ?? '')
-      .match(/'([^']+)'/g)
-      ?.join(' ') ===
-      "'Reading documents' 'Classifying passages' 'Extracting entities & relations' " +
-        "'Building relation vocabulary' 'Canonicalising relations' 'Pruning' " +
-        "'Assembling the graph'" &&
-    /* Gmail's alone: the other two pipelines are untouched. */
+    /const DOCUMENT_STAGES = \['Reading documents', 'Extracting entities & relations'\]/.test(
+      server,
+    ) &&
+    /* Both read that one list rather than each spelling the pair out. */
+    /const DOC_PIPELINE = DOCUMENT_STAGES/.test(server) &&
+    /const MAIL_PIPELINE = DOCUMENT_STAGES/.test(server) &&
+    /* And each keeps the run length it had, so neither bar became a jump. */
+    /const PIPELINE_STEPS = \{ gdrive: 5, gmail: 7 \}/.test(server) &&
+    /* The run and its view count steps, never the narrated list — a total off `stages.length`
+       would read 'stage 4 of 2' and mark the first row done on the first tick. */
+    /const steps = stepsFor\(job\)/.test(server) &&
+    /stage_total: steps,/.test(server) &&
+    /if \(job\.stage_index >= steps\)/.test(server) &&
+    /* The client spans the cursor across each stage for the same reason. */
+    /const steps = job\.stage_total \|\| job\.stages\.length/.test(
+      read('frontend/src/data/mailProcess.ts'),
+    ) &&
+    /* Gmail's and Drive's alone: BigQuery samples a table and keeps its own five. */
     /* Sliced, not matched across lines: a shell-written newline escape ends a regex early. */
     (server.split('const PIPELINE = [')[1] ?? '').includes("'Schema fetch'") &&
     /* And the note says when processing has to be asked for: the first run is manual, a later one
@@ -3150,7 +3207,32 @@ expect(
      */
     /const OAUTH_ACCOUNT_LIMIT = \d+/.test(server) &&
     /\.slice\(0, OAUTH_ACCOUNT_LIMIT\)/.test(server) &&
-    /db\.google_account\?\.email, query\.get\('as'\)/.test(server) &&
+    /*
+     * **Two declared accounts and the reader, and nobody filled in behind them.**
+     *
+     * It offered the required rows and then *filled* to the cap from the rest of the directory,
+     * which put whoever happened to be listed next in front of a reader as somebody they might
+     * connect as. Asked for as the tenant's own account and one shared group address — so the
+     * offered list *is* the required set: two rows, or three when the reader is neither.
+     *
+     * `OAUTH_SHARED_ACCOUNT` is declared on the server and **is in `db.settings.users`**, which the
+     * claim below asserts. That is not tidiness: the window offers the directory and nothing else
+     * precisely so `/sources/oauth/mailboxes` and `identityFor` can never refuse a row it showed,
+     * and an address named here but absent there would be the client-side list mistake moved to
+     * the server.
+     */
+    /const OAUTH_SHARED_ACCOUNT = '[^']+@[^']+'/.test(server) &&
+    /\[db\.google_account\?\.email, OAUTH_SHARED_ACCOUNT, query\.get\('as'\)\]/.test(server) &&
+    /const offered = directory\.filter\(isRequired\)\.slice\(0, OAUTH_ACCOUNT_LIMIT\)/.test(server) &&
+    /* The shared address really is somebody the directory holds — in **both** documents, since a
+       chooser row that only one dataset can resolve is a row the other would refuse. */
+    [...datasetDocs.values()].every((doc) =>
+      (doc.settings?.users ?? []).some(
+        (u) =>
+          String(u.email).toLowerCase() ===
+          (server.match(/const OAUTH_SHARED_ACCOUNT = '([^']+)'/)?.[1] ?? '').toLowerCase(),
+      ),
+    ) &&
     /* `.email`, never the object: the seeded account is `{ email, name, picture }`. */
     !/\[db\.google_account,/.test(server) &&
     /* The client sends it, and the wizard sends the browser's own address. */
@@ -3177,10 +3259,21 @@ expect(
     /accounts\.map\(\(account\)/.test(signInCode) &&
     /accounts: GoogleSignInAccount\[\]/.test(signInCode) &&
     !/settings\.users|@vriodigital/.test(signInCode) &&
-    /* The reader's own row is marked rather than the list reordered — a chooser that sorts per
-       reader is a different list for each of them. One expression, or React splits the sentence
-       into text nodes and nothing can assert it. */
-    /signed in to \$\{app\}`\}/.test(signInCode) &&
+    /*
+     * **The list is not reordered per reader**, which is the half of this that matters: a chooser
+     * that sorted itself would be a different list for each of them. It is rendered straight from
+     * `accounts.map`, asserted above, with no sort and no partition in between.
+     *
+     * **The "signed in to …" mark that used to sit on the reader's own row is gone — removed on
+     * request**, once the window was restyled to match Google's, whose chooser marks no row either.
+     * So nothing here now says which account is the browser's own; the guarantee that survived is
+     * the ordering, and `signedInEmail` is still passed in, so restoring the mark is one element.
+     */
+    !/signed in to \$\{app\}/.test(signInCode) &&
+    !/\.sort\(|\.reverse\(/.test(
+      (signInCode.split('accounts.map((account)')[1] ?? '').slice(0, 800),
+    ) &&
+    /signedInEmail: string/.test(signInCode) &&
     /* And the retired sentence is gone: a window that still said it had no directory while drawing
        four accounts would be arguing with itself. */
     !/no directory of its own/.test(signInWindow) &&
@@ -3188,10 +3281,18 @@ expect(
        cancelled sign-in cannot leave a stale account for the next one to connect as. */
     /setSignInAccounts\(start\.accounts\)/.test(openFn) &&
     /setChosenAs\(null\)/.test(openFn) &&
-    /* Picking a row is what signs in as it — the act the single row's click already was. */
-    /onChooseAccount=\{\(email\) => \{\r?\n\s*setChosenAs\(email\)\r?\n\s*setSignInPhase\('consent'\)/.test(
+    /*
+     * Picking a row is what signs in as it — the act the single row's click already was. It now
+     * lands on Google's own **confirm** screen rather than jumping to the grants: *"You're signing
+     * back in to …"* states who is being signed in, grants nothing, and **Continue** is what
+     * reaches the consent. The two buttons are asserted apart because the words are not
+     * interchangeable — one moves a screen, the other spends the consent.
+     */
+    /onChooseAccount=\{\(email\) => \{\r?\n\s*setChosenAs\(email\)\r?\n\s*setSignInPhase\('confirm'\)/.test(
       wizard,
-    ),
+    ) &&
+    /onContinue=\{\(\) => setSignInPhase\('consent'\)\}/.test(wizard) &&
+    /phase === 'confirm' \? \(/.test(codeOnly(signInWindow)),
   'a window holding its own directory can offer an account the handshake refuses',
 )
 
@@ -4353,9 +4454,20 @@ expect(
  * profile is worth, and it would be invisible: every number would look exactly as reasonable as the
  * measured ones beside it.
  *
- * So all three are `null` on the way in, nullable at every layer that carries them, drawn as an em
- * dash, and **said out loud in the panel before anybody uploads anything** — a reader who meets a
- * table of em dashes unwarned has been surprised by the one thing this panel could have told them.
+ * So all three are `null` on the way in, nullable at every layer that carries them, and drawn as
+ * an em dash.
+ *
+ * **The panel used to say so before anybody uploaded anything, and no longer does — removed on
+ * request**, the Alert above the browse tree and `schemaUploadCopy.measuresNothing` together.
+ * What it cost is stated rather than glossed: a reader now meets a table of em dashes without
+ * having been told in advance why the statistics are absent.
+ *
+ * **The guarantee is untouched**, which is why the removal is safe and why the legs below are the
+ * ones that matter: the server still writes all three `null`, the payload still declares them
+ * nullable, and the panel still draws the dash. The last two legs assert the *absence* at both
+ * layers, because half of this removal is the shape that fails silently — copy nothing renders
+ * invites the Alert back, and an Alert with no copy behind it is a blank box.
+ * **Do not restore either without being asked.**
  */
 const columnSchemaBlock = braceBlock(client, 'columns: arrayOf(')
 expect(
@@ -4372,9 +4484,10 @@ expect(
     /v === null \? \(\r?\n\s*<span className="pc-dash">—<\/span>/.test(
       read('frontend/src/components/catalog/ProfiledColumnsPanel.tsx'),
     ) &&
-    /* And the upload panel says so first. */
-    /samples nothing/.test(schemaUploadData) &&
-    /no classifier score/.test(schemaUploadData),
+    /* And the advance warning is gone at both layers, not one. `codeOnly`, since the note left
+       in the copy module's place names the field it replaced — the self-documenting-file trap. */
+    !/measuresNothing/.test(codeOnly(schemaUploadData)) &&
+    !/measuresNothing/.test(codeOnly(read('frontend/src/pages/CatalogPage.tsx'))),
   'a dictionary of invented statistics is worse than one with none, and looks exactly as plausible',
 )
 
@@ -4825,25 +4938,44 @@ expect(
 )
 
 /*
- * **A dataset row offers the upload control or the staged acts, never both — and never neither.**
+ * **A dataset row takes several dictionaries, lists every one, and never loses its upload control.**
  *
- * The button used to stay on a staged row relabelled *Replace file*; that was removed on request,
- * so a row with a file read against it offers its name, *View report* and *Discard* and nothing
- * else. Swapping a file is Discard then Upload now, which is the honest shape of the act: `staged`
- * holds one file per dataset, so a replace was discarding the previous plan either way.
+ * This claim has been through two shapes, and the reversal is the point. It used to assert
+ * `{staged ? null : (` — the button withheld once a file had been read — because `staged` held
+ * **one** file per dataset: the control could only have meant *Replace*, and a replace silently
+ * threw away a plan the reader may not have looked at, so Discard-then-Upload was the honest act.
  *
- * **Both halves, because the dangerous one is silent.** Hiding a control behind a condition is one
- * edit away from hiding it in the state that needs it — a dataset with nothing staged and no upload
- * button has no way to upload at all, and nothing would throw. So this asserts the button is gone
- * from the staged branch *and* that `staged ? null :` is what gates it, which is the only shape
- * that leaves the empty state drawing one. `replaceLabel` is asserted absent from the copy module
- * too: a label nothing renders is an invitation for the control to come back.
+ * **That reasoning went when the slot became a list.** `StagedDictionary.filenames` is an array and
+ * `read` appends to it, de-duplicated by name, so pressing the button adds a dictionary and can no
+ * longer replace one. Withholding it now would leave a reader able to stage a second file only by
+ * discarding the first, which is the opposite of what a list is for — and would leave *Upload
+ * Files*, plural, labelling a control that takes one.
+ *
+ * **The concern the old claim guarded is unchanged and is now met more strongly.** Hiding a control
+ * behind a condition is one edit away from hiding it in the state that needs it, and a dataset with
+ * no upload button has no way to upload at all with nothing throwing. An unconditional button
+ * cannot reach that state, so what is asserted is the *absence* of any `staged` gate around it.
+ *
+ * **And the list is the other half.** A single `staged.filename` chip would render the last file
+ * read and silently drop the rest — the no-silent-truncation rule, on the one surface that says
+ * what is staged. So the chips are asserted to be a `.map` over `filenames`, and the input is
+ * asserted `multiple`: a list the reader can only add to one file at a time is a list in the store
+ * and not on the screen. `replaceLabel` stays absent from both layers, because this button is
+ * still not a replace.
  */
 expect(
-  'a staged dataset row drops the upload button, and an empty one keeps it',
-  /* The gate is on `staged`, so the empty branch is the one that draws the button. */
-  /\{staged \? null : \(/.test(dictionaryPanelCode) &&
+  'a dataset row lists every staged dictionary and always keeps its upload control',
+  /* No `staged` gate around the button: it is drawn in both states, so neither can lose it. */
+  !/\{staged \? null : \(/.test(dictionaryPanelCode) &&
     /schemaUploadCopy\.uploadLabel\}/.test(dictionaryPanelCode) &&
+    /* One chip per file, not the last one. `staged.filename` singular must not come back. */
+    /staged\.filenames\.map\(\(filename\) => \(/.test(dictionaryPanelCode) &&
+    !/staged\.filename[^s]/.test(dictionaryPanelCode) &&
+    /* The picker takes several at once, or the store's list is unreachable from the screen. */
+    /<input[\s\S]{0,200}multiple/.test(dictionaryPanelCode) &&
+    /* And the same file can be chosen twice: an input fires no `change` on an unchanged value, so
+       discarding a row and re-picking that file would look like a dead button. */
+    /e\.target\.value = ''/.test(dictionaryPanelCode) &&
     /* The one act that stays. *View report* was the second and went with the dialog it opened —
        both layers, since a label nothing renders invites the control back. */
     /schemaUploadCopy\.discardLabel/.test(dictionaryPanelCode) &&
@@ -4854,7 +4986,7 @@ expect(
     /* The hidden input stays mounted in both states: it is what the button opens, and remounting
        it per state would lose the ref between renders. */
     /ref=\{inputRef\}/.test(dictionaryPanelCode),
-  'a control hidden in the state that needs it leaves a dataset with no way to upload, silently',
+  'a row that shows one filename of several, or loses its upload button, drops a file silently',
 )
 
 /*

@@ -1,4 +1,4 @@
-import { CheckCircleOutlined, LinkOutlined } from '@ant-design/icons'
+import { CheckCircleOutlined } from '@ant-design/icons'
 import {
   Alert,
   Button,
@@ -69,7 +69,6 @@ export default function StudioBridgeTab({
   bridgeId,
   typeLinks,
   unreviewedCount,
-  busy,
   sweeping,
   savingLinkId,
   publishing,
@@ -78,7 +77,6 @@ export default function StudioBridgeTab({
   publishedBridgeId,
   pendingVersionNumber,
   onSelectBridge,
-  onForm,
   onDecide,
   onAcceptAll,
   onPublish,
@@ -87,7 +85,6 @@ export default function StudioBridgeTab({
   bridgeId: string | null
   typeLinks: TypeLink[]
   unreviewedCount: number
-  busy: boolean
   sweeping: boolean
   savingLinkId: string | null
   publishing: boolean
@@ -99,7 +96,6 @@ export default function StudioBridgeTab({
    *  their first edit. */
   pendingVersionNumber: number | null
   onSelectBridge: (id: string) => void
-  onForm: () => void
   onDecide: (link: TypeLink, decision: TypeLinkDecision) => void
   onAcceptAll: () => void
   onPublish: () => void
@@ -134,9 +130,23 @@ export default function StudioBridgeTab({
       </Text>
 
       <Space wrap align="center" size={SP.sm}>
-        <Button type="primary" icon={<LinkOutlined />} loading={busy} onClick={onForm}>
-          Form bridge
-        </Button>
+        {/*
+         * **The *Form bridge* button stood here and is gone — removed on request.** It was the
+         * manual way to (re-)form a Bridge from the two finished lanes.
+         *
+         * **The act is unchanged and still happens**: a combined build forms the Bridge itself
+         * once both lanes land (`maybeAutoFormBridge`), which is where a formation belongs — it
+         * starts exactly where the lanes stop. `POST /use-cases/:id/bridge-builds` and the store's
+         * `formBridge` are both still here with nothing calling them — the waiting-for-a-caller
+         * state `/change-signals` is in. The `onForm` and `busy` **props** went with the button:
+         * `noUnusedLocals` fails the build on a binding nothing reads, and a prop the parent still
+         * passes to a component that ignores it is a wire to nowhere.
+         *
+         * **What it costs is stated rather than glossed**: re-forming a Bridge without rebuilding
+         * either graph was a separate act and now has no surface, so the way to a fresh Bridge is
+         * a rebuild. **Do not restore it without being asked**, and do not delete the layers
+         * beneath to "finish" the removal.
+         */}
         {bridges.length > 0 ? (
           <Select<string>
             style={{ minWidth: 280 }}

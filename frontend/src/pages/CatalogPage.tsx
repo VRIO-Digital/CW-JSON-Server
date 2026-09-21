@@ -293,19 +293,6 @@ function BrowsePanel({
             {schemaUploadCopy.lead}
           </Typography.Paragraph>
 
-          {/*
-            **Said before anything is uploaded, not after** — and above the tree rather than
-            beside a report, because a reader who applies a dictionary and *then* finds a table of
-            em dashes where the statistics go has been surprised by the one thing this panel could
-            have told them.
-          */}
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: SP.base }}
-            title={schemaUploadCopy.measuresNothing}
-          />
-
           <Typography.Paragraph type="secondary" className="cat-browse-formats">
             {schemaUploadCopy.formats}
           </Typography.Paragraph>

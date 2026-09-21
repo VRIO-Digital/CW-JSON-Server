@@ -56,7 +56,6 @@ import {
   type RegisteredSource,
 } from '../../api/client'
 import { type Connector, type ConnectorField } from '../../data/connectors'
-import { connectorPickerNote } from '../../data/connectorSearch'
 import { SOURCE_NAME_MIN, sourceNameProblem } from '../../data/sourceName'
 import ConnectRunPanel from './ConnectRunPanel'
 import ConnectorIcon from '../common/ConnectorIcon'
@@ -72,11 +71,17 @@ import './ConnectSourceModal.css'
 
 type TestState = 'idle' | 'running' | 'passed'
 
-const VISION_NOTE =
-  'Data-dictionary upload and per-source sampling/cadence/PII policy are product ' +
-  'vision, not built backend features yet — skipped here. Once a source is ' +
-  'registered you’ll find its project and datasets in the Sources table and in ' +
-  'the confirmation below.'
+/*
+  **The step's product-vision note is gone — removed on request**, from all six branches it stood
+  on. It read *"Data-dictionary upload and per-source sampling/cadence/PII policy are product
+  vision, not built backend features yet — skipped here…"*: a paragraph of roadmap on top of the
+  form a reader is about to fill in.
+
+  **What it said is not lost from the app.** Which connectors are built and which are not is the
+  connector directory's own job, stated per card and per section on step 1 — where a reader chooses
+  — rather than restated on the step after they have chosen. Nothing here promised a behaviour that
+  now goes unexplained.
+*/
 
 /** Human label for a Drive's kind, which the API keeps snake_case. */
 const DRIVE_KIND: Record<string, string> = {
@@ -781,10 +786,14 @@ export default function ConnectSourceWizard({
           stage={loginStage}
           /* Picking a row *is* signing in as it: the account is recorded and the window moves to
              the grants, which is what the single row's click already did. */
+          /* Picking a row records the account and moves to Google's *confirm* screen, which states
+             who is being signed in before any scope is shown. It grants nothing; Continue is what
+             reaches the consent. */
           onChooseAccount={(email) => {
             setChosenAs(email)
-            setSignInPhase('consent')
+            setSignInPhase('confirm')
           }}
+          onContinue={() => setSignInPhase('consent')}
           onAllow={() => void grantGoogleConsent()}
           onCancel={cancelGoogleSignIn}
         />
@@ -864,12 +873,18 @@ export default function ConnectSourceWizard({
             * database card could be clicked; a reader who is about to type six connection fields
             * has to know beforehand that nothing will profile the result.
             */}
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-            title={connectorPickerNote(CONNECTORS)}
-          />
+          {/*
+            **The picker note is gone — removed on request**, with the rest of this wizard's
+            explanatory banners. It named the three real connectors, the three that register
+            without profiling and the five that are not built: three sentences of taxonomy over
+            eleven cards a reader can simply look at.
+
+            **The fact it carried stays on the grid.** Each database card says *"registers a
+            connection — no profiler yet"* in its own blurb, beside its name, which `check-docs`
+            asserts on every one of them — and the two section headings still separate what is
+            pickable from what is not. `connectorPickerNote` is left with no caller, the
+            waiting-for-a-caller state `/change-signals` is in.
+          */}
           {/*
             * The directory: one grid, searchable, still sectioned.
             *
@@ -905,13 +920,6 @@ export default function ConnectSourceWizard({
       {/* ---------- Step 2: BigQuery connection ---------- */}
       {step === 1 && isBigQuery ? (
         <>
-          <Alert type="info" showIcon style={{ marginBottom: 12 }} title={VISION_NOTE} />
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-            title="Click below to sign in with your own Google account and grant read-only BigQuery access — no key file to download or upload."
-          />
 
           <Button
             type="primary"
@@ -1035,13 +1043,6 @@ export default function ConnectSourceWizard({
       {/* ---------- Step 2: Gmail connection ---------- */}
       {step === 1 && isGmail ? (
         <>
-          <Alert type="info" showIcon style={{ marginBottom: 12 }} title={VISION_NOTE} />
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-            title="Click below to sign in with your own Google account and grant read-only Gmail access — no service-account key to download or upload. Uses the GET /sources/oauth/start?provider=gmail → Google consent → GET /sources/oauth/callback flow."
-          />
 
           <Button
             type="primary"
@@ -1099,13 +1100,6 @@ export default function ConnectSourceWizard({
 
       {step === 1 && isDrive ? (
         <>
-          <Alert type="info" showIcon style={{ marginBottom: 12 }} title={VISION_NOTE} />
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-            title="Click below to sign in with your own Google account and grant read-only Drive access — no service-account key to download or upload. Uses the GET /sources/oauth/start?provider=drive → Google consent → GET /sources/oauth/callback flow."
-          />
 
           <Button
             type="primary"
@@ -1289,7 +1283,6 @@ export default function ConnectSourceWizard({
       {/* ---------- Step 3: BigQuery preview + finish ---------- */}
       {step === 2 && isBigQuery ? (
         <>
-          <Alert type="info" showIcon style={{ marginBottom: 16 }} title={VISION_NOTE} />
 
           <Card size="small" style={{ marginBottom: 16 }}>
             <Button
@@ -1376,7 +1369,6 @@ export default function ConnectSourceWizard({
       {/* ---------- Step 3: Gmail preview + finish ---------- */}
       {step === 2 && isGmail ? (
         <>
-          <Alert type="info" showIcon style={{ marginBottom: 16 }} title={VISION_NOTE} />
 
           <Card size="small" style={{ marginBottom: 16 }}>
             <Button
@@ -1479,7 +1471,6 @@ export default function ConnectSourceWizard({
 
       {step === 2 && isDrive ? (
         <>
-          <Alert type="info" showIcon style={{ marginBottom: 16 }} title={VISION_NOTE} />
 
           <Card size="small" style={{ marginBottom: 16 }}>
             <Button

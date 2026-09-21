@@ -1,9 +1,11 @@
 import { Modal } from 'antd'
 import type { GoogleSignInAccount } from '../../api/client'
-import GoogleConsentPanel from './GoogleConsentPanel'
+import ConnectorIcon from '../common/ConnectorIcon'
 import {
   CONSENT_GRANT_COPY,
   CONSENT_SCOPE_LABEL,
+  avatarTint,
+  signInWindowChrome,
   type ConsentProvider,
 } from '../../data/consentStages'
 import './GoogleSignInWindow.css'
@@ -66,7 +68,15 @@ function GoogleG({ size = 20 }: { size?: number }) {
   )
 }
 
-export type SignInPhase = 'account' | 'consent' | 'granting'
+/**
+ * The four screens a real handshake shows, in order.
+ *
+ * `confirm` is the *"You're signing back in to …"* step between picking an account and seeing the
+ * grants — Google's own second screen, which this window skipped. It asks nothing new; it states
+ * who is about to be signed in and offers the way out, which is why its affirmative button is
+ * **Continue** and not Allow: nothing is granted there.
+ */
+export type SignInPhase = 'account' | 'confirm' | 'consent' | 'granting'
 
 export function GoogleSignInPanel({
   provider,
@@ -79,9 +89,14 @@ export function GoogleSignInPanel({
   phase,
   /** The scopes `/sources/oauth/start` reported. Empty only before that call has returned. */
   scopes,
-  /** Index of the stage in flight while `phase === 'granting'`. */
-  stage,
+  /*
+    `stage` was the index this window drew a tick against. It still travels — the wizard tracks it
+    and the prop is still part of the contract — but nothing here renders it now that the stage list
+    is gone. Kept on the type rather than dropped, so restoring the panel is one JSX block and not a
+    change to every call site.
+  */
   onChooseAccount,
+  onContinue,
   onAllow,
   onCancel,
 }: {
@@ -93,23 +108,76 @@ export function GoogleSignInPanel({
   scopes: string[]
   stage: number
   onChooseAccount: (email: string) => void
+  /** Leaves the confirm screen for the grants. Grants nothing. */
+  onContinue: () => void
   onAllow: () => void
   onCancel: () => void
 }) {
   const app = 'ContextWeave'
 
+  const chromeBar = signInWindowChrome(phase, app, chosen?.email ?? signedInEmail)
+
   return (
     <div className="gsi">
+      {/*
+        **The browser window this stands in for.** The reference screens are a Chrome popup, and the
+        title bar and address bar are most of what makes them read as Google's rather than as a
+        dialog this app drew. The address changes per screen — `signInWindowChrome` derives it —
+        because an address bar that sat unchanged from the chooser through to the consent is the one
+        thing a real one never does.
+
+        The minimise and maximise marks are decoration and say so; **the close is real** and is the
+        same act as Cancel, because a window control that does nothing is worse than none — the rule
+        every withheld control here follows. It is withheld while a request is in flight, for the
+        reason the modal's own close was: shutting the window mid-call leaves the callback running
+        with nothing to report back to.
+      */}
+      <div className="gsi-chrome">
+        <div className="gsi-chrome-title">
+          <GoogleG size={13} />
+          <span className="gsi-chrome-text">{chromeBar.title}</span>
+          <span className="gsi-chrome-controls">
+            <span aria-hidden="true">&#8211;</span>
+            <span aria-hidden="true">&#9633;</span>
+            <button
+              type="button"
+              className="gsi-chrome-close"
+              aria-label="Close the Google sign-in"
+              onClick={onCancel}
+              disabled={phase === 'granting'}
+            >
+              &#10005;
+            </button>
+          </span>
+        </div>
+        <div className="gsi-chrome-address">
+          {/* Chrome's site-information button. Decoration: this window has no site to inspect. */}
+          <span className="gsi-chrome-site" aria-hidden="true">&#9737;</span>
+          <span className="gsi-chrome-url">{chromeBar.url}</span>
+        </div>
+      </div>
+
       <div className="gsi-head">
         <GoogleG size={22} />
-        <span className="gsi-head-text">
-          {phase === 'account' ? 'Sign in with Google' : `${app} wants access to your Google Account`}
-        </span>
+        {/* Google's top bar says the same thing on both screens — it names the mechanism, not the
+            step. The app-specific sentence is the *heading* below it, which is where a real consent
+            screen puts it. */}
+        <span className="gsi-head-text">Sign in with Google</span>
       </div>
 
       {phase === 'account' ? (
         <>
-          <div className="gsi-lead">Choose an account to continue to {app}</div>
+          {/*
+            Google's own arrangement, which the one-line lead did not have: the act is a *heading*
+            and the destination is a second line under it, with the app name picked out the way a
+            real consent screen picks out the site asking. Two elements rather than one sentence,
+            because that is the hierarchy a reader recognises — the question first, then who is
+            asking.
+          */}
+          <div className="gsi-title">Choose an account</div>
+          <div className="gsi-lead">
+            to continue to <span className="gsi-app">{app}</span>
+          </div>
           {/*
             One row per account the endpoint returned, in the order it returned them — the reader's
             own marked rather than moved, because a list that reorders itself per reader is a
@@ -125,19 +193,30 @@ export function GoogleSignInPanel({
                   className="gsi-account"
                   onClick={() => onChooseAccount(account.email)}
                 >
-                  <span className="gsi-avatar" aria-hidden="true">
+                  <span
+                    className="gsi-avatar"
+                    aria-hidden="true"
+                    /* Keyed to the address, so a row keeps its colour whatever the list length. */
+                    style={{ background: avatarTint(account.email) }}
+                  >
                     {account.initials}
                   </span>
                   <span className="gsi-account-text">
                     <span className="gsi-account-name">{account.name}</span>
                     <span className="gsi-account-email">{account.email}</span>
+                    {/*
+                      **The "signed in to …" mark is gone — removed on request.** It sat beside the
+                      name, then under the address, and is now absent: Google's own chooser marks no
+                      row either.
+
+                      **What that costs is stated rather than glossed.** Nothing on this screen now
+                      says which of the accounts is the browser's own, so a reader has to recognise
+                      their address. The rule it was protecting is untouched and was never carried
+                      by the mark: the list is **not reordered** per reader — a chooser that sorted
+                      itself would be a different list for each of them — and `signedInEmail` is
+                      still what the window is told, so restoring the mark is one element.
+                    */}
                   </span>
-                  {account.email === signedInEmail ? (
-                    /* One expression, never `signed in to {app}`: React splits an interpolation
-                        into its own text node, so a sentence a reader sees as one string cannot be
-                        asserted on as one — the rule the permission-count note below already keeps. */
-                    <span className="gsi-account-mine">{`signed in to ${app}`}</span>
-                  ) : null}
                 </button>
               </li>
             ))}
@@ -157,13 +236,73 @@ export function GoogleSignInPanel({
             {'.'}
           </div>
         </>
+      ) : phase === 'confirm' ? (
+        <>
+          {/*
+            **Google's second screen, which this window used to skip.** Picking a row jumped
+            straight to the grants; a real handshake stops here first to say who is being signed in.
+            It grants nothing — the scopes are on the next screen — so the button is *Continue*, and
+            Cancel is still a full way out.
+
+            The account sits in a rounded pill with a caret, as Google draws it. The caret is
+            decoration: this window has one account picked and changing it is Cancel, so a control
+            that reopened the chooser would be a second way to do one thing.
+          */}
+          <div className="gsi-title">
+            {`You're signing back in to ${app}`}
+          </div>
+
+          <div className="gsi-pill">
+            <span
+              className="gsi-avatar"
+              aria-hidden="true"
+              style={{ background: avatarTint(chosen?.email ?? '') }}
+            >
+              {chosen?.initials ?? ''}
+            </span>
+            <span className="gsi-pill-email">{chosen?.email ?? ''}</span>
+            <span className="gsi-pill-caret" aria-hidden="true">&#9662;</span>
+          </div>
+
+          <p className="gsi-trust-note">
+            {`Review ${app}'s privacy policy and Terms of Service to understand how ${app} will process and protect your data.`}
+          </p>
+          <p className="gsi-trust-note">
+            {'To make changes at any time, go to your '}
+            <span className="gsi-note-mark">Google Account</span>
+            {'.'}
+          </p>
+          <p className="gsi-trust-note">
+            {'Learn more about '}
+            <span className="gsi-note-mark">Sign in with Google</span>
+            {'.'}
+          </p>
+        </>
       ) : (
         <>
-          <div className="gsi-lead">
-            <strong>{chosen?.email ?? ''}</strong>
+          {/*
+            Google's own hierarchy: the asking site in blue at heading size, the account it would be
+            granted for beneath it, then the grants. The mock had the address alone in bold and the
+            sentence folded into the top bar, which is two levels flatter than the screen it stands
+            in for.
+          */}
+          <div className="gsi-title">
+            <span className="gsi-app">{app}</span> wants to access your Google Account
           </div>
+
+          <div className="gsi-who">
+            <span
+              className="gsi-avatar"
+              aria-hidden="true"
+              style={{ background: avatarTint(chosen?.email ?? '') }}
+            >
+              {chosen?.initials ?? ''}
+            </span>
+            <span className="gsi-who-email">{chosen?.email ?? ''}</span>
+          </div>
+
           <div className="gsi-grants-lead">
-            {app} will be able to:
+            This will allow <span className="gsi-app">{app}</span> to:
           </div>
           {/*
             One row per scope the endpoint returned — not per scope this file knows about. The
@@ -174,8 +313,16 @@ export function GoogleSignInPanel({
               const copy = CONSENT_GRANT_COPY[scope]
               return (
                 <li key={scope} className="gsi-grant">
-                  <span className="gsi-grant-mark" aria-hidden="true" />
-                  <span>
+                  {/* The product's own mark, as Google draws it — reused from `ConnectorIcon` so
+                      this window cannot come to show a different Drive logo from the rest of the
+                      app. `drive` is the consent's word and `gdrive` is the connector key. */}
+                  <span className="gsi-grant-mark" aria-hidden="true">
+                    <ConnectorIcon
+                      connector={provider === 'drive' ? 'gdrive' : provider}
+                      size={18}
+                    />
+                  </span>
+                  <span className="gsi-grant-body">
                     <span className="gsi-grant-title">
                       {copy ? copy.title : CONSENT_SCOPE_LABEL(scope)}
                     </span>
@@ -183,6 +330,11 @@ export function GoogleSignInPanel({
                       {copy ? copy.detail : 'Requested by the connector. No plain-English description is mapped for this scope.'}
                     </span>
                     <code className="gsi-grant-scope">{CONSENT_SCOPE_LABEL(scope)}</code>
+                  </span>
+                  {/* Google's ⓘ sits at the end of every grant row. Decoration here — it opens
+                      nothing, so it is `aria-hidden` rather than a button that does nothing. */}
+                  <span className="gsi-grant-info" aria-hidden="true">
+                    &#9432;
                   </span>
                 </li>
               )
@@ -204,22 +356,85 @@ export function GoogleSignInPanel({
             this window describing fewer permissions than are being asked for.
           */}
 
-          {phase === 'granting' ? (
-            <GoogleConsentPanel provider={provider} stage={stage} scopes={scopes} />
-          ) : null}
+          {/*
+            **Google's own trust block, which the mock did not have.** A real consent screen does
+            not end at the scope list: it names the site being trusted, then says where the policies
+            are and how to withdraw. Restored here to match the screen this window stands in for.
+
+            **It is not the note that was removed.** That one was *ContextWeave's* claim about its
+            own behaviour — *"Nothing is written, updated or deleted…"* — and it is still gone. This
+            is Google's boilerplate about a grant, and it names no behaviour of this app.
+
+            The policy phrases are marked rather than linked, the same as on the chooser: this app
+            publishes no policy page, and a blue underline that goes nowhere is the control-with-no-
+            destination refused everywhere else here.
+          */}
+          <div className="gsi-trust-head">Make sure that you trust {app}</div>
+
+          <div className="gsi-trust-box">
+            <span className="gsi-trust-icon" aria-hidden="true">&#9432;</span>
+            <span>
+              {`Learn why you're not seeing links to ${app}'s Privacy Policy or Terms of Service`}
+            </span>
+          </div>
+
+          <p className="gsi-trust-note">
+            {`Review ${app}'s `}
+            <span className="gsi-note-mark">Privacy Policy</span>
+            {' and '}
+            <span className="gsi-note-mark">Terms of Service</span>
+            {` to understand how ${app} will process and protect your data.`}
+          </p>
+          <p className="gsi-trust-note">
+            {'To make changes at any time, go to your '}
+            <span className="gsi-note-mark">Google Account</span>
+            {'.'}
+          </p>
+
+          {/*
+            **The stage list is gone from this window — removed on request.** Pressing Allow used to
+            draw *"Signing in with Google…"* with a tick per call (*Opening the Google sign-in*,
+            *Granting read-only access to BigQuery*, *Reading the projects this account can see*).
+            A real consent screen shows none of that; it just goes.
+
+            **The feedback it gave is not lost.** The button itself is the busy state — it reads
+            *Signing in…* and is disabled while the calls run, so the window still says something is
+            happening and Allow cannot be pressed twice.
+
+            **The pacing and the rule behind it are untouched.** The three calls still run from this
+            button and each still advances when its own request returns — `stage` is still tracked
+            in the wizard and still passed in. What changed is only that this window no longer draws
+            it. `GoogleConsentPanel` keeps its `StageList` rows and is left with no caller here, the
+            waiting-for-a-caller state `/change-signals` is in. **Do not restore it without being
+            asked.**
+          */}
         </>
       )}
 
-      <div className="gsi-actions">
-        <button
-          type="button"
-          className="gsi-btn gsi-btn-text"
-          onClick={onCancel}
-          disabled={phase === 'granting'}
-        >
-          Cancel
-        </button>
-        {phase === 'consent' || phase === 'granting' ? (
+      {/*
+        **No buttons on the chooser**, which is Google's own arrangement: picking a row *is* the
+        act, so there is nothing to confirm, and the way out is the window's close. A lone Cancel
+        stretched across the foot of that screen implied the reader had a decision pending when the
+        only decision is which row to press.
+      */}
+      <div className={`gsi-actions${phase === 'account' ? ' is-empty' : ''}`}>
+        {phase === 'account' ? null : (
+          <button
+            type="button"
+            className="gsi-btn gsi-btn-text"
+            onClick={onCancel}
+            disabled={phase === 'granting'}
+          >
+            Cancel
+          </button>
+        )}
+        {/* **Continue on the confirm screen, Allow on the grants** — the words are not
+            interchangeable: one moves to the next screen and the other spends the consent. */}
+        {phase === 'confirm' ? (
+          <button type="button" className="gsi-btn gsi-btn-primary" onClick={onContinue}>
+            Continue
+          </button>
+        ) : phase === 'consent' || phase === 'granting' ? (
           <button
             type="button"
             className="gsi-btn gsi-btn-primary"
@@ -229,6 +444,20 @@ export function GoogleSignInPanel({
             {phase === 'granting' ? 'Signing in…' : 'Allow'}
           </button>
         ) : null}
+      </div>
+
+      {/*
+        The footer every Google screen carries. Static, and marked rather than linked for the
+        reason the policy phrases above are: this window opens nothing, and a blue underline that
+        goes nowhere is the control-with-no-destination refused everywhere else here.
+      */}
+      <div className="gsi-foot-bar">
+        <span>English (United States)</span>
+        <span className="gsi-foot-links">
+          <span>Help</span>
+          <span>Privacy</span>
+          <span>Terms</span>
+        </span>
       </div>
 
       {/*
@@ -254,6 +483,7 @@ export default function GoogleSignInWindow({
   scopes: string[]
   stage: number
   onChooseAccount: (email: string) => void
+  onContinue: () => void
   onAllow: () => void
   onCancel: () => void
 }) {
@@ -262,14 +492,37 @@ export default function GoogleSignInWindow({
       open={open}
       onCancel={onCancel}
       footer={null}
-      width={460}
+      /* A browser popup's proportions rather than a dialog's: narrow and tall, which is what the
+         reference screens are. The height comes from `.gsi`'s own minimum. */
+      width={440}
       centered
       /* The window cannot be dismissed while a request is in flight: closing it would leave the
          callback running with nothing to report back to. */
       maskClosable={panel.phase !== 'granting'}
-      closable={panel.phase !== 'granting'}
+      /* The window draws its own close in its title bar, so antd's would be a second one in the
+         corner of a window that already has three controls. */
+      closable={false}
       destroyOnHidden
-      styles={{ body: { padding: 0 } }}
+      styles={{
+        body: { padding: 0 },
+        /*
+          **A real scrim over the whole page.** A consent window is modal in the strong sense — the
+          wizard behind it is mid-handshake and nothing there may be touched — and antd's default
+          wash left the app legible enough to read through, so the window read as a card sitting on
+          the page rather than as something in front of it. `position: fixed` with the four insets
+          is what makes it the *page's* backdrop rather than the scroll container's, which is the
+          same correction the What-if lens's own overlay needed.
+        */
+        mask: {
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(32, 33, 36, 0.6)',
+        },
+        /* The chrome bars run to the edge, so the corners have to clip or the grey title bar
+           squares off the rounded window. `container` is antd v6's name for the panel — v5 called
+           it `content`, which type-checks as an unknown key and silently styles nothing. */
+        container: { padding: 0, overflow: 'hidden', borderRadius: 10 },
+      }}
       className="gsi-modal"
     >
       <GoogleSignInPanel {...panel} onCancel={onCancel} />

@@ -72,15 +72,36 @@ export type StageState = 'done' | 'running' | 'pending'
  *
  * **Derived from one cursor**, which is the rule the graph build's own panel keeps: a stage index
  * tracked beside a step index is two counters that can disagree, and the symptom is a stage
- * reading complete while its own work is still going. Here the job reports `stageIndex` and the
- * list is `stages`, so a stage is done before the cursor, running at it, and pending after.
+ * reading complete while its own work is still going. The job reports one cursor, `stage_index`,
+ * and everything here is computed from it.
  *
- * The stage *names* are the server's — `MAIL_PIPELINE` as the job reports it — never a list held
- * in the client, so adding a stage on the server adds a row here and the two cannot drift.
+ * **A stage can span several steps, which is why this is a span and not an index.** It used to be
+ * `i === stage_index`, correct while every pipeline ticked once per stage. Drive and Gmail now
+ * narrate two stages over five and seven steps — the list was reduced on request and the pacing
+ * deliberately was not — so a stage owns a *range* of the cursor. Left as an index, the first row
+ * would have gone from running to done on tick 1 and the panel would have read complete while the
+ * bar sat at 20%.
+ *
+ * **`stage_total` is the denominator, never `stages.length`.** Those are the same number only when
+ * a pipeline paces one tick per stage, which is what BigQuery does and what every connector did
+ * before this; reading the list's own length would put the spans back on the wrong scale and the
+ * bug back with them.
+ *
+ * The stage *names* and the step count are both the server's, never a list held in the client, so
+ * adding a stage on the server adds a row here and the two cannot drift.
  */
 export function stageStates(job: ProfilingJob): { label: string; state: StageState }[] {
-  return job.stages.map((label, i) => ({
-    label,
-    state: i < job.stage_index ? 'done' : i === job.stage_index ? 'running' : 'pending',
-  }))
+  const steps = job.stage_total || job.stages.length
+  return job.stages.map((label, i) => {
+    /* The half-open span of steps this stage covers. Identity when steps === stages.length. */
+    const start = Math.round((i * steps) / job.stages.length)
+    const end = Math.round(((i + 1) * steps) / job.stages.length)
+    return {
+      label,
+      /* Queued is `stage_index: 0`, which falls in the first stage's span — so the first row
+         spins before the first tick rather than sitting pending under a bar that has started. */
+      state:
+        job.stage_index >= end ? 'done' : job.stage_index >= start ? 'running' : 'pending',
+    }
+  })
 }

@@ -1,8 +1,6 @@
-import { Alert } from 'antd'
 import type { AskAnswer } from '../../api/client'
 import AnswerBlocks from './AnswerBlocks'
 import StatusTag from '../common/StatusTag'
-import { SP } from '../../theme'
 import '../../pages/AskPage.css'
 
 /**
@@ -90,15 +88,22 @@ export default function AskAnswerView({ answer }: { answer: AskAnswer }) {
         <div className="ask-note">Nothing was cited, because nothing was answered.</div>
       )}
 
-      {answer.caveats.length > 0 ? (
-        <Alert
-          style={{ marginTop: SP.base }}
-          type="warning"
-          showIcon
-          title="What this graph cannot tell you"
-          description={answer.caveats.join(' · ')}
-        />
-      ) : null}
+      {/*
+       * **The standing caveats stood here and are gone — removed on request.** A warning Alert
+       * headed *What this graph cannot tell you*, listing `answer.caveats`: for a graph answer the
+       * coverage step's gap decisions read back through `GAP_CAVEAT`, and for a runtime one the
+       * sentence saying an extraction from a message is an observation rather than a graph element.
+       *
+       * **The removal stopped at this component.** `caveats` is still computed, still served on
+       * every answer and still validated in `client.ts` — the same waiting-for-a-caller state
+       * `/change-signals` is in — so re-adding the surface is this one block. Do not delete the
+       * layers beneath to "finish" it.
+       *
+       * **What it costs is stated rather than glossed**: an answer no longer says what it could
+       * not reach, so a reader takes what is shown for the whole picture. The confidence, the
+       * abstention and the citation list are untouched and still carry their own honesty.
+       * **Do not restore it without being asked.**
+       */}
     </div>
   )
 }

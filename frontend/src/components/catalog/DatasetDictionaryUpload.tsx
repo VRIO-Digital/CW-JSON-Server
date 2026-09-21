@@ -65,12 +65,30 @@ export function DictionaryUploadControl({
   const discard = useSchemaUploadStore((s) => s.discard)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  async function choose(chosen: File | undefined) {
-    if (!chosen) return
+  /**
+   * **Several files in one pick, read one at a time.**
+   *
+   * The input is `multiple`, so this takes a list. They are read **sequentially** rather than with
+   * a `Promise.all`: `reading` is a single dataset id, so parallel reads would race that flag and
+   * the row would stop reporting which dataset is in flight. Sequential also makes the refusal
+   * below mean something — the first bad file stops the run, and the good ones already read stay
+   * staged, which is what the store's append is for.
+   */
+  async function choose(chosen: FileList | null) {
+    if (!chosen || chosen.length === 0) return
+    for (const file of Array.from(chosen)) {
+      const ok = await readOne(file)
+      /* A refused file stops the rest: the panel shows one sentence, and pressing on would
+         overwrite it with the next file's and leave the reader reading the wrong refusal. */
+      if (!ok) break
+    }
+  }
+
+  async function readOne(chosen: File): Promise<boolean> {
     const problem = schemaFileProblem(chosen)
     if (problem) {
       refuse(datasetId, problem)
-      return
+      return false
     }
     /*
      * **The file is not read, and that is the point.** The upload is a showcase: the server answers
@@ -86,6 +104,7 @@ export function DictionaryUploadControl({
     /* And say so. Only on success: a refusal is already stated in the panel's own error alert,
        and a success toast over it would leave the reader two opposite answers to one act. */
     if (result.ok) onUploaded(chosen.name)
+    return result.ok
   }
 
   return (
@@ -103,44 +122,64 @@ export function DictionaryUploadControl({
      * than like a handler two elements up. Reported from use.
      */
     <span className="cat-dict" onClick={(e) => e.stopPropagation()}>
+      {/*
+        **`multiple`, because the store stages a list.** `StagedDictionary.filenames` is an array and
+        `read` appends to it, so a single-file input was the one layer still saying a dataset takes
+        one dictionary.
+
+        **The value is cleared after every pick**, which is not tidiness: an `<input type="file">`
+        fires no `change` when the same file is chosen twice running, so discarding a row and
+        re-picking that file would do nothing at all and look like a dead button.
+      */}
       <input
         ref={inputRef}
         type="file"
+        multiple
         accept={SCHEMA_ACCEPT}
         style={{ display: 'none' }}
-        onChange={(e) => void choose(e.target.files?.[0])}
+        onChange={(e) => {
+          void choose(e.target.files)
+          e.target.value = ''
+        }}
       />
       <Space size={SP.xs} wrap>
         {/*
-          **The upload button is the empty state's control, and a staged dataset no longer draws
-          it.** It used to stay and relabel itself *Replace file*; that was **removed on request**,
-          so a row with a file read against it offers its name and *Discard* and nothing
-          else.
+          **The upload button is drawn whether or not anything is staged, and that is a reversal
+          on record.** It used to be withheld once a file had been read, because `staged` held one
+          file per dataset: the button could only have meant *Replace*, and a replace silently
+          threw away a plan the reader may not have looked at — so Discard-then-Upload was made
+          the honest shape of the act.
 
-          What it costs is one click: swapping a file is now Discard then Upload rather than
-          Replace. That is the honest shape of the act anyway — a replace silently threw away a
-          plan the reader may not have read yet, and `staged` is one slot per dataset, so the
-          discard was happening either way and only the saying of it was missing.
+          **That reasoning went when the slot became a list.** `read` appends and de-duplicates by
+          name, so pressing this adds a dictionary and can no longer replace one. Withholding it
+          now would leave a reader able to stage a second file only by discarding the first —
+          which is the opposite of what a list is for, and would make *Upload Files*, plural, a
+          label for a control that takes one.
 
           The hidden `<input>` stays mounted regardless: it is what this button opens, and
           remounting it per state would lose the ref between renders.
         */}
-        {staged ? null : (
-          <Button
-            size="small"
-            icon={<InboxOutlined />}
-            loading={reading === datasetId}
-            onClick={() => inputRef.current?.click()}
-          >
-            {reading === datasetId
-              ? schemaUploadCopy.readingLabel
-              : schemaUploadCopy.uploadLabel}
-          </Button>
-        )}
+        <Button
+          size="small"
+          icon={<InboxOutlined />}
+          loading={reading === datasetId}
+          onClick={() => inputRef.current?.click()}
+        >
+          {reading === datasetId
+            ? schemaUploadCopy.readingLabel
+            : schemaUploadCopy.uploadLabel}
+        </Button>
         {staged ? (
           <>
-            {/* Neutral: a staged file is not a state of the data. */}
-            <Tag>{staged.filename}</Tag>
+            {/* **One chip per file read against this row**, in the order they were chosen —
+                `filenames` is the list and this is the only thing that shows it, so a reader who
+                dropped four dictionaries on a dataset can see all four rather than the last.
+
+                Neutral: a staged file is not a state of the data. Keyed by name, which is what
+                the store de-duplicates on, so two chips can never carry one key. */}
+            {staged.filenames.map((filename) => (
+              <Tag key={filename}>{filename}</Tag>
+            ))}
             {/* *View report* stood here and went with the dialog it opened. A control whose one
                 act is to show a surface that no longer exists is the half-removal this repo
                 refuses everywhere — so the label went from the copy module too. */}

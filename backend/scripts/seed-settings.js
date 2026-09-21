@@ -108,6 +108,21 @@ const USERS = [
   { id: 3, role_id: 'business_user_project', name: 'Rei Nakamura', email: 'rei.nakamura@vriodigital.com' },
   { id: 4, role_id: 'platform_admin', name: 'Adaeze Okonjo', email: 'adaeze.okonjo@vriodigital.com' },
   { id: 5, role_id: 'domain_architect', name: 'Nishant Srivastav', email: 'nishant.srivastav@vriodigital.com' },
+  /*
+   * **A group address, not a person — added so the Google chooser can offer it.**
+   *
+   * The connect window offers `db.settings.users` and nothing else, which is the guarantee that
+   * keeps a row on it from being one the handshake would then refuse: `/sources/oauth/mailboxes`
+   * and `identityFor` resolve against this same list. So an account the chooser shows has to exist
+   * here, and inventing one only in the window is exactly the client-side-list mistake this repo
+   * has already made once with the consent scopes.
+   *
+   * **It is a shared account rather than a colleague**, which is worth stating because everything
+   * that reads this list now offers it: the login, a report audience, the What-if reader roster,
+   * the Settings table. That is the honest consequence of making it connectable — the alternative
+   * is a chooser row nothing else in the app agrees exists.
+   */
+  { id: 6, role_id: 'domain_architect', name: 'ContextWeave Group', email: 'contextweave.group@vriodigital.com' },
 ]
 
 /**
@@ -132,6 +147,14 @@ const ADDITIONAL_USERS = {
       role_id: 'architect',
       name: 'Nishant Srivastav',
       email: 'nishant.srivastav@vriodigital.com',
+    },
+    /* The shared account the Google chooser offers beside him — see `USERS` for why it has to be
+       in the directory at all. CAPEX calls its Domain Architect `architect`, which is the whole
+       reason this list is keyed by dataset: a `role_id` the document's own pool lacks is refused. */
+    {
+      role_id: 'architect',
+      name: 'ContextWeave Group',
+      email: 'contextweave.group@vriodigital.com',
     },
   ],
 }

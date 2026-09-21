@@ -1,6 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons'
 import {
-  Alert,
   App,
   Button,
   Popconfirm,
@@ -260,13 +259,6 @@ export default function SourcesPage() {
       ) : (
         <>
           <StatCards stats={stats} />
-
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: SP.lg }}
-            title="Connection status updates as soon as a source is registered. Table and column counts remain at 0 until metadata profiling has been completed for that source."
-          />
 
           {!loading && sources.length === 0 ? (
             <NoSourceConnected

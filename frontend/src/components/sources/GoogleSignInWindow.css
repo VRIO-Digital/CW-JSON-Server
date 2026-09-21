@@ -7,17 +7,130 @@
  * like part of this app. No STATUS colour appears — a permission is not a state.
  */
 
+/*
+ * The browser window the sign-in is drawn inside: a title bar and an address bar above the page.
+ *
+ * Chrome's own greys rather than the brand's, for the reason the rest of this sheet uses Google's:
+ * the whole point is that it does not look like a dialog this app drew. It is chrome, so it sits
+ * outside `.gsi`'s padding — the bars run to the edge of the modal and the page is inset beneath.
+ */
+.gsi-chrome {
+  border-bottom: 1px solid #dadce0;
+  background: #dee1e6;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.gsi-chrome-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.gsi-chrome-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: #3c4043;
+}
+
+.gsi-chrome-controls {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: 11px;
+  color: #3c4043;
+}
+
+.gsi-chrome-close {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.gsi-chrome-close:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.gsi-chrome-close:hover:not(:disabled) {
+  color: #d93025;
+}
+
+/* The address bar: Chrome's rounded field on the toolbar strip. */
+.gsi-chrome-address {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 var(--sp-3) var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: 100px;
+  background: #fff;
+}
+
+.gsi-chrome-site {
+  flex: none;
+  font-size: 11px;
+  color: #5f6368;
+}
+
+.gsi-chrome-url {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: #3c4043;
+}
+
+/*
+ * **A tall popup, not a card that ends where its content does.** The reference is a browser window:
+ * the page fills it and the footer sits on the floor, with whatever space is left showing between
+ * the last row and the links. A column with the footer pushed down by `margin-top: auto` gives that
+ * without naming a height for the content — so a one-scope consent and a two-scope one both end at
+ * the same place, and a long consent simply grows past the minimum.
+ */
 .gsi {
-  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  /* No padding of its own: the chrome bars run to the modal's edge, so the page below them carries
+     the inset instead. */
+  padding: 0 0 var(--sp-5);
   font-family: 'Google Sans', Roboto, -apple-system, 'Segoe UI', sans-serif;
   color: #202124;
 }
 
+.gsi > *:not(.gsi-chrome) {
+  margin-left: var(--sp-6);
+  margin-right: var(--sp-6);
+}
+
+/* The header sits above a full-width rule, as Chrome's does — so it reads as the page's own bar
+   rather than as the first line of the content. Full width, so its margins are cancelled. */
 .gsi-head {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
+  padding: var(--sp-4) var(--sp-6);
+  border-bottom: 1px solid #e8eaed;
+}
+
+.gsi > .gsi-head {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* The page proper starts under that rule. */
+.gsi-title {
+  margin-top: var(--sp-6);
 }
 
 .gsi-head-text {
@@ -26,10 +139,30 @@
   line-height: 1.35;
 }
 
+/*
+ * The act, as a heading. Google sets this large and light — it is the question the window is
+ * asking, and the one-line *"Choose an account to continue to X"* the mock had put the question
+ * and the destination at the same weight.
+ */
+.gsi-title {
+  margin-bottom: var(--sp-2);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: #202124;
+}
+
 .gsi-lead {
   margin-bottom: var(--sp-4);
   font-size: 14px;
   color: #5f6368;
+}
+
+/* The site asking, picked out as a real consent screen picks it out. Not a link: this window opens
+   nothing, and a blue underline that goes nowhere is the control-with-no-destination this repo
+   refuses everywhere else. */
+.gsi-app {
+  color: #1a73e8;
 }
 
 /*
@@ -40,17 +173,20 @@
  * The border is on the list and the radius is clipped, so the first and last rows round with it
  * and no row needs a corner rule of its own.
  */
+/*
+ * **Borderless, which is Google's own chooser.** It was a bordered box; a real one is a plain run
+ * of rows divided by hairlines, full width, with the divider *between* rows and none at the ends.
+ * The box read as a form field containing a list rather than as the list itself.
+ */
 .gsi-accounts {
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  border: 1px solid #dadce0;
-  border-radius: 8px;
   list-style: none;
+  border-top: 1px solid #e8eaed;
 }
 
-.gsi-accounts > li + li {
-  border-top: 1px solid #e8eaed;
+.gsi-accounts > li {
+  border-bottom: 1px solid #e8eaed;
 }
 
 /* The account row is a button because choosing it is what advances the window. */
@@ -90,14 +226,21 @@
   white-space: nowrap;
 }
 
+/*
+ * Google tints each account's initial differently, which is what lets a reader tell two rows apart
+ * at a glance before reading either address. The hue is set inline from the email so it is stable
+ * per account rather than per position — a colour that moved when the list reordered would be worse
+ * than one colour for all of them. This is the fallback for a row that sets none.
+ */
 .gsi-avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: none;
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #1a73e8;
+  background: #5f6368;
   color: #fff;
   font-size: 13px;
   font-weight: 500;
@@ -141,13 +284,34 @@
   padding: var(--sp-2) 0;
 }
 
+/*
+ * **The product's mark, not a bullet.** Google puts the Drive or Gmail logo against each grant, so
+ * a reader sees which product is being opened up before they read the sentence. It was an 8px blue
+ * dot, which said nothing.
+ */
 .gsi-grant-mark {
+  display: inline-flex;
   flex: none;
-  width: 8px;
-  height: 8px;
-  margin-top: var(--sp-1);
-  border-radius: 50%;
-  background: #1a73e8;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
+
+.gsi-grant-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Google's ⓘ at the end of every grant row. Decoration: it opens nothing here, which is why it is
+   grey and `aria-hidden` rather than a control. */
+.gsi-grant-info {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 1px;
+  font-size: 15px;
+  color: #5f6368;
 }
 
 .gsi-grant-title {
@@ -182,17 +346,21 @@
   font-weight: 500;
 }
 
+/*
+ * Google's own footer: two equal pills side by side, filling the width, rather than a right-aligned
+ * pair of small buttons. Cancel leads, which is the order on the real screen.
+ */
 .gsi-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
   margin-top: var(--sp-5);
 }
 
 .gsi-btn {
+  flex: 1 1 0;
   padding: var(--sp-2) var(--sp-4);
-  border: 1px solid transparent;
-  border-radius: 4px;
+  border: 1px solid #dadce0;
+  border-radius: 100px;
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -213,13 +381,115 @@
   background: #f1f6fe;
 }
 
+/* Allow is the filled pill — the one affirmative act on the screen. */
 .gsi-btn-primary {
+  border-color: #1a73e8;
   background: #1a73e8;
   color: #fff;
 }
 
 .gsi-btn-primary:hover:not(:disabled) {
+  border-color: #1867cf;
   background: #1867cf;
+}
+
+/* ---- The consent screen's own blocks ---------------------------------- */
+
+/*
+ * The confirm screen's account pill — Google's rounded outline with the avatar, the address and a
+ * caret. The caret is decoration: this window has one account picked and changing it is Cancel, so
+ * a control that reopened the chooser would be a second way to do one thing.
+ */
+.gsi-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-1) var(--sp-3) var(--sp-1) var(--sp-1);
+  border: 1px solid #dadce0;
+  border-radius: 100px;
+  max-width: 100%;
+}
+
+.gsi-pill-email {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+  color: #202124;
+}
+
+.gsi-pill-caret {
+  flex: none;
+  font-size: 11px;
+  color: #5f6368;
+}
+
+/*
+ * The footer every Google screen carries: the language on the left, the three links on the right.
+ * Marked rather than linked, like every other policy phrase in this window — it opens nothing.
+ */
+.gsi-foot-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  /* `auto` rather than a fixed gap: this is what puts the links on the floor of a window taller
+     than its content, and collapses to nothing when the content fills it. */
+  margin-top: auto;
+  padding-top: var(--sp-5);
+  font-size: 11.5px;
+  color: #5f6368;
+}
+
+.gsi-foot-links {
+  display: inline-flex;
+  gap: var(--sp-4);
+}
+
+/* The account the grant would be made for, under the heading. */
+.gsi-who {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.gsi-who-email {
+  font-size: 14px;
+  color: #202124;
+}
+
+.gsi-trust-head {
+  margin-top: var(--sp-5);
+  font-size: 16px;
+  font-weight: 400;
+  color: #202124;
+}
+
+/* Google's blue notice. Flat rather than a link, because this window opens nothing. */
+.gsi-trust-box {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 8px;
+  background: #e8f0fe;
+  font-size: 13px;
+  color: #1a73e8;
+}
+
+.gsi-trust-icon {
+  flex: none;
+  font-size: 15px;
+}
+
+.gsi-trust-note {
+  margin: var(--sp-3) 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5f6368;
 }
 
 .gsi-foot {

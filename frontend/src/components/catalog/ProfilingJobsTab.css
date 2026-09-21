@@ -56,3 +56,42 @@
 .pj-detail-error {
   color: #b42318;
 }
+
+/*
+ * The job board's own cells. Spacing from the `--sp-*` scale; the rest is type and colour, which
+ * the scale says nothing about.
+ */
+.pj-job {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* What the run is over — documents, tables, columns. A neutral chip, never a status colour: a
+   unit is a category and not a state. */
+.pj-unit {
+  margin: 0;
+  font-size: 11px;
+}
+
+/* The source a run belongs to. Monospace because it is an id, and wrapped rather than truncated:
+   a drive id carries an address, and half of one identifies nothing. */
+.pj-source {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #22355c;
+  overflow-wrap: anywhere;
+}
+
+.pj-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+/* The stage, under its bar. The bar says how far; this says what it is doing. */
+.pj-progress-note {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #8994a8;
+}
