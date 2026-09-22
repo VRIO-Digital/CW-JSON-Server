@@ -3312,6 +3312,18 @@ Bridge's own claim, drawn from an entity to the concept it corresponds with — 
 person has decided it.** An undecided correspondence is a proposal, and a line on a canvas reads as a
 fact; a rejected one asserts nothing at all.
 
+**Reset view undoes everything that changed what is on screen, and that is two halves.** It reset
+the camera alone, so pressing it with a node selected re-centred a graph that stayed **dimmed**
+around that node with the Inspect panel still on it — a button that visibly does nothing. Reported
+from use. The dimming is not the camera's: `useForceGraph` marks a node `dim` when its type is
+hidden, the search does not match it, or it sits outside the selected neighbourhood — three pieces
+of state the hook is *given* and cannot clear. So the camera stays the hook's (`resetCamera`: zoom
+to identity, plus the `ResizeObserver`'s own nudge back to the middle, because a dragged hub moves
+the drawing off centre exactly as panning does) and the three are the page's (`clearView`). The
+button calls both, and **neither half is a view reset on its own** — which is what `check-docs`
+asserts, rather than that a reset exists. `highlight` is untouched: it is what the *caller* handed
+in, an answer's own route, so it is the state a reset returns **to**.
+
 **The side panel is Inspect, and it has no tab bar.** There was a second tab, *How it's built*, and
 it was **removed on request** — its copy was a reconstruction of one package's extraction passes,
 naming Facility, Manifest, Evaluation, Violation, Enforcement and `REGISTRY_ID / PGM_SYS_ID`. Under

@@ -57,6 +57,9 @@ export const useForceGraph = ({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const selectionsRef = useRef<Selections | null>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  /** The running simulation, so the reset can nudge a drifted layout back to the middle. Held in a
+   *  ref because the build effect owns it and the reset lives outside that effect. */
+  const simulationRef = useRef<d3.Simulation<GraphNode, GraphLink> | null>(null);
   const onSelectRef = useRef(onSelect);
 
   onSelectRef.current = onSelect;
@@ -123,7 +126,7 @@ export const useForceGraph = ({
 
     selectionsRef.current = { link, elabel, node };
 
-    const simulation = d3
+    const simulation: d3.Simulation<GraphNode, GraphLink> = d3
       .forceSimulation<GraphNode>(nodes)
       .force(
         "link",
@@ -184,6 +187,7 @@ export const useForceGraph = ({
       .on("zoom", (event) => root.attr("transform", event.transform.toString()));
 
     zoomRef.current = zoom;
+    simulationRef.current = simulation;
     svg.call(zoom);
 
     /*
@@ -211,6 +215,7 @@ export const useForceGraph = ({
       svg.on(".zoom", null);
       selectionsRef.current = null;
       zoomRef.current = null;
+      simulationRef.current = null;
     };
   }, [graph]);
 
@@ -248,12 +253,37 @@ export const useForceGraph = ({
     sel.elabel.classed("dim", linkDimmed).classed("hi", linkHi);
   }, [graph, hiddenTypes, query, selectedId, highlight]);
 
-  const resetView = useCallback(() => {
+  /**
+   * Put the camera back: zoom and pan to identity, and the layout back around the middle.
+   *
+   * **The camera only** — what a reader has *selected*, searched for or filtered out is React state
+   * one level up, and this hook cannot see it. `GraphCanvas` composes the two, because *Reset view*
+   * has to undo everything that changed what is on screen: resetting the zoom under a graph still
+   * dimmed around one selected node is a button that visibly does nothing, which is how it was
+   * reported.
+   *
+   * The re-centre is the `ResizeObserver`'s own nudge rather than a restart from cold: the layout
+   * moves toward the centre instead of re-settling from scratch, so a reset does not throw away an
+   * arrangement the reader has been reading. It is part of the camera because dragging a hub across
+   * the panel moves the drawing off the middle exactly as panning does, and a reader undoing the
+   * one means the other.
+   */
+  const resetCamera = useCallback(() => {
     const svgEl = svgRef.current;
     const zoom = zoomRef.current;
     if (!svgEl || !zoom) return;
     d3.select(svgEl).transition().duration(400).call(zoom.transform, d3.zoomIdentity);
+
+    const simulation = simulationRef.current;
+    const centre = simulation?.force<d3.ForceCenter<GraphNode>>("center");
+    if (!simulation || !centre) return;
+    const [cx, cy] = box(svgEl);
+    /* A panel that has not been laid out measures 0, and centring on that is the corner-pile bug
+       the observer above already guards against. */
+    if (cx === 0 && cy === 0) return;
+    centre.x(cx).y(cy);
+    simulation.alpha(Math.max(simulation.alpha(), 0.2)).restart();
   }, []);
 
-  return { svgRef, resetView };
+  return { svgRef, resetCamera };
 };

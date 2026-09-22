@@ -1994,6 +1994,11 @@ each is answered by**, plus add, edit and remove.
 Three frames, one viewer. A second force graph is what this repo refuses everywhere: two drawings of
 one graph are two answers to what it looks like.
 
+- **Reset view is two halves**: the camera (`resetCamera` — zoom to identity plus a nudge back to
+  the middle) and what the reader narrowed (`clearView` — the selection, the search, the hidden
+  types). It reset the camera alone, so with a node selected it re-centred a graph that stayed
+  dimmed: a dead button. Neither half is a view reset on its own; `highlight` is the caller's and is
+  what a reset returns **to**.
 - **The side panel is Inspect and has no tab bar** — *How it's built* was removed on request: its
   copy named one package's passes (Facility, Manifest, `REGISTRY_ID`), so under CAPEX it described a
   pipeline that had not run over entities that do not exist. The bar went with the tab and `.tabs`

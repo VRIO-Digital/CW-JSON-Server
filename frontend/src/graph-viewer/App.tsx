@@ -59,6 +59,22 @@ export const GraphViewer = ({
     setSelectedId(nodeId)
   }, [])
 
+  /*
+   * Everything the reader narrowed, cleared in one act — the other half of *Reset view*, whose
+   * first half is the camera inside `GraphCanvas`.
+   *
+   * These three live here because they are what the whole viewer is drawn from, and the canvas only
+   * borrows them; a reset that reached the zoom alone left the graph dimmed around whatever was
+   * selected, which is a button that visibly does nothing. `highlight` is deliberately untouched: it
+   * is what the *caller* handed in — an answer's own route — rather than something this reader
+   * narrowed, so it is the state the view came in with and what a reset returns to.
+   */
+  const clearView = useCallback(() => {
+    setSelectedId(null)
+    setQuery('')
+    setHiddenTypes(new Set())
+  }, [])
+
   return (
     <div className="cw-graph">
       <GraphCanvas
@@ -70,6 +86,7 @@ export const GraphViewer = ({
         onQueryChange={setQuery}
         onToggleType={toggleType}
         onSelect={select}
+        onClearView={clearView}
         highlight={highlight}
       />
 

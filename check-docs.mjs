@@ -7584,6 +7584,50 @@ const viewerUnscoped = viewerCss
   .filter((sel) => sel && !sel.startsWith('@') && !/^(from|to|\d+%)$/.test(sel))
   .filter((sel) => !sel.split(',').every((one) => one.trim().startsWith('.cw-graph')))
 /*
+ * **Reset view undoes everything that changed what is on screen, which is two halves.**
+ *
+ * It called the camera reset alone, so pressing it with a node selected re-centred a graph that
+ * stayed dimmed around that node, with the Inspect panel still on it — a button that visibly does
+ * nothing. Reported from use. The dimming is not the camera's: `useForceGraph`'s paint effect marks
+ * a node `dim` when its type is hidden, the search does not match it, or it is outside the selected
+ * neighbourhood — three pieces of React state the hook is *given* and cannot clear.
+ *
+ * So the camera stays the hook's (`resetCamera`, zoom to identity plus a nudge back to the middle,
+ * because a dragged hub moves the drawing off centre exactly as panning does) and the three are the
+ * page's (`clearView`). The button calls both; **neither half is a view reset on its own**, which is
+ * why the claim asserts both are wired rather than that a reset exists.
+ *
+ * `highlight` is deliberately untouched: it is what the caller handed in — an answer's own route —
+ * rather than something this reader narrowed, so it is the state a reset returns *to*.
+ */
+const viewerCanvas = codeOnly(read('frontend/src/graph-viewer/components/GraphCanvas.tsx'))
+const viewerAppCode = codeOnly(read('frontend/src/graph-viewer/App.tsx'))
+const viewerHook = codeOnly(read('frontend/src/graph-viewer/hooks/useForceGraph.ts'))
+expect(
+  'Reset view clears the camera AND what the reader narrowed',
+  /resetCamera\(\)[\s\S]{0,40}onClearView\(\)/.test(viewerCanvas) &&
+    /onClearView=\{clearView\}/.test(viewerAppCode) &&
+    /* All three, because any one left set keeps the graph dimmed — see the paint effect. */
+    /setSelectedId\(null\)[\s\S]{0,120}setQuery\(''\)[\s\S]{0,120}setHiddenTypes\(new Set\(\)\)/.test(
+      viewerAppCode,
+    ) &&
+    /* And the camera half really is the camera: zoom to identity, and the layout nudged back to
+       the middle rather than re-settled from cold. */
+    /zoom\.transform, d3\.zoomIdentity/.test(viewerHook) &&
+    /centre\.x\(cx\)\.y\(cy\)[\s\S]{0,120}restart\(\)/.test(
+      viewerHook.slice(viewerHook.indexOf('const resetCamera')),
+    ),
+  'resetting the zoom under a graph still dimmed around a selected node is a dead button',
+)
+expect(
+  'and nothing still resets the camera alone',
+  /* The old name is gone rather than kept beside the new one: two resets, one of which is half an
+     act, is exactly what this fixed. */
+  !/resetView/.test(viewerHook + viewerCanvas + viewerAppCode),
+  'a half-reset left in place is the button that was reported',
+)
+
+/*
  * **The viewer's side panel has one panel and so no tab bar** — *How it's built* was **removed on
  * request**, and its copy is the reason to be glad: it was a reconstruction of one package's
  * extraction passes, naming Facility, Manifest, Evaluation, Violation, Enforcement and

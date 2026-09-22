@@ -7596,3 +7596,43 @@ layer up, in prose describing a control that is in fact drawn in both states.
 *A refusal is an argument, and an argument has premises. When the thing it was protecting stops
 existing, the refusal does not become harmless — it becomes a control the app offers and the API
 turns down.*
+
+---
+
+## "Reset view" reset the camera under a graph that stayed dimmed, so it read as a dead button
+
+**Symptom** — with a node selected on the Canvas tab, the rest of the graph dims to near-invisible.
+Pressing **Reset view** left it exactly that way: the same dimming, the same node in the Inspect
+panel, nothing a reader could see having changed. Reported from use as the button not working.
+
+**Root cause** — it called `resetView` in `useForceGraph`, which resets the **zoom transform** and
+nothing else. The dimming is not the camera's. `useForceGraph`'s paint effect marks a node `dim`
+when its type is hidden, the search does not match it, or it sits outside the selected
+neighbourhood — and all three of those are React state in `App.tsx`, *given* to the hook. The hook
+cannot clear what it does not own, so the one control named for the whole view could only ever undo
+a third of it, and the two thirds a reader actually notices were the other two.
+
+**Fix** — the act is two halves, and the button calls both. `resetCamera` (renamed, in the hook) is
+the zoom to identity **plus a nudge back to the middle**; `clearView` (in `App`) drops the
+selection, the search and the hidden types.
+
+**The re-centre is part of the camera and worth saying why.** Dragging a hub across the panel moves
+the drawing off centre exactly as panning does, and a reader undoing the one means the other. It is
+the `ResizeObserver`'s own nudge — `alpha(...).restart()` toward the new centre rather than a
+re-settle from cold — so a reset does not throw away an arrangement somebody has been reading. It
+skips a panel measuring 0, which is the corner-pile bug that observer already guards against.
+
+**`highlight` is deliberately untouched.** It is what the *caller* handed in — an answer's own route,
+lit until a node is clicked — rather than something this reader narrowed. So it is the state the
+view came in with, and what a reset returns **to** rather than something a reset clears.
+
+**Guard** — mechanical, two claims, four break tests: the button calls `resetCamera()` *and*
+`onClearView()`; `App` passes `clearView` and it clears **all three** pieces of state (any one left
+set keeps the graph dimmed); the camera half really zooms to identity and re-centres; and the old
+`resetView` name survives nowhere, because two resets one of which is half an act is exactly what
+this fixed. `renderToString` cannot exercise a d3 click, so it asserts what a render can: the
+control is drawn, and it does not fire on render.
+
+**The lesson is about ownership, not d3.** A control named for a whole surface has to reach every
+piece of state that surface is drawn from — and when those live in two places, the control composes
+them. Half of it is the shape that looks like nothing happening.

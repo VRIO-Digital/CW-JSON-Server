@@ -26484,7 +26484,7 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-testdata-mucdxwu64",
+      "use_case_id": "uc-testdata-muceukj42",
       "name": "testdata",
       "status": "committed",
       "domain_id": "capital-projects",
@@ -26524,25 +26524,38 @@
           "source_id": "bigquery:northline_epbcs",
           "mode": "all",
           "objects": []
-        },
-        {
-          "source_id": "gdrive:capital-delivery-docs",
-          "mode": "all",
-          "objects": []
         }
       ],
       "hero_questions": [
         {
           "text": "Show me the change orders with the message that explains each one.",
-          "priority": "high",
+          "priority": "normal",
           "source": "ai",
           "sql": "SELECT `Phase Order`, Notes\nFROM `plan`.`plan_phase_dim`\nLIMIT 1000"
+        },
+        {
+          "text": "Which explanations came from correspondence rather than from a person?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT `Prepared By`, `Reviewed By`, Submitted, `Submitted On`, Comment, `Source System`\nFROM `plan`.`plan_project_forecast`\nLIMIT 1000"
+        },
+        {
+          "text": "Which completed projects are not yet unitized?",
+          "priority": "normal",
+          "source": "ai",
+          "sql": "SELECT `Project Code`, `Project Manager`, Phase, `Approved Budget`, `Budget Category`, Region\nFROM `plan`.`plan_project_budget`\nLIMIT 1000"
+        },
+        {
+          "text": "Where do our systems disagree about the same thing?",
+          "priority": "high",
+          "source": "ai",
+          "sql": "SELECT `Source System`\nFROM `plan`.`plan_project_budget`\nLIMIT 1000"
         }
       ],
       "gap_decisions": [],
       "golden_query_files": [],
       "step": 5,
-      "updated_at": "2026-09-22T08:14:56.390Z"
+      "updated_at": "2026-09-22T08:27:21.688Z"
     }
   ],
   "graph_use_case_templates": [
