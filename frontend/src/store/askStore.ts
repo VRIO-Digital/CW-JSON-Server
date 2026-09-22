@@ -323,6 +323,9 @@ export const useAskStore = create<AskState>()((set, get) => ({
           // `done` is not applied here — the whole envelope is committed below, once,
           // from the validated object the fetcher returns.
         },
+        // Client-held, so it has to be sent: a greeting names the reader only where the
+        // server was told who they are.
+        signedInAs(),
       )
       if (get().useCaseId !== useCaseId) return { ok: true }
       appendTurn(asked, answer)

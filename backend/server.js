@@ -5893,7 +5893,7 @@ const normaliseGreeting = (s) =>
 const isGreeting = (question) => GREETING_PHRASES.has(normaliseGreeting(question))
 
 /**
- * "Hello, Adaeze Okonjo — I can only answer questions about…" — checked, and answered,
+ * "Hello, Adaeze Okonjo! How can I help?" — checked, and answered,
  * *before* anything about a graph or a connected source: a greeting costs nothing and needs
  * no precondition, so answering it must not wait on "publish a graph" or "connect a source"
  * the way a real question does. Returns `null` for anything that is not one, which is what
@@ -5915,17 +5915,17 @@ function greetingAnswer(question, as, requested) {
   if (!isGreeting(question)) return null
 
   const identity = identityFor(as)
-  const hello = identity ? `Hello, ${identity.name} — ` : 'Hello — '
+  const hello = identity ? `Hello, ${identity.name}! ` : 'Hello! '
 
   const graphs = builtGraphs().map(askableGraph).filter(Boolean)
   const scope =
     graphs.length > 0
-      ? `I can only answer questions about ${graphs.map((g) => g.name).join(' or ')}'s ` +
+      ? `How can I help? I can answer questions about ${graphs.map((g) => g.name).join(' or ')}'s ` +
         'data — its budgets, variances, projects, contracts, and the correspondence read ' +
         'alongside them. Ask me something about those and I will look.'
-      : 'I can only answer questions about this tenant\'s data, and nothing is askable yet: ' +
-        'publish a graph in Graph Studio, or connect a source such as a mailbox on Sources, ' +
-        'then ask again.'
+      : 'How can I help? I can only answer questions about this tenant\'s data, and nothing ' +
+        'is askable yet: publish a graph in Graph Studio, or connect a source such as a ' +
+        'mailbox on Sources, then ask again.'
   const reason = `${hello}${scope}`
 
   return {

@@ -6454,6 +6454,11 @@ export async function askQuestionStreaming(
      them when a graph was selected would be making that decision here. */
   sourceIds: string[],
   onEvent: (event: AskEvent) => void,
+  /* The signed-in address. The server cannot look it up — the identity is client-held —
+     so a greeting naming the reader is only as true as this argument, the same contract
+     `publishVersion`'s `as` has. Omitted or unresolved, the greeting answers with no name
+     rather than inventing one. */
+  as?: string | null,
 ): Promise<AskAnswer> {
   const response = await fetch(`${BASE}/ask`, {
     method: 'POST',
@@ -6469,6 +6474,7 @@ export async function askQuestionStreaming(
       source_ids: sourceIds,
       citations: requirements.citations,
       formats: requirements.formats,
+      as: as ?? undefined,
     }),
   })
 
