@@ -3370,7 +3370,7 @@ from the components that open the dialogs: an Add or Edit surface is a `Modal`, 
 render gets its *initial* state, in which nobody has typed anything, so the branch that matters is
 exactly the one a render never reaches. The same reasoning as `datasetPathFix` and `askAvailability`.
 
-#### The canvas — one viewer, three frames
+#### The canvas — one viewer, four frames
 
 **Structured · Documents · Combined**, all three rendering the vendored `src/graph-viewer`. A second
 force graph was the alternative — the build this was ported from brings its own — and it is what this
@@ -3394,6 +3394,48 @@ told apart at a 4.5px disc, and clears the same contrast bar as the nine beside 
 Bridge's own claim, drawn from an entity to the concept it corresponds with — **and only where a
 person has decided it.** An undecided correspondence is a proposal, and a line on a canvas reads as a
 fact; a rejected one asserts nothing at all.
+
+**And the fourth frame is a sphere — the same graph, arranged as one body.** Asked for directly: the
+two lanes are **two hemispheres**, the structured graph above the rim and the documents below it, and
+the Bridge is the stitching across the join. Two buttons revolve it about its polar axis, so a sphere
+has a far side and revolving is what brings it round — **not everything is in view at once, which is
+the point of the frame rather than a limitation of it.** Offered only with both lanes present, for the
+same reason Combined is: one lane is not half of anything.
+
+**It is a second *arrangement*, never a second graph.** `globeFromLanes` in `src/data/studioGlobe.ts`
+is built from `fromSgbGraph`, `fromDgbGraph` and `bridgeLinks` — the same three derivations
+`fromCombined` is built from, so the two frames cannot come to hold different nodes, and node colour
+is still the viewer's own `colorFor`. **`bridgeLinks` was extracted for this**: it was inline in
+`fromCombined` while one frame drew the seam, and a second copy would have been two answers to what
+the Bridge found, one frame apart. The geometry is pure and in `src/data/` for the reason
+`dataModelCanvas`'s is — a layout rule inside a component can only be asserted by rendering it, and
+`renderToString` hands it a rotation of zero and no measured box — and `check-docs` keys that on the
+component doing no trigonometry of its own, which is what would make the split a nominal one.
+
+**Everything is on the unit sphere and the radius is applied at projection time**, which is the whole
+answer to "and at a smaller radius?": the halves close at any size, because shrinking the drawing
+shrinks a sphere rather than pulling two arcs apart. A lane is a hemisphere **by the sign of its
+latitude** and nothing stores which — the same rule as `deriveLanes` reading the brief's picks rather
+than a `graph_kind` field. A bridged node is placed near the rim and a bridged entity at its concept's
+own meridian, so a correspondence is a short stitch across the join rather than a chord through the
+middle of the ball.
+
+**The tilt and the pole cap are chosen together, and that is a finding rather than a preference.**
+Revolving turns the sphere about its polar axis, so a node's best possible depth over a whole turn is
+`cos(lat − TILT)` — every degree of tilt buries a degree of the *far* cap permanently. At the tilt
+this was first written with (0.34 rad) and a cap of 86°, the document pole could never be brought
+round at all: a node the frame could not show, under a frame whose whole promise is that revolving
+shows the rest. At `TILT = 0.26` and `POLE_CAP = 60°` the worst-placed node still reaches a depth of
+0.26, and the cap costs almost nothing because the bands are distributed by **area** — `sin 60°` is
+0.87, so 87% of each hemisphere stays in use. `check-docs` recomputes that from the two constants,
+the way it recomputes the brand's contrast ratios.
+
+**A press is a twelfth of a turn**, so twelve of them is exactly one revolution; the tween lands *on*
+the target rather than asymptotically near it, or the reading would drift a little on every press.
+Reduced motion takes the jump, because what a revolve changes — which nodes face the reader — is
+legible without the travel. The far side is **faded rather than cut**: a mark that vanished the moment
+it crossed the rim would read as a node being deleted. And the label cap is a constant the hint line
+states, like every other cap here, because a canvas of 843 entities cannot print 843 names.
 
 **Reset view undoes everything that changed what is on screen, and that is two halves.** It reset
 the camera alone, so pressing it with a node selected re-centred a graph that stayed **dimmed**
@@ -3421,6 +3463,146 @@ claim, because "the file is gone" alone would pass just as well if the whole sid
 **Full view** opens the combined frame with the whole window, in a new tab, so the studio keeps its
 place. The href is built by the page rather than the tab, because the dataset prefix is the page's;
 the vendored viewer knows nothing about this app's routes and neither should a tab that renders it.
+
+#### Canvas 2 — the same graph, settled
+
+**A sixth tab, and a third *reading* of one graph rather than a second graph.** The Canvas tab draws
+the lanes with the vendored viewer and arranges them on an authored sphere; this one lets the graph
+find its own arrangement under a force simulation and projects the settled result onto one. Every
+node and every lane edge comes from `fromSgbGraph` and `fromDgbGraph` — the two derivations both
+existing frames are built from — so the three frames cannot come to disagree about what this use case
+*contains*. What Canvas 2 adds is where a node **comes to rest**, which is a fact about the drawing.
+
+**It is the one place this repo draws a second force graph, and that needs the argument made rather
+than assumed.** The rule everywhere else is that two drawings of one graph are two answers to what it
+looks like, and the one nobody is looking at is the one that goes wrong — which is why the studio has
+one viewer. What makes this admissible is that the hazard the rule guards is *two answers to what the
+graph holds*, and that hazard is closed by construction here: the adapters are shared, so a node this
+frame draws is one the Canvas tab draws. What differs is the arrangement, which is what a reader
+switched tabs to change.
+
+**Three things it says that the flat canvas cannot, and each is why it exists.**
+
+- **An entity type is a node.** The Bridge's claim is about *types*, and the flat canvas has no type
+  node for the edge to land on — so `bridgeLinks` fans one Type Link out to every instance of its
+  type, which draws an instance-level line for a claim the Bridge does not make. `bridgeTypeEdges`
+  draws the row itself: this type corresponds with this concept, and nothing about any individual
+  entity. That is a **narrower** claim than the fan, never a wider one, and it costs no backend work
+  — `entityType` is already on every entity.
+- **Its spokes are springs and never marks.** `HAS_INSTANCE` runs type → instance so a type gathers
+  its own members, and carries `layoutOnly`: painting one spoke per instance *on top of* that
+  instance's own relation edges is exactly what turns a settled graph into a honeycomb. A layout-only
+  edge is also excluded from a selection's trace, because a trace has to be readable against the
+  marks a reader can actually see.
+- **The lanes are anchored rather than centred.** A single centring well pulls both clouds onto one
+  point however unlinked they are — all-pairs repulsion is capped and falls off as 1/d², so it
+  interleaves them rather than parting them. `laneAnchor` puts the structured lane at a quarter of
+  the world's width and the documents at three quarters; inside the document lane each entity type
+  gets a well of its own, so instances orbit their own hub rather than pooling into one cloud.
+
+**A Bridge edge is drawn only where a person has decided it, and never as a join.** The rule is the
+one both other frames keep — a reject asserts nothing and an undecided row is a proposal, which is
+the one thing a reviewer must not mistake for a fact. So a Bridge nobody has reviewed draws no seam,
+and the strip **says so** rather than leaving a reader to read an absent stitch as a broken drawing.
+A Type Link is a semantic claim and is never joinable, so it is styled by its verdict and is drawn
+dashed; nothing here may render it as a live join, which would assert precisely what the Bridge
+declines to assert.
+
+**The spring applies equal and opposite displacement, and the reason that is written down is that
+getting it wrong is silent.** Applying the same *signed* vector to both endpoints leaves the relative
+displacement along the edge at exactly zero: such a force can translate a pair bodily and can never
+shorten or lengthen the edge between them, so a simulation written that way has **no attraction in
+it at all** and every bit of its structure comes from the seed. `npm run verify:studio-force` measures
+the mean edge length before and after settling for that reason — a sign error passes every type check
+and every render, and what it produces is a layout that merely looks loose. Accumulation is
+normalised by `1/sqrt(degree)`, because a type hub can carry hundreds of spokes and un-normalised it
+receives hundreds of pulls in one tick and flings itself across the world.
+
+**Repulsion is bucketed rather than all-pairs, which is the one deliberate departure from the design
+this was ported from.** An unqualified O(n²) sweep over eight hundred entities is 360,000 pairs a
+tick, so a fixed warmup budget buys a large lane about eight passes and what settles is very nearly
+the seed. The force is capped and falls off as 1/d² anyway, so a pair further apart than
+`NEIGHBOURHOOD` contributes a rounding error: bucketing drops exactly the pairs that were already
+contributing nothing, and the layout it produces is the same one.
+
+**The simulation stays flat and the sphere is presentation.** Depth is applied in the projection and
+nowhere else, so dragging, hovering, picking and panning all keep working against the painted
+position — which is what a projected point *is* once the paint has run. Nothing opaque is drawn, so a
+far-side node is dimmer and smaller and stays clickable, and the fade is continuous because a mark
+that vanished the instant it crossed the rim would make revolving read as things being deleted.
+
+**Latitude is equal-area — `sin(lat) = v`, never `lat = v · 90°`.** A linear mapping is
+equirectangular: it crushes the nodes at the poles and spreads them at the equator, so an evenly
+settled layout arrives visibly bunched. And the span is normalised against the **measured** bounding
+box rather than the nominal world, which is sized from the node count while the settled layout
+occupies only as much of it as the wells allow — projecting the nominal rect maps the clumps onto a
+matching fraction of the sphere and leaves the rest bare, which reads as a broken globe rather than a
+sparse one.
+
+**The span itself scales with the population, and that is a consequence of normalising.** Because the
+extremes always land at the ends of whatever span is used, a full span would put the two extreme
+nodes of a two-concept filter at ±180° — the **back** of the sphere, one dimmed to the depth floor
+and the other behind it. So `fillFor` gives a handful of nodes a shallow cap facing the reader and a
+full graph the whole sphere, and the crossover is gradual, because a filter that snapped between two
+different-looking layouts would read as a different drawing rather than as a narrower one.
+
+**Narrowing removes rows; it does not dim them.** Dimming is a reasonable read on a flat sheet and a
+poor one here: a ghost still takes a seat the physics has to settle and the projection has to measure
+around, so a sphere of ghosts is harder to read than the unfiltered graph. Filtering at the data
+level means the layout, the measured spread and the camera fit all adapt to what is left. **There is
+no concept *taxonomy* in this payload** — a concept carries a ref, a name, a description and whether
+the brief declared it, and nothing that groups it — so the options *are* the concepts, keyed by id
+rather than by name, since two concepts may share a display name across story groups. **Class rides
+the edge, not the node**, because an entity is global and a class is asserted on the relation, so the
+class filter keeps the relations carrying a selected class and the entities at their endpoints. Each
+control is drawn only where it has at least two options, which is the rule every other picker here
+keeps.
+
+**Reset folds a counter into the layout's identity, and that is the subtlest thing in the tab.**
+Positions are reused whenever that identity is unchanged — which is what keeps a filter from throwing
+the reader's mental map away — so a Reset that only moved the camera would restore the view while the
+graph underneath, holding every dragged position, did not move: a button that visibly does nothing.
+Folding the counter in invalidates the cache and forces a full re-seed. That is safe as a route back
+to the original layout precisely because **the seed is deterministic** — a golden-angle sunflower,
+with no `Math.random` anywhere in the module — so the same element set always lands the same way, and
+re-seeding unpins everything as a side effect of building fresh bodies. Re-settling instead would
+produce a *new* layout and move nodes the reader never touched.
+
+**A selection holds a ring and a trace, and there are four ways out of it.** `onSelect` is nullable
+rather than `(id: string) => void`, because a callback that structurally cannot express "nothing
+selected" is a selection with no way to clear it — which is how a canvas comes to have a ring nobody
+can dismiss. Background click (against the same press-versus-drag threshold, so a pan never
+deselects), clicking the selected mark again, Escape, and Reset.
+
+**Revolving is an explicit gesture, not a cursor reaction.** A rotation that tracked the pointer's
+horizontal position makes the graph appear to *shake* and makes nodes hard to hit, because the thing
+a reader reaches for moves as they reach. Two buttons step `ROTATION_STEP` (24°), so fifteen presses
+is exactly one turn, and the last sliver of the ease is snapped — an exponential approach never
+arrives, and the reading would drift a little on every press. Between turns nothing repaints at all:
+the frame loop is guarded on the layout still having energy or the rotation still easing, so a
+settled canvas with nobody touching it redraws zero times.
+
+**Every `<defs>` id is prefixed per instance**, from `useId`. `url(#…)` resolves to the first match in
+document order, so two canvases on one page sharing gradient ids would have the second one's marks
+silently reading the first one's — in the first one's coordinate space.
+
+**The geometry is pure and lives in `src/data/studioForceGraph.ts`**, for the reason `studioGlobe`'s
+and `dataModelCanvas`'s do: a physics or layout rule written inside a component can only be asserted
+by rendering it, and `renderToString` hands it an unsettled layout with no measured box — so a test
+written that way passes over exactly the arrangement that matters. The component owns the camera, the
+paint order and the pointer; the module owns the rest. **Paint order is depth order**, because SVG
+has no z-index.
+
+**The label cap is stated on the drawing**, like every other cap in this repo, and it is one
+expression rather than a number interpolated into a sentence — `renderToString` splits
+`text {expr} text` into separate nodes, so an assertion on the sentence would pass over nothing.
+
+**It is locked with the three tabs that read a build's output**, for the reason they are: what it
+would otherwise show is the previous build's graph with nothing saying so. That lock is now counted
+against **the tabs that exist** rather than against the number three — a claim pinned at three failed
+for a tab added *with* the flag, while a later tab added *without* one is the failure worth catching,
+and a hard number cannot tell those apart.
+
 
 #### Versions, and publication
 

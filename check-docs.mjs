@@ -6225,19 +6225,331 @@ expect(
 )
 
 /*
+ * ---------------- the globe frame ----------------
+ *
+ * **Two hemispheres of one sphere, joined along the rim the Bridge stitches.** The structured lane is
+ * the upper half, the document lane the lower, and two buttons revolve it — so the far side is a
+ * thing you turn to rather than a thing that is missing.
+ */
+const globeSrc = read('frontend/src/data/studioGlobe.ts')
+const globeCode = codeOnly(globeSrc)
+const globeTabSrc = codeOnly(read('frontend/src/components/studio/GlobeCanvas.tsx'))
+const canvasTabCode = codeOnly(canvasTabSrc)
+
+/*
+ * The seam is derived **once**. It was inline in `fromCombined` while one frame drew it; a second
+ * copy inside the globe would be a second answer to what the Bridge found, one frame apart — the
+ * duplication this studio refuses from the viewer down. Both halves are asserted, because the
+ * dangerous shape is a globe that kept the extracted call while the flat frame grew its own again.
+ */
+expect(
+  'the globe and the combined canvas derive the Bridge from one function',
+  /export function bridgeLinks\(/.test(studioCanvasCode) &&
+    /bridgeLinks\(sgb\.nodes, input\.entities, input\.typeLinks\)/.test(studioCanvasCode) &&
+    /bridgeLinks\(sgb\.nodes, input\.entities, input\.typeLinks\)/.test(globeCode) &&
+    /fromSgbGraph\(input\.structured\)/.test(globeCode) &&
+    /fromDgbGraph\(input\.entities, input\.relations\)/.test(globeCode),
+  'the sphere is an arrangement of the combined graph, never a second reading of it',
+)
+
+/*
+ * **A lane is a hemisphere, and nothing stores which.** The sign of the latitude is the lane, exactly
+ * as `deriveLanes` reads the brief's picks rather than a `graph_kind` field — a stored discriminator
+ * would be a second answer to a question the derivation already answers.
+ */
+expect(
+  'the hemisphere is derived from the lane that produced the node',
+  /toNode\(n, 'structured'\)/.test(globeCode) &&
+    /toNode\(n, 'documents'\)/.test(globeCode) &&
+    /node\.lat = band\(/.test(globeCode) &&
+    /node\.lat = -band\(/.test(globeCode) &&
+    !/hemisphere/.test(codeOnly(read('backend/studioLanes.js'))),
+  'the upper half is the structured lane and the lower the documents, by the sign of the latitude',
+)
+
+/*
+ * **Every node can be revolved to the front, and the two constants that decide it are checked
+ * together rather than trusted apart.**
+ *
+ * Revolving turns the sphere about its polar axis, so a node's best possible depth over a whole turn
+ * is `cos(lat − TILT)` — which means each degree of tilt buries a degree of the far cap *permanently*.
+ * At the tilt this was first written with (0.34) and a cap of 86°, the document pole could never be
+ * brought round at all: a node this frame could not show, under a frame whose whole promise is that
+ * revolving shows the rest. Found by running the projection rather than by reading it.
+ */
+const tiltRad = Number(/export const TILT = ([\d.]+)/.exec(globeSrc)?.[1] ?? NaN)
+const poleCapDeg = Number(/const POLE_CAP = (\d+) \* DEG/.exec(globeSrc)?.[1] ?? NaN)
+const worstDepth = Math.cos((poleCapDeg * Math.PI) / 180 + tiltRad)
+expect(
+  'the tilt and the pole cap leave every node reachable by revolving',
+  Number.isFinite(tiltRad) && Number.isFinite(poleCapDeg) && worstDepth > 0.2,
+  `TILT ${tiltRad} · cap ${poleCapDeg}° — the worst-placed node reaches depth ${worstDepth.toFixed(2)}`,
+)
+/* And the tilt is real, or the rim projects to a flat line and the drawing is two stacked fans. */
+expect(
+  'and the tilt is what turns the rim into an ellipse',
+  tiltRad > 0.15 && /Math\.sin\(TILT\)/.test(globeCode),
+  'a circle reads as a sphere because its equator reads as an ellipse',
+)
+
+/*
+ * A press is a twelfth of a turn, so twelve of them is exactly one revolution and the reading never
+ * drifts — the same reason the tween lands *on* the target rather than asymptotically near it.
+ */
+expect(
+  'a revolve is a stated fraction of a turn, not a nudge',
+  /export const ROTATION_STEP = Math\.PI \/ 6/.test(globeCode) &&
+    /revolve\(1\)/.test(globeTabSrc) &&
+    /revolve\(-1\)/.test(globeTabSrc) &&
+    /aria-label="Revolve the sphere left"/.test(globeTabSrc) &&
+    /aria-label="Revolve the sphere right"/.test(globeTabSrc),
+  'twelve presses is one turn, and each button says which way it goes',
+)
+
+/*
+ * **The geometry is pure and lives in `src/data/`**, for the reason `dataModelCanvas`'s does: a
+ * layout rule written inside the component can only be asserted by rendering it, and
+ * `renderToString` hands it a rotation of zero and no measured box — so a test written that way
+ * passes over exactly the arrangement that matters. Keyed on the component doing no trigonometry of
+ * its own, which is the thing that would make the split a nominal one.
+ */
+expect(
+  'the sphere geometry is a pure module, not maths inside the component',
+  /export function layoutGlobe\(/.test(globeCode) &&
+    /export const project = /.test(globeCode) &&
+    /export const arcPath = /.test(globeCode) &&
+    !/Math\.(cos|sin|asin|atan2)\(/.test(globeTabSrc),
+  'the component owns the camera and the paint order; the module owns the sphere',
+)
+
+/*
+ * The cap on labels is **stated on the drawing**, like every other cap in this repo — and it is one
+ * expression rather than a number interpolated into the middle of a sentence, because
+ * `renderToString` splits `text {expr} text` into separate nodes and an assertion on the sentence
+ * would pass over nothing. That is how this one first passed.
+ */
+expect(
+  'the globe states its label cap rather than truncating silently',
+  /export const LABELS_SHOWN = \d+/.test(globeCode) &&
+    /at most \$\{LABELS_SHOWN\} labels at once/.test(globeTabSrc),
+  'a canvas of 843 entities cannot print 843 names; revolving is what reveals the rest',
+)
+
+/*
+ * The frame is offered only with both lanes present — one lane is not half of anything — and the
+ * height is the tab's one number, because a sphere sized against a different box from the one it is
+ * drawn in is a sphere clipped by its own frame.
+ */
+expect(
+  'the globe is a fourth frame of the canvas tab, gated on both lanes',
+  /value: 'globe', label: 'Globe'/.test(canvasTabCode) &&
+    /bothLanes \? \[\{ value: 'globe'/.test(canvasTabCode) &&
+    /<GlobeCanvas graph=\{globe\} height=\{CANVAS_BOX\.height\}/.test(canvasTabCode) &&
+    /<GraphViewer graph=\{graph\} \/>/.test(canvasTabCode),
+  'four frames, and the flat combined canvas is still one of them',
+)
+
+/*
  * **One viewer, not two.** The reference this was ported from brings its own 2,400-line force graph;
  * rendering it beside the vendored one would be two drawings of one graph, and the one nobody is
  * looking at is the one that goes wrong.
  */
+const forceCode = codeOnly(read('frontend/src/data/studioForceGraph.ts'))
+/*
+ * **One answer to what the graph *holds*; more than one to what it *looks like*.**
+ *
+ * This claim read "a second force graph is a second answer to what the graph looks like", and
+ * Canvas 2 is a second force graph — so the rule had to be restated rather than left to pass on the
+ * accident that the retired file had a different name. The hazard the rule guards has always been
+ * **two derivations**: a frame that built its own nodes could draw a graph the Canvas tab does not,
+ * and the frame nobody is looking at is the one that goes wrong. That hazard is closed by
+ * construction, not by there being one drawing — so what is asserted now is the thing that matters,
+ * that every frame's nodes come from the shared adapters, together with the retired drawing still
+ * being off disk.
+ */
 expect(
-  'every studio canvas renders the vendored viewer',
+  'every studio frame builds its graph from the shared adapters',
   /import GraphViewer from '\.\.\/\.\.\/graph-viewer\/App'/.test(
     read('frontend/src/components/studio/StudioCanvasTab.tsx'),
   ) &&
     /import GraphViewer from '\.\.\/graph-viewer\/App'/.test(read('frontend/src/pages/GraphCanvasFullPage.tsx')) &&
+    /import \{ fromDgbGraph, fromSgbGraph \} from '\.\/studioCanvas'/.test(forceCode) &&
+    /fromSgbGraph\(input\.structured\)/.test(forceCode) &&
+    /fromDgbGraph\(input\.entities, input\.relations\)/.test(forceCode) &&
     !existsSync(join(root, 'frontend/src/components/studio/ForceGraph.tsx')),
-  'a second force graph is a second answer to what the graph looks like',
+  'a frame deriving its own nodes is a second answer to what this use case contains',
 )
+
+/*
+ * ---------------- Canvas 2 ----------------
+ *
+ * The settled frame. Every fault below is silent, which is why each is pinned here as well as
+ * replayed by `npm run verify:studio-force`: a sign error in the spring type-checks and renders and
+ * produces a layout that merely looks loose, and a Bridge edge fanned to instances draws a richer
+ * picture than the one the data supports.
+ */
+const forceTabSrc = read('frontend/src/components/studio/StudioCanvas2Tab.tsx')
+const forceTabCode = codeOnly(forceTabSrc)
+const forceCanvasCode = codeOnly(read('frontend/src/components/studio/ForceCanvas.tsx'))
+
+expect(
+  'Canvas 2 is a tab of the studio, locked with the tabs that read a build output',
+  /key: 'canvas2',\s*label: 'Canvas 2',\s*disabled: !outputReadable/.test(studioPageCode) &&
+    /<StudioCanvas2Tab/.test(studioPageCode),
+  'what it would otherwise show is the previous build’s graph with nothing saying so',
+)
+
+/*
+ * **The spring applies equal and opposite displacement.** The same *signed* vector on both endpoints
+ * leaves the relative displacement along the edge at exactly zero — the force can translate a pair
+ * bodily and can never shorten the edge between them — so the simulation has no attraction in it and
+ * every bit of its structure comes from the seed. Keyed on the two lines rather than on the word
+ * "Hooke", and measured for real by the verifier, because the shape is what fails.
+ */
+expect(
+  'the spring pulls both ends together rather than translating the pair',
+  /a\.vx \+= ux \* na/.test(forceCode) &&
+    /b\.vx -= ux \* nb/.test(forceCode) &&
+    /1 \/ Math\.sqrt\(Math\.max\(1, degree\.get/.test(forceCode) &&
+    /verify:studio-force/.test(read('package.json')) &&
+    /force-verify\.ts/.test(read('frontend/package.json')),
+  'a sign error here type-checks, renders, and produces a layout that merely looks loose',
+)
+
+/*
+ * **The Bridge is drawn where the Bridge claims it.** `bridgeLinks` fans a Type Link out to every
+ * instance of its type because the flat canvas has no type node to land on; this frame has one, so
+ * the edge states the row itself and nothing about any individual entity. Asserted with the decided,
+ * non-reject rule beside it, because a frame that drew proposals would put a reviewer's undecided
+ * queue on the canvas as fact.
+ */
+expect(
+  'a Bridge edge lands on an entity-type node, decided and non-reject only',
+  /export function bridgeTypeEdges/.test(forceCode) &&
+    /source: group,/.test(forceCode) &&
+    /if \(link\.decision === 'reject'\) continue/.test(forceCode) &&
+    /if \(link\.decidedBy === 'llm'\) continue/.test(forceCode),
+  'fanning a type-level claim to instances asserts something the Bridge does not',
+)
+
+/*
+ * **A hub's spokes are springs and never marks.** Painting one spoke per instance on top of that
+ * instance's own relation edges is what turns a settled graph into a honeycomb — and a layout-only
+ * edge is excluded from the trace too, or selecting an entity lights every sibling of its type
+ * through a line that is not on the drawing.
+ */
+expect(
+  'the type hub gathers its members with a spring that is never painted',
+  /kind: 'has_instance', layoutOnly: true/.test(forceCode) &&
+    /\.filter\(\(edge\) => !edge\.layoutOnly\)/.test(forceCanvasCode) &&
+    /if \(edge\.layoutOnly\) continue/.test(forceCode),
+  'a spoke per instance beside its own edges is the honeycomb this avoids',
+)
+
+/*
+ * **Latitude is equal-area and the span is measured.** A linear latitude is equirectangular and
+ * bunches the nodes at the poles; the nominal world is sized from the node count while the settled
+ * layout occupies a fraction of it, so projecting the nominal rect leaves most of the sphere bare.
+ * Both draw a perfectly plausible sphere, which is why neither can be left to the eye.
+ */
+expect(
+  'the projection is equal-area, measured, and scaled to the population',
+  /Math\.asin\(Math\.min\(1, Math\.max\(-1, v \* latScale\)\)\)/.test(forceCode) &&
+    /export function measureSpread/.test(forceCode) &&
+    /export const fillFor/.test(forceCode) &&
+    /const lonHalf = Math\.PI \* fill/.test(forceCode),
+  'a full span would put a narrow filter’s two extremes on the back of the ball',
+)
+
+/*
+ * **The geometry is a pure module, not maths inside the component** — the split `studioGlobe` and
+ * `dataModelCanvas` have, and for the same reason. Keyed on the component doing no trigonometry of
+ * its own, which is the thing that would make the split a nominal one.
+ */
+expect(
+  'Canvas 2’s physics and projection are pure, and the component owns only the camera',
+  /export function stepSimulation/.test(forceCode) &&
+    /export function seedBodies/.test(forceCode) &&
+    /export function projectGlobe/.test(forceCode) &&
+    !/\bdb\./.test(forceCode) &&
+    !/document\.|window\./.test(forceCode) &&
+    !/Math\.(cos|sin|asin|atan2)\(/.test(forceCanvasCode),
+  'a rule inside a component can only be asserted by rendering its initial state',
+)
+
+/*
+ * **Reset re-seeds, and that is why the counter is folded into the layout's identity.** Positions are
+ * reused while the identity is unchanged, so a reset that moved only the camera would restore the
+ * view over a graph still holding every dragged position — a button that visibly does nothing.
+ * Asserted with the determinism that makes re-seeding a route *back* rather than a new layout.
+ */
+expect(
+  'Reset invalidates the cached layout rather than only the camera',
+  /export const partitionKey = \(graph: ForceGraph, resets: number\)/.test(forceCode) &&
+    /\$\{resets\}\|/.test(read('frontend/src/data/studioForceGraph.ts')) &&
+    !/Math\.random/.test(forceCode) &&
+    /setResets\(\(n\) => n \+ 1\)/.test(forceTabCode),
+  're-settling instead would move nodes the reader never touched',
+)
+
+/*
+ * **A selection has to be clearable.** A callback typed `(id: string) => void` structurally cannot
+ * express "nothing selected", which is how a canvas comes to carry a ring nobody can dismiss — so the
+ * type is nullable and the four ways out are asserted together.
+ */
+expect(
+  'a selection can be cleared, four ways',
+  /onSelect: \(id: string \| null\) => void/.test(forceCanvasCode) &&
+    /event\.key === 'Escape'/.test(forceCanvasCode) &&
+    /onSelect\(active\.id === selectedId \? null : active\.id\)/.test(forceCanvasCode) &&
+    /if \(!active\.moved\) clearView\(\)/.test(forceCanvasCode) &&
+    /CLICK_SLOP/.test(forceCanvasCode),
+  'a background press that panned must not also deselect',
+)
+
+/*
+ * **Narrowing removes rows rather than dimming them**, so the layout, the measured spread and the
+ * camera all adapt to what is left; and the cap on labels is stated on the drawing, as one
+ * expression rather than a number interpolated into a sentence — `renderToString` splits
+ * `text {expr} text` into separate nodes, so an assertion on the sentence passes over nothing.
+ */
+expect(
+  'Canvas 2 filters by removing rows, and states its label cap',
+  /export function filterForceGraph/.test(forceCode) &&
+    /graph\.nodes\.filter\(\(node\) => wanted\.has\(node\.id\)\)/.test(forceCode) &&
+    !/opacity: 0\.18/.test(forceCode) &&
+    /export const LABELS_SHOWN = \d+/.test(forceCode) &&
+    /at most \$\{LABELS_SHOWN\} labels at once/.test(read('frontend/src/components/studio/ForceCanvas.tsx')),
+  'a sphere of ghosts is harder to read than the unfiltered graph',
+)
+
+/*
+ * **Every `<defs>` id is prefixed per instance.** `url(#…)` resolves to the first match in document
+ * order, so two canvases on one page sharing gradient ids would have the second one's marks reading
+ * the first one's — in the first one's coordinate space, and with nothing failing.
+ */
+expect(
+  'the canvas prefixes its gradient and filter ids per instance',
+  /const ids = useId\(\)/.test(forceCanvasCode) &&
+    /id=\{`\$\{ids\}-core`\}/.test(forceCanvasCode) &&
+    /id=\{`\$\{ids\}-glow`\}/.test(forceCanvasCode),
+  'two canvases sharing defs ids is a latent bug wherever both are mounted',
+)
+
+/*
+ * **The night ground is a CSS gradient on the element, never an SVG rect.** A rect is sized in world
+ * units, so it lives inside the `viewBox` and scales with it — zoom out far enough and its edge comes
+ * into frame as a shrinking dark rectangle with the page's light surface around it. The transparent
+ * rect stays, because it is the hit target background panning and click-to-deselect need.
+ */
+expect(
+  'the night ground is on the element and the rect is only a hit target',
+  /background:\s*\n?\s*radial-gradient/.test(read('frontend/src/components/studio/ForceCanvas.css')) &&
+    /\.fc-ground \{\s*fill: transparent;/.test(read('frontend/src/components/studio/ForceCanvas.css')) &&
+    /className="fc-ground"/.test(forceCanvasCode),
+  'a ground inside the viewBox comes into frame as soon as anybody zooms out',
+)
+
 /* Every type the studio draws has to have a hue, or the legend is rows of one grey — the
    "honest but silent" failure the palette claim exists to catch. */
 expect(
@@ -6394,13 +6706,25 @@ expect(
  * **The tabs that read a build's output are locked until one exists — and again while a rebuild
  * runs.** What they would otherwise show is the previous build's output with nothing saying so, and
  * settling a correspondence against a canvas being superseded is a decision made on stale evidence.
+ *
+ * **Counted against the tabs that exist rather than against a number**, which is what the fourth one
+ * taught: the count was pinned at three, so adding Canvas 2 — a tab that reads a build's output
+ * exactly as Canvas does — failed this claim for doing the right thing, while the shape that
+ * matters went unchecked in both directions. A fifth output tab added *without* the flag is the
+ * failure worth catching, and a hard number cannot tell that from a fifth tab added with it. So the
+ * rule is stated as the thing it means: every tab but Build and Playground is locked, and those two
+ * are named because each has its own reason not to be.
  */
+const studioTabKeys = [...studioPageCode.matchAll(/key: '([a-z0-9]+)',\s*label: '/g)].map((m) => m[1])
+const unlockedTabs = ['build', 'playground']
+const lockedTabs = studioTabKeys.filter((key) => !unlockedTabs.includes(key))
 expect(
-  'the three output tabs are locked until a build lands, and while one runs',
+  'every tab that reads a build output is locked until one lands, and while one runs',
   /export const selectOutputReadable/.test(studioStoreCode2) &&
     /!selectBuildRunning\(s\)/.test(studioStoreCode2) &&
-    (studioPageCode.match(/disabled: !outputReadable/g) ?? []).length === 3,
-  `${(studioPageCode.match(/disabled: !outputReadable/g) ?? []).length} of 3 tabs carry the flag`,
+    lockedTabs.length > 0 &&
+    (studioPageCode.match(/disabled: !outputReadable/g) ?? []).length === lockedTabs.length,
+  `${(studioPageCode.match(/disabled: !outputReadable/g) ?? []).length} of ${lockedTabs.length} carry the flag — ${lockedTabs.join(', ')}`,
 )
 expect(
   'and Build itself never is',

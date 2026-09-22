@@ -7,7 +7,9 @@ import NoSourceConnected from '../components/common/NoSourceConnected'
 import PageHeader from '../components/common/PageHeader'
 import StudioBridgeTab from '../components/studio/StudioBridgeTab'
 import StudioBuildTab from '../components/studio/StudioBuildTab'
-import StudioCanvasTab from '../components/studio/StudioCanvasTab'
+import StudioCanvas2Tab from '../components/studio/StudioCanvas2Tab'
+// Hidden with the tab that used it — see the commented-out 'canvas' tab entry below.
+// import StudioCanvasTab from '../components/studio/StudioCanvasTab'
 import StudioPlaygroundTab from '../components/studio/StudioPlaygroundTab'
 import StudioVersionsTab from '../components/studio/StudioVersionsTab'
 import { useAuthStore } from '../store/authStore'
@@ -156,7 +158,8 @@ export default function GraphStudioPage() {
 
   /* The whole-window canvas, addressed from here because the dataset prefix is the page's to add —
      a tab that built its own in-app URL would be a second place the dataset letter lives. */
-  const fullViewHref = appPath(`/graph-studio/${encodeURIComponent(useCaseId ?? '')}/canvas`)
+  // Hidden with the 'canvas' tab that read it — see the commented-out entry below.
+  // const fullViewHref = appPath(`/graph-studio/${encodeURIComponent(useCaseId ?? '')}/canvas`)
 
   const publishedBridgeId =
     versions.find((v) => v.publishedAt !== null)?.bridgeBuildId ?? null
@@ -376,19 +379,48 @@ export default function GraphStudioPage() {
                     />
                   ),
                 },
+                // Hidden on request — kept rather than deleted so it can come back with one
+                // uncomment. Canvas 2 (below) now carries the "Canvas" name and the active tab
+                // slot; this is "Canvas_old", off the tab strip entirely.
+                //
+                // {
+                //   key: 'canvas',
+                //   label: 'Canvas_old',
+                //   disabled: !outputReadable,
+                //   children: (
+                //     <StudioCanvasTab
+                //       structured={sgbGraph}
+                //       entities={entities}
+                //       relations={relations}
+                //       typeLinks={typeLinks}
+                //       hasStructured={useCase.hasStructured}
+                //       hasDocuments={useCase.hasDocuments}
+                //       fullViewHref={fullViewHref}
+                //     />
+                //   ),
+                // },
                 {
-                  key: 'canvas',
+                  /*
+                   * **A second reading of one graph, never a second graph.** It builds its nodes and
+                   * lane edges from the same two derivations the Canvas tab does — so the two frames
+                   * cannot come to hold different graphs — and what it adds is a settled arrangement,
+                   * an entity type raised to a node so the Bridge is drawn where it is claimed, and
+                   * filters that remove rows rather than dim them. Locked with the three tabs that
+                   * read a build's output, for the reason they are: what it would otherwise show is
+                   * the previous build's graph with nothing saying so.
+                   *
+                   * Carries the "Canvas" name now — the previous Canvas tab (`StudioCanvasTab`,
+                   * key `canvas`) is commented out above on request rather than deleted.
+                   */
+                  key: 'canvas2',
                   label: 'Canvas',
                   disabled: !outputReadable,
                   children: (
-                    <StudioCanvasTab
+                    <StudioCanvas2Tab
                       structured={sgbGraph}
                       entities={entities}
                       relations={relations}
                       typeLinks={typeLinks}
-                      hasStructured={useCase.hasStructured}
-                      hasDocuments={useCase.hasDocuments}
-                      fullViewHref={fullViewHref}
                     />
                   ),
                 },

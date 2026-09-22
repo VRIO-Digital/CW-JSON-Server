@@ -1,0 +1,128 @@
+/*
+ * Canvas 2's night palette. Spacing is the `--sp-*` scale, like everything authored in this repo —
+ * only the two vendored stylesheets are exempt, and this is not one of them.
+ *
+ * Nothing here sizes the graph: the radius is measured from the stage and applied in the projection,
+ * so this file styles the marks and the chrome and never the geometry.
+ */
+
+/* `width: 100%; min-width: 0;` — a flex CHILD's default `min-width` is `auto`, which means
+   "never shrink below my content's own natural size", not 0. Left at the default, this row could
+   refuse to shrink to whatever percentage its parent gave it and push the tab's inspector panel
+   past the edge of the screen instead — the actual shape of "it has to fit within the screen". */
+.fc {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-width: 0;
+}
+
+/*
+ * **The ground is a CSS gradient on the element, not an SVG rect.**
+ *
+ * A rect is sized in world units, so it lives inside the `viewBox` and scales with it: zoom out far
+ * enough and its edge comes into frame as a shrinking dark rectangle with the page's light surface
+ * around it. A background on the element is fixed to the element and knows nothing about the
+ * viewBox. The transparent rect stays, because it is the hit target that makes background panning
+ * and background-click-to-deselect work.
+ */
+.fc-stage {
+  position: relative;
+  flex: 1;
+  /* The drawing is measured from this box, so it must be able to be smaller than its content —
+     without this a flex child refuses to shrink below the svg it holds and the measurement only
+     ever grows. */
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  /*
+   * Reverted — the glass reading (translucent layers over `backdrop-filter: blur`) picked up the
+   * PAGE's own light surface through the blur and tinted the whole ground grey/lavender instead of
+   * black. Reported from use as "it is looking white on black... it should feel like a galaxy and
+   * space". That is an OPAQUE ground: deep, near-black at the centre and truly black at the corners,
+   * so a node's bloom is the only light in the frame — a galaxy on a black sky, not a smoked window
+   * onto the page behind it. No `backdrop-filter`, no translucent alpha: both are what let the page
+   * show through last time.
+   */
+  background: radial-gradient(ellipse at 50% 42%, #0a0f1c 0%, #04060c 55%, #000000 100%);
+}
+
+/* `max-width: 100%` is the hard floor under the JS measurement above: `box.w` is read from a
+   `ResizeObserver`, which is reliable but not instantaneous, and any gap between a resize and the
+   next measured frame would otherwise let the drawing render at its LAST known width — wider than
+   the container now allows. Since the `viewBox` always matches `box.w`/`box.h` exactly, capping the
+   rendered box scales the whole drawing down to fit rather than clipping any of it off. */
+.fc-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  cursor: default;
+  touch-action: none;
+}
+
+.fc-ground {
+  fill: transparent;
+  cursor: grab;
+}
+
+/* The bloom around each light. Blurred rather than merely faint: a hard-edged halo reads as a second
+   disc, which is what makes a field of them look like a honeycomb. */
+.fc-halo {
+  filter: blur(7px);
+  pointer-events: none;
+}
+
+.fc-hit {
+  cursor: pointer;
+}
+
+/*
+ * The selection ring is **persistent**, unlike the hover mark: it holds until another node is
+ * selected, the selection is cleared, or the view is reset. A ring that moved to whatever the
+ * pointer was over next would be a hover ring being read as a selection.
+ */
+.fc-ring {
+  fill: none;
+  stroke: #ffd9a3;
+  stroke-width: 2;
+}
+
+/*
+ * Labels are warm off-white, never pure white: pure white on near-black glares and competes with the
+ * lights it is meant to name. The halo behind them is near-black so a label stays readable where it
+ * crosses a bright cluster — which is the one place a light palette's white halo disappears.
+ */
+.fc-labels text {
+  fill: #f6e8d4;
+  font-size: 10.5px;
+  font-weight: 500;
+  paint-order: stroke;
+  stroke: rgba(5, 8, 16, 0.85);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* The revolve controls sit outside the svg, on the card surface, so they follow the app theme rather
+   than the night palette — they are chrome for the drawing and not part of it. */
+.fc-revolve {
+  flex: 0 0 auto;
+}
+
+/* Reset, reachable from the drawing itself rather than only from the filter row above it — a reader
+   whose view has drifted should not have to look away from the graph to find the way back. Floated
+   over the stage rather than in the flex row beside the revolve arrows, which are chrome for turning
+   the globe and not for recovering from a lost view. */
+.fc-reset {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-halo {
+    filter: none;
+    opacity: 0.35;
+  }
+}

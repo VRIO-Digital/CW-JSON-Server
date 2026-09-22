@@ -1837,7 +1837,7 @@ New Graph · Save & build graph
         → Build          both lanes' pipelines · the story · Draft from my data model · Build graph
         → Bridge         EntityType ⇔ Concept, decided one row at a time
         → Playground     Metrics · Golden Queries — the brief's own, with the SQL each is answered by
-        → Canvas         Structured · Documents · Combined (+ Full view ↗)
+        → Canvas         Structured · Documents · Combined · Globe (+ Full view ↗)
         → Versions       what was approved together · Publish · Unpublish
 
 the run, end to end, from the Build tab:
@@ -1998,10 +1998,12 @@ each is answered by**, plus add, edit and remove.
 
 ### Canvas
 
-**Files:** `src/graph-viewer/` (vendored) + `src/data/studioCanvas.ts` (pure adapters)
+**Files:** `src/graph-viewer/` (vendored) + `src/data/studioCanvas.ts` (pure adapters) +
+`src/data/studioGlobe.ts` → `components/studio/GlobeCanvas.tsx` (the sphere)
 
-Three frames, one viewer. A second force graph is what this repo refuses everywhere: two drawings of
-one graph are two answers to what it looks like.
+Four frames, one graph. A second force graph is what this repo refuses everywhere: two drawings of
+one graph are two answers to what it looks like — which is why the globe is built from the *same*
+three derivations the flat frames are, and only the arrangement is its own.
 
 - **A dataset can ship the graph a build produced.** CAPEX does: `docs/samples/capex_usecase_graph.
   json` → `studio_graph` via `npm run ingest:capex-graph`, so its canvas draws 5 tables · 253 edges ·
@@ -2031,6 +2033,21 @@ one graph are two answers to what it looks like.
   facility **share a node**: that is entity resolution, and the mention count says so.
 - **Combined** — both, plus the Bridge drawn between them. **Nothing is merged**, and a correspondence
   reaches the drawing only once a person has decided it: a line on a canvas reads as a fact.
+- **Globe** — the same graph as one body: structured above the rim, documents below it, the Bridge
+  stitching the join, and two buttons that revolve it. **Not everything is in view at once** — a
+  sphere has a far side, and revolving is what brings it round. Gated on both lanes, like Combined.
+  Everything is on the **unit sphere** with the radius applied at projection time, so the halves
+  close at any size. `bridgeLinks` was extracted out of `fromCombined` for it: a second derivation of
+  the seam would be two answers to what the Bridge found, one frame apart.
+  - **`TILT` and `POLE_CAP` are chosen together.** A node's best depth over a whole turn is
+    `cos(lat − TILT)`, so every degree of tilt buries a degree of the far cap *permanently* — at
+    0.34/86° the document pole could never be revolved into view at all. 0.26/60° leaves the worst
+    node at depth 0.26, and costs 13% of each hemisphere's area. `check-docs` recomputes it.
+  - **The seam fan grows with the group.** At a fixed ±24° a shipped graph put a fifth of 860 nodes
+    into one twelfth of the turn. Per-node spread, capped, keeps a two-entity stitch short and lets a
+    seventy-entity one open out into the fan it is.
+  - **A press is a twelfth of a turn** and the tween lands *on* the target, so twelve presses is
+    exactly one revolution; reduced motion jumps. Labels are capped and the hint says so.
 
 `Table` is the one type the studio added to the palette; without a hue every table fell through to
 grey. **Full view ↗** opens the combined frame in a new tab — href built by the page, because the
