@@ -7707,3 +7707,61 @@ reason the other three were worth reading carefully rather than waving through.
 looked at on screen; plus `check-docs` claims that the served document matches the export row for
 row, that every lane reader consults the shipped graph *and* falls back, and that the key has a merge
 rule and a boot check. Five claims, each break-tested.
+
+---
+
+## A shipped Bridge opened with nothing to review, because it carried somebody else's decisions
+
+**Symptom** — CAPEX's Bridge tab opened at *Needs review (0)* over *All (156)*, with *All 98
+correspondences decided*, a full green progress bar and **Publish v1 already enabled**. Nobody in
+this session had decided anything.
+
+**Root cause** — the exported graph records a review that happened **in another system**: 98 of its
+156 Type Links carry a person's name and a timestamp, and the ingest wrote them through as-is. A
+decision made elsewhere is not a decision made here — this server keys one `bridgeBuildId:
+type_link_id` in its own memory, and the reviewer in front of the tab had made none of them. The
+screen was crediting that reader with 98 judgements they never made, and opening the publish gate on
+the strength of it.
+
+**Fix** — the ingest carries the **verdicts** and strips the **attributions**: every row arrives as
+the deriver's proposal (`decided_by: 'llm'`, nothing in the decided or original fields), so the whole
+156 reach the review queue and *Accept all* is what clears them. It **refuses to write** a row that
+arrived already decided, so this cannot come back quietly at the next re-export.
+
+**The export's own model is what this follows**, which is why it is not a shape invented here: its 58
+`llm` rows already carry `original_decision: null` and no timestamp — undecided, in exactly the
+spelling this app uses. `original_*` records what the deriver said *before a person overrode it*, so
+an undecided row has no override to record.
+
+**And the gate widened in the same change, on request**: `needsReview` was `decision !== 'reject' &&
+decided_by === 'llm'` and is now the second test alone. Rejects were excluded on the reasoning that
+publishing approves what a Bridge *asserts* — true of the **publication**, and the wrong question to
+ask of the **review**: a decline is the deriver's proposal too, and disagreeing with one is where a
+missed correspondence is found, which is why a Low confidence filter exists to reach a
+low-confidence reject. The cost is stated rather than glossed: a version cannot be published until a
+person has confirmed every decline as well.
+
+**Six things moved with that predicate, and finding them all is the point.** The server's gate, the
+client's twin, the *Needs review* chip, the review-progress denominator (`identity + attribute` →
+every pair), the accept-all copy, and the verifier's own "every asserted correspondence starts
+undecided". Leaving the denominator behind would have drawn a **bar at 100% over a publish the server
+still refuses** — the two-expressions-of-one-rule fault, in the one place it is most visible.
+
+**What did *not* move, deliberately**: the canvas still draws only decided, non-reject links. That
+rule is about what a **drawing asserts** — a reject asserts nothing and an undecided row is a
+proposal — and it was never the review predicate. It has its own inline test in `studioCanvas.ts`,
+which is why widening the gate could not reach it.
+
+**Two pieces of surface moved with it, one reported from use.** *Accept all* was a default button in
+a row of primary ones — the lesser-looking control for the act a reader now arrives to make — and is
+primary like the row's own Accept. And the empty-state copy still read *"Rejected pairs assert
+nothing and never needed a decision"*, which the widened gate makes false: an app contradicting its
+own refusal. Both are asserted in one claim, because a revived sentence and a reverted button are the
+same half-change.
+
+**Guard** — mechanical: `check-docs` asserts the predicate is one `decided_by` test on **both** sides
+and still ignores confidence, and that progress is measured over the same set the gate blocks on with
+the old denominator gone rather than left beside it; `verify:studio-lanes` asserts every shipped pair
+arrives as a proposal and that the app's rule and the stored count agree. All break-tested, plus the
+whole flow driven against a live server: opens 156/156, publish refused **409**, Accept all sweeps
+156, verdicts unchanged (12 identity · 86 attribute · 58 reject), publish **200**.

@@ -3065,9 +3065,18 @@ asks it rather than this.
 derivation cannot: the model's own reasoning in prose, the verdict a person recorded, and who
 recorded it. `bridge_build_id` is **this server's**, because a decision is keyed
 `bridgeBuildId:type_link_id` and keeping the export's would file every decision under a build this
-process never ran. Its 98 human decisions and 58 llm rejects mean **`needsReview` is 0** — this app's
-own rule and the export's `unreviewed_count` agree exactly, which is checked rather than trusted, and
-it does mean CAPEX's Bridge opens with nothing left to decide.
+process never ran. **The verdicts are carried and the attributions are not**, which is what makes the queue the
+reviewer's. The export records a review that happened *somewhere else* — 98 of its 156 rows carry a
+person's name, and all 98 agreed with the deriver — and a decision made in another system is not one
+this reader made: this server keys a decision `bridgeBuildId:type_link_id` in its own memory, and
+shipping the attributions would open the tab at *Needs review (0)* with an unblocked Publish,
+crediting this reader with judgements they never made. So each row arrives as the deriver's
+**proposal**: its verdict, `decided_by: 'llm'`, and nothing in the decided or original fields —
+`original_*` records what the deriver said *before a person overrode it*, and an undecided row has no
+override to record. **The export's own `decided_by` already draws this distinction** (its 58 `llm`
+rows carry `original_decision: null` and no timestamp), so this is its model applied to every row
+rather than a shape invented here. CAPEX's Bridge therefore opens at **156 of 156 to decide**, and
+the ingest refuses to write a row that arrived already decided.
 
 **The ingest refuses to write rather than landing a graph that draws wrong**, and every check guards
 something that fails *quietly on the canvas*: an edge whose endpoint is no node is skipped while
@@ -3103,14 +3112,25 @@ never a score: a number invites being read as a measurement when nothing measure
 corresponded: without them a reader cannot tell a pair the derivation declined from one it never saw,
 and a reviewer flipping a reject to identity would have no row to edit.
 
-**What still blocks publishing is one predicate, and confidence is deliberately not in it.** A row
-blocks while it asserts a correspondence (`decision !== 'reject'`) and no person has decided it.
-Rejects are excluded because publishing approves what a Bridge *asserts*. Confidence is excluded
-because it is the deriver's own self-report, so gating on it would let the deriver choose which rows
-a human is obliged to look at — and a confidently-wrong `identity`, the one that does damage, is
-exactly the row that would escape. Confidence *orders* the queue (low first, so attention goes where
-the judgement was closest); it does not define it. **Agreement is a decision**, so a row leaves the
-set whether the person confirmed the derivation or changed it.
+**What still blocks publishing is one predicate: no person has decided it.** Every pair the deriver
+was put counts, **rejects included** — so before anybody decides anything, *Needs review* and *All*
+count the same set and the whole queue is the reviewer's.
+
+**Rejects were excluded, and that was changed on request.** The reasoning was that publishing
+approves what a Bridge *asserts* and a reject asserts nothing — true of the **publication**, and the
+wrong question to ask of the **review**: a decline is the deriver's proposal too, and "no
+correspondence here" is a claim a reviewer can disagree with. It is where a missed correspondence
+hides, which is exactly why the Low confidence filter exists to reach a low-confidence reject. What
+it costs is stated rather than glossed: the gate is **wider**, so a version cannot be published until
+a person has confirmed every decline as well. *Accept all* is what makes that practical, and it is
+the same sweep it always was.
+
+**Confidence is still deliberately not in it**, and that half is load-bearing: it is the deriver's
+own self-report, so gating on it would let the deriver choose which rows a human is obliged to look
+at — and a confidently-wrong `identity`, the one that does damage, is exactly the row that would
+escape. Confidence *orders* the queue (low first, so attention goes where the judgement was
+closest); it does not define it. **Agreement is a decision**, so a row leaves the set whether the
+person confirmed the derivation or changed it.
 
 **The outstanding count is the server's own**, read back rather than derived at the edge: a second
 expression of the gate's predicate is a screen reading "nothing left" over a server that refuses the
@@ -3120,8 +3140,8 @@ publish.
 withholds the button while anything is outstanding, and a disabled control is a courtesy to whoever
 is looking at it — a stale tab, a second window or a `curl` would otherwise approve a Bridge nobody
 had finished reviewing, which is the one thing a gate exists to prevent. Both sides read the same
-`needsReview`, so the screen and the 409 cannot disagree about what is left; rejects are excluded on
-both, because publishing approves what a Bridge *asserts*.
+`needsReview`, so the screen and the 409 cannot disagree about what is left — including about
+rejects, which both now count.
 
 **The review list is a queue and a record at once, and the filter is load-bearing rather than a
 convenience.** Every (entity type × concept) pair gets a row, so a list is `types × concepts` and the
@@ -3130,9 +3150,10 @@ mistakes the filter for the whole answer. `Needs review` and `Low confidence` cu
 decision filters: a low-confidence identity link appears under both, and that is the only way to reach
 a low-confidence **reject**, which is where a missed correspondence hides.
 
-**Review progress is measured over what publishing approves**, which is identity plus attribute.
-Rejects are excluded for the same reason the gate excludes them — they assert nothing — and counting
-them would report a queue as unfinished that nothing is waiting on.
+**Review progress is measured over the same set the gate blocks on**, which is every pair. It was
+identity plus attribute, matching a gate that excluded rejects; with the gate widened, a narrower
+denominator would draw a bar at **100% over a publish the server still refuses**, which is the
+two-expressions-of-one-rule fault this file refuses everywhere.
 
 **Accepting and changing are one control, not two.** They are the same write: the decision either
 stays what was proposed or does not, and the button says which the current selection amounts to.

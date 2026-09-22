@@ -6078,10 +6078,26 @@ expect(
     /unreviewedCount=\{unreviewedCount\}/.test(studioPageCode),
   'two expressions of one gate is a screen that disagrees with the refusal',
 )
+/*
+ * **The predicate is "nobody has decided it", and rejects are in it — changed on request.**
+ *
+ * They were excluded, on the reasoning that publishing approves what a Bridge *asserts* and a reject
+ * asserts nothing. That is true of the publication and was the wrong question to ask of the review: a
+ * decline is the deriver's proposal too, and disagreeing with one is where a missed correspondence is
+ * found. The gate is wider as a result, and *Accept all* is what makes that practical.
+ *
+ * **Confidence is still out**, and that half is load-bearing: it is the deriver's own self-report, so
+ * gating on it would let the deriver choose which rows a person is obliged to look at — and a
+ * confidently-wrong `identity`, the one that does damage, is exactly the row that would escape.
+ */
 expect(
-  'and the review predicate excludes rejects and ignores confidence',
-  /decision !== 'reject' && link\.decided_by === 'llm'/.test(studioLanesCode) &&
-    /link\.decision !== 'reject' && link\.decidedBy === 'llm'/.test(client),
+  'the review predicate is one decided-by test on both sides, and still ignores confidence',
+  /export const needsReview = \(link\) => link\.decided_by === 'llm'/.test(studioLanesCode) &&
+    /export const typeLinkNeedsReview = \(link: TypeLink\): boolean => link\.decidedBy === 'llm'/.test(
+      client,
+    ) &&
+    /* Neither side may reach for `confidence`, which is what the exclusion above is about. */
+    !/needsReview = \(link\)[^\n]*confidence/.test(studioLanesCode),
   'gating on confidence would let the deriver choose which rows a person must look at',
 )
 expect(
@@ -6118,11 +6134,35 @@ expect(
     /The deriver originally said/.test(typeLinksSrc),
   'otherwise the deriver is silently corrected and can never be measured',
 )
+/*
+ * **Review progress is measured over the same set the gate blocks on**, which is now every pair.
+ *
+ * It was identity + attribute, matching a gate that excluded rejects. With the gate widened, a
+ * narrower denominator would draw a bar at 100% over a publish the server still refuses — the
+ * two-expressions-of-one-rule fault this file guards everywhere else.
+ */
 expect(
-  'review progress is measured over what publishing approves, not over every pair',
-  /const corresponding = counts\.identity \+ counts\.attribute/.test(typeLinksSrc) &&
-    /Rejected pairs assert nothing/.test(typeLinksSrc),
-  'counting rejects would report a queue as unfinished that nothing waits on',
+  'review progress is measured over the same set the gate blocks on',
+  /const corresponding = links\.length/.test(typeLinksSrc) &&
+    /Rejected pairs are counted too/.test(typeLinksSrc) &&
+    /* And the old denominator is gone rather than left beside it. */
+    !/counts\.identity \+ counts\.attribute/.test(codeOnly(typeLinksSrc)),
+  'a progress bar at 100% over a refused publish is worse than no bar',
+)
+/*
+ * **Accept all is primary, like the row's own Accept** — asked for, and right for the same reason:
+ * it is the same act at a different scale, and with the gate covering every pair it is the act a
+ * reader arrives to make. A default button in a row of orange ones read as the lesser control.
+ *
+ * Asserted beside the retired sentence, because the copy that said *"Rejected pairs assert nothing
+ * and never needed a decision"* became false when the gate widened — a screen still saying it would
+ * be the app contradicting its own refusal.
+ */
+expect(
+  'Accept all is a primary button, and no copy still says rejects never needed a decision',
+  /<Button size="small" type="primary" loading={sweeping}>/.test(typeLinksSrc) &&
+    !/never needed a decision/.test(typeLinksSrc),
+  'a default button beside a row of primary ones reads as the lesser control',
 )
 /* One control, not an Accept beside a Change: they write the identical record, and splitting them
    would imply accepting is the lesser act. */

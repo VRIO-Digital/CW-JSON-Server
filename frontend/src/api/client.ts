@@ -10317,16 +10317,19 @@ export interface TypeLinkList {
 /**
  * Does this Type Link still block publishing?
  *
- * **The criterion, and the whole of it:** it asserts a correspondence (`decision !== 'reject'`) and
- * no person has decided it. Rejects are excluded because publishing approves what a Bridge
- * *asserts*, and a reject asserts nothing. Confidence is excluded deliberately — it is the deriver's
- * own self-report, so gating on it would let the deriver choose which rows a human must look at, and
- * a confidently-wrong `identity`, the one that does damage, is exactly the row that would escape.
- * Confidence *orders* the queue; it does not define it. Agreement is a decision, so a row leaves this
- * set whether the person confirmed or changed it.
+ * **The criterion, and the whole of it: no person has decided it.** Every pair the deriver was put
+ * counts, rejects included — a decline is its proposal too, and "no correspondence here" is a claim
+ * a reviewer can disagree with. Rejects were excluded until this was **changed on request**; the
+ * reasoning that excluded them is about the *publication* rather than the review, and it is recorded
+ * beside `needsReview` in `backend/studioLanes.js`, which this must agree with exactly.
+ *
+ * Confidence is excluded deliberately — it is the deriver's own self-report, so gating on it would
+ * let the deriver choose which rows a human must look at, and a confidently-wrong `identity`, the
+ * one that does damage, is exactly the row that would escape. Confidence *orders* the queue; it does
+ * not define it. Agreement is a decision, so a row leaves this set whether the person confirmed or
+ * changed it.
  */
-export const typeLinkNeedsReview = (link: TypeLink): boolean =>
-  link.decision !== 'reject' && link.decidedBy === 'llm'
+export const typeLinkNeedsReview = (link: TypeLink): boolean => link.decidedBy === 'llm'
 
 /* ---------------- versions ---------------- */
 

@@ -1942,10 +1942,19 @@ resolved to a `Facility` node, that is the evidence. Matching strings called "Ge
 *attribute* of Facility because the word is inside it — exactly backwards.
 
 - **Reject rows are listed**, because the table records what was *considered*.
-- **What blocks publishing**: it asserts a correspondence and no person has decided it. Confidence is
-  deliberately **not** in the predicate — it is the deriver's self-report, so gating on it would let
-  the deriver choose which rows a human must look at, and a confidently-wrong `identity` is exactly
-  the row that would escape. It *orders* the queue (low first); it does not define it.
+- **What blocks publishing**: no person has decided it — **every pair, rejects included** (changed on
+  request). So before anybody decides anything, *Needs review* and *All* count the same set, and
+  review progress is measured over that same set. Rejects were excluded on the reasoning that
+  publishing approves what a Bridge *asserts*; that is true of the publication and was the wrong
+  question for the review — a decline is the deriver's proposal too, and disagreeing with one is
+  where a missed correspondence is found. The gate is **wider** as a result; Accept all is what makes
+  it practical. Confidence is deliberately **not** in the predicate — it is the deriver's self-report,
+  so gating on it would let the deriver choose which rows a human must look at, and a
+  confidently-wrong `identity` is exactly the row that would escape. It *orders* the queue (low
+  first); it does not define it.
+- **A shipped Bridge arrives undecided.** The export records a review made in another system, and
+  that is not a decision this reader made — so the ingest keeps the verdicts and strips the
+  attributions, and refuses to write a row that arrived decided.
 - **Agreement is a decision.** A row leaves the set whether the person confirmed or changed it.
 - **Accept-all** sweeps only what is still outstanding — a gate nobody can clear gets switched off.
 - **A published Bridge is frozen**; `revise` clones it with every decision carried, so the one row you
