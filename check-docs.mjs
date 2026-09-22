@@ -3338,9 +3338,11 @@ expect(
  */
 expect(
   'a consent resolves a directory row, and adopting it moves every surface',
-  /* Server: one lookup, shared. The login spreads it rather than listing the fields again. */
+  /* Server: one lookup, shared — by the login, the OAuth callback, and Ask's own greeting,
+     which resolves the same client-held address to a name rather than keeping a second
+     copy of the lookup. */
   /function identityFor\(email\) \{/.test(server) &&
-    (server.match(/identityFor\(/g) ?? []).length === 3 &&
+    (server.match(/identityFor\(/g) ?? []).length === 4 &&
     /\.\.\.identityFor\(user\.email\),\r?\n\s*signed_in_at:/.test(server) &&
     /const identity = identityFor\(account\.email\)/.test(server) &&
     /send\(res, 200, \{ account, session, provider, identity \}\)/.test(server) &&
@@ -3515,13 +3517,77 @@ expect(
       /\{units\?\.extraTile \? \(/.test(catalogPageCode) &&
       /suffix=\{units\.extraTile\.suffix\}/.test(catalogPageCode) &&
       /suffix\?: string/.test(catalogPageCode) &&
-      /* …and the strip is the 24-column grid, five declared columns of which every connector
-         draws four. `flex` here is the reverted experiment, so its absence is asserted too. */
-      (catalogPageCode.match(/<Col xs=\{24\} sm=\{12\} lg=\{6\}>/g) ?? []).length === 5 &&
+      /* …and the strip is the 24-column grid, six declared columns now that `lastChunkTile`
+         is a sixth (see the claim below) — this one only asserts the grid held rather than
+         reverting to `flex` when a tile was added, which is what actually broke last time.
+         `flex` here is the reverted experiment, so its absence is asserted too. */
+      (catalogPageCode.match(/<Col xs=\{24\} sm=\{12\} lg=\{6\}>/g) ?? []).length === 6 &&
       !/flex="1 1 180px"/.test(catalogPageCode) &&
       /* The unit is set apart from the figure, or `chars` reads as part of the number. */
       /\.cat-stat-unit \{/.test(read('frontend/src/pages/CatalogPage.css')),
     'a figure nothing draws is a payload field, and two formatters are two grains for one unit',
+  )
+}
+
+/*
+ * **A sixth tile: the most recent chunk within a rolling six-month window, on Drive and Gmail
+ * both.**
+ *
+ * `chunksTotal` is all-time — a document chunked eight months ago still counts toward it — so it
+ * cannot answer "is anything of this source's own being kept current". `withinLastChunkWindow`
+ * is that second question, one function shared by `driveChunkFigures` and `mailChunkFigures`
+ * rather than two copies that could disagree about where six months back actually starts.
+ *
+ * **Gated on the server, not the client.** The boundary is a fact about the clock, and the rule
+ * this repo already keeps for `profiled_today` applies here too: a tile computing its own cutoff
+ * could disagree with the server about what "recent" means, the same way a client-side scope list
+ * could describe fewer permissions than the ones actually granted. So the gate runs once, in
+ * `withinLastChunkWindow`, and the client only ever renders `lastChunkAt`/`lastChunkCount` —
+ * both `null` together once the true latest falls outside the window, never the stale figure.
+ *
+ * **`lastChunkSince` rides on every source, including BigQuery's**, for the same reason
+ * `profiledTodayDate` does: a tile that can read "nothing in the last 6 months" states the
+ * boundary it means, so the claim is checkable rather than taken on trust.
+ */
+{
+  const units = read('frontend/src/data/catalogUnits.ts')
+  const bigquery = (/bigquery: \{([\s\S]*?)\r?\n {2}\},\r?\n {2}gdrive: \{/.exec(units) ?? [])[1] ?? ''
+  expect(
+    'the last chunk within six months is one gate, shared by Drive and Gmail, absent on BigQuery',
+    /* One window, named once — never a bare `6` repeated in each chunk-figure function. */
+    /const LAST_CHUNK_WINDOW_MONTHS = 6/.test(server) &&
+      /function lastChunkWindowStart\(\)/.test(server) &&
+      /function withinLastChunkWindow\(rows\)/.test(server) &&
+      (server.match(/\.\.\.withinLastChunkWindow\(rows\),/g) ?? []).length === 2 &&
+      /* Null together, never one without the other — the pair the client relies on to tell
+         "genuinely nothing recent" apart from a half-served figure. */
+      /return \{ last_chunk_at: lastAt, last_chunk_count: lastCount \}/.test(server) &&
+      /* Served on every connector, BigQuery included — a fact about the clock, not the source. */
+      /last_chunk_since: localDateKey\(lastChunkWindowStart\(\)\)/.test(server) &&
+      /last_chunk_at: null,\r?\n\s*last_chunk_count: null,/.test(server) &&
+      /* The client's boundary check, nullable exactly where the server's is. */
+      /last_chunk_at: nullable\(str\)/.test(client) &&
+      /last_chunk_count: nullable\(num\)/.test(client) &&
+      /last_chunk_since: str,/.test(client) &&
+      /lastChunkAt: s\.last_chunk_at,/.test(client) &&
+      /lastChunkCount: s\.last_chunk_count,/.test(client) &&
+      /lastChunkSince: s\.last_chunk_since,/.test(client) &&
+      /* Declared for Drive and Gmail — the two connectors that chunk at all — and read off the
+         row rather than typed as a literal, so a page rendering it still does not know which
+         connector it is looking at. `catalogUnits.ts` sliced to the `bigquery` entry alone must
+         not carry it, or the "absent on BigQuery" half of this claim is decoration. */
+      /lastChunkTile\?: \{/.test(units) &&
+      (units.match(/lastChunkTile: \{\r?\n\s*label: 'last chunk \(6 mo\)',/g) ?? []).length === 2 &&
+      bigquery.length > 0 &&
+      !/lastChunkTile/.test(bigquery) &&
+      /* The page draws it from the row exactly as it draws the fifth tile, and nothing where a
+         connector declares none. */
+      /\{units\?\.lastChunkTile \? \(/.test(catalogPageCode) &&
+      /value=\{units\.lastChunkTile\.value\(selected\)\}/.test(catalogPageCode) &&
+      /note=\{units\.lastChunkTile\.note\(selected\)\}/.test(catalogPageCode),
+    bigquery.length === 0
+      ? 'the bigquery entry in catalogUnits.ts was not parsed — this check cannot run'
+      : 'a rolling window computed once on the server, read the same way by both connectors',
   )
 }
 
@@ -7862,7 +7928,10 @@ expect(
  * asserts, and a mailbox answer asserts nothing about a graph.
  *
  * The gate that matters is asserted where it lives, in the route: a `use_case_id` naming a
- * graph that was never published is still refused, naming Graph Studio.
+ * graph that was never published is still refused, naming Graph Studio. **Naming none no
+ * longer means this path runs** — `defaultPublishedUseCase()` fills it whenever a graph is
+ * published, so `askSourceAnswer` is what is left for the one state that default cannot
+ * cover: nothing published at all yet.
  */
 const askServerSrc = read('backend/server.js')
 expect(
@@ -7870,9 +7939,9 @@ expect(
   /function askSourceAnswer\(/.test(askServerSrc) &&
     /function askableSources\(/.test(askServerSrc) &&
     /\.filter\(\(s\) => isRuntimeSource\(s\.kind\)\)/.test(askServerSrc) &&
-    /const answer = useCase/.test(askServerSrc) &&
+    /answer = useCase/.test(askServerSrc) &&
     /: askSourceAnswer\(picked, String\(question\)\.trim\(\), requested\)/.test(askServerSrc),
-  'askSourceAnswer answers where no graph was named, over runtime sources only',
+  'askSourceAnswer answers where no graph is named or defaulted, over runtime sources only',
 )
 expect(
   'and the publish gate on a graph is exactly what it was',

@@ -1016,7 +1016,22 @@ function sourceRow(source) {
       ? mailChunkFigures(source)
       : isDrive
         ? driveChunkFigures(source)
-        : { documents_chunked: null, chunks_total: null, chunk_chars: null }),
+        : {
+            documents_chunked: null,
+            chunks_total: null,
+            chunk_chars: null,
+            last_chunk_at: null,
+            last_chunk_count: null,
+          }),
+    /*
+     * **The "last chunk" window's own start, stated rather than left to be inferred** — the same
+     * reasoning `profiled_today_date` is served for: a tile reading "nothing in the last 6
+     * months" is a claim about a boundary, and a boundary the reader cannot see is a boundary
+     * they cannot check. Served on every connector, including BigQuery, because the date is a
+     * fact about the clock rather than about what this source holds — only `last_chunk_at`/
+     * `last_chunk_count` say whether anything of this source's own falls inside it.
+     */
+    last_chunk_since: localDateKey(lastChunkWindowStart()),
     datasets: source.datasets ?? [],
     folders: source.folders ?? [],
     /* Mail's allowlist, beside the other two rather than left to be parsed out of `scope` —
@@ -3048,41 +3063,98 @@ function mailDocuments(source) {
  * actually measured. That is also what keeps the tile and the rows beneath it agreeing: the table
  * dashes those cells, and a total larger than its own visible column would be unaccountable.
  */
+/**
+ * How many months back the Catalog's "last chunk" tile reaches, for both Drive and Gmail.
+ *
+ * A named constant rather than a literal `6` inside each chunk-figure function — the client
+ * states the same window in the tile's own note, so a constant is one place for both sides to
+ * agree rather than two numbers that can drift apart.
+ */
+const LAST_CHUNK_WINDOW_MONTHS = 6
+
+/**
+ * The start of that rolling window, as a real `Date` — a document chunked before this has not
+ * been chunked "recently", however large its own total is.
+ */
+function lastChunkWindowStart() {
+  const d = new Date()
+  d.setMonth(d.getMonth() - LAST_CHUNK_WINDOW_MONTHS)
+  return d
+}
+
+/**
+ * The most recent `profiled_at` among a set of `{ key, at, count }` rows, gated to
+ * `LAST_CHUNK_WINDOW_MONTHS` — shared by Drive and Gmail so the gate is one rule rather than
+ * two copies that could disagree about where the window starts.
+ *
+ * **`null` rather than the true latest, once that latest falls outside the window.** A document
+ * chunked eight months ago is real history — `chunks_total` still counts it — but it is not a
+ * *recent* chunk, and reporting it under a tile labelled "last chunk (6 mo)" would claim
+ * currency the data does not have. The honest answer to "anything recent?" is nothing, stated
+ * as nothing, the same rule `profiled_today` already keeps for its own narrower window.
+ */
+function withinLastChunkWindow(rows) {
+  const windowStart = lastChunkWindowStart().toISOString()
+  let lastAt = null
+  let lastCount = null
+  for (const row of rows) {
+    if (!row.at || row.at < windowStart) continue
+    if (!lastAt || row.at > lastAt) {
+      lastAt = row.at
+      lastCount = row.count
+    }
+  }
+  return { last_chunk_at: lastAt, last_chunk_count: lastCount }
+}
+
 function driveChunkFigures(source) {
   /* `folder_id`/`document_id`, which is what `profiled_docs` records — `parent_id`/`object_id` are
      a *job object's* field names, and reading those here matched nothing, so every tile sat at 0
      over a table listing the very documents it was meant to be counting. */
-  const profiled = new Set(
-    (source.profiled_docs ?? []).map((p) => `${p.folder_id}/${p.document_id}`),
+  const profiledAt = new Map(
+    (source.profiled_docs ?? []).map((p) => [`${p.folder_id}/${p.document_id}`, p.profiled_at]),
   )
   let documents = 0
   let chunks = 0
   let chars = 0
+  const rows = []
   for (const drive of db.drives ?? []) {
     for (const folder of drive.folders ?? []) {
       for (const doc of folder.documents ?? []) {
-        if (!profiled.has(`${folder.folder_id}/${doc.document_id}`)) continue
+        const key = `${folder.folder_id}/${doc.document_id}`
+        if (!profiledAt.has(key)) continue
         documents += 1
-        if (Number.isInteger(doc.chunk_count)) chunks += doc.chunk_count
+        const docChunks = Number.isInteger(doc.chunk_count) ? doc.chunk_count : null
+        if (docChunks !== null) chunks += docChunks
         if (Number.isInteger(doc.char_count)) chars += doc.char_count
+        rows.push({ at: profiledAt.get(key), count: docChunks })
       }
     }
   }
-  return { documents_chunked: documents, chunks_total: chunks, chunk_chars: chars }
+  return {
+    documents_chunked: documents,
+    chunks_total: chunks,
+    chunk_chars: chars,
+    ...withinLastChunkWindow(rows),
+  }
 }
 
 function mailChunkFigures(source) {
-  const processed = new Set(
-    (source.profiled_mail_docs ?? []).map((p) => `${p.label_id}/${p.document_id}`),
+  const profiledAt = new Map(
+    (source.profiled_mail_docs ?? []).map((p) => [`${p.label_id}/${p.document_id}`, p.profiled_at]),
   )
   let documents = 0
   let chunks = 0
   let chars = 0
+  const rows = []
   for (const entry of mailDocuments(source)) {
-    if (!processed.has(`${entry.label_id}/${entry.document.document_id}`)) continue
+    const key = `${entry.label_id}/${entry.document.document_id}`
+    if (!profiledAt.has(key)) continue
     documents += 1
-    chunks += entry.document.chunks ?? chunksFor(entry.document)
+    const docChunks = entry.document.chunks ?? chunksFor(entry.document)
+    chunks += docChunks
     chars += entry.document.size_chars ?? 0
+    rows.push({ at: profiledAt.get(key), count: docChunks })
   }
   return {
     documents_chunked: documents,
@@ -3097,6 +3169,7 @@ function mailChunkFigures(source) {
      * figure the export really carries, per document, and the rows beneath the tile add up to it.
      */
     chunk_chars: chars,
+    ...withinLastChunkWindow(rows),
   }
 }
 
@@ -5693,6 +5766,102 @@ function askRequirements(requested, citations, answered) {
     formats: requested.formats,
     satisfied,
     note: `${citationNote}${formatNote}`,
+  }
+}
+
+/**
+ * A closed, exact-match vocabulary — greetings and "what can you do" questions are a small,
+ * fixed set of things to say, not something to guess at with a word-overlap score. Matching
+ * loosely would let a real question through by accident: **"How are you calculating the
+ * variance?"** contains "how are you", so a substring test would greet a reader who asked a
+ * perfectly good CAPEX question. The whole question, once normalised, has to equal one of
+ * these — never merely contain one.
+ *
+ * The salutations and the "what can you…" phrases are combined pairwise (`"hi" + "how are
+ * you"` → `"hi how are you"`) rather than each combination typed out by hand, so a phrase
+ * added to either list is covered in combination without anyone remembering to enumerate it.
+ */
+const GREETING_SALUTATIONS = [
+  'hi', 'hello', 'hey', 'hiya', 'yo', 'greetings',
+  'good morning', 'good afternoon', 'good evening',
+]
+const GREETING_META = [
+  'how are you', 'how are you doing', 'hows it going', 'whats up',
+  'thanks', 'thank you', 'thanks a lot', 'appreciate it',
+  'who are you', 'what are you',
+  'what can you answer', 'what can you answer questions about',
+  'what can you help me with', 'what can you help with',
+  'what can you do', 'what do you do',
+  'what kind of questions can i ask', 'what kind of questions can i ask you',
+  'what questions can i ask', 'what questions can i ask you',
+  'what can i ask you', 'what can i ask',
+]
+const GREETING_PHRASES = new Set([
+  ...GREETING_SALUTATIONS,
+  ...GREETING_META,
+  ...GREETING_SALUTATIONS.flatMap((s) => GREETING_META.map((m) => `${s} ${m}`)),
+])
+const normaliseGreeting = (s) =>
+  String(s).toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
+const isGreeting = (question) => GREETING_PHRASES.has(normaliseGreeting(question))
+
+/**
+ * "Hello, Adaeze Okonjo — I can only answer questions about…" — checked, and answered,
+ * *before* anything about a graph or a connected source: a greeting costs nothing and needs
+ * no precondition, so answering it must not wait on "publish a graph" or "connect a source"
+ * the way a real question does. Returns `null` for anything that is not one, which is what
+ * lets the route fall through to the graph or the sources exactly as it did before this
+ * existed.
+ *
+ * **The name is the directory's, resolved from `?as=` the same way a publication or a saved
+ * report is credited** — never typed here, and never invented when the address is absent or
+ * does not resolve. Unlike a publish or a consent, an unresolved `as` does not refuse the
+ * question: a greeting is not an attributed act, so the honest fallback is answering without
+ * a name rather than failing "hello" over an identity problem.
+ *
+ * **What it can answer is read off what is actually published, never a name typed in here.**
+ * A dataset with a live graph is described by that graph's own name; one with nothing
+ * published yet is told what would make it askable, which is the same pair of fixes
+ * `askAvailability` names on the client.
+ */
+function greetingAnswer(question, as, requested) {
+  if (!isGreeting(question)) return null
+
+  const identity = identityFor(as)
+  const hello = identity ? `Hello, ${identity.name} — ` : 'Hello — '
+
+  const graphs = builtGraphs().map(askableGraph).filter(Boolean)
+  const scope =
+    graphs.length > 0
+      ? `I can only answer questions about ${graphs.map((g) => g.name).join(' or ')}'s ` +
+        'data — its budgets, variances, projects, contracts, and the correspondence read ' +
+        'alongside them. Ask me something about those and I will look.'
+      : 'I can only answer questions about this tenant\'s data, and nothing is askable yet: ' +
+        'publish a graph in Graph Studio, or connect a source such as a mailbox on Sources, ' +
+        'then ask again.'
+  const reason = `${hello}${scope}`
+
+  return {
+    question,
+    use_case_id: null,
+    graph_name: null,
+    version: null,
+    source_ids: [],
+    entities: [],
+    path: [],
+    hops: 0,
+    caveats: [],
+    asked_at: new Date().toISOString(),
+    answered: false,
+    reason,
+    answer: null,
+    confidence: null,
+    reasoning: [{ step: 'Greeted', detail: reason }],
+    citations: [],
+    requirements: askRequirements(requested, [], false),
+    summary: null,
+    blocks: [],
+    answer_id: null,
   }
 }
 
@@ -14130,69 +14299,9 @@ const routes = [
     match: (p) => p === '/ask',
     handle: async (req, res) => {
       const body = await readJson(req)
-      const { use_case_id, question, source_ids } = body
+      const { use_case_id, question, source_ids, as } = body
       const id = String(use_case_id ?? '').trim()
 
-      /*
-       * **One search, not two modes.** `db.ask_answers` is one flat, dataset-wide set, so
-       * which of it a reader can reach must not depend on whether a graph happened to be
-       * selected. A named graph is still resolved below and still refused if unpublished;
-       * naming none no longer restricts the search to runtime sources — it defaults to the
-       * newest published graph, which already answers both a CAPEX question and a mail one
-       * from the same recorded pool. `askSourceAnswer` is what remains for the one state
-       * that default cannot cover: nothing published at all yet.
-       */
-      const askedSources = Array.isArray(source_ids)
-        ? source_ids.map((sid) => String(sid ?? '').trim()).filter(Boolean)
-        : []
-      const picked = []
-      for (const sid of askedSources) {
-        const source = registered.get(sid)
-        if (!source) {
-          return send(res, 404, { error: `no source "${sid}" — connect it first, or pick another` })
-        }
-        if (source.status !== 'connected') {
-          return send(res, 400, {
-            error: `${source.source_name} is disconnected — reconnect it on Sources, then ask it`,
-          })
-        }
-        /* Refused by what the server says a source *is*, never by connector name: a source that
-           derives into the graph has no answer of its own, and the refusal says so rather than
-           returning an empty one. */
-        if (!isRuntimeSource(source.kind)) {
-          return send(res, 400, {
-            error: `${source.source_name} is not read at question time — its data reaches an answer through the published graph, so ask the graph instead`,
-          })
-        }
-        picked.push(source)
-      }
-
-      /*
-       * The graph, named or defaulted — and the publish gate is exactly what it was for a
-       * named one. A graph that has never been published is still refused here, naming
-       * Graph Studio, because this route answering from an unpublished version is the
-       * failure the gate exists for. An *unnamed* graph is never refused this way — it is
-       * simply not used, and the question falls to `defaultPublishedUseCase()` instead.
-       */
-      let useCase = null
-      if (id) {
-        const found = findBuiltGraph(id)
-        if (found.error) return send(res, found.status, { error: found.error })
-        if (liveVersion(id) === null) {
-          return send(res, 400, {
-            error: `${found.useCase.name} has never been published — publish it in Graph Studio, then ask it`,
-          })
-        }
-        useCase = found.useCase
-      } else {
-        useCase = defaultPublishedUseCase()
-      }
-
-      if (!useCase && picked.length === 0) {
-        return send(res, 400, {
-          error: 'choose a graph or a connected source to ask first',
-        })
-      }
       if (!String(question ?? '').trim()) {
         return send(res, 400, { error: 'ask a question first' })
       }
@@ -14202,29 +14311,101 @@ const routes = [
       if (requested.error) return send(res, 400, { error: requested.error })
 
       /*
-       * The answer is streamed, because it is composed rather than fetched.
-       *
-       * Everything above this line is validated first and refused with a plain
-       * 400 — an error must not arrive as an event inside a 200, and refusals are
-       * never paced. Only once the answer is known to exist does the stream open.
-       *
-       * The order is the order it becomes true: the grounding step, then the
-       * summary, then each block as it is produced, then the whole envelope in
-       * `done` so the client has one object to validate. Nothing is emitted that
-       * the server has not already computed — the pacing spaces out real output
-       * rather than animating over a finished blob, which is the same distinction
-       * `GoogleConsentPanel` draws between a stage and a timer.
+       * **A greeting is checked before a graph or a source is resolved, and answered
+       * without either.** "Hello" is not a question about a graph or a mailbox, so it must
+       * not wait on "publish a graph" or "connect a source" the way a real one does —
+       * `greetingAnswer` returns `null` for anything that is not one, and the route falls
+       * through to exactly the search below.
        */
-      /*
-       * **A graph answers whenever one is available, named or defaulted; the sources answer
-       * only in the one state that leaves nothing else to ask.** A graph-grounded answer
-       * already reports whatever the recorded set blended into it — a ledger fact and a
-       * contractor's email cited side by side in the same answer — so there is nothing a
-       * second, source-scoped account could add once a graph exists to ask through.
-       */
-      const answer = useCase
-        ? askAnswer(useCase, String(question).trim(), requested)
-        : askSourceAnswer(picked, String(question).trim(), requested)
+      let answer = greetingAnswer(String(question).trim(), as, requested)
+
+      if (!answer) {
+        /*
+         * **One search, not two modes.** `db.ask_answers` is one flat, dataset-wide set, so
+         * which of it a reader can reach must not depend on whether a graph happened to be
+         * selected. A named graph is still resolved below and still refused if unpublished;
+         * naming none no longer restricts the search to runtime sources — it defaults to the
+         * newest published graph, which already answers both a CAPEX question and a mail one
+         * from the same recorded pool. `askSourceAnswer` is what remains for the one state
+         * that default cannot cover: nothing published at all yet.
+         */
+        const askedSources = Array.isArray(source_ids)
+          ? source_ids.map((sid) => String(sid ?? '').trim()).filter(Boolean)
+          : []
+        const picked = []
+        for (const sid of askedSources) {
+          const source = registered.get(sid)
+          if (!source) {
+            return send(res, 404, { error: `no source "${sid}" — connect it first, or pick another` })
+          }
+          if (source.status !== 'connected') {
+            return send(res, 400, {
+              error: `${source.source_name} is disconnected — reconnect it on Sources, then ask it`,
+            })
+          }
+          /* Refused by what the server says a source *is*, never by connector name: a source that
+             derives into the graph has no answer of its own, and the refusal says so rather than
+             returning an empty one. */
+          if (!isRuntimeSource(source.kind)) {
+            return send(res, 400, {
+              error: `${source.source_name} is not read at question time — its data reaches an answer through the published graph, so ask the graph instead`,
+            })
+          }
+          picked.push(source)
+        }
+
+        /*
+         * The graph, named or defaulted — and the publish gate is exactly what it was for a
+         * named one. A graph that has never been published is still refused here, naming
+         * Graph Studio, because this route answering from an unpublished version is the
+         * failure the gate exists for. An *unnamed* graph is never refused this way — it is
+         * simply not used, and the question falls to `defaultPublishedUseCase()` instead.
+         */
+        let useCase = null
+        if (id) {
+          const found = findBuiltGraph(id)
+          if (found.error) return send(res, found.status, { error: found.error })
+          if (liveVersion(id) === null) {
+            return send(res, 400, {
+              error: `${found.useCase.name} has never been published — publish it in Graph Studio, then ask it`,
+            })
+          }
+          useCase = found.useCase
+        } else {
+          useCase = defaultPublishedUseCase()
+        }
+
+        if (!useCase && picked.length === 0) {
+          return send(res, 400, {
+            error: 'choose a graph or a connected source to ask first',
+          })
+        }
+
+        /*
+         * The answer is streamed, because it is composed rather than fetched.
+         *
+         * Everything above this line is validated first and refused with a plain
+         * 400 — an error must not arrive as an event inside a 200, and refusals are
+         * never paced. Only once the answer is known to exist does the stream open.
+         *
+         * The order is the order it becomes true: the grounding step, then the
+         * summary, then each block as it is produced, then the whole envelope in
+         * `done` so the client has one object to validate. Nothing is emitted that
+         * the server has not already computed — the pacing spaces out real output
+         * rather than animating over a finished blob, which is the same distinction
+         * `GoogleConsentPanel` draws between a stage and a timer.
+         */
+        /*
+         * **A graph answers whenever one is available, named or defaulted; the sources answer
+         * only in the one state that leaves nothing else to ask.** A graph-grounded answer
+         * already reports whatever the recorded set blended into it — a ledger fact and a
+         * contractor's email cited side by side in the same answer — so there is nothing a
+         * second, source-scoped account could add once a graph exists to ask through.
+         */
+        answer = useCase
+          ? askAnswer(useCase, String(question).trim(), requested)
+          : askSourceAnswer(picked, String(question).trim(), requested)
+      }
 
       sseOpen(res)
       // A client that goes away mid-answer stops the loop rather than writing to

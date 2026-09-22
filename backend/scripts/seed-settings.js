@@ -38,6 +38,10 @@ import { DATASETS, PRIMARY } from '../datasets.js'
  * This exists because `report_defaults` / `report_permissions` were added to `validateSettings` after
  * CAPEX's document was generated: it was internally consistent and the server still refused it, naming
  * this script as the fix. That refusal was right, and this is the fix it was naming.
+ *
+ * **A `NAV_KEYS` entry gained after that generation is the same shape of gap, one level down** — see
+ * the fill loop below the report derivation. Not a missing block; a block that is missing one key,
+ * because the sidebar grew an item the document predates.
  */
 const dataset = (process.argv[2] ?? PRIMARY).trim()
 if (!DATASETS.includes(dataset)) {
@@ -328,9 +332,63 @@ if (secondary) {
     }),
   )
 
+  /*
+   * **A `NAV_KEYS` entry added after this dataset's document was generated is filled in, not
+   * re-authored — the one exception to "navigation is this dataset's own and untouched".**
+   *
+   * That rule is about *configuration*: a persona's existing answer to "does this row see
+   * Sources" is this tenant's decision and must survive every re-run. A key that did not
+   * exist when the document was generated is not a configuration this tenant ever made —
+   * there was nothing to configure — so leaving it out is not preserving a decision, it is
+   * a document that predates a sidebar item silently going without an opinion on it forever.
+   * `PATCH /settings/personas/:roleId/nav` refuses any write naming a key the persona's own
+   * block does not carry, so the gap does not stay silent: it surfaces as *every* toggle and
+   * *Reset to defaults* failing on this dataset the first time somebody touches one, with a
+   * refusal naming the missing key. Reported from use.
+   *
+   * **What is filled is the key, never the object.** A persona missing the *whole* block is
+   * the problem `validateSettings` already refuses to boot on, and re-authoring a whole block
+   * from the primary's `DEFAULTS` is exactly the replace-one-tenant's-directory-with-another's
+   * this section exists to avoid — so this only ever adds a key to a block that is already
+   * there, and only where that exact key is absent from it.
+   *
+   * **The default it gets follows this dataset's own admin persona, not the primary's role
+   * ids** — CAPEX's are spelled differently entirely (`admin`, not `platform_admin`), so nothing
+   * here can key off `DEFAULTS`. What generalises is the *shape* `DEFAULTS` encodes: whichever
+   * persona already carries `settings: true` is the one that administers this dataset, and a
+   * newly-added item starts off for that persona and on for every other — `on` /
+   * `allExcept(['settings'])` applied to a document's own directory instead of typed again.
+   * A document with no such persona (nobody starts with Settings) already fails the boot
+   * refusal above the report-access derivation and never reaches this line.
+   */
+  const filledNav = {}
+  const filledDefaults = {}
+  for (const roleId of roleIds) {
+    const liveNav = existing.nav_permissions?.[roleId]
+    const liveDefaults = existing.defaults?.[roleId]
+    if (typeof liveNav === 'object' && liveNav) filledNav[roleId] = { ...liveNav }
+    if (typeof liveDefaults === 'object' && liveDefaults) filledDefaults[roleId] = { ...liveDefaults }
+  }
+  const adminRoleId = roleIds.find((r) => filledDefaults[r]?.settings === true)
+  const addedNavKeys = new Set()
+  for (const roleId of roleIds) {
+    if (!filledNav[roleId] || !filledDefaults[roleId]) continue
+    for (const key of NAV_KEYS) {
+      const hasNav = typeof filledNav[roleId][key] === 'boolean'
+      const hasDefault = typeof filledDefaults[roleId][key] === 'boolean'
+      if (hasNav && hasDefault) continue
+      const value = roleId !== adminRoleId
+      if (!hasNav) filledNav[roleId][key] = value
+      if (!hasDefault) filledDefaults[roleId][key] = value
+      addedNavKeys.add(key)
+    }
+  }
+
   const next = {
     ...existing,
     users,
+    nav_permissions: Object.keys(filledNav).length > 0 ? filledNav : existing.nav_permissions,
+    defaults: Object.keys(filledDefaults).length > 0 ? filledDefaults : existing.defaults,
     report_defaults: existing.report_defaults ?? derived,
     report_permissions: keptReports,
   }
@@ -344,7 +402,12 @@ if (secondary) {
       (addedUsers.length > 0
         ? `\n  added to the directory: ${addedUsers.join(', ')}.`
         : '\n  the directory was already complete — nobody was added.') +
-      '\n  navigation, the locked row and every existing user are this dataset’s own and were not touched.',
+      (addedNavKeys.size > 0
+        ? `\n  filled the navigation key(s) this document predates: ${[...addedNavKeys].join(', ')} ` +
+          `(off for ${adminRoleId ?? 'the admin persona'}, on for every other persona).`
+        : '\n  every navigation key NAV_KEYS declares was already present — nothing filled.') +
+      '\n  every existing navigation answer, the locked row and every existing user are this ' +
+      'dataset’s own and were not touched.',
   )
   process.exit(0)
 }

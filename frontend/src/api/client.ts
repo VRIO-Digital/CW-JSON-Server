@@ -445,6 +445,19 @@ export interface SourceRow {
   documentsChunked: number | null
   chunksTotal: number | null
   chunkChars: number | null
+  /**
+   * The most recent chunk this source produced, gated to a rolling six-month window — `null`
+   * on every non-chunking connector, and `null` here too once the true latest falls outside the
+   * window: `chunksTotal` still counts a document chunked eight months ago, but it is not a
+   * *recent* chunk, and this pair says so by being absent rather than by reporting stale history
+   * under a tile labelled "recent".
+   */
+  lastChunkAt: string | null
+  /** The chunk count of that one document — paired with `lastChunkAt`, so both are null together. */
+  lastChunkCount: number | null
+  /** The window's own start, on every source including ones with nothing to report, so the
+      tile's claim ("nothing in the last 6 months") names a boundary the reader can check. */
+  lastChunkSince: string
   datasets: string[]
   /** The folder allowlist. Drive sources only; empty for everything else. */
   folders: string[]
@@ -484,6 +497,9 @@ interface RawSourceRow {
   documents_chunked: number | null
   chunks_total: number | null
   chunk_chars: number | null
+  last_chunk_at: string | null
+  last_chunk_count: number | null
+  last_chunk_since: string
   datasets: string[]
   folders: string[]
   labels: string[]
@@ -2130,6 +2146,9 @@ const SOURCE_ROW = shape({
   documents_chunked: nullable(num),
   chunks_total: nullable(num),
   chunk_chars: nullable(num),
+  last_chunk_at: nullable(str),
+  last_chunk_count: nullable(num),
+  last_chunk_since: str,
   datasets: arrayOf(str),
   folders: arrayOf(str),
   labels: arrayOf(str),
@@ -4235,6 +4254,9 @@ export async function listSources(): Promise<{
       documentsChunked: s.documents_chunked,
       chunksTotal: s.chunks_total,
       chunkChars: s.chunk_chars,
+      lastChunkAt: s.last_chunk_at,
+      lastChunkCount: s.last_chunk_count,
+      lastChunkSince: s.last_chunk_since,
       datasets: s.datasets,
       folders: s.folders,
       labels: s.labels,

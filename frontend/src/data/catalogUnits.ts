@@ -2,6 +2,30 @@ import type { SourceRow } from '../api/client'
 import { mailProcessCopy } from './mailProcess'
 
 /**
+ * The date a reader recognises, not the raw stamp the server sends — the same rendering
+ * `ProfiledMailDocumentsPanel`'s own `shortDate` gives a document's date, kept a second small
+ * copy here rather than imported: that one takes a full ISO instant and a component import
+ * from a data module would run the wrong way, so a one-line formatter is the cheaper coupling.
+ */
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+
+/**
+ * The "last chunk" tile's value and note, shared by Drive and Gmail rather than written twice —
+ * a second copy is how the two connectors' tiles come to word one fact differently.
+ *
+ * **`lastChunkAt` absent is not "no data", it is "nothing recent"**, per the server's own gate:
+ * `chunksTotal` still counts a chunk from eight months ago, so a reader who wants to know
+ * whether anything is being kept current needs the two questions kept apart.
+ */
+const lastChunkValue = (s: SourceRow) =>
+  s.lastChunkAt && s.lastChunkCount !== null
+    ? `${s.lastChunkCount} chunk${s.lastChunkCount === 1 ? '' : 's'}`
+    : '—'
+const lastChunkNote = (s: SourceRow) =>
+  s.lastChunkAt ? `chunked ${shortDate(s.lastChunkAt)}` : `nothing chunked since ${shortDate(s.lastChunkSince)}`
+
+/**
  * Which panel the Catalog has open. `none` is closed; the rest are one per connector's two
  * acts, because each act is a different endpoint.
  */
@@ -90,6 +114,26 @@ export interface CatalogUnits {
     /** Set small beside the figure. Absent prints the value alone. */
     suffix?: string
     note: string
+  }
+  /**
+   * A sixth tile: the most recent chunk within a rolling six-month window — `lastChunkAt` on
+   * the server, gated there rather than here so a page reading this cannot disagree with a
+   * dictionary reading the same field about where "recent" starts.
+   *
+   * **Declared for Drive and Gmail, both** — the two connectors `chunksTotal` already covers,
+   * since a rolling window is the same fact about either one: is anything of this source's own
+   * recent, or has nothing landed lately. BigQuery has no chunks at all, so it declares none.
+   *
+   * **`note` is a function, unlike `extraTile`'s fixed string**, because the one thing this
+   * tile states that the others do not is a *date* — when the last one landed, or the boundary
+   * nothing has landed since — and a literal here would be the same "for this source" mistake
+   * `unitsNote` exists to avoid under a fact that moves.
+   */
+  lastChunkTile?: {
+    label: string
+    /** What the tile's big figure reads — the honest "nothing (yet)" included, never a blank. */
+    value: (s: SourceRow) => string
+    note: (s: SourceRow) => string
   }
   /** The two acts, in this connector's noun. */
   browseLabel: string
@@ -212,6 +256,11 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
       suffix: 'chars',
       note: 'of extracted chunk text',
     },
+    lastChunkTile: {
+      label: 'last chunk (6 mo)',
+      value: lastChunkValue,
+      note: lastChunkNote,
+    },
     /*
      * **One act over the whole drive, asked for directly** — *"it should look like this view, not
      * existing view"*, of Gmail's surface. The browse-and-tick tree and the *View profiled
@@ -295,6 +344,11 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
       value: (s) => mailProcessCopy.sizeValue(s.chunkChars ?? 0),
       suffix: 'chars',
       note: 'of extracted chunk text',
+    },
+    lastChunkTile: {
+      label: 'last chunk (6 mo)',
+      value: lastChunkValue,
+      note: lastChunkNote,
     },
     browseLabel: 'Process documents',
     /* No second act: the documents are listed on the page itself, under the run that produced

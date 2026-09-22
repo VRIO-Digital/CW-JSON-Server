@@ -675,6 +675,21 @@ function CatalogTab({
                 />
               </Col>
             ) : null}
+            {/*
+              * **A sixth tile, drawn the same way as the fifth**: read off `catalogUnits`, absent
+              * where the row does not declare one, so the page still does not know which
+              * connector it is looking at. Drive and Gmail both declare it; BigQuery does not,
+              * because a project holds no chunks to have a recent one of.
+              */}
+            {units?.lastChunkTile ? (
+              <Col xs={24} sm={12} lg={6}>
+                <StatBox
+                  label={units.lastChunkTile.label}
+                  value={units.lastChunkTile.value(selected)}
+                  note={units.lastChunkTile.note(selected)}
+                />
+              </Col>
+            ) : null}
           </Row>
 
           {/* Same two moves either way — browse and profile, then read the
