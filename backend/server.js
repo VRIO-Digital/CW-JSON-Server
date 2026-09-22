@@ -11896,15 +11896,27 @@ const routes = [
           return send(res, 400, { error: `${entry.filename}: ${error.message}` })
         }
       }
-      /* One dictionary per dataset: two would each replace a table's columns and the last would
-         silently win, which is the two-answers fault this repo refuses everywhere. */
-      const datasets = plans.map((p) => p.dataset_id)
-      const twice = datasets.find((d, i) => datasets.indexOf(d) !== i)
-      if (twice) {
-        return send(res, 400, {
-          error: `two dictionaries name the dataset ${twice} — read one file per dataset, or the second would replace what the first wrote`,
-        })
-      }
+      /*
+       * **Several dictionaries may name one dataset, and that used to be refused here.** The
+       * refusal read *"two dictionaries name the dataset plan — read one file per dataset, or the
+       * second would replace what the first wrote"*, and its premise was true while this route
+       * parsed the file: two plans for one dataset each rebuilt that dataset's column list, so the
+       * last one silently won.
+       *
+       * **That premise went when the parse did.** This route writes nothing — the comment below
+       * says so in as many words — the plan is the *dataset's* own tables however many files were
+       * dropped on the row, and the work list is a union keyed `dataset::table`, so a repeated
+       * dataset queues nothing twice. There is no longer anything for a second file to replace.
+       *
+       * It was left behind, and the client had already moved: `StagedDictionary.filenames` is an
+       * array, `read` appends to it de-duplicated by name, the picker is `multiple` and the row
+       * draws a chip per file — so the page staged two files on one dataset and the press was then
+       * turned down, which is a control offering an act the API refuses. Reported from use.
+       *
+       * What a second file adds is a **name in the reply**: `applied` is one row per dictionary
+       * entry, in the order they were sent, which is what `dictionaryRunSummary` reads to say which
+       * files landed.
+       */
 
       /*
        * **Nothing is written, and there is nothing to write.** This route used to rebuild the whole

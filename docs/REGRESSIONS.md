@@ -7548,3 +7548,51 @@ a claim here. **Use `codeOnly` for every absence claim; assume it rather than di
 diffable against where it came from, so a change here is a decision rather than a tidy-up: the panel
 asserted something false about every tenant but one, which is worth the divergence. `check-docs`
 still asserts the folder's paths and its CSS scoping.
+
+
+## A refusal that outlived its premise: two dictionaries on one dataset row (2026-09-22)
+
+**Symptom** — staging two files on the CAPEX `plan` row and pressing Start Profiling answered a flat
+400: *"two dictionaries name the dataset plan — read one file per dataset, or the second would
+replace what the first wrote"*. Reported from use, with both chips sitting on the row above the
+error.
+
+**Cause** — the refusal was correct when it was written and its premise had since been removed. While
+`POST /sources/:id/schema` *parsed* the uploaded file, two plans for one dataset each rebuilt that
+dataset's column list and the last one silently won, which is the two-answers fault this repo refuses
+everywhere. Then the upload became a showcase: nothing reads the file, the route writes nothing at
+all — its own comment says so in as many words — and the plan is the *dataset's* own tables however
+many files were dropped on the row. There was no longer anything for a second file to replace.
+
+**The client had already moved and the server had not**, which is what made this reachable rather
+than merely stale. `StagedDictionary.filenames` is an array, `read` appends to it de-duplicated by
+name, the picker is `multiple`, the row draws a chip per file, and `applyStaged` sends **one entry
+per file**. CLAUDE.md states the intended behaviour outright — *"Repeating a dataset across entries
+queues nothing twice: the run is a union keyed `dataset::table`, so what a second file adds is a name
+in the reply for the summary to state"* — so the docs were right and the code was the stale side. A
+control offering an act the API turns down.
+
+**Fix** — the duplicate-dataset scan and its sentence are gone. Nothing else needed doing, which is
+the point: the work list was already a `Map` keyed `${dataset}::${table}`, so two plans for one
+dataset collapse to one entry per table, and `applied` was already one row per dictionary entry in
+the order they were sent. Verified against a live server: two dictionaries on `plan` answer 202, 18
+objects queued, 0 duplicate table entries, one job on the board, `forced: false` — and `applied`
+names both files.
+
+**A second stale comment went with it.** `schemaUpload.ts` still explained that the upload button was
+*"the empty state's alone"* because `staged` held one file per dataset — the same dead premise, one
+layer up, in prose describing a control that is in fact drawn in both states.
+
+**Guard** — one break-tested `check-docs` claim, and two things about its shape are the lesson:
+
+- **The absence goes through `codeOnly`.** The comment that replaced the refusal *quotes* it, so a
+  whole-file search reports the refusal as still present. That is the self-documenting-file trap, now
+  recorded a seventh time — and this is the first time the comment doing the trapping was one written
+  in the same change.
+- **Absence and presence are asserted together.** "The refusal is gone" passes just as well over a
+  gutted route, so the union key, the single `queueJob` and the one-row-per-file reply are pinned
+  beside it, along with the client's list, its dedupe and the `multiple` picker.
+
+*A refusal is an argument, and an argument has premises. When the thing it was protecting stops
+existing, the refusal does not become harmless — it becomes a control the app offers and the API
+turns down.*

@@ -14,6 +14,7 @@ import {
 } from 'antd'
 import { useEffect, useState } from 'react'
 import type { ProfilingJob } from '../../api/client'
+import { scopeNames } from '../../data/profilingOutcome'
 import { useJobsStore } from '../../store/catalogStore'
 import { SP } from '../../theme'
 import ApiErrorAlert from '../common/ApiErrorAlert'
@@ -43,13 +44,23 @@ const clockTime = (iso: string | null) =>
 const units = (job: ProfilingJob, count: number) =>
   `${count} ${job.unit}${count === 1 ? '' : 's'}`
 
-/** "1: em_import_0" — count plus the object names themselves. */
+/**
+ * "18 tables: a, b, c + 15 more" — the count, then as many names as a cell can carry.
+ *
+ * It named **every** object, which is right for the expanded row below and wrong for a column: an
+ * 18-table run wrote 18 monospace names into one cell and drew a row 700px tall, each name broken
+ * mid-word by the cell's own `break-word`. The count is what this column is scanned for; the full
+ * list is one click away in `JobDetail`, which still names all of them with their per-object state.
+ *
+ * So the cap is stated rather than silently truncating — `scopeNames` is the one definition of where
+ * naming stops, shared with the browse panels' confirm.
+ */
 function ObjectsSelected({ job }: { job: ProfilingJob }) {
   return (
-    <span>
+    <span className="pj-scope">
       <strong>{units(job, job.object_count)}:</strong>{' '}
       <Typography.Text code className="pj-tables">
-        {job.objects.map((o) => o.label).join(', ')}
+        {scopeNames(job.objects.map((o) => o.label))}
       </Typography.Text>
     </span>
   )
@@ -213,10 +224,14 @@ export default function ProfilingJobsTab({
     },
     {
       /* Renamed from *selected*: what the cell states is how much of the run has been **committed**,
-         which is a scope that shrinks as the job goes rather than the list that was picked. */
+         which is a scope that shrinks as the job goes rather than the list that was picked.
+
+         Wide enough for the count and the names `scopeNames` keeps. At 120 it was narrower than a
+         single `plan_project_budget`, so every name broke mid-word whatever the cap — the width and
+         the cap are one fix, and neither alone is enough. */
       title: 'scope',
       key: 'objects',
-      width: 120,
+      width: 300,
       render: (_, job) => <ObjectsSelected job={job} />,
     },
     {
