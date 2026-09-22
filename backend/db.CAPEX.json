@@ -43,7 +43,7 @@
   "projects": [
     {
       "project_id": "northline_epbcs",
-      "display_name": "Northline EPBCS (budget & forecast cube)",
+      "display_name": "Northline  (budget & forecast cube)",
       "location": "US",
       "datasets": [
         {
