@@ -100,12 +100,18 @@ export const schemaUploadCopy = {
    * to make anything appear is a step that says nothing. The read still writes nothing — that
    * guarantee is the preview's, and it is unchanged; what moved is only who asks for it.
    *
-   * **And the control is the empty state's alone.** It used to stay on a staged row relabelled
-   * *Replace file*; that button was **removed on request**, so `replaceLabel` went with it — a
-   * label nothing renders is an invitation for the control to come back. Swapping a file is
-   * Discard then Upload now, which is one more click and the honest shape of the act: `staged`
-   * holds one file per dataset, so a replace was discarding the previous plan either way and only
-   * the saying of it was missing.
+   * **`replaceLabel` is gone, and the control is drawn in both states.** The button used to stay
+   * on a staged row relabelled *Replace file*; that label was **removed on request**, so
+   * `replaceLabel` went with it — a label nothing renders is an invitation for the control to come
+   * back. The button itself was withheld on a staged row for a while afterwards, because `staged`
+   * held **one** file per dataset and pressing it could only have meant a replace.
+   *
+   * **That reasoning went when the slot became a list.** `StagedDictionary.filenames` is an array
+   * and the picker is `multiple`, so the button *adds* a dictionary and can no longer replace one —
+   * withholding it would leave a reader able to stage a second file only by discarding the first,
+   * which is the opposite of what a list is for, and it would leave *Upload Files*, plural,
+   * labelling a control that takes one. The label stays gone either way: this button is still not
+   * a replace.
    */
   uploadLabel: 'Upload Files',
   readingLabel: 'Reading…',

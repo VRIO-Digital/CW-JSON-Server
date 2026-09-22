@@ -55,6 +55,34 @@ export function namedObjects(objects: JobObject[]): string {
   return `${sentenceList(names.slice(0, NAMES_SHOWN))} + ${names.length - NAMES_SHOWN} more`
 }
 
+/**
+ * How many objects the **jobs board's** scope cell names before it counts them instead.
+ *
+ * Deliberately not `NAMES_SHOWN`, and the difference is the surface rather than the rule. That cap
+ * is for a confirm's sentence, which has a 520px modal to run across; this is one cell beside six
+ * other columns. Six table names is ~150 monospace characters, which at a column's width wraps to a
+ * dozen lines and makes the row taller than the board it sits on — which is exactly what an 18-table
+ * CAPEX run did to it.
+ *
+ * The rule is the one this module already keeps: name what fits, then say how many are left. Only
+ * the number moves, because only the width did.
+ */
+export const SCOPE_NAMES_SHOWN = 3
+
+/**
+ * The scope cell's names, capped, with the cap stated.
+ *
+ * Comma-joined rather than through `sentenceList`: a cell is a list and takes no "and". It names
+ * `label` where `namedObjects` names `object_id`, and that is each surface's own choice — the tree a
+ * reader picked from leads with the id, and the board reads better with the label. What they must
+ * not differ on is where naming stops, which is why the capping lives here once.
+ */
+export function scopeNames(labels: string[]): string {
+  if (labels.length <= SCOPE_NAMES_SHOWN) return labels.join(', ')
+  const shown = labels.slice(0, SCOPE_NAMES_SHOWN).join(', ')
+  return `${shown} + ${labels.length - SCOPE_NAMES_SHOWN} more`
+}
+
 export type ProfilingOutcome =
   | {
       /** Something was queued. Nothing to decide — this is a notification. */

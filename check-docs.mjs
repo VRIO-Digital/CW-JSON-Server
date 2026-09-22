@@ -4624,6 +4624,52 @@ expect(
 )
 
 /*
+ * **Several dictionaries may name one dataset, and the refusal that said otherwise is gone.**
+ *
+ * The write route answered *"two dictionaries name the dataset plan — read one file per dataset, or
+ * the second would replace what the first wrote"*. Its premise was true while the route parsed the
+ * file: two plans for one dataset each rebuilt that dataset's column list and the last silently won.
+ * **The premise went when the parse did** — the route writes nothing, the plan is the *dataset's*
+ * own tables however many files were dropped, and the work list is a union keyed `dataset::table`.
+ *
+ * The client had already moved and the server had not, which is the shape that bites: `filenames`
+ * is a list, `read` appends de-duplicated by name, the picker is `multiple` and the row draws a chip
+ * per file — so the page staged two files on one dataset row and the press was then turned down, a
+ * control offering an act the API refuses. Reported from use.
+ *
+ * **Absence and presence together, and the absence through `codeOnly`.** The comment that replaced
+ * the refusal *quotes* it — so a whole-file search reports the refusal as still there, which is the
+ * self-documenting-file trap this file has been bitten by six times. And an absence claim alone
+ * passes just as well over a gutted route, so the union, the single job and the one-row-per-file
+ * reply are asserted beside it.
+ */
+expect(
+  'several dictionaries may name one dataset: the run is a union and the reply names every file',
+  /* Gone: the refusal, its sentence, and the scan behind it. */
+  !/read one file per dataset/.test(codeOnly(schemaWriteRoute)) &&
+    !/dictionaries name the dataset/.test(codeOnly(schemaWriteRoute)) &&
+    !/datasets\.indexOf\(d\) !== i/.test(codeOnly(schemaWriteRoute)) &&
+    /* Still there: one work list keyed `dataset::table`, so a repeated dataset queues nothing
+       twice — which is what makes the refusal unnecessary rather than merely absent. */
+    /const work = new Map\(\)/.test(schemaWriteRoute) &&
+    /work\.set\(`\$\{plan\.dataset_id\}::\$\{table\.table_id\}`/.test(schemaWriteRoute) &&
+    (schemaWriteRoute.match(/queueJob\(\{/g) ?? []).length === 1 &&
+    /* And the reply is one row per dictionary entry, in the order they were sent: what a second
+       file adds is a name for `dictionaryRunSummary` to state. */
+    /applied: plans\.map\(\(plan, i\) => schemaPlanView\(plan, dictionaries\[i\]\.filename\)\)/.test(
+      schemaWriteRoute,
+    ) &&
+    /* Client: a list per dataset, de-duplicated by name, sent one entry per file. */
+    /filenames: string\[\]/.test(catalogStoreSrc) &&
+    /filenames: already\.includes\(input\.filename\)/.test(catalogStoreSrc) &&
+    /entry\.filenames\.map\(\(filename\) => \(\{ filename, dataset_id \}\)\)/.test(catalogStoreSrc) &&
+    /* Panel: the picker takes several and the row shows every one of them. */
+    /\bmultiple\b/.test(codeOnly(dictionaryPanel)) &&
+    /staged\.filenames\.map\(/.test(dictionaryPanel),
+  'the page stages two dictionaries on one row and the press is refused — an act the control offers and the API turns down',
+)
+
+/*
  * **Nothing an upload takes away goes without being named.**
  *
  * An upload replaces a table's dictionary, so three things can be lost, and each is reported by name

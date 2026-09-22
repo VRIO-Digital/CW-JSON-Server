@@ -23,6 +23,21 @@
   color: #6b7689;
 }
 
+/*
+ * The scope cell.
+ *
+ * `break-word` rather than antd's own cell breaking: a table name is one token, and a cell that
+ * breaks inside it turns `plan_project_budget` into four lines of rubble that reads as neither a
+ * name nor a list. Whole names wrap, and a name too long for the column overflows its line rather
+ * than being minced — the cap in `scopeNames` is what keeps that from happening at all.
+ */
+.pj-scope {
+  display: inline-block;
+  overflow-wrap: break-word;
+  word-break: normal;
+  line-height: 1.5;
+}
+
 .pj-tables {
   font-size: 12.5px;
 }

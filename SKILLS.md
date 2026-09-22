@@ -1164,9 +1164,18 @@ never in the job twice.
 
 **Where it fails:** a refusal writes **nothing** (every plan is resolved before the commit) and
 leaves everything staged — `dictionaryRefused` says exactly that, because "the upload failed" leaves
-open whether some of it took; two dictionaries naming one dataset are refused, since the second would
-replace what the first wrote; and a file whose extension or size the browser refuses never leaves it,
-with the sentence landing in the store's one `error` beside the parser's own.
+open whether some of it took; and a file whose **extension** the browser refuses never leaves it,
+with the sentence landing in the store's one `error` beside the parser's own. Not its size: that
+check went with the bytes, since no file is posted any more.
+
+**Several dictionaries may name one dataset, and that used to be refused.** The refusal read *"two
+dictionaries name the dataset plan — read one file per dataset, or the second would replace what the
+first wrote"*, which was true while this route parsed the file. It writes nothing now, the plan is
+the *dataset's* own tables however many files were dropped, and the work list is a union keyed
+`dataset::table` — so a repeated dataset queues nothing twice and what a second file adds is a name
+in `applied` for `dictionaryRunSummary` to state. The client had already moved (`filenames` is a
+list, the picker is `multiple`, the row draws a chip per file) while the server had not, so the page
+staged two files on one row and the press was turned down. Full entry in `docs/REGRESSIONS.md`.
 
 **Two samples to upload, both parsed by `check-docs`.**
 `docs/samples/schema-upload-example.json` is written against CAPEX's `bigquery:northline_epbcs` /
