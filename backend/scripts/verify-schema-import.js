@@ -115,6 +115,70 @@ ok(
   JSON.stringify(fromFlat),
 )
 
+/* ---------------- YAML ---------------- */
+
+const yamlNested = [
+  'dataset: plan',
+  'tables:',
+  '  - table: plan_monthly_spread',
+  '    label: Monthly spread',
+  '    grain: one row per project and month',
+  '    columns:',
+  '      - column: project_id',
+  '        type: STRING',
+  "        description: The project's own key, comma included, right here.",
+  '        class: identifier',
+  '        pii: false',
+  '      - period',
+].join('\n')
+const fromYaml = parseSchemaDocument({ filename: 'schema.yaml', text: yamlNested })
+ok('YAML names its own dataset', fromYaml.dataset_id === 'plan', String(fromYaml.dataset_id))
+ok(
+  "a table's label and grain come off its mapping",
+  fromYaml.tables[0].label === 'Monthly spread' &&
+    fromYaml.tables[0].grain === 'one row per project and month',
+  `${fromYaml.tables[0].label} / ${fromYaml.tables[0].grain}`,
+)
+ok(
+  'a mapping column reads its fields, comma in the description included',
+  fromYaml.tables[0].columns[0].column_id === 'project_id' &&
+    fromYaml.tables[0].columns[0].type === 'STRING' &&
+    fromYaml.tables[0].columns[0].description ===
+      "The project's own key, comma included, right here." &&
+    fromYaml.tables[0].columns[0].pii === false,
+  JSON.stringify(fromYaml.tables[0].columns[0]),
+)
+ok(
+  'and a bare scalar in a column list is a column name, the same as JSON',
+  fromYaml.tables[0].columns[1].column_id === 'period' &&
+    fromYaml.tables[0].columns[1].type === null,
+  JSON.stringify(fromYaml.tables[0].columns[1]),
+)
+
+const yamlFlat = [
+  '- dataset: plan',
+  '  table: t',
+  '  column: a',
+  '  type: STRING',
+  '- table: t',
+  '  column: b',
+  '  type: DATE',
+].join('\n')
+const fromYamlFlat = parseSchemaDocument({ filename: 'flat.yaml', text: yamlFlat })
+ok(
+  'a flat YAML sequence lands the same way a flat JSON array does',
+  fromYamlFlat.dataset_id === 'plan' &&
+    fromYamlFlat.tables.length === 1 &&
+    fromYamlFlat.tables[0].columns.length === 2,
+  JSON.stringify(fromYamlFlat),
+)
+
+const yamlYml = ['- table: t', '  column: a'].join('\n')
+ok(
+  '.yml is the same reader as .yaml',
+  parseSchemaDocument({ filename: 'd.yml', text: yamlYml }).tables[0].columns.length === 1,
+)
+
 /* ---------------- SQL DDL ---------------- */
 
 const sql = [
@@ -215,6 +279,26 @@ refuses(
   /lists no columns/,
 )
 refuses(
+  'YAML that is not YAML says so',
+  { filename: 'd.yaml', text: '- table: t\n  bad line with no colon at all' },
+  /is not "key: value"/,
+)
+refuses(
+  'flow-style YAML is refused, naming the block style this reads',
+  { filename: 'd.yaml', text: 'tables: [a, b]' },
+  /flow-style YAML.*block style/,
+)
+refuses(
+  'a tab-indented YAML line is refused rather than mis-nested',
+  { filename: 'd.yaml', text: '- table: t\n\tcolumn: a' },
+  /indented with a tab/,
+)
+refuses(
+  'YAML with no tables array names the two shapes it takes, same as JSON',
+  { filename: 'd.yaml', text: 'foo: 1' },
+  /no "tables" array/,
+)
+refuses(
   'SQL with no CREATE TABLE is refused',
   { filename: 'd.sql', text: 'SELECT 1;' },
   /no CREATE TABLE statement/,
@@ -222,7 +306,7 @@ refuses(
 
 console.log(
   failures === 0
-    ? '\nverify-schema-import: OK — CSV/TSV quoting, JSON in both shapes, DDL comments and every refusal.\n'
+    ? '\nverify-schema-import: OK — CSV/TSV quoting, JSON and YAML in both shapes, DDL comments and every refusal.\n'
     : `\nverify-schema-import: ${failures} FAILED\n`,
 )
 process.exit(failures === 0 ? 0 : 1)

@@ -8,14 +8,16 @@
  * it over fixtures offline, and `server.js` is left with the part that is genuinely its own —
  * deciding what a parsed table *means* for a project it can see.
  *
- * **What it reads, and what it refuses.** Three formats, because these are the three a schema
+ * **What it reads, and what it refuses.** Four formats, because these are the ones a schema
  * actually arrives in that can be read with no dependency:
  *
  *  - **JSON** — either a document with `tables`, or a flat array of column rows.
  *  - **CSV / TSV** — one row per column, with a header naming the fields.
  *  - **SQL DDL** — `CREATE TABLE … ( … )` statements.
+ *  - **YAML** — the same two shapes JSON takes (a `tables` document, or a flat list of column
+ *    rows), in block style. See the YAML section below for what "block style" means here and why.
  *
- * Anything else is refused **naming these three and what to do about it**, which for the format a
+ * Anything else is refused **naming these and what to do about it**, which for the format a
  * dictionary most often arrives in — a spreadsheet — is *export the sheet as CSV*. That is a
  * one-click remedy the reader can carry out, and it is the honest answer: `.xlsx` is a zip of XML
  * and needs a reader of its own (the repo's own profiling ingest is a script for exactly that
@@ -36,10 +38,12 @@ export const SCHEMA_FORMATS = {
   '.txt': 'csv',
   '.sql': 'sql',
   '.ddl': 'sql',
+  '.yaml': 'yaml',
+  '.yml': 'yaml',
 }
 
 /** What a refusal names, in the order a reader would try them. */
-export const SCHEMA_FORMAT_LIST = '.json, .csv, .tsv, .sql (or .ddl), .txt'
+export const SCHEMA_FORMAT_LIST = '.json, .csv, .tsv, .sql (or .ddl), .txt, .yaml (or .yml)'
 
 const extensionOf = (filename) => {
   const dot = String(filename ?? '').lastIndexOf('.')
@@ -253,14 +257,15 @@ function jsonColumn(raw, tableId, index) {
   }
 }
 
-function parseJson(text) {
-  let doc
-  try {
-    doc = JSON.parse(text)
-  } catch (error) {
-    fail(`this is not valid JSON — ${error.message}`)
-  }
-
+/**
+ * A parsed value — from `JSON.parse` or from `parseYamlValue` — walked into `{ tables }`.
+ *
+ * **One walk for both formats, because it is the same shape either way.** JSON and YAML differ in
+ * how the text turns into objects and arrays; once it has, "a document naming `tables`" and "a flat
+ * array of column rows" mean the same thing whichever format wrote them, so a dictionary exported
+ * either way lands identically. `formatName` is only for the messages this throws.
+ */
+function docToTables(doc, formatName) {
   /*
    * A bare array is the flat form: one entry per column, each naming its table. The same shape the
    * delimited reader produces, which is why a dictionary exported either way lands identically.
@@ -286,16 +291,18 @@ function parseJson(text) {
       table.grain = table.grain || firstString(row, ['grain'])
       table.columns.push(jsonColumn(row, tableId, i))
     })
-    return { format: 'json', dataset_id: datasetId, tables: [...byTable.values()] }
+    return { format: formatName, dataset_id: datasetId, tables: [...byTable.values()] }
   }
 
-  if (doc === null || typeof doc !== 'object') fail('this JSON is not an object or an array.')
+  if (doc === null || typeof doc !== 'object') {
+    fail(`this ${formatName.toUpperCase()} is not an object or an array.`)
+  }
 
   const rawTables = doc.tables ?? doc.entities
   if (!Array.isArray(rawTables)) {
     fail(
-      'this JSON has no "tables" array. Either { "dataset": "…", "tables": [ { "table": "…", ' +
-        '"columns": [ … ] } ] }, or a flat array with a "table" on every column row.',
+      `this ${formatName.toUpperCase()} has no "tables" array. Either { "dataset": "…", "tables": ` +
+        '[ { "table": "…", "columns": [ … ] } ] }, or a flat array with a "table" on every column row.',
     )
   }
   const tables = rawTables.map((raw, i) => {
@@ -316,10 +323,20 @@ function parseJson(text) {
     }
   })
   return {
-    format: 'json',
+    format: formatName,
     dataset_id: firstString(doc, ['dataset_id', 'dataset', 'schema']),
     tables,
   }
+}
+
+function parseJson(text) {
+  let doc
+  try {
+    doc = JSON.parse(text)
+  } catch (error) {
+    fail(`this is not valid JSON — ${error.message}`)
+  }
+  return docToTables(doc, 'json')
 }
 
 /* ---------------- SQL DDL ---------------- */
@@ -463,6 +480,132 @@ function parseSql(text) {
   return { format: 'sql', dataset_id: datasetId, tables }
 }
 
+/* ---------------- YAML ---------------- */
+
+/**
+ * Block-style YAML — mappings, sequences and scalars, nested by indentation — read into the same
+ * plain-object shape `JSON.parse` gives, then walked by the **same** `docToTables` the JSON reader
+ * uses. A schema exported to YAML states the same two shapes JSON does — a document naming
+ * `tables`, or a flat list of column rows — so there is no second table/column reader to keep in
+ * step with the first; only the text-to-value step differs.
+ *
+ * **Deliberately not a general YAML engine.** No dependency, on purpose — `backend/` ships zero
+ * runtime dependencies, so a YAML library is off the table for one upload screen, the same argument
+ * `parseSql`'s hand-written DDL reader and `splitDelimited`'s hand-written CSV reader already make.
+ * And no *need* for one: this reads block mappings, block sequences and plain or quoted scalars,
+ * because that is everything the two shapes above are built from. Flow style (`[a, b]`, `{a: b}`),
+ * anchors, tags, multi-document streams and folded/literal block scalars (`|`, `>`) are refused
+ * rather than guessed at — naming the block-style shape this does read, the same remedy the DDL
+ * reader gives for a construct it does not parse.
+ *
+ * **Only a whole-line comment is dropped.** Telling an inline `# comment` apart from a `#` inside an
+ * unquoted description needs a real tokenizer this is deliberately not; a dictionary's own text
+ * keeping a stray `#` is a far smaller fault than a description silently losing its second half.
+ */
+function yamlLines(text) {
+  const out = []
+  text.split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.replace(/\s+$/, '')
+    const trimmed = line.trim()
+    if (trimmed === '' || trimmed.startsWith('#')) return
+    if (trimmed === '---' || trimmed === '...') return
+    if (/^\t/.test(line)) fail(`line ${i + 1} is indented with a tab — YAML needs spaces.`)
+    const indent = /^ */.exec(line)[0].length
+    out.push({ indent, content: line.slice(indent), lineNo: i + 1 })
+  })
+  return out
+}
+
+/** One scalar's text into a value — quoted, boolean, null, or the plain string it is. */
+function yamlScalar(raw) {
+  const s = raw.trim()
+  if (s === '' || s === '~' || /^null$/i.test(s)) return null
+  if (/^"(?:[^"\\]|\\.)*"$/.test(s)) {
+    return s.slice(1, -1).replace(/\\(.)/g, (_, c) => (c === 'n' ? '\n' : c === 't' ? '\t' : c))
+  }
+  if (/^'(?:[^']|'')*'$/.test(s)) return s.slice(1, -1).replace(/''/g, "'")
+  if (/^(true|yes)$/i.test(s)) return true
+  if (/^(false|no)$/i.test(s)) return false
+  if (/^[[{]/.test(s)) {
+    fail(
+      `"${s}" uses flow-style YAML ([ ] or { }) — this reads block style only: one item per ` +
+        'line, indented under its key.',
+    )
+  }
+  return s
+}
+
+/** A mapping key, quoted or bare, folded to its plain text — the same key a JSON reader gets. */
+function yamlKey(raw) {
+  const k = raw.trim()
+  if (/^".*"$/.test(k) || /^'.*'$/.test(k)) return k.slice(1, -1)
+  return k
+}
+
+function parseYamlValue(text) {
+  const lines = yamlLines(text)
+  if (lines.length === 0) fail('this YAML file is empty.')
+  let pos = 0
+  const isSeqLine = (l) => l.content === '-' || l.content.startsWith('- ')
+  const mapKeyLine = /^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[^:#]+):(\s+(.*)|)$/
+
+  function parseBlock(minIndent) {
+    if (pos >= lines.length || lines[pos].indent < minIndent) return null
+    const at = lines[pos].indent
+    return isSeqLine(lines[pos]) ? parseSeq(at) : parseMap(at)
+  }
+
+  function parseSeq(indent) {
+    const arr = []
+    while (pos < lines.length && lines[pos].indent === indent && isSeqLine(lines[pos])) {
+      const line = lines[pos]
+      const rest = line.content === '-' ? '' : line.content.slice(2)
+      pos += 1
+      if (rest === '') {
+        arr.push(parseBlock(indent + 1))
+        continue
+      }
+      /* "- key: value" opens a mapping whose first pair is on this line; further pairs, where
+         there are any, follow indented to line up with where that key started — which is what
+         a block sequence of mappings looks like in every YAML export this is for. A synthetic
+         line carries that first pair back into `parseMap` rather than duplicating its logic. */
+      if (mapKeyLine.test(rest)) {
+        const itemIndent = indent + 2
+        lines.splice(pos, 0, { indent: itemIndent, content: rest, lineNo: line.lineNo })
+        arr.push(parseMap(itemIndent))
+      } else {
+        arr.push(yamlScalar(rest))
+      }
+    }
+    return arr
+  }
+
+  function parseMap(indent) {
+    const obj = {}
+    while (pos < lines.length && lines[pos].indent === indent && !isSeqLine(lines[pos])) {
+      const line = lines[pos]
+      const match = mapKeyLine.exec(line.content)
+      if (!match) fail(`line ${line.lineNo} is not "key: value" — found "${line.content}".`)
+      const key = yamlKey(match[1])
+      const valueText = (match[3] ?? '').trim()
+      pos += 1
+      obj[key] = valueText === '' ? parseBlock(indent + 1) : yamlScalar(valueText)
+    }
+    return obj
+  }
+
+  const doc = parseBlock(lines[0].indent)
+  if (pos < lines.length) {
+    fail(`line ${lines[pos].lineNo} does not fit under what came before it — check the indentation.`)
+  }
+  return doc
+}
+
+function parseYaml(text) {
+  const doc = parseYamlValue(text)
+  return docToTables(doc, 'yaml')
+}
+
 /* ---------------- the one entry point ---------------- */
 
 /**
@@ -492,7 +635,9 @@ export function parseSchemaDocument({ filename, text }) {
       ? parseJson(text)
       : format === 'sql'
         ? parseSql(text)
-        : parseDelimited(text, format === 'tsv' ? '\t' : ',', format)
+        : format === 'yaml'
+          ? parseYaml(text)
+          : parseDelimited(text, format === 'tsv' ? '\t' : ',', format)
 
   if (parsed.tables.length === 0) fail(`${filename} declares no tables.`)
   for (const table of parsed.tables) {

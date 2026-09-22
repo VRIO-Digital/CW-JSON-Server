@@ -14,7 +14,7 @@
  * that offered `.xlsx` would open a file dialog promising something the parse then refuses, which is
  * worse than a dialog that never showed it. `check-docs` asserts the two lists are the same.
  */
-export const SCHEMA_EXTENSIONS = ['.json', '.csv', '.tsv', '.sql', '.ddl', '.txt']
+export const SCHEMA_EXTENSIONS = ['.json', '.csv', '.tsv', '.sql', '.ddl', '.txt', '.yaml', '.yml']
 
 /** What the `<input type="file">` filters on. */
 export const SCHEMA_ACCEPT = SCHEMA_EXTENSIONS.join(',')
@@ -88,9 +88,9 @@ export const schemaUploadCopy = {
    */
 
   formats:
-    'JSON (a document with “tables”, or a flat array of column rows), CSV or TSV (one row per ' +
-    'column, with a header), or SQL DDL (CREATE TABLE statements). A spreadsheet is the usual ' +
-    'case — export the sheet as CSV.',
+    'JSON or YAML (a document with “tables”, or a flat array of column rows), CSV or TSV (one ' +
+    'row per column, with a header), or SQL DDL (CREATE TABLE statements). A spreadsheet is the ' +
+    'usual case — export the sheet as CSV.',
 
   /**
    * **One control, and what it is called on a dataset row.**

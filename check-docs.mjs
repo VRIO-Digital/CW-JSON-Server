@@ -3530,13 +3530,15 @@ expect(
 }
 
 /*
- * **A sixth tile: the most recent chunk within a rolling six-month window, on Drive and Gmail
- * both.**
+ * **A sixth tile: the most recent chunk within a rolling six-month window, on Gmail alone.**
  *
  * `chunksTotal` is all-time — a document chunked eight months ago still counts toward it — so it
  * cannot answer "is anything of this source's own being kept current". `withinLastChunkWindow`
  * is that second question, one function shared by `driveChunkFigures` and `mailChunkFigures`
- * rather than two copies that could disagree about where six months back actually starts.
+ * rather than two copies that could disagree about where six months back actually starts — the
+ * server computes and serves it for both connectors (and BigQuery, which has no chunks) alike,
+ * even though only Gmail's row renders it: removing the tile from Drive's row was a narrower
+ * *render*, on request, not a narrower server.
  *
  * **Gated on the server, not the client.** The boundary is a fact about the clock, and the rule
  * this repo already keeps for `profiled_today` applies here too: a tile computing its own cutoff
@@ -3545,15 +3547,18 @@ expect(
  * `withinLastChunkWindow`, and the client only ever renders `lastChunkAt`/`lastChunkCount` —
  * both `null` together once the true latest falls outside the window, never the stale figure.
  *
- * **`lastChunkSince` rides on every source, including BigQuery's**, for the same reason
- * `profiledTodayDate` does: a tile that can read "nothing in the last 6 months" states the
- * boundary it means, so the claim is checkable rather than taken on trust.
+ * **`lastChunkSince` rides on every source, including BigQuery's and Drive's**, for the same
+ * reason `profiledTodayDate` does: a tile that can read "nothing in the last 6 months" states
+ * the boundary it means, so the claim is checkable rather than taken on trust — and it is what
+ * makes the tile cheap to re-declare on Drive's row later, since nothing about the figure itself
+ * is gone.
  */
 {
   const units = read('frontend/src/data/catalogUnits.ts')
   const bigquery = (/bigquery: \{([\s\S]*?)\r?\n {2}\},\r?\n {2}gdrive: \{/.exec(units) ?? [])[1] ?? ''
+  const gdrive = (/gdrive: \{([\s\S]*?)\r?\n {2}\},\r?\n {2}gmail: \{/.exec(units) ?? [])[1] ?? ''
   expect(
-    'the last chunk within six months is one gate, shared by Drive and Gmail, absent on BigQuery',
+    'the last chunk within six months is one gate, computed for every connector, rendered on Gmail alone',
     /* One window, named once — never a bare `6` repeated in each chunk-figure function. */
     /const LAST_CHUNK_WINDOW_MONTHS = 6/.test(server) &&
       /function lastChunkWindowStart\(\)/.test(server) &&
@@ -3572,22 +3577,24 @@ expect(
       /lastChunkAt: s\.last_chunk_at,/.test(client) &&
       /lastChunkCount: s\.last_chunk_count,/.test(client) &&
       /lastChunkSince: s\.last_chunk_since,/.test(client) &&
-      /* Declared for Drive and Gmail — the two connectors that chunk at all — and read off the
-         row rather than typed as a literal, so a page rendering it still does not know which
-         connector it is looking at. `catalogUnits.ts` sliced to the `bigquery` entry alone must
-         not carry it, or the "absent on BigQuery" half of this claim is decoration. */
+      /* Declared for Gmail alone now, and read off the row rather than typed as a literal, so a
+         page rendering it still does not know which connector it is looking at. `catalogUnits.ts`
+         sliced to the `bigquery` and `gdrive` entries must not carry it, or the "absent" halves
+         of this claim are decoration. */
       /lastChunkTile\?: \{/.test(units) &&
-      (units.match(/lastChunkTile: \{\r?\n\s*label: 'last chunk \(6 mo\)',/g) ?? []).length === 2 &&
+      (units.match(/lastChunkTile: \{\r?\n\s*label: 'last chunk \(6 mo\)',/g) ?? []).length === 1 &&
       bigquery.length > 0 &&
       !/lastChunkTile/.test(bigquery) &&
+      gdrive.length > 0 &&
+      !/lastChunkTile/.test(gdrive) &&
       /* The page draws it from the row exactly as it draws the fifth tile, and nothing where a
          connector declares none. */
       /\{units\?\.lastChunkTile \? \(/.test(catalogPageCode) &&
       /value=\{units\.lastChunkTile\.value\(selected\)\}/.test(catalogPageCode) &&
       /note=\{units\.lastChunkTile\.note\(selected\)\}/.test(catalogPageCode),
-    bigquery.length === 0
-      ? 'the bigquery entry in catalogUnits.ts was not parsed — this check cannot run'
-      : 'a rolling window computed once on the server, read the same way by both connectors',
+    bigquery.length === 0 || gdrive.length === 0
+      ? 'the bigquery or gdrive entry in catalogUnits.ts was not parsed — this check cannot run'
+      : 'a rolling window computed once on the server, read by the one connector that renders it',
   )
 }
 

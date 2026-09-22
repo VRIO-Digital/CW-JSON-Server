@@ -11,8 +11,13 @@ const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 
 /**
- * The "last chunk" tile's value and note, shared by Drive and Gmail rather than written twice —
- * a second copy is how the two connectors' tiles come to word one fact differently.
+ * The "last chunk" tile's value and note — Gmail's own, kept as named functions rather than
+ * inline closures so the tile reads the same way `mailProcessCopy`'s formatters do.
+ *
+ * **Gmail only, removed from Drive on request.** The server still computes `last_chunk_at` for
+ * every source, Drive included — `lastChunkSince` rides on every row for the reason
+ * `profiledTodayDate` does — so this is a narrower *render* rather than a server change: Drive's
+ * row simply stops reading a field it is still served.
  *
  * **`lastChunkAt` absent is not "no data", it is "nothing recent"**, per the server's own gate:
  * `chunksTotal` still counts a chunk from eight months ago, so a reader who wants to know
@@ -120,9 +125,11 @@ export interface CatalogUnits {
    * the server, gated there rather than here so a page reading this cannot disagree with a
    * dictionary reading the same field about where "recent" starts.
    *
-   * **Declared for Drive and Gmail, both** — the two connectors `chunksTotal` already covers,
-   * since a rolling window is the same fact about either one: is anything of this source's own
-   * recent, or has nothing landed lately. BigQuery has no chunks at all, so it declares none.
+   * **Declared for Gmail only, on request.** It was declared for Drive too — a rolling window
+   * is the same fact about either connector, is anything of this source's own recent, or has
+   * nothing landed lately — and was removed from Drive's row; the server is untouched and still
+   * computes and serves the field for every connector, including Drive's, so nothing is lost by
+   * re-declaring it there later. BigQuery has no chunks at all, so it declares none either way.
    *
    * **`note` is a function, unlike `extraTile`'s fixed string**, because the one thing this
    * tile states that the others do not is a *date* — when the last one landed, or the boundary
@@ -256,11 +263,8 @@ export const CATALOG_UNITS: Record<string, CatalogUnits> = {
       suffix: 'chars',
       note: 'of extracted chunk text',
     },
-    lastChunkTile: {
-      label: 'last chunk (6 mo)',
-      value: lastChunkValue,
-      note: lastChunkNote,
-    },
+    /* No sixth tile on this row — removed on request; see the interface field above for what
+       stays true on the server regardless. */
     /*
      * **One act over the whole drive, asked for directly** — *"it should look like this view, not
      * existing view"*, of Gmail's surface. The browse-and-tick tree and the *View profiled

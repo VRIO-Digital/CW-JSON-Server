@@ -678,8 +678,8 @@ function CatalogTab({
             {/*
               * **A sixth tile, drawn the same way as the fifth**: read off `catalogUnits`, absent
               * where the row does not declare one, so the page still does not know which
-              * connector it is looking at. Drive and Gmail both declare it; BigQuery does not,
-              * because a project holds no chunks to have a recent one of.
+              * connector it is looking at. Gmail declares it; BigQuery and Drive do not — Drive's
+              * was removed on request, and the server still serves the field either way.
               */}
             {units?.lastChunkTile ? (
               <Col xs={24} sm={12} lg={6}>
