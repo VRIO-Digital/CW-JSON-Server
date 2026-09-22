@@ -139,6 +139,15 @@ export const MERGE_PLAN = {
     },
   },
 
+  /*
+   * The graph a dataset **ships** — one export of one tenant's two lanes and the Bridge formed
+   * between them, read through from the real services. `primary`, and never a union: the two lanes
+   * resolve inside each other's rosters (an edge names a column of *these* tables, a Type Link names
+   * a concept of *these* concepts), so merging two exports would draw a canvas whose edges resolve
+   * inside neither. EPA ships none, so `both` derives its lanes exactly as it did.
+   */
+  studio_graph: 'primary',
+
   /* Profiles and extractions are maps keyed by `dataset.table` and by document id. */
   column_profiles: 'keyed',
   document_extractions: 'keyed',

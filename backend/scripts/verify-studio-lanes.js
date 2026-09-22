@@ -28,6 +28,8 @@ import {
   dgbRelations,
   needsReview,
   selectedTables,
+  shippedGraph,
+  structuredTableCount,
   sgbCounts,
   sgbGraph,
   sgbStory,
@@ -90,6 +92,22 @@ for (const file of ['db.json', 'db.CAPEX.json']) {
     `${sources.length}`,
   )
 
+  /*
+   * **Whether this document ships a graph rather than deriving one**, which changes what several of
+   * the checks below are claims *about*.
+   *
+   * A derived Bridge row is nobody's decision yet and its reason is composed from a resolution
+   * count; a shipped one carries a model's own prose and whatever verdict a person recorded against
+   * it. Both are right, and asserting the derived rules over a shipped lane would fail the feature
+   * rather than the fault. So the rules that are about the **derivation** are scoped to it, and a
+   * shipped lane gets the rules that are about *it* — that every row resolves inside the lanes it
+   * names, and that this app's own review rule agrees with the export's count.
+   */
+  const shipped = shippedGraph(doc)
+  if (shipped) {
+    console.log('  (this document ships a built graph — the lanes serve it rather than deriving)')
+  }
+
   for (const useCase of doc.graph_use_cases ?? []) {
     const lanes = deriveLanes(doc, useCase)
     console.log(`  · ${useCase.use_case_id}`)
@@ -107,11 +125,24 @@ for (const file of ['db.json', 'db.CAPEX.json']) {
     if (lanes.hasStructured) {
       const graph = sgbGraph(doc, useCase, 'verify')
       const counts = sgbCounts(doc, useCase)
-      expect('the structured lane derives tables', graph.tables.length > 0, `${graph.tables.length}`)
+
+      /* One answer to "how many tables does this lane cover", whichever path served it: the selector
+         strip said *18 tables* over a drawing of five while it read `selectedTables` instead. */
       expect(
-        'and the tables it derives are the picks it admitted',
-        graph.tables.length === selectedTables(doc, useCase).length,
+        'the table count every surface reports is the lane’s own',
+        structuredTableCount(doc, useCase) === graph.tables.length,
+        `${structuredTableCount(doc, useCase)} table(s)`,
       )
+      expect('the structured lane derives tables', graph.tables.length > 0, `${graph.tables.length}`)
+      if (!shipped) {
+        /* **A claim about the derivation, so it is scoped to it.** A shipped lane's tables are the
+           tables that build ran over — CAPEX's export names 5 where its picks admit 18 — and
+           asserting the derived rule over it would fail the feature rather than the fault. */
+        expect(
+          'and the tables it derives are the picks it admitted',
+          graph.tables.length === selectedTables(doc, useCase).length,
+        )
+      }
       expect('it derives concepts', graph.concepts.length > 0, `${graph.concepts.length}`)
       expect(
         'and the concepts are the canvas’s own, not a second nomination',
@@ -124,7 +155,11 @@ for (const file of ['db.json', 'db.CAPEX.json']) {
         ...graph.tables.map((t) => t.table_ref),
         ...graph.columns.map((c) => c.column_ref),
         ...graph.concepts.map((c) => c.concept_ref),
-        graph.story_group.story_group_id,
+        /* Both spellings of the story group's ref: the derivation writes it bare on a COVERS edge
+           and a shipped lane writes it with its `story_group:` prefix. One check over one fact,
+           widened rather than duplicated for the shipped path. */
+        graph.story_group?.story_group_id,
+        `story_group:${graph.story_group?.story_group_id}`,
       ])
       const dangling = graph.edges.filter((e) => !refs.has(e.src_ref) || !refs.has(e.dst_ref))
       expect(
@@ -170,10 +205,26 @@ for (const file of ['db.json', 'db.CAPEX.json']) {
       const documents = corpusDocuments(doc, useCase)
 
       expect('the document lane derives its corpus', documents.length > 0, `${documents.length}`)
-      expect(
-        'every document in the corpus is an entity of the lane',
-        documents.every((row) => entities.some((e) => e.entity_id === row.document.document_id)),
-      )
+      if (!shipped) {
+        /* **The derived lane makes each document an entity of itself**, which is what puts a document
+           on the canvas beside what it was found to be about. A shipped snapshot states its documents
+           and its extracted entities in two separate lists, so this is a claim about the derivation
+           and not about the lane. */
+        expect(
+          'every document in the corpus is an entity of the lane',
+          documents.every((row) => entities.some((e) => e.entity_id === row.document.document_id)),
+        )
+      } else {
+        /* What must hold instead: every mention points at an entity the snapshot carries. That was a
+           real break — mentions were still derived from `document_extractions` while the entities came
+           from the export, so every one of them was an orphan. */
+        const ids = new Set(entities.map((e) => e.entity_id))
+        expect(
+          'every mention of a shipped lane points at an entity it carries',
+          dgbMentions(doc, useCase).every((m) => ids.has(m.entity_id)),
+          `${dgbMentions(doc, useCase).length} mention(s)`,
+        )
+      }
 
       /* A document is typed `Document` with its filing label beside it. Using the label as the type
          read plausibly and put a hue no ontology declares on the canvas, and every filing label into
@@ -248,18 +299,49 @@ for (const file of ['db.json', 'db.CAPEX.json']) {
         'confidence is categorical, never a score',
         links.every((l) => l.confidence === 'high' || l.confidence === 'low'),
       )
-      /* An identity link is grounded in a resolution rather than in two names matching. */
-      const identity = links.filter((l) => l.decision === 'identity')
-      expect(
-        'an identity link is grounded in a resolution',
-        identity.every((l) => /resolved to a/.test(l.reason)),
-        `${identity.length} identity link(s)`,
-      )
-      /* Nothing is decided by the derivation: every row starts needing a person. */
-      expect(
-        'every asserted correspondence starts undecided',
-        links.filter((l) => l.decision !== 'reject').every(needsReview),
-      )
+      if (shipped) {
+        /*
+         * A shipped Bridge is a record of a review that happened, so "every row starts undecided" is
+         * false of it *by design*. What must hold instead is that every row is about two things both
+         * lanes carry — a Type Link naming a concept the canvas has no node for draws a line from
+         * nothing — and that this app's review rule and the export's own count agree, because the
+         * Bridge tab and the publish route both read that rule.
+         */
+        const conceptRefs = new Set(sgbGraph(doc, useCase, 'verify').concepts.map((c) => c.concept_ref))
+        const entityTypes = new Set(dgbEntities(doc, useCase).map((e) => e.entity_type))
+        expect(
+          'every shipped Type Link names a concept the structured lane carries',
+          links.every((l) => conceptRefs.has(l.concept_ref)),
+        )
+        expect(
+          'and an entity type the document lane carries',
+          links.every((l) => entityTypes.has(l.entity_type)),
+        )
+        expect(
+          'the app’s review rule agrees with the shipped count',
+          links.filter(needsReview).length === (shipped.bridge?.counts?.needs_review ?? 0),
+          `${links.filter(needsReview).length} to review`,
+        )
+        /* Re-keyed to the run in hand, or every decision a reader records is filed under a build
+           this process never made. */
+        expect(
+          'and every row is keyed to the build in hand',
+          links.every((l) => l.bridge_build_id === 'verify'),
+        )
+      } else {
+        /* An identity link is grounded in a resolution rather than in two names matching. */
+        const identity = links.filter((l) => l.decision === 'identity')
+        expect(
+          'an identity link is grounded in a resolution',
+          identity.every((l) => /resolved to a/.test(l.reason)),
+          `${identity.length} identity link(s)`,
+        )
+        /* Nothing is decided by the derivation: every row starts needing a person. */
+        expect(
+          'every asserted correspondence starts undecided',
+          links.filter((l) => l.decision !== 'reject').every(needsReview),
+        )
+      }
     }
   }
 }

@@ -7650,6 +7650,92 @@ const viewerUnscoped = viewerCss
   .filter((sel) => sel && !sel.startsWith('@') && !/^(from|to|\d+%)$/.test(sel))
   .filter((sel) => !sel.split(',').every((one) => one.trim().startsWith('.cw-graph')))
 /*
+ * **A dataset can ship the graph a build actually produced, and CAPEX does.**
+ *
+ * `studioLanes.js` derives a coherent lane from `projects` and `document_extractions`, which is an
+ * honest stand-in for a build and never a replacement for one. CAPEX ships the real thing —
+ * `docs/samples/capex_usecase_graph.json`, read through from `StructuredGraphBuilderService`,
+ * `app.dgb` and `BridgeBuildService` — so its canvas draws the nodes and edges that build landed.
+ * The derivation is **out-ranked, not replaced**: the arrangement `tableDictionary` has with
+ * `synthesiseColumns` and `mailDocuments` has with its synthesiser, and EPA keeps every figure it had.
+ *
+ * **The sample is re-read and compared row for row**, because a sample file is the one kind of
+ * documentation that can be *run* — the rule `capex-plan-dictionary.csv` and the schema-upload
+ * example already follow. A document that quietly drifts from the export it claims to be is a canvas
+ * nobody can check against anything.
+ */
+const capexGraphSample = readJson('docs/samples/capex_usecase_graph.json').value
+const shippedStudio = capexDoc.value?.studio_graph ?? null
+expect(
+  'CAPEX ships the built graph its export states, row for row',
+  Boolean(capexGraphSample?.structured_graph) &&
+    Boolean(shippedStudio) &&
+    shippedStudio.structured.tables.length === capexGraphSample.structured_graph.tables.length &&
+    shippedStudio.structured.columns.length === capexGraphSample.structured_graph.columns.length &&
+    shippedStudio.structured.concepts.length === capexGraphSample.structured_graph.concepts.length &&
+    shippedStudio.structured.edges.length === capexGraphSample.structured_graph.edges.length &&
+    shippedStudio.documents.entities.length === capexGraphSample.document_graph.entities.length &&
+    shippedStudio.documents.relations.length === capexGraphSample.document_graph.relations.length &&
+    shippedStudio.bridge.type_links.length === capexGraphSample.bridge.type_links.length &&
+    /* Identical rows, not merely the same number of them. */
+    JSON.stringify(shippedStudio.structured.edges) ===
+      JSON.stringify(capexGraphSample.structured_graph.edges),
+  shippedStudio
+    ? `${shippedStudio.structured.tables.length} tables · ${shippedStudio.structured.edges.length} edges · ` +
+      `${shippedStudio.documents.entities.length} entities · ${shippedStudio.bridge.type_links.length} Type Links`
+    : 'db.CAPEX.json has no studio_graph — run npm run ingest:capex-graph',
+)
+expect(
+  'and every Type Link it ships resolves inside the two lanes beside it',
+  Boolean(shippedStudio) &&
+    (() => {
+      const refs = new Set(shippedStudio.structured.concepts.map((c) => c.concept_ref))
+      const types = new Set(shippedStudio.documents.entity_types)
+      return shippedStudio.bridge.type_links.every(
+        (t) => refs.has(t.concept_ref) && types.has(t.entity_type),
+      )
+    })(),
+  'a correspondence naming a concept the canvas has no node for draws a line from nothing',
+)
+/*
+ * **Every lane reader consults it, and every one of them falls back.** Half of this is the shape
+ * that fails silently: a canvas drawing the export's 5 tables beside a Bridge grid put to the
+ * derivation's 18 concepts is two answers to what this graph holds, one tab apart.
+ */
+const lanesSrc = codeOnly(read('backend/studioLanes.js'))
+expect(
+  'every lane serves the shipped graph where there is one, and derives where there is not',
+  /export function shippedGraph\(doc\)/.test(lanesSrc) &&
+    ['sgbGraph', 'conceptsFor', 'dgbEntities', 'dgbRelations', 'dgbClasses', 'dgbMentions'].every(
+      (fn) => {
+        const body = lanesSrc.slice(lanesSrc.indexOf(`export function ${fn}(`))
+        return /shippedLane\(doc, '(structured|documents)'\)/.test(body.slice(0, 900))
+      },
+    ) &&
+    /shippedGraph\(doc\)\?\.bridge/.test(lanesSrc) &&
+    /* Falling back is what keeps EPA's lanes exactly as they were. */
+    /if \(shipped\)/.test(lanesSrc),
+  'a lane that reads the export while its neighbour derives is two answers to one graph',
+)
+expect(
+  'the table count every surface reports is the lane’s own, not the picks it admits',
+  /export function structuredTableCount\(doc, useCase\)/.test(lanesSrc) &&
+    /structured_table_count: structuredTableCount\(/.test(codeOnly(server)) &&
+    /structured_table_count: structuredTableCount\(/.test(lanesSrc) &&
+    /* `selectedTables` still means what it meant — which tables a query may be composed against. */
+    /selectedTables\(db, found\.useCase\)/.test(codeOnly(server)),
+  'the selector strip said 18 tables over a drawing of five',
+)
+expect(
+  'a shipped graph has a merge rule and is checked at boot',
+  /studio_graph: 'primary'/.test(read('backend/datasets.js')) &&
+    /isObject\(candidate\.studio_graph\)/.test(codeOnly(server)) &&
+    /studio_graph\.structured has a \$\{edge\.edge_type\} edge/.test(server) &&
+    /studio_graph\.bridge has a Type Link naming concept/.test(server),
+  'a key with no merge rule is dropped from both, and an edge with no node is drawn as nothing',
+)
+
+/*
  * **Reset view undoes everything that changed what is on screen, which is two halves.**
  *
  * It called the camera reset alone, so pressing it with a node selected re-centred a graph that

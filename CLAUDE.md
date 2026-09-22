@@ -3021,7 +3021,69 @@ mock server, which was answering perfectly. The server had been driven end to en
 (every route 200) and the components rendered against fabricated payloads (every panel drew); neither
 runs the validator against a real response.
 
-#### The Bridge
+#### A dataset can ship the graph a build produced, and CAPEX does
+
+**Everything above describes the derivation, which is an honest stand-in for a build and never a
+replacement for one.** CAPEX ships the real thing: `docs/samples/capex_usecase_graph.json` is what
+the platform's own services produced for its use case — `StructuredGraphBuilderService.get_graph`,
+`app.dgb.public.get_graph_version_snapshot` and `BridgeBuildService.list_type_links_page`, read
+through and exported together — and `npm run ingest:capex-graph` writes it into `db.CAPEX.json` as
+`studio_graph`. So its canvas draws **5 tables · 91 columns · 12 concepts · 253 edges** on the
+structured lane, **843 entities across 13 types · 925 relations** on the document lane, and the
+**156 Type Links** between them: the nodes and edges that build actually landed, rather than the
+shapes `studioLanes.js` composes from `projects` and `document_extractions`.
+
+**The derivation is out-ranked, not replaced** — the arrangement `tableDictionary` has with
+`synthesiseColumns` and `mailDocuments` has with its synthesiser. A dataset that ships a real graph
+ships it; one that does not derives a coherent lane from what it holds, and **EPA keeps every figure
+it had** (5 tables · 206 columns · 7 concepts · 392 edges).
+
+**It is the dataset's rather than a use case's**, exactly as `graph_studio.canvas` already is: one
+tenant, one built graph. What stays per use case is *which lanes it has* — `deriveLanes` still reads
+the brief's own source picks, so a use case with no document pick still gets no document lane, and
+the shipped graph fills the lanes it does open.
+
+**Every lane reader consults it and every one of them falls back**, which is the half that fails
+silently: a canvas drawing the export's 5 tables beside a Bridge grid put to the derivation's 18
+concepts would be two answers to what this graph holds, one tab apart. `sgbGraph`, `conceptsFor`,
+`dgbEntities`, `dgbRelations`, `dgbClasses`, `dgbMentions` and `typeLinks` all read it.
+
+**`dgbMentions` was the one that had to be rewritten rather than merely switched**, and
+`verify:studio-lanes` is what found it: mentions were still derived from `document_extractions`,
+which names nodes of *this document's* canvas, while the entities came from the export — so every
+mention was an orphan. A shipped relation already states the three things a mention is (which
+document, which chunk, which entity), so they are read off it, and **no salience is invented** where
+the derived path has a deterministic stand-in.
+
+**`structuredTableCount` is the one definition of "how many tables this lane covers"**, because the
+selector strip said *18 tables* over a drawing of five while it read `selectedTables`. That function
+is untouched and still means *which of this document's profiled tables the picks admit* — the right
+answer for composing a query against `column_profiles`, which is why `/graph-questions/sql` still
+asks it rather than this.
+
+**A shipped Bridge is served as it was formed, re-keyed to the build in hand.** Its rows carry what a
+derivation cannot: the model's own reasoning in prose, the verdict a person recorded, and who
+recorded it. `bridge_build_id` is **this server's**, because a decision is keyed
+`bridgeBuildId:type_link_id` and keeping the export's would file every decision under a build this
+process never ran. Its 98 human decisions and 58 llm rejects mean **`needsReview` is 0** — this app's
+own rule and the export's `unreviewed_count` agree exactly, which is checked rather than trusted, and
+it does mean CAPEX's Bridge opens with nothing left to decide.
+
+**The ingest refuses to write rather than landing a graph that draws wrong**, and every check guards
+something that fails *quietly on the canvas*: an edge whose endpoint is no node is skipped while
+drawing (the fault `validateDb` already refuses for `graph_studio.canvas`), a relation between
+entities the snapshot lacks is the same thing one lane over, a Type Link naming a concept neither
+lane carries draws a line from nothing, a verdict outside the three renders unstyled, and a count
+that disagrees with its own rows is a strip reporting a graph nobody can see. `validateDb` re-checks
+the first three at boot, and `check-docs` **re-reads the sample and compares row for row** — a sample
+file is the one kind of documentation that can be run.
+
+**`MERGE_PLAN` marks it `primary`, never a union.** The two lanes resolve inside each other's rosters
+— an edge names a column of *these* tables, a Type Link a concept of *these* concepts — so merging
+two exports would draw a canvas whose edges resolve inside neither. EPA ships none, so `both` derives
+exactly as it did.
+
+#### The Bridge#### The Bridge
 
 **The third artifact, standing beside the two graphs rather than merging them.** It asserts one thing
 and stops at the type level: that a thing of this document entity type **is** what one row of this

@@ -25,7 +25,7 @@ type Props = {
 export const Sidebar = ({ graph, byId, selected, onSelect }: Props) => (
   <div className="side">
     <header>
-      <h1>VLS Knowledge Graph</h1>
+      <h1>Knowledge Graph</h1>
       <div className="sub">
         {graph.subtitle ??
           `${graph.nodes.length} nodes · ${graph.links.length} edges · Context Weave extraction`}

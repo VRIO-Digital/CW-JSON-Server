@@ -1994,6 +1994,18 @@ each is answered by**, plus add, edit and remove.
 Three frames, one viewer. A second force graph is what this repo refuses everywhere: two drawings of
 one graph are two answers to what it looks like.
 
+- **A dataset can ship the graph a build produced.** CAPEX does: `docs/samples/capex_usecase_graph.
+  json` → `studio_graph` via `npm run ingest:capex-graph`, so its canvas draws 5 tables · 253 edges ·
+  843 entities · 156 Type Links rather than the derivation's. `shippedGraph`/`shippedLane` in
+  `studioLanes.js`; every lane reader consults it **and falls back**, so EPA is unchanged. It is the
+  *dataset's*, not a use case's — `deriveLanes` still decides which lanes exist from the picks.
+- **`dgbMentions` is read off the shipped relations**, not derived: mentions keyed to
+  `document_extractions` point at nodes a shipped snapshot does not hold. Found by
+  `verify:studio-lanes`, which now branches on `shippedGraph(doc)` — the derived rules ("every row
+  starts undecided", "every document is an entity") are claims about the *derivation*.
+- **`structuredTableCount` is the one answer to "how many tables"** — the strip said 18 over a
+  drawing of five. `selectedTables` is untouched and still answers which tables a query composes
+  against.
 - **Reset view is two halves**: the camera (`resetCamera` — zoom to identity plus a nudge back to
   the middle) and what the reader narrowed (`clearView` — the selection, the search, the hidden
   types). It reset the camera alone, so with a node selected it re-centred a graph that stayed
