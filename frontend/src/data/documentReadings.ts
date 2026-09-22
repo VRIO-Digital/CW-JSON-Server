@@ -178,6 +178,54 @@ const DEFINITIONS: MetricDefinition[] = [
       'Which projects will cross 90% of their authorised envelope before their midpoint milestone?',
     priority: 'high',
   },
+  {
+    name: 'Change Order Rate',
+    purpose:
+      'is reviewed at monthly steering, where a rate above 15% is read as scope that was underspecified at award',
+    description:
+      'Contracts amended by at least one change order this period, as a share of all active contracts.',
+    usedFor: 'the monthly steering review.',
+    note: 'A change order correcting a clerical error on the contract is excluded.',
+    query: `SELECT ROUND(100.0 * COUNT(DISTINCT c.contract_id) FILTER (WHERE co.change_order_id IS NOT NULL)
+           / NULLIF(COUNT(DISTINCT c.contract_id), 0), 1) AS change_order_rate
+  FROM ops.contract_lines c
+  LEFT JOIN ops.change_orders co ON co.contract_id = c.contract_id
+ WHERE c.status = 'active';`,
+    question:
+      'Which active contracts have been amended by a change order this period?',
+    priority: 'normal',
+  },
+  {
+    name: 'Warehouse Parts Turns',
+    purpose:
+      "is what the annual inventory review is scored on, and what sets next year's stocking levels",
+    description:
+      "A maintenance warehouse's annualised inventory turnover: cost of parts issued over the trailing year, divided by average parts on hand.",
+    usedFor: 'the annual inventory review.',
+    note: 'Parts held against a specific scheduled outage are excluded from the average on hand.',
+    query: `SELECT i.warehouse_id,
+       ROUND(SUM(i.issued_cost_cents) / 100.0 / NULLIF(AVG(i.on_hand_cost_cents) / 100.0, 0), 2) AS parts_turns
+  FROM ops.inventory_issues i
+ WHERE i.issued_at >= CURRENT_DATE - INTERVAL '1 year'
+ GROUP BY 1;`,
+    question:
+      'Which warehouses are turning parts inventory slowest?',
+    priority: 'normal',
+  },
+  {
+    name: 'Permit Cycle Time',
+    purpose:
+      'is what a capital project schedule is built around, and a slip on it is the first thing the monthly review checks',
+    description: 'Median days from a capital project permit application to its approval.',
+    usedFor: 'the monthly capital review and project scheduling.',
+    note: 'A permit withdrawn and re-filed restarts the clock rather than counting from the original filing.',
+    query: `SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY p.approved_at - p.filed_at) AS permit_days
+  FROM capital.permits p
+ WHERE p.approved_at IS NOT NULL;`,
+    question:
+      'Which permits are taking longest to clear, and which projects are they holding up?',
+    priority: 'normal',
+  },
 ]
 
 /** How many definitions a document contributes, beside its one context line. */
@@ -203,6 +251,40 @@ function definitionsFor(file: string): MetricDefinition[] {
   return out
 }
 
+/**
+ * A file's window resolved against what earlier files in the same attached set have already
+ * claimed.
+ *
+ * `definitionsFor` alone is per-file and blind to the rest of the set, so two attached documents
+ * whose hashes land on overlapping windows were shown quoting the identical measure — the same
+ * query, the same caveat — attributed to two different files, which is not what a reader would
+ * expect of a pass that had actually looked at both. So a name another file in this set already
+ * claimed is skipped in favour of the pool's next one, walked from this file's own hash and
+ * wrapping around it: a file attached on its own, or first in the set, still reads exactly what
+ * `definitionsFor` alone would give it. Only once every definition in the pool is already spoken
+ * for does a later file repeat one — the pool is finite and a document cannot be read as
+ * containing fewer measures than its neighbours.
+ */
+function resolveDefinitions(
+  file: string,
+  preferred: MetricDefinition[],
+  claimed: Set<string>,
+): MetricDefinition[] {
+  const seed = hash(file)
+  const picked: MetricDefinition[] = []
+  for (let step = 0; step < DEFINITIONS.length && picked.length < DEFINITIONS_PER_DOC; step += 1) {
+    const candidate = DEFINITIONS[(seed + step) % DEFINITIONS.length]
+    if (!claimed.has(candidate.name)) picked.push(candidate)
+  }
+  /* The pool has fewer unclaimed names left than this file needs — fall back to its own
+     preferred window rather than reading with fewer than three. */
+  preferred.forEach((d) => {
+    if (picked.length < DEFINITIONS_PER_DOC) picked.push(d)
+  })
+  picked.forEach((d) => claimed.add(d.name))
+  return picked
+}
+
 /* ---------------------------------------------------------------- step 1 */
 
 /** One thing the pass says it took from one document. */
@@ -220,11 +302,17 @@ export type DocumentReading = {
 /**
  * What the pass read out of each attached document, in the order the documents were attached.
  *
- * Deterministic: the same filename always yields the same four readings, so removing a document
- * and attaching it again does not quietly rewrite what it was said to contain.
+ * Deterministic for a given set of files: attach the same documents in the same order and the
+ * reading is the same every time, so removing a document and attaching it again does not
+ * quietly rewrite what it was said to contain. It is no longer deterministic *per file in
+ * isolation* — `definitionsFor(file)` alone is each document's starting point, but a measure
+ * another file in this set has already claimed is resolved away in favour of the pool's next
+ * one (`resolveDefinitions`), so two attached documents cannot come to quote the same query and
+ * caveat under two different names.
  */
 export function documentReadings(files: string[]): DocumentReading[] {
   const readings: DocumentReading[] = []
+  const claimed = new Set<string>()
 
   for (const file of files) {
     readings.push({
@@ -234,7 +322,9 @@ export function documentReadings(files: string[]): DocumentReading[] {
       file,
     })
 
-    definitionsFor(file).forEach((d, i) => {
+    /* `definitionsFor(file)` is this document's own starting window; `resolveDefinitions`
+       reconciles it against what earlier files in this same pass already claimed. */
+    resolveDefinitions(file, definitionsFor(file), claimed).forEach((d, i) => {
       readings.push({
         id: `${file}#${i + 1}`,
         headline: `${d.name} ${d.purpose}.`,
@@ -297,11 +387,15 @@ export type DocumentMetric = {
  * The measures the attached documents define, in the order they were attached.
  *
  * The same rows step 1 quotes, structured rather than flattened — a reader who approves
- * *Unplanned Outage Share* here is approving the definition they saw quoted two steps back.
+ * *Unplanned Outage Share* here is approving the definition they saw quoted two steps back. Which
+ * means it has to resolve the same cross-file collisions step 1 does, through the same
+ * `resolveDefinitions`, and with its own `claimed` set — two independent passes over one `files`
+ * array, so a document reads the same measures on both surfaces.
  */
 export function documentMetrics(files: string[]): DocumentMetric[] {
+  const claimed = new Set<string>()
   return files.flatMap((file) =>
-    definitionsFor(file).map((d, i) => ({
+    resolveDefinitions(file, definitionsFor(file), claimed).map((d, i) => ({
       id: `${file}#m${i + 1}`,
       name: d.name,
       description: d.description,
