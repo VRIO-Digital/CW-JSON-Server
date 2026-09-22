@@ -5542,7 +5542,7 @@ they gate access; they are the same client-held preference `viewer_roles` is.
 **The Report View tab records what a persona may *do* to a report, and the split from Persona
 Configuration is the point.** That tab answers "which pages does this persona see"; this one answers
 "what may it do once it is on one of them" — the three acts a Library row offers, `open` · `edit` ·
-`delete`. One table mixing nine navigation items with three report acts would be two questions in one
+`delete`. One table mixing ten navigation items with three report acts would be two questions in one
 list. `report_permissions` and `report_defaults` sit beside `nav_permissions` and `defaults` in
 `db.settings`, `PATCH /settings/personas/:roleId/reports` is the twin of the `nav` route, and Reset
 restores **both** blocks — the button says "Reset to defaults" for the persona, and restoring its
@@ -5900,28 +5900,32 @@ back to return the user to where they were headed rather than always landing on
 Sources. `/login` has no `NAV_ITEMS` entry — there is nothing to navigate to
 before signing in, and once signed in there is no reason to navigate back.
 
-**Every sidebar entry now has a page.** `NAV_ITEMS` has **9** live entries and `routes.tsx`
-has a page for **9** of them (`/new-graph`, `/ask`, `/reports`, `/sources`, `/catalog`,
-`/graph-studio`, `/what-if`, `/audit`, `/settings`). **Knowledge Graphs was the tenth and is
-gone** — a roadmap placeholder with no route, so clicking it fell through `path: '*'` to
-`NotFoundPage`; it was removed on request. Removing it was four coordinated edits, which is
-what any nav entry costs: the `NAV_ITEMS` entry, its `NavKey` and its icon import in `nav.ts`,
-its key in the seed's `NAV_KEYS`, and a re-seed of `db.settings` so no persona carries a
-permission for an item that does not exist. A future placeholder is the same four in reverse
-plus the one line in `routes.tsx` when it gets a page — `/what-if`, `/reports` and `/audit`
-were all placeholders until theirs landed.
+**Every sidebar entry now has a page.** `NAV_ITEMS` has **10** live entries and `routes.tsx`
+has a page for **10** of them (`/reports`, `/ask`, `/what-if`, `/aisubmission`, `/new-graph`,
+`/sources`, `/catalog`, `/graph-studio`, `/audit`, `/settings`). **Knowledge Graphs was a
+tenth once and is gone** — a roadmap placeholder with no route, so clicking it fell through
+`path: '*'` to `NotFoundPage`; it was removed on request. Removing it was four coordinated
+edits, which is what any nav entry costs: the `NAV_ITEMS` entry, its `NavKey` and its icon
+import in `nav.ts`, its key in the seed's `NAV_KEYS`, and a re-seed of `db.settings` so no
+persona carries a permission for an item that does not exist. A future placeholder is the
+same four in reverse plus the one line in `routes.tsx` when it gets a page — `/what-if`,
+`/reports` and `/audit` were all placeholders until theirs landed. **AI Submissions took the
+tenth slot without ever being one**: it shipped with its page already built — a framed,
+dataset-independent document rather than a computed screen, see `AISubmissionsPage` — so all
+five edits, the route included, landed in one pass instead of the placeholder-then-page
+sequence the paragraph above describes.
 
-**The nine sit in three groups, and a group is a heading rather than a permission.** `NAV_GROUPS`
-in `nav.ts` declares them in order — **Explore** (Reports, Ask, What-if Lenses), **Build &
-Configure** (New Graph, Sources, Data Catalog, Graph Studio), **Trust & Operations** (Audit &
-Governance, Settings) — and every item names one. `SidebarMenu` builds the headings from the list
-`visibleNavItems` returned and drops a group with nothing under it, because `EXPLORE` above empty
-space reads as a section that failed to load rather than as one the persona may not open. The
-grouping costs a fifth coordinated edit on top of the four above: `NAV_ITEMS` is in group order, and
-`check-docs` compares that order to the seed's `NAV_KEYS` literally, so a reordering here is a
-reordering there plus `npm run seed:settings`.
+**The ten sit in three groups, and a group is a heading rather than a permission.** `NAV_GROUPS`
+in `nav.ts` declares them in order — **Explore** (Reports, Ask, What-if Lenses, AI Submissions),
+**Build & Configure** (New Graph, Sources, Data Catalog, Graph Studio), **Trust & Operations**
+(Audit & Governance, Settings) — and every item names one. `SidebarMenu` builds the headings from
+the list `visibleNavItems` returned and drops a group with nothing under it, because `EXPLORE`
+above empty space reads as a section that failed to load rather than as one the persona may not
+open. The grouping costs a fifth coordinated edit on top of the four above: `NAV_ITEMS` is in
+group order, and `check-docs` compares that order to the seed's `NAV_KEYS` literally, so a
+reordering here is a reordering there plus `npm run seed:settings`.
 
-**And the sidebar is filtered.** `visibleNavItems` in `settingsStore` decides which of those nine
+**And the sidebar is filtered.** `visibleNavItems` in `settingsStore` decides which of those ten
 entries a persona sees — see Settings below. `App`'s mobile header deliberately looks up the
 *unfiltered* list, because it names the page you are on and a hidden page is still reachable by URL.
 

@@ -4,6 +4,7 @@ import DatasetPathGate from './components/shell/DatasetPathGate'
 import DatasetRedirect from './components/shell/DatasetRedirect'
 import RequireAuth from './components/shell/RequireAuth'
 import { LANDING } from './nav'
+import AISubmissionsPage from './pages/AISubmissionsPage'
 import AskPage from './pages/AskPage'
 import AuditPage from './pages/AuditPage'
 import CatalogPage from './pages/CatalogPage'
@@ -157,6 +158,8 @@ export const routes: RouteObject[] = [
              hypothetically and reports what the facility would inherit. Its nav entry
              already existed as a roadmap placeholder; this is the page behind it. */
           { path: 'what-if', element: <WhatIfPage /> },
+          /* A framed showcase page, gated on nothing — see AISubmissionsPage for why. */
+          { path: 'aisubmission', element: <AISubmissionsPage /> },
           /*
            * Users and persona access — the two tabs that configure who sees what.
            *

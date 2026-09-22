@@ -15528,6 +15528,7 @@
         "reports": true,
         "ask": true,
         "what-if": true,
+        "ai-submissions": true,
         "new-graph": true,
         "sources": true,
         "catalog": true,
@@ -15539,6 +15540,7 @@
         "reports": true,
         "ask": true,
         "what-if": true,
+        "ai-submissions": true,
         "new-graph": true,
         "sources": true,
         "catalog": true,
@@ -15550,6 +15552,7 @@
         "reports": true,
         "ask": true,
         "what-if": true,
+        "ai-submissions": true,
         "new-graph": true,
         "sources": true,
         "catalog": true,
@@ -15561,6 +15564,7 @@
         "reports": false,
         "ask": false,
         "what-if": false,
+        "ai-submissions": false,
         "new-graph": false,
         "sources": false,
         "catalog": false,
@@ -15579,6 +15583,7 @@
         "reports": true,
         "ask": true,
         "what-if": true,
+        "ai-submissions": true,
         "new-graph": true,
         "sources": true,
         "catalog": true,
@@ -15590,6 +15595,7 @@
         "reports": true,
         "ask": true,
         "what-if": true,
+        "ai-submissions": true,
         "new-graph": true,
         "sources": true,
         "catalog": true,
@@ -15601,6 +15607,7 @@
         "reports": true,
         "ask": true,
         "what-if": true,
+        "ai-submissions": true,
         "new-graph": true,
         "sources": true,
         "catalog": true,
@@ -15612,6 +15619,7 @@
         "reports": true,
         "ask": true,
         "what-if": true,
+        "ai-submissions": false,
         "new-graph": true,
         "sources": true,
         "catalog": true,
@@ -15620,7 +15628,7 @@
         "settings": true
       }
     },
-    "report_defaults": {
+    "report_permissions": {
       "business_user_executive": {
         "open": true,
         "edit": false,
@@ -15642,7 +15650,7 @@
         "delete": true
       }
     },
-    "report_permissions": {
+    "report_defaults": {
       "business_user_executive": {
         "open": true,
         "edit": false,

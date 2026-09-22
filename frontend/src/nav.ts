@@ -7,6 +7,7 @@ import {
   FileTextOutlined,
   // LineChartOutlined,
   PlusOutlined,
+  RobotOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
   TableOutlined,
@@ -23,6 +24,7 @@ export type NavKey =
   | 'graph-builds'
   | 'graph-studio'
   | 'what-if'
+  | 'ai-submissions'
   | 'settings'
   | 'trace'
   | 'validation'
@@ -81,6 +83,17 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'What-if Lenses',
     path: '/what-if',
     icon: ExperimentOutlined,
+    group: 'Explore',
+  },
+  /*
+   * A fixed showcase page rather than a computed one — see `AISubmissionsPage` for why it is gated
+   * on nothing. Last in Explore because it reads no source and no graph, unlike the three above it.
+   */
+  {
+    key: 'ai-submissions',
+    label: 'AI Submissions',
+    path: '/aisubmission',
+    icon: RobotOutlined,
     group: 'Explore',
   },
 

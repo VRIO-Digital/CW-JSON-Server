@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Submissions — Context Weave demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg0:#f3f4f6;--bg1:#fff;--card2:#f4f5f7;--inset:#f7f8f9;--line:#e3e5e9;--line2:#d3d6db;--text:#1b1e22;--mut:#5c636b;--dim:#8a9099;
+--orange:#f2691d;--orange-soft:rgba(242,105,29,.10);--green:#0d9f6e;--green-soft:rgba(16,150,110,.10);--amber:#b47d0a;--amber-soft:rgba(180,120,10,.12);
+--red:#dc4444;--red-soft:rgba(220,60,60,.09);--blue:#2563eb;--blue-soft:rgba(37,99,235,.08);--purple:#7c3aed;--purple-soft:rgba(124,58,237,.08);
+--r:8px;--sans:'Inter',-apple-system,Segoe UI,Roboto,sans-serif;--disp:'Space Grotesk',var(--sans);--mono:'JetBrains Mono',ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg0);color:var(--text);font-family:var(--sans);font-size:13.5px;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer}button:disabled{cursor:not-allowed;opacity:.5}a{color:var(--blue);cursor:pointer}
+h1,h2,h3{font-family:var(--disp);margin:0;font-weight:600;letter-spacing:-.01em}h1{font-size:22px}h2{font-size:17px}h3{font-size:14.5px}
+h4{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);font-weight:600}
+.mono{font-family:var(--mono);font-size:12.5px}.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.mut{color:var(--mut)}.dim{color:var(--dim)}.sm{font-size:12px}.xs{font-size:11px}.row{display:flex;align-items:center;gap:8px}.grow{flex:1}.sp{justify-content:space-between}
+#app{display:grid;grid-template-columns:200px 1fr;height:100%}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--orange-soft);color:var(--orange);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:11px}
+.sidenav{background:var(--bg1);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:2px}
+.nav{display:flex;gap:10px;padding:8px 10px;border-radius:var(--r);color:var(--mut);font-weight:500}.nav.act{background:var(--orange-soft);color:var(--text);font-weight:600}.nav.dis{opacity:.55}
+.nav .ico{width:18px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--dim)}.nav.act .ico{color:var(--orange)}
+.sub{padding:6px 10px 6px 38px;color:var(--mut);border-radius:var(--r);cursor:pointer;font-size:12.5px}.sub.act{color:var(--text);font-weight:600}.sub:hover{background:var(--card2)}
+main{overflow:auto;padding:22px 26px 40px}.page{max-width:1300px;margin:0 auto}
+.pagehead{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px}.pagehead p{color:var(--mut);margin:4px 0 0;max-width:820px}
+.crumbs{font-size:12px;color:var(--dim);margin-bottom:6px}.crumbs a{color:var(--mut);text-decoration:none}
+.card{background:var(--bg1);border:1px solid var(--line);border-radius:11px;padding:16px}.card.tight{padding:12px 14px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:var(--r);border:1px solid var(--line2);background:var(--bg1);font-weight:500;font-size:13px;white-space:nowrap}
+.btn.pri{background:var(--orange);border-color:var(--orange);color:#fff}.btn.sm{padding:4px 9px;font-size:12px}.btn.ghost{border-color:transparent;background:transparent;color:var(--mut)}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+.chip.gray{background:var(--card2);color:var(--mut);border-color:var(--line)}.chip.green{background:var(--green-soft);color:var(--green)}.chip.amber{background:var(--amber-soft);color:var(--amber)}
+.chip.red{background:var(--red-soft);color:var(--red)}.chip.blue{background:var(--blue-soft);color:var(--blue)}.chip.purple{background:var(--purple-soft);color:var(--purple)}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.chip.orange{background:var(--orange-soft);color:var(--orange);border-color:var(--orange)}.chip.outline{background:transparent;border-color:var(--line2);color:var(--mut)}
+tr.clickable{cursor:pointer}tr.clickable:hover td{background:var(--orange-soft)}tr.sel td{background:var(--orange-soft)}
+.radio{display:inline-block}
+.tag{display:inline-block;padding:1px 6px;border-radius:4px;background:var(--card2);border:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--mut)}
+table.t{width:100%;border-collapse:collapse;font-size:12.5px}table.t th{font-weight:600;text-align:left;color:var(--mut);font-size:11.5px;padding:8px 10px;border-bottom:1px solid var(--line2);background:var(--inset)}
+table.t th.num{text-align:right}table.t td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}table.t tr:last-child td{border-bottom:none}
+table.t tr.total td{font-weight:600;background:var(--inset);border-top:1px solid var(--line2)}
+td.cell{cursor:pointer;border-radius:4px}td.cell:hover{outline:1px solid rgba(242,105,29,.4)}td.cell.sel{outline:2px solid var(--orange);background:var(--orange-soft)}
+.coord{font-family:var(--mono);font-size:10.5px;color:var(--dim);display:block;margin-top:2px}
+.note{font-size:12px;color:var(--mut);padding:10px 12px;background:var(--inset);border-left:3px solid var(--line2);border-radius:0 var(--r) var(--r) 0}
+.note.warn{border-left-color:var(--amber);background:var(--amber-soft)}.note.good{border-left-color:var(--green);background:var(--green-soft)}.note.bad{border-left-color:var(--red);background:var(--red-soft)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}.stat{padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:var(--bg1)}
+.stat .v{font-family:var(--disp);font-size:24px;font-weight:600;line-height:1.1}.stat .l{color:var(--mut);font-size:12px;margin-top:3px}.stat.warn .v{color:var(--amber)}.stat.bad .v{color:var(--red)}
+.due.soon{color:var(--amber);font-weight:600}
+.steps{display:flex;margin-bottom:18px;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--bg1)}
+.st{flex:1;padding:10px 14px;display:flex;align-items:center;gap:10px;color:var(--dim);border-right:1px solid var(--line);font-size:12.5px}.st:last-child{border-right:none}
+.st b{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line2);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-family:var(--mono)}
+.st.act{color:var(--text);font-weight:600;background:var(--orange-soft)}.st.act b{border-color:var(--orange);color:var(--orange)}.st.done b{background:var(--orange);border-color:var(--orange);color:#fff}
+.oblist .ob{padding:12px 14px;border:1px solid var(--line);border-radius:11px;cursor:pointer;background:var(--bg1);display:flex;gap:12px;margin-bottom:8px}
+.ob.sel{border-color:var(--orange);box-shadow:0 0 0 2px var(--orange-soft)}.ob.dis{opacity:.6;cursor:default}
+.radio{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line2);margin-top:2px;flex:none}.ob.sel .radio{border:5px solid var(--orange)}
+.gen .g{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);color:var(--dim)}.gen .g:last-child{border-bottom:none}.gen .g.ok,.gen .g.run{color:var(--text)}
+.gen .ic{width:20px;text-align:center;font-family:var(--mono)}.gen .ok .ic{color:var(--green)}
+@keyframes spin{to{transform:rotate(360deg)}}.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line2);border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite}
+.ws{display:grid;grid-template-columns:190px minmax(0,1fr) 320px;gap:14px;align-items:start}
+.outline{position:sticky;top:0}.o{padding:7px 10px;border-radius:var(--r);cursor:pointer;display:flex;gap:8px;align-items:center;color:var(--mut);font-size:12.5px}.o.act{background:var(--orange-soft);color:var(--text);font-weight:600}
+.o .k{font-family:var(--mono);font-size:10.5px;color:var(--dim);width:22px}.o .s{margin-left:auto;width:8px;height:8px;border-radius:50%}.s.ok{background:var(--green)}.s.warn{background:var(--amber)}.s.bad{background:var(--red)}
+.fhead{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;background:var(--bg1);border:1px solid var(--line);border-radius:11px;margin-bottom:14px}
+.meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:6px}.meta b{color:var(--text)}
+.doc{background:var(--bg1);border:1px solid var(--line);border-radius:11px;min-width:0}.sec{padding:18px 22px;border-bottom:1px solid var(--line);overflow-x:auto}.sec:last-child{border-bottom:none}
+.sec.act{background:linear-gradient(90deg,var(--orange-soft) 0,transparent 8px)}.sechead{display:flex;align-items:center;gap:10px;margin-bottom:10px}.sechead .k{font-family:var(--mono);color:var(--dim);font-size:11.5px}
+.para{padding:8px 10px;line-height:1.6}
+.cite{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:0 5px;border-radius:4px;background:var(--blue-soft);color:var(--blue);cursor:pointer;margin:0 1px}.cite.doc{background:var(--purple-soft);color:var(--purple);cursor:default}
+.attest{border:1px dashed var(--line2);border-radius:11px;padding:14px;background:var(--inset)}.sig{font-family:var(--disp);font-size:16px;font-style:italic}
+.rpanel{position:sticky;top:0}.tabs{display:flex;border-bottom:1px solid var(--line)}.tabs button{padding:8px 10px;border:none;background:none;color:var(--mut);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.act{color:var(--text);border-bottom-color:var(--orange);font-weight:600}.tabs .n{margin-left:6px;font-size:11px;background:var(--card2);padding:0 6px;border-radius:999px}
+.body{max-height:calc(100vh - 140px);overflow:auto;padding-top:12px}
+.chk{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}.chk:last-child{border-bottom:none}
+.chk .ic{width:20px;height:20px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--mono)}
+.chk.pass .ic{background:var(--green-soft);color:var(--green)}.chk.fail .ic{background:var(--red-soft);color:var(--red)}.chk.na .ic{background:var(--amber-soft);color:var(--amber)}
+.chk .t{font-weight:600;font-size:12.5px}.chk .d{font-size:12px;color:var(--mut);margin-top:2px}.fix{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+.lin .l{padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px}.lin .l:last-child{border-bottom:none}.lin b{display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.cmt{padding:10px 0;border-bottom:1px solid var(--line)}.cmt .h{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mut)}.cmt .h b{color:var(--text)}.cmt .b{margin:5px 0 0 0;font-size:12.5px}.cmt.res{opacity:.6}
+textarea,input[type=text],input[type=date]{font:inherit;padding:7px 10px;border:1px solid var(--line2);border-radius:var(--r);width:100%}textarea{min-height:64px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut)}
+.empty{padding:22px;text-align:center;color:var(--dim);border:1px dashed var(--line2);border-radius:11px}
+.modal-bg{position:fixed;inset:0;background:rgba(20,25,35,.35);display:flex;align-items:center;justify-content:center;z-index:50}
+.modal{background:var(--bg1);border-radius:14px;box-shadow:0 8px 28px rgba(20,25,35,.15);width:min(620px,94vw);max-height:90vh;overflow:auto;padding:22px 24px}.acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.files .f{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);margin-bottom:8px}.files .ic{font-family:var(--mono);font-size:11px;background:var(--card2);padding:3px 6px;border-radius:4px;color:var(--mut)}
+.wm{display:inline-block;padding:3px 10px;border:2px solid var(--red);color:var(--red);font-weight:800;font-family:var(--disp);letter-spacing:.08em;font-size:11px;border-radius:4px;transform:rotate(-2deg)}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:9px 14px;border-radius:var(--r);font-size:12.5px;z-index:60}
+@media print{#app{display:block}.sidenav,.topbar,.outline,.rpanel,.noprint{display:none!important}main{padding:0}.ws{display:block}.doc{border:none}.printhead{display:block!important}}
+.stance{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.stance.applies{background:var(--green-soft);color:var(--green)}.stance.likely{background:var(--amber-soft);color:var(--amber)}.stance.no{background:var(--card2);color:var(--mut);border:1px solid var(--line)}
+.ev{font-size:12px;color:var(--mut)}.ev .src{display:inline-block;font-family:var(--mono);font-size:10.5px;padding:0 5px;border-radius:4px;background:var(--purple-soft);color:var(--purple);margin-right:4px}
+.ev .src.pack{background:var(--blue-soft);color:var(--blue)}.ev .src.web{background:var(--amber-soft);color:var(--amber)}
+tr.declined td{opacity:.55}
+.pass-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}.pass-row:last-child{border-bottom:none}.pass-row .ic{width:20px;text-align:center;font-family:var(--mono);color:var(--dim)}.pass-row.ok .ic{color:var(--green)}
+.scard{background:var(--bg1);border:1px solid var(--line);border-radius:11px;padding:16px;display:flex;flex-direction:column;gap:8px}.scard.dis{opacity:.7}
+.scards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.printhead{display:none;padding-bottom:14px;border-bottom:2px solid var(--text);margin-bottom:14px}
+</style>
+</head>
+<body><div id="app"></div>
+<script>
+/* =====================================================================
+   AI SUBMISSIONS — demo. One tenant. Streams → Obligations → Submissions.
+   One stream (Regulatory reporting) set up for one jurisdiction (New Jersey),
+   one submission (DSIC) carried end to end. Signed-in user: Sofia Lindqvist.
+   Every number is invented for Northline. Mechanics follow public NJ DSIC filings.
+   ===================================================================== */
+const DB = {
+  today: '2026-09-21',
+  tenant: { name: 'Northline Water Group' },
+  asOf: { gl: '2026-08-31', register: '2026-09-15', approvals: '2026-09-14' },
+  user: { id: 'nishant', name: 'Nishant Srivastav', initials: 'NS', role: 'Capital Planning Lead', title: 'Lead, Capital Planning & Regulatory Reporting' },
+  people: {
+    nishant: { id: 'nishant', name: 'Nishant Srivastav', initials: 'NS', role: 'Capital Planning Lead', title: 'Lead, Capital Planning & Regulatory Reporting' },
+    controls: { id: 'controls', name: 'Rei Nakamura', initials: 'RN', role: 'Project Controls', title: 'Project Controls Manager, New Jersey' },
+    rosa:  { id: 'rosa',  name: 'Rosa Castellan',  initials: 'RC', role: 'Controller', title: 'Controller, Regulated Operations' },
+    marc:  { id: 'marc',  name: 'Marc Beaulieu',   initials: 'MB', role: 'Regulatory Lead', title: 'Director, Rate Case & Regulatory' },
+    karen: { id: 'karen', name: 'Karen Stroud',    initials: 'KS', role: 'Compliance', title: 'Director, Water Quality & Compliance' },
+  },
+  /* ---- Stream kinds: what the definition form asks for, and what the agents may use ---- */
+  kinds: {
+    Regulatory:  { recipients: 'Utility commission · environmental / drinking-water regulator', basis: 'Jurisdiction — the state or service territory a project sits in', docs: ['Stipulations of settlement', 'Commission orders', 'Consent orders', 'Prior filings'], pack: 'Capital Projects Pack + Water & Wastewater overlay — 6 regulatory templates', web: true, webNote: 'Commission rules and dockets. Lowest authority; used to confirm, never to invent.' },
+    Internal:    { recipients: 'Leadership team · Finance · Board', basis: 'Reporting cycle — the finance calendar', docs: ['Finance calendar', 'Budget instruction', 'Board schedule', 'Prior packs'], pack: 'Capital Projects Pack — capital review pack, forecast submission, annual budget templates', web: false, webNote: 'Public sources do not apply to internal reporting.' },
+    Financial:   { recipients: 'Lenders · bond trustee · rating agencies', basis: 'Facility — each loan or bond agreement', docs: ['Loan agreements', 'Bond indentures', 'Covenant compliance certificates (prior)'], pack: 'Capital Projects Pack — covenant certificate and use-of-proceeds templates', web: false, webNote: 'Public sources do not apply; the agreement is the only authority.' },
+    Contractual: { recipients: 'Municipal owner · customer under a services agreement', basis: 'Contract — each O&M or capital services agreement', docs: ['The contracts', 'Prior reports to the owner'], pack: 'No Pack templates — the template is built from the last report you sent', web: false, webNote: 'Public sources do not apply.' },
+  },
+  streams: [],
+  jurisdictions: [
+    { code: 'NJ', label: 'New Jersey', projects: 1204, share: '58%', recipients: [{ id: 'bpu', short: 'NJ BPU', name: 'New Jersey Board of Public Utilities', kind: 'Utility commission', portal: 'BPU e-filing' }, { id: 'dep', short: 'NJDEP', name: 'NJ Department of Environmental Protection', kind: 'Drinking-water regulator', portal: 'NJDEP Online' }] },
+    { code: 'PA', label: 'Pennsylvania', projects: 866, share: '31%', recipients: [{ id: 'puc', short: 'PA PUC', name: 'Pennsylvania Public Utility Commission', kind: 'Utility commission', portal: 'PUC eFiling' }, { id: 'padep', short: 'PA DEP', name: 'PA Department of Environmental Protection', kind: 'Drinking-water regulator', portal: 'DEP GreenPort' }] },
+    { code: 'NY', label: 'New York', projects: 412, share: '10%', recipients: [{ id: 'psc', short: 'NY PSC', name: 'New York Public Service Commission', kind: 'Utility commission', portal: 'DMM' }, { id: 'doh', short: 'NYSDOH', name: 'NY State Department of Health', kind: 'Drinking-water regulator', portal: 'Drinking Water Program' }] },
+    { code: 'Corp', label: 'Corporate (no state)', projects: 31, share: '1%', recipients: [], issue: 'No jurisdiction — corporate overheads and studies. Left out of every regulatory stream.' },
+  ],
+  passes: [
+    { id: 'docs', label: 'Read your documents — stipulations, orders, prior filings in the corpus', found: '3 governing documents · 2 prior filings' },
+    { id: 'pack', label: 'Match against the Pack catalogue — what a regulated water utility in NJ owes', found: '5 template candidates' },
+    { id: 'web', label: 'Check public sources — BPU rules and dockets (lowest authority)', found: '2 confirmations · 0 new' },
+  ],
+  proposals: [
+    { id: 'dsic', label: 'DSIC semi-annual filing', to: 'bpu', template: 'Infrastructure surcharge periodic filing', cadence: 'Semi-annual', stance: 'applies', evidence: [['doc', 'Stipulation WR24050321 ¶11 — "filed semi-annually, within 45 days of each period"'], ['doc', 'Prior filing found: 1 Sep 2025 – 28 Feb 2026, filed 10 Apr 2026']], accepted: null },
+    { id: 'annual', label: 'Annual report — utility plant schedules', to: 'bpu', template: 'Commission annual report', cadence: 'Annual', stance: 'applies', evidence: [['doc', 'Prior filing found: calendar year 2025, filed 30 Mar 2026 (BPU-2026-031877)'], ['pack', 'Required of all Class A water utilities']], accepted: null },
+    { id: 'brc', label: 'Base rate case — plant additions exhibit', to: 'bpu', template: 'Base rate case exhibit', cadence: 'Per case', stance: 'likely', evidence: [['pack', 'Every regulated utility files one; timing is the Company\'s choice'], ['doc', 'Last case WR23070432 set the test year ending 30 Jun 2024. No new case found in the corpus.']], accepted: null },
+    { id: 'found', label: 'DSIC foundational filing update', to: 'bpu', template: 'Foundational filing', cadence: 'Every 5 years', stance: 'no', evidence: [['doc', 'Current foundational filing covers 2025–2029; next update not due until 2029']], accepted: null },
+    { id: 'coa', label: 'Consent order progress report', to: 'dep', template: 'Consent order progress', cadence: 'Quarterly', stance: 'no', evidence: [['doc', 'No consent order or agreement found in the corpus'], ['web', 'No open enforcement docket found for Northline NJ systems']], accepted: null },
+  ],
+  paramRows: {
+    dsic: [['Cap on annual DSIC revenues', '5% of water revenues ($412,600,000)', 'Stipulation ¶7 · revenues per 2025 annual report'], ['Minimum annual eligible spend', '$12,900,000', 'Stipulation ¶9'], ['Fixed charge rate', '11.74%', 'Stipulation ¶8 — pre-tax return 9.12% + depreciation 2.62%'], ['Prior test year end', '30 Jun 2024', 'Case WR23070432'], ['Filing lag after period end', '45 days', 'Stipulation ¶11'], ['Eligible classes', 'Main replacement · looping · transmission · relocation · cleaning & lining · valves · non-lead services', 'Foundational project list, Schedule A'], ['Next period · due', '1 Mar – 31 Aug 2026 · <b>15 Oct 2026</b>', 'Derived: period end + 45 days'], ['Officer attestation signed by', 'OFFICER', 'Stipulation ¶12 requires an officer attestation. Not in any document — you decide.']],
+    annual: [['Next due', '31 Mar 2027', 'N.J.A.C. 14:3 — annual report due 31 March'], ['Last filed', '30 Mar 2026 · BPU-2026-031877', 'Archive']],
+    brc: [['Filing date', 'BRCDATE', 'The Company sets it. No case is scheduled. Leave it open and the obligation stays visible as "No dates configured".']],
+  },
+  regulator: { short: 'NJ BPU', name: 'New Jersey Board of Public Utilities', portal: 'BPU e-filing' },
+  params: { docket: 'WR24050321', capPct: 5, revenues: 412600000, fixedChargeRate: 0.1174, fixedChargeNote: 'pre-tax return 9.12% + depreciation 2.62%, per stipulation', testYearEnd: '2024-06-30', priorClosingPlant: 19860000, priorFilingName: 'DSIC filing — 1 Sep 2025 – 28 Feb 2026 (as filed 10 Apr 2026)' },
+  obligations: [],
+  projects: [
+    { id: 'selby3',   code: 'CZZF5034_698',  name: 'Selby Point Water Main Replacement — Phase 3', cls: 'Main replacement', start: '2025-02-10', inService: '2026-08-14', record: 'PIS-2026-0814-698', cost: 9418600,  decision: 'include', rule: 'eligible' },
+    { id: 'riverton', code: 'CZZF5043_694',  name: 'Riverton Main Replacement (2026 blanket tranche)', cls: 'Main replacement', start: '2025-04-21', inService: '2026-07-02', record: 'PIS-2026-0702-694', cost: 2946200,  decision: 'include', rule: 'eligible' },
+    { id: 'valves',   code: 'CZZF5037_698',  name: 'Valve Replacement Blanket (tranche 6)', cls: 'Valve replacement', start: '2025-09-15', inService: '2026-06-30', record: 'PIS-2026-0630-698', cost: 1212400,  decision: 'include', rule: 'eligible' },
+    { id: 'domsvc',   code: 'CZZF50418_690', name: 'Replacement of Domestic Services (non-lead), Q3 tranche', cls: 'Service line replacement (non-lead)', start: '2026-01-12', inService: '2026-08-27', record: null, cost: 1431900, decision: 'cannot_evaluate', rule: 'no_record' },
+    { id: 'selby4',   code: 'CZZF5034_698',  name: 'Selby Point Water Main Replacement — Phase 4', cls: 'Main replacement', start: '2025-11-03', inService: null, forecast: '2026-09-28', record: null, cost: 4102300, decision: 'exclude', rule: 'after_period' },
+    { id: 'hydrants', code: 'CZZF5041_690',  name: 'Hydrant Renewals (2026)', cls: 'Hydrant renewal', start: '2025-05-02', inService: '2026-07-19', record: 'PIS-2026-0719-690', cost: 1905167, decision: 'exclude', rule: 'class_not_listed' },
+    { id: 'cinna',    code: 'CZZF5029_698',  name: 'Cinnaminson Main Cleaning & Structural Lining', cls: 'Cleaning & structural lining', start: '2024-03-15', inService: '2026-05-30', record: 'PIS-2026-0530-698', cost: 1641000, decision: 'exclude', rule: 'before_test_year' },
+    { id: 'dunfilt',  code: 'C23B225_690',   name: 'Dunmoor East Filter Rehabilitation', cls: 'Treatment plant', start: '2023-04-11', inService: null, forecast: '2031-12-28', record: null, cost: 59905000, decision: 'exclude', rule: 'class_base_rates' },
+    { id: 'lsl',      code: 'CZZF50221_698', name: 'Loxwater Lead Service Line Replacement', cls: 'Lead service line replacement', start: '2022-05-24', inService: '2026-06-30', record: 'PIS-2026-0630-698-L', cost: 11644640, decision: 'exclude', rule: 'other_mechanism' },
+  ],
+  rules: {
+    eligible:         { label: 'Eligible', text: 'Eligible class, construction began after the prior test year, placed in service in the period with a certificate on file.' },
+    no_record:        { label: 'Cannot evaluate — no in-service record', text: 'The in-service register shows 27 Aug 2026 but no certificate is attached. A date without a record is a claim; the project is neither included nor excluded until the certificate arrives or the author excludes it with a reason.' },
+    after_period:     { label: 'In service after period end', text: 'Forecast in service 28 Sep 2026, after the period closed on 31 Aug 2026. Belongs to the next submission.' },
+    class_not_listed: { label: 'Class outside the foundational project list', text: 'Hydrants are DSIC-eligible in principle but were not listed in the 2025–2029 foundational filing. Recoverable only after a foundational update.' },
+    before_test_year: { label: 'Construction began before prior test year end', text: 'Work that began before 30 Jun 2024 is presumed to be in base rates from the last case; claiming it here is double recovery.' },
+    class_base_rates: { label: 'Asset class not DSIC-eligible', text: 'Treatment plant is recovered through base rates, not the surcharge.' },
+    other_mechanism:  { label: 'Recovered under another mechanism', text: 'Lead service line replacement is recovered under the approved LSL mechanism. Including it here would recover it twice.' },
+  },
+  filing: null,
+};
+const STATUS = { not_started: ['Not started', 'gray'], drafting: ['Drafting', 'blue'], in_review: ['In review', 'purple'], approved: ['Approved', 'green'], package_issued: ['Package issued', 'green'], filed: ['Filed', 'gray'], no_dates: ['No dates configured', 'amber'] };
+
+/* ===================================================================== STATE ===================================================================== */
+const S = { screen: 'streams', setup: null, editSec: null, wizard: { step: 1, ob: null, done: 0, running: false }, rtab: 'readiness', sel: { section: 'S1', cell: null }, modal: null, discovery: { last: '2026-09-21T09:12:00Z', next: '2026-10-21', changes: 0 } };
+/* Demo persistence: state survives a refresh within the same tab (sessionStorage), but a fresh open always starts at Streams. */
+const SAVE_VERSION = 'v4-2026-09-21'; const SAVE_KEY = 'ai_submissions_demo_' + SAVE_VERSION;
+const DB0 = JSON.parse(JSON.stringify(DB)); const S0 = JSON.parse(JSON.stringify(S));
+function persist() { try { sessionStorage.setItem(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION, DB, S: { ...S, modal: null } })); } catch (e) { /* storage unavailable — demo still runs in memory */ } }
+function restore() {
+  try { Object.keys(localStorage).filter(k => k.startsWith('ai_submissions_demo_')).forEach(k => localStorage.removeItem(k)); } catch (e) {} // older builds saved here
+  try { Object.keys(sessionStorage).filter(k => k.startsWith('ai_submissions_demo_') && k !== SAVE_KEY).forEach(k => sessionStorage.removeItem(k)); } catch (e) {} // drop state saved by older builds
+  try { const raw = sessionStorage.getItem(SAVE_KEY); if (!raw) return; const saved = JSON.parse(raw); if (saved.version !== SAVE_VERSION || !saved.DB || !saved.DB.people || !saved.DB.people[DB0.user.id]) { sessionStorage.removeItem(SAVE_KEY); return; }
+    Object.assign(DB, saved.DB); Object.assign(S, saved.S); S.modal = null; if (S.setup) S.setup.running = false; S.wizard.running = false; } catch (e) { try { sessionStorage.removeItem(SAVE_KEY); } catch (e2) {} }
+}
+/* Still called from the crash-recovery screen in render()'s catch block below — the one path left
+   that can clear a saved state nothing else on the page offers a control for any more. */
+function hardReset() { try { sessionStorage.removeItem(SAVE_KEY); } catch (e) {} Object.keys(DB).forEach(k => delete DB[k]); Object.assign(DB, JSON.parse(JSON.stringify(DB0))); Object.keys(S).forEach(k => delete S[k]); Object.assign(S, JSON.parse(JSON.stringify(S0))); }
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const money = n => n == null ? '—' : '$' + Math.round(n).toLocaleString('en-US');
+const pct = (n, d = 1) => n.toFixed(d) + '%';
+const fdate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+const fdt = d => d ? new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+const daysUntil = d => Math.round((new Date(d + 'T12:00:00') - new Date(DB.today + 'T12:00:00')) / 86400000);
+const addDays = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+const nowISO = () => DB.today + 'T' + new Date().toTimeString().slice(0, 8) + 'Z';
+const ob = id => DB.obligations.find(o => o.id === id);
+const activeStream = () => DB.streams.find(s => s.setup === 'active');
+const chip = st => `<span class="chip ${STATUS[st][1]}"><span class="dot"></span>${STATUS[st][0]}</span>`;
+let toastT; function toast(msg) { render(); let el = $('.toast'); if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); } el.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => el.remove(), 2800); }
+function go(screen) { S.screen = screen; S.modal = null; render(); window.scrollTo(0, 0); }
+const _render0 = () => {}; // placeholder so persist can hook render below
+
+/* ===================================================================== COMPUTE / CHECKS ===================================================================== */
+function compute() {
+  const P = DB.params; const included = DB.projects.filter(p => p.decision === 'include'); const excluded = DB.projects.filter(p => p.decision === 'exclude'); const na = DB.projects.filter(p => p.decision === 'cannot_evaluate');
+  const additions = included.reduce((a, p) => a + p.cost, 0); const cumulative = P.priorClosingPlant + additions; const rr = Math.round(cumulative * P.fixedChargeRate); const cap = Math.round(P.revenues * P.capPct / 100);
+  return { included, excluded, na, additions, cumulative, rr, cap, headroom: cap - rr, capUse: rr / cap * 100, surchargePct: rr / P.revenues * 100 };
+}
+function checks() {
+  const c = compute(); const f = DB.filing; const out = []; const add = (id, status, title, detail, fixes) => out.push({ id, status, title, detail, fixes: fixes || [] });
+  add('cls', 'pass', 'Asset class eligibility', `${c.included.length} included in stipulated classes · ${c.excluded.filter(p => p.rule.startsWith('class')).length} excluded by class.`);
+  add('start', 'pass', 'Construction start after prior test year (30 Jun 2024)', `${c.excluded.filter(p => p.rule === 'before_test_year').length} excluded — presumed in base rates.`);
+  if (c.na.length) { const p = c.na[0]; const req = (f.evidenceRequests || []).find(r => r.pid === p.id);
+    add('record', 'na', 'In service within the period, with a record', `${p.name} — register date 27 Aug 2026, no certificate attached. Nothing is included on a register date alone.${req ? ` <b>Certificate requested from ${DB.people[req.to].name} on ${fdt(req.at)} — open.</b>` : ''}`, [
+      { label: 'Attach certificate', act: `attachCertificate('${p.id}')` },
+      { label: req ? 'Requested ✓' : 'Request certificate', act: `requestCertificate('${p.id}')`, disabled: !!req },
+      { label: 'Exclude with reason', act: `excludeWithReason('${p.id}')` }]); }
+  else add('record', 'pass', 'In service within the period, with a record', `All ${c.included.length} included projects carry an in-service certificate.`);
+  add('cap', c.rr <= c.cap ? 'pass' : 'fail', `Annual DSIC revenues within the ${DB.params.capPct}% cap`, `Revenue requirement ${money(c.rr)} against a cap of ${money(c.cap)} — ${pct(c.capUse)} of cap used.`);
+  add('dbl', 'pass', 'No double recovery', `${c.excluded.filter(p => p.rule === 'other_mechanism').length} project recovered under another mechanism excluded.`);
+  const officer = DB.people[f.officer];
+  add('att', f.attestation ? 'pass' : 'fail', 'Officer attestation', f.attestation ? `Signed by ${DB.people[f.attestation.by].name}, ${fdt(f.attestation.at)}.` : `Not yet signed. Required before approval; only ${officer.name} (${officer.role}) can sign.`);
+  const open = f.comments.filter(x => !x.resolved).length; add('cmt', open ? 'fail' : 'pass', 'Review comments resolved', open ? `${open} open comment must be resolved before approval.` : 'No open comments.');
+  return out;
+}
+const blockers = () => checks().filter(x => x.status !== 'pass');
+/* Editing rule: scope, wording and evidence can change while drafting or in review — each change is a new version.
+   Once approved, the submission is locked; a change would need Request changes from the approver. */
+const editable = () => DB.filing && ['drafting', 'in_review'].includes(DB.filing.status);
+
+/* ===================================================================== DOCUMENT ===================================================================== */
+const REC = (src, asOf) => ({ coord: 'record', source: src, asOf }); const DER = rule => ({ coord: 'derived', source: 'Computed in this submission: ' + rule, asOf: DB.today }); const PAR = what => ({ coord: 'parameter', source: 'Stream setup — ' + what, asOf: '2026-09-21' });
+function C(sec, row, col, label) { return `<span class="cite" onclick="event.stopPropagation();focusCell('${sec}','${row}','${col}')">${label || sec + '·' + row}</span>`; }
+function buildDoc() {
+  const c = compute(); const P = DB.params;
+  const projCell = p => ({ v: `<b>${esc(p.name)}</b><br><span class="mono dim">${p.code}</span>${p.override ? `<br><span class="chip amber" title="${esc(p.override.reason)}">author override — ${p.override.to === 'include' ? 'included' : 'excluded'} with reason</span>` : ''}${p.attached ? `<br><span class="chip green">certificate attached ${fdate(p.attached.at)}</span>` : ''}`, ...REC('Project master (northline_pmo.attributes)', DB.asOf.approvals) });
+  return [
+    { id: 'S1', kind: 'schedule', title: 'Schedule 1 — Eligible plant additions placed in service', sub: `${c.included.length} projects · cost is record basis at GL as-of ${fdate(DB.asOf.gl)}`, cols: [['project', 'Project'], ['cls', 'Class'], ['start', 'Construction start'], ['pis', 'In service'], ['rec', 'Record'], ['cost', 'Cost placed in service', 'num']],
+      rows: c.included.map(p => ({ id: p.id, cells: { project: projCell(p), cls: { v: p.cls, ...PAR('eligible classes (Stipulation Schedule A)') }, start: { v: fdate(p.start), ...REC('Project master', DB.asOf.approvals) }, pis: { v: fdate(p.inService), ...REC('In-service register (governed upload)', DB.asOf.register) }, rec: { v: `<span class="cite doc">${esc(p.record)}</span>`, ...REC('In-service certificate', DB.asOf.register) }, cost: { v: money(p.cost), raw: p.cost, ...REC('GL postings (PeopleSoft), account 331', DB.asOf.gl) } } })),
+      total: { label: 'Total additions this period', cell: { v: money(c.additions), raw: c.additions, ...DER('sum of Schedule 1') } } },
+    { id: 'S2', kind: 'schedule', title: 'Schedule 2 — Revenue requirement and cap test', sub: `Fixed charge rate ${pct(P.fixedChargeRate * 100, 2)} (${P.fixedChargeNote}) · cap ${P.capPct}% of water revenues`, cols: [['line', 'Line'], ['amt', 'Amount', 'num']],
+      rows: [
+        { id: 'r1', cells: { line: { v: 'Opening cumulative eligible plant (closing balance of prior submission)' }, amt: { v: money(P.priorClosingPlant), coord: 'as filed', source: P.priorFilingName, asOf: '2026-04-10' } } },
+        { id: 'r2', cells: { line: { v: 'Additions this period (Schedule 1)' }, amt: { v: money(c.additions), ...DER('Schedule 1 total') } } },
+        { id: 'r3', cells: { line: { v: '<b>Cumulative eligible plant</b>' }, amt: { v: `<b>${money(c.cumulative)}</b>`, ...DER('r1 + r2') } } },
+        { id: 'r4', cells: { line: { v: `× Fixed charge rate ${pct(P.fixedChargeRate * 100, 2)}` }, amt: { v: money(c.rr), ...DER('r3 × fixed charge rate') } } },
+        { id: 'r5', cells: { line: { v: `Annual cap — ${P.capPct}% of water revenues ${money(P.revenues)}` }, amt: { v: money(c.cap), ...PAR('cap % and revenues (Stipulation ¶7)') } } },
+        { id: 'r6', cells: { line: { v: 'Headroom under cap' }, amt: { v: `<span style="color:var(--green)">${money(c.headroom)}</span> <span class="dim">(${pct(c.capUse)} of cap used)</span>`, ...DER('r5 − r4') } } },
+        { id: 'r7', cells: { line: { v: 'DSIC as a percentage of the customer bill' }, amt: { v: pct(c.surchargePct, 2), ...DER('r4 ÷ revenues') } } },
+      ] },
+    { id: 'S3', kind: 'schedule', title: 'Schedule 3 — Projects evaluated and not included', sub: `${c.excluded.length} excluded with the rule that excluded them · ${c.na.length} not yet evaluable`, cols: [['project', 'Project'], ['cls', 'Class'], ['rule', 'Rule'], ['why', 'Why']],
+      rows: [...c.na, ...c.excluded].map(p => ({ id: p.id, cells: { project: projCell(p), cls: { v: p.cls }, rule: { v: `<span class="chip ${p.decision === 'cannot_evaluate' ? 'amber' : 'gray'}">${p.override ? 'Author override — excluded' : DB.rules[p.rule].label}</span>`, ...PAR('rule catalogue') }, why: { v: esc(p.override ? p.override.reason : DB.rules[p.rule].text) + (p.override ? `<br><span class="dim xs">Recorded ${fdt(p.override.at)} by ${DB.people[p.override.by].name}. Original rule: ${DB.rules[p.rule].label}.</span>` : '') } } })) },
+    { id: 'S4', kind: 'narrative', title: 'Petition narrative', paras: [
+      `Northline Water Group (the Company) submits this semi-annual filing under Docket ${P.docket} for the recovery period 1 March to 31 August 2026, pursuant to the Stipulation of Settlement approved 22 January 2025 <span class="cite doc">Stipulation WR24050321</span>. During the period the Company completed and placed in service ${c.included.length} eligible projects with a total cost of ${money(c.additions)} ${C('S1', 'total', 'cost', 'S1 total')}.`,
+      `Cumulative eligible plant since the foundational filing is ${money(c.cumulative)} ${C('S2', 'r3', 'amt')}, which at the stipulated fixed charge rate of ${pct(P.fixedChargeRate * 100, 2)} produces an annualised revenue requirement of ${money(c.rr)} ${C('S2', 'r4', 'amt')}. This is ${pct(c.capUse)} of the annual cap of ${money(c.cap)} ${C('S2', 'r5', 'amt')}, leaving ${money(c.headroom)} of headroom ${C('S2', 'r6', 'amt')}. The resulting surcharge is ${pct(c.surchargePct, 2)} of the customer bill ${C('S2', 'r7', 'amt')}.`,
+      `The Company evaluated ${DB.projects.length} candidate projects and did not include ${c.excluded.length} of them. Each exclusion and the rule that produced it is stated in Schedule 3 ${C('S3', c.excluded[0].id, 'rule', 'S3')}: treatment plant recovered through base rates, hydrant renewals outside the 2025–2029 foundational project list, work that began before the prior test year, and lead service line replacement recovered under its own mechanism.${c.na.length ? ` ${c.na.length} project could not be evaluated at the date of this draft because the in-service register carries a date with no certificate attached; the Company does not include a project on the strength of a register date alone.` : ''}`,
+      `All Schedule 1 costs are recorded in the general ledger at the amounts stated, at the August 2026 close. September postings are open and are not read by any figure in this submission.`,
+    ] },
+    { id: 'S5', kind: 'attestation', title: 'Officer attestation', text: (DB.filing && DB.filing.attestText) || 'I attest that the plant additions in Schedule 1 were completed and placed in service during the recovery period, that their costs are recorded in the Company\'s books at the amounts stated, and that no cost in this submission is recovered under base rates or any other mechanism.' },
+  ];
+}
+
+/* ===================================================================== RENDER ===================================================================== */
+function render() { try { renderInner(); } catch (e) { console.error(e); document.getElementById('app').innerHTML = `<div style="padding:40px;max-width:640px;margin:0 auto;font-family:var(--sans)"><h2 style="margin-bottom:8px">The demo hit a saved state it cannot render</h2><p class="mut">This usually means state from an earlier build is still in this browser. Resetting clears it and restarts the demo from Streams.</p><pre class="mono sm" style="background:var(--inset);padding:10px;border-radius:8px;white-space:pre-wrap">${esc(e && e.message)}</pre><button class="btn pri" onclick="hardReset();render()">Reset demo</button></div>`; } }
+function renderInner() {
+  const st = activeStream();
+  $('#app').innerHTML = `
+    <nav class="sidenav">
+      <div class="nav ${['streams', 'setup'].includes(S.screen) ? 'act' : ''}" onclick="go('streams')"><span class="ico">§</span>Streams</div>
+      ${st ? `<div class="sub" style="padding-left:50px;font-weight:600;color:var(--text);cursor:default">${esc(st.name)} — ${st.jurisdiction}</div>
+        <div class="sub ${['home', 'filing'].includes(S.screen) ? 'act' : ''}" style="padding-left:62px" onclick="go('home')">Obligations & calendar</div>
+        <div class="sub ${S.screen === 'wizard' ? 'act' : ''}" style="padding-left:62px" onclick="startWizard()">New submission</div>` : ''}
+    </nav>
+    <main><div class="page">${{ streams, setup, home, wizard, filing: workspace }[S.screen]()}</div></main>
+    ${S.modal ? modal() : ''}`;
+  persist();
+}
+
+/* ---- STREAMS ---- */
+function streams() {
+  const obs = DB.obligations.filter(o => o.status !== 'filed'); const next = obs.filter(o => o.due).sort((a, b) => a.due.localeCompare(b.due))[0];
+  const card = s => { const k = DB.kinds[s.kind]; const kindCls = { Regulatory: 'blue', Internal: 'purple', Financial: 'amber', Contractual: 'green' }[s.kind];
+    return `<div class="scard ${s.setup === 'available' ? 'dis' : ''}"><div class="row sp"><span class="chip ${kindCls}">${s.kind}</span>${s.setup === 'active' ? '<span class="chip green"><span class="dot"></span>Active</span>' : s.setup === 'in_progress' ? '<span class="chip amber"><span class="dot"></span>Setup in progress</span>' : s.setup === 'available' ? '<span class="chip gray">Suggested by the Pack</span>' : s.suggested ? '<span class="chip gray">Suggested · not set up</span>' : '<span class="chip gray">Defined · not set up</span>'}</div>
+      <h2>${esc(s.name)}</h2><div class="mut sm">${esc(s.desc)}</div>
+      <dl style="display:grid;grid-template-columns:max-content 1fr;gap:3px 12px;font-size:12px;margin:6px 0"><dt class="mut">Recipients</dt><dd style="margin:0">${k.recipients}</dd><dt class="mut">Templates</dt><dd style="margin:0">${k.pack}</dd>${s.setup === 'active' ? `<dt class="mut">Obligations</dt><dd style="margin:0">${DB.obligations.length} declared · ${DB.proposals.filter(p => p.accepted === false).length} considered, not applicable</dd><dt class="mut">Next due</dt><dd style="margin:0">${next ? `${esc(next.label)} · <b>${fdate(next.due)}</b>` : '—'}</dd>` : ''}</dl>
+      <div class="row" style="margin-top:auto;justify-content:flex-end;gap:8px"><button class="btn sm ghost" onclick="deleteStream('${s.id}')">Delete</button>${s.setup === 'active' ? `<button class="btn pri" onclick="go('home')">Open obligations →</button>` : s.setup === 'available' ? `` : s.id === 'reg' || s.kind === 'Regulatory' ? `<button class="btn pri" onclick="startSetup('${s.id}')">${s.setup === 'in_progress' ? 'Continue setup →' : 'Set up stream →'}</button>` : ``}</div></div>`; };
+  return `<div class="pagehead"><div class="grow"><div class="crumbs">AI Submissions</div><h1>Streams</h1>
+    <p>A stream is a family of reports you are accountable for — to a regulator, a contract owner, a lender or your own leadership. The Pack suggests the streams a regulated water utility usually has; you can add your own. Each stream is set up once: you define it, agents read your data and your documents and propose every obligation with the evidence, and you confirm each one. From then on, submissions are drafted from the graph on the calendar the stream produces.</p></div>
+    <button class="btn pri" onclick="startSetup(null)">＋ Add stream</button></div>
+    ${DB.streams.length ? `<div class="scards">${DB.streams.map(card).join('')}</div>` : `<div class="empty">No streams yet. <a onclick="startSetup(null)">Add one</a> to start declaring what you are accountable for.</div>`}`;
+}
+
+/* ---- STREAM SETUP (5 steps: define · where · what · parameters · calendar) ---- */
+function startSetup(streamId) {
+  const s = streamId ? DB.streams.find(x => x.id === streamId) : null;
+  if (s && s.setup === 'in_progress' && S.setup && S.setup.streamId === streamId) { S.setup.running = false; go('setup'); return; } // resume where you left off
+  S.setup = { streamId, step: 1, form: s ? { name: s.name, kind: s.kind, desc: s.def.desc, docs: [...s.def.docs], sources: { ...s.def.sources } } : { name: '', kind: 'Regulatory', desc: '', docs: [], sources: { docs: true, pack: true, web: true } }, interpreted: false, jur: null, passesDone: 0, running: false, officer: null, brcDate: null, brcNone: false };
+  if (s) s.setup = 'in_progress';
+  go('setup');
+}
+function setup() {
+  const st = S.setup; const F = st.form; const K = DB.kinds[F.kind];
+  const steps = ['Define the stream', 'Where you operate', 'What you owe', 'Parameters & dates', 'Calendar'];
+  const stepsHtml = steps.map((s, i) => `<div class="st ${st.step === i + 1 ? 'act' : st.step > i + 1 || st.edit ? 'done' : ''}" ${st.edit ? `style="cursor:pointer" onclick="S.setup.step=${i + 1};render()"` : ''}><b>${st.step > i + 1 || (st.edit && st.step !== i + 1) ? '✓' : i + 1}</b>${s}</div>`).join('');
+  let body = '';
+  if (st.edit) body += `<div class="note" style="margin-bottom:14px"><b>Stream settings.</b> The stream is active. Change anything here and <b>Save</b> on the Calendar step: obligations already started keep their state; declined ones that never started are removed; obligations you declared yourself are always kept. Click a step above to jump to it.</div>`;
+  if (st.step === 1) {
+    const allDocs = ['Stipulations of settlement', 'Commission orders', 'Consent orders', 'Prior filings', 'Finance calendar', 'Budget instruction', 'Board schedule', 'Loan agreements', 'Bond indentures', 'The contracts', 'Prior reports to the owner', 'Prior packs'];
+    const kindDocs = K.docs;
+    body += `<div style="display:grid;grid-template-columns:1.1fr .9fr;gap:14px"><div class="card"><h3>What is this family of reports?</h3><div class="mut sm" style="margin-bottom:12px">Describe it in your own words. The form adapts to the kind of recipient, and the interpretation on the right tells you what setup will do with it before anything runs.</div>
+      <label class="f" style="margin-bottom:10px">Stream name<input type="text" value="${esc(F.name)}" placeholder="e.g. Regulatory reporting" oninput="S.setup.form.name=this.value;S.setup.interpreted=false"></label>
+      <label class="f" style="margin-bottom:10px">Who receives these reports?<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:4px">${Object.keys(DB.kinds).map(k => `<button class="chip ${F.kind === k ? 'orange' : 'outline'}" style="cursor:pointer;padding:5px 10px" onclick="setKind('${k}')">${k}</button>`).join('')}</div><span class="dim xs" style="margin-top:4px">${K.recipients}</span></label>
+      <label class="f" style="margin-bottom:10px">Describe the stream<textarea placeholder="What do you owe, to whom, how often…" oninput="S.setup.form.desc=this.value;S.setup.interpreted=false">${esc(F.desc)}</textarea></label>
+      <label class="f" style="margin-bottom:10px">Which documents govern it? <span class="dim">(from your corpus)</span><div class="row" style="flex-wrap:wrap;gap:6px;margin-top:4px">${allDocs.filter(d => kindDocs.includes(d)).map(d => `<button class="chip ${F.docs.includes(d) ? 'orange' : 'outline'}" style="cursor:pointer;padding:4px 9px" onclick="toggleDoc('${esc(d)}')">${d}</button>`).join('')}</div></label>
+      <label class="f">What may the agents use to find obligations?
+        <div class="row" style="gap:10px;padding:6px 0"><input type="checkbox" checked disabled><span><b>Your documents</b> — the governing documents above and any prior filings <span class="dim">(always)</span></span></div>
+        <div class="row" style="gap:10px;padding:6px 0"><input type="checkbox" ${F.sources.pack ? 'checked' : ''} ${F.kind === 'Contractual' ? 'disabled' : ''} onchange="S.setup.form.sources.pack=this.checked;S.setup.interpreted=false;render()"><span><b>Pack catalogue</b> — ${K.pack}</span></div>
+        ${K.web ? `<div class="row" style="gap:10px;padding:6px 0"><input type="checkbox" ${F.sources.web ? 'checked' : ''} onchange="S.setup.form.sources.web=this.checked;S.setup.interpreted=false;render()"><span><b>Public sources</b> — ${K.webNote}</span></div>` : `<div class="row" style="gap:10px;padding:6px 0;opacity:.6"><input type="checkbox" disabled><span><b>Public sources</b> — ${K.webNote}</span></div>`}</label>
+      <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" ${F.name && F.desc ? '' : 'disabled title="Name and describe the stream first"'} onclick="S.setup.interpreted=true;render()">Interpret →</button></div></div>
+    <div>${st.interpreted ? interpretation() : `<div class="empty">Fill in the form and click <b>Interpret</b>. The system reads what you wrote and says back what it understood and what setup will do — so you can correct it before any agent runs.</div>`}</div></div>`;
+  }
+  if (st.step === 2) { const J = DB.jurisdictions; const sel = J.find(j => j.code === st.jur);
+    body += `<div style="display:grid;grid-template-columns:1.2fr .8fr;gap:14px"><div>
+      <div class="card" style="margin-bottom:14px"><h3>Jurisdictions found in your data</h3><div class="mut sm" style="margin-bottom:8px">Read from the project master's <span class="mono">state</span> column, as declared in Data Modeling. Pick the jurisdiction to set up — setup runs one jurisdiction at a time, each with its own recipients and calendar.</div>
+        <table class="t"><thead><tr><th style="width:36px"></th><th>Jurisdiction</th><th class="num">Projects</th><th class="num">Share</th><th>Recipients</th></tr></thead><tbody>
+          ${J.map(j => `<tr class="${j.issue || st.edit ? '' : 'clickable'} ${st.jur === j.code ? 'sel' : ''}" ${j.issue || st.edit ? '' : `onclick="S.setup.jur='${j.code}';render()"`} style="${j.issue ? 'opacity:.6' : ''}"><td>${j.issue ? '' : `<span class="radio" style="${st.jur === j.code ? 'border:5px solid var(--orange)' : ''}"></span>`}</td><td><b>${j.label}</b> <span class="tag">${j.code}</span>${j.issue ? `<div class="dim xs">${j.issue}</div>` : ''}</td><td class="num">${j.projects.toLocaleString()}</td><td class="num">${j.share}</td><td class="sm">${j.recipients.map(r => r.short).join(' · ') || '<span class="dim">—</span>'}</td></tr>`).join('')}
+        </tbody></table></div>
+      ${sel ? `<div class="card"><h3>Recipients — ${sel.label}</h3><div class="mut sm" style="margin-bottom:8px">The Pack knows the shape for a regulated water utility: a utility commission and a drinking-water regulator. Names and portals confirmed against public sources. Untick one to leave it out of this stream.</div>
+        ${sel.recipients.map(r => { const on = !(st.excludedRecipients || []).includes(r.id); return `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line);${on ? '' : 'opacity:.6'}"><input type="checkbox" ${on ? 'checked' : ''} onchange="toggleRecipient('${r.id}')"><div class="grow"><b>${r.short}</b> — ${r.name}<div class="dim xs">${r.kind} · files via ${r.portal}</div></div>${on ? '<span class="chip green">confirmed</span>' : '<span class="chip gray">left out</span>'}</div>`; }).join('')}</div>` : `<div class="empty">Select a jurisdiction to see its recipients.</div>`}</div>
+    <div><div class="card"><h4 style="margin-bottom:6px">What this step produces</h4><div class="sm">A jurisdiction register: one jurisdiction, its recipients, and the projects bound to it by their state code. Projects with no jurisdiction are left out and stay visible as left out.</div><h4 style="margin:14px 0 6px">Rule</h4><div class="sm mut">Agents propose from the data. A person confirms. An accepted proposal becomes a declaration and keeps where it came from.</div>${sel && sel.code !== 'NJ' ? `<div class="note warn" style="margin-top:12px">This demo carries discovery content for New Jersey only. ${sel.label} follows the same steps with its own regulators.</div>` : ''}</div>
+      <div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn ghost" onclick="S.setup.step=1;render()">← Back</button><button class="btn pri" ${st.jur === 'NJ' ? '' : 'disabled'} onclick="S.setup.step=3;render();runPasses()">Continue →</button></div></div></div>`; }
+  if (st.step === 3) { const done = st.passesDone >= DB.passes.length; const undecided = visibleProposals().filter(p => p.accepted === null).length; const accepted = visibleProposals().filter(p => p.accepted === true).length; const rec = id => DB.jurisdictions[0].recipients.find(r => r.id === id).short;
+    body += `<div class="card" style="margin-bottom:14px"><h3>Finding what Northline owes in New Jersey</h3>
+      ${DB.passes.filter(p => p.id !== 'web' || F.sources.web).filter(p => p.id !== 'pack' || F.sources.pack).map((p, i) => `<div class="pass-row ${i < st.passesDone ? 'ok' : ''}"><span class="ic">${i < st.passesDone ? '✓' : i === st.passesDone && st.running ? '<span class="spin"></span>' : '·'}</span><div class="grow">${p.label}</div><span class="mono sm mut">${i < st.passesDone ? p.found : ''}</span></div>`).join('')}</div>
+      ${done ? `<div class="card"><div class="row sp" style="margin-bottom:8px"><h3 style="margin:0">Proposed obligations — decide each one</h3><div class="row" style="gap:6px"><span class="dim sm" style="margin-right:6px">${undecided ? `${undecided} still to decide` : 'All decided'}</span><button class="btn sm" onclick="bulkDecide('applies',true)">Accept all that apply</button><button class="btn sm" onclick="bulkDecide('no',false)">Decline all that don't</button></div></div>
+        ${droppedProposals().length ? `<div class="note" style="margin-bottom:8px">${droppedProposals().length} candidate${droppedProposals().length > 1 ? 's' : ''} (${droppedProposals().map(p => esc(p.label)).join(', ')}) had evidence only from sources you did not allow and ${droppedProposals().length > 1 ? 'are' : 'is'} not shown. Allow the Pack catalogue or public sources in step 1 to see ${droppedProposals().length > 1 ? 'them' : 'it'}.</div>` : ''}
+        <table class="t"><thead><tr><th>Obligation</th><th>To</th><th>Cadence</th><th>Stance</th><th>Evidence</th><th style="text-align:right">Your decision</th></tr></thead><tbody>
+        ${visibleProposals().map(p => `<tr class="${p.accepted === false ? 'declined' : ''}"><td><b>${esc(p.label)}</b><div class="dim xs">${esc(p.template)}</div></td><td>${rec(p.to)}</td><td class="sm">${p.cadence}</td>
+          <td><span class="stance ${p.stance}">${{ applies: 'Applies', likely: 'Likely applies', no: 'Does not appear to apply' }[p.stance]}</span></td>
+          <td class="ev">${p.evidence.map(([k, t]) => `<div><span class="src ${k}">${{ doc: 'your documents', pack: 'Pack', web: 'public' }[k]}</span>${esc(t)}</div>`).join('')}</td>
+          <td style="text-align:right;white-space:nowrap"><button class="btn sm ${p.accepted === true ? 'pri' : ''}" onclick="decide('${p.id}',true)">${p.accepted === true ? '✓ Accepted' : 'Accept'}</button> <button class="btn sm" style="${p.accepted === false ? 'background:var(--text);color:#fff;border-color:var(--text)' : ''}" onclick="decide('${p.id}',false)">${p.accepted === false ? '✓ Declined' : 'Decline'}</button></td></tr>`).join('')}
+        </tbody></table>
+        <div class="note" style="margin-top:10px"><b>Why every candidate, not a shortlist.</b> A missed obligation is a missed filing. A wrongly proposed one costs one click. So the agents show everything they considered, take a stance, and you decide each row. Declined rows stay visible as considered.</div>
+        <div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn ghost" onclick="S.setup.step=2;render()">← Back</button><button class="btn pri" ${undecided || !accepted ? 'disabled title="Decide every row first"' : ''} onclick="S.setup.step=4;render()">${st.edit ? 'Next — parameters →' : `Continue with ${accepted} obligation${accepted === 1 ? '' : 's'} →`}</button></div></div>` : ''}`; }
+  if (st.step === 4) { const acc = visibleProposals().filter(p => p.accepted === true); const rec = id => DB.jurisdictions[0].recipients.find(r => r.id === id).short;
+    const needs = acc.some(p => p.id === 'dsic') && !st.officer || acc.some(p => p.id === 'brc') && !st.brcDate && !st.brcNone;
+    body += `<div class="card"><h3>Parameters and dates — extracted from the governing documents</h3><div class="mut sm" style="margin-bottom:10px">Each value carries where it came from, like a figure in a submission. What the documents do not contain is left to you and marked as your decision — the Pack never guesses a date or a name.</div>
+      ${acc.map(p => `<h4 style="margin:16px 0 4px">${esc(p.label)} <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">— to ${rec(p.to)}</span></h4>
+        ${(DB.paramRows[p.id] || []).map(([k, v, why]) => `<div style="display:grid;grid-template-columns:230px 1fr 1fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;align-items:center"><span class="mut">${k}</span><span>${paramValue(v)}</span><span class="dim xs">${esc(why)}</span></div>`).join('')}`).join('')}
+      <div class="row" style="justify-content:space-between;margin-top:14px">${st.edit ? `<button class="btn ghost" onclick="S.setup.edit=false;go('home')">Cancel</button>` : `<button class="btn ghost" onclick="S.setup.step=3;render()">← Back</button>`}<button class="btn pri" ${needs ? 'disabled title="Make the decisions marked in amber"' : ''} onclick="S.setup.step=5;render()">${st.edit ? 'Review the calendar →' : 'Build the calendar →'}</button></div></div>`; }
+  if (st.step === 5) { const cal = calendarRows();
+    body += `<div class="card"><h3>Calendar — generated from the obligations</h3><div class="mut sm" style="margin-bottom:10px">Cadence + dates + a drafting lead time per obligation. Nothing here is typed; change a parameter and the calendar changes.</div>
+      <table class="t"><thead><tr><th>Obligation</th><th>To</th><th>Period</th><th>Due</th><th>Start drafting</th><th>Status at activation</th></tr></thead><tbody>
+        ${cal.map(o => `<tr><td><b>${esc(o.label)}</b></td><td>${o.toShort}</td><td class="sm">${esc(o.period)}</td><td>${o.due ? `<b>${fdate(o.due)}</b> <span class="dim sm">in ${daysUntil(o.due)} d</span>` : '<span class="dim">—</span>'}</td><td class="sm">${o.due ? fdate(addDays(o.due, -o.leadDays)) + (daysUntil(addDays(o.due, -o.leadDays)) < 0 ? ' <span class="chip red">overdue to start</span>' : '') : '—'}</td><td>${chip(o.status)}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="note good" style="margin-top:10px">Activating the stream declares these ${cal.length} obligations. The agents keep watching: a new order in the corpus, a new state in the project master or a superseded stipulation produces a <i>proposed change</i> to this list — never an edit.</div>
+      <div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn ghost" onclick="S.setup.step=4;render()">← Back</button>${st.edit ? `<button class="btn pri" onclick="saveSetup()">Save changes</button>` : `<button class="btn pri" onclick="activateStream()">Activate stream</button>`}</div></div>`; }
+  return `<div class="pagehead"><div class="grow"><div class="crumbs"><a onclick="go('streams')">AI Submissions</a> › <a onclick="go('streams')">Streams</a> › ${st.edit ? 'Stream settings' : st.streamId ? 'Set up' : 'Add stream'}</div><h1>${st.edit ? 'Stream settings — ' + esc(F.name) : st.streamId ? 'Set up — ' + esc(F.name || 'stream') : 'Add a stream'}${st.jur && st.step > 1 ? ', ' + DB.jurisdictions.find(j => j.code === st.jur).label : ''}</h1><p>Five steps. You define the stream; agents propose from your data, your documents and the Pack; you confirm. The result is the list of obligations and the calendar this stream runs on.</p></div></div><div class="steps">${stepsHtml}</div>${body}`;
+}
+function setKind(k) { S.setup.form.kind = k; S.setup.form.docs = S.setup.form.docs.filter(d => DB.kinds[k].docs.includes(d)); S.setup.form.sources.web = DB.kinds[k].web; S.setup.form.sources.pack = k !== 'Contractual'; S.setup.interpreted = false; render(); }
+function toggleDoc(d) { const a = S.setup.form.docs; const i = a.indexOf(d); i >= 0 ? a.splice(i, 1) : a.push(d); S.setup.interpreted = false; render(); }
+function interpretation() {
+  const F = S.setup.form; const K = DB.kinds[F.kind]; const isReg = F.kind === 'Regulatory';
+  const plan = [
+    isReg ? `Find <b>where you operate</b> from the project master's state column, and propose the recipients for each state (${K.recipients.toLowerCase()}).` : `Identify the <b>${K.basis.split(' — ')[0].toLowerCase()}</b> this stream reports on: ${K.basis.split(' — ')[1]}.`,
+    `Read <b>${F.docs.length ? F.docs.join(', ') : 'your governing documents'}</b> in the corpus to find what you owe, how often and by when.`,
+    F.sources.pack ? `Match against the <b>Pack catalogue</b> — ${K.pack.split(' — ')[1] || K.pack} — to catch what the documents do not mention.` : `<span class="dim">Skip the Pack catalogue — ${K.pack}.</span>`,
+    F.sources.web && K.web ? `Check <b>public sources</b> to confirm, never to invent.` : `<span class="dim">Skip public sources — ${K.webNote}</span>`,
+    `Propose <b>every candidate obligation</b> with a stance and its evidence; you accept or decline each. Then extract the parameters and dates with their citations, and build the calendar.`,
+  ];
+  return `<div class="card"><div class="row sp"><h3 style="margin:0">What I understood</h3><span class="chip blue">interpretation</span></div>
+    <p class="sm" style="margin:8px 0 10px">A <b>${F.kind.toLowerCase()}</b> stream called <b>${esc(F.name)}</b>: ${esc(F.desc)}</p>
+    <dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;font-size:12.5px"><dt class="mut">Recipients</dt><dd style="margin:0">${K.recipients}</dd><dt class="mut">Organised by</dt><dd style="margin:0">${K.basis}</dd><dt class="mut">Governed by</dt><dd style="margin:0">${F.docs.length ? F.docs.join(' · ') : '<span style="color:var(--amber)">no documents chosen — discovery will rely on the Pack alone</span>'}</dd></dl>
+    <h4 style="margin:14px 0 6px">What setup will do next</h4><ol style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.7">${plan.map(p => `<li>${p}</li>`).join('')}</ol>
+    ${isReg ? `<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn pri" onclick="createStream()">${S.setup.edit ? 'Keep definition — next →' : 'Looks right — continue →'}</button></div>` : `<div class="note warn" style="margin-top:12px">This demo carries discovery content for a regulatory stream only. Creating this ${F.kind.toLowerCase()} stream adds it to Streams as <i>defined, not set up</i>.</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn pri" onclick="createStream()">Create stream</button></div>`}</div>`;
+}
+function createStream() {
+  const st = S.setup; const F = st.form;
+  if (!st.streamId) { const id = 's' + Date.now(); DB.streams.push({ id, name: F.name, kind: F.kind, suggested: false, desc: F.desc, setup: F.kind === 'Regulatory' ? 'in_progress' : 'defined', def: { desc: F.desc, docs: [...F.docs], sources: { ...F.sources } } }); st.streamId = id; }
+  else { const s = DB.streams.find(x => x.id === st.streamId); s.name = F.name; s.desc = F.desc; s.def = { desc: F.desc, docs: [...F.docs], sources: { ...F.sources } }; }
+  if (F.kind !== 'Regulatory') { toast('Stream defined.'); go('streams'); return; }
+  st.step = 2; render();
+}
+function paramValue(v) {
+  if (v === 'OFFICER') return S.setup.officer ? `<b>${DB.people[S.setup.officer].name}</b>, ${DB.people[S.setup.officer].title} <span class="chip gray">your decision</span>` : `<span style="color:var(--amber)">not in any document</span> <select style="font:inherit;padding:4px 8px;border:1px solid var(--line2);border-radius:6px;margin-left:8px" onchange="S.setup.officer=this.value||null;render()"><option value="">Choose the attesting officer…</option><option value="rosa">Rosa Castellan — Controller</option><option value="marc">Marc Beaulieu — Director, Rate Case & Regulatory</option><option value="karen">Karen Stroud — Director, Water Quality & Compliance</option></select>`;
+  if (v === 'BRCDATE') return S.setup.brcDate ? `<b>${fdate(S.setup.brcDate)}</b> <span class="chip gray">your decision</span> <button class="btn sm ghost" onclick="S.setup.brcDate=null;render()">change</button>` : S.setup.brcNone ? `<span class="mut">No case planned — stays visible as "No dates configured"</span> <span class="chip gray">your decision</span> <button class="btn sm ghost" onclick="S.setup.brcNone=false;render()">change</button>` : `<span style="color:var(--amber)">no case scheduled</span> <input type="date" style="width:150px;margin-left:8px" onchange="if(this.value){S.setup.brcDate=this.value;render()}"> <span class="dim xs">or</span> <button class="btn sm" onclick="S.setup.brcNone=true;render()">No case planned</button>`;
+  return v;
+}
+function calendarRows() {
+  const st = S.setup; const acc = visibleProposals().filter(p => p.accepted === true); const rec = id => DB.jurisdictions[0].recipients.find(r => r.id === id).short;
+  return acc.map(p => {
+    if (p.id === 'dsic') return { id: 'dsic', label: p.label, toShort: rec(p.to), template: p.template, period: 'Recovery period 1 Mar – 31 Aug 2026', due: '2026-10-15', leadDays: 30, status: 'not_started', docket: 'WR24050321', officer: st.officer };
+    if (p.id === 'annual') return { id: 'annual', label: p.label, toShort: rec(p.to), template: p.template, period: 'Calendar year 2026', due: '2027-03-31', leadDays: 60, status: 'not_started', docket: 'Annual report', lastFiled: '30 Mar 2026 · BPU-2026-031877' };
+    if (p.id === 'brc') return st.brcDate ? { id: 'brc', label: p.label, toShort: rec(p.to), template: p.template, period: `Case to be filed ${fdate(st.brcDate)}`, due: st.brcDate, leadDays: 60, status: 'not_started', docket: 'New case' } : { id: 'brc', label: p.label, toShort: rec(p.to), template: p.template, period: 'Next case', due: null, leadDays: 60, status: 'no_dates', docket: '—' };
+    if (p.id === 'found') return { id: 'found', label: p.label, toShort: rec(p.to), template: p.template, period: 'Foundational period 2030–2034', due: '2029-09-30', leadDays: 120, status: 'not_started', docket: 'WR24050321', lastFiled: '22 Jan 2025 (approved)' };
+    if (p.id === 'coa') return { id: 'coa', label: p.label, toShort: rec(p.to), template: p.template, period: 'Quarterly', due: null, leadDays: 30, status: 'no_dates', docket: '—' };
+  }).filter(Boolean);
+}
+function toggleRecipient(id) { const a = S.setup.excludedRecipients = S.setup.excludedRecipients || []; const i = a.indexOf(id); i >= 0 ? a.splice(i, 1) : a.push(id); render(); }
+function allowedSources() { const src = S.setup?.form?.sources || { docs: true, pack: true, web: true }; return ['doc', ...(src.pack ? ['pack'] : []), ...(src.web ? ['web'] : [])]; }
+function proposalView(p) { const ok = allowedSources(); return { ...p, evidence: p.evidence.filter(([k]) => ok.includes(k)) }; }
+function visibleProposals() { const ex = S.setup?.excludedRecipients || []; return DB.proposals.filter(p => !ex.includes(p.to)).map(proposalView).filter(p => p.evidence.length); }
+function droppedProposals() { const ex = S.setup?.excludedRecipients || []; return DB.proposals.filter(p => !ex.includes(p.to)).map(proposalView).filter(p => !p.evidence.length); }
+function bulkDecide(stance, v) { visibleProposals().filter(p => p.stance === stance).forEach(p => { DB.proposals.find(x => x.id === p.id).accepted = v; }); render(); }
+function decide(id, v) { DB.proposals.find(p => p.id === id).accepted = v; render(); }
+function runPasses() { S.setup.running = true; S.setup.passesDone = 0; render(); const n = DB.passes.filter(p => p.id !== 'web' || S.setup.form.sources.web).filter(p => p.id !== 'pack' || S.setup.form.sources.pack).length; const tick = () => { S.setup.passesDone++; if (S.setup.passesDone >= n) S.setup.running = false; render(); if (S.setup.passesDone < n) setTimeout(tick, [1100, 700, 900][S.setup.passesDone] || 800); }; setTimeout(tick, 1200); }
+function activateStream() { DB.obligations = calendarRows(); const s = DB.streams.find(x => x.id === S.setup.streamId); s.setup = 'active'; s.jurisdiction = DB.jurisdictions.find(j => j.code === S.setup.jur).label; toast('Stream activated — ' + DB.obligations.length + ' obligations declared, calendar live.'); go('home'); }
+/* Removes a stream from the Streams page. An active stream carries declared obligations and may
+   carry a filing in progress, so both are cleared with it rather than left pointing at a stream
+   that no longer exists — and mid-setup state for it is dropped too, so Continue setup cannot
+   reopen a wizard for something just deleted. */
+function deleteStream(id) {
+  const s = DB.streams.find(x => x.id === id); if (!s) return;
+  if (!confirm(`Delete "${s.name}"?${s.setup === 'active' ? ' Its declared obligations and any filing in progress are cleared too.' : ''} This cannot be undone in this session.`)) return;
+  DB.streams = DB.streams.filter(x => x.id !== id);
+  if (s.setup === 'active') { DB.obligations = []; DB.filing = null; }
+  if (S.setup && S.setup.streamId === id) S.setup = null;
+  toast(`"${s.name}" deleted.`);
+  go('streams');
+}
+
+/* ---- OBLIGATIONS & CALENDAR ---- */
+function home() {
+  const st = activeStream(); if (!st) return `<div class="empty">No stream is set up yet. <a onclick="go('streams')">Go to Streams</a>.</div>`;
+  const due30 = DB.obligations.filter(o => o.due && daysUntil(o.due) >= 0 && daysUntil(o.due) <= 30 && o.status !== 'filed').length;
+  const blocked = DB.filing && ['drafting', 'in_review'].includes(DB.filing.status) ? blockers().length : 0;
+  const declined = DB.proposals.filter(p => p.accepted === false);
+  const dsic = ob('dsic');
+  const action = o => {
+    if (o.id === 'dsic' && o.status === 'not_started') return `<button class="btn pri sm" onclick="startWizard('dsic')">Author submission</button>`;
+    if (o.id === 'dsic') return `<button class="btn sm pri" onclick="go('filing')">Open</button>`;
+    if (o.id === 'dsic_next') return `<span class="dim sm">period not closed — drafting opens ${fdate(addDays(o.due, -o.leadDays))}</span>`;
+    if (o.status === 'not_started') return `<span class="dim sm">not due yet${o.lastFiled ? ' · last filed ' + o.lastFiled : ''}</span>`;
+    if (o.status === 'no_dates') return o.manual ? `<button class="btn sm" onclick="setManualDue('${o.id}')">Set due date</button>` : `<span class="dim sm">set a filing date in <a onclick="editSetup(4)">Stream settings</a></span>`;
+    return '';
+  };
+  return `<div class="pagehead"><div class="grow"><div class="crumbs"><a onclick="go('streams')">AI Submissions</a> › <a onclick="go('streams')">Streams</a> › ${esc(st.name)}</div><h1>Obligations & calendar — ${st.jurisdiction}</h1>
+    <p>What Northline owes ${DB.jurisdictions[0].recipients.map(r => r.short).join(' and ')} on its capital programme, when, and how ready each submission is. A submission is drafted from the graph, checked against the rules from the stipulation, signed off under separation of duties and issued as a filing-ready package. People file it; the product never does.</p></div>
+    <div class="row"><button class="btn" onclick="editSetup(1)">Stream settings</button><button class="btn" onclick="addObligationModal()">＋ Add obligation</button>${dsic?.status === 'not_started' ? `<button class="btn pri" onclick="startWizard('dsic')">＋ New submission</button>` : ''}</div></div>
+    ${!dsic ? `<div class="note warn" style="margin-bottom:14px">The DSIC semi-annual filing was declined in setup, so this demo has no submission to author — it is the one obligation with a worked example. <a onclick="editSetup(3)">Reopen setup</a> to accept it.</div>` : ''}
+    <div class="card tight" style="margin-bottom:14px"><div class="row sp"><div class="sm"><b>Discovery keeps watching.</b> <span class="mut">Last run ${fdt(S.discovery.last)} · ${S.discovery.changes} change${S.discovery.changes === 1 ? '' : 's'} proposed · next automatic run ${fdate(S.discovery.next)}. A new order in the corpus, a new state in the project master or a superseded stipulation produces a proposed change to this list — never an edit.</span></div><button class="btn sm" onclick="runDiscovery()">Run discovery now</button></div></div>
+    <div class="stats"><div class="stat ${due30 ? 'warn' : ''}"><div class="v">${due30}</div><div class="l">due in the next 30 days</div></div><div class="stat"><div class="v">${DB.obligations.filter(o => o.status === 'no_dates').length}</div><div class="l">without a configured date</div></div><div class="stat ${blocked ? 'bad' : ''}"><div class="v">${blocked}</div><div class="l">blocking checks open</div></div></div>
+    <div class="card" style="padding:0"><table class="t"><thead><tr><th style="width:32%">Obligation</th><th>To</th><th>Period</th><th>Due</th><th>Status</th><th>Readiness</th><th></th></tr></thead><tbody>
+      ${DB.obligations.map(o => `<tr><td><b>${esc(o.label)}</b>${o.manual ? ' <span class="chip gray" title="Not found by the agents — declared by you">declared by you</span>' : ''}<div class="mut sm">${esc(o.template)} · <span class="mono">${esc(o.docket)}</span></div></td><td>${o.toShort}</td><td class="sm">${esc(o.period)}</td>
+        <td>${o.due ? `<span class="due ${daysUntil(o.due) <= 30 && o.status !== 'filed' ? 'soon' : ''}">${fdate(o.due)}</span> <span class="dim sm">${o.status === 'filed' ? '' : 'in ' + daysUntil(o.due) + ' d'}</span>` : '<span class="dim">no date</span>'}</td>
+        <td>${chip(o.status)}${o.id === 'dsic' && o.status === 'not_started' ? `<div class="dim xs" style="margin-top:3px">lead ${o.leadDays} d — start now</div>` : ''}</td><td>${readiness(o)}</td><td style="text-align:right">${action(o)}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="card" style="margin-top:14px"><h3>Considered, not applicable</h3><div class="mut sm" style="margin-bottom:8px">What the setup agents looked at and you declined, with the reason. Kept visible so nobody has to wonder whether it was checked.</div>
+      ${declined.map(p => `<div class="row" style="padding:7px 0;border-bottom:1px solid var(--line)"><b class="sm">${esc(p.label)}</b><span class="stance ${p.stance}">${{ applies: 'Applies', likely: 'Likely applies', no: 'Does not appear to apply' }[p.stance]}</span><span class="ev grow">${esc(p.evidence[0][1])}</span></div>`).join('') || '<div class="dim sm">None.</div>'}</div>`;
+}
+function setManualDue(id) { const o = ob(id); S.modal = { kind: 'text', title: `Due date — ${o.label}`, label: 'Enter the due date as YYYY-MM-DD', ok: 'Set date', onok: v => { if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { toast('Use YYYY-MM-DD.'); return; } o.due = v; o.status = 'not_started'; toast('Due date set; the obligation is on the calendar.'); } }; render(); }
+function readiness(o) { if (o.id !== 'dsic' || !DB.filing) return o.status === 'not_started' ? '<span class="chip gray">not evaluated</span>' : '<span class="dim">—</span>';
+  const b = blockers(); if (!b.length) return '<span class="chip green">all checks pass</span>'; const na = b.filter(x => x.status === 'na').length; return `<span class="chip ${na ? 'amber' : 'red'}">${b.length} blocking</span>${na ? `<div class="dim xs" style="margin-top:3px">${na} cannot be evaluated</div>` : ''}`; }
+
+function runDiscovery() { S.discovery.last = nowISO(); S.discovery.changes = 0; toast('Discovery re-run — 0 changes proposed. The three governing documents and the Pack catalogue are unchanged since setup.'); }
+/* Reopen the parameters step after activation. Saving recomputes the calendar without touching a submission in flight. */
+function editSetup(step) { const st = activeStream(); if (!st) return; if (!S.setup || S.setup.streamId !== st.id) return; S.setup.edit = true; S.setup.step = step || 4; S.setup.interpreted = true; go('setup'); }
+/* Manual obligation: something the agents did not find, or a recipient outside the Pack. Declared by the user and tagged as such. */
+function addObligationModal() { S.modal = { kind: 'addob' }; render(); }
+function addObligation() { const g = id => document.getElementById(id).value.trim(); const label = g('ao_label'), to = g('ao_to'), template = g('ao_tpl'), cadence = g('ao_cad'), due = g('ao_due'), lead = +g('ao_lead') || 30, period = g('ao_period');
+  if (!label) { toast('Give the obligation a name.'); return; }
+  DB.obligations.push({ id: 'm_' + Date.now(), label, toShort: to, template, period: period || cadence, due: due || null, leadDays: lead, status: due ? 'not_started' : 'no_dates', docket: 'declared by you', manual: true, declaredBy: 'nishant', declaredAt: nowISO() });
+  S.modal = null; toast(`"${label}" added to the stream as an obligation you declared.`); render(); }
+function saveSetup() {
+  /* Merge: proposals decide which Pack obligations exist; started obligations keep their state; manual and spawned ones are always kept. */
+  const rows = calendarRows(); const existing = DB.obligations;
+  const merged = rows.map(r => { const e = existing.find(o => o.id === r.id); if (!e) return r; if (e.status === 'not_started' || e.status === 'no_dates') return { ...r, officer: r.id === 'dsic' ? (DB.filing ? e.officer : (S.setup.officer || e.officer)) : r.officer }; return e; });
+  existing.filter(o => o.manual || o.id.endsWith('_next')).forEach(o => merged.push(o));
+  const dropped = existing.filter(o => !merged.some(m => m.id === o.id));
+  DB.obligations = merged; S.setup.edit = false;
+  const st = activeStream(); st.name = S.setup.form.name; st.desc = S.setup.form.desc; st.def = { desc: S.setup.form.desc, docs: [...S.setup.form.docs], sources: { ...S.setup.form.sources } };
+  toast(`Stream settings saved — ${DB.obligations.length} obligations on the calendar${dropped.length ? `, ${dropped.length} removed (declined, never started)` : ''}.`); go('home');
+}
+
+/* ---- AUTHOR A SUBMISSION (2 steps) ---- */
+function startWizard(id) { S.wizard = { step: 1, ob: id || null, done: 0, running: false }; go('wizard'); }
+function wizard() {
+  const w = S.wizard; const o = w.ob && ob(w.ob);
+  const stepsHtml = ['Choose the obligation', 'Generate the draft'].map((s, i) => `<div class="st ${w.step === i + 1 ? 'act' : w.step > i + 1 ? 'done' : ''}"><b>${w.step > i + 1 ? '✓' : i + 1}</b>${s}</div>`).join('');
+  let body;
+  if (!DB.obligations.length) return `<div class="empty">No obligations yet. <a onclick="go('streams')">Set up a stream</a> first.</div>`;
+  if (w.step === 1) body = `<div style="display:grid;grid-template-columns:1.2fr .8fr;gap:14px"><div class="oblist">
+      ${DB.obligations.filter(o => o.status !== 'filed').map(o => { const st = o.id === 'dsic' && o.status === 'not_started'; return `<div class="ob ${w.ob === o.id ? 'sel' : ''} ${st ? '' : 'dis'}" onclick="${st ? `S.wizard.ob='${o.id}';render()` : ''}"><span class="radio" style="${st ? '' : 'visibility:hidden'}"></span>
+        <div class="grow"><div class="row sp"><b>${esc(o.label)}</b>${chip(o.status)}</div><div class="mut sm">${o.toShort} · ${esc(o.period)} · due ${fdate(o.due)}</div>
+        ${o.status === 'no_dates' ? '<div class="sm" style="margin-top:4px;color:var(--amber)">No filing date configured.</div>' : ''}${o.id !== 'dsic' && o.status === 'not_started' ? `<div class="sm dim" style="margin-top:4px">${o.id === 'dsic_next' ? 'Period not closed — drafting opens ' + fdate(addDays(o.due, -o.leadDays)) + '.' : o.manual ? 'Declared by you — its template has no worked example in this demo.' : 'Not due yet — drafting opens at the lead time.'}</div>` : ''}
+        ${DB.filing && o.id === 'dsic' ? `<div class="sm" style="margin-top:4px">A draft exists (v${DB.filing.version}). <a onclick="event.stopPropagation();go('filing')">Open it</a> — a second draft for the same period is not allowed.</div>` : ''}</div></div>`; }).join('')}
+      ${!ob('dsic') ? `<div class="note warn">The DSIC filing — the one obligation with a worked example in this demo — was declined in setup. <a onclick="editSetup(3)">Reopen setup</a> to accept it.</div>` : ''}
+      <div class="note">A submission starts from an obligation, not a blank page. The template supplies the schedules, the rules and the narrative shape; the graph supplies the figures; stream setup supplied the dates and parameters.</div></div>
+    <div>${o ? tplCard(o) : '<div class="empty">Select an obligation to see what its template produces and needs.</div>'}<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn pri" ${o && !DB.filing ? '' : 'disabled'} onclick="S.wizard.step=2;render();runGen()">Generate draft →</button></div></div></div>`;
+  else { const steps = ['Evaluate 9 candidate projects against the stipulation rules', 'Resolve Schedules 1–3 from the graph (GL as-of 31 Aug, register as-of 15 Sep)', 'Run 7 readiness checks', 'Draft the petition narrative with a citation on every figure'];
+    body = `<div class="card gen" style="max-width:720px;margin:0 auto"><h3>Generating — ${esc(o.label)}</h3>
+      ${steps.map((s, i) => `<div class="g ${i < w.done ? 'ok' : i === w.done && w.running ? 'run' : ''}"><span class="ic">${i < w.done ? '✓' : i === w.done && w.running ? '<span class="spin"></span>' : '·'}</span>${s}</div>`).join('')}
+      ${w.done >= steps.length ? `<div class="note good" style="margin-top:14px"><b>Draft v1 created.</b> 3 projects included, 5 excluded with the rule stated, 1 cannot be evaluated. Checks: 5 pass, 1 cannot evaluate, 1 pending (attestation). Nothing in the draft is a figure the graph did not resolve.</div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn pri" onclick="go('filing')">Open the submission →</button></div>` : ''}</div>`; }
+  return `<div class="pagehead"><div class="grow"><div class="crumbs"><a onclick="go('streams')">AI Submissions</a> › <a onclick="go('home')">${esc(activeStream()?.name || 'Stream')}</a> › New submission</div><h1>Author a submission</h1></div></div><div class="steps">${stepsHtml}</div>${body}`;
+}
+function tplCard(o) { return `<div class="card"><h4 style="margin-bottom:4px">Capital Projects Pack · Water & Wastewater overlay</h4><h3>${esc(o.template)}</h3>
+  <dl style="display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:12.5px;margin:10px 0"><dt class="mut">Goes to</dt><dd style="margin:0"><b>${DB.regulator.name}</b></dd><dt class="mut">Period</dt><dd style="margin:0">${esc(o.period)}</dd><dt class="mut">Due</dt><dd style="margin:0">${fdate(o.due)} · lead ${o.leadDays} days</dd><dt class="mut">Docket</dt><dd style="margin:0" class="mono">${esc(o.docket)}</dd><dt class="mut">Attested by</dt><dd style="margin:0">${DB.people[o.officer].name}, ${DB.people[o.officer].role}</dd></dl>
+  <h4 style="margin-bottom:6px">Produces</h4><div class="row" style="flex-wrap:wrap;margin-bottom:12px">${['Eligible plant additions', 'Revenue requirement & cap test', 'Exclusions with rule', 'Narrative petition', 'Officer attestation'].map(x => `<span class="chip gray">${x}</span>`).join('')}</div>
+  <h4 style="margin-bottom:6px">Needs</h4><table class="t"><tbody>${[['Project master with asset class & construction start', 'green', 'available'], ['In-service register with certificates', 'amber', 'partial — 1 date without certificate'], ['GL actuals to period end', 'green', 'available'], ['Cap, fixed charge rate, eligible classes', 'green', 'from stream setup']].map(([n, c, l]) => `<tr><td>${n}</td><td style="text-align:right"><span class="chip ${c}">${l}</span></td></tr>`).join('')}</tbody></table></div>`; }
+function runGen() { S.wizard.running = true; S.wizard.done = 0; render(); const tick = () => { S.wizard.done++; if (S.wizard.done >= 4) { S.wizard.running = false; createFiling(); } render(); if (S.wizard.done < 4) setTimeout(tick, [700, 900, 500, 1400][S.wizard.done]); }; setTimeout(tick, 800); }
+function createFiling() { if (DB.filing) return; DB.filing = { status: 'drafting', version: 1, author: 'nishant', officer: ob('dsic').officer || 'rosa', attestation: null, approver: null, package: null, comments: [], history: [{ v: 1, at: nowISO(), by: 'nishant', what: 'Draft generated from template · 9 candidates evaluated · 3 included' }] }; ob('dsic').status = 'drafting'; }
+
+/* ---- SUBMISSION WORKSPACE ---- */
+function workspace() {
+  const f = DB.filing; if (!f) return `<div class="empty">No draft yet. <a onclick="startWizard('dsic')">Author one</a>.</div>`;
+  const o = ob('dsic'); const secs = buildDoc(); const cs = checks(); const b = blockers();
+  return `<div class="crumbs"><a onclick="go('streams')">AI Submissions</a> › <a onclick="go('home')">${esc(activeStream().name)}</a> › ${esc(o.label)}</div>
+    <div class="fhead"><div class="grow"><div class="row" style="gap:10px"><h1 style="font-size:19px">${esc(o.label)}</h1>${chip(f.status)}<span class="tag">v${f.version}</span>${f.package && f.status !== 'filed' ? '<span class="wm">FILING-READY · NOT FILED</span>' : ''}</div>
+      <div class="meta"><span>To <b>${DB.regulator.name}</b></span><span>${esc(o.period)}</span><span>Due <b class="due soon">${fdate(o.due)}</b></span><span>Docket <b class="mono">${o.docket}</b></span><span>Author <b>${DB.people[f.author].name}</b></span><span>As-of <b>${fdate(DB.asOf.gl)}</b> <span class="dim">(oldest contributing source)</span></span></div></div></div>
+    ${flowPanel(f, b)}
+    <div class="ws">
+      <div class="outline card tight"><h4 style="margin:4px 8px 8px">Document</h4>${secs.map(s => `<div class="o ${S.sel.section === s.id ? 'act' : ''}" onclick="S.sel.section='${s.id}';render();document.getElementById('sec-${s.id}').scrollIntoView({behavior:'smooth'})"><span class="k">${s.id}</span><span class="grow" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.title.replace(/^Schedule \d — /, ''))}</span><span class="s ${secStatus(s)}"></span></div>`).join('')}
+        <div style="border-top:1px solid var(--line);margin:8px 0"></div><div class="o" onclick="window.print()"><span class="k">⎙</span>Print / PDF</div></div>
+      <div class="doc"><div class="printhead"><b style="font-family:var(--disp);font-size:16px">${DB.tenant.name}</b><div class="mut sm">${esc(o.label)} · ${esc(o.period)} · ${DB.regulator.name} · ${o.docket}</div>${f.status === 'filed' ? `<span class="chip gray">Filed ${fdate(o.filed.date)} · ${o.filed.confirmation}</span>` : '<span class="wm">FILING-READY · NOT FILED</span>'}</div>${secs.map(section).join('')}</div>
+      <div class="rpanel card tight" style="padding-top:8px"><div class="tabs">${[['readiness', 'Readiness', cs.filter(x => x.status !== 'pass').length], ['lineage', 'Lineage', 0], ['comments', 'Comments', f.comments.filter(x => !x.resolved).length], ['history', 'History', 0]].map(([k, l, n]) => `<button class="${S.rtab === k ? 'act' : ''}" onclick="S.rtab='${k}';render()">${l}${n ? `<span class="n">${n}</span>` : ''}</button>`).join('')}</div>
+        <div class="body">${{ readiness: readinessPanel, lineage: lineagePanel, comments: commentsPanel, history: historyPanel }[S.rtab](secs, cs)}</div></div></div>`;
+}
+function historyPanel() { const f = DB.filing; return `<div class="mut sm" style="margin-bottom:8px">Every change is a version. Nothing is edited in place.</div>${[...f.history].reverse().map(h => `<div style="display:grid;grid-template-columns:36px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px"><span class="tag">v${h.v}</span><div><b>${DB.people[h.by].name.split(' ')[0]}</b> — ${esc(h.what)}<div class="dim xs">${fdt(h.at)}</div></div></div>`).join('')}`; }
+/* The flow panel shows where the submission is and who acts next. Steps that belong to other people are hand-offs; in this demo you act for them from here. */
+function flowPanel(f, b) {
+  const officer = DB.people[f.officer]; const why = b.map(x => x.title).join('; ');
+  const steps = [
+    { k: 'draft', who: DB.people.nishant, label: 'Draft & submit for review', done: f.status !== 'drafting', act: f.status === 'drafting' ? `<button class="btn pri sm" onclick="submit()">Submit for review</button><div class="dim xs" style="margin-top:4px">Submission is allowed with open checks; approval is not.</div>` : f.status === 'in_review' ? '<span class="dim xs">in review — you can still edit; each change is a new version</span>' : '' },
+    { k: 'attest', who: officer, label: 'Officer attestation', done: !!f.attestation, act: f.status === 'in_review' && !f.attestation ? `<button class="btn sm" onclick="S.modal={kind:'attest'};render()">Sign as ${officer.name.split(' ')[0]} <span class="dim xs">(hand-off)</span></button>` : f.attestation ? `<span class="dim xs">signed ${fdt(f.attestation.at)}</span>` : '<span class="dim xs">after submission</span>' },
+    { k: 'approve', who: DB.people.marc, label: 'Approve', done: ['approved', 'package_issued', 'filed'].includes(f.status), act: f.status === 'in_review' ? `<div class="row" style="gap:6px"><button class="btn sm" onclick="requestChanges()">Request changes</button><button class="btn pri sm" ${b.length ? 'disabled' : ''} onclick="approve()">Approve as Marc <span class="xs">(hand-off)</span></button></div>${b.length ? `<div class="dim xs" style="margin-top:4px">Disabled: ${esc(why)}</div>` : ''}` : f.approver ? `<span class="dim xs">approved ${fdt(f.approver.at)}</span>` : '<span class="dim xs">after attestation</span>' },
+    { k: 'package', who: DB.people.marc, label: 'Issue filing package', done: ['package_issued', 'filed'].includes(f.status), act: f.status === 'approved' ? `<button class="btn pri sm" onclick="S.modal={kind:'package'};render()">Issue package</button>` : f.package ? `<button class="btn sm ghost" onclick="S.modal={kind:'package'};render()">${f.package.id}</button>` : '' },
+    { k: 'record', who: DB.people.marc, label: 'File with the regulator & record it', done: f.status === 'filed', act: f.status === 'package_issued' ? `<button class="btn pri sm" onclick="S.modal={kind:'record'};render()">Record the filing</button>` : f.status === 'filed' ? `<span class="dim xs">filed ${fdate(ob('dsic').filed.date)} · ${ob('dsic').filed.confirmation}</span>` : '' },
+  ];
+  return `<div class="card tight noprint" style="margin-bottom:14px"><div class="row" style="gap:0;align-items:stretch">${steps.map((s, i) => `<div style="flex:1;padding:6px 12px;border-right:1px solid var(--line);${i === steps.length - 1 ? 'border-right:none' : ''}"><div class="row" style="gap:8px"><span class="avatar" style="width:22px;height:22px;font-size:9.5px;${s.done ? 'background:var(--green-soft);color:var(--green)' : ''}">${s.done ? '✓' : s.who.initials}</span><div><div class="sm" style="font-weight:600">${s.label}</div><div class="dim xs">${s.who.name} · ${s.who.role}</div></div></div><div style="margin-top:8px">${s.act}</div></div>`).join('')}</div></div>`;
+}
+function secStatus(s) { if (s.kind === 'attestation') return DB.filing.attestation ? 'ok' : 'bad'; if (s.rows && s.rows.some(r => DB.projects.find(p => p.id === r.id)?.decision === 'cannot_evaluate')) return 'warn'; return 'ok'; }
+function section(s) {
+  const f = DB.filing; const act = S.sel.section === s.id; const ed = editable(); const editing = ed && S.editSec === s.id;
+  const editBtn = ed ? `<button class="btn sm ${editing ? 'pri' : 'ghost'}" onclick="event.stopPropagation();S.editSec=${editing ? 'null' : `'${s.id}'`};render()">${editing ? 'Done' : '✎ Edit'}</button>` : `<span class="dim xs">${f.status === 'filed' ? 'filed — locked' : 'locked after approval'}</span>`;
+  const head = `<div class="sechead"><span class="k">${s.id}</span><div class="grow"><h3>${esc(s.title)}</h3>${s.sub ? `<div class="dim sm">${s.sub}</div>` : ''}</div>${editBtn}</div>`; let body = '';
+  if (s.kind === 'schedule') {
+    const rowEditable = editing && s.id !== 'S2';
+    body = `<table class="t"><thead><tr>${s.cols.map(c => `<th class="${c[2] || ''}">${c[1]}</th>`).join('')}</tr></thead><tbody>
+    ${s.rows.map(r => { const p = DB.projects.find(x => x.id === r.id); const rowEdit = rowEditable && p ? `<div class="row" style="gap:4px;margin-top:6px;flex-wrap:wrap">${p.decision === 'include' ? `<button class="btn sm" onclick="event.stopPropagation();excludeWithReason('${p.id}')">Exclude…</button>` : p.decision === 'cannot_evaluate' ? `<button class="btn sm pri" onclick="event.stopPropagation();attachCertificate('${p.id}')">Attach certificate</button><button class="btn sm" onclick="event.stopPropagation();excludeWithReason('${p.id}')">Exclude…</button>` : `<button class="btn sm" onclick="event.stopPropagation();includeWithReason('${p.id}')">Include…</button>`}</div>` : '';
+      return `<tr>${s.cols.map((c, ci) => { const v = r.cells[c[0]]; const sel = S.sel.cell && S.sel.cell.s === s.id && S.sel.cell.r === r.id && S.sel.cell.c === c[0]; return `<td class="cell ${c[2] || ''} ${sel ? 'sel' : ''}" id="cell-${s.id}-${r.id}-${c[0]}" onclick="focusCell('${s.id}','${r.id}','${c[0]}')">${v ? v.v : ''}${v && v.coord && v.coord !== 'record' && (v.raw != null || v.coord === 'derived') ? `<span class="coord">${v.coord}</span>` : ''}${ci === 0 ? rowEdit : ''}</td>`; }).join('')}</tr>`; }).join('')}
+    ${s.total ? `<tr class="total"><td colspan="${s.cols.length - 1}">${s.total.label}</td><td class="num cell ${S.sel.cell?.r === 'total' && S.sel.cell?.s === s.id ? 'sel' : ''}" id="cell-${s.id}-total-cost" onclick="focusCell('${s.id}','total','cost')">${s.total.cell.v}</td></tr>` : ''}</tbody></table>`;
+    if (editing) body += `<div class="note" style="margin-top:10px">${s.id === 'S2' ? `<b>What you can change here.</b> Nothing directly — every line is derived from Schedule 1 and the stream parameters. Cap, fixed charge rate and revenues come from stream setup: <a onclick="editSetup(4)">open Stream settings</a>. Figures are never typed over.` : `<b>What you can change here.</b> Which projects are in scope — each move is recorded with your reason, and the original rule stays visible in Schedule 3. Figures are read from the ledger and the register and cannot be typed over; if a figure is wrong, fix the source and <a onclick="reresolve()">re-resolve from sources</a>.`}</div>`;
+  }
+  if (s.kind === 'narrative') {
+    body = `<div class="dim xs" style="margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">AI-drafted · every figure cited</div>${s.paras.map((p, idx) => { const k = s.id + '.' + idx; const e = f.narrativeEdits && f.narrativeEdits[k]; return `<div class="para ${e ? 'edited' : ''}" ${editing ? `contenteditable="true" onblur="editPara('${k}',this)" style="outline:1px dashed var(--line2);background:var(--inset)"` : ''}>${e || p}</div>`; }).join('')}
+      <div class="row" style="margin-top:6px;gap:10px"><span class="dim xs grow">Blue chips cite a schedule cell; purple cite a document.${editing ? ' Click a paragraph to edit. Edited paragraphs are marked and kept until you regenerate.' : ''}</span>${editing ? `<button class="btn sm" onclick="regenNarrative('${s.id}')">↻ Regenerate from current figures</button>` : ''}</div>`;
+  }
+  if (s.kind === 'attestation') { const a = f.attestation; const off = DB.people[f.officer];
+    body = `<div class="attest"><div class="dim xs" style="margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Human-only block · the model never writes here</div><p style="margin:0 0 12px" ${editing && !a ? `contenteditable="true" onblur="editAttest(this)" style="outline:1px dashed var(--line2);background:var(--bg1);padding:6px;border-radius:6px"` : ''}>${esc(s.text)}</p>${a ? `<div class="row" style="gap:14px"><div class="sig">${DB.people[a.by].name}</div><div class="sm mut">${DB.people[a.by].title}<br>Signed ${fdt(a.at)} · recorded against v${a.v}</div></div>` : `<div class="row" style="gap:14px"><div class="dim" style="font-style:italic">Unsigned</div><div class="sm mut">To be signed by <b>${off.name}</b>, ${off.title} — the officer chosen in stream setup — once the draft is in review.${editing ? ' The wording can be edited until it is signed.' : ''}</div></div>`}</div>${editing && a ? '<div class="note" style="margin-top:8px">Signed. The wording is locked; a change would require the officer to sign again.</div>' : ''}`; }
+  return `<div class="sec ${act ? 'act' : ''}" id="sec-${s.id}" onclick="S.sel.section='${s.id}'">${head}${body}</div>`;
+}
+function focusCell(sId, rId, cK) { S.sel = { section: sId, cell: { s: sId, r: rId, c: cK } }; S.rtab = 'lineage'; render(); document.getElementById(`cell-${sId}-${rId}-${cK}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+function readinessPanel(secs, cs) { const b = blockers(); const f = DB.filing; return `<div class="note ${b.length ? (b.some(x => x.status === 'na') ? 'warn' : 'bad') : 'good'}" style="margin-bottom:10px">${b.length ? `<b>${b.length} blocking</b> — approval is disabled until these pass or are stated. A check that <i>cannot be evaluated</i> is shown, never hidden.` : '<b>All checks pass.</b>'}</div>
+  ${cs.map(c => `<div class="chk ${c.status}"><span class="ic">${c.status === 'pass' ? '✓' : c.status === 'fail' ? '✕' : '?'}</span><div class="grow"><div class="t">${esc(c.title)}</div><div class="d">${c.detail}</div>${c.fixes.length && editable() ? `<div class="fix">${c.fixes.map(x => `<button class="btn sm" ${x.disabled ? 'disabled' : ''} onclick="${x.act}">${x.label}</button>`).join('')}</div>` : c.fixes.length ? '<div class="dim xs" style="margin-top:4px">Locked after approval — ask the approver to request changes.</div>' : ''}</div></div>`).join('')}`; }
+function lineagePanel(secs) { const c = S.sel.cell; if (!c) return '<div class="empty">Click any figure in a schedule to see where it came from.</div>'; const s = secs.find(x => x.id === c.s); const v = c.r === 'total' ? s.total.cell : s.rows.find(r => r.id === c.r)?.cells[c.c]; if (!v) return '<div class="empty">No lineage for this cell.</div>';
+  const cited = secs.filter(x => x.kind === 'narrative').flatMap(x => x.paras.map((p, i) => p.includes(`focusCell('${c.s}','${c.r}','${c.c}')`) ? `${x.id} · paragraph ${i + 1}` : null)).filter(Boolean);
+  return `<div class="lin"><div class="l"><b>Figure</b><div>${v.v}</div><div class="dim xs">${esc(s.title)}</div></div><div class="l"><b>Coordinate</b><div class="mono">${v.coord || 'record'}</div></div><div class="l"><b>Source</b><div>${esc(v.source || 'Fact set')}</div></div><div class="l"><b>As of</b><div class="mono">${v.asOf ? fdate(v.asOf) : '—'}</div></div><div class="l"><b>Cited by</b><div class="sm">${cited.join('<br>') || '<span class="dim">Not cited in the narrative.</span>'}</div></div></div>`; }
+function commentsPanel() { const f = DB.filing; return `${f.status !== 'filed' ? `<div style="margin-bottom:12px"><textarea id="newc" placeholder="Comment — anchored to ${S.sel.section}"></textarea><div class="row sp" style="margin-top:6px"><span class="dim xs">Anchor: ${S.sel.section} · as ${DB.user.name}</span><button class="btn sm pri" onclick="addComment()">Add comment</button></div></div>` : ''}
+  ${f.comments.length ? f.comments.map(c => `<div class="cmt ${c.resolved ? 'res' : ''}"><div class="h"><span class="avatar" style="width:22px;height:22px;font-size:9.5px">${DB.people[c.by].initials}</span><b>${DB.people[c.by].name}</b><span>·</span><span>${fdt(c.at)}</span><span class="tag">${c.anchor}</span>${c.resolved ? '<span class="chip green" style="margin-left:auto">resolved</span>' : `<button class="btn sm ghost" style="margin-left:auto" onclick="resolveComment('${c.id}')">Resolve</button>`}</div><div class="b">${esc(c.text)}</div></div>`).join('') : '<div class="empty">No comments yet.</div>'}`; }
+
+/* ---- ACTIONS ---- */
+function bump(what, by = 'nishant') { const f = DB.filing; f.version++; f.history.push({ v: f.version, at: nowISO(), by, what }); }
+function setStatus(st) { DB.filing.status = st; ob('dsic').status = st; if (!['drafting', 'in_review'].includes(st)) S.editSec = null; }
+function submit() { setStatus('in_review'); bump('Submitted for review'); toast('Submitted for review. The attesting officer and the Regulatory Lead are notified.'); }
+function requestChanges() { S.modal = { kind: 'text', title: 'Request changes (as Marc Beaulieu)', label: 'What must change before this can be approved?', ok: 'Send back to author', onok: v => { setStatus('drafting'); DB.filing.comments.push({ id: 'c' + (DB.filing.comments.length + 1), by: 'marc', at: nowISO(), anchor: S.sel.section, text: v, resolved: false }); bump('Returned to author', 'marc'); toast('Returned to the author with the comment.'); } }; render(); }
+function approve() { if (blockers().length) return; setStatus('approved'); DB.filing.approver = { by: 'marc', at: nowISO() }; bump('Approved by Marc Beaulieu', 'marc'); toast('Approved. The filing package can now be issued.'); }
+function doAttest() { const f = DB.filing; const off = DB.people[f.officer]; if ($('#signame').value.trim().toLowerCase() !== off.name.toLowerCase()) { toast('Type the officer\'s name exactly: ' + off.name); return; } f.attestation = { by: f.officer, at: nowISO(), v: f.version }; bump('Officer attestation signed', f.officer); S.modal = null; toast('Attestation signed and recorded on v' + f.version); }
+function addComment() { const v = $('#newc').value.trim(); if (!v) return; DB.filing.comments.push({ id: 'c' + (DB.filing.comments.length + 1), by: 'nishant', at: nowISO(), anchor: S.sel.section, text: v, resolved: false }); render(); }
+function resolveComment(id) { DB.filing.comments.find(c => c.id === id).resolved = true; bump('Comment ' + id + ' resolved'); render(); }
+function attachCertificate(pid) { const p = DB.projects.find(x => x.id === pid); const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.pdf,.jpg,.png'; inp.onchange = () => { const file = inp.files[0]; if (!file) return; p.record = file.name.replace(/\.[^.]+$/, ''); p.attached = { name: file.name, at: DB.today, by: 'nishant' }; p.decision = 'include'; p.rule = 'eligible'; p.override = null; bump(`Certificate attached for ${p.code}: ${file.name} — project included`); toast(`${file.name} attached. ${p.name} moves into Schedule 1; schedules and checks re-solved.`); }; inp.click(); }
+function requestCertificate(pid) { const f = DB.filing; f.evidenceRequests = f.evidenceRequests || []; if (f.evidenceRequests.some(r => r.pid === pid)) return; f.evidenceRequests.push({ pid, to: 'controls', at: nowISO() }); bump(`In-service certificate requested from ${DB.people.controls.name} for ${DB.projects.find(x => x.id === pid).code}`); toast(`Request sent to ${DB.people.controls.name}. The check stays open until the certificate is attached or the project is excluded.`); }
+function includeWithReason(pid) { const p = DB.projects.find(x => x.id === pid); S.modal = { kind: 'text', title: `Include ${p.name}`, label: `Reason — recorded in Schedule 1 with your name and the time. The rule it overrides (${DB.rules[p.rule].label}) stays visible in the lineage.`, ok: 'Include with reason', onok: v => { p.decision = 'include'; p.override = { to: 'include', reason: v, at: nowISO(), by: 'nishant', originalRule: p.rule }; if (!p.record) p.record = 'override — see reason'; if (!p.inService) p.inService = p.forecast || DB.today; bump(`Scope override: ${p.code} included — ${v.slice(0, 60)}`); toast('Scope changed. Schedules 1–3 and the checks re-solved.'); } }; render(); }
+function editPara(k, el) { const f = DB.filing; f.narrativeEdits = f.narrativeEdits || {}; const secId = k.split('.')[0]; const idx = +k.split('.')[1]; const orig = buildDoc().find(x => x.id === secId).paras[idx]; const cur = f.narrativeEdits[k] || orig; if (el.innerHTML !== cur) { f.narrativeEdits[k] = el.innerHTML; bump(`Narrative ${secId} paragraph ${idx + 1} edited`); render(); } }
+function regenNarrative(secId) { const f = DB.filing; const keys = Object.keys(f.narrativeEdits || {}).filter(k => k.startsWith(secId + '.')); if (!keys.length) { toast('Narrative already reflects the current figures.'); return; } if (!confirm(`Regenerate ${secId}? ${keys.length} edited paragraph(s) will be replaced with text drafted from the current figures.`)) return; keys.forEach(k => delete f.narrativeEdits[k]); bump(`${secId} regenerated from current figures`); toast(`${secId} re-drafted from v${f.version} figures.`); }
+function editAttest(el) { const f = DB.filing; if (f.attestation) return; const t = el.textContent.trim(); const cur = f.attestText || buildDoc().find(x => x.kind === 'attestation').text; if (t && t !== cur) { f.attestText = t; bump('Attestation wording edited'); render(); } }
+function reresolve() { bump('Re-resolved from sources'); toast('Re-resolved against GL as-of 31 Aug 2026 and the register as-of 15 Sep 2026 — 0 figures changed.'); }
+function excludeWithReason(pid) { const p = DB.projects.find(x => x.id === pid); S.modal = { kind: 'text', title: `Exclude ${p.name}`, label: 'Reason — recorded in Schedule 3 with your name and the time; the original rule is kept beside it.', ok: 'Exclude with reason', onok: v => { p.decision = 'exclude'; p.override = { to: 'exclude', reason: v, at: nowISO(), by: 'nishant', originalRule: p.rule }; bump(`Scope override: ${p.code} excluded`); toast('Scope changed. Schedules 1–3 and the checks re-solved.'); } }; render(); }
+function issuePackage() { const f = DB.filing; setStatus('package_issued'); bump('Filing package issued', 'marc'); f.package = { id: `PKG-NJ-DSIC-v${f.version}`, at: nowISO(), by: 'marc' }; S.modal = { kind: 'package' }; render(); }
+function recordFiling() { const date = $('#rf_date').value, conf = $('#rf_conf').value.trim(); if (!date || !conf) { toast('Date filed and confirmation reference are required.'); return; }
+  const o = ob('dsic'); setStatus('filed'); o.filed = { date, by: 'marc', confirmation: conf }; bump(`Filed ${fdate(date)} · ${conf}`, 'marc');
+  DB.obligations.splice(1, 0, { id: 'dsic_next', label: 'DSIC semi-annual filing', toShort: 'NJ BPU', template: 'Infrastructure surcharge periodic filing', period: 'Recovery period 1 Sep 2026 – 28 Feb 2027', due: '2027-04-15', leadDays: 30, status: 'not_started', docket: 'WR24050321', officer: o.officer });
+  S.modal = null; toast('Filing recorded. The version is locked and the next period is on the calendar.'); }
+
+/* ---- EXPORTS ---- */
+const strip = h => String(h ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+const csvq = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+function exportCSV(secId) { const f = DB.filing; const s = buildDoc().find(x => x.id === secId); const o = ob('dsic'); const out = [csvq(`${DB.tenant.name} — ${o.label} — ${o.period} — v${f.version} — ${f.status === 'filed' ? 'FILED ' + o.filed.confirmation : 'FILING-READY, NOT FILED'}`), csvq(s.title), s.cols.map(c => csvq(c[1])).concat([csvq('coordinate'), csvq('source'), csvq('as of')]).join(',')];
+  s.rows.forEach(r => { const last = r.cells[s.cols[s.cols.length - 1][0]] || {}; out.push(s.cols.map(c => { const v = r.cells[c[0]]; return csvq(v ? (v.raw ?? strip(v.v)) : ''); }).concat([csvq(last.coord || ''), csvq(last.source || ''), csvq(last.asOf || '')]).join(',')); });
+  if (s.total) out.push([csvq(s.total.label), ...s.cols.slice(1).map((c, i) => i === s.cols.length - 2 ? csvq(s.total.cell.raw) : csvq(''))].join(','));
+  download(`DSIC_filing_${secId}_v${f.version}.csv`, out.join('\n')); toast(`${secId} exported as CSV with coordinate, source and as-of columns.`); }
+function exportLineage() { const f = DB.filing; const out = [['schedule', 'row', 'column', 'value', 'coordinate', 'source', 'as_of'].map(csvq).join(',')];
+  buildDoc().filter(x => x.kind === 'schedule').forEach(s => { s.rows.forEach(r => s.cols.forEach(c => { const v = r.cells[c[0]]; if (v && (v.source || v.coord)) out.push([s.id, r.id, c[0], v.raw ?? strip(v.v), v.coord || 'record', v.source || '', v.asOf || ''].map(csvq).join(',')); })); if (s.total) out.push([s.id, 'total', 'cost', s.total.cell.raw, s.total.cell.coord, s.total.cell.source, s.total.cell.asOf].map(csvq).join(',')); });
+  download(`DSIC_filing_lineage_v${f.version}.csv`, out.join('\n')); toast(`Lineage appendix exported — ${out.length - 1} figures.`); }
+
+/* ---- MODALS ---- */
+function modal() { const m = S.modal; let inner = '';
+  if (m.kind === 'text') inner = `<h2>${esc(m.title)}</h2><label class="f" style="margin-top:8px">${esc(m.label)}<textarea id="mtext"></textarea></label><div class="acts"><button class="btn" onclick="S.modal=null;render()">Cancel</button><button class="btn pri" onclick="const v=document.getElementById('mtext').value.trim();if(!v)return;S.modal.onok(v);S.modal=null;render()">${esc(m.ok)}</button></div>`;
+  if (m.kind === 'addob') inner = `<h2>Add an obligation</h2><div class="mut sm" style="margin:6px 0 12px">For a report the agents did not find, or a recipient the Pack does not know. It is added to this stream as <b>declared by you</b>. A Pack template gives it schedules and rules; "from last report sent" builds a template from a prior document.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><label class="f">Obligation name<input type="text" id="ao_label" placeholder="e.g. Lead service line mechanism — annual report"></label><label class="f">Recipient<select id="ao_to" style="font:inherit;padding:7px 10px;border:1px solid var(--line2);border-radius:8px"><option>NJ BPU</option><option>NJDEP</option><option>Other</option></select></label>
+      <label class="f">Template<select id="ao_tpl" style="font:inherit;padding:7px 10px;border:1px solid var(--line2);border-radius:8px"><option>Mechanism annual report</option><option>Infrastructure surcharge periodic filing</option><option>Commission annual report</option><option>Base rate case exhibit</option><option>Compliance certification</option><option>From last report sent (build template)</option></select></label><label class="f">Cadence<select id="ao_cad" style="font:inherit;padding:7px 10px;border:1px solid var(--line2);border-radius:8px"><option>Annual</option><option>Semi-annual</option><option>Quarterly</option><option>Per case</option><option>One-off</option></select></label>
+      <label class="f">Period (optional)<input type="text" id="ao_period" placeholder="e.g. Calendar year 2026"></label><label class="f">Due date (optional — empty keeps it as "No dates configured")<input type="date" id="ao_due"></label><label class="f">Drafting lead (days)<input type="text" id="ao_lead" value="30"></label></div>
+      <div class="acts"><button class="btn" onclick="S.modal=null;render()">Cancel</button><button class="btn pri" onclick="addObligation()">Add obligation</button></div>`;
+  if (m.kind === 'attest') { const off = DB.people[DB.filing.officer]; inner = `<h2>Officer attestation</h2><div class="mut sm" style="margin:6px 0 10px">Hand-off: <b>${off.name}</b>, ${off.title}, signs this block. Signing records name, role and time against v${DB.filing.version}. Only a person signs it.</div><div class="attest"><p style="margin:0">${esc(buildDoc().find(s => s.kind === 'attestation').text)}</p></div><label class="f" style="margin-top:12px">Type the officer's full name to sign<input type="text" id="signame" placeholder="${off.name}"></label><div class="acts"><button class="btn" onclick="S.modal=null;render()">Cancel</button><button class="btn pri" onclick="doAttest()">Sign</button></div>`; }
+  if (m.kind === 'package') { const f = DB.filing; const issued = !!f.package; const files = [['PDF', `DSIC_filing_v${f.version}.pdf`, 'The document as reviewed — schedules, narrative, attestation. Watermarked until the filing is recorded.', 'window.print()'], ['CSV', 'DSIC_filing_S1.csv', 'Schedule 1 with coordinate and as-of columns', "exportCSV('S1')"], ['CSV', 'DSIC_filing_S2.csv', 'Schedule 2 — revenue requirement and cap test', "exportCSV('S2')"], ['CSV', 'DSIC_filing_S3.csv', 'Schedule 3 — exclusions with rule', "exportCSV('S3')"], ['CSV', 'DSIC_filing_lineage.csv', 'Every figure with its coordinate, source and as-of', 'exportLineage()']];
+    inner = `<h2>Filing package${issued ? ' — ' + f.package.id : ''}</h2><div class="mut sm" style="margin:6px 0 12px">${issued ? `Issued ${fdt(f.package.at)} by ${DB.people[f.package.by].name}. Contents are fixed to v${f.version}.` : `What will be issued for v${f.version}. A person files it through ${DB.regulator.portal}; Context Weave does not submit it.`}</div>
+      <div class="files">${files.map(([k, n, w, a]) => `<div class="f"><span class="ic">${k}</span><div class="grow"><b class="mono sm">${n}</b><div class="mut xs">${w}</div></div>${issued && a ? `<button class="btn sm" onclick="${a}">Open</button>` : ''}</div>`).join('')}</div>
+      <div class="note">Watermark <span class="wm">FILING-READY · NOT FILED</span> is printed on every page until the filing is recorded with the regulator's confirmation.</div>
+      <div class="acts"><button class="btn" onclick="S.modal=null;render()">Close</button>${!issued ? `<button class="btn pri" onclick="issuePackage()">Issue package (as Marc)</button>` : ''}</div>`; }
+  if (m.kind === 'record') inner = `<h2>Record the filing</h2><div class="mut sm" style="margin:6px 0 12px">Hand-off: Marc Beaulieu filed ${DB.filing.package.id} with ${DB.regulator.name} through ${DB.regulator.portal}. Record what the regulator gave back. This locks v${DB.filing.version} and opens the next period.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><label class="f">Date filed<input type="date" id="rf_date" value="${DB.today}" max="${DB.today}"></label><label class="f">Confirmation reference<input type="text" id="rf_conf" placeholder="e.g. BPU-2026-104511"></label></div>
+      <div class="acts"><button class="btn" onclick="S.modal=null;render()">Cancel</button><button class="btn pri" onclick="recordFiling()">Record filing</button></div>`;
+  return `<div class="modal-bg" onclick="if(event.target===this){S.modal=null;render()}"><div class="modal">${inner}</div></div>`; }
+
+window.addEventListener('DOMContentLoaded', () => { restore(); render(); });
+
+</script>
+</body>
+</html>

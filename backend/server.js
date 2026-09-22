@@ -5281,6 +5281,28 @@ function askableGraph(useCase) {
 }
 
 /**
+ * The graph a question is answered against when the request names none.
+ *
+ * **`db.ask_answers` is one flat, dataset-wide pool** — a CAPEX ledger fact and a
+ * contractor's-email fact sit in the same array, often the same answer, cited side by
+ * side. Which of those a reader can reach must not depend on whether a graph happened
+ * to be selected: the graph says *whose* published content answered the question, not
+ * which questions may be asked. So naming none defaults to the newest published graph
+ * for this dataset — the same one the reader's own selector already lands on when it
+ * loads with nothing picked — rather than narrowing the search to runtime sources only.
+ *
+ * Null exactly when nothing is published yet, which is the one state `askSourceAnswer`
+ * still owns: with no graph to default to, a connected mailbox is the only thing left.
+ */
+function defaultPublishedUseCase() {
+  const ranked = builtGraphs()
+    .map((uc) => ({ uc, g: askableGraph(uc) }))
+    .filter((x) => x.g)
+    .sort((a, b) => Date.parse(b.g.published_at ?? 0) - Date.parse(a.g.published_at ?? 0))
+  return ranked[0]?.uc ?? null
+}
+
+/**
  * Answering one question against the live graph.
  *
  * There is no model here, so nothing is asserted that the graph does not carry:
@@ -14112,10 +14134,13 @@ const routes = [
       const id = String(use_case_id ?? '').trim()
 
       /*
-       * **Two things can be asked, and the request says which.** A published graph, exactly as
-       * before; or one or more connected runtime sources, read at question time. Naming
-       * neither is the refusal — it was `choose a graph to ask first`, which is now only half
-       * the fix and would send a reader to Graph Studio for a mailbox question.
+       * **One search, not two modes.** `db.ask_answers` is one flat, dataset-wide set, so
+       * which of it a reader can reach must not depend on whether a graph happened to be
+       * selected. A named graph is still resolved below and still refused if unpublished;
+       * naming none no longer restricts the search to runtime sources — it defaults to the
+       * newest published graph, which already answers both a CAPEX question and a mail one
+       * from the same recorded pool. `askSourceAnswer` is what remains for the one state
+       * that default cannot cover: nothing published at all yet.
        */
       const askedSources = Array.isArray(source_ids)
         ? source_ids.map((sid) => String(sid ?? '').trim()).filter(Boolean)
@@ -14142,23 +14167,12 @@ const routes = [
         picked.push(source)
       }
 
-      if (!id && picked.length === 0) {
-        return send(res, 400, {
-          error: 'choose a graph or a connected source to ask first',
-        })
-      }
-      if (!String(question ?? '').trim()) {
-        return send(res, 400, { error: 'ask a question first' })
-      }
-      /* What the reader required of this answer, validated here — before the stream
-         opens, like every other refusal on this route. */
-      const requested = askRequested(body)
-      if (requested.error) return send(res, 400, { error: requested.error })
-
       /*
-       * The graph, where one was named — and the publish gate is exactly as it was. A graph
-       * that has never been published is still refused here, naming Graph Studio, because
-       * this route answering from an unpublished version is the failure the gate exists for.
+       * The graph, named or defaulted — and the publish gate is exactly what it was for a
+       * named one. A graph that has never been published is still refused here, naming
+       * Graph Studio, because this route answering from an unpublished version is the
+       * failure the gate exists for. An *unnamed* graph is never refused this way — it is
+       * simply not used, and the question falls to `defaultPublishedUseCase()` instead.
        */
       let useCase = null
       if (id) {
@@ -14170,7 +14184,22 @@ const routes = [
           })
         }
         useCase = found.useCase
+      } else {
+        useCase = defaultPublishedUseCase()
       }
+
+      if (!useCase && picked.length === 0) {
+        return send(res, 400, {
+          error: 'choose a graph or a connected source to ask first',
+        })
+      }
+      if (!String(question ?? '').trim()) {
+        return send(res, 400, { error: 'ask a question first' })
+      }
+      /* What the reader required of this answer, validated here — before the stream
+         opens, like every other refusal on this route. */
+      const requested = askRequested(body)
+      if (requested.error) return send(res, 400, { error: requested.error })
 
       /*
        * The answer is streamed, because it is composed rather than fetched.
@@ -14187,11 +14216,11 @@ const routes = [
        * `GoogleConsentPanel` draws between a stage and a timer.
        */
       /*
-       * **A graph answers where one was named; otherwise the sources do.** Never both: an
-       * answer carrying a graph version *and* a mailbox would have two accounts of where it
-       * came from, and the reader could not tell which produced the figure in front of them.
-       * A graph-grounded answer already reports its runtime sources as `observation` blocks,
-       * which is the seam this mode is on the other side of.
+       * **A graph answers whenever one is available, named or defaulted; the sources answer
+       * only in the one state that leaves nothing else to ask.** A graph-grounded answer
+       * already reports whatever the recorded set blended into it — a ledger fact and a
+       * contractor's email cited side by side in the same answer — so there is nothing a
+       * second, source-scoped account could add once a graph exists to ask through.
        */
       const answer = useCase
         ? askAnswer(useCase, String(question).trim(), requested)

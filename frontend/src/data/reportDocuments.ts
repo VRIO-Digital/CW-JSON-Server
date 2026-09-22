@@ -28,8 +28,12 @@
  *
  * **And a third, for a dataset whose Audit & Governance screen is a rendered page.** Same reasoning
  * again, and the folder name is again what classifies the file: `audit-governance/` holds that screen.
- * Three globs feeding one lookup is three lines; one loose pattern is a rule nobody can read off the
- * tree, and the duplicate-basename throw below has to see every candidate whichever way they arrive.
+ *
+ * **A fourth glob resolves the specification behind a rendered report**, and **a fifth resolves a
+ * page that is not a dataset's at all** — see their own declarations below for why each earns a
+ * separate pattern rather than a widened one. Five globs feeding one lookup is five lines; one loose
+ * pattern is a rule nobody can read off the tree, and the duplicate-basename throw below has to see
+ * every candidate whichever way they arrive.
  */
 
 /*
@@ -72,6 +76,25 @@ const specModules = import.meta.glob('../*/Steps-building-report/*.html', {
   eager: true,
 }) as Record<string, string>
 
+/*
+ * And a fifth, for a document that is not a dataset's at all.
+ *
+ * The four above each glob a dataset folder and then a fixed kind-folder inside it — because every
+ * one of them is *that dataset's own* report, lens, governance screen or spec. (Spelled out as a
+ * literal pattern this sentence would end its own comment: the wildcard and the path separator sit
+ * right next to the folder name, `*` then `/`, which is also how a block comment ends.)
+ * AI Submissions is a standalone page the sidebar offers regardless of which dataset is selected, so
+ * there is no dataset segment to put in front of it; `'../AISubmissions/*.html'` is the pattern one
+ * layer shallower, a single named folder rather than a wildcard over datasets. The folder still does
+ * the classifying, which is the rule every glob here keeps — a flat pattern loose enough to catch
+ * this would also catch the next folder somebody drops beside the dataset ones.
+ */
+const aiSubmissionsModules = import.meta.glob('../AISubmissions/*.html', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
 /**
  * Filename -> URL, keyed on the basename because that is what the payload carries.
  *
@@ -86,6 +109,7 @@ for (const [path, url] of Object.entries({
   ...lensModules,
   ...governanceModules,
   ...specModules,
+  ...aiSubmissionsModules,
 })) {
   const name = path.slice(path.lastIndexOf('/') + 1)
   const seen = byName.get(name)

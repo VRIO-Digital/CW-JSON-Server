@@ -76,6 +76,7 @@ const NAV_KEYS = [
   'reports',
   'ask',
   'what-if',
+  'ai-submissions',
   'new-graph',
   'sources',
   'catalog',
