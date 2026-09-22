@@ -3207,6 +3207,40 @@ audience to the mailbox's used-for note, and `check-docs` asserts no `db` key ex
 the Playground *adds* is the **query each one is answered by**: a hero question already carried `sql`,
 and a metric now does too.
 
+**And a metric's query arrives with the metric, the way a hero question's does.** A metric had
+`sql: null` and stayed that way — the field was on the brief and nothing wrote it, so every row read
+*No SQL yet*. A hero question is composed for when it is accepted on step 5 of New Graph; a metric
+accepted on step 4 has no such act. `metricsWithSql` in `playgroundView` is that act, so the two
+lists on one screen behave alike: **no button and no second step**. A compose control was built
+first and **removed on request** for exactly that reason — a query a reader has to ask for twice is
+not the same feature as one that is there.
+
+**The composer is the hero question's own**, because two would be two answers to what a query over
+this schema looks like, one tab apart — the second reader this file refuses everywhere. So every
+rule that composer keeps holds: each identifier is **read rather than invented** from
+`column_profiles` for the tables this use case's picks admit, and a metric nothing matches gets **no
+query and the reason** rather than a plausible one naming a column this tenant may not have. That
+reason is **served** (`sql_note`) and printed in the row, because *"No SQL yet — click edit"*
+describes a row nobody got round to, and this is a row nothing in the schema matched.
+
+**Only where there is none, and nothing is written.** A query a reader wrote or corrected is theirs,
+and re-deriving on every read would silently discard it — which is why the wizard carries its own on
+the brief rather than re-composing when the step re-opens. This is the *view*: a read that committed
+would be a write nobody asked for, so the brief keeps `null` until a save carries the composed query
+back with the rest of the list.
+
+**Two differences from a question, and both are facts about metrics rather than preferences.** A
+question may legitimately want rows — *which projects are over budget* is answered by a list — but a
+**metric is a measure**, so where its own words name no aggregate the composer falls back to `SUM`.
+That fallback **invents nothing**: it applies only where a real measure column was matched, so a
+metric whose words reach only dimensions still projects rows rather than summing something that is
+not a number, and a metric named *average* still composes an AVG. And the refusals are written in
+the metric's own noun (`subject`), the `wrongStructuredOnly` rule applied to a sentence.
+
+**The name *and* the definition are read**, because they answer two halves of what is being measured
+and CAPEX's definitions are the finance team's own notation, which names more columns than a title
+does. A metric with no definition still composes from its name.
+
 **`GET`/`PATCH /use-cases/:id/playground` are the two routes, and absent means unchanged.** The
 Metrics tab sends metrics and the Golden Queries tab sends questions; a record rebuilt from a body
 that did not carry the other list would delete it silently, with the screen still showing it until
@@ -3278,6 +3312,29 @@ Bridge's own claim, drawn from an entity to the concept it corresponds with — 
 person has decided it.** An undecided correspondence is a proposal, and a line on a canvas reads as a
 fact; a rejected one asserts nothing at all.
 
+**Reset view undoes everything that changed what is on screen, and that is two halves.** It reset
+the camera alone, so pressing it with a node selected re-centred a graph that stayed **dimmed**
+around that node with the Inspect panel still on it — a button that visibly does nothing. Reported
+from use. The dimming is not the camera's: `useForceGraph` marks a node `dim` when its type is
+hidden, the search does not match it, or it sits outside the selected neighbourhood — three pieces
+of state the hook is *given* and cannot clear. So the camera stays the hook's (`resetCamera`: zoom
+to identity, plus the `ResizeObserver`'s own nudge back to the middle, because a dragged hub moves
+the drawing off centre exactly as panning does) and the three are the page's (`clearView`). The
+button calls both, and **neither half is a view reset on its own** — which is what `check-docs`
+asserts, rather than that a reset exists. `highlight` is untouched: it is what the *caller* handed
+in, an answer's own route, so it is the state a reset returns **to**.
+
+**The side panel is Inspect, and it has no tab bar.** There was a second tab, *How it's built*, and
+it was **removed on request** — its copy was a reconstruction of one package's extraction passes,
+naming Facility, Manifest, Evaluation, Violation, Enforcement and `REGISTRY_ID / PGM_SYS_ID`. Under
+CAPEX, whose graph holds Projects, Contracts, Vendors and Change Orders, it described a pipeline that
+had not run over entities that do not exist: authored prose asserting another tenant's graph, which
+is the transcribed-figure fault in words and the one thing on that panel a reader could not check
+against the drawing beside it. **The tab bar went with it** rather than being left holding one tab,
+and `.tabs`/`.tab` went with the bar — a rule with nothing to style is an invitation for the control
+to come back. `check-docs` asserts all of it in one claim, with *Inspect still present* in the same
+claim, because "the file is gone" alone would pass just as well if the whole side had gone with it.
+
 **Full view** opens the combined frame with the whole window, in a new tab, so the studio keeps its
 place. The href is built by the page rather than the tab, because the dataset prefix is the page's;
 the vendored viewer knows nothing about this app's routes and neither should a tab that renders it.
@@ -3288,6 +3345,23 @@ the vendored viewer knows nothing about this app's routes and neither should a t
 copied graph. `reconcile` names whatever has finished, is **idempotent** (safe on every studio load,
 and `null` rather than an invented version when nothing has finished), and **creating is not
 publishing**: the version lands unpublished so it can be inspected before it answers anything.
+
+**One run is one version, so nothing is recorded while the run that produced it is still finishing.**
+A two-lane run lands in two moments — both lanes complete, and then the Bridge formed from them
+succeeds a few seconds later — and the studio refreshes at each. Recording at the first names two of
+the three artifacts, and the second then has a different triple to name, so **one build of a fresh
+use case minted v1 without a Bridge and v2 with it**: a Versions tab with two rows nobody asked for,
+and a Bridge tab offering *Publish v2* the first time anybody built anything. Reported from use.
+`versionArtifactsInFlight` holds `reconcile` off, and it loses no version — the same refresh that
+watches the formation records it the moment it lands, naming all three.
+
+**What holds it is a run that is *running*, never an artifact that is missing.** A Bridge being
+formed over the pair now in hand, or a lane whose run asked for a Bridge to follow it; a lane that
+**failed** is not running and a Bridge that could not be formed is not forming, so a run that went
+wrong still leaves what it did produce recordable. A single-lane use case never waits, because no
+Bridge is coming for it to wait on. The condition is read from the runs themselves rather than from a
+flag set at the trigger, because a version is recorded by whoever loads the studio and that reader
+may never have pressed the button.
 
 Each carries the two staleness questions, **derived at read time and reported separately**: whether
 its Bridge was formed from the triple it names, and whether either lane has built something newer. A

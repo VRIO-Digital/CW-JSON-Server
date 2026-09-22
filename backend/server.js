@@ -9819,11 +9819,63 @@ function normalizeQueryFiles(list, as) {
   return out
 }
 
+/**
+ * Every metric with the query that answers it, composed where it has none.
+ *
+ * **A metric's query arrives with the metric, the way a hero question's does.** A question is
+ * composed for when it is accepted on step 5 of New Graph; a metric accepted on step 4 has no such
+ * act, so its `sql` was a field five layers carried and nothing ever wrote — every row read *No SQL
+ * yet* and the only way to fill one was to type it. Composing it here is what makes the two lists on
+ * one screen behave alike, which is the whole claim the Playground makes about them.
+ *
+ * **The same composer as a hero question's**, because two would be two answers to what a query over
+ * this schema looks like, one tab apart. So every rule that composer keeps holds: each identifier is
+ * read from `column_profiles` for the tables this use case's picks admit, and a metric nothing
+ * matches gets **no query and the reason** rather than a plausible one naming a column this tenant
+ * may not have.
+ *
+ * **Only where there is none.** A query a reader wrote or corrected is theirs, and re-deriving it on
+ * every read would silently discard what they typed — the rule the wizard keeps by carrying the
+ * query on the brief rather than re-composing when the step re-opens. Nothing is written here: this
+ * is the view, and a read that committed would be a write nobody asked for.
+ *
+ * Two things a metric needs that a question does not, and both are parameters rather than a second
+ * composer: a **metric is a measure**, so where its own words name no aggregate the composer falls
+ * back to `SUM` — applied only where a real measure column was matched, so nothing that is not a
+ * number is summed — and the refusals are worded in its own noun.
+ */
+function metricsWithSql(useCase) {
+  const metrics = normalizeDrafted(useCase.metrics, { withSql: true })
+  /* Resolved even when every metric already has a query, so every row carries `sql_note` whether or
+     not anything was composed: a field present on some rows and absent on others is a shape the
+     client has to narrow, and the reason it exists is to be read on exactly the rows that lack a
+     query. */
+  const tables = selectedTables(db, useCase).map((row) => ({
+    ref: row.key,
+    columns: (db.column_profiles ?? {})[row.key] ?? [],
+  }))
+  return metrics.map((metric) => {
+    if (metric.sql) return { ...metric, sql_note: null }
+    /* The name **and** the definition: they answer two halves of what is being measured, and
+       CAPEX's definitions are the finance team's own notation, which names more columns than a
+       title does. A metric with no definition still composes from its name. */
+    const text = [metric.name, metric.description].filter((part) => String(part ?? '').trim()).join('. ')
+    const out = questionSql(text, tables, { defaultAggregate: 'SUM', subject: 'metric' })
+    return {
+      ...metric,
+      sql: out.sql,
+      /* Why there is none, where there is none — **served**, so the row prints the reason rather
+         than a generic empty state a reader cannot act on. `null` where there is a query. */
+      sql_note: out.sql === null ? (out.reason ?? null) : null,
+    }
+  })
+}
+
 const playgroundView = (useCase) => ({
   use_case_config_id: useCase.use_case_id,
   /* The brief's own lists, normalised on the way out exactly as they are on the way in — so a
      hand-edited `db.json` cannot serve a row the Playground would then refuse to save. */
-  metrics: normalizeDrafted(useCase.metrics, { withSql: true }),
+  metrics: metricsWithSql(useCase),
   golden_queries: normalizeQuestions(useCase.hero_questions),
   files: normalizeQueryFiles(useCase.golden_query_files ?? [], null),
   /* Served rather than restated in the component, because the refusal above quotes them: a cap the
@@ -10035,6 +10087,44 @@ const versionView = (version) => ({
 })
 
 /**
+ * Is a run this version would have to name still going?
+ *
+ * **Read from the runs themselves rather than from a flag set at the trigger**, because a version is
+ * recorded by whoever loads the studio and that reader may never have pressed the button. Two things
+ * answer it, and each is a thing that is *running* rather than a thing that is missing: a Bridge
+ * being formed over the pair now in hand, and a lane of a two-lane use case whose run asked for a
+ * Bridge to follow it. A lane or a Bridge that **failed** is not in flight, so a run that went wrong
+ * still leaves the artifacts it did produce recordable.
+ */
+function versionArtifactsInFlight(useCase, sgb, dgb) {
+  const id = useCase.use_case_id
+  const lanes = deriveLanes(db, useCase)
+  if (!lanes.hasStructured || !lanes.hasDocuments) return false
+
+  /* The Bridge being formed FROM exactly the two graphs this version would name — one still running
+     over an older pair belongs to an older version and must not hold this one. */
+  const forming = listFor(bridgeBuilds, id).some(
+    (b) =>
+      b.status === 'running' &&
+      b.sgb_build_id === (sgb?.build_id ?? null) &&
+      b.dgb_graph_version === (dgb?.graph_version ?? null),
+  )
+  if (forming) return true
+
+  /* Or a lane still running, where the run that started it asked for a Bridge afterwards: that
+     Bridge does not exist yet to be found above, and recording now would name one lane alone. */
+  const sgbRun = listFor(sgbBuilds, id)[0] ?? null
+  const dgbRun =
+    [...dgbJobs.values()]
+      .filter((j) => j.use_case_config_id === id)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0] ?? null
+  return Boolean(
+    (sgbRun?.auto_bridge && sgbRun.status === 'running') ||
+      (dgbRun?.auto_bridge && dgbRun.status === 'running'),
+  )
+}
+
+/**
  * Name this use case's finished builds with a version if they are not already.
  *
  * Safe to call on every studio load and **idempotent**: a use case whose newest artifacts are already
@@ -10056,6 +10146,22 @@ function reconcileVersions(useCase) {
 
   const existing = history.find(names)
   if (existing) return existing
+
+  /*
+   * **One run is one version, so nothing is recorded while the run that produced it is still
+   * finishing.** A two-lane run lands in two moments — both lanes complete, then the Bridge formed
+   * from them succeeds a few seconds later — and the studio refreshes at each. Recording at the
+   * first names two of the three artifacts, and the second then has a different triple to name, so
+   * one build of a fresh use case minted **v1 without a Bridge and v2 with it**: a Versions tab with
+   * two rows nobody asked for, and a Bridge tab offering `Publish v2` the first time anybody builds
+   * anything. Holding here loses no version — the same refresh that watches the formation records
+   * it the moment it lands, naming all three.
+   *
+   * Only what is genuinely **in flight** holds it: a failed lane is not running and a Bridge that
+   * could not be formed is not forming, so neither can leave a use case unable to record a version
+   * at all. A single-lane use case never waits, because no Bridge is coming for it to wait on.
+   */
+  if (versionArtifactsInFlight(useCase, sgb, dgb)) return null
 
   /* Only here, because reconciling is idempotent: returning a version that already names these
      artifacts is a read, and `both` is a reading view. Minting a new one is the write. */
@@ -14199,10 +14305,22 @@ const routes = [
       if (found.error) return send(res, found.status, { error: found.error })
       const version = reconcileVersions(found.useCase)
       if (!version) {
+        /* Two reasons to have nothing to record, and they take opposite advice: nothing has been
+           built, or a run is mid-flight and the version it will be recorded as is the one naming
+           everything it produces. Answering the first for the second sends a reader to build a use
+           case that is building. */
+        const running = versionArtifactsInFlight(
+          found.useCase,
+          listFor(sgbBuilds, found.useCase.use_case_id).find((b) => b.status === 'complete') ?? null,
+          listFor(dgbBuilds, found.useCase.use_case_id)[0] ?? null,
+        )
         return send(res, 409, {
-          error:
-            'neither lane of this use case has finished a build, so there are no artifacts to record ' +
-            'as a version. Build it first from the Build tab.',
+          error: running
+            ? 'this use case is still building, and a version names every artifact one run produces ' +
+              '— the structured graph, the document graph and the Bridge formed from them. It is ' +
+              'recorded on its own the moment the run lands.'
+            : 'neither lane of this use case has finished a build, so there are no artifacts to record ' +
+              'as a version. Build it first from the Build tab.',
         })
       }
       send(res, 200, { version: versionView(version) })

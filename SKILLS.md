@@ -1964,6 +1964,15 @@ each is answered by**, plus add, edit and remove.
 - **Absent means unchanged** on the PATCH, and the record **spreads** the use case: the Metrics tab
   must not delete the golden queries by not mentioning them, and neither may drop the brief's name,
   domain or picks.
+- **A metric's query arrives with the metric**, composed in `playgroundView` by `metricsWithSql` —
+  **no button, no second step** (a compose control was built first and removed on request). It is
+  the hero question's own `questionSql`, because two composers are two answers to what a query over
+  this schema looks like. Identifiers read from `column_profiles`; nothing matched is no query
+  **with the reason**, served as `sql_note` and printed in the row.
+- **Only where there is none, and nothing is written**: a query the reader wrote is theirs, and a
+  read that committed would be a write nobody asked for. Two differences from a question, both facts
+  about metrics: a metric is a **measure**, so its fallback aggregate is `SUM` — applied only where a
+  real measure column was matched — and the refusals are worded in its own noun (`subject`).
 - **The wizard carries both additions**: `golden_query_files` is in its carry-forward list, and both
   writers normalise metrics `withSql` — otherwise a wizard save drops a query written here.
 - **FROM DOCUMENT is keyed on `origin`**, set by the document pass alone. `source` is two-valued and
@@ -1985,6 +1994,15 @@ each is answered by**, plus add, edit and remove.
 Three frames, one viewer. A second force graph is what this repo refuses everywhere: two drawings of
 one graph are two answers to what it looks like.
 
+- **Reset view is two halves**: the camera (`resetCamera` — zoom to identity plus a nudge back to
+  the middle) and what the reader narrowed (`clearView` — the selection, the search, the hidden
+  types). It reset the camera alone, so with a node selected it re-centred a graph that stayed
+  dimmed: a dead button. Neither half is a view reset on its own; `highlight` is the caller's and is
+  what a reset returns **to**.
+- **The side panel is Inspect and has no tab bar** — *How it's built* was removed on request: its
+  copy named one package's passes (Facility, Manifest, `REGISTRY_ID`), so under CAPEX it described a
+  pipeline that had not run over entities that do not exist. The bar went with the tab and `.tabs`
+  /`.tab` with the bar.
 - **Structured** — tables and the concepts their columns realise. Columns fold into their table
   (206 discs around five tables says less than five tables do), capped **and saying so**; nine
   `REALISES` edges between one pair fold to one relationship carrying the count.
@@ -2002,6 +2020,13 @@ dataset prefix is the page's.
 A version is **the artifacts approved together** — it records an approval, never a merged graph.
 `reconcile` names whatever finished (idempotent, `null` rather than an invented version), and
 **creating is not publishing**: it lands unpublished so it can be inspected.
+
+**One run is one version.** A two-lane run finishes in two moments — both lanes, then the Bridge
+formed from them — and the studio refreshes at each, so `reconcile` used to record a bridge-less v1
+and then a v2 naming all three: two rows for one build, and *Publish v2* on the Bridge tab the first
+time anybody built anything. `versionArtifactsInFlight` holds it off while a Bridge is forming over
+the pair in hand or a lane of a two-lane run is still going. It holds on a run that is **running**,
+never an artifact that is missing — a failed lane would otherwise hold forever.
 
 Each carries two staleness questions, **reported separately**: whether its Bridge was formed from the
 triple it names (a **defect**) and whether a lane has built something newer (just a **candidate**).

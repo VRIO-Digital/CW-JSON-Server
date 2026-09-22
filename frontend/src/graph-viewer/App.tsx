@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { GraphCanvas } from './components/GraphCanvas'
 import { Sidebar } from './components/Sidebar'
 import { buildLegend, normalizeGraph } from './lib/graph'
-import type { RawGraph, SidebarTab } from './types'
+import type { RawGraph } from './types'
 import './styles.css'
 
 /**
@@ -43,7 +43,6 @@ export const GraphViewer = ({
   const [query, setQuery] = useState('')
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(() => new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [tab, setTab] = useState<SidebarTab>('detail')
 
   const toggleType = useCallback((type: string) => {
     setHiddenTypes((prev) => {
@@ -54,9 +53,26 @@ export const GraphViewer = ({
     })
   }, [])
 
+  /* Selecting no longer has a tab to switch back to: the side panel is the Inspect panel now that
+     "How it's built" is gone, so picking a node simply fills it. */
   const select = useCallback((nodeId: string | null) => {
     setSelectedId(nodeId)
-    if (nodeId) setTab('detail')
+  }, [])
+
+  /*
+   * Everything the reader narrowed, cleared in one act — the other half of *Reset view*, whose
+   * first half is the camera inside `GraphCanvas`.
+   *
+   * These three live here because they are what the whole viewer is drawn from, and the canvas only
+   * borrows them; a reset that reached the zoom alone left the graph dimmed around whatever was
+   * selected, which is a button that visibly does nothing. `highlight` is deliberately untouched: it
+   * is what the *caller* handed in — an answer's own route — rather than something this reader
+   * narrowed, so it is the state the view came in with and what a reset returns to.
+   */
+  const clearView = useCallback(() => {
+    setSelectedId(null)
+    setQuery('')
+    setHiddenTypes(new Set())
   }, [])
 
   return (
@@ -70,6 +86,7 @@ export const GraphViewer = ({
         onQueryChange={setQuery}
         onToggleType={toggleType}
         onSelect={select}
+        onClearView={clearView}
         highlight={highlight}
       />
 
@@ -77,8 +94,6 @@ export const GraphViewer = ({
         graph={graph}
         byId={byId}
         selected={selectedId ? (byId.get(selectedId) ?? null) : null}
-        tab={tab}
-        onTabChange={setTab}
         onSelect={select}
       />
     </div>

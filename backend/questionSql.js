@@ -321,11 +321,36 @@ const alias = (prefix, name) =>
  *
  * `tables` is `[{ ref, columns }]` — the caller resolves which tables the use case admits, because
  * that is the wizard's business and this module's job is only the query.
+ *
+ * **`defaultAggregate` is the one thing a metric needs that a question does not, and it is a
+ * parameter rather than a second composer.** A question may legitimately want rows — *which
+ * generators are under a decree* is answered by a list — so a question naming no aggregate falls
+ * through to a projection. A **metric is a measure by definition**: "Current Month Budget Variance"
+ * is a number, and answering it with a thousand rows of the columns it happened to match is the
+ * right shape for the wrong question. So the metric route passes `SUM` as the fallback and the
+ * question route passes none.
+ *
+ * It changes nothing else, and in particular it **invents no column**: it applies only where the
+ * text named no aggregate of its own *and* a real measure column was matched, so a metric whose
+ * words reach only dimensions still projects rows rather than summing something that is not a
+ * number. The metric's own words still win — one named *average* composes an AVG.
+ *
+ * `subject` is the noun the refusals are written in, for the reason `wrongStructuredOnly` takes one:
+ * a metric told that *"this question carries no words that name anything in the schema"* is being
+ * answered about something it is not, and two copies of one refusal are two places for it to be
+ * worded differently.
  */
-export function questionSql(question, tables) {
+export function questionSql(
+  question,
+  tables,
+  { defaultAggregate = null, subject = 'question' } = {},
+) {
   const asked = words(question)
   if (asked.length === 0) {
-    return { sql: null, reason: 'This question carries no words that name anything in the schema.' }
+    return {
+      sql: null,
+      reason: `This ${subject} carries no words that name anything in the schema.`,
+    }
   }
   if (!Array.isArray(tables) || tables.length === 0) {
     return {
@@ -383,15 +408,17 @@ export function questionSql(question, tables) {
     return {
       sql: null,
       reason:
-        'No profiled column matches this question, so a query would have to name a table this ' +
-        'tenant may not have. Write one yourself, or rephrase the question in the schema’s words.',
+        `No profiled column matches this ${subject}, so a query would have to name a table this ` +
+        `tenant may not have. Write one yourself, or rephrase the ${subject} in the schema’s words.`,
     }
   }
 
   const matched = best.scored.map((s) => s.column)
   const dimensions = matched.filter((c) => DIMENSION_CLASSES.has(c.class))
   const measures = matched.filter((c) => isMeasureClass(c.class))
-  const fn = aggregateFor(question)
+  /* The text's own aggregate wins; the caller's fallback applies only where it named none and a
+     measure is actually in reach — see `defaultAggregate` above. */
+  const fn = aggregateFor(question) ?? (measures.length > 0 ? defaultAggregate : null)
 
   /* The column to group by: the best-matching dimension, or the table's own identifier where the
      question named no dimension — a GROUP BY has to name something, and the identifier is the one

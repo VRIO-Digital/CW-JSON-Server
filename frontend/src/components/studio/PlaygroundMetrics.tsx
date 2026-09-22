@@ -54,6 +54,9 @@ export function MetricsPanel({
             description={metric.description || null}
             sql={metric.sql}
             noSql={playgroundCopy.metrics.noSql}
+            /* The server's own reason, where it had one — a row with no query is one nothing in the
+               profiled schema matched, which is a different fact from nobody having written one. */
+            sqlNote={metric.sqlNote}
             busy={busy}
             onEdit={() => onEdit(metric)}
             onDelete={() => onDelete(metric)}
@@ -123,6 +126,9 @@ export default function PlaygroundMetrics({
           sql: sql.trim() ? sql : null,
         }
       : manualMetric(name, description, sql)
+    /* The query for a metric typed with none arrives **on this save's own reply**: the server
+       composes it where the brief carries none, so there is nothing for the page to ask for and no
+       second press. A query the reader typed is theirs and is never composed over. */
     onSave(withMetric(metrics, next, editing))
     setOpen(false)
   }

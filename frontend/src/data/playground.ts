@@ -45,8 +45,15 @@ export const playgroundCopy = {
     descriptionPlaceholder: 'How this measure is defined — the sentence a reader checks it against.',
     sqlLabel: 'The query that answers it',
     sqlPlaceholder: 'SELECT …',
-    /* Says where to write one rather than only that there is none: an empty code block reads as a
-       query that failed to load, and a bare "none" leaves the reader looking for the control. */
+    /*
+     * Says where to write one rather than only that there is none: an empty code block reads as a
+     * query that failed to load, and a bare "none" leaves the reader looking for the control.
+     *
+     * **Rarely the sentence a reader sees**, and that is the point: the server composes a metric's
+     * query where the brief carries none, so a row reaching this state is one nothing in the
+     * profiled schema matched — and it prints the server's own `sqlNote` instead, which says *why*.
+     * This is the fallback for a row that has no reason either, which is an older server.
+     */
     noSql: 'No SQL yet — click edit to add it.',
     empty:
       'No metric has been accepted for this use case yet. Step 4 of New Graph is where they are ' +
@@ -210,6 +217,10 @@ export const manualMetric = (
   source: 'user',
   origin: null,
   sql: sql.trim() ? sql : null,
+  /* The server's to say, never the page's: a metric typed here with no query gets one composed on
+     the save's own reply, and a reason only where nothing matched. Claiming either from this side
+     would be the client answering a question about the schema. */
+  sqlNote: null,
 })
 
 export const manualQuery = (text: string, sql: string, high: boolean): GoldenQuery => ({

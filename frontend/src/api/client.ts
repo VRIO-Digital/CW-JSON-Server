@@ -10288,9 +10288,16 @@ export interface PlaygroundMetric {
   description: string
   source: 'ai' | 'user'
   origin: 'document' | null
-  /** `null` until somebody writes one. The row says so in words rather than showing an empty code
-   *  block, because a blank query box reads as a query that failed to load. */
+  /**
+   * The query this metric is answered by — **composed by the server where the brief carries none**,
+   * so it arrives with the metric exactly as a hero question's does rather than waiting for somebody
+   * to write it. Still `null` where nothing in the profiled schema matched, because a plausible
+   * query naming a column this tenant may not have is worse than none.
+   */
   sql: string | null
+  /** Why there is none, where there is none — the server's own sentence, printed in the row it is
+   *  about so a reader is not left to read a blank as a query that failed to load. */
+  sqlNote: string | null
 }
 
 /** A golden query — a hero question accepted on step 5, with the SQL that answers it. */
@@ -10687,6 +10694,9 @@ const PLAYGROUND = shape({
       source: oneOf(['ai', 'user']),
       origin: nullable(str),
       sql: nullable(str),
+      /* Why there is no query, where there is none. Nullable, so an older server that composed
+         nothing still validates — it simply has no reason to give. */
+      sql_note: nullable(str),
     }),
   ),
   /* The same `HERO_QUESTION` shape the wizard validates, because these are the same rows — a second
@@ -11245,6 +11255,7 @@ const toPlayground = (raw: Record<string, unknown>): Playground => ({
        `'document'` means anything to a reader. */
     origin: m.origin === 'document' ? 'document' : null,
     sql: (m.sql as string | null) ?? null,
+    sqlNote: (m.sql_note as string | null) ?? null,
   })),
   goldenQueries: (raw.golden_queries as Record<string, unknown>[]).map((q) => ({
     text: q.text as string,
