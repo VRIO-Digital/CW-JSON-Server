@@ -118,6 +118,7 @@ import {
   dgbRelations,
   needsReview,
   selectedTables,
+  structuredTableCount,
   sgbCounts,
   sgbGraph,
   sgbStory,
@@ -1746,6 +1747,92 @@ function validateDb(candidate) {
           problems.push(
             `graph_studio.sanity_checks "${check.check_id}" walks edge "${id}", which is ` +
               'not on the canvas — re-run "npm run ingest:graph" rather than editing either by hand',
+          )
+        }
+      }
+    }
+  }
+
+  /*
+   * **A shipped studio graph is checked the way the canvas is, and for the same reason.**
+   *
+   * `studio_graph` is optional — a dataset that ships none derives its lanes, which is what EPA does
+   * — so this runs only where one is present. What it checks is exactly what fails *silently on the
+   * drawing*: an edge whose endpoint is no node of this export is **skipped while drawing**, so the
+   * relationship simply is not there, which is how 20 dangling `graph_studio.canvas` edges once made
+   * 17 facilities look as though they had no enforcement. A Type Link naming a concept neither lane
+   * carries draws a Bridge line from a node nobody can click, and one whose `decision` this app has
+   * no branch for renders with no styling and no meaning.
+   *
+   * It reads `candidate`, never `db` — every cross-key check inside `validateDb` must, because it
+   * runs once per document and `activeDataset()` at boot is the primary.
+   */
+  if (problems.length === 0 && isObject(candidate.studio_graph)) {
+    const shipped = candidate.studio_graph
+    const structured = isObject(shipped.structured) ? shipped.structured : null
+    const documents = isObject(shipped.documents) ? shipped.documents : null
+    const bridge = isObject(shipped.bridge) ? shipped.bridge : null
+    if (!structured || !documents || !bridge) {
+      problems.push(
+        'studio_graph is present but is missing a lane — it must carry structured, documents and ' +
+          'bridge. Re-run "npm run ingest:capex-graph" rather than editing it by hand',
+      )
+    } else {
+      const refs = new Set([
+        ...(structured.tables ?? []).map((t) => t.table_ref),
+        ...(structured.columns ?? []).map((c) => c.column_ref),
+        ...(structured.concepts ?? []).map((c) => c.concept_ref),
+        structured.story_group?.story_group_id,
+        `story_group:${structured.story_group?.story_group_id}`,
+      ])
+      for (const edge of structured.edges ?? []) {
+        for (const [end, side] of [
+          [edge.src_ref, 'src_ref'],
+          [edge.dst_ref, 'dst_ref'],
+        ]) {
+          if (!refs.has(end)) {
+            problems.push(
+              `studio_graph.structured has a ${edge.edge_type} edge whose ${side} is "${end}", ` +
+                'which is not a node of this export — it would be drawn as nothing',
+            )
+          }
+        }
+      }
+
+      const entityIds = new Set((documents.entities ?? []).map((e) => e.entity_id))
+      for (const relation of documents.relations ?? []) {
+        for (const [end, side] of [
+          [relation.subject_entity_id, 'subject'],
+          [relation.object_entity_id, 'object'],
+        ]) {
+          if (!entityIds.has(end)) {
+            problems.push(
+              `studio_graph.documents has a relation whose ${side} is "${end}", which is not an ` +
+                'entity of this snapshot — it would be drawn as nothing',
+            )
+          }
+        }
+      }
+
+      const conceptRefs = new Set((structured.concepts ?? []).map((c) => c.concept_ref))
+      const entityTypes = new Set(documents.entity_types ?? [])
+      for (const link of bridge.type_links ?? []) {
+        if (!conceptRefs.has(link.concept_ref)) {
+          problems.push(
+            `studio_graph.bridge has a Type Link naming concept "${link.concept_ref}", which the ` +
+              'structured lane does not carry — the Bridge would draw a line from nothing',
+          )
+        }
+        if (!entityTypes.has(link.entity_type)) {
+          problems.push(
+            `studio_graph.bridge has a Type Link naming entity type "${link.entity_type}", which ` +
+              'the document lane does not carry',
+          )
+        }
+        if (!['identity', 'attribute', 'reject'].includes(link.decision)) {
+          problems.push(
+            `studio_graph.bridge has a Type Link whose decision is "${link.decision}" — the only ` +
+              'verdicts this app draws are identity, attribute and reject',
           )
         }
       }
@@ -13173,7 +13260,7 @@ const routes = [
         has_structured: lanes.hasStructured,
         has_documents: lanes.hasDocuments,
         document_count: lanes.documentCount,
-        structured_table_count: selectedTables(db, found.useCase).length,
+        structured_table_count: structuredTableCount(db, found.useCase),
       })
     },
   },

@@ -24,6 +24,7 @@
     "ingest:whatif": "node scripts/ingest-whatif.js",
     "ingest:reports": "node scripts/ingest-reports.js",
     "ingest:capex": "node scripts/ingest-capex-reports.js",
+    "ingest:capex-graph": "node scripts/ingest-capex-graph.js",
     "ingest:queries": "node scripts/ingest-queries.js",
     "scale:capex": "node scripts/scale-capex-reports.js",
     "narrow:capex": "node scripts/narrow-capex-reports.js",

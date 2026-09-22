@@ -7636,3 +7636,74 @@ control is drawn, and it does not fire on render.
 **The lesson is about ownership, not d3.** A control named for a whole surface has to reach every
 piece of state that surface is drawn from — and when those live in two places, the control composes
 them. Half of it is the shape that looks like nothing happening.
+
+---
+
+## A running mock server owns `db.json`, and it will overwrite a seed you just ran
+
+**Symptom** — `npm run ingest:capex-graph` reported writing 5 tables, 843 entities and 156 Type
+Links; seconds later the key was not in the file. Twice. Nothing errored, and the ingest's own
+output was correct each time.
+
+**Root cause** — a mock server holds the whole document **in memory** and every `commitDb` writes
+*all of it* back. So a server that started before the seed ran is holding a copy without the seed's
+key, and the next write from the app — deleting a use case, toggling a setting, saving a Playground
+row — rewrites the file from that copy. The seed is not corrupted, it is **replaced by an older
+document**, which is exactly the shape that leaves no error behind.
+
+**Fix** — none in the code; this is how the mock server is meant to work, and CLAUDE.md already
+states the flow (seed, check the diff, push). What was missing is the ordering that makes it safe:
+
+- **Stop the mock server, or accept that it will win.** A seed run against a live server is a race
+  the server usually wins, because it writes last.
+- **Restart it afterwards.** Until it does, the app is serving a document that has never heard of
+  the key, and the *next* write puts that back on disk.
+
+**Verifying around it** — the lane derivations are **pure**, which is what made this recoverable: the
+serving was checked by building the seeded document in memory and calling `studioLanes.js` directly,
+proving the code without depending on a file that was being rewritten underneath. That is the same
+property `verify:studio-lanes` and `verify:report-export` are built on, used for a debugging session
+rather than a preflight.
+
+**Guard** — documented, which is the weakest kind and the right one here: nothing in the code is
+wrong, and a lock on the file would break the one thing a mock server is for. The tell is a seed
+whose own output says it wrote and a `git diff` that says it did not.
+
+---
+
+## A shipped graph broke four `verify:studio-lanes` checks, and one of them was a real bug
+
+**Symptom** — CAPEX started serving its exported graph and `verify:studio-lanes` went from 0 failures
+to 4: the tables it derives were not the picks it admitted, five structured edges dangled, no
+document in the corpus was an entity of the lane, and 126 mentions pointed at entities the lane does
+not carry.
+
+**Root cause** — three of the four were **claims about the derivation** that a shipped lane
+legitimately breaks. A derived lane's tables *are* its picks; a shipped lane's are the tables that
+build ran over (5 against 18). A derived lane makes each document an entity of itself; a shipped
+snapshot states its documents and its extracted entities in two separate lists. And the dangling
+edges were a **spelling**: the export writes the story group's ref with a `story_group:` prefix on a
+COVERS edge and bare on the group itself.
+
+**The fourth was real.** `dgbMentions` was still derived from `document_extractions` — which names
+nodes of *this document's* canvas — while the entities came from the export, so every mention was an
+orphan. Nothing on screen would have thrown; the mention surface would simply have shown nothing for
+every entity.
+
+**Fix** — mentions are read off the shipped relations, which already state the three things a mention
+is (document, chunk, entity), with **no invented salience** where the derived path has a
+deterministic stand-in. The edge check was **widened** to accept both spellings rather than
+duplicated for the shipped path — one check over one fact. The two derivation claims are scoped with
+`if (!shipped)`, and the shipped path gets the claims that are about *it*: every Type Link resolves
+inside both lanes, every mention points at an entity the snapshot holds, and this app's `needsReview`
+rule agrees with the export's own `unreviewed_count`.
+
+**The lesson is about what a check is a claim about.** Three of those four would have been "fixed" by
+loosening them, and that would have thrown away a real guarantee for EPA to accommodate a feature
+CAPEX has. **Scope a rule to the path it is about; never weaken it to cover both.** The fourth is the
+reason the other three were worth reading carefully rather than waving through.
+
+**Guard** — the verifier itself, which ran in preflight and found all four before anything was
+looked at on screen; plus `check-docs` claims that the served document matches the export row for
+row, that every lane reader consults the shipped graph *and* falls back, and that the key has a merge
+rule and a boot check. Five claims, each break-tested.

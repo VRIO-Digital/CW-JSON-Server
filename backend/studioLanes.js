@@ -83,6 +83,35 @@ export function deriveLanes(doc, useCase) {
   }
 }
 
+/* ---------------- a shipped graph, where the dataset has one ---------------- */
+
+/**
+ * The built graph this dataset **ships**, or `null`.
+ *
+ * **A dataset that ships a real graph ships it; one that does not derives a coherent lane from what
+ * it holds.** That is the arrangement `tableDictionary` has with `synthesiseColumns` and
+ * `mailDocuments` has with its synthesiser, applied to the studio — and the reason is the same: a
+ * derivation is an honest stand-in for a measurement, never a replacement for one. CAPEX's is the
+ * export the real services produced (`npm run ingest:capex-graph`), so its canvas draws the nodes
+ * and edges a build actually landed rather than the shapes `sgbGraph` would compose from `projects`.
+ * EPA ships none and every figure it had is untouched.
+ *
+ * **It is the dataset's rather than a use case's**, exactly as `graph_studio.canvas` already is —
+ * one tenant, one built graph. What stays per use case is *which lanes it has*: `deriveLanes` still
+ * reads the brief's own source picks, so a use case with no document pick still gets no document
+ * lane, and the shipped one is what fills the lanes it does have.
+ */
+export function shippedGraph(doc) {
+  const shipped = doc?.studio_graph
+  return isObject(shipped) ? shipped : null
+}
+
+/** One lane of it, or `null` — so a reader asks for what it needs rather than for the whole thing. */
+const shippedLane = (doc, lane) => {
+  const shipped = shippedGraph(doc)
+  return shipped && isObject(shipped[lane]) ? shipped[lane] : null
+}
+
 /* ---------------- the structured lane ---------------- */
 
 /**
@@ -112,6 +141,25 @@ export function selectedTables(doc, useCase) {
   return out
 }
 
+/**
+ * How many tables this use case's structured lane **covers**, which is not always how many its picks
+ * admit.
+ *
+ * A dataset that ships a built graph ships the tables that build ran over — CAPEX's export names 5
+ * where its picks admit 18 — and the selector strip, the Build tab and the canvas all answer this
+ * one question. Counted here rather than at each of them, because that is how the strip came to say
+ * *18 tables* over a drawing of five.
+ *
+ * **`selectedTables` is untouched and still means what it meant**: which of this document's profiled
+ * tables the picks admit. That is the right answer for composing a query against `column_profiles`,
+ * which is why `/graph-questions/sql` still asks it rather than this.
+ */
+export function structuredTableCount(doc, useCase) {
+  const shipped = shippedLane(doc, 'structured')
+  if (shipped && Array.isArray(shipped.tables)) return shipped.tables.length
+  return selectedTables(doc, useCase).length
+}
+
 /** `<dataset>.<table>` — the key `column_profiles` is already keyed by, so the structured lane and
  *  the Data Catalog cannot come to disagree about which columns a table has. */
 export const tableRefOf = (row) => row.key
@@ -129,6 +177,12 @@ export const columnRefOf = (row, column) => `${row.key}.${column.column_id}`
  * wizard declared and one the extraction passes discovered, expressed against data this repo has.
  */
 export function conceptsFor(doc, useCase) {
+  /* The shipped lane's own concepts, so the Bridge's grid is put to the same twelve the canvas
+     draws — deriving a second set from the canvas would leave a correspondence naming a concept no
+     node on screen carries. */
+  const shipped = shippedLane(doc, 'structured')
+  if (shipped && Array.isArray(shipped.concepts)) return shipped.concepts
+
   const nodes = doc.graph_studio?.canvas?.nodes ?? []
   const declaredWords = new Set(
     [
@@ -166,6 +220,21 @@ export function conceptsFor(doc, useCase) {
  * would put an asserted relationship on the canvas that nothing measured.
  */
 export function sgbGraph(doc, useCase, buildId) {
+  /* Shipped wins, and only the build id is this server's: the rest is what the real builder
+     produced, and re-deriving any of it beside the export would be a second answer to what this
+     lane holds. */
+  const shipped = shippedLane(doc, 'structured')
+  if (shipped) {
+    return {
+      build_id: buildId,
+      tables: shipped.tables ?? [],
+      columns: shipped.columns ?? [],
+      concepts: shipped.concepts ?? [],
+      story_group: shipped.story_group ?? null,
+      edges: shipped.edges ?? [],
+    }
+  }
+
   const rows = selectedTables(doc, useCase)
   const concepts = conceptsFor(doc, useCase)
   const conceptByName = new Map(concepts.map((c) => [c.name.toLowerCase(), c]))
@@ -580,6 +649,9 @@ export function extractionsFor(doc, documentId) {
 }
 
 export function dgbEntities(doc, useCase) {
+  const shipped = shippedLane(doc, 'documents')
+  if (shipped && Array.isArray(shipped.entities)) return shipped.entities
+
   const documents = corpusDocuments(doc, useCase)
   const byNode = new Map()
 
@@ -645,6 +717,9 @@ export function dgbEntities(doc, useCase) {
  * credit the document lane with a relationship it never read.
  */
 export function dgbRelations(doc, useCase) {
+  const shipped = shippedLane(doc, 'documents')
+  if (shipped && Array.isArray(shipped.relations)) return shipped.relations
+
   const documents = corpusDocuments(doc, useCase)
   const entityIds = new Set(dgbEntities(doc, useCase).map((e) => e.entity_id))
   const out = []
@@ -688,8 +763,46 @@ export function dgbRelations(doc, useCase) {
   return out
 }
 
-/** One mention per extraction, which is what the map records: this document, this chunk, this node. */
+/**
+ * One mention per extraction, which is what the map records: this document, this chunk, this node.
+ *
+ * **Where the lane is shipped, the mentions are read off it**, because the alternative is an orphan:
+ * `document_extractions` names nodes of *this document's* canvas, and a shipped snapshot holds its
+ * own entities — so deriving here while the entities come from the export points every mention at
+ * something the lane does not carry. Found by `verify:studio-lanes`, which is what it is for.
+ *
+ * A shipped relation already states the three things a mention is: which document, which chunk, and
+ * which entity it named. Both ends count, because a relation asserts something about each. No
+ * salience is invented for them — the snapshot states none, and `null` is the honest answer where
+ * the derived path has a deterministic stand-in to fall back on.
+ */
 export function dgbMentions(doc, useCase) {
+  const shipped = shippedLane(doc, 'documents')
+  if (shipped && Array.isArray(shipped.relations)) {
+    const byType = new Map((shipped.entities ?? []).map((e) => [e.entity_id, e.entity_type]))
+    const seen = new Set()
+    const mentions = []
+    for (const relation of shipped.relations) {
+      for (const entityId of [relation.subject_entity_id, relation.object_entity_id]) {
+        const id = `mention:${relation.chunk_id}:${entityId}`
+        if (seen.has(id)) continue
+        seen.add(id)
+        mentions.push({
+          mention_id: id,
+          entity_id: entityId,
+          chunk_id: relation.chunk_id,
+          document_id: relation.document_id ?? null,
+          entity_type: byType.get(entityId) ?? 'Entity',
+          /* The snapshot states no salience. A number here would be this module scoring somebody
+             else's extraction, which is the one invention an evidence surface must not make. */
+          salience: null,
+          classes: relation.classes ?? [],
+        })
+      }
+    }
+    return mentions
+  }
+
   const out = []
   for (const row of corpusDocuments(doc, useCase)) {
     for (const extracted of extractionsFor(doc, row.document.document_id)) {
@@ -714,6 +827,8 @@ export function dgbMentions(doc, useCase) {
 
 /** The corpus's own document kinds — a real taxonomy this tenant filed by, not one invented here. */
 export function dgbClasses(doc, useCase) {
+  const shipped = shippedLane(doc, 'documents')
+  if (shipped && Array.isArray(shipped.classes)) return shipped.classes
   return [...new Set(corpusDocuments(doc, useCase).map((r) => r.document.doc_type).filter(Boolean))]
 }
 
@@ -774,6 +889,28 @@ export function chunkEvidence(doc, useCase, chunkId) {
  * a number invites being read as a measurement, and nothing measured this.
  */
 export function typeLinks(doc, useCase, bridgeBuildId) {
+  /*
+   * **A shipped Bridge is served as it was formed**, re-keyed to the build in hand.
+   *
+   * These rows carry what a derivation cannot: the model's own reasoning in prose, the verdict a
+   * person recorded against it, and who recorded it. Re-deriving beside them would put two accounts
+   * of one correspondence one screen apart — and the grid would be the same 12 × 13 either way,
+   * since `conceptsFor` and `dgbEntities` both serve the shipped lanes, so the only thing a
+   * derivation could add here is a worse reason.
+   *
+   * **`bridge_build_id` is this server's**, because a Bridge build is a run *this* process made and
+   * the decisions a reader records are keyed `bridgeBuildId:type_link_id`. Keeping the export's id
+   * would file every decision under a build this process never ran.
+   */
+  const shipped = shippedGraph(doc)?.bridge
+  if (shipped && Array.isArray(shipped.type_links)) {
+    return shipped.type_links
+      .map((link) => ({ ...link, bridge_build_id: bridgeBuildId }))
+      /* Low confidence first, exactly as the derived path orders it: attention goes where the
+         judgement was closest, and the ordering is the lane's rather than the edge's. */
+      .sort((a, b) => (a.confidence === b.confidence ? 0 : a.confidence === 'low' ? -1 : 1))
+  }
+
   const resolved = dgbEntities(doc, useCase).filter((e) => e.kind === 'resolved')
   /* Only the *resolved* entity types are bridged. A document's filing label ("Consent Decree") is a
      class the corpus files by, not a type of thing that could correspond to a warehouse concept, and
@@ -864,7 +1001,7 @@ export function studioUseCases(doc) {
       has_structured: lanes.hasStructured,
       has_documents: lanes.hasDocuments,
       document_count: lanes.documentCount,
-      structured_table_count: selectedTables(doc, useCase).length,
+      structured_table_count: structuredTableCount(doc, useCase),
       /* A use case is buildable once it has been committed. The reference filters its picker on a
          committed *version id* being truthy rather than on a status, for the reason its own comment
          gives — `undefined` is not `null`, and a row without a usable version reached the picker,
@@ -922,8 +1059,14 @@ export function sgbCounts(doc, useCase) {
 
 /** What a document build produced. */
 export function dgbCounts(doc, useCase) {
+  const shipped = shippedLane(doc, 'documents')
   return {
-    document_count: corpusDocuments(doc, useCase).length,
+    /* The corpus the shipped snapshot was built over, where there is one: counting this document's
+       drive instead would report a document total the entities beside it were not read from. */
+    document_count:
+      shipped && Array.isArray(shipped.documents)
+        ? shipped.documents.length
+        : corpusDocuments(doc, useCase).length,
     entity_count: dgbEntities(doc, useCase).length,
     relation_count: dgbRelations(doc, useCase).length,
     class_count: dgbClasses(doc, useCase).length,
