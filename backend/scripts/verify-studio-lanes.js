@@ -322,6 +322,15 @@ for (const file of ['db.json', 'db.CAPEX.json']) {
           links.filter(needsReview).length === (shipped.bridge?.counts?.needs_review ?? 0),
           `${links.filter(needsReview).length} to review`,
         )
+        /* **A shipped Bridge reaches the reviewer undecided**, whatever the export recorded: a
+           decision made in another system is not one this reader made, and a tab opening with
+           *Needs review (0)* credits them with judgements they never made. */
+        expect(
+          'and every shipped pair arrives as a proposal, so the whole queue is theirs to decide',
+          links.every((l) => l.decided_by === 'llm') &&
+            links.filter(needsReview).length === links.length,
+          `${links.length} pair(s), none pre-decided`,
+        )
         /* Re-keyed to the run in hand, or every decision a reader records is filed under a build
            this process never made. */
         expect(
@@ -336,10 +345,11 @@ for (const file of ['db.json', 'db.CAPEX.json']) {
           identity.every((l) => /resolved to a/.test(l.reason)),
           `${identity.length} identity link(s)`,
         )
-        /* Nothing is decided by the derivation: every row starts needing a person. */
+        /* Nothing is decided by the derivation: every row starts needing a person — rejects
+           included, since the gate covers every pair the deriver was put. */
         expect(
-          'every asserted correspondence starts undecided',
-          links.filter((l) => l.decision !== 'reject').every(needsReview),
+          'every pair starts undecided',
+          links.every(needsReview),
         )
       }
     }

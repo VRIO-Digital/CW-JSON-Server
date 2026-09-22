@@ -970,16 +970,27 @@ export function typeLinks(doc, useCase, bridgeBuildId) {
 /**
  * Does this Type Link still block publishing?
  *
- * **The criterion, and the whole of it:** it asserts a correspondence (`decision !== 'reject'`) and
- * no person has decided it (`decided_by === 'llm'`).
+ * **The criterion, and the whole of it: no person has decided it.** Every pair the deriver was put
+ * counts, rejects included.
  *
- * Rejects are excluded because publishing approves the correspondences a Bridge *asserts*, and a
- * reject asserts none. Confidence is excluded deliberately, and that is the load-bearing part: it is
- * the deriver's own self-report, so gating on it would let the deriver choose which rows a human is
- * obliged to look at — and a confidently-wrong `identity` link, the one that actually does damage,
- * would be exactly the row that escaped. Confidence *orders* the queue; it does not define it.
+ * **Rejects used to be excluded**, on the reasoning that publishing approves what a Bridge *asserts*
+ * and a reject asserts nothing. That is true of the *publication* and it was the wrong question to
+ * ask of the *review*: a decline is the deriver's proposal too, and "no correspondence here" is a
+ * claim a reviewer can disagree with — it is where a missed correspondence hides, which is why the
+ * Low confidence filter exists to reach one. **Changed on request**, so the queue is every pair and
+ * the two chips (*Needs review* and *All*) count the same set until somebody starts deciding.
+ *
+ * What it costs is stated rather than glossed: the gate is **wider** now, so a version cannot be
+ * published until a person has also confirmed every decline. *Accept all* is what makes that
+ * practical, and it is the same sweep it always was.
+ *
+ * Confidence is still excluded deliberately, and that is the load-bearing part: it is the deriver's
+ * own self-report, so gating on it would let the deriver choose which rows a human is obliged to
+ * look at — and a confidently-wrong `identity`, the one that actually does damage, would be exactly
+ * the row that escaped. Confidence *orders* the queue; it does not define it. Agreement is a
+ * decision, so a row leaves this set whether the person confirmed the verdict or changed it.
  */
-export const needsReview = (link) => link.decision !== 'reject' && link.decided_by === 'llm'
+export const needsReview = (link) => link.decided_by === 'llm'
 
 /* ---------------- the use cases the studio lists ---------------- */
 

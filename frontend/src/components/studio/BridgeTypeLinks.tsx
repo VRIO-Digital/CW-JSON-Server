@@ -69,9 +69,10 @@ const DECISION_OPTIONS = (['identity', 'attribute', 'reject'] as TypeLinkDecisio
  * identity link appears under both *Identity* and *Low confidence* — that is the point of it, and it
  * is the only way to reach a low-confidence **reject**, which is where a missed correspondence hides.
  *
- * `needs-review` selects by both: it asserts something *and* nobody has decided it. It is the publish
- * gate made visible, so it is the default while there is work — but never the only view, because the
- * record of what was considered is the other half of what this screen is for.
+ * `needs-review` selects on one thing: nobody has decided it. It is the publish gate made visible,
+ * so it is the default while there is work — but never the only view, because the record of what was
+ * considered is the other half of what this screen is for. It covers rejects, so before anybody
+ * decides anything it counts exactly what *All* does.
  */
 type Filter =
   | 'needs-review'
@@ -222,9 +223,10 @@ export default function BridgeTypeLinks({
     )
   }
 
-  /** Everything publishing approves — the denominator the review progress is measured against.
-   *  Rejects are excluded for the same reason the gate excludes them: they assert nothing. */
-  const corresponding = counts.identity + counts.attribute
+  /** Every pair put to the deriver — the denominator the review progress is measured against, and
+   *  the same set the *Needs review* chip counts, because the gate now covers rejects too. Measuring
+   *  progress over a narrower set than the gate blocks on is a bar at 100% over a refused publish. */
+  const corresponding = links.length
   const reviewed = corresponding - unreviewedCount
 
   return (
@@ -258,7 +260,17 @@ export default function BridgeTypeLinks({
                   cancelText="Cancel"
                   onConfirm={onAcceptAll}
                 >
-                  <Button size="small" loading={sweeping}>
+                  {/*
+                    * **Primary, like the row's own Accept**, because it is the same act at a
+                    * different scale — and with the gate covering every pair it is the act a reader
+                    * arrives to make. A default button beside a row of orange ones read as the
+                    * lesser control, which is the reverse of true here.
+                    *
+                    * It is not destructive and needs no danger tint: it records the verdict already
+                    * proposed on each row, every one keeps its own Reject as the way back, and the
+                    * `Popconfirm` states the count before anything is written.
+                    */}
+                  <Button size="small" type="primary" loading={sweeping}>
                     {`Accept all (${unreviewedCount})`}
                   </Button>
                 </Popconfirm>
@@ -266,8 +278,8 @@ export default function BridgeTypeLinks({
             </Space>
             <Text type="secondary" style={{ fontSize: 11.5 }}>
               {unreviewedCount === 0
-                ? 'Publishing is no longer blocked by review. Rejected pairs assert nothing and never needed a decision.'
-                : 'Publishing a version naming this Bridge is refused until every correspondence has been decided — accepting the derived verdict counts. Rejected pairs are not counted: they assert nothing.'}
+                ? 'Publishing is no longer blocked by review — every pair the deriver was put has somebody’s decision on it.'
+                : 'Publishing a version naming this Bridge is refused until every pair has been decided — accepting the derived verdict counts. Rejected pairs are counted too: a decline is the deriver’s proposal, and disagreeing with one is where a missed correspondence is found.'}
             </Text>
           </Space>
         </Card>
@@ -299,7 +311,7 @@ export default function BridgeTypeLinks({
             <Text type="secondary" style={{ fontSize: 12.5 }}>
               {`Nothing under this filter.${
                 active === 'needs-review'
-                  ? ' Every correspondence has been decided — nothing here is blocking a publish.'
+                  ? ' Every pair has been decided — nothing here is blocking a publish.'
                   : active === 'corresponding'
                     ? ' Every pair was rejected — the documents and this warehouse may simply describe different things.'
                     : ''

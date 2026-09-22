@@ -23,6 +23,12 @@
  * (the export states none, and the client's schema is nullable — writing it out says so rather
  * than leaving a reader of the document to wonder).
  *
+ * **And it strips the Bridge's attributions, keeping its verdicts.** The export records a review
+ * that happened somewhere else; a decision made in another system is not one this reader made, so
+ * every Type Link arrives as the deriver's proposal and the whole 156 reach the review queue. See
+ * the block that builds `proposals` for why that is the export's own model rather than a shape
+ * invented here.
+ *
  * **It refuses to write rather than landing a graph that draws wrong.** Six checks, and each one
  * guards something that fails *quietly* on the canvas: an edge whose endpoint is not a node is
  * skipped while drawing, which is the silent-dropped-edge bug `validateDb` already refuses for
@@ -196,36 +202,69 @@ for (const link of typeLinks) {
 }
 
 /*
- * **The export's own counts are held against its rows**, because a strip reporting a graph nobody
- * can see is the figure this repo refuses everywhere. `needs_review` is computed by *this app's*
- * rule rather than trusted: the gate that blocks publishing reads `decision !== 'reject' &&
- * decided_by === 'llm'`, and an export whose own count disagrees with that would leave the Bridge
- * tab saying one thing and the publish route another.
+ * **The verdicts are carried; the attributions are not.**
+ *
+ * The export records a review that happened **somewhere else** — 98 of its 156 rows carry a person's
+ * name and a timestamp, and all 98 of them agreed with the deriver. A decision recorded in another
+ * system is not a decision made here: this server keys a decision `bridgeBuildId:type_link_id` in
+ * its own memory, and the reviewer sitting in front of this Bridge has decided nothing. Shipping
+ * the attributions would open the tab with *Needs review (0)* and an unblocked Publish, crediting
+ * this reader with judgements they never made.
+ *
+ * So each row arrives as the deriver's **proposal**: the verdict it reached, `decided_by: 'llm'`,
+ * and nothing in the decided/original fields — `original_*` records what the deriver said *before a
+ * person overrode it*, and on an undecided row there is no override to record. Accepting one writes
+ * all of that, which is what *Accept all* is for.
+ *
+ * The export's own `decided_by` already draws this distinction: its 58 `llm` rows carry
+ * `original_decision: null` and no timestamp, which is exactly the shape written here — so this is
+ * the export's own model applied to every row rather than a shape invented for it.
+ */
+const proposals = typeLinks.map((link) => ({
+  ...link,
+  decided_by: 'llm',
+  original_decision: null,
+  original_confidence: null,
+  original_reason: null,
+  decided_by_user_id: null,
+  decided_at: null,
+}))
+
+/*
+ * **The counts are of the rows this server will serve**, not of the export's, because a strip
+ * reporting a graph nobody can see is the figure this repo refuses everywhere. `needs_review` is
+ * computed by *this app's* own rule rather than trusted: the gate that blocks publishing reads it,
+ * and a stored count disagreeing with it is a tab saying one thing and the publish route another.
  */
 const counted = {
-  identity: typeLinks.filter((t) => t.decision === 'identity').length,
-  attribute: typeLinks.filter((t) => t.decision === 'attribute').length,
-  reject: typeLinks.filter((t) => t.decision === 'reject').length,
-  low: typeLinks.filter((t) => t.confidence === 'low').length,
-  all: typeLinks.length,
-  needs_review: typeLinks.filter((t) => t.decision !== 'reject' && t.decided_by === 'llm').length,
+  identity: proposals.filter((t) => t.decision === 'identity').length,
+  attribute: proposals.filter((t) => t.decision === 'attribute').length,
+  reject: proposals.filter((t) => t.decision === 'reject').length,
+  low: proposals.filter((t) => t.confidence === 'low').length,
+  all: proposals.length,
+  needs_review: proposals.filter((t) => t.decided_by === 'llm').length,
 }
-for (const [key, mine] of Object.entries(counted)) {
-  const theirs = key === 'all' ? (bridge.total ?? bridge.counts?.all) : bridge.counts?.[key]
-  if (typeof theirs === 'number' && theirs !== mine) {
+if (counted.needs_review !== counted.all) {
+  die(
+    `${counted.all - counted.needs_review} row(s) arrived already decided, and every row is meant to ` +
+      'reach the reviewer as a proposal.\n  A Bridge that opens partly decided credits this reader ' +
+      'with judgements somebody else made.',
+  )
+}
+/* The verdicts themselves are still the export's, so a drifted tally is still a refusal. */
+for (const key of ['identity', 'attribute', 'reject', 'low']) {
+  const theirs = bridge.counts?.[key]
+  if (typeof theirs === 'number' && theirs !== counted[key]) {
     die(
-      `the export's bridge.counts.${key} says ${theirs} and its own rows say ${mine}.\n` +
+      `the export's bridge.counts.${key} says ${theirs} and its own rows say ${counted[key]}.\n` +
         '  One of the two is stale, and a count that disagrees with its rows is a strip reporting a ' +
         'graph nobody can see.',
     )
   }
 }
-if (typeof bridge.unreviewed_count === 'number' && bridge.unreviewed_count !== counted.needs_review) {
-  die(
-    `the export says ${bridge.unreviewed_count} correspondence(s) are unreviewed and this app's own ` +
-      `rule finds ${counted.needs_review}.\n  The Bridge tab and the publish route both read that ` +
-      'rule, so a disagreement here is a gate that opens on one screen and refuses on the other.',
-  )
+const total = bridge.total ?? bridge.counts?.all
+if (typeof total === 'number' && total !== counted.all) {
+  die(`the export says it holds ${total} Type Link(s) and carries ${counted.all}.`)
 }
 
 /* ---------------- what gets written ---------------- */
@@ -274,7 +313,7 @@ doc.studio_graph = {
   },
   bridge: {
     bridge_build_id: bridge.bridge_build_id ?? null,
-    type_links: typeLinks,
+    type_links: proposals,
     counts: counted,
   },
 }
@@ -304,7 +343,11 @@ console.log(
     `${entityTypes.length} type(s) · ${relations.length} relation(s) · ${classes.length} class(es)`,
 )
 console.log(
-  `    bridge      ${typeLinks.length} Type Link(s) — ${counted.identity} identity · ` +
-    `${counted.attribute} attribute · ${counted.reject} reject · ${counted.needs_review} to review`,
+  `    bridge      ${proposals.length} Type Link(s) — ${counted.identity} identity · ` +
+    `${counted.attribute} attribute · ${counted.reject} reject`,
+)
+console.log(
+  `                all ${counted.needs_review} arrive as the deriver's proposal, so the reviewer ` +
+    'decides every one (Accept all sweeps them)',
 )
 console.log(`  Push it when you are happy with the diff:  npm run db:push -- ${TARGET}`)
