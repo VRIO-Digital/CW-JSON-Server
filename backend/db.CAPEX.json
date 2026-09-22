@@ -26484,6 +26484,46 @@
   ],
   "graph_use_cases": [
     {
+      "use_case_id": "uc-test-muckin0u5",
+      "name": "test",
+      "status": "draft",
+      "domain_id": "capital-projects",
+      "business_need": "test",
+      "personas": [
+        {
+          "name": "Finance Executive",
+          "description": "Asks whether the authorized capital will actually be spent this year, and against which vintage.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Controller",
+          "description": "Asks whether the ledger and the plan agree, and where they do not.",
+          "source": "ai",
+          "origin": null
+        },
+        {
+          "name": "Project Manager",
+          "description": "Asks where a single project stands against its own plan.",
+          "source": "ai",
+          "origin": null
+        }
+      ],
+      "metrics": [],
+      "sources": [
+        {
+          "source_id": "bigquery:northline_epbcs",
+          "mode": "all",
+          "objects": []
+        }
+      ],
+      "hero_questions": [],
+      "gap_decisions": [],
+      "golden_query_files": [],
+      "step": 4,
+      "updated_at": "2026-09-22T11:05:55.816Z"
+    },
+    {
       "use_case_id": "uc-testdata-mu6tdwsy4",
       "name": "testdata",
       "status": "committed",

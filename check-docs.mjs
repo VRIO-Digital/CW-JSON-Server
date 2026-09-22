@@ -9004,32 +9004,26 @@ expect(
 /* Composed when a question is added rather than behind a second click: a reader who just accepted a
    question has already asked for it, and an empty box under every new row reads as a broken feature. */
 const heroStep = read('frontend/src/components/graph/HeroQuestionsStep.tsx')
-expect(
-  'the query is composed on add, and regenerating is the second act rather than the first',
-  /void writeSql\(text\)/.test(codeOnly(heroStep)) &&
-    /Regenerate the query for/.test(heroStep) &&
-    /No SQL yet — write your own or click regenerate\./.test(heroStep),
-  'an empty box under every new question would read as a feature that did not run',
-)
-
 /*
- * **The query gets its own line by the row wrapping, never by being a third column.** `.ng-sql`
- * asks for a whole line with a 100% basis, and a basis is only half the rule: in a flex row that
- * cannot wrap it stays beside the question and takes the width out of it, which collapses the
- * sentence to min-content and sets it one word per line. That shipped — the basis was written when
- * the query box was added and the wrap was not — and nothing failed, because a layout that is
- * merely wrong renders. `renderToString` measures nothing, so the rule itself is what is asserted.
+ * **The SQL box is gone from this step — removed on request — and the compose-on-add call that fed
+ * it is not.** A saved hero question's `sql` is read directly by Graph Studio's Playground ("Golden
+ * Queries") rather than re-composed there, so dropping the call along with the box would leave
+ * every question this step adds with no query for that tab to show — a regression on a screen this
+ * component never renders. Both halves in one claim, because either alone passes the wrong way: the
+ * call with no box left rendering it, or the box quietly back with nothing populating it.
  */
-const newGraphCss = read('frontend/src/pages/NewGraphPage.css')
-const cssBlock = (sheet, selector) => {
-  const at = sheet.indexOf(`${selector} {`)
-  return at === -1 ? '' : sheet.slice(at, sheet.indexOf('}', at))
-}
 expect(
-  'an added question wraps, so its query takes a line of its own rather than the question’s width',
-  cssBlock(newGraphCss, '.ng-question.is-added').includes('flex-wrap: wrap') &&
-    cssBlock(newGraphCss, '.ng-sql').includes('flex: 0 0 100%'),
-  'a full-width basis in a row that cannot wrap squeezes the question beside it to one word per line',
+  'the query is still composed on add with no box left to show it here',
+  /void writeSql\(text\)/.test(codeOnly(heroStep)) &&
+    !/ng-sql|Regenerate the query for|No SQL yet — write your own or click regenerate\./.test(
+      codeOnly(heroStep),
+    ),
+  'the box is gone; the compose-on-add call the Playground depends on is not',
+)
+expect(
+  'no `.ng-sql*` rule survives in the stylesheet either',
+  !/\.ng-sql\b/.test(codeOnly(read('frontend/src/pages/NewGraphPage.css'))),
+  'a rule with nothing left to style is an invitation for the box to come back',
 )
 
 /*

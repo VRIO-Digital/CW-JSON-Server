@@ -88,6 +88,29 @@ interface SuggestState {
 }
 
 /**
+ * Drops a later suggestion sharing an earlier one's name.
+ *
+ * **A suggestion is identified by name everywhere downstream.** `DraftedStep`'s `has()` and
+ * `HeroQuestionsStep`'s `has()` both test whether a suggestion is already accepted by comparing
+ * names — which is right, because that is what a metric, a persona or a hero question *is* to
+ * this app: `add()` already refuses a second item under a name the drafted list already holds.
+ * Two suggestion rows sharing one name are therefore never two things a reader could separately
+ * accept; they are one drafted item shown twice, and accepting the first was already marking the
+ * second "Accepted" by the very check meant to tell them apart — reported as accepting one
+ * suggestion causing another to show as accepted too. Deduplicating here, once, for all three
+ * pools this store serves, is what makes that check honest: one name, one row.
+ */
+const dedupeSuggestions = (suggestions: Suggestion[]): Suggestion[] => {
+  const seen = new Set<string>()
+  return suggestions.filter((s) => {
+    const key = s.name.trim().toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+/**
  * A suggester for one wizard step. Kept out of the use-case store because a
  * suggestion is not part of the draft until the user adds it — nothing here is
  * saved, and opening another use case clears it.
@@ -125,12 +148,14 @@ function createSuggestStore(
          * a earlier failed write is what this restores, so a fresh server row wins wherever
          * nothing local is pending for it.
          */
-        const suggestions = writer
-          ? result.suggestions.map((s) => {
-              const cached = cachedMetricEdit(s.id)
-              return cached ? { ...s, name: cached.name, detail: cached.detail } : s
-            })
-          : result.suggestions
+        const suggestions = dedupeSuggestions(
+          writer
+            ? result.suggestions.map((s) => {
+                const cached = cachedMetricEdit(s.id)
+                return cached ? { ...s, name: cached.name, detail: cached.detail } : s
+              })
+            : result.suggestions,
+        )
         set({
           suggestions,
           asked: true,

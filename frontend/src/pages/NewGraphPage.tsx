@@ -21,7 +21,7 @@ import {
   Typography,
   Upload,
 } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type {
   GapChoice,
@@ -81,6 +81,13 @@ import { appPath } from '../api/dataset'
  * pointing at a step the API would reject.
  */
 const LAST_STEP = 5
+
+/**
+ * How long attaching a document (or a batch of them) holds before it lands — the client-side
+ * exception `STEP_HOLD_MS` is, for the same reason: nothing here parses a file, so there is no
+ * request whose return could pace it. One hold per batch, not per file.
+ */
+const DOCUMENT_UPLOAD_MS = 10_000
 
 /*
  * What each step after Domain will collect. Step 1 is built; the rest are
@@ -269,6 +276,24 @@ export default function NewGraphPage() {
    * field for it, and inventing one here would silently drop on the next save.
    */
   const [attachedFiles, setAttachedFiles] = useState<string[]>([])
+  /*
+   * **Attaching is paced, not instant.** Nothing here parses a file or sends one anywhere — see
+   * above — so there is no request whose return could advance it, the one client-side exception
+   * this repo documents (the report prototype's Authoring steps keep the same reasoning): the
+   * alternative to a hold is a control that completes before the reader has seen it start.
+   * `DOCUMENT_UPLOAD_MS` covers the whole batch antd hands `beforeUpload` in one call, never one
+   * hold per file, so five documents dropped together still take one ten-second read rather than
+   * fifty seconds of them. The timer is cleared on unmount, so leaving the step mid-read cannot
+   * fire the attach into a component that is gone.
+   */
+  const [attaching, setAttaching] = useState(false)
+  const attachTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(
+    () => () => {
+      if (attachTimer.current) clearTimeout(attachTimer.current)
+    },
+    [],
+  )
   /*
    * What the step says it read out of those documents. Synthesised from the filename — nothing
    * opens the file, exactly as nothing parses a dictionary on the schema upload — so this is
@@ -983,14 +1008,29 @@ export default function NewGraphPage() {
               <Upload
                 multiple
                 showUploadList={false}
-                beforeUpload={(file) => {
-                  setAttachedFiles((prev) =>
-                    prev.includes(file.name) ? prev : [...prev, file.name],
-                  )
+                disabled={attaching}
+                beforeUpload={(file, fileList) => {
+                  /* antd calls this once per file in the batch, all sharing the same
+                     `fileList` — firing the hold on the last call is what makes five
+                     documents dropped together one ten-second read, not five. */
+                  if (file === fileList[fileList.length - 1]) {
+                    const names = fileList.map((f) => f.name)
+                    setAttaching(true)
+                    attachTimer.current = setTimeout(() => {
+                      setAttachedFiles((prev) => [
+                        ...prev,
+                        ...names.filter((n) => !prev.includes(n)),
+                      ])
+                      setAttaching(false)
+                      attachTimer.current = null
+                    }, DOCUMENT_UPLOAD_MS)
+                  }
                   return Upload.LIST_IGNORE
                 }}
               >
-                <Button icon={<UploadOutlined />}>Upload documents</Button>
+                <Button icon={<UploadOutlined />} loading={attaching}>
+                  {attaching ? 'Reading documents…' : 'Upload documents'}
+                </Button>
               </Upload>
               {attachedFiles.map((fileName) => (
                 <Tag

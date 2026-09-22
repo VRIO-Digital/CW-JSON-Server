@@ -1,4 +1,4 @@
-import { CheckOutlined, CloseOutlined, ReloadOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { CheckOutlined, CloseOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { Button, Checkbox, Input } from 'antd'
 import { useState } from 'react'
 import type { HeroQuestion, Suggestion } from '../../api/client'
@@ -42,12 +42,18 @@ export default function HeroQuestionsStep({
     questions: HeroQuestion[] | ((previous: HeroQuestion[]) => HeroQuestion[]),
   ) => void
   /**
-   * Compose the query for one question, or re-compose it.
+   * Compose the query for one question.
    *
    * Passed in rather than called here for the reason the suggester is: what this tenant's schema
    * holds is the page's to ask about, and a step that fetched for itself would be a second place
-   * deciding which use case is open. Resolves to the query, or to `null` where nothing matched — the
-   * box prints the empty state for that rather than a query naming a table this tenant may not have.
+   * deciding which use case is open. Resolves to the query, or to `null` where nothing matched.
+   *
+   * **This step no longer shows what it resolves to — removed on request — and still calls it.**
+   * A saved hero question's `sql` is read directly by Graph Studio's Playground ("Golden
+   * Queries"), never re-composed there, so dropping this call along with the box would leave
+   * every question this step adds with no query for that tab to show: a silent regression on a
+   * screen this component never renders. So composing on add stays exactly as before; only the
+   * reader's own view of the result, and the ability to edit or regenerate it here, are gone.
    */
   onWriteSql: (question: string) => Promise<{ sql: string | null; reason: string | null }>
   suggestions: Suggestion[]
@@ -70,13 +76,9 @@ export default function HeroQuestionsStep({
   const has = (text: string) =>
     questions.some((q) => q.text.toLowerCase() === text.trim().toLowerCase())
 
-  /** Which questions are mid-compose, so only their own box says so. */
-  const [writing, setWriting] = useState<Record<string, boolean>>({})
-  /** Why a question has no query, per question — the server's sentence, or null. */
-  const [sqlNote, setSqlNote] = useState<Record<string, string | null>>({})
-
   /**
-   * Compose the query for one question and put it on the row.
+   * Compose the query for one question and put it on the row — silently, for the Playground to
+   * read later. See `onWriteSql` above for why this still runs with no box left to show it.
    *
    * **Matched to the row by its text**, which is what identifies a question here — the list is keyed
    * on it and a question is refused as a duplicate on it. Re-read from the callback's own argument
@@ -84,22 +86,13 @@ export default function HeroQuestionsStep({
    * write onto the wrong row.
    */
   async function writeSql(text: string) {
-    setWriting((w) => ({ ...w, [text]: true }))
-    setSqlNote((n) => ({ ...n, [text]: null }))
-    try {
-      const out = await onWriteSql(text)
-      /* From what the list is *now*, never from what it was when this started — the reply lands a
-         second later, and by then the reader may have added another question or the add that
-         triggered this may not have been in the array this closure captured. */
-      onQuestions((previous) =>
-        previous.map((q) => (q.text === text ? { ...q, sql: out.sql } : q)),
-      )
-      /* Why there is no query, where there is none — printed in the box rather than thrown as a
-         toast, because it is a fact about *this* question and a toast outlives the row it is about. */
-      setSqlNote((n) => ({ ...n, [text]: out.sql === null ? out.reason : null }))
-    } finally {
-      setWriting((w) => ({ ...w, [text]: false }))
-    }
+    const out = await onWriteSql(text)
+    /* From what the list is *now*, never from what it was when this started — the reply lands a
+       second later, and by then the reader may have added another question or the add that
+       triggered this may not have been in the array this closure captured. */
+    onQuestions((previous) =>
+      previous.map((q) => (q.text === text ? { ...q, sql: out.sql } : q)),
+    )
   }
 
   function add(question: HeroQuestion) {
@@ -288,70 +281,12 @@ export default function HeroQuestionsStep({
                     ✕
                   </button>
                 </span>
-
                 {/*
-                  * The query this question would be answered by.
-                  *
-                  * **Editable, and what is typed wins.** It is composed from the profiled schema on
-                  * add, but a reader who rewrites it owns it from then on — which is why the query is
-                  * carried on the brief rather than re-derived when the step is re-opened, and why
-                  * regenerating is a button they press rather than something that happens under them.
+                  * **No SQL box here — removed on request.** The query is still composed on add and
+                  * carried on the question (`onWriteSql`'s own comment says why); this step simply no
+                  * longer shows or edits it, which is what took the "SQL" label, the regenerate
+                  * control and the textarea with it.
                   */}
-                <div className="ng-sql">
-                  <div className="ng-sql-head">
-                    <span className="ng-sql-label">SQL</span>
-                    <button
-                      type="button"
-                      className="ng-sql-regen"
-                      aria-label={`Regenerate the query for: ${q.text}`}
-                      disabled={writing[q.text]}
-                      onClick={() => void writeSql(q.text)}
-                    >
-                      <ReloadOutlined spin={writing[q.text]} />
-                    </button>
-                  </div>
-                  {writing[q.text] ? (
-                    <div className="ng-sql-generating">Generating…</div>
-                  ) : sqlNote[q.text] && !q.sql ? (
-                    /* Why this question has no query — the server's own sentence, in the box it is
-                       about. The reader can still type one over it, which is what the hint says. */
-                    <div className="ng-sql-note">
-                      {sqlNote[q.text]}
-                      <div className="ng-sql-note-hint">
-                        Write one yourself below, or regenerate after picking more tables.
-                      </div>
-                      <Input.TextArea
-                        className="ng-sql-box"
-                        value={q.sql ?? ''}
-                        autoSize={{ minRows: 2, maxRows: 14 }}
-                        placeholder="No SQL yet — write your own or click regenerate."
-                        onChange={(e) =>
-                          onQuestions((previous) =>
-                            previous.map((x) =>
-                              x.text === q.text ? { ...x, sql: e.target.value } : x,
-                            ),
-                          )
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <Input.TextArea
-                      className="ng-sql-box"
-                      value={q.sql ?? ''}
-                      autoSize={{ minRows: 2, maxRows: 14 }}
-                      /* The empty state says both ways out of it, because a reader looking at a blank
-                         box has no way to tell "nothing matched" from "nothing ran". */
-                      placeholder="No SQL yet — write your own or click regenerate."
-                      onChange={(e) =>
-                        onQuestions((previous) =>
-                          previous.map((x) =>
-                            x.text === q.text ? { ...x, sql: e.target.value } : x,
-                          ),
-                        )
-                      }
-                    />
-                  )}
-                </div>
               </div>
             ))
           )}
