@@ -89,4 +89,3 @@ export type LegendEntry = {
   count: number;
 };
 
-export type SidebarTab = "detail" | "model";

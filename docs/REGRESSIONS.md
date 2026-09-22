@@ -7414,3 +7414,137 @@ what a reader actually meets. It is broken by collapsing the shipped map back to
 
 *A shape that fits the only data you have is not a rule. It is a fact about that data, and it will be
 read as a rule by whoever ships the second dataset.*
+
+---
+
+## One build of a fresh use case minted two versions, so the Bridge offered "Publish v2" first time
+
+**Symptom** — the very first build of a two-lane use case left the Versions tab holding **two**
+unpublished rows — `v1` naming the structured build and the document graph, `v2` naming those plus
+the Bridge — and the Bridge tab's publish button read *Publish v2* before anybody had published
+anything. Reported from use. Polling harder made it worse: driving `reconcile` once a second against
+one run produced **three** (structured only, both lanes, both lanes + Bridge).
+
+**Root cause** — a two-lane run finishes in two moments and the studio refreshes at each.
+`reconcileVersions` names whatever has finished *at the moment it is called*, so the refresh that
+fires when the lanes settle recorded a version with `bridge_build_id: null`, and the refresh that
+fires when the formation lands had a different triple to name and minted a second. Both were
+correct in isolation; neither knew a third artifact was seconds away. A version is content-addressed
+and immutable, so the first could not grow the Bridge afterwards.
+
+**Fix** — `versionArtifactsInFlight` in `backend/server.js`: `reconcileVersions` returns `null`
+rather than minting while a Bridge is being formed over the pair now in hand, or while a lane of a
+two-lane use case whose run asked for a Bridge is still running. Nothing is lost — the refresh that
+watches the formation records it the moment it lands, naming all three, so the first version of a
+fresh use case is `v1` and it names the Bridge.
+
+**The condition reads a run that is *running*, never an artifact that is missing** — which is what
+keeps the hold from becoming a deadlock. Keyed on "the Bridge is absent", a failed lane or a Bridge
+that could not be formed would hold forever and no version could ever be recorded for that use case.
+A single-lane use case returns `false` immediately, because no Bridge is coming for it to wait on.
+
+**Guard** — mechanical, two claims, because either alone passes the wrong way: one asserts
+`reconcileVersions` consults the hold, the other slices `versionArtifactsInFlight` and asserts every
+branch tests a live `running` status and that a single-lane use case is let through. The hold alone
+would pass over a function that never releases; the conditions alone would pass with nothing calling
+them. Both were break-tested.
+
+**Also worth knowing** — the `POST …/graph-versions` route's 409 had one message for two facts.
+"Neither lane has finished a build, so build it first" is the wrong advice for a use case that is
+building, so it now says which of the two it found.
+
+---
+
+## Every metric on the Playground read "No SQL yet", because nothing ever composed one
+
+**Symptom** — the Playground's Metrics tab showed *No SQL yet — click edit to add it* under every
+metric, on a use case whose golden queries all carried a query. Reported from use. Following the
+instruction did not help either: editing a metric opens a box to type SQL into by hand, which is not
+what a reader wanting the query for a measure is asking for.
+
+**Root cause** — `sql` was on a metric at every layer (the brief's shape, the normaliser's `withSql`,
+the payload, the row) and **nothing wrote it**. A hero question is composed for when it is accepted on
+step 5 of New Graph; a metric accepted on step 4 has no such act, so the field could only ever be
+filled by somebody typing into it. A field carried by five layers with no writer looks exactly like a
+feature that is broken rather than one that was never finished.
+
+**Fix** — composed in `playgroundView` by `metricsWithSql`, over the same `questionSql` a hero
+question's query goes through.
+
+**It was a per-row compose button first, and that was the wrong shape** — reported immediately:
+*"in the golden queries how it was coming directly like that, in the metrics also it should come
+directly, no need of addition step icon to compose the query."* Quite right. A golden query's query
+is there because the wizard composed it on accept; a metric's being one press away is not the same
+feature, it is the same feature with a toll on it. The button, its route, its fetcher, its store
+action and its copy all went — **a control removed is everything that read it removed**.
+
+**One composer, not two.** The Playground states the metrics and the golden queries side by side, so
+a second composer would be two answers to what a query over this schema looks like, one tab apart —
+which is the second reader this repo refuses from `extractionsFor` to `publishedVersion`. Everything
+the question route guarantees therefore holds unchanged: every identifier is read from
+`column_profiles`, a metric nothing matches is `sql: null` with the reason rather than a plausible
+query, `degraded: true` says no model ran, the success is paced and the refusals are not.
+
+**Two things a metric needs that a question does not, and both are parameters rather than forks.**
+A question may legitimately want rows; a **metric is a measure**, so `defaultAggregate` supplies the
+aggregate where its own words name none — and only where a real measure column was matched, so a
+metric whose words reach only dimensions still projects rows rather than summing something that is
+not a number. And `subject` is the noun the refusals are written in: a metric told *"this question
+carries no words that name anything in the schema"* is being answered about something it is not. The
+`wrongStructuredOnly` rule, applied to a sentence.
+
+**Two rules the automatic fill has to keep, and both are asserted.** It composes **only where there
+is none** — a query the reader wrote is theirs, and re-deriving on every read would silently discard
+it, which is why the wizard carries its own on the brief rather than re-composing on load. And it
+**writes nothing**: this is the view, so a read that committed would be a write nobody asked for.
+The brief keeps `null` until a save carries the composed query back with the rest of the list.
+
+**Guard** — mechanical, four claims, each break-tested: the view composes through the hero question's
+own `questionSql` with both options rather than writing a second composer; it composes only where
+`sql` is absent and calls no `commitDb`; the fallback aggregate is gated on a measure being matched;
+and no layer of the retired compose control survives — no route, no fetcher, no store action, no
+prop, no copy — with the served reason still reaching the row in the same claim, because that is the
+half that had to survive. `renderToString` assertions cover the row, each paired with a positive
+assertion that the render had its data.
+
+**Also worth knowing** — one existing claim was keyed to the whole `questionSql(question, tables)`
+signature, so adding an options bag turned it red while the fact it guards was still true. It is
+keyed on the parameters now. *A claim must assert the fact, not the spelling* — the fourth time that
+has cost something here.
+
+---
+
+## The viewer's "How it's built" panel described a pipeline that had not run, over entities CAPEX has not got
+
+**Symptom** — none, which is the point. The Canvas tab's side panel offered *Inspect* and *How it's
+built*, and the second read as authoritative documentation of the graph beside it. **Removed on
+request.**
+
+**Root cause** — its copy was a reconstruction of one demo package's extraction passes: A-02 concept
+nomination naming Facility, Document, Manifest, Evaluation, Violation, Enforcement and Alias; A-04
+typing and identity via `REGISTRY_ID / PGM_SYS_ID`; Q40, Q59. Every word of it is about EPA. Under
+CAPEX — Projects, Contracts, Vendors, Change Orders, `plan_*` tables — it describes passes that did
+not run over entities that do not exist, in a panel one click from the drawing that disproves it.
+Authored prose asserting another tenant's graph is the transcribed-figure fault in words, and it is
+the one thing on that panel a reader could not check.
+
+**Fix** — the panel, its file, the `SidebarTab` union, the tab state in `App.tsx` and the tab bar are
+gone; the side panel is the Inspect panel. `.tabs`, `.tab` and `.tab.on` went with the bar.
+
+**The bar went rather than being left holding one tab**, and the CSS went with the bar: a control
+that switches to nothing is still a control, and a rule with nothing to style is an invitation for
+what it styled to come back — the rule `replaceLabel` and the sidebar's deleted persona line already
+follow.
+
+**Guard** — mechanical, one cross-layer claim, break-tested: the file is off disk, no layer names
+`SidebarTab` or `setTab`, no `.tabs` markup or `.tab` rule survives, **and `<InspectPanel` is still
+rendered** — "the file is gone" alone passes just as well if the whole side had gone with it.
+
+**Also worth knowing** — the claim had to `codeOnly` the Sidebar, because the docstring explaining
+the removal names the thing removed. That is the sixth time the self-documenting-file trap has cost
+a claim here. **Use `codeOnly` for every absence claim; assume it rather than discovering it.**
+
+**And this edits vendored code.** `frontend/src/graph-viewer/` was imported whole and is meant to be
+diffable against where it came from, so a change here is a decision rather than a tidy-up: the panel
+asserted something false about every tenant but one, which is worth the divergence. `check-docs`
+still asserts the folder's paths and its CSS scoping.

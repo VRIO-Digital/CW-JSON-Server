@@ -26484,7 +26484,7 @@
   ],
   "graph_use_cases": [
     {
-      "use_case_id": "uc-testdata-mu6tdwsy4",
+      "use_case_id": "uc-testdata-mucdxwu64",
       "name": "testdata",
       "status": "committed",
       "domain_id": "capital-projects",
@@ -26497,8 +26497,8 @@
           "origin": null
         },
         {
-          "name": "Compliance Lead",
-          "description": "Asks what the regulatory drivers oblige and what they cost.",
+          "name": "Rate-Case Lead",
+          "description": "Asks which assets will be in service in time for the next filing.",
           "source": "ai",
           "origin": null
         }
@@ -26512,32 +26512,11 @@
           "sql": null
         },
         {
-          "name": "Full Year Budget Variance",
-          "description": "Variance = [Forecast 6+6] - January_Calendarization Budget YTD",
+          "name": "Overrun amount one",
+          "description": "Overrun Amounts =\nVAR ExceptionCategories =\n    { \"Network blankets\", \"Lead Capex Budget Category\", \"Meter blankets\", \"Plant roll-up\" }\nVAR ExceptionActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[FY26 YearTotal Actual] ),\n        KEEPFILTERS ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories )\n    )\nVAR StandardActuals =\n    CALCULATE (\n        SUM ( 'EPBCS_DATA_2'[Inception to Date (ITD) Actuals] ),\n        KEEPFILTERS ( NOT ( 'EPBCS_DATA_2'[Budget Category] IN ExceptionCategories ) )\n    )\nRETURNVVVVV\n    ExceptionActuals + StandardActuals\n        - SUM ( 'EPBCS_DATA_2'[Most Recent Budget Plan in PeopleSoft (Value)] )",
           "source": "ai",
           "origin": null,
           "sql": null
-        },
-        {
-          "name": "Spend Against Authorised Envelope",
-          "description": "Committed plus actual spend on a capital project as a share of its authorised envelope.",
-          "source": "ai",
-          "origin": null,
-          "sql": null
-        },
-        {
-          "name": "Maintenance Cost per Unit (MCU)",
-          "description": "Total maintenance spend booked against a generating unit for a calendar month, divided by that unit's installed capacity.",
-          "source": "ai",
-          "origin": null,
-          "sql": null
-        },
-        {
-          "name": "dsfd",
-          "description": "fsdfsdf",
-          "source": "user",
-          "origin": null,
-          "sql": "dsfdsfdsfsdf"
         }
       ],
       "sources": [
@@ -26554,40 +26533,16 @@
       ],
       "hero_questions": [
         {
-          "text": "Can we accelerate FY27 work into FY26, and what does that collide with?",
-          "priority": "normal",
-          "source": "ai",
-          "sql": "SELECT `FY26 Working Forecast`, `FY26 Working Budget`, `FY27 Working Budget`, `Optimized FY27`, `FY26 Actual vs. FY26 Working Budget`, `Total Budget (Working)`\nFROM `plan`.`vw_project_plan_capex`\nLIMIT 1000"
-        },
-        {
-          "text": "What has the contractor told us about Quarrydown that isn't in the numbers?",
-          "priority": "normal",
-          "source": "ai",
-          "sql": "SELECT `Forecast Vintage`, COUNT(Entity) AS count_entity_count\nFROM `plan`.`plan_project_forecast`\nGROUP BY `Forecast Vintage`\nLIMIT 1000"
-        },
-        {
           "text": "Show me the change orders with the message that explains each one.",
-          "priority": "normal",
+          "priority": "high",
           "source": "ai",
           "sql": "SELECT `Phase Order`, Notes\nFROM `plan`.`plan_phase_dim`\nLIMIT 1000"
-        },
-        {
-          "text": "Which explanations came from correspondence rather than from a person?",
-          "priority": "normal",
-          "source": "ai",
-          "sql": "SELECT `Prepared By`, `Reviewed By`, Submitted, `Submitted On`, Comment, `Source System`\nFROM `plan`.`plan_project_forecast`\nLIMIT 1000"
-        },
-        {
-          "text": "dsfdsf",
-          "priority": "normal",
-          "source": "user",
-          "sql": "dfdsf"
         }
       ],
       "gap_decisions": [],
       "golden_query_files": [],
       "step": 5,
-      "updated_at": "2026-09-18T10:29:32.450Z"
+      "updated_at": "2026-09-22T08:14:56.390Z"
     }
   ],
   "graph_use_case_templates": [

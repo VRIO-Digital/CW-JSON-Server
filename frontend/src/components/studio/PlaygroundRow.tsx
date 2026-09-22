@@ -21,6 +21,7 @@ export default function PlaygroundRow({
   description,
   sql,
   noSql,
+  sqlNote,
   onEdit,
   onDelete,
   deleteConfirm,
@@ -34,6 +35,15 @@ export default function PlaygroundRow({
   description: string | null
   sql: string | null
   noSql: string
+  /**
+   * Why this row has no query, where the server said why.
+   *
+   * **Its own sentence, printed in the row it is about.** A metric's query is composed where the
+   * brief carries none, so a row with no query is one nothing in the profiled schema matched — and
+   * "no SQL yet" would describe that as something nobody had got round to. Optional, because a
+   * golden query's comes from the wizard and carries no reason.
+   */
+  sqlNote?: string | null
   onEdit: () => void
   onDelete: () => void
   deleteConfirm: string
@@ -56,15 +66,14 @@ export default function PlaygroundRow({
           </Typography.Paragraph>
         ) : null}
         {/*
-          * The query, or the sentence that says there is none and where to write one. **Never an
-          * empty code block** — a blank frame reads as a query that failed to load rather than as
-          * one nobody has written.
+          * The query, or the sentence that says there is none. **Never an empty code block** — a
+          * blank frame reads as a query that failed to load rather than as one nobody has written.
           */}
         {sql ? (
           <pre className="pg-row-sql">{sql}</pre>
         ) : (
           <Typography.Text type="secondary" italic className="pg-row-nosql">
-            {noSql}
+            {sqlNote ?? noSql}
           </Typography.Text>
         )}
       </div>

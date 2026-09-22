@@ -6215,6 +6215,43 @@ expect(
 )
 
 /*
+ * **One run is one version.** A two-lane run lands in two moments — both lanes complete, then the
+ * Bridge formed from them succeeds — and the studio refreshes at each, so recording at the first
+ * named two of the three artifacts and the second minted a *second* version naming all three. One
+ * build of a fresh use case therefore produced v1 without a Bridge and v2 with it, and the Bridge
+ * tab offered **Publish v2** the first time anybody built anything. Reported from use.
+ *
+ * Both halves are asserted, because either alone passes the wrong way: the hold would pass a
+ * function that never releases (no version could ever be recorded), and the release conditions
+ * would pass with nothing consulting them.
+ */
+expect(
+  'a version is not recorded while the run it would name is still in flight',
+  /if \(versionArtifactsInFlight\(useCase, sgb, dgb\)\) return null/.test(codeOnly(server)) &&
+    /function versionArtifactsInFlight\(/.test(server),
+  'recording mid-run names two of three artifacts and mints a second version a moment later',
+)
+expect(
+  'and only a run that is RUNNING holds it',
+  (() => {
+    const fn =
+      server.match(/function versionArtifactsInFlight\([\s\S]*?\r?\n}\r?\n/)?.[0] ?? ''
+    const code = codeOnly(fn)
+    /* A single-lane use case never waits, and every hold reads a live `running` status rather than
+       an absent artifact — so a failed lane or an unformed Bridge still leaves what did finish
+       recordable. */
+    return (
+      /!lanes\.hasStructured \|\| !lanes\.hasDocuments\) return false/.test(code) &&
+      /b\.status === 'running'/.test(code) &&
+      /sgbRun\.status === 'running'/.test(code) &&
+      /dgbRun\.status === 'running'/.test(code) &&
+      !/=== 'failed'/.test(code)
+    )
+  })(),
+  'a hold keyed on a missing artifact never releases, and no version could ever be recorded',
+)
+
+/*
  * **`both` refuses a studio write at the mutator, not at the container.** `readOnly` catches a write
  * that adds a row; it cannot catch one that mutates a row already inside the merge — and publishing
  * sets a field on the version object itself, which the merge holds by reference. That write would
@@ -6506,7 +6543,11 @@ const queriesPanel = read('frontend/src/components/studio/PlaygroundGoldenQuerie
 
 expect(
   'the Playground serves the brief’s own metrics and hero questions, not a copy',
-  /metrics: normalizeDrafted\(useCase\.metrics, \{ withSql: true \}\)/.test(server) &&
+  /* Still the brief's own rows, read through `metricsWithSql` — which normalises them exactly as it
+     always did and then fills in the query where there is none. The normaliser is what this claim is
+     about, so it is asserted where it now sits rather than at the view. */
+  /const metrics = normalizeDrafted\(useCase\.metrics, \{ withSql: true \}\)/.test(server) &&
+    /metrics: metricsWithSql\(useCase\)/.test(server) &&
     /golden_queries: normalizeQuestions\(useCase\.hero_questions\)/.test(server) &&
     /* And no second collection behind it: a `db` key of its own is exactly what would drift. */
     !/db\.playground|playground_metrics|playground_queries/.test(codeOnly(server)),
@@ -7496,6 +7537,37 @@ const viewerUnscoped = viewerCss
   .map((line) => line.slice(0, line.indexOf('{')).trim())
   .filter((sel) => sel && !sel.startsWith('@') && !/^(from|to|\d+%)$/.test(sel))
   .filter((sel) => !sel.split(',').every((one) => one.trim().startsWith('.cw-graph')))
+/*
+ * **The viewer's side panel has one panel and so no tab bar** — *How it's built* was **removed on
+ * request**, and its copy is the reason to be glad: it was a reconstruction of one package's
+ * extraction passes, naming Facility, Manifest, Evaluation, Violation, Enforcement and
+ * `REGISTRY_ID / PGM_SYS_ID`. Under CAPEX, whose graph holds Projects, Contracts, Vendors and Change
+ * Orders, it described a pipeline that had not run over entities that do not exist — authored prose
+ * asserting another tenant's graph, which is the transcribed-figure fault in words and the one thing
+ * on that panel a reader could not check against the drawing beside it.
+ *
+ * **Asserted at every layer at once**, because half a removal is what fails silently: a `SidebarTab`
+ * union with nothing switching on it, a `.tab` rule with no tab, or a tab bar left holding one tab
+ * are each a partial revival waiting to happen. The Inspect panel is asserted *present* in the same
+ * claim — "the file is gone" alone would pass just as well if the whole side had gone with it.
+ */
+/* Comments stripped, because the file's own docstring explains the removal by naming the thing
+   removed — the self-documenting-file trap this repo has now recorded six times. */
+const viewerSidebar = codeOnly(read('frontend/src/graph-viewer/components/Sidebar.tsx'))
+expect(
+  'the viewer\u2019s "How it\u2019s built" panel is gone at every layer, and Inspect is what the side is',
+  !existsSync(join(root, 'frontend/src/graph-viewer/components/ModelPanel.tsx')) &&
+    !/ModelPanel|SidebarTab|How it/.test(viewerSidebar) &&
+    !/SidebarTab/.test(read('frontend/src/graph-viewer/types.ts')) &&
+    !/SidebarTab|setTab/.test(codeOnly(read('frontend/src/graph-viewer/App.tsx'))) &&
+    /* The tab bar went with it rather than being left holding one tab, and its rules went with the
+       bar — a rule with nothing to style is an invitation for the control to come back. */
+    !/className="tabs"|\.cw-graph \.tab \{/.test(
+      viewerSidebar + codeOnly(read('frontend/src/graph-viewer/styles.css')),
+    ) &&
+    /<InspectPanel/.test(viewerSidebar),
+  'a union with nothing switching on it, or a rule with no control, is a partial revival waiting',
+)
 expect(
   'the vendored viewer stylesheet is scoped, so it cannot restyle the rest of the app',
   viewerCss.length > 0 &&
@@ -8454,13 +8526,88 @@ const questionSqlSrc = read('backend/questionSql.js')
 const questionSqlCode = codeOnly(questionSqlSrc)
 expect(
   'a hero question’s query is composed from the profiled schema, and refuses rather than guessing',
-  /export function questionSql\(question, tables\)/.test(questionSqlCode) &&
+  /* Keyed on the parameters rather than on the whole signature: the options bag the metric route
+     added made this a multi-line declaration, and a claim that fails on a rename while the fact it
+     guards is still true is how a real red claim comes to be ignored. */
+  /export function questionSql\([\s\S]{0,120}?question,[\s\S]{0,40}?tables/.test(questionSqlCode) &&
     /sql: null/.test(questionSqlCode) &&
-    /No profiled column matches this question/.test(questionSqlSrc) &&
+    /No profiled column matches this \$\{subject\}/.test(questionSqlSrc) &&
     !/SELECT \*/.test(questionSqlCode) &&
     /degraded: true/.test(server),
   'a plausible query over a table nobody has fails only when somebody runs it',
 )
+/*
+ * **A metric's query arrives with the metric, the way a hero question's does.**
+ *
+ * A question is composed for when it is accepted on step 5 of New Graph; a metric accepted on step 4
+ * had no such act, so `sql` was a field five layers carried and nothing ever wrote — every row on the
+ * Playground read *No SQL yet*. It is composed in `playgroundView` now, which is what makes the two
+ * lists on one screen behave alike: **no button, no second step.** A compose control was built first
+ * and removed on request for exactly that reason.
+ *
+ * **The same composer as a hero question's**, because two would be two answers to what a query over
+ * this schema looks like, one tab apart. Every rule that composer keeps holds: identifiers read from
+ * `column_profiles` for the tables this use case's picks admit, nothing matched is no query **with
+ * the reason**, and the two things a metric needs that a question does not are parameters rather than
+ * a fork — a metric is a **measure**, so its fallback aggregate applies where its own words name
+ * none, and the refusals are worded in its own noun.
+ */
+const metricsWithSqlFn =
+  server.match(/function metricsWithSql\([\s\S]*?\r?\n}\r?\n/)?.[0] ?? ''
+expect(
+  'a metric’s query is composed where the brief has none, by the hero question’s own composer',
+  /metrics: metricsWithSql\(useCase\)/.test(codeOnly(server)) &&
+    /questionSql\(text, tables, \{ defaultAggregate: 'SUM', subject: 'metric' \}\)/.test(
+      codeOnly(metricsWithSqlFn),
+    ) &&
+    /selectedTables\(db, useCase\)/.test(metricsWithSqlFn) &&
+    /* The name AND the definition: CAPEX's definitions are the finance team's own notation and
+       name more columns than a title does. */
+    /\[metric\.name, metric\.description\]/.test(codeOnly(metricsWithSqlFn)),
+  'a second composer is a second answer to what a query over this schema looks like',
+)
+expect(
+  'it composes only where there is none, and writes nothing',
+  /* A query a reader wrote is theirs: re-deriving on every read would discard what they typed,
+     which is why the wizard carries its own on the brief rather than re-composing on load. */
+  /if \(metric\.sql\) return \{ \.\.\.metric, sql_note: null \}/.test(codeOnly(metricsWithSqlFn)) &&
+    !/commitDb/.test(metricsWithSqlFn) &&
+    /* And the reason is served, so a row with no query says why rather than showing an empty state
+       a reader cannot act on. */
+    /sql_note: out\.sql === null \? \(out\.reason \?\? null\) : null/.test(
+      codeOnly(metricsWithSqlFn),
+    ) &&
+    /sql_note: nullable\(str\)/.test(client),
+  'composing over a reader’s own query discards it, and a read that commits is a write nobody asked for',
+)
+expect(
+  'and the fallback aggregate invents nothing — it applies only where a measure was matched',
+  /const fn = aggregateFor\(question\) \?\? \(measures\.length > 0 \? defaultAggregate : null\)/.test(
+    questionSqlCode,
+  ) &&
+    /defaultAggregate = null, subject = 'question'/.test(questionSqlCode),
+  'summing a column that is not a measure is the invented figure this module exists to refuse',
+)
+/*
+ * **And the compose control is gone at every layer**, because half a removal is the shape that fails
+ * silently: a button with no fetcher behind it, or copy naming a control that is not there, is the
+ * fault Gmail's removed name field left behind in the gate that still validated it.
+ */
+expect(
+  'no compose control survives the server composing it',
+  !/graph-metrics\/sql/.test(server) &&
+    !/metricSql/.test(client) &&
+    !/writeMetricSql|composingMetric/.test(read('frontend/src/store/studioStore.ts')) &&
+    !/onCompose|composeHint/.test(
+      read('frontend/src/components/studio/PlaygroundMetrics.tsx') +
+        read('frontend/src/components/studio/PlaygroundRow.tsx'),
+    ) &&
+    !/compose:|composed:/.test(read('frontend/src/data/playground.ts')) &&
+    /* The reason a row has none still reaches it, which is the half that had to survive. */
+    /sqlNote=\{metric\.sqlNote\}/.test(read('frontend/src/components/studio/PlaygroundMetrics.tsx')),
+  'copy for a control that does not exist is an invitation for the control to come back',
+)
+
 /*
  * **It reads the tenant's own words for a column, and a vocabulary for the reader's.**
  *

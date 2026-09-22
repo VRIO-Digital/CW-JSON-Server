@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { GraphCanvas } from './components/GraphCanvas'
 import { Sidebar } from './components/Sidebar'
 import { buildLegend, normalizeGraph } from './lib/graph'
-import type { RawGraph, SidebarTab } from './types'
+import type { RawGraph } from './types'
 import './styles.css'
 
 /**
@@ -43,7 +43,6 @@ export const GraphViewer = ({
   const [query, setQuery] = useState('')
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(() => new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [tab, setTab] = useState<SidebarTab>('detail')
 
   const toggleType = useCallback((type: string) => {
     setHiddenTypes((prev) => {
@@ -54,9 +53,10 @@ export const GraphViewer = ({
     })
   }, [])
 
+  /* Selecting no longer has a tab to switch back to: the side panel is the Inspect panel now that
+     "How it's built" is gone, so picking a node simply fills it. */
   const select = useCallback((nodeId: string | null) => {
     setSelectedId(nodeId)
-    if (nodeId) setTab('detail')
   }, [])
 
   return (
@@ -77,8 +77,6 @@ export const GraphViewer = ({
         graph={graph}
         byId={byId}
         selected={selectedId ? (byId.get(selectedId) ?? null) : null}
-        tab={tab}
-        onTabChange={setTab}
         onSelect={select}
       />
     </div>
