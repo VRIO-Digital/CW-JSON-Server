@@ -170,6 +170,7 @@ export default function GovernedArtifactCard({
             okText="Yes, unpublish"
             cancelText="Keep it"
             onConfirm={onUnpublish}
+            placement="topRight"
           >
             <Button size="small" danger loading={pending === artifact.artifactId}>
               Unpublish

@@ -1,6 +1,6 @@
 .app-content {
-  /* padding: var(--sp-7) var(--sp-7) var(--sp-9); */
-  padding: 2rem 13rem 2rem 2rem;
+  padding: var(--sp-7) var(--sp-7) var(--sp-9);
+
 }
 
 /* antd Layout.Header defaults to a tall dark bar — this is a compact light one. */

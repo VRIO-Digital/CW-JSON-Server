@@ -89,6 +89,7 @@ export default function PlaygroundRow({
           okText="Remove"
           okButtonProps={{ danger: true }}
           onConfirm={onDelete}
+          placement="topRight"
         >
           <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={busy} />
         </Popconfirm>

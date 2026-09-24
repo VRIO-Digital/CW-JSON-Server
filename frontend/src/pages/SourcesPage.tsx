@@ -216,6 +216,7 @@ export default function SourcesPage() {
               okText="Disconnect"
               cancelText="Keep connected"
               onConfirm={() => void handleDisconnect(row)}
+              placement="topRight"
             >
               <Button size="small" danger loading={pending === row.sourceId}>
                 Disconnect
@@ -228,6 +229,7 @@ export default function SourcesPage() {
             cancelText="Cancel"
             okButtonProps={{ danger: true }}
             onConfirm={() => void handleDelete(row)}
+            placement="topRight"
           >
             <Button size="small" danger loading={pending === row.sourceId}>
               Delete
