@@ -7765,3 +7765,57 @@ the old denominator gone rather than left beside it; `verify:studio-lanes` asser
 arrives as a proposal and that the app's rule and the stored count agree. All break-tested, plus the
 whole flow driven against a live server: opens 156/156, publish refused **409**, Accept all sweeps
 156, verdicts unchanged (12 identity · 86 attribute · 58 reject), publish **200**.
+
+## A tilted globe buries its far pole, whatever you do with the buttons
+
+**Symptom** — the Canvas tab's new Globe frame draws the structured lane as the upper hemisphere and
+the documents as the lower, revolved by two buttons. The promise the frame makes in its own note is
+that *not everything is in view at once — revolve to bring the rest round*. It was false for the
+document pole: no number of presses would ever bring those nodes to the front, and nothing said so.
+
+**Cause** — the revolve turns the sphere about its **polar axis**, and the tilt that makes the rim
+read as an ellipse rather than a flat line is applied *after* it. So a node's best possible depth over
+a whole turn is `cos(lat − TILT)`, a number the rotation cannot change: every degree of tilt buries a
+degree of the far cap permanently. At the tilt it was first written with (0.34 rad ≈ 19.5°) and a pole
+cap of 86°, the worst document node reached a depth of **−0.27** at its best — behind the ball at every
+one of the twelve positions.
+
+**Fix** — the two constants are chosen together rather than separately: `TILT = 0.26` and
+`POLE_CAP = 60°`, at which the worst-placed node reaches **+0.26**. The cap costs almost nothing
+because the latitude bands are distributed by *area* — `sin 60°` is 0.87, so 87% of each hemisphere
+stays in use, and the excluded caps are where an even spread puts fewest nodes anyway.
+
+**Guard** — mechanical, and it recomputes rather than pins: `check-docs` reads `TILT` and `POLE_CAP`
+out of the module and asserts `cos(POLE_CAP + TILT) > 0.2`, the way it recomputes the brand's contrast
+ratios rather than quoting them. A second claim asserts the tilt is still large enough for the rim to
+be an ellipse, so the two cannot be "fixed" by flattening the sphere. Break-tested both ways.
+
+**The lesson is the one this repo keeps relearning about geometry**: it was found by *running* the
+projection over a fabricated graph and asking whether each node ever came to the front, not by reading
+the code, where the maths looks right and the reachable band is nowhere written down.
+
+
+## And the same drawing stacked a fifth of its nodes on one meridian
+
+**Symptom** — found in the same run, at scale. A bridged document entity is placed at the meridian of
+the concept it corresponds with, so the seam edge is a short stitch across the rim instead of a chord
+through the middle of the ball. With the spread fixed at ±24°, a shipped graph — twelve concepts and
+eight hundred entities between them — put **204 of 860 nodes into one twelfth of the turn**. The
+sphere would have read as a handful of dense vertical stripes with empty sky between them.
+
+**Cause** — the spread was a constant, so it was right for a concept bridged to two entities and a
+wall for one bridged to seventy. Both are ordinary shapes for this data.
+
+**Fix** — the fan grows with the group (`SEAM_SPREAD_PER_NODE`), capped (`SEAM_SPREAD_MAX`) so it
+cannot wrap so far that the stitch stops reading as a join. Busiest twelfth went from 204 to **92**,
+against an even share of 72.
+
+**Guard** — an SSR smoke run over a graph at the shipped figures (860 nodes, 2,327 edges), asserting
+the busiest twelfth of the turn holds under 1.8× an even share. Not a `check-docs` claim: it is a
+property of the *output* at scale rather than of the source, which is the same reason
+`verify:studio-lanes` exists rather than a regex over `studioLanes.js`.
+
+**Both were invisible in the small case.** The fixture that every other check ran against — 35 nodes,
+a dozen stitches — spread fine and hid the far pole behind the fact that nobody counts twelve presses
+by hand. *A layout is a claim about every population, not the one in front of you.*
+

@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "description": "The single-page console. Every runtime dependency in this repo is here; the backend has none.",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -14,6 +16,7 @@
     "audit:fix": "npm audit fix",
     "bundle:web": "node scripts/bundle-web.mjs",
     "verify:studio-contract": "vite build --ssr contract.ts --outDir dist-ssr --logLevel warn && node dist-ssr/contract.js",
+    "verify:studio-force": "vite build --ssr force-verify.ts --outDir dist-ssr --logLevel warn && node dist-ssr/force-verify.js",
     "postinstall": "node scripts/audit-gate.mjs low"
   },
   "dependencies": {
@@ -25,7 +28,7 @@
     "react-router-dom": "^7.18.2",
     "zustand": "^5.0.14"
   },
-  "//overrides": "nanoid reaches us only as vite -> postcss -> nanoid, a build-time dependency, and GHSA-2v37-7h3g-55p8 needs a custom generator called with size 0 — which postcss never does. Pinned rather than allowlisted because a patched release exists: an override costs nothing and a waiver would sit in audit-gate admitting the next high finding on the same package.",
+  "//overrides": "nanoid reaches us only as vite -> postcss -> nanoid, a build-time dependency, and GHSA-2v37-7h3g-55p8 needs a custom generator called with size 0 \u2014 which postcss never does. Pinned rather than allowlisted because a patched release exists: an override costs nothing and a waiver would sit in audit-gate admitting the next high finding on the same package.",
   "overrides": {
     "nanoid": "^3.3.17"
   },

@@ -125,6 +125,7 @@ export default function EntityRelationshipsPanel({
                       onDelete(r.id)
                     }}
                     onCancel={(ev) => ev?.stopPropagation()}
+                    placement="topRight"
                   >
                     <Button
                       type="text"

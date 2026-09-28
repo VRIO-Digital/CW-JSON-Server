@@ -496,10 +496,16 @@ export default function DataModelTab({ sources, loading }: DataModelTabProps) {
    * Confirming a suggestion is what turns it into a declaration: it is written, and only then
    * dropped from the pending list — a failed confirm leaves the suggestion where it can be retried
    * rather than losing it.
+   *
+   * **Looked up in `pendingRelationships`, not the local `pending` array.** A row here is either a
+   * column-scan suggestion (local only) or a stored declaration nobody has accepted (server-held,
+   * `status: 'pending'` — see `declaredRelationshipsFrom`), and the merged list is what the dialog
+   * this is called from actually shows. Searching only the local array left a stored row's Confirm
+   * silently doing nothing, because it was never in it.
    */
   const confirmRelationship = async (id: string, edit?: RelationshipEdit) => {
     if (!selectedSource) return
-    const suggestion = pending.find((r) => r.id === id)
+    const suggestion = pendingRelationships.find((r) => r.id === id)
     if (!suggestion) return
 
     const resolved = edit

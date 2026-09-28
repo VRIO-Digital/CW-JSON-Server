@@ -115,6 +115,7 @@ export function GoldenQueriesPanel({
               okText="Remove"
               okButtonProps={{ danger: true }}
               onConfirm={() => onRemoveFile(file)}
+              placement="topRight"
             >
               <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={busy} />
             </Popconfirm>

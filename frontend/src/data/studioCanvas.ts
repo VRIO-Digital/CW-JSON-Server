@@ -187,11 +187,36 @@ export function fromCombined(input: {
   const sgb = input.structured ? fromSgbGraph(input.structured) : { nodes: [], links: [] }
   const dgb = fromDgbGraph(input.entities, input.relations)
 
+  return {
+    nodes: [...sgb.nodes, ...dgb.nodes],
+    links: [...sgb.links, ...dgb.links, ...bridgeLinks(sgb.nodes, input.entities, input.typeLinks)],
+  }
+}
+
+/**
+ * The Bridge's own claims, as edges from a document entity to the concept it corresponds with.
+ *
+ * **Exported, and the one definition of it**, because two frames draw it now: the flat combined
+ * canvas above and the globe, whose seam *is* this edge set. Two derivations of one correspondence
+ * set would be two answers to what the Bridge found, one frame apart — and the frame nobody is
+ * looking at is the one that goes wrong, which is the objection that keeps this studio to one
+ * viewer in the first place.
+ *
+ * **Only decided, non-reject links are drawn.** A reject asserts nothing, so drawing it would put a
+ * line on the canvas for a correspondence somebody declined; and an undecided row is a *proposal*,
+ * which is the one thing a reviewer must not mistake for a fact — it stays off the drawing until the
+ * Bridge tab has been through.
+ */
+export function bridgeLinks(
+  sgbNodes: RawNode[],
+  entities: DgbEntity[],
+  typeLinks: TypeLink[],
+): RawLink[] {
   const conceptByName = new Map(
-    sgb.nodes.filter((n) => n.type === 'Concept').map((n) => [n.label.toLowerCase(), n.id]),
+    sgbNodes.filter((n) => n.type === 'Concept').map((n) => [n.label.toLowerCase(), n.id]),
   )
   const entitiesByType = new Map<string, string[]>()
-  for (const entity of input.entities) {
+  for (const entity of entities) {
     const key = entity.resolvedType ?? entity.entityType
     const list = entitiesByType.get(key) ?? []
     list.push(entity.entityId)
@@ -199,14 +224,14 @@ export function fromCombined(input: {
   }
   /* The lane derives an entity's type from the extractor and its resolved type from the graph, so a
      Type Link's `entityType` may name either. Both are looked up rather than one being assumed. */
-  for (const entity of input.entities) {
+  for (const entity of entities) {
     const list = entitiesByType.get(entity.entityType) ?? []
     if (!list.includes(entity.entityId)) list.push(entity.entityId)
     entitiesByType.set(entity.entityType, list)
   }
 
   const bridge: RawLink[] = []
-  for (const link of input.typeLinks) {
+  for (const link of typeLinks) {
     if (link.decision === 'reject') continue
     if (link.decidedBy === 'llm') continue
     const conceptId = conceptByName.get(link.conceptName.toLowerCase())
@@ -221,8 +246,5 @@ export function fromCombined(input: {
     }
   }
 
-  return {
-    nodes: [...sgb.nodes, ...dgb.nodes],
-    links: [...sgb.links, ...dgb.links, ...bridge],
-  }
+  return bridge
 }

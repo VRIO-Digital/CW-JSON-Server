@@ -100,8 +100,12 @@ export const confidenceLabel = (r: { evidenceKind?: string }): string =>
 /**
  * One relationship as every surface here works with it.
  *
- * A `confirmed` one is a stored declaration and `id` addresses it (see `declaredRelationshipId`); a
- * `pending` one is an unaccepted suggestion living only in component state.
+ * A `confirmed` one has been **accepted** — `confirmedBy` is set — and `id` addresses a stored
+ * declaration either way (see `declaredRelationshipId`). A `pending` one is everything nobody has
+ * accepted yet, whether it is a column-scan suggestion living only in component state, or a
+ * declaration already sitting in the document with `confirmed_by: null` — the two are judged
+ * differently (`provenance`), but neither is a decision anybody has made, so both queue for review
+ * the same way.
  */
 export interface DeclaredRelationship {
   id: string
@@ -117,7 +121,8 @@ export interface DeclaredRelationship {
   cardinalityKind: CardinalityKind
   /** The declarer's business rationale, carried onto every edge the declaration produces. */
   rationale: string
-  /** Whether it is stored in the document, or only suggested. Not the same as *accepted*. */
+  /** Whether anybody has accepted it. A stored-but-unaccepted declaration is `pending`, same as a
+      suggestion nobody has confirmed — see the interface note above. */
   status: 'confirmed' | 'pending'
   /**
    * Where this came from, which is **not** the same question as `status`.
@@ -262,7 +267,19 @@ export function declaredRelationshipsFrom(
         cardinality: CARDINALITY_LABELS[kind],
         cardinalityKind: kind,
         rationale: item.rationale,
-        status: 'confirmed',
+        /*
+         * **Stored is not confirmed, and `status` is where that now shows.** It used to be the
+         * literal `'confirmed'` for every stored declaration, which is the same conflation
+         * `provenance` was fixed for two paragraphs up — being in the document *was* being
+         * confirmed. That made a source that ships fifty unaccepted declarations read "0
+         * relations" on the strip while the table list's pill and the canvas edge both drew every
+         * one of them as *confirmed* (a green check, a solid line) — a contradiction visible on
+         * one screen. An unaccepted declaration is exactly what a suggestion is: something this
+         * server is putting to a reviewer. So it counts as `pending` here too, sits in the
+         * *suggested, pending* tile and its dialog, draws as a dashed edge, and only becomes
+         * `confirmed` — tile, pill, solid edge — once `confirmedBy` is set by an Accept.
+         */
+        status: confirmedBy ? 'confirmed' : 'pending',
         provenance: confirmedBy ? 'human' : 'derived',
         evidence: confirmedBy
           ? `your declaration${compositeNote}`

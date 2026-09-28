@@ -1,0 +1,359 @@
+/*
+ * The sphere frame — the same night palette Graph Studio's other canvas (`graph-studio-2`) uses,
+ * so the two don't read as two different products. Structural spacing is still the `--sp-*` scale,
+ * like everything authored in this repo; only the colour tokens below are new, scoped under `.gl`
+ * so they cannot leak onto the rest of a light-themed page.
+ *
+ * Nothing here sizes the sphere: the radius is measured from the stage and applied in the
+ * projection, so this file styles the marks and the chrome and never the geometry.
+ */
+
+.gl {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: stretch;
+
+  /* Ground — the night sky the sphere sits in. */
+  --gl-ground: #0b0f18;
+  --gl-ground-mid: #070a11;
+  --gl-ground-deep: #04060b;
+
+  /* Text — warm off-white, never pure white, which glares on near-black and competes with the
+     lights on the sphere itself. */
+  --gl-ink: #e8e2d6;
+  --gl-ink-dim: #9aa0ac;
+  --gl-ink-faint: #6b7280;
+  --gl-ink-halo: #080b12;
+
+  /* Edges with no lane of their own to be coloured by. */
+  --gl-edge-idle: #8d97ab;
+
+  /* One hemisphere, one family: structured reads cool (mercury blue), documents warm (violet) —
+     the mix real aerial night photography has, carried over from the flat force-graph's six-family
+     palette rather than invented fresh for this frame. */
+  --gl-structured: #79b8ff;
+  --gl-structured-ring: #bcdcff;
+  --gl-documents: #ab8dff;
+  --gl-documents-ring: #d8c8ff;
+
+  /* The Bridge's own warm glow — amber sodium-light, the strongest mark on the drawing because a
+     decided correspondence is the whole point of a merged canvas. */
+  --gl-bridge: #ffd88a;
+  --gl-bridge-ink: #e0913f;
+}
+
+.gl-stage {
+  position: relative;
+  flex: 1;
+  /* The drawing is measured from this box, so it must be able to be smaller than its content —
+     without this a flex child refuses to shrink below the svg it holds and the measurement only
+     ever grows. */
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(232, 226, 214, 0.1);
+  border-radius: var(--radius-card);
+  /* Deliberately CSS and not an SVG rect, so the ground never scales with the viewBox — it is the
+     sky the sphere sits in, not part of the drawing itself. */
+  background: radial-gradient(
+    120% 95% at 50% 45%,
+    var(--gl-ground) 0%,
+    var(--gl-ground-mid) 55%,
+    var(--gl-ground-deep) 100%
+  );
+}
+
+.gl-svg {
+  display: block;
+  cursor: default;
+}
+
+/* The limb: the sphere's own outline, which is what closes the two halves into one body. */
+.gl-limb {
+  fill: none;
+  stroke: rgba(232, 226, 214, 0.14);
+  stroke-width: 1;
+}
+
+.gl-glass {
+  fill: var(--gl-ground);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.gl-wire path {
+  fill: none;
+  stroke: rgba(232, 226, 214, 0.08);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+/* The rim is the seam between the lanes, so it is the one line on the drawing with weight of its
+   own — near half solid, far half dashed, which is the whole of the depth cue. */
+.gl-rim {
+  fill: none;
+  stroke: rgba(232, 226, 214, 0.32);
+  pointer-events: none;
+}
+
+.gl-rim-near {
+  stroke-width: 1.4;
+}
+
+.gl-rim-far {
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.5;
+}
+
+.gl-arc {
+  fill: none;
+  pointer-events: none;
+}
+
+/* Dashed as well as branded: a correspondence is a claim of a different kind from a lane's own
+   edge, and state is never colour alone here. */
+.gl-arc-bridge {
+  stroke-dasharray: 5 3;
+}
+
+.gl-node {
+  cursor: pointer;
+}
+
+/* The warm bloom every node carries — the haze the whole scene is seen through, so it is the same
+   warm hue for every hemisphere rather than changing with the node's own colour. */
+.gl-node-halo {
+  pointer-events: none;
+}
+
+.gl-node-seam {
+  fill: none;
+  stroke: var(--gl-bridge);
+  stroke-width: 1.4;
+  pointer-events: none;
+}
+
+.gl-node-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: var(--gl-ink);
+  paint-order: stroke;
+  stroke: var(--gl-ink-halo);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.gl-pole {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.gl-legend {
+  position: absolute;
+  top: var(--sp-3);
+  left: var(--sp-3);
+  width: 216px;
+  padding: var(--sp-3);
+  border: 1px solid rgba(232, 226, 214, 0.12);
+  border-radius: var(--radius-inner);
+  background: rgba(11, 15, 24, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.gl-legend-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 2px 0;
+  font-size: 12px;
+}
+
+.gl-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.gl-swatch-bridge {
+  border-radius: 2px;
+  height: 3px;
+  width: 14px;
+}
+
+.gl-legend-name {
+  flex: 1;
+  color: var(--gl-ink);
+}
+
+.gl-legend-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--gl-ink-dim);
+}
+
+.gl-legend-note {
+  margin: var(--sp-2) 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--gl-ink-faint);
+}
+
+.gl-controls {
+  position: absolute;
+  left: 50%;
+  bottom: var(--sp-4);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2);
+  border: 1px solid rgba(232, 226, 214, 0.12);
+  border-radius: 999px;
+  background: rgba(11, 15, 24, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+/* The rotate buttons and their tooltip stay on antd's own tokens (`theme.ts`), never the night
+   palette — they sit on the app's card surface as much as on the sphere, and the style guide this
+   canvas is matched to draws that same line: the controls follow the app theme, the drawing follows
+   the night. */
+
+.gl-bearing {
+  min-width: 42px;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gl-ink-dim);
+}
+
+.gl-hint {
+  position: absolute;
+  left: var(--sp-3);
+  bottom: var(--sp-2);
+  font-size: 11px;
+  color: var(--gl-ink-faint);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.gl-inspect {
+  width: 280px;
+  flex: none;
+  padding: var(--sp-4);
+  border: 1px solid rgba(232, 226, 214, 0.1);
+  border-radius: var(--radius-card);
+  background: radial-gradient(
+    140% 100% at 30% 0%,
+    var(--gl-ground-mid) 0%,
+    var(--gl-ground-deep) 100%
+  );
+  overflow-y: auto;
+}
+
+.gl-inspect-type {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gl-inspect-name {
+  margin: var(--sp-1) 0 var(--sp-3);
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--gl-ink);
+}
+
+.gl-inspect-facts {
+  margin: 0;
+  font-size: 12px;
+}
+
+.gl-inspect-facts > div {
+  display: flex;
+  gap: var(--sp-2);
+  padding: 2px 0;
+}
+
+.gl-inspect-facts dt {
+  width: 84px;
+  flex: none;
+  color: var(--gl-ink-faint);
+}
+
+.gl-inspect-facts dd {
+  margin: 0;
+  /* Without this a long provenance string stretches the panel instead of wrapping inside it. */
+  min-width: 0;
+  word-break: break-word;
+  color: var(--gl-ink);
+}
+
+.gl-inspect-detail {
+  margin: var(--sp-3) 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--gl-ink-dim);
+}
+
+.gl-inspect-rel {
+  list-style: none;
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+}
+
+.gl-inspect-rel li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: 3px 0;
+  font-size: 12px;
+}
+
+.gl-rel-kind {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: var(--gl-ink-faint);
+  white-space: nowrap;
+}
+
+.gl-rel-bridge {
+  color: var(--gl-bridge-ink);
+}
+
+.gl-inspect-rel button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gl-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gl-inspect-rel button:hover {
+  text-decoration: underline;
+  color: var(--gl-structured-ring);
+}
+
+.gl-inspect-empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--gl-ink-faint);
+}
+
+/* Narrow: the inspect panel goes under the sphere rather than squeezing it — a stage this drawing
+   cannot be read at is worse than a panel that has moved. */
+@media (max-width: 1100px) {
+  .gl {
+    flex-direction: column;
+  }
+
+  .gl-inspect {
+    width: auto;
+  }
+}

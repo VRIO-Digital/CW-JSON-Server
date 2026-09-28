@@ -180,6 +180,7 @@ function SavedUseCases({
                       okText="Delete"
                       okButtonProps={{ danger: true }}
                       onConfirm={() => onDelete(u)}
+                      placement="topRight"
                     >
                       <Button
                         size="small"
